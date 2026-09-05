@@ -59,7 +59,7 @@ describe('isKernelMutationStep', () => {
         expect(isKernelMutationStep(step)).toBe(false)
     })
 
-    it('accepts addCrossingPort and removeCrossingPort steps (PV1-3)', () => {
+    it('accepts addCrossingPort and removeCrossingPort steps', () => {
         const addStep: KernelStep = {
             kind: 'addCrossingPort',
             hostId: roomId,

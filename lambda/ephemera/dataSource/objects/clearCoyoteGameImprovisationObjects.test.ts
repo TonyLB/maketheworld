@@ -21,7 +21,7 @@ const OBJECT_ROOM = 'OBJECT#RoomProp' as EphemeraObjectId
 const OBJECT_HELD = 'OBJECT#HeldProp' as EphemeraObjectId
 
 /**
- * PV1-3c's phase-1 dissolve pass needs `getMembershipContainers`/`getGraph` --- none of these
+ * The phase-1 dissolve pass needs `getMembershipContainers`/`getGraph` --- none of these
  * fixtures carry any relational edges, so it always finds zero chains to dissolve, but the
  * defaults reach real gateways (`internalCache.Positions.*`) if left unset, which times out
  * against a real AWS call in a unit test. `getGraph` returning an empty graph for anything not
@@ -180,7 +180,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         expect(applyClearMembershipImpl).toHaveBeenCalledTimes(2)
     })
 
-    it("PV1-3c: a batch clear dissolves a crossing spanning two of its own objects in one phase-1 transact, before either object's own removal --- the room-side object never independently identifies the crossing-port-owning object's own graph", async () => {
+    it("a batch clear dissolves a crossing spanning two of its own objects in one phase-1 transact, before either object's own removal --- the room-side object never independently identifies the crossing-port-owning object's own graph", async () => {
         const STRING_ID = 'OBJECT#String' as EphemeraObjectId
         const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
         const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId

@@ -54,7 +54,7 @@ const resolveSingleObjectId = (
 }
 
 /**
- * PV1-2 client wiring: `On` is a rehost carrying a containment argument, not a peer
+ * Client wiring: `On` is a rehost carrying a containment argument, not a peer
  * relational edge, so it does not go through `compileRelationalFromSkeleton.ts`'s
  * Grounding/Expansion/Validation (those solve peer-relation-specific problems --- candidate
  * combinations, same-host boundary legality --- that don't apply to a rehost). This resolves
@@ -66,7 +66,7 @@ const resolveSingleObjectId = (
  *
  * Scope cuts, deliberate: multi-candidate (ambiguous) resolution errors out rather than
  * disambiguating; `In`/`PartOf` never reach this function (parseCommand.ts still hard-errors
- * them before this point) --- PV-1 builds one hosting kind.
+ * them before this point) --- only one hosting kind is built.
  */
 export async function compileObjectRehostFromSkeleton(
     input: CompileObjectRehostFromSkeletonInput,

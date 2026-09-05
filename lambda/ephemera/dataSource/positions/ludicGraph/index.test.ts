@@ -116,6 +116,92 @@ describe('EphemeraLudicGraph', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, ports: [], nodes: [objectNode(OBJECT_A)], edges: [] })
             expect(graph.objectIds).toEqual(new Set([OBJECT_A]))
         })
+
+        const CHILD_ROOM_ID = 'ROOM#Nested' as EphemeraRoomId
+        const CHILD_FEATURE_ID = 'FEATURE#Nested' as EphemeraFeatureId
+
+        it('addRoom appends new node (RD-4, presenceRefactor step 3)', () => {
+            const graph = EphemeraLudicGraph.empty(AREA_HOST_ID)
+            expect(graph.addRoom(CHILD_ROOM_ID).toStored().nodes).toEqual([
+                areaNode(AREA_HOST_ID),
+                roomNode(CHILD_ROOM_ID),
+            ])
+        })
+
+        it('addRoom is idempotent when room already present', () => {
+            const graph = EphemeraLudicGraph.fromFieldPayload(AREA_HOST_ID, {
+                rootId: AREA_HOST_ID, ports: [], nodes: [areaNode(AREA_HOST_ID), roomNode(CHILD_ROOM_ID)], edges: [],
+            })
+            expect(graph.addRoom(CHILD_ROOM_ID)).toBe(graph)
+        })
+
+        it('roomIds returns set of room universal keys', () => {
+            const graph = EphemeraLudicGraph.fromFieldPayload(AREA_HOST_ID, {
+                rootId: AREA_HOST_ID, ports: [], nodes: [areaNode(AREA_HOST_ID), roomNode(CHILD_ROOM_ID)], edges: [],
+            })
+            expect(graph.roomIds).toEqual(new Set([CHILD_ROOM_ID]))
+        })
+
+        it('addFeature appends new node (RD-4, presenceRefactor step 3)', () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID)
+            expect(graph.addFeature(CHILD_FEATURE_ID).toStored().nodes).toEqual([
+                roomNode(HOST_ID),
+                featureNode(CHILD_FEATURE_ID),
+            ])
+        })
+
+        it('addFeature is idempotent when feature already present', () => {
+            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
+                rootId: HOST_ID, ports: [], nodes: [roomNode(HOST_ID), featureNode(CHILD_FEATURE_ID)], edges: [],
+            })
+            expect(graph.addFeature(CHILD_FEATURE_ID)).toBe(graph)
+        })
+
+        it('featureIds returns set of feature universal keys', () => {
+            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
+                rootId: HOST_ID, ports: [], nodes: [roomNode(HOST_ID), featureNode(CHILD_FEATURE_ID)], edges: [],
+            })
+            expect(graph.featureIds).toEqual(new Set([CHILD_FEATURE_ID]))
+        })
+
+        it('removeRoom throws RelationalEdgeStillReferencedError when a relational edge still references the room', () => {
+            const graph = EphemeraLudicGraph.fromFieldPayload(AREA_HOST_ID, {
+                rootId: AREA_HOST_ID, ports: [],
+                nodes: [areaNode(AREA_HOST_ID), roomNode(CHILD_ROOM_ID)],
+                edges: [{ tag: 'Relational', from: CHILD_ROOM_ID, to: AREA_HOST_ID, kind: 'PartOf' }],
+            })
+            expect(() => graph.removeRoom(CHILD_ROOM_ID)).toThrow(RelationalEdgeStillReferencedError)
+        })
+
+        it('removeFeature throws RelationalEdgeStillReferencedError when a relational edge still references the feature', () => {
+            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
+                rootId: HOST_ID, ports: [],
+                nodes: [roomNode(HOST_ID), featureNode(CHILD_FEATURE_ID)],
+                edges: [{ tag: 'Relational', from: CHILD_FEATURE_ID, to: HOST_ID, kind: 'PartOf' }],
+            })
+            expect(() => graph.removeFeature(CHILD_FEATURE_ID)).toThrow(RelationalEdgeStillReferencedError)
+        })
+
+        describe('addNode/removeNode (kind dispatch, RD-4/presenceRefactor step 3)', () => {
+            it('addNode dispatches to addObject/addCharacter/addRoom/addFeature by kind', () => {
+                const graph = EphemeraLudicGraph.empty(HOST_ID)
+                expect(graph.addNode(OBJECT_A).objectIds).toEqual(new Set([OBJECT_A]))
+                expect(graph.addNode(CHARACTER_A).characterIds).toEqual(new Set([CHARACTER_A]))
+                expect(EphemeraLudicGraph.empty(AREA_HOST_ID).addNode(CHILD_ROOM_ID).roomIds).toEqual(new Set([CHILD_ROOM_ID]))
+                expect(graph.addNode(CHILD_FEATURE_ID).featureIds).toEqual(new Set([CHILD_FEATURE_ID]))
+            })
+
+            it('removeNode dispatches to removeObject/removeCharacter/removeRoom/removeFeature by kind', () => {
+                const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
+                    rootId: HOST_ID, ports: [],
+                    nodes: [roomNode(HOST_ID), objectNode(OBJECT_A), characterNode(CHARACTER_A), featureNode(CHILD_FEATURE_ID)],
+                    edges: [],
+                })
+                expect(graph.removeNode(OBJECT_A).objectIds.has(OBJECT_A)).toBe(false)
+                expect(graph.removeNode(CHARACTER_A).characterIds.has(CHARACTER_A)).toBe(false)
+                expect(graph.removeNode(CHILD_FEATURE_ID).featureIds.has(CHILD_FEATURE_ID)).toBe(false)
+            })
+        })
     })
 
     describe('removeObject (BD-33/BD-35 assert-and-throw)', () => {

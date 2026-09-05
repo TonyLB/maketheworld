@@ -23,7 +23,7 @@ export type ExpandSameHostResult =
  * BD-16's second Expansion instance: "a relation is intended --- where does it
  * go?" Originally the mirror image of `expandTransferMembership.ts` (BD-13),
  * answering it with a *transfer*: move the subject onto the object's host and
- * call the precondition repaired. **PV1-3b-9 (2026-09-01) retired that answer.**
+ * call the precondition repaired. **That answer was retired, 2026-09-01.**
  * A violated `sameHost` on a peer relation is not a sign that something is in
  * the wrong place --- it is the ordinary case of two things in different shards
  * that a relation must span, which is what crossing ports exist for. So the
@@ -31,12 +31,11 @@ export type ExpandSameHostResult =
  * and what legs express it?", and a peer relation that cannot be expressed
  * declines rather than relocating either endpoint.
  *
- * **PV1-3b-4 (2026-09-01) retired the `satisfied` fast path too.** It used to
+ * **The `satisfied` fast path was retired too, 2026-09-01.** It used to
  * decide "do these already share a host?" by fetching the subject's current
  * host graph and calling `bothObjectsOnGraph` directly, entirely bypassing
  * `findShardBoundary`/`buildCrossingLegs` below --- a second implementation of
- * exactly the degenerate case those two already handle correctly since
- * PV1-3b-8 (an endpoint is its own zero-hop ancestor, so an already-shared
+ * exactly the degenerate case those two already handle correctly (an endpoint is its own zero-hop ancestor, so an already-shared
  * host resolves to a single portless leg, not a boundary crossing). Every
  * peer-kind candidate, same-host included, now walks (`findShardBoundary`)
  * then builds (`buildCrossingLegs`) unconditionally; there is no longer a
@@ -53,7 +52,7 @@ export type ExpandSameHostResult =
  * not decide how Grounding and Expansion interleave (`AGENT.concepts.md`, "Synthesize's three
  * sub-roles") --- this function only operates on already-grounded ids.
  *
- * **PV1-3b-14: `establishRelation` and `dissolveRelation` ask genuinely different questions of
+ * **`establishRelation` and `dissolveRelation` ask genuinely different questions of
  * genuinely different state**, and now call genuinely different primitives --- `findShardBoundary`
  * (containment ancestry: "where do I mint a fresh chain?") for establish,
  * `findRelationalChain` (existing relational edges/ports: "what chain already connects them?")
@@ -73,7 +72,7 @@ export const expandSameHost = (
         /** `relationKind: 'Custom'` only --- see `GroundedBinaryAssertion`'s doc comment. */
         relationLabel?: string
         /**
-         * PV1-3b-4: the collapsed ingress seed carries no sibling relational step any more, so
+         * the collapsed ingress seed carries no sibling relational step any more, so
          * this is now the only place that knows whether the relation being expressed is an
          * establish or a dissolve --- `buildCrossingLegs`/`buildCrossingDissolveLegs` need it.
          */
@@ -91,7 +90,7 @@ export const expandSameHost = (
         getCurrentHost: envArg.getCurrentHost ?? (() => undefined),
     }
 
-    // PV1-3b-6: input validation, deliberately above every state lookup --- this asks nothing
+    // input validation, deliberately above every state lookup --- this asks nothing
     // about the world. `relationKind`/`relationLabel` arrive as two flat fields here (via
     // `GroundedBinaryAssertion`, which unions predicates and so cannot use
     // `RelationalKindAndLabel`'s discriminated pairing), which makes a label-less `Custom`
@@ -115,9 +114,9 @@ export const expandSameHost = (
 
     if (isPeerKind) {
         if (operationKind === 'establishRelation') {
-            // PV1-3: a violated peer relation is not a misplacement to be repaired --- it may
+            // a violated peer relation is not a misplacement to be repaired --- it may
             // legitimately cross a shard boundary via a port pair (BD-16's third outcome, this
-            // union's own doc comment). PV1-3b-9 widened this from `Custom`-only:
+            // union's own doc comment). This was widened from `Custom`-only:
             // `buildCrossingLegs` was already general over kinds (it mints a bare-`kind` port for
             // the enum relations), and the gate was the only thing holding `Under`/`Against` back.
             const boundary = findShardBoundary({ subjectId, targetId: objectId }, env.getMembershipContainers)
@@ -131,7 +130,7 @@ export const expandSameHost = (
                     operationKind,
                     // Narrowed once, so both arms of `RelationalKindAndLabel`'s discriminated
                     // union spread cleanly --- `relationLabel` is checked non-undefined by the
-                    // malformed-input guard at the top of the function (PV1-3b-6), which is why
+                    // malformed-input guard at the top of the function, which is why
                     // the cast is safe.
                     ...(relationKind === 'Custom'
                         ? { relationKind: 'Custom' as const, relationLabel: relationLabel as string }
@@ -142,7 +141,7 @@ export const expandSameHost = (
                 }
             }
         } else {
-            // PV1-3b-14: dissolve asks a different question than establish --- not "where do I
+            // dissolve asks a different question than establish --- not "where do I
             // mint a fresh chain?" (containment ancestry) but "what chain already connects them,
             // so a dissolve can remove it?" (existing relational edges/ports). This also
             // subsumes the old portless/same-host case: `findRelationalChain` finds the single
@@ -175,7 +174,7 @@ export const expandSameHost = (
         // different shards; what is missing is a crossing this slice's leg producer can express
         // (no common ancestor, an ambiguous one, or a shape past its one-extra-hop-per-side
         // scope). For dissolve, either no matching chain exists or `findRelationalChain` found
-        // more than one and declined to pick (PV1-3b-11). An LLM has nothing to add to either, so
+        // more than one and declined to pick. An LLM has nothing to add to either, so
         // borrowing BD-10's wording would misroute the follow-up.
         const reason = operationKind === 'establishRelation'
             ? `No crossing could be built for the ${relationKind} relation between ${subjectId} and ${objectId} --- they share no host, and their shard boundary is unreachable or has a shape buildCrossingLegs does not yet support`

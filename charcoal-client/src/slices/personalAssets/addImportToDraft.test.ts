@@ -6,6 +6,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardLudicGraph from '@tonylb/mtw-wml/ts/standardize/components/ludicGraph'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 
@@ -112,11 +113,14 @@ describe('addImportToDraft', () => {
         const addToReferenceList = (d: StandardForm) => {
             const room = d.byUniversalId['ROOM#room1']
             if (!(room instanceof StandardRoom)) return null
-            const features = room._payload._features ?? new ReferenceList([])
+            const features = room._payload._ludicGraph?.nodes ?? new ReferenceList([])
             return {
                 referenceList: features,
                 setReferenceList: (list: ReferenceList) => {
-                    room._payload._features = list
+                    room._payload._ludicGraph = new StandardLudicGraph({
+                        ...(room._payload._ludicGraph?.toJSON() ?? {}),
+                        nodes: list.toJSON(),
+                    })
                 }
             }
         }
@@ -128,7 +132,7 @@ describe('addImportToDraft', () => {
         expect(feature).toBeDefined()
         expect(feature instanceof StandardFeature).toBe(true)
         const room = updated.byUniversalId['ROOM#room1'] as StandardRoom
-        expect(room._payload._features?.payload.some((r) => r.universalKey === 'FEATURE#featureFromImport')).toBe(true)
+        expect(room._payload._ludicGraph?.nodes.payload.some((r) => r.universalKey === 'FEATURE#featureFromImport')).toBe(true)
         expect(updated._topLevel?.payload.some((r) => r.universalKey === 'FEATURE#featureFromImport')).toBe(false)
     })
 })

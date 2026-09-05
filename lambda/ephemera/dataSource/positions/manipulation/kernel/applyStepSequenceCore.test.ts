@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { applyStepSequenceCore } from './applyStepSequenceCore'
@@ -12,6 +12,8 @@ const tableId = 'OBJECT#Table' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
 const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
+const areaId = 'AREA#Overworld' as EphemeraAreaId
+const featureId = 'FEATURE#Sign' as EphemeraFeatureId
 
 const graphsMap = (
     ...entries: [EphemeraMembershipHostId, EphemeraLudicGraph][]
@@ -88,7 +90,7 @@ describe('applyStepSequenceCore', () => {
     it('BD-33 structural throw: a carried hostId that neither endpoint actually shares throws (not a verdict)', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const otherGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
-        // PV1-3b-7: hostId is now carried, not resolved --- roomId is trayId's real host but not
+        // hostId is now carried, not resolved --- roomId is trayId's real host but not
         // glassId's, so `confirmCarriedHost` catches the mismatch and throws (Expansion computed
         // the wrong host, a structural bug, not a stale candidate --- both endpoints still exist
         // somewhere in the footprint).
@@ -121,11 +123,11 @@ describe('applyStepSequenceCore', () => {
     it('AB-54 hosting kinds: establishRelation carries the correct host explicitly, not resolved by intersection (put cup on table)', () => {
         // `tableId` is simultaneously an ordinary member of the room's graph (it sits there) *and*
         // the self-referencing root of its own shard graph (a hosting kind puts the moved object
-        // there, AB-54) --- both graphs are locked in the same footprint. Pre-PV1-3b-7, an
+        // there, AB-54) --- both graphs are locked in the same footprint. Previously, an
         // intersection-based resolver had to disambiguate this at commit time (the historical bug:
         // a first-match-per-side scan could pick the room for `tableId` while `trayId`, just
         // transferred, only resolves in the table's own shard, spuriously throwing "do not share a
-        // host" for a perfectly legal move). Post-PV1-3b-7, Expansion already carries `hostId:
+        // host" for a perfectly legal move). Now, Expansion already carries `hostId:
         // tableId` on the step, so `confirmCarriedHost` only needs to confirm it, not resolve it.
         const roomGraph = testLudicGraph(roomId, {
             nodes: [
@@ -429,7 +431,63 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
-    describe('PV1-3: crossing legs and crossing-port steps', () => {
+    describe('RD-4 (presenceRefactor step 3): Room/Feature entityIds in transferMembership', () => {
+        it('pure add (fromHostIds empty): adds a Room to an Area host, mirroring the object/character pure-add shape', () => {
+            const areaGraph = testLudicGraph(areaId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([roomId]), fromHostIds: new Set(), toHostId: areaId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([areaId, areaGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(areaId)!.roomIds.has(roomId)).toBe(true)
+        })
+
+        it('pure add (fromHostIds empty): adds a Feature to a Room host', () => {
+            const roomGraph = testLudicGraph(roomId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([featureId]), fromHostIds: new Set(), toHostId: roomId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.featureIds.has(featureId)).toBe(true)
+        })
+
+        it('pure add: illegal (staleTransferCandidate) when the Room is already a node of toHostId', () => {
+            const areaGraph = testLudicGraph(areaId, { nodes: [{ tag: 'Room', universalKey: roomId }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'transferMembership', entityIds: new Set([roomId]), fromHostIds: new Set(), toHostId: areaId },
+            ]
+            expect(applyStepSequenceCore(steps, graphsMap([areaId, areaGraph]))).toEqual({
+                verdict: 'illegal',
+                reasonCode: 'staleTransferCandidate',
+            })
+        })
+
+        it('real transfer (fromHostIds length 1, toHostId non-null): illegal (unsupportedTransferEntityKind) for a Room --- LP4h stays Object/Character-only', () => {
+            const areaGraph = testLudicGraph(areaId, { nodes: [{ tag: 'Room', universalKey: roomId }] })
+            const otherAreaGraph = testLudicGraph('AREA#Elsewhere' as EphemeraAreaId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                {
+                    kind: 'transferMembership',
+                    entityIds: new Set([roomId]),
+                    fromHostIds: new Set([areaId]),
+                    toHostId: 'AREA#Elsewhere' as EphemeraAreaId,
+                },
+            ]
+            expect(applyStepSequenceCore(steps, graphsMap([areaId, areaGraph], ['AREA#Elsewhere' as EphemeraAreaId, otherAreaGraph]))).toEqual({
+                verdict: 'illegal',
+                reasonCode: 'unsupportedTransferEntityKind',
+            })
+        })
+    })
+
+    describe('crossing legs and crossing-port steps', () => {
         it('a leg whose target is a port address carries its host from the primitive subject alone (readout\'s room-side leg: string -> port(owner=Table))', () => {
             const stringId = 'OBJECT#String' as EphemeraObjectId
             const roomGraph = testLudicGraph(roomId, {
@@ -595,6 +653,83 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(roomId)).toBe(roomGraph)
+        })
+    })
+
+    describe('presence port steps (RD-2: addPresencePort/removePresencePort)', () => {
+        it('addPresencePort adds a Present port naming fromHostId to the target graph', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'addPresencePort', hostId: trayId, port: { portId: 'p1', fromHostId: roomId, kind: 'Present' } },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.ports).toEqual([{ portId: 'p1', fromHostId: roomId, kind: 'Present' }])
+        })
+
+        it('removePresencePort removes the matching binding by fromHostId', () => {
+            const trayGraph = testLudicGraph(trayId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'removePresencePort', hostId: trayId, fromHostId: roomId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.ports).toEqual([])
+        })
+
+        it('removePresencePort against an absent binding is a silent no-op, not illegal', () => {
+            const trayGraph = testLudicGraph(trayId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'removePresencePort', hostId: trayId, fromHostId: otherRoomId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.ports).toEqual([{ portId: 'p1', fromHostId: roomId, kind: 'Present' }])
+        })
+
+        it('a remove-then-add pair leaving one Present port on a character does not throw', () => {
+            const characterGraph = testLudicGraph(characterId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'removePresencePort', hostId: characterId, fromHostId: roomId },
+                { kind: 'addPresencePort', hostId: characterId, port: { portId: 'p2', fromHostId: otherRoomId, kind: 'Present' } },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([characterId, characterGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(characterId)!.ports).toEqual([{ portId: 'p2', fromHostId: otherRoomId, kind: 'Present' }])
+        })
+
+        it('throws when a sequence would leave a character with two Present ports (RD-1 single-hosted restriction)', () => {
+            const characterGraph = testLudicGraph(characterId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'addPresencePort', hostId: characterId, port: { portId: 'p2', fromHostId: otherRoomId, kind: 'Present' } },
+            ]
+
+            expect(() => applyStepSequenceCore(steps, graphsMap([characterId, characterGraph]))).toThrow(/AGENT\.contract\.md/)
+        })
+
+        it('does not throw when an object carries two Present ports --- multi-presence is the point for objects', () => {
+            const trayGraph = testLudicGraph(trayId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'addPresencePort', hostId: trayId, port: { portId: 'p2', fromHostId: otherRoomId, kind: 'Present' } },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.ports).toHaveLength(2)
         })
     })
 })

@@ -71,7 +71,7 @@ const defaultDeps = (): RoomObjectCatalogDeps => ({
 })
 
 /**
- * Walks from a room's own object nodes into hosted objects' own `ludicGraph`s (CC3, PV1-1):
+ * Walks from a room's own object nodes into hosted objects' own `ludicGraph`s (CC3):
  * hosting kinds put a subordinate object in its host's own shard, so a nested object is not a
  * member of the room's graph at all --- it is only found by fetching its host's own graph.
  * `visited` terminates a cyclic hand-built fixture; `depthCap` (5, a testing bound rather than a

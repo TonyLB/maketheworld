@@ -10,18 +10,20 @@ import {
 } from '../../../actions/enrich/objectManipulation/synthesize/findRelationalChain'
 
 /**
- * PV1-3c: depth-capped async BFS that fetches every graph a relational chain touching any of
+ * depth-capped async BFS that fetches every graph a relational chain touching any of
  * `entityIds` might reach, mirroring `walkAncestryContainers`'s own precedent
  * (`synthesize/findShardBoundary.ts`) but following relational edges/ports instead of
  * containment ancestry. `depthCap` (default 5) matches this codebase's existing convention
- * (PV1-1's referent-search cap, `walkAncestryContainers`'s own default) --- chains today never
- * exceed one hop per side (PV1-3's own scope cut), so this is generous headroom, not a tight
- * bound being relied on.
+ * (the referent-search cap, `walkAncestryContainers`'s own default). **Note:** this was
+ * generous headroom rather than a tight bound when written, on the premise that a crossing
+ * chain never exceeds one hop per side; `buildCrossingLegs`'s producer was later generalized
+ * to build chains of any depth, so a sufficiently deep real chain could now hit this cap ---
+ * revisit if that becomes reachable in practice.
  *
  * Each entity seeds two starting points, since a removal-set member can be either side of a
  * crossing: its own *current* container graph(s) (where it sits as a plain member) and its own
  * *owned* graph (`getGraph(entityId)` directly --- always safe even for a non-hosting object,
- * since a missing graph just defaults empty, PV1-2's own precedent). From each fetched graph,
+ * since a missing graph just defaults empty). From each fetched graph,
  * every port's `fromHostId` and every port-address terminal's `owner` names a further host to
  * visit --- both directions a crossing can be discovered from.
  */

@@ -31,13 +31,14 @@ import { StandardExplicitParent } from "../explicit"
 import { StandardFormSubsetRequest } from "../baseClasses"
 import { processWithConsumers, StandardizeConsumerFacetListSituation, StandardizeConsumerReferenceList, StandardizeConsumerSimple, type StandardizeConsumer } from "./fromSchemaPipeline"
 import { SingleReference } from "../keys/singleReference"
+import StandardLudicGraph from "./ludicGraph"
 
 export class StandardRoomPayload implements ComponentConstructorMethods<StandardRoomInputData, StandardRoomData> {
     _shortName?: StandardLiteral;
     _exits: ExitFacetList;
     _situations: SituationProseFacetList;
     _lens: SingleReference;
-    _features: ReferenceList;
+    _ludicGraph: StandardLudicGraph;
     _guidance: ReferenceList;
     _characters: ReferenceList;
     _objects: StandardRoomObjectData[];
@@ -50,7 +51,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             this._exits = previous.exits.clone()
             this._situations = previous.situations.clone()
             this._lens = previous._lens.clone()
-            this._features = previous._features.clone()
+            this._ludicGraph = previous._ludicGraph.clone()
             this._guidance = previous._guidance.clone()
             this._characters = previous._characters.clone()
             this._objects = [...previous._objects]
@@ -61,10 +62,18 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             this._situations = new SituationProseFacetList([])
             this._lens = new SingleReference([])
             this._guidance = new ReferenceList([])
-            this._features = new ReferenceList([])
+            this._ludicGraph = new StandardLudicGraph()
             this._characters = new ReferenceList([])
             this._objects = []
         }
+    }
+
+    private withLudicGraphNodes(nodes: ReferenceList): void {
+        const graphJSON = this._ludicGraph.toJSON() ?? {}
+        this._ludicGraph = new StandardLudicGraph({
+            ...graphJSON,
+            nodes: nodes.toJSON(),
+        })
     }
 
     fromJSON(props: StandardRoomInputData) {
@@ -73,7 +82,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         this._exits = new ExitFacetList(props.exits ?? [])
         this._situations = new SituationProseFacetList(props.situations ?? [])
         this._lens = SingleReference.fromData(props.lens)
-        this._features = new ReferenceList(props.features?.map((reference) => (new StandardReference(reference))) ?? [])
+        this._ludicGraph = StandardLudicGraph.fromJSON(props.ludicGraph)
         this._guidance = new ReferenceList(props.guidance?.map((reference) => (new StandardReference(reference))) ?? [])
         this._characters = new ReferenceList(props.characters?.map((reference) => (new StandardReference(reference))) ?? [])
         this._objects = (props.objects ?? []).map((o) => ({
@@ -95,7 +104,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
                         this._lens = SingleReference.fromReferenceList(list)
                     }
                 }),
-                new StandardizeConsumerReferenceList(this, { tag: "Feature", update(list) { this._features = list } }),
+                new StandardizeConsumerReferenceList(this, { tag: "Feature", update(list) { this.withLudicGraphNodes(list) } }),
                 new StandardizeConsumerFacetListSituation(this, { update(list) { this._situations = list } }),
                 new StandardizeConsumerReferenceList(this, { tag: "Guidance", update(list) { this._guidance = list } }),
                 new StandardizeConsumerReferenceList(this, { tag: "Character", update(list) { this._characters = list } }),
@@ -186,18 +195,19 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     get exits() { return this._exits }
     get situations() { return this._situations }
     get lens() { return this._lens }
-    get features() { return this._features }
+    get ludicGraph() { return this._ludicGraph }
     get guidance() { return this._guidance }
     get characters() { return this._characters }
 
     toJSON(_options?: StandardToJSONOptions): Omit<StandardRoomData, 'key' | 'universalKey'> {
+        const ludicGraphJSON = this._ludicGraph.toJSON()
         return {
             tag: 'Room',
             shortName: shortNameToJSON(this.shortName),
             ...(this.exits.length ? { exits: this.exits.toJSON() } : {}),
             ...(this.situations.length ? { situations: this.situations.toJSON() } : {}),
             ...(this.lens.payload.length ? { lens: this.lens.toJSON() } : {}),
-            ...(this.features.payload.length ? { features: this.features.toJSON() } : {}),
+            ...(ludicGraphJSON ? { ludicGraph: ludicGraphJSON } : {}),
             ...(this.guidance.payload.length ? { guidance: this.guidance.toJSON() } : {}),
             ...(this.characters.payload.length ? { characters: this.characters.toJSON() } : {}),
             ...(this._objects.length ? { objects: this._objects.map((o) => ({ ...o })) } : {}),
@@ -237,7 +247,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             children: [
                 ...shortNameSchemaChildren(this.shortName),
                 ...this.lens.schema,
-                ...this.features.schema,
+                ...this._ludicGraph.nodes.schema,
                 ...this.guidance.schema,
                 ...this.characters.schema,
                 ...situationSchemas,
@@ -254,7 +264,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         // If organization is available, use assured references from organization
         // Otherwise, fall back to stored reference lists
         let lensToRender = this.lens
-        let featuresToRender = this.features
+        let nodesToRender = this._ludicGraph.nodes
         let guidanceToRender = this.guidance
         let charactersToRender = this.characters
         let inlineRemainder: StandardReference[] = []
@@ -264,7 +274,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             const children = options.organization.getChildrenOfParent(key) ?? []
             const { payload: assured, inlineRemainder: remainder } = this.assureReferences(children)
             lensToRender = assured.lens
-            featuresToRender = assured.features
+            nodesToRender = assured._ludicGraph.nodes
             guidanceToRender = assured.guidance
             charactersToRender = assured.characters
             inlineRemainder = remainder
@@ -303,7 +313,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             children: [
                 ...shortNameSchemaChildren(this.shortName),
                 ...lensToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
-                ...featuresToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
+                ...nodesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...guidanceToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...charactersToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...inlineRemainder.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
@@ -323,7 +333,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         const mergedSituations = this._situations.merge(incoming._situations)
         returnValue._situations = mergedSituations ?? new SituationProseFacetList([])
         returnValue._lens = this._lens.merge(incoming._lens)
-        returnValue._features = this._features.merge(incoming._features) ?? new ReferenceList([])
+        returnValue._ludicGraph = this._ludicGraph.merge(incoming._ludicGraph)
         returnValue._guidance = this._guidance.merge(incoming._guidance) ?? new ReferenceList([])
         returnValue._characters = this._characters.merge(incoming._characters) ?? new ReferenceList([])
         returnValue._objects = [...this._objects, ...incoming._objects]
@@ -346,7 +356,12 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         returnValue._situations = this._situations.invert()
         // Invert each ReferenceList
         returnValue._lens = this._lens.invert()
-        returnValue._features = this._features.invert()
+        const graphJSON = this._ludicGraph.toJSON() ?? {}
+        returnValue._ludicGraph = new StandardLudicGraph({
+            ...graphJSON,
+            nodes: this._ludicGraph.nodes.invert().toJSON(),
+            edges: this._ludicGraph.edges.invert().toJSON(),
+        })
         returnValue._guidance = this._guidance.invert()
         returnValue._characters = this._characters.invert()
         returnValue._objects = []
@@ -375,7 +390,13 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         )
 
         returnValue._lens = this._lens.merge(SingleReference.fromReferenceList(lensReferences))
-        returnValue._features = this._features.merge(featureReferences, { cleanEmptyReferences: false }) ?? this._features
+        const mergedNodes = returnValue._ludicGraph.nodes.merge(featureReferences, { cleanEmptyReferences: false })
+            ?? returnValue._ludicGraph.nodes
+        const graphJSON = returnValue._ludicGraph.toJSON() ?? {}
+        returnValue._ludicGraph = new StandardLudicGraph({
+            ...graphJSON,
+            nodes: mergedNodes.toJSON(),
+        })
         returnValue._guidance = this._guidance.merge(guidanceReferences, { cleanEmptyReferences: false }) ?? this._guidance
         returnValue._characters = this._characters.merge(characterReferences, { cleanEmptyReferences: false }) ?? this._characters
 
@@ -392,9 +413,13 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         returnValue._lens = this._lens.filter(
             item => !references.some(ref => item.sameKey(ref))
         )
-        returnValue._features = this._features.filter(
-            item => !references.some(ref => item.sameKey(ref))
-        )
+        const graphJSON = returnValue._ludicGraph.toJSON() ?? {}
+        returnValue._ludicGraph = new StandardLudicGraph({
+            ...graphJSON,
+            nodes: returnValue._ludicGraph.nodes.filter(
+                item => !references.some(ref => item.sameKey(ref))
+            ).toJSON(),
+        })
         returnValue._guidance = this._guidance.filter(
             item => !references.some(ref => item.sameKey(ref))
         )
@@ -432,7 +457,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             }),
             ...(this._render ? this._render.referencedLinkKeys(mapping) : []),
             ...this.lens.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
-            ...this.features.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
+            ...this._ludicGraph.nodes.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.guidance.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, reference }))
         ]
@@ -468,7 +493,12 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     remapReferences(props: { mappings: StandardReference[]; mapTo: ReferenceFormat }): this {
         const returnValue = new StandardRoomPayload(this)
         returnValue._lens = returnValue._lens.toFormat(props.mapTo, props.mappings)
-        returnValue._features = returnValue._features.toFormat(props.mapTo, props.mappings)
+        const graphJSON = returnValue._ludicGraph.toJSON() ?? {}
+        returnValue._ludicGraph = new StandardLudicGraph({
+            ...graphJSON,
+            nodes: returnValue._ludicGraph.nodes.toFormat(props.mapTo, props.mappings).toJSON(),
+            edges: returnValue._ludicGraph.edges.toFormat(props.mapTo).lookup(props.mappings).toJSON(),
+        })
         returnValue._guidance = returnValue._guidance.toFormat(props.mapTo, props.mappings)
         returnValue._exits = returnValue._exits.lookup(props.mappings).toFormat(props.mapTo)
         returnValue._situations = returnValue._situations.lookup(props.mappings).remapReferences(props)
@@ -484,7 +514,12 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             returnValue._lens = returnValue._lens.assureItem(child)
         }
         else if (child.tag === 'Feature') {
-            returnValue._features = returnValue._features.assureItem(child)
+            const mergedNodes = returnValue._ludicGraph.nodes.assureItem(child)
+            const graphJSON = returnValue._ludicGraph.toJSON() ?? {}
+            returnValue._ludicGraph = new StandardLudicGraph({
+                ...graphJSON,
+                nodes: mergedNodes.toJSON(),
+            })
         }
         else if (child.tag === 'Guidance') {
             returnValue._guidance = returnValue._guidance.assureItem(child)
@@ -504,7 +539,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         const hasExits = this._exits.length > 0
         const hasSituations = this._situations.length > 0
         const hasLens = this._lens.payload.length > 0
-        const hasFeatures = this._features.payload.length > 0
+        const hasFeatures = this._ludicGraph.nodes.payload.length > 0
         const hasGuidance = this._guidance.payload.length > 0
         const hasCharacters = this._characters.payload.length > 0
         const hasObjects = this._objects.length > 0
@@ -517,7 +552,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
     get exits() { return this._payload.exits }
     get situations() { return this._payload.situations }
     get lens() { return this._payload.lens }
-    get features() { return this._payload.features }
+    get ludicGraph() { return this._payload.ludicGraph }
     get guidance() { return this._payload.guidance }
     get characters() { return this._payload.characters }
     get objects() { return this._payload.objects }
@@ -544,7 +579,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         // until we decide whether render payload should use StandardRender/defaultedEquals semantics
         // or a dedicated SituationRoomFacetPayload.equals contract.
         return !(this.lens.diff(incoming.lens)?.payload.length) &&
-            !(this.features.diff(incoming.features)?.payload.length) &&
+            this.ludicGraph.equals(incoming.ludicGraph) &&
             !(this.guidance.diff(incoming.guidance)?.payload.length) &&
             !(this.characters.diff(incoming.characters)?.payload.length) &&
             !(exitsDiff?.length) &&

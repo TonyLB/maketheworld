@@ -7,18 +7,18 @@ import type { HostRelationalEdge } from '../../../../positions/ludicGraph'
 import type { ExpansionEnvironment } from './executorTypes'
 
 /**
- * PV1-3b-12's dissolve-side discovery primitive -- `findShardBoundary`'s mirror image, and the
+ * The dissolve-side discovery primitive -- `findShardBoundary`'s mirror image, and the
  * counterpart `buildCrossingLegs` never needed on the establish side. `findShardBoundary` answers
  * "these two don't share a host -- where do I mint a fresh chain?" by walking *containment*
  * ancestry, a question with no dependency on whether a relation already exists. This function
  * answers the opposite question -- "these two are already linked by some relation -- what chain
  * already connects them, so a dissolve can remove it?" -- which containment ancestry cannot answer
  * (a crossing's port carries a `uuidv4()` `portId` unrecoverable from where the objects currently
- * live), so it walks **existing relational edges and ports** instead (PV1-3b-11).
+ * live), so it walks **existing relational edges and ports** instead.
  *
- * Wired into `expandSameHost.ts`'s `dissolveRelation` branch at PV1-3b-14.
+ * Wired into `expandSameHost.ts`'s `dissolveRelation` branch.
  *
- * PV1-3c added `findRelationalChainFromLeg`, a leg-seeded (rather than endpoint-seeded) sibling
+ * `findRelationalChainFromLeg` is a leg-seeded (rather than endpoint-seeded) sibling
  * needed for chain-aware object removal, where the caller has an edge already in hand and no
  * pre-known far endpoint to search for. `findRelationalChain` is now built on top of it (below).
  */
@@ -29,9 +29,9 @@ export type RelationalChainStep =
 /**
  * `steps` is ordered outward from `subjectId` toward `targetId`, one `edge` per hop and one
  * `port` between a hop's own edge and the next -- the order this walk discovers them in, not
- * necessarily the order a removal pass will want to apply them (PV1-3b-13's own concern, not
- * fixed here). `ambiguous` carries a count, not the candidate chains themselves -- per PV1-3b-11's
- * decision, an ambiguous result declines outright rather than offering a pick, so there is nothing
+ * necessarily the order a removal pass will want to apply them (a separate concern, not
+ * fixed here). `ambiguous` carries a count, not the candidate chains themselves -- an
+ * ambiguous result declines outright rather than offering a pick, so there is nothing
  * for a caller to do with the individual chains.
  */
 export type FindRelationalChainResult =
@@ -59,15 +59,15 @@ type ResolveEndpointResult =
  * reached. `arrivedFromHostId` is the graph the edge we just traversed lives in -- needed to
  * decide, on hitting a port terminal, which of the port's two candidate graphs (its own owner,
  * or its `fromHostId`) holds the *other* edge that continues the chain: whichever one is **not**
- * the graph we just came from. This directional rule is PV1-3c's fix for a real bug in the
+ * the graph we just came from. This directional rule fixed a real bug in the
  * pre-existing (single-direction) walk below, which always continued into the port's own owner
  * graph unconditionally -- correct only walking exterior-to-interior (the only direction ever
  * exercised until now), silently wrong walking interior-to-exterior.
  *
  * Past the first hop, a well-formed chain has exactly one continuing edge at each port (every
- * `portId` is minted once, referenced by exactly two edges, PV1-3) -- `matchingEdges.length !== 1`
+ * `portId` is minted once, referenced by exactly two edges) -- `matchingEdges.length !== 1`
  * declines rather than picking, the same "decline outright rather than offer a pick" posture
- * PV1-3b-11 already chose for the endpoint-seeded ambiguous verdict.
+ * already chosen for the endpoint-seeded ambiguous verdict.
  */
 const resolveEndpoint = (
     terminal: EphemeraLudicTerminalId,
@@ -135,7 +135,7 @@ const resolveEndpoint = (
  * `seed.edge.from`/`seed.edge.to` respectively; `steps` is ordered `endpoints[0] -> endpoints[1]`
  * (the seed edge itself in the middle). Order is a display/debugging convenience only --
  * `buildCrossingDissolveLegs` maps each step independently, with no ordering dependency between
- * them (PV1-3b-13).
+ * them.
  */
 export type FindRelationalChainFromLegResult =
     | {
@@ -146,7 +146,7 @@ export type FindRelationalChainFromLegResult =
     | { verdict: 'declined'; reason: string }
 
 /**
- * PV1-3c: the leg-seeded counterpart to `findRelationalChain` below, needed wherever a caller has
+ * the leg-seeded counterpart to `findRelationalChain` below, needed wherever a caller has
  * a specific edge already in hand (from a graph scan) rather than a named subject/target pair to
  * search for -- chain-aware object removal's own use case, where the caller only knows "this
  * object is leaving" and must discover whatever it's connected to, by what, without knowing
@@ -179,7 +179,7 @@ export const findRelationalChainFromLeg = (
 }
 
 /**
- * PV1-3c: rewritten on top of `findRelationalChainFromLeg` -- finds the candidate first edges
+ * rewritten on top of `findRelationalChainFromLeg` -- finds the candidate first edges
  * directly touching `subjectId` (matching `relationKind`/`relationLabel`), resolves each one's
  * full chain via the leg-seeded walker, and keeps only those whose far endpoint is `targetId`.
  * Preserves the original contract exactly (same input/output shape); `expandSameHost.ts` needs no

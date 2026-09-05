@@ -84,19 +84,18 @@ export type ObjectEstablishRelationPublishedPayload = {
     targetId: EphemeraObjectId;
     /**
      * Room or Character host the relation is established on (BD-15/16 slice 4; was Room-only
-     * `roomId`) --- narration/perception use only (PV1-3b-2): `objectManipulationPresentationLegAdapters.ts`
+     * `roomId`) --- narration/perception use only: `objectManipulationPresentationLegAdapters.ts`
      * gates narration on this being a Room. The commit mechanism no longer trusts it as "the"
      * host --- see `steps`, where a genuine crossing carries more than one.
      */
     hostId: EphemeraMembershipHostId;
     confidence?: number;
     /**
-     * PV1-3b-2: the Expansion-derived mutation-kernel step chain (PV1-3b-1's
-     * `ParseCommandEstablishRelationResult.steps`, carried across the publish/subscribe
+     * the Expansion-derived mutation-kernel step chain (`ParseCommandEstablishRelationResult.steps`, carried across the publish/subscribe
      * boundary unchanged) --- what `executeEstablishEdgeChain` actually commits. A portless/
      * same-host candidate carries exactly one `establishRelation` entry; a genuine crossing
      * carries one `addCrossingPort` plus a hop leg per side, in production order (port steps
-     * precede the legs that reference them). Each step carries its own `hostId` (PV1-3b-7) ---
+     * precede the legs that reference them). Each step carries its own `hostId` ---
      * there is no single host for a crossing as a whole, which is why the flat `hostId` above
      * stays narration-only rather than being derived from this array at read time.
      */
@@ -110,19 +109,19 @@ export type ObjectDissolveRelationPublishedPayload = {
     targetId: EphemeraObjectId;
     /**
      * Room or Character host the relation is dissolved on (BD-15/16 slice 4; was Room-only
-     * `roomId`) --- narration/perception use only (PV1-3b-15, mirroring PV1-3b-2):
+     * `roomId`) --- narration/perception use only:
      * `objectManipulationPresentationLegAdapters.ts` gates narration on this being a Room.
      * See `steps`, where a genuine crossing dissolve carries more than one host.
      */
     hostId: EphemeraMembershipHostId;
     confidence?: number;
     /**
-     * PV1-3b-15, mirroring PV1-3b-2: the Expansion-derived mutation-kernel step chain
+     * Mirroring the establish side: the Expansion-derived mutation-kernel step chain
      * (`ParseCommandEstablishRelationResult.steps`, carried across the publish/subscribe
      * boundary unchanged) for a dissolve candidate. A portless/same-host candidate carries
      * exactly one `dissolveRelation` entry; a genuine crossing dissolve carries a
      * `dissolveRelation`/`removeCrossingPort` pair per hop. Not yet consumed by the positions
-     * handler (PV1-3b-16) --- carried here so it is available once that row wires it in.
+     * handler --- carried here so it is available once that row wires it in.
      */
     steps: readonly MutationKernelStep[];
 } & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
@@ -167,9 +166,10 @@ const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean
 }
 
 /**
- * PV1-3b-2: the only `MutationKernelStep` kinds `buildCrossingLegs.ts`/`compileRelationalFromSkeleton.ts`
+ * the only `MutationKernelStep` kinds `buildCrossingLegs.ts`/`compileRelationalFromSkeleton.ts`
  * can ever put in `ParseCommandEstablishRelationResult.steps` on this route --- `transferMembership`,
- * `capture`, and `setPresencePort` never appear here, so this guard does not attempt to validate them.
+ * `capture`, and `addPresencePort`/`removePresencePort` never appear here, so this guard does not
+ * attempt to validate them.
  */
 const PUBLISHED_MUTATION_KERNEL_STEP_KINDS = new Set([
     'establishRelation',
@@ -231,13 +231,13 @@ export const isObjectDissolveRelationPublishedPayload = (
     return Array.isArray(v.steps) && v.steps.length > 0 && v.steps.every(isPublishedMutationKernelStep)
 }
 
-/** AB-54 hosting kinds; only `'On'` is ever emitted today (PV-1 builds one hosting kind). */
+/** AB-54 hosting kinds; only `'On'` is ever emitted today (only one hosting kind is built). */
 export type ContainmentKindPublished = 'On' | 'In' | 'PartOf'
 
 const CONTAINMENT_KINDS_PUBLISHED = new Set<ContainmentKindPublished>(['On', 'In', 'PartOf'])
 
 /**
- * PV1-2: `On` is a rehost carrying a containment argument, not a relation --- deliberately
+ * `On` is a rehost carrying a containment argument, not a relation --- deliberately
  * separate from `ObjectEstablishRelationPublishedPayload`, which narrowed `On` out on
  * 2026-08-22. `roomId` is narration context (the acting character's room), not `subjectId`'s
  * current host --- the `mtw.ephemera.positions` consumer resolves that fresh via

@@ -140,7 +140,7 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 | Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
 | Enrich | Frame extract LLM (**`operationKind: dissolveRelation`**, BD-12) -> **`normalizeRelationSpan`** -> **`compileRelational`** -> **`evaluateRelationalLegality`** |
 | Egress | **`Object Dissolve Relation`** stream (same payload shape as establish) |
-| Apply | [`executeEstablishEdgeChain`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) (shared with establish, PV1-3b-16) -> `commitStepSequence` (`op: 'remove'`) |
+| Apply | [`executeEstablishEdgeChain`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) (shared with establish) -> `commitStepSequence` (`op: 'remove'`) |
 | Fact | **`Object Relation Changed`**: `operation: 'dissolve'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |
 | Transcript | Fan-in -> **`${Player} takes ${Subject} off ${Target}`** |
 

@@ -58,7 +58,7 @@ export function compileMembershipUngroundedPlan(
  * reasoning only, regardless of what happens to already be grounded.
  *
  * BD-15/16 originally prepended a `sameHost` `Assertion` before every `Change`
- * step here, unconditionally. **PV1-3b-4 (2026-09-01) dropped it**, along with
+ * step here, unconditionally. **That was dropped, 2026-09-01**, along with
  * `SameHostAssertion`/`Assertion`'s `sameHost` member entirely
  * (`ungroundedPrimitive.ts`): this function has no live caller (the live
  * ingress route, `compileRelationalFromSkeleton.ts`, builds a pre-grounded

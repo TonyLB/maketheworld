@@ -193,7 +193,7 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsActionsObjectEstablishRelationEnvelope(envelope as any)).toBe(true)
     })
 
-    it('accepts mtw.ephemera.actions Object Rehost envelope (PV1-2)', () => {
+    it('accepts mtw.ephemera.actions Object Rehost envelope', () => {
         const envelope = {
             header: {
                 dataSourceKey: 'mtw.ephemera.actions',

@@ -114,7 +114,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectDissolveRelationPublishedPayload(content)) {
                     return
                 }
-                // PV1-3b-16: `executeEstablishEdgeChain` is operationKind-agnostic (it filters
+                // `executeEstablishEdgeChain` is operationKind-agnostic (it filters
                 // `transferMembership` and treats every `establishRelation`/`dissolveRelation`/
                 // `addCrossingPort`/`removeCrossingPort` step symmetrically), so it is the one
                 // commit path for `Object Dissolve Relation` too, mirroring the establish branch
@@ -131,7 +131,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectEstablishRelationPublishedPayload(content)) {
                     return
                 }
-                // PV1-3b-2: `executeEstablishEdgeChain` subsumes the single-host case (a
+                // `executeEstablishEdgeChain` subsumes the single-host case (a
                 // portless/same-host candidate's `steps` is a one-entry array), so it is the
                 // one commit path for every `Object Establish Relation` now, not just crossings.
                 // Fire-and-forget, matching every other branch here --- `ok: false` is already
@@ -149,7 +149,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isObjectRehostPublishedPayload(content)) {
                     return
                 }
-                // PV1-2: `fromHostId` is read fresh here, not published at parse time --- the
+                // `fromHostId` is read fresh here, not published at parse time --- the
                 // subject's current host can have changed between parse and this handler
                 // running, and `orchestrateObjectMove` needs the real one to strip the right
                 // containment edge. Zero or multiple current containers is a drift/race
@@ -179,7 +179,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (primaryObjectId === undefined) {
                     return
                 }
-                // PV1-2 follow-up: `fromHostId` is read fresh here rather than trusted as
+                // `fromHostId` is read fresh here rather than trusted as
                 // `content.roomId` --- a take-hold's object no longer has to sit directly in the
                 // room now that objects can nest inside other objects (a cup left on a table).
                 // Zero or multiple current containers is a drift/race condition this slice does

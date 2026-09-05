@@ -89,7 +89,7 @@ const defaultGetPairRow = async (objectId: EphemeraObjectId): Promise<Improvisat
  * Every object id reachable as a *member* of some host's graph --- the "not orphaned" set.
  *
  * **`Meta::Object` is scanned too, and must be.** An object hosted On/In/PartOf another object
- * lives in that host's own shard, not in any room or character graph (CC3/PV1-1). Scanning only
+ * lives in that host's own shard, not in any room or character graph (CC3). Scanning only
  * Room and Character rows (as this did until 2026-09-03) makes every legitimately nested object
  * --- a cup genuinely sitting on a table --- look orphaned, and a finding here routes straight to
  * `persistDeleteImprovisationObject` with no further guard. That is a deletion of live data, so

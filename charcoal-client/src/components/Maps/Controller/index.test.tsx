@@ -169,7 +169,7 @@ describe('mapTreeMemo', () => {
                 expect(room1.shortName?.toJSON()).toBe('Room One')
                 expect(room1.exits).toHaveLength(0)
                 // Stub should omit nested Feature (and legacy Example content): only ShortName in serialized stub
-                expect(room1.features.payload).toHaveLength(0)
+                expect(room1.ludicGraph.nodes.payload).toHaveLength(0)
                 expect(room1.characters.payload).toHaveLength(0)
                 expect(schemaToWML([room1.schema])).not.toMatch(/<Example/)
                 expect(schemaToWML([room1.schema])).not.toMatch(/<Feature/)

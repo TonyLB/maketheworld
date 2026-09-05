@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCrossingPort, EphemeraPresencePort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
@@ -26,9 +26,18 @@ import type {
  * once reading the kernel's write path end to end showed no consumer branches on entity kind), so
  * there is nothing to generalize here.
  */
+/**
+ * `entityIds` widened again (presenceRefactor step 3, 2026-09-05) to admit `EphemeraRoomId` and
+ * `EphemeraFeatureId`, for cache-time containment authoring (Room-in-Area, Feature-in-Room,
+ * Feature-in-Feature). A pure add (`fromHostIds` empty, `toHostId` the parent) is the only shape
+ * either kind may appear in --- `applyStepSequenceCore.ts`'s "real transfer" branch
+ * (`applyTransferSet`, LP4h) stays deliberately Object/Character-only, since Room/Feature/Area are
+ * hosts that never relocate; a Room/Feature id reaching that branch is a caller bug, rejected there
+ * rather than silently mishandled.
+ */
 export type MutationKernelTransferStep = {
     kind: 'transferMembership'
-    entityIds: ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
+    entityIds: ReadonlySet<EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId>
     fromHostIds: ReadonlySet<EphemeraMembershipHostId>
     toHostId: EphemeraMembershipHostId | null
 }
@@ -61,21 +70,39 @@ export type MutationKernelCaptureStep = {
  * `KernelStep` --- is what those files' signatures should keep using.
  */
 /**
- * PV1-2: the moved object's own presence port, on its own graph (`hostId` is the moved object's
- * own id --- a legal `EphemeraMembershipHostId`, LP0). Presence is at-most-one (PR-10), so this
- * step is a *set*, not an add: it replaces any existing `kind: 'Present'` port on that graph with
- * `port`, or clears it entirely when `port` is omitted (an object leaving with no new host). No
- * `Present` edge is written --- PR-10 makes the cover implicit, derived from the binding list, not
- * a record this step maintains.
+ * the moved object's own presence port, on its own graph (`hostId` is the moved object's
+ * own id --- a legal `EphemeraMembershipHostId`, LP0). RD-2 (2026-09-04): multiplicity moved from
+ * the step to the sequence --- N bindings is N `addPresencePort` steps, paired with a
+ * `removePresencePort` per departure host, rather than one step replacing whatever was there. This
+ * is what lets a pure add (spawn/population-everywhere) be expressed without touching
+ * `MutationKernelTransferStep` (PR-12 in `AGENT.presence.planning.md`). At-most-one presence
+ * (PR-10) is no longer a reducer-enforced property of this step; for characters it is enforced
+ * separately, by an end-of-sequence validator in `applyStepSequenceCore.ts` (RD-1's single-hosted
+ * restriction, `AGENT.contract.md`). Objects get no such enforcement, deliberately --- multi-
+ * presence is the point. No `Present` edge is written --- PR-10 makes the cover implicit, derived
+ * from the binding list, not a record either step maintains.
  */
-export type MutationKernelSetPresencePortStep = {
-    kind: 'setPresencePort'
+export type MutationKernelAddPresencePortStep = {
+    kind: 'addPresencePort'
     hostId: EphemeraMembershipHostId
-    port?: EphemeraPresencePort
+    port: EphemeraPresencePort
 }
 
 /**
- * PV1-3: a crossing-port record's own add/remove, distinct from a leg edge (an ordinary
+ * The remove half of RD-2's split. Addressed by host pair (`hostId` + `fromHostId`), not by
+ * `portId` --- unlike `removeCrossingPort`, because the compiler has no prior-state read to learn a
+ * `portId` from; that read is exactly what the old replace-all step existed to avoid. Removing an
+ * absent binding is a silent no-op in the reducer, which is what lets the compiler emit one of
+ * these per departure host without knowing which one (if any) actually held the port.
+ */
+export type MutationKernelRemovePresencePortStep = {
+    kind: 'removePresencePort'
+    hostId: EphemeraMembershipHostId
+    fromHostId: EphemeraMembershipHostId
+}
+
+/**
+ * a crossing-port record's own add/remove, distinct from a leg edge (an ordinary
  * `establishRelation`/`dissolveRelation` step whose endpoint happens to be a port address --- see
  * `executorTypes.ts`'s widening note). Unlike `setPresencePort`'s replace-all (presence is
  * at-most-one, PR-10), crossing ports are add/remove-by-`portId` --- a host can carry more than one
@@ -101,7 +128,8 @@ export type MutationKernelStep =
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
     | MutationKernelCaptureStep
-    | MutationKernelSetPresencePortStep
+    | MutationKernelAddPresencePortStep
+    | MutationKernelRemovePresencePortStep
     | MutationKernelAddCrossingPortStep
     | MutationKernelRemoveCrossingPortStep
 
@@ -317,7 +345,8 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'establishRelation' ||
     step.kind === 'dissolveRelation' ||
     step.kind === 'capture' ||
-    step.kind === 'setPresencePort' ||
+    step.kind === 'addPresencePort' ||
+    step.kind === 'removePresencePort' ||
     step.kind === 'addCrossingPort' ||
     step.kind === 'removeCrossingPort'
 

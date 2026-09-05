@@ -33,7 +33,7 @@ describe('StandardFeature integration', () => {
                         tag: 'Room',
                         key: 'test',
                         universalKey: 'ROOM#test',
-                        features: ['FEATURE#testFeature']
+                        ludicGraph: { nodes: ['FEATURE#testFeature'] }
                     },
                     {
                         tag: 'Feature',

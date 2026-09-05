@@ -62,8 +62,8 @@ export const seedTransferMembership = (change: TransferMembershipChange): Workli
  *
  * One caller today: `executeObjectMove`, which seeds the whole worklist this
  * way because at execute time the hosts are already concrete --- there is
- * nothing left for Grounding to resolve. It had a second until PV1-3b-9
- * (2026-09-01) retired `expandSameHost`'s repair-by-relocation outcome; the
+ * nothing left for Grounding to resolve. It had a second until 2026-09-01
+ * retired `expandSameHost`'s repair-by-relocation outcome; the
  * name still describes the tag rather than the caller, so the pairing
  * invariant reads as the general rule it is rather than as one route's habit.
  */
@@ -90,8 +90,8 @@ type GroundResult =
  * Grounds one `ungrounded` instruction. Reuses `groundChange`/`groundAssertion` unchanged.
  * A grounded relational `Change`'s `hostRoomId` (BD-6's `currentHost(actingCharacter)` default)
  * carries straight through as `ExecutorEstablishRelationStep`/`ExecutorDissolveRelationStep`'s own
- * `hostId` (PV1-3b-7) --- this path is confirmed dead on every live route today (every ingress
- * seed goes through `expandSameHost`'s `sameHost` assertion instead, since PV1-3b-4), but it is
+ * `hostId` --- this path is confirmed dead on every live route today (every ingress
+ * seed goes through `expandSameHost`'s `sameHost` assertion instead), but it is
  * still real code the type system must satisfy, and `hostRoomId` was already computed for exactly
  * this purpose before this function discarded it.
  */
@@ -189,7 +189,7 @@ const operandExpand = (
 type CommandExpandOutcome =
     | { kind: 'retire'; output: ExecutorParsePlanStep }
     /**
-     * PV1-3: `extraKernelSteps` carries kernel-only steps a `children` `WorklistInstruction`
+     * `extraKernelSteps` carries kernel-only steps a `children` `WorklistInstruction`
      * cannot (`addCrossingPort`/`removeCrossingPort` are not `ExecutorParsePlanStep`s --- the
      * same reason `MutationKernelSetPresencePortStep` is emitted by the compiler, not the
      * executor, elsewhere). Only ever present (and non-empty) for a `sameHost` crossing; every
@@ -319,11 +319,14 @@ const commandExpand = (
 
 export type ExecutorOutcome =
     /**
-     * `extraKernelSteps` (PV1-3): kernel-only steps minted during command-expansion that cannot
+     * `extraKernelSteps`: kernel-only steps minted during command-expansion that cannot
      * ride `steps` (see `CommandExpandOutcome`'s doc comment) --- only present, and only
      * non-empty, when a `sameHost` crossing minted at least one `addCrossingPort`/
      * `removeCrossingPort`. A caller building a step sequence must include these alongside
-     * `steps`, in the order collected (no ordering dependency between them and the legs today).
+     * `steps`, in the order collected --- no ordering dependency between them and the legs, at
+     * any chain depth (`addCrossingPort`/`removeCrossingPort` and a relational step
+     * referencing that port commute, since port-address validation is owner-only, never by
+     * `portId`; see `compileRelationalFromSkeleton.ts`'s own merge for the full trace).
      */
     | { verdict: 'legal'; steps: readonly ExecutorParsePlanStep[]; extraKernelSteps?: readonly MutationKernelStep[] }
     | { verdict: 'defer'; decidable: boolean; reason: string }

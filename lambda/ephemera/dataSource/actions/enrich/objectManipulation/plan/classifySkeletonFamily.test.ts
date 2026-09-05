@@ -30,7 +30,7 @@ describe('classifySkeletonFamily', () => {
         })
     })
 
-    it('classifies a hosting relational template as relationalDefer, kind On (PV1-2)', () => {
+    it('classifies a hosting relational template as relationalDefer, kind On', () => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'put' },
             { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },

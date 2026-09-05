@@ -84,7 +84,7 @@ describe('custom bucket', () => {
         expect(result.intent).toEqual({ ...RELATE_INTENT, subject: 'lamp', relationLabel: 'atop', target: 'wall' })
     })
 
-    it('recognizes "tie" as an establish verb (PV1-3, "tie rope to cup")', () => {
+    it('recognizes "tie" as an establish verb ("tie rope to cup")', () => {
         const result = establishCustomTemplate.matchString('tie rope to cup')
         if (result.type !== 'matched') throw new Error('expected matched')
         expect(result.intent).toEqual({ ...RELATE_INTENT, subject: 'rope', relationLabel: 'to', target: 'cup' })

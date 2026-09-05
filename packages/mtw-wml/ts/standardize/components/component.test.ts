@@ -152,19 +152,19 @@ describe('componentClassFactory removeReferences delegation (via StandardRoom)',
         `))
         const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
 
-        expect(room.features!.payload.length).toBe(1)
+        expect(room.ludicGraph.nodes!.payload.length).toBe(1)
         expect(room.situations.length).toBe(1)
         expect(room.situations.items[0].reference.universalKey).toBe('SITUATION#DEFAULT')
 
         const result = room.removeReferences([featureRef]) as StandardRoom
 
-        expect(result._payload.features.payload.length).toBe(0)
+        expect(result._payload.ludicGraph.nodes.payload.length).toBe(0)
         expect(result.situations.length).toBe(1)
         expect(result.situations.items[0].reference.universalKey).toBe('SITUATION#DEFAULT')
         expect(result.situations.items[0].payload.toJSON()).toMatchObject({ displayName: 'Prose facet' })
 
-        expect(result.features.payload.length).toBe(0)
-        expect(room.features.payload.length).toBe(1)
+        expect(result.ludicGraph.nodes.payload.length).toBe(0)
+        expect(room.ludicGraph.nodes.payload.length).toBe(1)
         expect(room.situations.length).toBe(1)
     })
     

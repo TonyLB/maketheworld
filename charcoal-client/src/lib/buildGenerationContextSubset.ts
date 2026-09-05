@@ -3,6 +3,7 @@ import { StandardKey, ReferenceList } from '@tonylb/mtw-wml/ts/standardize/compo
 import StandardRoom, { type StandardRoomPayload } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardMark, { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
+import StandardLudicGraph from '@tonylb/mtw-wml/ts/standardize/components/ludicGraph'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { ExitFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
 import { SituationRoomFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
@@ -34,7 +35,7 @@ function trimRoomForGenerationContext(room: StandardRoom): StandardRoom {
     const payload = (trimmed as StandardRoom & { _payload: StandardRoomPayload })._payload
     payload._situations = new SituationRoomFacetList([])
     payload._exits = new ExitFacetList([])
-    payload._features = new ReferenceList([])
+    payload._ludicGraph = new StandardLudicGraph()
     payload._inlineRefs = new ReferenceList([])
     payload._characters = new ReferenceList([])
     return trimmed

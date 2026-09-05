@@ -28,15 +28,15 @@ import type { TransferMembershipStep } from '../parsePlanStep'
  * also the prerequisite for LP4c: a `PartOf` edge legitimately puts a Feature in
  * the subject position (`FEATURE#Wall -PartOf-> FEATURE#Niche`, LD-8).
  *
- * Widened again to `EphemeraLudicTerminalId` (PV1-3): a crossing leg's far-side
+ * Widened again to `EphemeraLudicTerminalId`: a crossing leg's far-side
  * endpoint is a port address, not a bare component id --- `HostRelationalEdge`
  * (`manipulation/types.ts`) and `EphemeraLudicRelationalEdgeBase` (interfaces layer,
  * LP7) already carry the wider type; this step type was the one place still
  * narrower than the edge it produces. A leg is an ordinary `establishRelation`/
  * `dissolveRelation` step living entirely within one host's own graph --- no new
- * "leg" step kind, per PV1-3's plan review.
+ * "leg" step kind.
  *
- * **`hostId` added (PV1-3b-7):** mandatory, computed once at Expansion
+ * **`hostId` added:** mandatory, computed once at Expansion
  * (`expandSameHost`'s resolved host; each `buildCrossingLegs` leg's own placement) rather than
  * re-derived at apply time. Closes two cases `applyStepSequenceCore`'s old intersection-based
  * `findSharedHost` couldn't disambiguate: an endpoint multi-hosted in >=2 shared graphs at once,
@@ -107,12 +107,12 @@ export type GroundedBinaryAssertion = {
 }
 
 /**
- * PV1-3b-4 split this out of `GroundedBinaryAssertion` (which fused it with `containedBy` under
+ * This is split out of `GroundedBinaryAssertion` (which fused it with `containedBy` under
  * one shared shape) --- `sameHost` is a placement-resolver, not a check with an inverse (its own
- * `negate` was already dropped, PV1-3b-10), so once `containedBy`'s `negate` went back to being
+ * `negate` was already dropped), so once `containedBy`'s `negate` went back to being
  * unconditionally required, the two no longer belonged in one type. See `SameHostAssertion`'s
  * doc comment in `ungroundedPrimitive.ts` for `relationKind`'s own carried-copy rationale;
- * `relationLabel` is `relationKind: 'Custom'` only (PV1-3) --- the crossing-port producer's
+ * `relationLabel` is `relationKind: 'Custom'` only --- the crossing-port producer's
  * `exteriorRelationLabel`/leg label needs the actual text, not just the `Custom` tag.
  */
 export type GroundedSameHostAssertion = {
@@ -123,7 +123,7 @@ export type GroundedSameHostAssertion = {
     relationKind?: HostRelationalEdgeKind
     relationLabel?: string
     /**
-     * PV1-3b-4: the collapsed ingress seed no longer carries a sibling relational step, so this
+     * the collapsed ingress seed no longer carries a sibling relational step, so this
      * assertion is the only place `establishRelation`/`dissolveRelation` survives to Expansion ---
      * `expandSameHost`/`buildCrossingLegs` need it to pick the retiring step's own kind.
      */
@@ -171,7 +171,7 @@ export type ExpansionEnvironment = {
     getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined
     getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined
     /**
-     * PV1-3: a plain injected callback, same convention as `getCurrentHost`/`getGraph` --- not a
+     * a plain injected callback, same convention as `getCurrentHost`/`getGraph` --- not a
      * live DB call. `findShardBoundary`'s recursive walk calls this at every node it reaches, not
      * only at `subjectId`/`targetId` themselves, so a caller whose worklist never seeds a
      * `sameHost` assertion (every route but the relational/tie pipeline) can safely pass a stub

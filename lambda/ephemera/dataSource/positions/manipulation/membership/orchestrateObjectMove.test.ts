@@ -190,7 +190,7 @@ describe('orchestrateObjectMove', () => {
         expect(resolveLabelsMock).not.toHaveBeenCalled()
     })
 
-    it('proceeds on a rehost between two objects, with no character among the two hosts (PV1-2 follow-up)', async () => {
+    it('proceeds on a rehost between two objects, with no character among the two hosts', async () => {
         // A containment move's toHostId can be an object (a tray), and the subject's current
         // host (fromHostId) can be an object too (moving a cup from one tray to another) or a
         // room (a cup sitting on the floor, never held) --- neither host need be a character.

@@ -19,7 +19,7 @@ export type OrchestrateObjectMoveArgs = {
     fromHostId: EphemeraMembershipHostId;
     toHostId: EphemeraMembershipHostId;
     /**
-     * PV1-2: taken explicitly rather than derived by scanning `[fromHostId, toHostId]` for a
+     * taken explicitly rather than derived by scanning `[fromHostId, toHostId]` for a
      * room --- a containment move's `toHostId` is the destination object (a tray), not a room,
      * so neither host is a room and the derived-`roomId` form silently no-ops for every such
      * move. `resolveObjectMovePresentationLabels` only needs *a* room for perspective/shortName
@@ -27,7 +27,7 @@ export type OrchestrateObjectMoveArgs = {
      */
     roomId: EphemeraRoomId;
     /**
-     * PV1-2 follow-up: also taken explicitly, for the same reason `roomId` was --- a
+     * Also taken explicitly, for the same reason `roomId` was --- a
      * containment move's `toHostId` can be an object (a tray), so a rehost between two objects
      * (`fromHostId` and `toHostId` both objects, e.g. moving a cup that is already sitting in a
      * room onto a table) has no character among its two hosts at all. Deriving `characterId` by

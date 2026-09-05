@@ -21,8 +21,8 @@ describe('StandardRoom class', () => {
         `)
         const testRoom = new StandardRoom(testSource)
         expect(testRoom.key).toEqual('test')
-        expect(testRoom.features).toBeDefined()
-        expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
+        expect(testRoom.ludicGraph.nodes).toBeDefined()
+        expect(testRoom.ludicGraph.nodes!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.schema).toEqual([{ data: { tag: 'String', value: 'ShortName Test' }, children: [] }])
         expect(testRoom.exits.length).toEqual(0)
         expect(testRoom.universalKey).toEqual('ROOM#123')
@@ -51,8 +51,8 @@ describe('StandardRoom class', () => {
         schema.loadWML(testSource)
         const testRoom = new StandardRoom(schema.schema[0])
         expect(testRoom.key).toEqual('test')
-        expect(testRoom.features).toBeDefined()
-        expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature'}])
+        expect(testRoom.ludicGraph.nodes).toBeDefined()
+        expect(testRoom.ludicGraph.nodes!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature'}])
         expect(testRoom.situations.length).toBe(1)
         expect(testRoom.situations.items[0].reference.universalKey).toBe('SITUATION#DEFAULT')
         expect(testRoom.situations.items[0].payload.toJSON()).toMatchObject({ displayName: 'Base' })
@@ -92,7 +92,7 @@ describe('StandardRoom class', () => {
             tag: 'Room',
             shortName: 'ShortName Test',
             exits: [{ reference: { tag: 'Room', key: 'testTwo' }, payload: 'Exit test' }],
-            features: [{ tag: 'Feature', key: 'testFeature' }]
+            ludicGraph: { nodes: [{ tag: 'Feature', key: 'testFeature' }] }
         }
         expect(() => new StandardForm({
             universalKey: 'ASSET#Test',
@@ -128,12 +128,12 @@ describe('StandardRoom class', () => {
             tag: 'Room',
             shortName: 'ShortName Test',
             // exits property is missing - this should not crash
-            features: [{ tag: 'Feature', key: 'testFeature' }]
+            ludicGraph: { nodes: [{ tag: 'Feature', key: 'testFeature' }] }
         }
         const testRoom = new StandardRoom(testRoomDataWithoutExits)
         expect(testRoom.key).toEqual('test')
-        expect(testRoom.features).toBeDefined()
-        expect(testRoom.features!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
+        expect(testRoom.ludicGraph.nodes).toBeDefined()
+        expect(testRoom.ludicGraph.nodes!.toJSON()).toEqual([{ tag: 'Feature', key: 'testFeature' }])
         expect(testRoom.shortName?.toJSON()).toEqual('ShortName Test')
         expect(testRoom.exits.length).toEqual(0)  // Should default to empty list
         
@@ -251,7 +251,7 @@ describe('StandardRoom class', () => {
             tag: 'Room',
             key: 'testRoomOne',
             guidance: [{ tag: 'Guidance', universalKey: 'GUIDANCE#Guide1' }],
-            features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
+            ludicGraph: { nodes: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }] },
         })
         expect(schemaToWML([
             test.withMapping([
@@ -272,7 +272,7 @@ describe('StandardRoom class', () => {
             tag: 'Room',
             key: 'testRoomOne',
             guidance: [{ tag: 'Guidance', universalKey: 'GUIDANCE#Guide1' }],
-            features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
+            ludicGraph: { nodes: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }] },
         })
         const feature = new StandardKey({ key: 'featureTwo' })
         const added = test.withChild(new StandardReference(feature, 'Feature'))
@@ -290,7 +290,7 @@ describe('StandardRoom class', () => {
             tag: 'Room',
             key: 'testRoomOne',
             guidance: [{ tag: 'Guidance', universalKey: 'GUIDANCE#Guide1' }],
-            features: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }],
+            ludicGraph: { nodes: [{ tag: 'Feature', universalKey: 'FEATURE#Feature1' }] },
         })
         const character = new StandardKey("CHARACTER#Character1")
         const added = test.withChild(new StandardReference(character))
@@ -835,7 +835,7 @@ describe('StandardRoom class', () => {
                 tag: 'Room',
                 shortName: 'Test Room',
                 exits: [{ reference: { tag: 'Room', key: 'target' }, payload: 'Exit description' }],
-                features: [{ tag: 'Feature', key: 'feat1' }],
+                ludicGraph: { nodes: [{ tag: 'Feature', key: 'feat1' }] },
                 characters: [{ tag: 'Character', key: 'char1' }]
             }
             const room = new StandardRoom(roomData, { standardizeMode: 'ephemeraWire' })
@@ -878,7 +878,7 @@ describe('StandardRoom class', () => {
                 tag: 'Room',
                 shortName: 'Test Room',
                 exits: [{ reference: { tag: 'Room', key: 'target' }, payload: 'Exit' }],
-                features: [{ tag: 'Feature', key: 'feat1' }],
+                ludicGraph: { nodes: [{ tag: 'Feature', key: 'feat1' }] },
             }
             const room = new StandardRoom(roomData, { standardizeMode: 'ephemeraWire' })
             const doubleInverted = room._payload.invert().invert()
@@ -887,7 +887,7 @@ describe('StandardRoom class', () => {
             // We compare JSON output since the objects may not be strictly equal
             expect(doubleInverted.shortName?.toJSON()).toEqual(room._payload.shortName?.toJSON())
             expect(doubleInverted.exits.toJSON()).toEqual(room._payload.exits.toJSON())
-            expect(doubleInverted.features.toJSON()).toEqual(room._payload.features.toJSON())
+            expect(doubleInverted.ludicGraph.nodes.toJSON()).toEqual(room._payload.ludicGraph.nodes.toJSON())
         })
 
         it('should invert an empty room', () => {
@@ -896,7 +896,7 @@ describe('StandardRoom class', () => {
             
             expect(inverted.shortName).toBeUndefined()
             expect(inverted.exits.length).toEqual(0)
-            expect(inverted.features.toJSON()).toEqual([])
+            expect(inverted.ludicGraph.nodes.toJSON()).toEqual([])
             expect(inverted.characters.toJSON()).toEqual([])
         })
 
@@ -910,7 +910,7 @@ describe('StandardRoom class', () => {
             
             expect(inverted.shortName).toBeUndefined()
             expect(inverted.exits.length).toEqual(0)
-            expect(inverted.features.toJSON()).toEqual([{ tag: 'Feature', key: 'feat1', ref: -1 }])
+            expect(inverted.ludicGraph.nodes.toJSON()).toEqual([{ tag: 'Feature', key: 'feat1', ref: -1 }])
             expect(inverted.characters.toJSON()).toEqual([])
         })
     })
@@ -1260,11 +1260,11 @@ describe('StandardRoom class', () => {
             const room = new StandardRoom({ tag: 'Room', key: 'test' })
             const { payload: result, inlineRemainder } = room._payload.assureReferences([])
             
-            expect(result.features.payload.length).toBe(0)
+            expect(result.ludicGraph.nodes.payload.length).toBe(0)
             expect(result.characters.payload.length).toBe(0)
             expect(inlineRemainder).toEqual([])
             // Verify it's a clone (original unchanged)
-            expect(room._payload.features.payload.length).toBe(0)
+            expect(room._payload.ludicGraph.nodes.payload.length).toBe(0)
         })
         
         it('should add children with ref={0} when they do not exist', () => {
@@ -1277,9 +1277,9 @@ describe('StandardRoom class', () => {
             
             expect(inlineRemainder.length).toBe(1)
             expect(inlineRemainder[0].tag).toBe('Mark')
-            expect(result.features.payload.length).toBe(1)
-            expect(result.features.payload[0].ref).toBe(0)
-            expect(result.features.payload[0].sameKey(featureRef)).toBe(true)
+            expect(result.ludicGraph.nodes.payload.length).toBe(1)
+            expect(result.ludicGraph.nodes.payload[0].ref).toBe(0)
+            expect(result.ludicGraph.nodes.payload[0].sameKey(featureRef)).toBe(true)
             
             expect(result.characters.payload.length).toBe(1)
             expect(result.characters.payload[0].ref).toBe(0)
@@ -1290,7 +1290,7 @@ describe('StandardRoom class', () => {
             const room = new StandardRoom({
                 tag: 'Room',
                 key: 'test',
-                features: [{ tag: 'Feature', key: 'feat1' }],
+                ludicGraph: { nodes: [{ tag: 'Feature', key: 'feat1' }] },
                 guidance: [{ tag: 'Guidance', key: 'g1', ref: 2 }],
             })
             const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
@@ -1298,8 +1298,8 @@ describe('StandardRoom class', () => {
             
             const { payload: result } = room._payload.assureReferences([featureRef, guidanceRef])
             
-            expect(result.features.payload.length).toBe(1)
-            expect(result.features.payload[0].ref).toBe(1)
+            expect(result.ludicGraph.nodes.payload.length).toBe(1)
+            expect(result.ludicGraph.nodes.payload[0].ref).toBe(1)
             
             expect(result.guidance.payload.length).toBe(1)
             expect(result.guidance.payload[0].ref).toBe(2)
@@ -1317,11 +1317,11 @@ describe('StandardRoom class', () => {
             
             const { payload: result } = room._payload.assureReferences([existingFeature, newFeature, newGuidance])
             
-            expect(result.features.payload.length).toBe(2)
-            const existingFeatInResult = result.features.payload.find(ref => ref.sameKey(existingFeature))
+            expect(result.ludicGraph.nodes.payload.length).toBe(2)
+            const existingFeatInResult = result.ludicGraph.nodes.payload.find(ref => ref.sameKey(existingFeature))
             expect(existingFeatInResult?.ref).toBe(1)
             
-            const newFeatInResult = result.features.payload.find(ref => ref.sameKey(newFeature))
+            const newFeatInResult = result.ludicGraph.nodes.payload.find(ref => ref.sameKey(newFeature))
             expect(newFeatInResult?.ref).toBe(0)
             
             expect(result.guidance.payload.length).toBe(1)
@@ -1331,15 +1331,15 @@ describe('StandardRoom class', () => {
         
         it('should return a clone without mutating the original', () => {
             const room = new StandardRoom({ tag: 'Room', key: 'test' })
-            const originalFeaturesLength = room._payload.features.payload.length
+            const originalFeaturesLength = room._payload.ludicGraph.nodes.payload.length
             const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
             
             const { payload: result } = room._payload.assureReferences([featureRef])
             
             // Original should be unchanged
-            expect(room._payload.features.payload.length).toBe(originalFeaturesLength)
+            expect(room._payload.ludicGraph.nodes.payload.length).toBe(originalFeaturesLength)
             // Result should have the new reference
-            expect(result.features.payload.length).toBe(1)
+            expect(result.ludicGraph.nodes.payload.length).toBe(1)
             // They should be different objects
             expect(result).not.toBe(room._payload)
         })
@@ -1352,11 +1352,11 @@ describe('StandardRoom class', () => {
             const { payload: firstPayload } = room._payload.assureReferences([featureRef, guidanceRef])
             const { payload: secondPayload } = firstPayload.assureReferences([featureRef, guidanceRef])
             
-            expect(firstPayload.features.payload.length).toBe(1)
-            expect(secondPayload.features.payload.length).toBe(1)
-            expect(firstPayload.features.payload[0].sameKey(secondPayload.features.payload[0])).toBe(true)
-            expect(firstPayload.features.payload[0].ref).toBe(0)
-            expect(secondPayload.features.payload[0].ref).toBe(0)
+            expect(firstPayload.ludicGraph.nodes.payload.length).toBe(1)
+            expect(secondPayload.ludicGraph.nodes.payload.length).toBe(1)
+            expect(firstPayload.ludicGraph.nodes.payload[0].sameKey(secondPayload.ludicGraph.nodes.payload[0])).toBe(true)
+            expect(firstPayload.ludicGraph.nodes.payload[0].ref).toBe(0)
+            expect(secondPayload.ludicGraph.nodes.payload[0].ref).toBe(0)
             
             expect(firstPayload.guidance.payload.length).toBe(1)
             expect(secondPayload.guidance.payload.length).toBe(1)
@@ -1373,8 +1373,8 @@ describe('StandardRoom class', () => {
             
             const { payload: result } = room._payload.assureReferences([featureRef, guidanceRef, charRef])
             
-            expect(result.features.payload.length).toBe(1)
-            expect(result.features.payload[0].sameKey(featureRef)).toBe(true)
+            expect(result.ludicGraph.nodes.payload.length).toBe(1)
+            expect(result.ludicGraph.nodes.payload[0].sameKey(featureRef)).toBe(true)
             
             expect(result.guidance.payload.length).toBe(1)
             expect(result.guidance.payload[0].sameKey(guidanceRef)).toBe(true)
@@ -1393,8 +1393,8 @@ describe('StandardRoom class', () => {
             const { payload: result, inlineRemainder } = room._payload.assureReferences([markRef, featureRef])
 
             // Feature goes to bucket
-            expect(result.features.payload.length).toBe(1)
-            expect(result.features.payload[0].sameKey(featureRef)).toBe(true)
+            expect(result.ludicGraph.nodes.payload.length).toBe(1)
+            expect(result.ludicGraph.nodes.payload[0].sameKey(featureRef)).toBe(true)
             // Mark goes to remainder (Room has no Mark bucket)
             expect(inlineRemainder.length).toBe(1)
             expect(inlineRemainder[0].tag).toBe('Mark')
@@ -1408,10 +1408,10 @@ describe('StandardRoom class', () => {
             const room = new StandardRoom({
                 tag: 'Room',
                 key: 'test',
-                features: [
+                ludicGraph: { nodes: [
                     { tag: 'Feature', key: 'feat1' },
                     { tag: 'Feature', key: 'feat2' },
-                ],
+                ] },
                 guidance: [{ tag: 'Guidance', key: 'g1' }],
                 characters: [{ tag: 'Character', key: 'char1' }],
             })
@@ -1420,8 +1420,8 @@ describe('StandardRoom class', () => {
             
             const result = room._payload.removeReferences([featureRef, guidanceRef])
             
-            expect(result.features.payload.length).toBe(1)
-            expect(result.features.payload[0].sameKey(new StandardReference({ tag: 'Feature', key: 'feat2' }))).toBe(true)
+            expect(result.ludicGraph.nodes.payload.length).toBe(1)
+            expect(result.ludicGraph.nodes.payload[0].sameKey(new StandardReference({ tag: 'Feature', key: 'feat2' }))).toBe(true)
             
             expect(result.guidance.payload.length).toBe(0)
             
@@ -1435,15 +1435,15 @@ describe('StandardRoom class', () => {
                     <Feature key=(feat1) />
                 </Room>
             `))
-            const originalFeaturesLength = room._payload.features.payload.length
+            const originalFeaturesLength = room._payload.ludicGraph.nodes.payload.length
             const featureRef = new StandardReference({ tag: 'Feature', key: 'feat1' })
             
             const result = room._payload.removeReferences([featureRef])
             
             // Original should be unchanged
-            expect(room._payload.features.payload.length).toBe(originalFeaturesLength)
+            expect(room._payload.ludicGraph.nodes.payload.length).toBe(originalFeaturesLength)
             // Result should have the reference removed
-            expect(result.features.payload.length).toBe(0)
+            expect(result.ludicGraph.nodes.payload.length).toBe(0)
             // They should be different objects
             expect(result).not.toBe(room._payload)
         })
@@ -1457,7 +1457,7 @@ describe('StandardRoom class', () => {
             
             const result = room._payload.removeReferences([])
             
-            expect(result.features.payload.length).toBe(1)
+            expect(result.ludicGraph.nodes.payload.length).toBe(1)
             expect(result.guidance.payload.length).toBe(0)
             expect(result.characters.payload.length).toBe(0)
         })

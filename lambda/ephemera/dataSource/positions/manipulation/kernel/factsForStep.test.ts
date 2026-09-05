@@ -204,7 +204,7 @@ describe('factsForStep', () => {
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
-    it('PV1-3: addCrossingPort/removeCrossingPort steps yield no facts --- not a narration channel yet, same as setPresencePort', () => {
+    it('addCrossingPort/removeCrossingPort steps yield no facts --- not a narration channel yet, same as addPresencePort/removePresencePort', () => {
         const addStep: MutationKernelStep = {
             kind: 'addCrossingPort',
             hostId: tableId,
@@ -215,7 +215,18 @@ describe('factsForStep', () => {
         expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
-    it('PV1-3: a leg with a port-address endpoint yields no fact --- no established fact shape yet for a port-qualified relation', () => {
+    it('addPresencePort/removePresencePort steps yield no facts --- not a narration channel yet (RD-2)', () => {
+        const addStep: MutationKernelStep = {
+            kind: 'addPresencePort',
+            hostId: trayId,
+            port: { portId: 'p2', fromHostId: roomId, kind: 'Present' },
+        }
+        const removeStep: MutationKernelStep = { kind: 'removePresencePort', hostId: trayId, fromHostId: roomId }
+        expect(factsForStep(addStep, graphsMap(), beatAnchorTime)).toEqual([])
+        expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
+    })
+
+    it('a leg with a port-address endpoint yields no fact --- no established fact shape yet for a port-qualified relation', () => {
         const step: MutationKernelStep = {
             kind: 'establishRelation',
             subjectId: trayId,

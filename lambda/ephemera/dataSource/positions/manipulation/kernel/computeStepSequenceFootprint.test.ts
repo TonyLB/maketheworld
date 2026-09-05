@@ -58,7 +58,7 @@ describe('computeStepSequenceFootprint', () => {
         expect(() => computeStepSequenceFootprint([step], () => undefined)).toThrow()
     })
 
-    it('PV1-3: addCrossingPort/removeCrossingPort steps contribute their hostId directly', () => {
+    it('addCrossingPort/removeCrossingPort steps contribute their hostId directly', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'addCrossingPort', hostId: roomId, port: { portId: 'p1', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' } },
             { kind: 'removeCrossingPort', hostId: otherRoomId, portId: 'p2' },
@@ -66,7 +66,7 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([roomId, otherRoomId]))
     })
 
-    it('PV1-3: a leg with a port-address endpoint resolves its host from the primitive endpoint alone, not both', () => {
+    it('a leg with a port-address endpoint resolves its host from the primitive endpoint alone, not both', () => {
         const step: MutationKernelStep = {
             kind: 'establishRelation',
             subjectId: trayId,
@@ -79,7 +79,7 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId]))
     })
 
-    it('PV1-3: a leg with two port-address endpoints (no primitive anchor) throws', () => {
+    it('a leg with two port-address endpoints (no primitive anchor) throws', () => {
         const step: MutationKernelStep = {
             kind: 'establishRelation',
             subjectId: { owner: trayId, port: 'crossing-1' },

@@ -24,18 +24,18 @@ export type ExecuteEstablishEdgeChainResult =
     | { ok: false; errorCode: string; errorMessage: string }
 
 /**
- * PV1-3b-3, wired live at PV1-3b-2: the single commit path for `Object Establish Relation`,
+ * The single commit path for `Object Establish Relation`,
  * having absorbed the single-host case that a now-deleted sibling (`executeObjectEstablishRelation`)
  * used to handle separately --- `steps` is a one-entry array for a portless/same-host candidate,
  * so there was nothing left for that function to do once this one's live call site landed.
  * `steps` arrives already merged and ordered (port steps before the legs that reference them, per
  * `buildCrossingLegs.ts`/`compileRelationalFromSkeleton.ts`), so this is a pure pass-through: no
  * separate whole-crossing verification layer, since `applyStepSequenceCore`'s per-step
- * `confirmCarriedHost` assert (PV1-3b-7) already re-checks every leg against live state at commit
+ * `confirmCarriedHost` assert already re-checks every leg against live state at commit
  * time.
  *
  * `getCurrentHost` is built from each `establishRelation`/`dissolveRelation` step's own carried
- * `hostId` (PV1-3b-7), keyed by that step's primitive endpoint(s) --- `computeStepSequenceFootprint`
+ * `hostId`, keyed by that step's primitive endpoint(s) --- `computeStepSequenceFootprint`
  * only ever calls it for a primitive endpoint (a port-address endpoint's host is locked directly by
  * the `addCrossingPort`/`removeCrossingPort` step that writes it, never resolved here). Unlike
  * `executeMembershipTransfer`'s `hostByReferencedId` (populated from a `boundaryEdgeOutcomes` walk),

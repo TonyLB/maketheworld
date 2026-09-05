@@ -12,6 +12,8 @@ import {
     isEphemeraZoneUpdatedEnvelope,
 } from './subscribedEvents'
 import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroadcast'
+import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { populateContainmentAtCache } from './positions/manipulation/containment/populateContainmentAtCache'
 
 const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Component Updated' } }>): Promise<void> => {
     const content = await evt.getContent()
@@ -19,6 +21,17 @@ const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { hea
     const componentId = content.component.universalKey || ''
     if (isEphemeraRoomId(componentId)) {
         await kickRoomHeaderBroadcastForRoom({ roomId: componentId, messageBus })
+    }
+    // RD-4 (`AGENT.presenceRefactor.planning.md` step 3): cache-time containment population,
+    // additive-only --- Room-in-Area and Feature-in-Room today. Duck-typed on `ludicGraph` rather
+    // than switched on `component.tag`, so a future host kind (e.g. Feature, once it gains its own
+    // `_ludicGraph`) starts participating with no change here (RA-3's scale-invariant framing).
+    const { component } = content
+    if (isEphemeraMembershipHostId(componentId) && 'ludicGraph' in component) {
+        const nodes = (component as { ludicGraph: { nodes: { payload: readonly { universalKey?: string }[] } } }).ludicGraph.nodes.payload
+        if (nodes.length > 0) {
+            await populateContainmentAtCache(componentId, nodes, { messageBus })
+        }
     }
 }
 

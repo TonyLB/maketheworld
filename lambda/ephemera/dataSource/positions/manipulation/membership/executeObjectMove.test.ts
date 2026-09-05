@@ -102,9 +102,9 @@ describe('executeObjectMove', () => {
         // CD2, reduced scope): its whole point was `On`'s carry absorption (glass -On-> tray
         // pulling glass into the moved set), which is now dead -- `On` joined `In`/`PartOf`'s
         // hosting-kind throw, and `carry` is unreachable from any relation kind. Real
-        // shard-based hosting (CD2h) is what carries the glass along again as of PV1-2, by
+        // shard-based hosting (CD2h) is what carries the glass along again, by
         // construction (it lives in the tray's own shard) rather than via this closure walk ---
-        // see the `PV1-2: On rehost` describe block below for that case.
+        // see the `On rehost` describe block below for that case.
         it('BD-28: an unrelated boundary edge on an object outside the carried set is untouched', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, {
                 nodes: [
@@ -161,12 +161,12 @@ describe('executeObjectMove', () => {
     })
 
     /**
-     * PV1-2: `On` nests end to end, as a rehost carrying a containment argument. Asserts the
+     * `On` nests end to end, as a rehost carrying a containment argument. Asserts the
      * checklist's own "Done when" bar directly --- member of the destination's graph (not the
      * room's), a root-anchored containment edge inside it, a presence port naming the
      * destination, and both gone when the object leaves.
      */
-    describe('PV1-2: On rehost', () => {
+    describe('On rehost', () => {
         const committedGraph = (hostId: string): EphemeraLudicGraph => {
             const call = (internalCache.Positions.set as jest.Mock).mock.calls
                 .map(([graph]: [EphemeraLudicGraph]) => graph)
@@ -390,7 +390,7 @@ describe('executeObjectMove', () => {
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a successful commit') }
             expect(result.plan.steps.map((step) => step.kind)).toEqual([
-                'capture', 'transferMembership', 'setPresencePort', 'capture', 'narrate', 'narrate',
+                'capture', 'transferMembership', 'removePresencePort', 'addPresencePort', 'capture', 'narrate', 'narrate',
             ])
             expect(result.captures.get('capture:from:' + ROOM_ID)).toBeDefined()
         })
@@ -416,7 +416,7 @@ describe('executeObjectMove', () => {
             if (!result.ok) { throw new Error('expected a successful commit') }
             // Captures exist only to serve narration; a silent move should not lock hosts to
             // snapshot rosters nobody will read.
-            expect(result.plan.steps.map((step) => step.kind)).toEqual(['transferMembership', 'setPresencePort'])
+            expect(result.plan.steps.map((step) => step.kind)).toEqual(['transferMembership', 'removePresencePort', 'addPresencePort'])
         })
 
         it('returns ok: false without committing when the executor verdict is not legal', async () => {

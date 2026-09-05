@@ -140,7 +140,7 @@ describe('walkAncestryContainers', () => {
     const asyncContainersFrom = (table: Record<string, EphemeraMembershipHostId[]>) =>
         jest.fn(async (id: EphemeraPositionAdjacencyContainedId): Promise<EphemeraMembershipHostId[]> => table[id] ?? [])
 
-    it('resolves the full multi-hop chain, not just the first hop (PV1-3b-5)', async () => {
+    it('resolves the full multi-hop chain, not just the first hop', async () => {
         const getMembershipContainers = asyncContainersFrom({
             [CUP_ID]: [TABLE_ID],
             [TABLE_ID]: [ROOM_ID],

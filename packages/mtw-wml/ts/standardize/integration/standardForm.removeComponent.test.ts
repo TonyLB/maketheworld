@@ -95,8 +95,8 @@ describe('StandardForm', () => {
             // Both rooms should exist but without feature references
             const room1 = result._components.find(c => c.key === 'room1') as StandardRoom
             const room2 = result._components.find(c => c.key === 'room2') as StandardRoom
-            expect(room1.features?.payload.length).toBe(0)
-            expect(room2.features?.payload.length).toBe(0)
+            expect(room1.ludicGraph.nodes?.payload.length).toBe(0)
+            expect(room2.ludicGraph.nodes?.payload.length).toBe(0)
         })
 
         it('should follow functional pattern and not mutate original', () => {
@@ -138,7 +138,7 @@ describe('StandardForm', () => {
             
             // Room should still exist but without the feature reference
             const room = result._components.find(c => c.key === 'room1') as StandardRoom
-            expect(room.features?.payload.length).toBe(0)
+            expect(room.ludicGraph.nodes?.payload.length).toBe(0)
         })
 
         describe('cascade option', () => {

@@ -11,8 +11,17 @@ const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const BOX_ID = 'OBJECT#Box' as EphemeraObjectId
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
 
+// A branching tree for the "both sides at once"/general-depth cases: A contains B; B
+// contains C and E; C contains D (and, in the deeper variant, D2 contains D); E contains F.
+const B_ID = 'OBJECT#B' as EphemeraObjectId
+const C_ID = 'OBJECT#C' as EphemeraObjectId
+const D_ID = 'OBJECT#D' as EphemeraObjectId
+const D2_ID = 'OBJECT#D2' as EphemeraObjectId
+const E_ID = 'OBJECT#E' as EphemeraObjectId
+const F_ID = 'OBJECT#F' as EphemeraObjectId
+
 describe('buildCrossingLegs', () => {
-    it("PV1-0's own readout case: rope in room, cup on table -- exactly two legs and one crossing port, on the interior (table) side", () => {
+    it("the readout case: rope in room, cup on table -- exactly two legs and one crossing port, on the interior (table) side", () => {
         const result = buildCrossingLegs({
             subjectId: STRING_ID,
             targetId: CUP_ID,
@@ -115,7 +124,7 @@ describe('buildCrossingLegs', () => {
         })
     })
 
-    it('PV1-3b-4: a degenerate same-shard dissolve produces a dissolveRelation step, not establishRelation', () => {
+    it('a degenerate same-shard dissolve produces a dissolveRelation step, not establishRelation', () => {
         const result = buildCrossingLegs({
             subjectId: STRING_ID,
             targetId: CUP_ID,
@@ -135,7 +144,7 @@ describe('buildCrossingLegs', () => {
         })
     })
 
-    it('PV1-3b-4: reports notYetImplemented for a dissolve that crosses a real boundary --- removing a minted port is unbuilt', () => {
+    it('reports notYetImplemented for a dissolve that crosses a real boundary --- removing a minted port is unbuilt', () => {
         const result = buildCrossingLegs({
             subjectId: STRING_ID,
             targetId: CUP_ID,
@@ -255,29 +264,116 @@ describe('buildCrossingLegs', () => {
         expect(addPortStep.port).not.toHaveProperty('exteriorRelationLabel')
     })
 
-    it('reports notYetImplemented when both sides have an extra hop (a middle port-to-port leg would be needed)', () => {
+    it("both sides have an extra hop at once --- a middle leg with two port-address endpoints, the shape this row exists to unblock (tree: B contains C and E; C contains D; E contains F; tie D to F)", () => {
         const result = buildCrossingLegs({
-            subjectId: STRING_ID,
-            targetId: CUP_ID,
-            commonAncestor: ROOM_ID,
-            subjectPath: [BOX_ID, ROOM_ID],
-            targetPath: [TABLE_ID, ROOM_ID],
+            subjectId: D_ID,
+            targetId: F_ID,
+            commonAncestor: B_ID,
+            subjectPath: [C_ID, B_ID],
+            targetPath: [E_ID, B_ID],
             operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'to',
         })
 
-        expect(result.verdict).toBe('notYetImplemented')
+        expect(result.verdict).toBe('built')
+        if (result.verdict !== 'built') return
+        expect(result.steps).toHaveLength(5)
+
+        const [addPortC, legDtoC, addPortE, legEtoF, finalLeg] = result.steps
+        expect(addPortC).toMatchObject({ kind: 'addCrossingPort', hostId: C_ID, port: { fromHostId: B_ID, kind: 'Custom', exteriorRelationLabel: 'to' } })
+        expect(addPortE).toMatchObject({ kind: 'addCrossingPort', hostId: E_ID, port: { fromHostId: B_ID, kind: 'Custom', exteriorRelationLabel: 'to' } })
+        if (addPortC.kind !== 'addCrossingPort' || addPortE.kind !== 'addCrossingPort') return
+        const portC = addPortC.port.portId
+        const portE = addPortE.port.portId
+
+        expect(legDtoC).toEqual({ kind: 'establishRelation', subjectId: D_ID, targetId: { owner: C_ID, port: portC }, hostId: C_ID, relationKind: 'Custom', relationLabel: 'to' })
+        expect(legEtoF).toEqual({ kind: 'establishRelation', subjectId: { owner: E_ID, port: portE }, targetId: F_ID, hostId: E_ID, relationKind: 'Custom', relationLabel: 'to' })
+        // The connecting leg: both endpoints are port addresses, no primitive endpoint anywhere.
+        expect(finalLeg).toEqual({
+            kind: 'establishRelation',
+            subjectId: { owner: C_ID, port: portC },
+            targetId: { owner: E_ID, port: portE },
+            hostId: B_ID,
+            relationKind: 'Custom',
+            relationLabel: 'to',
+        })
     })
 
-    it('reports notYetImplemented for a path longer than one extra hop', () => {
+    it('a genuine 3-shard chain on one side (cup on tray on table, tied to a string in the room) --- two chained ports, deeper than one extra hop', () => {
         const result = buildCrossingLegs({
             subjectId: STRING_ID,
             targetId: CUP_ID,
             commonAncestor: ROOM_ID,
             subjectPath: [ROOM_ID],
-            targetPath: [BOX_ID, TABLE_ID, ROOM_ID],
+            targetPath: [TRAY_ID, TABLE_ID, ROOM_ID],
             operationKind: 'establishRelation',
+            relationKind: 'Custom',
+            relationLabel: 'to',
+        })
+
+        expect(result.verdict).toBe('built')
+        if (result.verdict !== 'built') return
+        expect(result.steps).toHaveLength(5)
+
+        const [addPortTray, legTrayToCup, addPortTable, legTableToTray, finalLeg] = result.steps
+        expect(addPortTray).toMatchObject({ kind: 'addCrossingPort', hostId: TRAY_ID, port: { fromHostId: TABLE_ID } })
+        expect(addPortTable).toMatchObject({ kind: 'addCrossingPort', hostId: TABLE_ID, port: { fromHostId: ROOM_ID } })
+        if (addPortTray.kind !== 'addCrossingPort' || addPortTable.kind !== 'addCrossingPort') return
+        const portTray = addPortTray.port.portId
+        const portTable = addPortTable.port.portId
+
+        expect(legTrayToCup).toEqual({ kind: 'establishRelation', subjectId: { owner: TRAY_ID, port: portTray }, targetId: CUP_ID, hostId: TRAY_ID, relationKind: 'Custom', relationLabel: 'to' })
+        expect(legTableToTray).toEqual({ kind: 'establishRelation', subjectId: { owner: TABLE_ID, port: portTable }, targetId: { owner: TRAY_ID, port: portTray }, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' })
+        expect(finalLeg).toEqual({ kind: 'establishRelation', subjectId: STRING_ID, targetId: { owner: TABLE_ID, port: portTable }, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'to' })
+    })
+
+    it('a chain of depth 2 on the subject side and depth 1 on the target side at once, confirming the two sides do not interfere (D2 contains D; C contains D2; B contains C and E; E contains F; tie D to F)', () => {
+        const result = buildCrossingLegs({
+            subjectId: D_ID,
+            targetId: F_ID,
+            commonAncestor: B_ID,
+            subjectPath: [D2_ID, C_ID, B_ID],
+            targetPath: [E_ID, B_ID],
+            operationKind: 'establishRelation',
+            relationKind: 'Custom',
+            relationLabel: 'to',
+        })
+
+        expect(result.verdict).toBe('built')
+        if (result.verdict !== 'built') return
+        expect(result.steps).toHaveLength(7)
+
+        const [addPortD2, legDtoD2, addPortC, legD2toC, addPortE, legEtoF, finalLeg] = result.steps
+        expect(addPortD2).toMatchObject({ kind: 'addCrossingPort', hostId: D2_ID, port: { fromHostId: C_ID } })
+        expect(addPortC).toMatchObject({ kind: 'addCrossingPort', hostId: C_ID, port: { fromHostId: B_ID } })
+        expect(addPortE).toMatchObject({ kind: 'addCrossingPort', hostId: E_ID, port: { fromHostId: B_ID } })
+        if (addPortD2.kind !== 'addCrossingPort' || addPortC.kind !== 'addCrossingPort' || addPortE.kind !== 'addCrossingPort') return
+        const portD2 = addPortD2.port.portId
+        const portC = addPortC.port.portId
+        const portE = addPortE.port.portId
+
+        expect(legDtoD2).toEqual({ kind: 'establishRelation', subjectId: D_ID, targetId: { owner: D2_ID, port: portD2 }, hostId: D2_ID, relationKind: 'Custom', relationLabel: 'to' })
+        expect(legD2toC).toEqual({ kind: 'establishRelation', subjectId: { owner: D2_ID, port: portD2 }, targetId: { owner: C_ID, port: portC }, hostId: C_ID, relationKind: 'Custom', relationLabel: 'to' })
+        expect(legEtoF).toEqual({ kind: 'establishRelation', subjectId: { owner: E_ID, port: portE }, targetId: F_ID, hostId: E_ID, relationKind: 'Custom', relationLabel: 'to' })
+        expect(finalLeg).toEqual({
+            kind: 'establishRelation',
+            subjectId: { owner: C_ID, port: portC },
+            targetId: { owner: E_ID, port: portE },
+            hostId: B_ID,
+            relationKind: 'Custom',
+            relationLabel: 'to',
+        })
+    })
+
+    it('dissolving a genuine crossing still reports notYetImplemented, deeper than one hop', () => {
+        const result = buildCrossingLegs({
+            subjectId: STRING_ID,
+            targetId: CUP_ID,
+            commonAncestor: ROOM_ID,
+            subjectPath: [ROOM_ID],
+            targetPath: [TRAY_ID, TABLE_ID, ROOM_ID],
+            operationKind: 'dissolveRelation',
             relationKind: 'Custom',
             relationLabel: 'to',
         })
@@ -287,7 +383,7 @@ describe('buildCrossingLegs', () => {
 })
 
 describe('buildCrossingDissolveLegs', () => {
-    it("PV1-0's own readout case, reversed: a 3-step found chain (edge, port, edge) becomes [dissolveRelation, removeCrossingPort, dissolveRelation]", () => {
+    it("the readout case, reversed: a 3-step found chain (edge, port, edge) becomes [dissolveRelation, removeCrossingPort, dissolveRelation]", () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const steps: RelationalChainStep[] = [
             { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' } },

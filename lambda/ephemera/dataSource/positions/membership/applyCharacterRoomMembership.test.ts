@@ -100,7 +100,13 @@ describe('applyCharacterRoomMembership', () => {
         }))
 
         expect(commitStepSequenceMock).toHaveBeenCalledWith(
-            { steps: [{ kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM }] },
+            {
+                steps: [
+                    { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
+                    { kind: 'removePresencePort', hostId: CHARACTER_ID, fromHostId: FROM_ROOM },
+                    { kind: 'addPresencePort', hostId: CHARACTER_ID, port: expect.objectContaining({ fromHostId: TO_ROOM, kind: 'Present' }) },
+                ],
+            },
             expect.objectContaining({
                 messageBus: messageBus as any,
                 streamEvent,
@@ -121,7 +127,8 @@ describe('applyCharacterRoomMembership', () => {
         })
         // No dissolveRelation steps are ever constructed for a character -- HostRelationalEdge is
         // object-only, so there is nothing for this route to sweep, structurally, not just in practice.
-        expect(commitStepSequenceMock.mock.calls[0][0].steps).toHaveLength(1)
+        // Presence steps (RD-1/RD-3) are the only addition to the bare transfer.
+        expect(commitStepSequenceMock.mock.calls[0][0].steps).toHaveLength(3)
     })
 
     it('honors compileMutationSteps when supplied, threading narrationHandledInline to the commit and captures back out (Phase 2)', async () => {
@@ -173,12 +180,17 @@ describe('applyCharacterRoomMembership', () => {
 
         expect(commitStepSequenceMock).toHaveBeenCalledWith(
             {
-                steps: [{
-                    kind: 'transferMembership',
-                    entityIds: new Set([CHARACTER_ID]),
-                    fromHostIds: new Set([FROM_ROOM, ROOM_C]),
-                    toHostId: TO_ROOM,
-                }],
+                steps: [
+                    {
+                        kind: 'transferMembership',
+                        entityIds: new Set([CHARACTER_ID]),
+                        fromHostIds: new Set([FROM_ROOM, ROOM_C]),
+                        toHostId: TO_ROOM,
+                    },
+                    { kind: 'removePresencePort', hostId: CHARACTER_ID, fromHostId: FROM_ROOM },
+                    { kind: 'removePresencePort', hostId: CHARACTER_ID, fromHostId: ROOM_C },
+                    { kind: 'addPresencePort', hostId: CHARACTER_ID, port: expect.objectContaining({ fromHostId: TO_ROOM, kind: 'Present' }) },
+                ],
             },
             expect.anything()
         )

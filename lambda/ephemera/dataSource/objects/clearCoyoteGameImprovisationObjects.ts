@@ -31,7 +31,7 @@ export type ClearCoyoteGameImprovisationObjectsArgs = {
     getRoomLudicGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     getActiveCharactersInCoyoteRooms?: () => Promise<EphemeraCharacterId[]>;
     getCharacterLudicGraph?: (characterId: EphemeraCharacterId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
-    /** PV1-3c: test seams for the phase-1 chain-reachability dissolve pass. */
+    /** test seams for the phase-1 chain-reachability dissolve pass. */
     getMembershipContainers?: (id: EphemeraObjectId | EphemeraCharacterId) => Promise<EphemeraMembershipHostId[]>;
     getGraph?: (hostId: EphemeraMembershipHostId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     /** Descent into object-hosted shards when collecting the removal set (nested contents). */
@@ -140,7 +140,7 @@ export const clearCoyoteGameImprovisationObjects = async (
     }
 
     // Room and character graphs only name their *direct* members: an object hosted On/In/PartOf
-    // another object lives in that host's own shard, not the room's graph (CC3/PV1-1). Scanning
+    // another object lives in that host's own shard, not the room's graph (CC3). Scanning
     // the two graphs above therefore misses a cup on a table entirely --- it survived the clear,
     // and then lost its host's row underneath it (2026-09-03). `collectNestedObjectIds` is the
     // existing walker for exactly this descent, already used by the room object catalog.
@@ -158,7 +158,7 @@ export const clearCoyoteGameImprovisationObjects = async (
         return { ok: true, persisted: false, destroyedIds: [] }
     }
 
-    // PV1-3c, phase 1: dissolve every relational chain touching *any* object in the whole batch,
+    // Phase 1: dissolve every relational chain touching *any* object in the whole batch,
     // in one atomic transact, before removing anything. Front-loading this means a failure here
     // leaves nothing touched (clean failure, not a partial clear); a success guarantees phase 2's
     // removals below are edge-free regardless of per-object processing order --- the two failure
