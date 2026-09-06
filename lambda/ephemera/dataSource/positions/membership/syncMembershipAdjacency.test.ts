@@ -17,11 +17,12 @@ jest.mock('../../../internalCache', () => ({
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
+const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
 const ROOM_A = 'ROOM#VORTEX' as EphemeraRoomId
 const ROOM_B = 'ROOM#TestTwo' as EphemeraRoomId
 
@@ -39,7 +40,7 @@ describe('syncMembershipAdjacencyToRoom', () => {
         getMembershipContainers.mockResolvedValue([ROOM_A])
 
         const result = await syncMembershipAdjacencyToRoom(
-            { characterId: CHARACTER_ID, roomId: ROOM_A },
+            { componentId: CHARACTER_ID, roomId: ROOM_A },
             { getMembershipContainers, transactWrite }
         )
 
@@ -52,7 +53,7 @@ describe('syncMembershipAdjacencyToRoom', () => {
         getMembershipContainers.mockResolvedValue([ROOM_B])
 
         const result = await syncMembershipAdjacencyToRoom(
-            { characterId: CHARACTER_ID, roomId: ROOM_A },
+            { componentId: CHARACTER_ID, roomId: ROOM_A },
             { getMembershipContainers, transactWrite }
         )
 
@@ -78,7 +79,7 @@ describe('syncMembershipAdjacencyToRoom', () => {
         getMembershipContainers.mockResolvedValue([])
 
         const result = await syncMembershipAdjacencyToRoom(
-            { characterId: CHARACTER_ID, roomId: ROOM_A },
+            { componentId: CHARACTER_ID, roomId: ROOM_A },
             { getMembershipContainers, transactWrite }
         )
 
@@ -89,6 +90,26 @@ describe('syncMembershipAdjacencyToRoom', () => {
         expect(items[0].Put).toEqual({
             EphemeraId: CHARACTER_ID,
             DataCategory: buildPositionAdjacencyDataCategory(ROOM_A),
+        })
+    })
+
+    it('is generic over object ids as well as character ids', async () => {
+        getMembershipContainers.mockResolvedValue([ROOM_B])
+
+        const result = await syncMembershipAdjacencyToRoom(
+            { componentId: OBJECT_ID, roomId: ROOM_A },
+            { getMembershipContainers, transactWrite }
+        )
+
+        expect(result).toEqual({ synced: true })
+        const items = transactWrite.mock.calls[0][0]
+        expect(items[0].Put).toEqual({
+            EphemeraId: OBJECT_ID,
+            DataCategory: buildPositionAdjacencyDataCategory(ROOM_A),
+        })
+        expect(setMembershipContainers).toHaveBeenCalledWith({
+            componentId: OBJECT_ID,
+            containers: [ROOM_A],
         })
     })
 })

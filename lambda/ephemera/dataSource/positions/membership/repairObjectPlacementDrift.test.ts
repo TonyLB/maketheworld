@@ -2,15 +2,15 @@ jest.mock('../manipulation/membership/executeObjectMove', () => ({
     executeMembershipTransfer: jest.fn(),
 }))
 
-jest.mock('./syncObjectMembershipAdjacency', () => ({
-    syncObjectMembershipAdjacencyToRoom: jest.fn(),
+jest.mock('./syncMembershipAdjacency', () => ({
+    syncMembershipAdjacencyToRoom: jest.fn(),
 }))
 
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
 import { executeMembershipTransfer } from '../manipulation/membership/executeObjectMove'
 import { repairObjectPlacementDrift } from './repairObjectPlacementDrift'
-import { syncObjectMembershipAdjacencyToRoom } from './syncObjectMembershipAdjacency'
+import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const OBJECT_A = 'OBJECT#Skates' as EphemeraObjectId
@@ -22,7 +22,7 @@ describe('repairObjectPlacementDrift', () => {
     const getLudicGraph = jest.fn()
     const getMembershipContainers = jest.fn()
     const applyMembership = executeMembershipTransfer as jest.Mock
-    const syncAdjacency = syncObjectMembershipAdjacencyToRoom as jest.Mock
+    const syncAdjacency = syncMembershipAdjacencyToRoom as jest.Mock
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -44,7 +44,7 @@ describe('repairObjectPlacementDrift', () => {
         const result = await runRepair()
 
         expect(result).toEqual({ multiRoomScrubbed: 0, adjacencySynced: 1 })
-        expect(syncAdjacency).toHaveBeenCalledWith({ objectId: OBJECT_A, roomId: ROOM_ID })
+        expect(syncAdjacency).toHaveBeenCalledWith({ componentId: OBJECT_A, roomId: ROOM_ID })
         expect(applyMembership).not.toHaveBeenCalled()
     })
 

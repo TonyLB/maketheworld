@@ -109,7 +109,7 @@ export const repairRoomOccupancyDrift = async (
         }
 
         const { synced } = await syncAdjacency({
-            characterId,
+            componentId: characterId,
             roomId: args.roomId,
         })
         if (synced) {

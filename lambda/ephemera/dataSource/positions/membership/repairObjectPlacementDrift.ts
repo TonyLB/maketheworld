@@ -5,7 +5,7 @@ import internalCache from '../../../internalCache'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
 import { executeMembershipTransfer } from '../manipulation/membership/executeObjectMove'
-import { syncObjectMembershipAdjacencyToRoom } from './syncObjectMembershipAdjacency'
+import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 
 export type RepairObjectPlacementDriftArgs = {
     roomId: EphemeraRoomId;
@@ -17,7 +17,7 @@ export type RepairObjectPlacementDriftDependencies = {
     getLudicGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     getMembershipContainers?: (objectId: EphemeraObjectId) => Promise<EphemeraRoomId[]>;
     applyMembership?: typeof executeMembershipTransfer;
-    syncAdjacency?: typeof syncObjectMembershipAdjacencyToRoom;
+    syncAdjacency?: typeof syncMembershipAdjacencyToRoom;
 }
 
 const listGraphObjectIds = async (
@@ -46,7 +46,7 @@ export const repairObjectPlacementDrift = async (
             return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
         })
     const applyMembership = deps?.applyMembership ?? executeMembershipTransfer
-    const syncAdjacency = deps?.syncAdjacency ?? syncObjectMembershipAdjacencyToRoom
+    const syncAdjacency = deps?.syncAdjacency ?? syncMembershipAdjacencyToRoom
 
     const objectIds = await listGraphObjectIds(args.roomId, deps?.getLudicGraph)
     let multiRoomScrubbed = 0
@@ -77,7 +77,7 @@ export const repairObjectPlacementDrift = async (
         }
 
         const { synced } = await syncAdjacency({
-            objectId,
+            componentId: objectId,
             roomId: args.roomId,
         })
         if (synced) {

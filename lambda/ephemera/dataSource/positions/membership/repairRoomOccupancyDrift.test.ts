@@ -103,7 +103,7 @@ describe('repairRoomOccupancyDrift', () => {
 
         expect(result).toEqual({ ghostsPurged: 0, adjacencySynced: 1 })
         expect(syncAdjacencyMock).toHaveBeenCalledWith({
-            characterId: CHARACTER_ID,
+            componentId: CHARACTER_ID,
             roomId: ROOM_ID,
         })
         expect(applyMembershipMock).not.toHaveBeenCalled()

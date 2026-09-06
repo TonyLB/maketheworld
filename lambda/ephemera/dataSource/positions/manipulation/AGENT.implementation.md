@@ -283,7 +283,7 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 
 | Path | Role |
 | --- | --- |
-| [`syncMembershipAdjacency.ts`](../membership/syncMembershipAdjacency.ts) / [`syncObjectMembershipAdjacency.ts`](../membership/syncObjectMembershipAdjacency.ts) | Adjacency-only sync when the graph is correct but the reverse index lags |
+| [`syncMembershipAdjacency.ts`](../membership/syncMembershipAdjacency.ts) | Adjacency-only sync when the graph is correct but the reverse index lags (generic over character/object ids, MS-1) |
 
 **RoomStack (eviction ladder)** is **not** a kernel input. Navigate ladder persist runs in the parallel tail after [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) --- see [`persistRoomStackNavigate.ts`](../membership/persistRoomStackNavigate.ts) and [`afterCharacterMembershipNavigateChanged.ts`](../navigate/afterCharacterMembershipNavigateChanged.ts). Merge/trim detail: [`../AGENT.implementation.md` --- Eviction ladder](../AGENT.implementation.md#eviction-ladder-roomstack-storage); normative rules: [`../AGENT.contract.md` --- Eviction ladder](../AGENT.contract.md#eviction-ladder-roomstack-storage).
 
