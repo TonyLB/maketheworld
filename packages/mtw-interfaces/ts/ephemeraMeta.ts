@@ -327,8 +327,21 @@ export type ClosedRelationKind = typeof CLOSED_RELATION_KINDS[number]
 export const isClosedRelationKind = (value: string): value is ClosedRelationKind =>
     (CLOSED_RELATION_KINDS as readonly string[]).includes(value)
 
+/**
+ * AB-54's hosting kinds --- the subordinate node lives in its host's own shard, so these are
+ * never given deterministic move/interaction behavior the way `CLOSED_RELATION_KINDS` is: their
+ * containment mechanism, not a lookup table, decides what happens (2026-09-06 conversation ---
+ * "the hosting/containment relations can continue to be hard-coded"). This pairing exists only
+ * so consumers that need to ask "is this kind hosting?" (narration dispatch, for one) share one
+ * answer instead of re-spelling the trio.
+ */
+export const HOSTING_RELATION_KINDS = ['On', 'In', 'PartOf'] as const
+export type HostingRelationKind = typeof HOSTING_RELATION_KINDS[number]
+export const isHostingRelationKind = (value: string): value is HostingRelationKind =>
+    (HOSTING_RELATION_KINDS as readonly string[]).includes(value)
+
 export type HostRelationalEdgeKind =
-    | 'On' | 'In' | 'PartOf'                    // hosting kinds (AB-54); In/PartOf non-exclusive (premise 9)
+    | HostingRelationKind                       // hosting kinds (AB-54); In/PartOf non-exclusive (premise 9)
     | ClosedRelationKind | 'Custom'              // peer kinds (AB-54)
     | 'Present'                                 // partitioning kind (presence plan PR-4, reading (d)) --- neither hosting nor peer
 

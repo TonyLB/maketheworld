@@ -1,3 +1,5 @@
+import type { HostingRelationKind, ClosedRelationKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isHostingRelationKind, isClosedRelationKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { ObjectRelationalEmissionPlan } from './objectManipulationPresentationFanIn'
 
@@ -7,16 +9,35 @@ import type { ObjectRelationalEmissionPlan } from './objectManipulationPresentat
  * into `presentStepSequence`'s `objectMove` copy case in Phase 4, verbatim, when object moves started
  * narrating from a positionally-captured audience instead of this fan-in.
  */
+
+/**
+ * Only `On` has established narration copy today --- `In`/`PartOf` are not yet producible on this
+ * route (2026-08-22, Channel D CD2), so there is no real phrasing to invent for them.
+ * `Partial`, not `Record<HostingRelationKind, ...>`: an exhaustive table would force placeholder
+ * text for the other two rather than admitting nothing is known yet.
+ */
+const CONTAINMENT_NARRATION: Partial<Record<HostingRelationKind, { verb: string; preposition: string }>> = {
+    On: { verb: 'puts', preposition: 'on' },
+}
+
+/** Both closed kinds have established narration copy, so this table is exhaustive --- mirroring
+ * `interactionUnderTransfer.ts`'s `CLOSED_RELATION_BEHAVIOR`, a compile error forces an entry
+ * here if `CLOSED_RELATION_KINDS` ever grows. */
+const CLOSED_RELATION_NARRATION: Record<ClosedRelationKind, { verb: string; preposition: string }> = {
+    Under: { verb: 'puts', preposition: 'under' },
+    Against: { verb: 'leans', preposition: 'against' },
+}
+
 export const buildEstablishRelationWorldMessage = (plan: ObjectRelationalEmissionPlan): string => {
     const { characterName, subjectShortName, targetShortName } = plan
-    if (plan.relationKind === 'On') {
-        return `${characterName} puts ${subjectShortName} on ${targetShortName}`
-    }
-    if (plan.relationKind === 'Under') {
-        return `${characterName} puts ${subjectShortName} under ${targetShortName}`
-    }
-    if (plan.relationKind === 'Against') {
-        return `${characterName} leans ${subjectShortName} against ${targetShortName}`
+    if (isHostingRelationKind(plan.relationKind)) {
+        const narration = CONTAINMENT_NARRATION[plan.relationKind]
+        if (narration) {
+            return `${characterName} ${narration.verb} ${subjectShortName} ${narration.preposition} ${targetShortName}`
+        }
+    } else if (isClosedRelationKind(plan.relationKind)) {
+        const narration = CLOSED_RELATION_NARRATION[plan.relationKind]
+        return `${characterName} ${narration.verb} ${subjectShortName} ${narration.preposition} ${targetShortName}`
     }
     // Only `Custom` carries a label, so the fallback verb is reached explicitly rather than via
     // `relationLabel ?? 'positions'` --- which used to imply the other kinds might supply one.
