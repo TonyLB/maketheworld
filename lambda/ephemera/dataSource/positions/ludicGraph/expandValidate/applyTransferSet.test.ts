@@ -130,7 +130,7 @@ describe('applyTransferSet', () => {
         expect(outcome.sourceGraph.relationalEdges).toEqual([])
     })
 
-    it('LP4h legal: a character-only transfer set dispatches via addCharacter/removeCharacter', () => {
+    it('legal: a character-only transfer set dispatches via addCharacter/removeCharacter', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
         const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
 
@@ -142,7 +142,7 @@ describe('applyTransferSet', () => {
         expect(outcome.destGraph.characterIds.has(characterId)).toBe(true)
     })
 
-    it('LP4h legal: a mixed object+character transfer set lands both under one call', () => {
+    it('legal: a mixed object+character transfer set lands both under one call', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },

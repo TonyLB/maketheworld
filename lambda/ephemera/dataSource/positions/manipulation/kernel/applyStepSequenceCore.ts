@@ -101,10 +101,10 @@ const confirmCarriedHost = (
  * presenceRefactor-step-3-widened to admit Room/Feature): dispatches by shape on
  * `fromHostIds`/`toHostId`. **Real transfer** (`fromHostIds` has exactly one member, `toHostId`
  * non-null): the whole `entityIds` set --- objects and characters together --- routes through
- * `applyTransferSet` (LP4h: it dispatches by kind itself, `removeObject`/`addObject` for objects and
+ * `applyTransferSet` (it dispatches by kind itself, `removeObject`/`addObject` for objects and
  * `removeCharacter`/`addCharacter` for characters, so no separate character swap is needed here;
  * only objects get the full boundary-edge legality machinery, since a character can never carry a
- * relational edge, BD-36's widening deferred). **Room/Feature/Area never relocate (LP4h, unwidened
+ * relational edge, BD-36's widening deferred). **Room/Feature/Area never relocate (unwidened
  * here deliberately)**, so a Room/Feature id reaching this branch is rejected
  * (`unsupportedTransferEntityKind`) before `applyTransferSet` --- which has no dispatch for either
  * kind --- is ever called. **Pure remove** (`toHostId === null`) and **pure add** (`fromHostIds`
@@ -132,7 +132,7 @@ const confirmCarriedHost = (
  * `kernelStep.ts`'s doc comments. `removePresencePort` is a plain filter-by-`fromHostId`, so
  * removing an absent binding is a silent no-op.
  *
- * `capture` (PB-J): snapshots `graphs.get(hostId).characterIds` into the returned `captures` map and
+ * `capture`: snapshots `graphs.get(hostId).characterIds` into the returned `captures` map and
  * moves on --- the one step kind that never touches `graphs`. Reading the map at the step's own
  * position (not resorted, same as every other step here) is what makes the snapshot positional rather
  * than terminal. A host missing from the map --- not locked into the footprint --- is the same
@@ -161,7 +161,7 @@ export const applyStepSequenceCore = (
 
             // Real transfer: exactly the shape the two already-migrated player routes produce.
             if (fromHostIds.length === 1 && toHostId !== null) {
-                // LP4h's boundary, unwidened: Room/Feature/Area are hosts that never relocate, so a
+                // Deliberately unwidened: Room/Feature/Area are hosts that never relocate, so a
                 // Room/Feature id reaching a real (single-from, single-to) transfer is a caller bug ---
                 // `applyTransferSet` has no dispatch for either kind, and step 3's own callers only ever
                 // emit a pure add for them (see `kernelStep.ts`'s doc comment on this widening).
@@ -187,7 +187,7 @@ export const applyStepSequenceCore = (
                 let nextDestGraph = destGraph
 
                 if (step.entityIds.size > 0) {
-                    // LP4h: applyTransferSet dispatches both objects and characters itself --- no
+                    // applyTransferSet dispatches both objects and characters itself --- no
                     // separate character add/remove loop needed here. Safe cast: the guard above
                     // already confirmed entityIds contains no Room/Feature id.
                     const outcome = applyTransferSet(

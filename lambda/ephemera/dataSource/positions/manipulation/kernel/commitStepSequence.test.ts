@@ -371,7 +371,7 @@ describe('commitStepSequence', () => {
         })
     })
 
-    describe('capture step (PB-J)', () => {
+    describe('capture step', () => {
         it('a legal commit returns the captured roster keyed by captureId', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
             const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
@@ -437,7 +437,7 @@ describe('commitStepSequence', () => {
             expect(result.ok).toBe(false)
         })
 
-        it('PB-D: a forced reducer retry does not duplicate the captured roster', async () => {
+        it('a forced reducer retry does not duplicate the captured roster', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
             let attempt = 0
             const transactWrite: any = jest.fn(async (items: any[]) => {

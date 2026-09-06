@@ -11,7 +11,7 @@ import type { MembershipEmissionCopyKind } from '../kernelStep'
  * BD-13's transfer set, re-derived at execute time by `computeCarryClosure`.
  *
  * These are two shapes rather than one because primacy has to come from somewhere and must not be a
- * cross-field invariant (PB-8(b) was rejected for exactly that: an `entityIds` set plus a separate
+ * cross-field invariant (rejected for exactly that: an `entityIds` set plus a separate
  * `primaryEntityId` that nothing enforces). For a closure, primacy *is* `fragment.rootId` (LP4a: the
  * closure IS an `EphemeraLudicGraph`, hosted and rooted at the moved object) --- which
  * `computeCarryClosure` records from its `startId` argument rather than deriving from traversal
@@ -27,7 +27,7 @@ export type PositionKernelMovedSet =
     | { kind: 'closure'; fragment: EphemeraLudicGraph }
 
 /**
- * Membership narration's ingredients (PB-2): navigate/home/connect/disconnect. `leaveCopyKind` is a
+ * Membership narration's ingredients: navigate/home/connect/disconnect. `leaveCopyKind` is a
  * *function* of the from-host because a multi-`froms` move selects copy per room.
  */
 export type MembershipMoveNarrationInput = {
@@ -39,9 +39,9 @@ export type MembershipMoveNarrationInput = {
 }
 
 /**
- * Object take/drop/give narration's ingredients (Phase 4, PB-3/PB-M).
+ * Object take/drop/give narration's ingredients (Phase 4).
  *
- * Note the absence of a verb. Under PB-M the verb is a property of the *delta* --- "which side of
+ * Note the absence of a verb. The verb is a property of the *delta* --- "which side of
  * the move was the room" --- so `compilePositionKernelOp` derives it from `(froms, to)` host kinds
  * rather than the caller declaring it. That is what lets `give` (room on neither side) fall out
  * without a new discriminant, and it is why the retired `inferOperationFromFact` could be deleted
@@ -64,7 +64,7 @@ export type ObjectMoveNarrationInput = {
  * planner sees the world --- `moved` generalizes over object/character exactly as
  * `MutationKernelTransferStep` already does (BD-36) --- rather than at the level a player
  * experiences it (a character-only, room-only "navigate" op sitting one layer above a type that's
- * already general). `Move` is the only member of `PositionKernelOp`; it is a closed union (PB-6)
+ * already general). `Move` is the only member of `PositionKernelOp`; it is a closed union
  * because world operations are genuinely enumerable, and Phase 4 confirmed the shape by migrating
  * object take/drop onto `Move` itself rather than adding sibling `Take`/`Drop` ops --- take/drop/give
  * is definitionally a move of an entity between two membership hosts, the same shape as a character
@@ -73,7 +73,7 @@ export type ObjectMoveNarrationInput = {
  * `narration` is deliberately optional, not a field every `Move` carries: object-lifecycle moves
  * (spawn/destroy/place/remove) narrate nothing today, and populating narration fields they'd never
  * use would misstate that. Presence/absence of `narration` is what lets the compiler --- not the
- * op's shape --- decide whether and how a given move narrates (PB-I). PB-2: narration carries
+ * op's shape --- decide whether and how a given move narrates. Narration carries
  * *ingredients*, not a pre-built message string --- copy assembly happens at flush time in
  * `presentStepSequence`'s narration branch, alongside the captured audience, so a later slice can let
  * copy react to what the mutation actually did rather than only what was intended at compile time.
@@ -89,8 +89,8 @@ export type PositionKernelMoveOp = {
     /** Resolved by the caller (async perspective-key lookup is render-pipeline territory, not the compiler's job); null when no header render applies. */
     headerSlot: MessageOrchestrationSlotSpec | null
     /**
-     * Boundary edges severed by this move, **already classified as dissolve by Expansion** (PB-9,
-     * resolved as (i-b)). The compiler renders them into `dissolveRelation` steps ahead of the
+     * Boundary edges severed by this move, **already classified as dissolve by Expansion**.
+     * The compiler renders them into `dissolveRelation` steps ahead of the
      * transfer --- it sequences, it does not classify. Classification stays in Expansion because
      * `boundaryEdgeOutcomes` can also return verdicts (`error` on a stray carry-classified boundary
      * edge, `defer` on a `Custom` edge, BD-10) and `compilePositionKernelOp` has no verdict channel;

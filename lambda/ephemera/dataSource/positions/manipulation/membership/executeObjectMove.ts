@@ -38,7 +38,7 @@ export type ExecuteObjectMoveArgs = {
     /** Correlates this move's narration slots; the same id must reach `orchestrateObjectMove`. */
     bundleId: string;
     /**
-     * Copy ingredients for the narrate steps (PB-2). Omit to move an object without narrating
+     * Copy ingredients for the narrate steps. Omit to move an object without narrating
      * (object-lifecycle moves), in which case no capture steps are compiled either --- captures exist
      * only to serve narration, so a silent move should not be locking hosts to snapshot rosters
      * nobody reads.
@@ -113,8 +113,8 @@ export type ExecuteObjectMoveResult =
  * universal phase every grounded instruction passes through, so closure
  * re-derivation and the boundary sweep are unaffected by seeding at that tag.
  *
- * **The executor's steps are data for the op, not committed output** (Phase 4,
- * PB-9(i-b)). What actually commits is `compilePositionKernelOp`'s plan, built
+ * **The executor's steps are data for the op, not committed output** (Phase 4).
+ * What actually commits is `compilePositionKernelOp`'s plan, built
  * from the re-derived closure and Expansion's dissolve-classified boundary
  * edges. That keeps exactly one source of dissolves --- emitting both the
  * executor's steps and the compiler's would double them --- and it is what puts

@@ -50,7 +50,7 @@ export type OrchestrateObjectMoveArgs = {
  * object-lifecycle moves (spawn/destroy/place/remove).
  *
  * **Takes hosts, not a verb.** Which of take/drop/give this is falls out inside
- * `compilePositionKernelOp` from which side of the move was the room (PB-M) --- this function never
+ * `compilePositionKernelOp` from which side of the move was the room --- this function never
  * needs to know, which is what let the retired `inferOperationFromFact` be deleted outright rather
  * than ported to a new home.
  *

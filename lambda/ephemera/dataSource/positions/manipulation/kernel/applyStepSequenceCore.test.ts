@@ -469,7 +469,7 @@ describe('applyStepSequenceCore', () => {
             })
         })
 
-        it('real transfer (fromHostIds length 1, toHostId non-null): illegal (unsupportedTransferEntityKind) for a Room --- LP4h stays Object/Character-only', () => {
+        it('real transfer (fromHostIds length 1, toHostId non-null): illegal (unsupportedTransferEntityKind) for a Room --- stays Object/Character-only', () => {
             const areaGraph = testLudicGraph(areaId, { nodes: [{ tag: 'Room', universalKey: roomId }] })
             const otherAreaGraph = testLudicGraph('AREA#Elsewhere' as EphemeraAreaId, { nodes: [] })
             const steps: MutationKernelStep[] = [
@@ -603,7 +603,7 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
-    describe('capture step (PB-J)', () => {
+    describe('capture step', () => {
         it('a capture before a mutation step snapshots the entity as still present', () => {
             const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
             const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [] })

@@ -25,7 +25,7 @@ export type BuildObjectMoveOpArgs = {
  * are room-shaped; merging the two would put two disjoint bodies under one name, against the same
  * discriminate-on-family doctrine `NarrationSpecification` follows.
  *
- * There is deliberately no verb, direction, or acting-character argument. Under PB-M the verb is a
+ * There is deliberately no verb, direction, or acting-character argument. The verb is a
  * property of the delta --- which side of the move was the room --- so `compilePositionKernelOp`
  * derives it, which is what let `inferOperationFromFact` be deleted rather than ported and what makes
  * a future `give` (room on neither side) expressible with no new discriminant.

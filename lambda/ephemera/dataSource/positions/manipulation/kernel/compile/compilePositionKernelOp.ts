@@ -18,7 +18,7 @@ const captureIdForFrom = (hostId: string): string => `capture:from:${hostId}`
 const CAPTURE_ID_TO = 'capture:to'
 
 /**
- * PB-M: the verb is a property of the *delta*, read off which side of the move was the room --- not
+ * The verb is a property of the *delta*, read off which side of the move was the room --- not
  * an intent the caller declares and not a host-*kind* inference reasoning backwards from a published
  * fact (which is what the retired `inferOperationFromFact` did). Stated this way `give` needs no new
  * discriminant: it is simply the case where neither side is a room.
@@ -55,22 +55,22 @@ const objectMoveVerb = (
  *
  * `op.dissolvedEdges` render into `dissolveRelation` steps positioned **ahead of** the transfer, which
  * is what preserves BD-28's ordering guarantee: `factsForStep` streams in step order precisely so a
- * severed relation's fact precedes the moved fact. Expansion classified them (PB-9(i-b)); this
+ * severed relation's fact precedes the moved fact. Expansion classified them; this
  * function only sequences them.
  *
  * When `op.narration` is present, every narration channel this move can produce is built from the
  * same `(froms, to)` pair in one pass, so there is exactly one place `[leave, header, arrive]`
- * ordering is decided (PB-7): capture-from steps, the transfer step, a capture-to step,
+ * ordering is decided: capture-from steps, the transfer step, a capture-to step,
  * narrate-leave steps, and a narrate-arrive step. Capture/mutation ordering inside `steps` is the
- * one place order matters for walk correctness (PB-A/PB-J); narrate step position among them is
- * cosmetic, since delivery order comes from `slots`, not `steps` (PB-G: the messageOrchestration
+ * one place order matters for walk correctness; narrate step position among them is
+ * cosmetic, since delivery order comes from `slots`, not `steps` (the messageOrchestration
  * bundle assigns `CreatedTime` in declared order at flush, fully decoupled from execution order).
  *
- * **Both bracket sides are always emitted, including a character-hosted one** (PB-M). A character's
+ * **Both bracket sides are always emitted, including a character-hosted one.** A character's
  * inventory graph has no roster, so its capture snapshots an empty set and its narrate step publishes
  * to nobody, and the messageOrchestration fan-in's documented tolerance of unresolved slots makes
  * that cost nothing. That empty side is the *correct output of a uniform rule*, not an oversight ---
- * an earlier design suppressed it with an object-specific branch, which is precisely how PB-M's frame
+ * an earlier design suppressed it with an object-specific branch, which is precisely how this frame
  * (a room's changelog, not a mover's itinerary) gets lost at the first new caller.
  *
  * When `op.narration` is absent (object-lifecycle moves --- spawn/destroy/place/remove --- and the

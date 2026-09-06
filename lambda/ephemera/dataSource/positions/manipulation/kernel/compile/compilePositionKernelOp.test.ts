@@ -205,7 +205,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         const plan = compilePositionKernelOp(objectOp())
 
         // The character-inventory side's capture snapshots an empty roster and its narrate step
-        // publishes to nobody. That is the correct output of a uniform rule (PB-M), and suppressing
+        // publishes to nobody. That is the correct output of a uniform rule, and suppressing
         // it here is how the host-changelog frame gets lost at the next caller.
         expect(plan.steps.map((step) => step.kind)).toEqual([
             'capture', 'transferMembership', 'removePresencePort', 'addPresencePort', 'capture', 'narrate', 'narrate',

@@ -164,7 +164,7 @@ export function boundaryEdgeOutcomes(
     const results: BoundaryEdgeOutcome[] = []
     for (const edge of graph.relationalEdges) {
         // Same LP4-vs-LP4a boundary as computeCarryClosure above: transferSet is Object-only.
-        // LP4h widened its caller's transfer set to Object | Character but filters back down to
+        // The caller's transfer set is Object | Character but filters back down to
         // Object before calling in here (applyTransferSet.ts) --- this function's own scope is
         // unchanged, and remains unowned the same way computeCarryClosure's narrow does above.
         const fromInSet = typeof edge.from === 'string' && isEphemeraObjectId(edge.from) && transferSet.has(edge.from)

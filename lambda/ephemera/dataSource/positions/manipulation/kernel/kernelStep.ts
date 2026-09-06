@@ -31,7 +31,7 @@ import type {
  * `EphemeraFeatureId`, for cache-time containment authoring (Room-in-Area, Feature-in-Room,
  * Feature-in-Feature). A pure add (`fromHostIds` empty, `toHostId` the parent) is the only shape
  * either kind may appear in --- `applyStepSequenceCore.ts`'s "real transfer" branch
- * (`applyTransferSet`, LP4h) stays deliberately Object/Character-only, since Room/Feature/Area are
+ * (`applyTransferSet`) stays deliberately Object/Character-only, since Room/Feature/Area are
  * hosts that never relocate; a Room/Feature id reaching that branch is a caller bug, rejected there
  * rather than silently mishandled.
  */
@@ -62,7 +62,7 @@ export type MutationKernelCaptureStep = {
  * The ludicGraph kernel's own machinery (`commitStepSequence.ts`, `applyStepSequenceCore.ts`,
  * `computeStepSequenceFootprint.ts`, `factsForStep.ts`) --- `transactWrite` bundling, footprint
  * locking, fact-streaming --- exists only to solve mutation problems, so it keeps accepting this
- * narrower type. `MutationKernelCaptureStep` joins it (PB-J), widening it for the first time since
+ * narrower type. `MutationKernelCaptureStep` joins it, widening it for the first time since
  * the `describe` widening was drawn *against* --- capture reads a host's roster, so it needs the same
  * footprint-locking and reducer-walk machinery every other mutation step gets, even though it writes
  * nothing. A `describe` step must never reach any of these; the ludicGraph kernel's own type-guard
@@ -194,8 +194,8 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  * earlier revision of this comment overstated it. `EphemeraLudicGraph` instances cross a
  * `MultiKeyUpdate` reducer's boundary safely today (`commitStepSequence`'s `committedGraphs`, read
  * after the reducer returns) precisely because `fromFieldPayload` plain-copies every node and edge
- * rather than retaining the draft's own element references --- see its doc comment. The real rule is
- * PB-E's, and it is about provenance rather than class-ness: anything retained past a reducer's
+ * rather than retaining the draft's own element references --- see its doc comment. The real rule
+ * is about provenance rather than class-ness: anything retained past a reducer's
  * return must have its references into the draft severed **per element** (`{...node}`, not merely
  * `[...array]`, which would keep the draft's elements alive inside a fresh outer array). A plain
  * object aliasing draft-backed sub-objects fails that test; a carefully-constructed class instance
@@ -227,13 +227,13 @@ export type MembershipNarrationSpec = {
 }
 
 /**
- * Object take/drop/give narration (Phase 4, PB-3/PB-M) --- the second family, and the one the
+ * Object take/drop/give narration (Phase 4) --- the second family, and the one the
  * comment above predicted would arrive along the *family* axis rather than the direction one. It
  * shares no field with `MembershipNarrationSpec`, which is what makes discriminating on family
  * rather than on `direction` the right call in retrospect.
  *
  * **No `direction`, deliberately.** The compiler emits both bracket sides for an object move exactly
- * as it does for a character move (PB-M: never special-case the character-hosted side), but a
+ * as it does for a character move (never special-case the character-hosted side), but a
  * character's inventory graph has no roster, so exactly one of the two narrate steps ever has an
  * audience. Which side that is, is already answered by `verb`, so the same spec renders correctly on
  * both and the empty side simply publishes to nobody.
@@ -279,8 +279,8 @@ export type NarrationSpecification = MembershipNarrationSpec | ObjectMoveNarrati
  * flush time (`publishMessage/index.ts`'s `getRoomCharacterList`), i.e. terminally --- so carrying
  * one alongside `captureId` would union a positionally-bound audience with a terminally-bound one
  * and let the terminal reading win wherever they disagree (a latecomer to the arrival room getting
- * the line; someone who left between the beat and the flush not getting it). That is PB-A's
- * distinction collapsed, and the same defect class as the `[room, characterId]` tack-on this phase
+ * the line; someone who left between the beat and the flush not getting it). That collapses the
+ * positional/terminal distinction, and is the same defect class as the `[room, characterId]` tack-on this phase
  * retired, entering from the other end. The captured roster already includes the mover by
  * construction --- capture-from runs before the transfer step, capture-to after --- which is what
  * made that tack-on unnecessary and makes a room target unnecessary for the same reason.
@@ -294,7 +294,7 @@ export type PresentationKernelNarrateStep = {
 }
 
 /**
- * The presentation kernel's own filtered view of `KernelStep` (PB-L): `ExecutorDescribeStep` (the
+ * The presentation kernel's own filtered view of `KernelStep`: `ExecutorDescribeStep` (the
  * shipped describe branch, `presentStepSequence.ts`) and `PresentationKernelNarrateStep` (the
  * narration branch, Phase 2) --- both "things the presentation kernel filters for," the same
  * relationship `MutationKernelStep` already has to its own members.

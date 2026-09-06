@@ -31,11 +31,11 @@ export type ApplyTransferSetOutcome =
 export function applyTransferSet(
     sourceGraph: EphemeraLudicGraph,
     destGraph: EphemeraLudicGraph,
-    // LP4h: Object | Character, and no wider --- transfer means *changes host*, and Room/Feature/Area
+    // Object | Character, and no wider --- transfer means *changes host*, and Room/Feature/Area
     // are hosts that never relocate.
     transferSet: ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
 ): ApplyTransferSetOutcome {
-    // boundaryEdgeOutcomes stays Object-only (interactionUnderTransfer.ts, out of LP4h's scope):
+    // boundaryEdgeOutcomes stays Object-only (interactionUnderTransfer.ts):
     // no production path produces a character-endpoint relational edge yet, so a character can never
     // appear on either side of a boundary edge.
     const objectTransferSet = new Set([...transferSet].filter(isEphemeraObjectId))

@@ -199,7 +199,7 @@ describe('factsForStep', () => {
         ])
     })
 
-    it('a capture step yields no facts --- it is not a world event (PB-J)', () => {
+    it('a capture step yields no facts --- it is not a world event', () => {
         const step: MutationKernelStep = { kind: 'capture', hostId: roomId, captureId: 'before' }
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
     })

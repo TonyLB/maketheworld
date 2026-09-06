@@ -337,7 +337,7 @@ describe('presentStepSequence', () => {
         it('the character-hosted bracket side publishes to nobody rather than throwing', async () => {
             // A character's inventory graph has no roster, so its capture is legitimately empty.
             // The step still reports --- an unresolved slot is harmless to the fan-in, and
-            // suppressing this side is what PB-M forbids.
+            // suppressing this side is what the "both bracket sides always emitted" rule forbids.
             await presentStepSequence(
                 [objectStep({}, 'capture:to')],
                 CHARACTER_ID,

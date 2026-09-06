@@ -89,7 +89,7 @@ export const commitStepSequence = async (
     const footprint = computeStepSequenceFootprint(steps, deps.getCurrentHost)
 
     let committedGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
-    // PB-D: assignment, not append --- the reducer body can run more than once under
+    // Assignment, not append --- the reducer body can run more than once under
     // `exponentialBackoffWrapper`'s retry, so this is overwritten whole on every invocation, never
     // accumulated across attempts.
     let committedCaptures: MutationKernelCaptures | undefined
@@ -132,7 +132,7 @@ export const commitStepSequence = async (
                     entry.ludicGraph = graph.toStored()
                 }
                 committedGraphs = new Map(outcome.graphs)
-                // PB-F/PB-E: capture values are already plain `EphemeraCharacterId[]`, never Immer
+                // Capture values are already plain `EphemeraCharacterId[]`, never Immer
                 // draft-backed, so a fresh `Map` copy here is enough --- no per-entry plain-copy needed.
                 committedCaptures = new Map(outcome.captures)
             },

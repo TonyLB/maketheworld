@@ -18,7 +18,7 @@ import type { StepSequenceFootprint } from './types'
  * re-verifies each relational step's shared host against the freshly-fetched, locked graphs --- this
  * function never is trusted as ground truth by itself, only as the lock-set declaration.
  *
- * `capture` (PB-J) contributes its `hostId` unconditionally --- the decisive reason capture had to
+ * `capture` contributes its `hostId` unconditionally --- the decisive reason capture had to
  * become a walk step rather than a side-table: `MultiKeyUpdate` cannot lock a newly-discovered host
  * mid-reducer, so a capture against a host no mutation step in the same sequence touches would
  * otherwise see `graphs.get(hostId)` come back `undefined` inside `applyStepSequenceCore`.

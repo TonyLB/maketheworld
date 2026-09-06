@@ -59,7 +59,7 @@ const findHostOf = (
  * defaults to `finalGraphs` itself so every other caller (a real transfer, where the object always
  * lands on some footprint graph) is unaffected.
  *
- * `capture` (PB-J) yields no facts --- it is not a world event, just a read of one already reflected
+ * `capture` yields no facts --- it is not a world event, just a read of one already reflected
  * (or not yet reflected) by whatever mutation facts stream around it.
  */
 export const factsForStep = (
