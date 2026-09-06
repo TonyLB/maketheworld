@@ -23,8 +23,6 @@ export type CharacterMovedPublishedPayload = {
     beatAnchorTime: number;
     legalExits?: string[];
     characterName?: string;
-    /** Set when the caller's own compiled step sequence already narrated this move synchronously (every membership route as of Phase 3). Historically signaled the now-retired async membership-presentation fan-in to drop its fact leg; kept on the fact payload as a record of narration provenance. */
-    narratedInline?: boolean;
 }
 
 export type ObjectMovedPublishedPayload = {
@@ -92,9 +90,6 @@ export const isCharacterMovedPublishedPayload = (
         }
     }
     if (v.characterName !== undefined && typeof v.characterName !== 'string') {
-        return false
-    }
-    if (v.narratedInline !== undefined && typeof v.narratedInline !== 'boolean') {
         return false
     }
     return true

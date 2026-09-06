@@ -94,7 +94,6 @@ describe('handleConnectionsCharactersPresence', () => {
                 expect.objectContaining({
                     characterId: 'CHARACTER#alpha',
                     targetRoomId: 'ROOM#TownSquare',
-                    narrationHandledInline: true,
                     compileMutationSteps: expect.any(Function),
                 }),
                 { messageBus, streamEvent }
@@ -181,7 +180,6 @@ describe('handleConnectionsCharactersPresence', () => {
                 expect.objectContaining({
                     characterId: 'CHARACTER#alpha',
                     targetRoomId: null,
-                    narrationHandledInline: true,
                     compileMutationSteps: expect.any(Function),
                 }),
                 { messageBus, streamEvent }

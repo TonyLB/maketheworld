@@ -65,7 +65,6 @@ describe('repairRoomOccupancyDrift', () => {
             expect.objectContaining({
                 characterId: CHARACTER_ID,
                 targetRoomId: null,
-                narrationHandledInline: true,
                 compileMutationSteps: expect.any(Function),
             }),
             { messageBus, streamEvent }

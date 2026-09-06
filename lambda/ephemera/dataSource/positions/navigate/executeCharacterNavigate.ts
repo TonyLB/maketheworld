@@ -67,7 +67,7 @@ export const executeCharacterNavigate = async ({
     ).steps.filter(isKernelMutationStep)
 
     const result = await applyCharacterRoomMembership(
-        { characterId, targetRoomId, compileMutationSteps, narrationHandledInline: true },
+        { characterId, targetRoomId, compileMutationSteps },
         { messageBus, streamEvent }
     )
 

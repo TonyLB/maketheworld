@@ -69,7 +69,6 @@ describe('executeCharacterNavigate', () => {
                 characterId: 'CHARACTER#Test',
                 targetRoomId: 'ROOM#TestTwo',
                 compileMutationSteps: expect.any(Function),
-                narrationHandledInline: true,
             },
             expect.objectContaining({
                 messageBus: messageBusMock,

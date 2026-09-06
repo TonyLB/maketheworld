@@ -41,8 +41,6 @@ export type CommitStepSequenceDeps = {
      * populates this today; every other caller's steps carry no character entityIds, so it's a no-op.
      */
     characterNames?: ReadonlyMap<EphemeraCharacterId, string>
-    /** Set when the caller's own compiled step sequence already narrated this move synchronously (every membership route as of Phase 3) --- passed through to every `Character Moved` fact this commit streams. Historically signaled the now-retired async membership-presentation fan-in to drop its fact leg; kept on the fact payload as a record of narration provenance. */
-    narratedInline?: boolean
 }
 
 type CommitStepSequenceTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
@@ -203,7 +201,7 @@ export const commitStepSequence = async (
     }
 
     for (const step of steps) {
-        for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs, deps.characterNames, deps.narratedInline)) {
+        for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs, deps.characterNames)) {
             if (fact.type === 'Object Moved') {
                 await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
             }

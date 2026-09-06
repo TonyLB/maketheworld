@@ -37,10 +37,6 @@ import type { PositionsPublishedPayload } from './publishedEvents'
  * always has a destination room; disconnect has none, so it uses the dedicated
  * `orchestrateCharacterDisconnect`.
  *
- * `narrationHandledInline: true` is a vestige: it set `narratedInline` on the `Character Moved` fact
- * to suppress a duplicate leg while the async membership fan-in still existed. That fan-in is gone
- * and nothing consumes the flag today.
- *
  * Rules: `dataSource/positions/AGENT.contract.md` --- "Narration and presentation".
  */
 export const handleCharacterConnected = async (
@@ -69,7 +65,7 @@ export const handleCharacterConnected = async (
     ).steps.filter(isKernelMutationStep)
 
     const result = await applyCharacterRoomMembership(
-        { characterId: event.characterId, targetRoomId, compileMutationSteps, narrationHandledInline: true },
+        { characterId: event.characterId, targetRoomId, compileMutationSteps },
         { messageBus, streamEvent }
     )
 
@@ -109,7 +105,7 @@ export const handleCharacterDisconnected = async (
     ).steps.filter(isKernelMutationStep)
 
     const result = await applyCharacterRoomMembership(
-        { characterId: event.characterId, targetRoomId: null, compileMutationSteps, narrationHandledInline: true },
+        { characterId: event.characterId, targetRoomId: null, compileMutationSteps },
         { messageBus, streamEvent }
     )
 

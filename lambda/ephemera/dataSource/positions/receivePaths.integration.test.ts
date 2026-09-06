@@ -163,7 +163,6 @@ describe('positions receive paths (integration)', () => {
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
                     targetRoomId: null,
-                    narrationHandledInline: true,
                     compileMutationSteps: expect.any(Function),
                 }),
                 expect.objectContaining({ messageBus: expect.any(Object), streamEvent: expect.any(Function) })
@@ -189,7 +188,6 @@ describe('positions receive paths (integration)', () => {
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
                     targetRoomId: ROOM_A,
-                    narrationHandledInline: true,
                     compileMutationSteps: expect.any(Function),
                 }),
                 expect.objectContaining({ messageBus: expect.any(Object), streamEvent: expect.any(Function) })

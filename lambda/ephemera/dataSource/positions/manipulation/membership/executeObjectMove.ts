@@ -234,7 +234,6 @@ export type ExecuteMembershipTransferArgs = {
      */
     compileMutationSteps?: (diff: { froms: EphemeraMembershipHostId[]; to: EphemeraMembershipHostId | null; changed: boolean }) => readonly MutationKernelStep[]
     characterNames?: CommitStepSequenceDeps['characterNames']
-    narratedInline?: boolean
     transactWrite?: CommitStepSequenceDeps['transactWrite']
 }
 
@@ -326,7 +325,6 @@ export const executeMembershipTransfer = async (
             getCurrentHost: (id) => hostByReferencedId.get(id),
             ...(args.suppressRelationalFacts !== undefined ? { suppressRelationalFacts: args.suppressRelationalFacts } : {}),
             ...(args.characterNames ? { characterNames: args.characterNames } : {}),
-            ...(args.narratedInline ? { narratedInline: true } : {}),
             ...(args.transactWrite ? { transactWrite: args.transactWrite } : {}),
         }
     )

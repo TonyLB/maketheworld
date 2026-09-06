@@ -105,7 +105,6 @@ export const applyCharacterRoomMembership = async (
                     }),
             }
             : {}),
-        ...(args.narrationHandledInline ? { narratedInline: true } : {}),
     })
 
     if (!result.ok) {

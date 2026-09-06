@@ -131,7 +131,7 @@ describe('applyCharacterRoomMembership', () => {
         expect(commitStepSequenceMock.mock.calls[0][0].steps).toHaveLength(3)
     })
 
-    it('honors compileMutationSteps when supplied, threading narrationHandledInline to the commit and captures back out (Phase 2)', async () => {
+    it('honors compileMutationSteps when supplied, committing the compiled steps and returning captures (Phase 2)', async () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
         const captures = new Map([['capture:from', [CHARACTER_ID]]])
         commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures })
@@ -144,29 +144,16 @@ describe('applyCharacterRoomMembership', () => {
         const compileMutationSteps = jest.fn().mockReturnValue(compiledSteps)
 
         const result = await applyCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, compileMutationSteps, narrationHandledInline: true },
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, compileMutationSteps },
             { messageBus: messageBus as any, streamEvent }
         )
 
         expect(compileMutationSteps).toHaveBeenCalledWith({ froms: [FROM_ROOM], to: TO_ROOM, changed: true })
         expect(commitStepSequenceMock).toHaveBeenCalledWith(
             { steps: compiledSteps },
-            expect.objectContaining({ narratedInline: true })
+            expect.anything()
         )
         expect(result).toEqual(expect.objectContaining({ ok: true, captures }))
-    })
-
-    it('defaults to a bare transferMembership step and no narratedInline dep when compileMutationSteps is not supplied', async () => {
-        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
-
-        await applyCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
-            { messageBus: messageBus as any, streamEvent }
-        )
-
-        const deps = commitStepSequenceMock.mock.calls[0][1]
-        expect(deps).not.toHaveProperty('narratedInline')
     })
 
     it('runs side-effect bundle for all froms on drift scrub', async () => {

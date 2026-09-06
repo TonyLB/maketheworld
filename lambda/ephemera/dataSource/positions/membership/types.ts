@@ -24,12 +24,6 @@ export type MembershipApplyArgs = {
      * for connect/disconnect/home, whose behavior is unchanged.
      */
     compileMutationSteps?: (diff: MembershipDiff) => readonly import('../manipulation/kernel/kernelStep').MutationKernelStep[];
-    /**
-     * Phase 2: set only by callers whose own compiled step sequence narrates this move synchronously
-     * (navigate) --- suppresses the async membership-presentation fan-in's fact leg for this commit
-     * (see `CharacterMovedPublishedPayload.narratedInline`) so it doesn't also publish. Default `false`.
-     */
-    narrationHandledInline?: boolean;
 }
 
 export type MembershipDiff = {

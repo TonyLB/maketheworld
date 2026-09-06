@@ -84,7 +84,7 @@ export const repairRoomOccupancyDrift = async (
             ).steps.filter(isKernelMutationStep)
 
             const result = await applyMembership(
-                { characterId, targetRoomId: null, compileMutationSteps, narrationHandledInline: true },
+                { characterId, targetRoomId: null, compileMutationSteps },
                 { messageBus: args.messageBus, streamEvent: args.streamEvent }
             )
             if (result.ok && result.changed) {
