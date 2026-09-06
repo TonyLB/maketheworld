@@ -7,7 +7,7 @@ import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@to
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { CLOSED_RELATION_KINDS, isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 
 /**
@@ -44,7 +44,7 @@ export type ObjectRelationChangedPublishedPayload = {
     beatAnchorTime: number;
 } & RelationalKindAndLabel
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf', 'Present'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', ...CLOSED_RELATION_KINDS, 'Custom', 'In', 'PartOf', 'Present'])
 
 export type PositionsPublishedPayload =
     | CharacterMovedPublishedPayload

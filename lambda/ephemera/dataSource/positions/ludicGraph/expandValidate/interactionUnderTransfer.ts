@@ -1,7 +1,7 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalRefersTo } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { ClosedRelationKind, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalRefersTo, isClosedRelationKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { EphemeraLudicGraph, objectNode, type HostRelationalEdge } from '../index'
 
@@ -12,18 +12,31 @@ export type InteractionUnderTransferOutcome = 'dissolve' | 'defer'
 /**
  * SB-5 table, two outcomes. `carry` was retired 2026-09-06 (CD3): it was only ever produced
  * by `On`, and `On` joined the hosting-kind throw below 2026-08-22 (Channel D, CD2), so it had
- * been unreachable dead code since then. `Under`'s subject-move ambiguity is spatial clearance,
- * not "what happens to some other object," so it stays `defer`.
+ * been unreachable dead code since then.
+ *
+ * The closed-kind pair (`Under`/`Against`) is a lookup into `CLOSED_RELATION_BEHAVIOR` below,
+ * not case arms (MS-9, 2026-09-06): `ephemeraMeta.ts`'s `CLOSED_RELATION_KINDS` array is the
+ * source of truth for which kinds get the deterministic fast-path, and this table is the local
+ * behavior TypeScript forces an update to if that array ever grows. `Under`'s subject-move
+ * ambiguity is spatial clearance, not "what happens to some other object," so it stays `defer`.
  */
+const CLOSED_RELATION_BEHAVIOR: Record<ClosedRelationKind, {
+    onSubjectMove: InteractionUnderTransferOutcome
+    onTargetMove: InteractionUnderTransferOutcome
+}> = {
+    Under: { onSubjectMove: 'defer', onTargetMove: 'dissolve' },
+    Against: { onSubjectMove: 'dissolve', onTargetMove: 'dissolve' },
+}
+
 export function classifyInteractionUnderTransfer(
     relationKind: HostRelationalEdgeKind,
     movedRole: TransferEndpointRole
 ): InteractionUnderTransferOutcome {
+    if (isClosedRelationKind(relationKind)) {
+        const behavior = CLOSED_RELATION_BEHAVIOR[relationKind]
+        return movedRole === 'subject' ? behavior.onSubjectMove : behavior.onTargetMove
+    }
     switch (relationKind) {
-        case 'Under':
-            return movedRole === 'subject' ? 'defer' : 'dissolve'
-        case 'Against':
-            return 'dissolve'
         case 'Custom':
             return 'defer'
         case 'On':

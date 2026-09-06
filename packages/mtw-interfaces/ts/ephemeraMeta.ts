@@ -315,9 +315,21 @@ export type EphemeraLudicGraphNode =
         universalKey: EphemeraAreaId;
     }
 
+/**
+ * The closed, deterministic-physics relation kinds (MS-9, 2026-09-06): a fast-path exists for
+ * these because their move behavior is fully known without an LLM step. Source of truth for
+ * `HostRelationalEdgeKind`'s peer-kind literals below, and for
+ * `interactionUnderTransfer.ts`'s per-kind move-behavior table --- both derive from this array
+ * rather than re-spelling the pair independently.
+ */
+export const CLOSED_RELATION_KINDS = ['Under', 'Against'] as const
+export type ClosedRelationKind = typeof CLOSED_RELATION_KINDS[number]
+export const isClosedRelationKind = (value: string): value is ClosedRelationKind =>
+    (CLOSED_RELATION_KINDS as readonly string[]).includes(value)
+
 export type HostRelationalEdgeKind =
     | 'On' | 'In' | 'PartOf'                    // hosting kinds (AB-54); In/PartOf non-exclusive (premise 9)
-    | 'Under' | 'Against' | 'Custom'            // peer kinds (AB-54)
+    | ClosedRelationKind | 'Custom'              // peer kinds (AB-54)
     | 'Present'                                 // partitioning kind (presence plan PR-4, reading (d)) --- neither hosting nor peer
 
 /**
@@ -422,7 +434,7 @@ export type EphemeraLudicRelationalEdgeData =
     | (EphemeraLudicRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
     | (EphemeraLudicRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf', 'Present'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', ...CLOSED_RELATION_KINDS, 'Custom', 'In', 'PartOf', 'Present'])
 
 export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {

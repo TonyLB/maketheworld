@@ -8,6 +8,7 @@ import type {
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
+    CLOSED_RELATION_KINDS,
     ephemeraLudicTerminalRefersTo,
     ephemeraLudicTerminalsEqual,
     isEphemeraLudicRelationalEdgeData,
@@ -42,7 +43,7 @@ export type HostRelationalEdge =
     | (HostRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
     | (HostRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Under', 'Against', 'Custom', 'In', 'PartOf', 'Present'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', ...CLOSED_RELATION_KINDS, 'Custom', 'In', 'PartOf', 'Present'])
 
 export const toStoredRelationalEdge = (
     edge: HostRelationalEdge
