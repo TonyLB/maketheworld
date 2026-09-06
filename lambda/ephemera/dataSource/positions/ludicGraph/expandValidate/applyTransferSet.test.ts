@@ -73,10 +73,10 @@ describe('applyTransferSet', () => {
     })
 
     // The former "illegal: an incomplete transfer set (unaccounted carry boundary edge)" test is
-    // retired 2026-08-22 (Channel D, CD2, reduced scope): `incompleteTransferSet` is only returned
-    // when `boundaryEdgeOutcomes` finds a `carry` outcome (applyTransferSet.ts:44-47), and `carry`
-    // is now unreachable from any relation kind -- `On` (its only producer) joined `In`/`PartOf`'s
-    // hosting-kind throw. This branch is dead code pending CD3 (which would retire it formally).
+    // retired 2026-08-22 (Channel D, CD2, reduced scope): `incompleteTransferSet` was only returned
+    // when `boundaryEdgeOutcomes` found a `carry` outcome, and `carry` was unreachable from any
+    // relation kind even then -- `On` (its only producer) had already joined `In`/`PartOf`'s
+    // hosting-kind throw. CD3 (2026-09-06) formally retired the branch that checked for it.
 
     it('defer: an Under boundary edge on the subject moving requires interaction assessment', () => {
         const sourceGraph = testLudicGraph(roomId, {

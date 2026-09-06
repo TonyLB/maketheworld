@@ -3,21 +3,17 @@ import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalRefersTo } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import { EphemeraLudicGraph, objectNode, toStoredRelationalEdge, type HostRelationalEdge } from '../index'
+import { EphemeraLudicGraph, objectNode, type HostRelationalEdge } from '../index'
 
 export type TransferEndpointRole = 'subject' | 'target'
 
-export type InteractionUnderTransferOutcome = 'dissolve' | 'carry' | 'defer'
+export type InteractionUnderTransferOutcome = 'dissolve' | 'defer'
 
 /**
- * SB-5 table (three outcomes). `carry` was only ever produced by `On`
- * (a load relation); `On` joined the hosting-kind throw below 2026-08-22
- * (Channel D, CD2, reduced scope), so `carry` is now unreachable dead code
- * rather than a live outcome -- retiring it from `InteractionUnderTransferOutcome`
- * and collapsing `computeCarryClosure` to a shard read is CD3, deliberately
- * deferred (not needed to unblock Presence). `Under`'s subject-move ambiguity
- * is spatial clearance, not "what happens to some other object," so it stays
- * `defer` rather than gaining a carry partner.
+ * SB-5 table, two outcomes. `carry` was retired 2026-09-06 (CD3): it was only ever produced
+ * by `On`, and `On` joined the hosting-kind throw below 2026-08-22 (Channel D, CD2), so it had
+ * been unreachable dead code since then. `Under`'s subject-move ambiguity is spatial clearance,
+ * not "what happens to some other object," so it stays `defer`.
  */
 export function classifyInteractionUnderTransfer(
     relationKind: HostRelationalEdgeKind,
@@ -78,69 +74,47 @@ export function roleOfObjectInEdge(
 }
 
 /**
- * Transitively absorb objects connected via `carry`-classified edges into one
- * transfer set, iterating to a fixpoint --- re-examining each newly-absorbed
- * object's own edges, not just the starting object's. Guarded by the set
- * itself: an already-absorbed id is never re-enqueued, so a malformed cyclic
- * edge set terminates instead of looping. Each `carry` absorption fires on
- * exactly one edge, so that edge is collected as an internal edge in the
- * same pass.
+ * Returns the moved object's own closure as an `EphemeraLudicGraph` --- always a singleton
+ * today (`hostId = rootId = startId`, no other nodes, no edges): CD3 (2026-09-06) retired
+ * `carry` from `InteractionUnderTransferOutcome`, and no other outcome ever warranted
+ * absorbing another object into the set, so this stopped being a BFS. It still walks every
+ * edge touching `startId` and re-runs `classifyInteractionUnderTransfer` on each, purely for
+ * the AB-54 hosting-kind invariant throw --- a room holding a pre-existing hosting-kind edge
+ * would surface it here, at the earliest point that can catch it.
  *
- * Returns an `EphemeraLudicGraph` --- a carry closure is a rooted sub-DAG of
- * the source graph (PB-8), which is exactly what `EphemeraLudicGraph` is
- * once it carries a root (LP4a). Built with `hostId = rootId = startId` (the
- * object being moved; `EphemeraObjectId` is a legal `EphemeraMembershipHostId`
- * member per LP0), `nodes` the absorbed members, `edges` the closure's
- * *internal* edges only (both endpoints inside the member set) --- the
- * induced subgraph, not the severed boundary edges, which stay with
- * `boundaryEdgeOutcomes` and Expansion (PB-9). This collapses the former
- * standalone `CarryClosureFragment` shape into the class rather than
- * persisting it as parallel duplication (see the reciprocal note on the
- * `ludicGraph` side, `AGENT.md`).
+ * What a genuine multi-member closure would read from instead (a shard read, per CD3) is
+ * unbuilt, and deliberately not built here: nothing today produces a moved object with real
+ * absorbed members, so there is nothing yet to read.
  */
 export function computeCarryClosure(
     startId: EphemeraObjectId,
     graph: EphemeraLudicGraph
 ): EphemeraLudicGraph {
-    const closureSet = new Set<EphemeraObjectId>([startId])
-    const internalEdges: HostRelationalEdge[] = []
-    const queue: EphemeraObjectId[] = [startId]
-    const edges = graph.relationalEdges
-
-    while (queue.length > 0) {
-        const current = queue.shift() as EphemeraObjectId
-        for (const edge of edges) {
-            const movedRole = roleOfObjectInEdge(current, edge)
-            if (movedRole === undefined) {
-                continue
-            }
-            const otherId = movedRole === 'subject' ? edge.to : edge.from
-            /**
-             * LP4 widened `edge.from`/`.to` to `EphemeraLudicTerminalPrimitive`, but carry
-             * closure is still Object-only here (this module's collapse into a rooted
-             * `ludicGraph` is LP4a's job, not the Object-only narrowing's) --- a non-Object
-             * `otherId` can't occur in practice yet, since nothing produces a relational edge
-             * with a non-Object endpoint, but skip rather than assume. LP4h checked and does
-             * not retire this narrow --- its scope is `applyTransferSet`'s transfer-set
-             * parameter, not this module. This remains unowned; see `ludicGraph/AGENT.md`'s
-             * "Character-relation widening, deferred (BD-36)" note.
-             */
-            if (typeof otherId !== 'string' || !isEphemeraObjectId(otherId) || closureSet.has(otherId)) {
-                continue
-            }
-            if (classifyInteractionUnderTransfer(edge.kind, movedRole) === 'carry') {
-                closureSet.add(otherId)
-                internalEdges.push(edge)
-                queue.push(otherId)
-            }
+    for (const edge of graph.relationalEdges) {
+        const movedRole = roleOfObjectInEdge(startId, edge)
+        if (movedRole === undefined) {
+            continue
         }
+        const otherId = movedRole === 'subject' ? edge.to : edge.from
+        /**
+         * LP4 widened `edge.from`/`.to` to `EphemeraLudicTerminalPrimitive`, but this remains
+         * Object-only here --- a non-Object `otherId` can't occur in practice yet, since nothing
+         * produces a relational edge with a non-Object endpoint, but skip rather than assume.
+         * See `ludicGraph/AGENT.md`'s "Character-relation widening, deferred (BD-36)" note.
+         */
+        if (typeof otherId !== 'string' || !isEphemeraObjectId(otherId)) {
+            continue
+        }
+        // Classified for its throwing side effect only (the AB-54 hosting-kind invariant);
+        // no outcome grows the closure now that `carry` is unreachable (CD3).
+        classifyInteractionUnderTransfer(edge.kind, movedRole)
     }
 
     return EphemeraLudicGraph.fromJSON({
         hostId: startId,
         rootId: startId,
-        nodes: [...closureSet].map(objectNode),
-        edges: internalEdges.map(toStoredRelationalEdge),
+        nodes: [objectNode(startId)],
+        edges: [],
         ports: [],
     })
 }

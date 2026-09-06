@@ -273,14 +273,6 @@ const commandExpand = (
 
             const outcomes = boundaryEdgeOutcomes(step.objectIds, graph)
 
-            const carryOutcome = outcomes.find((entry) => entry.outcome === 'carry')
-            if (carryOutcome !== undefined) {
-                return {
-                    kind: 'error',
-                    reason: 'Carry closure left a carry-classified edge on the boundary --- internal inconsistency',
-                }
-            }
-
             const deferOutcome = outcomes.find((entry) => entry.outcome === 'defer')
             if (deferOutcome !== undefined) {
                 return {

@@ -17,8 +17,7 @@ export type ApplyTransferSetOutcome =
  * boundary edge still present at this point is therefore treated as `illegal`
  * (`unresolvedDissolveEdge`), not silently resolved.
  *
- * Never expands `transferSet` itself: a `carry` boundary outcome means the caller under-specified
- * the set --- illegal, not an invitation to grow it further.
+ * Never expands `transferSet` itself.
  *
  * Renamed from `applyTransferSetAsserted` (2026-07-23): originally a new sibling module rather than
  * a change to a pre-assert-and-throw `applyTransferSet.ts` in place, back when that older function's
@@ -40,11 +39,6 @@ export function applyTransferSet(
     // appear on either side of a boundary edge.
     const objectTransferSet = new Set([...transferSet].filter(isEphemeraObjectId))
     const boundaryOutcomes = boundaryEdgeOutcomes(objectTransferSet, sourceGraph)
-
-    const carryOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'carry')
-    if (carryOutcome !== undefined) {
-        return { verdict: 'illegal', reasonCode: 'incompleteTransferSet' }
-    }
 
     const deferOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'defer')
     if (deferOutcome !== undefined) {
