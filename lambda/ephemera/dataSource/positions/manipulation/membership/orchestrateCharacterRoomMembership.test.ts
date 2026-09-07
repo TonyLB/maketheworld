@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
+import { orchestrateCharacterRoomMembership } from './orchestrateCharacterRoomMembership'
 import * as kernel from '../kernel/commitStepSequence'
 
 jest.mock('../kernel/commitStepSequence', () => ({
@@ -36,7 +36,7 @@ const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
 const ROOM_C = 'ROOM#TestThree' as EphemeraRoomId
 
-describe('applyCharacterRoomMembership', () => {
+describe('orchestrateCharacterRoomMembership', () => {
     const messageBus = { publish: jest.fn() }
     const streamEvent = jest.fn().mockResolvedValue(undefined)
 
@@ -61,7 +61,7 @@ describe('applyCharacterRoomMembership', () => {
     it('skips side-effect bundle when membership endpoint is unchanged', async () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
 
-        const result = await applyCharacterRoomMembership(
+        const result = await orchestrateCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: FROM_ROOM },
             { messageBus: messageBus as any, streamEvent }
         )
@@ -82,7 +82,7 @@ describe('applyCharacterRoomMembership', () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
         commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
 
-        const result = await applyCharacterRoomMembership(
+        const result = await orchestrateCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
             { messageBus: messageBus as any, streamEvent }
         )
@@ -143,7 +143,7 @@ describe('applyCharacterRoomMembership', () => {
         ]
         const compileMutationSteps = jest.fn().mockReturnValue(compiledSteps)
 
-        const result = await applyCharacterRoomMembership(
+        const result = await orchestrateCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, compileMutationSteps },
             { messageBus: messageBus as any, streamEvent }
         )
@@ -160,7 +160,7 @@ describe('applyCharacterRoomMembership', () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, ROOM_C])
         commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
 
-        await applyCharacterRoomMembership(
+        await orchestrateCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
             { messageBus: messageBus as any, streamEvent }
         )
@@ -195,7 +195,7 @@ describe('applyCharacterRoomMembership', () => {
             errorMessage: 'boom',
         })
 
-        const result = await applyCharacterRoomMembership(
+        const result = await orchestrateCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
             { messageBus: messageBus as any, streamEvent }
         )

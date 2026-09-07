@@ -1,5 +1,5 @@
-jest.mock('../manipulation/membership/applyCharacterRoomMembership', () => ({
-    applyCharacterRoomMembership: jest.fn(),
+jest.mock('../manipulation/membership/orchestrateCharacterRoomMembership', () => ({
+    orchestrateCharacterRoomMembership: jest.fn(),
 }))
 
 jest.mock('./afterCharacterMembershipNavigateChanged', () => ({
@@ -14,7 +14,7 @@ jest.mock('../../../internalCache', () => ({
 }))
 
 import internalCache from '../../../internalCache'
-import * as membership from '../manipulation/membership/applyCharacterRoomMembership'
+import * as membership from '../manipulation/membership/orchestrateCharacterRoomMembership'
 import * as navigateTail from './afterCharacterMembershipNavigateChanged'
 import { executeCharacterNavigate } from './executeCharacterNavigate'
 import { MessageBus } from '../../../messageBus/baseClasses'
@@ -23,8 +23,8 @@ const characterMetaGetMock = internalCache.CharacterMeta.get as jest.MockedFunct
     typeof internalCache.CharacterMeta.get
 >
 
-const applyCharacterRoomMembershipMock = membership.applyCharacterRoomMembership as jest.MockedFunction<
-    typeof membership.applyCharacterRoomMembership
+const orchestrateCharacterRoomMembershipMock = membership.orchestrateCharacterRoomMembership as jest.MockedFunction<
+    typeof membership.orchestrateCharacterRoomMembership
 >
 const afterCharacterMembershipNavigateChangedMock = navigateTail.afterCharacterMembershipNavigateChanged as jest.MockedFunction<
     typeof navigateTail.afterCharacterMembershipNavigateChanged
@@ -45,7 +45,7 @@ describe('executeCharacterNavigate', () => {
             HomeId: 'ROOM#VORTEX',
             assets: ['primitives', 'TownCenter'],
         })
-        applyCharacterRoomMembershipMock.mockResolvedValue({
+        orchestrateCharacterRoomMembershipMock.mockResolvedValue({
             ok: true,
             froms: ['ROOM#VORTEX'],
             to: 'ROOM#TestTwo',
@@ -55,7 +55,7 @@ describe('executeCharacterNavigate', () => {
         afterCharacterMembershipNavigateChangedMock.mockResolvedValue(undefined)
     })
 
-    it('calls applyCharacterRoomMembership then navigate tail with pre-apply characterMeta', async () => {
+    it('calls orchestrateCharacterRoomMembership then navigate tail with pre-apply characterMeta', async () => {
         await executeCharacterNavigate({
             characterId: 'CHARACTER#Test',
             targetRoomId: 'ROOM#TestTwo',
@@ -64,7 +64,7 @@ describe('executeCharacterNavigate', () => {
             streamEvent,
         })
 
-        expect(applyCharacterRoomMembershipMock).toHaveBeenCalledWith(
+        expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledWith(
             {
                 characterId: 'CHARACTER#Test',
                 targetRoomId: 'ROOM#TestTwo',
@@ -101,14 +101,14 @@ describe('executeCharacterNavigate', () => {
             streamEvent,
         })
 
-        const { compileMutationSteps } = applyCharacterRoomMembershipMock.mock.calls[0][0] as any
+        const { compileMutationSteps } = orchestrateCharacterRoomMembershipMock.mock.calls[0][0] as any
         const steps = compileMutationSteps({ froms: ['ROOM#VORTEX'], to: 'ROOM#TestTwo', changed: true })
 
         expect(steps.map((step: any) => step.kind)).toEqual(['capture', 'transferMembership', 'removePresencePort', 'addPresencePort', 'capture'])
     })
 
     it('still invokes tail helper when membership apply is a no-op', async () => {
-        applyCharacterRoomMembershipMock.mockResolvedValue({
+        orchestrateCharacterRoomMembershipMock.mockResolvedValue({
             ok: true,
             froms: ['ROOM#VORTEX'],
             to: 'ROOM#VORTEX',
@@ -122,7 +122,7 @@ describe('executeCharacterNavigate', () => {
             streamEvent,
         })
 
-        expect(applyCharacterRoomMembershipMock).toHaveBeenCalled()
+        expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalled()
         expect(afterCharacterMembershipNavigateChangedMock).toHaveBeenCalled()
     })
 })

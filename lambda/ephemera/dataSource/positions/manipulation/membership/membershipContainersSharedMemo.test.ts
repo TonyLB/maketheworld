@@ -4,7 +4,7 @@ import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ep
 import { createEphemeraLudicGraphCacheData } from '../../../../internalCache/ludicGraphCache'
 
 import { getRoomExitTargetsForCharacter } from '../../../actions/roomExitTargetsForCharacter'
-import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
+import { orchestrateCharacterRoomMembership } from './orchestrateCharacterRoomMembership'
 
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
@@ -56,7 +56,7 @@ describe('membership containers shared memo (slice 1c)', () => {
         })
 
         await getRoomExitTargetsForCharacter(CHARACTER_ID)
-        await applyCharacterRoomMembership(
+        await orchestrateCharacterRoomMembership(
             { characterId: CHARACTER_ID, targetRoomId: ROOM_ID },
             {
                 messageBus: { publish: jest.fn() } as any,

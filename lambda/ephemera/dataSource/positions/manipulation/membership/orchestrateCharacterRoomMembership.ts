@@ -11,7 +11,7 @@ import type { CommitStepSequenceDeps } from '../kernel/commitStepSequence'
 import type { RoomCharacterListItem } from '../../../../internalCache/baseClasses'
 import type { MembershipApplyArgs, MembershipApplyResult, MembershipDiff } from './types'
 
-export type ApplyCharacterRoomMembershipDependencies = {
+export type OrchestrateCharacterRoomMembershipDependencies = {
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
@@ -64,9 +64,9 @@ const membershipDiffFromProjection = (projection: {
  * own `RoomUpdate` publish loop, mirroring `Object Moved`'s existing ordering guarantee (see
  * `factsForStep.ts`'s doc comment).
  */
-export const applyCharacterRoomMembership = async (
+export const orchestrateCharacterRoomMembership = async (
     args: MembershipApplyArgs,
-    deps: ApplyCharacterRoomMembershipDependencies
+    deps: OrchestrateCharacterRoomMembershipDependencies
 ): Promise<MembershipApplyResult> => {
     const getMembershipContainers = deps.getMembershipContainers ?? defaultGetMembershipContainers
     const getCharacterMeta = deps.getCharacterMeta ?? ((characterId) => internalCache.CharacterMeta.get(characterId))
@@ -108,7 +108,7 @@ export const applyCharacterRoomMembership = async (
     })
 
     if (!result.ok) {
-        console.error(`[mtw.ephemera.positions] applyCharacterRoomMembership failed: ${result.errorMessage}`)
+        console.error(`[mtw.ephemera.positions] orchestrateCharacterRoomMembership failed: ${result.errorMessage}`)
         return {
             ok: false,
             // `honorDefer` is never set on this route, so `executeMembershipTransfer` only

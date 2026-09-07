@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
-import { applyCharacterRoomMembership } from '../manipulation/membership/applyCharacterRoomMembership'
+import { orchestrateCharacterRoomMembership } from '../manipulation/membership/orchestrateCharacterRoomMembership'
 import type { PositionsPublishedPayload } from '../publishedEvents'
 import type { MembershipApplyResult, MembershipDiff } from '../manipulation/membership/types'
 import type { MessageBus } from '../../../messageBus/baseClasses'
@@ -66,7 +66,7 @@ export const executeCharacterNavigate = async ({
         })
     ).steps.filter(isKernelMutationStep)
 
-    const result = await applyCharacterRoomMembership(
+    const result = await orchestrateCharacterRoomMembership(
         { characterId, targetRoomId, compileMutationSteps },
         { messageBus, streamEvent }
     )

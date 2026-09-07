@@ -5,7 +5,7 @@
  * by `mtw.connections.characters`:
  *   - Character Connected   -> resolve eviction-ladder target room, membership
  *                              persistence API, post-persist orchestration.
- *   - Character Disconnected -> membership persistence API (applyCharacterRoomMembership).
+ *   - Character Disconnected -> membership persistence API (orchestrateCharacterRoomMembership).
  *
  * At-least-once delivery: duplicate events are no-ops because the second
  * disconnect finds the character already out of play (`changed: false`) and the
@@ -19,7 +19,7 @@ import {
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
-import { applyCharacterRoomMembership } from './manipulation/membership/applyCharacterRoomMembership'
+import { orchestrateCharacterRoomMembership } from './manipulation/membership/orchestrateCharacterRoomMembership'
 import { buildCharacterMoveOp } from './manipulation/membership/buildCharacterMoveOp'
 import { orchestrateCharacterDisconnect } from './manipulation/membership/orchestrateCharacterDisconnect'
 import { resolveConnectTargetRoom } from './manipulation/membership/resolveConnectTargetRoom'
@@ -64,7 +64,7 @@ export const handleCharacterConnected = async (
         })
     ).steps.filter(isKernelMutationStep)
 
-    const result = await applyCharacterRoomMembership(
+    const result = await orchestrateCharacterRoomMembership(
         { characterId: event.characterId, targetRoomId, compileMutationSteps },
         { messageBus, streamEvent }
     )
@@ -104,7 +104,7 @@ export const handleCharacterDisconnected = async (
         })
     ).steps.filter(isKernelMutationStep)
 
-    const result = await applyCharacterRoomMembership(
+    const result = await orchestrateCharacterRoomMembership(
         { characterId: event.characterId, targetRoomId: null, compileMutationSteps },
         { messageBus, streamEvent }
     )

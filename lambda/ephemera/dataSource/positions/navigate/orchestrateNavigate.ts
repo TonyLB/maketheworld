@@ -32,7 +32,7 @@ export type OrchestrateCharacterNavigateArgs = {
     intentKind?: 'navigate' | 'home' | 'connect';
     intentFromRoomId?: EphemeraRoomId;
     exitName?: string;
-    /** The commit's captured rosters, from `applyCharacterRoomMembership`'s result --- required to resolve narration audiences. */
+    /** The commit's captured rosters, from `orchestrateCharacterRoomMembership`'s result --- required to resolve narration audiences. */
     captures?: MutationKernelCaptures;
     messageBus: MessageBus;
 }

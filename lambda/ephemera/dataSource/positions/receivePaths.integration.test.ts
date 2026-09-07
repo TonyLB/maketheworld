@@ -2,8 +2,8 @@
  * Cross-layer integration: positions DataSource receiveEvents routes all ingress
  * envelopes through the real messageBus subscription wiring.
  */
-jest.mock('./manipulation/membership/applyCharacterRoomMembership', () => ({
-    applyCharacterRoomMembership: jest.fn(),
+jest.mock('./manipulation/membership/orchestrateCharacterRoomMembership', () => ({
+    orchestrateCharacterRoomMembership: jest.fn(),
 }))
 
 jest.mock('./manipulation/membership/resolveConnectTargetRoom', () => ({
@@ -40,7 +40,7 @@ jest.mock('./manipulation/relational/executeObjectEstablishRelation', () => ({
 
 import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
-import { applyCharacterRoomMembership } from './manipulation/membership/applyCharacterRoomMembership'
+import { orchestrateCharacterRoomMembership } from './manipulation/membership/orchestrateCharacterRoomMembership'
 import { resolveConnectTargetRoom } from './manipulation/membership/resolveConnectTargetRoom'
 import { repairRoomOccupancyDrift } from './manipulation/membership/repairRoomOccupancyDrift'
 import { orchestrateCharacterDisconnect } from './manipulation/membership/orchestrateCharacterDisconnect'
@@ -50,8 +50,8 @@ import { executeEstablishEdgeChain } from './manipulation/relational/executeObje
 
 import './index'
 
-const applyCharacterRoomMembershipMock = applyCharacterRoomMembership as jest.MockedFunction<
-    typeof applyCharacterRoomMembership
+const orchestrateCharacterRoomMembershipMock = orchestrateCharacterRoomMembership as jest.MockedFunction<
+    typeof orchestrateCharacterRoomMembership
 >
 const resolveConnectTargetRoomMock = resolveConnectTargetRoom as jest.MockedFunction<
     typeof resolveConnectTargetRoom
@@ -106,7 +106,7 @@ describe('positions receive paths (integration)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         messageBus.clear()
-        applyCharacterRoomMembershipMock.mockResolvedValue({
+        orchestrateCharacterRoomMembershipMock.mockResolvedValue({
             ok: true,
             froms: [ROOM_A],
             to: null,
@@ -159,7 +159,7 @@ describe('positions receive paths (integration)', () => {
 
             await messageBus.flushAndSettle()
 
-            expect(applyCharacterRoomMembershipMock).toHaveBeenCalledWith(
+            expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
                     targetRoomId: null,
@@ -184,7 +184,7 @@ describe('positions receive paths (integration)', () => {
             await messageBus.flushAndSettle()
 
             expect(resolveConnectTargetRoomMock).toHaveBeenCalledWith(CHARACTER_ID)
-            expect(applyCharacterRoomMembershipMock).toHaveBeenCalledWith(
+            expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
                     targetRoomId: ROOM_A,
@@ -216,7 +216,7 @@ describe('positions receive paths (integration)', () => {
                 })
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
-            expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
+            expect(orchestrateCharacterRoomMembershipMock).not.toHaveBeenCalled()
         })
     })
 
@@ -240,7 +240,7 @@ describe('positions receive paths (integration)', () => {
                 })
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
-            expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
+            expect(orchestrateCharacterRoomMembershipMock).not.toHaveBeenCalled()
         })
     })
 
@@ -268,7 +268,7 @@ describe('positions receive paths (integration)', () => {
                 })
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
-            expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
+            expect(orchestrateCharacterRoomMembershipMock).not.toHaveBeenCalled()
             expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
         })
 
@@ -344,7 +344,7 @@ describe('positions receive paths (integration)', () => {
                 })
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
-            expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
+            expect(orchestrateCharacterRoomMembershipMock).not.toHaveBeenCalled()
             expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
         })
     })
@@ -579,7 +579,7 @@ describe('positions receive paths (integration)', () => {
                     streamEvent: expect.any(Function),
                 })
             )
-            expect(applyCharacterRoomMembershipMock).not.toHaveBeenCalled()
+            expect(orchestrateCharacterRoomMembershipMock).not.toHaveBeenCalled()
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
             expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
         })

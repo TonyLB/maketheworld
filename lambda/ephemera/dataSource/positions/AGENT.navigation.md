@@ -31,7 +31,7 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | [`index.ts`](index.ts) | Navigate / home execution ingress (`Character Navigate`, `Character Home` -> `executeCharacterNavigate`) |
 | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) | Shared persist + orchestrate helper |
 | [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) | Post-persist navigate presentation |
-| [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Membership persistence coordinator (slice 1a) |
+| [`manipulation/membership/orchestrateCharacterRoomMembership.ts`](manipulation/membership/orchestrateCharacterRoomMembership.ts) | Membership persistence coordinator (slice 1a) |
 | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair on **`Room Occupancy Drift Finding`** |
 | [`../../../diagnostics/roomOccupancyDriftSweep/`](../../../diagnostics/roomOccupancyDriftSweep/) | Read-only graph-forward occupancy drift classification; emits **`Room Occupancy Drift Finding`** |
 | [`../state/resolveAssetStackForRoom.ts`](../state/resolveAssetStackForRoom.ts) | Room **render** asset stack (not eviction ladder --- see [`AGENT.concepts.md`](AGENT.concepts.md)) |

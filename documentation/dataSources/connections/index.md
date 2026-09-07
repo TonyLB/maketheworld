@@ -54,7 +54,7 @@ Producer boundary semantics:
 
 Consumers:
 
-- **Ephemera projection (`mtw.ephemera.positions`)** at [`lambda/ephemera/dataSource/positions/`](../../../lambda/ephemera/dataSource/positions/) is the projection owner: `Character Connected` resolves connect target room and applies membership via `applyCharacterRoomMembership`; `Character Disconnected` applies out-of-play membership. Fan-in owns arrive/leave world copy; coordinator owns `Character Moved`, cache memo, and `RoomUpdate` when `changed`. See [`lambda/ephemera/AGENT.md`](../../../lambda/ephemera/AGENT.md) and [`lambda/ephemera/AGENT.event.md`](../../../lambda/ephemera/AGENT.event.md). Session RoomHeader bootstrap is **not** this path; see `Character Registered` consumers under `mtw.connections` above.
+- **Ephemera projection (`mtw.ephemera.positions`)** at [`lambda/ephemera/dataSource/positions/`](../../../lambda/ephemera/dataSource/positions/) is the projection owner: `Character Connected` resolves connect target room and applies membership via `orchestrateCharacterRoomMembership`; `Character Disconnected` applies out-of-play membership. Fan-in owns arrive/leave world copy; coordinator owns `Character Moved`, cache memo, and `RoomUpdate` when `changed`. See [`lambda/ephemera/AGENT.md`](../../../lambda/ephemera/AGENT.md) and [`lambda/ephemera/AGENT.event.md`](../../../lambda/ephemera/AGENT.event.md). Session RoomHeader bootstrap is **not** this path; see `Character Registered` consumers under `mtw.connections` above.
 
 Operational guardrails:
 

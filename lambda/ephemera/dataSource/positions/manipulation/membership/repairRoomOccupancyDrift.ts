@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
-import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
+import { orchestrateCharacterRoomMembership } from './orchestrateCharacterRoomMembership'
 import { buildCharacterMoveOp } from './buildCharacterMoveOp'
 import { orchestrateCharacterDisconnect } from './orchestrateCharacterDisconnect'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
@@ -24,7 +24,7 @@ export type RepairRoomOccupancyDriftDependencies = {
     getCharacterSessions?: (characterId: EphemeraCharacterId) => Promise<string[]>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
     getCharacterMeta?: typeof internalCache.CharacterMeta.get;
-    applyMembership?: typeof applyCharacterRoomMembership;
+    applyMembership?: typeof orchestrateCharacterRoomMembership;
     syncAdjacency?: typeof syncMembershipAdjacencyToRoom;
 }
 
@@ -56,7 +56,7 @@ export const repairRoomOccupancyDrift = async (
             return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
         })
     const getCharacterMeta = deps?.getCharacterMeta ?? ((characterId) => internalCache.CharacterMeta.get(characterId))
-    const applyMembership = deps?.applyMembership ?? applyCharacterRoomMembership
+    const applyMembership = deps?.applyMembership ?? orchestrateCharacterRoomMembership
     const syncAdjacency = deps?.syncAdjacency ?? syncMembershipAdjacencyToRoom
 
     const characterIds = await listGraphCharacterIds(args.roomId, deps?.getLudicGraph)

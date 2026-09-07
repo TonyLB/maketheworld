@@ -130,7 +130,7 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...captureTo, ..
 | Dep | Effect |
 | --- | --- |
 | `suppressRelationalFacts` | Gates only the `Object Relation Changed` fact, never `Object Moved`. Destroy/edit leaves it unset so dissolution becomes player-visible; multi-room drift repair sets it `true` as a silent consistency fixup |
-| `characterNames` | Pre-resolved display names so `factsForStep` can build a populated `Character Moved` fact while staying synchronous. Only `applyCharacterRoomMembership` populates it |
+| `characterNames` | Pre-resolved display names so `factsForStep` can build a populated `Character Moved` fact while staying synchronous. Only `orchestrateCharacterRoomMembership` populates it |
 | `transactWrite` | Test seam; defaults to `ephemeraDB.transactWrite` |
 
 ### Apply modes
@@ -163,7 +163,7 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...captureTo, ..
 
 [`factsForStep`](kernel/factsForStep.ts) walks the *output-ordered* steps rather than a hand-assembled subset, which is what makes a carry's `[dissolveRelation*, transferMembership]` stream its dissolve facts before the moved fact. It emits **one combined fact per entity** (with plural `froms` and nullable `to`), not one per host, so the widened lifecycle routes keep the same single-fact-per-entity behavior their predecessors had.
 
-Character-kind emission is folded into `factsForStep` rather than layered on after `commitStepSequence` returns --- that is what keeps `Character Moved` streaming before the kernel's own `RoomUpdate` publish loop, matching `Object Moved`'s ordering guarantee. `applyCharacterRoomMembership`'s test suite asserts this ordering.
+Character-kind emission is folded into `factsForStep` rather than layered on after `commitStepSequence` returns --- that is what keeps `Character Moved` streaming before the kernel's own `RoomUpdate` publish loop, matching `Object Moved`'s ordering guarantee. `orchestrateCharacterRoomMembership`'s test suite asserts this ordering.
 
 `factsForStep` also takes a **pre-apply graph snapshot**: a `dissolveRelation` endpoint can be removed from the footprint entirely by a later pure-remove step in the same sequence (destroy), leaving it absent from the post-apply map. The snapshot lets the fact re-derive the host it actually held the edge on rather than throwing.
 
@@ -271,14 +271,14 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 
 | Ingress | Coordinator | Planning | Kernel |
 | --- | --- | --- | --- |
-| Navigate / connect / disconnect / home | [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts) (thin wrapper) | `executeMembershipTransfer` (end-state, inline diff) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Navigate / connect / disconnect / home | [`orchestrateCharacterRoomMembership`](membership/orchestrateCharacterRoomMembership.ts) (thin wrapper) | `executeMembershipTransfer` (end-state, inline diff) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Object room place / remove / drift repair | `executeMembershipTransfer` (called directly --- no coordinator file) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Improvisational object spawn | `executeMembershipTransfer` via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Object destroy / edit | `executeMembershipTransfer` (`target: null`) | end-state-to-null, inline diff + chain-aware relational sweep | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | **`takeHold`** / **`drop`** (one route, host pair reversed) | [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) -> [`membership/executeMembershipTransfer.ts`](membership/executeMembershipTransfer.ts) (`honorDefer: true`) | single-hop `boundaryEdgeOutcomes` classify, re-run at execute time --- no Synthesize executor (MS-8, 2026-09-07) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Establish / dissolve relation | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) (`executeEstablishEdgeChain`, shared) | Expansion-derived `steps` chain, each with its own carried `hostId`; no coordinator-level carry or repair | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 
-(`executeMembershipTransfer` lives in [`membership/executeMembershipTransfer.ts`](membership/executeMembershipTransfer.ts) --- it absorbed the standalone `applyObjectRoomMembership`/`applyObjectClearMembership`/`applyCharacterRoomMembership`-membership-half coordinators and the retired `adapters/` planner outright, per [Section C's End-to-end flow](#end-to-end-flow) above; `bounded` mode was not carried forward. `executeObjectMove` --- the take/drop/give path's former separate function --- was unified into it as `honorDefer: true` (MS-8, 2026-09-07); see the code-map row below.)
+(`executeMembershipTransfer` lives in [`membership/executeMembershipTransfer.ts`](membership/executeMembershipTransfer.ts) --- it absorbed the standalone `applyObjectRoomMembership`/`applyObjectClearMembership`/`orchestrateCharacterRoomMembership`-membership-half coordinators and the retired `adapters/` planner outright, per [Section C's End-to-end flow](#end-to-end-flow) above; `bounded` mode was not carried forward. `executeObjectMove` --- the take/drop/give path's former separate function --- was unified into it as `honorDefer: true` (MS-8, 2026-09-07); see the code-map row below.)
 
 **Documented exception (not a parallel persist path):**
 
@@ -286,7 +286,7 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 | --- | --- |
 | [`syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) | Adjacency-only sync when the graph is correct but the reverse index lags (generic over character/object ids, MS-1) |
 
-**RoomStack (eviction ladder)** is **not** a kernel input. Navigate ladder persist runs in the parallel tail after [`applyCharacterRoomMembership`](membership/applyCharacterRoomMembership.ts) --- see [`persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts) and [`afterCharacterMembershipNavigateChanged.ts`](../navigate/afterCharacterMembershipNavigateChanged.ts). Merge/trim detail: [`../AGENT.implementation.md` --- Eviction ladder](../AGENT.implementation.md#eviction-ladder-roomstack-storage); normative rules: [`../AGENT.contract.md` --- Eviction ladder](../AGENT.contract.md#eviction-ladder-roomstack-storage).
+**RoomStack (eviction ladder)** is **not** a kernel input. Navigate ladder persist runs in the parallel tail after [`orchestrateCharacterRoomMembership`](membership/orchestrateCharacterRoomMembership.ts) --- see [`persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts) and [`afterCharacterMembershipNavigateChanged.ts`](../navigate/afterCharacterMembershipNavigateChanged.ts). Merge/trim detail: [`../AGENT.implementation.md` --- Eviction ladder](../AGENT.implementation.md#eviction-ladder-roomstack-storage); normative rules: [`../AGENT.contract.md` --- Eviction ladder](../AGENT.contract.md#eviction-ladder-roomstack-storage).
 
 ---
 

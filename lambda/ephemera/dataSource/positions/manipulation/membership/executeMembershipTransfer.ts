@@ -126,7 +126,7 @@ const defaultGetMembershipContainers = (id: EphemeraObjectId | EphemeraCharacter
  * `findRelationalChainsTouching` directly.
  *
  * Absorbed from `applyObjectRoomMembership`/`applyObjectClearMembership`/
- * `applyCharacterRoomMembership`'s membership half (object-lifecycle Migrate row), and from
+ * `orchestrateCharacterRoomMembership`'s membership half (object-lifecycle Migrate row), and from
  * `executeObjectMove`/`orchestrateObjectMove`'s host-pair take/drop/give path.
  */
 export const executeMembershipTransfer = async (

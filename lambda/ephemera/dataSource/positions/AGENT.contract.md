@@ -132,7 +132,7 @@ Builders: [`manipulation/membership/buildCharacterMoveOp.ts`](manipulation/membe
 
 ## Membership persistence API
 
-All character **room-membership** mutations for **disconnect**, **navigate**, and **connect** **must** go through [`applyCharacterRoomMembership`](manipulation/membership/applyCharacterRoomMembership.ts).
+All character **room-membership** mutations for **disconnect**, **navigate**, and **connect** **must** go through [`orchestrateCharacterRoomMembership`](manipulation/membership/orchestrateCharacterRoomMembership.ts).
 
 **A character's membership host is a `ROOM`, and only a `ROOM`.** Objects are unrestricted and may be hosted by rooms, characters, objects, features and areas as the host union already allows; characters **must not** be transferred into any non-Room host's `ludicGraph`. **This is a scoping decision, not a claim that characters are ontologically unlike objects, and must not be cited as one** --- it exists to keep the character path single-hosted while the general graph work matures, and it lifts when that work does.
 
@@ -145,7 +145,7 @@ All character **room-membership** mutations for **disconnect**, **navigate**, an
 - **Navigate orchestration:** [`orchestrateCharacterNavigate`](navigate/orchestrateNavigate.ts) receives full **`froms[]`** from the apply result for presentation (arrival-room header slot, render kicks). Does **not** publish **`MapUpdate`** (server map runtime retired; see [`../maps/AGENT.md`](../maps/AGENT.md)).
 - **Leave/arrive world lines --- every character route:** navigate, home, connect, disconnect, and the ghost-purge sweep all narrate through the compiler. A coordinator builds its op via [`buildCharacterMoveOp`](manipulation/membership/buildCharacterMoveOp.ts), [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts) expands it into positionally-captured narration steps, and [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) reports them --- the audience is the mid-walk **captured** roster, and therefore already includes the mover by construction on the leave side. Rules: [Narration and presentation](#narration-and-presentation). There is **no** async membership fan-in; `Character Moved` still streams as a fact, but perception does not subscribe to it. `narratedInline` on the fact is a **vestige** of the migration that retired that fan-in --- it suppressed a duplicate leg while both paths coexisted, and gates nothing today.
 - **Two orchestrators, not one:** navigate/home/connect share [`orchestrateCharacterNavigate`](navigate/orchestrateNavigate.ts) (they all have a destination room, so the arrival header slot and `registerIngressSlot` make sense). Disconnect and ghost-purge use [`orchestrateCharacterDisconnect`](manipulation/membership/orchestrateCharacterDisconnect.ts), which declares the bundle and presents leave narration only --- **must not** be routed through the navigate orchestrator, whose header/render logic presumes a `to`.
-- **Graph persist path:** coordinator ([`applyCharacterRoomMembership`](manipulation/membership/applyCharacterRoomMembership.ts)) -> [`executeMembershipTransfer`](manipulation/membership/executeMembershipTransfer.ts) (single entity, diffed against its own `priorContainers`) -> [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) (`MultiKeyUpdate`) --- a `transferMembership` step, plus capture steps bracketing it (`compileMutationSteps` on `MembershipApplyArgs`). No `dissolveRelation` steps accompany it: a character can never be a relational-edge endpoint, `HostRelationalEdge` being object-only. `Character Moved` fact emission is folded into `commitStepSequence` / [`factsForStep`](manipulation/kernel/factsForStep.ts) rather than layered on top by the coordinator. Detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md).
+- **Graph persist path:** coordinator ([`orchestrateCharacterRoomMembership`](manipulation/membership/orchestrateCharacterRoomMembership.ts)) -> [`executeMembershipTransfer`](manipulation/membership/executeMembershipTransfer.ts) (single entity, diffed against its own `priorContainers`) -> [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts) (`MultiKeyUpdate`) --- a `transferMembership` step, plus capture steps bracketing it (`compileMutationSteps` on `MembershipApplyArgs`). No `dissolveRelation` steps accompany it: a character can never be a relational-edge endpoint, `HostRelationalEdge` being object-only. `Character Moved` fact emission is folded into `commitStepSequence` / [`factsForStep`](manipulation/kernel/factsForStep.ts) rather than layered on top by the coordinator. Detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md).
 
 ### Graph apply (end-state)
 
@@ -172,7 +172,7 @@ When **`MembershipDiff.changed`** is true, persist and its follow-on effects **m
 4. `RoomUpdate` per affected Room host, published *after* the fact stream.
 5. `beatAnchorTime` recorded at apply and returned on the kernel result.
 
-The character coordinator ([`applyCharacterRoomMembership`](manipulation/membership/applyCharacterRoomMembership.ts)) adds only what is character-specific, after a successful commit:
+The character coordinator ([`orchestrateCharacterRoomMembership`](manipulation/membership/orchestrateCharacterRoomMembership.ts)) adds only what is character-specific, after a successful commit:
 
 6. `CharacterMeta.invalidate(characterId)`.
 7. `EphemeraUpdate` `CharacterInPlay` room projection.
@@ -194,7 +194,7 @@ Mental model: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder). Code map
 - **Failure tolerance:** ladder persist failure after retry exhaustion **must not** fail membership apply or navigate presentation orchestration; errors **must** be logged.
 - On **disconnect**, the coordinator **must** purge play membership (`ludicGraph`, adjacency) and **must preserve** `RoomStack` (connect resolves legal placement from the retained stack).
 - **Must not** emit **`Character Moved`** or run the membership-changed bundle when **only** the eviction ladder changes and the room membership endpoint is unchanged.
-- When asset loss **trim** changes the membership endpoint for an **in-play** character, relocation **must** go through [`repairCharacterLegalPlacement`](manipulation/membership/repairCharacterLegalPlacement.ts) -> [`applyCharacterRoomMembership`](manipulation/membership/applyCharacterRoomMembership.ts). **Out-of-play** characters (**`getMembershipContainers`** empty): trim **`RoomStack` only** --- **must not** re-insert into play.
+- When asset loss **trim** changes the membership endpoint for an **in-play** character, relocation **must** go through [`repairCharacterLegalPlacement`](manipulation/membership/repairCharacterLegalPlacement.ts) -> [`orchestrateCharacterRoomMembership`](manipulation/membership/orchestrateCharacterRoomMembership.ts). **Out-of-play** characters (**`getMembershipContainers`** empty): trim **`RoomStack` only** --- **must not** re-insert into play.
 
 ### `Character Moved` fact
 
@@ -443,21 +443,21 @@ Positions **must** subscribe to:
 
 - **Ingress:** typed **`home`** / **`HomeIntent`** via actions **`Parse Requested`**, trusted home via actions **`Action Assessed`** **`Home`** (`source: 'uiHome'`).
 - **Must** trust actions-resolved `toRoomId` (`CharacterMeta.HomeId`) at apply --- no exit topology re-check in positions.
-- **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
+- **Must** call `orchestrateCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
 - **Must not** rely on imperative `MoveCharacter` bus messages from actions for home (retired).
 - Leave/arrive world copy for home is **compiled** (`intentKind: 'home'` on [`buildCharacterMoveOp`](manipulation/membership/buildCharacterMoveOp.ts)) and reported by [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) inside the navigate orchestration tail --- see [Narration and presentation](#narration-and-presentation).
 
 ### `Character Connected` (positions-owned)
 
 - **Must** resolve `targetRoomId` via [`resolveConnectTargetRoom`](manipulation/membership/resolveConnectTargetRoom.ts) --- legal placement from nowhere: trim ladder to accessible assets, then top surviving frame (default VORTEX when stack normalizes empty).
-- **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId })` then post-persist orchestration when `changed`.
+- **Must** call `orchestrateCharacterRoomMembership({ characterId, targetRoomId })` then post-persist orchestration when `changed`.
 - **Must not** publish `CheckLocation` or perform inline membership Dynamo writes outside [`manipulation/membership/`](manipulation/membership/).
 - **Idempotency:** duplicate connect when already in target room (`changed: false`) **must** be a no-op (no bundle, no orchestration).
 - Arrive world-line copy for connect is **compiled** (`intentKind: 'connect'`); with `froms` empty the compiler emits no capture-from and no leave narration, from arity alone rather than a connect-specific branch. Connect reuses the navigate orchestration tail and publishes no imperative world lines.
 
 ### `Character Disconnected` (positions-owned)
 
-- **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: null })` --- purges play membership; **must not** clear `RoomStack` (connect re-resolves legal placement from retained ladder).
+- **Must** call `orchestrateCharacterRoomMembership({ characterId, targetRoomId: null })` --- purges play membership; **must not** clear `RoomStack` (connect re-resolves legal placement from retained ladder).
 - **Must not** perform inline membership writes outside [`manipulation/membership/`](manipulation/membership/).
 - **Idempotency:** duplicate disconnect when already out of play (`changed: false`) **must** be a no-op (no bundle).
 - Leave world-line copy for disconnect is **compiled** (`intentKind: 'disconnect'`) and presented by [`orchestrateCharacterDisconnect`](manipulation/membership/orchestrateCharacterDisconnect.ts), **not** the navigate orchestrator --- disconnect has no `to`, so there is no arrival header to render. No imperative `PublishMessage` in the handler. The ghost-purge sweep in [`repairRoomOccupancyDrift`](manipulation/membership/repairRoomOccupancyDrift.ts) shares this path and this copy verbatim: a ghost session genuinely has disconnected, so **must not** grow a separate drift narration variant.
@@ -466,7 +466,7 @@ Positions **must** subscribe to:
 
 - **Ingress:** typed commands via actions **`Parse Requested`**, UI exit clicks via actions **`Action Assessed`** **`Navigation`** (same execution contract).
 - **Must** trust actions-validated `toRoomId` at apply (no topology re-check in positions).
-- **Must** call `applyCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
+- **Must** call `orchestrateCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
 - **Must not** rely on imperative `MoveCharacter` bus messages from actions for parse-based or UI-exit navigation (retired).
 - Leave/arrive world copy for navigate is **compiled** and reported synchronously in the orchestration tail --- see [Narration and presentation](#narration-and-presentation). Exit-aware leave copy comes from the parse's `exitName` travelling as a narration *ingredient* on the op; **must not** be re-derived from fact `legalExits`.
 
@@ -481,7 +481,7 @@ Positions **must** subscribe to:
 **Repair model (graph-forward):**
 
 - Enumerate character nodes on the room **`ludicGraph`**; **must not** use **`Meta::Character.RoomId`** or **`Meta::Room.activeCharacters`** as authority.
-- **Sessions gate:** no live sessions -> **`applyCharacterRoomMembership({ characterId, targetRoomId: null })`** (full graph purge; membership-changed bundle when `changed`).
+- **Sessions gate:** no live sessions -> **`orchestrateCharacterRoomMembership({ characterId, targetRoomId: null })`** (full graph purge; membership-changed bundle when `changed`).
 - **In-play, adjacency lag:** graph correct but **`getMembershipContainers`** omits this room -> [`syncMembershipAdjacencyToRoom`](manipulation/membership/syncMembershipAdjacency.ts) only (**must not** run the membership-changed bundle).
 - **Idempotency:** at-least-once finding delivery **must** be safe (no-op when already repaired).
 - **Explicit gap:** stale adjacency without a graph node is out of scope for this room-forward scan.

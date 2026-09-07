@@ -10,7 +10,6 @@ export type RoomStackItem = {
     timeWritten?: number;
 }
 
-/** Ingress-facing stable API (S1-7). */
 export type MembershipApplyArgs = {
     characterId: EphemeraCharacterId;
     /** null = out of play (disconnect). */

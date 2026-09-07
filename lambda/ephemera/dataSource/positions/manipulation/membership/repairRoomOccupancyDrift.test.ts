@@ -1,5 +1,5 @@
-jest.mock('./applyCharacterRoomMembership', () => ({
-    applyCharacterRoomMembership: jest.fn(),
+jest.mock('./orchestrateCharacterRoomMembership', () => ({
+    orchestrateCharacterRoomMembership: jest.fn(),
 }))
 
 jest.mock('./syncMembershipAdjacency', () => ({
@@ -12,7 +12,7 @@ jest.mock('./orchestrateCharacterDisconnect', () => ({
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { testLudicGraph } from '../../ludicGraph/testFixtures'
-import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
+import { orchestrateCharacterRoomMembership } from './orchestrateCharacterRoomMembership'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 import { orchestrateCharacterDisconnect } from './orchestrateCharacterDisconnect'
 import { repairRoomOccupancyDrift } from './repairRoomOccupancyDrift'
@@ -28,7 +28,7 @@ const graphWithCharacter = testLudicGraph(ROOM_ID, {
 describe('repairRoomOccupancyDrift', () => {
     const messageBus = { publish: jest.fn() }
     const streamEvent = jest.fn().mockResolvedValue(undefined)
-    const applyMembershipMock = applyCharacterRoomMembership as jest.MockedFunction<typeof applyCharacterRoomMembership>
+    const applyMembershipMock = orchestrateCharacterRoomMembership as jest.MockedFunction<typeof orchestrateCharacterRoomMembership>
     const syncAdjacencyMock = syncMembershipAdjacencyToRoom as jest.MockedFunction<typeof syncMembershipAdjacencyToRoom>
     const orchestrateDisconnectMock = orchestrateCharacterDisconnect as jest.MockedFunction<typeof orchestrateCharacterDisconnect>
 
