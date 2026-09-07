@@ -1,5 +1,5 @@
 import { orchestrateCharacterDisconnect } from './orchestrateCharacterDisconnect'
-import { moveLeaveSlotId } from '../manipulation/kernel/compile/moveBundleSlotIds'
+import { moveLeaveSlotId } from '../kernel/compile/moveBundleSlotIds'
 
 describe('orchestrateCharacterDisconnect', () => {
     const messageBus = { publish: jest.fn() }

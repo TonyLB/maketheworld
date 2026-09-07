@@ -3,7 +3,7 @@ import internalCache from '../../internalCache'
 import { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CharacterSpokePublishedPayload } from '../actions/publishedEvents'
 import { handleCharacterSpoke } from './handleCharacterSpoke'
-import { resolveCharacterRoomId } from '../positions/membership/resolveCharacterRoomId'
+import { resolveCharacterRoomId } from '../positions/manipulation/membership/resolveCharacterRoomId'
 
 jest.mock('../../messageBus', () => ({
     __esModule: true,
@@ -12,7 +12,7 @@ jest.mock('../../messageBus', () => ({
     },
 }))
 jest.mock('../../internalCache')
-jest.mock('../positions/membership/resolveCharacterRoomId', () => ({
+jest.mock('../positions/manipulation/membership/resolveCharacterRoomId', () => ({
     resolveCharacterRoomId: jest.fn(),
 }))
 jest.mock('../../lib/characterColor', () => ({

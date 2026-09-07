@@ -1,12 +1,12 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { createEphemeraLudicGraphCacheData } from '../../../internalCache/ludicGraphCache'
+import { createEphemeraLudicGraphCacheData } from '../../../../internalCache/ludicGraphCache'
 
-import { getRoomExitTargetsForCharacter } from '../../actions/roomExitTargetsForCharacter'
+import { getRoomExitTargetsForCharacter } from '../../../actions/roomExitTargetsForCharacter'
 import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
 
-jest.mock('../../../internalCache', () => ({
+jest.mock('../../../../internalCache', () => ({
     __esModule: true,
     default: {
         Positions: null as unknown,
@@ -15,11 +15,11 @@ jest.mock('../../../internalCache', () => ({
     },
 }))
 
-jest.mock('../../affordanceCache/ensureAffordanceTopology', () => ({
+jest.mock('../../../affordanceCache/ensureAffordanceTopology', () => ({
     ensureAffordanceTopology: jest.fn(),
 }))
 
-jest.mock('../../perception/kickRoomHeaderBroadcast', () => ({
+jest.mock('../../../perception/kickRoomHeaderBroadcast', () => ({
     resolveCharacterRoomPerspectiveForRoom: jest.fn(),
 }))
 
@@ -28,8 +28,8 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     exponentialBackoffWrapper: jest.fn(async (fn: () => Promise<unknown>) => fn()),
 }))
 
-import internalCache from '../../../internalCache'
-import { resolveCharacterRoomPerspectiveForRoom } from '../../perception/kickRoomHeaderBroadcast'
+import internalCache from '../../../../internalCache'
+import { resolveCharacterRoomPerspectiveForRoom } from '../../../perception/kickRoomHeaderBroadcast'
 
 const CHARACTER_ID = 'CHARACTER#SharedMemo' as EphemeraCharacterId
 const ROOM_ID = 'ROOM#Start' as EphemeraRoomId

@@ -15,7 +15,7 @@ import { presentStepSequence } from '../manipulation/kernel/presentStepSequence'
 import type { MutationKernelCaptures } from '../manipulation/kernel/types'
 import { compilePositionKernelOp } from '../manipulation/kernel/compile/compilePositionKernelOp'
 import type { PositionKernelMoveOp } from '../manipulation/kernel/compile/positionKernelOp'
-import { buildCharacterMoveOp } from '../membership/buildCharacterMoveOp'
+import { buildCharacterMoveOp } from '../manipulation/membership/buildCharacterMoveOp'
 import { NAVIGATE_HEADER_SLOT_ID } from './navigateBundleSlotIds'
 
 /** Navigate's compiled narration never includes a `describe` step (the header renders through the ingress-slot mechanism below, not this pipeline), so this dep is structurally unused --- present only because `PresentStepSequenceDeps` requires it. */

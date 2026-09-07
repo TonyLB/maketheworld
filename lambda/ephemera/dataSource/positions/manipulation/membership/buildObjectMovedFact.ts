@@ -1,7 +1,6 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { ObjectMovedPublishedPayload } from '../publishedEvents'
-import type { ObjectMembershipDiff } from '../manipulation/membership/types'
-import type { MembershipDiff } from './types'
+import type { ObjectMovedPublishedPayload } from '../../publishedEvents'
+import type { MembershipDiff, ObjectMembershipDiff } from './types'
 
 export const buildObjectMovedFact = (args: {
     objectId: EphemeraObjectId;

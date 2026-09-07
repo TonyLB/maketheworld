@@ -1,12 +1,12 @@
-jest.mock('./membership/applyCharacterRoomMembership', () => ({
+jest.mock('./manipulation/membership/applyCharacterRoomMembership', () => ({
     applyCharacterRoomMembership: jest.fn(),
 }))
 
-jest.mock('./membership/resolveConnectTargetRoom', () => ({
+jest.mock('./manipulation/membership/resolveConnectTargetRoom', () => ({
     resolveConnectTargetRoom: jest.fn(),
 }))
 
-jest.mock('./membership/orchestrateCharacterDisconnect', () => ({
+jest.mock('./manipulation/membership/orchestrateCharacterDisconnect', () => ({
     orchestrateCharacterDisconnect: jest.fn(),
 }))
 
@@ -26,9 +26,9 @@ import {
     handleCharacterDisconnected
 } from './handleConnectionsCharactersPresence'
 import internalCache from '../../internalCache'
-import * as membership from './membership/applyCharacterRoomMembership'
-import * as resolveConnect from './membership/resolveConnectTargetRoom'
-import * as disconnectTail from './membership/orchestrateCharacterDisconnect'
+import * as membership from './manipulation/membership/applyCharacterRoomMembership'
+import * as resolveConnect from './manipulation/membership/resolveConnectTargetRoom'
+import * as disconnectTail from './manipulation/membership/orchestrateCharacterDisconnect'
 import * as navigateTail from './navigate/afterCharacterMembershipNavigateChanged'
 
 const applyCharacterRoomMembershipMock = membership.applyCharacterRoomMembership as jest.MockedFunction<

@@ -1,16 +1,16 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
-import * as kernel from '../manipulation/kernel/commitStepSequence'
+import * as kernel from '../kernel/commitStepSequence'
 
-jest.mock('../manipulation/kernel/commitStepSequence', () => ({
+jest.mock('../kernel/commitStepSequence', () => ({
     commitStepSequence: jest.fn(),
 }))
 
-jest.mock('../../../internalCache/hydrateRoomRoster', () => ({
+jest.mock('../../../../internalCache/hydrateRoomRoster', () => ({
     getRoomCharacterList: jest.fn(),
 }))
 
-jest.mock('../../../internalCache', () => ({
+jest.mock('../../../../internalCache', () => ({
     __esModule: true,
     default: {
         CharacterMeta: {
@@ -25,8 +25,8 @@ jest.mock('../../../internalCache', () => ({
     },
 }))
 
-import internalCache from '../../../internalCache'
-import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
+import internalCache from '../../../../internalCache'
+import { getRoomCharacterList } from '../../../../internalCache/hydrateRoomRoster'
 
 const commitStepSequenceMock = kernel.commitStepSequence as jest.MockedFunction<typeof kernel.commitStepSequence>
 const getRoomCharacterListMock = getRoomCharacterList as jest.MockedFunction<typeof getRoomCharacterList>

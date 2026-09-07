@@ -46,7 +46,7 @@ export type OrchestrateObjectMoveArgs = {
  * The narrating entry point for a player-driven object move --- take, drop, and eventually give
  * give. Sibling of `orchestrateCharacterDisconnect`:
  * it declares the messageOrchestration bundle and presents the compiled narrate steps, leaving the
- * world change itself entirely to `executeMembershipTransfer` (`carryClosureTransfer: true`), the
+ * world change itself entirely to `executeMembershipTransfer` (`honorDefer: true`), the
  * same function every non-narrating object-lifecycle move (spawn/destroy/place/remove) calls
  * without that flag.
  *
@@ -83,7 +83,7 @@ export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Pr
     const result = await executeMembershipTransfer({
         entityId: primaryObjectId,
         target: args.toHostId,
-        carryClosureTransfer: true,
+        honorDefer: true,
         getMembershipContainers: async () => [args.fromHostId],
         bundleId,
         narration: { characterName, objectShortName },

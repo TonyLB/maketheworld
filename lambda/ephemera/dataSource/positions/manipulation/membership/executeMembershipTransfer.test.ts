@@ -365,12 +365,12 @@ describe('executeMembershipTransfer', () => {
     })
 
     /**
-     * `carryClosureTransfer: true` --- take/drop/give's own mode, absorbed from the retired
+     * `honorDefer: true` --- take/drop/give's own mode, absorbed from the retired
      * `executeObjectMove` (MS-8, 2026-09-07). These cases pin the single-hop, defer-aware boundary
      * check and the hosting-edge stripping that mode alone exercises; every case above pins the
      * chain-aware, unconditional default every other caller gets.
      */
-    describe('carryClosureTransfer: true (take/drop/give)', () => {
+    describe('honorDefer: true (take/drop/give)', () => {
         describe('room -> character (take-hold)', () => {
             it('re-derives the boundary classification fresh and commits via the general kernel', async () => {
                 const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
@@ -383,7 +383,7 @@ describe('executeMembershipTransfer', () => {
                 await executeMembershipTransfer({
                     entityId: TRAY_ID,
                     target: TAKE_DROP_CHARACTER_ID,
-                    carryClosureTransfer: true,
+                    honorDefer: true,
                     getMembershipContainers: async () => [ROOM_ID],
                     bundleId: 'BUNDLE#test',
                     messageBus: messageBus as any,
@@ -429,7 +429,7 @@ describe('executeMembershipTransfer', () => {
                 await executeMembershipTransfer({
                     entityId: TRAY_ID,
                     target: TAKE_DROP_CHARACTER_ID,
-                    carryClosureTransfer: true,
+                    honorDefer: true,
                     getMembershipContainers: async () => [ROOM_ID],
                     bundleId: 'BUNDLE#test',
                     messageBus: messageBus as any,
@@ -465,7 +465,7 @@ describe('executeMembershipTransfer', () => {
                 const result = await executeMembershipTransfer({
                     entityId: TRAY_ID,
                     target: TAKE_DROP_CHARACTER_ID,
-                    carryClosureTransfer: true,
+                    honorDefer: true,
                     getMembershipContainers: async () => [ROOM_ID],
                     bundleId: 'BUNDLE#test',
                     narration: { characterName: 'Alice', objectShortName: 'tray' },
@@ -509,7 +509,7 @@ describe('executeMembershipTransfer', () => {
                 const result = await executeMembershipTransfer({
                     entityId: CUP_ID,
                     target: TRAY_ID,
-                    carryClosureTransfer: true,
+                    honorDefer: true,
                     getMembershipContainers: async () => [TAKE_DROP_CHARACTER_ID],
                     bundleId: 'BUNDLE#test',
                     containment: 'On',
@@ -544,7 +544,7 @@ describe('executeMembershipTransfer', () => {
                 const result = await executeMembershipTransfer({
                     entityId: CUP_ID,
                     target: TRAY2_ID,
-                    carryClosureTransfer: true,
+                    honorDefer: true,
                     getMembershipContainers: async () => [TRAY_ID],
                     bundleId: 'BUNDLE#test',
                     containment: 'On',
@@ -583,7 +583,7 @@ describe('executeMembershipTransfer', () => {
                 const result = await executeMembershipTransfer({
                     entityId: CUP_ID,
                     target: TAKE_DROP_CHARACTER_ID,
-                    carryClosureTransfer: true,
+                    honorDefer: true,
                     getMembershipContainers: async () => [TRAY_ID],
                     bundleId: 'BUNDLE#test',
                     messageBus: messageBus as any,
@@ -617,7 +617,7 @@ describe('executeMembershipTransfer', () => {
                 await executeMembershipTransfer({
                     entityId: TRAY_ID,
                     target: ROOM_ID,
-                    carryClosureTransfer: true,
+                    honorDefer: true,
                     getMembershipContainers: async () => [TAKE_DROP_CHARACTER_ID],
                     bundleId: 'BUNDLE#test',
                     messageBus: messageBus as any,
@@ -657,7 +657,7 @@ describe('executeMembershipTransfer', () => {
                 await executeMembershipTransfer({
                     entityId: TRAY_ID,
                     target: ROOM_ID,
-                    carryClosureTransfer: true,
+                    honorDefer: true,
                     getMembershipContainers: async () => [TAKE_DROP_CHARACTER_ID],
                     bundleId: 'BUNDLE#test',
                     messageBus: messageBus as any,
@@ -691,7 +691,7 @@ describe('executeMembershipTransfer', () => {
                 const result = await executeMembershipTransfer({
                     entityId: TRAY_ID,
                     target: TAKE_DROP_CHARACTER_ID,
-                    carryClosureTransfer: true,
+                    honorDefer: true,
                     getMembershipContainers: async () => [ROOM_ID],
                     bundleId: 'BUNDLE#test',
                     narration: { characterName: 'Alice', objectShortName: 'tray' },
@@ -718,7 +718,7 @@ describe('executeMembershipTransfer', () => {
                 const result = await executeMembershipTransfer({
                     entityId: TRAY_ID,
                     target: TAKE_DROP_CHARACTER_ID,
-                    carryClosureTransfer: true,
+                    honorDefer: true,
                     getMembershipContainers: async () => [ROOM_ID],
                     bundleId: 'BUNDLE#test',
                     messageBus: messageBus as any,

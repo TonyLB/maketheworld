@@ -1,11 +1,11 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { ActionsPublishedPayload } from '../../actions/publishedEvents'
-import { MessageBus } from '../../../messageBus/baseClasses'
-import { sendMessageBundleDeclared } from '../../messageOrchestration/subscribedEvents'
-import { presentStepSequence } from '../manipulation/kernel/presentStepSequence'
-import type { MutationKernelCaptures } from '../manipulation/kernel/types'
-import { compilePositionKernelOp } from '../manipulation/kernel/compile/compilePositionKernelOp'
+import type { ActionsPublishedPayload } from '../../../actions/publishedEvents'
+import { MessageBus } from '../../../../messageBus/baseClasses'
+import { sendMessageBundleDeclared } from '../../../messageOrchestration/subscribedEvents'
+import { presentStepSequence } from '../kernel/presentStepSequence'
+import type { MutationKernelCaptures } from '../kernel/types'
+import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import { buildCharacterMoveOp } from './buildCharacterMoveOp'
 
 /** Disconnect's compiled narration never includes a `describe` step, same as navigate's --- see `orchestrateNavigate.ts`'s identical noop. */

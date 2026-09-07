@@ -15,7 +15,7 @@ import type { CommitStepSequenceDeps } from '../kernel/commitStepSequence'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import type { CompiledPositionKernelPlan } from '../kernel/compile/compilePositionKernelOp'
 import { presencePortStepsForMove } from '../kernel/compile/presencePortStepsForMove'
-import { buildObjectMoveOp } from '../../membership/buildObjectMoveOp'
+import { buildObjectMoveOp } from './buildObjectMoveOp'
 import type { MutationKernelCaptures } from '../kernel/types'
 import type { HostRelationalEdge } from '../types'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -44,7 +44,7 @@ export type ExecuteMembershipTransferArgs = {
      * When supplied, called with the resolved diff to build the committed step sequence (the
      * compiler's `[capture, transfer, capture]` shape for navigate) instead of a bare
      * `transferMembership` step. Mirrors `MembershipApplyArgs.compileMutationSteps`. Not honored
-     * when `carryClosureTransfer` is set --- no caller combines the two today.
+     * when `honorDefer` is set --- no caller combines the two today.
      */
     compileMutationSteps?: (diff: { froms: EphemeraMembershipHostId[]; to: EphemeraMembershipHostId | null; changed: boolean }) => readonly MutationKernelStep[]
     characterNames?: CommitStepSequenceDeps['characterNames']
@@ -52,16 +52,21 @@ export type ExecuteMembershipTransferArgs = {
 
     /**
      * Take/drop/give's own mode (MS-8, 2026-09-07 unification of `executeObjectMove` into this
-     * function). When true, the departure boundary is swept with a **single-hop, defer-aware**
-     * check --- `boundaryEdgeOutcomes` against only the (sole) departure host's own graph, refusing
-     * the whole move (`ok: false`) if any boundary edge classifies `'defer'` --- instead of the
-     * **chain-aware, unconditional** sweep every other caller gets (`findRelationalChainsTouching`,
-     * which follows crossing ports across hosts and dissolves everything it finds, with no legality
-     * concept at all). These are genuinely different mechanisms, not two spellings of one: a
-     * take/drop is a player action that can be refused ("you can't take that, it's under the
-     * lamp"), while an administrative reposition (navigate, room place/remove, spawn, destroy/edit,
-     * drift repair) never refuses. Preserved verbatim from the pre-unification `executeObjectMove`,
-     * not generalized --- only `orchestrateObjectMove` sets this flag.
+     * function; named `honorDefer` rather than the unification's original `carryClosureTransfer`,
+     * 2026-09-07 same day --- that name described the retired carry-closure machinery this mode
+     * used to run, not what it does). **A temporary flag, not a permanent two-tier design**: it
+     * exists only because not every route can honor a `'defer'` verdict yet. Administrative
+     * repositions (navigate, room place/remove, spawn, destroy/edit, drift repair) have no acting
+     * character and no legality question to ask --- there is no "you can't do that" to surface, so
+     * they run the **chain-aware, unconditional** sweep (`findRelationalChainsTouching`, following
+     * crossing ports across hosts and dissolving everything it finds). A take/drop is a player
+     * action that genuinely can be refused ("you can't take that, it's under the lamp"), so it opts
+     * into the **single-hop, defer-aware** check instead --- `boundaryEdgeOutcomes` against only the
+     * (sole) departure host's own graph, refusing the whole move (`ok: false`) if any boundary edge
+     * classifies `'defer'`. Preserved verbatim from the pre-unification `executeObjectMove`, not
+     * generalized --- only `orchestrateObjectMove` sets this flag. If every route this function
+     * serves eventually needs to honor defer (or none but this one ever will), that removes the
+     * flag rather than renaming it again --- it should not accrete a third state.
      *
      * Only meaningful when `froms` (derived from `getMembershipContainers`) has exactly one member
      * and `target` is non-null. A departure with `target: null` in this mode is MS-11's still-unbuilt
@@ -69,18 +74,18 @@ export type ExecuteMembershipTransferArgs = {
      * caller today --- `orchestrateObjectMove` always supplies both a concrete `fromHostId` (via
      * `getMembershipContainers`) and a concrete `target`.
      */
-    carryClosureTransfer?: boolean
-    /** Correlates this move's narration slots; meaningful only with `carryClosureTransfer`. */
+    honorDefer?: boolean
+    /** Correlates this move's narration slots; meaningful only with `honorDefer`. */
     bundleId?: string
     /**
-     * Copy ingredients for the narrate steps (`carryClosureTransfer` only). Omit to move an object
+     * Copy ingredients for the narrate steps (`honorDefer` only). Omit to move an object
      * without narrating (object-lifecycle moves), in which case no capture steps are compiled
      * either --- captures exist only to serve narration, so a silent move should not be locking
      * hosts to snapshot rosters nobody reads.
      */
     narration?: { characterName: string; objectShortName: string }
     /**
-     * Hosting kinds only (AB-54) --- peer kinds host nothing. `carryClosureTransfer` only: any
+     * Hosting kinds only (AB-54) --- peer kinds host nothing. `honorDefer` only: any
      * rehost mints a presence port regardless, and only a hosting-kind rehost also establishes a
      * root-anchored containment edge at the destination.
      */
@@ -95,7 +100,7 @@ export type ExecuteMembershipTransferResult =
         changed: boolean
         beatAnchorTime?: number
         captures?: MutationKernelCaptures
-        /** `carryClosureTransfer` only --- `orchestrateObjectMove` needs `plan.slots` to declare its message bundle. */
+        /** `honorDefer` only --- `orchestrateObjectMove` needs `plan.slots` to declare its message bundle. */
         plan?: CompiledPositionKernelPlan
     }
     | { ok: false; errorCode?: string; errorMessage?: string }
@@ -106,12 +111,12 @@ const defaultGetMembershipContainers = (id: EphemeraObjectId | EphemeraCharacter
 /**
  * Single call site for every membership move --- object or character, take/drop/give, navigate,
  * room place/remove, spawn, destroy/edit, drift repair --- unified 2026-09-07 (MS-8) from
- * `executeObjectMove` (the take/drop/give path, `carryClosureTransfer`) and this function's own
+ * `executeObjectMove` (the take/drop/give path, `honorDefer`) and this function's own
  * prior narrower self (every administrative path). The four apparent behavioral differences
  * between the two predecessors --- defer-refusal, host-count/nullability, hosting-edge stripping,
  * entity kind --- were confirmed on record (MS-8) to be unbuilt corners of one general "move a
  * component" operation, not real domain boundaries, with one exception that is preserved rather
- * than merged away: see `carryClosureTransfer`'s own doc comment for why the two dissolve
+ * than merged away: see `honorDefer`'s own doc comment for why the two dissolve
  * mechanisms stay distinct.
  *
  * `executeObjectMove`'s Synthesize-executor detour (seed -> ground -> operand-expand ->
@@ -139,7 +144,7 @@ export const executeMembershipTransfer = async (
         return { ok: true, ...diff }
     }
 
-    if (isEphemeraObjectId(args.entityId) && args.carryClosureTransfer) {
+    if (isEphemeraObjectId(args.entityId) && args.honorDefer) {
         const [fromHostId] = froms
         if (fromHostId === undefined || args.target === null) {
             return { ok: false }

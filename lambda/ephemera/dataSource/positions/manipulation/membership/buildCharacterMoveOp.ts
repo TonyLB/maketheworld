@@ -1,9 +1,9 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { MembershipEmissionCopyKind } from '../manipulation/kernel/kernelStep'
-import type { MessageOrchestrationSlotSpec } from '../../messageOrchestration/localApiEvents'
-import type { MembershipMoveNarrationInput, PositionKernelMoveOp } from '../manipulation/kernel/compile/positionKernelOp'
+import type { MembershipEmissionCopyKind } from '../kernel/kernelStep'
+import type { MessageOrchestrationSlotSpec } from '../../../messageOrchestration/localApiEvents'
+import type { MembershipMoveNarrationInput, PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
 
 /**
  * A `Move` that is guaranteed to narrate, and to narrate in the membership family --- so callers and

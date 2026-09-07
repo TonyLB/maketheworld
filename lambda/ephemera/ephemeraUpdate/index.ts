@@ -2,7 +2,7 @@ import { EphemeraPublishTarget, EphemeraUpdateMessage, isEphemeraCharacterArgume
 
 import internalCache from '../internalCache'
 import type { CharacterMetaItem } from '../internalCache/characterMeta'
-import { resolveCharacterRoomId } from '../dataSource/positions/membership/resolveCharacterRoomId'
+import { resolveCharacterRoomId } from '../dataSource/positions/manipulation/membership/resolveCharacterRoomId'
 
 import { apiClient } from '../apiClient'
 import { EphemeraCharacterId, EphemeraRoomId } from "@tonylb/mtw-interfaces/ts/baseClasses"

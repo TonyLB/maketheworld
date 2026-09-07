@@ -49,7 +49,7 @@ import {
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { executeEstablishEdgeChain } from './manipulation/relational/executeObjectEstablishRelation'
-import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
+import { repairRoomOccupancyDrift } from './manipulation/membership/repairRoomOccupancyDrift'
 import { healLudicGraphStructure } from './ludicGraph/healLudicGraphStructure'
 import { healLudicGraphPortMismatch } from './ludicGraph/healLudicGraphPortMismatch'
 import type { PositionsPublishedPayload } from './publishedEvents'

@@ -2,13 +2,13 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import internalCache from '../../../internalCache'
-import { getRoomCharacterList } from '../../../internalCache/hydrateRoomRoster'
-import type { MessageBus } from '../../../messageBus/baseClasses'
-import type { PositionsPublishedPayload } from '../publishedEvents'
-import { executeMembershipTransfer } from '../manipulation/membership/executeMembershipTransfer'
-import type { CommitStepSequenceDeps } from '../manipulation/kernel/commitStepSequence'
-import type { RoomCharacterListItem } from '../../../internalCache/baseClasses'
+import internalCache from '../../../../internalCache'
+import { getRoomCharacterList } from '../../../../internalCache/hydrateRoomRoster'
+import type { MessageBus } from '../../../../messageBus/baseClasses'
+import type { PositionsPublishedPayload } from '../../publishedEvents'
+import { executeMembershipTransfer } from './executeMembershipTransfer'
+import type { CommitStepSequenceDeps } from '../kernel/commitStepSequence'
+import type { RoomCharacterListItem } from '../../../../internalCache/baseClasses'
 import type { MembershipApplyArgs, MembershipApplyResult, MembershipDiff } from './types'
 
 export type ApplyCharacterRoomMembershipDependencies = {
@@ -111,7 +111,7 @@ export const applyCharacterRoomMembership = async (
         console.error(`[mtw.ephemera.positions] applyCharacterRoomMembership failed: ${result.errorMessage}`)
         return {
             ok: false,
-            // `carryClosureTransfer` is never set on this route, so `executeMembershipTransfer` only
+            // `honorDefer` is never set on this route, so `executeMembershipTransfer` only
             // ever reaches its commit-failure branch here, which always populates both fields ---
             // the fallback exists only to satisfy the widened (now-optional) result type.
             errorCode: result.errorCode ?? 'STEP_SEQUENCE_TRANSACT_FAILED',

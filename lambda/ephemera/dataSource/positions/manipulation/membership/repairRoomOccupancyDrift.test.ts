@@ -11,7 +11,7 @@ jest.mock('./orchestrateCharacterDisconnect', () => ({
 }))
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { testLudicGraph } from '../ludicGraph/testFixtures'
+import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import { applyCharacterRoomMembership } from './applyCharacterRoomMembership'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 import { orchestrateCharacterDisconnect } from './orchestrateCharacterDisconnect'

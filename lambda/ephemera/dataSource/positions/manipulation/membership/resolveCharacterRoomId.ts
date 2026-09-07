@@ -5,8 +5,8 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 
-import internalCache from '../../../internalCache'
-import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
+import internalCache from '../../../../internalCache'
+import type { CharacterMetaItem } from '../../../../internalCache/characterMeta'
 import type { RoomStackItem } from './types'
 import {
     roomStackTopRoomShortId,

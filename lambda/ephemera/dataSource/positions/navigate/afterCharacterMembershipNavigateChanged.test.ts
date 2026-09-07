@@ -1,4 +1,4 @@
-jest.mock('../membership/persistRoomStackNavigate', () => ({
+jest.mock('../manipulation/membership/persistRoomStackNavigate', () => ({
     persistRoomStackNavigate: jest.fn(),
 }))
 
@@ -8,7 +8,7 @@ jest.mock('./orchestrateNavigate', () => ({
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { MessageBus } from '../../../messageBus/baseClasses'
-import * as persistRoomStack from '../membership/persistRoomStackNavigate'
+import * as persistRoomStack from '../manipulation/membership/persistRoomStackNavigate'
 import * as orchestrateNavigate from './orchestrateNavigate'
 import { afterCharacterMembershipNavigateChanged } from './afterCharacterMembershipNavigateChanged'
 

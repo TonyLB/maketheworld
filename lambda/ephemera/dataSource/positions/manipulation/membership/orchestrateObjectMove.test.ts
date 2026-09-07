@@ -15,7 +15,7 @@ import { orchestrateObjectMove } from './orchestrateObjectMove'
 import { executeMembershipTransfer } from './executeMembershipTransfer'
 import { resolveObjectMovePresentationLabels } from '../../../perception/resolveObjectMovePresentationLabels'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
-import { buildObjectMoveOp } from '../../membership/buildObjectMoveOp'
+import { buildObjectMoveOp } from './buildObjectMoveOp'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from '../kernel/compile/moveBundleSlotIds'
 
 const executeMembershipTransferMock = executeMembershipTransfer as jest.MockedFunction<typeof executeMembershipTransfer>
@@ -151,7 +151,7 @@ describe('orchestrateObjectMove', () => {
         expect(executeMembershipTransferMock).toHaveBeenCalledWith(expect.objectContaining({
             entityId: TRAY,
             target: CHARACTER,
-            carryClosureTransfer: true,
+            honorDefer: true,
             narration: { characterName: 'Alice', objectShortName: 'tray' },
         }))
         const call = executeMembershipTransferMock.mock.calls[0]![0]
@@ -214,7 +214,7 @@ describe('orchestrateObjectMove', () => {
         expect(executeMembershipTransferMock).toHaveBeenCalledWith(expect.objectContaining({
             entityId: TRAY,
             target: 'OBJECT#Tray2',
-            carryClosureTransfer: true,
+            honorDefer: true,
         }))
     })
 

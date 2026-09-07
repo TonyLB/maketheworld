@@ -11,8 +11,8 @@ import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { EphemeraLudicGraph, graphFromMeta, hostDataCategory } from '../../ludicGraph'
-import { streamObjectMembershipFact } from '../../membership/streamObjectMembershipFact'
-import { streamMembershipFact } from '../../membership/streamMembershipFact'
+import { streamObjectMembershipFact } from '../membership/streamObjectMembershipFact'
+import { streamMembershipFact } from '../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
@@ -70,7 +70,7 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * behavior, until BD-18's backtrack channel lands.
  *
  * Now wired to every live route: `executeMembershipTransfer` (take/drop/give via
- * `carryClosureTransfer`, and the object-lifecycle Migrate row: destroy/edit/spawn/place/drift-repair;
+ * `honorDefer`, and the object-lifecycle Migrate row: destroy/edit/spawn/place/drift-repair;
  * this absorbed `applyObjectClearMembership`/`applyObjectRoomMembership`/`executeObjectMove` into it,
  * MS-8, 2026-09-07), `applyObjectRelationalChange` (establish/dissolve), and --- character-route
  * Migrate row --- `applyCharacterRoomMembership` (navigate/connect/disconnect, itself now a thin

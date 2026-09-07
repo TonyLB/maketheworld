@@ -1,10 +1,10 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import internalCache from '../../../internalCache'
-import type { MessageBus } from '../../../messageBus/baseClasses'
-import type { PositionsPublishedPayload } from '../publishedEvents'
-import { executeMembershipTransfer } from '../manipulation/membership/executeMembershipTransfer'
+import internalCache from '../../../../internalCache'
+import type { MessageBus } from '../../../../messageBus/baseClasses'
+import type { PositionsPublishedPayload } from '../../publishedEvents'
+import { executeMembershipTransfer } from './executeMembershipTransfer'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 
 export type RepairObjectPlacementDriftArgs = {

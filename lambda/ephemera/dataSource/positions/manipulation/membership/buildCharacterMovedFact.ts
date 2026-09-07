@@ -1,4 +1,4 @@
-import type { CharacterMovedPublishedPayload } from '../publishedEvents'
+import type { CharacterMovedPublishedPayload } from '../../publishedEvents'
 import type { MembershipDiff } from './types'
 
 export const buildCharacterMovedFact = (args: {

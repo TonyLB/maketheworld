@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
+import type { CharacterMetaItem } from '../../../../internalCache/characterMeta'
 import type { RoomStackItem } from './types'
 import {
     trimPersistCharacterRoomStack,

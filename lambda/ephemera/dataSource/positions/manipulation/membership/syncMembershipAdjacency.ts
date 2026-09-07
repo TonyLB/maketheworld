@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import internalCache from '../../../internalCache'
+import internalCache from '../../../../internalCache'
 
 export type SyncMembershipAdjacencyToRoomArgs = {
     componentId: EphemeraCharacterId | EphemeraObjectId;

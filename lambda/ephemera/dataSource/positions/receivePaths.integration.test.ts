@@ -2,19 +2,19 @@
  * Cross-layer integration: positions DataSource receiveEvents routes all ingress
  * envelopes through the real messageBus subscription wiring.
  */
-jest.mock('./membership/applyCharacterRoomMembership', () => ({
+jest.mock('./manipulation/membership/applyCharacterRoomMembership', () => ({
     applyCharacterRoomMembership: jest.fn(),
 }))
 
-jest.mock('./membership/resolveConnectTargetRoom', () => ({
+jest.mock('./manipulation/membership/resolveConnectTargetRoom', () => ({
     resolveConnectTargetRoom: jest.fn(),
 }))
 
-jest.mock('./membership/repairRoomOccupancyDrift', () => ({
+jest.mock('./manipulation/membership/repairRoomOccupancyDrift', () => ({
     repairRoomOccupancyDrift: jest.fn(),
 }))
 
-jest.mock('./membership/orchestrateCharacterDisconnect', () => ({
+jest.mock('./manipulation/membership/orchestrateCharacterDisconnect', () => ({
     orchestrateCharacterDisconnect: jest.fn(),
 }))
 
@@ -40,10 +40,10 @@ jest.mock('./manipulation/relational/executeObjectEstablishRelation', () => ({
 
 import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
-import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
-import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
-import { repairRoomOccupancyDrift } from './membership/repairRoomOccupancyDrift'
-import { orchestrateCharacterDisconnect } from './membership/orchestrateCharacterDisconnect'
+import { applyCharacterRoomMembership } from './manipulation/membership/applyCharacterRoomMembership'
+import { resolveConnectTargetRoom } from './manipulation/membership/resolveConnectTargetRoom'
+import { repairRoomOccupancyDrift } from './manipulation/membership/repairRoomOccupancyDrift'
+import { orchestrateCharacterDisconnect } from './manipulation/membership/orchestrateCharacterDisconnect'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { executeEstablishEdgeChain } from './manipulation/relational/executeObjectEstablishRelation'

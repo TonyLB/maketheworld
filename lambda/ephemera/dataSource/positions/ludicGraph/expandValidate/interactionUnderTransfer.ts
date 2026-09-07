@@ -51,7 +51,7 @@ export function classifyInteractionUnderTransfer(
             //
             // One shape now has a producer: a moved object's own edge into the host it
             // is leaving, member -> that host's root. `executeMembershipTransfer`'s
-            // `carryClosureTransfer` path strips that edge from the graph before this classifier
+            // `honorDefer` path strips that edge from the graph before this classifier
             // ever sees it, so it never reaches here. Every other hosting-kind edge reaching this
             // branch is still the unauthored-graph case above.
             //

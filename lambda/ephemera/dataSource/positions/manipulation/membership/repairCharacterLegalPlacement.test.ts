@@ -6,7 +6,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     },
 }))
 
-jest.mock('../../../internalCache', () => ({
+jest.mock('../../../../internalCache', () => ({
     __esModule: true,
     default: {
         CharacterMeta: { get: jest.fn(), set: jest.fn() },
@@ -15,13 +15,13 @@ jest.mock('../../../internalCache', () => ({
     },
 }))
 
-jest.mock('../navigate/executeCharacterNavigate', () => ({
+jest.mock('../../navigate/executeCharacterNavigate', () => ({
     executeCharacterNavigate: jest.fn(),
 }))
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import internalCache from '../../../internalCache'
-import { executeCharacterNavigate } from '../navigate/executeCharacterNavigate'
+import internalCache from '../../../../internalCache'
+import { executeCharacterNavigate } from '../../navigate/executeCharacterNavigate'
 import { repairCharacterLegalPlacement } from './repairCharacterLegalPlacement'
 import type { RoomStackItem } from './types'
 

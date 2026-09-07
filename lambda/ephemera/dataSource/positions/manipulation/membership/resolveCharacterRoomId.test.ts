@@ -1,7 +1,7 @@
-import internalCache from '../../../internalCache'
+import internalCache from '../../../../internalCache'
 import { resolveCharacterRoomId, resolveLegalRoomIdFromRoomStack } from './resolveCharacterRoomId'
 
-jest.mock('../../../internalCache', () => ({
+jest.mock('../../../../internalCache', () => ({
     __esModule: true,
     default: {
         Positions: {

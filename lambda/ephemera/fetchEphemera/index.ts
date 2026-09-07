@@ -4,7 +4,7 @@ import { FetchPlayerEphemeraMessage, MessageBus } from '../messageBus/baseClasse
 import internalCache from '../internalCache'
 import { CharacterMetaItem } from '../internalCache/characterMeta'
 import { EphemeraClientMessageEphemeraUpdateItem } from '@tonylb/mtw-interfaces/ts/ephemera'
-import { resolveCharacterRoomId } from '../dataSource/positions/membership/resolveCharacterRoomId'
+import { resolveCharacterRoomId } from '../dataSource/positions/manipulation/membership/resolveCharacterRoomId'
 
 const serialize = async (
     characterMeta: CharacterMetaItem

@@ -2,8 +2,8 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import internalCache from '../../../internalCache'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import type { MessageBus } from '../../../messageBus/baseClasses'
-import { persistRoomStackNavigate } from '../membership/persistRoomStackNavigate'
-import type { MembershipApplySuccessResult, MembershipApplyResult } from '../membership/types'
+import { persistRoomStackNavigate } from '../manipulation/membership/persistRoomStackNavigate'
+import type { MembershipApplySuccessResult, MembershipApplyResult } from '../manipulation/membership/types'
 import { orchestrateCharacterNavigate } from './orchestrateNavigate'
 
 export type AfterCharacterMembershipNavigateChangedArgs = {

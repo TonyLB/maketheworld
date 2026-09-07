@@ -89,7 +89,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     // port-qualified boundary edge yet, so skip rather than assume (matches the ludicGraph
     // boundary/carry-closure narrows, ludicGraph/AGENT.md's BD-36 paragraph).
     // `hostId: op.froms[0]` --- `dissolvedEdges` is only ever populated by
-    // `executeMembershipTransfer.ts`'s `carryClosureTransfer` (single-origin carry-closure) path
+    // `executeMembershipTransfer.ts`'s `honorDefer` (single-origin carry-closure) path
     // (`buildObjectMoveOp` is its only producer, always `froms: [args.fromHostId]`), so every
     // severed boundary edge belongs to that one departure host. Not derived per-edge because
     // `HostRelationalEdge` (the graph's own internal edge representation, used far more broadly)

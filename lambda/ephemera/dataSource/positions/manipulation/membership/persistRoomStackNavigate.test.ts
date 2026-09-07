@@ -6,7 +6,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     },
 }))
 
-jest.mock('../../../internalCache', () => ({
+jest.mock('../../../../internalCache', () => ({
     __esModule: true,
     default: {
         CharacterMeta: { set: jest.fn() },
@@ -15,7 +15,7 @@ jest.mock('../../../internalCache', () => ({
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import internalCache from '../../../internalCache'
+import internalCache from '../../../../internalCache'
 import { persistRoomStackNavigate } from './persistRoomStackNavigate'
 import type { RoomStackItem } from './types'
 

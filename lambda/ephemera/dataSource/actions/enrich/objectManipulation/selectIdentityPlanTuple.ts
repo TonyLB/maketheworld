@@ -170,7 +170,7 @@ export type SelectIdentityPlanTupleInput = {
  * place of `expandTransferMembership` + `evaluateSandboxPlan`. This dry run is
  * Plan-stage: it still needs Grounding (a real candidate search) and so still
  * runs the full executor. **The live commit side no longer mirrors this**
- * (`executeMembershipTransfer`'s `carryClosureTransfer` path, MS-8, 2026-09-07)
+ * (`executeMembershipTransfer`'s `honorDefer` path, MS-8, 2026-09-07)
  * --- by execute time both hosts are already concrete, so there is nothing left
  * for Grounding to resolve, and the commit side calls `boundaryEdgeOutcomes`/
  * `classifyInteractionUnderTransfer` directly rather than re-running the whole

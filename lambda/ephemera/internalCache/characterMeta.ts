@@ -1,7 +1,7 @@
 import { EphemeraCharacterId, EphemeraRoomId, LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses';
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { DEFAULT_ROOM_STACK } from '../dataSource/positions/membership/trimEvictionLadder';
-import type { RoomStackItem } from '../dataSource/positions/membership/types';
+import { DEFAULT_ROOM_STACK } from '../dataSource/positions/manipulation/membership/trimEvictionLadder';
+import type { RoomStackItem } from '../dataSource/positions/manipulation/membership/types';
 
 export type CharacterMetaItem = {
     EphemeraId: EphemeraCharacterId;

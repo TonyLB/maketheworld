@@ -1,4 +1,4 @@
-jest.mock('../membership/applyCharacterRoomMembership', () => ({
+jest.mock('../manipulation/membership/applyCharacterRoomMembership', () => ({
     applyCharacterRoomMembership: jest.fn(),
 }))
 
@@ -14,7 +14,7 @@ jest.mock('../../../internalCache', () => ({
 }))
 
 import internalCache from '../../../internalCache'
-import * as membership from '../membership/applyCharacterRoomMembership'
+import * as membership from '../manipulation/membership/applyCharacterRoomMembership'
 import * as navigateTail from './afterCharacterMembershipNavigateChanged'
 import { executeCharacterNavigate } from './executeCharacterNavigate'
 import { MessageBus } from '../../../messageBus/baseClasses'

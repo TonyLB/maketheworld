@@ -5,7 +5,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     exponentialBackoffWrapper: jest.fn(async (fn: () => Promise<unknown>) => fn()),
 }))
 
-jest.mock('../../../internalCache', () => ({
+jest.mock('../../../../internalCache', () => ({
     __esModule: true,
     default: {
         Positions: {
@@ -18,7 +18,7 @@ jest.mock('../../../internalCache', () => ({
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import internalCache from '../../../internalCache'
+import internalCache from '../../../../internalCache'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId

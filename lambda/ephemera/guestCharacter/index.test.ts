@@ -33,7 +33,7 @@ import internalCache from '../internalCache'
 import { sendDeleteCacheRecords } from '../dataSource/apiEphemera'
 import { queryAllRenderCacheDataCategoriesForComponent } from '../dataSource/renderCache/queryAllRenderCacheDataCategoriesForComponent'
 import { confirmGuestCharacter } from './index'
-import { DEFAULT_ROOM_STACK } from '../dataSource/positions/membership/trimEvictionLadder'
+import { DEFAULT_ROOM_STACK } from '../dataSource/positions/manipulation/membership/trimEvictionLadder'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const internalCacheMock = internalCache as unknown as { ImprovisationComponentData: { get: jest.Mock; set: jest.Mock } }

@@ -7,8 +7,8 @@ import internalCache from '../internalCache'
 import type { MessageBus } from '../messageBus/baseClasses'
 import { sendDeleteCacheRecords } from '../dataSource/apiEphemera'
 import { queryAllRenderCacheDataCategoriesForComponent } from '../dataSource/renderCache/queryAllRenderCacheDataCategoriesForComponent'
-import { DEFAULT_ROOM_STACK } from '../dataSource/positions/membership/trimEvictionLadder'
-import type { RoomStackItem } from '../dataSource/positions/membership/types'
+import { DEFAULT_ROOM_STACK } from '../dataSource/positions/manipulation/membership/trimEvictionLadder'
+import type { RoomStackItem } from '../dataSource/positions/manipulation/membership/types'
 import { guestCoyoteSituations } from './guestSituations'
 
 // Recreated function from deleted cacheAsset module

@@ -1,4 +1,4 @@
-jest.mock('../manipulation/membership/executeMembershipTransfer', () => ({
+jest.mock('./executeMembershipTransfer', () => ({
     executeMembershipTransfer: jest.fn(),
 }))
 
@@ -7,8 +7,8 @@ jest.mock('./syncMembershipAdjacency', () => ({
 }))
 
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { testLudicGraph } from '../ludicGraph/testFixtures'
-import { executeMembershipTransfer } from '../manipulation/membership/executeMembershipTransfer'
+import { testLudicGraph } from '../../ludicGraph/testFixtures'
+import { executeMembershipTransfer } from './executeMembershipTransfer'
 import { repairObjectPlacementDrift } from './repairObjectPlacementDrift'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 

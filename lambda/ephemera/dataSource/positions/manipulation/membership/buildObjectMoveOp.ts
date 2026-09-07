@@ -1,8 +1,8 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { HostRelationalEdge } from '../manipulation/types'
-import type { ObjectMoveNarrationInput, PositionKernelMoveOp } from '../manipulation/kernel/compile/positionKernelOp'
+import type { HostRelationalEdge } from '../types'
+import type { ObjectMoveNarrationInput, PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
 
 export type BuildObjectMoveOpArgs = {
     /** The moved object. `computeCarryClosure` has been a singleton since CD3 (2026-09-06), so this is the whole moved set, not just its primary member. */

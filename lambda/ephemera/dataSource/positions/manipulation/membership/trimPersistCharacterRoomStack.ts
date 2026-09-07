@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import internalCache from '../../../internalCache'
-import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
+import internalCache from '../../../../internalCache'
+import type { CharacterMetaItem } from '../../../../internalCache/characterMeta'
 import type { RoomStackItem } from './types'
 import {
     normalizeRoomStack,

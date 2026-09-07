@@ -6,8 +6,8 @@ import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/e
 import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { buildObjectMovedFact } from '../../membership/buildObjectMovedFact'
-import { buildCharacterMovedFact } from '../../membership/buildCharacterMovedFact'
+import { buildObjectMovedFact } from '../membership/buildObjectMovedFact'
+import { buildCharacterMovedFact } from '../membership/buildCharacterMovedFact'
 import { buildRelationalFact } from '../relational/buildObjectRelationalFact'
 import type {
     CharacterMovedPublishedPayload,
