@@ -280,7 +280,6 @@ describe('presentStepSequence', () => {
                 verb: 'takeHold',
                 characterName: 'Alice',
                 objectShortName: 'broom',
-                carriedCount: 1,
                 ...narration,
             },
             captureId,
@@ -312,16 +311,6 @@ describe('presentStepSequence', () => {
                 new Map([['capture:from:ROOM#Cafe', [OTHER_CHARACTER_ID]]])
             )
             expect((await reportedMessage()).message).toEqual(['Alice drops broom'])
-        })
-
-        it('appends the carry suffix when the closure has more than one member (BD-13)', async () => {
-            await presentStepSequence(
-                [objectStep({ carriedCount: 2 })],
-                CHARACTER_ID,
-                { streamEvent, messageBus },
-                new Map([['capture:from:ROOM#Cafe', [OTHER_CHARACTER_ID]]])
-            )
-            expect((await reportedMessage()).message).toEqual(['Alice picks up broom and everything on it'])
         })
 
         it('targets the captured roster, never a bare ROOM# that would re-expand at flush', async () => {

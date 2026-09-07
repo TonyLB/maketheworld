@@ -1,20 +1,20 @@
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { EphemeraLudicGraph } from '../ludicGraph'
 import type { HostRelationalEdge } from '../manipulation/types'
 import type { ObjectMoveNarrationInput, PositionKernelMoveOp } from '../manipulation/kernel/compile/positionKernelOp'
 
 export type BuildObjectMoveOpArgs = {
-    /** Expansion's re-derived carry closure (LP4a: an `EphemeraLudicGraph`). Its `rootId` is the primary object the copy names. */
-    fragment: EphemeraLudicGraph
+    /** The moved object. `computeCarryClosure` has been a singleton since CD3 (2026-09-06), so this is the whole moved set, not just its primary member. */
+    entityId: EphemeraObjectId
     /** Boundary edges Expansion classified as dissolve; empty for a move that severs nothing. */
     dissolvedEdges: readonly HostRelationalEdge[]
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
     bundleId: string
     /** Omitted for the pre-commit mutation-only compile; supplied post-commit to narrate. */
-    narration?: Omit<ObjectMoveNarrationInput, 'kind' | 'carriedCount'>
-    /** Hosting kinds only (AB-54); see `ExecuteObjectMoveArgs.containment`'s doc comment. */
+    narration?: Omit<ObjectMoveNarrationInput, 'kind'>
+    /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
 }
 
@@ -37,15 +37,12 @@ export type BuildObjectMoveOpArgs = {
  * so the ingredients are all in hand before the commit and one compiled plan serves both halves; a
  * second compile would be two chances to disagree in exchange for nothing.
  *
- * `carriedCount` is taken from the fragment rather than accepted as an argument, so it cannot drift
- * from the set actually being transferred. This is the *execute-time* closure, not the Plan-stage
- * intent's object count that the retired fan-in used: `executeObjectMove` re-derives the closure
- * fresh against current graph state rather than trusting the planned set, so "and everything on it"
- * now reports what really moved.
+ * No `carriedCount` --- retired 2026-09-07 (MS-8) along with `PositionKernelMovedSet`'s `closure`
+ * shape; see `positionKernelOp.ts`'s `ObjectMoveNarrationInput` doc comment.
  */
 export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMoveOp => ({
     kind: 'move',
-    moved: { kind: 'closure', fragment: args.fragment },
+    moved: args.entityId,
     froms: [args.fromHostId],
     to: args.toHostId,
     bundleId: args.bundleId,
@@ -58,7 +55,6 @@ export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMo
                 kind: 'objectMove' as const,
                 characterName: args.narration.characterName,
                 objectShortName: args.narration.objectShortName,
-                carriedCount: args.fragment.objectIds.size,
             },
         }
         : {}),

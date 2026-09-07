@@ -2,7 +2,6 @@ import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/e
 import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf, relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { boundaryEdgeOutcomes } from '../../../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { Assertion, Change, TransferMembershipChange, UngroundedPlanStep } from '../plan/ungroundedPrimitive'
-import type { TransferMembershipStep } from '../parsePlanStep'
 import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'
 import { groundAssertion } from './groundAssertion'
 import { groundChange } from './groundChange'
@@ -50,35 +49,6 @@ export const seedTransferMembership = (change: TransferMembershipChange): Workli
     return [
         { id: mintInstructionId(), tag: 'ungrounded', step: isolatedFromRelations },
         { id: mintInstructionId(), tag: 'ungrounded', step: change },
-    ]
-}
-
-/**
- * BD-34's centralized pairing constructor, grounded half: whatever introduces a
- * concrete `TransferMembershipStep` must do it through here, not push it onto
- * the worklist directly --- otherwise its boundary edges never get swept and
- * `removeObject`'s assert-and-throw (BD-33) spuriously fires on a legitimate,
- * unaddressed edge.
- *
- * One caller today: `executeObjectMove`, which seeds the whole worklist this
- * way because at execute time the hosts are already concrete --- there is
- * nothing left for Grounding to resolve. It had a second until 2026-09-01
- * retired `expandSameHost`'s repair-by-relocation outcome; the
- * name still describes the tag rather than the caller, so the pairing
- * invariant reads as the general rule it is rather than as one route's habit.
- */
-export const seedGroundedTransferMembership = (transferStep: TransferMembershipStep): WorklistInstruction[] => {
-    const [startId] = transferStep.objectIds
-    if (startId === undefined) {
-        throw new Error('seedGroundedTransferMembership: transferStep.objectIds must not be empty')
-    }
-    return [
-        {
-            id: mintInstructionId(),
-            tag: 'grounded',
-            step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([startId]) },
-        },
-        { id: mintInstructionId(), tag: 'grounded', step: transferStep },
     ]
 }
 
@@ -334,11 +304,14 @@ export type ExecutorOutcome =
  * sequencing resolution its guarantee --- no separate priority tier needed.
  *
  * `groundingContext` is optional because a fully-grounded seed never reaches
- * phase (1): every child minted during a run is already grounded (see
- * `seedGroundedTransferMembership` and the `dissolveRelation` children below),
- * so only a seed can carry an `ungrounded` instruction. Callers that already
- * hold concrete ids --- `executeObjectMove` --- omit it rather than assembling
- * a context whose resolutions would be identity mappings. Seeding an
+ * phase (1): every child minted during a run is already grounded (see the
+ * `dissolveRelation` children below), so only a seed can carry an `ungrounded`
+ * instruction. A caller that already holds concrete ids can seed a `grounded`
+ * instruction directly and omit it, rather than assembling a context whose
+ * resolutions would be identity mappings --- no live caller does today
+ * (`executeMembershipTransfer`'s `carryClosureTransfer` path retired its own
+ * grounded seed in favor of calling `boundaryEdgeOutcomes` directly, MS-8,
+ * 2026-09-07), but nothing about this function requires one to. Seeding an
  * `ungrounded` instruction without one is a caller error and errors out.
  */
 export const runExecutor = (

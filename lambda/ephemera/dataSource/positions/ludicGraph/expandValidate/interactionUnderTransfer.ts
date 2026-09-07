@@ -50,10 +50,10 @@ export function classifyInteractionUnderTransfer(
             // author. The earlier note here -- "replace before ludicCache nests" -- is withdrawn.
             //
             // One shape now has a producer: a moved object's own edge into the host it
-            // is leaving, member -> that host's root. `executeObjectMove` strips that edge from
-            // the graph before this classifier (or the executor's operand-expansion, which
-            // calls it internally) ever sees it, so it never reaches here. Every other hosting-
-            // kind edge reaching this branch is still the unauthored-graph case above.
+            // is leaving, member -> that host's root. `executeMembershipTransfer`'s
+            // `carryClosureTransfer` path strips that edge from the graph before this classifier
+            // ever sees it, so it never reaches here. Every other hosting-kind edge reaching this
+            // branch is still the unauthored-graph case above.
             //
             // What would legitimately retire this throw: AB-53 keeps containment root-to-part
             // as an ITERATION-1 CONSTRUCTOR DISCIPLINE, not a structural lock. If multi-level

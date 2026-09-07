@@ -5,7 +5,7 @@ import { objectSpanRef } from '../plan/ungroundedPrimitive'
 import type { TransferMembershipChange } from '../plan/ungroundedPrimitive'
 import type { GroundingContext } from './groundReferent'
 import { createExpansionEnvironment } from './expansionEnvironment'
-import { seedGroundedTransferMembership, runExecutor, seedTransferMembership } from './executor'
+import { runExecutor, seedTransferMembership } from './executor'
 import type { WorklistInstruction } from './executorTypes'
 
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -225,19 +225,6 @@ describe('runExecutor', () => {
         expect(result).toEqual({ verdict: 'defer', decidable: false, reason: expect.any(String) })
     })
 
-    it('seedGroundedTransferMembership always pairs, isolatedFromRelations first', () => {
-        const paired = seedGroundedTransferMembership({
-            kind: 'transferMembership',
-            objectIds: new Set([SAUCER_ID]),
-            fromHostId: CHARACTER_ID,
-            toHostId: ROOM_ID,
-        })
-
-        expect(paired).toHaveLength(2)
-        expect(paired[0]!.step).toEqual({ kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([SAUCER_ID]) })
-        expect(paired[1]!.step).toEqual({ kind: 'transferMembership', objectIds: new Set([SAUCER_ID]), fromHostId: CHARACTER_ID, toHostId: ROOM_ID })
-    })
-
     it('runs a fully-grounded seed with no GroundingContext supplied', () => {
         const graph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID)
         const env = createExpansionEnvironment(
@@ -245,15 +232,15 @@ describe('runExecutor', () => {
             (id) => (id === TRAY_ID ? ROOM_ID : undefined)
         )
 
-        const result = runExecutor(
-            seedGroundedTransferMembership({
-                kind: 'transferMembership',
-                objectIds: new Set([TRAY_ID]),
-                fromHostId: ROOM_ID,
-                toHostId: CHARACTER_ID,
-            }),
-            env
-        )
+        // BD-34's pairing invariant, spelled inline rather than via the retired
+        // `seedGroundedTransferMembership` (MS-8, 2026-09-07: its sole caller,
+        // `executeObjectMove`, no longer re-runs the executor at all).
+        const seed: WorklistInstruction[] = [
+            { id: 'isolated', tag: 'grounded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },
+            { id: 'transfer', tag: 'grounded', step: { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID } },
+        ]
+
+        const result = runExecutor(seed, env)
 
         expect(result).toEqual({
             verdict: 'legal',

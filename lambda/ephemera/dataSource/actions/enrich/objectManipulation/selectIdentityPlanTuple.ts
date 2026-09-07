@@ -167,11 +167,15 @@ export type SelectIdentityPlanTupleInput = {
 /**
  * Executor-mediated membership dry run (Migrate slice, 2026-07-23): invokes the
  * general Synthesize executor (`seedTransferMembership` + `runExecutor`) in
- * place of `expandTransferMembership` + `evaluateSandboxPlan`, so this dry run
- * exercises exactly the same Grounding -> Expansion -> command-expansion path
- * the live commit side (`executeObjectMove`) re-runs at
- * commit time --- one instance of the general executor, not a route-specific
- * one-off. `validateMembershipPlanDryRun`'s locus-vs-operationKind base check
+ * place of `expandTransferMembership` + `evaluateSandboxPlan`. This dry run is
+ * Plan-stage: it still needs Grounding (a real candidate search) and so still
+ * runs the full executor. **The live commit side no longer mirrors this**
+ * (`executeMembershipTransfer`'s `carryClosureTransfer` path, MS-8, 2026-09-07)
+ * --- by execute time both hosts are already concrete, so there is nothing left
+ * for Grounding to resolve, and the commit side calls `boundaryEdgeOutcomes`/
+ * `classifyInteractionUnderTransfer` directly rather than re-running the whole
+ * executor to reach the same classification. `validateMembershipPlanDryRun`'s
+ * locus-vs-operationKind base check
  * (FT-2.2 --- "declared drop but object is on the room graph", exit-edge defer)
  * is orthogonal to Expansion's carry-closure/boundary-sweep and stays a
  * separate up-front gate, run before the executor --- it is not part of what

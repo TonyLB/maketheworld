@@ -2,29 +2,8 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { HostRelationalEdge } from '../../types'
-import type { EphemeraLudicGraph } from '../../../ludicGraph'
 import type { MessageOrchestrationSlotSpec } from '../../../../messageOrchestration/localApiEvents'
 import type { MembershipEmissionCopyKind } from '../kernelStep'
-
-/**
- * What a `Move` actually moves. A character moves alone; an object moves as its carry closure ---
- * BD-13's transfer set, re-derived at execute time by `computeCarryClosure`.
- *
- * These are two shapes rather than one because primacy has to come from somewhere and must not be a
- * cross-field invariant (rejected for exactly that: an `entityIds` set plus a separate
- * `primaryEntityId` that nothing enforces). For a closure, primacy *is* `fragment.rootId` (LP4a: the
- * closure IS an `EphemeraLudicGraph`, hosted and rooted at the moved object) --- which
- * `computeCarryClosure` records from its `startId` argument rather than deriving from traversal
- * shape, since its BFS guards with `closureSet.has(...)` and so absorbs a doubly-reachable object via
- * whichever edge it happened to reach first. Never read primacy off the fragment's edges.
- *
- * The closure's `relationalEdges` are its *internal* edges (the induced subgraph), which is what
- * keeps richer copy reachable later ("the tray, with a cup on it") rather than only a cardinality.
- * Severed boundary edges are a different thing entirely and travel on `dissolvedEdges` below.
- */
-export type PositionKernelMovedSet =
-    | { kind: 'entity'; entityId: EphemeraObjectId | EphemeraCharacterId }
-    | { kind: 'closure'; fragment: EphemeraLudicGraph }
 
 /**
  * Membership narration's ingredients: navigate/home/connect/disconnect. `leaveCopyKind` is a
@@ -47,15 +26,14 @@ export type MembershipMoveNarrationInput = {
  * without a new discriminant, and it is why the retired `inferOperationFromFact` could be deleted
  * rather than ported: the compiler holds the verb forwards instead of reasoning back to it.
  *
- * `carriedCount` is the *execute-time* closure size (`fragment.objectIds.size`), not the Plan-stage
- * intent's object count. `executeObjectMove` re-derives the closure fresh against current graph
- * state rather than trusting the planned set, so the copy reports what actually moved.
+ * No `carriedCount` --- retired 2026-09-07 (MS-8): `computeCarryClosure` has been a singleton since
+ * CD3 (2026-09-06), so a moved object never carries anything else with it, and the field's own
+ * `> 1` narration branch was dead from the moment CD3 shipped.
  */
 export type ObjectMoveNarrationInput = {
     kind: 'objectMove'
     characterName: string
     objectShortName: string
-    carriedCount: number
 }
 
 /**
@@ -70,6 +48,12 @@ export type ObjectMoveNarrationInput = {
  * is definitionally a move of an entity between two membership hosts, the same shape as a character
  * moving room to room, so the direction never needed to be an op discriminant.
  *
+ * `moved` is a bare entity id, not a `{kind, ...}` union --- retired 2026-09-07 (MS-8) along with
+ * `PositionKernelMovedSet`. The union existed to let a closure's primacy come from `fragment.rootId`
+ * rather than a separately-asserted id; since CD3 (2026-09-06) `computeCarryClosure` is always a
+ * singleton, primacy and "the whole moved set" are the same one id, so the second shape had nothing
+ * left to represent.
+ *
  * `narration` is deliberately optional, not a field every `Move` carries: object-lifecycle moves
  * (spawn/destroy/place/remove) narrate nothing today, and populating narration fields they'd never
  * use would misstate that. Presence/absence of `narration` is what lets the compiler --- not the
@@ -81,7 +65,7 @@ export type ObjectMoveNarrationInput = {
  */
 export type PositionKernelMoveOp = {
     kind: 'move'
-    moved: PositionKernelMovedSet
+    moved: EphemeraObjectId | EphemeraCharacterId
     froms: EphemeraMembershipHostId[]
     to: EphemeraMembershipHostId | null
     /** messageOrchestration bundle correlation id for any narration/header slots this move declares. */

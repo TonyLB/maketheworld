@@ -4,7 +4,7 @@ import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/
 import internalCache from '../../../internalCache'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../publishedEvents'
-import { executeMembershipTransfer } from '../manipulation/membership/executeObjectMove'
+import { executeMembershipTransfer } from '../manipulation/membership/executeMembershipTransfer'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 
 export type RepairObjectPlacementDriftArgs = {

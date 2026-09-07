@@ -80,9 +80,7 @@ const objectMoveVerb = (
 export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPositionKernelPlan => {
     const transferStep: MutationKernelTransferStep = {
         kind: 'transferMembership',
-        entityIds: op.moved.kind === 'closure'
-            ? op.moved.fragment.objectIds
-            : new Set([op.moved.entityId]),
+        entityIds: new Set([op.moved]),
         fromHostIds: new Set(op.froms),
         toHostId: op.to,
     }
@@ -91,10 +89,11 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     // port-qualified boundary edge yet, so skip rather than assume (matches the ludicGraph
     // boundary/carry-closure narrows, ludicGraph/AGENT.md's BD-36 paragraph).
     // `hostId: op.froms[0]` --- `dissolvedEdges` is only ever populated by
-    // `executeObjectMove.ts`'s single-origin carry-closure path (`buildObjectMoveOp` is its only
-    // producer, always `froms: [args.fromHostId]`), so every severed boundary edge belongs to that
-    // one departure host. Not derived per-edge because `HostRelationalEdge` (the graph's own
-    // internal edge representation, used far more broadly) doesn't carry a host of its own.
+    // `executeMembershipTransfer.ts`'s `carryClosureTransfer` (single-origin carry-closure) path
+    // (`buildObjectMoveOp` is its only producer, always `froms: [args.fromHostId]`), so every
+    // severed boundary edge belongs to that one departure host. Not derived per-edge because
+    // `HostRelationalEdge` (the graph's own internal edge representation, used far more broadly)
+    // doesn't carry a host of its own.
     const dissolveSteps: ExecutorDissolveRelationStep[] = (op.dissolvedEdges ?? [])
         .filter((edge) => isEphemeraLudicTerminalPrimitive(edge.from) && isEphemeraLudicTerminalPrimitive(edge.to))
         .map((edge) => ({
@@ -106,12 +105,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             ...relationKindAndLabelOf(edge),
         }))
 
-    // LP4a: for a closure, primacy is `fragment.rootId`, never derived from the fragment's edges.
-    // A closure's fragment is host-bound at the moved object (rootId === hostId), always a
-    // primitive, never a port address --- the cast is safe on that construction guarantee.
-    const primaryMovedId: EphemeraLudicTerminalPrimitive = op.moved.kind === 'closure'
-        ? op.moved.fragment.rootId as EphemeraLudicTerminalPrimitive
-        : op.moved.entityId
+    const primaryMovedId: EphemeraLudicTerminalPrimitive = op.moved
 
     if (op.containment && op.to === null) {
         throw new Error('compilePositionKernelOp: containment set with no destination --- caller bug, not a legal "give to nobody" shape')
@@ -165,7 +159,6 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
                     verb: objectMoveVerb(op.froms, op.to),
                     characterName: narration.characterName,
                     objectShortName: narration.objectShortName,
-                    carriedCount: narration.carriedCount,
                 }
         }
     }

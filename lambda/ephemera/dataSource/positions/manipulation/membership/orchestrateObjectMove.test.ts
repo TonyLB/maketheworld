@@ -7,19 +7,18 @@ jest.mock('../../../perception/resolveObjectMovePresentationLabels', () => ({
     }),
 }))
 
-jest.mock('./executeObjectMove', () => ({
-    executeObjectMove: jest.fn(),
+jest.mock('./executeMembershipTransfer', () => ({
+    executeMembershipTransfer: jest.fn(),
 }))
 
 import { orchestrateObjectMove } from './orchestrateObjectMove'
-import { executeObjectMove } from './executeObjectMove'
+import { executeMembershipTransfer } from './executeMembershipTransfer'
 import { resolveObjectMovePresentationLabels } from '../../../perception/resolveObjectMovePresentationLabels'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import { buildObjectMoveOp } from '../../membership/buildObjectMoveOp'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from '../kernel/compile/moveBundleSlotIds'
-import { EphemeraLudicGraph, objectNode } from '../../ludicGraph'
 
-const executeObjectMoveMock = executeObjectMove as jest.MockedFunction<typeof executeObjectMove>
+const executeMembershipTransferMock = executeMembershipTransfer as jest.MockedFunction<typeof executeMembershipTransfer>
 const resolveLabelsMock = resolveObjectMovePresentationLabels as jest.MockedFunction<
     typeof resolveObjectMovePresentationLabels
 >
@@ -29,21 +28,14 @@ const ROOM = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER = 'CHARACTER#Alice' as EphemeraCharacterId
 const WITNESS = 'CHARACTER#Bob' as EphemeraCharacterId
 
-// LP4a: a carry closure is an EphemeraLudicGraph, hosted and rooted at the moved object.
-const fragment: EphemeraLudicGraph = EphemeraLudicGraph.fromJSON({
-    hostId: TRAY,
-    rootId: TRAY, ports: [],
-    nodes: [objectNode(TRAY)],
-    edges: [],
-})
-
 /**
- * The plan `executeObjectMove` would really have returned, compiled here from the same builder so
- * these cases pin the orchestrator's publishing behavior rather than re-asserting the compiler's.
+ * The plan `executeMembershipTransfer` would really have returned, compiled here from the same
+ * builder so these cases pin the orchestrator's publishing behavior rather than re-asserting the
+ * compiler's.
  */
 const planFor = (fromHostId: EphemeraRoomId | EphemeraCharacterId, toHostId: EphemeraRoomId | EphemeraCharacterId) =>
     compilePositionKernelOp(buildObjectMoveOp({
-        fragment,
+        entityId: TRAY,
         dissolvedEdges: [],
         fromHostId,
         toHostId,
@@ -73,8 +65,11 @@ describe('orchestrateObjectMove', () => {
     )
 
     it('resolves labels once, then declares the bundle and reports both bracket slots', async () => {
-        executeObjectMoveMock.mockResolvedValue({
+        executeMembershipTransferMock.mockResolvedValue({
             ok: true,
+            froms: [ROOM],
+            to: CHARACTER,
+            changed: true,
             plan: planFor(ROOM, CHARACTER),
             captures: new Map([
                 ['capture:from:ROOM#Cafe', [CHARACTER, WITNESS]],
@@ -113,8 +108,11 @@ describe('orchestrateObjectMove', () => {
     })
 
     it('narrates a drop with the room on the arrive side', async () => {
-        executeObjectMoveMock.mockResolvedValue({
+        executeMembershipTransferMock.mockResolvedValue({
             ok: true,
+            froms: [CHARACTER],
+            to: ROOM,
+            changed: true,
             plan: planFor(CHARACTER, ROOM),
             captures: new Map([
                 ['capture:from:CHARACTER#Alice', []],
@@ -138,7 +136,7 @@ describe('orchestrateObjectMove', () => {
     })
 
     it('passes narration ingredients into the commit path, so captures land in the same transaction', async () => {
-        executeObjectMoveMock.mockResolvedValue({ ok: false })
+        executeMembershipTransferMock.mockResolvedValue({ ok: false })
 
         await orchestrateObjectMove({
             objectIds: [TRAY],
@@ -150,16 +148,18 @@ describe('orchestrateObjectMove', () => {
             streamEvent,
         })
 
-        expect(executeObjectMoveMock).toHaveBeenCalledWith(expect.objectContaining({
-            objectIds: [TRAY],
-            fromHostId: ROOM,
-            toHostId: CHARACTER,
+        expect(executeMembershipTransferMock).toHaveBeenCalledWith(expect.objectContaining({
+            entityId: TRAY,
+            target: CHARACTER,
+            carryClosureTransfer: true,
             narration: { characterName: 'Alice', objectShortName: 'tray' },
         }))
+        const call = executeMembershipTransferMock.mock.calls[0]![0]
+        await expect(call.getMembershipContainers!(TRAY)).resolves.toEqual([ROOM])
     })
 
     it('never narrates a commit that did not happen', async () => {
-        executeObjectMoveMock.mockResolvedValue({ ok: false })
+        executeMembershipTransferMock.mockResolvedValue({ ok: false })
 
         await orchestrateObjectMove({
             objectIds: [TRAY],
@@ -186,7 +186,7 @@ describe('orchestrateObjectMove', () => {
             streamEvent,
         })
 
-        expect(executeObjectMoveMock).not.toHaveBeenCalled()
+        expect(executeMembershipTransferMock).not.toHaveBeenCalled()
         expect(resolveLabelsMock).not.toHaveBeenCalled()
     })
 
@@ -196,9 +196,9 @@ describe('orchestrateObjectMove', () => {
         // room (a cup sitting on the floor, never held) --- neither host need be a character.
         // `characterId` is now taken explicitly rather than derived from the two hosts, so this
         // no longer silently no-ops. `ok: false` keeps this test focused on the dispatch itself
-        // (labels resolved, executeObjectMove reached) rather than the narration/commit path,
-        // which other cases in this file already cover.
-        executeObjectMoveMock.mockResolvedValue({ ok: false })
+        // (labels resolved, executeMembershipTransfer reached) rather than the narration/commit
+        // path, which other cases in this file already cover.
+        executeMembershipTransferMock.mockResolvedValue({ ok: false })
 
         await orchestrateObjectMove({
             objectIds: [TRAY],
@@ -211,15 +211,15 @@ describe('orchestrateObjectMove', () => {
         })
 
         expect(resolveLabelsMock).toHaveBeenCalledWith({ characterId: CHARACTER, objectId: TRAY, roomId: ROOM })
-        expect(executeObjectMoveMock).toHaveBeenCalledWith(expect.objectContaining({
-            objectIds: [TRAY],
-            fromHostId: ROOM,
-            toHostId: 'OBJECT#Tray2',
+        expect(executeMembershipTransferMock).toHaveBeenCalledWith(expect.objectContaining({
+            entityId: TRAY,
+            target: 'OBJECT#Tray2',
+            carryClosureTransfer: true,
         }))
     })
 
-    it('threads containment through to executeObjectMove when set (put on a tray)', async () => {
-        executeObjectMoveMock.mockResolvedValue({ ok: false })
+    it('threads containment through to executeMembershipTransfer when set (put on a tray)', async () => {
+        executeMembershipTransferMock.mockResolvedValue({ ok: false })
 
         const TRAY2 = 'OBJECT#Tray2' as EphemeraObjectId
         await orchestrateObjectMove({
@@ -233,10 +233,11 @@ describe('orchestrateObjectMove', () => {
             streamEvent,
         })
 
-        expect(executeObjectMoveMock).toHaveBeenCalledWith(expect.objectContaining({
-            fromHostId: CHARACTER,
-            toHostId: TRAY2,
+        expect(executeMembershipTransferMock).toHaveBeenCalledWith(expect.objectContaining({
+            target: TRAY2,
             containment: 'On',
         }))
+        const call = executeMembershipTransferMock.mock.calls[0]![0]
+        await expect(call.getMembershipContainers!(TRAY)).resolves.toEqual([CHARACTER])
     })
 })

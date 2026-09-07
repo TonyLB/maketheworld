@@ -84,7 +84,7 @@ export const buildCharacterMoveOp = (args: BuildCharacterMoveOpArgs): CharacterM
 
     return {
         kind: 'move',
-        moved: { kind: 'entity', entityId: args.characterId },
+        moved: args.characterId,
         froms: args.froms,
         to: args.to,
         bundleId: args.bundleId,

@@ -43,14 +43,12 @@ const buildNarrationCopy = (narration: NarrationSpecification): string => {
         }
         case 'objectMove': {
             const name = narration.characterName || 'Someone'
-            // Preserved verbatim from the retired `publishObjectManipulationPresentation.ts`.
-            const carried = narration.carriedCount > 1 ? ' and everything on it' : ''
             const verbPhrase = narration.verb === 'takeHold'
                 ? 'picks up'
                 : narration.verb === 'drop'
                 ? 'drops'
                 : 'gives'
-            return `${name} ${verbPhrase} ${narration.objectShortName}${carried}`
+            return `${name} ${verbPhrase} ${narration.objectShortName}`
         }
     }
 }

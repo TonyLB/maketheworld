@@ -9,7 +9,7 @@ import type { MessageBus } from '../../../../messageBus/baseClasses'
 import { sendMessageBundleDeclared } from '../../../messageOrchestration/subscribedEvents'
 import { presentStepSequence } from '../kernel/presentStepSequence'
 import { resolveObjectMovePresentationLabels } from '../../../perception/resolveObjectMovePresentationLabels'
-import { executeObjectMove } from './executeObjectMove'
+import { executeMembershipTransfer } from './executeMembershipTransfer'
 
 /** An object move's compiled plan never includes a `describe` step --- same as navigate's, same noop. */
 const noopActionsStreamEvent: StreamEventFunction<ActionsPublishedPayload> = async () => {}
@@ -46,8 +46,9 @@ export type OrchestrateObjectMoveArgs = {
  * The narrating entry point for a player-driven object move --- take, drop, and eventually give
  * give. Sibling of `orchestrateCharacterDisconnect`:
  * it declares the messageOrchestration bundle and presents the compiled narrate steps, leaving the
- * world change itself entirely to `executeObjectMove`, which stays callable bare for non-narrating
- * object-lifecycle moves (spawn/destroy/place/remove).
+ * world change itself entirely to `executeMembershipTransfer` (`carryClosureTransfer: true`), the
+ * same function every non-narrating object-lifecycle move (spawn/destroy/place/remove) calls
+ * without that flag.
  *
  * **Takes hosts, not a verb.** Which of take/drop/give this is falls out inside
  * `compilePositionKernelOp` from which side of the move was the room --- this function never
@@ -79,10 +80,11 @@ export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Pr
     })
 
     const bundleId = uuidv4()
-    const result = await executeObjectMove({
-        objectIds: args.objectIds,
-        fromHostId: args.fromHostId,
-        toHostId: args.toHostId,
+    const result = await executeMembershipTransfer({
+        entityId: primaryObjectId,
+        target: args.toHostId,
+        carryClosureTransfer: true,
+        getMembershipContainers: async () => [args.fromHostId],
         bundleId,
         narration: { characterName, objectShortName },
         ...(args.containment ? { containment: args.containment } : {}),
@@ -90,7 +92,7 @@ export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Pr
         streamEvent: args.streamEvent,
     })
 
-    if (!result.ok) {
+    if (!result.ok || result.plan === undefined) {
         return
     }
 

@@ -1,38 +1,31 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { buildObjectMoveOp } from './buildObjectMoveOp'
-import { EphemeraLudicGraph, objectNode } from '../ludicGraph'
 
 const TRAY = 'OBJECT#Tray' as EphemeraObjectId
-const GLASS = 'OBJECT#Glass' as EphemeraObjectId
 const TABLE = 'OBJECT#Table' as EphemeraObjectId
 const ROOM = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER = 'CHARACTER#Alice' as EphemeraCharacterId
 
-// LP4a: a carry closure is an EphemeraLudicGraph, hosted and rooted at the moved object.
-const fragment = (members: EphemeraObjectId[]): EphemeraLudicGraph =>
-    EphemeraLudicGraph.fromJSON({ hostId: TRAY, rootId: TRAY, ports: [], nodes: members.map(objectNode), edges: [] })
-
 describe('buildObjectMoveOp', () => {
-    it('carries the closure as the moved set, with the fragment root as primary', () => {
-        const closure = fragment([TRAY, GLASS])
+    it('carries the moved object id directly as the moved set', () => {
         const op = buildObjectMoveOp({
-            fragment: closure,
+            entityId: TRAY,
             dissolvedEdges: [],
             fromHostId: ROOM,
             toHostId: CHARACTER,
             bundleId: 'BUNDLE#test',
         })
 
-        expect(op.moved).toEqual({ kind: 'closure', fragment: closure })
+        expect(op.moved).toEqual(TRAY)
         expect(op.froms).toEqual([ROOM])
         expect(op.to).toEqual(CHARACTER)
         expect(op.headerSlot).toBeNull()
     })
 
-    it('takes carriedCount from the fragment, so it cannot drift from what is transferred', () => {
+    it('builds narration ingredients with no carriedCount (retired: computeCarryClosure is a singleton since CD3)', () => {
         const op = buildObjectMoveOp({
-            fragment: fragment([TRAY, GLASS]),
+            entityId: TRAY,
             dissolvedEdges: [],
             fromHostId: ROOM,
             toHostId: CHARACTER,
@@ -44,13 +37,12 @@ describe('buildObjectMoveOp', () => {
             kind: 'objectMove',
             characterName: 'Alice',
             objectShortName: 'tray',
-            carriedCount: 2,
         })
     })
 
     it('omits narration entirely when no ingredients are supplied (object-lifecycle move)', () => {
         const op = buildObjectMoveOp({
-            fragment: fragment([TRAY]),
+            entityId: TRAY,
             dissolvedEdges: [],
             fromHostId: ROOM,
             toHostId: CHARACTER,
@@ -62,7 +54,7 @@ describe('buildObjectMoveOp', () => {
 
     it('declares no verb or direction --- the compiler derives it from the host pair', () => {
         const takeHold = buildObjectMoveOp({
-            fragment: fragment([TRAY]),
+            entityId: TRAY,
             dissolvedEdges: [],
             fromHostId: ROOM,
             toHostId: CHARACTER,
@@ -70,7 +62,7 @@ describe('buildObjectMoveOp', () => {
             narration: { characterName: 'Alice', objectShortName: 'tray' },
         })
         const drop = buildObjectMoveOp({
-            fragment: fragment([TRAY]),
+            entityId: TRAY,
             dissolvedEdges: [],
             fromHostId: CHARACTER,
             toHostId: ROOM,
@@ -86,7 +78,7 @@ describe('buildObjectMoveOp', () => {
     it('passes Expansion-classified severed edges through untouched', () => {
         const dissolvedEdges = [{ from: TRAY, to: TABLE, kind: 'On' as const }]
         const op = buildObjectMoveOp({
-            fragment: fragment([TRAY]),
+            entityId: TRAY,
             dissolvedEdges,
             fromHostId: ROOM,
             toHostId: CHARACTER,

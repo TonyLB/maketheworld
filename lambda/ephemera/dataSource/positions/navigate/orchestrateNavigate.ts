@@ -98,7 +98,7 @@ export const orchestrateCharacterNavigate = async ({
             exitName,
             headerSlot: headerSlotSpec,
         })
-        : { kind: 'move', moved: { kind: 'entity', entityId: characterId }, froms, to, bundleId, headerSlot: headerSlotSpec }
+        : { kind: 'move', moved: characterId, froms, to, bundleId, headerSlot: headerSlotSpec }
 
     const plan = compilePositionKernelOp(op)
 
