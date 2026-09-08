@@ -159,7 +159,7 @@ describe('applyStepSequenceCore', () => {
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph]))).toEqual({
-            verdict: 'illegal',
+            verdict: 'stale',
             reasonCode: 'hostNotInFootprint',
         })
     })
@@ -171,7 +171,7 @@ describe('applyStepSequenceCore', () => {
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
-            verdict: 'illegal',
+            verdict: 'stale',
             reasonCode: 'staleTransferCandidate',
         })
     })
@@ -180,12 +180,12 @@ describe('applyStepSequenceCore', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
         const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph]))).toEqual({
-            verdict: 'illegal',
+            verdict: 'stale',
             reasonCode: 'staleRelationalCandidate',
         })
     })
 
-    it('defer propagation: an underlying applyTransferSet defer (Custom boundary edge) surfaces unchanged', () => {
+    it('irreparable propagation: a Custom boundary edge is undecidable here, not a repair to iterate on', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
@@ -198,9 +198,9 @@ describe('applyStepSequenceCore', () => {
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
-            verdict: 'defer',
-            decidable: false,
-            reasonCode: 'transferInteractionDefer',
+            verdict: 'irreparable',
+            reasonCode: 'undecidableInteractionEdge',
+            edge: { from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' },
         })
     })
 
@@ -218,8 +218,16 @@ describe('applyStepSequenceCore', () => {
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
-            verdict: 'illegal',
+            verdict: 'repairable',
             reasonCode: 'unresolvedDissolveEdge',
+            authority: 'mechanical',
+            // The repair is carried as a value, and names the *source* host --- this is the fact a
+            // re-proposing caller needs and could not previously get from a reason code alone.
+            repair: {
+                kind: 'dissolveRelationalEdge',
+                hostId: roomId,
+                edge: { from: trayId, to: tableId, kind: 'Against' },
+            },
         })
     })
 
@@ -272,7 +280,7 @@ describe('applyStepSequenceCore', () => {
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: otherRoomId },
             ]
             expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, destGraph]))).toEqual({
-                verdict: 'illegal',
+                verdict: 'stale',
                 reasonCode: 'staleTransferCandidate',
             })
         })
@@ -338,7 +346,7 @@ describe('applyStepSequenceCore', () => {
                 { kind: 'transferMembership', entityIds: new Set([characterId]), fromHostIds: new Set([roomId]), toHostId: null },
             ]
             expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
-                verdict: 'illegal',
+                verdict: 'stale',
                 reasonCode: 'staleTransferCandidate',
             })
         })
@@ -425,7 +433,7 @@ describe('applyStepSequenceCore', () => {
                 { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: null },
             ]
             expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
-                verdict: 'illegal',
+                verdict: 'stale',
                 reasonCode: 'staleTransferCandidate',
             })
         })
@@ -464,7 +472,7 @@ describe('applyStepSequenceCore', () => {
                 { kind: 'transferMembership', entityIds: new Set([roomId]), fromHostIds: new Set(), toHostId: areaId },
             ]
             expect(applyStepSequenceCore(steps, graphsMap([areaId, areaGraph]))).toEqual({
-                verdict: 'illegal',
+                verdict: 'stale',
                 reasonCode: 'staleTransferCandidate',
             })
         })
@@ -481,7 +489,7 @@ describe('applyStepSequenceCore', () => {
                 },
             ]
             expect(applyStepSequenceCore(steps, graphsMap([areaId, areaGraph], ['AREA#Elsewhere' as EphemeraAreaId, otherAreaGraph]))).toEqual({
-                verdict: 'illegal',
+                verdict: 'irreparable',
                 reasonCode: 'unsupportedTransferEntityKind',
             })
         })
@@ -597,7 +605,7 @@ describe('applyStepSequenceCore', () => {
             ]
 
             expect(applyStepSequenceCore(steps, graphsMap([roomId, testLudicGraph(roomId, { nodes: [] })]))).toEqual({
-                verdict: 'illegal',
+                verdict: 'stale',
                 reasonCode: 'hostNotInFootprint',
             })
         })
@@ -639,7 +647,7 @@ describe('applyStepSequenceCore', () => {
             const steps: MutationKernelStep[] = [{ kind: 'capture', hostId: otherRoomId, captureId: 'missing' }]
 
             expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
-                verdict: 'illegal',
+                verdict: 'stale',
                 reasonCode: 'hostNotInFootprint',
             })
         })

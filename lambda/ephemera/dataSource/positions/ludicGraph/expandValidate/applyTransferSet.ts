@@ -1,21 +1,36 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
+import type { HostRelationalEdge } from '../baseClasses'
 import type { EphemeraLudicGraph } from '../index'
 import { boundaryEdgeOutcomes } from './interactionUnderTransfer'
 
+/**
+ * Verdicts partition by *what a caller can do next*, not by how bad the news is --- see
+ * [`manipulation/kernel/types.ts`](../../manipulation/kernel/types.ts) for the full statement of
+ * the vocabulary this mirrors. Both non-`legal` arms carry the offending `edge`: it is the repair,
+ * and discarding it (as this type did until 2026-09-08) is what forced a caller to re-derive from a
+ * reason code. No `hostId` here --- this function is handed two graphs and knows neither's id, so
+ * the kernel supplies it when re-wrapping.
+ */
 export type ApplyTransferSetOutcome =
     | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph; destGraph: EphemeraLudicGraph }
-    | { verdict: 'illegal'; reasonCode: 'incompleteTransferSet' | 'unresolvedDissolveEdge' }
-    | { verdict: 'defer'; decidable: boolean; reasonCode: 'transferInteractionDefer' }
+    | {
+        verdict: 'repairable'
+        reasonCode: 'unresolvedDissolveEdge' | 'transferInteractionDefer'
+        edge: HostRelationalEdge
+        authority: 'mechanical' | 'worldChanging'
+    }
+    | { verdict: 'irreparable'; reasonCode: 'undecidableInteractionEdge'; edge: HostRelationalEdge }
 
 /**
  * BD-27c/BD-33/BD-35 Expand+Validate core for a membership transfer (BD-13): assumes any boundary
  * edge that should dissolve has already been severed by an explicit `DissolveRelationStep` earlier
  * in the same kernel-apply loop --- it does not rely on `EphemeraLudicGraph.removeObject`'s
  * silent edge-stripping (retired 2026-07-23) to make dissolution happen. A `dissolve`-classified
- * boundary edge still present at this point is therefore treated as `illegal`
- * (`unresolvedDissolveEdge`), not silently resolved.
+ * boundary edge still present at this point is therefore reported as `repairable`
+ * (`unresolvedDissolveEdge`, `authority: 'mechanical'`, carrying the edge), not silently resolved:
+ * the repair is to emit the missing `DissolveRelationStep` and re-propose.
  *
  * Never expands `transferSet` itself.
  *
@@ -42,18 +57,39 @@ export function applyTransferSet(
 
     const deferOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'defer')
     if (deferOutcome !== undefined) {
+        // A `Custom` edge is undecidable here --- classifying it needs an LLM validator, so there is
+        // no repair this layer can name. Every other deferring edge has a known repair (sever it),
+        // but one that changes the world beyond what the player asked for: moving the lamp that was
+        // resting on the book is not an invisible cleanup. That is `authority`, and it is recorded
+        // rather than acted on --- whether a `worldChanging` repair may be applied silently or must
+        // escalate to the player is a world-model question this layer does not answer.
+        if (deferOutcome.edge.kind === 'Custom') {
+            return {
+                verdict: 'irreparable',
+                reasonCode: 'undecidableInteractionEdge',
+                edge: deferOutcome.edge,
+            }
+        }
         return {
-            verdict: 'defer',
-            decidable: deferOutcome.edge.kind !== 'Custom',
+            verdict: 'repairable',
             reasonCode: 'transferInteractionDefer',
+            edge: deferOutcome.edge,
+            authority: 'worldChanging',
         }
     }
 
     // A dissolve-classified boundary edge still present here means an explicit
-    // DissolveRelationStep that should have run earlier in the same kernel-apply loop did not.
+    // DissolveRelationStep that should have run earlier in the same kernel-apply loop did not ---
+    // mechanically repairable, and invisible to the player, since the edge was already classified
+    // as one that dissolves under this transfer.
     const dissolveOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'dissolve')
     if (dissolveOutcome !== undefined) {
-        return { verdict: 'illegal', reasonCode: 'unresolvedDissolveEdge' }
+        return {
+            verdict: 'repairable',
+            reasonCode: 'unresolvedDissolveEdge',
+            edge: dissolveOutcome.edge,
+            authority: 'mechanical',
+        }
     }
 
     // LP4/LP7 widened HostRelationalEdge.from/to to the full terminal union (now including

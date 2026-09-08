@@ -1,4 +1,4 @@
-import { ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive, isHostingRelationKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -26,9 +26,6 @@ import {
     findRelationalChainsTouching,
 } from '../relational/findRelationalChainsForRemoval'
 
-/** AB-54: the three hosting kinds, each running member -> root (LD-16). */
-const HOSTING_RELATION_KINDS = new Set(['On', 'In', 'PartOf'])
-
 export type ExecuteMembershipTransferArgs = {
     entityId: EphemeraObjectId | EphemeraCharacterId
     /** null clears the entity from every current host (destroy/edit/disconnect) --- no arrival side. */
@@ -55,7 +52,8 @@ export type ExecuteMembershipTransferArgs = {
      * function; named `honorDefer` rather than the unification's original `carryClosureTransfer`,
      * 2026-09-07 same day --- that name described the retired carry-closure machinery this mode
      * used to run, not what it does). **A temporary flag, not a permanent two-tier design**: it
-     * exists only because not every route can honor a `'defer'` verdict yet. Administrative
+     * exists only because not every route can honor a `'repairable'`/`worldChanging` verdict yet
+     * (`'defer'` before the 2026-09-08 vocabulary rename). Administrative
      * repositions (navigate, room place/remove, spawn, destroy/edit, drift repair) have no acting
      * character and no legality question to ask --- there is no "you can't do that" to surface, so
      * they run the **chain-aware, unconditional** sweep (`findRelationalChainsTouching`, following
@@ -158,7 +156,7 @@ export const executeMembershipTransfer = async (
         const ownRootContainmentEdge = fromGraph.relationalEdges.find((edge) =>
             ephemeraLudicTerminalsEqual(edge.from, args.entityId)
             && ephemeraLudicTerminalsEqual(edge.to, fromGraph.rootId)
-            && HOSTING_RELATION_KINDS.has(edge.kind)
+            && isHostingRelationKind(edge.kind)
         )
         const strippedFromGraph = ownRootContainmentEdge ? fromGraph.removeRelationalEdge(ownRootContainmentEdge) : fromGraph
 

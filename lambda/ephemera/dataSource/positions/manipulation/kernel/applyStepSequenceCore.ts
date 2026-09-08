@@ -124,8 +124,10 @@ const confirmCarriedHost = (
  * Structural-invariant violations (BD-33's host mismatch; `RelationalEdgeStillReferencedError` from
  * inside `applyTransferSet`/`removeObject`/`removeCharacter`; the end-of-sequence character presence
  * check below) throw, uniformly in both modes --- not a `MutationKernelApplyOutcome` verdict.
- * Legitimate legality outcomes (stale candidate, `Custom`-edge defer, `unresolvedDissolveEdge`) return
- * through the discriminated result.
+ * Legitimate legality outcomes return through the discriminated result: `stale` (stale candidate,
+ * host outside the locked footprint), `repairable` (`unresolvedDissolveEdge`, and a non-`Custom`
+ * interaction edge that would have to be severed), and `irreparable` (a `Custom` edge, which needs
+ * an LLM validator this layer does not have).
  *
  * `addPresencePort`/`removePresencePort` (RD-2, 2026-09-04): the moved entity's own presence
  * binding, one step per add or remove rather than one step replacing whatever was there --- see
@@ -136,7 +138,7 @@ const confirmCarriedHost = (
  * moves on --- the one step kind that never touches `graphs`. Reading the map at the step's own
  * position (not resorted, same as every other step here) is what makes the snapshot positional rather
  * than terminal. A host missing from the map --- not locked into the footprint --- is the same
- * `hostNotInFootprint` illegality every other host-lookup miss in this function already returns.
+ * `stale`/`hostNotInFootprint` outcome every other host-lookup miss in this function already returns.
  */
 export const applyStepSequenceCore = (
     steps: readonly MutationKernelStep[],
@@ -149,7 +151,7 @@ export const applyStepSequenceCore = (
         if (step.kind === 'capture') {
             const hostGraph = graphs.get(step.hostId)
             if (!hostGraph) {
-                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             captures.set(step.captureId, [...hostGraph.characterIds])
             continue
@@ -167,19 +169,19 @@ export const applyStepSequenceCore = (
                 // emit a pure add for them (see `kernelStep.ts`'s doc comment on this widening).
                 const hasRoomOrFeature = [...step.entityIds].some((id) => isEphemeraRoomId(id) || isEphemeraFeatureId(id))
                 if (hasRoomOrFeature) {
-                    return { verdict: 'illegal', reasonCode: 'unsupportedTransferEntityKind' }
+                    return { verdict: 'irreparable', reasonCode: 'unsupportedTransferEntityKind' }
                 }
 
                 const [fromHostId] = fromHostIds as [EphemeraMembershipHostId]
                 const sourceGraph = graphs.get(fromHostId)
                 const destGraph = graphs.get(toHostId)
                 if (!sourceGraph || !destGraph) {
-                    return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                    return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
                 }
 
                 for (const id of step.entityIds) {
                     if (!sourceGraph.nodeIds.has(id) || destGraph.nodeIds.has(id)) {
-                        return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
+                        return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
                     }
                 }
 
@@ -195,11 +197,24 @@ export const applyStepSequenceCore = (
                         nextDestGraph,
                         step.entityIds as ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
                     )
-                    if (outcome.verdict === 'illegal') {
-                        return { verdict: 'illegal', reasonCode: outcome.reasonCode }
+                    // `applyTransferSet` names the offending edge but not the host it sits on ---
+                    // it is handed two graphs and knows neither's id. Supply `fromHostId` here:
+                    // boundary edges are found on the *source* graph, so that is where a repair
+                    // step would have to be aimed.
+                    if (outcome.verdict === 'repairable') {
+                        return {
+                            verdict: 'repairable',
+                            reasonCode: outcome.reasonCode,
+                            authority: outcome.authority,
+                            repair: {
+                                kind: 'dissolveRelationalEdge',
+                                hostId: fromHostId,
+                                edge: outcome.edge,
+                            },
+                        }
                     }
-                    if (outcome.verdict === 'defer') {
-                        return { verdict: 'defer', decidable: outcome.decidable, reasonCode: outcome.reasonCode }
+                    if (outcome.verdict === 'irreparable') {
+                        return { verdict: 'irreparable', reasonCode: outcome.reasonCode, edge: outcome.edge }
                     }
                     nextSourceGraph = outcome.sourceGraph
                     nextDestGraph = outcome.destGraph
@@ -220,12 +235,12 @@ export const applyStepSequenceCore = (
             for (const fromHostId of fromHostIds) {
                 const sourceGraph = graphs.get(fromHostId)
                 if (!sourceGraph) {
-                    return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                    return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
                 }
                 let nextSourceGraph = sourceGraph
                 for (const id of step.entityIds) {
                     if (!nextSourceGraph.nodeIds.has(id)) {
-                        return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
+                        return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
                     }
                     nextSourceGraph = nextSourceGraph.removeNode(id)
                 }
@@ -235,12 +250,12 @@ export const applyStepSequenceCore = (
             if (toHostId !== null) {
                 const destGraph = graphs.get(toHostId)
                 if (!destGraph) {
-                    return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                    return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
                 }
                 let nextDestGraph = destGraph
                 for (const id of step.entityIds) {
                     if (nextDestGraph.nodeIds.has(id)) {
-                        return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
+                        return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
                     }
                     nextDestGraph = nextDestGraph.addNode(id)
                 }
@@ -252,7 +267,7 @@ export const applyStepSequenceCore = (
         if (step.kind === 'addPresencePort') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
-                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             graphs.set(step.hostId, graph.addPort(step.port))
             continue
@@ -260,7 +275,7 @@ export const applyStepSequenceCore = (
         if (step.kind === 'removePresencePort') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
-                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             // A silent no-op when no `Present` port carries this `fromHostId` --- deliberate
             // (RD-2): it is what lets the compiler emit one of these per departure host without
@@ -277,7 +292,7 @@ export const applyStepSequenceCore = (
         if (step.kind === 'addCrossingPort') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
-                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             graphs.set(step.hostId, graph.addPort(step.port))
             continue
@@ -285,7 +300,7 @@ export const applyStepSequenceCore = (
         if (step.kind === 'removeCrossingPort') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
-                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             graphs.set(step.hostId, graph.removePort(step.portId))
             continue
@@ -298,11 +313,11 @@ export const applyStepSequenceCore = (
         // absent from the footprint entirely is a footprint bug, not a wrong-host structural claim.
         const hostGraph = graphs.get(step.hostId)
         if (!hostGraph) {
-            return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+            return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
         }
         const { subjectHosts, targetHosts } = confirmCarriedHost(step.subjectId, step.targetId, step.hostId, graphs)
         if (subjectHosts.length === 0 || targetHosts.length === 0) {
-            return { verdict: 'illegal', reasonCode: 'staleRelationalCandidate' }
+            return { verdict: 'stale', reasonCode: 'staleRelationalCandidate' }
         }
         const patched = hostGraph.applyRelationalPatch({
             hostId: step.hostId,

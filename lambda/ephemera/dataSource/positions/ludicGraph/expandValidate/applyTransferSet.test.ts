@@ -67,9 +67,16 @@ describe('applyTransferSet', () => {
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId, glassId]))
 
-        // A discriminated illegal result, not a thrown RelationalEdgeStillReferencedError --- keeps
-        // dry-run callers on a discriminated result, per the design doc.
-        expect(outcome).toEqual({ verdict: 'illegal', reasonCode: 'unresolvedDissolveEdge' })
+        // A discriminated result, not a thrown RelationalEdgeStillReferencedError --- keeps
+        // dry-run callers on a discriminated result, per the design doc. `repairable` rather than
+        // a flat rejection: the missing DissolveRelationStep is exactly what a re-proposing caller
+        // would add, and the edge to aim it at rides along.
+        expect(outcome).toEqual({
+            verdict: 'repairable',
+            reasonCode: 'unresolvedDissolveEdge',
+            authority: 'mechanical',
+            edge: { from: trayId, to: tableId, kind: 'Against' },
+        })
     })
 
     // The former "illegal: an incomplete transfer set (unaccounted carry boundary edge)" test is
@@ -78,7 +85,7 @@ describe('applyTransferSet', () => {
     // relation kind even then -- `On` (its only producer) had already joined `In`/`PartOf`'s
     // hosting-kind throw. CD3 (2026-09-06) formally retired the branch that checked for it.
 
-    it('defer: an Under boundary edge on the subject moving requires interaction assessment', () => {
+    it('repairable/worldChanging: an Under boundary edge on the subject moving requires interaction assessment', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
@@ -90,10 +97,17 @@ describe('applyTransferSet', () => {
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId]))
 
-        expect(outcome).toEqual({ verdict: 'defer', decidable: true, reasonCode: 'transferInteractionDefer' })
+        // `worldChanging`, not `mechanical`: severing this edge moves the table's tray, which the
+        // player did not ask for. The distinction is recorded here and acted on by repair policy.
+        expect(outcome).toEqual({
+            verdict: 'repairable',
+            reasonCode: 'transferInteractionDefer',
+            authority: 'worldChanging',
+            edge: { from: trayId, to: tableId, kind: 'Under' },
+        })
     })
 
-    it('defer: a Custom boundary edge is not decidable', () => {
+    it('irreparable: a Custom boundary edge is undecidable without an LLM validator', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
@@ -105,7 +119,11 @@ describe('applyTransferSet', () => {
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId]))
 
-        expect(outcome).toEqual({ verdict: 'defer', decidable: false, reasonCode: 'transferInteractionDefer' })
+        expect(outcome).toEqual({
+            verdict: 'irreparable',
+            reasonCode: 'undecidableInteractionEdge',
+            edge: { from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' },
+        })
     })
 
     it('reorder regression: an internal edge between two transferred objects does not spuriously throw', () => {

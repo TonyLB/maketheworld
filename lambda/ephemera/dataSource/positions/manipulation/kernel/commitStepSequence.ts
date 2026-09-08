@@ -64,10 +64,13 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * an arbitrary `MutationKernelStep[]` through one shared `applyStepSequenceCore` reducer body instead of
  * each kernel inlining its own.
  *
- * BD-31 interim policy: non-`legal` verdicts from `applyStepSequenceCore` and the structural throws
- * it can raise (BD-33 host mismatch, `RelationalEdgeStillReferencedError`) both abort the reducer
- * identically --- collapsed into one generic transact failure, matching today's two live kernels'
- * behavior, until BD-18's backtrack channel lands.
+ * BD-31 interim policy: all three non-`legal` verdicts from `applyStepSequenceCore`
+ * (`repairable`, `stale`, `irreparable`) and the structural throws it can raise (BD-33 host
+ * mismatch, `RelationalEdgeStillReferencedError`) abort the reducer identically --- collapsed into
+ * one generic transact failure, matching today's two live kernels' behavior, until BD-18's
+ * backtrack channel lands. The verdicts are distinguishable at the type boundary as of 2026-09-08
+ * and this is the one caller that still throws the distinction away; lifting that is BD-18's, not
+ * a matter of reading `outcome.verdict` here.
  *
  * Now wired to every live route: `executeMembershipTransfer` (take/drop/give via
  * `honorDefer`, and the object-lifecycle Migrate row: destroy/edit/spawn/place/drift-repair;
@@ -120,7 +123,7 @@ export const commitStepSequence = async (
 
                 const outcome = applyStepSequenceCore(steps, graphs)
                 if (outcome.verdict !== 'legal') {
-                    // BD-31 interim: collapse illegal/defer into one generic abort.
+                    // BD-31 interim: collapse repairable/stale/irreparable into one generic abort.
                     throw new Error(
                         `commitStepSequence: step sequence no longer legal at commit time (${outcome.reasonCode}) --- stale candidate, concurrent modification detected`
                     )
