@@ -64,9 +64,10 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * an arbitrary `MutationKernelStep[]` through one shared `applyStepSequenceCore` reducer body instead of
  * each kernel inlining its own.
  *
- * BD-31 interim policy: all three non-`legal` verdicts from `applyStepSequenceCore`
- * (`repairable`, `stale`, `irreparable`) and the structural throws it can raise (BD-33 host
- * mismatch, `RelationalEdgeStillReferencedError`) abort the reducer identically --- collapsed into
+ * BD-31 interim policy: both non-`legal` verdicts from `applyStepSequenceCore`
+ * (`repairable`, `stale`) and the structural throws it can raise (BD-33 host mismatch, a
+ * Room/Feature id in a real transfer, `RelationalEdgeStillReferencedError`) abort the reducer
+ * identically --- collapsed into
  * one generic transact failure, matching today's two live kernels' behavior, until BD-18's
  * backtrack channel lands. The verdicts are distinguishable at the type boundary as of 2026-09-08
  * and this is the one caller that still throws the distinction away; lifting that is BD-18's, not
@@ -123,7 +124,10 @@ export const commitStepSequence = async (
 
                 const outcome = applyStepSequenceCore(steps, graphs)
                 if (outcome.verdict !== 'legal') {
-                    // BD-31 interim: collapse repairable/stale/irreparable into one generic abort.
+                    // BD-31 interim: collapse repairable/stale into one generic abort. Note that
+                    // this makes a `stale` verdict *terminal* --- the throw is not a
+                    // `TransactionCanceledException`, so `exponentialBackoffWrapper` below does not
+                    // retry it, and nothing re-fetches and re-checks. See MS-15.
                     throw new Error(
                         `commitStepSequence: step sequence no longer legal at commit time (${outcome.reasonCode}) --- stale candidate, concurrent modification detected`
                     )

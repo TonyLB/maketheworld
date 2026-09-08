@@ -105,9 +105,10 @@ const confirmCarriedHost = (
  * `removeCharacter`/`addCharacter` for characters, so no separate character swap is needed here;
  * only objects get the full boundary-edge legality machinery, since a character can never carry a
  * relational edge, BD-36's widening deferred). **Room/Feature/Area never relocate (unwidened
- * here deliberately)**, so a Room/Feature id reaching this branch is rejected
- * (`unsupportedTransferEntityKind`) before `applyTransferSet` --- which has no dispatch for either
- * kind --- is ever called. **Pure remove** (`toHostId === null`) and **pure add** (`fromHostIds`
+ * here deliberately)**, so a Room/Feature id reaching this branch **throws** before
+ * `applyTransferSet` --- which has no dispatch for either kind --- is ever called. (It returned an
+ * `unsupportedTransferEntityKind` verdict until 2026-09-08; a caller bug is a structural-invariant
+ * violation, so it belongs on the throw side of the split described below.) **Pure remove** (`toHostId === null`) and **pure add** (`fromHostIds`
  * empty) share one kind-agnostic loop over `nodeIds`/`addNode`/`removeNode` (`EphemeraLudicGraph`'s
  * own kind dispatch, RD-4) rather than one loop per entity kind: a presence-check then
  * `removeNode`/`addNode` for each host --- no boundary-sweep here, since the caller is responsible
@@ -122,12 +123,14 @@ const confirmCarriedHost = (
  * against live graph state (BD-33 assert-and-throw), throws on mismatch, else applies the patch.
  *
  * Structural-invariant violations (BD-33's host mismatch; `RelationalEdgeStillReferencedError` from
- * inside `applyTransferSet`/`removeObject`/`removeCharacter`; the end-of-sequence character presence
- * check below) throw, uniformly in both modes --- not a `MutationKernelApplyOutcome` verdict.
- * Legitimate legality outcomes return through the discriminated result: `stale` (stale candidate,
- * host outside the locked footprint), `repairable` (`unresolvedDissolveEdge`, and a non-`Custom`
- * interaction edge that would have to be severed), and `irreparable` (a `Custom` edge, which needs
- * an LLM validator this layer does not have).
+ * inside `applyTransferSet`/`removeObject`/`removeCharacter`; a Room/Feature id in a real transfer;
+ * the end-of-sequence character presence check below) throw, uniformly in both modes --- not a
+ * `MutationKernelApplyOutcome` verdict. Legitimate outcomes return through the discriminated result,
+ * and there are only two non-`legal` ones: `stale` (stale candidate, host outside the locked
+ * footprint) and `repairable` (`unresolvedDissolveEdge`; an interaction edge that would have to be
+ * severed; a `Custom` edge, whose named repair is the classification this layer cannot perform).
+ * This function has no verdict meaning "the world forbids this" because it makes no such judgment
+ * --- it checks mechanism, and legality is the enrich tier's question. See `types.ts`.
  *
  * `addPresencePort`/`removePresencePort` (RD-2, 2026-09-04): the moved entity's own presence
  * binding, one step per add or remove rather than one step replacing whatever was there --- see
@@ -167,9 +170,17 @@ export const applyStepSequenceCore = (
                 // Room/Feature id reaching a real (single-from, single-to) transfer is a caller bug ---
                 // `applyTransferSet` has no dispatch for either kind, and step 3's own callers only ever
                 // emit a pure add for them (see `kernelStep.ts`'s doc comment on this widening).
+                //
+                // Throws rather than returning a verdict (2026-09-08): the comment above already
+                // calls this a caller bug, and the Throw-vs-verdict rule stated at the head of this
+                // file puts structural-invariant violations outside the result type. It was a
+                // verdict only by oversight. No behavior change --- `commitStepSequence`'s BD-31
+                // collapse throws from inside the same reducer and lands in the same catch.
                 const hasRoomOrFeature = [...step.entityIds].some((id) => isEphemeraRoomId(id) || isEphemeraFeatureId(id))
                 if (hasRoomOrFeature) {
-                    return { verdict: 'irreparable', reasonCode: 'unsupportedTransferEntityKind' }
+                    throw new Error(
+                        `transferMembership carries a Room or Feature id into a real transfer --- structural invariant violated (Room/Feature/Area are hosts that never relocate; step 3's callers emit a pure add for them)`
+                    )
                 }
 
                 const [fromHostId] = fromHostIds as [EphemeraMembershipHostId]
@@ -200,21 +211,20 @@ export const applyStepSequenceCore = (
                     // `applyTransferSet` names the offending edge but not the host it sits on ---
                     // it is handed two graphs and knows neither's id. Supply `fromHostId` here:
                     // boundary edges are found on the *source* graph, so that is where a repair
-                    // step would have to be aimed.
+                    // step would have to be aimed. `repairKind` passes through untouched --- mapping
+                    // reason codes back to repair kinds here would re-derive at the boundary exactly
+                    // what the layer below already knew.
                     if (outcome.verdict === 'repairable') {
                         return {
                             verdict: 'repairable',
                             reasonCode: outcome.reasonCode,
                             authority: outcome.authority,
                             repair: {
-                                kind: 'dissolveRelationalEdge',
+                                kind: outcome.repairKind,
                                 hostId: fromHostId,
                                 edge: outcome.edge,
                             },
                         }
-                    }
-                    if (outcome.verdict === 'irreparable') {
-                        return { verdict: 'irreparable', reasonCode: outcome.reasonCode, edge: outcome.edge }
                     }
                     nextSourceGraph = outcome.sourceGraph
                     nextDestGraph = outcome.destGraph

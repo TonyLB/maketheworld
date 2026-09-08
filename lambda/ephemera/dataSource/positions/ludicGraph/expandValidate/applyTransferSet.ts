@@ -8,20 +8,25 @@ import { boundaryEdgeOutcomes } from './interactionUnderTransfer'
 /**
  * Verdicts partition by *what a caller can do next*, not by how bad the news is --- see
  * [`manipulation/kernel/types.ts`](../../manipulation/kernel/types.ts) for the full statement of
- * the vocabulary this mirrors. Both non-`legal` arms carry the offending `edge`: it is the repair,
- * and discarding it (as this type did until 2026-09-08) is what forced a caller to re-derive from a
- * reason code. No `hostId` here --- this function is handed two graphs and knows neither's id, so
- * the kernel supplies it when re-wrapping.
+ * the vocabulary this mirrors. Every non-`legal` outcome this function can produce is `repairable`
+ * and carries the offending `edge`: it is the repair, and discarding it (as this type did until
+ * 2026-09-08) is what forced a caller to re-derive from a reason code. No `hostId` here --- this
+ * function is handed two graphs and knows neither's id, so the kernel supplies it when re-wrapping.
+ *
+ * `repairKind` is carried rather than derived from `reasonCode`, deliberately. The kernel builds a
+ * `MutationKernelRepair` from this, and having it map reason codes back to repair kinds would be the
+ * same discard-and-re-derive-at-the-boundary fault the 2026-09-08 rename removed, reintroduced one
+ * layer up. The kernel adds the `hostId` and nothing else.
  */
 export type ApplyTransferSetOutcome =
     | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph; destGraph: EphemeraLudicGraph }
     | {
         verdict: 'repairable'
-        reasonCode: 'unresolvedDissolveEdge' | 'transferInteractionDefer'
+        reasonCode: 'unresolvedDissolveEdge' | 'transferInteractionDefer' | 'undecidableInteractionEdge'
+        repairKind: 'dissolveRelationalEdge' | 'classifyCustomRelation'
         edge: HostRelationalEdge
         authority: 'mechanical' | 'worldChanging'
     }
-    | { verdict: 'irreparable'; reasonCode: 'undecidableInteractionEdge'; edge: HostRelationalEdge }
 
 /**
  * BD-27c/BD-33/BD-35 Expand+Validate core for a membership transfer (BD-13): assumes any boundary
@@ -57,22 +62,31 @@ export function applyTransferSet(
 
     const deferOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'defer')
     if (deferOutcome !== undefined) {
-        // A `Custom` edge is undecidable here --- classifying it needs an LLM validator, so there is
-        // no repair this layer can name. Every other deferring edge has a known repair (sever it),
-        // but one that changes the world beyond what the player asked for: moving the lamp that was
-        // resting on the book is not an invisible cleanup. That is `authority`, and it is recorded
-        // rather than acted on --- whether a `worldChanging` repair may be applied silently or must
-        // escalate to the player is a world-model question this layer does not answer.
+        // Both deferring cases are repairable; they differ in *which* repair. A non-`Custom` edge
+        // has a known one --- sever it --- but one that changes the world beyond what the player
+        // asked for: moving the lamp that was resting on the book is not an invisible cleanup. A
+        // `Custom` edge cannot take that repair: deciding what "tied to" means is exactly what this
+        // layer cannot do, and naming `dissolveRelationalEdge` anyway would assert a severing this
+        // function has no grounds to vouch for. So the repair it names is the
+        // classification itself, and a repair applier with no classifier throws on that kind --- the
+        // ignorance is reported where it is, and enforced where a repair would be applied.
+        //
+        // `authority` is recorded rather than acted on for both: whether a `worldChanging` repair
+        // may be applied silently or must escalate to the player is a world-model question this
+        // layer does not answer.
         if (deferOutcome.edge.kind === 'Custom') {
             return {
-                verdict: 'irreparable',
+                verdict: 'repairable',
                 reasonCode: 'undecidableInteractionEdge',
+                repairKind: 'classifyCustomRelation',
                 edge: deferOutcome.edge,
+                authority: 'worldChanging',
             }
         }
         return {
             verdict: 'repairable',
             reasonCode: 'transferInteractionDefer',
+            repairKind: 'dissolveRelationalEdge',
             edge: deferOutcome.edge,
             authority: 'worldChanging',
         }
@@ -87,6 +101,7 @@ export function applyTransferSet(
         return {
             verdict: 'repairable',
             reasonCode: 'unresolvedDissolveEdge',
+            repairKind: 'dissolveRelationalEdge',
             edge: dissolveOutcome.edge,
             authority: 'mechanical',
         }

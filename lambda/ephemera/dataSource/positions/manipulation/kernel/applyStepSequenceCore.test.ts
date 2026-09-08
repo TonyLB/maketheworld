@@ -185,7 +185,7 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
-    it('irreparable propagation: a Custom boundary edge is undecidable here, not a repair to iterate on', () => {
+    it('repairable propagation: a Custom boundary edge names the classification it needs, not a severing it cannot vouch for', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
@@ -198,9 +198,17 @@ describe('applyStepSequenceCore', () => {
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
-            verdict: 'irreparable',
+            verdict: 'repairable',
             reasonCode: 'undecidableInteractionEdge',
-            edge: { from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' },
+            authority: 'worldChanging',
+            // The claim this change rests on: the repair kind is `classifyCustomRelation`, NOT
+            // `dissolveRelationalEdge`. Asserting merely that "some repair came back" would pass
+            // just as well if the kernel had defaulted to severing an edge it cannot judge.
+            repair: {
+                kind: 'classifyCustomRelation',
+                hostId: roomId,
+                edge: { from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' },
+            },
         })
     })
 
@@ -477,7 +485,7 @@ describe('applyStepSequenceCore', () => {
             })
         })
 
-        it('real transfer (fromHostIds length 1, toHostId non-null): illegal (unsupportedTransferEntityKind) for a Room --- stays Object/Character-only', () => {
+        it('real transfer (fromHostIds length 1, toHostId non-null): throws for a Room --- stays Object/Character-only', () => {
             const areaGraph = testLudicGraph(areaId, { nodes: [{ tag: 'Room', universalKey: roomId }] })
             const otherAreaGraph = testLudicGraph('AREA#Elsewhere' as EphemeraAreaId, { nodes: [] })
             const steps: MutationKernelStep[] = [
@@ -488,10 +496,11 @@ describe('applyStepSequenceCore', () => {
                     toHostId: 'AREA#Elsewhere' as EphemeraAreaId,
                 },
             ]
-            expect(applyStepSequenceCore(steps, graphsMap([areaId, areaGraph], ['AREA#Elsewhere' as EphemeraAreaId, otherAreaGraph]))).toEqual({
-                verdict: 'irreparable',
-                reasonCode: 'unsupportedTransferEntityKind',
-            })
+            // A caller bug, so a throw rather than a verdict (2026-09-08) --- same side of the
+            // Throw-vs-verdict split as the BD-33 host mismatch, which this file's own comment
+            // always said it belonged on.
+            expect(() => applyStepSequenceCore(steps, graphsMap([areaId, areaGraph], ['AREA#Elsewhere' as EphemeraAreaId, otherAreaGraph])))
+                .toThrow('structural invariant violated')
         })
     })
 

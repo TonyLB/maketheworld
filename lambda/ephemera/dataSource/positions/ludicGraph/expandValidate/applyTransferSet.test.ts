@@ -74,6 +74,7 @@ describe('applyTransferSet', () => {
         expect(outcome).toEqual({
             verdict: 'repairable',
             reasonCode: 'unresolvedDissolveEdge',
+            repairKind: 'dissolveRelationalEdge',
             authority: 'mechanical',
             edge: { from: trayId, to: tableId, kind: 'Against' },
         })
@@ -102,12 +103,13 @@ describe('applyTransferSet', () => {
         expect(outcome).toEqual({
             verdict: 'repairable',
             reasonCode: 'transferInteractionDefer',
+            repairKind: 'dissolveRelationalEdge',
             authority: 'worldChanging',
             edge: { from: trayId, to: tableId, kind: 'Under' },
         })
     })
 
-    it('irreparable: a Custom boundary edge is undecidable without an LLM validator', () => {
+    it('repairable/classifyCustomRelation: a Custom boundary edge names the decision it needs, not a severing', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
@@ -119,9 +121,14 @@ describe('applyTransferSet', () => {
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId]))
 
+        // Repairable, because a repair exists --- someone deciding what "tied to" means. What this
+        // layer cannot do is *perform* it, and that is the applier's problem to throw on, not a
+        // property of the plan to report as unrepairable.
         expect(outcome).toEqual({
-            verdict: 'irreparable',
+            verdict: 'repairable',
             reasonCode: 'undecidableInteractionEdge',
+            repairKind: 'classifyCustomRelation',
+            authority: 'worldChanging',
             edge: { from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' },
         })
     })
