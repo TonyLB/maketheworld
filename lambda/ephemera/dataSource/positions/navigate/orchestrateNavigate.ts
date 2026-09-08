@@ -16,6 +16,7 @@ import type { MutationKernelCaptures } from '../manipulation/kernel/types'
 import { compilePositionKernelOp } from '../manipulation/kernel/compile/compilePositionKernelOp'
 import type { PositionKernelMoveOp } from '../manipulation/kernel/compile/positionKernelOp'
 import { buildCharacterMoveOp } from '../manipulation/membership/buildCharacterMoveOp'
+import type { NavigateIntentKind } from '../manipulation/membership/types'
 import { NAVIGATE_HEADER_SLOT_ID } from './navigateBundleSlotIds'
 
 /** Navigate's compiled narration never includes a `describe` step (the header renders through the ingress-slot mechanism below, not this pipeline), so this dep is structurally unused --- present only because `PresentStepSequenceDeps` requires it. */
@@ -29,7 +30,7 @@ export type OrchestrateCharacterNavigateArgs = {
     /** messageOrchestration bundle correlation id; defaults to a fresh uuidv4() when the caller (connect/disconnect/repair) has no matching intent-leg bundleId. */
     bundleId?: string;
     /** Threaded from `executeCharacterNavigate.ts` (navigate/home) or `handleConnectionsCharactersPresence.ts` (connect, Phase 3) --- see `buildCharacterMoveOp.ts` for how these select copy-kind. Absent means no narration is compiled here (repair's own navigate-tail calls, which have no matching intent). Disconnect never reaches this function --- see `orchestrateCharacterDisconnect.ts`. */
-    intentKind?: 'navigate' | 'home' | 'connect';
+    intentKind?: NavigateIntentKind;
     intentFromRoomId?: EphemeraRoomId;
     exitName?: string;
     /** The commit's captured rosters, from `orchestrateCharacterRoomMembership`'s result --- required to resolve narration audiences. */

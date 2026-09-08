@@ -70,3 +70,17 @@ export type ObjectMembershipDiff = {
     to: EphemeraMembershipHostId | null;
     changed: boolean;
 }
+
+/**
+ * The full vocabulary of character-membership moves that carry compiled narration copy --- see
+ * `buildCharacterMoveOp.ts` for how each kind selects `MembershipEmissionCopyKind`. Declared once
+ * here; every narrower call site derives its own subset from this type rather than re-listing
+ * literals, per `AGENT.contract.md`'s `intentKind` vocabulary note.
+ */
+export type IntentKind = 'navigate' | 'home' | 'connect' | 'disconnect'
+
+/** `intentKind` as accepted by navigate's shared post-persist machinery --- disconnect never reaches it (see `orchestrateCharacterDisconnect.ts`). */
+export type NavigateIntentKind = Exclude<IntentKind, 'disconnect'>
+
+/** `intentKind` as accepted by `executeCharacterNavigate` --- the typed-command/UI-exit and home routes only; connect/disconnect/repair call `orchestrateCharacterNavigate`'s tail directly instead. */
+export type ExecuteNavigateIntentKind = Extract<IntentKind, 'navigate' | 'home'>

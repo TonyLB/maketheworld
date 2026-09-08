@@ -3,7 +3,7 @@ import internalCache from '../../../internalCache'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import { persistRoomStackNavigate } from '../manipulation/membership/persistRoomStackNavigate'
-import type { MembershipApplySuccessResult, MembershipApplyResult } from '../manipulation/membership/types'
+import type { MembershipApplySuccessResult, MembershipApplyResult, NavigateIntentKind } from '../manipulation/membership/types'
 import { orchestrateCharacterNavigate } from './orchestrateNavigate'
 
 export type AfterCharacterMembershipNavigateChangedArgs = {
@@ -13,7 +13,7 @@ export type AfterCharacterMembershipNavigateChangedArgs = {
     /** messageOrchestration bundle correlation id; when omitted, orchestrateCharacterNavigate mints its own. */
     bundleId?: string;
     /** Threaded to `orchestrateCharacterNavigate`'s narration compile --- see `executeCharacterNavigate.ts` (navigate/home) and `handleConnectionsCharactersPresence.ts` (connect, Phase 3). */
-    intentKind?: 'navigate' | 'home' | 'connect';
+    intentKind?: NavigateIntentKind;
     intentFromRoomId?: EphemeraRoomId;
     exitName?: string;
     messageBus: MessageBus;

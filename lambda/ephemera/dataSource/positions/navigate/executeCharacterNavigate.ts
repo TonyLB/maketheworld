@@ -4,7 +4,7 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import internalCache from '../../../internalCache'
 import { orchestrateCharacterRoomMembership } from '../manipulation/membership/orchestrateCharacterRoomMembership'
 import type { PositionsPublishedPayload } from '../publishedEvents'
-import type { MembershipApplyResult, MembershipDiff } from '../manipulation/membership/types'
+import type { MembershipApplyResult, MembershipDiff, ExecuteNavigateIntentKind } from '../manipulation/membership/types'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import { compilePositionKernelOp } from '../manipulation/kernel/compile/compilePositionKernelOp'
 import { isKernelMutationStep } from '../manipulation/kernel/kernelStep'
@@ -17,7 +17,7 @@ export type ExecuteCharacterNavigateArgs = {
     /** messageOrchestration bundle correlation id; when omitted (connect/disconnect/repair callers), a fresh one is minted --- those paths have no fan-in intent leg carrying a matching bundleId anyway, so leave/arrive slots (if any) fall back to direct publish. */
     bundleId?: string;
     /** `navigate` (typed command / UI exit) or `home` --- selects leave/arrive copy-kind (`buildCharacterMoveOp.ts`). Defaults to `navigate`. */
-    intentKind?: 'navigate' | 'home';
+    intentKind?: ExecuteNavigateIntentKind;
     /** The intent's own departure room (actions' `fromRoomId`), used to pick exit-aware copy among possibly several `froms` (drift repair). */
     intentFromRoomId?: EphemeraRoomId;
     /** Normalized exit label, navigate only --- selects `exitAware` copy. */

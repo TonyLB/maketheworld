@@ -445,7 +445,7 @@ Positions **must** subscribe to:
 - **Must** trust actions-resolved `toRoomId` (`CharacterMeta.HomeId`) at apply --- no exit topology re-check in positions.
 - **Must** call `orchestrateCharacterRoomMembership({ characterId, targetRoomId: content.toRoomId })` then post-persist orchestration when `changed`.
 - **Must not** rely on imperative `MoveCharacter` bus messages from actions for home (retired).
-- Leave/arrive world copy for home is **compiled** (`intentKind: 'home'` on [`buildCharacterMoveOp`](manipulation/membership/buildCharacterMoveOp.ts)) and reported by [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) inside the navigate orchestration tail --- see [Narration and presentation](#narration-and-presentation).
+- Leave/arrive world copy for home is **compiled** (`intentKind: 'home'` on [`buildCharacterMoveOp`](manipulation/membership/buildCharacterMoveOp.ts)) and reported by [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) inside the navigate orchestration tail --- see [Narration and presentation](#narration-and-presentation). `intentKind`'s full vocabulary (`'navigate' | 'home' | 'connect' | 'disconnect'`) is declared once as `IntentKind` in [`manipulation/membership/types.ts`](manipulation/membership/types.ts); narrower call sites (`orchestrateNavigate.ts`, `afterCharacterMembershipNavigateChanged.ts`, `executeCharacterNavigate.ts`) derive their own subset from it (`NavigateIntentKind`, `ExecuteNavigateIntentKind`) rather than re-declaring literals.
 
 ### `Character Connected` (positions-owned)
 

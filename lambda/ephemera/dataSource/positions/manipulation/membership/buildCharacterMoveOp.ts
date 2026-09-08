@@ -4,6 +4,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { MembershipEmissionCopyKind } from '../kernel/kernelStep'
 import type { MessageOrchestrationSlotSpec } from '../../../messageOrchestration/localApiEvents'
 import type { MembershipMoveNarrationInput, PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
+import type { IntentKind } from './types'
 
 /**
  * A `Move` that is guaranteed to narrate, and to narrate in the membership family --- so callers and
@@ -19,7 +20,7 @@ export type BuildCharacterMoveOpArgs = {
     froms: EphemeraRoomId[]
     to: EphemeraRoomId | null
     bundleId: string
-    intentKind: 'navigate' | 'home' | 'connect' | 'disconnect'
+    intentKind: IntentKind
     intentFromRoomId?: EphemeraRoomId
     exitName?: string
     headerSlot: MessageOrchestrationSlotSpec | null
