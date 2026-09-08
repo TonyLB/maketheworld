@@ -111,8 +111,7 @@ export const orchestrateCharacterRoomMembership = async (
         console.error(`[mtw.ephemera.positions] orchestrateCharacterRoomMembership failed: ${result.errorMessage}`)
         return {
             ok: false,
-            // `honorDefer` is never set on this route, so `executeMembershipTransfer` only
-            // ever reaches its commit-failure branch here, which always populates both fields ---
+            // `executeMembershipTransfer`'s commit-failure branch always populates both fields ---
             // the fallback exists only to satisfy the widened (now-optional) result type.
             errorCode: result.errorCode ?? 'STEP_SEQUENCE_TRANSACT_FAILED',
             errorMessage: result.errorMessage ?? 'executeMembershipTransfer failed with no error detail',

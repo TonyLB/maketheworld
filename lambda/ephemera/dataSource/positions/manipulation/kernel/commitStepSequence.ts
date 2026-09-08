@@ -73,10 +73,12 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * and this is the one caller that still throws the distinction away; lifting that is BD-18's, not
  * a matter of reading `outcome.verdict` here.
  *
- * Now wired to every live route: `executeMembershipTransfer` (take/drop/give via
- * `honorDefer`, and the object-lifecycle Migrate row: destroy/edit/spawn/place/drift-repair;
- * this absorbed `applyObjectClearMembership`/`applyObjectRoomMembership`/`executeObjectMove` into it,
- * MS-8, 2026-09-07), `applyObjectRelationalChange` (establish/dissolve), and --- character-route
+ * Now wired to every live route: `orchestrateObjectMove` directly (take/drop/give, via
+ * `planObjectMoveTransfer`'s dry-run-then-plan --- 3d, 2026-09-08, replacing `executeMembershipTransfer`'s
+ * retired `honorDefer` mode), `executeMembershipTransfer` itself (the object-lifecycle Migrate row:
+ * destroy/edit/spawn/place/drift-repair; this absorbed `applyObjectClearMembership`/
+ * `applyObjectRoomMembership`/`executeObjectMove` into it, MS-8, 2026-09-07),
+ * `applyObjectRelationalChange` (establish/dissolve), and --- character-route
  * Migrate row --- `orchestrateCharacterRoomMembership` (navigate/connect/disconnect, itself now a thin
  * wrapper over `executeMembershipTransfer`).
  * `applyHostEffects` and its transact-item builders have no remaining callers and are retired.

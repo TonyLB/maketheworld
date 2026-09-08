@@ -15,9 +15,11 @@ const defaultGetGraph = (hostId: EphemeraMembershipHostId): Promise<EphemeraLudi
  * 3c: the kernel's own legality check (`applyStepSequenceCore`), reachable pre-commit. No new
  * logic --- `computeStepSequenceFootprint` and `applyStepSequenceCore` are both already pure, this
  * function only composes them behind one seam instead of leaving every caller that wants a
- * pre-commit read to re-derive the footprint-then-fetch-then-evaluate sequence by hand
- * (`executeMembershipTransfer`'s `honorDefer` block and the enrich tier's `sandboxMembershipDryRun`
- * both currently do). `plan*`-tier under Phase 3's tier rule: reads and evaluates, never writes.
+ * pre-commit read to re-derive the footprint-then-fetch-then-evaluate sequence by hand (the enrich
+ * tier's `sandboxMembershipDryRun` still does, for a different question --- Plan-stage legality,
+ * out of this function's scope). Wired in as a live caller by `planObjectMoveTransfer` (3d,
+ * 2026-09-08), replacing `executeMembershipTransfer`'s retired `honorDefer` block, which used to
+ * hand-roll exactly this. `plan*`-tier under Phase 3's tier rule: reads and evaluates, never writes.
  *
  * **Advisory, not authoritative.** `commitStepSequence` re-runs `applyStepSequenceCore` against
  * freshly-fetched, *locked* graphs, and is the only check that can actually gate a write. Calling

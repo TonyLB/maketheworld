@@ -7,9 +7,11 @@ import type { ActionsPublishedPayload } from '../../../actions/publishedEvents'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import { sendMessageBundleDeclared } from '../../../messageOrchestration/subscribedEvents'
+import { isKernelMutationStep } from '../kernel/kernelStep'
+import { commitStepSequence } from '../kernel/commitStepSequence'
 import { presentStepSequence } from '../kernel/presentStepSequence'
 import { resolveObjectMovePresentationLabels } from '../../../perception/resolveObjectMovePresentationLabels'
-import { executeMembershipTransfer } from './executeMembershipTransfer'
+import { planObjectMoveTransfer } from './planObjectMoveTransfer'
 
 /** An object move's compiled plan never includes a `describe` step --- same as navigate's, same noop. */
 const noopActionsStreamEvent: StreamEventFunction<ActionsPublishedPayload> = async () => {}
@@ -46,9 +48,11 @@ export type OrchestrateObjectMoveArgs = {
  * The narrating entry point for a player-driven object move --- take, drop, and eventually give
  * give. Sibling of `orchestrateCharacterDisconnect`:
  * it declares the messageOrchestration bundle and presents the compiled narrate steps, leaving the
- * world change itself entirely to `executeMembershipTransfer` (`honorDefer: true`), the
- * same function every non-narrating object-lifecycle move (spawn/destroy/place/remove) calls
- * without that flag.
+ * world change itself to `planObjectMoveTransfer` (dry-run, then commit) --- 3d, 2026-09-08's
+ * replacement for `executeMembershipTransfer`'s retired `honorDefer` mode. Every non-narrating
+ * object-lifecycle move (spawn/destroy/place/remove) still calls `executeMembershipTransfer`
+ * directly; this is the one route with a legality question to ask, so it is the one route that
+ * plans and commits separately rather than through that shared administrative function.
  *
  * **Takes hosts, not a verb.** Which of take/drop/give this is falls out inside
  * `compilePositionKernelOp` from which side of the move was the room --- this function never
@@ -80,28 +84,40 @@ export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Pr
     })
 
     const bundleId = uuidv4()
-    const result = await executeMembershipTransfer({
+    const planResult = await planObjectMoveTransfer({
         entityId: primaryObjectId,
-        target: args.toHostId,
-        honorDefer: true,
-        getMembershipContainers: async () => [args.fromHostId],
+        fromHostId: args.fromHostId,
+        toHostId: args.toHostId,
         bundleId,
         narration: { characterName, objectShortName },
         ...(args.containment ? { containment: args.containment } : {}),
-        messageBus: args.messageBus,
-        streamEvent: args.streamEvent,
     })
 
-    if (!result.ok || result.plan === undefined) {
+    if (!planResult.ok) {
+        console.error(`[mtw.ephemera.positions] orchestrateObjectMove refused: ${planResult.errorCode}`)
         return
     }
 
-    if (result.plan.slots.length > 0) {
-        sendMessageBundleDeclared(args.messageBus, bundleId, { bundleId, slots: [...result.plan.slots] })
+    const { plan } = planResult
+    const result = await commitStepSequence(
+        { steps: plan.steps.filter(isKernelMutationStep) },
+        {
+            messageBus: args.messageBus,
+            streamEvent: args.streamEvent,
+            getCurrentHost: () => planResult.fromHostId,
+        }
+    )
+
+    if (!result.ok) {
+        return
+    }
+
+    if (plan.slots.length > 0) {
+        sendMessageBundleDeclared(args.messageBus, bundleId, { bundleId, slots: [...plan.slots] })
     }
 
     await presentStepSequence(
-        result.plan.steps,
+        plan.steps,
         characterId,
         { streamEvent: noopActionsStreamEvent, messageBus: args.messageBus },
         result.captures
