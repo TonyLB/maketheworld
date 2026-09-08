@@ -1,21 +1,20 @@
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { ActionsPublishedPayload } from '../../../actions/publishedEvents'
 import { MessageBus } from '../../../../messageBus/baseClasses'
 import { sendMessageBundleDeclared } from '../../../messageOrchestration/subscribedEvents'
 import { presentStepSequence } from '../kernel/presentStepSequence'
 import type { MutationKernelCaptures } from '../kernel/types'
-import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
-import { buildCharacterMoveOp } from './buildCharacterMoveOp'
+import type { CompiledPositionKernelPlan } from '../kernel/compile/compilePositionKernelOp'
 
 /** Disconnect's compiled narration never includes a `describe` step, same as navigate's --- see `orchestrateNavigate.ts`'s identical noop. */
 const noopActionsStreamEvent: StreamEventFunction<ActionsPublishedPayload> = async () => {}
 
 export type OrchestrateCharacterDisconnectArgs = {
     characterId: EphemeraCharacterId;
-    characterName: string;
-    froms: EphemeraRoomId[];
     bundleId: string;
+    /** The plan `planCharacterMoveTransfer` already compiled pre-commit (3e, MS-2) --- this function presents it, it does not rebuild it. Absent (or a no-op move, `froms.length === 0`) means there is nothing to present. */
+    plan?: CompiledPositionKernelPlan;
     /** The commit's captured rosters, from `orchestrateCharacterRoomMembership`'s result --- required to resolve narration audiences. */
     captures?: MutationKernelCaptures;
     messageBus: MessageBus;
@@ -33,27 +32,14 @@ export type OrchestrateCharacterDisconnectArgs = {
  */
 export const orchestrateCharacterDisconnect = async ({
     characterId,
-    characterName,
-    froms,
     bundleId,
+    plan,
     captures,
     messageBus,
 }: OrchestrateCharacterDisconnectArgs): Promise<void> => {
-    if (froms.length === 0) {
+    if (!plan) {
         return
     }
-
-    const op = buildCharacterMoveOp({
-        characterId,
-        characterName,
-        froms,
-        to: null,
-        bundleId,
-        intentKind: 'disconnect',
-        headerSlot: null,
-    })
-
-    const plan = compilePositionKernelOp(op)
 
     if (plan.slots.length > 0) {
         sendMessageBundleDeclared(messageBus, bundleId, { bundleId, slots: [...plan.slots] })

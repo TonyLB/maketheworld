@@ -35,27 +35,27 @@ describe('repairRoomOccupancyDrift', () => {
     const getLudicGraph = jest.fn()
     const getCharacterSessions = jest.fn()
     const getMembershipContainers = jest.fn()
-    const getCharacterMeta = jest.fn()
 
     const runRepair = () => repairRoomOccupancyDrift(
         { roomId: ROOM_ID, messageBus: messageBus as any, streamEvent },
-        { getLudicGraph, getCharacterSessions, getMembershipContainers, getCharacterMeta: getCharacterMeta as any }
+        { getLudicGraph, getCharacterSessions, getMembershipContainers }
     )
 
     beforeEach(() => {
         jest.clearAllMocks()
         getLudicGraph.mockResolvedValue(graphWithCharacter)
-        getCharacterMeta.mockResolvedValue({ Name: 'Ghost' })
     })
 
     it('purges ghost characters with no live sessions via disconnect apply, and narrates identically to a real disconnect', async () => {
         getCharacterSessions.mockResolvedValue([])
+        const plan = { steps: [], slots: [] }
         applyMembershipMock.mockResolvedValue({
             ok: true,
             froms: [ROOM_ID],
             to: null,
             changed: true,
             captures: new Map([['capture:from:ROOM#alpha', [CHARACTER_ID]]]),
+            plan,
         })
 
         const result = await runRepair()
@@ -65,7 +65,7 @@ describe('repairRoomOccupancyDrift', () => {
             expect.objectContaining({
                 characterId: CHARACTER_ID,
                 targetRoomId: null,
-                compileMutationSteps: expect.any(Function),
+                intentKind: 'disconnect',
             }),
             { messageBus, streamEvent }
         )
@@ -73,8 +73,7 @@ describe('repairRoomOccupancyDrift', () => {
         expect(orchestrateDisconnectMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 characterId: CHARACTER_ID,
-                characterName: 'Ghost',
-                froms: [ROOM_ID],
+                plan,
                 messageBus,
             })
         )

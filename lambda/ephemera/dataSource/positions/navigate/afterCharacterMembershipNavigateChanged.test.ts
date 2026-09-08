@@ -23,6 +23,7 @@ const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
 const BEAT_ANCHOR_TIME = 1_700_000_000_000
+const PLAN = { steps: [], slots: [] }
 
 const characterMeta = {
     EphemeraId: CHARACTER_ID,
@@ -68,6 +69,7 @@ describe('afterCharacterMembershipNavigateChanged', () => {
                 to: TO_ROOM,
                 changed: true,
                 beatAnchorTime: BEAT_ANCHOR_TIME,
+                plan: PLAN,
             },
             messageBus,
             getRoomAssets,
@@ -85,8 +87,10 @@ describe('afterCharacterMembershipNavigateChanged', () => {
         expect(orchestrateCharacterNavigateMock).toHaveBeenCalledWith({
             characterId: CHARACTER_ID,
             characterMeta,
-            froms: [FROM_ROOM],
             to: TO_ROOM,
+            bundleId: undefined,
+            plan: PLAN,
+            captures: undefined,
             messageBus,
         })
     })

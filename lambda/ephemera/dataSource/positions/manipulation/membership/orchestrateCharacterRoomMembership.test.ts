@@ -35,6 +35,7 @@ const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
 const ROOM_C = 'ROOM#TestThree' as EphemeraRoomId
+const BUNDLE_ID = 'BUNDLE#test'
 
 describe('orchestrateCharacterRoomMembership', () => {
     const messageBus = { publish: jest.fn() }
@@ -62,15 +63,15 @@ describe('orchestrateCharacterRoomMembership', () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
 
         const result = await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: FROM_ROOM },
+            { characterId: CHARACTER_ID, targetRoomId: FROM_ROOM, bundleId: BUNDLE_ID, intentKind: 'navigate' },
             { messageBus: messageBus as any, streamEvent }
         )
 
         expect(result).toEqual({
             ok: true,
+            changed: false,
             froms: [],
             to: FROM_ROOM,
-            changed: false,
         })
         expect(commitStepSequenceMock).not.toHaveBeenCalled()
         expect(messageBus.publish).not.toHaveBeenCalled()
@@ -78,12 +79,13 @@ describe('orchestrateCharacterRoomMembership', () => {
         expect(getRoomCharacterListMock).not.toHaveBeenCalled()
     })
 
-    it('runs membership-changed bundle when endpoint changes: bare transferMembership step, no dissolve steps', async () => {
+    it('runs membership-changed bundle when endpoint changes: builds+compiles the op once via planCharacterMoveTransfer, commits capture+transfer+presence steps', async () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
+        const captures = new Map([['capture:from:ROOM#VORTEX', [CHARACTER_ID]]])
+        commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures })
 
         const result = await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, bundleId: BUNDLE_ID, intentKind: 'navigate' },
             { messageBus: messageBus as any, streamEvent }
         )
 
@@ -93,18 +95,26 @@ describe('orchestrateCharacterRoomMembership', () => {
             to: TO_ROOM,
             changed: true,
             beatAnchorTime: 1_700_000_000_000,
+            captures,
+            plan: expect.objectContaining({ steps: expect.any(Array), slots: expect.any(Array) }),
             roomRosterSnapshots: {
                 [FROM_ROOM]: [],
                 [TO_ROOM]: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test', SessionIds: [] }],
             },
         }))
 
+        // buildCharacterMoveOp always narrates, so the compiled plan always carries capture-from/
+        // capture-to steps (mutation-kind, so they commit) bracketing the transfer -- this is the
+        // shape every real character-route caller already produced pre-3e (compileMutationSteps was
+        // supplied by all four call sites), not a widened commit.
         expect(commitStepSequenceMock).toHaveBeenCalledWith(
             {
                 steps: [
+                    { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
                     { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
                     { kind: 'removePresencePort', hostId: CHARACTER_ID, fromHostId: FROM_ROOM },
                     { kind: 'addPresencePort', hostId: CHARACTER_ID, port: expect.objectContaining({ fromHostId: TO_ROOM, kind: 'Present' }) },
+                    { kind: 'capture', hostId: TO_ROOM, captureId: 'capture:to' },
                 ],
             },
             expect.objectContaining({
@@ -125,35 +135,35 @@ describe('orchestrateCharacterRoomMembership', () => {
                 RoomId: TO_ROOM,
             })],
         })
-        // No dissolveRelation steps are ever constructed for a character -- HostRelationalEdge is
-        // object-only, so there is nothing for this route to sweep, structurally, not just in practice.
-        // Presence steps (RD-1/RD-3) are the only addition to the bare transfer.
-        expect(commitStepSequenceMock.mock.calls[0][0].steps).toHaveLength(3)
     })
 
-    it('honors compileMutationSteps when supplied, committing the compiled steps and returning captures (Phase 2)', async () => {
+    it('resolves the header slot before commit when resolveHeaderSlot is supplied, and bakes it into the plan', async () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        const captures = new Map([['capture:from', [CHARACTER_ID]]])
-        commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures })
+        commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
 
-        const compiledSteps = [
-            { kind: 'capture' as const, hostId: FROM_ROOM, captureId: 'capture:from' },
-            { kind: 'transferMembership' as const, entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
-            { kind: 'capture' as const, hostId: TO_ROOM, captureId: 'capture:to' },
-        ]
-        const compileMutationSteps = jest.fn().mockReturnValue(compiledSteps)
+        const headerSlot = { slotId: 'SLOT#header', expectedPublishType: 'PerceptionMessage' as const, componentId: TO_ROOM, perspectiveKey: 'pk', targets: [CHARACTER_ID], contentStream: 'render' as const, format: 'header' as const }
+        const resolveHeaderSlot = jest.fn().mockResolvedValue(headerSlot)
 
         const result = await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, compileMutationSteps },
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, bundleId: BUNDLE_ID, intentKind: 'connect', resolveHeaderSlot },
             { messageBus: messageBus as any, streamEvent }
         )
 
-        expect(compileMutationSteps).toHaveBeenCalledWith({ froms: [FROM_ROOM], to: TO_ROOM, changed: true })
-        expect(commitStepSequenceMock).toHaveBeenCalledWith(
-            { steps: compiledSteps },
-            expect.anything()
+        expect(resolveHeaderSlot).toHaveBeenCalledWith(TO_ROOM)
+        if (!result.ok) { throw new Error('expected ok:true') }
+        expect(result.plan?.slots).toEqual(expect.arrayContaining([headerSlot]))
+    })
+
+    it('does not call resolveHeaderSlot for a no-op move', async () => {
+        ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
+        const resolveHeaderSlot = jest.fn()
+
+        await orchestrateCharacterRoomMembership(
+            { characterId: CHARACTER_ID, targetRoomId: FROM_ROOM, bundleId: BUNDLE_ID, intentKind: 'navigate', resolveHeaderSlot },
+            { messageBus: messageBus as any, streamEvent }
         )
-        expect(result).toEqual(expect.objectContaining({ ok: true, captures }))
+
+        expect(resolveHeaderSlot).not.toHaveBeenCalled()
     })
 
     it('runs side-effect bundle for all froms on drift scrub', async () => {
@@ -161,13 +171,15 @@ describe('orchestrateCharacterRoomMembership', () => {
         commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
 
         await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, bundleId: BUNDLE_ID, intentKind: 'navigate' },
             { messageBus: messageBus as any, streamEvent }
         )
 
         expect(commitStepSequenceMock).toHaveBeenCalledWith(
             {
                 steps: [
+                    { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
+                    { kind: 'capture', hostId: ROOM_C, captureId: 'capture:from:ROOM#TestThree' },
                     {
                         kind: 'transferMembership',
                         entityIds: new Set([CHARACTER_ID]),
@@ -177,6 +189,7 @@ describe('orchestrateCharacterRoomMembership', () => {
                     { kind: 'removePresencePort', hostId: CHARACTER_ID, fromHostId: FROM_ROOM },
                     { kind: 'removePresencePort', hostId: CHARACTER_ID, fromHostId: ROOM_C },
                     { kind: 'addPresencePort', hostId: CHARACTER_ID, port: expect.objectContaining({ fromHostId: TO_ROOM, kind: 'Present' }) },
+                    { kind: 'capture', hostId: TO_ROOM, captureId: 'capture:to' },
                 ],
             },
             expect.anything()
@@ -196,7 +209,7 @@ describe('orchestrateCharacterRoomMembership', () => {
         })
 
         const result = await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM },
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, bundleId: BUNDLE_ID, intentKind: 'navigate' },
             { messageBus: messageBus as any, streamEvent }
         )
 

@@ -163,7 +163,7 @@ describe('positions receive paths (integration)', () => {
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
                     targetRoomId: null,
-                    compileMutationSteps: expect.any(Function),
+                    intentKind: 'disconnect',
                 }),
                 expect.objectContaining({ messageBus: expect.any(Object), streamEvent: expect.any(Function) })
             )
@@ -188,7 +188,7 @@ describe('positions receive paths (integration)', () => {
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
                     targetRoomId: ROOM_A,
-                    compileMutationSteps: expect.any(Function),
+                    intentKind: 'connect',
                 }),
                 expect.objectContaining({ messageBus: expect.any(Object), streamEvent: expect.any(Function) })
             )

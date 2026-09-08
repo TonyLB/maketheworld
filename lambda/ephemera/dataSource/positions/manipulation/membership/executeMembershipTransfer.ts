@@ -1,13 +1,14 @@
+import { v4 as uuidv4 } from 'uuid'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import internalCache from '../../../../internalCache'
-import type { MutationKernelStep } from '../kernel/kernelStep'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { CommitStepSequenceDeps } from '../kernel/commitStepSequence'
-import { presencePortStepsForMove } from '../kernel/compile/presencePortStepsForMove'
+import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
+import { isKernelMutationStep } from '../kernel/kernelStep'
 import type { MutationKernelCaptures } from '../kernel/types'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { defaultGetGraph } from '../relational/findRelationalChainsForRemoval'
@@ -24,12 +25,6 @@ export type ExecuteMembershipTransferArgs = {
     getGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
     /** See `CommitStepSequenceDeps.suppressRelationalFacts`'s doc comment --- same gate, same default. */
     suppressRelationalFacts?: boolean
-    /**
-     * When supplied, called with the resolved diff to build the committed step sequence (the
-     * compiler's `[capture, transfer, capture]` shape for navigate) instead of a bare
-     * `transferMembership` step. Mirrors `MembershipApplyArgs.compileMutationSteps`.
-     */
-    compileMutationSteps?: (diff: { froms: EphemeraMembershipHostId[]; to: EphemeraMembershipHostId | null; changed: boolean }) => readonly MutationKernelStep[]
     characterNames?: CommitStepSequenceDeps['characterNames']
     transactWrite?: CommitStepSequenceDeps['transactWrite']
 }
@@ -49,20 +44,26 @@ const defaultGetMembershipContainers = (id: EphemeraObjectId | EphemeraCharacter
     internalCache.Positions.getMembershipContainers(id)
 
 /**
- * The administrative membership move --- room place/remove, spawn, destroy/edit, drift repair,
- * and (via `compileMutationSteps`) navigate/home/connect/disconnect's mutation half. Object or
- * character, one call site for every non-narrating rehost.
+ * The object-lifecycle administrative membership move --- room place/remove, spawn, destroy/edit,
+ * drift repair. One call site for every non-narrating object rehost.
  *
- * **Take/drop/give no longer calls this function** (3d, 2026-09-08): `honorDefer`, the mode that
- * let a single caller (`orchestrateObjectMove`) opt into a player-refusable, single-hop
- * defer-aware check, is deleted --- that path is now `planObjectMoveTransfer` (dry-run via 3c's
+ * **Character routes no longer call this function** (3e, MS-2, 2026-09-08): `orchestrateCharacterRoomMembership`
+ * now builds and compiles its plan upstream via `planCharacterMoveTransfer` and commits directly.
+ * **Take/drop/give no longer calls this function either** (3d, 2026-09-08): `honorDefer`, the mode
+ * that let a single caller (`orchestrateObjectMove`) opt into a player-refusable, single-hop
+ * defer-aware check, is deleted --- that path is `planObjectMoveTransfer` (dry-run via 3c's
  * `dryRunStepSequence`, then `repairMechanicalDissolve` or refusal), which builds and commits its
  * own plan without going through this function at all. What remains here is exactly the
- * administrative path MS-8 (2026-09-06) unified from `applyObjectRoomMembership`/
- * `applyObjectClearMembership`/`orchestrateCharacterRoomMembership`'s membership half and
- * `executeObjectMove`'s non-take/drop callers: unconditional, no legality question, "may sever
- * anything" (`repairAdministrativeChainDissolve`, its own named sibling repair policy to
- * `repairMechanicalDissolve`).
+ * administrative object path MS-8 (2026-09-06) unified from `applyObjectRoomMembership`/
+ * `applyObjectClearMembership`/`executeObjectMove`'s non-take/drop callers: unconditional, no
+ * legality question, "may sever anything" (`repairAdministrativeChainDissolve`, its own named
+ * sibling repair policy to `repairMechanicalDissolve`).
+ *
+ * The committed step sequence is built by the same shared `compilePositionKernelOp` every narrating
+ * route already routes through (3e, MS-2) --- fed a bare `{ kind: 'move', ... }` op literal, since an
+ * administrative move has no narration ingredients to carry. `compilePositionKernelOp`'s non-narration
+ * branch produces the identical `[transferMembership, ...presencePortSteps]` shape this function used
+ * to hand-build directly.
  */
 export const executeMembershipTransfer = async (
     args: ExecuteMembershipTransferArgs
@@ -85,15 +86,15 @@ export const executeMembershipTransfer = async (
         getGraph
     )
 
-    const steps: readonly MutationKernelStep[] = args.compileMutationSteps?.(diff) ?? [
-        {
-            kind: 'transferMembership',
-            entityIds: new Set([args.entityId]),
-            fromHostIds: new Set(froms),
-            toHostId: args.target,
-        },
-        ...presencePortStepsForMove(args.entityId, froms, args.target),
-    ]
+    const { steps: compiledSteps } = compilePositionKernelOp({
+        kind: 'move',
+        moved: args.entityId,
+        froms,
+        to: args.target,
+        bundleId: uuidv4(),
+        headerSlot: null,
+    })
+    const steps = compiledSteps.filter(isKernelMutationStep)
 
     const result = await commitStepSequence(
         { steps: [...dissolveSteps, ...steps] },

@@ -102,7 +102,7 @@ Held-object inventory is **positions-owned** play manipulation on the character 
 - **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
 - **Read:** **`internalCache.Positions.getLudicGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
 - **Persist primitives:** [`manipulation/kernel/`](manipulation/kernel/) --- character-host graph + adjacency transact items via `commitStepSequence`.
-- **Cross-host apply:** [`manipulation/membership/planObjectMoveTransfer.ts`](manipulation/membership/planObjectMoveTransfer.ts) (3d, 2026-09-08, replacing `executeMembershipTransfer`'s retired `honorDefer: true` mode) --- one atomic remove-from-host + add-to-host for **either** direction, taking a **host pair** rather than a verb or an acting character. Since MS-8 (2026-09-07) it classifies the boundary directly (`boundaryEdgeOutcomes`/`classifyInteractionUnderTransfer`, folded into `buildObjectMoveOp`'s own compile-time derivation as of 3d) and commits through the kernel, with no Synthesize-executor detour --- **no** new `update*LudicGraphs` fork. `takeHold` is `(ROOM# -> CHARACTER#)`, `drop` is the reverse, and `give` would be `(CHARACTER# -> CHARACTER#)` with no new machinery. Note: `buildObjectMoveOp` deriving `dissolvedEdges` from a graph handed to it does not yet make MS-2's "compiled from abstract operations, never hand-built per call site" true --- that claim stays open until 3e gives the diff a single upstream owner. See [Intent vs. world-effect](#intent-vs-world-effect).
+- **Cross-host apply:** [`manipulation/membership/planObjectMoveTransfer.ts`](manipulation/membership/planObjectMoveTransfer.ts) (3d, 2026-09-08, replacing `executeMembershipTransfer`'s retired `honorDefer: true` mode) --- one atomic remove-from-host + add-to-host for **either** direction, taking a **host pair** rather than a verb or an acting character. Since MS-8 (2026-09-07) it classifies the boundary directly (`boundaryEdgeOutcomes`/`classifyInteractionUnderTransfer`, folded into `buildObjectMoveOp`'s own compile-time derivation as of 3d) and commits through the kernel, with no Synthesize-executor detour --- **no** new `update*LudicGraphs` fork. `takeHold` is `(ROOM# -> CHARACTER#)`, `drop` is the reverse, and `give` would be `(CHARACTER# -> CHARACTER#)` with no new machinery. Note: `buildObjectMoveOp` deriving `dissolvedEdges` from a graph handed to it was a step toward MS-2's "compiled from abstract operations, never hand-built per call site," made true by 3e (2026-09-08), which gave the diff a single upstream owner for every route --- see [Abstract op and compiled step](#abstract-op-and-compiled-step-two-levels) above. See [Intent vs. world-effect](#intent-vs-world-effect).
 
 ### Object-hosted graph (MK2; storage only)
 
@@ -193,7 +193,7 @@ This is recorded because the retired `[room, characterId]` targeting idiom **loo
 
 ### Abstract op and compiled step (two levels)
 
-Kernel plans are **compiled from abstract operations**, never hand-built per call site.
+Kernel plans are **compiled from abstract operations**, never hand-built per call site (true as a fact about the code since 3e, 2026-09-08, MS-2 --- see that row's note below the diagram).
 
 ```text
 Call site          "a Move happened: this entity, these froms, this to" (+ narration ingredients)
@@ -206,6 +206,8 @@ Kernel step list   one shared KernelStep[], filtered by each kernel
 ```
 
 An **abstract op** names *what happened in the world*. A **compiler** expands it into the kernel-ready sequence. Only the compiler knows that a move brackets leave-then-arrive, so that invariant lives in **one function** instead of being re-derived at every call site.
+
+**Shipped 2026-09-08 (3e, MS-2).** Until then this section stated a target, not a fact: `executeMembershipTransfer` hand-built a bare `transferMembership` literal whenever no caller-supplied callback (`compileMutationSteps`) built one instead, and the four character routes that *did* supply the callback rebuilt and recompiled the op a second time, post-commit, for narration --- so "compiled once, flows as a value" was not yet true even where the compiler was used. 3e made the code match the claim as a **consequence** of removing the reason the callback existed (the diff was not known until inside `executeMembershipTransfer`; once each caller's plan-tier stage --- `planCharacterMoveTransfer.ts` for character routes, `planObjectMoveTransfer.ts` for take/drop/give --- computes the diff first and calls the compiler once, there is nothing left for a callback to defer), not by adding a rule forbidding hand-building. `executeMembershipTransfer` (now object-lifecycle-administrative-only: spawn/place/destroy/edit/drift-repair) also compiles its bare move through `compilePositionKernelOp` rather than hand-assembling the step literal, so the compiler is the single producer of step shape with no remaining exception.
 
 **Why this matters, concretely:** three call sites once copied the same defensive `[room, characterId]` patch and only one of them needed it --- precisely because nothing shared owned the decision. The compiler is the thing that owns it now.
 

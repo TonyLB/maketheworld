@@ -415,7 +415,9 @@ const publishStreamEventsForIntent = async (
             // deps are structural only.
             const objectId = parseResult.componentId
             await executeStepSequence(
-                [{ kind: 'describe', referentId: objectId, referentKind: 'object' }],
+                { steps: [{ kind: 'describe', referentId: objectId, referentKind: 'object' }], slots: [] },
+                // No bundle to declare (zero slots), so this id is never read.
+                'BUNDLE#none',
                 characterId,
                 {
                     commit: {

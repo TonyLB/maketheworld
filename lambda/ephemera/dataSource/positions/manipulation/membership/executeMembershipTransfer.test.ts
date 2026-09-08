@@ -237,32 +237,6 @@ describe('executeMembershipTransfer', () => {
         expect(eventTypes).toEqual(['Character Moved'])
     })
 
-    it('compileMutationSteps override replaces the default bare transferMembership step', async () => {
-        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] });
-        (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([]);
-        (internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(toRoomGraph)
-        wireTransactWrite({ [TO_ROOM]: toRoomGraph })
-
-        const compileMutationSteps = jest.fn().mockReturnValue([{
-            kind: 'transferMembership',
-            entityIds: new Set([CHARACTER_ID]),
-            fromHostIds: new Set<EphemeraRoomId>(),
-            toHostId: TO_ROOM,
-        }])
-
-        const result = await executeMembershipTransfer({
-            entityId: CHARACTER_ID,
-            target: TO_ROOM,
-            messageBus: messageBus as any,
-            streamEvent,
-            compileMutationSteps,
-            characterNames: new Map([[CHARACTER_ID, 'Alpha']]),
-        })
-
-        expect(compileMutationSteps).toHaveBeenCalledWith({ froms: [], to: TO_ROOM, changed: true })
-        expect(result.ok).toBe(true)
-    })
-
     it("removing the interior (port-owning) side of a crossing dissolves both legs and the port in one transact --- the 'silent orphan' failure mode this row fixes", async () => {
         const port = { portId: 'port-1', fromHostId: FROM_ROOM, kind: 'Custom' as const, exteriorRelationLabel: 'to' }
         const roomGraph = testLudicGraph(FROM_ROOM, {

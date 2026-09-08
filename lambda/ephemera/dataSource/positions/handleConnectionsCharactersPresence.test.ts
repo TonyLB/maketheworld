@@ -73,7 +73,7 @@ describe('handleConnectionsCharactersPresence', () => {
     })
 
     describe('handleCharacterConnected', () => {
-        it('routes connect through membership apply (with a compiled Move op) and navigate tail with pre-apply characterMeta', async () => {
+        it('routes connect through membership apply (intentKind + resolveHeaderSlot) and navigate tail with pre-apply characterMeta', async () => {
             orchestrateCharacterRoomMembershipMock.mockResolvedValue({
                 ok: true,
                 froms: [],
@@ -94,7 +94,9 @@ describe('handleConnectionsCharactersPresence', () => {
                 expect.objectContaining({
                     characterId: 'CHARACTER#alpha',
                     targetRoomId: 'ROOM#TownSquare',
-                    compileMutationSteps: expect.any(Function),
+                    bundleId: expect.any(String),
+                    intentKind: 'connect',
+                    resolveHeaderSlot: expect.any(Function),
                 }),
                 { messageBus, streamEvent }
             )
@@ -108,7 +110,6 @@ describe('handleConnectionsCharactersPresence', () => {
                         to: 'ROOM#TownSquare',
                     }),
                     bundleId: expect.any(String),
-                    intentKind: 'connect',
                     messageBus,
                 })
             )
@@ -133,32 +134,11 @@ describe('handleConnectionsCharactersPresence', () => {
             expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledTimes(1)
             expect(afterCharacterMembershipNavigateChangedMock).toHaveBeenCalled()
         })
-
-        it('the compiled compileMutationSteps callback yields only mutation steps (transfer/capture-to; no capture-from since connect has no froms)', async () => {
-            orchestrateCharacterRoomMembershipMock.mockResolvedValue({
-                ok: true,
-                froms: [],
-                to: 'ROOM#TownSquare',
-                changed: true,
-                beatAnchorTime: 1_700_000_000_000,
-            })
-
-            await handleCharacterConnected({
-                type: 'Character Connected',
-                characterId: 'CHARACTER#alpha',
-                sessionId: 'SESSION#1',
-                timestamp: '2026-05-08T12:00:00.000Z',
-            }, { messageBus, streamEvent })
-
-            const compileMutationSteps = orchestrateCharacterRoomMembershipMock.mock.calls[0][0].compileMutationSteps!
-            const steps = compileMutationSteps({ froms: [], to: 'ROOM#TownSquare', changed: true })
-
-            expect(steps.map((step) => step.kind)).toEqual(['transferMembership', 'addPresencePort', 'capture'])
-        })
     })
 
     describe('handleCharacterDisconnected', () => {
-        it('routes disconnect through membership apply (with a compiled Move op), then presents narration via orchestrateCharacterDisconnect', async () => {
+        it('routes disconnect through membership apply (intentKind: disconnect), then presents narration via orchestrateCharacterDisconnect with the already-compiled plan', async () => {
+            const plan = { steps: [], slots: [] }
             orchestrateCharacterRoomMembershipMock.mockResolvedValue({
                 ok: true,
                 froms: ['ROOM#roomA'],
@@ -166,6 +146,7 @@ describe('handleConnectionsCharactersPresence', () => {
                 changed: true,
                 beatAnchorTime: 1_700_000_000_000,
                 captures: new Map([['capture:from:ROOM#roomA', ['CHARACTER#alpha']]]),
+                plan,
             })
 
             await handleCharacterDisconnected({
@@ -175,20 +156,19 @@ describe('handleConnectionsCharactersPresence', () => {
                 timestamp: '2026-05-08T12:00:00.000Z',
             }, { messageBus, streamEvent })
 
-            expect(characterMetaGetMock).toHaveBeenCalledWith('CHARACTER#alpha')
             expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: 'CHARACTER#alpha',
                     targetRoomId: null,
-                    compileMutationSteps: expect.any(Function),
+                    bundleId: expect.any(String),
+                    intentKind: 'disconnect',
                 }),
                 { messageBus, streamEvent }
             )
             expect(orchestrateCharacterDisconnectMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: 'CHARACTER#alpha',
-                    characterName: 'Alpha',
-                    froms: ['ROOM#roomA'],
+                    plan,
                     bundleId: expect.any(String),
                     captures: expect.any(Map),
                     messageBus,

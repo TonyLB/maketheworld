@@ -6,10 +6,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { ActionsPublishedPayload } from '../../../actions/publishedEvents'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
-import { sendMessageBundleDeclared } from '../../../messageOrchestration/subscribedEvents'
-import { isKernelMutationStep } from '../kernel/kernelStep'
-import { commitStepSequence } from '../kernel/commitStepSequence'
-import { presentStepSequence } from '../kernel/presentStepSequence'
+import { executeStepSequence } from '../kernel/executeStepSequence'
 import { resolveObjectMovePresentationLabels } from '../../../perception/resolveObjectMovePresentationLabels'
 import { planObjectMoveTransfer } from './planObjectMoveTransfer'
 
@@ -46,13 +43,14 @@ export type OrchestrateObjectMoveArgs = {
 
 /**
  * The narrating entry point for a player-driven object move --- take, drop, and eventually give
- * give. Sibling of `orchestrateCharacterDisconnect`:
- * it declares the messageOrchestration bundle and presents the compiled narrate steps, leaving the
- * world change itself to `planObjectMoveTransfer` (dry-run, then commit) --- 3d, 2026-09-08's
- * replacement for `executeMembershipTransfer`'s retired `honorDefer` mode. Every non-narrating
- * object-lifecycle move (spawn/destroy/place/remove) still calls `executeMembershipTransfer`
- * directly; this is the one route with a legality question to ask, so it is the one route that
- * plans and commits separately rather than through that shared administrative function.
+ * give. `planObjectMoveTransfer` builds and dry-runs the plan (3d, 2026-09-08's replacement for
+ * `executeMembershipTransfer`'s retired `honorDefer` mode); this function hands the compiled plan to
+ * the shared `executeStepSequence` composer (3e, MS-2), which commits it, declares the
+ * messageOrchestration bundle (from `plan.slots`, only on a successful commit), and presents the
+ * compiled narrate steps --- no manual commit/declare/present sequence of its own anymore. Every
+ * non-narrating object-lifecycle move (spawn/destroy/place/remove) still calls
+ * `executeMembershipTransfer` directly; this is the one route with a legality question to ask, so it
+ * is the one route that plans separately from that shared administrative function.
  *
  * **Takes hosts, not a verb.** Which of take/drop/give this is falls out inside
  * `compilePositionKernelOp` from which side of the move was the room --- this function never
@@ -64,11 +62,12 @@ export type OrchestrateObjectMoveArgs = {
  * having left the room graph, so resolving early costs nothing in fidelity; a take's copy names the
  * object as the room's perspective saw it, which is what witnesses in that room would have called it.
  *
- * The bundle is declared **after** a successful commit, matching `orchestrateCharacterNavigate`'s
- * shape. That is a consistency preference, not a correctness requirement, and is recorded as such so
- * it is neither "corrected" later on a mistaken safety belief nor treated as load-bearing: the
- * messageOrchestration fan-in deliberately skips declared slots that never receive a report, so a
- * bundle declared ahead of a failed commit would settle harmlessly rather than hang.
+ * The bundle is declared **after** a successful commit (`executeStepSequence`'s own sequencing),
+ * matching `orchestrateCharacterNavigate`'s shape. That is a consistency preference, not a
+ * correctness requirement, and is recorded as such so it is neither "corrected" later on a mistaken
+ * safety belief nor treated as load-bearing: the messageOrchestration fan-in deliberately skips
+ * declared slots that never receive a report, so a bundle declared ahead of a failed commit would
+ * settle harmlessly rather than hang.
  */
 export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Promise<void> => {
     const { characterId } = args
@@ -99,27 +98,17 @@ export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Pr
     }
 
     const { plan } = planResult
-    const result = await commitStepSequence(
-        { steps: plan.steps.filter(isKernelMutationStep) },
-        {
-            messageBus: args.messageBus,
-            streamEvent: args.streamEvent,
-            getCurrentHost: () => planResult.fromHostId,
-        }
-    )
-
-    if (!result.ok) {
-        return
-    }
-
-    if (plan.slots.length > 0) {
-        sendMessageBundleDeclared(args.messageBus, bundleId, { bundleId, slots: [...plan.slots] })
-    }
-
-    await presentStepSequence(
-        plan.steps,
+    await executeStepSequence(
+        plan,
+        bundleId,
         characterId,
-        { streamEvent: noopActionsStreamEvent, messageBus: args.messageBus },
-        result.captures
+        {
+            commit: {
+                messageBus: args.messageBus,
+                streamEvent: args.streamEvent,
+                getCurrentHost: () => planResult.fromHostId,
+            },
+            perceive: { streamEvent: noopActionsStreamEvent, messageBus: args.messageBus },
+        }
     )
 }

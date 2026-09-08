@@ -1,12 +1,13 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import internalCache from '../../../../internalCache'
 import { getRoomCharacterList } from '../../../../internalCache/hydrateRoomRoster'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
-import { executeMembershipTransfer } from './executeMembershipTransfer'
+import { planCharacterMoveTransfer } from './planCharacterMoveTransfer'
+import { commitStepSequence } from '../kernel/commitStepSequence'
+import { isKernelMutationStep } from '../kernel/kernelStep'
 import type { CommitStepSequenceDeps } from '../kernel/commitStepSequence'
 import type { RoomCharacterListItem } from '../../../../internalCache/baseClasses'
 import type { MembershipApplyArgs, MembershipApplyResult, MembershipDiff } from './types'
@@ -50,19 +51,18 @@ const membershipDiffFromProjection = (projection: {
 /**
  * Migrate row (character route, BD-36): retired `applyHostEffects` in favor of the general kernel.
  * A thin wrapper (roster snapshots, `CharacterMeta` invalidation, `EphemeraUpdate` publish) around
- * `executeMembershipTransfer`, which also absorbed the object routes'
- * `applyObjectRoomMembership`/`applyObjectClearMembership`. This route's `entityId` is always a
- * character, so `executeMembershipTransfer` never runs its boundary sweep for it --- `HostRelationalEdge`
- * is object-only (BD-36's character-relation widening is explicitly deferred), so a character can
- * never be a relational-edge endpoint. The bare `transferMembership` step is the whole sequence,
- * unless the caller supplies `compileMutationSteps` (Phase 2, navigate) --- see that argument's doc
- * comment.
+ * `planCharacterMoveTransfer` (build + compile) and `commitStepSequence` (3e, MS-2 --- this route no
+ * longer calls `executeMembershipTransfer` at all; that function now serves only the object-lifecycle
+ * admin routes). This route's `entityId` is always a character, so it never needs
+ * `repairAdministrativeChainDissolve`'s boundary sweep --- `HostRelationalEdge` is object-only (BD-36's
+ * character-relation widening is explicitly deferred), so a character can never be a
+ * relational-edge endpoint, and `commitStepSequence`'s `getCurrentHost` (which only resolves a
+ * `dissolveRelation` step's referenced hosts) is passed a function that is never actually called.
  *
  * `Character Moved` fact emission is folded into the kernel's own `commitStepSequence`/`factsForStep`
- * (via the `characterNames` dep, threaded through `executeMembershipTransfer`) rather than layered on
- * top after the kernel call returns --- that's what keeps it streaming before `commitStepSequence`'s
- * own `RoomUpdate` publish loop, mirroring `Object Moved`'s existing ordering guarantee (see
- * `factsForStep.ts`'s doc comment).
+ * (via the `characterNames` dep) rather than layered on top after the kernel call returns --- that's
+ * what keeps it streaming before `commitStepSequence`'s own `RoomUpdate` publish loop, mirroring
+ * `Object Moved`'s existing ordering guarantee (see `factsForStep.ts`'s doc comment).
  */
 export const orchestrateCharacterRoomMembership = async (
     args: MembershipApplyArgs,
@@ -87,46 +87,49 @@ export const orchestrateCharacterRoomMembership = async (
 
     const characterMeta = await getCharacterMeta(args.characterId)
 
-    const result = await executeMembershipTransfer({
-        entityId: args.characterId,
-        target: args.targetRoomId,
-        messageBus: deps.messageBus,
-        streamEvent: deps.streamEvent,
+    const planResult = await planCharacterMoveTransfer({
+        characterId: args.characterId,
+        characterName: characterMeta.Name,
+        targetRoomId: args.targetRoomId,
+        bundleId: args.bundleId,
+        intentKind: args.intentKind,
+        intentFromRoomId: args.intentFromRoomId,
+        exitName: args.exitName,
+        resolveHeaderSlot: args.resolveHeaderSlot,
         getMembershipContainers: async () => priorContainers,
-        transactWrite: deps.transactWrite,
-        characterNames: new Map([[args.characterId, characterMeta.Name]]),
-        ...(args.compileMutationSteps
-            ? {
-                compileMutationSteps: (generalDiff: { froms: EphemeraMembershipHostId[]; to: EphemeraMembershipHostId | null; changed: boolean }) =>
-                    args.compileMutationSteps!({
-                        froms: generalDiff.froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id)),
-                        to: generalDiff.to !== null && isEphemeraRoomId(generalDiff.to) ? generalDiff.to : null,
-                        changed: generalDiff.changed,
-                    }),
-            }
-            : {}),
     })
+
+    if (!planResult.changed) {
+        return planResult
+    }
+
+    const { plan } = planResult
+
+    const result = await commitStepSequence(
+        { steps: plan.steps.filter(isKernelMutationStep) },
+        {
+            messageBus: deps.messageBus,
+            streamEvent: deps.streamEvent,
+            getCurrentHost: () => undefined,
+            transactWrite: deps.transactWrite,
+            characterNames: new Map([[args.characterId, characterMeta.Name]]),
+        }
+    )
 
     if (!result.ok) {
         console.error(`[mtw.ephemera.positions] orchestrateCharacterRoomMembership failed: ${result.errorMessage}`)
         return {
             ok: false,
-            // `executeMembershipTransfer`'s commit-failure branch always populates both fields ---
-            // the fallback exists only to satisfy the widened (now-optional) result type.
-            errorCode: result.errorCode ?? 'STEP_SEQUENCE_TRANSACT_FAILED',
-            errorMessage: result.errorMessage ?? 'executeMembershipTransfer failed with no error detail',
+            errorCode: result.errorCode,
+            errorMessage: result.errorMessage,
         }
     }
 
     const diff = membershipDiffFromProjection({
-        froms: result.froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id)),
-        to: result.to !== null && isEphemeraRoomId(result.to) ? result.to : null,
-        changed: result.changed,
+        froms: planResult.froms,
+        to: planResult.to,
+        changed: true,
     })
-
-    if (!diff.changed) {
-        return { ok: true, ...diff }
-    }
 
     const affectedRooms = affectedRoomsFromDiff(diff.froms, diff.to)
     const roomRosterSnapshots = await buildRoomRosterSnapshots(affectedRooms)
@@ -152,5 +155,6 @@ export const orchestrateCharacterRoomMembership = async (
         beatAnchorTime: result.beatAnchorTime,
         roomRosterSnapshots,
         captures: result.captures,
+        plan,
     }
 }

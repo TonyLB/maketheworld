@@ -57,7 +57,7 @@ describe('membership containers shared memo (slice 1c)', () => {
 
         await getRoomExitTargetsForCharacter(CHARACTER_ID)
         await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: ROOM_ID },
+            { characterId: CHARACTER_ID, targetRoomId: ROOM_ID, bundleId: 'BUNDLE#test', intentKind: 'navigate' },
             {
                 messageBus: { publish: jest.fn() } as any,
                 streamEvent: jest.fn(),

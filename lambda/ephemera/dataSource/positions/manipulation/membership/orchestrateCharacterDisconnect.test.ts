@@ -1,5 +1,17 @@
 import { orchestrateCharacterDisconnect } from './orchestrateCharacterDisconnect'
 import { moveLeaveSlotId } from '../kernel/compile/moveBundleSlotIds'
+import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
+import { buildCharacterMoveOp } from './buildCharacterMoveOp'
+
+const buildPlan = (froms: string[]) => compilePositionKernelOp(buildCharacterMoveOp({
+    characterId: 'CHARACTER#Test' as any,
+    characterName: 'Tess',
+    froms: froms as any,
+    to: null,
+    bundleId: 'BUNDLE#test',
+    intentKind: 'disconnect',
+    headerSlot: null,
+}))
 
 describe('orchestrateCharacterDisconnect', () => {
     const messageBus = { publish: jest.fn() }
@@ -22,10 +34,9 @@ describe('orchestrateCharacterDisconnect', () => {
 
     it('declares the bundle and reports a narrate-leave slot with "has disconnected" wording, audience from the capture', async () => {
         await orchestrateCharacterDisconnect({
-            characterId: 'CHARACTER#Test',
-            characterName: 'Tess',
-            froms: ['ROOM#alpha'],
+            characterId: 'CHARACTER#Test' as any,
             bundleId: 'BUNDLE#test',
+            plan: buildPlan(['ROOM#alpha']),
             captures: new Map([
                 ['capture:from:ROOM#alpha', ['CHARACTER#Test', 'CHARACTER#Other']],
             ]) as any,
@@ -46,11 +57,9 @@ describe('orchestrateCharacterDisconnect', () => {
         expect(reportContent.message.message).toEqual(['Tess has disconnected.'])
     })
 
-    it('is a no-op when froms is empty', async () => {
+    it('is a no-op when plan is absent', async () => {
         await orchestrateCharacterDisconnect({
-            characterId: 'CHARACTER#Test',
-            characterName: 'Tess',
-            froms: [],
+            characterId: 'CHARACTER#Test' as any,
             bundleId: 'BUNDLE#test',
             captures: new Map() as any,
             messageBus: messageBus as any,
@@ -61,10 +70,9 @@ describe('orchestrateCharacterDisconnect', () => {
 
     it('throws if the capture for a from-room is missing (internal-consistency guard, mirrors presentStepSequence)', async () => {
         await expect(orchestrateCharacterDisconnect({
-            characterId: 'CHARACTER#Test',
-            characterName: 'Tess',
-            froms: ['ROOM#alpha'],
+            characterId: 'CHARACTER#Test' as any,
             bundleId: 'BUNDLE#test',
+            plan: buildPlan(['ROOM#alpha']),
             captures: new Map() as any,
             messageBus: messageBus as any,
         })).rejects.toThrow(/references captureId/)

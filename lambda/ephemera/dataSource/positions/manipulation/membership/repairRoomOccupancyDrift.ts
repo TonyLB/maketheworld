@@ -6,11 +6,7 @@ import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { orchestrateCharacterRoomMembership } from './orchestrateCharacterRoomMembership'
-import { buildCharacterMoveOp } from './buildCharacterMoveOp'
 import { orchestrateCharacterDisconnect } from './orchestrateCharacterDisconnect'
-import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
-import { isKernelMutationStep } from '../kernel/kernelStep'
-import type { MembershipDiff } from './types'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 
 export type RepairRoomOccupancyDriftArgs = {
@@ -23,7 +19,6 @@ export type RepairRoomOccupancyDriftDependencies = {
     getLudicGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     getCharacterSessions?: (characterId: EphemeraCharacterId) => Promise<string[]>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
-    getCharacterMeta?: typeof internalCache.CharacterMeta.get;
     applyMembership?: typeof orchestrateCharacterRoomMembership;
     syncAdjacency?: typeof syncMembershipAdjacencyToRoom;
 }
@@ -55,7 +50,6 @@ export const repairRoomOccupancyDrift = async (
             const containers = await internalCache.Positions.getMembershipContainers(characterId)
             return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
         })
-    const getCharacterMeta = deps?.getCharacterMeta ?? ((characterId) => internalCache.CharacterMeta.get(characterId))
     const applyMembership = deps?.applyMembership ?? orchestrateCharacterRoomMembership
     const syncAdjacency = deps?.syncAdjacency ?? syncMembershipAdjacencyToRoom
 
@@ -68,37 +62,21 @@ export const repairRoomOccupancyDrift = async (
         const hasSessions = (sessions ?? []).length > 0
 
         if (!hasSessions) {
-            const characterMeta = await getCharacterMeta(characterId)
             const bundleId = uuidv4()
 
-            const compileMutationSteps = (diff: MembershipDiff) => compilePositionKernelOp(
-                buildCharacterMoveOp({
-                    characterId,
-                    characterName: characterMeta.Name,
-                    froms: diff.froms,
-                    to: diff.to,
-                    bundleId,
-                    intentKind: 'disconnect',
-                    headerSlot: null,
-                })
-            ).steps.filter(isKernelMutationStep)
-
             const result = await applyMembership(
-                { characterId, targetRoomId: null, compileMutationSteps },
+                { characterId, targetRoomId: null, bundleId, intentKind: 'disconnect' },
                 { messageBus: args.messageBus, streamEvent: args.streamEvent }
             )
             if (result.ok && result.changed) {
                 ghostsPurged += 1
-                if (result.froms.length > 0) {
-                    await orchestrateCharacterDisconnect({
-                        characterId,
-                        characterName: characterMeta.Name,
-                        froms: result.froms,
-                        bundleId,
-                        captures: result.captures,
-                        messageBus: args.messageBus,
-                    })
-                }
+                await orchestrateCharacterDisconnect({
+                    characterId,
+                    bundleId,
+                    plan: result.plan,
+                    captures: result.captures,
+                    messageBus: args.messageBus,
+                })
             }
             continue
         }

@@ -4,11 +4,11 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import internalCache from '../../../internalCache'
 import { orchestrateCharacterRoomMembership } from '../manipulation/membership/orchestrateCharacterRoomMembership'
 import type { PositionsPublishedPayload } from '../publishedEvents'
-import type { MembershipApplyResult, MembershipDiff, ExecuteNavigateIntentKind } from '../manipulation/membership/types'
+import type { MembershipApplyResult, ExecuteNavigateIntentKind } from '../manipulation/membership/types'
 import type { MessageBus } from '../../../messageBus/baseClasses'
-import { compilePositionKernelOp } from '../manipulation/kernel/compile/compilePositionKernelOp'
-import { isKernelMutationStep } from '../manipulation/kernel/kernelStep'
-import { buildCharacterMoveOp } from '../manipulation/membership/buildCharacterMoveOp'
+import type { MessageOrchestrationSlotSpec } from '../../messageOrchestration/localApiEvents'
+import { getCharacterRoomPerspectiveKey } from '../../perception/kickRoomHeaderBroadcast'
+import { NAVIGATE_HEADER_SLOT_ID } from './navigateBundleSlotIds'
 import { afterCharacterMembershipNavigateChanged } from './afterCharacterMembershipNavigateChanged'
 
 export type ExecuteCharacterNavigateArgs = {
@@ -30,12 +30,12 @@ export type ExecuteCharacterNavigateArgs = {
  * Shared navigate execution: membership persist via positions coordinator, then
  * parallel navigate tail (ladder persist + presentation) when endpoints changed.
  *
- * Compiles the abstract `Move` op via `compileMutationSteps`, so the committed step sequence is
- * `[capture(from), transfer, capture(to)]` rather than a bare `transferMembership` step --- the
- * mechanism that lets narration be *positionally* bound (its audience resolved mid-walk rather than
- * against the live roster at flush). Narration itself is reported from `orchestrateCharacterNavigate`
- * post-commit, alongside the header slot it already resolves there, not here --- see that function's
- * doc comment for why the op is compiled twice.
+ * Builds and compiles the abstract `Move` op exactly once, before commit (3e, MS-2) ---
+ * `orchestrateCharacterRoomMembership` forwards `intentKind`/`intentFromRoomId`/`exitName` and this
+ * function's `resolveHeaderSlot` into `planCharacterMoveTransfer`, which builds the compiled plan
+ * (`[capture(from), transfer, capture(to), narrate*]`) and carries it through commit. Narration is
+ * still *reported* post-commit, by `orchestrateCharacterNavigate` (audience resolution needs the
+ * commit's captured rosters) --- but it presents the same plan built here, rather than rebuilding it.
  *
  * Rules: `dataSource/positions/AGENT.contract.md` --- "Narration and presentation".
  */
@@ -52,22 +52,21 @@ export const executeCharacterNavigate = async ({
     const characterMeta = await internalCache.CharacterMeta.get(characterId)
     const bundleId = suppliedBundleId ?? uuidv4()
 
-    const compileMutationSteps = (diff: MembershipDiff) => compilePositionKernelOp(
-        buildCharacterMoveOp({
-            characterId,
-            characterName: characterMeta.Name,
-            froms: diff.froms,
-            to: diff.to,
-            bundleId,
-            intentKind,
-            intentFromRoomId,
-            exitName,
-            headerSlot: null,
-        })
-    ).steps.filter(isKernelMutationStep)
+    const resolveHeaderSlot = async (to: EphemeraRoomId): Promise<MessageOrchestrationSlotSpec | null> => {
+        const perspectiveKey = await getCharacterRoomPerspectiveKey(to, characterMeta.assets || [])
+        return perspectiveKey ? {
+            slotId: NAVIGATE_HEADER_SLOT_ID,
+            expectedPublishType: 'PerceptionMessage',
+            componentId: to,
+            perspectiveKey,
+            targets: [characterId],
+            contentStream: 'render',
+            format: 'header',
+        } : null
+    }
 
     const result = await orchestrateCharacterRoomMembership(
-        { characterId, targetRoomId, compileMutationSteps },
+        { characterId, targetRoomId, bundleId, intentKind, intentFromRoomId, exitName, resolveHeaderSlot },
         { messageBus, streamEvent }
     )
 
@@ -76,9 +75,6 @@ export const executeCharacterNavigate = async ({
         characterMeta,
         result,
         bundleId,
-        intentKind,
-        intentFromRoomId,
-        exitName,
         messageBus,
     })
 

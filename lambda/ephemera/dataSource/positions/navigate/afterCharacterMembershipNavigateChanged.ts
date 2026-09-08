@@ -3,7 +3,7 @@ import internalCache from '../../../internalCache'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import { persistRoomStackNavigate } from '../manipulation/membership/persistRoomStackNavigate'
-import type { MembershipApplySuccessResult, MembershipApplyResult, NavigateIntentKind } from '../manipulation/membership/types'
+import type { MembershipApplySuccessResult, MembershipApplyResult } from '../manipulation/membership/types'
 import { orchestrateCharacterNavigate } from './orchestrateNavigate'
 
 export type AfterCharacterMembershipNavigateChangedArgs = {
@@ -12,10 +12,6 @@ export type AfterCharacterMembershipNavigateChangedArgs = {
     result: MembershipApplyResult;
     /** messageOrchestration bundle correlation id; when omitted, orchestrateCharacterNavigate mints its own. */
     bundleId?: string;
-    /** Threaded to `orchestrateCharacterNavigate`'s narration compile --- see `executeCharacterNavigate.ts` (navigate/home) and `handleConnectionsCharactersPresence.ts` (connect, Phase 3). */
-    intentKind?: NavigateIntentKind;
-    intentFromRoomId?: EphemeraRoomId;
-    exitName?: string;
     messageBus: MessageBus;
     getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
     getCanonAssets?: () => Promise<string[] | undefined>;
@@ -44,9 +40,6 @@ export const afterCharacterMembershipNavigateChanged = async ({
     characterMeta,
     result,
     bundleId,
-    intentKind,
-    intentFromRoomId,
-    exitName,
     messageBus,
     getRoomAssets,
     getCanonAssets,
@@ -79,12 +72,9 @@ export const afterCharacterMembershipNavigateChanged = async ({
         orchestrateCharacterNavigate({
             characterId,
             characterMeta,
-            froms: result.froms,
             to,
             bundleId,
-            intentKind,
-            intentFromRoomId,
-            exitName,
+            plan: result.plan,
             captures: result.captures,
             messageBus,
         }),
