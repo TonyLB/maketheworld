@@ -6,7 +6,7 @@ const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
 
 /**
- * Character-route sibling of `planObjectMoveTransfer.test.ts` (3e, MS-2): pins the compiled plan a
+ * Character-route sibling of `planObjectMoveTransfer.test.ts` (3e): pins the compiled plan a
  * character move builds exactly once, before commit. No commit happens inside this function ---
  * `getMembershipContainers` is the only I/O seam, so no `internalCache`/`transactWrite` mocking is
  * needed; `orchestrateCharacterRoomMembership.test.ts` covers the commit composition.

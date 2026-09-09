@@ -37,7 +37,7 @@ const defaultGetMembershipContainers = async (characterId: EphemeraCharacterId):
 }
 
 /**
- * Character-route sibling of `planObjectMoveTransfer` (3e, MS-2): builds the diff, the op, and the
+ * Character-route sibling of `planObjectMoveTransfer` (3e): builds the diff, the op, and the
  * compiled plan exactly once, before commit --- replacing the `compileMutationSteps` callback that
  * used to defer the op build until inside `executeMembershipTransfer`. Character moves have no
  * legality question (no dry run, no repair branch): `repairAdministrativeChainDissolve` was always a

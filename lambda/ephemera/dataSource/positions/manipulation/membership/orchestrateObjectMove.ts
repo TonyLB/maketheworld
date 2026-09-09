@@ -45,7 +45,7 @@ export type OrchestrateObjectMoveArgs = {
  * The narrating entry point for a player-driven object move --- take, drop, and eventually give
  * give. `planObjectMoveTransfer` builds and dry-runs the plan (3d, 2026-09-08's replacement for
  * `executeMembershipTransfer`'s retired `honorDefer` mode); this function hands the compiled plan to
- * the shared `commitAndPresentStepSequence` composer (3e, MS-2; renamed from `executeStepSequence` in
+ * the shared `commitAndPresentStepSequence` composer (3e; renamed from `executeStepSequence` in
  * 3g), which commits it, declares the
  * messageOrchestration bundle (from `plan.slots`, only on a successful commit), and presents the
  * compiled narrate steps --- no manual commit/declare/present sequence of its own anymore. Every

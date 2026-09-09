@@ -53,7 +53,8 @@ export type MutationKernelRepair =
  *   re-check, do not repair and do not discard. **No caller does that today**: `commitStepSequence`'s
  *   BD-31 collapse turns this into a terminal failure, and `exponentialBackoffWrapper` retries only
  *   `TransactionCanceledException`, which this is not. (An earlier version of this comment claimed
- *   the wrapper absorbed these. It does not; corrected 2026-09-08, see MS-15.)
+ *   the wrapper absorbed these. It does not; corrected 2026-09-08 --- see `AGENT.contract.md`'s
+ *   "Current limitations".)
  *
  * There is no `irreparable` arm, and its absence is deliberate (2026-09-08). This layer has no way
  * to say *no*: it checks membership, footprint bounds, boundary edges and host consistency ---

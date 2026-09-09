@@ -47,20 +47,20 @@ const defaultGetMembershipContainers = (id: EphemeraObjectId | EphemeraCharacter
  * The object-lifecycle administrative membership move --- room place/remove, spawn, destroy/edit,
  * drift repair. One call site for every non-narrating object rehost.
  *
- * **Character routes no longer call this function** (3e, MS-2, 2026-09-08): `orchestrateCharacterRoomMembership`
+ * **Character routes no longer call this function** (3e, 2026-09-08): `orchestrateCharacterRoomMembership`
  * now builds and compiles its plan upstream via `planCharacterMoveTransfer` and commits directly.
  * **Take/drop/give no longer calls this function either** (3d, 2026-09-08): `honorDefer`, the mode
  * that let a single caller (`orchestrateObjectMove`) opt into a player-refusable, single-hop
  * defer-aware check, is deleted --- that path is `planObjectMoveTransfer` (dry-run via 3c's
  * `dryRunStepSequence`, then `repairMechanicalDissolve` or refusal), which builds and commits its
  * own plan without going through this function at all. What remains here is exactly the
- * administrative object path MS-8 (2026-09-06) unified from `applyObjectRoomMembership`/
+ * administrative object path (2026-09-06) unified from `applyObjectRoomMembership`/
  * `applyObjectClearMembership`/`executeObjectMove`'s non-take/drop callers: unconditional, no
  * legality question, "may sever anything" (`repairAdministrativeChainDissolve`, its own named
  * sibling repair policy to `repairMechanicalDissolve`).
  *
  * The committed step sequence is built by the same shared `compilePositionKernelOp` every narrating
- * route already routes through (3e, MS-2) --- fed a bare `{ kind: 'move', ... }` op literal, since an
+ * route already routes through (3e) --- fed a bare `{ kind: 'move', ... }` op literal, since an
  * administrative move has no narration ingredients to carry. `compilePositionKernelOp`'s non-narration
  * branch produces the identical `[transferMembership, ...presencePortSteps]` shape this function used
  * to hand-build directly.

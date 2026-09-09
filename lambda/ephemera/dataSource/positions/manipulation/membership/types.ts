@@ -69,7 +69,7 @@ export type MembershipApplySuccessResult = {
     roomRosterSnapshots?: Partial<Record<EphemeraRoomId, RoomCharacterListItem[]>>;
     /** Phase 2: the commit's captured rosters (`MutationKernelCaptures`), passed through so a caller whose committed steps included capture steps can feed `presentStepSequence`'s narration branch. Empty when the committed steps carried no capture steps (every route but navigate today). */
     captures?: import('../kernel/types').MutationKernelCaptures;
-    /** 3e, MS-2: the plan `planCharacterMoveTransfer` already compiled, carried through commit so `presentCharacterMove` (3f, MS-6 --- merged from the former `orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect`) presents it rather than rebuilding it. Unset when `changed: false` (nothing was ever compiled). */
+    /** 3e: the plan `planCharacterMoveTransfer` already compiled, carried through commit so `presentCharacterMove` (3f --- merged from the former `orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect`) presents it rather than rebuilding it. Unset when `changed: false` (nothing was ever compiled). */
     plan?: import('../kernel/compile/compilePositionKernelOp').CompiledPositionKernelPlan;
 } & MembershipDiff<EphemeraRoomId>
 

@@ -37,7 +37,7 @@ export type CommitAndPresentStepSequenceDeps = {
  * failure), the perception kernel is never invoked: a description must reflect final committed
  * state, and there is no committed state to describe when the mutation half aborted.
  *
- * Takes a `CompiledPositionKernelPlan` rather than bare `KernelStep[]` (3e, MS-2) --- `plan.slots` is
+ * Takes a `CompiledPositionKernelPlan` rather than bare `KernelStep[]` (3e) --- `plan.slots` is
  * the one thing every hand-rolled commit-then-present caller (`orchestrateObjectMove.ts` before that
  * slice) had to wedge a `sendMessageBundleDeclared` call between the two legs for; that declare call
  * lives inside this composer instead. `bundleId` is only read when `plan.slots.length > 0` --- a

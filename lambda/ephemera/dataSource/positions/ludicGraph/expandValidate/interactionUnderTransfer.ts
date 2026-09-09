@@ -15,7 +15,7 @@ export type InteractionUnderTransferOutcome = 'dissolve' | 'defer'
  * been unreachable dead code since then.
  *
  * The closed-kind pair (`Under`/`Against`) is a lookup into `CLOSED_RELATION_BEHAVIOR` below,
- * not case arms (MS-9, 2026-09-06): `ephemeraMeta.ts`'s `CLOSED_RELATION_KINDS` array is the
+ * not case arms (2026-09-06): `ephemeraMeta.ts`'s `CLOSED_RELATION_KINDS` array is the
  * source of truth for which kinds get the deterministic fast-path, and this table is the local
  * behavior TypeScript forces an update to if that array ever grows. `Under`'s subject-move
  * ambiguity is spatial clearance, not "what happens to some other object," so it stays `defer`.

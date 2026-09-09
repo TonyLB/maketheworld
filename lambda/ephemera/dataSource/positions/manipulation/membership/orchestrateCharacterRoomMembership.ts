@@ -41,7 +41,7 @@ const affectedRoomsFromDiff = (froms: EphemeraRoomId[], to: EphemeraRoomId | nul
 /**
  * Migrate row (character route, BD-36): retired `applyHostEffects` in favor of the general kernel.
  * A thin wrapper (roster snapshots, `CharacterMeta` invalidation, `EphemeraUpdate` publish) around
- * `planCharacterMoveTransfer` (build + compile) and `commitStepSequence` (3e, MS-2 --- this route no
+ * `planCharacterMoveTransfer` (build + compile) and `commitStepSequence` (3e --- this route no
  * longer calls `executeMembershipTransfer` at all; that function now serves only the object-lifecycle
  * admin routes). This route's `entityId` is always a character, so it never needs
  * `repairAdministrativeChainDissolve`'s boundary sweep --- `HostRelationalEdge` is object-only (BD-36's

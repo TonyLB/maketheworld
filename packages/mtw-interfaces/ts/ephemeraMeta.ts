@@ -316,7 +316,7 @@ export type EphemeraLudicGraphNode =
     }
 
 /**
- * The closed, deterministic-physics relation kinds (MS-9, 2026-09-06): a fast-path exists for
+ * The closed, deterministic-physics relation kinds (2026-09-06): a fast-path exists for
  * these because their move behavior is fully known without an LLM step. Source of truth for
  * `HostRelationalEdgeKind`'s peer-kind literals below, and for
  * `interactionUnderTransfer.ts`'s per-kind move-behavior table --- both derive from this array

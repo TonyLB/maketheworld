@@ -39,7 +39,7 @@ export type OrchestrateCharacterMoveArgs = {
 }
 
 /**
- * The convergence of navigate / home / connect / disconnect (3g, MS-6's correction), plus
+ * The convergence of navigate / home / connect / disconnect (3g's correction), plus
  * `repairRoomOccupancyDrift`'s ghost purge and `repairCharacterLegalPlacement`'s relocation call
  * --- six call sites that were the same operation (membership persist, then present) differing only
  * in `intentKind`, whether there's a destination room, and two optional copy fields. Folds the former
@@ -47,7 +47,7 @@ export type OrchestrateCharacterMoveArgs = {
  * parallel navigate tail) into one function, gated on `targetRoomId !== null` rather than on which
  * caller you are --- the same discriminator `presentCharacterMove` (3f) already gates on one tier down.
  *
- * Builds and compiles the abstract `Move` op exactly once, before commit (3e, MS-2) ---
+ * Builds and compiles the abstract `Move` op exactly once, before commit (3e) ---
  * `orchestrateCharacterRoomMembership` forwards `intentKind`/`intentFromRoomId`/`exitName` and this
  * function's `resolveHeaderSlot` into `planCharacterMoveTransfer`, which builds the compiled plan and
  * carries it through commit; `presentCharacterMove` presents that same plan rather than rebuilding it.
@@ -61,7 +61,7 @@ export type OrchestrateCharacterMoveArgs = {
  * express a write running *alongside* presentation. Do not "simplify" this by folding the ladder write
  * into the composer or by serializing it behind narration.
  *
- * `orchestrateObjectMove` is a sibling, not absorbed here --- MS-6's correction: it commits or does not
+ * `orchestrateObjectMove` is a sibling, not absorbed here --- 3g's correction: it commits or does not
  * depending on entity kind, which is the disjoint-bodies case ruled out for a shared name.
  *
  * Rules: `dataSource/positions/AGENT.contract.md` --- "Narration and presentation".

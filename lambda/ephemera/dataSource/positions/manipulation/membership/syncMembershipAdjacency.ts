@@ -18,7 +18,7 @@ const normalizeContainers = (containers: EphemeraRoomId[], roomId: EphemeraRoomI
     containers.length === 1 && containers[0] === roomId
 
 /**
- * Merged from the former character/object twins (MS-1, Phase 1b). Filtering to `EphemeraRoomId`
+ * Merged from the former character/object twins (Phase 1b). Filtering to `EphemeraRoomId`
  * is only known-correct for the character case --- see AGENT.presence.discussion.planning.md's
  * PR-2 row ("the dedup has a shelf life") for whether room-only filtering is already wrong for a
  * boxed object. Both current callers are room-driven repair sweeps, so it isn't live yet.

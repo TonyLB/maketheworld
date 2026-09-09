@@ -233,7 +233,7 @@ describe('runExecutor', () => {
         )
 
         // BD-34's pairing invariant, spelled inline rather than via the retired
-        // `seedGroundedTransferMembership` (MS-8, 2026-09-07: its sole caller,
+        // `seedGroundedTransferMembership` (2026-09-07: its sole caller,
         // `executeObjectMove`, no longer re-runs the executor at all).
         const seed: WorklistInstruction[] = [
             { id: 'isolated', tag: 'grounded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },

@@ -310,7 +310,7 @@ export type ExecutorOutcome =
  * instruction directly and omit it, rather than assembling a context whose
  * resolutions would be identity mappings --- no live caller does today
  * (`executeMembershipTransfer`'s take/drop/give path retired its own
- * grounded seed in favor of calling `boundaryEdgeOutcomes` directly, MS-8,
+ * grounded seed in favor of calling `boundaryEdgeOutcomes` directly,
  * 2026-09-07; that path is now `buildObjectMoveOp`, moved there in turn by 3d, 2026-09-08's
  * `honorDefer` deletion), but nothing about this function requires one to. Seeding an
  * `ungrounded` instruction without one is a caller error and errors out.

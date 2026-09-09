@@ -56,7 +56,7 @@ export type BuildObjectMoveOpArgs = {
  * so the ingredients are all in hand before the commit and one compiled plan serves both halves; a
  * second compile would be two chances to disagree in exchange for nothing.
  *
- * No `carriedCount` --- retired 2026-09-07 (MS-8) along with `PositionKernelMovedSet`'s `closure`
+ * No `carriedCount` --- retired 2026-09-07 along with `PositionKernelMovedSet`'s `closure`
  * shape; see `positionKernelOp.ts`'s `ObjectMoveNarrationInput` doc comment.
  *
  * `dissolvedEdges` is derived here from `fromGraph`, not handed in pre-computed by the caller ---

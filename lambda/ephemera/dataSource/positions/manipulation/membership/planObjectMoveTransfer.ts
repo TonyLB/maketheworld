@@ -37,8 +37,9 @@ export type PlanObjectMoveTransferResult =
  * lamp"): a `mechanical` repair is folded into a rebuilt plan (no second dry run --- 3c's own doc
  * comment: the cross-snapshot recheck belongs to commit against locked graphs, not to a repeat dry
  * run against the same unchanged snapshot); anything else is refused, `ok: false`, carrying the
- * real reason code `honorDefer` used to discard. `stale` -> also refused, unchanged today --- a
- * re-fetch-and-retry loop is MS-15's, not built here.
+ * real reason code `honorDefer` used to discard. `stale` -> also refused, unchanged today --- see
+ * `AGENT.contract.md`'s "Current limitations": no re-fetch-and-retry loop exists for a `stale`
+ * verdict yet.
  */
 export const planObjectMoveTransfer = async (
     args: PlanObjectMoveTransferArgs
@@ -79,6 +80,6 @@ export const planObjectMoveTransfer = async (
         return { ok: true, plan: repairedPlan, fromHostId: args.fromHostId }
     }
 
-    // stale --- MS-15's, not this slice's; no re-fetch loop.
+    // stale --- see AGENT.contract.md's "Current limitations"; no re-fetch loop exists yet.
     return { ok: false, errorCode: outcome.reasonCode }
 }

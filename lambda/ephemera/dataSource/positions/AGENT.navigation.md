@@ -29,8 +29,8 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | [`../objects/AGENT.md`](../objects/AGENT.md) | Two-step existence + graph placement (**I5**); objects lane owns existence rows |
 | [`../perception/AGENT.md`](../perception/AGENT.md) | Terminal `PublishMessage`, membership fan-in intent legs |
 | [`index.ts`](index.ts) | Navigate / home execution ingress (`Character Navigate`, `Character Home` -> `orchestrateCharacterMove`) |
-| [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts) | Convergence of navigate/home/connect/disconnect (3g, MS-6): membership persist, then present |
-| [`navigate/presentCharacterMove.ts`](navigate/presentCharacterMove.ts) | Post-persist presentation for every character route (navigate/home/connect/disconnect/ghost-purge repair --- 3f, MS-6) |
+| [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts) | Convergence of navigate/home/connect/disconnect (3g): membership persist, then present |
+| [`navigate/presentCharacterMove.ts`](navigate/presentCharacterMove.ts) | Post-persist presentation for every character route (navigate/home/connect/disconnect/ghost-purge repair --- 3f) |
 | [`manipulation/membership/orchestrateCharacterRoomMembership.ts`](manipulation/membership/orchestrateCharacterRoomMembership.ts) | Membership persistence coordinator (slice 1a) |
 | [`manipulation/membership/repairRoomOccupancyDrift.ts`](manipulation/membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair on **`Room Occupancy Drift Finding`** |
 | [`../../../diagnostics/roomOccupancyDriftSweep/`](../../../diagnostics/roomOccupancyDriftSweep/) | Read-only graph-forward occupancy drift classification; emits **`Room Occupancy Drift Finding`** |

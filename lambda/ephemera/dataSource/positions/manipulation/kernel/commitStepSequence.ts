@@ -77,7 +77,7 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * `planObjectMoveTransfer`'s dry-run-then-plan --- 3d, 2026-09-08, replacing `executeMembershipTransfer`'s
  * retired `honorDefer` mode), `executeMembershipTransfer` itself (the object-lifecycle Migrate row:
  * destroy/edit/spawn/place/drift-repair; this absorbed `applyObjectClearMembership`/
- * `applyObjectRoomMembership`/`executeObjectMove` into it, MS-8, 2026-09-07),
+ * `applyObjectRoomMembership`/`executeObjectMove` into it, 2026-09-07),
  * `applyObjectRelationalChange` (establish/dissolve), and --- character-route
  * Migrate row --- `orchestrateCharacterRoomMembership` (navigate/connect/disconnect, itself now a thin
  * wrapper over `executeMembershipTransfer`).
@@ -129,7 +129,8 @@ export const commitStepSequence = async (
                     // BD-31 interim: collapse repairable/stale into one generic abort. Note that
                     // this makes a `stale` verdict *terminal* --- the throw is not a
                     // `TransactionCanceledException`, so `exponentialBackoffWrapper` below does not
-                    // retry it, and nothing re-fetches and re-checks. See MS-15.
+                    // retry it, and nothing re-fetches and re-checks. See AGENT.contract.md's
+                    // "Current limitations".
                     throw new Error(
                         `commitStepSequence: step sequence no longer legal at commit time (${outcome.reasonCode}) --- stale candidate, concurrent modification detected`
                     )

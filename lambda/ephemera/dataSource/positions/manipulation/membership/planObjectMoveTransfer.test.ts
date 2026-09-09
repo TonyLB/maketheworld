@@ -81,8 +81,9 @@ describe('planObjectMoveTransfer', () => {
         })
 
         it('refuses (ok: false, real reason code) when the snapshot is stale (entity absent from the fetched fromGraph)', async () => {
-            // MS-15's, not this slice's: no re-fetch loop. A stale snapshot is refused today,
-            // exactly as it was before 3d (the old hand-rolled check couldn't detect this at all).
+            // See AGENT.contract.md's "Current limitations": no re-fetch loop exists yet. A stale
+            // snapshot is refused today, exactly as it was before 3d (the old hand-rolled check
+            // couldn't detect this at all).
             const staleRoomGraph = testLudicGraph(ROOM_ID, { nodes: [], edges: [] })
             const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
             const getGraph = async (hostId: string): Promise<EphemeraLudicGraph> => (hostId === ROOM_ID ? staleRoomGraph : emptyCharacterGraph)

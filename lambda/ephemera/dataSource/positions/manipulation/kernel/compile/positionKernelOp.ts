@@ -26,7 +26,7 @@ export type MembershipMoveNarrationInput = {
  * without a new discriminant, and it is why the retired `inferOperationFromFact` could be deleted
  * rather than ported: the compiler holds the verb forwards instead of reasoning back to it.
  *
- * No `carriedCount` --- retired 2026-09-07 (MS-8): `computeCarryClosure` has been a singleton since
+ * No `carriedCount` --- retired 2026-09-07: `computeCarryClosure` has been a singleton since
  * CD3 (2026-09-06), so a moved object never carries anything else with it, and the field's own
  * `> 1` narration branch was dead from the moment CD3 shipped.
  */
@@ -47,7 +47,7 @@ export type ObjectMoveNarrationInput = {
  * an entity between two membership hosts, the same shape as a character moving room to room, so the
  * direction never needed to be an op discriminant, and no sibling `Take`/`Drop` ops exist.
  *
- * `moved` is a bare entity id, not a `{kind, ...}` union --- retired 2026-09-07 (MS-8) along with
+ * `moved` is a bare entity id, not a `{kind, ...}` union --- retired 2026-09-07 along with
  * `PositionKernelMovedSet`. The union existed to let a closure's primacy come from `fragment.rootId`
  * rather than a separately-asserted id; since CD3 (2026-09-06) `computeCarryClosure` is always a
  * singleton, primacy and "the whole moved set" are the same one id, so the second shape had nothing
