@@ -237,6 +237,16 @@ With two kernels, a bare `Kernel` prefix identifies neither.
 
 **State the reason for `KernelStep`, not just the exception** --- it reads as an inconsistency, and the next reader will "fix" it by prefixing it, destroying the one distinction the scheme gets right.
 
+### Representation choice: union vs class (escalation trigger)
+
+A closed union of plain data (a `kind`-discriminated type, dispatched by a `switch` in one function) and a class hierarchy invert the same cost: a union makes adding **operations** cheap and adding **types** expensive; a class hierarchy makes adding types cheap and adding operations expensive (the expression problem). Default to a union; escalate to a class hierarchy only when all three hold at once:
+
+1. multiple distinct operations switch over the union from **separate files** (not just one dispatcher), **and**
+2. the number of member types is churning faster than the number of operations, so "add a type" means hunting down every switch, **and**
+3. a per-type **module** can't already absorb the internal complexity --- a module named for the type (one builder function per file) gives the same locality a method would, without paying the switch cost; this condition is usually the one that settles it.
+
+**Worked instance:** `NarrationSpecification` (`MembershipNarrationSpec | ObjectMoveNarrationSpec`, [`manipulation/kernel/kernelStep.ts`](manipulation/kernel/kernelStep.ts)) stays a plain-data union dispatched by `presentStepSequence`'s `buildNarrationCopy`, not a class hierarchy: there is one dispatcher, member count is stable, and heavy per-family logic (if it arrives) reads as a module-locality need, not an operations-across-files need. It is also discriminated on narration **family**, not on `direction` --- `ObjectMoveNarrationSpec` shares no field with `MembershipNarrationSpec`, so a `direction`-first split would have forced both families down an axis only one of them has. (A class instance would additionally fail here for an unrelated reason: these specs ride inside `KernelStep[]` through `toStrictEqual` structural comparison in tests, which plain data survives and class instances --- prototypes, non-enumerable getters --- do not. That is a test-shape cost, not the escalation trigger's own concern.)
+
 ### Three play-time questions
 
 Area **topology**, **room membership**, and the **eviction ladder** answer different questions (instances of [graph roles](#graph-roles-shared-shape-different-authority)):
