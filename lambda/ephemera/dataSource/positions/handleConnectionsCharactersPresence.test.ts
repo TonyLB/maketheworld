@@ -6,8 +6,8 @@ jest.mock('./manipulation/membership/resolveConnectTargetRoom', () => ({
     resolveConnectTargetRoom: jest.fn(),
 }))
 
-jest.mock('./manipulation/membership/orchestrateCharacterDisconnect', () => ({
-    orchestrateCharacterDisconnect: jest.fn(),
+jest.mock('./navigate/presentCharacterMove', () => ({
+    presentCharacterMove: jest.fn(),
 }))
 
 jest.mock('./navigate/afterCharacterMembershipNavigateChanged', () => ({
@@ -28,7 +28,7 @@ import {
 import internalCache from '../../internalCache'
 import * as membership from './manipulation/membership/orchestrateCharacterRoomMembership'
 import * as resolveConnect from './manipulation/membership/resolveConnectTargetRoom'
-import * as disconnectTail from './manipulation/membership/orchestrateCharacterDisconnect'
+import * as presentCharacterMoveModule from './navigate/presentCharacterMove'
 import * as navigateTail from './navigate/afterCharacterMembershipNavigateChanged'
 
 const orchestrateCharacterRoomMembershipMock = membership.orchestrateCharacterRoomMembership as jest.MockedFunction<
@@ -37,8 +37,8 @@ const orchestrateCharacterRoomMembershipMock = membership.orchestrateCharacterRo
 const resolveConnectTargetRoomMock = resolveConnect.resolveConnectTargetRoom as jest.MockedFunction<
     typeof resolveConnect.resolveConnectTargetRoom
 >
-const orchestrateCharacterDisconnectMock = disconnectTail.orchestrateCharacterDisconnect as jest.MockedFunction<
-    typeof disconnectTail.orchestrateCharacterDisconnect
+const presentCharacterMoveMock = presentCharacterMoveModule.presentCharacterMove as jest.MockedFunction<
+    typeof presentCharacterMoveModule.presentCharacterMove
 >
 const afterCharacterMembershipNavigateChangedMock = navigateTail.afterCharacterMembershipNavigateChanged as jest.MockedFunction<
     typeof navigateTail.afterCharacterMembershipNavigateChanged
@@ -69,7 +69,7 @@ describe('handleConnectionsCharactersPresence', () => {
         })
         characterMetaGetMock.mockResolvedValue(characterMeta as any)
         afterCharacterMembershipNavigateChangedMock.mockResolvedValue(undefined)
-        orchestrateCharacterDisconnectMock.mockResolvedValue(undefined)
+        presentCharacterMoveMock.mockResolvedValue(undefined)
     })
 
     describe('handleCharacterConnected', () => {
@@ -137,7 +137,7 @@ describe('handleConnectionsCharactersPresence', () => {
     })
 
     describe('handleCharacterDisconnected', () => {
-        it('routes disconnect through membership apply (intentKind: disconnect), then presents narration via orchestrateCharacterDisconnect with the already-compiled plan', async () => {
+        it('routes disconnect through membership apply (intentKind: disconnect), then presents narration via presentCharacterMove (to: null) with the already-compiled plan', async () => {
             const plan = { steps: [], slots: [] }
             orchestrateCharacterRoomMembershipMock.mockResolvedValue({
                 ok: true,
@@ -165,9 +165,10 @@ describe('handleConnectionsCharactersPresence', () => {
                 }),
                 { messageBus, streamEvent }
             )
-            expect(orchestrateCharacterDisconnectMock).toHaveBeenCalledWith(
+            expect(presentCharacterMoveMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: 'CHARACTER#alpha',
+                    to: null,
                     plan,
                     bundleId: expect.any(String),
                     captures: expect.any(Map),
@@ -192,7 +193,7 @@ describe('handleConnectionsCharactersPresence', () => {
             }, { messageBus, streamEvent })
 
             expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledTimes(1)
-            expect(orchestrateCharacterDisconnectMock).not.toHaveBeenCalled()
+            expect(presentCharacterMoveMock).not.toHaveBeenCalled()
             expect(messageBus.publish).not.toHaveBeenCalled()
         })
     })

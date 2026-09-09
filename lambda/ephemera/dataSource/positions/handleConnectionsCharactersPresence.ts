@@ -23,7 +23,7 @@ import type { MessageOrchestrationSlotSpec } from '../messageOrchestration/local
 import { getCharacterRoomPerspectiveKey } from '../perception/kickRoomHeaderBroadcast'
 import { NAVIGATE_HEADER_SLOT_ID } from './navigate/navigateBundleSlotIds'
 import { orchestrateCharacterRoomMembership } from './manipulation/membership/orchestrateCharacterRoomMembership'
-import { orchestrateCharacterDisconnect } from './manipulation/membership/orchestrateCharacterDisconnect'
+import { presentCharacterMove } from './navigate/presentCharacterMove'
 import { resolveConnectTargetRoom } from './manipulation/membership/resolveConnectTargetRoom'
 import { afterCharacterMembershipNavigateChanged } from './navigate/afterCharacterMembershipNavigateChanged'
 import type { PositionsPublishedPayload } from './publishedEvents'
@@ -31,10 +31,10 @@ import type { PositionsPublishedPayload } from './publishedEvents'
 /**
  * Connect/disconnect narration: both build+compile the abstract `Move` op the same way
  * `executeCharacterNavigate.ts` does for navigate --- via `orchestrateCharacterRoomMembership` ->
- * `planCharacterMoveTransfer`, with `intentKind: 'connect'`/`'disconnect'` (3e, MS-2). Connect's
- * post-commit narration reuses `orchestrateCharacterNavigate` (via
- * `afterCharacterMembershipNavigateChanged`) since it always has a destination room; disconnect has
- * none, so it uses the dedicated `orchestrateCharacterDisconnect`.
+ * `planCharacterMoveTransfer`, with `intentKind: 'connect'`/`'disconnect'` (3e, MS-2). Both present
+ * through the same `presentCharacterMove` (3f, MS-6) --- connect via
+ * `afterCharacterMembershipNavigateChanged`, since it always has a destination room; disconnect calls
+ * it directly with `to: null`, which skips header resolution entirely.
  *
  * Rules: `dataSource/positions/AGENT.contract.md` --- "Narration and presentation".
  */
@@ -96,8 +96,9 @@ export const handleCharacterDisconnected = async (
     )
 
     if (result.ok && result.changed) {
-        await orchestrateCharacterDisconnect({
+        await presentCharacterMove({
             characterId: event.characterId,
+            to: null,
             bundleId,
             plan: result.plan,
             captures: result.captures,

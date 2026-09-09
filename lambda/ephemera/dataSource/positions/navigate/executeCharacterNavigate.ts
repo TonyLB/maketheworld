@@ -34,7 +34,7 @@ export type ExecuteCharacterNavigateArgs = {
  * `orchestrateCharacterRoomMembership` forwards `intentKind`/`intentFromRoomId`/`exitName` and this
  * function's `resolveHeaderSlot` into `planCharacterMoveTransfer`, which builds the compiled plan
  * (`[capture(from), transfer, capture(to), narrate*]`) and carries it through commit. Narration is
- * still *reported* post-commit, by `orchestrateCharacterNavigate` (audience resolution needs the
+ * still *reported* post-commit, by `presentCharacterMove` (audience resolution needs the
  * commit's captured rosters) --- but it presents the same plan built here, rather than rebuilding it.
  *
  * Rules: `dataSource/positions/AGENT.contract.md` --- "Narration and presentation".

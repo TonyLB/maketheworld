@@ -9,7 +9,7 @@ jest.mock('../../perception/kickRoomHeaderBroadcast', () => ({
 
 import { registerIngressSlot } from '../../messageOrchestration'
 import { kickPassiveRenderRequestedForCharacterInRoom } from '../../perception/kickRoomHeaderBroadcast'
-import { orchestrateCharacterNavigate } from './orchestrateNavigate'
+import { presentCharacterMove } from './presentCharacterMove'
 import { NAVIGATE_HEADER_SLOT_ID } from './navigateBundleSlotIds'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from '../manipulation/kernel/compile/moveBundleSlotIds'
 import { compilePositionKernelOp } from '../manipulation/kernel/compile/compilePositionKernelOp'
@@ -51,7 +51,17 @@ const buildPlan = (froms: EphemeraRoomId[], bundleId: string, headerSlot: Messag
         headerSlot,
     }))
 
-describe('orchestrateCharacterNavigate', () => {
+const buildDisconnectPlan = (froms: string[]) => compilePositionKernelOp(buildCharacterMoveOp({
+    characterId: CHARACTER_ID,
+    characterName: characterMeta.Name,
+    froms: froms as any,
+    to: null,
+    bundleId: 'BUNDLE#test',
+    intentKind: 'disconnect',
+    headerSlot: null,
+}))
+
+describe('presentCharacterMove', () => {
     const messageBus = { publish: jest.fn() }
     const registerIngressSlotMock = registerIngressSlot as jest.Mock
 
@@ -65,10 +75,16 @@ describe('orchestrateCharacterNavigate', () => {
             .filter((message) => message?.type === 'StreamingEvent' && message?.header?.type === 'Message Bundle Declared')
     )
 
+    const slotReports = () => (
+        messageBus.publish.mock.calls
+            .map((call) => call[0])
+            .filter((message) => message?.type === 'StreamingEvent' && message?.header?.type === 'Message Slot Reported')
+    )
+
     it('presents the already-compiled plan, and declares the bundle from plan.slots', async () => {
         const plan = buildPlan(['ROOM#VORTEX' as EphemeraRoomId, 'ROOM#TestThree' as EphemeraRoomId], 'BUNDLE#test')
 
-        await orchestrateCharacterNavigate({
+        await presentCharacterMove({
             characterId: CHARACTER_ID,
             characterMeta,
             to: TO_ROOM,
@@ -128,7 +144,7 @@ describe('orchestrateCharacterNavigate', () => {
     it('mints its own bundleId when the caller supplies none (connect/disconnect/repair callers)', async () => {
         const plan = buildPlan([], 'BUNDLE#unused-since-plan-already-baked-it-in')
 
-        await orchestrateCharacterNavigate({
+        await presentCharacterMove({
             characterId: CHARACTER_ID,
             characterMeta,
             to: TO_ROOM,
@@ -159,7 +175,7 @@ describe('orchestrateCharacterNavigate', () => {
     it('registerIngressSlot\'s kickoff callback invokes kickPassiveRenderRequestedForCharacterInRoom', async () => {
         const plan = buildPlan([], 'BUNDLE#test')
 
-        await orchestrateCharacterNavigate({
+        await presentCharacterMove({
             characterId: CHARACTER_ID,
             characterMeta,
             to: TO_ROOM,
@@ -182,7 +198,7 @@ describe('orchestrateCharacterNavigate', () => {
     it('falls back to a direct Perception message when there is no valid perspective (no header slot in the plan)', async () => {
         const plan = buildPlan([], 'BUNDLE#test', null)
 
-        await orchestrateCharacterNavigate({
+        await presentCharacterMove({
             characterId: CHARACTER_ID,
             characterMeta,
             to: TO_ROOM,
@@ -201,8 +217,8 @@ describe('orchestrateCharacterNavigate', () => {
         }))
     })
 
-    it('does nothing when to is null (repair navigate-tail with no destination)', async () => {
-        await orchestrateCharacterNavigate({
+    it('does nothing when to is null and plan is absent (repair navigate-tail with no destination)', async () => {
+        await presentCharacterMove({
             characterId: CHARACTER_ID,
             characterMeta,
             to: null,
@@ -214,7 +230,7 @@ describe('orchestrateCharacterNavigate', () => {
     })
 
     it('does nothing when plan is absent', async () => {
-        await orchestrateCharacterNavigate({
+        await presentCharacterMove({
             characterId: CHARACTER_ID,
             characterMeta,
             to: TO_ROOM,
@@ -223,5 +239,59 @@ describe('orchestrateCharacterNavigate', () => {
 
         expect(registerIngressSlotMock).not.toHaveBeenCalled()
         expect(messageBus.publish).not.toHaveBeenCalled()
+    })
+
+    describe('disconnect-shaped calls (to: null)', () => {
+        it('declares the bundle and reports a narrate-leave slot with "has disconnected" wording, audience from the capture, and never resolves a header', async () => {
+            await presentCharacterMove({
+                characterId: CHARACTER_ID,
+                to: null,
+                bundleId: 'BUNDLE#test',
+                plan: buildDisconnectPlan(['ROOM#alpha']),
+                captures: new Map([
+                    ['capture:from:ROOM#alpha', ['CHARACTER#Test', 'CHARACTER#Other']],
+                ]) as any,
+                messageBus: messageBus as any,
+            })
+
+            expect(registerIngressSlotMock).not.toHaveBeenCalled()
+            expect(messageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'Perception' }))
+
+            expect(bundleDeclares()).toHaveLength(1)
+            await expect(bundleDeclares()[0].getContent()).resolves.toEqual({
+                bundleId: 'BUNDLE#test',
+                slots: [{ slotId: moveLeaveSlotId('ROOM#alpha' as any), expectedPublishType: 'WorldMessage' }],
+            })
+
+            const reports = slotReports()
+            expect(reports).toHaveLength(1)
+            const reportContent = await reports[0].getContent()
+            expect(reportContent.slotId).toEqual(moveLeaveSlotId('ROOM#alpha' as any))
+            expect(reportContent.message.targets).toEqual(['CHARACTER#Test', 'CHARACTER#Other'])
+            expect(reportContent.message.message).toEqual(['Test has disconnected.'])
+        })
+
+        it('is a no-op when plan is absent', async () => {
+            await presentCharacterMove({
+                characterId: CHARACTER_ID,
+                to: null,
+                bundleId: 'BUNDLE#test',
+                captures: new Map() as any,
+                messageBus: messageBus as any,
+            })
+
+            expect(messageBus.publish).not.toHaveBeenCalled()
+        })
+
+        it('throws if the capture for a from-room is missing (internal-consistency guard, mirrors presentStepSequence)', async () => {
+            await expect(presentCharacterMove({
+                characterId: CHARACTER_ID,
+                to: null,
+                bundleId: 'BUNDLE#test',
+                plan: buildDisconnectPlan(['ROOM#alpha']),
+                captures: new Map() as any,
+                messageBus: messageBus as any,
+            })).rejects.toThrow(/references captureId/)
+        })
     })
 })

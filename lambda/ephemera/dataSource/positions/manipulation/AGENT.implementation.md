@@ -183,7 +183,7 @@ Character-kind emission is folded into `factsForStep` rather than layered on aft
 
 `commit` and `present` stay two separate dependency bags because they publish onto different bus payload scopes (`PositionsPublishedPayload` vs. `ActionsPublishedPayload`).
 
-**`executeStepSequence`'s live caller:** `actions/index.ts`'s object-directed `look` dispatch, in-process (Phase 4). **Widened 2026-09-08 (3e, MS-2)** to take a `CompiledPositionKernelPlan` (`{ steps, slots }`) plus a `bundleId` rather than a bare `KernelStep[]` --- the composer now declares the messageOrchestration bundle itself (from `plan.slots`, only after a successful commit, only when `plan.slots.length > 0`) before presenting, so a caller with a compiled plan no longer needs its own commit -> declare -> present sequence. `orchestrateObjectMove.ts` was migrated onto it the same slice. The narrate branch remains fully live outside this composer too: every character move orchestrator calls `presentStepSequence` directly rather than through this composer, because it commits in a different layer (`orchestrateCharacterRoomMembership`) than it presents (`orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect`) --- folding them into one commit-then-present call is a later, larger route-convergence change, not this one.
+**`executeStepSequence`'s live caller:** `actions/index.ts`'s object-directed `look` dispatch, in-process (Phase 4). **Widened 2026-09-08 (3e, MS-2)** to take a `CompiledPositionKernelPlan` (`{ steps, slots }`) plus a `bundleId` rather than a bare `KernelStep[]` --- the composer now declares the messageOrchestration bundle itself (from `plan.slots`, only after a successful commit, only when `plan.slots.length > 0`) before presenting, so a caller with a compiled plan no longer needs its own commit -> declare -> present sequence. `orchestrateObjectMove.ts` was migrated onto it the same slice. The narrate branch remains fully live outside this composer too: every character move calls `presentStepSequence` directly (inside `presentCharacterMove`, 3f/MS-6 --- merged from the former `orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect`) rather than through this composer, because it commits in a different layer (`orchestrateCharacterRoomMembership`) than it presents --- folding them into one commit-then-present call is a later, larger route-convergence change (3g), not this one.
 
 ### Presentation kernel
 
@@ -219,7 +219,7 @@ Character routes (navigate / home / connect / disconnect / ghost-purge repair), 
     -> commitStepSequence, on the compiled plan's mutation-kind steps
     -> presentStepSequence over the same compiled plan's narrate steps (no second compile)
     -> [character navigate/connect only, when changed && to !== null] parallel tail:
-         persistRoomStackNavigate + orchestrateCharacterNavigate
+         persistRoomStackNavigate + presentCharacterMove
 
 Object-lifecycle administrative routes (room place/remove, spawn, destroy/edit, drift repair)
   Ingress args (called directly, no coordinator file)

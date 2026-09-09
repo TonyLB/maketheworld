@@ -6,15 +6,15 @@ jest.mock('./syncMembershipAdjacency', () => ({
     syncMembershipAdjacencyToRoom: jest.fn(),
 }))
 
-jest.mock('./orchestrateCharacterDisconnect', () => ({
-    orchestrateCharacterDisconnect: jest.fn(),
+jest.mock('../../navigate/presentCharacterMove', () => ({
+    presentCharacterMove: jest.fn(),
 }))
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import { orchestrateCharacterRoomMembership } from './orchestrateCharacterRoomMembership'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
-import { orchestrateCharacterDisconnect } from './orchestrateCharacterDisconnect'
+import { presentCharacterMove } from '../../navigate/presentCharacterMove'
 import { repairRoomOccupancyDrift } from './repairRoomOccupancyDrift'
 
 const ROOM_ID = 'ROOM#alpha' as EphemeraRoomId
@@ -30,7 +30,7 @@ describe('repairRoomOccupancyDrift', () => {
     const streamEvent = jest.fn().mockResolvedValue(undefined)
     const applyMembershipMock = orchestrateCharacterRoomMembership as jest.MockedFunction<typeof orchestrateCharacterRoomMembership>
     const syncAdjacencyMock = syncMembershipAdjacencyToRoom as jest.MockedFunction<typeof syncMembershipAdjacencyToRoom>
-    const orchestrateDisconnectMock = orchestrateCharacterDisconnect as jest.MockedFunction<typeof orchestrateCharacterDisconnect>
+    const presentCharacterMoveMock = presentCharacterMove as jest.MockedFunction<typeof presentCharacterMove>
 
     const getLudicGraph = jest.fn()
     const getCharacterSessions = jest.fn()
@@ -70,9 +70,10 @@ describe('repairRoomOccupancyDrift', () => {
             { messageBus, streamEvent }
         )
         expect(syncAdjacencyMock).not.toHaveBeenCalled()
-        expect(orchestrateDisconnectMock).toHaveBeenCalledWith(
+        expect(presentCharacterMoveMock).toHaveBeenCalledWith(
             expect.objectContaining({
                 characterId: CHARACTER_ID,
+                to: null,
                 plan,
                 messageBus,
             })

@@ -15,17 +15,17 @@ import { NAVIGATE_HEADER_SLOT_ID } from './navigateBundleSlotIds'
 /** Navigate's compiled narration never includes a `describe` step (the header renders through the ingress-slot mechanism below, not this pipeline), so this dep is structurally unused --- present only because `PresentStepSequenceDeps` requires it. */
 const noopActionsStreamEvent: StreamEventFunction<ActionsPublishedPayload> = async () => {}
 
-export type OrchestrateCharacterNavigateArgs = {
+export type PresentCharacterMoveArgs = {
     characterId: EphemeraCharacterId;
-    characterMeta: CharacterMetaItem;
+    /** Only read when `to !== null` and the plan carries a header slot; disconnect/repair callers omit it. */
+    characterMeta?: CharacterMetaItem;
     to: EphemeraRoomId | null;
     /** messageOrchestration bundle correlation id; defaults to a fresh uuidv4() when the caller (connect/disconnect/repair) has no matching intent-leg bundleId. */
     bundleId?: string;
     /**
      * The plan `planCharacterMoveTransfer` already compiled pre-commit (3e, MS-2) --- this function
-     * presents it, it does not rebuild it. Absent means the move had nothing to compile (repair's own
-     * navigate-tail calls, which have no matching intent) and only the header-render machinery below
-     * runs, unchanged from before.
+     * presents it, it does not rebuild it. Absent means the move had nothing to compile (an unchanged
+     * membership, or repair's own navigate-tail calls with no matching intent).
      */
     plan?: CompiledPositionKernelPlan;
     /** The commit's captured rosters, from `orchestrateCharacterRoomMembership`'s result --- required to resolve narration audiences. */
@@ -34,21 +34,24 @@ export type OrchestrateCharacterNavigateArgs = {
 }
 
 /**
- * Post-persist navigate presentation (S1-13): declares this move's messageOrchestration bundle and
- * reports its narration, resolves the header slot
- * via the async render pipeline's Ingress registration, imperative header fallback. Does not perform
- * membership Dynamo writes or `RoomUpdate`/`EphemeraUpdate` (coordinator owns those).
+ * Post-persist character-move presentation (S1-13, merged with disconnect's presentation 3f/MS-6):
+ * declares this move's messageOrchestration bundle, presents its compiled narration, and --- only
+ * when there is a destination room (`to !== null`) --- resolves the arrival header slot via the async
+ * render pipeline's Ingress registration, falling back to an imperative `Perception` publish when the
+ * plan carries no header slot. Does not perform membership Dynamo writes or `RoomUpdate`/`EphemeraUpdate`
+ * (the coordinator owns those). Named `present*`, not `orchestrate*`: it never calls commit, so under
+ * the Phase 3 tier rule it does the core work of exactly one tier.
  *
  * The `Move` op is built and compiled exactly **once**, pre-commit, by `planCharacterMoveTransfer`
  * (3e, MS-2) --- including the header slot, since `to` and `characterMeta.assets` (the only inputs
  * `getCharacterRoomPerspectiveKey` needs) are both known before commit. This function only presents
  * the resulting plan; whether a header slot was declared is read back off `plan.slots` rather than
  * re-resolved. Connect passes a plan built with `intentKind: 'connect'` and flows through this same
- * function --- it always has a destination room, so the header-render logic applies unchanged.
- * Disconnect (and the ghost-purge repair sweep) never reach this function at all --- they have no
- * destination room to render a header for --- see `orchestrateCharacterDisconnect.ts`.
+ * path as navigate --- it always has a destination room. Disconnect and the ghost-purge repair sweep
+ * pass `to: null`: `planCharacterMoveTransfer` never resolves a header slot for a null destination, so
+ * the header branch below is unreachable for them, and only the bundle-declare/present prefix runs.
  */
-export const orchestrateCharacterNavigate = async ({
+export const presentCharacterMove = async ({
     characterId,
     characterMeta,
     to,
@@ -56,8 +59,8 @@ export const orchestrateCharacterNavigate = async ({
     plan,
     captures,
     messageBus,
-}: OrchestrateCharacterNavigateArgs): Promise<void> => {
-    if (!to || !plan) {
+}: PresentCharacterMoveArgs): Promise<void> => {
+    if (!plan) {
         return
     }
 
@@ -75,21 +78,20 @@ export const orchestrateCharacterNavigate = async ({
         captures
     )
 
-    let registeredCharacterMove = false
-
     if (headerSlotSpec) {
+        if (to === null) {
+            throw new Error('presentCharacterMove: a header slot was compiled without a destination room')
+        }
+        const destinationRoomId = to
         await registerIngressSlot(messageBus, bundleId, headerSlotSpec, async () => {
             await kickPassiveRenderRequestedForCharacterInRoom({
-                roomId: to,
+                roomId: destinationRoomId,
                 characterId,
-                assets: characterMeta.assets || [],
+                assets: characterMeta?.assets || [],
                 messageBus,
             })
         })
-        registeredCharacterMove = true
-    }
-
-    if (!registeredCharacterMove) {
+    } else if (to !== null) {
         messageBus.publish({
             type: 'Perception',
             characterId,

@@ -50,9 +50,9 @@ The perception system can be triggered by several different categories of events
 
 #### **Character Movement Events**
 - **Source**: `mtw.ephemera.positions` navigate/home execution and `Character Moved` stream facts
-- **Trigger Pattern**: Character moves rooms -> membership persist -> `orchestrateCharacterNavigate` registers perception threads -> header updates
+- **Trigger Pattern**: Character moves rooms -> membership persist -> `presentCharacterMove` registers perception threads -> header updates
 - **Perception Flow** (when the mover has a **non-empty** arrival-room **`perspectiveKey`**):
-  1. [`executeCharacterNavigate`](../dataSource/positions/navigate/executeCharacterNavigate.ts) persists via positions, then [`orchestrateCharacterNavigate`](../dataSource/positions/navigate/orchestrateNavigate.ts) registers a targeting-only **`characterMove`** perception thread and kicks passive **`Render Requested`** for the new room.
+  1. [`executeCharacterNavigate`](../dataSource/positions/navigate/executeCharacterNavigate.ts) persists via positions, then [`presentCharacterMove`](../dataSource/positions/navigate/presentCharacterMove.ts) registers a targeting-only **`characterMove`** perception thread and kicks passive **`Render Requested`** for the new room.
   2. Header **Generating** / terminal **`PublishMessage`** for the mover (**`targets`**) is delivered by render correlation in [`../dataSource/perception/orchestrate.ts`](../dataSource/perception/orchestrate.ts), analogous to **`roomHeaderBroadcast`**.
   3. Leave/Arrive narrative **`WorldMessage`** rows are **not** a perception path at all. They are compiled into the move's own kernel step sequence and published by the positions **presentation kernel** ([`presentStepSequence`](../dataSource/positions/manipulation/kernel/presentStepSequence.ts)) at commit time, addressed to the roster **captured mid-transaction** rather than a live room roster read at flush. Still not gated on header render lifecycle. Rules: [`positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#narration-and-presentation).
   4. Affordance refresh ("who is here?") is a **separate** **`RoomUpdate`** kick from membership apply (not **`characterMove`** lifecycle).

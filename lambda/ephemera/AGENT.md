@@ -274,7 +274,7 @@ For complete testing pattern documentation including dependency injection, real-
 - **`app.ts`**: Main lambda handler with WebSocket routing and EventBridge processing
 - **`perception/index.ts`**: Core perception filtering and character presence detection
 - **`ephemeraUpdate/index.ts`**: Real-time state broadcasting to connected clients
-- **`dataSource/positions/navigate/`**: Character navigate/home execution and post-persist presentation (`executeCharacterNavigate`, `orchestrateCharacterNavigate`); membership fan-in owns leave/arrive world copy
+- **`dataSource/positions/navigate/`**: Character navigate/home execution and post-persist presentation (`executeCharacterNavigate`, `presentCharacterMove`); membership fan-in owns leave/arrive world copy
 - **`routeTrustedUiAction`**: Trusted UI action ingress (look, move, home, speech) -> **`Action Assessed`**
 
 ## Related Documentation

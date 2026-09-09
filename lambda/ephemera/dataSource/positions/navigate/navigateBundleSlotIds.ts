@@ -1,7 +1,7 @@
 /**
  * The messageOrchestration slot id for a navigate/home bundle's *header* render --- the room
  * description addressed to the mover alone. Navigate-owned: it is declared and consumed by
- * `orchestrateNavigate.ts`'s `registerIngressSlot`/`kickPassiveRenderRequestedForCharacterInRoom`
+ * `presentCharacterMove.ts`'s `registerIngressSlot`/`kickPassiveRenderRequestedForCharacterInRoom`
  * pair, a mechanism entirely separate from the presentation kernel, which is why
  * `compilePositionKernelOp` passes a caller-supplied `headerSlot` through untouched and never emits a
  * `describe` step for it.

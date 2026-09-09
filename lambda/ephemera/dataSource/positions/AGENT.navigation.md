@@ -30,7 +30,7 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | [`../perception/AGENT.md`](../perception/AGENT.md) | Terminal `PublishMessage`, membership fan-in intent legs |
 | [`index.ts`](index.ts) | Navigate / home execution ingress (`Character Navigate`, `Character Home` -> `executeCharacterNavigate`) |
 | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) | Shared persist + orchestrate helper |
-| [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) | Post-persist navigate presentation |
+| [`navigate/presentCharacterMove.ts`](navigate/presentCharacterMove.ts) | Post-persist presentation for every character route (navigate/home/connect/disconnect/ghost-purge repair --- 3f, MS-6) |
 | [`manipulation/membership/orchestrateCharacterRoomMembership.ts`](manipulation/membership/orchestrateCharacterRoomMembership.ts) | Membership persistence coordinator (slice 1a) |
 | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair on **`Room Occupancy Drift Finding`** |
 | [`../../../diagnostics/roomOccupancyDriftSweep/`](../../../diagnostics/roomOccupancyDriftSweep/) | Read-only graph-forward occupancy drift classification; emits **`Room Occupancy Drift Finding`** |

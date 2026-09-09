@@ -4,13 +4,13 @@ import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import { persistRoomStackNavigate } from '../manipulation/membership/persistRoomStackNavigate'
 import type { MembershipApplySuccessResult, MembershipApplyResult } from '../manipulation/membership/types'
-import { orchestrateCharacterNavigate } from './orchestrateNavigate'
+import { presentCharacterMove } from './presentCharacterMove'
 
 export type AfterCharacterMembershipNavigateChangedArgs = {
     characterId: EphemeraCharacterId;
     characterMeta: CharacterMetaItem;
     result: MembershipApplyResult;
-    /** messageOrchestration bundle correlation id; when omitted, orchestrateCharacterNavigate mints its own. */
+    /** messageOrchestration bundle correlation id; when omitted, presentCharacterMove mints its own. */
     bundleId?: string;
     messageBus: MessageBus;
     getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
@@ -69,7 +69,7 @@ export const afterCharacterMembershipNavigateChanged = async ({
             const message = error instanceof Error ? error.message : String(error)
             console.error(`[mtw.ephemera.positions] persistRoomStackNavigate failed: ${message}`)
         }),
-        orchestrateCharacterNavigate({
+        presentCharacterMove({
             characterId,
             characterMeta,
             to,

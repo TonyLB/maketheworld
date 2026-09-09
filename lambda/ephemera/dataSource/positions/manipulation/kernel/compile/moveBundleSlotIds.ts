@@ -13,7 +13,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
  * room-typing was incidental to navigate, never meaningful in itself.
  *
  * `NAVIGATE_HEADER_SLOT_ID` deliberately stays in `navigateBundleSlotIds.ts`: the header render is a
- * separate, navigate-owned mechanism (`orchestrateNavigate.ts`'s `registerIngressSlot`), not
+ * separate, navigate-owned mechanism (`presentCharacterMove.ts`'s `registerIngressSlot`), not
  * something this compiler emits.
  */
 export const moveLeaveSlotId = (hostId: EphemeraMembershipHostId): string => `leave:${hostId}`

@@ -46,7 +46,7 @@ const objectMoveVerb = (
  * `AGENT.concepts.md`, "Abstract op and compiled step."
  *
  * `op.headerSlot`'s presence in `slots` is unconditional, independent of `op.narration` --- the
- * header render is a separate, already-shipped mechanism (`orchestrateNavigate.ts`'s
+ * header render is a separate, already-shipped mechanism (`presentCharacterMove.ts`'s
  * `registerIngressSlot`/`kickPassiveRenderRequestedForCharacterInRoom`, keyed off this same declared
  * slot), not the presentation kernel's `describe` branch, so this compiler never emits a `describe`
  * step for it --- doing so would fire a second, conflicting render request. Object routes have no

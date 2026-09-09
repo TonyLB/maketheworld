@@ -2,21 +2,21 @@ jest.mock('../manipulation/membership/persistRoomStackNavigate', () => ({
     persistRoomStackNavigate: jest.fn(),
 }))
 
-jest.mock('./orchestrateNavigate', () => ({
-    orchestrateCharacterNavigate: jest.fn(),
+jest.mock('./presentCharacterMove', () => ({
+    presentCharacterMove: jest.fn(),
 }))
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { MessageBus } from '../../../messageBus/baseClasses'
 import * as persistRoomStack from '../manipulation/membership/persistRoomStackNavigate'
-import * as orchestrateNavigate from './orchestrateNavigate'
+import * as presentCharacterMove from './presentCharacterMove'
 import { afterCharacterMembershipNavigateChanged } from './afterCharacterMembershipNavigateChanged'
 
 const persistRoomStackNavigateMock = persistRoomStack.persistRoomStackNavigate as jest.MockedFunction<
     typeof persistRoomStack.persistRoomStackNavigate
 >
-const orchestrateCharacterNavigateMock = orchestrateNavigate.orchestrateCharacterNavigate as jest.MockedFunction<
-    typeof orchestrateNavigate.orchestrateCharacterNavigate
+const presentCharacterMoveMock = presentCharacterMove.presentCharacterMove as jest.MockedFunction<
+    typeof presentCharacterMove.presentCharacterMove
 >
 
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
@@ -42,7 +42,7 @@ describe('afterCharacterMembershipNavigateChanged', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         persistRoomStackNavigateMock.mockResolvedValue(undefined)
-        orchestrateCharacterNavigateMock.mockResolvedValue(undefined)
+        presentCharacterMoveMock.mockResolvedValue(undefined)
     })
 
     it('runs persist and orchestrate in parallel when changed with non-null to', async () => {
@@ -55,7 +55,7 @@ describe('afterCharacterMembershipNavigateChanged', () => {
             resolvePersist!()
             await orchestrateStarted
         })
-        orchestrateCharacterNavigateMock.mockImplementation(async () => {
+        presentCharacterMoveMock.mockImplementation(async () => {
             resolveOrchestrate!()
             await persistStarted
         })
@@ -84,7 +84,7 @@ describe('afterCharacterMembershipNavigateChanged', () => {
             roomAssets: ['ASSET#TownCenter'],
             canonAssets: ['primitives', 'TownCenter'],
         })
-        expect(orchestrateCharacterNavigateMock).toHaveBeenCalledWith({
+        expect(presentCharacterMoveMock).toHaveBeenCalledWith({
             characterId: CHARACTER_ID,
             characterMeta,
             to: TO_ROOM,
@@ -114,7 +114,7 @@ describe('afterCharacterMembershipNavigateChanged', () => {
             getCanonAssets,
         })).resolves.toBeUndefined()
 
-        expect(orchestrateCharacterNavigateMock).toHaveBeenCalled()
+        expect(presentCharacterMoveMock).toHaveBeenCalled()
         expect(consoleSpy).toHaveBeenCalledWith(
             expect.stringContaining('[mtw.ephemera.positions] persistRoomStackNavigate failed:')
         )
@@ -135,7 +135,7 @@ describe('afterCharacterMembershipNavigateChanged', () => {
         })
 
         expect(persistRoomStackNavigateMock).not.toHaveBeenCalled()
-        expect(orchestrateCharacterNavigateMock).not.toHaveBeenCalled()
+        expect(presentCharacterMoveMock).not.toHaveBeenCalled()
     })
 
     it('skips when to is null', async () => {
@@ -153,7 +153,7 @@ describe('afterCharacterMembershipNavigateChanged', () => {
         })
 
         expect(persistRoomStackNavigateMock).not.toHaveBeenCalled()
-        expect(orchestrateCharacterNavigateMock).not.toHaveBeenCalled()
+        expect(presentCharacterMoveMock).not.toHaveBeenCalled()
     })
 
     it('skips when apply failed', async () => {
@@ -169,6 +169,6 @@ describe('afterCharacterMembershipNavigateChanged', () => {
         })
 
         expect(persistRoomStackNavigateMock).not.toHaveBeenCalled()
-        expect(orchestrateCharacterNavigateMock).not.toHaveBeenCalled()
+        expect(presentCharacterMoveMock).not.toHaveBeenCalled()
     })
 })

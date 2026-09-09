@@ -6,7 +6,7 @@ import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { orchestrateCharacterRoomMembership } from './orchestrateCharacterRoomMembership'
-import { orchestrateCharacterDisconnect } from './orchestrateCharacterDisconnect'
+import { presentCharacterMove } from '../../navigate/presentCharacterMove'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 
 export type RepairRoomOccupancyDriftArgs = {
@@ -70,8 +70,9 @@ export const repairRoomOccupancyDrift = async (
             )
             if (result.ok && result.changed) {
                 ghostsPurged += 1
-                await orchestrateCharacterDisconnect({
+                await presentCharacterMove({
                     characterId,
+                    to: null,
                     bundleId,
                     plan: result.plan,
                     captures: result.captures,

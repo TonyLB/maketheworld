@@ -14,8 +14,8 @@ jest.mock('./manipulation/membership/repairRoomOccupancyDrift', () => ({
     repairRoomOccupancyDrift: jest.fn(),
 }))
 
-jest.mock('./manipulation/membership/orchestrateCharacterDisconnect', () => ({
-    orchestrateCharacterDisconnect: jest.fn(),
+jest.mock('./navigate/presentCharacterMove', () => ({
+    presentCharacterMove: jest.fn(),
 }))
 
 jest.mock('../../internalCache', () => ({
@@ -43,7 +43,7 @@ import internalCache from '../../internalCache'
 import { orchestrateCharacterRoomMembership } from './manipulation/membership/orchestrateCharacterRoomMembership'
 import { resolveConnectTargetRoom } from './manipulation/membership/resolveConnectTargetRoom'
 import { repairRoomOccupancyDrift } from './manipulation/membership/repairRoomOccupancyDrift'
-import { orchestrateCharacterDisconnect } from './manipulation/membership/orchestrateCharacterDisconnect'
+import { presentCharacterMove } from './navigate/presentCharacterMove'
 import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { executeEstablishEdgeChain } from './manipulation/relational/executeObjectEstablishRelation'
@@ -59,8 +59,8 @@ const resolveConnectTargetRoomMock = resolveConnectTargetRoom as jest.MockedFunc
 const repairRoomOccupancyDriftMock = repairRoomOccupancyDrift as jest.MockedFunction<
     typeof repairRoomOccupancyDrift
 >
-const orchestrateCharacterDisconnectMock = orchestrateCharacterDisconnect as jest.MockedFunction<
-    typeof orchestrateCharacterDisconnect
+const presentCharacterMoveMock = presentCharacterMove as jest.MockedFunction<
+    typeof presentCharacterMove
 >
 const characterMetaGetMock = internalCache.CharacterMeta.get as jest.MockedFunction<
     typeof internalCache.CharacterMeta.get
@@ -136,7 +136,7 @@ describe('positions receive paths (integration)', () => {
         orchestrateObjectMoveMock.mockResolvedValue(undefined)
         getMembershipContainersMock.mockResolvedValue([ROOM_A])
         repairRoomOccupancyDriftMock.mockResolvedValue({ ghostsPurged: 0, adjacencySynced: 0 })
-        orchestrateCharacterDisconnectMock.mockResolvedValue(undefined)
+        presentCharacterMoveMock.mockResolvedValue(undefined)
         characterMetaGetMock.mockResolvedValue({
             EphemeraId: CHARACTER_ID,
             Name: 'Alpha',

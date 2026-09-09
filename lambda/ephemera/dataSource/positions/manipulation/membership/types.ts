@@ -60,7 +60,7 @@ export type MembershipApplySuccessResult = {
     roomRosterSnapshots?: Partial<Record<EphemeraRoomId, RoomCharacterListItem[]>>;
     /** Phase 2: the commit's captured rosters (`MutationKernelCaptures`), passed through so a caller whose committed steps included capture steps can feed `presentStepSequence`'s narration branch. Empty when the committed steps carried no capture steps (every route but navigate today). */
     captures?: import('../kernel/types').MutationKernelCaptures;
-    /** 3e, MS-2: the plan `planCharacterMoveTransfer` already compiled, carried through commit so `orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect` present it rather than rebuilding it. Unset when `changed: false` (nothing was ever compiled). */
+    /** 3e, MS-2: the plan `planCharacterMoveTransfer` already compiled, carried through commit so `presentCharacterMove` (3f, MS-6 --- merged from the former `orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect`) presents it rather than rebuilding it. Unset when `changed: false` (nothing was ever compiled). */
     plan?: import('../kernel/compile/compilePositionKernelOp').CompiledPositionKernelPlan;
 } & MembershipDiff
 
@@ -87,8 +87,8 @@ export type ObjectMembershipDiff = {
  */
 export type IntentKind = 'navigate' | 'home' | 'connect' | 'disconnect'
 
-/** `intentKind` as accepted by navigate's shared post-persist machinery --- disconnect never reaches it (see `orchestrateCharacterDisconnect.ts`). */
+/** `intentKind` as accepted by navigate's shared pre-commit planning machinery --- disconnect never reaches it (compiled as `intentKind: 'disconnect'` only for `planCharacterMoveTransfer`'s own vocabulary, not this one). */
 export type NavigateIntentKind = Exclude<IntentKind, 'disconnect'>
 
-/** `intentKind` as accepted by `executeCharacterNavigate` --- the typed-command/UI-exit and home routes only; connect/disconnect/repair call `orchestrateCharacterNavigate`'s tail directly instead. */
+/** `intentKind` as accepted by `executeCharacterNavigate` --- the typed-command/UI-exit and home routes only; connect/disconnect/repair call `presentCharacterMove`'s tail directly instead (3f, MS-6). */
 export type ExecuteNavigateIntentKind = Extract<IntentKind, 'navigate' | 'home'>

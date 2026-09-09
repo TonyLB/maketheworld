@@ -63,7 +63,7 @@ export type OrchestrateObjectMoveArgs = {
  * object as the room's perspective saw it, which is what witnesses in that room would have called it.
  *
  * The bundle is declared **after** a successful commit (`executeStepSequence`'s own sequencing),
- * matching `orchestrateCharacterNavigate`'s shape. That is a consistency preference, not a
+ * matching `presentCharacterMove`'s shape. That is a consistency preference, not a
  * correctness requirement, and is recorded as such so it is neither "corrected" later on a mistaken
  * safety belief nor treated as load-bearing: the messageOrchestration fan-in deliberately skips
  * declared slots that never receive a report, so a bundle declared ahead of a failed commit would

@@ -19,7 +19,7 @@ export type PlanCharacterMoveTransferArgs = {
     /**
      * Async header-slot resolution, supplied only by navigate/connect; disconnect/repair omit it.
      * Called only once the move is confirmed changed and has a real destination, so a no-op move
-     * never pays for it --- matches today's behavior, where `orchestrateCharacterNavigate` (the
+     * never pays for it --- matches today's behavior, where `presentCharacterMove` (the
      * only caller of `getCharacterRoomPerspectiveKey`) never runs for an unchanged move.
      */
     resolveHeaderSlot?: (to: EphemeraRoomId) => Promise<MessageOrchestrationSlotSpec | null>
