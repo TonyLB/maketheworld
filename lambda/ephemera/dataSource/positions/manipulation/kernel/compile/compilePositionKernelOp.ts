@@ -85,7 +85,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
         toHostId: op.to,
     }
 
-    // LP7 widened HostRelationalEdge.from/to to EphemeraLudicTerminalId; no producer can build a
+    // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed; no producer can build a
     // port-qualified boundary edge yet, so skip rather than assume (matches the ludicGraph
     // boundary/carry-closure narrows, ludicGraph/AGENT.md's BD-36 paragraph).
     // `hostId: op.froms[0]` --- `dissolvedEdges` is only ever populated by `buildObjectMoveOp`
@@ -126,10 +126,9 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
 
     const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []
 
-    // one presence port per rehost, every mover regardless of host kind (RD-1, presence-refactor
-    // plan step 2 --- previously gated on `op.moved.kind === 'closure'`, excluding characters; that
-    // gate is lifted here). Mechanics --- the remove-then-add pair, the missing-clear fix --- live
-    // in `presencePortStepsForMove`, shared with `executeMembershipTransfer`'s default path (RD-3).
+    // one presence port per rehost, every mover regardless of host kind (RD-1). Mechanics ---
+    // the remove-then-add pair, the missing-clear fix --- live in `presencePortStepsForMove`,
+    // shared with `executeMembershipTransfer`'s default path (RD-3).
     const presencePortSteps = presencePortStepsForMove(primaryMovedId, op.froms, op.to)
 
     if (!op.narration) {

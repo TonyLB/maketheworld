@@ -22,8 +22,8 @@ import type { MutationKernelCaptures } from './types'
  * The presentation kernel's copy-generator: the *only* consumer of a narration step's `narration`
  * field, and the one place a `NarrationSpecification` is dispatched on. Kept deliberately thin ---
  * the expectation was that a second family would arrive as a `case` delegating to a per-family
- * module rather than a block of copy logic inlined here. Phase 4's `objectMove` case is inline
- * because it is five lines; the per-family module is what to reach for when a family's copy logic
+ * module rather than a block of copy logic inlined here. The `objectMove` case is inline because
+ * it is five lines; the per-family module is what to reach for when a family's copy logic
  * stops fitting in a glance, not a rule to apply pre-emptively. See `kernelStep.ts`'s
  * `NarrationSpecification` doc for the conditions under which this dispatcher should give way to
  * polymorphism instead.

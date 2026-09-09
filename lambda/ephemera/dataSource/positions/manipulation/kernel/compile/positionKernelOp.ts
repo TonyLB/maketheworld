@@ -43,10 +43,9 @@ export type ObjectMoveNarrationInput = {
  * `MutationKernelTransferStep` already does (BD-36) --- rather than at the level a player
  * experiences it (a character-only, room-only "navigate" op sitting one layer above a type that's
  * already general). `Move` is the only member of `PositionKernelOp`; it is a closed union
- * because world operations are genuinely enumerable, and Phase 4 confirmed the shape by migrating
- * object take/drop onto `Move` itself rather than adding sibling `Take`/`Drop` ops --- take/drop/give
- * is definitionally a move of an entity between two membership hosts, the same shape as a character
- * moving room to room, so the direction never needed to be an op discriminant.
+ * because world operations are genuinely enumerable --- take/drop/give is definitionally a move of
+ * an entity between two membership hosts, the same shape as a character moving room to room, so the
+ * direction never needed to be an op discriminant, and no sibling `Take`/`Drop` ops exist.
  *
  * `moved` is a bare entity id, not a `{kind, ...}` union --- retired 2026-09-07 (MS-8) along with
  * `PositionKernelMovedSet`. The union existed to let a closure's primacy come from `fragment.rootId`

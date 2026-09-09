@@ -37,7 +37,7 @@ export function detectRelationalCycle(
     kind: 'On' | 'Under'
 ): boolean {
     /**
-     * `edge.from`/`.to` are `EphemeraLudicTerminalId`-typed (LP4/LP7) --- any legal
+     * `edge.from`/`.to` are `EphemeraLudicTerminalId`-typed --- any legal
      * host-kind component or a port-qualified reference on one --- but `'On'`/`'Under'` are
      * spatial placement kinds that only ever connect Objects in practice; a non-Object
      * endpoint here would not be a cycle this operator's semantics care about, so it's

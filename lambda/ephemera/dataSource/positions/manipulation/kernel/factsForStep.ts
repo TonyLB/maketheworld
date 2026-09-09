@@ -16,8 +16,7 @@ import type {
 } from '../../publishedEvents'
 import type { MutationKernelStep } from './kernelStep'
 
-// LP4g: widened from EphemeraObjectId/graph.objectIds to the full terminal-kind set,
-// via the kind-indifferent nodeIds getter LP4 built for exactly this purpose.
+// Kind-indifferent: checks graph.nodeIds (any terminal kind), not graph.objectIds.
 const findHostOf = (
     id: EphemeraLudicTerminalPrimitive,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
@@ -32,10 +31,9 @@ const findHostOf = (
 
 /**
  * BD-27c's generic fact-streaming mapping: walks the *output-ordered* steps (not a hand-assembled
- * subset) and maps each to zero-or-more facts. Streaming in step order is what actually delivers
- * BD-28's original goal --- a carry's steps are `[dissolveRelation*, transferMembership]`, so
- * dissolve facts stream before the moved fact, genuinely new behavior (today's implicit
- * `removeObject`-stripping path never streams a fact for a carry-severed relation at all).
+ * subset) and maps each to zero-or-more facts. Streaming in step order (BD-28) is what guarantees a
+ * carry's steps --- `[dissolveRelation*, transferMembership]` --- stream their dissolve facts before
+ * the moved fact.
  *
  * Character-kind fact emission (folded in for the character-route Migrate row, BD-36): the character
  * subset of a `transferMembership`'s `entityIds` produces a `Character Moved` fact here too, via
@@ -48,9 +46,9 @@ const findHostOf = (
  *
  * One combined `Object Moved`/`Character Moved` fact per entity, with `froms: [...fromHostIds]`/
  * `to: toHostId` --- matching `buildObjectMovedFact`/`buildCharacterMovedFact`'s existing multi-`froms`/
- * nullable-`to` diff shape --- rather than one fact per host, so the object-lifecycle routes' widened
- * (plural-`froms`, nullable-`to`) steps keep the same single-fact-per-entity behavior their non-kernel
- * predecessors already had.
+ * nullable-`to` diff shape --- rather than one fact per host, so the object-lifecycle routes'
+ * (plural-`froms`, nullable-`to`) steps get the same single-fact-per-entity behavior as every other
+ * caller.
  *
  * `priorGraphs` (object-lifecycle Migrate row): a `dissolveRelation` step's endpoint can be entirely
  * removed from the footprint by a later pure-remove `transferMembership` step in the same sequence

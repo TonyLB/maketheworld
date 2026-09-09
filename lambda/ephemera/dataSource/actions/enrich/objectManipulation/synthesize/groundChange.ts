@@ -67,14 +67,14 @@ export const groundChange = (change: Change, context: GroundingContext): GroundC
                 return host
             }
 
-            // LP4c-i: HostRelationalEdgeKind widened (ephemeraMeta.ts) to admit containment
-            // ('In'/'PartOf'), but ParsePlanStep's relationKind stays the narrow set
-            // (LD-13, parsePlanStep.ts). Unreachable today: isContainmentSpan routes containment
-            // language to nestingDefer before a Change carrying one reaches here. **`On` joined
-            // this guard 2026-08-22** (Channel D, CD2, reduced scope): it is a hosting kind too
-            // now, deferred at ingress the same way, and equally unreachable here. **`Present`
-            // joined 2026-08-22** (presence plan PR-4): an internal port/cover mechanism, never
-            // a WML establishRelation/dissolveRelation target, deferred at ingress the same way.
+            // ParsePlanStep's relationKind is HostRelationalEdgeKind's narrow set (LD-13,
+            // parsePlanStep.ts), even though HostRelationalEdgeKind itself (ephemeraMeta.ts) also
+            // admits containment ('In'/'PartOf'), 'On', and 'Present'. All four are unreachable
+            // here: isContainmentSpan routes containment language to nestingDefer before a Change
+            // carrying one reaches here; 'On' is a hosting kind deferred at ingress the same way
+            // (Channel D, CD2); 'Present' is an internal port/cover mechanism, never a WML
+            // establishRelation/dissolveRelation target, deferred at ingress the same way
+            // (presence plan PR-4).
             if (change.relationKind === 'In' || change.relationKind === 'PartOf' || change.relationKind === 'On' || change.relationKind === 'Present') {
                 return { ok: false, reason: 'Containment and presence relation kinds are not yet groundable as establishRelation/dissolveRelation steps' }
             }

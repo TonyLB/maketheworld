@@ -252,8 +252,8 @@ const commandExpand = (
                 }
             }
 
-            // LP7 widened HostRelationalEdge.from/to to EphemeraLudicTerminalId, but no producer
-            // can build a port-qualified boundary edge yet (this is Object-only carry/boundary
+            // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed, but no producer can
+            // build a port-qualified boundary edge yet (this is Object-only carry/boundary
             // machinery, ludicGraph/AGENT.md's BD-36 paragraph) --- skip rather than assume.
             const dissolveOutcomes = outcomes.filter(
                 (entry) => entry.outcome === 'dissolve'

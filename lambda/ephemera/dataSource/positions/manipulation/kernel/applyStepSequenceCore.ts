@@ -10,9 +10,8 @@ import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
 /**
- * The hosts (plural) an id currently appears on as a node --- LP4g's `findHostOf`, widened from a
- * single-match short-circuit. A node can legitimately be a member of more than one locked graph at
- * once: an AB-54 hosting kind (`On`/`In`/`PartOf`) makes a host object both an ordinary member of
+ * The hosts (plural) an id currently appears on as a node. A node can legitimately be a member of
+ * more than one locked graph at once: an AB-54 hosting kind (`On`/`In`/`PartOf`) makes a host object both an ordinary member of
  * whatever *it* sits in (its own container) and the self-referencing root of its own shard --- both
  * of those graphs can be in the same footprint (e.g. a `put cup on table` transfer locks the room
  * *and* the table's own shard). Returning every match, not just the first one met while walking the
@@ -42,13 +41,10 @@ const hostsOf = (
 }
 
 /**
- * This is narrowed from a *resolver* to an *assertion*: `establishRelation`/
- * `dissolveRelation` now carry their own `hostId`, computed once at Expansion
- * (`expandSameHost`'s resolved host; each `buildCrossingLegs` leg's own placement) --- this
- * function's job is to confirm that carried value against live footprint state, not to derive it
- * from scratch the way the old intersection-based version did (see git history for that version's
- * own doc comment, which explained the AB-54 mis-resolution its intersection approach fixed; that
- * reasoning is now Expansion's problem, not commit's).
+ * `establishRelation`/`dissolveRelation` carry their own `hostId`, computed once at Expansion
+ * (`expandSameHost`'s resolved host; each `buildCrossingLegs` leg's own placement); this function's
+ * job is to confirm that carried value against live footprint state, not to derive a host from
+ * scratch.
  *
  * `hostsOf` still separates two outcomes: an endpoint absent from the *entire* locked footprint
  * (legitimately stale --- the world can change between Expansion and commit, `illegal`, not a
@@ -97,20 +93,18 @@ const confirmCarriedHost = (
  * `transferMembership` step reads it, because the worklist that produced this array already
  * guaranteed that order.
  *
- * `transferMembership` (BD-36-generalized, object-lifecycle-Migrate-row-widened, and RD-4/
- * presenceRefactor-step-3-widened to admit Room/Feature): dispatches by shape on
- * `fromHostIds`/`toHostId`. **Real transfer** (`fromHostIds` has exactly one member, `toHostId`
- * non-null): the whole `entityIds` set --- objects and characters together --- routes through
- * `applyTransferSet` (it dispatches by kind itself, `removeObject`/`addObject` for objects and
- * `removeCharacter`/`addCharacter` for characters, so no separate character swap is needed here;
- * only objects get the full boundary-edge legality machinery, since a character can never carry a
- * relational edge, BD-36's widening deferred). **Room/Feature/Area never relocate (unwidened
- * here deliberately)**, so a Room/Feature id reaching this branch **throws** before
- * `applyTransferSet` --- which has no dispatch for either kind --- is ever called. (It returned an
- * `unsupportedTransferEntityKind` verdict until 2026-09-08; a caller bug is a structural-invariant
- * violation, so it belongs on the throw side of the split described below.) **Pure remove** (`toHostId === null`) and **pure add** (`fromHostIds`
- * empty) share one kind-agnostic loop over `nodeIds`/`addNode`/`removeNode` (`EphemeraLudicGraph`'s
- * own kind dispatch, RD-4) rather than one loop per entity kind: a presence-check then
+ * `transferMembership` (BD-36) dispatches by shape on `fromHostIds`/`toHostId`. **Real transfer**
+ * (`fromHostIds` has exactly one member, `toHostId` non-null): the whole `entityIds` set --- objects
+ * and characters together --- routes through `applyTransferSet` (it dispatches by kind itself,
+ * `removeObject`/`addObject` for objects and `removeCharacter`/`addCharacter` for characters, so no
+ * separate character swap is needed here; only objects get the full boundary-edge legality
+ * machinery, since a character can never carry a relational edge). **Room/Feature/Area never
+ * relocate**, so a Room/Feature id reaching this branch **throws** before `applyTransferSet` ---
+ * which has no dispatch for either kind --- is ever called; a caller bug is a structural-invariant
+ * violation, so it belongs on the throw side of the split described below. **Pure remove**
+ * (`toHostId === null`) and **pure add** (`fromHostIds` empty) share one kind-agnostic loop over
+ * `nodeIds`/`addNode`/`removeNode` (`EphemeraLudicGraph`'s own kind dispatch, RD-4) rather than one
+ * loop per entity kind: a presence-check then
  * `removeNode`/`addNode` for each host --- no boundary-sweep here, since the caller is responsible
  * for having already seeded explicit `dissolveRelation` steps for every edge the entity carried (an
  * object-lifecycle route uses `boundaryEdgeOutcomes` on a singleton set, collapsing every outcome to
@@ -132,7 +126,7 @@ const confirmCarriedHost = (
  * This function has no verdict meaning "the world forbids this" because it makes no such judgment
  * --- it checks mechanism, and legality is the enrich tier's question. See `types.ts`.
  *
- * `addPresencePort`/`removePresencePort` (RD-2, 2026-09-04): the moved entity's own presence
+ * `addPresencePort`/`removePresencePort` (RD-2): the moved entity's own presence
  * binding, one step per add or remove rather than one step replacing whatever was there --- see
  * `kernelStep.ts`'s doc comments. `removePresencePort` is a plain filter-by-`fromHostId`, so
  * removing an absent binding is a silent no-op.
@@ -166,16 +160,13 @@ export const applyStepSequenceCore = (
 
             // Real transfer: exactly the shape the two already-migrated player routes produce.
             if (fromHostIds.length === 1 && toHostId !== null) {
-                // Deliberately unwidened: Room/Feature/Area are hosts that never relocate, so a
-                // Room/Feature id reaching a real (single-from, single-to) transfer is a caller bug ---
-                // `applyTransferSet` has no dispatch for either kind, and step 3's own callers only ever
-                // emit a pure add for them (see `kernelStep.ts`'s doc comment on this widening).
-                //
-                // Throws rather than returning a verdict (2026-09-08): the comment above already
-                // calls this a caller bug, and the Throw-vs-verdict rule stated at the head of this
-                // file puts structural-invariant violations outside the result type. It was a
-                // verdict only by oversight. No behavior change --- `commitStepSequence`'s BD-31
-                // collapse throws from inside the same reducer and lands in the same catch.
+                // Room/Feature/Area are hosts that never relocate, so a Room/Feature id reaching a
+                // real (single-from, single-to) transfer is a caller bug --- `applyTransferSet` has
+                // no dispatch for either kind, and every caller emits a pure add for them instead
+                // (see `kernelStep.ts`'s doc comment). The Throw-vs-verdict rule stated at the head
+                // of this file puts structural-invariant violations outside the result type, so this
+                // throws rather than returning a verdict; `commitStepSequence`'s BD-31 collapse
+                // throws from inside the same reducer and lands in the same catch.
                 const hasRoomOrFeature = [...step.entityIds].some((id) => isEphemeraRoomId(id) || isEphemeraFeatureId(id))
                 if (hasRoomOrFeature) {
                     throw new Error(
@@ -240,7 +231,7 @@ export const applyStepSequenceCore = (
             // carry-closure to run here (the caller already seeded explicit `dissolveRelation`
             // steps for a pure remove; a pure add is a freshly-spawned entity with no prior edges).
             // One loop over `nodeIds`/`addNode`/`removeNode` covers all four entity kinds ---
-            // `EphemeraLudicGraph.addNode`/`removeNode` (RD-4, presenceRefactor step 3) is the
+            // `EphemeraLudicGraph.addNode`/`removeNode` (RD-4) is the
             // kind-dispatch, so this branch doesn't have to re-derive it per kind.
             for (const fromHostId of fromHostIds) {
                 const sourceGraph = graphs.get(fromHostId)
