@@ -6,7 +6,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { ActionsPublishedPayload } from '../../../actions/publishedEvents'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
-import { executeStepSequence } from '../kernel/executeStepSequence'
+import { commitAndPresentStepSequence } from '../kernel/commitAndPresentStepSequence'
 import { resolveObjectMovePresentationLabels } from '../../../perception/resolveObjectMovePresentationLabels'
 import { planObjectMoveTransfer } from './planObjectMoveTransfer'
 
@@ -45,7 +45,8 @@ export type OrchestrateObjectMoveArgs = {
  * The narrating entry point for a player-driven object move --- take, drop, and eventually give
  * give. `planObjectMoveTransfer` builds and dry-runs the plan (3d, 2026-09-08's replacement for
  * `executeMembershipTransfer`'s retired `honorDefer` mode); this function hands the compiled plan to
- * the shared `executeStepSequence` composer (3e, MS-2), which commits it, declares the
+ * the shared `commitAndPresentStepSequence` composer (3e, MS-2; renamed from `executeStepSequence` in
+ * 3g), which commits it, declares the
  * messageOrchestration bundle (from `plan.slots`, only on a successful commit), and presents the
  * compiled narrate steps --- no manual commit/declare/present sequence of its own anymore. Every
  * non-narrating object-lifecycle move (spawn/destroy/place/remove) still calls
@@ -62,7 +63,7 @@ export type OrchestrateObjectMoveArgs = {
  * having left the room graph, so resolving early costs nothing in fidelity; a take's copy names the
  * object as the room's perspective saw it, which is what witnesses in that room would have called it.
  *
- * The bundle is declared **after** a successful commit (`executeStepSequence`'s own sequencing),
+ * The bundle is declared **after** a successful commit (`commitAndPresentStepSequence`'s own sequencing),
  * matching `presentCharacterMove`'s shape. That is a consistency preference, not a
  * correctness requirement, and is recorded as such so it is neither "corrected" later on a mistaken
  * safety belief nor treated as load-bearing: the messageOrchestration fan-in deliberately skips
@@ -98,7 +99,7 @@ export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Pr
     }
 
     const { plan } = planResult
-    await executeStepSequence(
+    await commitAndPresentStepSequence(
         plan,
         bundleId,
         characterId,

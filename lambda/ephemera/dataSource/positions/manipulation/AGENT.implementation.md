@@ -177,13 +177,13 @@ Character-kind emission is folded into `factsForStep` rather than layered on aft
 
 ### Ordering: commit, then present
 
-[`executeStepSequence`](kernel/executeStepSequence.ts) invokes the mutation kernel first, `await`s its commit to completion, and only then invokes the presentation kernel against the same shared `KernelStep[]`. This is a property of *invocation*, not of array order --- a caller must not rely on `describe` steps trailing mutation steps. If the commit fails, the presentation kernel is never invoked.
+[`commitAndPresentStepSequence`](kernel/commitAndPresentStepSequence.ts) (renamed from `executeStepSequence` in 3g --- `execute` named a tier ambiguously; this function computes nothing of its own, so its name says what it does instead) invokes the mutation kernel first, `await`s its commit to completion, and only then invokes the presentation kernel against the same shared `KernelStep[]`. This is a property of *invocation*, not of array order --- a caller must not rely on `describe` steps trailing mutation steps. If the commit fails, the presentation kernel is never invoked.
 
 **Do not read this as the positional/terminal distinction.** Both presentation branches run post-commit; what separates them is *where their state came from* --- a `describe` step reads the final committed graphs, a `narrate` step reads a roster captured mid-walk. Restating positional binding as an ordering rule loses the point entirely. See [`../AGENT.concepts.md` --- Positional vs. terminal binding](../AGENT.concepts.md#positional-vs-terminal-binding).
 
 `commit` and `present` stay two separate dependency bags because they publish onto different bus payload scopes (`PositionsPublishedPayload` vs. `ActionsPublishedPayload`).
 
-**`executeStepSequence`'s live caller:** `actions/index.ts`'s object-directed `look` dispatch, in-process (Phase 4). **Widened 2026-09-08 (3e, MS-2)** to take a `CompiledPositionKernelPlan` (`{ steps, slots }`) plus a `bundleId` rather than a bare `KernelStep[]` --- the composer now declares the messageOrchestration bundle itself (from `plan.slots`, only after a successful commit, only when `plan.slots.length > 0`) before presenting, so a caller with a compiled plan no longer needs its own commit -> declare -> present sequence. `orchestrateObjectMove.ts` was migrated onto it the same slice. The narrate branch remains fully live outside this composer too: every character move calls `presentStepSequence` directly (inside `presentCharacterMove`, 3f/MS-6 --- merged from the former `orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect`) rather than through this composer, because it commits in a different layer (`orchestrateCharacterRoomMembership`) than it presents --- folding them into one commit-then-present call is a later, larger route-convergence change (3g), not this one.
+**`commitAndPresentStepSequence`'s live callers:** `actions/index.ts`'s object-directed `look` dispatch, in-process (Phase 4), and `orchestrateObjectMove.ts` (take/drop/give). **Widened 2026-09-08 (3e, MS-2)** to take a `CompiledPositionKernelPlan` (`{ steps, slots }`) plus a `bundleId` rather than a bare `KernelStep[]` --- the composer now declares the messageOrchestration bundle itself (from `plan.slots`, only after a successful commit, only when `plan.slots.length > 0`) before presenting, so a caller with a compiled plan no longer needs its own commit -> declare -> present sequence. `orchestrateObjectMove.ts` was migrated onto it the same slice. The narrate branch remains fully live outside this composer too: every character move calls `presentStepSequence` directly (inside `presentCharacterMove`, 3f/MS-6 --- merged from the former `orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect`) rather than through this composer, because `orchestrateCharacterRoomMembership` commits internally and, when there's a destination room, `orchestrateCharacterMove` (3g) runs the eviction-ladder write in `Promise.all` *alongside* presentation rather than serially before it --- a shape this composer's strictly-serial commit-then-present sequencing cannot express.
 
 ### Presentation kernel
 
@@ -209,8 +209,9 @@ An unresolvable `captureId` **throws**. Capture ids are minted only by the compi
 Four ingress families reach the same kernel (revised 2026-09-08, 3e --- the character routes split out of the single `executeMembershipTransfer`-direct family described here through 2026-09-07 once they stopped calling that function at all; `adapters/` and its `bounded`/`end-state` planner were deleted earlier, 2026-09-03, superseded by `executeMembershipTransfer`'s own inline end-state diff):
 
 ```text
-Character routes (navigate / home / connect / disconnect / ghost-purge repair), 3e 2026-09-08
-  Ingress args (executeCharacterNavigate / handleConnectionsCharactersPresence / repairRoomOccupancyDrift)
+Character routes (navigate / home / connect / disconnect / ghost-purge repair), 3g 2026-09-09
+  Ingress args (positions/index.ts / handleConnectionsCharactersPresence / repairRoomOccupancyDrift /
+    repairCharacterLegalPlacement) -> orchestrateCharacterMove: one convergent entry point
     -> orchestrateCharacterRoomMembership: membership observation (getMembershipContainers), cheap
        no-op pre-check
     -> planCharacterMoveTransfer: diff against priorContainers -> { froms, to, changed }
@@ -291,7 +292,7 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 
 | Ingress | Coordinator | Planning | Kernel |
 | --- | --- | --- | --- |
-| Navigate / connect / disconnect / home | [`orchestrateCharacterRoomMembership`](membership/orchestrateCharacterRoomMembership.ts) (thin wrapper) | [`planCharacterMoveTransfer`](membership/planCharacterMoveTransfer.ts) (end-state, inline diff; builds + compiles the op once, before commit --- 3e, 2026-09-08) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Navigate / connect / disconnect / home | [`orchestrateCharacterMove`](../navigate/orchestrateCharacterMove.ts) (3g convergence) -> [`orchestrateCharacterRoomMembership`](membership/orchestrateCharacterRoomMembership.ts) (thin wrapper) | [`planCharacterMoveTransfer`](membership/planCharacterMoveTransfer.ts) (end-state, inline diff; builds + compiles the op once, before commit --- 3e, 2026-09-08) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Object room place / remove / drift repair | `executeMembershipTransfer` (called directly --- no coordinator file) | end-state, inline diff, compiled through `compilePositionKernelOp` on a bare op literal (3e) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Improvisational object spawn | `executeMembershipTransfer` via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Object destroy / edit | `executeMembershipTransfer` (`target: null`) | end-state-to-null, inline diff + chain-aware relational sweep | [`commitStepSequence`](kernel/commitStepSequence.ts) |
@@ -306,7 +307,7 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 | --- | --- |
 | [`syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) | Adjacency-only sync when the graph is correct but the reverse index lags (generic over character/object ids, MS-1) |
 
-**RoomStack (eviction ladder)** is **not** a kernel input. Navigate ladder persist runs in the parallel tail after [`orchestrateCharacterRoomMembership`](membership/orchestrateCharacterRoomMembership.ts) --- see [`persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts) and [`afterCharacterMembershipNavigateChanged.ts`](../navigate/afterCharacterMembershipNavigateChanged.ts). Merge/trim detail: [`../AGENT.implementation.md` --- Eviction ladder](../AGENT.implementation.md#eviction-ladder-roomstack-storage); normative rules: [`../AGENT.contract.md` --- Eviction ladder](../AGENT.contract.md#eviction-ladder-roomstack-storage).
+**RoomStack (eviction ladder)** is **not** a kernel input. Navigate ladder persist runs in the parallel tail after [`orchestrateCharacterRoomMembership`](membership/orchestrateCharacterRoomMembership.ts) --- see [`persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts), both invoked from [`orchestrateCharacterMove.ts`](../navigate/orchestrateCharacterMove.ts)'s `Promise.all` (3g). Merge/trim detail: [`../AGENT.implementation.md` --- Eviction ladder](../AGENT.implementation.md#eviction-ladder-roomstack-storage); normative rules: [`../AGENT.contract.md` --- Eviction ladder](../AGENT.contract.md#eviction-ladder-roomstack-storage).
 
 ---
 
@@ -357,7 +358,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | [`kernel/applyStepSequenceCore.ts`](kernel/applyStepSequenceCore.ts) | Pure apply core shared by dry-run and commit |
 | [`kernel/computeStepSequenceFootprint.ts`](kernel/computeStepSequenceFootprint.ts) | Transaction lock-set derivation |
 | [`kernel/factsForStep.ts`](kernel/factsForStep.ts) | Step -> `Object Moved` / `Character Moved` / `Object Relation Changed` |
-| [`kernel/executeStepSequence.ts`](kernel/executeStepSequence.ts) | Commit-then-present sequencing over a `CompiledPositionKernelPlan` (widened from bare `KernelStep[]` 3e, 2026-09-08, so the composer can declare the messageOrchestration bundle from `plan.slots` itself); live callers: `actions/index.ts`'s object-directed `look` dispatch, `orchestrateObjectMove.ts` |
+| [`kernel/commitAndPresentStepSequence.ts`](kernel/commitAndPresentStepSequence.ts) | Commit-then-present sequencing over a `CompiledPositionKernelPlan` (widened from bare `KernelStep[]` 3e, 2026-09-08, so the composer can declare the messageOrchestration bundle from `plan.slots` itself; renamed from `executeStepSequence` 3g, 2026-09-09, since `execute` named a tier ambiguously); live callers: `actions/index.ts`'s object-directed `look` dispatch, `orchestrateObjectMove.ts` |
 | [`kernel/presentStepSequence.ts`](kernel/presentStepSequence.ts) | The presentation kernel: read-only publish over `describe` (terminal) and `narrate` (positional, capture-resolved) steps |
 | [`kernel/compile/`](kernel/compile/) | Abstract-op compile layer --- see [Compile layer](#compile-layer-kernelcompile) above |
 

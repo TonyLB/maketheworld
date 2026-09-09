@@ -1,20 +1,15 @@
-jest.mock('./orchestrateCharacterRoomMembership', () => ({
-    orchestrateCharacterRoomMembership: jest.fn(),
+jest.mock('../../navigate/orchestrateCharacterMove', () => ({
+    orchestrateCharacterMove: jest.fn(),
 }))
 
 jest.mock('./syncMembershipAdjacency', () => ({
     syncMembershipAdjacencyToRoom: jest.fn(),
 }))
 
-jest.mock('../../navigate/presentCharacterMove', () => ({
-    presentCharacterMove: jest.fn(),
-}))
-
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { testLudicGraph } from '../../ludicGraph/testFixtures'
-import { orchestrateCharacterRoomMembership } from './orchestrateCharacterRoomMembership'
+import { orchestrateCharacterMove } from '../../navigate/orchestrateCharacterMove'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
-import { presentCharacterMove } from '../../navigate/presentCharacterMove'
 import { repairRoomOccupancyDrift } from './repairRoomOccupancyDrift'
 
 const ROOM_ID = 'ROOM#alpha' as EphemeraRoomId
@@ -28,9 +23,8 @@ const graphWithCharacter = testLudicGraph(ROOM_ID, {
 describe('repairRoomOccupancyDrift', () => {
     const messageBus = { publish: jest.fn() }
     const streamEvent = jest.fn().mockResolvedValue(undefined)
-    const applyMembershipMock = orchestrateCharacterRoomMembership as jest.MockedFunction<typeof orchestrateCharacterRoomMembership>
+    const applyMembershipMock = orchestrateCharacterMove as jest.MockedFunction<typeof orchestrateCharacterMove>
     const syncAdjacencyMock = syncMembershipAdjacencyToRoom as jest.MockedFunction<typeof syncMembershipAdjacencyToRoom>
-    const presentCharacterMoveMock = presentCharacterMove as jest.MockedFunction<typeof presentCharacterMove>
 
     const getLudicGraph = jest.fn()
     const getCharacterSessions = jest.fn()
@@ -46,7 +40,7 @@ describe('repairRoomOccupancyDrift', () => {
         getLudicGraph.mockResolvedValue(graphWithCharacter)
     })
 
-    it('purges ghost characters with no live sessions via disconnect apply, and narrates identically to a real disconnect', async () => {
+    it('purges ghost characters with no live sessions via disconnect apply', async () => {
         getCharacterSessions.mockResolvedValue([])
         const plan = { steps: [], slots: [] }
         applyMembershipMock.mockResolvedValue({
@@ -66,18 +60,11 @@ describe('repairRoomOccupancyDrift', () => {
                 characterId: CHARACTER_ID,
                 targetRoomId: null,
                 intentKind: 'disconnect',
-            }),
-            { messageBus, streamEvent }
-        )
-        expect(syncAdjacencyMock).not.toHaveBeenCalled()
-        expect(presentCharacterMoveMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                characterId: CHARACTER_ID,
-                to: null,
-                plan,
                 messageBus,
+                streamEvent,
             })
         )
+        expect(syncAdjacencyMock).not.toHaveBeenCalled()
     })
 
     it('does not count ghost purge when disconnect is a no-op', async () => {

@@ -1,12 +1,10 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { v4 as uuidv4 } from 'uuid'
 import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
-import { orchestrateCharacterRoomMembership } from './orchestrateCharacterRoomMembership'
-import { presentCharacterMove } from '../../navigate/presentCharacterMove'
+import { orchestrateCharacterMove } from '../../navigate/orchestrateCharacterMove'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 
 export type RepairRoomOccupancyDriftArgs = {
@@ -19,7 +17,7 @@ export type RepairRoomOccupancyDriftDependencies = {
     getLudicGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
     getCharacterSessions?: (characterId: EphemeraCharacterId) => Promise<string[]>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
-    applyMembership?: typeof orchestrateCharacterRoomMembership;
+    applyMembership?: typeof orchestrateCharacterMove;
     syncAdjacency?: typeof syncMembershipAdjacencyToRoom;
 }
 
@@ -50,7 +48,7 @@ export const repairRoomOccupancyDrift = async (
             const containers = await internalCache.Positions.getMembershipContainers(characterId)
             return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
         })
-    const applyMembership = deps?.applyMembership ?? orchestrateCharacterRoomMembership
+    const applyMembership = deps?.applyMembership ?? orchestrateCharacterMove
     const syncAdjacency = deps?.syncAdjacency ?? syncMembershipAdjacencyToRoom
 
     const characterIds = await listGraphCharacterIds(args.roomId, deps?.getLudicGraph)
@@ -62,22 +60,15 @@ export const repairRoomOccupancyDrift = async (
         const hasSessions = (sessions ?? []).length > 0
 
         if (!hasSessions) {
-            const bundleId = uuidv4()
-
-            const result = await applyMembership(
-                { characterId, targetRoomId: null, bundleId, intentKind: 'disconnect' },
-                { messageBus: args.messageBus, streamEvent: args.streamEvent }
-            )
+            const result = await applyMembership({
+                characterId,
+                targetRoomId: null,
+                intentKind: 'disconnect',
+                messageBus: args.messageBus,
+                streamEvent: args.streamEvent,
+            })
             if (result.ok && result.changed) {
                 ghostsPurged += 1
-                await presentCharacterMove({
-                    characterId,
-                    to: null,
-                    bundleId,
-                    plan: result.plan,
-                    captures: result.captures,
-                    messageBus: args.messageBus,
-                })
             }
             continue
         }

@@ -19,7 +19,7 @@ jest.mock('../../../messageOrchestration/subscribedEvents', () => ({
     sendMessageBundleDeclared: (...args: any[]) => sendMessageBundleDeclared(...args),
 }))
 
-import { executeStepSequence } from './executeStepSequence'
+import { commitAndPresentStepSequence } from './commitAndPresentStepSequence'
 import type { KernelStep } from './kernelStep'
 import type { CompiledPositionKernelPlan } from './compile/compilePositionKernelOp'
 
@@ -31,7 +31,7 @@ const BUNDLE_ID = 'BUNDLE#test'
 const commitDeps = { messageBus: {} as any, streamEvent: jest.fn(), getCurrentHost: () => ROOM_ID }
 const perceiveDeps = { streamEvent: jest.fn(), messageBus: {} as any }
 
-describe('executeStepSequence', () => {
+describe('commitAndPresentStepSequence', () => {
     beforeEach(() => {
         jest.clearAllMocks()
     })
@@ -52,7 +52,7 @@ describe('executeStepSequence', () => {
         ]
         const plan: CompiledPositionKernelPlan = { steps, slots: [] }
 
-        const result = await executeStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
+        const result = await commitAndPresentStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
 
         expect(callOrder).toEqual(['commit', 'perceive'])
         expect(result).toEqual({ ok: true, beatAnchorTime: 1, steps: [] })
@@ -74,7 +74,7 @@ describe('executeStepSequence', () => {
         ]
         const plan: CompiledPositionKernelPlan = { steps, slots: [] }
 
-        const result = await executeStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
+        const result = await commitAndPresentStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
 
         expect(result.ok).toBe(false)
         expect(sendMessageBundleDeclared).not.toHaveBeenCalled()
@@ -90,7 +90,7 @@ describe('executeStepSequence', () => {
         ]
         const plan: CompiledPositionKernelPlan = { steps, slots: [] }
 
-        await executeStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
+        await commitAndPresentStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
 
         expect(commitStepSequence).toHaveBeenCalledWith({ steps }, commitDeps)
         expect(presentStepSequence).toHaveBeenCalledWith(steps, CHARACTER_ID, perceiveDeps, undefined)
@@ -103,7 +103,7 @@ describe('executeStepSequence', () => {
         const steps: KernelStep[] = [{ kind: 'describe', referentId: ROOM_ID, referentKind: 'room' }]
         const plan: CompiledPositionKernelPlan = { steps, slots: [] }
 
-        await executeStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
+        await commitAndPresentStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
 
         expect(commitStepSequence).toHaveBeenCalledWith({ steps: [] }, commitDeps)
         expect(presentStepSequence).toHaveBeenCalledWith(steps, CHARACTER_ID, perceiveDeps, undefined)
@@ -122,7 +122,7 @@ describe('executeStepSequence', () => {
         const slots = [{ slotId: 'SLOT#leave', expectedPublishType: 'WorldMessage' as const }]
         const plan: CompiledPositionKernelPlan = { steps, slots }
 
-        await executeStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
+        await commitAndPresentStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
 
         expect(callOrder).toEqual(['commit', 'declare', 'perceive'])
         expect(sendMessageBundleDeclared).toHaveBeenCalledWith(perceiveDeps.messageBus, BUNDLE_ID, { bundleId: BUNDLE_ID, slots })

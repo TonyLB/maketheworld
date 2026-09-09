@@ -15,21 +15,21 @@ jest.mock('../../../../internalCache', () => ({
     },
 }))
 
-jest.mock('../../navigate/executeCharacterNavigate', () => ({
-    executeCharacterNavigate: jest.fn(),
+jest.mock('../../navigate/orchestrateCharacterMove', () => ({
+    orchestrateCharacterMove: jest.fn(),
 }))
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../../internalCache'
-import { executeCharacterNavigate } from '../../navigate/executeCharacterNavigate'
+import { orchestrateCharacterMove } from '../../navigate/orchestrateCharacterMove'
 import { repairCharacterLegalPlacement } from './repairCharacterLegalPlacement'
 import type { RoomStackItem } from './types'
 
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 const optimisticUpdateMock = ephemeraDB.optimisticUpdate as jest.Mock
-const executeCharacterNavigateMock = executeCharacterNavigate as jest.MockedFunction<
-    typeof executeCharacterNavigate
+const orchestrateCharacterMoveMock = orchestrateCharacterMove as jest.MockedFunction<
+    typeof orchestrateCharacterMove
 >
 
 const CHARACTER_ID = 'CHARACTER#Test' as const
@@ -67,7 +67,7 @@ const setupTrimPersist = (assets: string[]): void => {
 describe('repairCharacterLegalPlacement', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        executeCharacterNavigateMock.mockResolvedValue({ ok: true, froms: ['ROOM#Oubliette'], to: 'ROOM#TownSquare', changed: true })
+        orchestrateCharacterMoveMock.mockResolvedValue({ ok: true, froms: ['ROOM#Oubliette'], to: 'ROOM#TownSquare', changed: true })
     })
 
     it('no-ops when all ladder assets remain accessible', async () => {
@@ -85,7 +85,7 @@ describe('repairCharacterLegalPlacement', () => {
 
         expect(result).toEqual({ trimmed: false, relocated: false })
         expect(optimisticUpdateMock).not.toHaveBeenCalled()
-        expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
+        expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
     })
 
     it('trims ladder and relocates in-play character when top frame changes', async () => {
@@ -101,9 +101,10 @@ describe('repairCharacterLegalPlacement', () => {
         expect(optimisticUpdateMock).toHaveBeenCalledWith(expect.objectContaining({
             updateKeys: ['RoomStack'],
         }))
-        expect(executeCharacterNavigateMock).toHaveBeenCalledWith({
+        expect(orchestrateCharacterMoveMock).toHaveBeenCalledWith({
             characterId: CHARACTER_ID,
             targetRoomId: 'ROOM#TownSquare',
+            intentKind: 'navigate',
             messageBus,
             streamEvent,
         })
@@ -121,18 +122,18 @@ describe('repairCharacterLegalPlacement', () => {
         })
 
         expect(optimisticUpdateMock).toHaveBeenCalled()
-        expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
+        expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
         expect(result).toEqual({ trimmed: true, relocated: false })
     })
 
-    it('calls executeCharacterNavigate on forceMove when in play', async () => {
+    it('calls orchestrateCharacterMove on forceMove when in play', async () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             ...characterMeta,
             assets: ['draftOne', 'draftTwo'],
         })
         internalCacheMock.Global.get.mockResolvedValue(['primitives', 'TownCenter'])
         internalCacheMock.Positions.getMembershipContainers.mockResolvedValue(['ROOM#Oubliette'])
-        executeCharacterNavigateMock.mockResolvedValue({ ok: true, froms: ['ROOM#Oubliette'], to: 'ROOM#Oubliette', changed: false })
+        orchestrateCharacterMoveMock.mockResolvedValue({ ok: true, froms: ['ROOM#Oubliette'], to: 'ROOM#Oubliette', changed: false })
 
         await repairCharacterLegalPlacement({
             characterId: CHARACTER_ID,
@@ -141,9 +142,10 @@ describe('repairCharacterLegalPlacement', () => {
             streamEvent,
         })
 
-        expect(executeCharacterNavigateMock).toHaveBeenCalledWith({
+        expect(orchestrateCharacterMoveMock).toHaveBeenCalledWith({
             characterId: CHARACTER_ID,
             targetRoomId: 'ROOM#Oubliette',
+            intentKind: 'navigate',
             messageBus,
             streamEvent,
         })
@@ -160,7 +162,7 @@ describe('repairCharacterLegalPlacement', () => {
         })
 
         expect(optimisticUpdateMock).toHaveBeenCalled()
-        expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
+        expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
         expect(result).toEqual({ trimmed: true, relocated: false })
     })
 
@@ -180,6 +182,6 @@ describe('repairCharacterLegalPlacement', () => {
             characterId: CHARACTER_ID,
             ephemeraId: 'ROOM#Oubliette',
         })
-        expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
+        expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
     })
 })

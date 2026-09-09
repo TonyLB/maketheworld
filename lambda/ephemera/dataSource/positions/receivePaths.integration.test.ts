@@ -2,8 +2,8 @@
  * Cross-layer integration: positions DataSource receiveEvents routes all ingress
  * envelopes through the real messageBus subscription wiring.
  */
-jest.mock('./manipulation/membership/orchestrateCharacterRoomMembership', () => ({
-    orchestrateCharacterRoomMembership: jest.fn(),
+jest.mock('./navigate/orchestrateCharacterMove', () => ({
+    orchestrateCharacterMove: jest.fn(),
 }))
 
 jest.mock('./manipulation/membership/resolveConnectTargetRoom', () => ({
@@ -14,20 +14,12 @@ jest.mock('./manipulation/membership/repairRoomOccupancyDrift', () => ({
     repairRoomOccupancyDrift: jest.fn(),
 }))
 
-jest.mock('./navigate/presentCharacterMove', () => ({
-    presentCharacterMove: jest.fn(),
-}))
-
 jest.mock('../../internalCache', () => ({
     __esModule: true,
     default: {
         CharacterMeta: { get: jest.fn() },
         Positions: { getMembershipContainers: jest.fn() },
     },
-}))
-
-jest.mock('./navigate/executeCharacterNavigate', () => ({
-    executeCharacterNavigate: jest.fn(),
 }))
 
 jest.mock('./manipulation/membership/orchestrateObjectMove', () => ({
@@ -40,18 +32,16 @@ jest.mock('./manipulation/relational/executeObjectEstablishRelation', () => ({
 
 import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
-import { orchestrateCharacterRoomMembership } from './manipulation/membership/orchestrateCharacterRoomMembership'
+import { orchestrateCharacterMove } from './navigate/orchestrateCharacterMove'
 import { resolveConnectTargetRoom } from './manipulation/membership/resolveConnectTargetRoom'
 import { repairRoomOccupancyDrift } from './manipulation/membership/repairRoomOccupancyDrift'
-import { presentCharacterMove } from './navigate/presentCharacterMove'
-import { executeCharacterNavigate } from './navigate/executeCharacterNavigate'
 import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { executeEstablishEdgeChain } from './manipulation/relational/executeObjectEstablishRelation'
 
 import './index'
 
-const orchestrateCharacterRoomMembershipMock = orchestrateCharacterRoomMembership as jest.MockedFunction<
-    typeof orchestrateCharacterRoomMembership
+const orchestrateCharacterMoveMock = orchestrateCharacterMove as jest.MockedFunction<
+    typeof orchestrateCharacterMove
 >
 const resolveConnectTargetRoomMock = resolveConnectTargetRoom as jest.MockedFunction<
     typeof resolveConnectTargetRoom
@@ -59,17 +49,11 @@ const resolveConnectTargetRoomMock = resolveConnectTargetRoom as jest.MockedFunc
 const repairRoomOccupancyDriftMock = repairRoomOccupancyDrift as jest.MockedFunction<
     typeof repairRoomOccupancyDrift
 >
-const presentCharacterMoveMock = presentCharacterMove as jest.MockedFunction<
-    typeof presentCharacterMove
->
 const characterMetaGetMock = internalCache.CharacterMeta.get as jest.MockedFunction<
     typeof internalCache.CharacterMeta.get
 >
 const getMembershipContainersMock = internalCache.Positions.getMembershipContainers as jest.MockedFunction<
     typeof internalCache.Positions.getMembershipContainers
->
-const executeCharacterNavigateMock = executeCharacterNavigate as jest.MockedFunction<
-    typeof executeCharacterNavigate
 >
 const orchestrateObjectMoveMock = orchestrateObjectMove as jest.MockedFunction<
     typeof orchestrateObjectMove
@@ -106,7 +90,7 @@ describe('positions receive paths (integration)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         messageBus.clear()
-        orchestrateCharacterRoomMembershipMock.mockResolvedValue({
+        orchestrateCharacterMoveMock.mockResolvedValue({
             ok: true,
             froms: [ROOM_A],
             to: null,
@@ -126,17 +110,9 @@ describe('positions receive paths (integration)', () => {
             },
             trimmedRoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
         })
-        executeCharacterNavigateMock.mockResolvedValue({
-            ok: true,
-            froms: [ROOM_A],
-            to: ROOM_A,
-            changed: true,
-            beatAnchorTime: 1_700_000_000_000,
-        })
         orchestrateObjectMoveMock.mockResolvedValue(undefined)
         getMembershipContainersMock.mockResolvedValue([ROOM_A])
         repairRoomOccupancyDriftMock.mockResolvedValue({ ghostsPurged: 0, adjacencySynced: 0 })
-        presentCharacterMoveMock.mockResolvedValue(undefined)
         characterMetaGetMock.mockResolvedValue({
             EphemeraId: CHARACTER_ID,
             Name: 'Alpha',
@@ -149,7 +125,7 @@ describe('positions receive paths (integration)', () => {
     })
 
     describe('Character Disconnected', () => {
-        it('routes mtw.connections.characters disconnect through membership apply', async () => {
+        it('routes mtw.connections.characters disconnect through orchestrateCharacterMove', async () => {
             publishPositionsStreamingEvent('mtw.connections.characters', 'Character Disconnected', {
                 type: 'Character Disconnected',
                 characterId: CHARACTER_ID,
@@ -159,21 +135,21 @@ describe('positions receive paths (integration)', () => {
 
             await messageBus.flushAndSettle()
 
-            expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledWith(
+            expect(orchestrateCharacterMoveMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
                     targetRoomId: null,
                     intentKind: 'disconnect',
-                }),
-                expect.objectContaining({ messageBus: expect.any(Object), streamEvent: expect.any(Function) })
+                    messageBus: expect.any(Object),
+                    streamEvent: expect.any(Function),
+                })
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
-            expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
         })
     })
 
     describe('Character Connected', () => {
-        it('routes mtw.connections.characters connect through resolve + membership apply', async () => {
+        it('routes mtw.connections.characters connect through resolve + orchestrateCharacterMove', async () => {
             publishPositionsStreamingEvent('mtw.connections.characters', 'Character Connected', {
                 type: 'Character Connected',
                 characterId: CHARACTER_ID,
@@ -184,20 +160,20 @@ describe('positions receive paths (integration)', () => {
             await messageBus.flushAndSettle()
 
             expect(resolveConnectTargetRoomMock).toHaveBeenCalledWith(CHARACTER_ID)
-            expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledWith(
+            expect(orchestrateCharacterMoveMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
                     targetRoomId: ROOM_A,
                     intentKind: 'connect',
-                }),
-                expect.objectContaining({ messageBus: expect.any(Object), streamEvent: expect.any(Function) })
+                    messageBus: expect.any(Object),
+                    streamEvent: expect.any(Function),
+                })
             )
-            expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
         })
     })
 
     describe('Character Navigate', () => {
-        it('routes mtw.ephemera.actions navigate through executeCharacterNavigate', async () => {
+        it('routes mtw.ephemera.actions navigate through orchestrateCharacterMove', async () => {
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Character Navigate', {
                 type: 'Character Navigate',
                 characterId: CHARACTER_ID,
@@ -207,21 +183,21 @@ describe('positions receive paths (integration)', () => {
 
             await messageBus.flushAndSettle()
 
-            expect(executeCharacterNavigateMock).toHaveBeenCalledWith(
+            expect(orchestrateCharacterMoveMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
                     targetRoomId: 'ROOM#Market',
+                    intentKind: 'navigate',
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
-            expect(orchestrateCharacterRoomMembershipMock).not.toHaveBeenCalled()
         })
     })
 
     describe('Character Home', () => {
-        it('routes mtw.ephemera.actions home through executeCharacterNavigate', async () => {
+        it('routes mtw.ephemera.actions home through orchestrateCharacterMove', async () => {
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Character Home', {
                 type: 'Character Home',
                 characterId: CHARACTER_ID,
@@ -231,16 +207,16 @@ describe('positions receive paths (integration)', () => {
 
             await messageBus.flushAndSettle()
 
-            expect(executeCharacterNavigateMock).toHaveBeenCalledWith(
+            expect(orchestrateCharacterMoveMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: CHARACTER_ID,
                     targetRoomId: 'ROOM#VORTEX',
+                    intentKind: 'home',
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
-            expect(orchestrateCharacterRoomMembershipMock).not.toHaveBeenCalled()
         })
     })
 
@@ -268,8 +244,7 @@ describe('positions receive paths (integration)', () => {
                 })
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
-            expect(orchestrateCharacterRoomMembershipMock).not.toHaveBeenCalled()
-            expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
+            expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
         })
 
         it('resolves fromHostId fresh (not content.roomId) so a nested object can be taken (put cup on table, then get cup)', async () => {
@@ -344,8 +319,7 @@ describe('positions receive paths (integration)', () => {
                 })
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
-            expect(orchestrateCharacterRoomMembershipMock).not.toHaveBeenCalled()
-            expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
+            expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
         })
     })
 
@@ -579,9 +553,8 @@ describe('positions receive paths (integration)', () => {
                     streamEvent: expect.any(Function),
                 })
             )
-            expect(orchestrateCharacterRoomMembershipMock).not.toHaveBeenCalled()
+            expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
-            expect(executeCharacterNavigateMock).not.toHaveBeenCalled()
         })
     })
 })

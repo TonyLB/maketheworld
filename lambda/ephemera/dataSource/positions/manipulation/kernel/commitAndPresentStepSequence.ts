@@ -15,12 +15,18 @@ import type { MutationKernelCommitResult } from './types'
  * them under one `streamEvent` field would force a caller to hand-construct a function satisfying
  * both `StreamEventFunction` instantiations at once, which isn't the actual shape of the bus.
  */
-export type ExecuteStepSequenceDeps = {
+export type CommitAndPresentStepSequenceDeps = {
     commit: CommitStepSequenceDeps
     perceive: PresentStepSequenceDeps
 }
 
 /**
+ * The generic commit-then-present composer (renamed from `executeStepSequence` in 3g --- `execute`
+ * named a tier ambiguously across this stack; this function computes nothing of its own, it only
+ * sequences two tiers, so its name says what it does rather than borrowing a tier verb). Under the
+ * Phase 3 tier rule this is the licensed **composer** case, not an `orchestrate*` function: remove the
+ * calls to `commitStepSequence`/`presentStepSequence` and there is no decision left in the body.
+ *
  * Iteration 9/Phase 3's sequencing contract: invoke the ludicGraph (mutation) kernel first,
  * `await` its commit to completion, and only then invoke the perception kernel against the same
  * shared, already-grounded compiled plan --- never list order, never parallel. This is a
@@ -32,18 +38,23 @@ export type ExecuteStepSequenceDeps = {
  * state, and there is no committed state to describe when the mutation half aborted.
  *
  * Takes a `CompiledPositionKernelPlan` rather than bare `KernelStep[]` (3e, MS-2) --- `plan.slots` is
- * the one thing every hand-rolled commit-then-present caller (`orchestrateObjectMove.ts` before this
+ * the one thing every hand-rolled commit-then-present caller (`orchestrateObjectMove.ts` before that
  * slice) had to wedge a `sendMessageBundleDeclared` call between the two legs for; that declare call
- * now lives inside this composer instead. `bundleId` is only read when `plan.slots.length > 0` --- a
+ * lives inside this composer instead. `bundleId` is only read when `plan.slots.length > 0` --- a
  * plan with no slots (e.g. a bare `describe`, which never declares a bundle) can pass any string.
  *
- * Live caller: `actions/index.ts`'s object-directed `look` dispatch, in-process.
+ * Live callers: `actions/index.ts`'s object-directed `look` dispatch, and `orchestrateObjectMove.ts`
+ * (take/drop/give). The character routes (navigate/home/connect/disconnect) do **not** call this ---
+ * `orchestrateCharacterRoomMembership` already commits internally, and navigate additionally needs
+ * its eviction-ladder write to run in parallel with presentation rather than serially after commit,
+ * which this composer's strictly-serial shape cannot express (see `orchestrateCharacterMove.ts`'s own
+ * doc comment for that carve-out).
  */
-export const executeStepSequence = async (
+export const commitAndPresentStepSequence = async (
     plan: CompiledPositionKernelPlan,
     bundleId: string,
     characterId: EphemeraCharacterId,
-    deps: ExecuteStepSequenceDeps
+    deps: CommitAndPresentStepSequenceDeps
 ): Promise<MutationKernelCommitResult> => {
     const mutationSteps = plan.steps.filter(isKernelMutationStep)
     const commitResult = await commitStepSequence({ steps: mutationSteps }, deps.commit)

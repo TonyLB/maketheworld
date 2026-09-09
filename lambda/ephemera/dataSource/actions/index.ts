@@ -65,7 +65,7 @@ import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysD
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 import { isCoyoteGameRoom } from '../coyoteGame/utilities/isCoyoteGameRoom'
-import { executeStepSequence } from '../positions/manipulation/kernel/executeStepSequence'
+import { commitAndPresentStepSequence } from '../positions/manipulation/kernel/commitAndPresentStepSequence'
 
 const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
 const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = true
@@ -402,7 +402,7 @@ const publishStreamEventsForIntent = async (
     else if (isParseCommandLookComponentResult(parseResult)) {
         if (isEphemeraObjectId(parseResult.componentId)) {
             // Iteration 9, Phase 4: object-directed look routes through the perception
-            // kernel (executeStepSequence -> commitStepSequence + presentStepSequence),
+            // kernel (commitAndPresentStepSequence -> commitStepSequence + presentStepSequence),
             // in-process, rather than publishing 'Look Command Requested' directly here
             // the way Room/Feature/Knowledge look still does. Not a bus hop to
             // positions/index.ts: presentStepSequence's 'Look Command Requested' publish
@@ -414,7 +414,7 @@ const publishStreamEventsForIntent = async (
             // never actually invoked (zero mutation steps for a pure describe), so its
             // deps are structural only.
             const objectId = parseResult.componentId
-            await executeStepSequence(
+            await commitAndPresentStepSequence(
                 { steps: [{ kind: 'describe', referentId: objectId, referentKind: 'object' }], slots: [] },
                 // No bundle to declare (zero slots), so this id is never read.
                 'BUNDLE#none',

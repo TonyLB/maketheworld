@@ -3,9 +3,9 @@
  *
  * Owns the ephemera-side projection of character presence transitions emitted
  * by `mtw.connections.characters`:
- *   - Character Connected   -> resolve eviction-ladder target room, membership
- *                              persistence API, post-persist orchestration.
- *   - Character Disconnected -> membership persistence API (orchestrateCharacterRoomMembership).
+ *   - Character Connected   -> resolve eviction-ladder target room, then
+ *                              `orchestrateCharacterMove`.
+ *   - Character Disconnected -> `orchestrateCharacterMove` with a null target.
  *
  * At-least-once delivery: duplicate events are no-ops because the second
  * disconnect finds the character already out of play (`changed: false`) and the
@@ -13,28 +13,20 @@
  */
 import { v4 as uuidv4 } from 'uuid'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     ConnectionsCharactersConnectedEvent,
     ConnectionsCharactersDisconnectedEvent
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { MessageBus } from '../../messageBus/baseClasses'
-import type { MessageOrchestrationSlotSpec } from '../messageOrchestration/localApiEvents'
-import { getCharacterRoomPerspectiveKey } from '../perception/kickRoomHeaderBroadcast'
-import { NAVIGATE_HEADER_SLOT_ID } from './navigate/navigateBundleSlotIds'
-import { orchestrateCharacterRoomMembership } from './manipulation/membership/orchestrateCharacterRoomMembership'
-import { presentCharacterMove } from './navigate/presentCharacterMove'
+import { orchestrateCharacterMove } from './navigate/orchestrateCharacterMove'
 import { resolveConnectTargetRoom } from './manipulation/membership/resolveConnectTargetRoom'
-import { afterCharacterMembershipNavigateChanged } from './navigate/afterCharacterMembershipNavigateChanged'
 import type { PositionsPublishedPayload } from './publishedEvents'
 
 /**
- * Connect/disconnect narration: both build+compile the abstract `Move` op the same way
- * `executeCharacterNavigate.ts` does for navigate --- via `orchestrateCharacterRoomMembership` ->
- * `planCharacterMoveTransfer`, with `intentKind: 'connect'`/`'disconnect'` (3e, MS-2). Both present
- * through the same `presentCharacterMove` (3f, MS-6) --- connect via
- * `afterCharacterMembershipNavigateChanged`, since it always has a destination room; disconnect calls
- * it directly with `to: null`, which skips header resolution entirely.
+ * Connect/disconnect narration: both go through `orchestrateCharacterMove` (3g) --- the same
+ * convergence navigate/home/ghost-purge use --- with `intentKind: 'connect'`/`'disconnect'`. Connect
+ * always has a destination room (runs the navigate tail); disconnect passes `targetRoomId: null`,
+ * which skips the ladder write and header resolution entirely.
  *
  * Rules: `dataSource/positions/AGENT.contract.md` --- "Narration and presentation".
  */
@@ -51,30 +43,14 @@ export const handleCharacterConnected = async (
     const { targetRoomId, characterMeta } = await resolveConnectTargetRoom(event.characterId)
     const bundleId = uuidv4()
 
-    const resolveHeaderSlot = async (to: EphemeraRoomId): Promise<MessageOrchestrationSlotSpec | null> => {
-        const perspectiveKey = await getCharacterRoomPerspectiveKey(to, characterMeta.assets || [])
-        return perspectiveKey ? {
-            slotId: NAVIGATE_HEADER_SLOT_ID,
-            expectedPublishType: 'PerceptionMessage',
-            componentId: to,
-            perspectiveKey,
-            targets: [event.characterId],
-            contentStream: 'render',
-            format: 'header',
-        } : null
-    }
-
-    const result = await orchestrateCharacterRoomMembership(
-        { characterId: event.characterId, targetRoomId, bundleId, intentKind: 'connect', resolveHeaderSlot },
-        { messageBus, streamEvent }
-    )
-
-    await afterCharacterMembershipNavigateChanged({
+    await orchestrateCharacterMove({
         characterId: event.characterId,
-        characterMeta,
-        result,
+        targetRoomId,
         bundleId,
+        intentKind: 'connect',
+        characterMeta,
         messageBus,
+        streamEvent,
     })
 }
 
@@ -90,19 +66,12 @@ export const handleCharacterDisconnected = async (
 ): Promise<void> => {
     const bundleId = uuidv4()
 
-    const result = await orchestrateCharacterRoomMembership(
-        { characterId: event.characterId, targetRoomId: null, bundleId, intentKind: 'disconnect' },
-        { messageBus, streamEvent }
-    )
-
-    if (result.ok && result.changed) {
-        await presentCharacterMove({
-            characterId: event.characterId,
-            to: null,
-            bundleId,
-            plan: result.plan,
-            captures: result.captures,
-            messageBus,
-        })
-    }
+    await orchestrateCharacterMove({
+        characterId: event.characterId,
+        targetRoomId: null,
+        bundleId,
+        intentKind: 'disconnect',
+        messageBus,
+        streamEvent,
+    })
 }

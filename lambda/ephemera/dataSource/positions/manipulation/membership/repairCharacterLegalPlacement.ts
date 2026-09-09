@@ -1,7 +1,7 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../../internalCache'
-import { executeCharacterNavigate } from '../../navigate/executeCharacterNavigate'
+import { orchestrateCharacterMove } from '../../navigate/orchestrateCharacterMove'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import {
@@ -60,9 +60,10 @@ export const repairCharacterLegalPlacement = async ({
     const shouldRelocate = forceMove || targetRoomId !== currentRoom
 
     if (shouldRelocate) {
-        const result = await executeCharacterNavigate({
+        const result = await orchestrateCharacterMove({
             characterId,
             targetRoomId,
+            intentKind: 'navigate',
             messageBus,
             streamEvent,
         })

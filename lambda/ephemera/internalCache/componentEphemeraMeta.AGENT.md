@@ -28,7 +28,7 @@ Room occupancy for publish/render paths uses **`getRoomCharacterList`** ([`hydra
 - State merge: [`mergePersistMetaRoomMarks.ts`](../dataSource/state/mergePersistMetaRoomMarks.ts)
 - Objects lane (improvisation pair + **`Meta::Object`** + graph): DataSource **`mtw.ephemera.objects`** --- [`../dataSource/objects/AGENT.md`](../dataSource/objects/AGENT.md)
 - Render intake/orchestration: [`requestIntake.ts`](../dataSource/renderOrchestration/requestIntake.ts), [`orchestrationHandler.ts`](../dataSource/renderOrchestration/orchestrationHandler.ts)
-- Movement: [`dataSource/positions/`](../dataSource/positions/) (`navigate/executeCharacterNavigate`, membership apply)
+- Movement: [`dataSource/positions/`](../dataSource/positions/) (`navigate/orchestrateCharacterMove`, membership apply)
 
 ## Navigation
 

@@ -30,10 +30,10 @@ export type BuildCharacterMoveOpArgs = {
  * Builds navigate/home/connect/disconnect's `PositionKernelMoveOp`, including the per-room leave
  * copy-kind selector --- a faithful port of the copy-kind selection the now-retired
  * `MembershipPresentationFanInCluster` used to re-derive from `(froms, to)` endpoint data at publish
- * time, now living at the compile boundary instead (Purpose finding 4). Shared by every
- * call site that needs this op --- `executeCharacterNavigate.ts`/`presentCharacterMove.ts` (navigate/
- * home), `handleConnectionsCharactersPresence.ts` (connect/disconnect), `repairRoomOccupancyDrift.ts`
- * (ghost-purge disconnect, Phase 3) --- so the copy-kind logic exists in exactly one place.
+ * time, now living at the compile boundary instead (Purpose finding 4). Shared by every route
+ * `orchestrateCharacterMove.ts` (3g --- navigate/home/connect/disconnect, plus
+ * `repairRoomOccupancyDrift.ts`'s ghost-purge and `repairCharacterLegalPlacement.ts`'s relocation)
+ * serves --- so the copy-kind logic exists in exactly one place.
  * `compilePositionKernelOp`'s captureId generation depends only on `froms`/`to` (never on narration
  * content), so building this op twice with the same `froms`/`to`/`bundleId` -- once without a
  * resolved `headerSlot` (mutation-only), once with (full plan) -- yields identical capture ids across

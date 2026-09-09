@@ -89,6 +89,3 @@ export type IntentKind = 'navigate' | 'home' | 'connect' | 'disconnect'
 
 /** `intentKind` as accepted by navigate's shared pre-commit planning machinery --- disconnect never reaches it (compiled as `intentKind: 'disconnect'` only for `planCharacterMoveTransfer`'s own vocabulary, not this one). */
 export type NavigateIntentKind = Exclude<IntentKind, 'disconnect'>
-
-/** `intentKind` as accepted by `executeCharacterNavigate` --- the typed-command/UI-exit and home routes only; connect/disconnect/repair call `presentCharacterMove`'s tail directly instead (3f, MS-6). */
-export type ExecuteNavigateIntentKind = Extract<IntentKind, 'navigate' | 'home'>

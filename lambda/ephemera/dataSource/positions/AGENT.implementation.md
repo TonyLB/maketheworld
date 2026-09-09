@@ -12,7 +12,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`subscribedEvents.ts`](subscribedEvents.ts) | Header/envelope guards for external ingress |
 | [`publishedEvents.ts`](publishedEvents.ts) | Outbound stream contract (`Character Moved` + **`Object Moved`** + **`Object Relation Changed`**) + stream helpers |
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
-| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts); `Object Take Hold` and `Object Drop` -> [`manipulation/membership/orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts) (one entry point; the two branches differ only in which host is `fromHostId`); `Object Establish Relation` / `Object Dissolve Relation` -> [`manipulation/relational/`](manipulation/relational/) |
+| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts); `Object Take Hold` and `Object Drop` -> [`manipulation/membership/orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts) (one entry point; the two branches differ only in which host is `fromHostId`); `Object Establish Relation` / `Object Dissolve Relation` -> [`manipulation/relational/`](manipulation/relational/) |
 
 ### `manipulation/` (planning adapters + kernel)
 
@@ -102,8 +102,7 @@ Type contract for the `ludicCache` prototype (CC0b, [`taskPlanning/.../AGENT.abs
 
 | File | Role |
 | --- | --- |
-| [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) | Shared navigate execution (membership apply + parallel navigate tail) |
-| [`navigate/afterCharacterMembershipNavigateChanged.ts`](navigate/afterCharacterMembershipNavigateChanged.ts) | Parallel tail: `persistRoomStackNavigate` + `presentCharacterMove` when `changed && to !== null` |
+| [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts) | The convergence of navigate/home/connect/disconnect, plus `repairRoomOccupancyDrift`'s ghost purge and `repairCharacterLegalPlacement`'s relocation call (3g): membership apply, then --- when `changed` --- either the parallel navigate tail (`persistRoomStackNavigate` + `presentCharacterMove`, when `to !== null`) or a direct `presentCharacterMove(to: null)` call |
 | [`navigate/presentCharacterMove.ts`](navigate/presentCharacterMove.ts) | Post-persist presentation for **every** character route (navigate, home, connect, disconnect, ghost-purge repair --- 3f, MS-6, merged from the former `orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect`): declares the bundle, presents leave/arrive narration, and --- only when `to !== null` --- resolves the arrival-room header slot / render kicks |
 | [`navigate/navigateBundleSlotIds.ts`](navigate/navigateBundleSlotIds.ts) | `NAVIGATE_HEADER_SLOT_ID` only --- genuinely navigate-owned. The leave/arrive slot ids live in [`manipulation/kernel/compile/moveBundleSlotIds.ts`](manipulation/kernel/compile/moveBundleSlotIds.ts) and are **host**-typed, not room-typed, so a character-hosted endpoint needs no cast |
 
@@ -166,8 +165,7 @@ Objects lane callers use **`executeMembershipTransfer`** ([`manipulation/members
 | [`manipulation/membership/orchestrateCharacterRoomMembership.test.ts`](manipulation/membership/orchestrateCharacterRoomMembership.test.ts) | Coordinator bundle on `changed` (bare `transferMembership` step, no dissolve; multi-from); `Character Moved` fact-stream-before-`RoomUpdate` ordering is verified at the kernel layer, `commitStepSequence.test.ts` |
 | [`membership/buildCharacterMovedFact.test.ts`](membership/buildCharacterMovedFact.test.ts) | Membership host transfer fact builder (including multi-from) |
 | [`membership/persistRoomStackNavigate.test.ts`](membership/persistRoomStackNavigate.test.ts) | Navigate ladder persist + merge reducer |
-| [`navigate/afterCharacterMembershipNavigateChanged.test.ts`](navigate/afterCharacterMembershipNavigateChanged.test.ts) | Parallel navigate tail (persist + orchestrate) |
-| [`navigate/executeCharacterNavigate.test.ts`](navigate/executeCharacterNavigate.test.ts) | Apply + navigate tail routing |
+| [`navigate/orchestrateCharacterMove.test.ts`](navigate/orchestrateCharacterMove.test.ts) | Apply + parallel navigate tail routing (navigate/home/connect), direct present with no ladder (disconnect), no-op and failed-apply short circuits |
 | [`navigate/presentCharacterMove.test.ts`](navigate/presentCharacterMove.test.ts) | Post-persist bundle declare + header slot registration (no `MapUpdate`), plus the disconnect-shaped (`to: null`) cases merged in 3f/MS-6 |
 
 ---
@@ -183,13 +181,12 @@ Objects lane callers use **`executeMembershipTransfer`** ([`manipulation/members
 
 | Concern | Location |
 | --- | --- |
-| Shared navigate execution (apply + parallel tail) | [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) --- compiles the pre-commit (mutation-only) step sequence via [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts) |
-| Parallel navigate tail (ladder persist + orchestrate) | [`navigate/afterCharacterMembershipNavigateChanged.ts`](navigate/afterCharacterMembershipNavigateChanged.ts) --- threads `intentKind`/`intentFromRoomId`/`exitName`/`captures` to orchestration |
+| Convergent character-route orchestration (apply + parallel tail / direct present) | [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts) (3g) --- one entry point for navigate/home/connect/disconnect, `repairRoomOccupancyDrift`'s ghost purge, and `repairCharacterLegalPlacement`'s relocation call; compiles the pre-commit (mutation-only) step sequence via [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts), then --- when `changed` and `to !== null` --- runs the parallel tail (`persistRoomStackNavigate` + `presentCharacterMove` in `Promise.all`), or else calls `presentCharacterMove(to: null)` directly with no ladder write |
 | Post-persist presentation (arrival-room header slot, render kicks, **and leave/arrive narration**) | [`navigate/presentCharacterMove.ts`](navigate/presentCharacterMove.ts) --- args **`froms[]`**, **`to`**; presents the already-compiled plan (3e/MS-2, one compile, pre-commit), declares `slots`, reports narration via [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts), and resolves the arrival header slot only when `to !== null` (3f/MS-6, merged from the former disconnect-only sibling) |
 | Player navigate ingress (stream only) | [`../actions/index.ts`](../actions/index.ts) emits `Character Navigate`; positions executes |
 | Leave/arrive world copy | **Compiled and reported synchronously for every character route** --- there is no membership fan-in. Every route (navigate/home/connect/disconnect/ghost-purge) presents via [`navigate/presentCharacterMove.ts`](navigate/presentCharacterMove.ts) above (3f/MS-6). Rules: [`AGENT.contract.md` --- Narration and presentation](AGENT.contract.md#narration-and-presentation). |
 
-**Navigate compiles its op twice, deliberately** --- once pre-commit for mutation steps only, once post-commit for the full plan. The two agree because `compilePositionKernelOp` generates capture ids as a pure function of `froms`/`to`, never of narration content. The second compile exists because the header slot needs an async perspective-key lookup that cannot run inside the mutation path.
+**Navigate compiles its op once, before commit** (3e, MS-2) --- `planCharacterMoveTransfer` builds and compiles the full plan, including the header slot, since `to` and the character's assets (the only inputs the perspective-key lookup needs) are both known pre-commit. `orchestrateCharacterMove`/`presentCharacterMove` present that same compiled plan rather than rebuilding it.
 
 **Object moves compile once**, because they have no header slot: a second compile would be two chances to disagree in exchange for nothing. Labels resolve *before* the commit and the plan travels out on the result. Note the trap this avoids: compiling a **bare** (non-narrating) op pre-commit would silently drop every capture step, since captures are gated on narration's presence.
 
@@ -203,9 +200,9 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder) --- character-
 | --- | --- |
 | **Storage** | `Meta::Character.RoomStack` --- array of `{ asset, RoomId, timeWritten? }` ([`membership/types.ts`](membership/types.ts) `RoomStackItem`; `timeWritten` = epoch ms from navigate `beatAnchorTime`, omitted/0 = legacy) |
 | **Legal placement: connect (from nowhere)** | [`membership/trimPersistCharacterRoomStack.ts`](membership/trimPersistCharacterRoomStack.ts) + [`membership/resolveConnectTargetRoom.ts`](membership/resolveConnectTargetRoom.ts) -> [`orchestrateCharacterRoomMembership`](manipulation/membership/orchestrateCharacterRoomMembership.ts) |
-| **Legal placement: asset visibility (from illegal room)** | [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) -> [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) when in play (future asset-visibility ingress; **`CheckLocation`** bus retired) |
-| **Occupancy drift repair** | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) --- consumes **`Room Occupancy Drift Finding`**; ghost disconnect via coordinator; adjacency-only via [`syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) |
-| **Ladder maintenance on navigate** | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) algorithm + [`membership/persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts) async persist via [`navigate/afterCharacterMembershipNavigateChanged.ts`](navigate/afterCharacterMembershipNavigateChanged.ts) parallel tail (not kernel transact) |
+| **Legal placement: asset visibility (from illegal room)** | [`membership/repairCharacterLegalPlacement.ts`](membership/repairCharacterLegalPlacement.ts) -> [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts) when in play (future asset-visibility ingress; **`CheckLocation`** bus retired) |
+| **Occupancy drift repair** | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) --- consumes **`Room Occupancy Drift Finding`**; ghost disconnect via `orchestrateCharacterMove`; adjacency-only via [`syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) |
+| **Ladder maintenance on navigate** | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) algorithm + [`membership/persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts) async persist via [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts)'s parallel tail (not kernel transact) |
 | **Navigate ladder merge (timestamp races)** | [`membership/mergeRoomStack.ts`](membership/mergeRoomStack.ts) --- consumed by `persistRoomStackNavigate` |
 | **Disconnect: purge membership, retain ladder** | Coordinator + kernel --- graph/adjacency only; no navigate ladder persist |
 | **Default root frame** | [`membership/trimEvictionLadder.ts`](membership/trimEvictionLadder.ts) `DEFAULT_ROOM_STACK` --- shared by guest character, `CharacterMeta` cache fallback, and `normalizeRoomStack` (omits `timeWritten` = legacy 0) |
@@ -214,7 +211,7 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder) --- character-
 
 **Navigate algorithm:** `membershipRoomStack` compares destination **asset chain** (shallowest accessible room participant, skipping sibling overlays not on the current ladder) to the stored ladder --- **extend** / **rewrite tail** / **fork** per [`AGENT.concepts.md`](AGENT.concepts.md#eviction-ladder).
 
-**Navigate persist:** after successful graph persist, callers run [`afterCharacterMembershipNavigateChanged`](navigate/afterCharacterMembershipNavigateChanged.ts) --- `Promise.all([persistRoomStackNavigate, presentCharacterMove])`. Ladder writes use standalone `optimisticUpdate` with `mergeRoomStack` at `beatAnchorTime`; failures log and resolve. **Trim persist:** filter-only `optimisticUpdate` on `draft.RoomStack`; no merge. Normative rules: [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage).
+**Navigate persist:** after successful graph persist, [`orchestrateCharacterMove`](navigate/orchestrateCharacterMove.ts) runs `Promise.all([persistRoomStackNavigate, presentCharacterMove])`. Ladder writes use standalone `optimisticUpdate` with `mergeRoomStack` at `beatAnchorTime`; failures log and resolve. **Trim persist:** filter-only `optimisticUpdate` on `draft.RoomStack`; no merge. Normative rules: [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage).
 
 ### Navigate ladder persist locking
 
