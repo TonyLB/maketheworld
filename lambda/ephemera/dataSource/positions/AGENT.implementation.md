@@ -40,7 +40,7 @@ Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](m
 | --- | --- |
 | [`manipulation/membership/orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts) | Narration owner for **both** `Object Take Hold` and `Object Drop`. Derives the acting character and room from the host pair, resolves labels, then wraps `executeObjectMove`; declares the bundle and presents narration on `ok: true` |
 | [`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts) | Two entry points, sharing one file. `executeObjectMove`: single-origin, non-null-destination carry-closure move (take-hold/drop/give) --- seeds the Synthesize executor **grounded** from concrete hosts, compiles the move once, commits the plan's mutation steps. Returns `{ ok: false } \| { ok: true, plan, captures }`. `executeMembershipTransfer`: single entity (object or character), diffed against its own `priorContainers`, no carry closure, never touches the Synthesize executor --- absorbed `applyObjectRoomMembership`/`applyObjectClearMembership`/`applyCharacterRoomMembership`'s membership-half body. Object entities get an explicit chain-aware sweep (`findRelationalChainsTouching` + `buildCrossingDissolveLegs`, following crossing ports across hosts --- replaced the old primitive-only `boundaryEdgeOutcomes` loop, which silently skipped any relational edge with a port-address endpoint); character entities never do (`HostRelationalEdge` is object-only). Returns a `MembershipApplyResult`-shaped `{froms, to, changed,...}` |
-| [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | `ObjectMembershipDiff` (host-general diff shape, consumed by `factsForStep`/`buildObjectMovedFact`) |
+| [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | Bare `MembershipDiff` (host-general; no type argument) is the kernel-step tier's diff shape, built once per step by `factsForStep` and consumed by both `buildObjectMovedFact` and `buildCharacterMovedFact` --- the latter narrows it to Room internally when building the Room-only `Character Moved` wire fact. `MembershipDiff<EphemeraRoomId>` is the character route's own narrower, derived instantiation (see line 115 below). MS-5, 3h/3h-ii. |
 
 #### Adding a cross-host manipulation apply coordinator
 
@@ -112,7 +112,7 @@ The op builder is **not** here: [`membership/buildCharacterMoveOp.ts`](membershi
 
 | File | Role |
 | --- | --- |
-| [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipDiff`, `MembershipApplyResult`, `RoomStackItem` |
+| [`membership/types.ts`](membership/types.ts) | `MembershipApplyArgs`, `MembershipDiff<EphemeraRoomId>` (this route's own Room-typed instantiation --- see line 43 above for the bare, host-general default), `MembershipApplyResult`, `RoomStackItem` |
 | [`membership/buildCharacterMoveOp.ts`](membership/buildCharacterMoveOp.ts) | Builds the `PositionKernelMoveOp` for **every** character route, incl. `MembershipEmissionCopyKind` selection across `intentKind: 'navigate' \| 'home' \| 'connect' \| 'disconnect'` |
 | [`membership/buildObjectMoveOp.ts`](membership/buildObjectMoveOp.ts) | The object **sibling** --- not a widening. Takes no verb, no direction, no acting character; `carriedCount` comes from the fragment so it cannot drift from what is transferred |
 | [`membership/membershipRoomStack.ts`](membership/membershipRoomStack.ts) | Ladder maintenance on navigate (asset-chain extend / rewrite-tail / fork) |
@@ -125,7 +125,7 @@ The op builder is **not** here: [`membership/buildCharacterMoveOp.ts`](membershi
 | [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair: graph-forward room scan + session gate |
 | [`membership/syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) | Adjacency-only sync when graph correct but reverse index lags |
 | [`manipulation/membership/orchestrateCharacterRoomMembership.ts`](manipulation/membership/orchestrateCharacterRoomMembership.ts) | Thin wrapper over [`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts)'s `executeMembershipTransfer`: `changed` gate, roster snapshots, `CharacterMeta` invalidation, membership-changed bundle (fact stream first) |
-| [`membership/buildCharacterMovedFact.ts`](membership/buildCharacterMovedFact.ts) | Membership host transfer fact payload from **`MembershipDiff`** |
+| [`membership/buildCharacterMovedFact.ts`](membership/buildCharacterMovedFact.ts) | **`Character Moved`** fact payload from the bare, host-general **`MembershipDiff`**, narrowed to Room internally (3h/3h-ii, MS-5) |
 | [`membership/buildObjectMovedFact.ts`](membership/buildObjectMovedFact.ts) | **`Object Moved`** membership host transfer fact payload (I4) |
 | [`membership/streamMembershipFact.ts`](membership/streamMembershipFact.ts) | `Character Moved` `streamEvent` at persistence apply |
 | [`membership/streamObjectMembershipFact.ts`](membership/streamObjectMembershipFact.ts) | `Object Moved` `streamEvent` at persistence apply |

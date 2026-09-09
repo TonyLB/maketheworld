@@ -32,24 +32,33 @@ export type MembershipApplyArgs = {
     resolveHeaderSlot?: (to: EphemeraRoomId) => Promise<MessageOrchestrationSlotSpec | null>;
 }
 
-export type MembershipDiff = {
+/**
+ * Generic over the host id type so a narrower vocabulary derives from --- rather than merely
+ * resembling --- the general one. Bare `MembershipDiff` (no type argument) is the host-general shape:
+ * the kernel-step tier's vocabulary (`factsForStep`, `buildObjectMovedFact`, `buildCharacterMovedFact`),
+ * since a single `transferMembership` step's `fromHostIds`/`toHostId` can carry a mix of object and
+ * character entities against the same host set. `MembershipDiff<EphemeraRoomId>` is the character
+ * route's own narrower, contract-enforced shape (a character's membership host is a Room, and only a
+ * Room) --- its own orchestration-boundary type (`MembershipApplySuccessResult`), not kernel vocabulary.
+ */
+export type MembershipDiff<HostId extends EphemeraMembershipHostId = EphemeraMembershipHostId> = {
     /** Distinct prior in-play containers removed from (S2-4 / S2-7). */
-    froms: EphemeraRoomId[];
-    to: EphemeraRoomId | null;
+    froms: HostId[];
+    to: HostId | null;
     changed: boolean;
 }
 
 export type MembershipGraphPersistSuccess = {
     ok: true;
     persisted: true;
-    diff: MembershipDiff;
+    diff: MembershipDiff<EphemeraRoomId>;
     /** Post-mutation room topology per affected room; coordinator seeds Positions memo. */
     postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraLudicGraphFieldPayload>>;
 }
 
 export type UpdateLudicGraphsResult =
     | MembershipGraphPersistSuccess
-    | { ok: true; persisted: false; diff: MembershipDiff }
+    | { ok: true; persisted: false; diff: MembershipDiff<EphemeraRoomId> }
     | MembershipApplyErrorResult
 
 export type MembershipApplySuccessResult = {
@@ -62,7 +71,7 @@ export type MembershipApplySuccessResult = {
     captures?: import('../kernel/types').MutationKernelCaptures;
     /** 3e, MS-2: the plan `planCharacterMoveTransfer` already compiled, carried through commit so `presentCharacterMove` (3f, MS-6 --- merged from the former `orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect`) presents it rather than rebuilding it. Unset when `changed: false` (nothing was ever compiled). */
     plan?: import('../kernel/compile/compilePositionKernelOp').CompiledPositionKernelPlan;
-} & MembershipDiff
+} & MembershipDiff<EphemeraRoomId>
 
 export type MembershipApplyErrorResult = {
     ok: false;
@@ -71,13 +80,6 @@ export type MembershipApplyErrorResult = {
 }
 
 export type MembershipApplyResult = MembershipApplySuccessResult | MembershipApplyErrorResult
-
-/** Graph-diff semantics for Object Moved (D8): eligible membership host endpoints. */
-export type ObjectMembershipDiff = {
-    froms: EphemeraMembershipHostId[];
-    to: EphemeraMembershipHostId | null;
-    changed: boolean;
-}
 
 /**
  * The full vocabulary of character-membership moves that carry compiled narration copy --- see

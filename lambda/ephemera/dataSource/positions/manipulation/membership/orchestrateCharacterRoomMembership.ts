@@ -38,16 +38,6 @@ const buildRoomRosterSnapshots = async (
 const affectedRoomsFromDiff = (froms: EphemeraRoomId[], to: EphemeraRoomId | null): EphemeraRoomId[] =>
     [...new Set([...froms, ...(to ? [to] : [])])]
 
-const membershipDiffFromProjection = (projection: {
-    froms: EphemeraRoomId[];
-    to: EphemeraRoomId | null;
-    changed: boolean;
-}): MembershipDiff => ({
-    froms: projection.froms,
-    to: projection.to,
-    changed: projection.changed,
-})
-
 /**
  * Migrate row (character route, BD-36): retired `applyHostEffects` in favor of the general kernel.
  * A thin wrapper (roster snapshots, `CharacterMeta` invalidation, `EphemeraUpdate` publish) around
@@ -125,11 +115,7 @@ export const orchestrateCharacterRoomMembership = async (
         }
     }
 
-    const diff = membershipDiffFromProjection({
-        froms: planResult.froms,
-        to: planResult.to,
-        changed: true,
-    })
+    const diff: MembershipDiff<EphemeraRoomId> = { froms: planResult.froms, to: planResult.to, changed: true }
 
     const affectedRooms = affectedRoomsFromDiff(diff.froms, diff.to)
     const roomRosterSnapshots = await buildRoomRosterSnapshots(affectedRooms)

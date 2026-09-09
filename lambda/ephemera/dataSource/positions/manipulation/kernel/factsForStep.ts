@@ -1,6 +1,6 @@
 import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -91,21 +91,12 @@ export const factsForStep = (
             .filter(isEphemeraObjectId)
             .map((objectId) => buildObjectMovedFact({ objectId, diff, beatAnchorTime }))
             .filter((fact): fact is ObjectMovedPublishedPayload => fact !== undefined)
-        // A character's membership hosts are always rooms (never a character-inventory host, unlike
-        // an object) --- filtering here narrows the widened `EphemeraMembershipHostId` shape back to
-        // `CharacterMovedPublishedPayload`'s room-only `froms`/`to`, rather than widening that payload
-        // type to match a case that can't occur.
-        const roomDiff = {
-            froms: froms.filter(isEphemeraRoomId),
-            to: step.toHostId !== null && isEphemeraRoomId(step.toHostId) ? step.toHostId : null,
-            changed: true,
-        }
         const characterFacts = [...step.entityIds]
             .filter(isEphemeraCharacterId)
             .map((characterId) =>
                 buildCharacterMovedFact({
                     characterId,
-                    diff: roomDiff,
+                    diff,
                     beatAnchorTime,
                     characterName: characterNames.get(characterId),
                 })
