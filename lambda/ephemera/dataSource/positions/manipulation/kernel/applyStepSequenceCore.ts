@@ -10,9 +10,8 @@ import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
 /**
- * The hosts (plural) an id currently appears on as a node --- LP4g's `findHostOf`, widened from a
- * single-match short-circuit. A node can legitimately be a member of more than one locked graph at
- * once: an AB-54 hosting kind (`On`/`In`/`PartOf`) makes a host object both an ordinary member of
+ * The hosts (plural) an id currently appears on as a node. A node can legitimately be a member of
+ * more than one locked graph at once: an AB-54 hosting kind (`On`/`In`/`PartOf`) makes a host object both an ordinary member of
  * whatever *it* sits in (its own container) and the self-referencing root of its own shard --- both
  * of those graphs can be in the same footprint (e.g. a `put cup on table` transfer locks the room
  * *and* the table's own shard). Returning every match, not just the first one met while walking the
@@ -42,13 +41,10 @@ const hostsOf = (
 }
 
 /**
- * This is narrowed from a *resolver* to an *assertion*: `establishRelation`/
- * `dissolveRelation` now carry their own `hostId`, computed once at Expansion
- * (`expandSameHost`'s resolved host; each `buildCrossingLegs` leg's own placement) --- this
- * function's job is to confirm that carried value against live footprint state, not to derive it
- * from scratch the way the old intersection-based version did (see git history for that version's
- * own doc comment, which explained the AB-54 mis-resolution its intersection approach fixed; that
- * reasoning is now Expansion's problem, not commit's).
+ * `establishRelation`/`dissolveRelation` carry their own `hostId`, computed once at Expansion
+ * (`expandSameHost`'s resolved host; each `buildCrossingLegs` leg's own placement); this function's
+ * job is to confirm that carried value against live footprint state, not to derive a host from
+ * scratch.
  *
  * `hostsOf` still separates two outcomes: an endpoint absent from the *entire* locked footprint
  * (legitimately stale --- the world can change between Expansion and commit, `illegal`, not a
@@ -97,19 +93,18 @@ const confirmCarriedHost = (
  * `transferMembership` step reads it, because the worklist that produced this array already
  * guaranteed that order.
  *
- * `transferMembership` (BD-36-generalized, object-lifecycle-Migrate-row-widened, and RD-4/
- * presenceRefactor-step-3-widened to admit Room/Feature): dispatches by shape on
- * `fromHostIds`/`toHostId`. **Real transfer** (`fromHostIds` has exactly one member, `toHostId`
- * non-null): the whole `entityIds` set --- objects and characters together --- routes through
- * `applyTransferSet` (LP4h: it dispatches by kind itself, `removeObject`/`addObject` for objects and
- * `removeCharacter`/`addCharacter` for characters, so no separate character swap is needed here;
- * only objects get the full boundary-edge legality machinery, since a character can never carry a
- * relational edge, BD-36's widening deferred). **Room/Feature/Area never relocate (LP4h, unwidened
- * here deliberately)**, so a Room/Feature id reaching this branch is rejected
- * (`unsupportedTransferEntityKind`) before `applyTransferSet` --- which has no dispatch for either
- * kind --- is ever called. **Pure remove** (`toHostId === null`) and **pure add** (`fromHostIds`
- * empty) share one kind-agnostic loop over `nodeIds`/`addNode`/`removeNode` (`EphemeraLudicGraph`'s
- * own kind dispatch, RD-4) rather than one loop per entity kind: a presence-check then
+ * `transferMembership` (BD-36) dispatches by shape on `fromHostIds`/`toHostId`. **Real transfer**
+ * (`fromHostIds` has exactly one member, `toHostId` non-null): the whole `entityIds` set --- objects
+ * and characters together --- routes through `applyTransferSet` (it dispatches by kind itself,
+ * `removeObject`/`addObject` for objects and `removeCharacter`/`addCharacter` for characters, so no
+ * separate character swap is needed here; only objects get the full boundary-edge legality
+ * machinery, since a character can never carry a relational edge). **Room/Feature/Area never
+ * relocate**, so a Room/Feature id reaching this branch **throws** before `applyTransferSet` ---
+ * which has no dispatch for either kind --- is ever called; a caller bug is a structural-invariant
+ * violation, so it belongs on the throw side of the split described below. **Pure remove**
+ * (`toHostId === null`) and **pure add** (`fromHostIds` empty) share one kind-agnostic loop over
+ * `nodeIds`/`addNode`/`removeNode` (`EphemeraLudicGraph`'s own kind dispatch, RD-4) rather than one
+ * loop per entity kind: a presence-check then
  * `removeNode`/`addNode` for each host --- no boundary-sweep here, since the caller is responsible
  * for having already seeded explicit `dissolveRelation` steps for every edge the entity carried (an
  * object-lifecycle route uses `boundaryEdgeOutcomes` on a singleton set, collapsing every outcome to
@@ -122,21 +117,25 @@ const confirmCarriedHost = (
  * against live graph state (BD-33 assert-and-throw), throws on mismatch, else applies the patch.
  *
  * Structural-invariant violations (BD-33's host mismatch; `RelationalEdgeStillReferencedError` from
- * inside `applyTransferSet`/`removeObject`/`removeCharacter`; the end-of-sequence character presence
- * check below) throw, uniformly in both modes --- not a `MutationKernelApplyOutcome` verdict.
- * Legitimate legality outcomes (stale candidate, `Custom`-edge defer, `unresolvedDissolveEdge`) return
- * through the discriminated result.
+ * inside `applyTransferSet`/`removeObject`/`removeCharacter`; a Room/Feature id in a real transfer;
+ * the end-of-sequence character presence check below) throw, uniformly in both modes --- not a
+ * `MutationKernelApplyOutcome` verdict. Legitimate outcomes return through the discriminated result,
+ * and there are only two non-`legal` ones: `stale` (stale candidate, host outside the locked
+ * footprint) and `repairable` (`unresolvedDissolveEdge`; an interaction edge that would have to be
+ * severed; a `Custom` edge, whose named repair is the classification this layer cannot perform).
+ * This function has no verdict meaning "the world forbids this" because it makes no such judgment
+ * --- it checks mechanism, and legality is the enrich tier's question. See `types.ts`.
  *
- * `addPresencePort`/`removePresencePort` (RD-2, 2026-09-04): the moved entity's own presence
+ * `addPresencePort`/`removePresencePort` (RD-2): the moved entity's own presence
  * binding, one step per add or remove rather than one step replacing whatever was there --- see
  * `kernelStep.ts`'s doc comments. `removePresencePort` is a plain filter-by-`fromHostId`, so
  * removing an absent binding is a silent no-op.
  *
- * `capture` (PB-J): snapshots `graphs.get(hostId).characterIds` into the returned `captures` map and
+ * `capture`: snapshots `graphs.get(hostId).characterIds` into the returned `captures` map and
  * moves on --- the one step kind that never touches `graphs`. Reading the map at the step's own
  * position (not resorted, same as every other step here) is what makes the snapshot positional rather
  * than terminal. A host missing from the map --- not locked into the footprint --- is the same
- * `hostNotInFootprint` illegality every other host-lookup miss in this function already returns.
+ * `stale`/`hostNotInFootprint` outcome every other host-lookup miss in this function already returns.
  */
 export const applyStepSequenceCore = (
     steps: readonly MutationKernelStep[],
@@ -149,7 +148,7 @@ export const applyStepSequenceCore = (
         if (step.kind === 'capture') {
             const hostGraph = graphs.get(step.hostId)
             if (!hostGraph) {
-                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             captures.set(step.captureId, [...hostGraph.characterIds])
             continue
@@ -161,25 +160,30 @@ export const applyStepSequenceCore = (
 
             // Real transfer: exactly the shape the two already-migrated player routes produce.
             if (fromHostIds.length === 1 && toHostId !== null) {
-                // LP4h's boundary, unwidened: Room/Feature/Area are hosts that never relocate, so a
-                // Room/Feature id reaching a real (single-from, single-to) transfer is a caller bug ---
-                // `applyTransferSet` has no dispatch for either kind, and step 3's own callers only ever
-                // emit a pure add for them (see `kernelStep.ts`'s doc comment on this widening).
+                // Room/Feature/Area are hosts that never relocate, so a Room/Feature id reaching a
+                // real (single-from, single-to) transfer is a caller bug --- `applyTransferSet` has
+                // no dispatch for either kind, and every caller emits a pure add for them instead
+                // (see `kernelStep.ts`'s doc comment). The Throw-vs-verdict rule stated at the head
+                // of this file puts structural-invariant violations outside the result type, so this
+                // throws rather than returning a verdict; `commitStepSequence`'s BD-31 collapse
+                // throws from inside the same reducer and lands in the same catch.
                 const hasRoomOrFeature = [...step.entityIds].some((id) => isEphemeraRoomId(id) || isEphemeraFeatureId(id))
                 if (hasRoomOrFeature) {
-                    return { verdict: 'illegal', reasonCode: 'unsupportedTransferEntityKind' }
+                    throw new Error(
+                        `transferMembership carries a Room or Feature id into a real transfer --- structural invariant violated (Room/Feature/Area are hosts that never relocate; step 3's callers emit a pure add for them)`
+                    )
                 }
 
                 const [fromHostId] = fromHostIds as [EphemeraMembershipHostId]
                 const sourceGraph = graphs.get(fromHostId)
                 const destGraph = graphs.get(toHostId)
                 if (!sourceGraph || !destGraph) {
-                    return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                    return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
                 }
 
                 for (const id of step.entityIds) {
                     if (!sourceGraph.nodeIds.has(id) || destGraph.nodeIds.has(id)) {
-                        return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
+                        return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
                     }
                 }
 
@@ -187,7 +191,7 @@ export const applyStepSequenceCore = (
                 let nextDestGraph = destGraph
 
                 if (step.entityIds.size > 0) {
-                    // LP4h: applyTransferSet dispatches both objects and characters itself --- no
+                    // applyTransferSet dispatches both objects and characters itself --- no
                     // separate character add/remove loop needed here. Safe cast: the guard above
                     // already confirmed entityIds contains no Room/Feature id.
                     const outcome = applyTransferSet(
@@ -195,11 +199,23 @@ export const applyStepSequenceCore = (
                         nextDestGraph,
                         step.entityIds as ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
                     )
-                    if (outcome.verdict === 'illegal') {
-                        return { verdict: 'illegal', reasonCode: outcome.reasonCode }
-                    }
-                    if (outcome.verdict === 'defer') {
-                        return { verdict: 'defer', decidable: outcome.decidable, reasonCode: outcome.reasonCode }
+                    // `applyTransferSet` names the offending edge but not the host it sits on ---
+                    // it is handed two graphs and knows neither's id. Supply `fromHostId` here:
+                    // boundary edges are found on the *source* graph, so that is where a repair
+                    // step would have to be aimed. `repairKind` passes through untouched --- mapping
+                    // reason codes back to repair kinds here would re-derive at the boundary exactly
+                    // what the layer below already knew.
+                    if (outcome.verdict === 'repairable') {
+                        return {
+                            verdict: 'repairable',
+                            reasonCode: outcome.reasonCode,
+                            authority: outcome.authority,
+                            repair: {
+                                kind: outcome.repairKind,
+                                hostId: fromHostId,
+                                edge: outcome.edge,
+                            },
+                        }
                     }
                     nextSourceGraph = outcome.sourceGraph
                     nextDestGraph = outcome.destGraph
@@ -215,17 +231,17 @@ export const applyStepSequenceCore = (
             // carry-closure to run here (the caller already seeded explicit `dissolveRelation`
             // steps for a pure remove; a pure add is a freshly-spawned entity with no prior edges).
             // One loop over `nodeIds`/`addNode`/`removeNode` covers all four entity kinds ---
-            // `EphemeraLudicGraph.addNode`/`removeNode` (RD-4, presenceRefactor step 3) is the
+            // `EphemeraLudicGraph.addNode`/`removeNode` (RD-4) is the
             // kind-dispatch, so this branch doesn't have to re-derive it per kind.
             for (const fromHostId of fromHostIds) {
                 const sourceGraph = graphs.get(fromHostId)
                 if (!sourceGraph) {
-                    return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                    return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
                 }
                 let nextSourceGraph = sourceGraph
                 for (const id of step.entityIds) {
                     if (!nextSourceGraph.nodeIds.has(id)) {
-                        return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
+                        return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
                     }
                     nextSourceGraph = nextSourceGraph.removeNode(id)
                 }
@@ -235,12 +251,12 @@ export const applyStepSequenceCore = (
             if (toHostId !== null) {
                 const destGraph = graphs.get(toHostId)
                 if (!destGraph) {
-                    return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                    return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
                 }
                 let nextDestGraph = destGraph
                 for (const id of step.entityIds) {
                     if (nextDestGraph.nodeIds.has(id)) {
-                        return { verdict: 'illegal', reasonCode: 'staleTransferCandidate' }
+                        return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
                     }
                     nextDestGraph = nextDestGraph.addNode(id)
                 }
@@ -252,7 +268,7 @@ export const applyStepSequenceCore = (
         if (step.kind === 'addPresencePort') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
-                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             graphs.set(step.hostId, graph.addPort(step.port))
             continue
@@ -260,7 +276,7 @@ export const applyStepSequenceCore = (
         if (step.kind === 'removePresencePort') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
-                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             // A silent no-op when no `Present` port carries this `fromHostId` --- deliberate
             // (RD-2): it is what lets the compiler emit one of these per departure host without
@@ -277,7 +293,7 @@ export const applyStepSequenceCore = (
         if (step.kind === 'addCrossingPort') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
-                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             graphs.set(step.hostId, graph.addPort(step.port))
             continue
@@ -285,7 +301,7 @@ export const applyStepSequenceCore = (
         if (step.kind === 'removeCrossingPort') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
-                return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             graphs.set(step.hostId, graph.removePort(step.portId))
             continue
@@ -298,11 +314,11 @@ export const applyStepSequenceCore = (
         // absent from the footprint entirely is a footprint bug, not a wrong-host structural claim.
         const hostGraph = graphs.get(step.hostId)
         if (!hostGraph) {
-            return { verdict: 'illegal', reasonCode: 'hostNotInFootprint' }
+            return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
         }
         const { subjectHosts, targetHosts } = confirmCarriedHost(step.subjectId, step.targetId, step.hostId, graphs)
         if (subjectHosts.length === 0 || targetHosts.length === 0) {
-            return { verdict: 'illegal', reasonCode: 'staleRelationalCandidate' }
+            return { verdict: 'stale', reasonCode: 'staleRelationalCandidate' }
         }
         const patched = hostGraph.applyRelationalPatch({
             hostId: step.hostId,

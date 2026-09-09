@@ -22,8 +22,8 @@ import type { MutationKernelCaptures } from './types'
  * The presentation kernel's copy-generator: the *only* consumer of a narration step's `narration`
  * field, and the one place a `NarrationSpecification` is dispatched on. Kept deliberately thin ---
  * the expectation was that a second family would arrive as a `case` delegating to a per-family
- * module rather than a block of copy logic inlined here. Phase 4's `objectMove` case is inline
- * because it is five lines; the per-family module is what to reach for when a family's copy logic
+ * module rather than a block of copy logic inlined here. The `objectMove` case is inline because
+ * it is five lines; the per-family module is what to reach for when a family's copy logic
  * stops fitting in a glance, not a rule to apply pre-emptively. See `kernelStep.ts`'s
  * `NarrationSpecification` doc for the conditions under which this dispatcher should give way to
  * polymorphism instead.
@@ -43,14 +43,12 @@ const buildNarrationCopy = (narration: NarrationSpecification): string => {
         }
         case 'objectMove': {
             const name = narration.characterName || 'Someone'
-            // Preserved verbatim from the retired `publishObjectManipulationPresentation.ts`.
-            const carried = narration.carriedCount > 1 ? ' and everything on it' : ''
             const verbPhrase = narration.verb === 'takeHold'
                 ? 'picks up'
                 : narration.verb === 'drop'
                 ? 'drops'
                 : 'gives'
-            return `${name} ${verbPhrase} ${narration.objectShortName}${carried}`
+            return `${name} ${verbPhrase} ${narration.objectShortName}`
         }
     }
 }
@@ -126,7 +124,7 @@ export const presentStepSequence = async (
     for (const step of narrateSteps) {
         /**
          * Hard error, never a fallback. `captureId`s are minted only by
-         * `compile/compilePositionKernelOp.ts` (PB-I), paired with a capture step in the same
+         * `compile/compilePositionKernelOp.ts`, paired with a capture step in the same
          * compiled plan, so a miss here means the plan reaching the presentation kernel is not the
          * plan the compiler emitted --- an internal inconsistency. The tempting recovery (fall back
          * to a live `ROOM#` target) is precisely the terminal binding this step type exists to

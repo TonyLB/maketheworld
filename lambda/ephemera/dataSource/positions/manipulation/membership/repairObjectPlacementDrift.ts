@@ -1,0 +1,89 @@
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import internalCache from '../../../../internalCache'
+import type { MessageBus } from '../../../../messageBus/baseClasses'
+import type { PositionsPublishedPayload } from '../../publishedEvents'
+import { executeMembershipTransfer } from './executeMembershipTransfer'
+import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
+
+export type RepairObjectPlacementDriftArgs = {
+    roomId: EphemeraRoomId;
+    messageBus: MessageBus;
+    streamEvent: StreamEventFunction<PositionsPublishedPayload>;
+}
+
+export type RepairObjectPlacementDriftDependencies = {
+    getLudicGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
+    getMembershipContainers?: (objectId: EphemeraObjectId) => Promise<EphemeraRoomId[]>;
+    applyMembership?: typeof executeMembershipTransfer;
+    syncAdjacency?: typeof syncMembershipAdjacencyToRoom;
+}
+
+const listGraphObjectIds = async (
+    roomId: EphemeraRoomId,
+    getLudicGraph: RepairObjectPlacementDriftDependencies['getLudicGraph']
+): Promise<EphemeraObjectId[]> => {
+    const loader = getLudicGraph ?? ((id) => internalCache.Positions.getLudicGraph(id))
+    const ludicGraph = await loader(roomId)
+    return [...ludicGraph.objectIds].filter(isEphemeraObjectId)
+}
+
+const containersIncludeRoom = (containers: EphemeraRoomId[], roomId: EphemeraRoomId): boolean =>
+    containers.includes(roomId)
+
+/**
+ * Graph-forward object placement drift repair for one room.
+ * Adjacency-only when graph lists object but index lags; end-state apply when multi-room drift.
+ */
+export const repairObjectPlacementDrift = async (
+    args: RepairObjectPlacementDriftArgs,
+    deps?: RepairObjectPlacementDriftDependencies
+): Promise<{ multiRoomScrubbed: number; adjacencySynced: number }> => {
+    const getMembershipContainers = deps?.getMembershipContainers
+        ?? (async (objectId) => {
+            const containers = await internalCache.Positions.getMembershipContainers(objectId)
+            return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
+        })
+    const applyMembership = deps?.applyMembership ?? executeMembershipTransfer
+    const syncAdjacency = deps?.syncAdjacency ?? syncMembershipAdjacencyToRoom
+
+    const objectIds = await listGraphObjectIds(args.roomId, deps?.getLudicGraph)
+    let multiRoomScrubbed = 0
+    let adjacencySynced = 0
+
+    for (const objectId of objectIds) {
+        const containers = await getMembershipContainers(objectId)
+
+        if (containers.length > 1) {
+            // BD-35: any relational edge severed by this scrub is a silent internal consistency fix,
+            // not a player-visible event --- suppress the newly-explicit dissolve fact (Object Moved
+            // still streams unaffected).
+            const result = await applyMembership({
+                entityId: objectId,
+                target: args.roomId,
+                messageBus: args.messageBus,
+                streamEvent: args.streamEvent,
+                suppressRelationalFacts: true,
+            })
+            if (result.ok && result.changed) {
+                multiRoomScrubbed += 1
+            }
+            continue
+        }
+
+        if (containersIncludeRoom(containers, args.roomId)) {
+            continue
+        }
+
+        const { synced } = await syncAdjacency({
+            componentId: objectId,
+            roomId: args.roomId,
+        })
+        if (synced) {
+            adjacencySynced += 1
+        }
+    }
+
+    return { multiRoomScrubbed, adjacencySynced }
+}

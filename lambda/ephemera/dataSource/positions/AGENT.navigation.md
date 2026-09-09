@@ -28,11 +28,11 @@ Dense links for how `mtw.ephemera.positions` relates to other systems. Local cod
 | [`../actions/roomExitTargetsForCharacter.ts`](../actions/roomExitTargetsForCharacter.ts) | Nav exit resolution (D34 sync) |
 | [`../objects/AGENT.md`](../objects/AGENT.md) | Two-step existence + graph placement (**I5**); objects lane owns existence rows |
 | [`../perception/AGENT.md`](../perception/AGENT.md) | Terminal `PublishMessage`, membership fan-in intent legs |
-| [`index.ts`](index.ts) | Navigate / home execution ingress (`Character Navigate`, `Character Home` -> `executeCharacterNavigate`) |
-| [`navigate/executeCharacterNavigate.ts`](navigate/executeCharacterNavigate.ts) | Shared persist + orchestrate helper |
-| [`navigate/orchestrateNavigate.ts`](navigate/orchestrateNavigate.ts) | Post-persist navigate presentation |
-| [`membership/applyCharacterRoomMembership.ts`](membership/applyCharacterRoomMembership.ts) | Membership persistence coordinator (slice 1a) |
-| [`membership/repairRoomOccupancyDrift.ts`](membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair on **`Room Occupancy Drift Finding`** |
+| [`index.ts`](index.ts) | Navigate / home execution ingress (`Character Navigate`, `Character Home` -> `orchestrateCharacterMove`) |
+| [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts) | Convergence of navigate/home/connect/disconnect (3g): membership persist, then present |
+| [`navigate/presentCharacterMove.ts`](navigate/presentCharacterMove.ts) | Post-persist presentation for every character route (navigate/home/connect/disconnect/ghost-purge repair --- 3f) |
+| [`manipulation/membership/orchestrateCharacterRoomMembership.ts`](manipulation/membership/orchestrateCharacterRoomMembership.ts) | Membership persistence coordinator (slice 1a) |
+| [`manipulation/membership/repairRoomOccupancyDrift.ts`](manipulation/membership/repairRoomOccupancyDrift.ts) | Occupancy drift repair on **`Room Occupancy Drift Finding`** |
 | [`../../../diagnostics/roomOccupancyDriftSweep/`](../../../diagnostics/roomOccupancyDriftSweep/) | Read-only graph-forward occupancy drift classification; emits **`Room Occupancy Drift Finding`** |
 | [`../state/resolveAssetStackForRoom.ts`](../state/resolveAssetStackForRoom.ts) | Room **render** asset stack (not eviction ladder --- see [`AGENT.concepts.md`](AGENT.concepts.md)) |
 | [`../../AGENT.md`](../../AGENT.md) | Lambda overview, session orientation vs presence |

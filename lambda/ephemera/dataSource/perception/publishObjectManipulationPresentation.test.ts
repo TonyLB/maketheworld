@@ -37,7 +37,7 @@ const basePlan = (
  * Take/drop coverage left this file in Phase 4 along with the builders it exercised --- the copy
  * cases now live in `presentStepSequence.test.ts`'s `objectMove` narration block, and the routing in
  * `orchestrateObjectMove.test.ts`. What remains is the relational (reposition-within-a-host) family,
- * which is a deliberate deferral rather than a boundary (PB-M).
+ * which is a deliberate deferral rather than a boundary.
  */
 describe('publishObjectRelationalPresentation', () => {
     it('builds establish-relation copy per relation kind', () => {

@@ -1,0 +1,130 @@
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+
+const commitStepSequence = jest.fn()
+const presentStepSequence = jest.fn()
+const sendMessageBundleDeclared = jest.fn()
+
+jest.mock('./commitStepSequence', () => ({
+    __esModule: true,
+    commitStepSequence: (...args: any[]) => commitStepSequence(...args),
+}))
+
+jest.mock('./presentStepSequence', () => ({
+    __esModule: true,
+    presentStepSequence: (...args: any[]) => presentStepSequence(...args),
+}))
+
+jest.mock('../../../messageOrchestration/subscribedEvents', () => ({
+    __esModule: true,
+    sendMessageBundleDeclared: (...args: any[]) => sendMessageBundleDeclared(...args),
+}))
+
+import { commitAndPresentStepSequence } from './commitAndPresentStepSequence'
+import type { KernelStep } from './kernelStep'
+import type { CompiledPositionKernelPlan } from './compile/compilePositionKernelOp'
+
+const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
+const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
+const OBJECT_ID = 'OBJECT#Tray' as EphemeraObjectId
+const BUNDLE_ID = 'BUNDLE#test'
+
+const commitDeps = { messageBus: {} as any, streamEvent: jest.fn(), getCurrentHost: () => ROOM_ID }
+const perceiveDeps = { streamEvent: jest.fn(), messageBus: {} as any }
+
+describe('commitAndPresentStepSequence', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+    })
+
+    it('awaits commitStepSequence to completion before invoking presentStepSequence, for a mixed step list', async () => {
+        const callOrder: string[] = []
+        commitStepSequence.mockImplementation(async () => {
+            callOrder.push('commit')
+            return { ok: true, beatAnchorTime: 1, steps: [] }
+        })
+        presentStepSequence.mockImplementation(async () => {
+            callOrder.push('perceive')
+        })
+
+        const steps: KernelStep[] = [
+            { kind: 'transferMembership', entityIds: new Set([OBJECT_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'describe', referentId: ROOM_ID, referentKind: 'room' },
+        ]
+        const plan: CompiledPositionKernelPlan = { steps, slots: [] }
+
+        const result = await commitAndPresentStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
+
+        expect(callOrder).toEqual(['commit', 'perceive'])
+        expect(result).toEqual({ ok: true, beatAnchorTime: 1, steps: [] })
+
+        expect(commitStepSequence).toHaveBeenCalledWith(
+            { steps: [steps[0]] },
+            commitDeps
+        )
+        expect(sendMessageBundleDeclared).not.toHaveBeenCalled()
+        expect(presentStepSequence).toHaveBeenCalledWith(steps, CHARACTER_ID, perceiveDeps, undefined)
+    })
+
+    it('does not invoke presentStepSequence when commitStepSequence reports ok:false', async () => {
+        commitStepSequence.mockResolvedValue({ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage: 'stale' })
+
+        const steps: KernelStep[] = [
+            { kind: 'transferMembership', entityIds: new Set([OBJECT_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'describe', referentId: ROOM_ID, referentKind: 'room' },
+        ]
+        const plan: CompiledPositionKernelPlan = { steps, slots: [] }
+
+        const result = await commitAndPresentStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
+
+        expect(result.ok).toBe(false)
+        expect(sendMessageBundleDeclared).not.toHaveBeenCalled()
+        expect(presentStepSequence).not.toHaveBeenCalled()
+    })
+
+    it('a pure-mutation list still calls commitStepSequence with the full set and presentStepSequence with an empty describe filter result', async () => {
+        commitStepSequence.mockResolvedValue({ ok: true, beatAnchorTime: 1, steps: [] })
+        presentStepSequence.mockResolvedValue(undefined)
+
+        const steps: KernelStep[] = [
+            { kind: 'transferMembership', entityIds: new Set([OBJECT_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+        ]
+        const plan: CompiledPositionKernelPlan = { steps, slots: [] }
+
+        await commitAndPresentStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
+
+        expect(commitStepSequence).toHaveBeenCalledWith({ steps }, commitDeps)
+        expect(presentStepSequence).toHaveBeenCalledWith(steps, CHARACTER_ID, perceiveDeps, undefined)
+    })
+
+    it('a pure-describe list calls commitStepSequence with zero mutation steps (no transactWrite fires for it)', async () => {
+        commitStepSequence.mockResolvedValue({ ok: true, beatAnchorTime: 1, steps: [] })
+        presentStepSequence.mockResolvedValue(undefined)
+
+        const steps: KernelStep[] = [{ kind: 'describe', referentId: ROOM_ID, referentKind: 'room' }]
+        const plan: CompiledPositionKernelPlan = { steps, slots: [] }
+
+        await commitAndPresentStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
+
+        expect(commitStepSequence).toHaveBeenCalledWith({ steps: [] }, commitDeps)
+        expect(presentStepSequence).toHaveBeenCalledWith(steps, CHARACTER_ID, perceiveDeps, undefined)
+    })
+
+    it('declares the messageOrchestration bundle after a successful commit, before presenting, when the plan has slots', async () => {
+        const callOrder: string[] = []
+        commitStepSequence.mockImplementation(async () => {
+            callOrder.push('commit')
+            return { ok: true, beatAnchorTime: 1, steps: [] }
+        })
+        sendMessageBundleDeclared.mockImplementation(() => { callOrder.push('declare') })
+        presentStepSequence.mockImplementation(async () => { callOrder.push('perceive') })
+
+        const steps: KernelStep[] = [{ kind: 'describe', referentId: ROOM_ID, referentKind: 'room' }]
+        const slots = [{ slotId: 'SLOT#leave', expectedPublishType: 'WorldMessage' as const }]
+        const plan: CompiledPositionKernelPlan = { steps, slots }
+
+        await commitAndPresentStepSequence(plan, BUNDLE_ID, CHARACTER_ID, { commit: commitDeps, perceive: perceiveDeps })
+
+        expect(callOrder).toEqual(['commit', 'declare', 'perceive'])
+        expect(sendMessageBundleDeclared).toHaveBeenCalledWith(perceiveDeps.messageBus, BUNDLE_ID, { bundleId: BUNDLE_ID, slots })
+    })
+})

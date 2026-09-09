@@ -185,7 +185,7 @@ describe('mtw.ephemera.perception DataSource', () => {
      * evicts) any still-open, incomplete bundle partial on every flushAndSettle() call, per its
      * own "tolerantly failed" settle design. Declaring a bundle and then separately flushing
      * before its slots have reported would prematurely evict it, orphaning every later
-     * slot-report leg. Production never does this (orchestrateNavigate.ts declares, registers,
+     * slot-report leg. Production never does this (presentCharacterMove.ts declares, registers,
      * and kicks off resolution all within one invocation, with exactly one flush at the very
      * end) --- these test helpers mirror that: call declareCharacterMoveBundle/
      * registerCharacterMoveIngress for setup, then let the first real trigger event's own flush
@@ -209,7 +209,7 @@ describe('mtw.ephemera.perception DataSource', () => {
 
     /**
      * Ingress-side registration for a characterMove header slot --- mirrors what
-     * orchestrateNavigate.ts does in production (always paired with declareCharacterMoveBundle,
+     * presentCharacterMove.ts does in production (always paired with declareCharacterMoveBundle,
      * since every real characterMove header render goes through both the Delivery bundle and the
      * Ingress listener registration together). Deliberately does not flush --- see
      * declareCharacterMoveBundle's comment above.

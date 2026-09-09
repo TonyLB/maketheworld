@@ -16,7 +16,7 @@ import { streamObjectsChangedFact } from './events'
 import { filterTropeAffinitiesByRoom } from './filterTropeAffinitiesByRoom'
 import { spawnImprovisationObjectsBatch, spawnOneImprovisationObject } from './spawnImprovisationObjectsBatch'
 import messageBus from '../../messageBus'
-import { resolveCharacterRoomId } from '../positions/membership/resolveCharacterRoomId'
+import { resolveCharacterRoomId } from '../positions/manipulation/membership/resolveCharacterRoomId'
 import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
 
 const logAddFailures = (addFailures: ApplyObjectsAddFailure[]): void => {

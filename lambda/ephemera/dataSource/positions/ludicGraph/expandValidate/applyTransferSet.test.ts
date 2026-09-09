@@ -67,18 +67,26 @@ describe('applyTransferSet', () => {
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId, glassId]))
 
-        // A discriminated illegal result, not a thrown RelationalEdgeStillReferencedError --- keeps
-        // dry-run callers on a discriminated result, per the design doc.
-        expect(outcome).toEqual({ verdict: 'illegal', reasonCode: 'unresolvedDissolveEdge' })
+        // A discriminated result, not a thrown RelationalEdgeStillReferencedError --- keeps
+        // dry-run callers on a discriminated result, per the design doc. `repairable` rather than
+        // a flat rejection: the missing DissolveRelationStep is exactly what a re-proposing caller
+        // would add, and the edge to aim it at rides along.
+        expect(outcome).toEqual({
+            verdict: 'repairable',
+            reasonCode: 'unresolvedDissolveEdge',
+            repairKind: 'dissolveRelationalEdge',
+            authority: 'mechanical',
+            edge: { from: trayId, to: tableId, kind: 'Against' },
+        })
     })
 
     // The former "illegal: an incomplete transfer set (unaccounted carry boundary edge)" test is
-    // retired 2026-08-22 (Channel D, CD2, reduced scope): `incompleteTransferSet` is only returned
-    // when `boundaryEdgeOutcomes` finds a `carry` outcome (applyTransferSet.ts:44-47), and `carry`
-    // is now unreachable from any relation kind -- `On` (its only producer) joined `In`/`PartOf`'s
-    // hosting-kind throw. This branch is dead code pending CD3 (which would retire it formally).
+    // retired 2026-08-22 (Channel D, CD2, reduced scope): `incompleteTransferSet` was only returned
+    // when `boundaryEdgeOutcomes` found a `carry` outcome, and `carry` was unreachable from any
+    // relation kind even then -- `On` (its only producer) had already joined `In`/`PartOf`'s
+    // hosting-kind throw. CD3 (2026-09-06) formally retired the branch that checked for it.
 
-    it('defer: an Under boundary edge on the subject moving requires interaction assessment', () => {
+    it('repairable/worldChanging: an Under boundary edge on the subject moving requires interaction assessment', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
@@ -90,10 +98,18 @@ describe('applyTransferSet', () => {
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId]))
 
-        expect(outcome).toEqual({ verdict: 'defer', decidable: true, reasonCode: 'transferInteractionDefer' })
+        // `worldChanging`, not `mechanical`: severing this edge moves the table's tray, which the
+        // player did not ask for. The distinction is recorded here and acted on by repair policy.
+        expect(outcome).toEqual({
+            verdict: 'repairable',
+            reasonCode: 'transferInteractionDefer',
+            repairKind: 'dissolveRelationalEdge',
+            authority: 'worldChanging',
+            edge: { from: trayId, to: tableId, kind: 'Under' },
+        })
     })
 
-    it('defer: a Custom boundary edge is not decidable', () => {
+    it('repairable/classifyCustomRelation: a Custom boundary edge names the decision it needs, not a severing', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
@@ -105,7 +121,16 @@ describe('applyTransferSet', () => {
 
         const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId]))
 
-        expect(outcome).toEqual({ verdict: 'defer', decidable: false, reasonCode: 'transferInteractionDefer' })
+        // Repairable, because a repair exists --- someone deciding what "tied to" means. What this
+        // layer cannot do is *perform* it, and that is the applier's problem to throw on, not a
+        // property of the plan to report as unrepairable.
+        expect(outcome).toEqual({
+            verdict: 'repairable',
+            reasonCode: 'undecidableInteractionEdge',
+            repairKind: 'classifyCustomRelation',
+            authority: 'worldChanging',
+            edge: { from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' },
+        })
     })
 
     it('reorder regression: an internal edge between two transferred objects does not spuriously throw', () => {
@@ -130,7 +155,7 @@ describe('applyTransferSet', () => {
         expect(outcome.sourceGraph.relationalEdges).toEqual([])
     })
 
-    it('LP4h legal: a character-only transfer set dispatches via addCharacter/removeCharacter', () => {
+    it('legal: a character-only transfer set dispatches via addCharacter/removeCharacter', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
         const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
 
@@ -142,7 +167,7 @@ describe('applyTransferSet', () => {
         expect(outcome.destGraph.characterIds.has(characterId)).toBe(true)
     })
 
-    it('LP4h legal: a mixed object+character transfer set lands both under one call', () => {
+    it('legal: a mixed object+character transfer set lands both under one call', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },

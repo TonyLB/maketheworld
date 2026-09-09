@@ -5,7 +5,7 @@ import type { FacetListData } from '@tonylb/mtw-wml/ts/standardize/keys/abstract
 import type { SituationProseFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 
 import type { MessageBus } from '../../messageBus/baseClasses'
-import { executeMembershipTransfer } from '../positions/manipulation/membership/executeObjectMove'
+import { executeMembershipTransfer } from '../positions/manipulation/membership/executeMembershipTransfer'
 import type { PositionsPublishedPayload } from '../positions/publishedEvents'
 import { buildShortNameSemanticEmbedding } from './embedding/buildShortNameSemanticEmbedding'
 import {

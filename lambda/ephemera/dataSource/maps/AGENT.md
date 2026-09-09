@@ -20,7 +20,7 @@
 | **Server map render** | Retired; `MAP#` calls throw `MAP_SERVER_RENDER_RETIRED` |
 | **`CharacterPossibleMaps`** | Graph-based map discovery removed |
 | **Perception `MAP#` -> `EphemeraUpdate` MapUpdate** | No map fanout from imperative perception |
-| **Navigate `MapUpdate` publish** | `orchestrateCharacterNavigate` does not emit move-time map updates |
+| **Navigate `MapUpdate` publish** | `presentCharacterMove` does not emit move-time map updates |
 
 ## Intentional no-ops (wire shape preserved)
 

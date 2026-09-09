@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { executeMembershipTransfer } from './executeObjectMove'
+import { executeMembershipTransfer } from './executeMembershipTransfer'
 import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
@@ -235,32 +235,6 @@ describe('executeMembershipTransfer', () => {
         expect(internalCache.Positions.getLudicGraph).not.toHaveBeenCalledWith(FROM_ROOM)
         const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
         expect(eventTypes).toEqual(['Character Moved'])
-    })
-
-    it('compileMutationSteps override replaces the default bare transferMembership step', async () => {
-        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] });
-        (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([]);
-        (internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(toRoomGraph)
-        wireTransactWrite({ [TO_ROOM]: toRoomGraph })
-
-        const compileMutationSteps = jest.fn().mockReturnValue([{
-            kind: 'transferMembership',
-            entityIds: new Set([CHARACTER_ID]),
-            fromHostIds: new Set<EphemeraRoomId>(),
-            toHostId: TO_ROOM,
-        }])
-
-        const result = await executeMembershipTransfer({
-            entityId: CHARACTER_ID,
-            target: TO_ROOM,
-            messageBus: messageBus as any,
-            streamEvent,
-            compileMutationSteps,
-            characterNames: new Map([[CHARACTER_ID, 'Alpha']]),
-        })
-
-        expect(compileMutationSteps).toHaveBeenCalledWith({ froms: [], to: TO_ROOM, changed: true })
-        expect(result.ok).toBe(true)
     })
 
     it("removing the interior (port-owning) side of a crossing dissolves both legs and the port in one transact --- the 'silent orphan' failure mode this row fixes", async () => {

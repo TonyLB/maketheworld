@@ -49,7 +49,7 @@ describe('fromExecutorStep', () => {
 })
 
 describe('isKernelMutationStep', () => {
-    it('accepts a capture step (PB-J)', () => {
+    it('accepts a capture step', () => {
         const step: KernelStep = { kind: 'capture', hostId: roomId, captureId: 'before' }
         expect(isKernelMutationStep(step)).toBe(true)
     })

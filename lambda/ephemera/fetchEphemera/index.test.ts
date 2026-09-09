@@ -6,11 +6,11 @@ import internalCache from '../internalCache'
 jest.mock('../messageBus')
 import messageBus from '../messageBus'
 
-jest.mock('../dataSource/positions/membership/resolveCharacterRoomId', () => ({
+jest.mock('../dataSource/positions/manipulation/membership/resolveCharacterRoomId', () => ({
     resolveCharacterRoomId: jest.fn(),
 }))
 
-import { resolveCharacterRoomId } from '../dataSource/positions/membership/resolveCharacterRoomId'
+import { resolveCharacterRoomId } from '../dataSource/positions/manipulation/membership/resolveCharacterRoomId'
 import { fetchPlayerEphemera } from '.'
 
 const connectionDBMock = connectionDB as jest.Mocked<typeof connectionDB>

@@ -60,7 +60,7 @@ import {
     type GenerateRoomPreviewOptions,
 } from './renderOrchestration/generateRoomPreview'
 import * as kickRoomHeaderBroadcastModule from './perception/kickRoomHeaderBroadcast'
-import * as resolveCharacterRoomIdModule from './positions/membership/resolveCharacterRoomId'
+import * as resolveCharacterRoomIdModule from './positions/manipulation/membership/resolveCharacterRoomId'
 import {
     makePassThroughGenerationStartedPayload,
     makePassThroughRenderGeneratedPayload,

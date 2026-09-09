@@ -74,7 +74,7 @@ Several different mechanisms show up next to each other in orchestration types (
 |------|----------------|--------|
 | **Direct / authoring (e.g. Preview)** | A **specific** user gets progress + result on **their** connection | WebSocket **`RequestId`** on `ReturnValue`; **`CharacterId`** from the request. Not the same as "everyone in the room." |
 | **Room-scoped broadcast** | Whoever is **in the room now** should receive stream chunks while present | Resolve **targets** from **presence** at send time (e.g. `RoomCharacterList`). Practical v1: recipients are **current** occupants; **do not** require a cumulative list of everyone who ever saw an earlier chunk unless we explicitly add that product requirement later. |
-| **Ordered sub-orchestration (e.g. move)** | A **single** logical update that must interleave with related messages (leave / arrive / perception) | **`messageGroupId`** via `internalCache.OrchestrateMessages` (`before` / `after` / `next`); see [`orchestrateNavigate.ts`](../dataSource/positions/navigate/orchestrateNavigate.ts). This is **timeline ordering**, not "who is the audience." |
+| **Ordered sub-orchestration (e.g. move)** | A **single** logical update that must interleave with related messages (leave / arrive / perception) | **`messageGroupId`** via `internalCache.OrchestrateMessages` (`before` / `after` / `next`); see [`presentCharacterMove.ts`](../dataSource/positions/navigate/presentCharacterMove.ts). This is **timeline ordering**, not "who is the audience." |
 
 **Implication:** the serializable payload for `internalCache.Conversations` should be a **small core** (e.g. `conversationId`, maybe channel discriminant) plus **path-specific** fields or **variants**, rather than a universal superset of every field `RenderTargetContext` might ever carry.
 
@@ -217,7 +217,7 @@ The **internalCache gateway** pattern (memory mirror + future durable store) sti
 - `lambda/ephemera/dataSource/renderOrchestration/AGENT.planning.md` - message contracts and handler lifecycle.
 - `lambda/ephemera/dataSource/renderOrchestration/events.ts` - `RenderTargetContext`, lifecycle message shapes.
 - `lambda/ephemera/perception/index.ts` - `sendRoomGeneratingHeader` (placeholder "Generating..." path).
-- `lambda/ephemera/dataSource/positions/navigate/orchestrateNavigate.ts` - `messageGroupId` / `OrchestrateMessages` for navigate presentation ordering.
+- `lambda/ephemera/dataSource/positions/navigate/presentCharacterMove.ts` - `messageGroupId` / `OrchestrateMessages` for navigate presentation ordering.
 - `lambda/ephemera/internalCache/index.ts` - `clear()` and cache composition.
 - `lambda/ephemera/AGENT.event.md` - WebSocket and internal bus overview.
 - `charcoal-client/src/slices/lifeLine/AGENT.md` - `socketDispatchPromise` vs proposed `socketDispatchConversation` (multi-stage preview).

@@ -6,10 +6,9 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { ActionsPublishedPayload } from '../../../actions/publishedEvents'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
-import { sendMessageBundleDeclared } from '../../../messageOrchestration/subscribedEvents'
-import { presentStepSequence } from '../kernel/presentStepSequence'
+import { commitAndPresentStepSequence } from '../kernel/commitAndPresentStepSequence'
 import { resolveObjectMovePresentationLabels } from '../../../perception/resolveObjectMovePresentationLabels'
-import { executeObjectMove } from './executeObjectMove'
+import { planObjectMoveTransfer } from './planObjectMoveTransfer'
 
 /** An object move's compiled plan never includes a `describe` step --- same as navigate's, same noop. */
 const noopActionsStreamEvent: StreamEventFunction<ActionsPublishedPayload> = async () => {}
@@ -44,13 +43,18 @@ export type OrchestrateObjectMoveArgs = {
 
 /**
  * The narrating entry point for a player-driven object move --- take, drop, and eventually give
- * give. Sibling of `orchestrateCharacterDisconnect`:
- * it declares the messageOrchestration bundle and presents the compiled narrate steps, leaving the
- * world change itself entirely to `executeObjectMove`, which stays callable bare for non-narrating
- * object-lifecycle moves (spawn/destroy/place/remove).
+ * give. `planObjectMoveTransfer` builds and dry-runs the plan (3d, 2026-09-08's replacement for
+ * `executeMembershipTransfer`'s retired `honorDefer` mode); this function hands the compiled plan to
+ * the shared `commitAndPresentStepSequence` composer (3e; renamed from `executeStepSequence` in
+ * 3g), which commits it, declares the
+ * messageOrchestration bundle (from `plan.slots`, only on a successful commit), and presents the
+ * compiled narrate steps --- no manual commit/declare/present sequence of its own anymore. Every
+ * non-narrating object-lifecycle move (spawn/destroy/place/remove) still calls
+ * `executeMembershipTransfer` directly; this is the one route with a legality question to ask, so it
+ * is the one route that plans separately from that shared administrative function.
  *
  * **Takes hosts, not a verb.** Which of take/drop/give this is falls out inside
- * `compilePositionKernelOp` from which side of the move was the room (PB-M) --- this function never
+ * `compilePositionKernelOp` from which side of the move was the room --- this function never
  * needs to know, which is what let the retired `inferOperationFromFact` be deleted outright rather
  * than ported to a new home.
  *
@@ -59,11 +63,12 @@ export type OrchestrateObjectMoveArgs = {
  * having left the room graph, so resolving early costs nothing in fidelity; a take's copy names the
  * object as the room's perspective saw it, which is what witnesses in that room would have called it.
  *
- * The bundle is declared **after** a successful commit, matching `orchestrateCharacterNavigate`'s
- * shape. That is a consistency preference, not a correctness requirement, and is recorded as such so
- * it is neither "corrected" later on a mistaken safety belief nor treated as load-bearing: the
- * messageOrchestration fan-in deliberately skips declared slots that never receive a report, so a
- * bundle declared ahead of a failed commit would settle harmlessly rather than hang.
+ * The bundle is declared **after** a successful commit (`commitAndPresentStepSequence`'s own sequencing),
+ * matching `presentCharacterMove`'s shape. That is a consistency preference, not a
+ * correctness requirement, and is recorded as such so it is neither "corrected" later on a mistaken
+ * safety belief nor treated as load-bearing: the messageOrchestration fan-in deliberately skips
+ * declared slots that never receive a report, so a bundle declared ahead of a failed commit would
+ * settle harmlessly rather than hang.
  */
 export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Promise<void> => {
     const { characterId } = args
@@ -79,29 +84,32 @@ export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Pr
     })
 
     const bundleId = uuidv4()
-    const result = await executeObjectMove({
-        objectIds: args.objectIds,
+    const planResult = await planObjectMoveTransfer({
+        entityId: primaryObjectId,
         fromHostId: args.fromHostId,
         toHostId: args.toHostId,
         bundleId,
         narration: { characterName, objectShortName },
         ...(args.containment ? { containment: args.containment } : {}),
-        messageBus: args.messageBus,
-        streamEvent: args.streamEvent,
     })
 
-    if (!result.ok) {
+    if (!planResult.ok) {
+        console.error(`[mtw.ephemera.positions] orchestrateObjectMove refused: ${planResult.errorCode}`)
         return
     }
 
-    if (result.plan.slots.length > 0) {
-        sendMessageBundleDeclared(args.messageBus, bundleId, { bundleId, slots: [...result.plan.slots] })
-    }
-
-    await presentStepSequence(
-        result.plan.steps,
+    const { plan } = planResult
+    await commitAndPresentStepSequence(
+        plan,
+        bundleId,
         characterId,
-        { streamEvent: noopActionsStreamEvent, messageBus: args.messageBus },
-        result.captures
+        {
+            commit: {
+                messageBus: args.messageBus,
+                streamEvent: args.streamEvent,
+                getCurrentHost: () => planResult.fromHostId,
+            },
+            perceive: { streamEvent: noopActionsStreamEvent, messageBus: args.messageBus },
+        }
     )
 }

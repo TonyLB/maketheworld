@@ -11,8 +11,8 @@ import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { EphemeraLudicGraph, graphFromMeta, hostDataCategory } from '../../ludicGraph'
-import { streamObjectMembershipFact } from '../../membership/streamObjectMembershipFact'
-import { streamMembershipFact } from '../../membership/streamMembershipFact'
+import { streamObjectMembershipFact } from '../membership/streamObjectMembershipFact'
+import { streamMembershipFact } from '../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
@@ -37,12 +37,10 @@ export type CommitStepSequenceDeps = {
     /**
      * Character-route Migrate row: resolved character display names for any `transferMembership`
      * step's character-kind `entityIds`, so `factsForStep` (synchronous) can build a fully-populated
-     * `Character Moved` fact without fetching anything itself. Only `applyCharacterRoomMembership.ts`
+     * `Character Moved` fact without fetching anything itself. Only `orchestrateCharacterRoomMembership.ts`
      * populates this today; every other caller's steps carry no character entityIds, so it's a no-op.
      */
     characterNames?: ReadonlyMap<EphemeraCharacterId, string>
-    /** Set when the caller's own compiled step sequence already narrated this move synchronously (every membership route as of Phase 3) --- passed through to every `Character Moved` fact this commit streams. Historically signaled the now-retired async membership-presentation fan-in to drop its fact leg; kept on the fact payload as a record of narration provenance. */
-    narratedInline?: boolean
 }
 
 type CommitStepSequenceTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
@@ -66,16 +64,23 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * an arbitrary `MutationKernelStep[]` through one shared `applyStepSequenceCore` reducer body instead of
  * each kernel inlining its own.
  *
- * BD-31 interim policy: non-`legal` verdicts from `applyStepSequenceCore` and the structural throws
- * it can raise (BD-33 host mismatch, `RelationalEdgeStillReferencedError`) both abort the reducer
- * identically --- collapsed into one generic transact failure, matching today's two live kernels'
- * behavior, until BD-18's backtrack channel lands.
+ * BD-31 interim policy: both non-`legal` verdicts from `applyStepSequenceCore`
+ * (`repairable`, `stale`) and the structural throws it can raise (BD-33 host mismatch, a
+ * Room/Feature id in a real transfer, `RelationalEdgeStillReferencedError`) abort the reducer
+ * identically --- collapsed into
+ * one generic transact failure, matching today's two live kernels' behavior, until BD-18's
+ * backtrack channel lands. The verdicts are distinguishable at the type boundary as of 2026-09-08
+ * and this is the one caller that still throws the distinction away; lifting that is BD-18's, not
+ * a matter of reading `outcome.verdict` here.
  *
- * Now wired to every live route: `executeObjectMove` (take/drop),
- * `applyObjectRelationalChange` (establish/dissolve), `executeMembershipTransfer` (object-lifecycle
- * Migrate row: destroy/edit/spawn/place/drift-repair; this absorbed `applyObjectClearMembership`/
- * `applyObjectRoomMembership` into it), and --- character-route Migrate row --- `applyCharacterRoomMembership`
- * (navigate/connect/disconnect, itself now a thin wrapper over `executeMembershipTransfer`).
+ * Now wired to every live route: `orchestrateObjectMove` directly (take/drop/give, via
+ * `planObjectMoveTransfer`'s dry-run-then-plan --- 3d, 2026-09-08, replacing `executeMembershipTransfer`'s
+ * retired `honorDefer` mode), `executeMembershipTransfer` itself (the object-lifecycle Migrate row:
+ * destroy/edit/spawn/place/drift-repair; this absorbed `applyObjectClearMembership`/
+ * `applyObjectRoomMembership`/`executeObjectMove` into it, 2026-09-07),
+ * `applyObjectRelationalChange` (establish/dissolve), and --- character-route
+ * Migrate row --- `orchestrateCharacterRoomMembership` (navigate/connect/disconnect, itself now a thin
+ * wrapper over `executeMembershipTransfer`).
  * `applyHostEffects` and its transact-item builders have no remaining callers and are retired.
  */
 export const commitStepSequence = async (
@@ -91,7 +96,7 @@ export const commitStepSequence = async (
     const footprint = computeStepSequenceFootprint(steps, deps.getCurrentHost)
 
     let committedGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
-    // PB-D: assignment, not append --- the reducer body can run more than once under
+    // Assignment, not append --- the reducer body can run more than once under
     // `exponentialBackoffWrapper`'s retry, so this is overwritten whole on every invocation, never
     // accumulated across attempts.
     let committedCaptures: MutationKernelCaptures | undefined
@@ -121,7 +126,11 @@ export const commitStepSequence = async (
 
                 const outcome = applyStepSequenceCore(steps, graphs)
                 if (outcome.verdict !== 'legal') {
-                    // BD-31 interim: collapse illegal/defer into one generic abort.
+                    // BD-31 interim: collapse repairable/stale into one generic abort. Note that
+                    // this makes a `stale` verdict *terminal* --- the throw is not a
+                    // `TransactionCanceledException`, so `exponentialBackoffWrapper` below does not
+                    // retry it, and nothing re-fetches and re-checks. See AGENT.contract.md's
+                    // "Current limitations".
                     throw new Error(
                         `commitStepSequence: step sequence no longer legal at commit time (${outcome.reasonCode}) --- stale candidate, concurrent modification detected`
                     )
@@ -134,7 +143,7 @@ export const commitStepSequence = async (
                     entry.ludicGraph = graph.toStored()
                 }
                 committedGraphs = new Map(outcome.graphs)
-                // PB-F/PB-E: capture values are already plain `EphemeraCharacterId[]`, never Immer
+                // Capture values are already plain `EphemeraCharacterId[]`, never Immer
                 // draft-backed, so a fresh `Map` copy here is enough --- no per-entry plain-copy needed.
                 committedCaptures = new Map(outcome.captures)
             },
@@ -203,7 +212,7 @@ export const commitStepSequence = async (
     }
 
     for (const step of steps) {
-        for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs, deps.characterNames, deps.narratedInline)) {
+        for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs, deps.characterNames)) {
             if (fact.type === 'Object Moved') {
                 await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
             }

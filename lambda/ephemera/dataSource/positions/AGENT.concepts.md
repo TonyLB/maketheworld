@@ -81,7 +81,7 @@ At play time, room membership is stored as a **room play graph** plus a **revers
 
 **Room is the worked example here, not the only host.** The same forward-graph shape is stored on every membership host kind as **`Meta::<Kind>.ludicGraph`** (Room, Character, Object, Feature, Area), through one shared serde --- see [Host storage](AGENT.contract.md#host-storage-one-shared-serde-one-documented-exception). Room's `activeCharacters` reconstruction fallback is the one host-side irregularity. **This says nothing about which kinds are levels in a part-of ladder** --- that a kind can host a graph is an inventory fact, not a structure claim (see the [wholes/parts warning](#wholes-parts-and-ports)).
 
-A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply. Objects follow the same steady-state rule (nodes only); multi-room object adjacency is drift repaired via [`repairObjectPlacementDrift`](membership/repairObjectPlacementDrift.ts).
+A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply. Objects follow the same steady-state rule (nodes only); multi-room object adjacency is drift repaired via [`repairObjectPlacementDrift`](manipulation/membership/repairObjectPlacementDrift.ts).
 
 ### Object room placement (nodes only)
 
@@ -89,7 +89,7 @@ Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation
 
 - **Existence** (improvisation pair + **`Meta::Object`**) lives on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md)).
 - **Where** the object is in play: **`Object`** node on the delivery room **`ludicGraph`** + **`OBJECT#`** adjacency row (**I5**).
-- **Spawn + place:** existence on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md#improvisation-storage)); initial room placement via `executeMembershipTransfer` ([`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts)) from the objects two-step coordinator ([`spawnOneImprovisationObject`](../objects/spawnImprovisationObjectsBatch.ts)).
+- **Spawn + place:** existence on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md#improvisation-storage)); initial room placement via `executeMembershipTransfer` ([`manipulation/membership/executeMembershipTransfer.ts`](manipulation/membership/executeMembershipTransfer.ts)) from the objects two-step coordinator ([`spawnOneImprovisationObject`](../objects/spawnImprovisationObjectsBatch.ts)).
 - **Place / remove:** `executeMembershipTransfer` end-state apply; emits **`Object Moved`** on **`mtw.ephemera.positions`** (**I4**).
 - **In-host relational edges:** [`manipulation/relational/`](manipulation/relational/) coordinators build relational steps for the kernel; emits **`Object Relation Changed`**. Containment (`in` / inside) deferred to a future nesting operator.
 - Existence lane, Coyote snapshots, and affordance compose: see [`../objects/AGENT.md`](../objects/AGENT.md).
@@ -102,7 +102,7 @@ Held-object inventory is **positions-owned** play manipulation on the character 
 - **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
 - **Read:** **`internalCache.Positions.getLudicGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
 - **Persist primitives:** [`manipulation/kernel/`](manipulation/kernel/) --- character-host graph + adjacency transact items via `commitStepSequence`.
-- **Cross-host apply:** [`manipulation/membership/executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts) --- one atomic remove-from-host + add-to-host for **either** direction, taking a **host pair** rather than a verb or an acting character. It grounds its transfer set through the Synthesize executor and commits through the kernel --- **no** new `update*LudicGraphs` fork. `takeHold` is `(ROOM# -> CHARACTER#)`, `drop` is the reverse, and `give` would be `(CHARACTER# -> CHARACTER#)` with no new machinery. See [Intent vs. world-effect](#intent-vs-world-effect).
+- **Cross-host apply:** [`manipulation/membership/planObjectMoveTransfer.ts`](manipulation/membership/planObjectMoveTransfer.ts) (3d, 2026-09-08, replacing `executeMembershipTransfer`'s retired `honorDefer: true` mode) --- one atomic remove-from-host + add-to-host for **either** direction, taking a **host pair** rather than a verb or an acting character. Since 2026-09-07 it classifies the boundary directly (`boundaryEdgeOutcomes`/`classifyInteractionUnderTransfer`, folded into `buildObjectMoveOp`'s own compile-time derivation as of 3d) and commits through the kernel, with no Synthesize-executor detour --- **no** new `update*LudicGraphs` fork. `takeHold` is `(ROOM# -> CHARACTER#)`, `drop` is the reverse, and `give` would be `(CHARACTER# -> CHARACTER#)` with no new machinery. Note: `buildObjectMoveOp` deriving `dissolvedEdges` from a graph handed to it was a step toward "compiled from abstract operations, never hand-built per call site," made true by 3e (2026-09-08), which gave the diff a single upstream owner for every route --- see [Abstract op and compiled step](#abstract-op-and-compiled-step-two-levels) above. See [Intent vs. world-effect](#intent-vs-world-effect).
 
 ### Object-hosted graph (MK2; storage only)
 
@@ -111,7 +111,7 @@ An **`Object`** can itself host a **`ludicGraph`**, the same shared plain shape 
 - **Storage:** optional **`Meta::Object.ludicGraph`** --- identical **`EphemeraLudicGraphFieldPayload`** shape; empty when absent, no reconstruction source.
 - **Read:** **`internalCache.Positions.getLudicGraph(objectId)`** (forward), backed by **`getObjectLudicGraphFromDynamo`**.
 - **Persist primitives:** same **`manipulation/kernel/`** `commitStepSequence` path as Room/Character, dispatched via `hostDataCategory`/`graphFromMeta`'s `Meta::Object` branch.
-- **Wired since CD2h (2026-08-31), for `On` only:** `put cup on table` is exactly this --- [`executeObjectMove.ts`](manipulation/membership/executeObjectMove.ts)'s `containment` argument drives a transferMembership step targeting the table (an Object host) followed by `compilePositionKernelOp`'s `establishRelation(moved -> destination root, 'On')`, both against the same Object host. **Corrected 2026-09-03 (and corrected again the same day after the first correction repeated the same stale claim it was fixing):** this bullet previously said "not yet wired," which predates CD2h and is stale. `In`/`PartOf` remain unwired --- CD2h deliberately scoped to `On` only. **`Object Moved`'s `froms`/`to` endpoints are not Room/Character-only either** --- `ObjectMovedPublishedPayload`'s type and its guard (`isObjectMovedPublishedPayload`, [`publishedEvents.ts`](publishedEvents.ts)) have always been the full `EphemeraMembershipHostId` union, validated against `isEphemeraMembershipHostId`/`isObjectMembershipEndpoint`, not a Room/Character-narrowed check; `put cup on table` is the first live producer that actually exercises an `OBJECT#` value there, confirmed by reading `factsForStep.ts` (derives the fact's `to` directly from the step's own `toHostId`, no host-kind filtering). See the corrected line in [`AGENT.contract.md`](AGENT.contract.md).
+- **Wired since CD2h (2026-08-31), for `On` only:** `put cup on table` is exactly this --- [`executeMembershipTransfer.ts`](manipulation/membership/executeMembershipTransfer.ts)'s `containment` argument drives a transferMembership step targeting the table (an Object host) followed by `compilePositionKernelOp`'s `establishRelation(moved -> destination root, 'On')`, both against the same Object host. **Corrected 2026-09-03 (and corrected again the same day after the first correction repeated the same stale claim it was fixing):** this bullet previously said "not yet wired," which predates CD2h and is stale. `In`/`PartOf` remain unwired --- CD2h deliberately scoped to `On` only. **`Object Moved`'s `froms`/`to` endpoints are not Room/Character-only either** --- `ObjectMovedPublishedPayload`'s type and its guard (`isObjectMovedPublishedPayload`, [`publishedEvents.ts`](publishedEvents.ts)) have always been the full `EphemeraMembershipHostId` union, validated against `isEphemeraMembershipHostId`/`isObjectMembershipEndpoint`, not a Room/Character-narrowed check; `put cup on table` is the first live producer that actually exercises an `OBJECT#` value there, confirmed by reading `factsForStep.ts` (derives the fact's `to` directly from the step's own `toHostId`, no host-kind filtering). See the corrected line in [`AGENT.contract.md`](AGENT.contract.md).
 
 ### Manipulation layering (membership transfer)
 
@@ -193,7 +193,7 @@ This is recorded because the retired `[room, characterId]` targeting idiom **loo
 
 ### Abstract op and compiled step (two levels)
 
-Kernel plans are **compiled from abstract operations**, never hand-built per call site.
+Kernel plans are **compiled from abstract operations**, never hand-built per call site (true as a fact about the code since 3e, 2026-09-08 --- see that row's note below the diagram).
 
 ```text
 Call site          "a Move happened: this entity, these froms, this to" (+ narration ingredients)
@@ -206,6 +206,8 @@ Kernel step list   one shared KernelStep[], filtered by each kernel
 ```
 
 An **abstract op** names *what happened in the world*. A **compiler** expands it into the kernel-ready sequence. Only the compiler knows that a move brackets leave-then-arrive, so that invariant lives in **one function** instead of being re-derived at every call site.
+
+**Shipped 2026-09-08 (3e).** Until then this section stated a target, not a fact: `executeMembershipTransfer` hand-built a bare `transferMembership` literal whenever no caller-supplied callback (`compileMutationSteps`) built one instead, and the four character routes that *did* supply the callback rebuilt and recompiled the op a second time, post-commit, for narration --- so "compiled once, flows as a value" was not yet true even where the compiler was used. 3e made the code match the claim as a **consequence** of removing the reason the callback existed (the diff was not known until inside `executeMembershipTransfer`; once each caller's plan-tier stage --- `planCharacterMoveTransfer.ts` for character routes, `planObjectMoveTransfer.ts` for take/drop/give --- computes the diff first and calls the compiler once, there is nothing left for a callback to defer), not by adding a rule forbidding hand-building. `executeMembershipTransfer` (now object-lifecycle-administrative-only: spawn/place/destroy/edit/drift-repair) also compiles its bare move through `compilePositionKernelOp` rather than hand-assembling the step literal, so the compiler is the single producer of step shape with no remaining exception.
 
 **Why this matters, concretely:** three call sites once copied the same defensive `[room, characterId]` patch and only one of them needed it --- precisely because nothing shared owned the decision. The compiler is the thing that owns it now.
 
@@ -234,6 +236,16 @@ With two kernels, a bare `Kernel` prefix identifies neither.
 | `ExecutorDescribeStep` | **Not renamed.** It is owned by `executorTypes.ts` and reused verbatim; renaming would steal it from the executor |
 
 **State the reason for `KernelStep`, not just the exception** --- it reads as an inconsistency, and the next reader will "fix" it by prefixing it, destroying the one distinction the scheme gets right.
+
+### Representation choice: union vs class (escalation trigger)
+
+A closed union of plain data (a `kind`-discriminated type, dispatched by a `switch` in one function) and a class hierarchy invert the same cost: a union makes adding **operations** cheap and adding **types** expensive; a class hierarchy makes adding types cheap and adding operations expensive (the expression problem). Default to a union; escalate to a class hierarchy only when all three hold at once:
+
+1. multiple distinct operations switch over the union from **separate files** (not just one dispatcher), **and**
+2. the number of member types is churning faster than the number of operations, so "add a type" means hunting down every switch, **and**
+3. a per-type **module** can't already absorb the internal complexity --- a module named for the type (one builder function per file) gives the same locality a method would, without paying the switch cost; this condition is usually the one that settles it.
+
+**Worked instance:** `NarrationSpecification` (`MembershipNarrationSpec | ObjectMoveNarrationSpec`, [`manipulation/kernel/kernelStep.ts`](manipulation/kernel/kernelStep.ts)) stays a plain-data union dispatched by `presentStepSequence`'s `buildNarrationCopy`, not a class hierarchy: there is one dispatcher, member count is stable, and heavy per-family logic (if it arrives) reads as a module-locality need, not an operations-across-files need. It is also discriminated on narration **family**, not on `direction` --- `ObjectMoveNarrationSpec` shares no field with `MembershipNarrationSpec`, so a `direction`-first split would have forced both families down an axis only one of them has. (A class instance would additionally fail here for an unrelated reason: these specs ride inside `KernelStep[]` through `toStrictEqual` structural comparison in tests, which plain data survives and class instances --- prototypes, non-enumerable getters --- do not. That is a test-shape cost, not the escalation trigger's own concern.)
 
 ### Three play-time questions
 
@@ -431,6 +443,32 @@ Area.ludicGraph              Room.ludicGraph (shipped v1)      Container graph (
 **What is *not* settled and must not be inferred from this entry --- this is the load-bearing half.** **The mechanism is not part of the claim.** The candidate is a walk from each presence port over presence-bearing edges, and it is a **candidate**: ports, `Present` edges and reachability must stay swappable. The swap-out test for anything written above is *would this survive the **walk** being abandoned?* --- buckets, index-by-binding, totality and aggregation do; a reachability rule does not, and neither does *port* as the name of a binding. **Also unsettled:** what sub-graph a bucket *induces* and what becomes of an edge with one endpoint outside it (a **reduction** convention, not a cover question); whether presence writes are transactional with the mutation kernel; and **apprehension scale itself**, which is named above only to keep it distinct from membership.
 
 **What would re-open this entry.** A corpus case the cover cannot express --- **not** a case that violates totality, since by construction none exists and looking for one is a category error. The live target is the **constructor**: a nested straddling whole whose inner covers cannot be built correctly by any discipline stated here. Alternatively, a demonstration that membership must be **declared** after all, which would collapse the two senses back into one and take the derivation argument with it.
+
+### Plan-evaluate loop
+
+**Status: Target, named 2026-09-08, not built.** Nothing here is normative --- no caller exists yet --- which is why it lives here and not in `AGENT.contract.md`.
+
+Planning is a loop whose termination condition is a sandbox evaluation of a proposed plan: **evaluate clean -> exit the loop, run the plan; evaluate irretrievably broken -> discard that candidate (perhaps one among several) as unexecutable; evaluate repairable -> fold the repair into the next iteration, which proposes a new plan that pre-cleans the defect, and re-evaluate.** This is not a new idea so much as a name for a shape already present twice, hand-unrolled to exactly one iteration: both of `executeMembershipTransfer`'s dissolve paths pre-compute a repair and emit a plan that already has it applied, then never re-evaluate.
+
+**Relationship to BD-18, stated because the two are easy to conflate.** BD-18 (the backtrack channel) backtracks to an **earlier pipeline stage** --- it re-enters upstream of where a failure was detected. This loop iterates **within** one stage --- it re-proposes a plan without leaving the stage that builds plans. Same fault-recovery pattern, two different scopes, and neither blocks the other: a loop that never needs BD-18 (every repair is in-stage) can ship before BD-18 exists, and BD-18 does not have to know this loop is running inside one of the stages it might someday backtrack into.
+
+**Cheapness, worth stating because it is not obvious.** The evaluator is pure over a graph map already fetched once, so the loop is one fetch plus N pure evaluations --- only the final commit re-fetches under lock. See [Footprint-widening exception](#footprint-widening-exception) for the one case that costs more.
+
+**Two constraints any harness must satisfy, neither free:** (i) **termination** --- repairs must be monotone (a stated rule the repair policies obey, not an accident a later repair can break by adding something), and (ii) **tier** --- the harness is `plan*`-tier, calling an evaluator and a repair policy; it is not itself an `orchestrate*` function, which keeps the [tier discipline](AGENT.contract.md#manipulation-tier-discipline) intact.
+
+### Footprint-widening exception
+
+Most of the [plan-evaluate loop](#plan-evaluate-loop)'s cheapness comes from evaluating over a graph map already in hand. A repair that **widens the footprint** --- touches a host outside that map --- needs graphs the snapshot does not have, and must re-fetch under the same discipline [`fetchRelationalReachability`](manipulation/relational/findRelationalChainsForRemoval.ts) already establishes for exactly this shape of problem. This is named as an existing precedent to reuse, not a new mechanism the loop invents.
+
+### Repair-authority axis
+
+**Status: mechanism shipped, axis unresolved --- do not read the field below as an answer to the open question.**
+
+`MutationKernelApplyOutcome`'s `repairable` verdict carries an `authority: 'mechanical' | 'worldChanging'` field ([`manipulation/kernel/types.ts`](manipulation/kernel/types.ts)). That is the shipped mechanism: a repair can name which of the two it is.
+
+**What is *not* settled, and is the load-bearing half of this entry:** which repairs a route may authorize on its own, and when a `repairable` verdict should instead escalate to a player-facing Consult rather than being folded into the next loop iteration. Severing a `Present` port is mechanically invisible; moving the lamp that was resting on the book is not, and treating the second as an ordinary in-loop repair means the system silently widens what the player asked for. Where that line falls is a world-model call about what an action *means*, and belongs to the user, not to a refactor --- it is recorded here as a named open question precisely so a repair policy is written as a deliberate answer to it rather than by accident. **This is not a gate on the loop above:** the loop can ship today with only the repairs it can justify now (mechanically-invisible cleanups), and each future escalation lands later as its own local feature --- a repair-policy entry plus whatever UI a Consult needs --- without disturbing the loop's structure.
+
+A departure with no destination (`toHostId: null`) asking whether it may refuse to leave with nowhere to go is the same question applied to departures, not a separate one, and has no resolution of its own beyond this axis.
 
 ### Authored vs play graphs
 

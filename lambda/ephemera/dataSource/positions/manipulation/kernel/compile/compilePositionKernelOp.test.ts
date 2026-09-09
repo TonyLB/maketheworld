@@ -3,7 +3,6 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { compilePositionKernelOp } from './compilePositionKernelOp'
 import { isNarrateStep } from '../kernelStep'
 import type { MembershipNarrationSpec, ObjectMoveNarrationSpec, PresentationKernelNarrateStep } from '../kernelStep'
-import { EphemeraLudicGraph, objectNode } from '../../../ludicGraph'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 import { NAVIGATE_HEADER_SLOT_ID } from '../../../navigate/navigateBundleSlotIds'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
@@ -22,7 +21,7 @@ const TO_ROOM = 'ROOM#Arrival' as EphemeraRoomId
 
 const baseOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMoveOp => ({
     kind: 'move',
-    moved: { kind: 'entity', entityId: CHARACTER_ID },
+    moved: CHARACTER_ID,
     froms: [FROM_ROOM],
     to: TO_ROOM,
     bundleId: 'BUNDLE#test',
@@ -155,15 +154,10 @@ describe('compilePositionKernelOp', () => {
  */
 describe('compilePositionKernelOp --- object moves', () => {
     const TRAY = 'OBJECT#Tray' as EphemeraObjectId
-    const GLASS = 'OBJECT#Glass' as EphemeraObjectId
-
-    // LP4a: a carry closure is an EphemeraLudicGraph, hosted and rooted at the moved object.
-    const fragment = (members: EphemeraObjectId[] = [TRAY]): EphemeraLudicGraph =>
-        EphemeraLudicGraph.fromJSON({ hostId: TRAY, rootId: TRAY, ports: [], nodes: members.map(objectNode), edges: [] })
 
     const objectOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMoveOp => ({
         kind: 'move',
-        moved: { kind: 'closure', fragment: fragment() },
+        moved: TRAY,
         froms: [FROM_ROOM],
         to: CHARACTER_ID,
         bundleId: 'BUNDLE#test',
@@ -173,7 +167,6 @@ describe('compilePositionKernelOp --- object moves', () => {
             kind: 'objectMove',
             characterName: 'Tess',
             objectShortName: 'tray',
-            carriedCount: 1,
         },
         ...overrides,
     })
@@ -205,7 +198,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         const plan = compilePositionKernelOp(objectOp())
 
         // The character-inventory side's capture snapshots an empty roster and its narrate step
-        // publishes to nobody. That is the correct output of a uniform rule (PB-M), and suppressing
+        // publishes to nobody. That is the correct output of a uniform rule, and suppressing
         // it here is how the host-changelog frame gets lost at the next caller.
         expect(plan.steps.map((step) => step.kind)).toEqual([
             'capture', 'transferMembership', 'removePresencePort', 'addPresencePort', 'capture', 'narrate', 'narrate',
@@ -214,18 +207,6 @@ describe('compilePositionKernelOp --- object moves', () => {
             moveLeaveSlotId(FROM_ROOM),
             MOVE_ARRIVE_SLOT_ID,
         ])
-    })
-
-    it('transfers the whole carry closure, not just its root', () => {
-        const plan = compilePositionKernelOp(objectOp({
-            moved: { kind: 'closure', fragment: fragment([TRAY, GLASS]) },
-        }))
-
-        expect(plan.steps.find((step) => step.kind === 'transferMembership')).toMatchObject({
-            entityIds: new Set([TRAY, GLASS]),
-            fromHostIds: new Set([FROM_ROOM]),
-            toHostId: CHARACTER_ID,
-        })
     })
 
     it('renders severed boundary edges as dissolveRelation steps ahead of the transfer (BD-28)', () => {
@@ -308,7 +289,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         it('mints a presence port for a character-only move too (RD-1: gate on host kind is lifted)', () => {
             const plan = compilePositionKernelOp({
                 kind: 'move',
-                moved: { kind: 'entity', entityId: CHARACTER_ID },
+                moved: CHARACTER_ID,
                 froms: [FROM_ROOM],
                 to: TO_ROOM,
                 bundleId: 'BUNDLE#test',

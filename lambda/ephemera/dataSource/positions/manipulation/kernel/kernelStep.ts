@@ -10,30 +10,23 @@ import type {
     ExecutorParsePlanStep,
 } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 /**
- * BD-27c/BD-36's kernel-layer step vocabulary --- a deliberately narrow superset of the Synthesize
- * executor's `ExecutorParsePlanStep`. The transfer case widens twice: `entityIds` admits both
- * `EphemeraObjectId` and `EphemeraCharacterId`, since the kernel's membership transfer generalizes
- * over entity kind (BD-36), while the Synthesize executor's own `TransferMembershipStep` stays
- * object-only and unwidened (it only ever grounds objects --- character movement never goes through
- * Grounding/Expansion/Validation at all, so there is no ambiguity for it to resolve). And (object-
- * lifecycle Migrate row) `fromHostIds`/`toHostId` widen from a singular non-null pair to a plural
- * `froms` set + nullable `to`, mirroring `MembershipDiff`'s existing `{froms: HostId[], to: HostId |
- * null}` shape exactly --- this is what lets one step kind cover a real transfer (both populated,
- * the only shape the two player routes ever produce), a pure add (`fromHostIds` empty --- spawn),
- * and a pure remove (`toHostId` null --- destroy/clear, a stray-room scrub with no consolidation
- * target). Relational steps are reused verbatim from the executor's types: `subjectId`/`targetId`
- * are `EphemeraLudicTerminalPrimitive`-typed (LP4g, 2026-08-19 --- widened from `EphemeraObjectId`
- * once reading the kernel's write path end to end showed no consumer branches on entity kind), so
- * there is nothing to generalize here.
- */
-/**
- * `entityIds` widened again (presenceRefactor step 3, 2026-09-05) to admit `EphemeraRoomId` and
- * `EphemeraFeatureId`, for cache-time containment authoring (Room-in-Area, Feature-in-Room,
- * Feature-in-Feature). A pure add (`fromHostIds` empty, `toHostId` the parent) is the only shape
- * either kind may appear in --- `applyStepSequenceCore.ts`'s "real transfer" branch
- * (`applyTransferSet`, LP4h) stays deliberately Object/Character-only, since Room/Feature/Area are
- * hosts that never relocate; a Room/Feature id reaching that branch is a caller bug, rejected there
- * rather than silently mishandled.
+ * The kernel-layer step vocabulary --- a deliberately narrow superset of the Synthesize executor's
+ * `ExecutorParsePlanStep`. `entityIds` spans four id kinds: `EphemeraObjectId`/`EphemeraCharacterId`
+ * for a real player-driven transfer, plus `EphemeraRoomId`/`EphemeraFeatureId` for cache-time
+ * containment authoring (Room-in-Area, Feature-in-Room, Feature-in-Feature); the executor's own
+ * `TransferMembershipStep` stays object-only, since character movement never goes through
+ * Grounding/Expansion/Validation and a Room/Feature never reaches the executor at all.
+ * `fromHostIds`/`toHostId` are a plural `froms` set plus a nullable `to`, mirroring `MembershipDiff`'s
+ * `{froms: HostId[], to: HostId | null}` shape --- one step kind covers a real transfer (both
+ * populated, the only shape the two player routes produce), a pure add (`fromHostIds` empty ---
+ * spawn, or a Room/Feature's cache-time parent assignment), and a pure remove (`toHostId` null ---
+ * destroy/clear, a stray-room scrub with no consolidation target). A Room/Feature/Area id may only
+ * ever appear in the pure-add shape: `applyStepSequenceCore.ts`'s "real transfer" branch
+ * (`applyTransferSet`) is Object/Character-only, since Room/Feature/Area are hosts that never
+ * relocate; a Room/Feature id reaching that branch is a caller bug, rejected there rather than
+ * silently mishandled. Relational steps are reused verbatim from the executor's types:
+ * `subjectId`/`targetId` are `EphemeraLudicTerminalPrimitive`-typed, since no consumer on the
+ * kernel's write path branches on entity kind, so there is nothing to generalize here.
  */
 export type MutationKernelTransferStep = {
     kind: 'transferMembership'
@@ -51,6 +44,14 @@ export type MutationKernelTransferStep = {
  * write would need to join the transact item set; this one never does). `captureId` is caller-
  * assigned identity, never position --- the walk's array position is what makes the snapshot
  * positional, not the id.
+ *
+ * The ludicGraph kernel's own machinery (`commitStepSequence.ts`, `applyStepSequenceCore.ts`,
+ * `computeStepSequenceFootprint.ts`, `factsForStep.ts`) --- `transactWrite` bundling, footprint
+ * locking, fact-streaming --- takes `MutationKernelStep[]`, which this step joins alongside every
+ * other mutation step even though it writes nothing, since it needs the same footprint-locking and
+ * reducer-walk machinery. A `describe` step must never reach any of these; `isKernelMutationStep`'s
+ * type-guard filter (below) excludes it before a step sequence is ever built, which is why that
+ * narrower alias --- not the wider `KernelStep` --- is what those files' signatures use.
  */
 export type MutationKernelCaptureStep = {
     kind: 'capture'
@@ -58,17 +59,6 @@ export type MutationKernelCaptureStep = {
     captureId: string
 }
 
-/**
- * The ludicGraph kernel's own machinery (`commitStepSequence.ts`, `applyStepSequenceCore.ts`,
- * `computeStepSequenceFootprint.ts`, `factsForStep.ts`) --- `transactWrite` bundling, footprint
- * locking, fact-streaming --- exists only to solve mutation problems, so it keeps accepting this
- * narrower type. `MutationKernelCaptureStep` joins it (PB-J), widening it for the first time since
- * the `describe` widening was drawn *against* --- capture reads a host's roster, so it needs the same
- * footprint-locking and reducer-walk machinery every other mutation step gets, even though it writes
- * nothing. A `describe` step must never reach any of these; the ludicGraph kernel's own type-guard
- * filter (Phase 3) excludes it before a step sequence is ever built, so this alias --- not the widened
- * `KernelStep` --- is what those files' signatures should keep using.
- */
 /**
  * the moved object's own presence port, on its own graph (`hostId` is the moved object's
  * own id --- a legal `EphemeraMembershipHostId`, LP0). RD-2 (2026-09-04): multiplicity moved from
@@ -134,21 +124,17 @@ export type MutationKernelStep =
     | MutationKernelRemoveCrossingPortStep
 
 /**
- * The shared, already-grounded instruction list's step vocabulary (iteration 9/PK-1): `KernelStep`
- * widened directly (rather than a sibling type) to add the presentation kernel's read-only
- * `ExecutorDescribeStep`, reused verbatim --- it carries no host-transfer concern for BD-36's
- * entity-kind generalization to apply to. Each kernel filters this shared list down to the steps it
- * owns; the mutation kernel's filter yields `MutationKernelStep[]` (never widened), and the
- * presentation kernel's filter yields `PresentationKernelStep[]`.
+ * The shared, already-grounded instruction list's step vocabulary: `MutationKernelStep`, the
+ * presentation kernel's read-only `ExecutorDescribeStep` (reused verbatim from the executor's own
+ * types), and `PresentationKernelNarrateStep`. Each kernel filters this shared list down to the
+ * steps it owns; the mutation kernel's filter yields `MutationKernelStep[]`, and the presentation
+ * kernel's filter yields `PresentationKernelStep[]`.
  *
  * `KernelStep` itself stays unprefixed, deliberately (PB-K): it is the shared, cross-kernel
  * vocabulary, belonging to neither kernel alone, so it takes no kernel's name. Every other type in
  * this file is specific to one kernel and is named accordingly (`MutationKernel*` /
  * `PresentationKernel*`) --- prefixing `KernelStep` too would erase the one distinction this naming
  * scheme exists to preserve.
- *
- * Widened again (Phase 2) to admit `PresentationKernelNarrateStep`, alongside `ExecutorDescribeStep`
- * --- both presentation-kernel-owned, neither ever reaching the mutation kernel's own filter.
  */
 export type KernelStep = MutationKernelStep | ExecutorDescribeStep | PresentationKernelNarrateStep
 
@@ -157,52 +143,24 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  * structural form of the same boundary `kind: 'narrate'` draws at the walk-dispatch level (see
  * `PresentationKernelNarrateStep` below). Discriminated on narration *family*, deliberately not on
  * `direction`: `direction` is a membership-narration concept (leave/arrive between ludicGraph
- * hosts), not a universal property of narration, and the axis a second member actually arrives along
- * is family --- and Phase 4 paid that prediction off exactly: `ObjectMoveNarrationSpec` shares not
- * one field with `MembershipNarrationSpec`, carrying item/actor vocabulary instead, while a
- * direction-discriminated union would have had to split both families down an axis only one of them
- * has.
+ * hosts), not a universal property of narration; `ObjectMoveNarrationSpec` shares no field with
+ * `MembershipNarrationSpec`, carrying item/actor vocabulary instead, so a `direction`-discriminated
+ * union would have had to split both families down an axis only one of them has.
  *
  * Kept as plain data with dispatch living in `presentStepSequence`'s `buildNarrationCopy`, rather
- * than as a polymorphic class with a `buildCopy` method. Two families and one dispatcher is still a
- * thin seam; the escalation trigger below remains unmet on all three conditions. The
- * choice is worth revisiting, but the trigger is narrower than "a second family shows up" or "the
- * internals differ per family" --- a `switch` over a union exists precisely to let internals differ,
- * and N branches with N different bodies is that working as intended. The real signal is the
- * expression problem's axis: unions make adding *operations* cheap and adding *types* expensive,
- * classes invert it. Escalate when
+ * than as a polymorphic class with a `buildCopy` method --- two families and one dispatcher does not
+ * meet the escalation trigger for promoting a union to a class hierarchy (see
+ * [`AGENT.concepts.md` --- Representation choice: union vs class](../../AGENT.concepts.md#representation-choice-union-vs-class-escalation-trigger)
+ * for the general rule this was calibrated against). These specs also ride inside `KernelStep[]`
+ * through `toStrictEqual` structural comparison in tests, which plain data survives and class
+ * instances would not --- a reason to prefer data here independent of the trigger.
  *
- *   1. multiple distinct operations switch over this union from separate files (not just the single
- *      `buildNarrationCopy`), **and**
- *   2. family count is churning faster than operation count, so "add a family" means hunting down
- *      every switch, **and**
- *   3. per-family *modules* can't already solve it.
- *
- * That third condition is what usually settles it. Heavy per-family logic --- e.g. an object-move
- * narration doing complex work across several ludicGraphs' captures --- reads like class
- * pressure, but it is cohesion pressure, and a module named for the family
- * (`objectTransferNarration.ts` exporting one builder) gives the same locality while keeping
- * `buildNarrationCopy` a two-line dispatcher. Complex capture work needs
- * `buildCopy(narration, captures)`, a signature change, not methods on the step. The case a closed
- * union genuinely *cannot* serve is narration families contributed by code that does not own the
- * union --- asset-authored narration, should that ever land. Weigh against the cost: these specs
- * ride inside `KernelStep[]` through structural test comparison, which plain data survives cleanly
- * and class instances do not (`toStrictEqual` compares prototypes; getters and private fields are
- * not own-enumerable).
- *
- * The Immer hazard sometimes cited alongside that is **not** a class-vs-plain distinction, and an
- * earlier revision of this comment overstated it. `EphemeraLudicGraph` instances cross a
- * `MultiKeyUpdate` reducer's boundary safely today (`commitStepSequence`'s `committedGraphs`, read
- * after the reducer returns) precisely because `fromFieldPayload` plain-copies every node and edge
- * rather than retaining the draft's own element references --- see its doc comment. The real rule is
- * PB-E's, and it is about provenance rather than class-ness: anything retained past a reducer's
- * return must have its references into the draft severed **per element** (`{...node}`, not merely
- * `[...array]`, which would keep the draft's elements alive inside a fresh outer array). A plain
- * object aliasing draft-backed sub-objects fails that test; a carefully-constructed class instance
- * passes it. In any case a `KernelStep[]` is built by the compiler *before* `commitStepSequence` is
- * called --- the reducer closes over it and reads it, never constructs it --- so nothing riding here
- * is draft-backed to begin with.
+ * A `KernelStep[]` is built by the compiler *before* `commitStepSequence` is called --- the reducer
+ * closes over it and reads it, never constructs it --- so nothing riding here is Immer-draft-backed
+ * to begin with (see [`AGENT.contract.md` --- Capture steps are read-only by shape](../../AGENT.contract.md#capture-steps-are-read-only-by-shape)
+ * for the reducer-provenance rule that would otherwise apply).
  */
+
 /**
  * Membership narration copy-kind vocabulary --- shared by `buildCharacterMoveOp.ts` (which selects
  * it per leave/arrive) and `publishMembershipPresentation.ts`'s suffix builders (which render it to
@@ -227,13 +185,12 @@ export type MembershipNarrationSpec = {
 }
 
 /**
- * Object take/drop/give narration (Phase 4, PB-3/PB-M) --- the second family, and the one the
- * comment above predicted would arrive along the *family* axis rather than the direction one. It
- * shares no field with `MembershipNarrationSpec`, which is what makes discriminating on family
- * rather than on `direction` the right call in retrospect.
+ * Object take/drop/give narration --- the second `NarrationSpecification` family, sharing no field
+ * with `MembershipNarrationSpec` (see that type's own doc comment for why the union discriminates on
+ * family rather than on `direction`).
  *
  * **No `direction`, deliberately.** The compiler emits both bracket sides for an object move exactly
- * as it does for a character move (PB-M: never special-case the character-hosted side), but a
+ * as it does for a character move (never special-case the character-hosted side), but a
  * character's inventory graph has no roster, so exactly one of the two narrate steps ever has an
  * audience. Which side that is, is already answered by `verb`, so the same spec renders correctly on
  * both and the empty side simply publishes to nobody.
@@ -246,8 +203,6 @@ export type ObjectMoveNarrationSpec = {
     verb: 'takeHold' | 'drop' | 'give'
     characterName: string
     objectShortName: string
-    /** Execute-time carry-closure size (LP4a: `EphemeraLudicGraph.objectIds.size`), not the Plan-stage intent's object count. */
-    carriedCount: number
 }
 
 export type NarrationSpecification = MembershipNarrationSpec | ObjectMoveNarrationSpec
@@ -279,11 +234,11 @@ export type NarrationSpecification = MembershipNarrationSpec | ObjectMoveNarrati
  * flush time (`publishMessage/index.ts`'s `getRoomCharacterList`), i.e. terminally --- so carrying
  * one alongside `captureId` would union a positionally-bound audience with a terminally-bound one
  * and let the terminal reading win wherever they disagree (a latecomer to the arrival room getting
- * the line; someone who left between the beat and the flush not getting it). That is PB-A's
- * distinction collapsed, and the same defect class as the `[room, characterId]` tack-on this phase
- * retired, entering from the other end. The captured roster already includes the mover by
- * construction --- capture-from runs before the transfer step, capture-to after --- which is what
- * made that tack-on unnecessary and makes a room target unnecessary for the same reason.
+ * the line; someone who left between the beat and the flush not getting it). That collapses the
+ * positional/terminal distinction, the same defect class a retired `[room, characterId]` tack-on
+ * had from the other end. The captured roster already includes the mover by construction ---
+ * capture-from runs before the transfer step, capture-to after --- which is what makes a room
+ * target unnecessary here.
  */
 export type PresentationKernelNarrateStep = {
     kind: 'narrate'
@@ -294,10 +249,10 @@ export type PresentationKernelNarrateStep = {
 }
 
 /**
- * The presentation kernel's own filtered view of `KernelStep` (PB-L): `ExecutorDescribeStep` (the
- * shipped describe branch, `presentStepSequence.ts`) and `PresentationKernelNarrateStep` (the
- * narration branch, Phase 2) --- both "things the presentation kernel filters for," the same
- * relationship `MutationKernelStep` already has to its own members.
+ * The presentation kernel's own filtered view of `KernelStep`: `ExecutorDescribeStep` (the
+ * describe branch, `presentStepSequence.ts`) and `PresentationKernelNarrateStep` (the narration
+ * branch) --- both "things the presentation kernel filters for," the same relationship
+ * `MutationKernelStep` already has to its own members.
  */
 export type PresentationKernelStep = ExecutorDescribeStep | PresentationKernelNarrateStep
 
@@ -359,7 +314,7 @@ export const isDescribeStep = (step: KernelStep): step is ExecutorDescribeStep =
     step.kind === 'describe'
 
 /**
- * The presentation kernel's narration filter (Phase 2, sibling to `isDescribeStep` above): pulls the
+ * The presentation kernel's narration filter (sibling to `isDescribeStep` above): pulls the
  * `narrate` steps a shared `KernelStep[]` list carries, of whatever narration family. Family-level
  * dispatch is the copy-generator's business, not the filter's --- see `NarrationSpecification`.
  */

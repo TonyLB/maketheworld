@@ -31,8 +31,9 @@ export type ApplyObjectRelationalChangeDependencies = {
  * field that fed it. A relation whose endpoints are in different shards is no longer
  * something to fix by moving an endpoint; it is a crossing, built as legs at Plan stage.
  * So this route commits one step and never moves membership. Transfers still exist ---
- * `executeObjectMove` owns them, and still does its own cross-snapshot recheck --- they
- * are simply not something establishing a relation can trigger as a side effect.
+ * take/drop/give's `planObjectMoveTransfer` (3d, 2026-09-08; formerly `executeMembershipTransfer`'s
+ * `honorDefer` path) owns them, and still does its own cross-snapshot recheck --- they are simply
+ * not something establishing a relation can trigger as a side effect.
  */
 export const applyObjectRelationalChange = async (
     args: RelationalIngressArgs,

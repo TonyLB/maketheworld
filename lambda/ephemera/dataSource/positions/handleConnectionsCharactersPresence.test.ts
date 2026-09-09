@@ -1,50 +1,23 @@
-jest.mock('./membership/applyCharacterRoomMembership', () => ({
-    applyCharacterRoomMembership: jest.fn(),
+jest.mock('./navigate/orchestrateCharacterMove', () => ({
+    orchestrateCharacterMove: jest.fn(),
 }))
 
-jest.mock('./membership/resolveConnectTargetRoom', () => ({
+jest.mock('./manipulation/membership/resolveConnectTargetRoom', () => ({
     resolveConnectTargetRoom: jest.fn(),
-}))
-
-jest.mock('./membership/orchestrateCharacterDisconnect', () => ({
-    orchestrateCharacterDisconnect: jest.fn(),
-}))
-
-jest.mock('./navigate/afterCharacterMembershipNavigateChanged', () => ({
-    afterCharacterMembershipNavigateChanged: jest.fn(),
-}))
-
-jest.mock('../../internalCache', () => ({
-    __esModule: true,
-    default: {
-        CharacterMeta: { get: jest.fn() },
-    },
 }))
 
 import {
     handleCharacterConnected,
     handleCharacterDisconnected
 } from './handleConnectionsCharactersPresence'
-import internalCache from '../../internalCache'
-import * as membership from './membership/applyCharacterRoomMembership'
-import * as resolveConnect from './membership/resolveConnectTargetRoom'
-import * as disconnectTail from './membership/orchestrateCharacterDisconnect'
-import * as navigateTail from './navigate/afterCharacterMembershipNavigateChanged'
+import * as orchestrateModule from './navigate/orchestrateCharacterMove'
+import * as resolveConnect from './manipulation/membership/resolveConnectTargetRoom'
 
-const applyCharacterRoomMembershipMock = membership.applyCharacterRoomMembership as jest.MockedFunction<
-    typeof membership.applyCharacterRoomMembership
+const orchestrateCharacterMoveMock = orchestrateModule.orchestrateCharacterMove as jest.MockedFunction<
+    typeof orchestrateModule.orchestrateCharacterMove
 >
 const resolveConnectTargetRoomMock = resolveConnect.resolveConnectTargetRoom as jest.MockedFunction<
     typeof resolveConnect.resolveConnectTargetRoom
->
-const orchestrateCharacterDisconnectMock = disconnectTail.orchestrateCharacterDisconnect as jest.MockedFunction<
-    typeof disconnectTail.orchestrateCharacterDisconnect
->
-const afterCharacterMembershipNavigateChangedMock = navigateTail.afterCharacterMembershipNavigateChanged as jest.MockedFunction<
-    typeof navigateTail.afterCharacterMembershipNavigateChanged
->
-const characterMetaGetMock = internalCache.CharacterMeta.get as jest.MockedFunction<
-    typeof internalCache.CharacterMeta.get
 >
 
 describe('handleConnectionsCharactersPresence', () => {
@@ -67,21 +40,17 @@ describe('handleConnectionsCharactersPresence', () => {
             characterMeta,
             trimmedRoomStack: characterMeta.RoomStack,
         })
-        characterMetaGetMock.mockResolvedValue(characterMeta as any)
-        afterCharacterMembershipNavigateChangedMock.mockResolvedValue(undefined)
-        orchestrateCharacterDisconnectMock.mockResolvedValue(undefined)
+        orchestrateCharacterMoveMock.mockResolvedValue({
+            ok: true,
+            froms: [],
+            to: 'ROOM#TownSquare',
+            changed: true,
+            beatAnchorTime: 1_700_000_000_000,
+        })
     })
 
     describe('handleCharacterConnected', () => {
-        it('routes connect through membership apply (with a compiled Move op) and navigate tail with pre-apply characterMeta', async () => {
-            applyCharacterRoomMembershipMock.mockResolvedValue({
-                ok: true,
-                froms: [],
-                to: 'ROOM#TownSquare',
-                changed: true,
-                beatAnchorTime: 1_700_000_000_000,
-            })
-
+        it('routes connect through orchestrateCharacterMove with the pre-resolved target room and characterMeta', async () => {
             await handleCharacterConnected({
                 type: 'Character Connected',
                 characterId: 'CHARACTER#alpha',
@@ -90,34 +59,22 @@ describe('handleConnectionsCharactersPresence', () => {
             }, { messageBus, streamEvent })
 
             expect(resolveConnectTargetRoomMock).toHaveBeenCalledWith('CHARACTER#alpha')
-            expect(applyCharacterRoomMembershipMock).toHaveBeenCalledWith(
+            expect(orchestrateCharacterMoveMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: 'CHARACTER#alpha',
                     targetRoomId: 'ROOM#TownSquare',
-                    narrationHandledInline: true,
-                    compileMutationSteps: expect.any(Function),
-                }),
-                { messageBus, streamEvent }
-            )
-            expect(afterCharacterMembershipNavigateChangedMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    characterId: 'CHARACTER#alpha',
-                    characterMeta,
-                    result: expect.objectContaining({
-                        ok: true,
-                        changed: true,
-                        to: 'ROOM#TownSquare',
-                    }),
                     bundleId: expect.any(String),
                     intentKind: 'connect',
+                    characterMeta,
                     messageBus,
+                    streamEvent,
                 })
             )
             expect(messageBus.publish).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'CheckLocation' }))
         })
 
-        it('still invokes tail helper when membership apply is a no-op', async () => {
-            applyCharacterRoomMembershipMock.mockResolvedValue({
+        it('still calls orchestrateCharacterMove when membership apply is a no-op', async () => {
+            orchestrateCharacterMoveMock.mockResolvedValue({
                 ok: true,
                 froms: [],
                 to: 'ROOM#TownSquare',
@@ -131,42 +88,20 @@ describe('handleConnectionsCharactersPresence', () => {
                 timestamp: '2026-05-08T12:00:00.000Z',
             }, { messageBus, streamEvent })
 
-            expect(applyCharacterRoomMembershipMock).toHaveBeenCalledTimes(1)
-            expect(afterCharacterMembershipNavigateChangedMock).toHaveBeenCalled()
-        })
-
-        it('the compiled compileMutationSteps callback yields only mutation steps (transfer/capture-to; no capture-from since connect has no froms)', async () => {
-            applyCharacterRoomMembershipMock.mockResolvedValue({
-                ok: true,
-                froms: [],
-                to: 'ROOM#TownSquare',
-                changed: true,
-                beatAnchorTime: 1_700_000_000_000,
-            })
-
-            await handleCharacterConnected({
-                type: 'Character Connected',
-                characterId: 'CHARACTER#alpha',
-                sessionId: 'SESSION#1',
-                timestamp: '2026-05-08T12:00:00.000Z',
-            }, { messageBus, streamEvent })
-
-            const compileMutationSteps = applyCharacterRoomMembershipMock.mock.calls[0][0].compileMutationSteps!
-            const steps = compileMutationSteps({ froms: [], to: 'ROOM#TownSquare', changed: true })
-
-            expect(steps.map((step) => step.kind)).toEqual(['transferMembership', 'addPresencePort', 'capture'])
+            expect(orchestrateCharacterMoveMock).toHaveBeenCalledTimes(1)
         })
     })
 
     describe('handleCharacterDisconnected', () => {
-        it('routes disconnect through membership apply (with a compiled Move op), then presents narration via orchestrateCharacterDisconnect', async () => {
-            applyCharacterRoomMembershipMock.mockResolvedValue({
+        it('routes disconnect through orchestrateCharacterMove with a null target room and intentKind disconnect', async () => {
+            orchestrateCharacterMoveMock.mockResolvedValue({
                 ok: true,
                 froms: ['ROOM#roomA'],
                 to: null,
                 changed: true,
                 beatAnchorTime: 1_700_000_000_000,
                 captures: new Map([['capture:from:ROOM#roomA', ['CHARACTER#alpha']]]),
+                plan: { steps: [], slots: [] },
             })
 
             await handleCharacterDisconnected({
@@ -176,30 +111,20 @@ describe('handleConnectionsCharactersPresence', () => {
                 timestamp: '2026-05-08T12:00:00.000Z',
             }, { messageBus, streamEvent })
 
-            expect(characterMetaGetMock).toHaveBeenCalledWith('CHARACTER#alpha')
-            expect(applyCharacterRoomMembershipMock).toHaveBeenCalledWith(
+            expect(orchestrateCharacterMoveMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     characterId: 'CHARACTER#alpha',
                     targetRoomId: null,
-                    narrationHandledInline: true,
-                    compileMutationSteps: expect.any(Function),
-                }),
-                { messageBus, streamEvent }
-            )
-            expect(orchestrateCharacterDisconnectMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    characterId: 'CHARACTER#alpha',
-                    characterName: 'Alpha',
-                    froms: ['ROOM#roomA'],
                     bundleId: expect.any(String),
-                    captures: expect.any(Map),
+                    intentKind: 'disconnect',
                     messageBus,
+                    streamEvent,
                 })
             )
         })
 
-        it('does not present narration when membership apply is a no-op', async () => {
-            applyCharacterRoomMembershipMock.mockResolvedValue({
+        it('is a no-op past the coordinator call when membership apply reports no change', async () => {
+            orchestrateCharacterMoveMock.mockResolvedValue({
                 ok: true,
                 froms: [],
                 to: null,
@@ -213,8 +138,7 @@ describe('handleConnectionsCharactersPresence', () => {
                 timestamp: '2026-05-08T12:00:00.000Z',
             }, { messageBus, streamEvent })
 
-            expect(applyCharacterRoomMembershipMock).toHaveBeenCalledTimes(1)
-            expect(orchestrateCharacterDisconnectMock).not.toHaveBeenCalled()
+            expect(orchestrateCharacterMoveMock).toHaveBeenCalledTimes(1)
             expect(messageBus.publish).not.toHaveBeenCalled()
         })
     })

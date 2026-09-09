@@ -4,7 +4,7 @@ import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraM
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 
 import messageBus from '../../messageBus'
-import { executeMembershipTransfer } from '../positions/manipulation/membership/executeObjectMove'
+import { executeMembershipTransfer } from '../positions/manipulation/membership/executeMembershipTransfer'
 import type { PositionsPublishedPayload } from '../positions/publishedEvents'
 import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
 import { filterTropeAffinitiesByRoom } from './filterTropeAffinitiesByRoom'

@@ -3,7 +3,7 @@ import internalCache from '../../internalCache'
 import type { LegalCharacterColor } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { CharacterSpokePublishedPayload } from '../actions/publishedEvents'
-import { resolveCharacterRoomId } from '../positions/membership/resolveCharacterRoomId'
+import { resolveCharacterRoomId } from '../positions/manipulation/membership/resolveCharacterRoomId'
 
 export const handleCharacterSpoke = async (
     messageBus: Pick<MessageBus, 'publish'>,

@@ -15,7 +15,6 @@ export type ExecuteEstablishEdgeChainArgs = {
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
     suppressRelationalFacts?: boolean
     characterNames?: CommitStepSequenceDeps['characterNames']
-    narratedInline?: boolean
     transactWrite?: CommitStepSequenceDeps['transactWrite']
 }
 
@@ -67,7 +66,6 @@ export const executeEstablishEdgeChain = async (
             getCurrentHost: (id) => hostByReferencedId.get(id),
             ...(args.suppressRelationalFacts !== undefined ? { suppressRelationalFacts: args.suppressRelationalFacts } : {}),
             ...(args.characterNames ? { characterNames: args.characterNames } : {}),
-            ...(args.narratedInline ? { narratedInline: true } : {}),
             ...(args.transactWrite ? { transactWrite: args.transactWrite } : {}),
         }
     )

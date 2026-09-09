@@ -74,14 +74,15 @@ describe('roleOfObjectInEdge', () => {
 // rather than a bespoke {rootId, members, edges} shape.
 //
 // `carry` was only ever produced by `On` (case 'On': target -> 'carry'), and `On` joined
-// the hosting-kind throw 2026-08-22 (Channel D, CD2, reduced scope) -- so absorption is now
-// dead code, reachable by no relation kind. The former "absorbs an On edge" tests are gone;
-// what replaces them documents the two live consequences: no peer kind ever absorbs (unchanged),
-// and a hosting-kind edge reachable during the walk now throws rather than being silently
-// skipped, which is a real, currently-shipped edge case, not a hypothetical -- a room holding
-// a pre-existing `On` edge (from before this change) that gets transferred will hit it, hence
-// this slice's one-time data check. Collapsing computeCarryClosure to a shard read once
-// nothing can throw here either is CD3, deliberately deferred.
+// the hosting-kind throw 2026-08-22 (Channel D, CD2, reduced scope) -- so absorption was
+// already dead code, reachable by no relation kind, before CD3 (2026-09-06) retired `carry`
+// from `InteractionUnderTransferOutcome` and turned this function into an always-singleton
+// read. The former "absorbs an On edge" tests are gone; what remains documents the two live
+// consequences: no peer kind ever absorbs (unchanged), and a hosting-kind edge reachable
+// during the walk still throws rather than being silently skipped, which is a real edge case,
+// not a hypothetical -- a room holding a pre-existing `On` edge that gets transferred will hit
+// it. What a genuine multi-member closure would read from instead (a shard read) is unbuilt,
+// deliberately, per CD3's own text.
 describe('computeCarryClosure', () => {
     it('does not absorb across an Under edge in either direction', () => {
         const bootsUnderTable: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: bootsId, to: tableId, kind: 'Under' }

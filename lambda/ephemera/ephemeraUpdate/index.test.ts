@@ -4,11 +4,11 @@ import { apiClient } from "@tonylb/mtw-utilities/ts/apiManagement/apiManagementC
 jest.mock('../internalCache')
 import internalCache from "../internalCache"
 
-jest.mock('../dataSource/positions/membership/resolveCharacterRoomId', () => ({
+jest.mock('../dataSource/positions/manipulation/membership/resolveCharacterRoomId', () => ({
     resolveCharacterRoomId: jest.fn(),
 }))
 
-import { resolveCharacterRoomId } from '../dataSource/positions/membership/resolveCharacterRoomId'
+import { resolveCharacterRoomId } from '../dataSource/positions/manipulation/membership/resolveCharacterRoomId'
 import ephemeraUpdateMessage from '.'
 
 const apiClientMock = apiClient as jest.Mocked<typeof apiClient>

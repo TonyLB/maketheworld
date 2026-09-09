@@ -91,7 +91,7 @@ describe('computeStepSequenceFootprint', () => {
         expect(() => computeStepSequenceFootprint([step], () => undefined)).toThrow()
     })
 
-    it('a capture step contributes its hostId even when no mutation step in the sequence touches that host (PB-J)', () => {
+    it('a capture step contributes its hostId even when no mutation step in the sequence touches that host', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
             { kind: 'capture', hostId: otherRoomId, captureId: 'onlooker' },

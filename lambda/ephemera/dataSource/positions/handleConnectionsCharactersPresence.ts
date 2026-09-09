@@ -3,9 +3,9 @@
  *
  * Owns the ephemera-side projection of character presence transitions emitted
  * by `mtw.connections.characters`:
- *   - Character Connected   -> resolve eviction-ladder target room, membership
- *                              persistence API, post-persist orchestration.
- *   - Character Disconnected -> membership persistence API (applyCharacterRoomMembership).
+ *   - Character Connected   -> resolve eviction-ladder target room, then
+ *                              `orchestrateCharacterMove`.
+ *   - Character Disconnected -> `orchestrateCharacterMove` with a null target.
  *
  * At-least-once delivery: duplicate events are no-ops because the second
  * disconnect finds the character already out of play (`changed: false`) and the
@@ -17,29 +17,16 @@ import {
     ConnectionsCharactersConnectedEvent,
     ConnectionsCharactersDisconnectedEvent
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
-import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
-import { applyCharacterRoomMembership } from './membership/applyCharacterRoomMembership'
-import { buildCharacterMoveOp } from './membership/buildCharacterMoveOp'
-import { orchestrateCharacterDisconnect } from './membership/orchestrateCharacterDisconnect'
-import { resolveConnectTargetRoom } from './membership/resolveConnectTargetRoom'
-import { compilePositionKernelOp } from './manipulation/kernel/compile/compilePositionKernelOp'
-import { isKernelMutationStep } from './manipulation/kernel/kernelStep'
-import type { MembershipDiff } from './membership/types'
-import { afterCharacterMembershipNavigateChanged } from './navigate/afterCharacterMembershipNavigateChanged'
+import { orchestrateCharacterMove } from './navigate/orchestrateCharacterMove'
+import { resolveConnectTargetRoom } from './manipulation/membership/resolveConnectTargetRoom'
 import type { PositionsPublishedPayload } from './publishedEvents'
 
 /**
- * Connect/disconnect narration: both compile the abstract `Move` op the same way
- * `executeCharacterNavigate.ts` does for navigate --- a `compileMutationSteps` callback built from
- * `buildCharacterMoveOp` with `intentKind: 'connect'`/`'disconnect'`. Connect's post-commit narration
- * reuses `orchestrateCharacterNavigate` (via `afterCharacterMembershipNavigateChanged`) since it
- * always has a destination room; disconnect has none, so it uses the dedicated
- * `orchestrateCharacterDisconnect`.
- *
- * `narrationHandledInline: true` is a vestige: it set `narratedInline` on the `Character Moved` fact
- * to suppress a duplicate leg while the async membership fan-in still existed. That fan-in is gone
- * and nothing consumes the flag today.
+ * Connect/disconnect narration: both go through `orchestrateCharacterMove` (3g) --- the same
+ * convergence navigate/home/ghost-purge use --- with `intentKind: 'connect'`/`'disconnect'`. Connect
+ * always has a destination room (runs the navigate tail); disconnect passes `targetRoomId: null`,
+ * which skips the ladder write and header resolution entirely.
  *
  * Rules: `dataSource/positions/AGENT.contract.md` --- "Narration and presentation".
  */
@@ -56,30 +43,14 @@ export const handleCharacterConnected = async (
     const { targetRoomId, characterMeta } = await resolveConnectTargetRoom(event.characterId)
     const bundleId = uuidv4()
 
-    const compileMutationSteps = (diff: MembershipDiff) => compilePositionKernelOp(
-        buildCharacterMoveOp({
-            characterId: event.characterId,
-            characterName: characterMeta.Name,
-            froms: diff.froms,
-            to: diff.to,
-            bundleId,
-            intentKind: 'connect',
-            headerSlot: null,
-        })
-    ).steps.filter(isKernelMutationStep)
-
-    const result = await applyCharacterRoomMembership(
-        { characterId: event.characterId, targetRoomId, compileMutationSteps, narrationHandledInline: true },
-        { messageBus, streamEvent }
-    )
-
-    await afterCharacterMembershipNavigateChanged({
+    await orchestrateCharacterMove({
         characterId: event.characterId,
-        characterMeta,
-        result,
+        targetRoomId,
         bundleId,
         intentKind: 'connect',
+        characterMeta,
         messageBus,
+        streamEvent,
     })
 }
 
@@ -93,34 +64,14 @@ export const handleCharacterDisconnected = async (
         streamEvent: StreamEventFunction<PositionsPublishedPayload>;
     }
 ): Promise<void> => {
-    const characterMeta = await internalCache.CharacterMeta.get(event.characterId)
     const bundleId = uuidv4()
 
-    const compileMutationSteps = (diff: MembershipDiff) => compilePositionKernelOp(
-        buildCharacterMoveOp({
-            characterId: event.characterId,
-            characterName: characterMeta.Name,
-            froms: diff.froms,
-            to: diff.to,
-            bundleId,
-            intentKind: 'disconnect',
-            headerSlot: null,
-        })
-    ).steps.filter(isKernelMutationStep)
-
-    const result = await applyCharacterRoomMembership(
-        { characterId: event.characterId, targetRoomId: null, compileMutationSteps, narrationHandledInline: true },
-        { messageBus, streamEvent }
-    )
-
-    if (result.ok && result.changed && result.froms.length > 0) {
-        await orchestrateCharacterDisconnect({
-            characterId: event.characterId,
-            characterName: characterMeta.Name,
-            froms: result.froms,
-            bundleId,
-            captures: result.captures,
-            messageBus,
-        })
-    }
+    await orchestrateCharacterMove({
+        characterId: event.characterId,
+        targetRoomId: null,
+        bundleId,
+        intentKind: 'disconnect',
+        messageBus,
+        streamEvent,
+    })
 }

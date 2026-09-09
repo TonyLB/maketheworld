@@ -130,7 +130,7 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...captureTo, ..
 | Dep | Effect |
 | --- | --- |
 | `suppressRelationalFacts` | Gates only the `Object Relation Changed` fact, never `Object Moved`. Destroy/edit leaves it unset so dissolution becomes player-visible; multi-room drift repair sets it `true` as a silent consistency fixup |
-| `characterNames` | Pre-resolved display names so `factsForStep` can build a populated `Character Moved` fact while staying synchronous. Only `applyCharacterRoomMembership` populates it |
+| `characterNames` | Pre-resolved display names so `factsForStep` can build a populated `Character Moved` fact while staying synchronous. Only `orchestrateCharacterRoomMembership` populates it |
 | `transactWrite` | Test seam; defaults to `ephemeraDB.transactWrite` |
 
 ### Apply modes
@@ -146,6 +146,14 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...captureTo, ..
 | **Capture** | Snapshots the host's `characterIds` under `captureId` and continues. Mutates nothing, writes nothing |
 
 **Capture at the reducer boundary (both rules matter).** The reducer body can run several times under `exponentialBackoffWrapper`, so `commitStepSequence` records `committedCaptures = new Map(outcome.captures)` fresh on **every** invocation --- **assignment, never append**, or narration duplicates across retry attempts. The plain-`Map` copy also satisfies the Immer rule that nothing draft-backed may survive the reducer's return; captured values being primitive id strings makes that free here by construction rather than by discipline. Capture performs **no validity filtering** (missing `CharacterMeta` is dropped later, at hydration) --- it snapshots ids and nothing else.
+
+### `dryRunStepSequence` --- the same check, pre-commit
+
+[`dryRunStepSequence`](kernel/dryRunStepSequence.ts) (Phase 3c) exposes `applyStepSequenceCore`'s legality check as a standalone `plan*`-tier stage: `computeStepSequenceFootprint` the input steps, fetch each footprint host's graph (default `internalCache.Positions.getLudicGraph`, injectable), run `applyStepSequenceCore`, return its `MutationKernelApplyOutcome` unchanged --- no new logic, just a seam onto the two functions above that a caller can reach outside the locked transaction. **Live caller since 3d (2026-09-08)**: [`planObjectMoveTransfer`](membership/planObjectMoveTransfer.ts) wires this in as the replacement for `executeMembershipTransfer`'s retired `honorDefer` block. The enrich tier's `sandboxMembershipDryRun` still hand-rolls its own pre-commit check --- a different question (Plan-stage legality, not this stage's mechanism check), out of this slice's scope.
+
+**Advisory, not authoritative.** `commitStepSequence` re-runs `applyStepSequenceCore` against freshly-fetched, *locked* graphs and remains the only check that can gate a write. Calling this stage and then committing does not duplicate work: the *plan* (the step array) flows through as a value between the two calls, but the *verdict* does not, because the world can change in between --- a cross-snapshot recheck, not redundancy.
+
+**Footprint is fixed by the input steps.** A `repairable` verdict whose repair would touch a host outside today's footprint cannot be re-evaluated by calling this stage again with the same steps --- the caller must build wider steps first. `fetchRelationalReachability` (`relational/findRelationalChainsForRemoval.ts`) is the existing precedent for that widening-fetch discipline; this stage does not perform it.
 
 **Throw vs. verdict.** Legitimate legality outcomes --- stale candidate, `Custom`-edge defer, unresolved dissolve edge --- return through the `KernelApplyOutcome` discriminated union. Structural-invariant violations (relational host mismatch, `RelationalEdgeStillReferencedError`) throw, uniformly in dry-run and commit modes.
 
@@ -163,19 +171,19 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...captureTo, ..
 
 [`factsForStep`](kernel/factsForStep.ts) walks the *output-ordered* steps rather than a hand-assembled subset, which is what makes a carry's `[dissolveRelation*, transferMembership]` stream its dissolve facts before the moved fact. It emits **one combined fact per entity** (with plural `froms` and nullable `to`), not one per host, so the widened lifecycle routes keep the same single-fact-per-entity behavior their predecessors had.
 
-Character-kind emission is folded into `factsForStep` rather than layered on after `commitStepSequence` returns --- that is what keeps `Character Moved` streaming before the kernel's own `RoomUpdate` publish loop, matching `Object Moved`'s ordering guarantee. `applyCharacterRoomMembership`'s test suite asserts this ordering.
+Character-kind emission is folded into `factsForStep` rather than layered on after `commitStepSequence` returns --- that is what keeps `Character Moved` streaming before the kernel's own `RoomUpdate` publish loop, matching `Object Moved`'s ordering guarantee. `orchestrateCharacterRoomMembership`'s test suite asserts this ordering.
 
 `factsForStep` also takes a **pre-apply graph snapshot**: a `dissolveRelation` endpoint can be removed from the footprint entirely by a later pure-remove step in the same sequence (destroy), leaving it absent from the post-apply map. The snapshot lets the fact re-derive the host it actually held the edge on rather than throwing.
 
 ### Ordering: commit, then present
 
-[`executeStepSequence`](kernel/executeStepSequence.ts) invokes the mutation kernel first, `await`s its commit to completion, and only then invokes the presentation kernel against the same shared `KernelStep[]`. This is a property of *invocation*, not of array order --- a caller must not rely on `describe` steps trailing mutation steps. If the commit fails, the presentation kernel is never invoked.
+[`commitAndPresentStepSequence`](kernel/commitAndPresentStepSequence.ts) (renamed from `executeStepSequence` in 3g --- `execute` named a tier ambiguously; this function computes nothing of its own, so its name says what it does instead) invokes the mutation kernel first, `await`s its commit to completion, and only then invokes the presentation kernel against the same shared `KernelStep[]`. This is a property of *invocation*, not of array order --- a caller must not rely on `describe` steps trailing mutation steps. If the commit fails, the presentation kernel is never invoked.
 
 **Do not read this as the positional/terminal distinction.** Both presentation branches run post-commit; what separates them is *where their state came from* --- a `describe` step reads the final committed graphs, a `narrate` step reads a roster captured mid-walk. Restating positional binding as an ordering rule loses the point entirely. See [`../AGENT.concepts.md` --- Positional vs. terminal binding](../AGENT.concepts.md#positional-vs-terminal-binding).
 
 `commit` and `present` stay two separate dependency bags because they publish onto different bus payload scopes (`PositionsPublishedPayload` vs. `ActionsPublishedPayload`).
 
-**`executeStepSequence` itself has no live production caller yet** --- Plan-stage dispatch for object-directed look is what will give it a real command route. The narrate branch, by contrast, is fully live: every move orchestrator calls `presentStepSequence` directly.
+**`commitAndPresentStepSequence`'s live callers:** `actions/index.ts`'s object-directed `look` dispatch, in-process (Phase 4), and `orchestrateObjectMove.ts` (take/drop/give). **Widened 2026-09-08 (3e)** to take a `CompiledPositionKernelPlan` (`{ steps, slots }`) plus a `bundleId` rather than a bare `KernelStep[]` --- the composer now declares the messageOrchestration bundle itself (from `plan.slots`, only after a successful commit, only when `plan.slots.length > 0`) before presenting, so a caller with a compiled plan no longer needs its own commit -> declare -> present sequence. `orchestrateObjectMove.ts` was migrated onto it the same slice. The narrate branch remains fully live outside this composer too: every character move calls `presentStepSequence` directly (inside `presentCharacterMove`, 3f --- merged from the former `orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect`) rather than through this composer, because `orchestrateCharacterRoomMembership` commits internally and, when there's a destination room, `orchestrateCharacterMove` (3g) runs the eviction-ladder write in `Promise.all` *alongside* presentation rather than serially before it --- a shape this composer's strictly-serial commit-then-present sequencing cannot express.
 
 ### Presentation kernel
 
@@ -198,24 +206,38 @@ An unresolvable `captureId` **throws**. Capture ids are minted only by the compi
 
 ### End-to-end flow
 
-Three ingress families reach the same kernel (revised 2026-09-03 --- the two-family/adapter-planned version described here through 2026-09-02 is retired; `adapters/` and its `bounded`/`end-state` planner are deleted, superseded by `executeMembershipTransfer`'s own inline end-state diff):
+Four ingress families reach the same kernel (revised 2026-09-08, 3e --- the character routes split out of the single `executeMembershipTransfer`-direct family described here through 2026-09-07 once they stopped calling that function at all; `adapters/` and its `bounded`/`end-state` planner were deleted earlier, 2026-09-03, superseded by `executeMembershipTransfer`'s own inline end-state diff):
 
 ```text
-executeMembershipTransfer-direct routes (navigate, object place/spawn/destroy/edit/drift-repair)
-  Ingress args (coordinator, or called directly with no coordinator file)
+Character routes (navigate / home / connect / disconnect / ghost-purge repair), 3g 2026-09-09
+  Ingress args (positions/index.ts / handleConnectionsCharactersPresence / repairRoomOccupancyDrift /
+    repairCharacterLegalPlacement) -> orchestrateCharacterMove: one convergent entry point
+    -> orchestrateCharacterRoomMembership: membership observation (getMembershipContainers), cheap
+       no-op pre-check
+    -> planCharacterMoveTransfer: diff against priorContainers -> { froms, to, changed }
+       -> buildCharacterMoveOp (always narrates) -> compilePositionKernelOp, once, before commit
+       -> resolveHeaderSlot (navigate/connect only), also before commit
+    -> commitStepSequence, on the compiled plan's mutation-kind steps
+    -> presentStepSequence over the same compiled plan's narrate steps (no second compile)
+    -> [character navigate/connect only, when changed && to !== null] parallel tail:
+         persistRoomStackNavigate + presentCharacterMove
+
+Object-lifecycle administrative routes (room place/remove, spawn, destroy/edit, drift repair)
+  Ingress args (called directly, no coordinator file)
     -> membership observation (getMembershipContainers or repair graph-forward read)
     -> executeMembershipTransfer's own inline end-state diff against priorContainers
     -> { froms, to, changed }
-    -> coordinator emits a PositionKernelMoveOp; compilePositionKernelOp -> MutationKernelStep[]
+    -> compilePositionKernelOp on a bare { kind: 'move', ... } op literal (no narration ingredients
+       to carry) --- the same shared compiler every other route uses, not a hand-built literal (3e)
     -> commitStepSequence
-    -> [character routes with narration] presentStepSequence over the plan's narrate steps
-    -> [character navigate only, when changed && to !== null] parallel tail:
-         persistRoomStackNavigate + orchestrateCharacterNavigate
 
-Executor-grounded routes (object take-hold / drop)
-  Ingress args (orchestrateObjectMove / executeObjectMove)
-    -> Synthesize executor run fresh at execute time (second, later snapshot than Plan-stage)
-    -> settled closure + classified dissolves -> PositionKernelMoveOp -> compilePositionKernelOp
+Carry-closure-transfer routes (object take-hold / drop)
+  Ingress args (orchestrateObjectMove / planObjectMoveTransfer, 3d 2026-09-08)
+    -> buildObjectMoveOp derives dissolvedEdges structurally from the departure host's own graph
+       (own-root strip + boundaryEdgeOutcomes classify) -> PositionKernelMoveOp -> compilePositionKernelOp
+    -> dryRunStepSequence (plan*-tier, fresh snapshot, second/later than Plan-stage) --- no Synthesize
+       executor (2026-09-07); repairable/mechanical -> repairMechanicalDissolve -> rebuild+recompile;
+       anything else -> ok: false with the real reason code
     -> commitStepSequence (mutation steps) -> presentStepSequence (narrate steps, on ok: true)
 
 Relational establish/dissolve routes
@@ -262,7 +284,7 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 
 **Kernel rules for relational steps.** (Corrected 2026-09-02.) The step carries a mandatory `hostId`, computed once at Expansion: `applyStepSequenceCore`'s `confirmCarriedHost` **asserts** that carried host against the live, locked graphs and throws on mismatch, rather than deriving the shared host itself. `EphemeraLudicGraph.applyRelationalPatch` is the single legality authority (including `bothObjectsOnGraph`); `op: 'add'` is idempotent when the exact edge is already present, and removing an absent edge is rejected. Host may be a Room or a Character graph. **No adjacency dual-write.**
 
-**This route never moves membership.** It commits exactly the one relational step it was given. Until 2026-09-01 it could also carry a `transferFromHostId` repair signal --- relocating the subject onto the target's host, with its own carry closure and boundary sweep, when Plan stage found the endpoints on different hosts. That is retired: two things in different shards is the ordinary case a *crossing* expresses (`buildCrossingLegs`), not a misplacement to fix by moving one of them. Transfers still belong to `executeObjectMove`; establishing a relation cannot trigger one as a side effect.
+**This route never moves membership.** It commits exactly the one relational step it was given. Until 2026-09-01 it could also carry a `transferFromHostId` repair signal --- relocating the subject onto the target's host, with its own carry closure and boundary sweep, when Plan stage found the endpoints on different hosts. That is retired: two things in different shards is the ordinary case a *crossing* expresses (`buildCrossingLegs`), not a misplacement to fix by moving one of them. Transfers still belong to take/drop/give's `planObjectMoveTransfer` (3d, 2026-09-08; formerly `executeMembershipTransfer`'s `honorDefer` mode); establishing a relation cannot trigger one as a side effect.
 
 **Cache seeding.** `seedGraphMemos` calls `internalCache.Positions.set` on **every** committed graph regardless of host kind (skipping non-Room graphs would leave a character's cached graph stale), and additionally invalidates `ComponentEphemeraMeta` + `AffordanceRoomDeliverable` for Room hosts. It runs **before** any fact streams, to avoid an affordance-refresh race.
 
@@ -270,22 +292,22 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 
 | Ingress | Coordinator | Planning | Kernel |
 | --- | --- | --- | --- |
-| Navigate / connect / disconnect / home | [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) (thin wrapper) | `executeMembershipTransfer` (end-state, inline diff) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
-| Object room place / remove / drift repair | `executeMembershipTransfer` (called directly --- no coordinator file) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Navigate / connect / disconnect / home | [`orchestrateCharacterMove`](../navigate/orchestrateCharacterMove.ts) (3g convergence) -> [`orchestrateCharacterRoomMembership`](membership/orchestrateCharacterRoomMembership.ts) (thin wrapper) | [`planCharacterMoveTransfer`](membership/planCharacterMoveTransfer.ts) (end-state, inline diff; builds + compiles the op once, before commit --- 3e, 2026-09-08) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Object room place / remove / drift repair | `executeMembershipTransfer` (called directly --- no coordinator file) | end-state, inline diff, compiled through `compilePositionKernelOp` on a bare op literal (3e) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Improvisational object spawn | `executeMembershipTransfer` via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Object destroy / edit | `executeMembershipTransfer` (`target: null`) | end-state-to-null, inline diff + chain-aware relational sweep | [`commitStepSequence`](kernel/commitStepSequence.ts) |
-| **`takeHold`** / **`drop`** (one route, host pair reversed) | [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) -> [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) | Synthesize executor, re-run at execute time from a **grounded** seed | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| **`takeHold`** / **`drop`** (one route, host pair reversed) | [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) -> [`membership/planObjectMoveTransfer.ts`](membership/planObjectMoveTransfer.ts) (3d, 2026-09-08) | `buildObjectMoveOp`-derived `boundaryEdgeOutcomes` classify, dry-run via `dryRunStepSequence`, `repairMechanicalDissolve` on `repairable`/`mechanical` --- no Synthesize executor (2026-09-07) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Establish / dissolve relation | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) (`executeEstablishEdgeChain`, shared) | Expansion-derived `steps` chain, each with its own carried `hostId`; no coordinator-level carry or repair | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 
-(`executeMembershipTransfer` lives in [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts), sharing the file with `executeObjectMove` --- it absorbed the standalone `applyObjectRoomMembership`/`applyObjectClearMembership`/`applyCharacterRoomMembership`-membership-half coordinators and the retired `adapters/` planner outright, per [Section C's End-to-end flow](#end-to-end-flow) above; `bounded` mode was not carried forward.)
+(`executeMembershipTransfer` lives in [`membership/executeMembershipTransfer.ts`](membership/executeMembershipTransfer.ts) --- it absorbed the standalone `applyObjectRoomMembership`/`applyObjectClearMembership`/`orchestrateCharacterRoomMembership`-membership-half coordinators and the retired `adapters/` planner outright, per [Section C's End-to-end flow](#end-to-end-flow) above; `bounded` mode was not carried forward. `executeObjectMove` --- the take/drop/give path's former separate function --- was unified into it as `honorDefer: true` (2026-09-07), then split back out again as `planObjectMoveTransfer` (3d, 2026-09-08) once the two dissolve mechanisms were named as sibling repair policies rather than left as an execute-time flag; see the code-map row below. **The character-route half also split back out**, 2026-09-08 (3e) --- `orchestrateCharacterRoomMembership` no longer calls `executeMembershipTransfer` at all, for the same shape of reason: the character route's diff and op-build belong upstream of it (`planCharacterMoveTransfer`), not inside a function shared with object-lifecycle admin moves that have no narration to carry. `executeMembershipTransfer` is once again, as its own doc comment now says, purely the object-lifecycle administrative path.)
 
 **Documented exception (not a parallel persist path):**
 
 | Path | Role |
 | --- | --- |
-| [`syncMembershipAdjacency.ts`](../membership/syncMembershipAdjacency.ts) / [`syncObjectMembershipAdjacency.ts`](../membership/syncObjectMembershipAdjacency.ts) | Adjacency-only sync when the graph is correct but the reverse index lags |
+| [`syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) | Adjacency-only sync when the graph is correct but the reverse index lags (generic over character/object ids) |
 
-**RoomStack (eviction ladder)** is **not** a kernel input. Navigate ladder persist runs in the parallel tail after [`applyCharacterRoomMembership`](../membership/applyCharacterRoomMembership.ts) --- see [`persistRoomStackNavigate.ts`](../membership/persistRoomStackNavigate.ts) and [`afterCharacterMembershipNavigateChanged.ts`](../navigate/afterCharacterMembershipNavigateChanged.ts). Merge/trim detail: [`../AGENT.implementation.md` --- Eviction ladder](../AGENT.implementation.md#eviction-ladder-roomstack-storage); normative rules: [`../AGENT.contract.md` --- Eviction ladder](../AGENT.contract.md#eviction-ladder-roomstack-storage).
+**RoomStack (eviction ladder)** is **not** a kernel input. Navigate ladder persist runs in the parallel tail after [`orchestrateCharacterRoomMembership`](membership/orchestrateCharacterRoomMembership.ts) --- see [`persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts), both invoked from [`orchestrateCharacterMove.ts`](../navigate/orchestrateCharacterMove.ts)'s `Promise.all` (3g). Merge/trim detail: [`../AGENT.implementation.md` --- Eviction ladder](../AGENT.implementation.md#eviction-ladder-roomstack-storage); normative rules: [`../AGENT.contract.md` --- Eviction ladder](../AGENT.contract.md#eviction-ladder-roomstack-storage).
 
 ---
 
@@ -303,7 +325,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | Facts stream in step order, before the `RoomUpdate` publish loop | [`factsForStep.ts`](kernel/factsForStep.ts) |
 | Relational edges are forward-graph only --- no adjacency dual-write | [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
 | On graph/adjacency conflict, `ludicGraph` wins | [`../ludicGraph/`](../ludicGraph/) |
-| Transfer planning lives in `executeMembershipTransfer` (inline diff) or the Synthesize executor, never in the kernel | [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) |
+| Transfer planning lives in `executeMembershipTransfer` (inline diff) or `planObjectMoveTransfer` (build + dry-run + repair-or-refuse), never in the kernel | [`membership/executeMembershipTransfer.ts`](membership/executeMembershipTransfer.ts), [`membership/planObjectMoveTransfer.ts`](membership/planObjectMoveTransfer.ts) |
 | A capture step carries no write payload and cannot reach the write set | [`kernelStep.ts`](kernel/kernelStep.ts) (shape), [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
 | Captures are recorded by assignment, never append, so a reducer retry cannot duplicate them | [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
 | Narrate and capture *steps* are constructed only inside `kernel/compile/` | [`compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) |
@@ -336,7 +358,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | [`kernel/applyStepSequenceCore.ts`](kernel/applyStepSequenceCore.ts) | Pure apply core shared by dry-run and commit |
 | [`kernel/computeStepSequenceFootprint.ts`](kernel/computeStepSequenceFootprint.ts) | Transaction lock-set derivation |
 | [`kernel/factsForStep.ts`](kernel/factsForStep.ts) | Step -> `Object Moved` / `Character Moved` / `Object Relation Changed` |
-| [`kernel/executeStepSequence.ts`](kernel/executeStepSequence.ts) | Commit-then-present sequencing (no live production caller yet) |
+| [`kernel/commitAndPresentStepSequence.ts`](kernel/commitAndPresentStepSequence.ts) | Commit-then-present sequencing over a `CompiledPositionKernelPlan` (widened from bare `KernelStep[]` 3e, 2026-09-08, so the composer can declare the messageOrchestration bundle from `plan.slots` itself; renamed from `executeStepSequence` 3g, 2026-09-09, since `execute` named a tier ambiguously); live callers: `actions/index.ts`'s object-directed `look` dispatch, `orchestrateObjectMove.ts` |
 | [`kernel/presentStepSequence.ts`](kernel/presentStepSequence.ts) | The presentation kernel: read-only publish over `describe` (terminal) and `narrate` (positional, capture-resolved) steps |
 | [`kernel/compile/`](kernel/compile/) | Abstract-op compile layer --- see [Compile layer](#compile-layer-kernelcompile) above |
 
@@ -346,16 +368,21 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 | Path | Role |
 | --- | --- |
-| [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) | Narration owner for both object-move directions: derives actor + room from the host pair, resolves labels, wraps `executeObjectMove`, declares the bundle and presents on `ok: true` |
-| [`membership/executeObjectMove.ts`](membership/executeObjectMove.ts) | Two entry points. `executeObjectMove`: execution for either take/drop direction --- seeds the executor **grounded** from concrete host ids, no `GroundingContext`, no referent round trip, compiles once, commits the plan's mutation steps. `executeMembershipTransfer`: single entity (object or character), diffed against its own fetched `priorContainers`, no carry closure, no executor --- object entities get an explicit chain-aware relational sweep ([`findRelationalChainsForRemoval.ts`](relational/findRelationalChainsForRemoval.ts), following crossing ports across hosts), character entities never do |
-| [`membership/types.ts`](membership/types.ts) | `ObjectMembershipDiff` (shared with `buildObjectMovedFact`) |
+| [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) | Narration owner for both object-move directions: derives actor + room from the host pair, resolves labels, calls `planObjectMoveTransfer`, then `commitStepSequence`, declares the bundle and presents on `ok: true` (3d, 2026-09-08 --- no longer routes through `executeMembershipTransfer`) |
+| [`membership/planObjectMoveTransfer.ts`](membership/planObjectMoveTransfer.ts) | Take/drop/give's `plan*`-tier stage (3d, 2026-09-08, replacing `executeMembershipTransfer`'s retired `honorDefer` mode): builds the op via `buildObjectMoveOp` (which derives `dissolvedEdges` itself from the departure host's graph), compiles it, dry-runs it (`dryRunStepSequence`), and on `repairable` offers it to `repairMechanicalDissolve` --- a `mechanical` repair is folded in and recompiled, anything else is refused with the real reason code. No commit; `orchestrateObjectMove` owns that. |
+| [`membership/repairMechanicalDissolve.ts`](membership/repairMechanicalDissolve.ts) | Take/drop/give's repair-authority policy: accepts only a `mechanical`-authority repair, refuses everything else ("may not silently move the lamp") |
+| [`membership/repairAdministrativeChainDissolve.ts`](membership/repairAdministrativeChainDissolve.ts) | The administrative repair-authority policy (sibling of the above): unconditional, chain-aware ([`findRelationalChainsForRemoval.ts`](relational/findRelationalChainsForRemoval.ts)), no dry run, no legality question to ask ("may sever anything") |
+| [`membership/findOwnRootContainmentEdge.ts`](membership/findOwnRootContainmentEdge.ts) | Pure helper: the moved object's own containment edge into a graph's root, if any --- what `buildObjectMoveOp` strips structurally before classifying the rest of the boundary |
+| [`membership/executeMembershipTransfer.ts`](membership/executeMembershipTransfer.ts) | The object-lifecycle administrative membership move (room place/remove, spawn, destroy/edit, drift repair): single entity, diffed against its own fetched `priorContainers`, no defer concept --- gets `repairAdministrativeChainDissolve`'s chain-aware relational sweep (following crossing ports across hosts, unconditionally dissolving everything it finds). Compiles its bare move op through `compilePositionKernelOp` rather than hand-building a step literal (3e, 2026-09-08). Take/drop/give no longer calls this function (3d, 2026-09-08; see `planObjectMoveTransfer` above), and **neither does any character route** any more (3e, 2026-09-08; see `planCharacterMoveTransfer` below) --- this file is once again purely the object-lifecycle administrative path it was named for. |
+| [`membership/planCharacterMoveTransfer.ts`](membership/planCharacterMoveTransfer.ts) | The character-route sibling of `planObjectMoveTransfer.ts` (3e, 2026-09-08): diffs against its own fetched `priorContainers`, resolves the header slot (navigate/connect only, only once changed is confirmed), builds the op via `buildCharacterMoveOp`, and compiles it once via `compilePositionKernelOp` --- no dry run, no repair branch (character moves have no legality question). Called by `orchestrateCharacterRoomMembership`, which commits the returned plan directly; no longer routes through `executeMembershipTransfer`. |
+| [`membership/types.ts`](membership/types.ts) | Bare, host-general `MembershipDiff` (shared by `buildObjectMovedFact` and `buildCharacterMovedFact`; the character route's own `MembershipDiff<EphemeraRoomId>` instantiation is documented in `../AGENT.implementation.md`'s `membership/` code map) --- 3h/3h-ii |
 
 ### `relational/`
 
 | Path | Role |
 | --- | --- |
 | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) | Relational coordinator; builds the step sequence for satisfied and repaired cases |
-| [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) | `executeEstablishEdgeChain`, the sole ingress for **both** `Object Establish Relation` (which deleted the sibling single-host `executeObjectEstablishRelation`, zero live callers) and `Object Dissolve Relation` (which deleted the sibling single-host `executeObjectDissolveRelation` the same way, once `content.steps` was wired in). `operationKind`-agnostic despite the establish-flavored name: takes the already-merged, already-ordered `steps: MutationKernelStep[]` off the published payload (port steps before the legs/removals that reference them, per `buildCrossingLegs.ts`/`buildCrossingDissolveLegs`), builds `getCurrentHost` from each step's own carried `hostId` rather than deriving it, and calls `commitStepSequence` directly with no separate verification layer --- no `applyObjectRelationalChange` involved. Handles a portless/same-host candidate (one-entry `steps`) and a genuine multi-host crossing (establish or dissolve) uniformly, matching `executeObjectMove.ts`'s `executeObjectMove`/`executeMembershipTransfer` precedent of one function per shape rather than a branch, just resolved down to one function here since the single-host shape stopped needing its own on either side. |
+| [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) | `executeEstablishEdgeChain`, the sole ingress for **both** `Object Establish Relation` (which deleted the sibling single-host `executeObjectEstablishRelation`, zero live callers) and `Object Dissolve Relation` (which deleted the sibling single-host `executeObjectDissolveRelation` the same way, once `content.steps` was wired in). `operationKind`-agnostic despite the establish-flavored name: takes the already-merged, already-ordered `steps: MutationKernelStep[]` off the published payload (port steps before the legs/removals that reference them, per `buildCrossingLegs.ts`/`buildCrossingDissolveLegs`), builds `getCurrentHost` from each step's own carried `hostId` rather than deriving it, and calls `commitStepSequence` directly with no separate verification layer --- no `applyObjectRelationalChange` involved. Handles a portless/same-host candidate (one-entry `steps`) and a genuine multi-host crossing (establish or dissolve) uniformly, matching this stack's sibling-naming precedent for one policy per shape rather than a branch (`repairMechanicalDissolve`/`repairAdministrativeChainDissolve`, 3d, 2026-09-08) --- just resolved down to one function here since the single-host shape stopped needing its own on either side. |
 | [`relational/buildObjectRelationalFact.ts`](relational/buildObjectRelationalFact.ts) | `Object Relation Changed` payload builder |
 | [`relational/streamObjectRelationalFact.ts`](relational/streamObjectRelationalFact.ts) | Fact stream wrapper |
 | [`relational/types.ts`](relational/types.ts) | `RelationalIngressArgs`, `RelationalApplyResult` |

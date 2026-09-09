@@ -4,7 +4,7 @@ import {
     SEMANTIC_EMBEDDING_V1_DIMENSIONS,
     SemanticEmbedding,
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
-import { executeMembershipTransfer } from '../positions/manipulation/membership/executeObjectMove'
+import { executeMembershipTransfer } from '../positions/manipulation/membership/executeMembershipTransfer'
 import { applyObjectsChange } from './applyObjectsChange'
 import type { BuildShortNameSemanticEmbeddingResult } from './embedding/buildShortNameSemanticEmbedding'
 import {
@@ -20,7 +20,7 @@ jest.mock('./persistImprovisationObject', () => ({
     persistDeleteImprovisationObject: jest.fn(),
 }))
 
-jest.mock('../positions/manipulation/membership/executeObjectMove', () => ({
+jest.mock('../positions/manipulation/membership/executeMembershipTransfer', () => ({
     executeMembershipTransfer: jest.fn(),
 }))
 

@@ -6,14 +6,13 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
  * (`plan.slots`) and the reporter (`presentStepSequence`, off each narrate step's `slotId`) get them
  * from the same `compilePositionKernelOp` call, so nothing derives them independently any more.
  *
- * **Host-typed, not room-typed.** These lived in `positions/navigate/navigateBundleSlotIds.ts` and
- * took an `EphemeraRoomId` while navigate was the compiler's only consumer; the compiler bridged the
- * gap with an `asRoomId` force-cast. Phase 4's object take/drop moves an entity between a room and a
- * *character* host, so the cast had to go. A slot id is a bundle-local correlation string --- its
- * room-typing was incidental to navigate, never meaningful in itself.
+ * **Host-typed, not room-typed.** An object take/drop moves an entity between a room and a
+ * *character* host, so a slot id must admit any `EphemeraMembershipHostId`. A slot id is a
+ * bundle-local correlation string --- its typing tracks the compiler's own host union, not any one
+ * route's narrower view of what a host is.
  *
  * `NAVIGATE_HEADER_SLOT_ID` deliberately stays in `navigateBundleSlotIds.ts`: the header render is a
- * separate, navigate-owned mechanism (`orchestrateNavigate.ts`'s `registerIngressSlot`), not
+ * separate, navigate-owned mechanism (`presentCharacterMove.ts`'s `registerIngressSlot`), not
  * something this compiler emits.
  */
 export const moveLeaveSlotId = (hostId: EphemeraMembershipHostId): string => `leave:${hostId}`

@@ -21,27 +21,20 @@ import type { TransferMembershipStep } from '../parsePlanStep'
  * `hostRoomId` today; `parsePlanStep.ts` itself only loses the field at the
  * Migrate slice, once the live route stops needing it.
  *
- * `subjectId`/`targetId` are `EphemeraLudicTerminalPrimitive` (LP4g, 2026-08-19):
- * widened from `EphemeraObjectId` once reading the whole kernel write path end to
- * end showed no consumer branches on entity kind --- the `Object` in this file's
- * neighboring `buildObjectRelationalFact` was annotation, not behaviour. This is
- * also the prerequisite for LP4c: a `PartOf` edge legitimately puts a Feature in
- * the subject position (`FEATURE#Wall -PartOf-> FEATURE#Niche`, LD-8).
+ * `subjectId`/`targetId` are `EphemeraLudicTerminalId`-typed: any legal host-kind component, or a
+ * port-qualified reference on one (a crossing leg's far-side endpoint is a port address, not a bare
+ * component id). This matches `HostRelationalEdge` (`manipulation/types.ts`) and
+ * `EphemeraLudicRelationalEdgeBase` (interfaces layer), which carry the same type --- no consumer on
+ * the kernel write path branches on entity kind, so a `PartOf` edge legitimately puts a Feature in
+ * the subject position (`FEATURE#Wall -PartOf-> FEATURE#Niche`, LD-8). A crossing leg is an ordinary
+ * `establishRelation`/`dissolveRelation` step living entirely within one host's own graph --- no
+ * separate "leg" step kind.
  *
- * Widened again to `EphemeraLudicTerminalId`: a crossing leg's far-side
- * endpoint is a port address, not a bare component id --- `HostRelationalEdge`
- * (`manipulation/types.ts`) and `EphemeraLudicRelationalEdgeBase` (interfaces layer,
- * LP7) already carry the wider type; this step type was the one place still
- * narrower than the edge it produces. A leg is an ordinary `establishRelation`/
- * `dissolveRelation` step living entirely within one host's own graph --- no new
- * "leg" step kind.
- *
- * **`hostId` added:** mandatory, computed once at Expansion
- * (`expandSameHost`'s resolved host; each `buildCrossingLegs` leg's own placement) rather than
- * re-derived at apply time. Closes two cases `applyStepSequenceCore`'s old intersection-based
- * `findSharedHost` couldn't disambiguate: an endpoint multi-hosted in >=2 shared graphs at once,
- * and a port-to-port edge on one object where interior/exterior scope isn't recoverable from the
- * two port addresses alone. Matches the field `MutationKernelAddCrossingPortStep`/
+ * **`hostId`:** mandatory, computed once at Expansion (`expandSameHost`'s resolved host; each
+ * `buildCrossingLegs` leg's own placement) rather than re-derived at apply time. This disambiguates
+ * two cases a host-intersection search cannot: an endpoint multi-hosted in >=2 shared graphs at
+ * once, and a port-to-port edge on one object where interior/exterior scope isn't recoverable from
+ * the two port addresses alone. Matches the field `MutationKernelAddCrossingPortStep`/
  * `RemoveCrossingPortStep` (`kernelStep.ts`) already carry.
  */
 export type ExecutorEstablishRelationStep = {

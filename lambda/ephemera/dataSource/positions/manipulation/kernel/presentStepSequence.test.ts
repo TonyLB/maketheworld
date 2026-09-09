@@ -280,7 +280,6 @@ describe('presentStepSequence', () => {
                 verb: 'takeHold',
                 characterName: 'Alice',
                 objectShortName: 'broom',
-                carriedCount: 1,
                 ...narration,
             },
             captureId,
@@ -314,16 +313,6 @@ describe('presentStepSequence', () => {
             expect((await reportedMessage()).message).toEqual(['Alice drops broom'])
         })
 
-        it('appends the carry suffix when the closure has more than one member (BD-13)', async () => {
-            await presentStepSequence(
-                [objectStep({ carriedCount: 2 })],
-                CHARACTER_ID,
-                { streamEvent, messageBus },
-                new Map([['capture:from:ROOM#Cafe', [OTHER_CHARACTER_ID]]])
-            )
-            expect((await reportedMessage()).message).toEqual(['Alice picks up broom and everything on it'])
-        })
-
         it('targets the captured roster, never a bare ROOM# that would re-expand at flush', async () => {
             await presentStepSequence(
                 [objectStep()],
@@ -337,7 +326,7 @@ describe('presentStepSequence', () => {
         it('the character-hosted bracket side publishes to nobody rather than throwing', async () => {
             // A character's inventory graph has no roster, so its capture is legitimately empty.
             // The step still reports --- an unresolved slot is harmless to the fan-in, and
-            // suppressing this side is what PB-M forbids.
+            // suppressing this side is what the "both bracket sides always emitted" rule forbids.
             await presentStepSequence(
                 [objectStep({}, 'capture:to')],
                 CHARACTER_ID,

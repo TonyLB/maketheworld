@@ -18,7 +18,7 @@ const captureIdForFrom = (hostId: string): string => `capture:from:${hostId}`
 const CAPTURE_ID_TO = 'capture:to'
 
 /**
- * PB-M: the verb is a property of the *delta*, read off which side of the move was the room --- not
+ * The verb is a property of the *delta*, read off which side of the move was the room --- not
  * an intent the caller declares and not a host-*kind* inference reasoning backwards from a published
  * fact (which is what the retired `inferOperationFromFact` did). Stated this way `give` needs no new
  * discriminant: it is simply the case where neither side is a room.
@@ -46,7 +46,7 @@ const objectMoveVerb = (
  * `AGENT.concepts.md`, "Abstract op and compiled step."
  *
  * `op.headerSlot`'s presence in `slots` is unconditional, independent of `op.narration` --- the
- * header render is a separate, already-shipped mechanism (`orchestrateNavigate.ts`'s
+ * header render is a separate, already-shipped mechanism (`presentCharacterMove.ts`'s
  * `registerIngressSlot`/`kickPassiveRenderRequestedForCharacterInRoom`, keyed off this same declared
  * slot), not the presentation kernel's `describe` branch, so this compiler never emits a `describe`
  * step for it --- doing so would fire a second, conflicting render request. Object routes have no
@@ -55,22 +55,22 @@ const objectMoveVerb = (
  *
  * `op.dissolvedEdges` render into `dissolveRelation` steps positioned **ahead of** the transfer, which
  * is what preserves BD-28's ordering guarantee: `factsForStep` streams in step order precisely so a
- * severed relation's fact precedes the moved fact. Expansion classified them (PB-9(i-b)); this
+ * severed relation's fact precedes the moved fact. Expansion classified them; this
  * function only sequences them.
  *
  * When `op.narration` is present, every narration channel this move can produce is built from the
  * same `(froms, to)` pair in one pass, so there is exactly one place `[leave, header, arrive]`
- * ordering is decided (PB-7): capture-from steps, the transfer step, a capture-to step,
+ * ordering is decided: capture-from steps, the transfer step, a capture-to step,
  * narrate-leave steps, and a narrate-arrive step. Capture/mutation ordering inside `steps` is the
- * one place order matters for walk correctness (PB-A/PB-J); narrate step position among them is
- * cosmetic, since delivery order comes from `slots`, not `steps` (PB-G: the messageOrchestration
+ * one place order matters for walk correctness; narrate step position among them is
+ * cosmetic, since delivery order comes from `slots`, not `steps` (the messageOrchestration
  * bundle assigns `CreatedTime` in declared order at flush, fully decoupled from execution order).
  *
- * **Both bracket sides are always emitted, including a character-hosted one** (PB-M). A character's
+ * **Both bracket sides are always emitted, including a character-hosted one.** A character's
  * inventory graph has no roster, so its capture snapshots an empty set and its narrate step publishes
  * to nobody, and the messageOrchestration fan-in's documented tolerance of unresolved slots makes
  * that cost nothing. That empty side is the *correct output of a uniform rule*, not an oversight ---
- * an earlier design suppressed it with an object-specific branch, which is precisely how PB-M's frame
+ * an earlier design suppressed it with an object-specific branch, which is precisely how this frame
  * (a room's changelog, not a mover's itinerary) gets lost at the first new caller.
  *
  * When `op.narration` is absent (object-lifecycle moves --- spawn/destroy/place/remove --- and the
@@ -80,21 +80,19 @@ const objectMoveVerb = (
 export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPositionKernelPlan => {
     const transferStep: MutationKernelTransferStep = {
         kind: 'transferMembership',
-        entityIds: op.moved.kind === 'closure'
-            ? op.moved.fragment.objectIds
-            : new Set([op.moved.entityId]),
+        entityIds: new Set([op.moved]),
         fromHostIds: new Set(op.froms),
         toHostId: op.to,
     }
 
-    // LP7 widened HostRelationalEdge.from/to to EphemeraLudicTerminalId; no producer can build a
+    // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed; no producer can build a
     // port-qualified boundary edge yet, so skip rather than assume (matches the ludicGraph
     // boundary/carry-closure narrows, ludicGraph/AGENT.md's BD-36 paragraph).
-    // `hostId: op.froms[0]` --- `dissolvedEdges` is only ever populated by
-    // `executeObjectMove.ts`'s single-origin carry-closure path (`buildObjectMoveOp` is its only
-    // producer, always `froms: [args.fromHostId]`), so every severed boundary edge belongs to that
-    // one departure host. Not derived per-edge because `HostRelationalEdge` (the graph's own
-    // internal edge representation, used far more broadly) doesn't carry a host of its own.
+    // `hostId: op.froms[0]` --- `dissolvedEdges` is only ever populated by `buildObjectMoveOp`
+    // (single-origin, always `froms: [args.fromHostId]`), so every severed boundary edge belongs
+    // to that one departure host. Not derived per-edge because
+    // `HostRelationalEdge` (the graph's own internal edge representation, used far more broadly)
+    // doesn't carry a host of its own.
     const dissolveSteps: ExecutorDissolveRelationStep[] = (op.dissolvedEdges ?? [])
         .filter((edge) => isEphemeraLudicTerminalPrimitive(edge.from) && isEphemeraLudicTerminalPrimitive(edge.to))
         .map((edge) => ({
@@ -106,12 +104,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             ...relationKindAndLabelOf(edge),
         }))
 
-    // LP4a: for a closure, primacy is `fragment.rootId`, never derived from the fragment's edges.
-    // A closure's fragment is host-bound at the moved object (rootId === hostId), always a
-    // primitive, never a port address --- the cast is safe on that construction guarantee.
-    const primaryMovedId: EphemeraLudicTerminalPrimitive = op.moved.kind === 'closure'
-        ? op.moved.fragment.rootId as EphemeraLudicTerminalPrimitive
-        : op.moved.entityId
+    const primaryMovedId: EphemeraLudicTerminalPrimitive = op.moved
 
     if (op.containment && op.to === null) {
         throw new Error('compilePositionKernelOp: containment set with no destination --- caller bug, not a legal "give to nobody" shape')
@@ -133,10 +126,9 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
 
     const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []
 
-    // one presence port per rehost, every mover regardless of host kind (RD-1, presence-refactor
-    // plan step 2 --- previously gated on `op.moved.kind === 'closure'`, excluding characters; that
-    // gate is lifted here). Mechanics --- the remove-then-add pair, the missing-clear fix --- live
-    // in `presencePortStepsForMove`, shared with `executeMembershipTransfer`'s default path (RD-3).
+    // one presence port per rehost, every mover regardless of host kind (RD-1). Mechanics ---
+    // the remove-then-add pair, the missing-clear fix --- live in `presencePortStepsForMove`,
+    // shared with `executeMembershipTransfer`'s default path (RD-3).
     const presencePortSteps = presencePortStepsForMove(primaryMovedId, op.froms, op.to)
 
     if (!op.narration) {
@@ -165,7 +157,6 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
                     verb: objectMoveVerb(op.froms, op.to),
                     characterName: narration.characterName,
                     objectShortName: narration.objectShortName,
-                    carriedCount: narration.carriedCount,
                 }
         }
     }

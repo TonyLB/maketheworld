@@ -1,24 +1,43 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
+import type { HostRelationalEdge } from '../baseClasses'
 import type { EphemeraLudicGraph } from '../index'
 import { boundaryEdgeOutcomes } from './interactionUnderTransfer'
 
+/**
+ * Verdicts partition by *what a caller can do next*, not by how bad the news is --- see
+ * [`manipulation/kernel/types.ts`](../../manipulation/kernel/types.ts) for the full statement of
+ * the vocabulary this mirrors. Every non-`legal` outcome this function can produce is `repairable`
+ * and carries the offending `edge`: it is the repair, and discarding it (as this type did until
+ * 2026-09-08) is what forced a caller to re-derive from a reason code. No `hostId` here --- this
+ * function is handed two graphs and knows neither's id, so the kernel supplies it when re-wrapping.
+ *
+ * `repairKind` is carried rather than derived from `reasonCode`, deliberately. The kernel builds a
+ * `MutationKernelRepair` from this, and having it map reason codes back to repair kinds would be the
+ * same discard-and-re-derive-at-the-boundary fault the 2026-09-08 rename removed, reintroduced one
+ * layer up. The kernel adds the `hostId` and nothing else.
+ */
 export type ApplyTransferSetOutcome =
     | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph; destGraph: EphemeraLudicGraph }
-    | { verdict: 'illegal'; reasonCode: 'incompleteTransferSet' | 'unresolvedDissolveEdge' }
-    | { verdict: 'defer'; decidable: boolean; reasonCode: 'transferInteractionDefer' }
+    | {
+        verdict: 'repairable'
+        reasonCode: 'unresolvedDissolveEdge' | 'transferInteractionDefer' | 'undecidableInteractionEdge'
+        repairKind: 'dissolveRelationalEdge' | 'classifyCustomRelation'
+        edge: HostRelationalEdge
+        authority: 'mechanical' | 'worldChanging'
+    }
 
 /**
  * BD-27c/BD-33/BD-35 Expand+Validate core for a membership transfer (BD-13): assumes any boundary
  * edge that should dissolve has already been severed by an explicit `DissolveRelationStep` earlier
  * in the same kernel-apply loop --- it does not rely on `EphemeraLudicGraph.removeObject`'s
  * silent edge-stripping (retired 2026-07-23) to make dissolution happen. A `dissolve`-classified
- * boundary edge still present at this point is therefore treated as `illegal`
- * (`unresolvedDissolveEdge`), not silently resolved.
+ * boundary edge still present at this point is therefore reported as `repairable`
+ * (`unresolvedDissolveEdge`, `authority: 'mechanical'`, carrying the edge), not silently resolved:
+ * the repair is to emit the missing `DissolveRelationStep` and re-propose.
  *
- * Never expands `transferSet` itself: a `carry` boundary outcome means the caller under-specified
- * the set --- illegal, not an invitation to grow it further.
+ * Never expands `transferSet` itself.
  *
  * Renamed from `applyTransferSetAsserted` (2026-07-23): originally a new sibling module rather than
  * a change to a pre-assert-and-throw `applyTransferSet.ts` in place, back when that older function's
@@ -31,35 +50,61 @@ export type ApplyTransferSetOutcome =
 export function applyTransferSet(
     sourceGraph: EphemeraLudicGraph,
     destGraph: EphemeraLudicGraph,
-    // LP4h: Object | Character, and no wider --- transfer means *changes host*, and Room/Feature/Area
+    // Object | Character, and no wider --- transfer means *changes host*, and Room/Feature/Area
     // are hosts that never relocate.
     transferSet: ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
 ): ApplyTransferSetOutcome {
-    // boundaryEdgeOutcomes stays Object-only (interactionUnderTransfer.ts, out of LP4h's scope):
+    // boundaryEdgeOutcomes stays Object-only (interactionUnderTransfer.ts):
     // no production path produces a character-endpoint relational edge yet, so a character can never
     // appear on either side of a boundary edge.
     const objectTransferSet = new Set([...transferSet].filter(isEphemeraObjectId))
     const boundaryOutcomes = boundaryEdgeOutcomes(objectTransferSet, sourceGraph)
 
-    const carryOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'carry')
-    if (carryOutcome !== undefined) {
-        return { verdict: 'illegal', reasonCode: 'incompleteTransferSet' }
-    }
-
     const deferOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'defer')
     if (deferOutcome !== undefined) {
+        // Both deferring cases are repairable; they differ in *which* repair. A non-`Custom` edge
+        // has a known one --- sever it --- but one that changes the world beyond what the player
+        // asked for: moving the lamp that was resting on the book is not an invisible cleanup. A
+        // `Custom` edge cannot take that repair: deciding what "tied to" means is exactly what this
+        // layer cannot do, and naming `dissolveRelationalEdge` anyway would assert a severing this
+        // function has no grounds to vouch for. So the repair it names is the
+        // classification itself, and a repair applier with no classifier throws on that kind --- the
+        // ignorance is reported where it is, and enforced where a repair would be applied.
+        //
+        // `authority` is recorded rather than acted on for both: whether a `worldChanging` repair
+        // may be applied silently or must escalate to the player is a world-model question this
+        // layer does not answer.
+        if (deferOutcome.edge.kind === 'Custom') {
+            return {
+                verdict: 'repairable',
+                reasonCode: 'undecidableInteractionEdge',
+                repairKind: 'classifyCustomRelation',
+                edge: deferOutcome.edge,
+                authority: 'worldChanging',
+            }
+        }
         return {
-            verdict: 'defer',
-            decidable: deferOutcome.edge.kind !== 'Custom',
+            verdict: 'repairable',
             reasonCode: 'transferInteractionDefer',
+            repairKind: 'dissolveRelationalEdge',
+            edge: deferOutcome.edge,
+            authority: 'worldChanging',
         }
     }
 
     // A dissolve-classified boundary edge still present here means an explicit
-    // DissolveRelationStep that should have run earlier in the same kernel-apply loop did not.
+    // DissolveRelationStep that should have run earlier in the same kernel-apply loop did not ---
+    // mechanically repairable, and invisible to the player, since the edge was already classified
+    // as one that dissolves under this transfer.
     const dissolveOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'dissolve')
     if (dissolveOutcome !== undefined) {
-        return { verdict: 'illegal', reasonCode: 'unresolvedDissolveEdge' }
+        return {
+            verdict: 'repairable',
+            reasonCode: 'unresolvedDissolveEdge',
+            repairKind: 'dissolveRelationalEdge',
+            edge: dissolveOutcome.edge,
+            authority: 'mechanical',
+        }
     }
 
     // LP4/LP7 widened HostRelationalEdge.from/to to the full terminal union (now including
