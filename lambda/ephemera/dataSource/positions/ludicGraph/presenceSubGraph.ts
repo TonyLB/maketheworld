@@ -88,10 +88,26 @@ const edgeIdentityKey = (edge: HostRelationalEdge): string => {
 }
 
 /**
- * The sub-graph a set of nodes induces on `graph`, per LR-1: all of `nodes`, all the edges
- * between them, and --- the decision this function exists to implement --- what becomes of an
- * edge with exactly one endpoint outside `nodes`. **Drop is unavailable** (C7): the cut always
- * lands on a port, real or minted.
+ * The sub-graph a set of nodes induces on `graph`, per LR-1: all of `nodes`, all the *content*
+ * edges between them, and --- the decision this function exists to implement --- what becomes of
+ * a content edge with exactly one endpoint outside `nodes`. **Drop is unavailable** (C7): the cut
+ * always lands on a port, real or minted.
+ *
+ * **`Present`-kind edges are excluded before any of that classification runs (LR-6, revised).**
+ * They are bucket-membership metadata --- `nodesFromPresencePort` has already fully consumed them
+ * to produce `nodes` --- not a spatial relationship between two members the way `Under`/`Custom`/
+ * `PartOf` are, so they are never interior content, never dropped, and never straddle-minted; they
+ * simply do not participate. (They are also, mechanically, guaranteed to straddle in the naive
+ * classification for every node outside the current bucket in a multi-port graph: a `Present`
+ * edge's `from` always resolves to the root, which PR-9 puts in *every* bucket, so `fromIn` is
+ * always true and `toIn` is false for any node exclusively in a different bucket --- treating that
+ * as an ordinary straddle would mint a redundant synthetic port for a crossing a *real* port
+ * already documents.) **Deactivated rather than deleted:** whether an interior node's own
+ * `Present` edge needs representing again --- e.g. as merge-time provenance --- is a question for
+ * Slice 2's ludicCache merge design, not this function; it may return in a different form once
+ * that lands.
+ *
+ * Remaining (non-`Present`) content edges:
  *
  * - **Both endpoints in `nodes`:** kept unchanged.
  * - **Neither endpoint in `nodes`:** dropped --- it doesn't touch this bucket (PR-9's cover
@@ -108,8 +124,13 @@ const edgeIdentityKey = (edge: HostRelationalEdge): string => {
  * Returns an `EphemeraLudicGraph` rather than a bespoke shape --- the induced sub-graph is a
  * graph on the *same* host (a bucket is a cut of `graph`, not a different graph), so `hostId` and
  * `rootId` are carried over unchanged; the root is always present in `nodes` by Slice 1a's own
- * contract. The returned graph's `ports` are exactly the stub ports minted here, never `graph`'s
- * own port entries --- those are a concern for whichever caller reads the parent graph directly.
+ * contract. The returned graph's `ports` are the minted stub ports plus **all** of `graph`'s own
+ * presence ports, regardless of bucket (LR-6): `fromHostId` on a presence port is already the
+ * "which shard is this whole home to" fact, independent of which bucket is being extracted, so
+ * carrying every one of them forward makes that fact recoverable from any single bucket's
+ * sub-graph with no merge-time reconciliation needed later. (Non-presence ports of `graph` are
+ * not carried through --- only the boundary this bucket itself cuts, plus the whole's own
+ * presence bindings.)
  *
  * Transient only (LR-1): minting never writes to `edge.edgeId` and never mutates `graph`.
  */
@@ -119,7 +140,9 @@ export const subGraphFromNodes = (
 ): EphemeraLudicGraph => {
     const subNodes = [...graph.nodeIds].filter((id) => nodes.has(id)).map(nodeFromId)
 
-    const { edges, ports } = graph.relationalEdges.reduce<{
+    const contentEdges = graph.relationalEdges.filter((edge) => edge.kind !== 'Present')
+
+    const { edges, ports } = contentEdges.reduce<{
         edges: HostRelationalEdge[]
         ports: EphemeraLudicGraphPort[]
     }>(
@@ -137,10 +160,9 @@ export const subGraphFromNodes = (
                 // Already port-qualified --- LR-1's narrow case, nothing to mint.
                 return { ...acc, edges: [...acc.edges, edge] }
             }
-            // A bare-id straddle can never be `Present`-kind: `Present` edges structurally run
-            // PORT -> NODE (PR-4), so `edge.kind` here is always `Exclude<HostRelationalEdgeKind,
-            // 'Present'>` --- exactly what a crossing port's `kind` field requires --- with no
-            // cast needed beyond narrowing the union.
+            // Never `Present`-kind here --- excluded above --- so `edge.kind` is always
+            // `Exclude<HostRelationalEdgeKind, 'Present'>`, exactly what a crossing port's `kind`
+            // field requires, with no narrowing left to do beyond the cast itself.
             const portId = edgeIdentityKey(edge)
             const port: EphemeraLudicGraphPort = {
                 portId,
@@ -155,10 +177,12 @@ export const subGraphFromNodes = (
         { edges: [], ports: [] }
     )
 
+    const presencePorts = graph.ports.filter((port) => port.kind === 'Present')
+
     return EphemeraLudicGraph.fromFieldPayload(graph.hostId, {
         rootId: graph.rootId,
         nodes: subNodes,
         edges: edges.map(toStoredRelationalEdge),
-        ports,
+        ports: [...presencePorts, ...ports],
     })
 }

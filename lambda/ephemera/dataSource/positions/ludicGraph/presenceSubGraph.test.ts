@@ -242,4 +242,53 @@ describe('subGraphFromNodes', () => {
         expect(result.rootId).toEqual(graph.rootId)
         expect(result.nodeIds.has(roomId)).toBe(true)
     })
+
+    it('excludes an interior Present edge from the output entirely (LR-6)', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+            ],
+            ports: [presencePort('port_1')],
+            edges: [presentEdge('port_1', objC)],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.relationalEdges).toEqual([])
+    })
+
+    it('does not mint a stub port for a Present edge straddling into a different bucket (LR-6)', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Character', universalKey: charB },
+            ],
+            ports: [presencePort('port_1'), presencePort('port_2')],
+            edges: [presentEdge('port_2', charB)],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.relationalEdges).toEqual([])
+        // Both presence ports are preserved (below), but neither is a *minted* stub for this edge.
+        expect(result.ports).toEqual(
+            expect.arrayContaining([presencePort('port_1'), presencePort('port_2')])
+        )
+        expect(result.ports).toHaveLength(2)
+    })
+
+    it("preserves all of the graph's own presence ports regardless of bucket (LR-6)", () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Character', universalKey: charB },
+            ],
+            ports: [presencePort('port_1'), presencePort('port_2')],
+            edges: [presentEdge('port_1', objC), presentEdge('port_2', charB)],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.ports).toEqual(
+            expect.arrayContaining([presencePort('port_1'), presencePort('port_2')])
+        )
+        expect(result.ports).toHaveLength(2)
+    })
 })
