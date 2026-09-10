@@ -59,8 +59,8 @@ export const areaNode = (universalKey: EphemeraAreaId): EphemeraLudicGraphNode =
 })
 
 /**
- * Dispatches an arbitrary terminal primitive to its correctly-tagged node --- LP4i's
- * construction-time fix for clause 3's root-in-nodes requirement. `rootId` is always one of
+ * Dispatches an arbitrary terminal primitive to its correctly-tagged node --- the
+ * construction-time half of clause 3's root-in-nodes requirement. `rootId` is always one of
  * these five kinds for a host-bound graph (`rootId === hostId`), so every fresh-construction
  * factory below uses this to seed the root's own node alongside whatever else it builds.
  */
@@ -135,7 +135,7 @@ export class EphemeraLudicGraph {
 
     /**
      * A fresh empty host-bound graph is rooted at its own host (concepts clause 3), and the
-     * root node itself is present in `nodes` --- LP4i's construction-time fix.
+     * root node itself is present in `nodes`, seeded there at construction time.
      */
     static empty(hostId: EphemeraMembershipHostId): EphemeraLudicGraph {
         return new EphemeraLudicGraph(hostId, hostId, [nodeFromId(hostId)], undefined, undefined, [])
@@ -181,7 +181,7 @@ export class EphemeraLudicGraph {
 
     /**
      * Rooted at its own host --- a play envelope carries no independent root designation.
-     * The root's own node is included alongside the extracted members (LP4i). An Object- or
+     * The root's own node is included alongside the extracted members. An Object- or
      * Character-hosted graph's root shares its projected tag (Object/Character) with ordinary
      * members, so the envelope's own node list can already carry it (`toPlayEnvelope`'s
      * `projectComponentGraphFromStoredLudicGraph` keeps Character/Object nodes, drops
@@ -193,7 +193,7 @@ export class EphemeraLudicGraph {
     ): EphemeraLudicGraph {
         const relationalEdges = extractRelationalEdgesFromStored(envelope).map(toStoredRelationalEdge)
         const playOnlyEdges = extractPlayOnlyEdges(envelope)
-        // A play envelope carries no port data (presentation lane, out of scope --- LP4d); ports are empty.
+        // A play envelope carries no port data (presentation lane, out of scope); ports are empty.
         return new EphemeraLudicGraph(
             hostId,
             hostId,
@@ -244,8 +244,8 @@ export class EphemeraLudicGraph {
      * Every node's `universalKey`, regardless of tag --- a kind-indifferent presence/catalog
      * scan ("what's here to look at"), additive alongside the typed `characterIds`/`objectIds`
      * accessors rather than replacing them (see `AGENT.md`, Node model). Named `nodeIds`, not
-     * `thingIds` --- the two sets still differ, though not for the reason they used to (LP4b
-     * widened node tags to the full terminal-kind set, so Feature is a node now too):
+     * `thingIds` --- the two sets still differ, though not for the reason they used to (node tags
+     * widened to the full terminal-kind set, so Feature is a node now too):
      * `nodeIds` also admits Room/Area, which `EphemeraThingId` (a catalog/Identify-layer type,
      * not a graph-node type) does not.
      */
@@ -430,11 +430,12 @@ export class EphemeraLudicGraph {
     }
 
     /**
-     * The structural half of RD-4's cache-time containment population (presenceRefactor step 3):
-     * a Room or Feature becomes a node of its parent's graph (Area-for-Room, Room-or-Feature-for-
-     * Feature) the same way an object or character becomes a node of a host it moves into ---
-     * idempotent-add, mirroring `addObject`/`addCharacter` exactly. Unlike those two, a Room/Feature
-     * node is never removed by this slice (RD-4 defers removal-on-deauthoring), but `removeRoom`/
+     * The structural half of cache-time containment population: a Room or Feature becomes a node
+     * of its parent's graph (Area-for-Room, Room-or-Feature-for-Feature) the same way an object or
+     * character becomes a node of a host it moves into --- idempotent-add, mirroring
+     * `addObject`/`addCharacter` exactly. Unlike those two, a Room/Feature node is never removed by
+     * this slice --- removal-on-deauthoring is deliberately out of scope, per
+     * `../AGENT.contract.md`'s `Component Updated` section --- but `removeRoom`/
      * `removeFeature` are added alongside for symmetry with `removeObject`/`removeCharacter` rather
      * than left as a half-built pair --- both idle today, since population is additive-only.
      */
@@ -539,7 +540,7 @@ export class EphemeraLudicGraph {
     /**
      * Node presence is always keyed by the owning component, never by a port, so a
      * port-qualified terminal is resolved to its owner before the membership check
-     * (LP3/PQ-10). `from`/`to` are `EphemeraLudicTerminalId`-typed (LP4/LP7) --- any legal
+     * (PQ-10). `from`/`to` are `EphemeraLudicTerminalId`-typed --- any legal
      * host-kind component, or a port-qualified reference on one, not only Objects --- so
      * presence is checked against every node's `universalKey` (`nodeIds`), not only
      * `objectIds`. Despite the name (kept for callers; see `AGENT.md`'s "Relational edge

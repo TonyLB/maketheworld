@@ -1,10 +1,11 @@
 import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-// Deliberately the ingress-lane PeerRelationalEdgeKind (LD-13/BD-2), not ephemeraMeta.ts's
+// Deliberately the ingress-lane PeerRelationalEdgeKind (BD-2), not ephemeraMeta.ts's
 // persistence-lane one --- this file's subjectId/targetId are EphemeraObjectId by the same
-// rule (LD-13, LP4g), and the two types coincided by accident until LP4c-i widened
-// ephemeraMeta.ts's to admit containment.
+// rule (the persistence lane's terminals were later widened past Object-only; this lane's
+// were not), and the two types coincided by accident until the persistence-lane kind union
+// widened to admit containment.
 import type { PeerRelationalEdgeKind } from './relationKind'
 
 export type TransferMembershipStep = {

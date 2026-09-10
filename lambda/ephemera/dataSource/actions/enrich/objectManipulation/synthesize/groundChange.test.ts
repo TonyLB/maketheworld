@@ -160,7 +160,7 @@ describe('groundChange', () => {
         })
     })
 
-    it('admits Object and Feature host candidates for transferMembership (LP0 widened EphemeraMembershipHostId)', () => {
+    it('admits Object and Feature host candidates for transferMembership', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'transferMembership',
@@ -190,7 +190,7 @@ describe('groundChange', () => {
         })
     })
 
-    it('admits an Area host candidate for transferMembership (LP0 Area slice)', () => {
+    it('admits an Area host candidate for transferMembership', () => {
         // Area is not an `EphemeraThingId` (thing.ts deliberately excludes it), so it can
         // never resolve directly off an objectSpan the way Object/Feature candidates do ---
         // it can only arrive via `currentHost(X)`, whose `getCurrentHost` callback returns

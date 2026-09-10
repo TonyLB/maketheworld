@@ -26,7 +26,7 @@ const graphNode = (universalKey: string) => ({
     universalKey,
 })
 
-// LP4i: concepts clause 3 requires the graph's own root to be present in `nodes`.
+// Concepts clause 3 requires the graph's own root to be present in `nodes`.
 const roomGraphNode = (universalKey: string) => ({
     tag: 'Room' as const,
     universalKey,

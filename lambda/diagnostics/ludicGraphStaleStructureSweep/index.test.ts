@@ -13,7 +13,7 @@ describe('ludicGraphStaleStructureSweep', () => {
         process.env.EVENT_BUS_NAME = 'test-bus'
     })
 
-    it('emits a finding for a row whose root is missing from nodes (LP4i proving case)', async () => {
+    it('emits a finding for a row whose root is missing from nodes', async () => {
         const result = await ludicGraphStaleStructureSweep(
             { diagnosticRunId: 'run-1', nowMs: 1_700_000_000_000 },
             {
@@ -62,7 +62,7 @@ describe('ludicGraphStaleStructureSweep', () => {
         expect(emitFinding).not.toHaveBeenCalled()
     })
 
-    it('emits a finding for a row missing ports even though the root node is present (LP4d proving case)', async () => {
+    it('emits a finding for a row missing ports even though the root node is present', async () => {
         const result = await ludicGraphStaleStructureSweep(
             { diagnosticRunId: 'run-ports', nowMs: 1_700_000_000_000 },
             {

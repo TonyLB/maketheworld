@@ -2,7 +2,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { HostRelationalEdgeKind, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 /**
- * `from`/`to` are `EphemeraLudicTerminalId` (LP7), mirroring `ludicGraph/baseClasses.ts`'s
+ * `from`/`to` are `EphemeraLudicTerminalId`, mirroring `ludicGraph/baseClasses.ts`'s
  * `HostRelationalEdge` --- a pre-existing duplication (not consolidated in this slice); see
  * `ludicGraph/AGENT.md`'s "Relational edge names" table.
  */

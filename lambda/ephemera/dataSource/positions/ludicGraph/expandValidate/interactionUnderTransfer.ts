@@ -58,9 +58,9 @@ export function classifyInteractionUnderTransfer(
             // What would legitimately retire this throw: AB-53 keeps containment root-to-part
             // as an ITERATION-1 CONSTRUCTOR DISCIPLINE, not a structural lock. If multi-level
             // graphs ever land, a containment edge can appear here and this becomes a real
-            // decision again (LD-11). Note that even then the answer is likely to be deleting
+            // decision again. Note that even then the answer is likely to be deleting
             // the carry path rather than classifying it -- AB-5's mint/move/dissolve covers
-            // carry behaviour without traversal. Until then, LD-11 survives only for the
+            // carry behaviour without traversal. Until then, that open question survives only for the
             // 'Against' reconciliation, which is a peer kind and never lands in this branch.
             throw new Error(`classifyInteractionUnderTransfer: '${relationKind}' has no producer on an exterior graph in iteration 1 (AB-53/AB-54); reaching here means a producer built a graph the constructor does not author`)
         case 'Present':
@@ -110,7 +110,7 @@ export function computeCarryClosure(
         }
         const otherId = movedRole === 'subject' ? edge.to : edge.from
         /**
-         * LP4 widened `edge.from`/`.to` to `EphemeraLudicTerminalPrimitive`, but this remains
+         * `edge.from`/`.to` were widened to `EphemeraLudicTerminalPrimitive`, but this remains
          * Object-only here --- a non-Object `otherId` can't occur in practice yet, since nothing
          * produces a relational edge with a non-Object endpoint, but skip rather than assume.
          * See `ludicGraph/AGENT.md`'s "Character-relation widening, deferred (BD-36)" note.
@@ -150,7 +150,7 @@ export function boundaryEdgeOutcomes(
 ): BoundaryEdgeOutcome[] {
     const results: BoundaryEdgeOutcome[] = []
     for (const edge of graph.relationalEdges) {
-        // Same LP4-vs-LP4a boundary as computeCarryClosure above: transferSet is Object-only.
+        // Same widened-terminal-vs-Object-only boundary as computeCarryClosure above: transferSet is Object-only.
         // The caller's transfer set is Object | Character but filters back down to
         // Object before calling in here (applyTransferSet.ts) --- this function's own scope is
         // unchanged, and remains unowned the same way computeCarryClosure's narrow does above.

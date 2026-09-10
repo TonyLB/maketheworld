@@ -109,7 +109,7 @@ describe('factsForStep', () => {
         ])
     })
 
-    it('LP4g payoff: establishRelation with a non-Object (Character) subject emits its Object Relation Changed fact, host re-derived via nodeIds', () => {
+    it('establishRelation with a non-Object (Character) subject emits its Object Relation Changed fact, host re-derived via nodeIds', () => {
         const finalGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Character', universalKey: characterId },
@@ -215,7 +215,7 @@ describe('factsForStep', () => {
         expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
-    it('addPresencePort/removePresencePort steps yield no facts --- not a narration channel yet (RD-2)', () => {
+    it('addPresencePort/removePresencePort steps yield no facts --- not a narration channel yet', () => {
         const addStep: MutationKernelStep = {
             kind: 'addPresencePort',
             hostId: trayId,

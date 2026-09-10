@@ -61,14 +61,14 @@ export type MutationKernelCaptureStep = {
 
 /**
  * the moved object's own presence port, on its own graph (`hostId` is the moved object's
- * own id --- a legal `EphemeraMembershipHostId`, LP0). RD-2 (2026-09-04): multiplicity moved from
- * the step to the sequence --- N bindings is N `addPresencePort` steps, paired with a
+ * own id --- a legal `EphemeraMembershipHostId`). Since 2026-09-04, multiplicity lives in
+ * the sequence rather than the step --- N bindings is N `addPresencePort` steps, paired with a
  * `removePresencePort` per departure host, rather than one step replacing whatever was there. This
  * is what lets a pure add (spawn/population-everywhere) be expressed without touching
  * `MutationKernelTransferStep` (PR-12 in `AGENT.presence.planning.md`). At-most-one presence
  * (PR-10) is no longer a reducer-enforced property of this step; for characters it is enforced
- * separately, by an end-of-sequence validator in `applyStepSequenceCore.ts` (RD-1's single-hosted
- * restriction, `AGENT.contract.md`). Objects get no such enforcement, deliberately --- multi-
+ * separately, by an end-of-sequence validator in `applyStepSequenceCore.ts` --- characters are
+ * single-hosted, per `AGENT.contract.md`. Objects get no such enforcement, deliberately --- multi-
  * presence is the point. No `Present` edge is written --- PR-10 makes the cover implicit, derived
  * from the binding list, not a record either step maintains.
  */
@@ -79,7 +79,7 @@ export type MutationKernelAddPresencePortStep = {
 }
 
 /**
- * The remove half of RD-2's split. Addressed by host pair (`hostId` + `fromHostId`), not by
+ * The remove half of that add/remove split. Addressed by host pair (`hostId` + `fromHostId`), not by
  * `portId` --- unlike `removeCrossingPort`, because the compiler has no prior-state read to learn a
  * `portId` from; that read is exactly what the old replace-all step existed to avoid. Removing an
  * absent binding is a silent no-op in the reducer, which is what lets the compiler emit one of

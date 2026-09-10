@@ -81,7 +81,7 @@ describe('isObjectMovedPublishedPayload', () => {
         })).toBe(true)
     })
 
-    it('accepts object and feature membership host endpoints (LP0 widened EphemeraMembershipHostId)', () => {
+    it('accepts object and feature membership host endpoints', () => {
         expect(isObjectMovedPublishedPayload({
             type: 'Object Moved',
             objectId: 'OBJECT#spring',
@@ -114,10 +114,10 @@ describe('isObjectMovedPublishedPayload', () => {
 })
 
 describe('isObjectRelationChangedPublishedPayload', () => {
-    // LP4c-i: this guard's HOST_RELATIONAL_EDGE_KINDS Set (this file) has its own copy of the
+    // This guard's HOST_RELATIONAL_EDGE_KINDS Set (this file) has its own copy of the
     // persistence-lane widening -- a stale Set here fails silently rather than at compile time,
     // so a kernel-emitted containment fact must be checked to actually validate on publish.
-    // Direction corrected 2026-08-20 (LD-16): the member is the subject ("the crystal ball is in
+    // Direction corrected 2026-08-20: the member is the subject ("the crystal ball is in
     // the kitchen"), the host is the target. hostId is the graph's owner and is unaffected.
     it.each(['In', 'PartOf'] as const)('accepts a %s containment relationKind', (relationKind) => {
         expect(isObjectRelationChangedPublishedPayload({

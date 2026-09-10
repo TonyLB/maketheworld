@@ -75,7 +75,7 @@ export type DiagnosticsOrphanedImprovisedObjectFindingEvent = {
 }
 
 /**
- * LP4i: a `Meta::*.ludicGraph` row whose stored payload fails the shipped shape guard
+ * A `Meta::*.ludicGraph` row whose stored payload fails the shipped shape guard
  * (`isEphemeraLudicGraphFieldPayload`) --- currently only reachable by the root-in-nodes gap
  * (concepts clause 3), since the guard is the single source of truth for staleness and nothing
  * else in the shape has drifted yet.
@@ -88,7 +88,7 @@ export type DiagnosticsLudicGraphStaleStructureFindingEvent = {
 }
 
 /**
- * LP6a (LD-18): a `ludicGraph` port whose denormalized exterior values (`kind`,
+ * A `ludicGraph` port whose denormalized exterior values (`kind`,
  * `exteriorRelationLabel`) disagree with the referring edge held by the host the port itself
  * names. The subject is the individual port, not the row --- a mismatch is one crossing being
  * wrong, and triage needs to know which. Scoped to a *named* referrer: a port whose named

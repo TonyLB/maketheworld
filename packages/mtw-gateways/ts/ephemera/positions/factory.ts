@@ -24,7 +24,7 @@ import type {
 
 /**
  * An absent row's empty graph, rooted at its own host with that root present in `nodes` ---
- * concepts clause 3 / LP4i, enforced by `isEphemeraLudicGraphFieldPayload`. The node tag comes
+ * concepts clause 3, enforced by `isEphemeraLudicGraphFieldPayload`. The node tag comes
  * from the caller's own id-kind branch, which already knows it.
  */
 const emptyLudicGraphPayload = (
@@ -38,8 +38,8 @@ const emptyLudicGraphPayload = (
 })
 
 /**
- * Fills in the structural fields a pre-LP4a/LP4d row can be missing (`rootId`, the root's own
- * node, `ports`) while passing through everything the row *does* carry.
+ * Fills in the structural fields a row written before `rootId` and `ports` became required can
+ * be missing (`rootId`, the root's own node, `ports`) while passing through everything the row *does* carry.
  *
  * The projection this replaced normalized partial rows as a side effect of discarding most of
  * them, so legacy rows have always read cleanly; that tolerance is preserved deliberately, since

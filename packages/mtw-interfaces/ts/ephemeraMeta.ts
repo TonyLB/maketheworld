@@ -226,7 +226,7 @@ export const isEphemeraMetaArea = (entry: unknown): entry is EphemeraMetaArea =>
 }
 
 //
-// Ludic graph edge/port terminals (LP2). A terminal is either a bare component id (the
+// Ludic graph edge/port terminals. A terminal is either a bare component id (the
 // EphemeraLudicTerminalPrimitive branch) or a structured port address on that component
 // (EphemeraLudicPortAddress). The parsed shape IS the stored shape --- no string form, no
 // separator parsing, in the domain layer (PQ-9, in the abstraction-layers proposals plan). The
@@ -284,9 +284,9 @@ export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId,
 
 /**
  * Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes; CC0b shipped Room nodes
- * (nodes only); LP4b widened to the full terminal-kind set (Feature, Area), closing the
- * referential-integrity gap LP4 named: terminal kinds already admitted Feature/Area and this
- * union did not, so a terminal could name no backing node.
+ * (nodes only); a later widening took it to the full terminal-kind set (Feature, Area), closing
+ * a referential-integrity gap: terminal kinds already admitted Feature/Area and this union did
+ * not, so a terminal could name no backing node.
  *
  * Widening this union is not a part-of-ladder claim: adding a tag here says a kind may appear
  * in a graph's node list, not that it belongs above the room in the containment ladder --- see
@@ -407,8 +407,8 @@ export const edgeKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): Relational
 )
 
 /**
- * `from`/`to` are `EphemeraLudicTerminalId` (LP7) --- any legal host-kind component or a
- * port-qualified reference on one, matching what LP0/LP2 already made legal terminals.
+ * `from`/`to` are `EphemeraLudicTerminalId` --- any legal host-kind component or a
+ * port-qualified reference on one, matching the terminals the type union above already admits.
  *
  * `edgeId` is **an optional label an edge may carry, and nothing more** (EA-8). No constructor
  * mints one, and no comparison consults one --- `edgesMatch` is still purely structural, so a
@@ -585,7 +585,7 @@ export const isEphemeraLudicGraphPort = (value: unknown): value is EphemeraLudic
     if (typeof entry.kind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(entry.kind as HostRelationalEdgeKind)) {
         return false
     }
-    // Mirrors the edge guard's own conditional one-for-one (LP6): the scale change a port
+    // Mirrors the edge guard's own conditional one-for-one: the scale change a port
     // records needs the exterior end of it, and a port carrying neither end records nothing.
     if (entry.kind === 'Custom') {
         return typeof entry.exteriorRelationLabel === 'string' && entry.exteriorRelationLabel.length > 0
@@ -617,8 +617,8 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
     if (!graph.nodes.every((entry) => isEphemeraLudicGraphNode(entry))) {
         return false
     }
-    // Concepts clause 3: the designated root must be present in the graph's own node list
-    // (LP4i). Checked by owner, not full terminal equality --- `rootId` is always a bare
+    // Concepts clause 3: the designated root must be present in the graph's own node
+    // list. Checked by owner, not full terminal equality --- `rootId` is always a bare
     // terminal primitive for a host-bound graph, never a port address, but a stored payload
     // is exactly the thing this guard exists not to assume.
     const rootOwner = ephemeraLudicTerminalOwner(graph.rootId)
@@ -632,7 +632,7 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
         }
     }
     // The egress list is required and possibly empty, not optional like `edges`
-    // --- see LPM's rootId precedent for why no `??= []` belongs at this boundary. LP4d.
+    // --- see `rootId`'s precedent above for why no `??= []` belongs at this boundary.
     if (!Array.isArray(graph.ports) || !graph.ports.every((entry) => isEphemeraLudicGraphPort(entry))) {
         return false
     }
@@ -756,8 +756,8 @@ export const isEphemeraMetaCharacter = (value: any): value is EphemeraMetaCharac
         if (!isEphemeraLudicGraphFieldPayload(ludicGraph)) {
             return false
         }
-        // A character never holds another character (never membership-moved) --- but LP4i
-        // requires the graph's own root to be present in `nodes`, and a character host's
+        // A character never holds another character (never membership-moved) --- but
+        // clause 3 requires the graph's own root to be present in `nodes`, and a character host's
         // root node is necessarily Character-tagged (itself). Exclude the root's own node
         // from this check rather than reading the two rules as in conflict.
         const hasCharacterNode = ludicGraph.nodes.some((node) => node.tag === 'Character' && node.universalKey !== value.EphemeraId)

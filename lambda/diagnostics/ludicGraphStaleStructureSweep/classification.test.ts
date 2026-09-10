@@ -6,7 +6,7 @@ describe('isLudicGraphStructurallyStale', () => {
         expect(isLudicGraphStructurallyStale(undefined)).toBe(false)
     })
 
-    it('returns true for a payload whose root has no backing node (LP4i proving case)', () => {
+    it('returns true for a payload whose root has no backing node', () => {
         expect(isLudicGraphStructurallyStale({
             rootId: 'ROOM#Kitchen',
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#one' }],
@@ -32,7 +32,7 @@ describe('isLudicGraphStructurallyStale', () => {
     // Proving case: the guard picks up a missing `ports` (the egress list, required and possibly
     // empty) as staleness with no change needed in this file --- it's a pure pass-through to
     // isEphemeraLudicGraphFieldPayload.
-    it('returns true for an otherwise-current payload missing ports (LP4d proving case)', () => {
+    it('returns true for an otherwise-current payload missing ports', () => {
         expect(isLudicGraphStructurallyStale({
             rootId: 'ROOM#Kitchen',
             nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],

@@ -96,8 +96,9 @@ Call sites do not hand-build step lists. They emit an **abstract op** and [`comp
 | [`kernel/compile/positionKernelOp.ts`](kernel/compile/positionKernelOp.ts) | `PositionKernelMoveOp`: `moved` (a discriminated `{kind:'entity'} \| {kind:'closure'}`), `froms`, `to`, `bundleId`, `headerSlot`, optional `dissolvedEdges`, optional `narration` (itself a family union: `membershipMove \| objectMove`) |
 | [`kernel/compile/compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) | op -> `CompiledPositionKernelPlan { steps, slots }`. Owns bracket shape, capture-id generation, verb derivation, dissolve sequencing, and slot ordering |
 | [`kernel/compile/moveBundleSlotIds.ts`](kernel/compile/moveBundleSlotIds.ts) | `moveLeaveSlotId(hostId)` / `MOVE_ARRIVE_SLOT_ID` --- **host**-typed, so a character endpoint needs no cast |
+| [`kernel/compile/presencePortStepsForMove.ts`](kernel/compile/presencePortStepsForMove.ts) | `(movedId, froms, to)` -> the `removePresencePort` / `addPresencePort` pair for one move, on the mover's own root. **Removes fire unconditionally over `froms`; the add is gated on `to`**, so a departure to no host clears its stale port rather than leaving one standing. **`compilePositionKernelOp` is its only caller** --- extracted so that every membership-transfer route populates presence bindings through one emitter, not per-caller. **Single-level by construction:** it addresses the mover's own host id and never descends into composition |
 
-Emitted step order is `[...captureFrom, ...dissolves, transfer, ...captureTo, ...narrateLeave, ...narrateArrive]`. Three properties of this function are load-bearing and each is pinned by a test:
+Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRelation, ...presencePortSteps, ...captureTo, ...narrateLeave, ...narrateArrive]`; the non-narrating branch emits the same spine without the capture and narrate steps. **`establishRelation` runs *after* the transfer deliberately** --- placed before it, `findHostOf(moved)` would resolve against the old host. Three properties of this function are load-bearing and each is pinned by a test:
 
 - **Capture ids are a pure function of `froms`/`to`**, never of narration content. That is what lets navigate compile the same op twice (pre- and post-commit) and have the two agree.
 - **Captures are emitted only when `op.narration` is present.** A non-narrating object-lifecycle move compiles to `[dissolve*, transfer]` and locks no extra hosts.
@@ -389,7 +390,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 ### `containment/`
 
-Cache-time containment population (presenceRefactor step 3, RD-4): the one ingress in this folder not triggered by a player command, but by `dataSource/index.ts`'s `processComponentUpdated` on every asset-cache `Component Updated` event.
+Cache-time containment population: the one ingress in this folder not triggered by a player command, but by `dataSource/index.ts`'s `processComponentUpdated` on every asset-cache `Component Updated` event.
 
 | Path | Role |
 | --- | --- |

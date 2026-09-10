@@ -335,11 +335,11 @@ export type RelationalOperationKind = 'establishRelation' | 'dissolveRelation'
  * `hostId` was Room/Character-single-host through BD-15/16; that was dropped once
  * a candidate can be a genuine cross-shard crossing, wired live,
  * since a single flat host has no principled value to hold --- each leg of `steps` already
- * carries its own `hostId`. LD-13's step-shape clause (endpoints/host stay
+ * carries its own `hostId`. The ingress lane's step-shape clause (endpoints/host stay
  * ingress-narrow because "downstream can always fill in the rest") is retired by the
  * same finding that forced a per-leg `hostId`: that reconstruction is not
  * safely re-derivable downstream in general (multi-hosted endpoints, port-to-port
- * ambiguity), so it is carried from Expansion instead, not recomputed. LD-13's
+ * ambiguity), so it is carried from Expansion instead, not recomputed. The ingress lane's
  * *kind*-narrowing clause (`On`/`In`/`PartOf`/`Present` excluded below) is unaffected
  * --- see `AGENT.abstractionLayers.planning.md`'s Channel D (CD4) for the corrected
  * reading.
@@ -349,7 +349,7 @@ export type ParseCommandEstablishRelationResult = {
     operationKind: RelationalOperationKind
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
-    /** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
+    /** Deliberately narrow --- ingress lane (BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
     confidence: ParseCommandConfidence
     /**
      * Expansion-derived mutation-kernel step chain --- everything
@@ -717,7 +717,7 @@ export function isParseCommandObjectManipulationResult(
 }
 
 const RELATIONAL_OPERATION_KINDS = new Set<RelationalOperationKind>(['establishRelation', 'dissolveRelation'])
-/** Deliberately narrow --- ingress lane (LD-13/BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
+/** Deliberately narrow --- ingress lane (BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
 const HOST_RELATIONAL_EDGE_KINDS = new Set<string>(['Under', 'Against', 'Custom'])
 
 export function isParseCommandEstablishRelationResult(

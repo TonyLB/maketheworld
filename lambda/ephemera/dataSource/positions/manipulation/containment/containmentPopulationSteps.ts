@@ -7,8 +7,9 @@ import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/obje
 import type { MutationKernelAddPresencePortStep, MutationKernelStep, MutationKernelTransferStep } from '../kernel/kernelStep'
 
 /**
- * RD-4 (`AGENT.presenceRefactor.planning.md` step 3): the pure step-computer for cache-time
- * containment authoring (Room-in-Area, Feature-in-Room, Feature-in-Feature). Takes both graphs
+ * The pure step-computer for cache-time containment authoring (Room-in-Area, Feature-in-Room,
+ * Feature-in-Feature); the contract it implements is in `../../AGENT.contract.md`'s
+ * `Component Updated` ingress section. Takes both graphs
  * already fetched, so the idempotency obligation --- `cacheAsset` reruns frequently over state that
  * already reflects a prior write --- is met by checking current state here rather than relying on
  * the reducer to absorb a replay (neither `transferMembership`'s pure-add branch nor
@@ -20,14 +21,15 @@ import type { MutationKernelAddPresencePortStep, MutationKernelStep, MutationKer
  *
  * - **Node membership**: emitted only if `childId` is not already a node of `parentGraph`.
  * - **Presence port**: emitted only if `childGraph` carries no `Present` port with
- *   `fromHostId === parentId` already (RD-1/RD-2's shape, shared with `presencePortStepsForMove`).
+ *   `fromHostId === parentId` already --- the same one-port-per-binding shape
+ *   `presencePortStepsForMove` emits, where multiplicity lives in the sequence rather than the step.
  * - **Containment edge**: emitted only if `parentGraph` carries no `PartOf` edge from `childId` to
  *   `parentId` already. `establishRelation`'s `op: 'add'` is already idempotent-safe on an existing
  *   edge (`EphemeraLudicGraph.applyRelationalPatch`) --- this check isn't load-bearing for
  *   correctness --- but skipping it when nothing changed is what keeps a fully-populated `cacheAsset`
  *   rerun from committing a transaction at all, rather than three no-op writes every time. Always
- *   `PartOf`, never `In` --- RD-4, 2026-09-05: Room-in-Area and Feature-in-Room/Feature are
- *   fixed/authored nestings, not the mobile placement `In` is for.
+ *   `PartOf`, never `In` (2026-09-05): Room-in-Area and Feature-in-Room/Feature are fixed/authored
+ *   nestings, not the mobile placement `In` is for.
  */
 export const containmentPopulationSteps = (
     parentId: EphemeraMembershipHostId,

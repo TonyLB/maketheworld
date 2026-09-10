@@ -292,9 +292,9 @@ export async function compileRelationalFromSkeleton(
         }
         const mergedSteps: MutationKernelStep[] = [...(outcome.extraKernelSteps ?? []), ...relSteps]
 
-        // LP4c-i: HostRelationalEdgeKind widened (ephemeraMeta.ts) to admit containment ('In'/
+        // HostRelationalEdgeKind was widened (ephemeraMeta.ts) to admit containment ('In'/
         // 'PartOf'), but this ingress-facing route's relationKind stays the narrow set
-        // (LD-13/BD-2's kind-narrowing clause, parsePlanStep.ts) --- same drop-the-candidate
+        // (BD-2's kind-narrowing clause, parsePlanStep.ts) --- same drop-the-candidate
         // idiom as the `verdict !== 'legal'` branch above. Applied to the first relational
         // step's relationKind, not `candidate`'s: `candidate` is already narrowly typed
         // (`PeerRelationalEdgeKind`, parsePlanStep.ts) and cannot literally hold a hosting
@@ -325,7 +325,7 @@ export async function compileRelationalFromSkeleton(
             // there is no longer a candidate whose legality depends on a move that has not
             // happened yet. Reuses `firstRelStep` (not a fresh destructure) so TS keeps the
             // hosting-kind narrowing the guard above already established on it.
-            // LP4g widened the executor's relational step terminals to
+            // The executor's relational step terminals were widened to
             // EphemeraLudicTerminalPrimitive/EphemeraLudicTerminalId (port addresses, for
             // crossing legs); the portless path never produces one, so this guard is
             // defensive, not load-bearing --- `isCrossing` above already routed a

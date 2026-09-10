@@ -28,7 +28,7 @@ describe('healLudicGraphStructure', () => {
         expect(writeHealedLudicGraph).not.toHaveBeenCalled()
     })
 
-    it('dry-run reports the exact repair without writing (LP4i proving case: missing root node)', async () => {
+    it('dry-run reports the exact repair without writing (missing root node)', async () => {
         const writeHealedLudicGraph = jest.fn()
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: true }, {
             getStoredLudicGraph: async () => ({
@@ -143,7 +143,7 @@ describe('healLudicGraphStructure', () => {
     })
 
     // ports joins rootId/the root node as a third healable field, defaulted
-    // to [] --- LD-17's interim posture (b): absent means "not yet written," not "always empty."
+    // to [] --- interim posture: absent means "not yet written," not "always empty."
     it('defaults a missing ports field to [] while leaving an otherwise-current graph alone', async () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {

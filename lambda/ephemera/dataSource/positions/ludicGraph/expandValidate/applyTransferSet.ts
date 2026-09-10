@@ -107,7 +107,7 @@ export function applyTransferSet(
         }
     }
 
-    // LP4/LP7 widened HostRelationalEdge.from/to to the full terminal union (now including
+    // HostRelationalEdge.from/to were widened to the full terminal union (now including
     // port-qualified terminals); no production path yet produces a character- or port-endpoint
     // relational edge (see interactionUnderTransfer.ts), so the typeof guard below narrows
     // correctly before isEphemeraObjectId, which is string-only.

@@ -3,19 +3,24 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { MutationKernelAddPresencePortStep, MutationKernelRemovePresencePortStep } from '../kernelStep'
 
 /**
- * RD-3 (`AGENT.presenceRefactor.planning.md`): one presence port per rehost, shared by every mover
- * of any host kind --- extracted from `compilePositionKernelOp.ts` because the block depends on
- * nothing but `(hostId, froms, to)`, which is already the exact shape `executeMembershipTransfer`'s
- * own diff carries. Extraction is what dissolves RD-3 as a fork: neither caller needs to route
- * through `compileMutationSteps` just to get a presence port, since both reach this function
- * directly. RD-2 (2026-09-04): a remove-then-add pair per rehost, rather than one replace-all step
- * --- multiplicity lives in the sequence, not the step, so a departure host with no existing
- * binding just produces a no-op remove.
+ * One presence port per rehost, minted for every mover of any host kind --- extracted from
+ * `compilePositionKernelOp.ts` because the block depends on nothing but `(hostId, froms, to)`,
+ * which is already the exact shape `executeMembershipTransfer`'s own diff carries. Extraction was
+ * what let a caller get a presence port without routing through `compileMutationSteps`.
+ *
+ * **Single emitter, since 2026-09-09:** `compilePositionKernelOp` is now the only caller, because
+ * `executeMembershipTransfer` no longer builds its own steps --- it calls that compiler. Universal
+ * port population therefore holds through one compile path rather than two independent ones, which
+ * is a stronger guarantee than the extraction originally bought: there is no second site that could
+ * drift.
+ *
+ * A remove-then-add pair per rehost, rather than one replace-all step --- multiplicity lives in the
+ * sequence, not the step, so a departure host with no existing binding just produces a no-op remove.
  *
  * `to` gates only the add, never the removes --- a departure to no host (destroy/scrub, or a
- * character going out of play under RD-1) still has to clear every prior binding, or a stale port
- * is left standing. This is the missing-clear fix the plan's step 2 records as a live defect, not
- * new behaviour.
+ * character going out of play) still has to clear every prior binding, or a stale port is left
+ * standing. This is the missing-clear fix, added 2026-09-04 to close a live defect, not new
+ * behaviour of the move itself.
  */
 export const presencePortStepsForMove = (
     hostId: EphemeraMembershipHostId,

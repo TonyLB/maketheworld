@@ -26,7 +26,7 @@ import type { TransferMembershipStep } from '../parsePlanStep'
  * component id). This matches `HostRelationalEdge` (`manipulation/types.ts`) and
  * `EphemeraLudicRelationalEdgeBase` (interfaces layer), which carry the same type --- no consumer on
  * the kernel write path branches on entity kind, so a `PartOf` edge legitimately puts a Feature in
- * the subject position (`FEATURE#Wall -PartOf-> FEATURE#Niche`, LD-8). A crossing leg is an ordinary
+ * the subject position (`FEATURE#Wall -PartOf-> FEATURE#Niche`). A crossing leg is an ordinary
  * `establishRelation`/`dissolveRelation` step living entirely within one host's own graph --- no
  * separate "leg" step kind.
  *

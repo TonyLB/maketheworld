@@ -126,9 +126,10 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
 
     const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []
 
-    // one presence port per rehost, every mover regardless of host kind (RD-1). Mechanics ---
-    // the remove-then-add pair, the missing-clear fix --- live in `presencePortStepsForMove`,
-    // shared with `executeMembershipTransfer`'s default path (RD-3).
+    // one presence port per rehost, every mover regardless of host kind. Mechanics --- the
+    // remove-then-add pair, the missing-clear fix --- live in `presencePortStepsForMove`, of
+    // which this is the only caller: `executeMembershipTransfer` reaches it through this
+    // compiler rather than emitting its own steps.
     const presencePortSteps = presencePortStepsForMove(primaryMovedId, op.froms, op.to)
 
     if (!op.narration) {

@@ -25,7 +25,7 @@ npm run test path/to/test.ts
 
 ### Two ways a suite lies about being green
 
-Both were found the expensive way and are recorded here because neither is visible from a passing run. (Graduated 2026-08-23 out of `AGENT.ludicGraphPorts.planning.md` on its close.)
+Both were found the expensive way and are recorded here because neither is visible from a passing run. (Recorded here 2026-08-23.)
 
 **`npx tsc --noEmit` is not sufficient.** This package's `*.integration.test.ts` files sit **outside** `tsconfig`, so a rename or a signature change can typecheck clean and still break the suite. Run the real suite, not just the compiler.
 

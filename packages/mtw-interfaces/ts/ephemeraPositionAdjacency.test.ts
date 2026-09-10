@@ -64,7 +64,7 @@ describe('ephemeraPositionAdjacency key helpers', () => {
 
     it('parsePositionAdjacencyDataCategory rejects malformed SK', () => {
         expect(parsePositionAdjacencyDataCategory('POSITION#not-a-room')).toBeUndefined()
-        // NOTE: 'OBJECT#held' is now a legal host (LP0 widened EphemeraMembershipHostId to
+        // NOTE: 'OBJECT#held' is now a legal host (EphemeraMembershipHostId was widened to
         // include Object), so this no longer exercises a rejection --- KNOWLEDGE is not an
         // eligible host tag and stands in for "well-formed tagged id, wrong tag" instead.
         expect(parsePositionAdjacencyDataCategory('POSITION#KNOWLEDGE#held')).toBeUndefined()
@@ -95,7 +95,7 @@ describe('isEphemeraPositionAdjacencyRow', () => {
         })).toBe(true)
     })
 
-    it('accepts valid feature-contained adjacency row on feature host (LD-8: FEATURE#Wall hosts FEATURE#Niche)', () => {
+    it('accepts valid feature-contained adjacency row on feature host (FEATURE#Wall hosts FEATURE#Niche)', () => {
         expect(isEphemeraPositionAdjacencyRow({
             EphemeraId: featureId,
             DataCategory: buildPositionAdjacencyDataCategory(featureHostId),

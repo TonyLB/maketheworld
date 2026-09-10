@@ -226,7 +226,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         })
     })
 
-    it('LP4g: renders a dissolveRelation step for a non-Object (Character) dissolved-edge endpoint, no throw', () => {
+    it('renders a dissolveRelation step for a non-Object (Character) dissolved-edge endpoint, no throw', () => {
         const plan = compilePositionKernelOp(objectOp({
             dissolvedEdges: [{ from: CHARACTER_ID, to: TRAY, kind: 'On' }],
         }))
@@ -286,7 +286,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             })
         })
 
-        it('mints a presence port for a character-only move too (RD-1: gate on host kind is lifted)', () => {
+        it('mints a presence port for a character-only move too --- port minting is not gated on host kind', () => {
             const plan = compilePositionKernelOp({
                 kind: 'move',
                 moved: CHARACTER_ID,

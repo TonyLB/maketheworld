@@ -64,7 +64,7 @@ const queryAllEphemeraRowsByDataCategory = async <T extends DBHandlerItem<'Ephem
     return await unfoldPages<T>(firstPage)
 }
 
-// The five host kinds LP0 widened `EphemeraMembershipHostId` to --- every `Meta::*` row that
+// The five host kinds `EphemeraMembershipHostId` admits --- every `Meta::*` row that
 // can carry a `ludicGraph` field.
 const HOST_DATA_CATEGORIES = ['Meta::Room', 'Meta::Character', 'Meta::Object', 'Meta::Feature', 'Meta::Area'] as const
 
@@ -114,7 +114,7 @@ const defaultEmitFinding = async (args: {
 }
 
 /**
- * Read-only diagnostics sweep for `ludicGraph` structural staleness (LP4i). Scans every
+ * Read-only diagnostics sweep for `ludicGraph` structural staleness. Scans every
  * `Meta::*` host row that can carry a `ludicGraph` field and flags one iff the shipped shape
  * guard (`isEphemeraLudicGraphFieldPayload`) rejects its stored payload --- currently reachable
  * only via clause 3's root-in-nodes gap, since nothing else in the shape has drifted. Report-only:

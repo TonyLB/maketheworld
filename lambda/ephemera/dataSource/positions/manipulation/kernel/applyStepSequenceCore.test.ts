@@ -101,7 +101,7 @@ describe('applyStepSequenceCore', () => {
         )
     })
 
-    it('LP4g payoff: establishRelation with a non-Object (Character) subject commits, hostGraph resolves via nodeIds', () => {
+    it('establishRelation with a non-Object (Character) subject commits, hostGraph resolves via nodeIds', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Character', universalKey: characterId },
@@ -447,7 +447,7 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
-    describe('RD-4 (presenceRefactor step 3): Room/Feature entityIds in transferMembership', () => {
+    describe('Room/Feature entityIds in transferMembership (pure-add only)', () => {
         it('pure add (fromHostIds empty): adds a Room to an Area host, mirroring the object/character pure-add shape', () => {
             const areaGraph = testLudicGraph(areaId, { nodes: [] })
             const steps: MutationKernelStep[] = [
@@ -673,7 +673,7 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
-    describe('presence port steps (RD-2: addPresencePort/removePresencePort)', () => {
+    describe('presence port steps (addPresencePort/removePresencePort)', () => {
         it('addPresencePort adds a Present port naming fromHostId to the target graph', () => {
             const trayGraph = testLudicGraph(trayId, { nodes: [] })
             const steps: MutationKernelStep[] = [
@@ -727,7 +727,7 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.get(characterId)!.ports).toEqual([{ portId: 'p2', fromHostId: otherRoomId, kind: 'Present' }])
         })
 
-        it('throws when a sequence would leave a character with two Present ports (RD-1 single-hosted restriction)', () => {
+        it('throws when a sequence would leave a character with two Present ports --- characters are single-hosted', () => {
             const characterGraph = testLudicGraph(characterId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
             const steps: MutationKernelStep[] = [
                 { kind: 'addPresencePort', hostId: characterId, port: { portId: 'p2', fromHostId: otherRoomId, kind: 'Present' } },

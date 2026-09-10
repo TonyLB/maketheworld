@@ -44,13 +44,13 @@ const defaultWriteHealedLudicGraph = async (
 
 /**
  * Self-heal for a `ludicGraph` port whose denormalized exterior values disagree with the edge
- * held by the host the port itself names (LP6a, LD-18's out-of-band arm). A **sibling** of
+ * held by the host the port itself names --- repaired out-of-band, never at a read. A **sibling** of
  * [`healLudicGraphStructure`](healLudicGraphStructure.ts), not an extension of it: that repair
  * is single-record by construction --- shape drift is judged from one row --- and this one
  * cannot be judged without the referrer's row too.
  *
  * **Never call this from a read boundary,** for the same two reasons already shipped on its
- * sibling and restated by LD-18 from the other direction: a read-time default makes a stale row
+ * sibling, from the other direction: a read-time default makes a stale row
  * indistinguishable from a current one, and a read-time repair makes every read a write. It runs
  * only from the diagnostics finding consumer or an explicit manual invocation.
  *

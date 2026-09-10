@@ -139,8 +139,9 @@ describe('executeMembershipTransfer', () => {
         const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
         expect(eventTypes).toEqual(['Object Moved'])
 
-        // RD-3/RD-1: the default (no compileMutationSteps) path now mints a presence port too,
-        // not just a bare transferMembership step.
+        // A transfer with no caller-supplied steps still mints a presence port, not just a bare
+        // transferMembership step: it compiles through `compilePositionKernelOp`, and port minting
+        // there is universal --- every mover, regardless of host kind.
         const committedOwnGraph = (internalCache.Positions.set as jest.Mock).mock.calls
             .map(([graph]: any[]) => graph)
             .find((graph: EphemeraLudicGraph) => graph.hostId === OBJECT_ID)

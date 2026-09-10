@@ -19,7 +19,7 @@ import { referencesFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/
 import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
 
 /**
- * `from`/`to` are `EphemeraLudicTerminalId` (LP7) --- any legal host-kind component, or a
+ * `from`/`to` are `EphemeraLudicTerminalId` --- any legal host-kind component, or a
  * port-qualified reference on one.
  *
  * `edgeId` mirrors the stored type's optional identity (EA-8); `chainId` mirrors the leg's

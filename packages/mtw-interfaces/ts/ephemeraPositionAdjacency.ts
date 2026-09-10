@@ -39,10 +39,11 @@ export type EphemeraPositionAdjacencyDataCategory =
     `${typeof EPHEMERA_POSITION_ADJACENCY_PREFIX}${EphemeraMembershipHostId}`
 
 /**
- * Widened to include `EphemeraRoomId` (presenceRefactor step 3, 2026-09-05): a Room can now be
- * contained in an Area's ludicGraph (RD-4's Room-in-Area population), so a Room's own reverse
- * adjacency row (`EphemeraId: ROOM#..., DataCategory: POSITION#AREA#...`) is a real shape, not the
- * gap RA-3 originally (and mistakenly) read this union as ruling out.
+ * Widened to include `EphemeraRoomId` (2026-09-05): cache-time containment population means a Room
+ * can now be contained in an Area's ludicGraph, so a Room's own reverse adjacency row
+ * (`EphemeraId: ROOM#..., DataCategory: POSITION#AREA#...`) is a real shape. It had been read as a
+ * gap this union ruled out --- that reading was mistaken, since the union is a record of which
+ * containments exist, not a restriction on which may.
  */
 export type EphemeraPositionAdjacencyContainedId = EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId | EphemeraRoomId
 

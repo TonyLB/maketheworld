@@ -355,7 +355,7 @@ describe('isObjectEstablishRelationPublishedPayload', () => {
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, type: 'Object Drop' })).toBe(false)
     })
 
-    it('accepts an object or feature hostId (LP0 widened EphemeraMembershipHostId)', () => {
+    it('accepts an object or feature hostId', () => {
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, hostId: 'OBJECT#Box' })).toBe(true)
         expect(isObjectEstablishRelationPublishedPayload({ ...minimal, hostId: 'FEATURE#Wall' })).toBe(true)
     })

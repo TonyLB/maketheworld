@@ -16,7 +16,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
  * *disagreement* across both, on the precedent of `classifyAuthoredCatalogDrift`.
  */
 
-/** The exterior-scope values a port denormalizes (LP6): the referring edge's kind and label. */
+/** The exterior-scope values a port denormalizes: the referring edge's kind and label. */
 export type LudicGraphPortExteriorValues = {
     kind: HostRelationalEdgeKind
     exteriorRelationLabel?: string
@@ -53,7 +53,7 @@ const exteriorValuesEqual = (a: LudicGraphPortExteriorValues, b: LudicGraphPortE
 /**
  * The edges in the referrer's graph **incident to** this port --- either terminal may be the
  * port address (`{ owner: hostId, port: portId }`), since which end of an edge is the host is a
- * kind-by-kind question (AB-54/LD-16) and not this comparison's business.
+ * kind-by-kind question (AB-54) and not this comparison's business.
  *
  * **Incidence, not crossing, and the distinction is load-bearing.** An edge that *crosses* a port
  * and an edge that *terminates at* one are both incident to it, and nothing in the stored edge
@@ -89,7 +89,7 @@ export const edgesReferringToPort = (args: {
  * **Scoped to a named referrer, and the gate is deliberate.** No matching edge --- because the
  * referrer's graph is absent, fails the shape guard, holds no edge into this port, or holds one
  * into a *different* port on the same owner --- is **not** a mismatch. That case asks *who
- * should refer here*, which only the reverse index answers (LD-17/AB-55), and answering it by
+ * should refer here*, which only the reverse index answers (AB-55), and answering it by
  * flagging every unreferenced port would report the whole corpus as broken.
  *
  * **Two branches on `kind`, and only one of them compares anything (PR-15, settled 2026-08-26).**

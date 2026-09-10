@@ -297,7 +297,7 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope(envelope as any)).toBe(false)
     })
 
-    it('accepts mtw.diagnostics Ludic Graph Stale Structure Finding envelope (LP4i)', () => {
+    it('accepts mtw.diagnostics Ludic Graph Stale Structure Finding envelope', () => {
         const envelope = {
             header: {
                 dataSourceKey: 'mtw.diagnostics',
@@ -317,7 +317,7 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope(envelope as any)).toBe(true)
     })
 
-    it('accepts mtw.diagnostics Ludic Graph Port Mismatch Finding envelope (LP6a)', () => {
+    it('accepts mtw.diagnostics Ludic Graph Port Mismatch Finding envelope', () => {
         const envelope = {
             header: {
                 dataSourceKey: 'mtw.diagnostics',

@@ -6,7 +6,7 @@ import { containmentPopulationSteps } from './containmentPopulationSteps'
 const AREA_ID = 'AREA#Overworld' as EphemeraAreaId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 
-describe('containmentPopulationSteps (RD-4, presenceRefactor step 3)', () => {
+describe('containmentPopulationSteps (cache-time containment population)', () => {
     it('emits all three steps when nothing is populated yet', () => {
         const parentGraph = testLudicGraph(AREA_ID, { nodes: [] })
         const childGraph = testLudicGraph(ROOM_ID, { nodes: [] })

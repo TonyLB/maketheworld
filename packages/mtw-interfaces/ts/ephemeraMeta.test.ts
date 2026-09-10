@@ -349,7 +349,7 @@ describe('isEphemeraLudicGraphNode', () => {
         })).toBe(false)
     })
 
-    it('node tags cover exactly the terminal-primitive kinds (LP4b)', () => {
+    it('node tags cover exactly the terminal-primitive kinds', () => {
         const cases: { tag: 'Character' | 'Object' | 'Room' | 'Feature' | 'Area'; universalKey: string }[] = [
             { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
             { tag: 'Object', universalKey: 'OBJECT#helmet' },
@@ -459,10 +459,10 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(false)
     })
 
-    // LP4i: concepts clause 3 requires the designated root to be present in the graph's own
+    // Concepts clause 3 requires the designated root to be present in the graph's own
     // node list. This is the structural-staleness proving case --- every construction path
-    // shipped before LP4i produced a `rootId` with no backing node.
-    describe('root-in-nodes (LP4i, concepts clause 3)', () => {
+    // shipped before that clause was enforced produced a `rootId` with no backing node.
+    describe('root-in-nodes (concepts clause 3)', () => {
         it('rejects a payload whose root has no backing node', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
@@ -507,8 +507,8 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })
     })
 
-    // LP4: from/to admit any legal host-kind component now, not only Objects --- matching
-    // what LP0 already made a legal host.
+    // from/to admit any legal host-kind component now, not only Objects --- matching
+    // the host kinds EphemeraMembershipHostId already admits.
     it('accepts a relational edge with Room and Character terminals', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'ROOM#Kitchen',
@@ -540,12 +540,12 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(false)
     })
 
-    // LP4c-i: HostRelationalEdgeKind widened to admit containment ('In'/'PartOf'), and the
+    // HostRelationalEdgeKind was widened to admit containment ('In'/'PartOf'), and the
     // guard's runtime Set (HOST_RELATIONAL_EDGE_KINDS) had to be widened by hand in lockstep,
     // since a Set literal has no exhaustiveness requirement against the type union -- a stale
     // Set would silently drop every containment edge from the stored payload rather than fail
     // to compile. Accepting each kind here is the agreement check for that Set.
-    // Direction corrected 2026-08-20 (LD-16): relation kinds are predicates on the SUBJECT --
+    // Direction corrected 2026-08-20: relation kinds are predicates on the SUBJECT --
     // 'glass -On-> tray' reads "glass is on tray" -- so a containment edge runs member -> root:
     // 'crystalBall -In-> kitchen'. AB-4's "root to part" was a claim about INCIDENCE (every
     // containment edge touches the root, hence the star topology) written down as direction.
@@ -566,7 +566,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(true)
     })
 
-    // LP4c-i: both kinds are non-exclusive -- a member can be simultaneously In and PartOf
+    // Both kinds are non-exclusive -- a member can be simultaneously In and PartOf
     // the same host, so this must not be modeled as a mutually-exclusive switch anywhere.
     it('accepts both In and PartOf edges between the same pair, coexisting', () => {
         expect(isEphemeraLudicGraphFieldPayload({
@@ -751,14 +751,14 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(false)
     })
 
-    // LP3/PQ-10: a port address (`{ owner, port }`) is not a string, so the pre-LP7 guard called
-    // isEphemeraObjectId(edge.from) unconditionally and crashed with "value.split is not a
-    // function" instead of returning false -- hardened at the time to a typeof pre-check that
-    // rejected the (then-illegal) port terminal cleanly instead. LP7 widens the field itself to
-    // admit a port-qualified terminal, so the correct behavior flips from reject-cleanly to
-    // accept -- this is the regression the LP7 guards exist to prove (a valid edge must not
-    // silently vanish from the stored payload).
-    it('accepts a port-qualified relational edge terminal (LP7)', () => {
+    // PQ-10: a port address (`{ owner, port }`) is not a string, so the guard as it stood
+    // before port terminals were legal called isEphemeraObjectId(edge.from) unconditionally and
+    // crashed with "value.split is not a function" instead of returning false -- hardened at the
+    // time to a typeof pre-check that rejected the (then-illegal) port terminal cleanly instead.
+    // The 2026-08-22 widening admits a port-qualified terminal in the field itself, so the correct
+    // behavior flips from reject-cleanly to accept -- this is the regression these guards exist to
+    // prove (a valid edge must not silently vanish from the stored payload).
+    it('accepts a port-qualified relational edge terminal', () => {
         const edges = [{
             tag: 'Relational',
             from: { owner: 'OBJECT#broom', port: 'ab6129d' },
@@ -816,7 +816,8 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(false)
     })
 
-    // LP4a: rootId is now required, with no default (gated on LPM's reset).
+    // rootId is required, with no default --- gated on the stored-graph reset that cleared
+    // every legacy payload, so no row predates the requirement.
     it('rejects a payload missing rootId', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
@@ -842,8 +843,8 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(true)
     })
 
-    // LP4d: ports is required and possibly empty, not optional like edges --- see LPM's
-    // rootId precedent for why no `??= []` belongs at this boundary.
+    // ports is required and possibly empty, not optional like edges --- see `rootId`'s
+    // precedent above for why no `??= []` belongs at this boundary.
     describe('ports (the egress list)', () => {
         it('rejects a payload missing ports entirely', () => {
             expect(isEphemeraLudicGraphFieldPayload({
@@ -903,7 +904,7 @@ describe('isEphemeraLudicGraphPort', () => {
         expect(isEphemeraLudicGraphPort('OBJECT#box#ab6129d')).toBe(false)
     })
 
-    // LP6: the discriminator (PR-11). Required --- a port without it leaves `ports.length`
+    // The discriminator (PR-11). Required --- a port without it leaves `ports.length`
     // ambiguous between presence bindings and relational pass-throughs, which is the exact
     // defect the field exists to remove.
     it('rejects a port with no kind', () => {
@@ -966,7 +967,7 @@ describe('isEphemeraLudicGraphData', () => {
         })).toBe(true)
     })
 
-    it('accepts host-bound graph with object hostId (recursive hosting, LP0)', () => {
+    it('accepts host-bound graph with object hostId (recursive hosting)', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'OBJECT#Box',
             rootId: 'OBJECT#Box',
@@ -978,7 +979,7 @@ describe('isEphemeraLudicGraphData', () => {
         })).toBe(true)
     })
 
-    it('accepts host-bound graph with feature hostId (LD-8: FEATURE#Wall hosts FEATURE#Niche)', () => {
+    it('accepts host-bound graph with feature hostId (FEATURE#Wall hosts FEATURE#Niche)', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'FEATURE#Wall',
             rootId: 'FEATURE#Wall',
@@ -990,7 +991,7 @@ describe('isEphemeraLudicGraphData', () => {
         })).toBe(true)
     })
 
-    it('accepts feature host with its own root node in the node list (LP4b: root present per concepts clause 3)', () => {
+    it('accepts feature host with its own root node in the node list (root present per concepts clause 3)', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'FEATURE#Wall',
             rootId: 'FEATURE#Wall',
@@ -1002,7 +1003,7 @@ describe('isEphemeraLudicGraphData', () => {
         })).toBe(true)
     })
 
-    it('accepts host-bound graph with area hostId (LP0 Area slice)', () => {
+    it('accepts host-bound graph with area hostId', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'AREA#Downtown',
             rootId: 'AREA#Downtown',
@@ -1014,7 +1015,7 @@ describe('isEphemeraLudicGraphData', () => {
         })).toBe(true)
     })
 
-    it('accepts area host with its own root node in the node list (LP4b: root present per concepts clause 3)', () => {
+    it('accepts area host with its own root node in the node list (root present per concepts clause 3)', () => {
         expect(isEphemeraLudicGraphData({
             hostId: 'AREA#Downtown',
             rootId: 'AREA#Downtown',

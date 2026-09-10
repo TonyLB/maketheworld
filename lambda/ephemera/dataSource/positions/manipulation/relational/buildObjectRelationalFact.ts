@@ -4,7 +4,7 @@ import type { EphemeraLudicTerminalPrimitive, RelationalKindAndLabel } from '@to
 import type { ObjectRelationChangedPublishedPayload } from '../../publishedEvents'
 import type { RelationalIngressOperation } from './types'
 
-// LP4g: renamed from buildObjectRelationalFact --- subjectId/targetId widened to
+// Renamed from buildObjectRelationalFact --- subjectId/targetId widened to
 // EphemeraLudicTerminalPrimitive, so `Object` in the old name was a restriction the
 // code no longer has. The published payload's type name and wire `type` string
 // ('Object Relation Changed') are left alone --- they're load-bearing for existing
