@@ -54,7 +54,7 @@ describe('EphemeraLudicGraph', () => {
     })
 
     describe('seedFromActiveCharacters', () => {
-        it("maps roster to nodes, with the host's own root node first (LP4i)", () => {
+        it("maps roster to nodes, with the host's own root node first", () => {
             const graph = seedFromActiveCharacters([
                 { EphemeraId: CHARACTER_A, DisplayName: 'Alpha' },
                 { EphemeraId: CHARACTER_B, DisplayName: 'Beta' },
@@ -66,7 +66,7 @@ describe('EphemeraLudicGraph', () => {
             })
         })
 
-        it('returns a graph with only the root node for an empty roster (LP4i)', () => {
+        it('returns a graph with only the root node for an empty roster', () => {
             expect(seedFromActiveCharacters([], HOST_ID).toStored()).toEqual({ rootId: HOST_ID, ports: [], nodes: [roomNode(HOST_ID)], edges: [] })
         })
 
@@ -288,7 +288,7 @@ describe('EphemeraLudicGraph', () => {
     })
 
     describe('construction and serialization', () => {
-        it("empty creates host-bound graph rooted at its own host, with the root's own node present (LP4i, concepts clause 3)", () => {
+        it("empty creates host-bound graph rooted at its own host, with the root's own node present (concepts clause 3)", () => {
             expect(EphemeraLudicGraph.empty(HOST_ID).toStored()).toEqual({ rootId: HOST_ID, ports: [], nodes: [roomNode(HOST_ID)] })
             expect(EphemeraLudicGraph.empty(HOST_ID).hostId).toBe(HOST_ID)
             expect(EphemeraLudicGraph.empty(HOST_ID).rootId).toBe(HOST_ID)
@@ -379,8 +379,8 @@ describe('EphemeraLudicGraph', () => {
             expect(a.equals(b)).toBe(false)
         })
 
-        // LP7 regression: equals() compared edge.from/.to with raw `!==` (the same "raw ==="
-        // shape LP3 swept everywhere else, missed here because from/to were always strings
+        // Regression: equals() compared edge.from/.to with raw `!==` (the same "raw ==="
+        // shape swept everywhere else, missed here because from/to were always strings
         // until this slice). A port address is an object, so two structurally-identical port
         // terminals built as separate literals now compare unequal by reference unless equals()
         // routes through ephemeraLudicTerminalsEqual, exactly like edgesMatch already does.
@@ -417,7 +417,7 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.toStored().ports).toEqual(ports)
         })
 
-        // LP6: a `Custom` port carries its exterior label, so the round trip must show both
+        // A `Custom` port carries its exterior label, so the round trip must show both
         // new fields surviving --- not just the discriminator.
         it('ports round-trips through toJSON and fromJSON', () => {
             const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'Custom' as const, exteriorRelationLabel: 'threads into' }]
@@ -444,7 +444,7 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.toStored()).toEqual(payload)
         })
 
-        it('fromRoomMeta seeds from activeCharacters when ludicGraph absent, root node included (LP4i)', () => {
+        it('fromRoomMeta seeds from activeCharacters when ludicGraph absent, root node included', () => {
             const graph = fromRoomMeta({
                 activeCharacters: [{ EphemeraId: CHARACTER_A, DisplayName: 'Alpha' }],
             }, HOST_ID)
@@ -452,25 +452,25 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.rootId).toBe(HOST_ID)
         })
 
-        it('fromCharacterMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
+        it('fromCharacterMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId', () => {
             expect(fromCharacterMeta({}, HOST_ID).toStored()).toEqual({ rootId: HOST_ID, ports: [], nodes: [nodeFromId(HOST_ID)], edges: [] })
             const payload = { rootId: HOST_ID, ports: [], nodes: [nodeFromId(HOST_ID), objectNode(OBJECT_A)], edges: [] as [] }
             expect(fromCharacterMeta({ ludicGraph: payload }, HOST_ID).toStored()).toEqual(payload)
         })
 
-        it('fromObjectMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
+        it('fromObjectMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId', () => {
             expect(fromObjectMeta({}, OBJECT_HOST_ID).toStored()).toEqual({ rootId: OBJECT_HOST_ID, ports: [], nodes: [objectNode(OBJECT_HOST_ID)], edges: [] })
             const payload = { rootId: OBJECT_HOST_ID, ports: [], nodes: [objectNode(OBJECT_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
             expect(fromObjectMeta({ ludicGraph: payload }, OBJECT_HOST_ID).toStored()).toEqual(payload)
         })
 
-        it('fromFeatureMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
+        it('fromFeatureMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId', () => {
             expect(fromFeatureMeta({}, FEATURE_HOST_ID).toStored()).toEqual({ rootId: FEATURE_HOST_ID, ports: [], nodes: [featureNode(FEATURE_HOST_ID)], edges: [] })
             const payload = { rootId: FEATURE_HOST_ID, ports: [], nodes: [featureNode(FEATURE_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
             expect(fromFeatureMeta({ ludicGraph: payload }, FEATURE_HOST_ID).toStored()).toEqual(payload)
         })
 
-        it('fromAreaMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId (LP4i)', () => {
+        it('fromAreaMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId', () => {
             expect(fromAreaMeta({}, AREA_HOST_ID).toStored()).toEqual({ rootId: AREA_HOST_ID, ports: [], nodes: [areaNode(AREA_HOST_ID)], edges: [] })
             const payload = { rootId: AREA_HOST_ID, ports: [], nodes: [areaNode(AREA_HOST_ID), characterNode(CHARACTER_A)], edges: [] as [] }
             expect(fromAreaMeta({ ludicGraph: payload }, AREA_HOST_ID).toStored()).toEqual(payload)
@@ -525,11 +525,11 @@ describe('EphemeraLudicGraph', () => {
             expect(edges).toEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'On' }])
         })
 
-        // LP4c-i: extractRelationalEdgesFromStored's fallback branch has its own
+        // extractRelationalEdgesFromStored's fallback branch has its own
         // HOST_RELATIONAL_EDGE_KINDS Set literal (baseClasses.ts), separate from
         // ephemeraMeta.ts's. A stale Set here fails silently -- the edge is simply never
         // pushed -- so this must be checked directly, not inferred from the primary-path test.
-        // Direction corrected 2026-08-20 (LD-16): containment runs member -> root, matching the
+        // Direction corrected 2026-08-20: containment runs member -> root, matching the
         // subject-predicate-object convention every other kind already follows.
         it.each(['In', 'PartOf'] as const)('extractRelationalEdgesFromStored survives a %s containment edge', (kind) => {
             const edges = extractRelationalEdgesFromStored({
@@ -555,7 +555,7 @@ describe('EphemeraLudicGraph', () => {
             expect(edges).toEqual([{ from: { owner: HOST_ID, port: 'ab6129d' }, to: OBJECT_A, kind: 'Present' }])
         })
 
-        // LP7 regression, primary path: a well-formed port-qualified edge now satisfies
+        // Port-terminal regression, primary path: a well-formed port-qualified edge now satisfies
         // isEphemeraLudicRelationalEdgeData directly, so extractRelationalEdgesFromStored's
         // first branch (not the fallback) is what survives it here.
         it('extractRelationalEdgesFromStored survives a port-qualified edge on the primary path', () => {
@@ -569,7 +569,7 @@ describe('EphemeraLudicGraph', () => {
             expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'On' }])
         })
 
-        // LP7 regression, fallback path specifically. **The shape that reaches the fallback changed
+        // Port-terminal regression, fallback path specifically. **The shape that reaches the fallback changed
         // when `relationLabel` became structural to `Custom`.** It used to be a Custom edge with an
         // empty label; that is now dropped outright (see the case below). What reaches the manual
         // parse instead is a NON-Custom edge carrying a stray label -- guard-rejected because a
@@ -649,7 +649,7 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.nodeHasRelationalEdge('OBJECT#Missing' as EphemeraObjectId)).toBe(false)
         })
 
-        // LP4: from/to admit any legal host-kind component now (any node's universalKey), not
+        // from/to admit any legal host-kind component now (any node's universalKey), not
         // only Objects -- this is the regression test that would have caught the original
         // narrowness, when bothObjectsOnGraph checked presence against `objectIds` only.
         it('bothObjectsOnGraph finds a non-Object terminal by its node presence', () => {
@@ -668,8 +668,8 @@ describe('EphemeraLudicGraph', () => {
             expect(nodeHasRelationalEdge('ROOM#Missing' as EphemeraRoomId, edges)).toBe(false)
         })
 
-        // LP4i payoff test: a containment edge names the graph's own root as its endpoint
-        // (LD-16: member -> root, e.g. `crystalBall -In-> kitchen`). Before LP4i, no
+        // Payoff test for seeding the root into `nodes`: a containment edge names the graph's
+        // own root as its endpoint (member -> root, e.g. `crystalBall -In-> kitchen`). Before that, no
         // construction path put the root in `nodes`, so this failed `bothObjectsOnGraph` even
         // though the edge is legal by every other rule -- the concrete bug this slice fixes.
         it("bothObjectsOnGraph validates a containment edge naming the graph's own root, now that the root is present in nodes", () => {
@@ -677,15 +677,15 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.bothObjectsOnGraph(OBJECT_A, HOST_ID)).toBe(true)
         })
 
-        // LP3/PQ-10 originally: `EphemeraLudicRelationalEdgeData.from`/`.to` were
-        // `EphemeraLudicTerminalPrimitive`-typed as of LP4 (no port-address terminals yet), and
+        // PQ-10 originally: `EphemeraLudicRelationalEdgeData.from`/`.to` were
+        // `EphemeraLudicTerminalPrimitive`-typed (no port-address terminals yet), and
         // `isEphemeraLudicRelationalEdgeData` correctly rejected a non-string terminal (fixed in
         // the same change -- it used to throw instead of returning `false`). A port-qualified
         // terminal could not reach a *stored-edge* read path (`removeObject`/`edgeReferencesObjectId`
-        // on parsed data) through any typed or validated production call at that point. **LP7
-        // (2026-08-22) widens the schema and both guards together**, so that boundary test below
+        // on parsed data) through any typed or validated production call at that point. **The
+        // 2026-08-22 widening covers the schema and both guards together**, so that boundary test below
         // now asserts acceptance rather than rejection.
-        describe('port-qualified terminals (LP3/PQ-10/LP7)', () => {
+        describe('port-qualified terminals', () => {
             const portTerminal = (owner: EphemeraObjectId, port: string) => ({ owner, port })
 
             it('bothObjectsOnGraph resolves a port-qualified terminal to its owner', () => {
@@ -707,10 +707,10 @@ describe('EphemeraLudicGraph', () => {
                 expect(edgesMatch(portQualified, portQualified)).toBe(true)
             })
 
-            it('edgeReferencesObjectId finds a port-qualified raw edge by its owner (LP7)', () => {
-                // Before LP7, isEphemeraLudicRelationalEdgeData rejected a port-address terminal
-                // outright (a non-string .from), so this returned false rather than throwing. LP7
-                // widens the schema to admit it, so the correct behavior is now to find the owner.
+            it('edgeReferencesObjectId finds a port-qualified raw edge by its owner', () => {
+                // Before the 2026-08-22 widening, isEphemeraLudicRelationalEdgeData rejected a
+                // port-address terminal outright (a non-string .from), so this returned false rather
+                // than throwing. The schema now admits it, so the correct behavior is to find the owner.
                 const rawEdge = { tag: 'Relational', from: portTerminal(OBJECT_A, 'ab6129d'), to: OBJECT_B, kind: 'On' }
                 expect(() => edgeReferencesObjectId(rawEdge, OBJECT_A)).not.toThrow()
                 expect(edgeReferencesObjectId(rawEdge, OBJECT_A)).toBe(true)

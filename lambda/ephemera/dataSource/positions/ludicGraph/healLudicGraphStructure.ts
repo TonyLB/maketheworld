@@ -54,9 +54,9 @@ const defaultWriteHealedLudicGraph = async (
  * defaulted to `[]`. The `ports` default is the interim posture of AB-62 (abstraction-layers plan)
  * (a graph that exists but carries no recorded `ports` is treated as *not yet written*, not as
  * *lazily always empty*): it is a one-time write-carrying repair, not a `??=` read-boundary
- * default (`fromFieldPayload`/the guard stay strict), and it does not resolve LD-17's
+ * default (`fromFieldPayload`/the guard stay strict), and it does not resolve the
  * materialize-vs-lazy-vs-derive question --- a later slice may need to replace it once
- * AB-55/LD-17 land. Everything else about the stored shape is left untouched; a row that is
+ * AB-55 lands. Everything else about the stored shape is left untouched; a row that is
  * stale for any other reason is reported `healable: false` rather than silently rewritten.
  */
 const computeRepairedPayload = (
@@ -90,7 +90,7 @@ const computeRepairedPayload = (
 }
 
 /**
- * Self-heal for `ludicGraph` structural staleness (LP4i). Idempotent: a row already matching
+ * Self-heal for `ludicGraph` structural staleness. Idempotent: a row already matching
  * the shipped shape is reported `stale: false` and nothing is written, in either mode.
  *
  * **Never call this from a read boundary.** `fromFieldPayload`/`isEphemeraLudicGraphFieldPayload`

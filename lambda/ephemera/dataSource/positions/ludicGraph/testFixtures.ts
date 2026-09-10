@@ -6,7 +6,7 @@ import { EphemeraLudicGraph } from './index'
 
 /**
  * Test helper: host-bound graph from field payload shape. `rootId` defaults to `hostId`
- * (a fresh test fixture's own root, per LP4a) but can be overridden for closure-shaped fixtures.
+ * (a fresh test fixture's own root) but can be overridden for closure-shaped fixtures.
  */
 export const testLudicGraph = (
     hostId: EphemeraMembershipHostId,

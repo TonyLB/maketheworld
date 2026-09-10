@@ -68,7 +68,7 @@ describe('roleOfObjectInEdge', () => {
     })
 })
 
-// LP4a: computeCarryClosure returns an EphemeraLudicGraph (the former standalone
+// computeCarryClosure returns an EphemeraLudicGraph (the former standalone
 // CarryClosureFragment collapsed into it), rooted and hosted at the starting object
 // (hostId === rootId === startId). Assertions check .rootId/.objectIds/.relationalEdges
 // rather than a bespoke {rootId, members, edges} shape.
