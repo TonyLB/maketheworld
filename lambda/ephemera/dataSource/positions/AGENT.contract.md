@@ -501,7 +501,7 @@ Positions **must** subscribe to:
 
 Sweep (read-only classification): [`../../../diagnostics/roomOccupancyDriftSweep/`](../../../diagnostics/roomOccupancyDriftSweep/).
 
-### `mtw.diagnostics` --- `ludicGraph` structural staleness self-heal (LP4i)
+### `mtw.diagnostics` --- `ludicGraph` structural staleness self-heal
 
 Positions **must** subscribe to:
 
@@ -512,13 +512,13 @@ Positions **must** subscribe to:
 **Repair model, scoped tightly (`rootId` is recorded, never derived):**
 
 - **Healable, and only these two:** a host-bound graph's `rootId` (canonically `hostId`) when missing or invalid, and the root's own node (canonically derivable from `rootId` alone, via `nodeFromId`) when absent from `nodes` --- concepts clause 3's requirement, the shipped guard's own check.
-- **Not healable, and must not be attempted here:** `ports` or any other stored shape drift. A row stale for a reason outside this healable set is reported and left untouched, not force-fit. **Re-scoped 2026-08-23 (LP6a):** the `ports` line above was drawn against *repairing a port at all*, on the ground that a port has no interior witness so any repair must read the exterior --- which meant the reverse index, and therefore LD-17. **A port that disagrees with the referrer it itself names is not that case:** it names the one row to check, so the repair reads one named graph and no reverse index. That repair is real, and it is the **separate** heal below, still not this one --- this handler stays single-record. What remains permanently outside both is a port missing `fromHostId`, or one whose named referrer holds no matching edge: those ask *who **should** refer here*, which only the reverse index answers.
+- **Not healable, and must not be attempted here:** `ports` or any other stored shape drift. A row stale for a reason outside this healable set is reported and left untouched, not force-fit. **Re-scoped 2026-08-23:** the `ports` line above was drawn against *repairing a port at all*, on the ground that a port has no interior witness so any repair must read the exterior --- which meant the reverse index. **A port that disagrees with the referrer it itself names is not that case:** it names the one row to check, so the repair reads one named graph and no reverse index. That repair is real, and it is the **separate** heal below, still not this one --- this handler stays single-record. What remains permanently outside both is a port missing `fromHostId`, or one whose named referrer holds no matching edge: those ask *who **should** refer here*, which only the reverse index answers.
 - **Idempotent:** at-least-once finding delivery **must** be safe --- a row already matching the shipped shape is a no-op read, no write issued.
-- **Never called from a read boundary.** `fromFieldPayload`/`isEphemeraLudicGraphFieldPayload` stay strict; this repair is the one-time, write-carrying opposite of a `??=` default. It runs only from this finding consumer (always `dryRun: false`) or an explicit manual invocation (`dryRun` either way) --- growing a read-time fallback here is LPM's reset undone.
+- **Never called from a read boundary.** `fromFieldPayload`/`isEphemeraLudicGraphFieldPayload` stay strict; this repair is the one-time, write-carrying opposite of a `??=` default. It runs only from this finding consumer (always `dryRun: false`) or an explicit manual invocation (`dryRun` either way) --- growing a read-time fallback here undoes the stored-graph reset that cleared every legacy payload.
 
 Sweep (read-only classification): [`../../../diagnostics/ludicGraphStaleStructureSweep/`](../../../diagnostics/ludicGraphStaleStructureSweep/).
 
-### `mtw.diagnostics` --- `ludicGraph` port mismatch self-heal (LP6a, LD-18)
+### `mtw.diagnostics` --- `ludicGraph` port mismatch self-heal
 
 Positions **must** subscribe to:
 
@@ -534,7 +534,7 @@ Positions **must** subscribe to:
 - **Not a mismatch at all, and no write:** the referrer holds no edge into this port, its graph is absent, or its graph fails the shape guard (that last is the *structure* finding, which orders the two heals rather than duplicating them).
 - **Reported unhealable:** the matching exterior edges into a **crossing port** disagree with **each other**. A crossing port's single-use lifecycle means one crossing, so a split fan is broken exteriorly and picking one edge to believe would invent an answer --- a presence port's fan disagreeing is its normal state, not corruption, and is not this case.
 - **Idempotent, and by recheck rather than by assumption:** the handler re-reads both rows and re-classifies before writing, so at-least-once redelivery of a finding whose mismatch is already repaired is a no-op read.
-- **Never called from a read boundary,** for both of the reasons the structure heal already carries: a read-time default hides a stale row forever, and a read-time repair makes every read a write (LD-18's binding constraint).
+- **Never called from a read boundary,** for both of the reasons the structure heal already carries: a read-time default hides a stale row forever, and a read-time repair makes every read a write.
 
 Comparison (shared with the sweep, one definition): [`@tonylb/mtw-gateways/ts/ephemera/positions`](../../../../packages/mtw-gateways/ts/ephemera/positions/classifyLudicGraphPortMismatch.ts) `classifyLudicGraphPortMismatch`.
 Sweep (read-only classification): [`../../../diagnostics/ludicGraphPortMismatchSweep/`](../../../diagnostics/ludicGraphPortMismatchSweep/).
@@ -543,7 +543,7 @@ Sweep (read-only classification): [`../../../diagnostics/ludicGraphPortMismatchS
 
 ## Port records: field scope and the conflict rule
 
-A `ludicGraph` port ([`EphemeraLudicGraphPort`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) is stored **interior-side only** --- on the graph of the whole that owns the port --- but it carries facts of **two scopes**, and which scope a field belongs to is what decides who wins a disagreement. Recorded here 2026-08-23, on the close of the ludicGraph-ports task plan; the two self-heal sections above are the shipped consequence and cite this rule rather than restating it.
+A `ludicGraph` port ([`EphemeraLudicGraphPort`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) is stored **interior-side only** --- on the graph of the whole that owns the port --- but it carries facts of **two scopes**, and which scope a field belongs to is what decides who wins a disagreement. Recorded here 2026-08-23; the two self-heal sections above are the shipped consequence and cite this rule rather than restating it.
 
 **Shipped 2026-08-26 as a discriminated union on `kind` (the port vocabulary split):** `EphemeraCrossingPort` (`kind !== 'Present'`, optional `exteriorRelationLabel`) and `EphemeraPresencePort` (`kind: 'Present'`, no `exteriorRelationLabel` field at all --- carrying one is a compile-time-unrepresentable shape on this branch, not just a rejected runtime value). `EphemeraLudicGraphPort` is kept as the union alias, for call sites not yet narrowed on `kind`.
 

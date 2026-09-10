@@ -35,7 +35,7 @@ const defaultClearCharacterLudicGraph = async (characterId: EphemeraCharacterId)
 
 /**
  * Removes the `ludicGraph` attribute (REMOVE, not an empty-object overwrite) from every CoyoteGame
- * room and active-in-those-rooms character. Manual step for LPM's reset, run after the established
+ * room and active-in-those-rooms character. Manual step for the stored-graph reset, run after the established
  * "wipe objects / disconnect all characters" sequence and before rootId/ports become required.
  */
 export const persistClearStoredLudicGraphs = async (

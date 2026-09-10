@@ -22,7 +22,7 @@ Mental model: [`lambda/ephemera/dataSource/positions/AGENT.concepts.md`](../../.
 | **Is** | Dynamo read + invocation memo for the stored membership graph (`EphemeraLudicGraphFieldPayload`) and **adjacency** |
 | **Is not** | Roster display authority, affordance wire compose, or exit topology (`ComponentTopology` / `AffordanceCache`) |
 
-**The memo's currency is the stored payload, verbatim** --- `rootId`, `nodes`, `edges` and `ports`, as written by `commitStepSequence`'s `toStored()`. A read normalizes only the structural fields a pre-LP4a/LP4d row can be missing (`rootId`, the root's own node, `ports`); it never discards a field the row carries.
+**The memo's currency is the stored payload, verbatim** --- `rootId`, `nodes`, `edges` and `ports`, as written by `commitStepSequence`'s `toStored()`. A read normalizes only the structural fields a row written before `rootId` and `ports` became required can be missing (`rootId`, the root's own node, `ports`); it never discards a field the row carries.
 
 **Corrected 2026-09-03.** This memo previously cached **`PlayLudicGraph`** (alias of WML's `StandardLudicGraphData`), projecting every load through [`project.ts`](project.ts) and every `set` through `toPlayEnvelope`. That type has no `ports` and no `rootId`, so both directions silently emptied `ports` --- and ports are minted at runtime (`uuidv4`), with no authored counterpart the WML type could ever express. Every consumer reading a crossing through `internalCache.Positions` therefore saw none, which broke chain-aware dissolution live (Coyote clear, the automatic removal sweep, and player-invoked `untie`). Do not reintroduce an authoring-shaped type on this path.
 
