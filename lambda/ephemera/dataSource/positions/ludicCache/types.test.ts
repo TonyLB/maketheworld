@@ -3,13 +3,10 @@ import {
     SEMANTIC_EMBEDDING_V1_DIMENSIONS,
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import {
-    isEphemeraLudicCacheCrossing,
     isEphemeraLudicCacheData,
     isEphemeraLudicCacheEdge,
     isEphemeraLudicCacheNode,
 } from './types'
-
-const validCrossing = { edgeText: 'through the doorway', into: 'ROOM#Other' }
 
 const makeEmbedding = (): SemanticEmbedding =>
     SemanticEmbedding.fromFloat32(
@@ -121,44 +118,55 @@ describe('isEphemeraLudicCacheNode', () => {
     })
 })
 
-describe('isEphemeraLudicCacheCrossing', () => {
-    it('accepts a well-formed crossing', () => {
-        expect(isEphemeraLudicCacheCrossing(validCrossing)).toBe(true)
-    })
-
-    it('rejects an into that is not a membership host id', () => {
-        expect(isEphemeraLudicCacheCrossing({ edgeText: 'through the rope', into: 'not-an-id' })).toBe(false)
-    })
-})
-
 describe('isEphemeraLudicCacheEdge', () => {
-    it('accepts an edge with empty crossings', () => {
+    it('accepts an edge with empty chains', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'On',
-            crossings: [],
+            chains: [],
         })).toBe(true)
     })
 
-    it('accepts an edge with populated crossings', () => {
+    it('accepts an edge with populated chains', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#ropeEnd',
             kind: 'Custom',
             relationLabel: 'TiedTo',
-            crossings: [validCrossing],
+            chains: [['ROOM#Other']],
         })).toBe(true)
     })
 
-    it('rejects an edge with missing crossings', () => {
+    it('accepts an edge with more than one independently-consolidated chain', () => {
+        expect(isEphemeraLudicCacheEdge({
+            tag: 'Relational',
+            from: 'OBJECT#boulder',
+            to: 'OBJECT#ropeEnd',
+            kind: 'Custom',
+            relationLabel: 'TiedTo',
+            chains: [['ROOM#Other'], ['ROOM#Alternate', 'ROOM#Other']],
+        })).toBe(true)
+    })
+
+    it('rejects an edge with missing chains', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'On',
+        })).toBe(false)
+    })
+
+    it('rejects an edge whose chains hop is not a membership host id', () => {
+        expect(isEphemeraLudicCacheEdge({
+            tag: 'Relational',
+            from: 'OBJECT#boulder',
+            to: 'OBJECT#rope',
+            kind: 'On',
+            chains: [['not-an-id']],
         })).toBe(false)
     })
 
@@ -168,7 +176,7 @@ describe('isEphemeraLudicCacheEdge', () => {
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'NotAKind',
-            crossings: [],
+            chains: [],
         })).toBe(false)
     })
 })
@@ -186,7 +194,7 @@ describe('isEphemeraLudicCacheData', () => {
         from: 'OBJECT#boulder',
         to: 'OBJECT#rope',
         kind: 'On' as const,
-        crossings: [],
+        chains: [],
     }
 
     it('accepts a well-formed cache', () => {

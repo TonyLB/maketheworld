@@ -47,15 +47,24 @@ export type EphemeraLudicCacheNode = EphemeraLudicGraphNode & {
     interiorConsolidated: boolean;
 }
 
-/** One consolidated boundary hop: the relation-text presented at that level, and the host entered. */
-export type EphemeraLudicCacheCrossing = {
-    edgeText: string;
-    into: EphemeraMembershipHostId;
-}
-
-/** Cache edge: the ludicGraph edge plus crossings. Required and possibly empty, never optional --- see CC0. */
+/**
+ * Cache edge: the ludicGraph edge plus `chains`. Required and possibly empty, never optional ---
+ * see CC0.
+ *
+ * `chains: EphemeraMembershipHostId[][]` --- one array per independently-consolidated route to
+ * this edge identity (LR-8, `AGENT.ludicCacheReducer.planning.md`), each an ordered list of the
+ * hosts entered, one per consolidated boundary hop. **Superseded 2026-09-10:** this field used to
+ * carry `EphemeraLudicCacheCrossing[][]`, `EphemeraLudicCacheCrossing` being `{ edgeText: string;
+ * into: EphemeraMembershipHostId }`. `edgeText` traced to a 2026-08-06 premise --- "edge kinds
+ * across a crossing port need not match" --- whose only supporting case (a power cord threading
+ * into a flashlight, described differently inside and out) is itself flagged stale
+ * (`positions/AGENT.concepts.md`, AB-57). This initiative's own LR-1 instead re-derives the
+ * port-qualified-terminal case from a same-kind example (`cup -[TiedTo]-> string`, both legs
+ * sharing `kind`), so a hop has no per-leg description left to carry --- only the host entered.
+ * `EphemeraLudicCacheCrossing` and `isEphemeraLudicCacheCrossing` are removed accordingly.
+ */
 export type EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData & {
-    crossings: EphemeraLudicCacheCrossing[];
+    chains: EphemeraMembershipHostId[][];
 }
 
 export type EphemeraLudicCacheData = {
@@ -87,26 +96,18 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
     return true
 }
 
-export const isEphemeraLudicCacheCrossing = (value: unknown): value is EphemeraLudicCacheCrossing => {
-    if (!value || typeof value !== 'object') {
-        return false
-    }
-    const crossing = value as EphemeraLudicCacheCrossing
-    if (typeof crossing.edgeText !== 'string') {
-        return false
-    }
-    if (typeof crossing.into !== 'string' || !isEphemeraMembershipHostId(crossing.into)) {
-        return false
-    }
-    return true
-}
-
 export const isEphemeraLudicCacheEdge = (value: unknown): value is EphemeraLudicCacheEdge => {
     if (!isEphemeraLudicRelationalEdgeData(value)) {
         return false
     }
     const edge = value as EphemeraLudicCacheEdge
-    if (!Array.isArray(edge.crossings) || !edge.crossings.every((entry) => isEphemeraLudicCacheCrossing(entry))) {
+    if (
+        !Array.isArray(edge.chains)
+        || !edge.chains.every((chain) => (
+            Array.isArray(chain)
+            && chain.every((hop) => typeof hop === 'string' && isEphemeraMembershipHostId(hop))
+        ))
+    ) {
         return false
     }
     return true
