@@ -20,9 +20,10 @@
  * See taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCacheReducer.planning.md
  * for the plan this file implements.
  */
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphPort, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraLudicGraph } from './index'
+import type { HostRelationalEdge } from './index'
+import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
 
 /**
  * The bucket a presence port names --- the nodes of `graph` present at that binding. No shipped
@@ -64,4 +65,100 @@ export const nodesFromPresencePort = (
             (nodes, edge) => nodes.add(ephemeraLudicTerminalOwner(edge.to)),
             new Set<EphemeraLudicTerminalPrimitive>([root])
         )
+}
+
+/**
+ * 1b-i: a pure, local re-encoding of exactly the fields `edgesMatch` (`baseClasses.ts`) treats
+ * as an edge's identity --- `from`, `to`, `kind`, `relationLabel` on `Custom`, `chainId`.
+ * Deliberately duplicated rather than imported (LR-1's dependency tag): two edges can only
+ * collide on this key if the graph's own comparison already cannot tell them apart, so it is a
+ * canonical encoding of existing identity, not a separate scheme. Used to mint a stub port's id
+ * below, and nowhere else --- it is not a general edge hash.
+ */
+const edgeIdentityKey = (edge: HostRelationalEdge): string => {
+    const terminalKey = (terminal: EphemeraLudicTerminalId): string =>
+        typeof terminal === 'string' ? terminal : `${terminal.owner}#${terminal.port}`
+    return JSON.stringify([
+        terminalKey(edge.from),
+        terminalKey(edge.to),
+        edge.kind,
+        edge.kind === 'Custom' ? edge.relationLabel : '',
+        edge.chainId ?? '',
+    ])
+}
+
+/**
+ * The sub-graph a set of nodes induces on `graph`, per LR-1: all of `nodes`, all the edges
+ * between them, and --- the decision this function exists to implement --- what becomes of an
+ * edge with exactly one endpoint outside `nodes`. **Drop is unavailable** (C7): the cut always
+ * lands on a port, real or minted.
+ *
+ * - **Both endpoints in `nodes`:** kept unchanged.
+ * - **Neither endpoint in `nodes`:** dropped --- it doesn't touch this bucket (PR-9's cover
+ *   ranges over nodes, and an edge naming none of them has nothing to anchor it here).
+ * - **Exactly one endpoint outside `nodes` (a straddle):**
+ *   - **Already port-qualified far endpoint** --- LR-1's narrow case, true whenever the far node
+ *     genuinely belongs to a different graph (a bare id cannot refer across hosts). Kept
+ *     unchanged; nothing is minted, since that port's home graph is the other side, not this one.
+ *   - **Bare-id far endpoint** --- LR-1's straddle proper: a peer in *this same* graph that
+ *     simply isn't in the chosen bucket (PR-C1), with no port anywhere to fall back on. A stub
+ *     port is minted (1b-ii) and that endpoint is rewritten to `{ owner: graph.hostId, port }`,
+ *     the same addressing idiom `nodesFromPresencePort` already uses for the graph's own ports.
+ *
+ * Returns an `EphemeraLudicGraph` rather than a bespoke shape --- the induced sub-graph is a
+ * graph on the *same* host (a bucket is a cut of `graph`, not a different graph), so `hostId` and
+ * `rootId` are carried over unchanged; the root is always present in `nodes` by Slice 1a's own
+ * contract. The returned graph's `ports` are exactly the stub ports minted here, never `graph`'s
+ * own port entries --- those are a concern for whichever caller reads the parent graph directly.
+ *
+ * Transient only (LR-1): minting never writes to `edge.edgeId` and never mutates `graph`.
+ */
+export const subGraphFromNodes = (
+    graph: EphemeraLudicGraph,
+    nodes: Set<EphemeraLudicTerminalPrimitive>
+): EphemeraLudicGraph => {
+    const subNodes = [...graph.nodeIds].filter((id) => nodes.has(id)).map(nodeFromId)
+
+    const { edges, ports } = graph.relationalEdges.reduce<{
+        edges: HostRelationalEdge[]
+        ports: EphemeraLudicGraphPort[]
+    }>(
+        (acc, edge) => {
+            const fromIn = nodes.has(ephemeraLudicTerminalOwner(edge.from))
+            const toIn = nodes.has(ephemeraLudicTerminalOwner(edge.to))
+            if (fromIn && toIn) {
+                return { ...acc, edges: [...acc.edges, edge] }
+            }
+            if (!fromIn && !toIn) {
+                return acc
+            }
+            const outsideTerminal = fromIn ? edge.to : edge.from
+            if (typeof outsideTerminal !== 'string') {
+                // Already port-qualified --- LR-1's narrow case, nothing to mint.
+                return { ...acc, edges: [...acc.edges, edge] }
+            }
+            // A bare-id straddle can never be `Present`-kind: `Present` edges structurally run
+            // PORT -> NODE (PR-4), so `edge.kind` here is always `Exclude<HostRelationalEdgeKind,
+            // 'Present'>` --- exactly what a crossing port's `kind` field requires --- with no
+            // cast needed beyond narrowing the union.
+            const portId = edgeIdentityKey(edge)
+            const port: EphemeraLudicGraphPort = {
+                portId,
+                fromHostId: outsideTerminal,
+                kind: edge.kind as Exclude<HostRelationalEdgeKind, 'Present'>,
+                ...(edge.kind === 'Custom' ? { exteriorRelationLabel: edge.relationLabel } : {}),
+            }
+            const stubTerminal = { owner: graph.hostId, port: portId }
+            const rewritten = fromIn ? { ...edge, to: stubTerminal } : { ...edge, from: stubTerminal }
+            return { edges: [...acc.edges, rewritten], ports: [...acc.ports, port] }
+        },
+        { edges: [], ports: [] }
+    )
+
+    return EphemeraLudicGraph.fromFieldPayload(graph.hostId, {
+        rootId: graph.rootId,
+        nodes: subNodes,
+        edges: edges.map(toStoredRelationalEdge),
+        ports,
+    })
 }

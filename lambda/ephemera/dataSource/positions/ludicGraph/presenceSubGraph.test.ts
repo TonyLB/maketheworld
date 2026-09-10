@@ -9,13 +9,14 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import type { EphemeraLudicGraphPort, EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { testLudicGraph } from './testFixtures'
-import { nodesFromPresencePort } from './presenceSubGraph'
+import { nodesFromPresencePort, subGraphFromNodes } from './presenceSubGraph'
 
 const roomId = 'ROOM#Root' as EphemeraRoomId
 const charA = 'CHARACTER#A' as EphemeraCharacterId
 const charB = 'CHARACTER#B' as EphemeraCharacterId
 const objC = 'OBJECT#C' as EphemeraObjectId
 const objD = 'OBJECT#D' as EphemeraObjectId
+const objE = 'OBJECT#E' as EphemeraObjectId
 
 const presencePort = (portId: string): EphemeraLudicGraphPort => ({
     portId,
@@ -116,5 +117,129 @@ describe('nodesFromPresencePort', () => {
         })
         expect(nodesFromPresencePort(graph, 'port_1')).not.toContain(charB)
         expect(nodesFromPresencePort(graph, 'port_2')).not.toContain(charA)
+    })
+})
+
+describe('subGraphFromNodes', () => {
+    const bucket = new Set([roomId, charA, objC])
+
+    it('keeps an interior edge unchanged', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Character', universalKey: charA },
+                { tag: 'Object', universalKey: objC },
+            ],
+            edges: [{ tag: 'Relational', from: charA, to: objC, kind: 'Under' }],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.relationalEdges).toEqual([{ from: charA, to: objC, kind: 'Under' }])
+        expect(result.ports).toEqual([])
+    })
+
+    it('drops an edge with neither endpoint in the bucket', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Character', universalKey: charA },
+                { tag: 'Character', universalKey: charB },
+                { tag: 'Object', universalKey: objD },
+            ],
+            edges: [{ tag: 'Relational', from: charB, to: objD, kind: 'Under' }],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.relationalEdges).toEqual([])
+        expect(result.ports).toEqual([])
+    })
+
+    it('keeps a straddle unchanged when the far endpoint is already port-qualified', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+            ],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: objE, port: 'ext1' }, kind: 'Custom', relationLabel: 'TiedTo' }],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.relationalEdges).toEqual([
+            { from: objC, to: { owner: objE, port: 'ext1' }, kind: 'Custom', relationLabel: 'TiedTo' },
+        ])
+        expect(result.ports).toEqual([])
+    })
+
+    it("mints a stub port for PR-C1's intra-graph straddle (bare id, no port at the cut)", () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            edges: [{ tag: 'Relational', from: objC, to: objD, kind: 'Under' }],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.ports).toHaveLength(1)
+        const [port] = result.ports
+        expect(port).toMatchObject({ fromHostId: objD, kind: 'Under' })
+        expect(result.relationalEdges).toEqual([
+            { from: objC, to: { owner: roomId, port: port.portId }, kind: 'Under' },
+        ])
+    })
+
+    it('mints two distinct ports for two edges straddling to the same external node', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Character', universalKey: charA },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            edges: [
+                { tag: 'Relational', from: objC, to: objD, kind: 'Under' },
+                { tag: 'Relational', from: charA, to: objD, kind: 'Against' },
+            ],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.ports).toHaveLength(2)
+        expect(result.ports[0].portId).not.toEqual(result.ports[1].portId)
+    })
+
+    it('mints the identical port id when the same graph and bucket are derived twice', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            edges: [{ tag: 'Relational', from: objC, to: objD, kind: 'Under' }],
+        })
+        const first = subGraphFromNodes(graph, bucket)
+        const second = subGraphFromNodes(graph, bucket)
+        expect(first.ports[0].portId).toEqual(second.ports[0].portId)
+    })
+
+    it('carries the relationLabel into exteriorRelationLabel for a Custom-kind straddle', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            edges: [{ tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'TiedTo' }],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.ports[0]).toMatchObject({ kind: 'Custom', exteriorRelationLabel: 'TiedTo' })
+    })
+
+    it('is a well-formed graph on the same host, with the root present', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+            ],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.hostId).toEqual(graph.hostId)
+        expect(result.rootId).toEqual(graph.rootId)
+        expect(result.nodeIds.has(roomId)).toBe(true)
     })
 })
