@@ -215,7 +215,7 @@ describe('factsForStep', () => {
         expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
-    it('addPresencePort/removePresencePort steps yield no facts --- not a narration channel yet (RD-2)', () => {
+    it('addPresencePort/removePresencePort steps yield no facts --- not a narration channel yet', () => {
         const addStep: MutationKernelStep = {
             kind: 'addPresencePort',
             hostId: trayId,

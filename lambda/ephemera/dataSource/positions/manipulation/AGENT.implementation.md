@@ -390,7 +390,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 ### `containment/`
 
-Cache-time containment population (presenceRefactor step 3, RD-4): the one ingress in this folder not triggered by a player command, but by `dataSource/index.ts`'s `processComponentUpdated` on every asset-cache `Component Updated` event.
+Cache-time containment population: the one ingress in this folder not triggered by a player command, but by `dataSource/index.ts`'s `processComponentUpdated` on every asset-cache `Component Updated` event.
 
 | Path | Role |
 | --- | --- |

@@ -29,8 +29,9 @@ const universalKeyOf = (reference: ContainmentChildReference): string | undefine
     typeof reference === 'string' ? reference : reference.universalKey
 
 /**
- * RD-4 (`AGENT.presenceRefactor.planning.md` step 3): the orchestrator half of cache-time
- * containment population. Reads current state (never assumed) so a `cacheAsset` rerun over
+ * The orchestrator half of cache-time containment population; the contract it implements is in
+ * `../../AGENT.contract.md`'s `Component Updated` ingress section.
+ * Reads current state (never assumed) so a `cacheAsset` rerun over
  * already-cached, unchanged state costs nothing beyond the reads --- see
  * `containmentPopulationSteps.ts`'s doc comment for why neither `transferMembership`'s pure-add
  * branch nor `addPresencePort` is safe to replay unconditionally.

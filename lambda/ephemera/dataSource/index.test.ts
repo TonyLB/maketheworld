@@ -131,7 +131,7 @@ describe('Ephemera DataSource receiveEvents', () => {
         })
     })
 
-    describe('Component Updated Events: containment population (RD-4, presenceRefactor step 3)', () => {
+    describe('Component Updated Events: containment population', () => {
         it('populates Feature-in-Room containment when a Room with a Feature child is cache-updated', async () => {
             const roomComponent = new StandardRoom(deIndentWML(`
                 <Room uuid=(cafe)>

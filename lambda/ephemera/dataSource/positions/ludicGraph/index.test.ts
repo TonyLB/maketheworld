@@ -120,7 +120,7 @@ describe('EphemeraLudicGraph', () => {
         const CHILD_ROOM_ID = 'ROOM#Nested' as EphemeraRoomId
         const CHILD_FEATURE_ID = 'FEATURE#Nested' as EphemeraFeatureId
 
-        it('addRoom appends new node (RD-4, presenceRefactor step 3)', () => {
+        it('addRoom appends new node', () => {
             const graph = EphemeraLudicGraph.empty(AREA_HOST_ID)
             expect(graph.addRoom(CHILD_ROOM_ID).toStored().nodes).toEqual([
                 areaNode(AREA_HOST_ID),
@@ -142,7 +142,7 @@ describe('EphemeraLudicGraph', () => {
             expect(graph.roomIds).toEqual(new Set([CHILD_ROOM_ID]))
         })
 
-        it('addFeature appends new node (RD-4, presenceRefactor step 3)', () => {
+        it('addFeature appends new node', () => {
             const graph = EphemeraLudicGraph.empty(HOST_ID)
             expect(graph.addFeature(CHILD_FEATURE_ID).toStored().nodes).toEqual([
                 roomNode(HOST_ID),
@@ -182,7 +182,7 @@ describe('EphemeraLudicGraph', () => {
             expect(() => graph.removeFeature(CHILD_FEATURE_ID)).toThrow(RelationalEdgeStillReferencedError)
         })
 
-        describe('addNode/removeNode (kind dispatch, RD-4/presenceRefactor step 3)', () => {
+        describe('addNode/removeNode (kind dispatch)', () => {
             it('addNode dispatches to addObject/addCharacter/addRoom/addFeature by kind', () => {
                 const graph = EphemeraLudicGraph.empty(HOST_ID)
                 expect(graph.addNode(OBJECT_A).objectIds).toEqual(new Set([OBJECT_A]))

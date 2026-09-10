@@ -430,11 +430,12 @@ export class EphemeraLudicGraph {
     }
 
     /**
-     * The structural half of RD-4's cache-time containment population (presenceRefactor step 3):
-     * a Room or Feature becomes a node of its parent's graph (Area-for-Room, Room-or-Feature-for-
-     * Feature) the same way an object or character becomes a node of a host it moves into ---
-     * idempotent-add, mirroring `addObject`/`addCharacter` exactly. Unlike those two, a Room/Feature
-     * node is never removed by this slice (RD-4 defers removal-on-deauthoring), but `removeRoom`/
+     * The structural half of cache-time containment population: a Room or Feature becomes a node
+     * of its parent's graph (Area-for-Room, Room-or-Feature-for-Feature) the same way an object or
+     * character becomes a node of a host it moves into --- idempotent-add, mirroring
+     * `addObject`/`addCharacter` exactly. Unlike those two, a Room/Feature node is never removed by
+     * this slice --- removal-on-deauthoring is deliberately out of scope, per
+     * `../AGENT.contract.md`'s `Component Updated` section --- but `removeRoom`/
      * `removeFeature` are added alongside for symmetry with `removeObject`/`removeCharacter` rather
      * than left as a half-built pair --- both idle today, since population is additive-only.
      */

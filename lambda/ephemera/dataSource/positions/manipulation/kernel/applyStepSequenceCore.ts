@@ -103,7 +103,7 @@ const confirmCarriedHost = (
  * which has no dispatch for either kind --- is ever called; a caller bug is a structural-invariant
  * violation, so it belongs on the throw side of the split described below. **Pure remove**
  * (`toHostId === null`) and **pure add** (`fromHostIds` empty) share one kind-agnostic loop over
- * `nodeIds`/`addNode`/`removeNode` (`EphemeraLudicGraph`'s own kind dispatch, RD-4) rather than one
+ * `nodeIds`/`addNode`/`removeNode` (`EphemeraLudicGraph`'s own kind dispatch) rather than one
  * loop per entity kind: a presence-check then
  * `removeNode`/`addNode` for each host --- no boundary-sweep here, since the caller is responsible
  * for having already seeded explicit `dissolveRelation` steps for every edge the entity carried (an
@@ -126,7 +126,7 @@ const confirmCarriedHost = (
  * This function has no verdict meaning "the world forbids this" because it makes no such judgment
  * --- it checks mechanism, and legality is the enrich tier's question. See `types.ts`.
  *
- * `addPresencePort`/`removePresencePort` (RD-2): the moved entity's own presence
+ * `addPresencePort`/`removePresencePort`: the moved entity's own presence
  * binding, one step per add or remove rather than one step replacing whatever was there --- see
  * `kernelStep.ts`'s doc comments. `removePresencePort` is a plain filter-by-`fromHostId`, so
  * removing an absent binding is a silent no-op.
@@ -231,7 +231,7 @@ export const applyStepSequenceCore = (
             // carry-closure to run here (the caller already seeded explicit `dissolveRelation`
             // steps for a pure remove; a pure add is a freshly-spawned entity with no prior edges).
             // One loop over `nodeIds`/`addNode`/`removeNode` covers all four entity kinds ---
-            // `EphemeraLudicGraph.addNode`/`removeNode` (RD-4) is the
+            // `EphemeraLudicGraph.addNode`/`removeNode` is the
             // kind-dispatch, so this branch doesn't have to re-derive it per kind.
             for (const fromHostId of fromHostIds) {
                 const sourceGraph = graphs.get(fromHostId)
@@ -279,7 +279,7 @@ export const applyStepSequenceCore = (
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             // A silent no-op when no `Present` port carries this `fromHostId` --- deliberate
-            // (RD-2): it is what lets the compiler emit one of these per departure host without
+            // it is what lets the compiler emit one of these per departure host without
             // knowing which one, if any, actually held the port.
             const withoutBinding = graph.ports
                 .filter((port) => port.kind === 'Present' && port.fromHostId === step.fromHostId)
@@ -332,11 +332,11 @@ export const applyStepSequenceCore = (
         graphs.set(step.hostId, patched)
     }
 
-    // RD-2's other half: at-most-one presence stopped being reducer-enforced when `setPresencePort`
-    // split into add/remove, so it is re-enforced here for the one kind still restricted to it
-    // (RD-1, AGENT.contract.md's "a character's membership host is a ROOM, and only a ROOM ...
-    // it lifts when that work does"). Objects get no such check, deliberately --- multi-presence is
-    // the point of this whole plan. End-of-sequence, not per-step: the compiler emits remove-then-
+    // At-most-one presence stopped being reducer-enforced when `setPresencePort` split into
+    // add/remove, so it is re-enforced here for the one kind still restricted to it: characters,
+    // per AGENT.contract.md's "a character's membership host is a ROOM, and only a ROOM ... it
+    // lifts when that work does". Objects get no such check, deliberately --- multi-presence for
+    // objects is the point. End-of-sequence, not per-step: the compiler emits remove-then-
     // add, so a per-step check would make the invariant depend on emission order. This is a
     // structural-invariant violation (BD-33's category, `types.ts`'s "Throw vs. verdict"), not a
     // `MutationKernelApplyOutcome` verdict, and a ratchet on new writes, not a repair --- a
