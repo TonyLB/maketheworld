@@ -137,7 +137,7 @@ describe('classifyLudicGraphPortMismatch', () => {
         })
     })
 
-    describe('gated: no named referrer edge is not a finding (LD-18, LP4i\'s original reason)', () => {
+    describe('gated: no named referrer edge is not a finding', () => {
         it('reports no mismatch when the referrer graph holds no edge into this port', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,

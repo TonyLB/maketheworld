@@ -28,7 +28,7 @@ const areaHostId = 'AREA#Overworld' as EphemeraAreaId
 
 /**
  * An absent row's default. Kind-specific since the root node carries the host's own tag ---
- * concepts clause 3 / LP4i requires the root to be present in `nodes`.
+ * concepts clause 3 requires the root to be present in `nodes`.
  */
 const emptyPayload = (id: string, tag: 'Room' | 'Character' | 'Object' | 'Feature' | 'Area') => ({
     rootId: id,

@@ -125,7 +125,7 @@ const defaultEmitFinding = async (args: {
 }
 
 /**
- * Read-only diagnostics sweep for `ludicGraph` port mismatch (LP6a, LD-18). A port denormalizes
+ * Read-only diagnostics sweep for `ludicGraph` port mismatch. A port denormalizes
  * two exterior facts --- the referring edge's `kind` and its `Custom` label --- and nothing yet
  * keeps those copies honest across a shard boundary. This sweep compares each port against the
  * edge held by the host the port itself **names**, and reports one finding per disagreeing port.
