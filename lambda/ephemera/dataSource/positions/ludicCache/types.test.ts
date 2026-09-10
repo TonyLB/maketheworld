@@ -79,7 +79,7 @@ describe('isEphemeraLudicCacheNode', () => {
         })).toBe(false)
     })
 
-    it('accepts a homeShards entry that is an object or feature host id (LP0 widened EphemeraMembershipHostId)', () => {
+    it('accepts a homeShards entry that is an object or feature host id', () => {
         expect(isEphemeraLudicCacheNode({
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
@@ -205,7 +205,7 @@ describe('isEphemeraLudicCacheData', () => {
         })).toBe(true)
     })
 
-    it('accepts an object or feature hostId (LP0 widened EphemeraMembershipHostId)', () => {
+    it('accepts an object or feature hostId', () => {
         expect(isEphemeraLudicCacheData({
             hostId: 'OBJECT#Box',
             nodes: [],

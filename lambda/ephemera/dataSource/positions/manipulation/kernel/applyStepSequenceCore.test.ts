@@ -101,7 +101,7 @@ describe('applyStepSequenceCore', () => {
         )
     })
 
-    it('LP4g payoff: establishRelation with a non-Object (Character) subject commits, hostGraph resolves via nodeIds', () => {
+    it('establishRelation with a non-Object (Character) subject commits, hostGraph resolves via nodeIds', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Character', universalKey: characterId },

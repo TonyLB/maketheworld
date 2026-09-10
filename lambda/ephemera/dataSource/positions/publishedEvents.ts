@@ -35,7 +35,7 @@ export type ObjectMovedPublishedPayload = {
 
 export type ObjectRelationChangedPublishedPayload = {
     type: 'Object Relation Changed';
-    /** LP4g: widened from EphemeraObjectId --- the kernel's relational step terminals are no longer Object-only. */
+    /** Widened from EphemeraObjectId --- the kernel's relational step terminals are no longer Object-only. */
     subjectId: EphemeraLudicTerminalPrimitive;
     targetId: EphemeraLudicTerminalPrimitive;
     /** Room or Character host the relation changed on (BD-15/16 slice 4; was Room-only `hostRoomId`). */

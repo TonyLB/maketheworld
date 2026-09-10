@@ -61,7 +61,7 @@ export type MutationKernelCaptureStep = {
 
 /**
  * the moved object's own presence port, on its own graph (`hostId` is the moved object's
- * own id --- a legal `EphemeraMembershipHostId`, LP0). Since 2026-09-04, multiplicity lives in
+ * own id --- a legal `EphemeraMembershipHostId`). Since 2026-09-04, multiplicity lives in
  * the sequence rather than the step --- N bindings is N `addPresencePort` steps, paired with a
  * `removePresencePort` per departure host, rather than one step replacing whatever was there. This
  * is what lets a pure add (spawn/population-everywhere) be expressed without touching

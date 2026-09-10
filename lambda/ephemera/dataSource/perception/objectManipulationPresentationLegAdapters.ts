@@ -132,7 +132,7 @@ export const toObjectManipulationPresentationLeg = async (
         if (
             !isObjectRelationChangedPublishedPayload(content)
             || !isEphemeraRoomId(content.hostId)
-            // LP4g widened ObjectRelationChangedPublishedPayload's subjectId/targetId to
+            // ObjectRelationChangedPublishedPayload's subjectId/targetId were widened to
             // EphemeraLudicTerminalPrimitive, but this leg (and the whole presentation
             // fan-in it feeds) is still EphemeraObjectId-only --- deliberately deferred,
             // matching the Character-hosted-narration gap above rather than widening the

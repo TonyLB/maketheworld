@@ -29,7 +29,7 @@ describe('runExecutor', () => {
     // throw, and `carry` is unreachable from any relation kind. Real shard-based hosting (CD2h)
     // is what would eventually carry the cup along again, by construction.
 
-    it('LP4g: dissolves a boundary edge to a non-Object (Character) endpoint, no throw', () => {
+    it('dissolves a boundary edge to a non-Object (Character) endpoint, no throw', () => {
         const COMPANION_ID = 'CHARACTER#Companion' as EphemeraCharacterId
         const graph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(TRAY_ID)

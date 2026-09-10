@@ -67,8 +67,8 @@ export const groundChange = (change: Change, context: GroundingContext): GroundC
                 return host
             }
 
-            // ParsePlanStep's relationKind is HostRelationalEdgeKind's narrow set (LD-13,
-            // parsePlanStep.ts), even though HostRelationalEdgeKind itself (ephemeraMeta.ts) also
+            // ParsePlanStep's relationKind is HostRelationalEdgeKind's narrow set
+            // (parsePlanStep.ts), even though HostRelationalEdgeKind itself (ephemeraMeta.ts) also
             // admits containment ('In'/'PartOf'), 'On', and 'Present'. All four are unreachable
             // here: isContainmentSpan routes containment language to nestingDefer before a Change
             // carrying one reaches here; 'On' is a hosting kind deferred at ingress the same way

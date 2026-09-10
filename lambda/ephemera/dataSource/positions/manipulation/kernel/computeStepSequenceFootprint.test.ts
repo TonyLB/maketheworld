@@ -47,7 +47,7 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint(steps, getCurrentHost)).toEqual(new Set([roomId, characterId]))
     })
 
-    it('LP4g: a relational step with a non-Object (Character) subject derives its host via getCurrentHost, no narrow needed', () => {
+    it('a relational step with a non-Object (Character) subject derives its host via getCurrentHost, no narrow needed', () => {
         const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: trayId, hostId: roomId, relationKind: 'On' }
         const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => (id === characterId ? roomId : otherRoomId)
         expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId, otherRoomId]))

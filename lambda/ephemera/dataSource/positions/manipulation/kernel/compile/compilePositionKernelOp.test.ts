@@ -226,7 +226,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         })
     })
 
-    it('LP4g: renders a dissolveRelation step for a non-Object (Character) dissolved-edge endpoint, no throw', () => {
+    it('renders a dissolveRelation step for a non-Object (Character) dissolved-edge endpoint, no throw', () => {
         const plan = compilePositionKernelOp(objectOp({
             dissolvedEdges: [{ from: CHARACTER_ID, to: TRAY, kind: 'On' }],
         }))

@@ -47,7 +47,7 @@ describe('EphemeraLudicGraphCacheData', () => {
         })
         const original = EphemeraLudicGraph.fromFieldPayload(ROOM_ID, {
             rootId: ROOM_ID, ports: [],
-            // LP4i: fromPlayEnvelope (the read side of this round trip) now always includes
+            // fromPlayEnvelope (the read side of this round trip) now always includes
             // the graph's own root node, so a fixture built by hand needs it too.
             nodes: [nodeFromId(ROOM_ID), characterNode(CHARACTER_A), objectNode(OBJECT_A)],
             edges: [],
