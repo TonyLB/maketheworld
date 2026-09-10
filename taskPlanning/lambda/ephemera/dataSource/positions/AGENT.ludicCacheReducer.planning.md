@@ -1,6 +1,6 @@
 # ludicCache merge reducer: presence sub-graphs, first draft
 
-**Status:** Not started, opened 2026-09-10 from conversation. Two slices: presence sub-graph utilities, then a pairwise merge reducer that combines a parent graph with a child sub-graph into an `EphemeraLudicCacheData`. **Next step: Slice 0, classify the tier out loud, before any code exists.**
+**Status:** Slice 0 done 2026-09-10. Two slices: presence sub-graph utilities, then a pairwise merge reducer that combines a parent graph with a child sub-graph into an `EphemeraLudicCacheData`. **Next step: Slice 1a, `nodesFromPresencePort`.**
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md). **It is an implementation plan, not a design-stage one** --- the deliverable is mergeable code and tests, the worklist outnumbers the open forks, and the evidence it needs is produced by building rather than by writing corpus cases. Do not apply [`AGENT.designVariant.md`](../../../../AGENT.designVariant.md)'s overrides to it. The one clause it *does* borrow is the [tier](../../../../AGENT.designVariant.md#graduation-tiers-when-a-decision-licenses-code) classification below, because the code is a Prototype and the obligations that come with that are due before the first file.
 
@@ -82,7 +82,7 @@ And **no production code anywhere constructs an `EphemeraLudicPortAddress`** (`{
 
 Pending work is `[ ]` and completed work is `[X]`; mark each nested line `[X]` as it is done. Nothing here is built yet.
 
-- [ ] **Slice 0. Classify and record.** Copy the tier block above into the first file's doc comment (Prototype, dependency tag, rollback trigger) so the rollback set is visible from the code, not only from a plan that will be deleted.
+- [X] **Slice 0. Classify and record.** Copy the tier block above into the first file's doc comment (Prototype, dependency tag, rollback trigger) so the rollback set is visible from the code, not only from a plan that will be deleted. Done as [`ludicGraph/presenceSubGraph.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/presenceSubGraph.ts), a doc-comment-only stub; Slice 1 fills it in.
 - [ ] **Slice 1. Presence sub-graph utilities**, in `positions/ludicGraph/presenceSubGraph.ts`.
   - [ ] **1a. `nodesFromPresencePort(graph, portId)`.** Keyed on `portId`, never on host id (LR-3). Returns the bucket's node set: **the root unconditionally** ([PR-9](AGENT.presence.planning.md#settled-register): the root is in every bucket), plus the nodes the membership rule reaches. **Decide and state the membership rule in the doc comment** (LR-2) --- it is being invented here.
   - [ ] **1b. `subGraphFromNodes(graph, nodes)`.** All the nodes, all the edges **between** them, and edges to ports per LR-1's rule. **Do not silently drop straddlers** --- [C7](AGENT.abstractionLayers.corpus.planning.md#c7-ariadnes-thread) makes drop unavailable before the question is argued. Two foundations, decided alongside LR-1 and built first because the rest of 1b calls them:
