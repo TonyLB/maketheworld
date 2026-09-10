@@ -74,7 +74,7 @@ This is why several rules downstream look redundant but are not: forward reads m
 
 At play time, room membership is stored as a **room play graph** plus a **reverse adjacency index**:
 
-- Each room hosts **`Meta::Room.ludicGraph`** --- character and object **nodes**, plus in-host **relational edges** (`On`, `Under`, `Against`, `Custom`).
+- Each room hosts **`Meta::Room.ludicGraph`** --- character and object **nodes**, plus in-host **relational edges**. The shipped `HostRelationalEdgeKind` is **seven values**, not four: hosting kinds `On`, `In`, `PartOf`; peer kinds `Under`, `Against`, `Custom`; and the partitioning kind `Present`, which fronts a presence binding rather than connecting node to node (the *Hosting kind / peer kind* and *Presence port* entries under [Wholes, parts, and ports](#wholes-parts-and-ports), and [Presence as a cover](#presence-as-a-cover)).
 - Each character has **adjacency rows** (`CHARACTER#` PK, `POSITION#ROOM#...` SK) pointing at host room(s).
 - Each object has **adjacency rows** (`OBJECT#` PK, `POSITION#ROOM#...` SK) pointing at host room(s) when placed (**I5**).
 - **Roster display** is hydrated at read time from **`CharacterMeta`** + **`CharacterSessions`** --- not stored on the room row.
