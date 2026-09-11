@@ -16,14 +16,12 @@ import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPo
 // trigger) --- see CC0b for the reasoning. If it graduates, it is the same type
 // moving packages, not a rename.
 //
-// KNOWN NARROWNESS, deliberate and load-bearing for the next step (CC1a):
-// `chains`' hosts are EphemeraMembershipHostId, which is ROOM# | CHARACTER#
-// and EXCLUDES OBJECT#. The cache's own premise is nested *object* shards, so
-// CC1a's recursion cannot be written against these types as they stand. Left
-// narrow rather than widened here on CC0's `Area` discipline --- the widening
-// rides in on the change that makes objects hosts, which is CC1a. Prefer a
-// cache-local alias there (EphemeraMembershipHostId | EphemeraObjectId) over
-// re-typing shipped adjacency rows in mtw-interfaces.
+// EphemeraMembershipHostId (mtw-interfaces/ephemeraPositionAdjacency.ts) is
+// EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId
+// | EphemeraAreaId, so `chains`/`hostId` already admit OBJECT#/FEATURE# ---
+// no cache-local alias is needed for CC1a's recursion on that account. CC1a
+// still has open findings unrelated to this type, tracked in
+// AGENT.abstractionLayers.planning.md.
 //
 
 /**
