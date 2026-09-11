@@ -56,6 +56,15 @@ Production runs a **branching sequence** after classify: **`enrichRoute: 'member
 **0. Catalog ingress (deterministic context packaging)**  
 Before classify or enrich, **`handleParseRequested`** ([`index.ts`](../../index.ts)) parallel-fetches the actor's **room object catalog** and **held inventory catalog**, then batch-loads **`EMBEDDING#IMPROMPTU`** vectors via **`internalCache.ObjectEmbedding.get`** and attaches them to catalog entries ([`attachEmbeddingsToCatalogEntries`](../../attachEmbeddingsToCatalogEntries.ts)) before **`parseCommand`**. This is not a Bedrock hop; it packages authoritative catalog slices (with optional embeddings) for identity and (on the relational path) frame-extract context.
 
+**Known gap (documented debt, found 2026-09-11):** catalog ingress is **exhaustive through nesting and consults no presence data.** [`collectNestedObjectIds`](../../roomObjectCatalogForCharacter.ts) recurses into each object's own `ludicGraph` to a **depth cap of 5** and collects `hostGraph.objectIds` wholesale --- no port, binding or bucket is read anywhere on the path. Two consequences, and only the first is live:
+
+1. **Decomposition adds referents without removing any.** A decomposed flashlight puts battery, casing and bulb in the pool **alongside** the flashlight, and nothing selects a level, so a whole and its parts compete as candidates. This is the read-path half of **AB-9** ([abstraction layers](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md#open-decisions-design--plan-only)), and it is reachable today for any object that hosts a graph (`put cup on table`, CD2h).
+2. **A straddling whole would contribute every part, at every binding.** Presence is a cover indexed by **binding**, not by host ([`AGENT.concepts.md`](../../../positions/AGENT.concepts.md#presence-as-a-cover)), so the nodes present at one host are a bucket --- but this walk takes the nested graph entire. **Latent only** because no shipped writer produces a multi-bucket graph yet ([`presenceSubGraph.ts`](../../../positions/ludicGraph/presenceSubGraph.ts) header).
+
+**Do not read [`existencePresenceGuard`](existencePresenceGuard.ts) as covering this.** Its *presence* means "the chosen id is in the ingress catalog," plus a `locus` scope check (room vs held) --- unrelated to the presence cover, and the name invites exactly this misreading.
+
+**Open question, not decided:** whether level selection belongs at pool construction (filter to a bucket), at ranking ([`buildSpanCandidatePool`](embeddingMatch/buildSpanCandidatePool.ts)), or later. Note that the third is constrained --- attention must not reach [`decideEmbeddingMatch`](embeddingMatch/decideEmbeddingMatch.ts).
+
 **1. Classify fast path (deterministic @ classify)**  
 When the command matches a **closed syntactic template** (`take` / `drop` / `get` + noun, with label gate for `get` vs Acme), code synthesizes **`ObjectMembershipIntent`** with **`verbClass`** and **`objectSpans`** and **skips** Bedrock classify. The owning stage is still classify; the outcome shape matches the LLM path.
 

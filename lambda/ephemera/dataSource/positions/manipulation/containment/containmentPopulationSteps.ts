@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraFeatureId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
@@ -30,6 +31,17 @@ import type { MutationKernelAddPresencePortStep, MutationKernelStep, MutationKer
  *   rerun from committing a transaction at all, rather than three no-op writes every time. Always
  *   `PartOf`, never `In` (2026-09-05): Room-in-Area and Feature-in-Room/Feature are fixed/authored
  *   nestings, not the mobile placement `In` is for.
+ *
+ * The containment-edge check compares terminals with `ephemeraLudicTerminalsEqual`, not `===`
+ * (2026-09-11, closing PQ-10). It is a **hardening, not a fix**: a `PartOf` terminal cannot be
+ * port-qualified today, by two independent arguments --- containment is root-incident within a
+ * graph (`AGENT.concepts.md`, the star topology), and `PartOf` is a *hosting* kind under AB-54,
+ * so it never crosses a boundary and has no port to qualify. Both are constructor disciplines
+ * rather than enforced invariants, and the star one is explicitly documented as *dropped rather
+ * than defended* if multi-level nesting in one graph arrives --- so the raw `===` was correct by
+ * coincidence of the current writers, not by type. Equality is the right relation here rather
+ * than `ephemeraLudicTerminalRefersTo`: a *port* of the child being part of the parent would be
+ * a different edge, not this one.
  */
 export const containmentPopulationSteps = (
     parentId: EphemeraMembershipHostId,
@@ -60,7 +72,10 @@ export const containmentPopulationSteps = (
     }
 
     const hasContainmentEdge = parentGraph.relationalEdges.some(
-        (edge) => edge.kind === 'PartOf' && edge.from === childId && edge.to === parentId
+        (edge) =>
+            edge.kind === 'PartOf' &&
+            ephemeraLudicTerminalsEqual(edge.from, childId) &&
+            ephemeraLudicTerminalsEqual(edge.to, parentId)
     )
     if (!hasContainmentEdge) {
         const edgeStep: ExecutorEstablishRelationStep = {
