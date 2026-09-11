@@ -20,7 +20,6 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
             shortName: 'a helmet',
-            homeShards: ['ROOM#Test'],
             interiorConsolidated: false,
         })).toBe(true)
     })
@@ -31,7 +30,6 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Room',
             universalKey: 'ROOM#Test',
             shortName: 'a room',
-            homeShards: ['ROOM#Test'],
             embedding,
             interiorConsolidated: true,
         })).toBe(true)
@@ -42,7 +40,6 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Bogus',
             universalKey: 'FEATURE#Test',
             shortName: 'a feature',
-            homeShards: ['ROOM#Test'],
             interiorConsolidated: false,
         })).toBe(false)
     })
@@ -51,47 +48,6 @@ describe('isEphemeraLudicCacheNode', () => {
         expect(isEphemeraLudicCacheNode({
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
-            homeShards: ['ROOM#Test'],
-            interiorConsolidated: false,
-        })).toBe(false)
-    })
-
-    it('accepts a multi-hosted node present in several shards', () => {
-        expect(isEphemeraLudicCacheNode({
-            tag: 'Object',
-            universalKey: 'OBJECT#string',
-            shortName: 'a string',
-            homeShards: ['ROOM#Room', 'CHARACTER#Alpha'],
-            interiorConsolidated: false,
-        })).toBe(true)
-    })
-
-    it('rejects a scalar homeShards', () => {
-        expect(isEphemeraLudicCacheNode({
-            tag: 'Object',
-            universalKey: 'OBJECT#helmet',
-            shortName: 'a helmet',
-            homeShards: 'ROOM#Test',
-            interiorConsolidated: false,
-        })).toBe(false)
-    })
-
-    it('accepts a homeShards entry that is an object or feature host id', () => {
-        expect(isEphemeraLudicCacheNode({
-            tag: 'Object',
-            universalKey: 'OBJECT#helmet',
-            shortName: 'a helmet',
-            homeShards: ['ROOM#Test', 'OBJECT#Box', 'FEATURE#Wall'],
-            interiorConsolidated: false,
-        })).toBe(true)
-    })
-
-    it('rejects a homeShards entry that is not a membership host id', () => {
-        expect(isEphemeraLudicCacheNode({
-            tag: 'Object',
-            universalKey: 'OBJECT#helmet',
-            shortName: 'a helmet',
-            homeShards: ['ROOM#Test', 'KNOWLEDGE#helmet'],
             interiorConsolidated: false,
         })).toBe(false)
     })
@@ -101,7 +57,6 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
             shortName: 'a helmet',
-            homeShards: ['ROOM#Test'],
             interiorConsolidated: undefined,
         })).toBe(false)
     })
@@ -111,7 +66,6 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
             shortName: 'a helmet',
-            homeShards: ['ROOM#Test'],
             embedding: { vector: [0, 1, 0] },
             interiorConsolidated: false,
         })).toBe(false)
@@ -186,7 +140,6 @@ describe('isEphemeraLudicCacheData', () => {
         tag: 'Object' as const,
         universalKey: 'OBJECT#helmet',
         shortName: 'a helmet',
-        homeShards: ['ROOM#Test'],
         interiorConsolidated: false,
     }
     const validEdge = {

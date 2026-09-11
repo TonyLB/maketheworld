@@ -68,6 +68,29 @@ export const nodesFromPresencePort = (
 }
 
 /**
+ * Slice 2b: the node set for *more than one* binding into the same parent --- a child present at
+ * one parent shard through two presence ports (two bindings), rather than one. Folds
+ * `nodesFromPresencePort` over `portIds` and unions the results.
+ *
+ * **Why this is the whole of 2b.** The naive move would cut each bucket separately
+ * (`subGraphFromNodes` once per port) and merge the two resulting graphs afterward --- but that
+ * merge would need its own reconciliation step, since a node exclusive to one bucket and joined
+ * by a content edge to a node exclusive to the other would come back independently stub-ported
+ * on each side (LR-9, `AGENT.ludicCacheReducer.planning.md`). `subGraphFromNodes` takes a node
+ * *set*, not a prior cut, so cutting once over the union avoids the artifact instead of undoing
+ * it: `subGraphFromNodes(graph, nodesFromPresencePorts(graph, portIds))`. This function supplies
+ * only that union; the single-cut composition is the caller's job.
+ */
+export const nodesFromPresencePorts = (
+    graph: EphemeraLudicGraph,
+    portIds: string[]
+): Set<EphemeraLudicTerminalPrimitive> =>
+    portIds.reduce(
+        (acc, portId) => new Set([...acc, ...nodesFromPresencePort(graph, portId)]),
+        new Set<EphemeraLudicTerminalPrimitive>()
+    )
+
+/**
  * 1b-i: a pure, local re-encoding of exactly the fields `edgesMatch` (`baseClasses.ts`) treats
  * as an edge's identity --- `from`, `to`, `kind`, `relationLabel` on `Custom`, `chainId`.
  * Deliberately duplicated rather than imported (LR-1's dependency tag): two edges can only

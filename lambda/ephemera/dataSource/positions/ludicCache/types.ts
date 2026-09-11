@@ -17,30 +17,26 @@ import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPo
 // moving packages, not a rename.
 //
 // KNOWN NARROWNESS, deliberate and load-bearing for the next step (CC1a):
-// `homeShards` and `crossings.into` are EphemeraMembershipHostId, which is
-// ROOM# | CHARACTER# and EXCLUDES OBJECT#. The cache's own premise is nested
-// *object* shards, so CC1a's recursion cannot be written against these types as
-// they stand. Left narrow rather than widened here on CC0's `Area` discipline
-// --- the widening rides in on the change that makes objects hosts, which is
-// CC1a. Prefer a cache-local alias there (EphemeraMembershipHostId |
-// EphemeraObjectId) over re-typing shipped adjacency rows in mtw-interfaces.
+// `chains`' hosts are EphemeraMembershipHostId, which is ROOM# | CHARACTER#
+// and EXCLUDES OBJECT#. The cache's own premise is nested *object* shards, so
+// CC1a's recursion cannot be written against these types as they stand. Left
+// narrow rather than widened here on CC0's `Area` discipline --- the widening
+// rides in on the change that makes objects hosts, which is CC1a. Prefer a
+// cache-local alias there (EphemeraMembershipHostId | EphemeraObjectId) over
+// re-typing shipped adjacency rows in mtw-interfaces.
 //
 
-/** Cache node: an EphemeraLudicGraphNode superset. */
+/**
+ * Cache node: an EphemeraLudicGraphNode superset.
+ *
+ * **`homeShards` removed 2026-09-10 (LR-6, `AGENT.ludicCacheReducer.planning.md`).** It used to
+ * carry "which shard(s) is this node home to," but that fact is already denormalized onto the
+ * graph's own presence ports (`EphemeraPresencePort.fromHostId`), which `subGraphFromNodes`
+ * carries through regardless of bucket --- a node-level field duplicated a fact the graph already
+ * states. No producer or consumer of this type existed at removal time.
+ */
 export type EphemeraLudicCacheNode = EphemeraLudicGraphNode & {
     shortName: string;
-    /**
-     * Shards this node is present in --- the shards to traverse from (universalKey
-     * alone does not say which). Required and possibly singleton, never scalar: a
-     * whole is multi-hosted whenever its ports bind into more than one host (a
-     * string lying across a table, through a room, into a box), and a scalar would
-     * silently drop that extent. Same uniformity as `crossings` --- the common
-     * single-hosted case is a one-element list, and nothing branches on cardinality.
-     *
-     * Non-emptiness is a rebuild invariant (CC1a enumerates each node out of a
-     * shard), not a structural one, so the guard below admits `[]`.
-     */
-    homeShards: EphemeraMembershipHostId[];
     /** Iteration 1: attached by a separate attachEmbeddings pass, not by the rebuild (CC1c). */
     embedding?: SemanticEmbedding;
     /** Stored, never derived --- see CC0's box-can-be-empty argument against deriving this. */
@@ -79,12 +75,6 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
     }
     const node = value as EphemeraLudicCacheNode
     if (typeof node.shortName !== 'string') {
-        return false
-    }
-    if (
-        !Array.isArray(node.homeShards)
-        || !node.homeShards.every((entry) => typeof entry === 'string' && isEphemeraMembershipHostId(entry))
-    ) {
         return false
     }
     if (node.embedding !== undefined && !(node.embedding instanceof SemanticEmbedding)) {
