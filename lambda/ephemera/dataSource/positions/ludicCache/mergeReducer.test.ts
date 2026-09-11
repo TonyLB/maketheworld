@@ -1,7 +1,6 @@
 /**
  * No shipped writer today constructs a matched pair of crossing-port legs (see
- * AGENT.ludicCacheReducer.planning.md's finding, which Slice 1's own tests already carried this
- * caveat for). Every fixture below is hand-authored --- invented for this test, not read off
+ * `AGENT.presence.planning.md`'s PR-12 Obligation A). Every fixture below is hand-authored --- invented for this test, not read off
  * storage.
  */
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'

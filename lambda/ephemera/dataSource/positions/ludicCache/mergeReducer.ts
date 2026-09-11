@@ -17,8 +17,8 @@
  * Not triggers: fixture verbosity, reducer size, or the number of cases the straddle rule
  * needs. Those are measurements this Prototype exists to take.
  *
- * See taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCacheReducer.planning.md
- * for the plan this file implements (Slice 2a).
+ * Built under a since-deleted implementation plan (AGENT.ludicCacheReducer.planning.md);
+ * its findings live on in PR-8 and PR-12 above.
  */
 import type { EphemeraCrossingPort, EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -78,13 +78,14 @@ const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string => {
 }
 
 /**
- * Slice 2a: collapse of crossing relation ports (`AGENT.ludicCacheReducer.planning.md`).
+ * Collapse of crossing relation ports.
  *
  * A port that binds a child (the contained side) to its parent is minted and owned only by the
  * child's own graph (`AGENT.concepts.md`'s "Wholes, parts, and ports", clause 2 --- the interior
  * mints the binding, mirroring how a presence port is added to the *contained* thing's own
  * graph). A single relational edge spanning that boundary is therefore split into two **legs**,
- * sharing `kind` (and `relationLabel`/`chainId` where present) on both, per LR-1's own
+ * sharing `kind` (and `relationLabel`/`chainId` where present) on both --- the reduction
+ * convention recorded in `AGENT.presence.planning.md`'s PR-8 --- per the
  * `cup -[TiedTo]-> string` case:
  *
  * - **The parent's leg**, in `parentGraph.relationalEdges`: one terminal is an ordinary

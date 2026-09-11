@@ -1,6 +1,6 @@
 /**
  * No shipped writer today constructs a multi-bucket graph or an `EphemeraLudicPortAddress`
- * (see AGENT.ludicCacheReducer.planning.md's finding). The two- and three-port fixtures below
+ * (see `AGENT.presence.planning.md`'s PR-12 Obligation A). The two- and three-port fixtures below
  * are hand-authored inputs invented for this test, not shapes read off storage --- the
  * multi-bucket cases are the ones the function exists for, but they are untested by anything
  * that would fail if the mechanism were wrong.

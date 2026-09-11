@@ -17,8 +17,8 @@
  * Not triggers: fixture verbosity, reducer size, or the number of cases the straddle rule
  * needs. Those are measurements this Prototype exists to take.
  *
- * See taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCacheReducer.planning.md
- * for the plan this file implements.
+ * Built under a since-deleted implementation plan (AGENT.ludicCacheReducer.planning.md);
+ * its findings live on in PR-8 and PR-12 above.
  */
 import type { EphemeraLudicGraphPort, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -76,7 +76,7 @@ export const nodesFromPresencePort = (
  * (`subGraphFromNodes` once per port) and merge the two resulting graphs afterward --- but that
  * merge would need its own reconciliation step, since a node exclusive to one bucket and joined
  * by a content edge to a node exclusive to the other would come back independently stub-ported
- * on each side (LR-9, `AGENT.ludicCacheReducer.planning.md`). `subGraphFromNodes` takes a node
+ * on each side. `subGraphFromNodes` takes a node
  * *set*, not a prior cut, so cutting once over the union avoids the artifact instead of undoing
  * it: `subGraphFromNodes(graph, nodesFromPresencePorts(graph, portIds))`. This function supplies
  * only that union; the single-cut composition is the caller's job.

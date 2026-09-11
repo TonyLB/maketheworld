@@ -27,7 +27,8 @@ import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPo
 /**
  * Cache node: an EphemeraLudicGraphNode superset.
  *
- * **`homeShards` removed 2026-09-10 (LR-6, `AGENT.ludicCacheReducer.planning.md`).** It used to
+ * **`homeShards` removed 2026-09-10** (the bucket-membership fact it carried is already on the
+ * graph's own presence ports; see `AGENT.presence.planning.md`'s PR-8). It used to
  * carry "which shard(s) is this node home to," but that fact is already denormalized onto the
  * graph's own presence ports (`EphemeraPresencePort.fromHostId`), which `subGraphFromNodes`
  * carries through regardless of bucket --- a node-level field duplicated a fact the graph already
@@ -46,7 +47,7 @@ export type EphemeraLudicCacheNode = EphemeraLudicGraphNode & {
  * see CC0.
  *
  * `chains: EphemeraMembershipHostId[][]` --- one array per independently-consolidated route to
- * this edge identity (LR-8, `AGENT.ludicCacheReducer.planning.md`), each an ordered list of the
+ * this edge identity (`AGENT.presence.planning.md`'s PR-8), each an ordered list of the
  * hosts entered, one per consolidated boundary hop. **Superseded 2026-09-10:** this field used to
  * carry `EphemeraLudicCacheCrossing[][]`, `EphemeraLudicCacheCrossing` being `{ edgeText: string;
  * into: EphemeraMembershipHostId }`. `edgeText` traced to a 2026-08-06 premise --- "edge kinds
