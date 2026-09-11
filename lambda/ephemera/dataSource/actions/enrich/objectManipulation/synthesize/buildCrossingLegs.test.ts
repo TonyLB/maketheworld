@@ -30,7 +30,7 @@ describe('buildCrossingLegs', () => {
             targetPath: [TABLE_ID, ROOM_ID],
             operationKind: 'establishRelation',
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
 
         expect(result.verdict).toBe('built')
@@ -41,7 +41,7 @@ describe('buildCrossingLegs', () => {
         expect(addPortStep).toMatchObject({
             kind: 'addCrossingPort',
             hostId: TABLE_ID,
-            port: { fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' },
+            port: { fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' },
         })
         if (addPortStep.kind !== 'addCrossingPort') return
         const portId = addPortStep.port.portId
@@ -53,7 +53,7 @@ describe('buildCrossingLegs', () => {
             targetId: CUP_ID,
             hostId: TABLE_ID,
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
         expect(roomLegStep).toEqual({
             kind: 'establishRelation',
@@ -61,7 +61,7 @@ describe('buildCrossingLegs', () => {
             targetId: { owner: TABLE_ID, port: portId },
             hostId: ROOM_ID,
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
     })
 
@@ -74,7 +74,7 @@ describe('buildCrossingLegs', () => {
             targetPath: [ROOM_ID],
             operationKind: 'establishRelation',
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
 
         expect(result.verdict).toBe('built')
@@ -92,7 +92,7 @@ describe('buildCrossingLegs', () => {
             targetId: { owner: BOX_ID, port: portId },
             hostId: BOX_ID,
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
         expect(roomLegStep).toEqual({
             kind: 'establishRelation',
@@ -100,7 +100,7 @@ describe('buildCrossingLegs', () => {
             targetId: CUP_ID,
             hostId: ROOM_ID,
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
     })
 
@@ -113,13 +113,13 @@ describe('buildCrossingLegs', () => {
             targetPath: [ROOM_ID],
             operationKind: 'establishRelation',
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
 
         expect(result).toEqual({
             verdict: 'built',
             steps: [
-                { kind: 'establishRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'to' },
+                { kind: 'establishRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
             ],
         })
     })
@@ -132,14 +132,14 @@ describe('buildCrossingLegs', () => {
             subjectPath: [ROOM_ID],
             targetPath: [ROOM_ID],
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
             operationKind: 'dissolveRelation',
         })
 
         expect(result).toEqual({
             verdict: 'built',
             steps: [
-                { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'to' },
+                { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
             ],
         })
     })
@@ -152,7 +152,7 @@ describe('buildCrossingLegs', () => {
             subjectPath: [ROOM_ID],
             targetPath: [TABLE_ID, ROOM_ID],
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
             operationKind: 'dissolveRelation',
         })
 
@@ -168,13 +168,13 @@ describe('buildCrossingLegs', () => {
             targetPath: [],
             operationKind: 'establishRelation',
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
 
         expect(result).toEqual({
             verdict: 'built',
             steps: [
-                { kind: 'establishRelation', subjectId: CUP_ID, targetId: TABLE_ID, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
+                { kind: 'establishRelation', subjectId: CUP_ID, targetId: TABLE_ID, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'tied to' },
             ],
         })
     })
@@ -188,13 +188,13 @@ describe('buildCrossingLegs', () => {
             targetPath: [TABLE_ID],
             operationKind: 'establishRelation',
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
 
         expect(result).toEqual({
             verdict: 'built',
             steps: [
-                { kind: 'establishRelation', subjectId: TABLE_ID, targetId: CUP_ID, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
+                { kind: 'establishRelation', subjectId: TABLE_ID, targetId: CUP_ID, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'tied to' },
             ],
         })
     })
@@ -208,7 +208,7 @@ describe('buildCrossingLegs', () => {
             targetPath: [BOX_ID, TABLE_ID],
             operationKind: 'establishRelation',
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
 
         expect(result.verdict).toBe('built')
@@ -219,7 +219,7 @@ describe('buildCrossingLegs', () => {
         expect(addPortStep).toMatchObject({
             kind: 'addCrossingPort',
             hostId: BOX_ID,
-            port: { fromHostId: TABLE_ID, kind: 'Custom', exteriorRelationLabel: 'to' },
+            port: { fromHostId: TABLE_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' },
         })
         if (addPortStep.kind !== 'addCrossingPort') return
         const portId = addPortStep.port.portId
@@ -230,7 +230,7 @@ describe('buildCrossingLegs', () => {
             targetId: CUP_ID,
             hostId: BOX_ID,
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
         // The final leg lives in the common ancestor's own graph, running from its root node (the
         // table itself) to the port --- the zero-length side contributes the raw endpoint, not a
@@ -241,7 +241,7 @@ describe('buildCrossingLegs', () => {
             targetId: { owner: BOX_ID, port: portId },
             hostId: TABLE_ID,
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
     })
 
@@ -273,7 +273,7 @@ describe('buildCrossingLegs', () => {
             targetPath: [E_ID, B_ID],
             operationKind: 'establishRelation',
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
 
         expect(result.verdict).toBe('built')
@@ -281,14 +281,14 @@ describe('buildCrossingLegs', () => {
         expect(result.steps).toHaveLength(5)
 
         const [addPortC, legDtoC, addPortE, legEtoF, finalLeg] = result.steps
-        expect(addPortC).toMatchObject({ kind: 'addCrossingPort', hostId: C_ID, port: { fromHostId: B_ID, kind: 'Custom', exteriorRelationLabel: 'to' } })
-        expect(addPortE).toMatchObject({ kind: 'addCrossingPort', hostId: E_ID, port: { fromHostId: B_ID, kind: 'Custom', exteriorRelationLabel: 'to' } })
+        expect(addPortC).toMatchObject({ kind: 'addCrossingPort', hostId: C_ID, port: { fromHostId: B_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' } })
+        expect(addPortE).toMatchObject({ kind: 'addCrossingPort', hostId: E_ID, port: { fromHostId: B_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' } })
         if (addPortC.kind !== 'addCrossingPort' || addPortE.kind !== 'addCrossingPort') return
         const portC = addPortC.port.portId
         const portE = addPortE.port.portId
 
-        expect(legDtoC).toEqual({ kind: 'establishRelation', subjectId: D_ID, targetId: { owner: C_ID, port: portC }, hostId: C_ID, relationKind: 'Custom', relationLabel: 'to' })
-        expect(legEtoF).toEqual({ kind: 'establishRelation', subjectId: { owner: E_ID, port: portE }, targetId: F_ID, hostId: E_ID, relationKind: 'Custom', relationLabel: 'to' })
+        expect(legDtoC).toEqual({ kind: 'establishRelation', subjectId: D_ID, targetId: { owner: C_ID, port: portC }, hostId: C_ID, relationKind: 'Custom', relationLabel: 'tied to' })
+        expect(legEtoF).toEqual({ kind: 'establishRelation', subjectId: { owner: E_ID, port: portE }, targetId: F_ID, hostId: E_ID, relationKind: 'Custom', relationLabel: 'tied to' })
         // The connecting leg: both endpoints are port addresses, no primitive endpoint anywhere.
         expect(finalLeg).toEqual({
             kind: 'establishRelation',
@@ -296,7 +296,7 @@ describe('buildCrossingLegs', () => {
             targetId: { owner: E_ID, port: portE },
             hostId: B_ID,
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
     })
 
@@ -309,7 +309,7 @@ describe('buildCrossingLegs', () => {
             targetPath: [TRAY_ID, TABLE_ID, ROOM_ID],
             operationKind: 'establishRelation',
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
 
         expect(result.verdict).toBe('built')
@@ -323,9 +323,9 @@ describe('buildCrossingLegs', () => {
         const portTray = addPortTray.port.portId
         const portTable = addPortTable.port.portId
 
-        expect(legTrayToCup).toEqual({ kind: 'establishRelation', subjectId: { owner: TRAY_ID, port: portTray }, targetId: CUP_ID, hostId: TRAY_ID, relationKind: 'Custom', relationLabel: 'to' })
-        expect(legTableToTray).toEqual({ kind: 'establishRelation', subjectId: { owner: TABLE_ID, port: portTable }, targetId: { owner: TRAY_ID, port: portTray }, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' })
-        expect(finalLeg).toEqual({ kind: 'establishRelation', subjectId: STRING_ID, targetId: { owner: TABLE_ID, port: portTable }, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'to' })
+        expect(legTrayToCup).toEqual({ kind: 'establishRelation', subjectId: { owner: TRAY_ID, port: portTray }, targetId: CUP_ID, hostId: TRAY_ID, relationKind: 'Custom', relationLabel: 'tied to' })
+        expect(legTableToTray).toEqual({ kind: 'establishRelation', subjectId: { owner: TABLE_ID, port: portTable }, targetId: { owner: TRAY_ID, port: portTray }, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'tied to' })
+        expect(finalLeg).toEqual({ kind: 'establishRelation', subjectId: STRING_ID, targetId: { owner: TABLE_ID, port: portTable }, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' })
     })
 
     it('a chain of depth 2 on the subject side and depth 1 on the target side at once, confirming the two sides do not interfere (D2 contains D; C contains D2; B contains C and E; E contains F; tie D to F)', () => {
@@ -337,7 +337,7 @@ describe('buildCrossingLegs', () => {
             targetPath: [E_ID, B_ID],
             operationKind: 'establishRelation',
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
 
         expect(result.verdict).toBe('built')
@@ -353,16 +353,16 @@ describe('buildCrossingLegs', () => {
         const portC = addPortC.port.portId
         const portE = addPortE.port.portId
 
-        expect(legDtoD2).toEqual({ kind: 'establishRelation', subjectId: D_ID, targetId: { owner: D2_ID, port: portD2 }, hostId: D2_ID, relationKind: 'Custom', relationLabel: 'to' })
-        expect(legD2toC).toEqual({ kind: 'establishRelation', subjectId: { owner: D2_ID, port: portD2 }, targetId: { owner: C_ID, port: portC }, hostId: C_ID, relationKind: 'Custom', relationLabel: 'to' })
-        expect(legEtoF).toEqual({ kind: 'establishRelation', subjectId: { owner: E_ID, port: portE }, targetId: F_ID, hostId: E_ID, relationKind: 'Custom', relationLabel: 'to' })
+        expect(legDtoD2).toEqual({ kind: 'establishRelation', subjectId: D_ID, targetId: { owner: D2_ID, port: portD2 }, hostId: D2_ID, relationKind: 'Custom', relationLabel: 'tied to' })
+        expect(legD2toC).toEqual({ kind: 'establishRelation', subjectId: { owner: D2_ID, port: portD2 }, targetId: { owner: C_ID, port: portC }, hostId: C_ID, relationKind: 'Custom', relationLabel: 'tied to' })
+        expect(legEtoF).toEqual({ kind: 'establishRelation', subjectId: { owner: E_ID, port: portE }, targetId: F_ID, hostId: E_ID, relationKind: 'Custom', relationLabel: 'tied to' })
         expect(finalLeg).toEqual({
             kind: 'establishRelation',
             subjectId: { owner: C_ID, port: portC },
             targetId: { owner: E_ID, port: portE },
             hostId: B_ID,
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
     })
 
@@ -375,7 +375,7 @@ describe('buildCrossingLegs', () => {
             targetPath: [TRAY_ID, TABLE_ID, ROOM_ID],
             operationKind: 'dissolveRelation',
             relationKind: 'Custom',
-            relationLabel: 'to',
+            relationLabel: 'tied to',
         })
 
         expect(result.verdict).toBe('notYetImplemented')
@@ -384,11 +384,11 @@ describe('buildCrossingLegs', () => {
 
 describe('buildCrossingDissolveLegs', () => {
     it("the readout case, reversed: a 3-step found chain (edge, port, edge) becomes [dissolveRelation, removeCrossingPort, dissolveRelation]", () => {
-        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
         const steps: RelationalChainStep[] = [
-            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' } },
+            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'tied to' } },
             { type: 'port', hostId: TABLE_ID, port },
-            { type: 'edge', hostId: TABLE_ID, edge: { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' } },
+            { type: 'edge', hostId: TABLE_ID, edge: { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'tied to' } },
         ]
 
         expect(buildCrossingDissolveLegs(steps)).toEqual([
@@ -398,7 +398,7 @@ describe('buildCrossingDissolveLegs', () => {
                 targetId: { owner: TABLE_ID, port: 'port-1' },
                 hostId: ROOM_ID,
                 relationKind: 'Custom',
-                relationLabel: 'to',
+                relationLabel: 'tied to',
             },
             { kind: 'removeCrossingPort', hostId: TABLE_ID, portId: 'port-1' },
             {
@@ -407,18 +407,18 @@ describe('buildCrossingDissolveLegs', () => {
                 targetId: CUP_ID,
                 hostId: TABLE_ID,
                 relationKind: 'Custom',
-                relationLabel: 'to',
+                relationLabel: 'tied to',
             },
         ])
     })
 
     it('a portless same-host chain becomes a single dissolveRelation step, nothing else', () => {
         const steps: RelationalChainStep[] = [
-            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'to' } },
+            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'tied to' } },
         ]
 
         expect(buildCrossingDissolveLegs(steps)).toEqual([
-            { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'to' },
+            { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
         ])
     })
 
@@ -433,14 +433,14 @@ describe('buildCrossingDissolveLegs', () => {
     })
 
     it('a two-hop chain on one side --- deeper than buildCrossingLegs itself can mint --- maps through with no cap and no notYetImplemented case', () => {
-        const portA: EphemeraCrossingPort = { portId: 'port-a', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
-        const portB: EphemeraCrossingPort = { portId: 'port-b', fromHostId: BOX_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const portA: EphemeraCrossingPort = { portId: 'port-a', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
+        const portB: EphemeraCrossingPort = { portId: 'port-b', fromHostId: BOX_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
         const steps: RelationalChainStep[] = [
-            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: BOX_ID, port: 'port-a' }, kind: 'Custom', relationLabel: 'to' } },
+            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: BOX_ID, port: 'port-a' }, kind: 'Custom', relationLabel: 'tied to' } },
             { type: 'port', hostId: BOX_ID, port: portA },
-            { type: 'edge', hostId: BOX_ID, edge: { from: { owner: BOX_ID, port: 'port-a' }, to: { owner: TRAY_ID, port: 'port-b' }, kind: 'Custom', relationLabel: 'to' } },
+            { type: 'edge', hostId: BOX_ID, edge: { from: { owner: BOX_ID, port: 'port-a' }, to: { owner: TRAY_ID, port: 'port-b' }, kind: 'Custom', relationLabel: 'tied to' } },
             { type: 'port', hostId: TRAY_ID, port: portB },
-            { type: 'edge', hostId: TRAY_ID, edge: { from: { owner: TRAY_ID, port: 'port-b' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' } },
+            { type: 'edge', hostId: TRAY_ID, edge: { from: { owner: TRAY_ID, port: 'port-b' }, to: CUP_ID, kind: 'Custom', relationLabel: 'tied to' } },
         ]
 
         const result = buildCrossingDissolveLegs(steps)

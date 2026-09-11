@@ -156,7 +156,11 @@ Play-time **Relational** edges ([`EphemeraLudicRelationalEdgeData`](../../../../
 
 **Two identity schemes, deliberately unrelated.** This doc's **Edge uuid identity** invariant is authoring-time and scoped to one Area. Relational edges instead carry optional `edgeId` (the relationship: its endpoints) and `chainId` (**one route** realizing it --- the legs of a relation crossing a port boundary share a `chainId`, and a second route over the same relationship mints a new `chainId` on the existing `edgeId`). The fields round-trip through storage today but no write path mints them yet. **A heterogeneous `EdgeList` must decide which scheme it stores rather than assuming `uuid` covers both.**
 
+**Cross-linked here 2026-09-11, both directions, after a design-doc contradiction reached the opposite conclusion from this paragraph with confidence.** This is the invariant that decides what a "port" is allowed to do on the play-time (`positions/`) side: the legs of one crossing share an `edgeId`, so they cannot carry different `kind`s or labels. See [`positions/AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#wholes-parts-and-ports) for the corrected illustration and [`taskPlanning/.../AGENT.abstractionLayers.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md#getting-started) for the design plan that owns port/crossing vocabulary --- its `Getting Started` now reads this paragraph before either.
+
 ## Related docs
 
 - [`../facets/AGENT.facets.md`](../facets/AGENT.facets.md) -- facet pattern (do not overload for edges)
 - [`../../components/AGENT.implementation.md`](../../components/AGENT.implementation.md) -- **StandardArea**
+- [`positions/AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#wholes-parts-and-ports) -- play-time ports, crossings and the `edgeId`/`chainId` split's consequence for them
+- [`taskPlanning/.../AGENT.abstractionLayers.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md) -- the design plan that owns port/crossing vocabulary on the play-time side
