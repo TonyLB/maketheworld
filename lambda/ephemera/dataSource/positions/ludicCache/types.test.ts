@@ -3,13 +3,10 @@ import {
     SEMANTIC_EMBEDDING_V1_DIMENSIONS,
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import {
-    isEphemeraLudicCacheCrossing,
     isEphemeraLudicCacheData,
     isEphemeraLudicCacheEdge,
     isEphemeraLudicCacheNode,
 } from './types'
-
-const validCrossing = { edgeText: 'through the doorway', into: 'ROOM#Other' }
 
 const makeEmbedding = (): SemanticEmbedding =>
     SemanticEmbedding.fromFloat32(
@@ -23,7 +20,6 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
             shortName: 'a helmet',
-            homeShards: ['ROOM#Test'],
             interiorConsolidated: false,
         })).toBe(true)
     })
@@ -34,7 +30,6 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Room',
             universalKey: 'ROOM#Test',
             shortName: 'a room',
-            homeShards: ['ROOM#Test'],
             embedding,
             interiorConsolidated: true,
         })).toBe(true)
@@ -45,7 +40,6 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Bogus',
             universalKey: 'FEATURE#Test',
             shortName: 'a feature',
-            homeShards: ['ROOM#Test'],
             interiorConsolidated: false,
         })).toBe(false)
     })
@@ -54,47 +48,6 @@ describe('isEphemeraLudicCacheNode', () => {
         expect(isEphemeraLudicCacheNode({
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
-            homeShards: ['ROOM#Test'],
-            interiorConsolidated: false,
-        })).toBe(false)
-    })
-
-    it('accepts a multi-hosted node present in several shards', () => {
-        expect(isEphemeraLudicCacheNode({
-            tag: 'Object',
-            universalKey: 'OBJECT#string',
-            shortName: 'a string',
-            homeShards: ['ROOM#Room', 'CHARACTER#Alpha'],
-            interiorConsolidated: false,
-        })).toBe(true)
-    })
-
-    it('rejects a scalar homeShards', () => {
-        expect(isEphemeraLudicCacheNode({
-            tag: 'Object',
-            universalKey: 'OBJECT#helmet',
-            shortName: 'a helmet',
-            homeShards: 'ROOM#Test',
-            interiorConsolidated: false,
-        })).toBe(false)
-    })
-
-    it('accepts a homeShards entry that is an object or feature host id', () => {
-        expect(isEphemeraLudicCacheNode({
-            tag: 'Object',
-            universalKey: 'OBJECT#helmet',
-            shortName: 'a helmet',
-            homeShards: ['ROOM#Test', 'OBJECT#Box', 'FEATURE#Wall'],
-            interiorConsolidated: false,
-        })).toBe(true)
-    })
-
-    it('rejects a homeShards entry that is not a membership host id', () => {
-        expect(isEphemeraLudicCacheNode({
-            tag: 'Object',
-            universalKey: 'OBJECT#helmet',
-            shortName: 'a helmet',
-            homeShards: ['ROOM#Test', 'KNOWLEDGE#helmet'],
             interiorConsolidated: false,
         })).toBe(false)
     })
@@ -104,7 +57,6 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
             shortName: 'a helmet',
-            homeShards: ['ROOM#Test'],
             interiorConsolidated: undefined,
         })).toBe(false)
     })
@@ -114,51 +66,61 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
             shortName: 'a helmet',
-            homeShards: ['ROOM#Test'],
             embedding: { vector: [0, 1, 0] },
             interiorConsolidated: false,
         })).toBe(false)
     })
 })
 
-describe('isEphemeraLudicCacheCrossing', () => {
-    it('accepts a well-formed crossing', () => {
-        expect(isEphemeraLudicCacheCrossing(validCrossing)).toBe(true)
-    })
-
-    it('rejects an into that is not a membership host id', () => {
-        expect(isEphemeraLudicCacheCrossing({ edgeText: 'through the rope', into: 'not-an-id' })).toBe(false)
-    })
-})
-
 describe('isEphemeraLudicCacheEdge', () => {
-    it('accepts an edge with empty crossings', () => {
+    it('accepts an edge with empty chains', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'On',
-            crossings: [],
+            chains: [],
         })).toBe(true)
     })
 
-    it('accepts an edge with populated crossings', () => {
+    it('accepts an edge with populated chains', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#ropeEnd',
             kind: 'Custom',
             relationLabel: 'TiedTo',
-            crossings: [validCrossing],
+            chains: [['ROOM#Other']],
         })).toBe(true)
     })
 
-    it('rejects an edge with missing crossings', () => {
+    it('accepts an edge with more than one independently-consolidated chain', () => {
+        expect(isEphemeraLudicCacheEdge({
+            tag: 'Relational',
+            from: 'OBJECT#boulder',
+            to: 'OBJECT#ropeEnd',
+            kind: 'Custom',
+            relationLabel: 'TiedTo',
+            chains: [['ROOM#Other'], ['ROOM#Alternate', 'ROOM#Other']],
+        })).toBe(true)
+    })
+
+    it('rejects an edge with missing chains', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'On',
+        })).toBe(false)
+    })
+
+    it('rejects an edge whose chains hop is not a membership host id', () => {
+        expect(isEphemeraLudicCacheEdge({
+            tag: 'Relational',
+            from: 'OBJECT#boulder',
+            to: 'OBJECT#rope',
+            kind: 'On',
+            chains: [['not-an-id']],
         })).toBe(false)
     })
 
@@ -168,7 +130,7 @@ describe('isEphemeraLudicCacheEdge', () => {
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'NotAKind',
-            crossings: [],
+            chains: [],
         })).toBe(false)
     })
 })
@@ -178,7 +140,6 @@ describe('isEphemeraLudicCacheData', () => {
         tag: 'Object' as const,
         universalKey: 'OBJECT#helmet',
         shortName: 'a helmet',
-        homeShards: ['ROOM#Test'],
         interiorConsolidated: false,
     }
     const validEdge = {
@@ -186,7 +147,7 @@ describe('isEphemeraLudicCacheData', () => {
         from: 'OBJECT#boulder',
         to: 'OBJECT#rope',
         kind: 'On' as const,
-        crossings: [],
+        chains: [],
     }
 
     it('accepts a well-formed cache', () => {

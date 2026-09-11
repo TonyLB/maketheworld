@@ -16,46 +16,50 @@ import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPo
 // trigger) --- see CC0b for the reasoning. If it graduates, it is the same type
 // moving packages, not a rename.
 //
-// KNOWN NARROWNESS, deliberate and load-bearing for the next step (CC1a):
-// `homeShards` and `crossings.into` are EphemeraMembershipHostId, which is
-// ROOM# | CHARACTER# and EXCLUDES OBJECT#. The cache's own premise is nested
-// *object* shards, so CC1a's recursion cannot be written against these types as
-// they stand. Left narrow rather than widened here on CC0's `Area` discipline
-// --- the widening rides in on the change that makes objects hosts, which is
-// CC1a. Prefer a cache-local alias there (EphemeraMembershipHostId |
-// EphemeraObjectId) over re-typing shipped adjacency rows in mtw-interfaces.
+// EphemeraMembershipHostId (mtw-interfaces/ephemeraPositionAdjacency.ts) is
+// EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId
+// | EphemeraAreaId, so `chains`/`hostId` already admit OBJECT#/FEATURE# ---
+// no cache-local alias is needed for CC1a's recursion on that account. CC1a
+// still has open findings unrelated to this type, tracked in
+// AGENT.abstractionLayers.planning.md.
 //
 
-/** Cache node: an EphemeraLudicGraphNode superset. */
+/**
+ * Cache node: an EphemeraLudicGraphNode superset.
+ *
+ * **`homeShards` removed 2026-09-10** (the bucket-membership fact it carried is already on the
+ * graph's own presence ports; see `AGENT.presence.planning.md`'s PR-8). It used to
+ * carry "which shard(s) is this node home to," but that fact is already denormalized onto the
+ * graph's own presence ports (`EphemeraPresencePort.fromHostId`), which `subGraphFromNodes`
+ * carries through regardless of bucket --- a node-level field duplicated a fact the graph already
+ * states. No producer or consumer of this type existed at removal time.
+ */
 export type EphemeraLudicCacheNode = EphemeraLudicGraphNode & {
     shortName: string;
-    /**
-     * Shards this node is present in --- the shards to traverse from (universalKey
-     * alone does not say which). Required and possibly singleton, never scalar: a
-     * whole is multi-hosted whenever its ports bind into more than one host (a
-     * string lying across a table, through a room, into a box), and a scalar would
-     * silently drop that extent. Same uniformity as `crossings` --- the common
-     * single-hosted case is a one-element list, and nothing branches on cardinality.
-     *
-     * Non-emptiness is a rebuild invariant (CC1a enumerates each node out of a
-     * shard), not a structural one, so the guard below admits `[]`.
-     */
-    homeShards: EphemeraMembershipHostId[];
     /** Iteration 1: attached by a separate attachEmbeddings pass, not by the rebuild (CC1c). */
     embedding?: SemanticEmbedding;
     /** Stored, never derived --- see CC0's box-can-be-empty argument against deriving this. */
     interiorConsolidated: boolean;
 }
 
-/** One consolidated boundary hop: the relation-text presented at that level, and the host entered. */
-export type EphemeraLudicCacheCrossing = {
-    edgeText: string;
-    into: EphemeraMembershipHostId;
-}
-
-/** Cache edge: the ludicGraph edge plus crossings. Required and possibly empty, never optional --- see CC0. */
+/**
+ * Cache edge: the ludicGraph edge plus `chains`. Required and possibly empty, never optional ---
+ * see CC0.
+ *
+ * `chains: EphemeraMembershipHostId[][]` --- one array per independently-consolidated route to
+ * this edge identity (`AGENT.presence.planning.md`'s PR-8), each an ordered list of the
+ * hosts entered, one per consolidated boundary hop. **Superseded 2026-09-10:** this field used to
+ * carry `EphemeraLudicCacheCrossing[][]`, `EphemeraLudicCacheCrossing` being `{ edgeText: string;
+ * into: EphemeraMembershipHostId }`. `edgeText` traced to a 2026-08-06 premise --- "edge kinds
+ * across a crossing port need not match" --- whose only supporting case (a power cord threading
+ * into a flashlight, described differently inside and out) is itself flagged stale
+ * (`positions/AGENT.concepts.md`, AB-57). This initiative's own LR-1 instead re-derives the
+ * port-qualified-terminal case from a same-kind example (`cup -[TiedTo]-> string`, both legs
+ * sharing `kind`), so a hop has no per-leg description left to carry --- only the host entered.
+ * `EphemeraLudicCacheCrossing` and `isEphemeraLudicCacheCrossing` are removed accordingly.
+ */
 export type EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData & {
-    crossings: EphemeraLudicCacheCrossing[];
+    chains: EphemeraMembershipHostId[][];
 }
 
 export type EphemeraLudicCacheData = {
@@ -72,30 +76,10 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
     if (typeof node.shortName !== 'string') {
         return false
     }
-    if (
-        !Array.isArray(node.homeShards)
-        || !node.homeShards.every((entry) => typeof entry === 'string' && isEphemeraMembershipHostId(entry))
-    ) {
-        return false
-    }
     if (node.embedding !== undefined && !(node.embedding instanceof SemanticEmbedding)) {
         return false
     }
     if (typeof node.interiorConsolidated !== 'boolean') {
-        return false
-    }
-    return true
-}
-
-export const isEphemeraLudicCacheCrossing = (value: unknown): value is EphemeraLudicCacheCrossing => {
-    if (!value || typeof value !== 'object') {
-        return false
-    }
-    const crossing = value as EphemeraLudicCacheCrossing
-    if (typeof crossing.edgeText !== 'string') {
-        return false
-    }
-    if (typeof crossing.into !== 'string' || !isEphemeraMembershipHostId(crossing.into)) {
         return false
     }
     return true
@@ -106,7 +90,13 @@ export const isEphemeraLudicCacheEdge = (value: unknown): value is EphemeraLudic
         return false
     }
     const edge = value as EphemeraLudicCacheEdge
-    if (!Array.isArray(edge.crossings) || !edge.crossings.every((entry) => isEphemeraLudicCacheCrossing(entry))) {
+    if (
+        !Array.isArray(edge.chains)
+        || !edge.chains.every((chain) => (
+            Array.isArray(chain)
+            && chain.every((hop) => typeof hop === 'string' && isEphemeraMembershipHostId(hop))
+        ))
+    ) {
         return false
     }
     return true
