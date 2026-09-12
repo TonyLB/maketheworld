@@ -342,6 +342,22 @@ Area.ludicGraph              Room.ludicGraph (shipped v1)      Container graph (
 
 **What would retire the name:** composition, functional-state aggregate, and multi-host extent turning out to be **three genuinely unlike things** rather than one substrate with distinct relation kinds above it. The name assumes one substrate; it is falsifiable on that, and current evidence runs the other way.
 
+### Minted, not found
+
+**Status: Target (2026-09-11).** An abstraction is a **cognitive tool, not an objective feature of the world.** The facts under it are objective --- this toy is red, the fork is to the left of the plate --- and the **grouping over them is minted**, because someone judged it useful. A nursery full of toys does not contain an *all red toys* abstraction until something mints one.
+
+**What is found and what is minted --- stated as a pair.** Recognition genuinely *finds* things: the rope is tied in a loop, and the player meant something by tying it. Those are **evidence**. The abstraction built on them is **minted** --- a graph write, with an identity, changing what can be referenced and acted on. Evidence **licenses** a mint; it does not constitute one. Same shape as [Intent vs. world-effect](#intent-vs-world-effect): the intent is read off the player, the effect is the system's own act.
+
+**Two consequences, which is why this is vocabulary and not commentary:**
+
+- **Convergence is an obligation, not an accident.** One abstraction reachable from a blocking path and from a background one **must** produce the same component. Found things converge for free; minted ones have to be made to.
+- **No grouping is compelled.** Whether a whole is decomposed, and whether it is ever reabsorbed, are the modeller's --- see [Wholes, parts, and ports](#wholes-parts-and-ports). A rule that *compels* a grouping owes its own justification.
+
+**There is no `Abstraction` supertype this names.** As with [Abstraction Fractal](#abstraction-fractal), the name is the principle. Minting a type to represent *an abstraction in general* would assert precisely the objectivity this denies.
+
+**What is not settled: what licenses a mint.** Composition licenses on parts, an Arrangement on edges, a derived member set on a predicate --- and *useful right now* is not a licensing condition anywhere yet. **Do not read this entry as authorizing a recognition path to write.**
+
+
 ### Wholes, parts, and ports
 
 **Status: Target, and deliberately narrow.** **Three** **shape** claims, and nothing else. The first two were fixed as a **locked frame** on 2026-08-06 after the design work that produced them stopped moving, and the third on 2026-08-09; recorded here, ahead of implementation, because everything still being designed is being designed *inside* them, and a reader who does not know them will mis-read the code that eventually lands. No claim names a record format, an identifier scheme, or a hosting model.
