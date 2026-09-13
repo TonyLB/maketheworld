@@ -156,3 +156,68 @@ export const collapseCrossingPorts = (
     })
     return [...byIdentity.values()]
 }
+
+/**
+ * Fold-path probe (ISS8149 D1): reconstruction of a same-host interior edge that a fold would
+ * cut into two independent halves rather than see whole, per `nodesFromPresencePorts`'s own doc
+ * comment in `presenceSubGraph.ts` --- cutting bucket A alone and bucket B alone, instead of
+ * unioning their node sets before a single cut, leaves the straddling edge "independently
+ * stub-ported on each side" with no rejoin step. `edgeIdentityKey` mints that stub id
+ * deterministically from the edge's own fields (`from`/`to`/`kind`/`relationLabel`/`chainId`),
+ * so both cuts land on the same portId for the same original edge --- the two bucket graphs
+ * being joined here are two cuts of the *same* `EphemeraLudicGraph` (`hostId` in common), not a
+ * parent and a child the way `collapseCrossingPorts` joins.
+ *
+ * Matches stub ports by shared `portId` (present, non-`Present`-kind, on both bucket graphs),
+ * finds each side's leg touching that port terminal, asserts they agree exactly as
+ * `collapseCrossingPorts` does, and rewrites bucket A's leg with bucket B's outer terminal to
+ * recover the original edge. `chains` is always `[]` --- this never crosses a membership
+ * boundary, so there is no hop to record.
+ */
+export const collapseSameHostStubs = (
+    bucketA: EphemeraLudicGraph,
+    bucketB: EphemeraLudicGraph
+): EphemeraLudicCacheEdge[] => {
+    const stubIdsA = bucketA.ports.filter(isCrossingPort).map((port) => port.portId)
+    const stubIdsB = new Set(bucketB.ports.filter(isCrossingPort).map((port) => port.portId))
+    const sharedPortIds = stubIdsA.filter((portId) => stubIdsB.has(portId))
+
+    const collapsedLegs = sharedPortIds.reduce<EphemeraLudicCacheEdge[]>((acc, portId) => {
+        const portTerminal: EphemeraLudicPortAddress = { owner: bucketA.hostId, port: portId }
+        const hasPortTerminal = (edge: HostRelationalEdge): boolean =>
+            ephemeraLudicTerminalsEqual(edge.from, portTerminal) || ephemeraLudicTerminalsEqual(edge.to, portTerminal)
+
+        const legA = bucketA.relationalEdges.find(hasPortTerminal)
+        const legB = bucketB.relationalEdges.find(hasPortTerminal)
+
+        if (!legA || !legB) {
+            return acc
+        }
+
+        if (!legsAgree(legA, legB)) {
+            throw new Error(
+                `Stub port ${portId} on ${bucketA.hostId} joins legs that disagree on kind/relationLabel/chainId`
+            )
+        }
+
+        const outerB = outerTerminal(legB, portTerminal)
+        const rewrite = (terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalId =>
+            ephemeraLudicTerminalsEqual(terminal, portTerminal) ? outerB : terminal
+
+        const collapsed: HostRelationalEdge = {
+            ...legA,
+            from: rewrite(legA.from),
+            to: rewrite(legA.to),
+        }
+
+        return [...acc, { ...toStoredRelationalEdge(collapsed), chains: [] }]
+    }, [])
+
+    const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
+    collapsedLegs.forEach((edge) => {
+        const key = collapsedEdgeIdentityKey(edge)
+        const existing = byIdentity.get(key)
+        byIdentity.set(key, existing ? { ...existing, chains: [...existing.chains, ...edge.chains] } : edge)
+    })
+    return [...byIdentity.values()]
+}
