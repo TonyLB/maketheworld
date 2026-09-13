@@ -22,11 +22,15 @@
  */
 import type { EphemeraCrossingPort, EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraLudicGraph, HostRelationalEdge } from '../ludicGraph'
-import { toStoredRelationalEdge } from '../ludicGraph'
+import type { HostRelationalEdge } from '../ludicGraph'
+import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from '../ludicGraph'
+import { nodesFromPresencePort, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import type { EphemeraLudicCacheEdge } from './types'
 
 const isCrossingPort = (port: EphemeraLudicGraphPort): port is EphemeraCrossingPort => port.kind !== 'Present'
+
+const hasPortTerminal = (portTerminal: EphemeraLudicPortAddress) => (edge: HostRelationalEdge): boolean =>
+    ephemeraLudicTerminalsEqual(edge.from, portTerminal) || ephemeraLudicTerminalsEqual(edge.to, portTerminal)
 
 /**
  * Whether two legs of what is claimed to be one edge actually agree on the fields that make
@@ -119,11 +123,8 @@ export const collapseCrossingPorts = (
 
     const collapsedLegs = crossingPorts.reduce<EphemeraLudicCacheEdge[]>((acc, port) => {
         const portTerminal: EphemeraLudicPortAddress = { owner: childGraph.hostId, port: port.portId }
-        const hasPortTerminal = (edge: HostRelationalEdge): boolean =>
-            ephemeraLudicTerminalsEqual(edge.from, portTerminal) || ephemeraLudicTerminalsEqual(edge.to, portTerminal)
-
-        const parentLeg = parentGraph.relationalEdges.find(hasPortTerminal)
-        const childLeg = childGraph.relationalEdges.find(hasPortTerminal)
+        const parentLeg = parentGraph.relationalEdges.find(hasPortTerminal(portTerminal))
+        const childLeg = childGraph.relationalEdges.find(hasPortTerminal(portTerminal))
 
         if (!parentLeg || !childLeg) {
             return acc
@@ -184,11 +185,8 @@ export const collapseSameHostStubs = (
 
     const collapsedLegs = sharedPortIds.reduce<EphemeraLudicCacheEdge[]>((acc, portId) => {
         const portTerminal: EphemeraLudicPortAddress = { owner: bucketA.hostId, port: portId }
-        const hasPortTerminal = (edge: HostRelationalEdge): boolean =>
-            ephemeraLudicTerminalsEqual(edge.from, portTerminal) || ephemeraLudicTerminalsEqual(edge.to, portTerminal)
-
-        const legA = bucketA.relationalEdges.find(hasPortTerminal)
-        const legB = bucketB.relationalEdges.find(hasPortTerminal)
+        const legA = bucketA.relationalEdges.find(hasPortTerminal(portTerminal))
+        const legB = bucketB.relationalEdges.find(hasPortTerminal(portTerminal))
 
         if (!legA || !legB) {
             return acc
@@ -215,6 +213,111 @@ export const collapseSameHostStubs = (
 
     const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
     collapsedLegs.forEach((edge) => {
+        const key = collapsedEdgeIdentityKey(edge)
+        const existing = byIdentity.get(key)
+        byIdentity.set(key, existing ? { ...existing, chains: [...existing.chains, ...edge.chains] } : edge)
+    })
+    return [...byIdentity.values()]
+}
+
+/**
+ * Fold-walk probe (ISS8149 D1, second measurement): the running state a walk needs between
+ * steps is an ordinary `EphemeraLudicGraph`, not a bespoke bookkeeping type --- its own `ports`
+ * (crossing stubs not yet matched) and the subset of its `relationalEdges` that still terminate
+ * on one of them already *are* "what remains unresolved." A resolved edge is nothing more than
+ * an ordinary edge already sitting in that same list, real terminal to real terminal.
+ *
+ * Generalizes `collapseSameHostStubs`'s matching --- same shared-`portId` rule, same
+ * `legsAgree`/`outerTerminal`/rewrite --- from "join two static cuts once" to "fold one more cut
+ * into a running graph, carrying forward whatever it can't yet resolve." A crossing port that
+ * matches on both sides is consumed (it no longer bounds anything); one that doesn't is carried
+ * forward on both the port list and the edge list exactly as it arrived, since its match may not
+ * have appeared yet --- the case a straddling edge between non-adjacent buckets needs.
+ */
+export const mergeSameHostBucket = (
+    accumulated: EphemeraLudicGraph,
+    bucket: EphemeraLudicGraph
+): EphemeraLudicGraph => {
+    const accumulatedStubIds = new Set(accumulated.ports.filter(isCrossingPort).map((port) => port.portId))
+    const bucketStubIds = bucket.ports.filter(isCrossingPort).map((port) => port.portId)
+    const matchedPortIds = new Set(bucketStubIds.filter((portId) => accumulatedStubIds.has(portId)))
+
+    const resolved = [...matchedPortIds].reduce<HostRelationalEdge[]>((acc, portId) => {
+        const portTerminal: EphemeraLudicPortAddress = { owner: accumulated.hostId, port: portId }
+        const legA = accumulated.relationalEdges.find(hasPortTerminal(portTerminal))
+        const legB = bucket.relationalEdges.find(hasPortTerminal(portTerminal))
+
+        if (!legA || !legB) {
+            return acc
+        }
+        if (!legsAgree(legA, legB)) {
+            throw new Error(
+                `Stub port ${portId} on ${accumulated.hostId} joins legs that disagree on kind/relationLabel/chainId`
+            )
+        }
+
+        const outerB = outerTerminal(legB, portTerminal)
+        const rewrite = (terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalId =>
+            ephemeraLudicTerminalsEqual(terminal, portTerminal) ? outerB : terminal
+
+        return [...acc, { ...legA, from: rewrite(legA.from), to: rewrite(legA.to) }]
+    }, [])
+
+    const touchesMatchedPort = (edge: HostRelationalEdge): boolean =>
+        [...matchedPortIds].some((portId) => hasPortTerminal({ owner: accumulated.hostId, port: portId })(edge))
+
+    const carriedForward = [...accumulated.relationalEdges, ...bucket.relationalEdges].filter(
+        (edge) => !touchesMatchedPort(edge)
+    )
+
+    const nodes = [...new Set([...accumulated.nodeIds, ...bucket.nodeIds])].map(nodeFromId)
+    const ports = [...accumulated.ports, ...bucket.ports].filter(
+        (port, index, all) => !matchedPortIds.has(port.portId) && all.findIndex((p) => p.portId === port.portId) === index
+    )
+
+    return EphemeraLudicGraph.fromFieldPayload(accumulated.hostId, {
+        rootId: accumulated.rootId,
+        nodes,
+        edges: [...resolved, ...carriedForward].map(toStoredRelationalEdge),
+        ports,
+    })
+}
+
+/**
+ * Fold-walk probe (ISS8149 D1, second measurement): a single accumulating pass over `portIds`,
+ * cutting each bucket and folding its stubs into the running graph in the same step --- not a
+ * pass that cuts every bucket first and a second pass that matches stubs across the fully-cut
+ * set. Order of `portIds` does not affect the result: a still-open stub lives in the
+ * accumulator's own state until something matches it, not in a side channel compared only to the
+ * immediately preceding bucket.
+ *
+ * The final read-off is the accumulated graph's own edges that no longer touch any of its own
+ * remaining `ports` --- those are the resolved interior edges. Anything still touching a
+ * remaining port is a genuine unresolved boundary (this host is not fully covered by `portIds`)
+ * and is correctly not emitted, the same "incomplete data, not an error" stance
+ * `collapseCrossingPorts` already takes.
+ */
+export const foldSameHostBuckets = (
+    graph: EphemeraLudicGraph,
+    portIds: string[]
+): EphemeraLudicCacheEdge[] => {
+    const seed = EphemeraLudicGraph.fromFieldPayload(graph.hostId, { rootId: graph.rootId, nodes: [], edges: [], ports: [] })
+
+    const folded = portIds.reduce<EphemeraLudicGraph>((accumulated, portId) => {
+        const bucket = subGraphFromNodes(graph, nodesFromPresencePort(graph, portId))
+        return mergeSameHostBucket(accumulated, bucket)
+    }, seed)
+
+    const remainingStubIds = folded.ports.filter(isCrossingPort).map((port) => port.portId)
+    const touchesRemainingStub = (edge: HostRelationalEdge): boolean =>
+        remainingStubIds.some((portId) => hasPortTerminal({ owner: folded.hostId, port: portId })(edge))
+
+    const resolvedLegs = folded.relationalEdges
+        .filter((edge) => !touchesRemainingStub(edge))
+        .map((edge) => ({ ...toStoredRelationalEdge(edge), chains: [] as EphemeraLudicCacheEdge['chains'] }))
+
+    const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
+    resolvedLegs.forEach((edge) => {
         const key = collapsedEdgeIdentityKey(edge)
         const existing = byIdentity.get(key)
         byIdentity.set(key, existing ? { ...existing, chains: [...existing.chains, ...edge.chains] } : edge)
