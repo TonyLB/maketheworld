@@ -217,6 +217,72 @@ describe('subGraphFromNodes', () => {
         expect(first.ports[0].portId).toEqual(second.ports[0].portId)
     })
 
+    it('prefixes a minted stub id with STUB-, so the merge can tell it from an authored crossing port', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            edges: [{ tag: 'Relational', from: objC, to: objD, kind: 'Under' }],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.ports[0].portId.startsWith('STUB-')).toBe(true)
+    })
+
+    it('keys a chain-bearing straddle on its chainId --- at most one leg of a chain per host', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            edges: [{ tag: 'Relational', from: objC, to: objD, kind: 'Under', chainId: 'rope1' }],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.ports[0].portId).toEqual('STUB-rope1')
+    })
+
+    it('mints the same chain-keyed id from both sides of the cut, each bucket seeing only its own half', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            edges: [{ tag: 'Relational', from: objC, to: objD, kind: 'Under', chainId: 'rope1' }],
+        })
+        const holdingFrom = subGraphFromNodes(graph, new Set([roomId, objC]))
+        const holdingTo = subGraphFromNodes(graph, new Set([roomId, objD]))
+        expect(holdingFrom.ports[0].portId).toEqual(holdingTo.ports[0].portId)
+        //
+        // The halves differ only in which real terminal survives --- which is what makes the
+        // shared id the whole matching mechanism.
+        //
+        expect(holdingFrom.relationalEdges).toEqual([
+            { from: objC, to: { owner: roomId, port: 'STUB-rope1' }, kind: 'Under', chainId: 'rope1' },
+        ])
+        expect(holdingTo.relationalEdges).toEqual([
+            { from: { owner: roomId, port: 'STUB-rope1' }, to: objD, kind: 'Under', chainId: 'rope1' },
+        ])
+    })
+
+    it('throws when two straddling edges in one cut mint the same stub id', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Character', universalKey: charA },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            edges: [
+                { tag: 'Relational', from: objC, to: objD, kind: 'Under', chainId: 'rope1' },
+                { tag: 'Relational', from: charA, to: objD, kind: 'Against', chainId: 'rope1' },
+            ],
+        })
+        expect(() => subGraphFromNodes(graph, bucket)).toThrow(/same stub port id STUB-rope1/)
+    })
+
     it('carries the relationLabel into exteriorRelationLabel for a Custom-kind straddle', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [

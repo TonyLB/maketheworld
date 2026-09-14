@@ -91,23 +91,49 @@ export const nodesFromPresencePorts = (
     )
 
 /**
- * 1b-i: a pure, local re-encoding of exactly the fields `edgesMatch` (`baseClasses.ts`) treats
- * as an edge's identity --- `from`, `to`, `kind`, `relationLabel` on `Custom`, `chainId`.
- * Deliberately duplicated rather than imported (LR-1's dependency tag): two edges can only
- * collide on this key if the graph's own comparison already cannot tell them apart, so it is a
- * canonical encoding of existing identity, not a separate scheme. Used to mint a stub port's id
- * below, and nowhere else --- it is not a general edge hash.
+ * 1b-i: the id of a stub port minted for a same-host straddle. Two things have to be true of it,
+ * and they pull in different directions --- it must come out **identical from both sides of the
+ * cut** (the matching mechanism: two buckets discover they hold halves of one edge by both naming
+ * the port after the whole), and it must be **recognizable as a stub** rather than an authored
+ * crossing port.
+ *
+ * **The `STUB-` prefix is load-bearing, not decoration.** A stub is minted carrying the severed
+ * edge's own `kind`, so `isCrossingPort` --- which narrows on `kind` --- cannot tell a stub from an
+ * authored `EphemeraCrossingPort`. The same-host merge needs that distinction to avoid treating a
+ * real boundary present in two buckets as a severed edge to splice. The clean discriminator is a
+ * field on the port type, but that is `ephemeraMeta.ts`, outside LR-1's dependency tag above; a
+ * recognizable id is the version of it available in here. **Nothing sniffs the prefix yet** --- it
+ * is minted ahead of the consumer deliberately, so that landing the merge-side change is a change
+ * to one function rather than two.
+ *
+ * **Two forms, and why `chainId` is admissible as a key.** `chainId` is a *chain* identity while
+ * this is an *edge* identity, which is a real category distinction --- but a chain contributes **at
+ * most one leg per host** (a chain's waypoints are ports and its terminals are nodes, so it cannot
+ * double back), and a stub id is only ever required to be unique *among stub ports in this one
+ * cut*. At that scope the chain names the leg unambiguously. That is a property of construction,
+ * not an invariant the types enforce: see `subGraphFromNodes`'s duplicate check, which exists to
+ * make its violation loud.
+ *
+ * The fallback re-encodes exactly the fields `edgesMatch` (`baseClasses.ts`) treats as an edge's
+ * identity. Deliberately duplicated rather than imported (LR-1's dependency tag): two edges can
+ * only collide on it if the graph's own comparison already cannot tell them apart, so it is a
+ * canonical encoding of existing identity, not a separate scheme. `chainId` is absent from it
+ * because this branch is only reached when `edge.chainId` is falsy, and a zero-length `chainId` is
+ * rejected at the type guard --- so it would contribute a constant, and reading as though the
+ * branch discriminated on it.
  */
-const edgeIdentityKey = (edge: HostRelationalEdge): string => {
+const stubPortIdFromEdge = (edge: HostRelationalEdge): string => {
+    if (edge.chainId) {
+        return `STUB-${edge.chainId}`
+    }
     const terminalKey = (terminal: EphemeraLudicTerminalId): string =>
         typeof terminal === 'string' ? terminal : `${terminal.owner}#${terminal.port}`
-    return JSON.stringify([
+    return `STUB-${JSON.stringify([
         terminalKey(edge.from),
         terminalKey(edge.to),
         edge.kind,
         edge.kind === 'Custom' ? edge.relationLabel : '',
-        edge.chainId ?? '',
-    ])
+    ])}`
 }
 
 /**
@@ -186,7 +212,7 @@ export const subGraphFromNodes = (
             // Never `Present`-kind here --- excluded above --- so `edge.kind` is always
             // `Exclude<HostRelationalEdgeKind, 'Present'>`, exactly what a crossing port's `kind`
             // field requires, with no narrowing left to do beyond the cast itself.
-            const portId = edgeIdentityKey(edge)
+            const portId = stubPortIdFromEdge(edge)
             const port: EphemeraLudicGraphPort = {
                 portId,
                 fromHostId: outsideTerminal,
@@ -199,6 +225,21 @@ export const subGraphFromNodes = (
         },
         { edges: [], ports: [] }
     )
+
+    // Two stubs minted with one id in a single cut is a data-integrity break, not a case to paper
+    // over --- the same stance `legsAgree` takes in the reducer. It would otherwise be silent:
+    // `fromFieldPayload` copies `ports` without deduping (unlike `addPort`), and the merge resolves
+    // legs with `.find`, so the second crossing would simply be discarded. Reachable only by
+    // violating "at most one leg of a chain per host", which nothing enforces --- hence a check
+    // rather than a comment.
+    const duplicateStubId = ports
+        .map(({ portId }) => portId)
+        .find((portId, index, all) => all.indexOf(portId) !== index)
+    if (duplicateStubId !== undefined) {
+        throw new Error(
+            `Two straddling edges on ${graph.hostId} mint the same stub port id ${duplicateStubId}`
+        )
+    }
 
     const presencePorts = graph.ports.filter((port) => port.kind === 'Present')
 

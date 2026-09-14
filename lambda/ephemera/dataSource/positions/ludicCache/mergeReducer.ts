@@ -65,7 +65,7 @@ const outerTerminal = (
  * A pure, local re-encoding of a *collapsed* edge's identity --- the same field list
  * `edgesMatch` (`baseClasses.ts`) treats as an edge's identity, but read off the collapsed
  * edge's final, resolved endpoints rather than off stored data. Deliberately duplicated rather
- * than imported, matching `presenceSubGraph.ts`'s own `edgeIdentityKey` (LR-1's dependency
+ * than imported, matching `presenceSubGraph.ts`'s own `stubPortIdFromEdge` (LR-1's dependency
  * tag) --- this is a different call site (post-collapse, not pre-mint) and owes no more to that
  * one than the shared source field list already implies.
  */
@@ -163,7 +163,7 @@ export const collapseCrossingPorts = (
  * cut into two independent halves rather than see whole, per `nodesFromPresencePorts`'s own doc
  * comment in `presenceSubGraph.ts` --- cutting bucket A alone and bucket B alone, instead of
  * unioning their node sets before a single cut, leaves the straddling edge "independently
- * stub-ported on each side" with no rejoin step. `edgeIdentityKey` mints that stub id
+ * stub-ported on each side" with no rejoin step. `stubPortIdFromEdge` mints that stub id
  * deterministically from the edge's own fields (`from`/`to`/`kind`/`relationLabel`/`chainId`),
  * so both cuts land on the same portId for the same original edge --- the two bucket graphs
  * being joined here are two cuts of the *same* `EphemeraLudicGraph` (`hostId` in common), not a
