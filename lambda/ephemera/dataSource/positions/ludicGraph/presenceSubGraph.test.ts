@@ -24,6 +24,13 @@ const presencePort = (portId: string): EphemeraLudicGraphPort => ({
     kind: 'Present',
 })
 
+/** An *authored* boundary of the whole, as distinct from a stub minted by a cut. */
+const crossingPort = (portId: string): EphemeraLudicGraphPort => ({
+    portId,
+    fromHostId: objE,
+    kind: 'Under',
+})
+
 const presentEdge = (portId: string, to: EphemeraLudicRelationalEdgeData['to']): EphemeraLudicRelationalEdgeData => ({
     tag: 'Relational',
     from: { owner: roomId, port: portId },
@@ -152,7 +159,45 @@ describe('subGraphFromNodes', () => {
         expect(result.ports).toEqual([])
     })
 
-    it('keeps a straddle unchanged when the far endpoint is already port-qualified', () => {
+    //
+    // This case used to assert the opposite --- that a port-qualified far endpoint is kept whole
+    // and mints nothing --- on the premise that such a terminal names a node in some *other*
+    // graph. PR-C2 (2026-08-21) settled that it cannot: a boundary-spanning edge "is not one
+    // edge" but two, each terminating on its own host's port, so `{ owner: X, port: p }` here is
+    // either this host's boundary or a node of this graph naming a port on its own interior. In
+    // the latter case it is an ordinary same-host straddle, and leaving it whole is not merely
+    // conservative but incoherent: the bucket holding objE would stub its own bare objC end,
+    // leaving one unmatched stub and one duplicate edge with nothing to splice them.
+    //
+    it('mints a stub for a straddle to an in-graph node addressed through its own port', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objE },
+            ],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: objE, port: 'ext1' }, kind: 'Custom', relationLabel: 'TiedTo' }],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.ports).toHaveLength(1)
+        const [port] = result.ports
+        expect(port).toMatchObject({ fromHostId: objE, kind: 'Custom', exteriorRelationLabel: 'TiedTo' })
+        expect(result.relationalEdges).toEqual([
+            { from: objC, to: { owner: roomId, port: port.portId }, kind: 'Custom', relationLabel: 'TiedTo' },
+        ])
+        //
+        // The `port` half of the address is not carried on `fromHostId`, which holds owners only
+        // --- but it survives in the minted id, which is what lets the bucket holding objE mint
+        // the same one and the splice recover the full terminal from the leg that kept it.
+        //
+        const holdingTo = subGraphFromNodes(graph, new Set([roomId, objE]))
+        expect(holdingTo.ports[0].portId).toEqual(port.portId)
+        expect(holdingTo.relationalEdges).toEqual([
+            { from: { owner: roomId, port: port.portId }, to: { owner: objE, port: 'ext1' }, kind: 'Custom', relationLabel: 'TiedTo' },
+        ])
+    })
+
+    it('throws on a terminal owner that is neither the root nor a node of the graph', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
@@ -160,11 +205,95 @@ describe('subGraphFromNodes', () => {
             ],
             edges: [{ tag: 'Relational', from: objC, to: { owner: objE, port: 'ext1' }, kind: 'Custom', relationLabel: 'TiedTo' }],
         })
+        expect(() => subGraphFromNodes(graph, bucket)).toThrow(/neither the root nor a node/)
+    })
+
+    //
+    // The root is neutral in both of its guises, and these two cases are the same case: the
+    // owner-based classification read each of them as *in*, called the edge a straddle, and minted
+    // a port for a crossing that was never crossing anything. Nothing is lost by excluding them
+    // --- objD's own bucket carries each edge whole, both terminals real.
+    //
+    it('excludes a hosting edge to a node outside the bucket rather than minting a stub', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            edges: [{ tag: 'Relational', from: objD, to: roomId, kind: 'In' }],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.relationalEdges).toEqual([])
+        expect(result.ports).toEqual([])
+    })
+
+    it("excludes a peer edge from the host's own port to a node outside the bucket", () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            ports: [crossingPort('cross_1')],
+            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'cross_1' }, to: objD, kind: 'Under' }],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.relationalEdges).toEqual([])
+        expect(result.ports.filter((port) => port.kind !== 'Present')).toEqual([])
+    })
+
+    it('keeps a hosting edge to the root, and a peer edge out through a port, for a node in the bucket', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+            ],
+            ports: [crossingPort('cross_1')],
+            edges: [
+                { tag: 'Relational', from: objC, to: roomId, kind: 'In' },
+                { tag: 'Relational', from: objC, to: { owner: roomId, port: 'cross_1' }, kind: 'Under' },
+            ],
+        })
         const result = subGraphFromNodes(graph, bucket)
         expect(result.relationalEdges).toEqual([
-            { from: objC, to: { owner: objE, port: 'ext1' }, kind: 'Custom', relationLabel: 'TiedTo' },
+            { from: objC, to: roomId, kind: 'In' },
+            { from: objC, to: { owner: roomId, port: 'cross_1' }, kind: 'Under' },
         ])
-        expect(result.ports).toEqual([])
+        expect(result.ports.filter((port) => port.kind !== 'Present')).toEqual([])
+    })
+
+    //
+    // LC10: a leg entering through one port and leaving through another without touching a node
+    // of this host (the lever-and-boiler shape). Two neutral endpoints, so no bucket owns it and
+    // every bucket keeps it. It survived the owner-based classification too, but only by accident
+    // --- both terminals resolved to the root and read as interior.
+    //
+    it('keeps a port-to-port transit leg in every bucket, minting nothing', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            ports: [crossingPort('cross_1'), crossingPort('cross_2')],
+            edges: [{
+                tag: 'Relational',
+                from: { owner: roomId, port: 'cross_1' },
+                to: { owner: roomId, port: 'cross_2' },
+                kind: 'Custom',
+                relationLabel: 'RopedTo',
+            }],
+        })
+        const transitLeg = {
+            from: { owner: roomId, port: 'cross_1' },
+            to: { owner: roomId, port: 'cross_2' },
+            kind: 'Custom',
+            relationLabel: 'RopedTo',
+        }
+        expect(subGraphFromNodes(graph, bucket).relationalEdges).toEqual([transitLeg])
+        expect(subGraphFromNodes(graph, new Set([roomId, objD])).relationalEdges).toEqual([transitLeg])
+        expect(subGraphFromNodes(graph, bucket).ports.filter((port) => port.kind !== 'Present')).toEqual([])
     })
 
     it("mints a stub port for PR-C1's intra-graph straddle (bare id, no port at the cut)", () => {

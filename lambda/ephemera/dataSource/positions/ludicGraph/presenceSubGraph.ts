@@ -137,38 +137,77 @@ const stubPortIdFromEdge = (edge: HostRelationalEdge): string => {
 }
 
 /**
+ * What one endpoint of one edge leg says about whether that edge belongs in this bucket. See
+ * `subGraphFromNodes` for the three values and the pairs they combine into.
+ */
+type EndpointStatus = 'qualified' | 'disqualified' | 'neutral'
+
+/**
  * The sub-graph a set of nodes induces on `graph`, per LR-1: all of `nodes`, all the *content*
  * edges between them, and --- the decision this function exists to implement --- what becomes of
- * a content edge with exactly one endpoint outside `nodes`. **Drop is unavailable** (C7): the cut
- * always lands on a port, real or minted.
+ * a content edge with exactly one endpoint outside `nodes`. **Drop is unavailable for a genuine
+ * straddle** (C7): where the cut severs a real relationship it lands on a port, real or minted,
+ * never on nothing. That is narrower than "no edge is ever dropped" --- an edge can also fail to
+ * reach this bucket at all, which is not a severed relationship but an absent one.
  *
  * **`Present`-kind edges are excluded before any of that classification runs (LR-6, revised).**
  * They are bucket-membership metadata --- `nodesFromPresencePort` has already fully consumed them
  * to produce `nodes` --- not a spatial relationship between two members the way `Under`/`Custom`/
  * `PartOf` are, so they are never interior content, never dropped, and never straddle-minted; they
- * simply do not participate. (They are also, mechanically, guaranteed to straddle in the naive
- * classification for every node outside the current bucket in a multi-port graph: a `Present`
- * edge's `from` always resolves to the root, which PR-9 puts in *every* bucket, so `fromIn` is
- * always true and `toIn` is false for any node exclusively in a different bucket --- treating that
- * as an ordinary straddle would mint a redundant synthetic port for a crossing a *real* port
- * already documents.) **Deactivated rather than deleted:** whether an interior node's own
+ * simply do not participate. (LR-6 originally rested on a second, mechanical argument too: under
+ * the owner-based classification a `Present` edge into another bucket was *guaranteed* to look
+ * like a straddle, since its `from` resolves to the root and the root read as *in*. That argument
+ * has since dissolved --- a presence port is neutral now, so such an edge is neutral-plus-
+ * disqualified and would be excluded rather than minted even without the carve-out. The
+ * substantive argument above is untouched by that and is why the carve-out stays: these edges
+ * have already been consumed, so they are not content to classify in the first place.)
+ * **Deactivated rather than deleted:** whether an interior node's own
  * `Present` edge needs representing again --- e.g. as merge-time provenance --- is a question for
  * Slice 2's ludicCache merge design, not this function; it may return in a different form once
  * that lands.
  *
- * Remaining (non-`Present`) content edges:
+ * Remaining (non-`Present`) content edges are classified by **the status of each endpoint**, not
+ * by whether its owning component happens to land in `nodes`. The difference is the whole of this
+ * rule: `ephemeraLudicTerminalOwner` maps the bare root `ROOM#A` (a legitimate member of every
+ * bucket, PR-9, and the parent-side terminal of every hosting edge) and the graph's own boundary
+ * `{ owner: ROOM#A, port: P }` (a member of nothing, the far side of every peer edge crossing out)
+ * onto the same primitive, so a `nodes.has()` test cannot tell them apart. It does not have to:
+ * **they have the same status.** Both are available in *every* bucket, and that is the only fact
+ * classification needs from either.
  *
- * - **Both endpoints in `nodes`:** kept unchanged.
- * - **Neither endpoint in `nodes`:** dropped --- it doesn't touch this bucket (PR-9's cover
- *   ranges over nodes, and an edge naming none of them has nothing to anchor it here).
- * - **Exactly one endpoint outside `nodes` (a straddle):**
- *   - **Already port-qualified far endpoint** --- LR-1's narrow case, true whenever the far node
- *     genuinely belongs to a different graph (a bare id cannot refer across hosts). Kept
- *     unchanged; nothing is minted, since that port's home graph is the other side, not this one.
- *   - **Bare-id far endpoint** --- LR-1's straddle proper: a peer in *this same* graph that
- *     simply isn't in the chosen bucket (PR-C1), with no port anywhere to fall back on. A stub
- *     port is minted (1b-ii) and that endpoint is rewritten to `{ owner: graph.hostId, port }`,
- *     the same addressing idiom `nodesFromPresencePort` already uses for the graph's own ports.
+ * - **Neutral** --- the root, bare or port-qualified. Neither anchors an edge to this bucket nor
+ *   argues against it, because whichever bucket does anchor the edge also has it.
+ * - **Qualified** --- any other endpoint whose owner is in `nodes`.
+ * - **Disqualified** --- any other endpoint whose owner is not.
+ *
+ * Port-qualification never affects status. A terminal `{ owner: X, port: p }` in this graph's edge
+ * list has exactly two legitimate forms: `X` is this host (the boundary, above), or `X` is a node
+ * of this graph naming a port on its own interior --- `OBJECT#TABLE#PORTA`, where the Table is at
+ * once a node here and a whole hosting its own graph. There is no third form reaching across to
+ * name some *other* host's port: PR-C2 settled (2026-08-21) that a boundary-spanning edge "is not
+ * one edge" but two, each terminating on its own host's port. So the Table is classified exactly
+ * as a bare `OBJECT#TABLE` would be, and when it is disqualified the edge is a same-host straddle
+ * like any other. (An owner that is neither the root nor a node of the graph is that excluded third
+ * form; it throws rather than minting a port onto a host that was never here.)
+ *
+ * Then, by status pair:
+ *
+ * - **No qualified endpoint, at least one disqualified:** excluded. Nothing is lost --- a neutral
+ *   endpoint is in every bucket, so the bucket that qualifies the other end carries this edge
+ *   whole, with both real terminals and no stub. (This is the case the owner-based test used to
+ *   get wrong, and loudly: it read the neutral end as *in*, called the edge a straddle, and minted
+ *   a synthetic port for a crossing that was never crossing anything.)
+ * - **Both endpoints neutral:** kept, in every bucket --- a transit leg entering this whole through
+ *   one port and leaving through another without touching a node of it (LC10, the lever-and-boiler
+ *   shape). It has no bucket of its own to belong to, so it belongs to all of them.
+ * - **All endpoints qualified or neutral:** kept unchanged.
+ * - **One qualified, one disqualified:** LR-1's straddle proper --- a peer in *this same* graph
+ *   that simply isn't in the chosen bucket (PR-C1). A stub port is minted (1b-ii) and the
+ *   disqualified endpoint is rewritten to `{ owner: graph.hostId, port }`, the same addressing
+ *   idiom `nodesFromPresencePort` already uses for the graph's own ports. Where that endpoint was
+ *   port-qualified, `fromHostId` records only its owner --- but the `port` half is not lost: it is
+ *   encoded in the minted id, so the other bucket mints the same id, and the splice recovers the
+ *   full address from the leg that still holds it.
  *
  * Returns an `EphemeraLudicGraph` rather than a bespoke shape --- the induced sub-graph is a
  * graph on the *same* host (a bucket is a cut of `graph`, not a different graph), so `hostId` and
@@ -191,36 +230,58 @@ export const subGraphFromNodes = (
 
     const contentEdges = graph.relationalEdges.filter((edge) => edge.kind !== 'Present')
 
+    const root = ephemeraLudicTerminalOwner(graph.rootId)
+    const endpointStatus = (terminal: EphemeraLudicTerminalId): EndpointStatus => {
+        const owner = ephemeraLudicTerminalOwner(terminal)
+        // `rootId === hostId` for a host-bound graph (see `EphemeraLudicGraph`), but both are
+        // tested rather than assumed --- `fromFieldPayload` does not enforce it, and it is
+        // `graph.hostId` that minting itself writes into a stub terminal.
+        if (owner === root || owner === graph.hostId) {
+            return 'neutral'
+        }
+        if (!graph.nodeIds.has(owner)) {
+            throw new Error(
+                `Edge terminal ${owner} on ${graph.hostId} is neither the root nor a node of the graph`
+            )
+        }
+        return nodes.has(owner) ? 'qualified' : 'disqualified'
+    }
+
     const { edges, ports } = contentEdges.reduce<{
         edges: HostRelationalEdge[]
         ports: EphemeraLudicGraphPort[]
     }>(
         (acc, edge) => {
-            const fromIn = nodes.has(ephemeraLudicTerminalOwner(edge.from))
-            const toIn = nodes.has(ephemeraLudicTerminalOwner(edge.to))
-            if (fromIn && toIn) {
+            const fromStatus = endpointStatus(edge.from)
+            const toStatus = endpointStatus(edge.to)
+            if (fromStatus !== 'qualified' && toStatus !== 'qualified') {
+                // Nothing anchors the edge here. Two neutral endpoints is a transit leg, which
+                // every bucket keeps; anything else touches only nodes cut away, and the bucket
+                // that qualifies them carries it whole.
+                return fromStatus === 'neutral' && toStatus === 'neutral'
+                    ? { ...acc, edges: [...acc.edges, edge] }
+                    : acc
+            }
+            if (fromStatus !== 'disqualified' && toStatus !== 'disqualified') {
                 return { ...acc, edges: [...acc.edges, edge] }
             }
-            if (!fromIn && !toIn) {
-                return acc
-            }
-            const outsideTerminal = fromIn ? edge.to : edge.from
-            if (typeof outsideTerminal !== 'string') {
-                // Already port-qualified --- LR-1's narrow case, nothing to mint.
-                return { ...acc, edges: [...acc.edges, edge] }
-            }
+            // Exactly one of each by elimination: the branch above caught "no qualified", this
+            // one caught "no disqualified".
+            const outsideTerminal = fromStatus === 'disqualified' ? edge.from : edge.to
             // Never `Present`-kind here --- excluded above --- so `edge.kind` is always
             // `Exclude<HostRelationalEdgeKind, 'Present'>`, exactly what a crossing port's `kind`
             // field requires, with no narrowing left to do beyond the cast itself.
             const portId = stubPortIdFromEdge(edge)
             const port: EphemeraLudicGraphPort = {
                 portId,
-                fromHostId: outsideTerminal,
+                fromHostId: ephemeraLudicTerminalOwner(outsideTerminal),
                 kind: edge.kind as Exclude<HostRelationalEdgeKind, 'Present'>,
                 ...(edge.kind === 'Custom' ? { exteriorRelationLabel: edge.relationLabel } : {}),
             }
             const stubTerminal = { owner: graph.hostId, port: portId }
-            const rewritten = fromIn ? { ...edge, to: stubTerminal } : { ...edge, from: stubTerminal }
+            const rewritten = fromStatus === 'disqualified'
+                ? { ...edge, from: stubTerminal }
+                : { ...edge, to: stubTerminal }
             return { edges: [...acc.edges, rewritten], ports: [...acc.ports, port] }
         },
         { edges: [], ports: [] }
