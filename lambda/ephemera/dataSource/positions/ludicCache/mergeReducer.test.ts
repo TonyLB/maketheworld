@@ -9,7 +9,7 @@ import type { EphemeraLudicGraphPort, EphemeraLudicRelationalEdgeData } from '@t
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { nodesFromPresencePort, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
-import { collapseCrossingPorts, collapseSameHostStubs, foldSameHostBuckets } from './mergeReducer'
+import { collapseCrossingPorts, collapseSameHostStubs, foldSameHostBuckets, mergeSameHostBucket } from './mergeReducer'
 
 const roomId = 'ROOM#Root' as EphemeraRoomId
 const boxId = 'OBJECT#Box' as EphemeraObjectId
@@ -181,13 +181,13 @@ describe('collapseSameHostStubs', () => {
     it('does not collapse two stub ports that only coincidentally share an id if their legs disagree', () => {
         const bucketA = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
-            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'stub_1' }, kind: 'Under' }],
-            ports: [{ portId: 'stub_1', fromHostId: objD, kind: 'Under' }],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Under' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Under' }],
         })
         const bucketB = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objD }],
-            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'stub_1' }, to: objD, kind: 'Against' }],
-            ports: [{ portId: 'stub_1', fromHostId: objC, kind: 'Against' }],
+            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'STUB-1' }, to: objD, kind: 'Against' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objC, kind: 'Against' }],
         })
 
         expect(() => collapseSameHostStubs(bucketA, bucketB)).toThrow(/disagree/)
@@ -196,8 +196,8 @@ describe('collapseSameHostStubs', () => {
     it('skips a stub port present in only one bucket', () => {
         const bucketA = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
-            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'stub_1' }, kind: 'Under' }],
-            ports: [{ portId: 'stub_1', fromHostId: objD, kind: 'Under' }],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Under' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Under' }],
         })
         const bucketB = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objE2 }],
@@ -206,6 +206,96 @@ describe('collapseSameHostStubs', () => {
         })
 
         expect(collapseSameHostStubs(bucketA, bucketB)).toEqual([])
+    })
+
+    //
+    // The failure this exists to prevent, and it would have been silent: a port-to-port transit
+    // leg (LC10's shape) is kept by every bucket, and `subGraphFromNodes` now carries the authored
+    // ports it names alongside it --- so the *same real* boundary is present on both sides with a
+    // leg touching it on both sides. Matched as a stub, it splices to itself into
+    // `cross_1 -[RopedTo]-> cross_1`, and `legsAgree` cannot object, because the two legs are the
+    // same leg. Only the minted-vs-authored distinction rules it out.
+    //
+    it('does not splice an authored crossing port present in both buckets', () => {
+        const transitLeg = {
+            tag: 'Relational' as const,
+            from: { owner: roomId, port: 'cross_1' },
+            to: { owner: roomId, port: 'cross_2' },
+            kind: 'Custom' as const,
+            relationLabel: 'RopedTo',
+        }
+        const authored = [
+            { portId: 'cross_1', fromHostId: objC, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
+            { portId: 'cross_2', fromHostId: objD, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
+        ]
+        const bucketA = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
+            edges: [transitLeg],
+            ports: authored,
+        })
+        const bucketB = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objD }],
+            edges: [transitLeg],
+            ports: authored,
+        })
+
+        expect(collapseSameHostStubs(bucketA, bucketB)).toEqual([])
+    })
+})
+
+describe('mergeSameHostBucket', () => {
+    const transitLeg = {
+        tag: 'Relational' as const,
+        from: { owner: roomId, port: 'cross_1' },
+        to: { owner: roomId, port: 'cross_2' },
+        kind: 'Custom' as const,
+        relationLabel: 'RopedTo',
+    }
+    const authored = [
+        { portId: 'cross_1', fromHostId: objC, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
+        { portId: 'cross_2', fromHostId: objD, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
+    ]
+
+    //
+    // A transit leg has no bucket of its own, so every bucket keeps a copy and both copies reach
+    // the merge. They are cuts of one source edge and agree in every field, so the merge keeps one
+    // --- and keeps the boundary it names, which no same-host merge can resolve.
+    //
+    it('carries an authored boundary and its transit leg forward once, not twice', () => {
+        const bucketA = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
+            edges: [transitLeg],
+            ports: authored,
+        })
+        const bucketB = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objD }],
+            edges: [transitLeg],
+            ports: authored,
+        })
+
+        const merged = mergeSameHostBucket(bucketA, bucketB)
+        expect(merged.relationalEdges).toEqual([
+            { from: transitLeg.from, to: transitLeg.to, kind: 'Custom', relationLabel: 'RopedTo' },
+        ])
+        expect(merged.ports).toEqual(authored)
+        expect([...merged.nodeIds]).toEqual(expect.arrayContaining([roomId, objC, objD]))
+    })
+
+    it('still consumes a minted stub matched on both sides', () => {
+        const bucketA = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Under' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Under' }],
+        })
+        const bucketB = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objD }],
+            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'STUB-1' }, to: objD, kind: 'Under' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objC, kind: 'Under' }],
+        })
+
+        const merged = mergeSameHostBucket(bucketA, bucketB)
+        expect(merged.relationalEdges).toEqual([{ from: objC, to: objD, kind: 'Under' }])
+        expect(merged.ports).toEqual([])
     })
 })
 

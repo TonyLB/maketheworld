@@ -260,7 +260,7 @@ describe('subGraphFromNodes', () => {
             { from: objC, to: roomId, kind: 'In' },
             { from: objC, to: { owner: roomId, port: 'cross_1' }, kind: 'Under' },
         ])
-        expect(result.ports.filter((port) => port.kind !== 'Present')).toEqual([])
+        expect(result.ports).toEqual([crossingPort('cross_1')])
     })
 
     //
@@ -293,7 +293,45 @@ describe('subGraphFromNodes', () => {
         }
         expect(subGraphFromNodes(graph, bucket).relationalEdges).toEqual([transitLeg])
         expect(subGraphFromNodes(graph, new Set([roomId, objD])).relationalEdges).toEqual([transitLeg])
-        expect(subGraphFromNodes(graph, bucket).ports.filter((port) => port.kind !== 'Present')).toEqual([])
+        expect(subGraphFromNodes(graph, bucket).ports.filter((port) => port.kind !== 'Present')).toEqual([
+            crossingPort('cross_1'),
+            crossingPort('cross_2'),
+        ])
+    })
+
+    it('carries an authored crossing port into a bucket whose edges name it', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+            ],
+            ports: [crossingPort('cross_1')],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'cross_1' }, kind: 'Under' }],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.ports).toEqual([crossingPort('cross_1')])
+    })
+
+    //
+    // Referenced, not wholesale. A boundary no surviving edge reaches bounds nothing in this
+    // bucket, and carrying it would assert a crossing this bucket does not have --- and would
+    // hand the same-host merge a port present on both sides with no leg to splice.
+    //
+    it('does not carry an authored crossing port no surviving edge names', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            ports: [crossingPort('cross_1'), crossingPort('cross_2')],
+            edges: [
+                { tag: 'Relational', from: objC, to: { owner: roomId, port: 'cross_1' }, kind: 'Under' },
+                { tag: 'Relational', from: objD, to: { owner: roomId, port: 'cross_2' }, kind: 'Under' },
+            ],
+        })
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.ports).toEqual([crossingPort('cross_1')])
     })
 
     it("mints a stub port for PR-C1's intra-graph straddle (bare id, no port at the cut)", () => {

@@ -20,7 +20,7 @@
  * Built under a since-deleted implementation plan (AGENT.ludicCacheReducer.planning.md);
  * its findings live on in PR-8 and PR-12 above.
  */
-import type { EphemeraLudicGraphPort, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { HostRelationalEdge } from './index'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
@@ -216,9 +216,14 @@ type EndpointStatus = 'qualified' | 'disqualified' | 'neutral'
  * presence ports, regardless of bucket (LR-6): `fromHostId` on a presence port is already the
  * "which shard is this whole home to" fact, independent of which bucket is being extracted, so
  * carrying every one of them forward makes that fact recoverable from any single bucket's
- * sub-graph with no merge-time reconciliation needed later. (Non-presence ports of `graph` are
- * not carried through --- only the boundary this bucket itself cuts, plus the whole's own
- * presence bindings.)
+ * sub-graph with no merge-time reconciliation needed later. **Crossing ports are carried too, but
+ * only the ones a surviving edge actually names** --- a neutral endpoint would otherwise dangle on
+ * a port absent from its own graph, which is the state this function shipped in until 2026-09-14.
+ * The restriction to referenced ports is the substantive half: a boundary no edge in this bucket
+ * reaches bounds nothing here, and carrying it would assert a crossing this bucket does not have.
+ * **Carrying them is what makes the `STUB-` prefix load-bearing rather than decorative** --- the
+ * same-host merge matches on ports present in two buckets, so an authored boundary legitimately
+ * appearing in both must be excluded from matching by something, or it is spliced to itself.
  *
  * Transient only (LR-1): minting never writes to `edge.edgeId` and never mutates `graph`.
  */
@@ -304,10 +309,27 @@ export const subGraphFromNodes = (
 
     const presencePorts = graph.ports.filter((port) => port.kind === 'Present')
 
+    //
+    // The authored crossing ports that surviving edges actually name. Carried so that a kept edge
+    // does not dangle on a port absent from its own graph --- which is what a neutral endpoint
+    // would otherwise be. Referenced, not wholesale: a boundary no edge in this bucket reaches
+    // bounds nothing here, and carrying it would assert a crossing this bucket does not have.
+    //
+    const referencedPortIds = new Set(
+        edges
+            .flatMap((edge) => [edge.from, edge.to])
+            .filter((terminal): terminal is EphemeraLudicPortAddress => typeof terminal !== 'string')
+            .filter(({ owner }) => owner === graph.hostId)
+            .map(({ port }) => port)
+    )
+    const referencedCrossingPorts = graph.ports.filter(
+        (port) => port.kind !== 'Present' && referencedPortIds.has(port.portId)
+    )
+
     return EphemeraLudicGraph.fromFieldPayload(graph.hostId, {
         rootId: graph.rootId,
         nodes: subNodes,
         edges: edges.map(toStoredRelationalEdge),
-        ports: [...presencePorts, ...ports],
+        ports: [...presencePorts, ...referencedCrossingPorts, ...ports],
     })
 }

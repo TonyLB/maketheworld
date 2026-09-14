@@ -29,6 +29,27 @@ import type { EphemeraLudicCacheEdge } from './types'
 
 const isCrossingPort = (port: EphemeraLudicGraphPort): port is EphemeraCrossingPort => port.kind !== 'Present'
 
+/**
+ * A crossing port **minted by a cut**, as distinct from one **authored on the whole** --- the
+ * difference between *a cut to rejoin* and *a boundary to preserve*, which the same-host merge
+ * has to make and `isCrossingPort` cannot. A stub is minted carrying the severed edge's own
+ * `kind`, so the two are identical in every typed field; the discriminator is the `STUB-` prefix
+ * `stubPortIdFromEdge` puts on the id.
+ *
+ * **Sniffing a string is the worse design, taken knowingly.** The better one is a field on the
+ * port type, but that is `ephemeraMeta.ts`, outside LR-1's dependency tag at the top of this file
+ * --- a scope change to raise, not to take. If the tag ever moves, this is the first thing to fix.
+ *
+ * **Why it is needed, concretely:** `subGraphFromNodes` now carries an authored crossing port into
+ * every bucket whose edges reference it, so a port-to-port transit leg (LC10's shape --- entering
+ * one boundary and leaving another without touching a node) puts the *same real* port in two
+ * buckets. Matched as a stub, it would be spliced to itself into
+ * `ROOM#HALL#PORT_S -[ropedTo]-> ROOM#HALL#PORT_S`, and silently, since `legsAgree` cannot object
+ * to two identical legs.
+ */
+const isStubPort = (port: EphemeraLudicGraphPort): port is EphemeraCrossingPort =>
+    isCrossingPort(port) && port.portId.startsWith('STUB-')
+
 const hasPortTerminal = (portTerminal: EphemeraLudicPortAddress) => (edge: HostRelationalEdge): boolean =>
     ephemeraLudicTerminalsEqual(edge.from, portTerminal) || ephemeraLudicTerminalsEqual(edge.to, portTerminal)
 
@@ -169,8 +190,9 @@ export const collapseCrossingPorts = (
  * being joined here are two cuts of the *same* `EphemeraLudicGraph` (`hostId` in common), not a
  * parent and a child the way `collapseCrossingPorts` joins.
  *
- * Matches stub ports by shared `portId` (present, non-`Present`-kind, on both bucket graphs),
- * finds each side's leg touching that port terminal, asserts they agree exactly as
+ * Matches stub ports by shared `portId` --- present on both bucket graphs and **minted rather than
+ * authored**, per `isStubPort`; an authored boundary can now legitimately appear in two buckets
+ * and must not be spliced --- finds each side's leg touching that port terminal, asserts they agree exactly as
  * `collapseCrossingPorts` does, and rewrites bucket A's leg with bucket B's outer terminal to
  * recover the original edge. `chains` is always `[]` --- this never crosses a membership
  * boundary, so there is no hop to record.
@@ -179,8 +201,8 @@ export const collapseSameHostStubs = (
     bucketA: EphemeraLudicGraph,
     bucketB: EphemeraLudicGraph
 ): EphemeraLudicCacheEdge[] => {
-    const stubIdsA = bucketA.ports.filter(isCrossingPort).map((port) => port.portId)
-    const stubIdsB = new Set(bucketB.ports.filter(isCrossingPort).map((port) => port.portId))
+    const stubIdsA = bucketA.ports.filter(isStubPort).map((port) => port.portId)
+    const stubIdsB = new Set(bucketB.ports.filter(isStubPort).map((port) => port.portId))
     const sharedPortIds = stubIdsA.filter((portId) => stubIdsB.has(portId))
 
     const collapsedLegs = sharedPortIds.reduce<EphemeraLudicCacheEdge[]>((acc, portId) => {
@@ -229,17 +251,20 @@ export const collapseSameHostStubs = (
  *
  * Generalizes `collapseSameHostStubs`'s matching --- same shared-`portId` rule, same
  * `legsAgree`/`outerTerminal`/rewrite --- from "join two static cuts once" to "fold one more cut
- * into a running graph, carrying forward whatever it can't yet resolve." A crossing port that
+ * into a running graph, carrying forward whatever it can't yet resolve." A **stub** port that
  * matches on both sides is consumed (it no longer bounds anything); one that doesn't is carried
  * forward on both the port list and the edge list exactly as it arrived, since its match may not
- * have appeared yet --- the case a straddling edge between non-adjacent buckets needs.
+ * have appeared yet --- the case a straddling edge between non-adjacent buckets needs. **An
+ * authored crossing port is never matched and so always carried forward**, which is the same
+ * outcome by a different route: it is a boundary of the whole, not a cut, and nothing at this
+ * level can resolve it.
  */
 export const mergeSameHostBucket = (
     accumulated: EphemeraLudicGraph,
     bucket: EphemeraLudicGraph
 ): EphemeraLudicGraph => {
-    const accumulatedStubIds = new Set(accumulated.ports.filter(isCrossingPort).map((port) => port.portId))
-    const bucketStubIds = bucket.ports.filter(isCrossingPort).map((port) => port.portId)
+    const accumulatedStubIds = new Set(accumulated.ports.filter(isStubPort).map((port) => port.portId))
+    const bucketStubIds = bucket.ports.filter(isStubPort).map((port) => port.portId)
     const matchedPortIds = new Set(bucketStubIds.filter((portId) => accumulatedStubIds.has(portId)))
 
     const resolved = [...matchedPortIds].reduce<HostRelationalEdge[]>((acc, portId) => {
@@ -266,9 +291,19 @@ export const mergeSameHostBucket = (
     const touchesMatchedPort = (edge: HostRelationalEdge): boolean =>
         [...matchedPortIds].some((portId) => hasPortTerminal({ owner: accumulated.hostId, port: portId })(edge))
 
-    const carriedForward = [...accumulated.relationalEdges, ...bucket.relationalEdges].filter(
-        (edge) => !touchesMatchedPort(edge)
-    )
+    //
+    // Deduplicated, which it did not need to be before authored crossing ports were carried into
+    // buckets: an edge with no qualified endpoint is now kept by *every* bucket (LC10's transit
+    // leg), so the same leg arrives from the accumulator and from the bucket as two identical
+    // copies. This is exact-duplicate removal, not edge identity --- both copies are cuts of one
+    // source edge and agree in every field, so there is no reconciliation to do and no need to
+    // reach for `collapsedEdgeIdentityKey`'s narrower notion.
+    //
+    const carriedForward = [...accumulated.relationalEdges, ...bucket.relationalEdges]
+        .filter((edge) => !touchesMatchedPort(edge))
+        .map((edge) => [JSON.stringify(toStoredRelationalEdge(edge)), edge] as const)
+        .filter(([key], index, all) => all.findIndex(([other]) => other === key) === index)
+        .map(([, edge]) => edge)
 
     const nodes = [...new Set([...accumulated.nodeIds, ...bucket.nodeIds])].map(nodeFromId)
     const ports = [...accumulated.ports, ...bucket.ports].filter(
@@ -308,12 +343,18 @@ export const foldSameHostBuckets = (
         return mergeSameHostBucket(accumulated, bucket)
     }, seed)
 
-    const remainingStubIds = folded.ports.filter(isCrossingPort).map((port) => port.portId)
-    const touchesRemainingStub = (edge: HostRelationalEdge): boolean =>
-        remainingStubIds.some((portId) => hasPortTerminal({ owner: folded.hostId, port: portId })(edge))
+    //
+    // `isCrossingPort`, not `isStubPort`, and deliberately: the test here is *still bounded*, not
+    // *still unmatched*. An authored crossing port carried through the fold is a real boundary of
+    // this host that no same-host merge can resolve --- only the parent's `collapseCrossingPorts`
+    // can --- so a leg touching one is unresolved in exactly the sense this read-off means.
+    //
+    const remainingPortIds = folded.ports.filter(isCrossingPort).map((port) => port.portId)
+    const touchesRemainingPort = (edge: HostRelationalEdge): boolean =>
+        remainingPortIds.some((portId) => hasPortTerminal({ owner: folded.hostId, port: portId })(edge))
 
     const resolvedLegs = folded.relationalEdges
-        .filter((edge) => !touchesRemainingStub(edge))
+        .filter((edge) => !touchesRemainingPort(edge))
         .map((edge) => ({ ...toStoredRelationalEdge(edge), chains: [] as EphemeraLudicCacheEdge['chains'] }))
 
     const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
