@@ -5,7 +5,7 @@ import type {
     EphemeraMembershipHostId,
     EphemeraPositionAdjacencyContainedId,
 } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicGraphFieldPayload, EphemeraLudicGraphNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphComponentNode, EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraPositionsReadDB } from './fetch'
 import {
@@ -27,12 +27,12 @@ import type {
  * concepts clause 3, enforced by `isEphemeraLudicGraphFieldPayload`. The node tag comes
  * from the caller's own id-kind branch, which already knows it.
  */
-const emptyLudicGraphPayload = (
+export const emptyLudicGraphPayload = (
     componentId: EphemeraMembershipHostId,
-    tag: EphemeraLudicGraphNode['tag']
+    tag: EphemeraLudicGraphComponentNode['tag']
 ): EphemeraLudicGraphFieldPayload => ({
     rootId: componentId,
-    nodes: [{ tag, universalKey: componentId } as EphemeraLudicGraphNode],
+    nodes: [{ tag, universalKey: componentId } as EphemeraLudicGraphComponentNode],
     edges: [],
     ports: [],
 })
@@ -47,17 +47,17 @@ const emptyLudicGraphPayload = (
  * *absent*. Genuinely stale stored structure is still `ludicGraphStaleStructureSweep`'s to find
  * and `healLudicGraphStructure`'s to repair --- normalizing on read does not write anything back.
  */
-const normalizeStoredLudicGraph = (
+export const normalizeStoredLudicGraph = (
     stored: EphemeraLudicGraphFieldPayload | undefined,
     componentId: EphemeraMembershipHostId,
-    tag: EphemeraLudicGraphNode['tag']
+    tag: EphemeraLudicGraphComponentNode['tag']
 ): EphemeraLudicGraphFieldPayload => {
     if (!stored) {
         return emptyLudicGraphPayload(componentId, tag)
     }
     const rootId = stored.rootId ?? componentId
     const nodes = stored.nodes ?? []
-    const rootNode = { tag, universalKey: componentId } as EphemeraLudicGraphNode
+    const rootNode = { tag, universalKey: componentId } as EphemeraLudicGraphComponentNode
     return {
         rootId,
         nodes: nodes.some((node) => node.universalKey === componentId) ? nodes : [rootNode, ...nodes],

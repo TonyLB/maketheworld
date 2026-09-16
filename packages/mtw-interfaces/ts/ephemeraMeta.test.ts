@@ -6,6 +6,8 @@ import {
     isEphemeraLudicGraphData,
     isEphemeraLudicGraphFieldPayload,
     isEphemeraLudicGraphNode,
+    isEphemeraLudicGraphComponentNode,
+    isEphemeraLudicGraphStructureNode,
     isEphemeraLudicGraphPort,
     isEphemeraLudicTerminalPrimitive,
     isEphemeraLudicPortAddress,
@@ -198,6 +200,10 @@ describe('isEphemeraLudicTerminalPrimitive', () => {
         expect(isEphemeraLudicTerminalPrimitive('AREA#Test')).toBe(true)
     })
 
+    it('accepts a presence node id (PN-5)', () => {
+        expect(isEphemeraLudicTerminalPrimitive('PRESENCE#abc123')).toBe(true)
+    })
+
     it('rejects a non-tagged string', () => {
         expect(isEphemeraLudicTerminalPrimitive('BOGUS#X')).toBe(false)
     })
@@ -222,6 +228,10 @@ describe('isEphemeraLudicPortAddress', () => {
 
     it('rejects an empty port segment', () => {
         expect(isEphemeraLudicPortAddress({ owner: 'OBJECT#BOX', port: '' })).toBe(false)
+    })
+
+    it('rejects a presence node as owner (PN-4: a presence node never allocates a port)', () => {
+        expect(isEphemeraLudicPortAddress({ owner: 'PRESENCE#abc123', port: 'ab6129d' })).toBe(false)
     })
 })
 
@@ -383,6 +393,58 @@ describe('isEphemeraLudicGraphNode', () => {
             universalKey: 'CHARACTER#Alpha',
             key: 'hero',
         })).toBe(false)
+    })
+
+    // Structure arm (PN-5, presenceNodes Slice 2): a presence node is a minted PRESENCE# key
+    // plus the host it is presence for, never a real component id.
+    it('accepts a well-formed presence node', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+        })).toBe(true)
+    })
+
+    it('rejects a Presence-tagged node with a component universalKey', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Presence',
+            universalKey: 'OBJECT#helmet',
+            fromHostId: 'ROOM#A',
+        })).toBe(false)
+    })
+
+    it('rejects a component-tagged node with a presence universalKey', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Object',
+            universalKey: 'PRESENCE#abc123',
+        })).toBe(false)
+    })
+
+    it('rejects a presence node with a malformed fromHostId', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'PRESENCE#xyz789',
+        })).toBe(false)
+    })
+})
+
+describe('isEphemeraLudicGraphComponentNode / isEphemeraLudicGraphStructureNode', () => {
+    it('the component guard accepts exactly the five component arms, never Presence', () => {
+        expect(isEphemeraLudicGraphComponentNode({ tag: 'Object', universalKey: 'OBJECT#helmet' })).toBe(true)
+        expect(isEphemeraLudicGraphComponentNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A' })).toBe(false)
+    })
+
+    it('the structure guard accepts only a well-formed presence node', () => {
+        expect(isEphemeraLudicGraphStructureNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A' })).toBe(true)
+        expect(isEphemeraLudicGraphStructureNode({ tag: 'Object', universalKey: 'OBJECT#helmet' })).toBe(false)
+    })
+
+    it('both guards reject non-object values without throwing', () => {
+        expect(isEphemeraLudicGraphComponentNode(null)).toBe(false)
+        expect(isEphemeraLudicGraphComponentNode(undefined)).toBe(false)
+        expect(isEphemeraLudicGraphStructureNode(null)).toBe(false)
+        expect(isEphemeraLudicGraphStructureNode(undefined)).toBe(false)
     })
 })
 

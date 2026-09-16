@@ -8,6 +8,7 @@ import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraOb
 import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type {
+    EphemeraLudicGraphComponentNode,
     EphemeraLudicGraphData,
     EphemeraLudicGraphFieldPayload,
     EphemeraLudicGraphNode,
@@ -33,27 +34,27 @@ import {
 export type { HostRelationalEdge } from './baseClasses'
 export { edgesMatch, nodeHasRelationalEdge, toStoredRelationalEdge, edgeReferencesObjectId } from './baseClasses'
 
-export const characterNode = (universalKey: EphemeraCharacterId): EphemeraLudicGraphNode => ({
+export const characterNode = (universalKey: EphemeraCharacterId): EphemeraLudicGraphComponentNode => ({
     tag: 'Character',
     universalKey,
 })
 
-export const objectNode = (universalKey: EphemeraObjectId): EphemeraLudicGraphNode => ({
+export const objectNode = (universalKey: EphemeraObjectId): EphemeraLudicGraphComponentNode => ({
     tag: 'Object',
     universalKey,
 })
 
-export const roomNode = (universalKey: EphemeraRoomId): EphemeraLudicGraphNode => ({
+export const roomNode = (universalKey: EphemeraRoomId): EphemeraLudicGraphComponentNode => ({
     tag: 'Room',
     universalKey,
 })
 
-export const featureNode = (universalKey: EphemeraFeatureId): EphemeraLudicGraphNode => ({
+export const featureNode = (universalKey: EphemeraFeatureId): EphemeraLudicGraphComponentNode => ({
     tag: 'Feature',
     universalKey,
 })
 
-export const areaNode = (universalKey: EphemeraAreaId): EphemeraLudicGraphNode => ({
+export const areaNode = (universalKey: EphemeraAreaId): EphemeraLudicGraphComponentNode => ({
     tag: 'Area',
     universalKey,
 })

@@ -21,6 +21,7 @@
  * its findings live on in PR-8 and PR-12 above.
  */
 import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { HostRelationalEdge } from './index'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
@@ -282,7 +283,13 @@ export const subGraphFromNodes = (
             const portId = stubPortIdFromEdge(edge)
             const port: EphemeraLudicGraphPort = {
                 portId,
-                fromHostId: ephemeraLudicTerminalOwner(outsideTerminal),
+                // `fromHostId` is typed `EphemeraMembershipHostId` and has no `PRESENCE#` arm;
+                // widening it to admit one is presenceNodes' PN-6 clause (c), a named Slice 4
+                // task, not this file's (which is outside the presenceNodes rollback set). No
+                // presence node is minted before Slice 3, so `outsideTerminal` cannot actually
+                // be one yet --- this narrows back the type ripple from widening
+                // `EphemeraLudicTerminalPrimitive` in Slice 2, not a behavior change.
+                fromHostId: ephemeraLudicTerminalOwner(outsideTerminal) as EphemeraMembershipHostId,
                 kind: edge.kind as Exclude<HostRelationalEdgeKind, 'Present'>,
                 ...(edge.kind === 'Custom' ? { exteriorRelationLabel: edge.relationLabel } : {}),
             }

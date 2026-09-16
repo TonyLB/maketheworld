@@ -10,6 +10,8 @@ import {
     type EphemeraFeatureId,
     isEphemeraAreaId,
     type EphemeraAreaId,
+    isEphemeraPresenceNodeId,
+    type EphemeraPresenceNodeId,
 } from './baseClasses'
 import { areCoyoteObjectTropeFieldsValid, type CoyoteTropeAffinity } from './coyotePlanAffinities'
 import {
@@ -237,17 +239,22 @@ export const isEphemeraMetaArea = (entry: unknown): entry is EphemeraMetaArea =>
 export type EphemeraLudicTerminalPrimitive =
     | EphemeraRoomId | EphemeraCharacterId
     | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId
+    | EphemeraPresenceNodeId
 
 export const isEphemeraLudicTerminalPrimitive = (value: unknown): value is EphemeraLudicTerminalPrimitive =>
     typeof value === 'string' && (
         isEphemeraRoomId(value) || isEphemeraCharacterId(value) ||
-        isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraAreaId(value)
+        isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraAreaId(value) ||
+        isEphemeraPresenceNodeId(value)
     )
 
 /** owner is the whole that ALLOCATED this port --- deliberately not named `host`, which already
- * means two other things in this file (a graph's owner, and a port's exterior `fromHostId`). */
+ * means two other things in this file (a graph's owner, and a port's exterior `fromHostId`). A
+ * presence node never allocates a port (that would reintroduce the port-based mechanism the
+ * presenceNodes plan retires), so `owner` stays over the pre-widening domain (PN-4): only a
+ * bare terminal --- `EphemeraLudicTerminalPrimitive` --- may itself resolve to a presence node. */
 export type EphemeraLudicPortAddress = {
-    owner: EphemeraLudicTerminalPrimitive;
+    owner: EphemeraMembershipHostId;
     port: string;
 }
 
@@ -256,7 +263,7 @@ export const isEphemeraLudicPortAddress = (value: unknown): value is EphemeraLud
         return false
     }
     const address = value as EphemeraLudicPortAddress
-    return isEphemeraLudicTerminalPrimitive(address.owner) && typeof address.port === 'string' && address.port.length > 0
+    return isEphemeraMembershipHostId(address.owner) && typeof address.port === 'string' && address.port.length > 0
 }
 
 export type EphemeraLudicTerminalId =
@@ -266,9 +273,15 @@ export type EphemeraLudicTerminalId =
 export const isEphemeraLudicTerminalId = (value: unknown): value is EphemeraLudicTerminalId =>
     isEphemeraLudicTerminalPrimitive(value) || isEphemeraLudicPortAddress(value)
 
-/** The base component a terminal names --- itself if unqualified, `.owner` if port-qualified. */
-export const ephemeraLudicTerminalOwner = (terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalPrimitive =>
-    typeof terminal === 'string' ? terminal : terminal.owner
+/** The base component a terminal names --- itself if unqualified, `.owner` if port-qualified.
+ * Overloaded so a call site already narrowed to a port address (which can only ever name a real
+ * component, PN-4) gets `EphemeraMembershipHostId` back rather than the wider terminal-primitive
+ * type a bare terminal could resolve to. */
+export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicPortAddress): EphemeraMembershipHostId
+export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalPrimitive
+export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalPrimitive {
+    return typeof terminal === 'string' ? terminal : terminal.owner
+}
 
 /** Full terminal equality --- a primitive and a port address on the same owner are NOT equal. */
 export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: EphemeraLudicTerminalId): boolean => {
@@ -293,7 +306,7 @@ export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId,
  * AGENT.concepts.md's premise-11 warning (the same guard already written on
  * EphemeraPositionAdjacencyContainedId).
  */
-export type EphemeraLudicGraphNode =
+export type EphemeraLudicGraphComponentNode =
     | {
         tag: 'Character';
         universalKey: EphemeraCharacterId;
@@ -314,6 +327,28 @@ export type EphemeraLudicGraphNode =
         tag: 'Area';
         universalKey: EphemeraAreaId;
     }
+
+/**
+ * A presence node (presenceNodes plan / PN-5, 2026-09-15): the reified boundary site that used
+ * to be carried as a presence *port*. Unlike the five component arms above, its `universalKey`
+ * is a minted `PRESENCE#{uuid}`, not a real component id, and it carries `fromHostId` --- the
+ * host it is presence for --- which no component arm has a field for. `kind: 'Present'` is not
+ * carried here; `tag: 'Presence'` is already the discriminant, and a second constant field would
+ * be a discriminant with no second value.
+ */
+export type EphemeraLudicGraphStructureNode = {
+    tag: 'Presence';
+    universalKey: EphemeraPresenceNodeId;
+    fromHostId: EphemeraMembershipHostId;
+}
+
+/**
+ * The union of every kind a `ludicGraph` node list may hold. Partitioned (PN-5) rather than a
+ * flat six-arm union, so that call sites which mean "one of the five real components" (e.g.
+ * `factory.ts`'s mint-time tag parameters) can say `EphemeraLudicGraphComponentNode['tag']` and
+ * have the compiler refuse a structure tag, instead of silently widening alongside this union.
+ */
+export type EphemeraLudicGraphNode = EphemeraLudicGraphComponentNode | EphemeraLudicGraphStructureNode
 
 /**
  * The closed, deterministic-physics relation kinds (2026-09-06): a fast-path exists for
@@ -544,14 +579,11 @@ export type EphemeraLudicGraphData = {
 /** Value of Meta::*.ludicGraph attribute only (hostId omitted; row EphemeraId is authoritative). */
 export type EphemeraLudicGraphFieldPayload = Omit<EphemeraLudicGraphData, 'hostId'>
 
-export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudicGraphNode => {
+export const isEphemeraLudicGraphComponentNode = (value: unknown): value is EphemeraLudicGraphComponentNode => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const entry = value as EphemeraLudicGraphNode
-    if ('key' in entry) {
-        return false
-    }
+    const entry = value as EphemeraLudicGraphComponentNode
     if (entry.tag === 'Character') {
         return isEphemeraCharacterId(entry.universalKey)
     }
@@ -568,6 +600,29 @@ export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudic
         return isEphemeraAreaId(entry.universalKey)
     }
     return false
+}
+
+export const isEphemeraLudicGraphStructureNode = (value: unknown): value is EphemeraLudicGraphStructureNode => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const entry = value as EphemeraLudicGraphStructureNode
+    if (entry.tag !== 'Presence') {
+        return false
+    }
+    return isEphemeraPresenceNodeId(entry.universalKey) && isEphemeraMembershipHostId(entry.fromHostId)
+}
+
+export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudicGraphNode => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    // A different shape of thing entirely (e.g. a legacy keyed record) --- kept on the wide
+    // guard only, since duplicating it into both arms would make it look like a per-arm rule.
+    if ('key' in value) {
+        return false
+    }
+    return isEphemeraLudicGraphComponentNode(value) || isEphemeraLudicGraphStructureNode(value)
 }
 
 export const isEphemeraLudicGraphPort = (value: unknown): value is EphemeraLudicGraphPort => {

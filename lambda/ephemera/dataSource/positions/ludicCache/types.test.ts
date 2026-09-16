@@ -70,6 +70,25 @@ describe('isEphemeraLudicCacheNode', () => {
             interiorConsolidated: false,
         })).toBe(false)
     })
+
+    // Structure arm (PN-5, presenceNodes Slice 2): a presence node carries none of the cache
+    // extras a component node needs --- no shortName, no interiorConsolidated. `consolidated`
+    // is not added here; that lands with PN-7 in presenceNodes Slice 4.
+    it('accepts a bare presence node with no shortName or interiorConsolidated', () => {
+        expect(isEphemeraLudicCacheNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+        })).toBe(true)
+    })
+
+    it('rejects a presence node with a malformed fromHostId', () => {
+        expect(isEphemeraLudicCacheNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'PRESENCE#xyz789',
+        })).toBe(false)
+    })
 })
 
 describe('isEphemeraLudicCacheEdge', () => {

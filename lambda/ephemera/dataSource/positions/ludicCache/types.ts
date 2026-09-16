@@ -1,9 +1,14 @@
 import { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import type {
-    EphemeraLudicGraphNode,
+    EphemeraLudicGraphComponentNode,
+    EphemeraLudicGraphStructureNode,
     EphemeraLudicRelationalEdgeData,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicGraphNode, isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import {
+    isEphemeraLudicGraphComponentNode,
+    isEphemeraLudicGraphStructureNode,
+    isEphemeraLudicRelationalEdgeData,
+} from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
@@ -34,13 +39,18 @@ import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPo
  * carries through regardless of bucket --- a node-level field duplicated a fact the graph already
  * states. No producer or consumer of this type existed at removal time.
  */
-export type EphemeraLudicCacheNode = EphemeraLudicGraphNode & {
-    shortName: string;
-    /** Iteration 1: attached by a separate attachEmbeddings pass, not by the rebuild (CC1c). */
-    embedding?: SemanticEmbedding;
-    /** Stored, never derived --- see CC0's box-can-be-empty argument against deriving this. */
-    interiorConsolidated: boolean;
-}
+export type EphemeraLudicCacheNode =
+    | (EphemeraLudicGraphComponentNode & {
+        shortName: string;
+        /** Iteration 1: attached by a separate attachEmbeddings pass, not by the rebuild (CC1c). */
+        embedding?: SemanticEmbedding;
+        /** Stored, never derived --- see CC0's box-can-be-empty argument against deriving this.
+         * Deletion tracked by PN-7 (presenceNodes Slice 4); not this type's structure arm's concern. */
+        interiorConsolidated: boolean;
+    })
+    /** A presence node carries no cache extras of its own yet --- `consolidated` lands with
+     * presenceNodes Slice 4 (PN-7), which is also what mints one into a cache for the first time. */
+    | EphemeraLudicGraphStructureNode
 
 /**
  * Cache edge: the ludicGraph edge plus `chains`. Required and possibly empty, never optional ---
@@ -69,10 +79,13 @@ export type EphemeraLudicCacheData = {
 }
 
 export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudicCacheNode => {
-    if (!isEphemeraLudicGraphNode(value)) {
+    if (isEphemeraLudicGraphStructureNode(value)) {
+        return true
+    }
+    if (!isEphemeraLudicGraphComponentNode(value)) {
         return false
     }
-    const node = value as EphemeraLudicCacheNode
+    const node = value as EphemeraLudicCacheNode & EphemeraLudicGraphComponentNode
     if (typeof node.shortName !== 'string') {
         return false
     }
