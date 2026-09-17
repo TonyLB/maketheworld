@@ -3,6 +3,7 @@ import type {
     EphemeraLudicGraphComponentNode,
     EphemeraLudicGraphStructureNode,
     EphemeraLudicRelationalEdgeData,
+    EphemeraPresenceCover,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
     isEphemeraLudicGraphComponentNode,
@@ -48,9 +49,20 @@ export type EphemeraLudicCacheNode =
          * Deletion tracked by PN-7 (presenceNodes Slice 4); not this type's structure arm's concern. */
         interiorConsolidated: boolean;
     })
-    /** A presence node carries no cache extras of its own yet --- `consolidated` lands with
-     * presenceNodes Slice 4 (PN-7), which is also what mints one into a cache for the first time. */
-    | EphemeraLudicGraphStructureNode
+    /**
+     * A presence node's cache extras (presenceNodes Slice 3, PN-19 decided (b)): `cover` is
+     * narrowed to the `'Enumerated'` arm only --- `'Full'` ("every node of the host") has no
+     * referent in a multi-host merge (loss (A)), so this makes it unrepresentable in the cache
+     * *by construction* rather than by a runtime guard someone could forget. `consolidated`
+     * stays a separate boolean beside `cover` (PN-15) rather than folding into it --- two facts,
+     * not three. **Not yet populated with real data**: Slice 4 (PN-7) is what mints a presence
+     * node into a cache and writes `consolidated`/an enumerated `cover` for the first time; this
+     * slice only types the shape.
+     */
+    | (Omit<EphemeraLudicGraphStructureNode, 'cover'> & {
+        cover: Extract<EphemeraPresenceCover, { tag: 'Enumerated' }>;
+        consolidated: boolean;
+    })
 
 /**
  * Cache edge: the ludicGraph edge plus `chains`. Required and possibly empty, never optional ---
@@ -80,7 +92,13 @@ export type EphemeraLudicCacheData = {
 
 export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudicCacheNode => {
     if (isEphemeraLudicGraphStructureNode(value)) {
-        return true
+        // Delegates the shared shape (tag/universalKey/fromHostId/cover) to the graph guard,
+        // then narrows: 'Full' cover is illegal in the cache (PN-19), and `consolidated` is a
+        // cache-only field the graph-side guard knows nothing about.
+        if (value.cover.tag !== 'Enumerated') {
+            return false
+        }
+        return typeof (value as unknown as { consolidated: unknown }).consolidated === 'boolean'
     }
     if (!isEphemeraLudicGraphComponentNode(value)) {
         return false

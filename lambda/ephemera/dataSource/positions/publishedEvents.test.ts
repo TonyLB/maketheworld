@@ -131,10 +131,11 @@ describe('isObjectRelationChangedPublishedPayload', () => {
         })).toBe(true)
     })
 
-    // Presence plan PR-4 (reading (d)): this guard's HOST_RELATIONAL_EDGE_KINDS Set (this file)
-    // needed the same by-hand widening as the In/PartOf case above -- checked directly since a
-    // stale Set fails silently rather than at compile time.
-    it('accepts a Present relationKind', () => {
+    // `'Present'` retired from `HostRelationalEdgeKind` entirely at presenceNodes Slice 3
+    // (PN-14) -- this guard's HOST_RELATIONAL_EDGE_KINDS Set (this file) dropped it in the same
+    // change, and no writer ever constructed this payload shape (checked as part of PN-14's
+    // standing check: no consumer outside lambda/ephemera/dataSource enumerates this kind).
+    it('rejects a Present relationKind', () => {
         expect(isObjectRelationChangedPublishedPayload({
             type: 'Object Relation Changed',
             subjectId: 'OBJECT#crystalBall',
@@ -143,7 +144,7 @@ describe('isObjectRelationChangedPublishedPayload', () => {
             relationKind: 'Present',
             operation: 'establish',
             beatAnchorTime: 1_700_000_000_000,
-        })).toBe(true)
+        })).toBe(false)
     })
 })
 

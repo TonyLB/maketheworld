@@ -541,18 +541,18 @@ describe('EphemeraLudicGraph', () => {
             expect(edges).toEqual([{ from: OBJECT_A, to: HOST_ID, kind }])
         })
 
-        // Presence plan PR-4 (reading (d)): 'Present' is a third, partitioning kind, and
-        // extractRelationalEdgesFromStored's fallback branch has its own HOST_RELATIONAL_EDGE_KINDS
-        // Set literal (baseClasses.ts), separate from ephemeraMeta.ts's -- same lockstep-Set
-        // hazard as the In/PartOf test above, checked directly rather than inferred.
-        it('extractRelationalEdgesFromStored survives a Present edge', () => {
+        // `'Present'` retired from `HostRelationalEdgeKind` entirely at presenceNodes Slice 3
+        // (PN-14): `extractRelationalEdgesFromStored`'s fallback recovery Set (baseClasses.ts)
+        // dropped it in the same change, since no writer ever constructed one to recover. A
+        // stored row carrying this shape is now dropped, not survived.
+        it('extractRelationalEdgesFromStored drops a Present edge rather than recovering it', () => {
             const edges = extractRelationalEdgesFromStored({
                 nodes: [],
                 edges: [
                     { tag: 'Relational', from: { owner: HOST_ID, port: 'ab6129d' }, to: OBJECT_A, kind: 'Present' },
                 ] as unknown as [],
             })
-            expect(edges).toEqual([{ from: { owner: HOST_ID, port: 'ab6129d' }, to: OBJECT_A, kind: 'Present' }])
+            expect(edges).toEqual([])
         })
 
         // Port-terminal regression, primary path: a well-formed port-qualified edge now satisfies

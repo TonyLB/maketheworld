@@ -63,13 +63,10 @@ export function classifyInteractionUnderTransfer(
             // carry behaviour without traversal. Until then, that open question survives only for the
             // 'Against' reconciliation, which is a peer kind and never lands in this branch.
             throw new Error(`classifyInteractionUnderTransfer: '${relationKind}' has no producer on an exterior graph in iteration 1 (AB-53/AB-54); reaching here means a producer built a graph the constructor does not author`)
-        case 'Present':
-            // Not a hosting/containment kind (AB-53/AB-54 doesn't apply): a 'Present' edge is
-            // port -> node, the presence plan's own third "partitioning" class (PR-4, reading
-            // (d)). Nothing constructs one yet, and this classifier has never been asked to
-            // route a port-qualified endpoint --- reaching here means a producer built a graph
-            // this transfer classifier does not yet know how to handle.
-            throw new Error(`classifyInteractionUnderTransfer: '${relationKind}' is not yet classifiable here (presence plan PR-4/reading (d)); reaching here means a producer built a graph the constructor does not author`)
+        // `case 'Present':` deleted at presenceNodes Slice 3 (PN-14): `'Present'` retired from
+        // `HostRelationalEdgeKind` with the edge sense, so this switch has no type left to match
+        // it against -- comment and case go together, since the comment's "nothing constructs one
+        // yet" would otherwise become "never" without anyone noticing.
     }
 }
 

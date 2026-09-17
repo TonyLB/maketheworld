@@ -3,8 +3,8 @@
  * `AGENT.presence.planning.md`'s PR-12 Obligation A). Every fixture below is hand-authored --- invented for this test, not read off
  * storage.
  */
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraLudicGraphPort, EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraLudicGraphComponentNode, EphemeraLudicGraphPort, EphemeraLudicGraphStructureNode, EphemeraLudicRelationalEdgeData, EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { nodesFromPresencePort, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
@@ -31,11 +31,19 @@ const presencePort = (portId: string): EphemeraLudicGraphPort => ({
     kind: 'Present',
 })
 
-const presentEdge = (portId: string, to: EphemeraLudicRelationalEdgeData['to']): EphemeraLudicRelationalEdgeData => ({
-    tag: 'Relational',
-    from: { owner: roomId, port: portId },
-    to,
-    kind: 'Present',
+/** A dummy `presence` disambiguator per member --- these fixtures don't exercise a covered
+ * component's own multiple bindings (PN-22), so any well-formed `PRESENCE#` id suffices. */
+const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey'][]): EphemeraPresenceCover => ({
+    tag: 'Enumerated',
+    members: hosts.map((host) => ({ host, presence: `PRESENCE#${host}-binding` as EphemeraPresenceNodeId })),
+})
+
+/** The presence node minted 1:1 with `presencePort(portId)` (presenceNodes Slice 3). */
+const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLudicGraphStructureNode => ({
+    tag: 'Presence',
+    universalKey: `PRESENCE#${portId}` as EphemeraPresenceNodeId,
+    fromHostId: roomId,
+    cover,
 })
 
 const crossingPort = (portId: string, kind: EphemeraLudicGraphPort['kind'] = 'On'): EphemeraLudicGraphPort => ({
@@ -150,13 +158,11 @@ describe('collapseSameHostStubs', () => {
                 { tag: 'Character', universalKey: charB },
                 { tag: 'Object', universalKey: objC },
                 { tag: 'Object', universalKey: objD },
+                presenceNode('port_1', enumeratedCover(charA, objC)),
+                presenceNode('port_2', enumeratedCover(charB, objD)),
             ],
             ports: [presencePort('port_1'), presencePort('port_2')],
             edges: [
-                presentEdge('port_1', charA),
-                presentEdge('port_1', objC),
-                presentEdge('port_2', charB),
-                presentEdge('port_2', objD),
                 { tag: 'Relational', from: objC, to: objD, kind: 'Under' },
             ],
         })
@@ -316,16 +322,12 @@ describe('foldSameHostBuckets', () => {
             { tag: 'Object', universalKey: objD },
             { tag: 'Object', universalKey: objE },
             { tag: 'Object', universalKey: objF },
+            presenceNode('port_1', enumeratedCover(charA, objC, objE)),
+            presenceNode('port_2', enumeratedCover(charB, objD)),
+            presenceNode('port_3', enumeratedCover(charC, objF)),
         ],
         ports: [presencePort('port_1'), presencePort('port_2'), presencePort('port_3')],
         edges: [
-            presentEdge('port_1', charA),
-            presentEdge('port_1', objC),
-            presentEdge('port_1', objE),
-            presentEdge('port_2', charB),
-            presentEdge('port_2', objD),
-            presentEdge('port_3', charC),
-            presentEdge('port_3', objF),
             { tag: 'Relational', from: objC, to: objD, kind: 'Under' },
             { tag: 'Relational', from: objE, to: objF, kind: 'Against' },
         ],

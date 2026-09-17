@@ -395,13 +395,15 @@ describe('isEphemeraLudicGraphNode', () => {
         })).toBe(false)
     })
 
-    // Structure arm (PN-5, presenceNodes Slice 2): a presence node is a minted PRESENCE# key
-    // plus the host it is presence for, never a real component id.
+    // Structure arm (PN-5, presenceNodes Slice 2; `cover` added Slice 3, PN-19): a presence
+    // node is a minted PRESENCE# key plus the host it is presence for and its cover, never a
+    // real component id.
     it('accepts a well-formed presence node', () => {
         expect(isEphemeraLudicGraphNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'ROOM#A',
+            cover: { tag: 'Full' },
         })).toBe(true)
     })
 
@@ -410,6 +412,7 @@ describe('isEphemeraLudicGraphNode', () => {
             tag: 'Presence',
             universalKey: 'OBJECT#helmet',
             fromHostId: 'ROOM#A',
+            cover: { tag: 'Full' },
         })).toBe(false)
     })
 
@@ -425,6 +428,16 @@ describe('isEphemeraLudicGraphNode', () => {
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'PRESENCE#xyz789',
+            cover: { tag: 'Full' },
+        })).toBe(false)
+    })
+
+    it('rejects a presence node with a malformed cover', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+            cover: { tag: 'Bogus' },
         })).toBe(false)
     })
 })
@@ -432,11 +445,11 @@ describe('isEphemeraLudicGraphNode', () => {
 describe('isEphemeraLudicGraphComponentNode / isEphemeraLudicGraphStructureNode', () => {
     it('the component guard accepts exactly the five component arms, never Presence', () => {
         expect(isEphemeraLudicGraphComponentNode({ tag: 'Object', universalKey: 'OBJECT#helmet' })).toBe(true)
-        expect(isEphemeraLudicGraphComponentNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A' })).toBe(false)
+        expect(isEphemeraLudicGraphComponentNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A', cover: { tag: 'Full' } })).toBe(false)
     })
 
     it('the structure guard accepts only a well-formed presence node', () => {
-        expect(isEphemeraLudicGraphStructureNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A' })).toBe(true)
+        expect(isEphemeraLudicGraphStructureNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A', cover: { tag: 'Full' } })).toBe(true)
         expect(isEphemeraLudicGraphStructureNode({ tag: 'Object', universalKey: 'OBJECT#helmet' })).toBe(false)
     })
 
@@ -645,10 +658,10 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(true)
     })
 
-    // Presence plan PR-4 (reading (d)): 'Present' is a third, partitioning kind -- neither
-    // hosting nor peer -- and its runtime Set (HOST_RELATIONAL_EDGE_KINDS) had to be widened by
-    // hand in lockstep with the type, same agreement-check rationale as the In/PartOf test above.
-    it('accepts a Present relational edge', () => {
+    // `'Present'` retired from `HostRelationalEdgeKind` entirely at presenceNodes Slice 3
+    // (PN-14): its runtime Set (HOST_RELATIONAL_EDGE_KINDS) dropped it in the same change, and
+    // no writer ever constructed a `Present`-kind edge (bucket membership moved to `cover`).
+    it('rejects a Present relational edge', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'ROOM#Kitchen',
             ports: [],
@@ -662,7 +675,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 to: 'OBJECT#crystalBall',
                 kind: 'Present',
             }],
-        })).toBe(true)
+        })).toBe(false)
     })
 
     // `relationLabel` belongs structurally to `Custom`: it is the free-text name that kind

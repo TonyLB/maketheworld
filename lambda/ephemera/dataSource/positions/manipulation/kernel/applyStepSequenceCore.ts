@@ -270,7 +270,19 @@ export const applyStepSequenceCore = (
             if (!graph) {
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
-            graphs.set(step.hostId, graph.addPort(step.port))
+            // presenceNodes Slice 3 (PN-8's *both*): a presence node mints 1:1 with its port,
+            // sharing the port's own minted uuid as the node's `universalKey` suffix, so the two
+            // are never out of step. Full coverage by default -- nothing here computes real
+            // bucket membership; that is future work, not a migration of anything that exists
+            // today (no `Present` edge was ever written to derive it from).
+            const withPort = graph.addPort(step.port)
+            const withNode = withPort.addPresenceNode({
+                tag: 'Presence',
+                universalKey: `PRESENCE#${step.port.portId}`,
+                fromHostId: step.port.fromHostId,
+                cover: { tag: 'Full' },
+            })
+            graphs.set(step.hostId, withNode)
             continue
         }
         if (step.kind === 'removePresencePort') {
@@ -280,10 +292,14 @@ export const applyStepSequenceCore = (
             }
             // A silent no-op when no `Present` port carries this `fromHostId` --- deliberate
             // it is what lets the compiler emit one of these per departure host without
-            // knowing which one, if any, actually held the port.
+            // knowing which one, if any, actually held the port. The matching presence node(s)
+            // (Slice 3, same 1:1 mint) are removed alongside their ports in the same reduce.
             const withoutBinding = graph.ports
                 .filter((port) => port.kind === 'Present' && port.fromHostId === step.fromHostId)
-                .reduce((current, port) => current.removePort(port.portId), graph)
+                .reduce(
+                    (current, port) => current.removePort(port.portId).removePresenceNode(`PRESENCE#${port.portId}`),
+                    graph
+                )
             graphs.set(step.hostId, withoutBinding)
             continue
         }

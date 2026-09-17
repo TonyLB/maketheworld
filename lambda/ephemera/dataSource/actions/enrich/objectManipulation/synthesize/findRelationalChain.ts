@@ -88,10 +88,26 @@ const resolveEndpoint = (
     const portOwnerHostId = ephemeraLudicTerminalOwner(terminal)
     const portOwnerGraph = getGraph(portOwnerHostId)
     const port = portOwnerGraph?.ports.find((candidate) => candidate.portId === portId)
-    // A port address with no backing port record is a dangling reference, and a `Present` port
-    // is a presence port (PR-15: never a crossing) -- either way, a dead end to decline, not a
-    // throw; this walk only ever reads already-committed state.
-    if (!port || port.kind === 'Present') {
+    // A presence port IS the exterior address of a presence node (clause 1), sharing its minted
+    // uuid (Slice 3's 1:1 mint) -- resolved to that node rather than declined, per PN-4/PN-5.
+    // `isEphemeraPresenceNodeId(terminal.port)` isn't used here because `portId` is a bare uuid,
+    // never itself `PRESENCE#`-tagged; the tag lives on the reconstructed node id instead, which
+    // is what makes this a confirmation (a hit) rather than an inference from which collection
+    // happened to contain it.
+    if (port?.kind === 'Present') {
+        const presenceNode = portOwnerGraph?.presenceNodes.find((node) => node.universalKey === `PRESENCE#${portId}`)
+        if (presenceNode) {
+            return { declined: false, endpoint: presenceNode.universalKey, steps: [] }
+        }
+        // A presence port with no backing presence node is a mint-time integrity break (Slice 2's
+        // guards catch a mis-tagged mint at write time; this would be the read-time symptom of
+        // one slipping through) -- still a dead end to decline, never a throw, matching this
+        // walk's stated posture of only ever reading already-committed state.
+        return { declined: true, reason: `presence port ${portId} has no backing presence node` }
+    }
+    // A port address with no backing port record at all is a dangling reference -- a dead end to
+    // decline, not a throw, this walk only ever reads already-committed state.
+    if (!port) {
         return { declined: true, reason: `port ${portId} has no backing crossing-port record` }
     }
     const portStep: RelationalChainStep = { type: 'port', hostId: portOwnerHostId, port }

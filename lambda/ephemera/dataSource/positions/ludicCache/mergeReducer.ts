@@ -22,11 +22,16 @@
  */
 import type { EphemeraCrossingPort, EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { HostRelationalEdge } from '../ludicGraph'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from '../ludicGraph'
 import { nodesFromPresencePort, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import type { EphemeraLudicCacheEdge } from './types'
 
+// `'Present'` retired from `HostRelationalEdgeKind` at presenceNodes Slice 3 (PN-14), so this
+// reads as a check against a value no union contains -- and looks safe to delete. It is NOT:
+// presence ports still mint until Slice 7, this comparison is against `EphemeraPresencePortKind`'s
+// surviving standalone literal, and deleting it would fold presence ports into the crossing set.
 const isCrossingPort = (port: EphemeraLudicGraphPort): port is EphemeraCrossingPort => port.kind !== 'Present'
 
 /**
@@ -305,7 +310,17 @@ export const mergeSameHostBucket = (
         .filter(([key], index, all) => all.findIndex(([other]) => other === key) === index)
         .map(([, edge]) => edge)
 
-    const nodes = [...new Set([...accumulated.nodeIds, ...bucket.nodeIds])].map(nodeFromId)
+    // Presence nodes aren't reconstructible from `nodeIds` alone (`fromHostId`/`cover` have no
+    // derivation from the id), and both sides carry the same ones anyway -- every presence node
+    // is present in every cut of its own host (PN-6), so `accumulated` and `bucket` are unioning
+    // identical copies here, not merging distinct facts. Component ids stay on the
+    // nodeIds-then-nodeFromId path (presenceNodes Slice 3).
+    const componentNodeIds = [...new Set([...accumulated.nodeIds, ...bucket.nodeIds])]
+        .filter((id) => !isEphemeraPresenceNodeId(id))
+    const presenceNodesById = new Map(
+        [...accumulated.presenceNodes, ...bucket.presenceNodes].map((node) => [node.universalKey, node])
+    )
+    const nodes = [...componentNodeIds.map(nodeFromId), ...presenceNodesById.values()]
     const ports = [...accumulated.ports, ...bucket.ports].filter(
         (port, index, all) => !matchedPortIds.has(port.portId) && all.findIndex((p) => p.portId === port.portId) === index
     )

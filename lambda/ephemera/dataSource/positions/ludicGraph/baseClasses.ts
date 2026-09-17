@@ -43,7 +43,9 @@ export type HostRelationalEdge =
     | (HostRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
     | (HostRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', ...CLOSED_RELATION_KINDS, 'Custom', 'In', 'PartOf', 'Present'])
+// 'Present' retired from HostRelationalEdgeKind at presenceNodes Slice 3 (PN-14) -- no edge of
+// that kind was ever constructed by any writer, so this recovery path never needed to salvage one.
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', ...CLOSED_RELATION_KINDS, 'Custom', 'In', 'PartOf'])
 
 export const toStoredRelationalEdge = (
     edge: HostRelationalEdge

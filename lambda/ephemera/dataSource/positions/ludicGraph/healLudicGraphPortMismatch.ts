@@ -61,11 +61,12 @@ const defaultWriteHealedLudicGraph = async (
  * `healable: false`: the break is exterior, and picking one edge to believe would invent an
  * answer rather than repair one.
  *
- * **Crossing-port-only, and it inherits that rather than restating it.** A presence port has no
- * exterior edge to mirror, so the classifier reports no mismatch for one and this heal never
- * reaches its rewrite --- which is the point, since that rewrite would overwrite `kind` with
- * `'Present'` gone and destroy the binding. The branch lives in `classifyLudicGraphPortMismatch`
- * so the sweep and this recheck cannot drift apart on what a presence port means.
+ * **Crossing-port-only, and this function is now where that gate lives.** A presence port is a
+ * node, not a mismatch candidate, as of presenceNodes Slice 3 (PN-9 item (c)) --- the tolerance
+ * used to live inside `classifyLudicGraphPortMismatch` itself, but that branch retired once the
+ * sweep stopped feeding it presence ports, so the gate moved here instead. Declining before the
+ * classify call is still what keeps a manual invocation from ever reaching a rewrite that would
+ * overwrite `kind` with `'Present'` gone and destroy the binding.
  */
 export const healLudicGraphPortMismatch = async (
     ephemeraId: EphemeraMembershipHostId,
@@ -84,6 +85,9 @@ export const healLudicGraphPortMismatch = async (
     }
     const port = ludicGraph.ports.find((entry) => entry.portId === portId)
     if (!port) {
+        return { stale: false }
+    }
+    if (port.kind === 'Present') {
         return { stale: false }
     }
 

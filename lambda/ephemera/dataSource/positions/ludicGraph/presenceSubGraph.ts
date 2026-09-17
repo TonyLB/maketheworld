@@ -3,16 +3,19 @@
  * the evidence PR-8 (see taskPlanning/lambda/ephemera/dataSource/positions/AGENT.presence.planning.md)
  * needs.
  *
- * Dependency tag --- the rollback set is exactly:
- *   - positions/ludicGraph/presenceSubGraph.ts (+ test)
- *   - positions/ludicCache/mergeReducer.ts (+ test)
- *   - their fixtures
- * No change to EphemeraLudicGraph, to ephemeraMeta.ts, or to any write path. If a slice finds
- * it needs one, that is a scope change to raise, not to take.
+ * **Dependency tag superseded 2026-09-17+ by the presenceNodes plan (`AGENT.presenceNodes.planning.md`),
+ * Slice 3, which the tag's own escape hatch names: "a scope change to raise, not to take" ---
+ * raised and taken across several Slice 2/3 items.** The original tag ("No change to
+ * `EphemeraLudicGraph`, to `ephemeraMeta.ts`, or to any write path") no longer holds: `ludicGraph`
+ * now mints presence NODES, not just ports, which is exactly this file's `nodesFromPresencePort`
+ * moving from a prototype's invented rule to reading a real, written `cover` field. Kept below
+ * for the history it still records accurately (why the rule was invented, what it measured).
  *
  * Rollback trigger, named in advance: a bucket cannot be stated from the child's own graph
  * plus its ports --- i.e. if deciding which nodes are in a binding turns out to require the
- * parent's graph, then presence is not port-indexed and the reducer's premise fails.
+ * parent's graph, then presence is not port-indexed and the reducer's premise fails. **Not fired
+ * by the Slice 3 changes** --- `cover` is still read from the same graph `nodesFromPresencePort`
+ * is called on, never a parent's.
  *
  * Not triggers: fixture verbosity, reducer size, or the number of cases the straddle rule
  * needs. Those are measurements this Prototype exists to take.
@@ -22,50 +25,44 @@
  */
 import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { HostRelationalEdge } from './index'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
 
 /**
- * The bucket a presence port names --- the nodes of `graph` present at that binding. No shipped
- * writer produces a multi-bucket graph today (see the plan's finding), so this rule is invented
- * here, per LR-2/LR-3:
+ * The bucket a presence port names --- the nodes of `graph` present at that binding.
+ * **Re-based 2026-09-17+ (presenceNodes Slice 3): reads the presence node's own `cover` field,
+ * never `Present` edges** --- no `Present`-kind edge was ever constructed by any writer, and the
+ * 2026-09-16 course correction moved bucket membership onto `cover` instead. The presence node
+ * itself now mints 1:1 with its port (`applyStepSequenceCore.ts`'s `addPresencePort` handler),
+ * sharing the port's own minted uuid as `PRESENCE#{uuid}`.
  *
- * - Keyed on `portId` alone (LR-3), never on host id --- a graph may carry more than one
- *   presence port.
- * - The root is in the bucket unconditionally (PR-9), regardless of which arm below applies.
- * - **Zero or one presence port on `graph`:** every node in `graph.nodeIds` is in the bucket ---
- *   the degenerate case the plan's finding documents (at most one presence port means *reached
- *   from the port* and *every node* coincide; with zero ports there is no split to speak of
- *   either).
- * - **More than one presence port:** membership is the nodes reached by a single `Present`-kind
- *   edge whose `from` is the port-qualified terminal `{ owner: graph.hostId, port: portId }` ---
- *   a direct edge lookup, not a transitive walk. PR-4 fixes `Present` edges as running
- *   PORT -> NODE, never node -> node, so within one graph there is nothing to chain onto after
- *   the first hop (multi-level containment inside a single graph is explicitly out of scope,
- *   PR-4's exclusion list item 5). A `to` endpoint may itself be port-qualified (the
- *   nested-cover-alignment case, PR-C1's `port_A -[Present]-> GHG#port_1`); it is resolved to
- *   its owning node, since the cover ranges over nodes only (PR-9).
- *
- * `ephemeraLudicTerminalsEqual` is used to match the `from` terminal, not id comparison --- a
- * port-qualified terminal and a bare id on the same owner are deliberately not equal.
+ * - The root is in the bucket unconditionally (PR-9/PN-6), regardless of `cover.tag`.
+ * - **`cover.tag === 'Full'`:** every component node of `graph` is in the bucket --- the same
+ *   value the retired `presencePortCount <= 1` short-circuit used to return (PN-18: `fullCoverage`
+ *   is written at every arity now, not derived from it, so this is a rewrite of that arm, not a
+ *   behavior change for it). Presence/structure nodes are excluded from this set: PN-6 settled
+ *   that a presence node is a member of no bucket, present in every cut instead (mirroring how
+ *   `subGraphFromNodes` already carries every presence port into every bucket unconditionally).
+ * - **`cover.tag === 'Enumerated'`:** membership is exactly `cover.members`' `host` component
+ *   (PN-20: each entry is a `{ host, presence }` pair; `presence` disambiguates which of that
+ *   component's own bindings is meant and is not consumed by this function's return type).
+ *   **No shipped writer constructs an `Enumerated` cover yet** (Slice 3 only ever mints `'Full'`,
+ *   per the mint-time decision recorded in `applyStepSequenceCore.ts`) --- this arm is typed and
+ *   exercised in isolation, not yet reachable end-to-end from a real move.
  */
 export const nodesFromPresencePort = (
     graph: EphemeraLudicGraph,
     portId: string
 ): Set<EphemeraLudicTerminalPrimitive> => {
     const root = ephemeraLudicTerminalOwner(graph.rootId)
-    const presencePortCount = graph.ports.filter((port) => port.kind === 'Present').length
-    if (presencePortCount <= 1) {
-        return new Set([...graph.nodeIds, root])
+    const presenceNode = graph.presenceNodes.find((node) => node.universalKey === `PRESENCE#${portId}`)
+    if (!presenceNode || presenceNode.cover.tag === 'Full') {
+        const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
+        return new Set([...componentNodeIds, root])
     }
-    const portTerminal = { owner: graph.hostId, port: portId }
-    return graph.relationalEdges
-        .filter((edge) => edge.kind === 'Present' && ephemeraLudicTerminalsEqual(edge.from, portTerminal))
-        .reduce(
-            (nodes, edge) => nodes.add(ephemeraLudicTerminalOwner(edge.to)),
-            new Set<EphemeraLudicTerminalPrimitive>([root])
-        )
+    return new Set([...presenceNode.cover.members.map((entry) => entry.host), root])
 }
 
 /**
@@ -235,9 +232,23 @@ export const subGraphFromNodes = (
     graph: EphemeraLudicGraph,
     nodes: Set<EphemeraLudicTerminalPrimitive>
 ): EphemeraLudicGraph => {
-    const subNodes = [...graph.nodeIds].filter((id) => nodes.has(id)).map(nodeFromId)
+    // Component nodes are cut by bucket membership as before; presence/structure nodes are
+    // carried into every bucket unconditionally instead (PN-6: a presence node is a member of no
+    // bucket, present in every cut), the same treatment `presencePorts` below already gives their
+    // ports. They can't be reconstructed via `nodeIds`-then-`nodeFromId` either way --- a
+    // structure node's `fromHostId`/`cover` have no derivation from the id alone.
+    const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
+    const subNodes = [
+        ...componentNodeIds.filter((id) => nodes.has(id)).map(nodeFromId),
+        ...graph.presenceNodes,
+    ]
 
-    const contentEdges = graph.relationalEdges.filter((edge) => edge.kind !== 'Present')
+    // No `Present`-kind edge is ever constructed by any writer (presenceNodes Slice 3, the
+    // 2026-09-16 course correction moved bucket membership onto `cover`) --- this used to filter
+    // one kind out of `relationalEdges`; now that the kind itself is retired from
+    // `HostRelationalEdgeKind`, the filter would be a no-op, and a no-op filter is worse than no
+    // filter (the next reader assumes it excludes something).
+    const contentEdges = graph.relationalEdges
 
     const root = ephemeraLudicTerminalOwner(graph.rootId)
     const endpointStatus = (terminal: EphemeraLudicTerminalId): EndpointStatus => {
@@ -277,20 +288,22 @@ export const subGraphFromNodes = (
             // Exactly one of each by elimination: the branch above caught "no qualified", this
             // one caught "no disqualified".
             const outsideTerminal = fromStatus === 'disqualified' ? edge.from : edge.to
-            // Never `Present`-kind here --- excluded above --- so `edge.kind` is always
-            // `Exclude<HostRelationalEdgeKind, 'Present'>`, exactly what a crossing port's `kind`
-            // field requires, with no narrowing left to do beyond the cast itself.
             const portId = stubPortIdFromEdge(edge)
             const port: EphemeraLudicGraphPort = {
                 portId,
                 // `fromHostId` is typed `EphemeraMembershipHostId` and has no `PRESENCE#` arm;
                 // widening it to admit one is presenceNodes' PN-6 clause (c), a named Slice 4
-                // task, not this file's (which is outside the presenceNodes rollback set). No
-                // presence node is minted before Slice 3, so `outsideTerminal` cannot actually
-                // be one yet --- this narrows back the type ripple from widening
-                // `EphemeraLudicTerminalPrimitive` in Slice 2, not a behavior change.
+                // task, not this file's (which is outside the presenceNodes rollback set). A
+                // presence node CAN now be minted (Slice 3), but it is never a content-edge
+                // endpoint by construction here -- edges connect component nodes, and a presence
+                // node's own denotation reach (PR-15) is `resolveEndpoint`'s territory (PN-4,
+                // Slice 3), not this classifier's.
                 fromHostId: ephemeraLudicTerminalOwner(outsideTerminal) as EphemeraMembershipHostId,
-                kind: edge.kind as Exclude<HostRelationalEdgeKind, 'Present'>,
+                // No longer `Exclude<HostRelationalEdgeKind, 'Present'>` (PN-14): with `'Present'`
+                // retired from that union, the exclusion is vacuous -- `edge.kind` was already
+                // never `'Present'` here (no such edge is ever constructed), and the union itself
+                // now enforces what the `Exclude<>` used to.
+                kind: edge.kind as HostRelationalEdgeKind,
                 ...(edge.kind === 'Custom' ? { exteriorRelationLabel: edge.relationLabel } : {}),
             }
             const stubTerminal = { owner: graph.hostId, port: portId }

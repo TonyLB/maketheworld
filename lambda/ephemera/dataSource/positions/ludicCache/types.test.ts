@@ -71,15 +71,37 @@ describe('isEphemeraLudicCacheNode', () => {
         })).toBe(false)
     })
 
-    // Structure arm (PN-5, presenceNodes Slice 2): a presence node carries none of the cache
-    // extras a component node needs --- no shortName, no interiorConsolidated. `consolidated`
-    // is not added here; that lands with PN-7 in presenceNodes Slice 4.
-    it('accepts a bare presence node with no shortName or interiorConsolidated', () => {
+    // Structure arm (PN-19, presenceNodes Slice 3): a presence node carries none of the cache
+    // extras a component node needs --- no shortName, no interiorConsolidated --- but does carry
+    // `cover` (narrowed to the `'Enumerated'` arm only, `'Full'` being unrepresentable in the
+    // cache by construction) and `consolidated` (PN-15, a separate boolean beside `cover`).
+    it('accepts a presence node with an Enumerated cover and a consolidated flag', () => {
         expect(isEphemeraLudicCacheNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'ROOM#A',
+            cover: { tag: 'Enumerated', members: [] },
+            consolidated: false,
         })).toBe(true)
+    })
+
+    it("rejects a presence node with a 'Full' cover -- unrepresentable in the cache by construction (PN-19)", () => {
+        expect(isEphemeraLudicCacheNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+            cover: { tag: 'Full' },
+            consolidated: false,
+        })).toBe(false)
+    })
+
+    it('rejects a presence node missing consolidated', () => {
+        expect(isEphemeraLudicCacheNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+            cover: { tag: 'Enumerated', members: [] },
+        })).toBe(false)
     })
 
     it('rejects a presence node with a malformed fromHostId', () => {
@@ -87,6 +109,8 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'PRESENCE#xyz789',
+            cover: { tag: 'Enumerated', members: [] },
+            consolidated: false,
         })).toBe(false)
     })
 })

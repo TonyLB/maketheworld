@@ -44,7 +44,10 @@ export type ObjectRelationChangedPublishedPayload = {
     beatAnchorTime: number;
 } & RelationalKindAndLabel
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', ...CLOSED_RELATION_KINDS, 'Custom', 'In', 'PartOf', 'Present'])
+// 'Present' retired from HostRelationalEdgeKind at presenceNodes Slice 3 (PN-14) -- checked
+// unexported/module-private here (and in every sibling copy of this Set), so this is not a
+// published-vocabulary break for any consumer outside lambda/ephemera/dataSource.
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', ...CLOSED_RELATION_KINDS, 'Custom', 'In', 'PartOf'])
 
 export type PositionsPublishedPayload =
     | CharacterMovedPublishedPayload

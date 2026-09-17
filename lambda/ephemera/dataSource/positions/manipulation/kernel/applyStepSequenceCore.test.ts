@@ -700,6 +700,44 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.get(trayId)!.ports).toEqual([])
         })
 
+        // presenceNodes Slice 3 (PN-8's *both*): a presence node mints 1:1 with its port, sharing
+        // the port's own minted uuid as `PRESENCE#{uuid}`, with full coverage by default.
+        it('addPresencePort also mints the matching presence node, full coverage by default', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                { kind: 'addPresencePort', hostId: trayId, port: { portId: 'p1', fromHostId: roomId, kind: 'Present' } },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.toStored().nodes).toEqual(
+                expect.arrayContaining([{
+                    tag: 'Presence',
+                    universalKey: 'PRESENCE#p1',
+                    fromHostId: roomId,
+                    cover: { tag: 'Full' },
+                }])
+            )
+        })
+
+        it('removePresencePort also removes the matching presence node', () => {
+            const trayGraph = testLudicGraph(trayId, {
+                ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }],
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } }],
+            })
+            const steps: MutationKernelStep[] = [
+                { kind: 'removePresencePort', hostId: trayId, fromHostId: roomId },
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.toStored().nodes).toEqual([])
+        })
+
         it('removePresencePort against an absent binding is a silent no-op, not illegal', () => {
             const trayGraph = testLudicGraph(trayId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
             const steps: MutationKernelStep[] = [

@@ -5,8 +5,8 @@
  * multi-bucket cases are the ones the function exists for, but they are untested by anything
  * that would fail if the mechanism were wrong.
  */
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraLudicGraphPort, EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraLudicGraphComponentNode, EphemeraLudicGraphPort, EphemeraLudicGraphStructureNode, EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { testLudicGraph } from './testFixtures'
 import { nodesFromPresencePort, nodesFromPresencePorts, subGraphFromNodes } from './presenceSubGraph'
@@ -31,15 +31,25 @@ const crossingPort = (portId: string): EphemeraLudicGraphPort => ({
     kind: 'Under',
 })
 
-const presentEdge = (portId: string, to: EphemeraLudicRelationalEdgeData['to']): EphemeraLudicRelationalEdgeData => ({
-    tag: 'Relational',
-    from: { owner: roomId, port: portId },
-    to,
-    kind: 'Present',
+const fullCover: EphemeraPresenceCover = { tag: 'Full' }
+
+/** A dummy `presence` disambiguator per member --- these fixtures don't exercise a covered
+ * component's own multiple bindings (PN-22), so any well-formed `PRESENCE#` id suffices. */
+const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey'][]): EphemeraPresenceCover => ({
+    tag: 'Enumerated',
+    members: hosts.map((host) => ({ host, presence: `PRESENCE#${host}-binding` as EphemeraPresenceNodeId })),
+})
+
+/** The presence node minted 1:1 with `presencePort(portId)` (presenceNodes Slice 3). */
+const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLudicGraphStructureNode => ({
+    tag: 'Presence',
+    universalKey: `PRESENCE#${portId}` as EphemeraPresenceNodeId,
+    fromHostId: roomId,
+    cover,
 })
 
 describe('nodesFromPresencePort', () => {
-    it('returns every node when the graph has no presence ports (degenerate, zero-port arm)', () => {
+    it('falls back to full coverage when no presence node matches the port (degenerate: no node minted, or a stale/legacy port)', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
@@ -51,19 +61,36 @@ describe('nodesFromPresencePort', () => {
         expect(nodesFromPresencePort(graph, 'nonexistent')).toEqual(new Set([roomId, charA, objC]))
     })
 
-    it('returns every node when the graph has exactly one presence port, regardless of Present edges', () => {
+    it("returns every component node when the presence node's cover is 'Full'", () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
                 { tag: 'Character', universalKey: charA },
                 { tag: 'Object', universalKey: objC },
+                presenceNode('port_1', fullCover),
             ],
             ports: [presencePort('port_1')],
         })
         expect(nodesFromPresencePort(graph, 'port_1')).toEqual(new Set([roomId, charA, objC]))
     })
 
-    it('splits a two-bucket child by port, root included in both', () => {
+    it("excludes presence nodes themselves from a 'Full' cover's node set (PN-6: a presence node is a member of no bucket, present in every cut instead)", () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                presenceNode('port_1', fullCover),
+                presenceNode('port_2', fullCover),
+            ],
+            ports: [presencePort('port_1'), presencePort('port_2')],
+        })
+        const result = nodesFromPresencePort(graph, 'port_1')
+        expect(result).toEqual(new Set([roomId, objC]))
+        expect(result.has('PRESENCE#port_1' as EphemeraPresenceNodeId)).toBe(false)
+        expect(result.has('PRESENCE#port_2' as EphemeraPresenceNodeId)).toBe(false)
+    })
+
+    it("splits a two-bucket child by port, root included in both, per each presence node's own Enumerated cover", () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
@@ -71,56 +98,38 @@ describe('nodesFromPresencePort', () => {
                 { tag: 'Character', universalKey: charB },
                 { tag: 'Object', universalKey: objC },
                 { tag: 'Object', universalKey: objD },
+                presenceNode('port_1', enumeratedCover(charA, objC)),
+                presenceNode('port_2', enumeratedCover(charB, objD)),
             ],
             ports: [presencePort('port_1'), presencePort('port_2')],
-            edges: [
-                presentEdge('port_1', charA),
-                presentEdge('port_1', objC),
-                presentEdge('port_2', charB),
-                presentEdge('port_2', objD),
-            ],
         })
         expect(nodesFromPresencePort(graph, 'port_1')).toEqual(new Set([roomId, charA, objC]))
         expect(nodesFromPresencePort(graph, 'port_2')).toEqual(new Set([roomId, charB, objD]))
     })
 
-    it('returns just the root when a presence port (in a multi-port graph) has no outgoing Present edge', () => {
+    it('returns just the root when a presence node has an empty Enumerated cover', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
                 { tag: 'Character', universalKey: charA },
+                presenceNode('port_1', enumeratedCover(charA)),
+                presenceNode('port_2', enumeratedCover()),
             ],
             ports: [presencePort('port_1'), presencePort('port_2')],
-            edges: [presentEdge('port_1', charA)],
         })
         expect(nodesFromPresencePort(graph, 'port_2')).toEqual(new Set([roomId]))
     })
 
-    it('resolves a port-qualified to endpoint to its owning node', () => {
-        const graph = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Room', universalKey: roomId },
-                { tag: 'Object', universalKey: objC },
-                { tag: 'Object', universalKey: objD },
-            ],
-            ports: [presencePort('port_1'), presencePort('port_2')],
-            edges: [
-                presentEdge('port_1', { owner: objC, port: 'inner' }),
-                presentEdge('port_2', objD),
-            ],
-        })
-        expect(nodesFromPresencePort(graph, 'port_1')).toEqual(new Set([roomId, objC]))
-    })
-
-    it('is keyed on portId, not owner --- a Present edge from a different port on the same owner is not picked up', () => {
+    it('is keyed on portId, not owner --- two presence nodes on the same host stay independent', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
                 { tag: 'Character', universalKey: charA },
                 { tag: 'Character', universalKey: charB },
+                presenceNode('port_1', enumeratedCover(charA)),
+                presenceNode('port_2', enumeratedCover(charB)),
             ],
             ports: [presencePort('port_1'), presencePort('port_2')],
-            edges: [presentEdge('port_1', charA), presentEdge('port_2', charB)],
         })
         expect(nodesFromPresencePort(graph, 'port_1')).not.toContain(charB)
         expect(nodesFromPresencePort(graph, 'port_2')).not.toContain(charA)
@@ -476,37 +485,10 @@ describe('subGraphFromNodes', () => {
         expect(result.nodeIds.has(roomId)).toBe(true)
     })
 
-    it('excludes an interior Present edge from the output entirely (LR-6)', () => {
-        const graph = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Room', universalKey: roomId },
-                { tag: 'Object', universalKey: objC },
-            ],
-            ports: [presencePort('port_1')],
-            edges: [presentEdge('port_1', objC)],
-        })
-        const result = subGraphFromNodes(graph, bucket)
-        expect(result.relationalEdges).toEqual([])
-    })
-
-    it('does not mint a stub port for a Present edge straddling into a different bucket (LR-6)', () => {
-        const graph = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Room', universalKey: roomId },
-                { tag: 'Object', universalKey: objC },
-                { tag: 'Character', universalKey: charB },
-            ],
-            ports: [presencePort('port_1'), presencePort('port_2')],
-            edges: [presentEdge('port_2', charB)],
-        })
-        const result = subGraphFromNodes(graph, bucket)
-        expect(result.relationalEdges).toEqual([])
-        // Both presence ports are preserved (below), but neither is a *minted* stub for this edge.
-        expect(result.ports).toEqual(
-            expect.arrayContaining([presencePort('port_1'), presencePort('port_2')])
-        )
-        expect(result.ports).toHaveLength(2)
-    })
+    // `'excludes an interior Present edge from the output entirely (LR-6)'` and `'does not mint
+    // a stub port for a Present edge straddling into a different bucket (LR-6)'` deleted at
+    // presenceNodes Slice 3: no `Present`-kind edge is ever constructed by any writer, so there
+    // is nothing left for the (now-deleted) `contentEdges` filter to exclude or straddle.
 
     it("preserves all of the graph's own presence ports regardless of bucket (LR-6)", () => {
         const graph = testLudicGraph(roomId, {
@@ -516,13 +498,31 @@ describe('subGraphFromNodes', () => {
                 { tag: 'Character', universalKey: charB },
             ],
             ports: [presencePort('port_1'), presencePort('port_2')],
-            edges: [presentEdge('port_1', objC), presentEdge('port_2', charB)],
         })
         const result = subGraphFromNodes(graph, bucket)
         expect(result.ports).toEqual(
             expect.arrayContaining([presencePort('port_1'), presencePort('port_2')])
         )
         expect(result.ports).toHaveLength(2)
+    })
+
+    it("preserves all of the graph's own presence nodes regardless of bucket (PN-6, Slice 3: a presence node is present in every cut)", () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Character', universalKey: charB },
+                presenceNode('port_1', fullCover),
+                presenceNode('port_2', enumeratedCover(charB)),
+            ],
+            ports: [presencePort('port_1'), presencePort('port_2')],
+        })
+        // `bucket` (roomId, charA, objC) doesn't even name charB, and port_2's own cover is
+        // Enumerated over charB alone --- neither is relevant, since presence nodes are carried
+        // unconditionally rather than filtered by bucket membership.
+        const result = subGraphFromNodes(graph, bucket)
+        expect(result.nodeIds.has('PRESENCE#port_1' as EphemeraPresenceNodeId)).toBe(true)
+        expect(result.nodeIds.has('PRESENCE#port_2' as EphemeraPresenceNodeId)).toBe(true)
     })
 })
 
@@ -535,14 +535,10 @@ describe('nodesFromPresencePorts', () => {
                 { tag: 'Character', universalKey: charB },
                 { tag: 'Object', universalKey: objC },
                 { tag: 'Object', universalKey: objD },
+                presenceNode('port_1', enumeratedCover(charA, objC)),
+                presenceNode('port_2', enumeratedCover(charB, objD)),
             ],
             ports: [presencePort('port_1'), presencePort('port_2')],
-            edges: [
-                presentEdge('port_1', charA),
-                presentEdge('port_1', objC),
-                presentEdge('port_2', charB),
-                presentEdge('port_2', objD),
-            ],
         })
         const union = nodesFromPresencePorts(graph, ['port_1', 'port_2'])
         expect(union).toEqual(new Set([roomId, charA, objC, charB, objD]))
@@ -554,9 +550,9 @@ describe('nodesFromPresencePorts', () => {
                 { tag: 'Room', universalKey: roomId },
                 { tag: 'Character', universalKey: charA },
                 { tag: 'Object', universalKey: objC },
+                presenceNode('port_1', enumeratedCover(charA, objC)),
             ],
             ports: [presencePort('port_1'), presencePort('port_2')],
-            edges: [presentEdge('port_1', charA), presentEdge('port_1', objC)],
         })
         expect(nodesFromPresencePorts(graph, ['port_1'])).toEqual(nodesFromPresencePort(graph, 'port_1'))
     })
@@ -568,11 +564,11 @@ describe('nodesFromPresencePorts', () => {
                 { tag: 'Character', universalKey: charA },
                 { tag: 'Object', universalKey: objD },
                 { tag: 'Object', universalKey: objE },
+                presenceNode('port_1', enumeratedCover(charA)),
+                presenceNode('port_2', enumeratedCover(objD)),
             ],
             ports: [presencePort('port_1'), presencePort('port_2')],
             edges: [
-                presentEdge('port_1', charA),
-                presentEdge('port_2', objD),
                 // A content edge straddling the two buckets --- interior once they're unioned.
                 { tag: 'Relational', from: charA, to: objD, kind: 'Under' },
                 // A content edge to a node genuinely outside both buckets --- still a straddle.

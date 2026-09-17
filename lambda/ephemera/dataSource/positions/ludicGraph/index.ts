@@ -4,7 +4,7 @@ import {
     extractObjectIdsFromLudicGraph,
     projectComponentGraphFromStoredLudicGraph,
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type {
@@ -13,6 +13,7 @@ import type {
     EphemeraLudicGraphFieldPayload,
     EphemeraLudicGraphNode,
     EphemeraLudicGraphPort,
+    EphemeraLudicGraphStructureNode,
     EphemeraLudicRelationalEdgeData,
     EphemeraLudicTerminalId,
     EphemeraLudicTerminalPrimitive,
@@ -239,6 +240,17 @@ export class EphemeraLudicGraph {
                 .filter((node): node is { tag: 'Feature'; universalKey: EphemeraFeatureId } => node.tag === 'Feature')
                 .map((node) => node.universalKey)
         )
+    }
+
+    /**
+     * Every presence node's full record, not just its id (presenceNodes Slice 3). Unlike the
+     * typed component accessors above, a structure node can't be reconstructed from its
+     * `universalKey` alone -- `fromHostId`/`cover` have no derivation from the id -- so callers
+     * that fold node sets from more than one graph (`mergeReducer.ts`, `subGraphFromNodes`) need
+     * the real objects, not `nodeIds` plus `nodeFromId`.
+     */
+    get presenceNodes(): EphemeraLudicGraphStructureNode[] {
+        return this._nodes.filter((node): node is EphemeraLudicGraphStructureNode => node.tag === 'Presence')
     }
 
     /**
@@ -536,6 +548,27 @@ export class EphemeraLudicGraph {
 
     removePort(portId: string): EphemeraLudicGraph {
         return this.withPorts(this._ports.filter((port) => port.portId !== portId))
+    }
+
+    /**
+     * Mints a presence NODE, not just a port (presenceNodes Slice 3, PN-8's *both*). Unlike
+     * `addObject`/`addCharacter`/etc., which dispatch on `EphemeraPositionAdjacencyContainedId`,
+     * a structure node has no such id to key idempotency on the usual way -- it's keyed on its
+     * own minted `universalKey` instead, which is 1:1 with the presence port it mints alongside
+     * (`applyStepSequenceCore.ts`'s `addPresencePort` handler calls both from one step, sharing
+     * one uuid). Idempotent-add, same shape as the component methods above.
+     */
+    addPresenceNode(node: EphemeraLudicGraphStructureNode): EphemeraLudicGraph {
+        if (this._nodes.some((existing) => existing.tag === 'Presence' && existing.universalKey === node.universalKey)) {
+            return this
+        }
+        return this.withNodes([...this._nodes, node])
+    }
+
+    removePresenceNode(universalKey: EphemeraPresenceNodeId): EphemeraLudicGraph {
+        return this.withNodes(
+            this._nodes.filter((node) => !(node.tag === 'Presence' && node.universalKey === universalKey))
+        )
     }
 
     /**

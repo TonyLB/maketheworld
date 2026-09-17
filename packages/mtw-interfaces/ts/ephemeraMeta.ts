@@ -335,11 +335,50 @@ export type EphemeraLudicGraphComponentNode =
  * host it is presence for --- which no component arm has a field for. `kind: 'Present'` is not
  * carried here; `tag: 'Presence'` is already the discriminant, and a second constant field would
  * be a discriminant with no second value.
+ *
+ * `fromHostId` is a SHARD LOCATOR, deliberately NOT the inverse of the parent's cover (PN-21).
+ * It says which host's graph to read in order to find the binding covering this one --- one
+ * Dynamo read instead of a scan --- and stops there. WHICH binding of that host is the parent is
+ * stated on the parent side, as a `{ host, presence }` cover entry (PN-20), and the parent side
+ * is authoritative per the conflict rule in `positions/AGENT.contract.md`. Do not "reconcile"
+ * the two grains by widening this field: it buys no read, and a single-valued parent reference
+ * would foreclose PN-22 (whether one presence node may be covered by more than one parent
+ * binding) before that question is costed.
  */
+/**
+ * One covered binding: a `{ host, presence }` pair, not a bare component id (PN-20, decided
+ * 2026-09-17). `host` is the covered component's own id; `presence` names *which* of that
+ * component's own presence bindings this cover entry means. A bare `host` cannot say that --
+ * PN-20's deciding case is a component hosted twice by the same parent (two structurally-equal
+ * bindings both naming the same child, whose own two bindings both name the same parent), where
+ * `host` alone leaves *which nested binding pairs with which* unstated. `presence` is not
+ * redundant with `host`: in a `ludicGraph` it is what keeps the referent local (the covered
+ * component is already a node in this presence node's own host graph), where a bare
+ * `PRESENCE#{uuid}` would reach into the covered component's own shard.
+ */
+export type EphemeraPresenceCoverEntry = {
+    host: EphemeraLudicGraphComponentNode['universalKey'];
+    presence: EphemeraPresenceNodeId;
+}
+
+/**
+ * A presence binding's extent (clause 7, PN-19 decided (b): a tagged arm of `cover`, never a
+ * sibling boolean discriminated by `Array.isArray`). `'Full'` means every node of the host is
+ * covered, derived from arity nowhere -- clause 7 retires the implicit at-most-one-binding form
+ * PR-10 licensed, so even a single-hosted node writes this tag rather than leaving it implicit.
+ * `'Enumerated'` states the members explicitly. Illegal-in-`ludicCache` (loss (A): "every node of
+ * the host" has no referent in a multi-host merge) is enforced by `ludicCache/types.ts`'s
+ * structure arm taking the `'Enumerated'` arm only -- structural, not a runtime guard.
+ */
+export type EphemeraPresenceCover =
+    | { tag: 'Full' }
+    | { tag: 'Enumerated'; members: EphemeraPresenceCoverEntry[] }
+
 export type EphemeraLudicGraphStructureNode = {
     tag: 'Presence';
     universalKey: EphemeraPresenceNodeId;
     fromHostId: EphemeraMembershipHostId;
+    cover: EphemeraPresenceCover;
 }
 
 /**
@@ -378,7 +417,12 @@ export const isHostingRelationKind = (value: string): value is HostingRelationKi
 export type HostRelationalEdgeKind =
     | HostingRelationKind                       // hosting kinds (AB-54); In/PartOf non-exclusive (premise 9)
     | ClosedRelationKind | 'Custom'              // peer kinds (AB-54)
-    | 'Present'                                 // partitioning kind (presence plan PR-4, reading (d)) --- neither hosting nor peer
+// `'Present'` retired from this union at presenceNodes Slice 3 (PN-14, decided 2026-09-16: removal
+// here with the edge sense, not deferred to Slice 7 with the port sense). No `Present`-kind edge
+// was ever constructed by any writer -- the migration moves bucket membership onto `cover`
+// instead. The port sense survives independently as `EphemeraPresencePortKind` below until
+// Slice 7, which is why `EphemeraPresencePort.kind` was never `Extract<HostRelationalEdgeKind,
+// 'Present'>` and this removal does not touch it.
 
 /**
  * The kind/label pairing, as a discriminated union rather than a flat optional field:
@@ -482,7 +526,7 @@ export type EphemeraLudicRelationalEdgeData =
     | (EphemeraLudicRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
     | (EphemeraLudicRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', ...CLOSED_RELATION_KINDS, 'Custom', 'In', 'PartOf', 'Present'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', ...CLOSED_RELATION_KINDS, 'Custom', 'In', 'PartOf'])
 
 export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -530,6 +574,16 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
  * `lambda/ephemera/dataSource/positions/AGENT.contract.md` ("Port records: field scope and the
  * conflict rule"); the mental model is in that directory's `AGENT.concepts.md`.
  */
+/**
+ * `EphemeraPresencePort.kind`'s own single-member type, standalone rather than
+ * `Extract<HostRelationalEdgeKind, 'Present'>` (PN-14, decided 2026-09-16): `'Present'` retired
+ * from `HostRelationalEdgeKind` at presenceNodes Slice 3, with the edge sense, while the port
+ * sense survives until Slice 7 (presence ports still mint until then). A named single-member
+ * type makes the survivor a labelled tombstone with a date rather than a literal belonging to
+ * nothing.
+ */
+export type EphemeraPresencePortKind = 'Present'
+
 /** A presence port is a terminal, never a crossing (PR-15): no exterior edge refers to it in
  * the crossing sense, so it carries no `exteriorRelationLabel` --- type-enforced, not just
  * documented (Phase 4 of the port vocabulary split). */
@@ -537,7 +591,7 @@ export type EphemeraPresencePort = {
     portId: string;
     fromHostId: EphemeraMembershipHostId;
     /** Interior scope: fixed at `'Present'` for this branch (PR-11). Authored at mint time. */
-    kind: 'Present';
+    kind: EphemeraPresencePortKind;
 }
 
 export type EphemeraCrossingPort = {
@@ -545,9 +599,12 @@ export type EphemeraCrossingPort = {
     fromHostId: EphemeraMembershipHostId;
     /**
      * Interior scope: the kind of the edge(s) passing through this port. Authored at mint
-     * time, never derived from an edge.
+     * time, never derived from an edge. No longer `Exclude<HostRelationalEdgeKind, 'Present'>`
+     * (PN-14): with `'Present'` retired from that union, the exclusion collapses to the union
+     * itself -- `EphemeraPresencePortKind`'s standalone literal is not assignable to
+     * `HostRelationalEdgeKind` either way, so the protection survives the collapse.
      */
-    kind: Exclude<HostRelationalEdgeKind, 'Present'>;
+    kind: HostRelationalEdgeKind;
     /**
      * Exterior scope: the referring edge's `Custom` label, denormalized interior-side the same
      * way `fromHostId` is, since it lives in the parent's shard. Required non-empty when
@@ -602,6 +659,28 @@ export const isEphemeraLudicGraphComponentNode = (value: unknown): value is Ephe
     return false
 }
 
+/** Branches on the declared `tag`, never on shape (`Array.isArray`) -- PR-15's rule, cited by PN-19. */
+export const isEphemeraPresenceCover = (value: unknown): value is EphemeraPresenceCover => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const cover = value as EphemeraPresenceCover
+    if (cover.tag === 'Full') {
+        return true
+    }
+    if (cover.tag !== 'Enumerated') {
+        return false
+    }
+    return Array.isArray(cover.members) && cover.members.every((entry) => (
+        !!entry && typeof entry === 'object' &&
+        isEphemeraPresenceNodeId(entry.presence) &&
+        (
+            isEphemeraCharacterId(entry.host) || isEphemeraObjectId(entry.host) ||
+            isEphemeraRoomId(entry.host) || isEphemeraFeatureId(entry.host) || isEphemeraAreaId(entry.host)
+        )
+    ))
+}
+
 export const isEphemeraLudicGraphStructureNode = (value: unknown): value is EphemeraLudicGraphStructureNode => {
     if (!value || typeof value !== 'object') {
         return false
@@ -610,7 +689,9 @@ export const isEphemeraLudicGraphStructureNode = (value: unknown): value is Ephe
     if (entry.tag !== 'Presence') {
         return false
     }
-    return isEphemeraPresenceNodeId(entry.universalKey) && isEphemeraMembershipHostId(entry.fromHostId)
+    return isEphemeraPresenceNodeId(entry.universalKey) &&
+        isEphemeraMembershipHostId(entry.fromHostId) &&
+        isEphemeraPresenceCover(entry.cover)
 }
 
 export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudicGraphNode => {
@@ -637,7 +718,11 @@ export const isEphemeraLudicGraphPort = (value: unknown): value is EphemeraLudic
     if (!(typeof entry.portId === 'string' && isEphemeraMembershipHostId(entry.fromHostId as EphemeraMembershipHostId))) {
         return false
     }
-    if (typeof entry.kind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(entry.kind as HostRelationalEdgeKind)) {
+    // `HOST_RELATIONAL_EDGE_KINDS` no longer admits `'Present'` (PN-14: retired from
+    // `HostRelationalEdgeKind` at Slice 3), but a port's `kind` is a wider domain than an edge's
+    // -- presence ports still mint until Slice 7, so this checks `EphemeraPresencePortKind`
+    // alongside it rather than reusing the edge Set alone.
+    if (typeof entry.kind !== 'string' || !(HOST_RELATIONAL_EDGE_KINDS.has(entry.kind as HostRelationalEdgeKind) || entry.kind === 'Present')) {
         return false
     }
     // Mirrors the edge guard's own conditional one-for-one: the scale change a port
