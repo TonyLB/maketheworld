@@ -2,6 +2,8 @@
 
 This file records **mental models and vocabulary** for `mtw.ephemera.positions` --- what positions **mean** in the game world, not how we migrate or wire code. Normative obligations for shipped behavior: [`AGENT.contract.md`](AGENT.contract.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
+**New to this area? Read [`AGENT.ludicNetwork.md`](AGENT.ludicNetwork.md) first.** The entries below preserve their reasoning and corrections in place, by design; that file states the current shape once, in present tense, so these entries read as commentary rather than as history to reassemble.
+
 Cross-area topology authoring (Area `ludicGraph`, Exit edges): [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md).
 
 ---

@@ -12,6 +12,7 @@
 
 **This plan implements a mechanism four design initiatives argued about for six weeks, and it is not self-contained.** A collaborator who starts at the code will write something that type-checks and quietly violates a locked clause. **Read the sections named below --- not the files they are in.** The design plans in this directory run 200--1800 lines each, their decision rows are single lines of 5--20 KB, and reading one end to end is a day's work that this list exists to replace. **Grep by row id** (`AB-54`, `PR-8`, `EA-6`) rather than scrolling.
 
+0. **Read [`positions/AGENT.ludicNetwork.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md) first, end to end.** It is the one-pass orientation --- sharding, ports, multi-hosting, presence as a cover, and what `ludicCache` is for --- in present tense with a single running example. Every item below assumes its vocabulary; without it, the durable docs read as history to reassemble rather than concepts to fill in.
 1. **Read [`taskPlanning/AGENT.md`](../../../../AGENT.md) once** for durability and content split. This plan is deleted when the work lands; anything worth keeping moves to [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) or [`AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md) first.
 
 ### Durable docs first --- these outlive this plan and are authoritative

@@ -8,7 +8,8 @@ Play membership authority is **`Meta::Room.ludicGraph`** + adjacency index --- t
 
 | Doc | Role |
 | --- | --- |
-| [**AGENT.concepts.md**](AGENT.concepts.md) | Mental models: room membership, **eviction ladder**, fractal graphs, [**graph roles**](AGENT.concepts.md#graph-roles-shared-shape-different-authority) (manipulation vs presentation) |
+| [**AGENT.ludicNetwork.md**](AGENT.ludicNetwork.md) | **Read first.** One-pass orientation to the play-time world model --- per-host sharding, ports and external addressing, multi-host containment, presence as a cover, `ludicCache` --- in present tense with one running example |
+| [**AGENT.concepts.md**](AGENT.concepts.md) | Mental models, with their reasoning and history: room membership, **eviction ladder**, [**wholes, parts, and ports**](AGENT.concepts.md#wholes-parts-and-ports), [**presence as a cover**](AGENT.concepts.md#presence-as-a-cover), [**graph roles**](AGENT.concepts.md#graph-roles-shared-shape-different-authority) (manipulation vs presentation) |
 | [**AGENT.contract.md**](AGENT.contract.md) | Normative rules enforced **today** |
 | [**AGENT.implementation.md**](AGENT.implementation.md) | Code map for this folder |
 | [**manipulation/AGENT.md**](manipulation/AGENT.md) | Manipulation kernel + shared adapter spec (membership transfer persist) |
