@@ -3,8 +3,8 @@
  * the evidence PR-8 (see taskPlanning/lambda/ephemera/dataSource/positions/AGENT.presence.planning.md)
  * needs.
  *
- * **Dependency tag superseded 2026-09-17+ by the presenceNodes plan (`AGENT.presenceNodes.planning.md`),
- * Slice 3, which the tag's own escape hatch names: "a scope change to raise, not to take" ---
+ * **Dependency tag superseded 2026-09-17+ by the presenceNodes plan (`AGENT.presenceNodes.planning.md`,
+ * closed and deleted 2026-09-18), Slice 3, which the tag's own escape hatch names: "a scope change to raise, not to take" ---
  * raised and taken across several Slice 2/3 items.** The original tag ("No change to
  * `EphemeraLudicGraph`, to `ephemeraMeta.ts`, or to any write path") no longer holds: `ludicGraph`
  * now mints presence NODES (and, as of Slice 7a, no port record at all), which is exactly this
