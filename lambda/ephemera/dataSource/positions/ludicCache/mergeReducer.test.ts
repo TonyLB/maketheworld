@@ -10,9 +10,11 @@ import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
 import { collapseCrossingPorts, collapseSameHostStubs, foldSameHostBuckets, mergeSameHostBucket } from './mergeReducer'
+import { isEphemeraLudicCacheEdge } from './types'
 
 const roomId = 'ROOM#Root' as EphemeraRoomId
 const boxId = 'OBJECT#Box' as EphemeraObjectId
+const objB = 'OBJECT#B' as EphemeraObjectId
 const boulder = 'OBJECT#Boulder' as EphemeraObjectId
 const pebble = 'OBJECT#Pebble' as EphemeraObjectId
 const feather = 'OBJECT#Feather' as EphemeraObjectId
@@ -444,5 +446,144 @@ describe('foldSameHostBuckets', () => {
     it('does not throw when presenceUuids is empty (unexamined) or names every real binding (fully consolidated)', () => {
         expect(() => foldSameHostBuckets(graph, [])).not.toThrow()
         expect(() => foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])).not.toThrow()
+    })
+})
+
+//
+// ISS8149 Slice 1 --- LC8's first job, run rather than re-derived, and the two sibling cases
+// (LC10/LC11) gap 6 moved to once LC8 was found not to reach the bare port-to-port shape. See
+// taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.ludicCache.corpus.planning.md
+// for the setups these fixtures encode and the findings this probe feeds back into.
+//
+// LC8's diamond: OBJECT#B and OBJECT#C are both ROOM#A's direct children (`In`), OBJECT#D is
+// `In` OBJECT#B *and* `PartOf` OBJECT#C -- a genuine diamond, but stated as two independently
+// authored graphs (B's own, C's own), neither of which mints a port for D at all.
+//
+// LC10/LC11 add a peer edge, `OBJECT#D -Against-> OBJECT#E` (E is `PartOf` OBJECT#C only), and
+// the corpus's own text notes the world edge has two *routes* that were never disambiguated:
+// stated wholly inside OBJECT#C's own graph (both D and E are its members, interior, no port)
+// or stated at ROOM#A's level as a boundary-crossing edge between B's and C's exterior ports
+// (since only D, not E, is reachable from inside B). Only the second route ever reaches
+// `collapseCrossingPorts` at all -- the first route has no crossing port for the reducer to
+// act on, and surfacing it is Slice 2/3's job (node enumeration and the real fold), neither
+// built yet. So the fixtures below encode the *routed-through-ports* reading, which is the one
+// this slice can actually run against shipped code; the interior-to-C reading is recorded as a
+// standing alternative rather than exercised, per LC8/LC10's own "a route was chosen" hazard.
+//
+describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
+    const roomNodes = [
+        { tag: 'Room' as const, universalKey: roomId },
+        { tag: 'Object' as const, universalKey: objB },
+        { tag: 'Object' as const, universalKey: objC },
+    ]
+    const roomHostingEdges = [
+        { tag: 'Relational' as const, from: objB, to: roomId, kind: 'In' as const },
+        { tag: 'Relational' as const, from: objC, to: roomId, kind: 'In' as const },
+    ]
+
+    // OBJECT#D's two hostings, each interior to its own host's graph and referencing no port.
+    const bGraph = testLudicGraph(objB, {
+        nodes: [{ tag: 'Object', universalKey: objB }, { tag: 'Object', universalKey: objD }],
+        edges: [{ tag: 'Relational', from: objD, to: objB, kind: 'In' }],
+    })
+    const cGraphHostingOnly = testLudicGraph(objC, {
+        nodes: [{ tag: 'Object', universalKey: objC }, { tag: 'Object', universalKey: objD }, { tag: 'Object', universalKey: objE }],
+        edges: [
+            { tag: 'Relational', from: objD, to: objC, kind: 'PartOf' },
+            { tag: 'Relational', from: objE, to: objC, kind: 'PartOf' },
+        ],
+    })
+    const roomGraph = testLudicGraph(roomId, { nodes: roomNodes, edges: roomHostingEdges })
+
+    it("produces no join edge for D's hosting from either order, because neither host mints a port for it (LC8 first job, answered in the negative)", () => {
+        const mergeB = collapseCrossingPorts(roomGraph, bGraph, 'binding_B')
+        const mergeC = collapseCrossingPorts(roomGraph, cGraphHostingOnly, 'binding_C')
+
+        expect(mergeB).toEqual([])
+        expect(mergeC).toEqual([])
+        // Order variant: running the merges in the other order, against the same unmodified
+        // parent, changes nothing either -- there is no accumulated state for a join to depend
+        // on, because there was never a crossing port to begin with.
+        expect(collapseCrossingPorts(roomGraph, cGraphHostingOnly, 'binding_C')).toEqual(mergeC)
+        expect(collapseCrossingPorts(roomGraph, bGraph, 'binding_B')).toEqual(mergeB)
+    })
+
+    // The peer edge, stated at ROOM#A's level as a boundary crossing between B's and C's exterior
+    // ports -- the "routed through B" reading LC10 names, reached without inventing a mediator.
+    const roomGraphWithAgainst = testLudicGraph(roomId, {
+        nodes: roomNodes,
+        edges: [
+            ...roomHostingEdges,
+            { tag: 'Relational', from: { owner: objB, port: 'p_b' }, to: { owner: objC, port: 'p_c' }, kind: 'Against' },
+        ],
+    })
+    const bGraphWithPort = testLudicGraph(objB, {
+        nodes: [{ tag: 'Object', universalKey: objB }, { tag: 'Object', universalKey: objD }],
+        edges: [
+            { tag: 'Relational', from: objD, to: objB, kind: 'In' },
+            { tag: 'Relational', from: { owner: objB, port: 'p_b' }, to: objD, kind: 'Against' },
+        ],
+        ports: [{ portId: 'p_b', fromHostId: objB, kind: 'Against' }],
+    })
+    const cGraphWithPort = testLudicGraph(objC, {
+        nodes: [{ tag: 'Object', universalKey: objC }, { tag: 'Object', universalKey: objD }, { tag: 'Object', universalKey: objE }],
+        edges: [
+            { tag: 'Relational', from: objD, to: objC, kind: 'PartOf' },
+            { tag: 'Relational', from: objE, to: objC, kind: 'PartOf' },
+            { tag: 'Relational', from: { owner: objC, port: 'p_c' }, to: objE, kind: 'Against' },
+        ],
+        ports: [{ portId: 'p_c', fromHostId: objC, kind: 'Against' }],
+    })
+
+    it('resolves the bare port-to-port edge via two ordinary sequential merges, the second fed the first\'s result as its parent graph --- no single merge ever joins both ends at once (LC10 first/second job)', () => {
+        const afterB = collapseCrossingPorts(roomGraphWithAgainst, bGraphWithPort, 'binding_B')
+        expect(afterB).toHaveLength(1)
+        expect(afterB[0]).toMatchObject({ from: objD, to: { owner: objC, port: 'p_c' }, kind: 'Against' })
+        // The bare port-to-port edge is representable as a partial occurrence (P8 clause 3(b)):
+        // one real terminal, one still port-qualified, and it type-checks as an ordinary cache
+        // edge in its own right, confirming it isn't rejected by the shipped type.
+        expect(isEphemeraLudicCacheEdge(afterB[0])).toBe(true)
+
+        // Thread the partial result forward as the next merge's parent graph --- this is the
+        // fold's own accumulator step (D1: fold), hand-authored because Slice 3's real walk
+        // isn't built yet.
+        const { supportedBy: _droppedB, ...rewrittenAfterB } = afterB[0]
+        const parentAfterB = testLudicGraph(roomId, { nodes: roomNodes, edges: [rewrittenAfterB] })
+        const afterC = collapseCrossingPorts(parentAfterB, cGraphWithPort, 'binding_C')
+
+        expect(afterC).toEqual([
+            { tag: 'Relational', from: objD, to: objE, kind: 'Against', supportedBy: [[{ presenceBucketIds: ['PRESENCE#binding_C'], port: 'p_c' }]] },
+        ])
+
+        // The order variant: merge C first against the same unmodified parent, then thread that
+        // result forward for B. Same final edge either way.
+        const afterCFirst = collapseCrossingPorts(roomGraphWithAgainst, cGraphWithPort, 'binding_C')
+        expect(afterCFirst).toHaveLength(1)
+        expect(afterCFirst[0]).toMatchObject({ from: { owner: objB, port: 'p_b' }, to: objE, kind: 'Against' })
+
+        const { supportedBy: _droppedC, ...rewrittenAfterC } = afterCFirst[0]
+        const parentAfterC = testLudicGraph(roomId, { nodes: roomNodes, edges: [rewrittenAfterC] })
+        const afterBSecond = collapseCrossingPorts(parentAfterC, bGraphWithPort, 'binding_B')
+
+        expect(afterBSecond).toEqual([
+            { tag: 'Relational', from: objD, to: objE, kind: 'Against', supportedBy: [[{ presenceBucketIds: ['PRESENCE#binding_B'], port: 'p_b' }]] },
+        ])
+    })
+
+    it('does not reconcile two independently-produced partial edges without a shared threaded parent graph --- chain identity, not port matching, is what a join would need, and nothing mints a chainId yet (LC11)', () => {
+        const partialViaB = collapseCrossingPorts(roomGraphWithAgainst, bGraphWithPort, 'binding_B')
+        const partialViaC = collapseCrossingPorts(roomGraphWithAgainst, cGraphWithPort, 'binding_C')
+
+        // Run independently against the same unmodified parent (not threaded, as the sequential
+        // test above does), the two calls never converge: neither half carries a `chainId`, and
+        // the two halves don't share a `(from, to, kind)` triple to begin with --- one has D
+        // real and C#{p_c} still a port, the other has B#{p_b} still a port and E real --- so
+        // `collapsedEdgeIdentityKey` cannot recognize them as the same edge, and nothing else in
+        // the shipped code tries. LC11's fork (one entry with two routes, vs two entries) is
+        // therefore not decidable by reading this behaviour: the code has no chain-minting path
+        // to exercise at all.
+        expect(partialViaB).not.toEqual(partialViaC)
+        expect(partialViaB[0].chainId).toBeUndefined()
+        expect(partialViaC[0].chainId).toBeUndefined()
     })
 })
