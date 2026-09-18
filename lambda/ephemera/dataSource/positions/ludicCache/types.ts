@@ -178,5 +178,20 @@ export const isEphemeraLudicCacheData = (value: unknown): value is EphemeraLudic
     if (!Array.isArray(cache.edges) || !cache.edges.every((entry) => isEphemeraLudicCacheEdge(entry))) {
         return false
     }
+    // Referential integrity (rebuild 3d, presenceNodes Slice 6/PN-12): a cover entry naming a
+    // component node absent from this cache's own `nodes` is internal inconsistency and FAILS.
+    // An edge terminating at an absent presence node is a different, legal shape (the binding
+    // exists and was not pulled into this cache, PR-15) and is deliberately NOT checked here ---
+    // see PN-12's decomposition. `cover.members[].presence` is a cross-shard pointer into the
+    // covered component's own graph and is not checked against local `nodes` either.
+    const nodeIds = new Set(cache.nodes.map((node) => node.universalKey))
+    for (const node of cache.nodes) {
+        if (node.tag !== 'Presence') {
+            continue
+        }
+        if (node.cover.members.some((member) => !nodeIds.has(member.host))) {
+            return false
+        }
+    }
     return true
 }

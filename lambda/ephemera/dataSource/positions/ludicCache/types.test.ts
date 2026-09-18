@@ -235,4 +235,56 @@ describe('isEphemeraLudicCacheData', () => {
             edges: [],
         })).toBe(false)
     })
+
+    // Referential integrity (rebuild 3d, presenceNodes Slice 6/PN-12): a `cover` entry naming a
+    // component node absent from this cache's own `nodes` is internal inconsistency.
+    it('rejects a cover entry naming a node absent from nodes', () => {
+        const presenceNode = {
+            tag: 'Presence' as const,
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#Test',
+            cover: {
+                tag: 'Enumerated' as const,
+                members: [{ host: 'OBJECT#missing', presence: 'PRESENCE#child' }],
+            },
+            consolidated: true,
+        }
+        expect(isEphemeraLudicCacheData({
+            hostId: 'ROOM#Test',
+            nodes: [presenceNode],
+            edges: [],
+        })).toBe(false)
+    })
+
+    it('accepts a cover entry naming a node present in nodes', () => {
+        const presenceNode = {
+            tag: 'Presence' as const,
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#Test',
+            cover: {
+                tag: 'Enumerated' as const,
+                members: [{ host: 'OBJECT#helmet', presence: 'PRESENCE#child' }],
+            },
+            consolidated: true,
+        }
+        expect(isEphemeraLudicCacheData({
+            hostId: 'ROOM#Test',
+            nodes: [presenceNode, validNode],
+            edges: [],
+        })).toBe(true)
+    })
+
+    // The opposite verdict, and PN-12's instruction is to write it as an explicit test rather
+    // than as an absence of one: an edge to an unmaterialized presence node is the *binding
+    // exists and was not pulled* signal (PR-15), not corruption, and must PASS.
+    it('accepts an edge terminating at an absent presence node', () => {
+        expect(isEphemeraLudicCacheData({
+            hostId: 'ROOM#Test',
+            nodes: [validNode],
+            edges: [{
+                ...validEdge,
+                to: 'PRESENCE#not-pulled',
+            }],
+        })).toBe(true)
+    })
 })
