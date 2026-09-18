@@ -55,7 +55,7 @@ describe('nodesFromPresenceBinding', () => {
         expect(nodesFromPresenceBinding(graph, 'nonexistent')).toEqual(new Set([roomId, charA, objC]))
     })
 
-    it("returns every component node when the presence node's cover is 'Full'", () => {
+    it("returns every component node when the presence node's cover is 'Full', plus the binding's own presence id (PN-6 clause (c))", () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
@@ -64,10 +64,12 @@ describe('nodesFromPresenceBinding', () => {
                 presenceNode('port_1', fullCover),
             ],
         })
-        expect(nodesFromPresenceBinding(graph, 'port_1')).toEqual(new Set([roomId, charA, objC]))
+        expect(nodesFromPresenceBinding(graph, 'port_1')).toEqual(
+            new Set([roomId, charA, objC, 'PRESENCE#port_1' as EphemeraPresenceNodeId])
+        )
     })
 
-    it("excludes presence nodes themselves from a 'Full' cover's node set (PN-6: a presence node is a member of no bucket, present in every cut instead)", () => {
+    it("excludes OTHER presence nodes from a 'Full' cover's node set, but includes the binding's own (PN-6: a presence node is a member of no bucket and present in every cut for clauses (a)/(b); clause (c) is the one exception, and only for its own binding)", () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
@@ -77,12 +79,12 @@ describe('nodesFromPresenceBinding', () => {
             ],
         })
         const result = nodesFromPresenceBinding(graph, 'port_1')
-        expect(result).toEqual(new Set([roomId, objC]))
-        expect(result.has('PRESENCE#port_1' as EphemeraPresenceNodeId)).toBe(false)
+        expect(result).toEqual(new Set([roomId, objC, 'PRESENCE#port_1' as EphemeraPresenceNodeId]))
+        expect(result.has('PRESENCE#port_1' as EphemeraPresenceNodeId)).toBe(true)
         expect(result.has('PRESENCE#port_2' as EphemeraPresenceNodeId)).toBe(false)
     })
 
-    it("splits a two-bucket child by port, root included in both, per each presence node's own Enumerated cover", () => {
+    it("splits a two-bucket child by port, root included in both, per each presence node's own Enumerated cover plus its own presence id", () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
@@ -94,11 +96,15 @@ describe('nodesFromPresenceBinding', () => {
                 presenceNode('port_2', enumeratedCover(charB, objD)),
             ],
         })
-        expect(nodesFromPresenceBinding(graph, 'port_1')).toEqual(new Set([roomId, charA, objC]))
-        expect(nodesFromPresenceBinding(graph, 'port_2')).toEqual(new Set([roomId, charB, objD]))
+        expect(nodesFromPresenceBinding(graph, 'port_1')).toEqual(
+            new Set([roomId, charA, objC, 'PRESENCE#port_1' as EphemeraPresenceNodeId])
+        )
+        expect(nodesFromPresenceBinding(graph, 'port_2')).toEqual(
+            new Set([roomId, charB, objD, 'PRESENCE#port_2' as EphemeraPresenceNodeId])
+        )
     })
 
-    it('returns just the root when a presence node has an empty Enumerated cover', () => {
+    it("returns just the root plus its own presence id when a presence node has an empty Enumerated cover", () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
@@ -107,7 +113,9 @@ describe('nodesFromPresenceBinding', () => {
                 presenceNode('port_2', enumeratedCover()),
             ],
         })
-        expect(nodesFromPresenceBinding(graph, 'port_2')).toEqual(new Set([roomId]))
+        expect(nodesFromPresenceBinding(graph, 'port_2')).toEqual(
+            new Set([roomId, 'PRESENCE#port_2' as EphemeraPresenceNodeId])
+        )
     })
 
     it('is keyed on portId, not owner --- two presence nodes on the same host stay independent', () => {
@@ -122,6 +130,46 @@ describe('nodesFromPresenceBinding', () => {
         })
         expect(nodesFromPresenceBinding(graph, 'port_1')).not.toContain(charB)
         expect(nodesFromPresenceBinding(graph, 'port_2')).not.toContain(charA)
+    })
+})
+
+describe("PN-6 clause (c): a presence-terminal edge is qualified only in its own binding's bucket", () => {
+    it("the author's worked case: a twenty-node ConnectedTo chain of presence bindings, consolidating node 5", () => {
+        const uuids = Array.from({ length: 20 }, (_, index) => `p${index + 1}`)
+        const presenceIds = uuids.map((uuid) => `PRESENCE#${uuid}` as EphemeraPresenceNodeId)
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                ...uuids.map((uuid) => presenceNode(uuid, fullCover)),
+            ],
+            edges: uuids.slice(0, -1).map((_, index) => ({
+                tag: 'Relational' as const,
+                from: presenceIds[index],
+                to: presenceIds[index + 1],
+                kind: 'Custom' as const,
+                relationLabel: 'ConnectedTo',
+            })),
+        })
+
+        const bucket = nodesFromPresenceBinding(graph, 'p5')
+        const result = subGraphFromNodes(graph, bucket)
+
+        // All twenty presence nodes are present in the cut regardless of which binding was
+        // consolidated (clause (b)'s unconditional carry, unaffected by clause (c)).
+        presenceIds.forEach((id) => {
+            expect(result.presenceNodes.some((node) => node.universalKey === id)).toBe(true)
+        })
+
+        // The 4-5 and 5-6 edges are the only ones with a qualified end (node 5 itself) --- they
+        // are stubbed, the disqualified neighbour rewritten to a stub port.
+        expect(result.ports).toHaveLength(2)
+        expect(result.ports.map((port) => port.fromHostId).sort()).toEqual(['PRESENCE#p4', 'PRESENCE#p6'])
+
+        // The other seventeen edges have neither end qualified (node 5 on neither side) and are
+        // excluded from this bucket entirely --- picked up whole by whichever bucket qualifies one
+        // of their own ends.
+        expect(result.relationalEdges).toHaveLength(2)
+        expect(result.relationalEdges.every((edge) => typeof edge.from !== 'string' || typeof edge.to !== 'string')).toBe(true)
     })
 })
 
@@ -515,7 +563,11 @@ describe('nodesFromPresenceBindings', () => {
             ],
         })
         const union = nodesFromPresenceBindings(graph, ['port_1', 'port_2'])
-        expect(union).toEqual(new Set([roomId, charA, objC, charB, objD]))
+        expect(union).toEqual(new Set([
+            roomId, charA, objC, charB, objD,
+            'PRESENCE#port_1' as EphemeraPresenceNodeId,
+            'PRESENCE#port_2' as EphemeraPresenceNodeId,
+        ]))
     })
 
     it('composes to the same set as nodesFromPresenceBinding alone, given a single portId', () => {

@@ -53,18 +53,34 @@ import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
  *   **No shipped writer constructs an `Enumerated` cover yet** (Slice 3 only ever mints `'Full'`,
  *   per the mint-time decision recorded in `applyStepSequenceCore.ts`) --- this arm is typed and
  *   exercised in isolation, not yet reachable end-to-end from a real move.
+ * - **The binding's own presence node id is ALSO in the returned set (PN-6 clause (c),
+ *   presenceNodes Slice 4).** This is unrelated to node *cutting* --- `subGraphFromNodes` filters
+ *   presence ids out of its own component-node candidate list before consulting this set, so the
+ *   extra entry never pulls a structure node into `subNodes` (that's the unconditional carry
+ *   above, item (b), a different mechanism). It exists only for `endpointStatus`'s ordinary
+ *   `nodes.has(owner)` test: an edge whose terminal names this presence binding directly (PR-15,
+ *   "any edge may land on a presence binding") is `qualified` in exactly the one bucket this
+ *   binding's own presence node id appears in, `disqualified` in every other bucket --- no
+ *   presence-specific branch needed in the classifier itself. **Only added when a real presence
+ *   node was found** --- the degenerate fallback (no node minted, or a stale/legacy binding) has
+ *   no real node whose "own binding" this could mean, so it is omitted there, same as before.
  */
 export const nodesFromPresenceBinding = (
     graph: EphemeraLudicGraph,
     presenceUuid: string
 ): Set<EphemeraLudicTerminalPrimitive> => {
     const root = ephemeraLudicTerminalOwner(graph.rootId)
-    const presenceNode = graph.presenceNodes.find((node) => node.universalKey === `PRESENCE#${presenceUuid}`)
-    if (!presenceNode || presenceNode.cover.tag === 'Full') {
+    const presenceNodeId: EphemeraLudicTerminalPrimitive = `PRESENCE#${presenceUuid}`
+    const presenceNode = graph.presenceNodes.find((node) => node.universalKey === presenceNodeId)
+    if (!presenceNode) {
         const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
         return new Set([...componentNodeIds, root])
     }
-    return new Set([...presenceNode.cover.members.map((entry) => entry.host), root])
+    if (presenceNode.cover.tag === 'Full') {
+        const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
+        return new Set([...componentNodeIds, root, presenceNodeId])
+    }
+    return new Set([...presenceNode.cover.members.map((entry) => entry.host), root, presenceNodeId])
 }
 
 /**
@@ -292,14 +308,13 @@ export const subGraphFromNodes = (
             const portId = stubPortIdFromEdge(edge)
             const port: EphemeraLudicGraphPort = {
                 portId,
-                // `fromHostId` is typed `EphemeraMembershipHostId` and has no `PRESENCE#` arm;
-                // widening it to admit one is presenceNodes' PN-6 clause (c), a named Slice 4
-                // task, not this file's (which is outside the presenceNodes rollback set). A
-                // presence node CAN now be minted (Slice 3), but it is never a content-edge
-                // endpoint by construction here -- edges connect component nodes, and a presence
-                // node's own denotation reach (PR-15) is `resolveEndpoint`'s territory (PN-4,
-                // Slice 3), not this classifier's.
-                fromHostId: ephemeraLudicTerminalOwner(outsideTerminal) as EphemeraMembershipHostId,
+                // `fromHostId` admits a `PRESENCE#` id as well as a component host (PN-6 clause
+                // (c), presenceNodes Slice 4): any edge may land on a presence binding (PR-15),
+                // and `endpointStatus` above classifies such a terminal exactly like any other
+                // node -- qualified when `nodesFromPresenceBinding` has put that presence node's
+                // own id in the bucket (its own binding), disqualified otherwise. This stub is
+                // how that disqualified case reaches the far bucket.
+                fromHostId: ephemeraLudicTerminalOwner(outsideTerminal),
                 // No longer `Exclude<HostRelationalEdgeKind, 'Present'>` (PN-14): with `'Present'`
                 // retired from that union, the exclusion is vacuous -- `edge.kind` was already
                 // never `'Present'` here (no such edge is ever constructed), and the union itself

@@ -61,7 +61,7 @@ const childLeg = (portId: string, to: EphemeraLudicRelationalEdgeData['to'], kin
 } as EphemeraLudicRelationalEdgeData)
 
 describe('collapseCrossingPorts', () => {
-    it('collapses a single matched leg pair into one edge with a one-hop chain', () => {
+    it('collapses a single matched leg pair into one edge with a one-hop, one-route supportedBy', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
             edges: [parentLeg('port_1')],
@@ -72,18 +72,18 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('port_1')],
         })
 
-        expect(collapseCrossingPorts(parentGraph, childGraph)).toEqual([
+        expect(collapseCrossingPorts(parentGraph, childGraph, 'binding_1')).toEqual([
             {
                 tag: 'Relational',
                 from: boulder,
                 to: pebble,
                 kind: 'On',
-                chains: [[boxId]],
+                supportedBy: [[{ presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }]],
             },
         ])
     })
 
-    it('groups two independently-matched leg pairs landing on the same edge identity, without merging their chains', () => {
+    it('groups two independently-matched leg pairs landing on the same edge identity, without merging their routes', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
             edges: [parentLeg('port_1'), parentLeg('port_2')],
@@ -94,10 +94,14 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('port_1'), crossingPort('port_2')],
         })
 
-        const result = collapseCrossingPorts(parentGraph, childGraph)
+        const result = collapseCrossingPorts(parentGraph, childGraph, 'binding_1')
         expect(result).toHaveLength(1)
         expect(result[0]).toMatchObject({ from: boulder, to: pebble, kind: 'On' })
-        expect(result[0].chains).toEqual([[boxId], [boxId]])
+        expect(result[0].supportedBy).toEqual(expect.arrayContaining([
+            [{ presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }],
+            [{ presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_2' }],
+        ]))
+        expect(result[0].supportedBy).toHaveLength(2)
     })
 
     it('does not collapse two edges that only coincidentally reach the same identity if their kinds disagree', () => {
@@ -111,7 +115,7 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('port_1')],
         })
 
-        expect(() => collapseCrossingPorts(parentGraph, childGraph)).toThrow(/disagree/)
+        expect(() => collapseCrossingPorts(parentGraph, childGraph, 'binding_1')).toThrow(/disagree/)
     })
 
     it('skips a crossing port with no matching leg on the parent side', () => {
@@ -125,7 +129,7 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('port_1')],
         })
 
-        expect(collapseCrossingPorts(parentGraph, childGraph)).toEqual([])
+        expect(collapseCrossingPorts(parentGraph, childGraph, 'binding_1')).toEqual([])
     })
 
 })
@@ -160,7 +164,7 @@ describe('collapseSameHostStubs', () => {
         expect(bucketB.ports).toHaveLength(1)
 
         expect(collapseSameHostStubs(bucketA, bucketB)).toEqual([
-            { tag: 'Relational', from: objC, to: objD, kind: 'Under', chains: [] },
+            { tag: 'Relational', from: objC, to: objD, kind: 'Under', supportedBy: [] },
         ])
     })
 
@@ -313,8 +317,8 @@ describe('foldSameHostBuckets', () => {
     })
 
     const expectedEdges = [
-        { tag: 'Relational', from: objC, to: objD, kind: 'Under', chains: [] },
-        { tag: 'Relational', from: objE, to: objF, kind: 'Against', chains: [] },
+        { tag: 'Relational', from: objC, to: objD, kind: 'Under', supportedBy: [] },
+        { tag: 'Relational', from: objE, to: objF, kind: 'Against', supportedBy: [] },
     ]
 
     it('reconstructs both interior edges via the existing pairwise primitive, cutting every bucket up front (two-pass baseline, using only shipped code)', () => {
@@ -335,17 +339,83 @@ describe('foldSameHostBuckets', () => {
     it('reconstructs the same two edges via a single accumulating fold walk, cutting one bucket at a time', () => {
         const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
 
-        expect(result).toHaveLength(2)
-        expect(result).toEqual(expect.arrayContaining(expectedEdges))
+        expect(result.edges).toHaveLength(2)
+        expect(result.edges).toEqual(expect.arrayContaining(expectedEdges))
     })
 
     it('does not depend on the order buckets are visited in --- a still-open stub is carried in the walk\'s own state, not compared only to the immediately preceding bucket', () => {
         const forward = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
         const shuffled = foldSameHostBuckets(graph, ['port_3', 'port_1', 'port_2'])
 
-        expect(forward).toHaveLength(2)
-        expect(shuffled).toHaveLength(2)
-        expect(forward).toEqual(expect.arrayContaining(expectedEdges))
-        expect(shuffled).toEqual(expect.arrayContaining(expectedEdges))
+        expect(forward.edges).toHaveLength(2)
+        expect(shuffled.edges).toHaveLength(2)
+        expect(forward.edges).toEqual(expect.arrayContaining(expectedEdges))
+        expect(shuffled.edges).toEqual(expect.arrayContaining(expectedEdges))
+    })
+
+    it('mints one consolidated structure-arm cache node per binding folded, with an Enumerated cover matching the graph-side binding (item 3, PN-7/PN-15/PN-19)', () => {
+        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
+
+        expect(result.nodes).toHaveLength(3)
+        expect(result.nodes).toEqual(expect.arrayContaining([
+            {
+                tag: 'Presence',
+                universalKey: 'PRESENCE#port_1',
+                fromHostId: roomId,
+                consolidated: true,
+                cover: {
+                    tag: 'Enumerated',
+                    members: expect.arrayContaining([
+                        { host: charA, presence: 'PRESENCE#port_1' },
+                        { host: objC, presence: 'PRESENCE#port_1' },
+                        { host: objE, presence: 'PRESENCE#port_1' },
+                    ]),
+                },
+            },
+            {
+                tag: 'Presence',
+                universalKey: 'PRESENCE#port_2',
+                fromHostId: roomId,
+                consolidated: true,
+                cover: {
+                    tag: 'Enumerated',
+                    members: expect.arrayContaining([
+                        { host: charB, presence: 'PRESENCE#port_2' },
+                        { host: objD, presence: 'PRESENCE#port_2' },
+                    ]),
+                },
+            },
+            {
+                tag: 'Presence',
+                universalKey: 'PRESENCE#port_3',
+                fromHostId: roomId,
+                consolidated: true,
+                cover: {
+                    tag: 'Enumerated',
+                    members: expect.arrayContaining([
+                        { host: charC, presence: 'PRESENCE#port_3' },
+                        { host: objF, presence: 'PRESENCE#port_3' },
+                    ]),
+                },
+            },
+        ]))
+    })
+
+    it('mints nothing for a presenceUuid with no matching graph node (degenerate: no node minted, or a stale/legacy binding), given every real binding is otherwise consolidated', () => {
+        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3', 'nonexistent'])
+
+        expect(result.nodes).toHaveLength(3)
+        expect(result.nodes.map((node) => node.universalKey).sort()).toEqual([
+            'PRESENCE#port_1', 'PRESENCE#port_2', 'PRESENCE#port_3',
+        ])
+    })
+
+    it("throws when presenceUuids consolidates a proper subset of the host's real presence bindings (clause 3: zero or all, never some)", () => {
+        expect(() => foldSameHostBuckets(graph, ['port_1'])).toThrow(/zero or all/)
+    })
+
+    it('does not throw when presenceUuids is empty (unexamined) or names every real binding (fully consolidated)', () => {
+        expect(() => foldSameHostBuckets(graph, [])).not.toThrow()
+        expect(() => foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])).not.toThrow()
     })
 })

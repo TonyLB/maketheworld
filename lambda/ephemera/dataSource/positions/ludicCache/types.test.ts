@@ -20,7 +20,6 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
             shortName: 'a helmet',
-            interiorConsolidated: false,
         })).toBe(true)
     })
 
@@ -31,7 +30,6 @@ describe('isEphemeraLudicCacheNode', () => {
             universalKey: 'ROOM#Test',
             shortName: 'a room',
             embedding,
-            interiorConsolidated: true,
         })).toBe(true)
     })
 
@@ -40,7 +38,6 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Bogus',
             universalKey: 'FEATURE#Test',
             shortName: 'a feature',
-            interiorConsolidated: false,
         })).toBe(false)
     })
 
@@ -48,16 +45,6 @@ describe('isEphemeraLudicCacheNode', () => {
         expect(isEphemeraLudicCacheNode({
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
-            interiorConsolidated: false,
-        })).toBe(false)
-    })
-
-    it('rejects a non-boolean interiorConsolidated', () => {
-        expect(isEphemeraLudicCacheNode({
-            tag: 'Object',
-            universalKey: 'OBJECT#helmet',
-            shortName: 'a helmet',
-            interiorConsolidated: undefined,
         })).toBe(false)
     })
 
@@ -67,12 +54,11 @@ describe('isEphemeraLudicCacheNode', () => {
             universalKey: 'OBJECT#helmet',
             shortName: 'a helmet',
             embedding: { vector: [0, 1, 0] },
-            interiorConsolidated: false,
         })).toBe(false)
     })
 
     // Structure arm (PN-19, presenceNodes Slice 3): a presence node carries none of the cache
-    // extras a component node needs --- no shortName, no interiorConsolidated --- but does carry
+    // extras a component node needs --- no shortName --- but does carry
     // `cover` (narrowed to the `'Enumerated'` arm only, `'Full'` being unrepresentable in the
     // cache by construction) and `consolidated` (PN-15, a separate boolean beside `cover`).
     it('accepts a presence node with an Enumerated cover and a consolidated flag', () => {
@@ -116,39 +102,45 @@ describe('isEphemeraLudicCacheNode', () => {
 })
 
 describe('isEphemeraLudicCacheEdge', () => {
-    it('accepts an edge with empty chains', () => {
+    it('accepts an edge with an empty supportedBy', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'On',
-            chains: [],
+            supportedBy: [],
         })).toBe(true)
     })
 
-    it('accepts an edge with populated chains', () => {
+    it('accepts an edge with one populated route', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#ropeEnd',
             kind: 'Custom',
             relationLabel: 'TiedTo',
-            chains: [['ROOM#Other']],
+            supportedBy: [[{ presenceBucketIds: ['PRESENCE#other'], port: 'port_1' }]],
         })).toBe(true)
     })
 
-    it('accepts an edge with more than one independently-consolidated chain', () => {
+    it('accepts an edge with more than one independently-consolidated route, and a hop with more than one alternative binding', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#ropeEnd',
             kind: 'Custom',
             relationLabel: 'TiedTo',
-            chains: [['ROOM#Other'], ['ROOM#Alternate', 'ROOM#Other']],
+            supportedBy: [
+                [{ presenceBucketIds: ['PRESENCE#other'], port: 'port_1' }],
+                [
+                    { presenceBucketIds: ['PRESENCE#alternate', 'PRESENCE#alternate2'], port: 'port_2' },
+                    { presenceBucketIds: ['PRESENCE#other'], port: 'port_3' },
+                ],
+            ],
         })).toBe(true)
     })
 
-    it('rejects an edge with missing chains', () => {
+    it('rejects an edge with missing supportedBy', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
@@ -157,13 +149,13 @@ describe('isEphemeraLudicCacheEdge', () => {
         })).toBe(false)
     })
 
-    it('rejects an edge whose chains hop is not a membership host id', () => {
+    it('rejects an edge whose hop names a presenceBucketId that is not a presence node id', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'On',
-            chains: [['not-an-id']],
+            supportedBy: [[{ presenceBucketIds: ['not-an-id'], port: 'port_1' }]],
         })).toBe(false)
     })
 
@@ -173,7 +165,7 @@ describe('isEphemeraLudicCacheEdge', () => {
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'NotAKind',
-            chains: [],
+            supportedBy: [],
         })).toBe(false)
     })
 })
@@ -183,14 +175,13 @@ describe('isEphemeraLudicCacheData', () => {
         tag: 'Object' as const,
         universalKey: 'OBJECT#helmet',
         shortName: 'a helmet',
-        interiorConsolidated: false,
     }
     const validEdge = {
         tag: 'Relational' as const,
         from: 'OBJECT#boulder',
         to: 'OBJECT#rope',
         kind: 'On' as const,
-        chains: [],
+        supportedBy: [],
     }
 
     it('accepts a well-formed cache', () => {

@@ -1,5 +1,6 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicGraphFieldPayload, EphemeraLudicGraphPort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { classifyLudicGraphPortMismatch } from '@tonylb/mtw-gateways/ts/ephemera/positions'
@@ -85,6 +86,13 @@ export const healLudicGraphPortMismatch = async (
     }
     const port = ludicGraph.ports.find((entry) => entry.portId === portId)
     if (!port) {
+        return { stale: false }
+    }
+    // `ludicGraph.ports` is stored data, never a `subGraphFromNodes` bucket cut, so `fromHostId`
+    // is always a component host here in practice --- the type also admits a presence id
+    // (presenceNodes Slice 4, PN-6 clause (c)'s stub-port widening), which a stored port never
+    // carries. Treated the same as the shape-guard decline above: not this finding's business.
+    if (!isEphemeraMembershipHostId(port.fromHostId)) {
         return { stale: false }
     }
 

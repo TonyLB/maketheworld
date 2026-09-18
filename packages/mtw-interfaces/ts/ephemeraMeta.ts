@@ -585,7 +585,15 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
  */
 export type EphemeraCrossingPort = {
     portId: string;
-    fromHostId: EphemeraMembershipHostId;
+    /**
+     * The exterior host that refers to this port --- almost always a component id, but a stub
+     * port minted for a same-host straddle (`presenceSubGraph.ts`'s `subGraphFromNodes`) can name
+     * a **presence node's** own id here when the disqualified endpoint it stubs resolves to a
+     * presence binding (presenceNodes Slice 4, PN-6 clause (c)). An authored crossing port never
+     * carries one --- only a component graph mints those, and a presence node never allocates a
+     * port (PN-4) --- so this widening only ever fires on the stub path.
+     */
+    fromHostId: EphemeraMembershipHostId | EphemeraPresenceNodeId;
     /** Interior scope: the kind of the edge(s) passing through this port. Authored at mint
      * time, never derived from an edge. */
     kind: HostRelationalEdgeKind;
@@ -700,7 +708,13 @@ export const isEphemeraLudicGraphPort = (value: unknown): value is EphemeraLudic
     // and this keeps the same read shape rather than reverting to a plain cast now that only one
     // arm is left.
     const entry = value as Record<string, unknown>
-    if (!(typeof entry.portId === 'string' && isEphemeraMembershipHostId(entry.fromHostId as EphemeraMembershipHostId))) {
+    if (!(
+        typeof entry.portId === 'string' &&
+        (
+            isEphemeraMembershipHostId(entry.fromHostId as EphemeraMembershipHostId) ||
+            isEphemeraPresenceNodeId(entry.fromHostId as string)
+        )
+    )) {
         return false
     }
     // As of presenceNodes Slice 7a (PN-14/PN-23), `EphemeraLudicGraphPort` is `EphemeraCrossingPort`

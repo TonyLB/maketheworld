@@ -1,5 +1,6 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCrossingPort, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
@@ -109,7 +110,16 @@ const resolveEndpoint = (
     }
     const portStep: RelationalChainStep = { type: 'port', hostId: portOwnerHostId, port }
 
-    const searchHostId = portOwnerHostId === arrivedFromHostId ? port.fromHostId : portOwnerHostId
+    if (portOwnerHostId === arrivedFromHostId && !isEphemeraMembershipHostId(port.fromHostId)) {
+        // `port` is drawn from `portOwnerGraph.ports`, which only ever holds authored crossing
+        // ports (a presence binding is confirmed and returned above before this line is reached)
+        // --- so `fromHostId` is always a component host in practice. The type admits a presence
+        // id too (presenceNodes Slice 4, PN-6 clause (c): a stub port minted for a same-host
+        // straddle can carry one), which this function never receives, so a miss here is a
+        // mint-time integrity break to decline, not a case to silently coerce.
+        return { declined: true, reason: `port ${portId} has a non-host fromHostId ${port.fromHostId}` }
+    }
+    const searchHostId = portOwnerHostId === arrivedFromHostId ? port.fromHostId as EphemeraMembershipHostId : portOwnerHostId
     const graph = getGraph(searchHostId)
     if (!graph) {
         return { declined: true, reason: `host ${searchHostId} has no graph to continue the chain into` }

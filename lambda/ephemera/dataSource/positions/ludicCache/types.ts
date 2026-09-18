@@ -12,6 +12,8 @@ import {
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 //
 // EphemeraLudicCacheData --- the ludicCache prototype's type contract (CC0b).
@@ -45,9 +47,6 @@ export type EphemeraLudicCacheNode =
         shortName: string;
         /** Iteration 1: attached by a separate attachEmbeddings pass, not by the rebuild (CC1c). */
         embedding?: SemanticEmbedding;
-        /** Stored, never derived --- see CC0's box-can-be-empty argument against deriving this.
-         * Deletion tracked by PN-7 (presenceNodes Slice 4); not this type's structure arm's concern. */
-        interiorConsolidated: boolean;
     })
     /**
      * A presence node's cache extras (presenceNodes Slice 3, PN-19 decided (b)): `cover` is
@@ -55,9 +54,9 @@ export type EphemeraLudicCacheNode =
      * referent in a multi-host merge (loss (A)), so this makes it unrepresentable in the cache
      * *by construction* rather than by a runtime guard someone could forget. `consolidated`
      * stays a separate boolean beside `cover` (PN-15) rather than folding into it --- two facts,
-     * not three. **Not yet populated with real data**: Slice 4 (PN-7) is what mints a presence
-     * node into a cache and writes `consolidated`/an enumerated `cover` for the first time; this
-     * slice only types the shape.
+     * not three. **Populated as of presenceNodes Slice 4** by `mergeReducer.ts`'s
+     * `foldSameHostBuckets` (via its `presenceCacheNodesFromFold` helper), which mints one such
+     * node per binding folded, `consolidated: true`, `cover` built from `nodesFromPresenceBinding`.
      */
     | (Omit<EphemeraLudicGraphStructureNode, 'cover'> & {
         cover: Extract<EphemeraPresenceCover, { tag: 'Enumerated' }>;
@@ -65,23 +64,51 @@ export type EphemeraLudicCacheNode =
     })
 
 /**
- * Cache edge: the ludicGraph edge plus `chains`. Required and possibly empty, never optional ---
- * see CC0.
+ * One hop of one route through `supportedBy` --- the crossing port this hop travels through
+ * (`port`, "the hop's key for consolidation"), and the set of presence bindings that could
+ * independently justify having traveled it (`presenceBucketIds`, OR within the hop: any one of
+ * them is enough). Identified by their own `PRESENCE#` id rather than by the host they bind,
+ * since a host may carry more than one binding (PN-22's *one or more* quantifier) and the hop's
+ * justification is binding-grained, not host-grained.
+ */
+export type EphemeraLudicCacheSupportHop = {
+    presenceBucketIds: EphemeraPresenceNodeId[];
+    port: string;
+}
+
+/**
+ * One independently-consolidated route to an edge identity: an ORDERED list of hops, AND across
+ * the route --- every hop must hold for the route itself to hold.
+ */
+export type EphemeraLudicCacheSupport = EphemeraLudicCacheSupportHop[]
+
+/**
+ * Cache edge: the ludicGraph edge plus `supportedBy`. Required and possibly empty, never
+ * optional --- see CC0.
  *
- * `chains: EphemeraMembershipHostId[][]` --- one array per independently-consolidated route to
- * this edge identity (`AGENT.presence.planning.md`'s PR-8), each an ordered list of the
- * hosts entered, one per consolidated boundary hop. **Superseded 2026-09-10:** this field used to
- * carry `EphemeraLudicCacheCrossing[][]`, `EphemeraLudicCacheCrossing` being `{ edgeText: string;
- * into: EphemeraMembershipHostId }`. `edgeText` traced to a 2026-08-06 premise --- "edge kinds
- * across a crossing port need not match" --- whose only supporting case (a power cord threading
- * into a flashlight, described differently inside and out) is itself flagged stale
- * (`positions/AGENT.concepts.md`, AB-57). This initiative's own LR-1 instead re-derives the
+ * `supportedBy: EphemeraLudicCacheSupport[]` --- OR over routes (the outer array), AND across
+ * one route's hops, OR within one hop's `presenceBucketIds` (D8, amended 2026-09-16 by PN-2).
+ * `[]` means exactly *depends on no binding* and nothing else --- the two-meanings defect the
+ * flat predecessor field risked is closed by this element type, not by convention.
+ *
+ * **Renamed from `chains: EphemeraMembershipHostId[][]` (presenceNodes Slice 4, PN-2/D8).** The
+ * old field named one HOST entered per hop; a flat sum-of-products over hosts is a DNF encoding
+ * of what is really a product-of-sums over bindings --- *h* hops with *k* alternatives each
+ * expand to k^h entries carrying k·h facts under the flat form, tractable only under the nested
+ * one. `collapseSameHostStubs`/`foldSameHostBuckets`'s same-host routes still resolve to `[]`
+ * (D11: a same-host edge's dependence is a **membership** fact, now carried on the node record,
+ * not a traversal fact --- the traversal register is honestly empty for it). **Superseded
+ * 2026-09-10:** this field used to carry `EphemeraLudicCacheCrossing[][]`, `EphemeraLudicCacheCrossing`
+ * being `{ edgeText: string; into: EphemeraMembershipHostId }`. `edgeText` traced to a 2026-08-06
+ * premise --- "edge kinds across a crossing port need not match" --- whose only supporting case (a
+ * power cord threading into a flashlight, described differently inside and out) is itself flagged
+ * stale (`positions/AGENT.concepts.md`, AB-57). This initiative's own LR-1 instead re-derives the
  * port-qualified-terminal case from a same-kind example (`cup -[TiedTo]-> string`, both legs
- * sharing `kind`), so a hop has no per-leg description left to carry --- only the host entered.
+ * sharing `kind`), so a hop has no per-leg description left to carry --- only what justifies it.
  * `EphemeraLudicCacheCrossing` and `isEphemeraLudicCacheCrossing` are removed accordingly.
  */
 export type EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData & {
-    chains: EphemeraMembershipHostId[][];
+    supportedBy: EphemeraLudicCacheSupport[];
 }
 
 export type EphemeraLudicCacheData = {
@@ -110,24 +137,28 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
     if (node.embedding !== undefined && !(node.embedding instanceof SemanticEmbedding)) {
         return false
     }
-    if (typeof node.interiorConsolidated !== 'boolean') {
-        return false
-    }
     return true
 }
+
+const isEphemeraLudicCacheSupportHop = (value: unknown): value is EphemeraLudicCacheSupportHop => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const hop = value as EphemeraLudicCacheSupportHop
+    return typeof hop.port === 'string'
+        && Array.isArray(hop.presenceBucketIds)
+        && hop.presenceBucketIds.every((id) => typeof id === 'string' && isEphemeraPresenceNodeId(id))
+}
+
+const isEphemeraLudicCacheSupport = (value: unknown): value is EphemeraLudicCacheSupport =>
+    Array.isArray(value) && value.every((hop) => isEphemeraLudicCacheSupportHop(hop))
 
 export const isEphemeraLudicCacheEdge = (value: unknown): value is EphemeraLudicCacheEdge => {
     if (!isEphemeraLudicRelationalEdgeData(value)) {
         return false
     }
     const edge = value as EphemeraLudicCacheEdge
-    if (
-        !Array.isArray(edge.chains)
-        || !edge.chains.every((chain) => (
-            Array.isArray(chain)
-            && chain.every((hop) => typeof hop === 'string' && isEphemeraMembershipHostId(hop))
-        ))
-    ) {
+    if (!Array.isArray(edge.supportedBy) || !edge.supportedBy.every(isEphemeraLudicCacheSupport)) {
         return false
     }
     return true
