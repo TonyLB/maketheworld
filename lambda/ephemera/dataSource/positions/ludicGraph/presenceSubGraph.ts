@@ -137,6 +137,13 @@ export const nodesFromPresenceBindings = (
  * because this branch is only reached when `edge.chainId` is falsy, and a zero-length `chainId` is
  * rejected at the type guard --- so it would contribute a constant, and reading as though the
  * branch discriminated on it.
+ *
+ * **Checked against presenceNodes Slice 5, item 3 and found out of scope, not merely unbuilt:**
+ * this mints a stub id for an edge already living in ONE graph's own `relationalEdges`, cut apart
+ * by a same-host bucket split --- a presence binding reached from inside its own graph is always
+ * the bare `PRESENCE#{uuid}` primitive (PN-6 clause (c)), never the exterior `{ owner, port }`
+ * form that only arises addressing a binding from OUTSIDE its host. `terminalKey` here has no
+ * presence-collision case to close, unlike `mergeReducer.ts`'s `collapsedEdgeIdentityKey`.
  */
 const stubPortIdFromEdge = (edge: HostRelationalEdge): string => {
     if (edge.chainId) {

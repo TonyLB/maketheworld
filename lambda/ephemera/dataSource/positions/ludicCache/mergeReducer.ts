@@ -89,6 +89,18 @@ const outerTerminal = (
  * than imported, matching `presenceSubGraph.ts`'s own `stubPortIdFromEdge` (LR-1's dependency
  * tag) --- this is a different call site (post-collapse, not pre-mint) and owes no more to that
  * one than the shared source field list already implies.
+ *
+ * **Known dormant gap (presenceNodes Slice 5, item 3), deliberately NOT closed here:** `terminalKey`
+ * does not fold a presence-addressed port terminal (`{ owner, port: presenceUuid }`) down to its
+ * bare `PRESENCE#{uuid}` form the way `ephemeraLudicTerminalsEqual` now does, so the two
+ * representations of one presence binding would hash to different keys and fail to dedup. Left
+ * unbuilt because, unlike that pairwise comparison, this is a *unary* canonicalization: `.port` is
+ * a bare, unprefixed uuid indistinguishable in shape from an ordinary crossing-port id, so
+ * classifying it as presence-or-not needs the in-scope presence-node-id set (available at every
+ * call site) threaded in as a parameter --- a real change to this function's "pure and local"
+ * design, not a drive-by fix. No current writer mints `{ owner, port: presenceUuid }` as a real
+ * edge terminal (`buildCrossingLegs.ts` always mints a fresh crossing uuid, never reuses a
+ * presence node's own), so the gap has no live caller today. Build it when one appears.
  */
 const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string => {
     const terminalKey = (terminal: EphemeraLudicTerminalId): string =>

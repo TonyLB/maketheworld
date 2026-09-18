@@ -283,10 +283,23 @@ export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): E
     return typeof terminal === 'string' ? terminal : terminal.owner
 }
 
-/** Full terminal equality --- a primitive and a port address on the same owner are NOT equal. */
+/** Full terminal equality --- a primitive and a port address on the same owner are NOT equal,
+ * with one presence-scoped exception (presenceNodes Slice 5, item 3): a presence node id and a
+ * port address whose `port` is that same binding's own minted uuid DO refer to the same terminal
+ * --- clause 1's exterior address form, PN-5's `PRESENCE#{uuid}` being globally unique means the
+ * qualifying `owner` on that address carries no information the id does not. Scoped by testing
+ * the PRIMITIVE side's declared kind (`isEphemeraPresenceNodeId`), never the port address's `.port`
+ * shape --- `.port` is a bare, unprefixed uuid indistinguishable in shape from an ordinary
+ * crossing-port id (buildCrossingLegs.ts mints both the same way), so branching on it directly
+ * would misfire on ordinary crossings. Every non-presence primitive/port-address pair is
+ * unaffected, including same-owner ones (kept covered by the test suite). */
 export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: EphemeraLudicTerminalId): boolean => {
-    if (typeof a === 'string' || typeof b === 'string') {
+    if (typeof a === 'string' && typeof b === 'string') {
         return a === b
+    }
+    if (typeof a === 'string' || typeof b === 'string') {
+        const [primitive, address] = typeof a === 'string' ? [a, b as EphemeraLudicPortAddress] : [b as EphemeraLudicTerminalPrimitive, a as EphemeraLudicPortAddress]
+        return isEphemeraPresenceNodeId(primitive) && primitive === `PRESENCE#${address.port}`
     }
     return a.owner === b.owner && a.port === b.port
 }

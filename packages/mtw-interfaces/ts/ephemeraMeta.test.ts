@@ -300,6 +300,31 @@ describe('ephemeraLudicTerminalsEqual / ephemeraLudicTerminalRefersTo', () => {
         const b = { owner: 'OBJECT#BOX' as const, port: 'k7m2q9' }
         expect(ephemeraLudicTerminalsEqual(a, b)).toBe(false)
     })
+
+    it('treats a presence node id and a port address naming that same binding as equal (presenceNodes Slice 5, item 3)', () => {
+        const primitive = 'PRESENCE#presence-1' as const
+        const address = { owner: 'ROOM#TABLE' as const, port: 'presence-1' }
+        expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(true)
+        expect(ephemeraLudicTerminalsEqual(address, primitive)).toBe(true)
+    })
+
+    it('treats a presence node id and a port address naming a different binding as unequal', () => {
+        const primitive = 'PRESENCE#presence-1' as const
+        const address = { owner: 'ROOM#TABLE' as const, port: 'presence-2' }
+        expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(false)
+    })
+
+    it('does not extend the presence exception to an ordinary (non-presence) primitive sharing a bare-uuid-shaped port', () => {
+        const primitive = 'OBJECT#BOX' as const
+        const address = { owner: 'ROOM#TABLE' as const, port: 'OBJECT#BOX' }
+        expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(false)
+    })
+
+    it('treats two crossing-port addresses with the same port but different owners as unequal (owner stays load-bearing for non-presence ports)', () => {
+        const a = { owner: 'ROOM#A' as const, port: 'STUB-xyz' }
+        const b = { owner: 'ROOM#B' as const, port: 'STUB-xyz' }
+        expect(ephemeraLudicTerminalsEqual(a, b)).toBe(false)
+    })
 })
 
 describe('isEphemeraLudicGraphNode', () => {
