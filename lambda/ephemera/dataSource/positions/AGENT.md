@@ -2,7 +2,9 @@
 
 Ephemera lane for **positions in play** --- runtime truth about where entities are and how they relate in the game world. `dataSourceKey: 'mtw.ephemera.positions'`, registered from [`../../app.ts`](../../app.ts).
 
-Play membership authority is **`Meta::Room.ludicGraph`** + adjacency index --- the legacy **`activeCharacters`** / **`RoomId`** projections are not truth and are no longer written. Roster display hydrates at read time; occupancy drift is repaired by a diagnostics sweep. See [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index).
+The world model is **sharded**: every membership host (Room, Character, Object, Feature, Area) stores its own **`Meta::<Kind>.ludicGraph`** --- root node, member nodes, relational edges, crossing ports --- and an **adjacency index** is the reverse lookup. Hosts reach into each other only through **ports**; a thing may be a member of several hosts at once; each hosted thing records its **presence** (which of its parts are in which host) as presence nodes; and **`ludicCache`** is the derived read structure that folds shards together. One-pass orientation: [**AGENT.ludicNetwork.md**](AGENT.ludicNetwork.md).
+
+Play membership authority is the host graph plus adjacency --- the legacy **`activeCharacters`** / **`RoomId`** projections are not truth and are no longer written. Roster display hydrates at read time; occupancy drift is repaired by a diagnostics sweep. See [Room play graph + adjacency reverse index](AGENT.concepts.md#room-play-graph--adjacency-reverse-index).
 
 ## Documentation
 

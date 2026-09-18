@@ -217,6 +217,8 @@ Presence in the cache: a folded presence node carries `consolidated: true` and a
 
 **Status.** The cache is a **Prototype** with a named rollback trigger: *a bucket cannot be stated from the hosted thing's own graph plus its bindings.* The pairwise pieces (cut, compose, fold presence nodes, integrity guard) are shipped under [`ludicCache/`](ludicCache/); the **whole-cache rebuild seeded at a host, its first consumer, and persistence are in flight** under [`AGENT.ludicCacheRebuild.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCacheRebuild.planning.md). Nothing reads the cache in production yet.
 
+Mental model, with the reasoning and what would re-open it: [`AGENT.concepts.md` --- `ludicCache`](AGENT.concepts.md#ludiccache-the-attention-scoped-read-structure).
+
 ---
 
 ## Vocabulary at a glance
@@ -238,7 +240,7 @@ Presence in the cache: a folded presence node carries `consolidated: true` and a
 | **Presence node** | `{ tag: 'Presence', PRESENCE#…, fromHostId, cover }` in the hosted thing's graph; one per binding, and a host may hold more than one binding into the same thing | [Presence nodes](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path) |
 | **Binding / bucket / cover / totality** | One way of being present / its node subset / the family of buckets / their union is every node | [Presence as a cover](AGENT.concepts.md#presence-as-a-cover) |
 | **Apprehension scale** | Whether a thing answers "what is here" at a host's scale; declared, not derived, not yet modelled | same |
-| **`ludicCache`** | Derived, attention-scoped, cross-shard read structure; hits return handles | [`ludicCache/types.ts`](ludicCache/types.ts), [rebuild plan](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCacheRebuild.planning.md) |
+| **`ludicCache`** | Derived, attention-scoped, cross-shard read structure; hits return handles | [`ludicCache` entry](AGENT.concepts.md#ludiccache-the-attention-scoped-read-structure), [`ludicCache/types.ts`](ludicCache/types.ts), [rebuild plan](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCacheRebuild.planning.md) |
 | **Stub port** | Transient crossing port minted by a cut, never persisted, id-prefixed `STUB-` | [`presenceSubGraph.ts`](ludicGraph/presenceSubGraph.ts) |
 | **`supportedBy`** | A cache edge's record of the crossings and bindings that justify it | [`ludicCache/types.ts`](ludicCache/types.ts) |
 

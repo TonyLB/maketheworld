@@ -24,6 +24,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 ## Getting Started
 
+0. **Read [`positions/AGENT.ludicNetwork.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md) first** --- its presence section is the present-tense statement of the mechanism this plan's rows argue about, and its rope example is the one to hold in mind while reading them.
 1. **Read [`taskPlanning/AGENT.md`](../../../../AGENT.md) and [`AGENT.designVariant.md`](../../../../AGENT.designVariant.md) once.** This is a design-stage plan: resolved rows [graduate](../../../../AGENT.designVariant.md#graduating-a-resolved-row) rather than being deleted, rows may block no slice at all, and code is licensed by tier.
 2. **Read the parent's [locked frame](AGENT.abstractionLayers.planning.md#locked-frame-parts-and-ports-2026-08-06) and its [exclusion list](AGENT.abstractionLayers.planning.md#what-is-not-locked-and-must-not-ride-in-on-this).** Its three shape claims are this plan's premises, not its subject matter. If you find yourself arguing whether a whole has its own graph, you are in the wrong document.
 3. **Read [H3](AGENT.abstractionLayers.proposals.planning.md#h3-ports-as-the-boundary-mechanism-decomposition-as-a-modellers-choice) and [ports are single-use](AGENT.abstractionLayers.proposals.planning.md#ports-are-single-use-and-that-is-not-a-detail-clarified-2026-08-06).** A **presence port** --- a port with no exterior endpoint --- is the mechanism most of these rows will argue over, and it is now shipped rather than proposed.

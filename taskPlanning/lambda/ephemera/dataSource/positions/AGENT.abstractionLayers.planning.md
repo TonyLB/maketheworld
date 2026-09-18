@@ -31,6 +31,7 @@ The **companion** split follows the **companion-file ladder** in [`taskPlanning/
 
 **Read in this order.** The control surface is short; the design body below it is not, and reading that body out of order is how a withdrawn scheme gets absorbed as current.
 
+0. **[`positions/AGENT.ludicNetwork.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md), end to end, before anything else.** It states the *current* shape this plan has produced so far --- per-host sharding, ports and legs, DAG multi-hosting, presence as a cover, `ludicCache` --- in present tense with one running example. This file and its companions preserve the argument that got there, by design; without the primer, that argument reads as history to reassemble rather than premises to build on, and every row below uses its vocabulary.
 1. **The Status line and companion table above** --- what stage this is at, and which of the four files answers which kind of question.
 2. **[`taskPlanning/AGENT.md`](../../../../AGENT.md) once**, then **[`AGENT.designVariant.md`](../../../../AGENT.designVariant.md)**. This is a **design-stage** plan, and three things follow from that: resolved decisions [graduate](../../../../AGENT.designVariant.md#graduating-a-resolved-row) rather than being deleted, open rows may block no slice at all, and code is licensed by [tier](#graduation-tiers-when-a-decision-licenses-code-2026-08-11) rather than by shipping.
 3. **[Recommended order](#recommended-order)**, immediately below --- what is next, and which single channel builds anything.
