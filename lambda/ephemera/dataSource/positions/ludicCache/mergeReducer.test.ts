@@ -104,6 +104,33 @@ describe('collapseCrossingPorts', () => {
         expect(result[0].supportedBy).toHaveLength(2)
     })
 
+    // The payoff for tagging the exterior address (PN-24), and the case Slice 5 could not close.
+    // One presence binding has two addresses --- its bare node id, and the exterior
+    // `{ owner, port: 'PRESENCE#...' }` form --- so two legs reaching the SAME binding by different
+    // addresses must land on one cache record with two routes, not two records asserting one edge
+    // twice. `collapsedEdgeIdentityKey` normalizes DOWN to the bare id, which is why the surviving
+    // record's `to` is the primitive form.
+    it('dedups two legs reaching one presence binding by its two different addresses', () => {
+        const binding = 'PRESENCE#b1' as EphemeraPresenceNodeId
+        const parentGraph = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
+            edges: [parentLeg('port_1'), parentLeg('port_2')],
+        })
+        const childGraph = testLudicGraph(boxId, {
+            nodes: [{ tag: 'Object', universalKey: boxId }, presenceNode('b1', enumeratedCover(boxId))],
+            edges: [
+                childLeg('port_1', binding),
+                childLeg('port_2', { owner: boxId, port: binding }),
+            ],
+            ports: [crossingPort('port_1'), crossingPort('port_2')],
+        })
+
+        const result = collapseCrossingPorts(parentGraph, childGraph, 'binding_1')
+        expect(result).toHaveLength(1)
+        expect(result[0]).toMatchObject({ from: boulder, to: binding, kind: 'On' })
+        expect(result[0].supportedBy).toHaveLength(2)
+    })
+
     it('does not collapse two edges that only coincidentally reach the same identity if their kinds disagree', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],

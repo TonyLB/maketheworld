@@ -243,7 +243,7 @@ describe('findRelationalChainFromLeg', () => {
             fromHostId: ROOM_ID,
             cover: { tag: 'Full' },
         }
-        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'presence-1' }, kind: 'Custom' as const, relationLabel: 'to' }
+        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PRESENCE#presence-1' }, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addRelationalEdge(edge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addPresenceNode(presenceNode)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
@@ -257,12 +257,12 @@ describe('findRelationalChainFromLeg', () => {
         })
     })
 
-    // `'declines when a presence port has no backing presence node (mint-time integrity break)'`
-    // deleted at Slice 7a: a presence port record no longer exists to construct that fixture
-    // from, so a dangling reference here now falls straight into the ordinary
-    // "no backing crossing-port or presence-node record" decline exercised above.
-    it('declines when a qualified terminal names neither a presence node nor a crossing-port record', () => {
-        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'presence-1' }, kind: 'Custom' as const, relationLabel: 'to' }
+    // The two misses below are DIFFERENT VERDICTS and the tag is what tells them apart (PN-24).
+    // While the port id was bare, both landed on one conflated "no backing crossing-port or
+    // presence-node record" decline, because a miss could not say which collection had been meant.
+    // Asserting the reasons, not just the verdict, is what holds that distinction open.
+    it('declines a tagged presence address whose binding is absent from this graph --- not pulled, not dangling', () => {
+        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PRESENCE#presence-1' }, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addRelationalEdge(edge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
@@ -270,5 +270,22 @@ describe('findRelationalChainFromLeg', () => {
         const result = findRelationalChainFromLeg({ hostId: ROOM_ID, edge }, { getGraph })
 
         expect(result.verdict).toEqual('declined')
+        expect(result).toEqual(expect.objectContaining({
+            reason: `presence binding PRESENCE#presence-1 is not present in ${TABLE_ID}`,
+        }))
+    })
+
+    it('declines a bare crossing-port address with no backing port record, as a dangling reference', () => {
+        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'crossing-1' }, kind: 'Custom' as const, relationLabel: 'to' }
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addRelationalEdge(edge)
+        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
+        const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
+
+        const result = findRelationalChainFromLeg({ hostId: ROOM_ID, edge }, { getGraph })
+
+        expect(result.verdict).toEqual('declined')
+        expect(result).toEqual(expect.objectContaining({
+            reason: 'port crossing-1 has no backing crossing-port record',
+        }))
     })
 })

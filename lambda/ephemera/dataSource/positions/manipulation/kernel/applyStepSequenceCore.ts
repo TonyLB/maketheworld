@@ -1,6 +1,7 @@
 import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
@@ -278,7 +279,7 @@ export const applyStepSequenceCore = (
             // `Present` edge was ever written to derive it from).
             const withNode = graph.addPresenceNode({
                 tag: 'Presence',
-                universalKey: `PRESENCE#${step.presenceUuid}`,
+                universalKey: PresenceKey(step.presenceUuid),
                 fromHostId: step.fromHostId,
                 cover: { tag: 'Full' },
             })

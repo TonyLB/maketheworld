@@ -28,6 +28,7 @@ import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTer
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraLudicTerminalOwner } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from './index'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
 
@@ -70,7 +71,7 @@ export const nodesFromPresenceBinding = (
     presenceUuid: string
 ): Set<EphemeraLudicTerminalPrimitive> => {
     const root = ephemeraLudicTerminalOwner(graph.rootId)
-    const presenceNodeId: EphemeraLudicTerminalPrimitive = `PRESENCE#${presenceUuid}`
+    const presenceNodeId: EphemeraLudicTerminalPrimitive = PresenceKey(presenceUuid)
     const presenceNode = graph.presenceNodes.find((node) => node.universalKey === presenceNodeId)
     if (!presenceNode) {
         const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))

@@ -301,22 +301,41 @@ describe('ephemeraLudicTerminalsEqual / ephemeraLudicTerminalRefersTo', () => {
         expect(ephemeraLudicTerminalsEqual(a, b)).toBe(false)
     })
 
-    it('treats a presence node id and a port address naming that same binding as equal (presenceNodes Slice 5, item 3)', () => {
+    it('treats a presence node id and a tagged port address naming that same binding as equal (presenceNodes Slice 5 item 3 / PN-24)', () => {
         const primitive = 'PRESENCE#presence-1' as const
-        const address = { owner: 'ROOM#TABLE' as const, port: 'presence-1' }
+        const address = { owner: 'ROOM#TABLE' as const, port: 'PRESENCE#presence-1' }
         expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(true)
         expect(ephemeraLudicTerminalsEqual(address, primitive)).toBe(true)
     })
 
-    it('treats a presence node id and a port address naming a different binding as unequal', () => {
+    it('treats a presence node id and a tagged port address naming a different binding as unequal', () => {
         const primitive = 'PRESENCE#presence-1' as const
-        const address = { owner: 'ROOM#TABLE' as const, port: 'presence-2' }
+        const address = { owner: 'ROOM#TABLE' as const, port: 'PRESENCE#presence-2' }
         expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(false)
     })
 
-    it('does not extend the presence exception to an ordinary (non-presence) primitive sharing a bare-uuid-shaped port', () => {
+    // The UNTAGGED form is no longer an address for the binding at all (PN-24) --- a bare uuid on
+    // a port address names a crossing port, so it must NOT match the presence node that happens to
+    // share its uuid. This is the case the pre-PN-24 encoding could not distinguish.
+    it('does not match a presence node id against an UNTAGGED port address sharing its uuid', () => {
+        const primitive = 'PRESENCE#presence-1' as const
+        const address = { owner: 'ROOM#TABLE' as const, port: 'presence-1' }
+        expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(false)
+    })
+
+    it('does not extend the presence exception to an ordinary (non-presence) primitive sharing its port value', () => {
         const primitive = 'OBJECT#BOX' as const
         const address = { owner: 'ROOM#TABLE' as const, port: 'OBJECT#BOX' }
+        expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(false)
+    })
+
+    // Regression for the one break this encoding change could cause silently: a minted stub port id
+    // embeds component ids, so it carries several '#'. `isEphemeraPresenceNodeId` THROWS on that
+    // ("Illegal nested EphemeraId"); the port-id-domain predicate must simply return false.
+    it('does not throw on a stub port id embedding component ids', () => {
+        const primitive = 'PRESENCE#presence-1' as const
+        const address = { owner: 'ROOM#A' as const, port: 'STUB-["OBJECT#C","OBJECT#D","Under",""]' }
+        expect(() => ephemeraLudicTerminalsEqual(primitive, address)).not.toThrow()
         expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(false)
     })
 

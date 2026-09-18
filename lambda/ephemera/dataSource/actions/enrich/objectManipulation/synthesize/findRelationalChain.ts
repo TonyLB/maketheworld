@@ -2,7 +2,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCrossingPort, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { HostRelationalEdge } from '../../../../positions/ludicGraph'
 import type { ExpansionEnvironment } from './executorTypes'
@@ -88,25 +88,26 @@ const resolveEndpoint = (
     }
     const portOwnerHostId = ephemeraLudicTerminalOwner(terminal)
     const portOwnerGraph = getGraph(portOwnerHostId)
-    // The exterior address of a presence node (clause 1) shares the presence binding's own minted
-    // uuid (Slice 3's 1:1 mint) -- resolved to that node rather than declined, per PN-4/PN-5.
-    // Checked before any port lookup at all (presenceNodes Slice 7a, PN-14/PN-23): a presence
-    // binding carries no port record any more, so there is no `port.kind === 'Present'` to test
-    // and `portOwnerGraph.ports` would never carry this uuid regardless of whether the binding
-    // exists. `isEphemeraPresenceNodeId(terminal.port)` isn't used here because `portId` is a bare
-    // uuid, never itself `PRESENCE#`-tagged; the tag lives on the reconstructed node id instead,
-    // which is what makes this a confirmation (a hit) rather than an inference from which
-    // collection happened to contain it.
-    const presenceNode = portOwnerGraph?.presenceNodes.find((node) => node.universalKey === `PRESENCE#${portId}`)
-    if (presenceNode) {
-        return { declined: false, endpoint: presenceNode.universalKey, steps: [] }
+    // The exterior address of a presence node (clause 1) carries the binding's own `PRESENCE#`-tagged
+    // node id (Slice 3's 1:1 mint) -- resolved to that node rather than declined, per PN-4/PN-5.
+    // The tag says WHICH collection to read (PN-24), so this dispatches before any port lookup and
+    // reads only `presenceNodes`; a crossing port's id is bare and can never take this branch.
+    if (isPresenceTaggedPortId(portId)) {
+        const presenceNode = portOwnerGraph?.presenceNodes.find((node) => node.universalKey === portId)
+        if (presenceNode) {
+            return { declined: false, endpoint: presenceNode.universalKey, steps: [] }
+        }
+        // Distinct from the crossing-port miss below, and the distinction is the point of tagging
+        // the value: this says the binding exists somewhere but is not in THIS graph (not pulled
+        // into this cut), where a bare-id miss could not tell that from a dangling reference.
+        // Still a dead end to decline, not a throw -- this walk only reads already-committed state.
+        return { declined: true, reason: `presence binding ${portId} is not present in ${portOwnerHostId}` }
     }
     const port = portOwnerGraph?.ports.find((candidate) => candidate.portId === portId)
-    // A port address with no backing port record (crossing or presence) at all is a dangling
-    // reference -- a dead end to decline, not a throw, this walk only ever reads already-committed
-    // state.
+    // A crossing-port address with no backing port record is a dangling reference -- a dead end to
+    // decline, not a throw, this walk only ever reads already-committed state.
     if (!port) {
-        return { declined: true, reason: `port ${portId} has no backing crossing-port or presence-node record` }
+        return { declined: true, reason: `port ${portId} has no backing crossing-port record` }
     }
     const portStep: RelationalChainStep = { type: 'port', hostId: portOwnerHostId, port }
 

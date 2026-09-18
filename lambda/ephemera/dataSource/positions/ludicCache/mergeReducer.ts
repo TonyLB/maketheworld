@@ -21,9 +21,10 @@
  * its findings live on in PR-8 and PR-12 above.
  */
 import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId, EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from '../ludicGraph'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
@@ -90,21 +91,25 @@ const outerTerminal = (
  * tag) --- this is a different call site (post-collapse, not pre-mint) and owes no more to that
  * one than the shared source field list already implies.
  *
- * **Known dormant gap (presenceNodes Slice 5, item 3), deliberately NOT closed here:** `terminalKey`
- * does not fold a presence-addressed port terminal (`{ owner, port: presenceUuid }`) down to its
- * bare `PRESENCE#{uuid}` form the way `ephemeraLudicTerminalsEqual` now does, so the two
- * representations of one presence binding would hash to different keys and fail to dedup. Left
- * unbuilt because, unlike that pairwise comparison, this is a *unary* canonicalization: `.port` is
- * a bare, unprefixed uuid indistinguishable in shape from an ordinary crossing-port id, so
- * classifying it as presence-or-not needs the in-scope presence-node-id set (available at every
- * call site) threaded in as a parameter --- a real change to this function's "pure and local"
- * design, not a drive-by fix. No current writer mints `{ owner, port: presenceUuid }` as a real
- * edge terminal (`buildCrossingLegs.ts` always mints a fresh crossing uuid, never reuses a
- * presence node's own), so the gap has no live caller today. Build it when one appears.
+ * **One presence binding has two addresses, and they must hash alike (presenceNodes Slice 5 item 3,
+ * closed by PN-24).** An edge may terminate at the binding's bare `PRESENCE#{uuid}` node id, or at
+ * its exterior address `{ owner, port: 'PRESENCE#{uuid}' }`; two cache entries can therefore hold
+ * the same edge in two forms, and a merge that does not equate them duplicates it. **Normalize
+ * DOWN, to the bare id** --- PN-5's id is globally unique, so the exterior form's `owner` carries
+ * no information the id does not. The `owner`-qualified branch below is never reached for presence,
+ * so no `ROOM#A#PRESENCE#uuid` composite key arises. **Dropping `owner` is scoped to presence and
+ * must stay that way:** a crossing port's id is unique within its host only, so `{ROOM#A, STUB-xyz}`
+ * and `{ROOM#B, STUB-xyz}` are different terminals and both parts are load-bearing.
+ *
+ * This became expressible only once `.port` carried its own tag (PN-24). While the id was bare it
+ * was shape-indistinguishable from a crossing-port id, and a *unary* key function has no second
+ * value to confirm against --- so the dedup gap sat open, documented, through Slice 5.
  */
 const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string => {
     const terminalKey = (terminal: EphemeraLudicTerminalId): string =>
-        typeof terminal === 'string' ? terminal : `${terminal.owner}#${terminal.port}`
+        typeof terminal === 'string' ? terminal
+            : isPresenceTaggedPortId(terminal.port) ? terminal.port
+                : `${terminal.owner}#${terminal.port}`
     return JSON.stringify([
         terminalKey(edge.from),
         terminalKey(edge.to),
@@ -164,7 +169,7 @@ export const collapseCrossingPorts = (
     presenceUuid: string
 ): EphemeraLudicCacheEdge[] => {
     const crossingPorts = childGraph.ports
-    const presenceBucketId: EphemeraPresenceNodeId = `PRESENCE#${presenceUuid}`
+    const presenceBucketId: EphemeraPresenceNodeId = PresenceKey(presenceUuid)
 
     const collapsedLegs = crossingPorts.reduce<EphemeraLudicCacheEdge[]>((acc, port) => {
         const portTerminal: EphemeraLudicPortAddress = { owner: childGraph.hostId, port: port.portId }
@@ -381,7 +386,7 @@ export const mergeSameHostBucket = (
  */
 const assertZeroOrAllPresenceBindings = (graph: EphemeraLudicGraph, presenceUuids: string[]): void => {
     const allIds = new Set<string>(graph.presenceNodes.map((node) => node.universalKey))
-    const requestedIds = new Set(presenceUuids.map((uuid) => `PRESENCE#${uuid}`))
+    const requestedIds = new Set(presenceUuids.map((uuid) => PresenceKey(uuid)))
     const requestedKnownCount = [...requestedIds].filter((id) => allIds.has(id)).length
     if (requestedKnownCount > 0 && requestedKnownCount < allIds.size) {
         throw new Error(
@@ -397,7 +402,7 @@ const presenceCacheNodesFromFold = (
     assertZeroOrAllPresenceBindings(graph, presenceUuids)
     const root = ephemeraLudicTerminalOwner(graph.rootId)
     return presenceUuids.reduce<EphemeraLudicCacheNode[]>((acc, presenceUuid) => {
-        const universalKey = `PRESENCE#${presenceUuid}` as EphemeraPresenceNodeId
+        const universalKey = PresenceKey(presenceUuid)
         const presenceNode = graph.presenceNodes.find((node) => node.universalKey === universalKey)
         if (!presenceNode) {
             return acc

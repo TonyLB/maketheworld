@@ -252,7 +252,22 @@ export const isEphemeraLudicTerminalPrimitive = (value: unknown): value is Ephem
  * means two other things in this file (a graph's owner, and a port's exterior `fromHostId`). A
  * presence node never allocates a port (that would reintroduce the port-based mechanism the
  * presenceNodes plan retires), so `owner` stays over the pre-widening domain (PN-4): only a
- * bare terminal --- `EphemeraLudicTerminalPrimitive` --- may itself resolve to a presence node. */
+ * bare terminal --- `EphemeraLudicTerminalPrimitive` --- may itself resolve to a presence node.
+ *
+ * **`port` is TAGGED or BARE, and which one says what kind of thing it names (presenceNodes
+ * PN-24).** A crossing port carries a **bare** minted uuid (`buildCrossingLegs.ts`'s `uuidv4()`),
+ * backed by a record in `graph.ports`. A presence binding's **exterior address** carries the
+ * **prefixed** `PRESENCE#{uuid}` --- the binding's own node id --- and is backed by a record in
+ * `graph.presenceNodes`, never in `ports`. Test with `isEphemeraPresenceNodeId(port)`.
+ *
+ * **Why the tag is on the value rather than on a record:** it used to be on the record. A presence
+ * binding was a port with `kind: 'Present'`, so one lookup in `graph.ports` answered both *what
+ * kind is this* and *does it exist*. Slice 7a deleted that record, leaving two disjoint
+ * collections and nothing on the terminal to say which one to read --- so resolution degraded to
+ * searching both in order, and a miss could not distinguish an absent presence binding (legal ---
+ * the binding was not pulled into this cut) from a dangling crossing port (corruption). Tagging
+ * the value restores the discriminator the record used to carry, and keeps the two questions
+ * separate: the tag says where to look, the lookup still confirms existence. */
 export type EphemeraLudicPortAddress = {
     owner: EphemeraMembershipHostId;
     port: string;
@@ -265,6 +280,18 @@ export const isEphemeraLudicPortAddress = (value: unknown): value is EphemeraLud
     const address = value as EphemeraLudicPortAddress
     return isEphemeraMembershipHostId(address.owner) && typeof address.port === 'string' && address.port.length > 0
 }
+
+/** Whether a port id carries the presence tag --- i.e. whether this address names a binding in
+ * `graph.presenceNodes` rather than a crossing port in `graph.ports` (PN-24).
+ *
+ * **Use this rather than `isEphemeraPresenceNodeId` on a port id.** That guard is built for the
+ * EphemeraId domain and THROWS (`Illegal nested EphemeraId`) on any value containing more than one
+ * `#`. Port ids are not EphemeraIds --- `EphemeraCrossingPort.portId` is deliberately an opaque
+ * `string` --- and a minted stub id embeds component ids, e.g.
+ * `STUB-["OBJECT#C","OBJECT#D","Under",""]`, so an EphemeraId guard is a category error here that
+ * throws on ordinary same-host traffic. This predicate is total over the port-id domain. */
+export const isPresenceTaggedPortId = (portId: string): portId is EphemeraPresenceNodeId =>
+    portId.startsWith('PRESENCE#')
 
 export type EphemeraLudicTerminalId =
     | EphemeraLudicTerminalPrimitive
@@ -284,22 +311,24 @@ export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): E
 }
 
 /** Full terminal equality --- a primitive and a port address on the same owner are NOT equal,
- * with one presence-scoped exception (presenceNodes Slice 5, item 3): a presence node id and a
- * port address whose `port` is that same binding's own minted uuid DO refer to the same terminal
- * --- clause 1's exterior address form, PN-5's `PRESENCE#{uuid}` being globally unique means the
- * qualifying `owner` on that address carries no information the id does not. Scoped by testing
- * the PRIMITIVE side's declared kind (`isEphemeraPresenceNodeId`), never the port address's `.port`
- * shape --- `.port` is a bare, unprefixed uuid indistinguishable in shape from an ordinary
- * crossing-port id (buildCrossingLegs.ts mints both the same way), so branching on it directly
- * would misfire on ordinary crossings. Every non-presence primitive/port-address pair is
- * unaffected, including same-owner ones (kept covered by the test suite). */
+ * with one presence-scoped exception (presenceNodes Slice 5 item 3, re-mechanized by PN-24): a
+ * presence node id and a presence-tagged port address naming that same binding DO refer to the
+ * same terminal --- clause 1's exterior address form. PN-5's `PRESENCE#{uuid}` is globally unique,
+ * so the qualifying `owner` on that address carries no information the id does not, and identity
+ * may drop it.
+ *
+ * Scoped by the port address's DECLARED TAG (`isPresenceTaggedPortId`), which under PN-24 is
+ * carried on the value itself --- a crossing port's id is bare, so it can never satisfy this test
+ * and every non-presence pair is unaffected, including same-owner ones. Both sides carry the tag,
+ * so this is a plain equality; do NOT reintroduce a `PRESENCE#${...}` reconstruction here, which
+ * is what this comparison looked like while `.port` was bare and would now double-prefix. */
 export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: EphemeraLudicTerminalId): boolean => {
     if (typeof a === 'string' && typeof b === 'string') {
         return a === b
     }
     if (typeof a === 'string' || typeof b === 'string') {
         const [primitive, address] = typeof a === 'string' ? [a, b as EphemeraLudicPortAddress] : [b as EphemeraLudicTerminalPrimitive, a as EphemeraLudicPortAddress]
-        return isEphemeraPresenceNodeId(primitive) && primitive === `PRESENCE#${address.port}`
+        return isPresenceTaggedPortId(address.port) && primitive === address.port
     }
     return a.owner === b.owner && a.port === b.port
 }
