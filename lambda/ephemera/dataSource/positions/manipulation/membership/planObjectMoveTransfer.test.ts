@@ -41,7 +41,7 @@ describe('planObjectMoveTransfer', () => {
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a legal plan') }
             expect(result.plan.steps.map((step) => step.kind)).toEqual([
-                'capture', 'transferMembership', 'removePresencePort', 'addPresencePort', 'capture', 'narrate', 'narrate',
+                'capture', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding', 'capture', 'narrate', 'narrate',
             ])
             expect(result.fromHostId).toBe(ROOM_ID)
         })

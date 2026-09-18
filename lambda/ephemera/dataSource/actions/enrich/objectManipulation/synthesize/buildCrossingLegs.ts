@@ -6,8 +6,9 @@ import { relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 /** A crossing leg's kind/label pairing. No longer narrowed via `Exclude<HostRelationalEdgeKind,
  * 'Present'>` (PN-14, presenceNodes Slice 3): `'Present'` retired from `HostRelationalEdgeKind`
- * entirely, so the exclusion is vacuous now -- `EphemeraPresencePortKind`'s standalone literal is
- * still not assignable to `HostRelationalEdgeKind`, so the protection survives the collapse. */
+ * entirely, so the exclusion is vacuous -- and as of Slice 7a there is no longer a presence-kind
+ * port literal (`EphemeraPresencePortKind`, since retired) for the exclusion to have protected
+ * against in the first place. */
 type CrossingKindAndLabel = RelationalKindAndLabel<HostRelationalEdgeKind>
 
 import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'

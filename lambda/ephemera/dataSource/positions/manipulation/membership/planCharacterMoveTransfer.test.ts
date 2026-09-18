@@ -42,7 +42,7 @@ describe('planCharacterMoveTransfer', () => {
         expect(result.froms).toEqual([FROM_ROOM])
         expect(result.to).toEqual(TO_ROOM)
         expect(result.plan.steps.map((step) => step.kind)).toEqual([
-            'capture', 'transferMembership', 'removePresencePort', 'addPresencePort', 'capture', 'narrate', 'narrate',
+            'capture', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding', 'capture', 'narrate', 'narrate',
         ])
     })
 

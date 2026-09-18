@@ -42,8 +42,8 @@ describe('compilePositionKernelOp', () => {
         expect(plan.steps.map((step) => step.kind)).toEqual([
             'capture',
             'transferMembership',
-            'removePresencePort',
-            'addPresencePort',
+            'removePresenceBinding',
+            'addPresenceBinding',
             'capture',
             'narrate',
             'narrate',
@@ -117,14 +117,15 @@ describe('compilePositionKernelOp', () => {
                 toHostId: TO_ROOM,
             },
             {
-                kind: 'removePresencePort',
+                kind: 'removePresenceBinding',
                 hostId: CHARACTER_ID,
                 fromHostId: FROM_ROOM,
             },
             {
-                kind: 'addPresencePort',
+                kind: 'addPresenceBinding',
                 hostId: CHARACTER_ID,
-                port: expect.objectContaining({ fromHostId: TO_ROOM, kind: 'Present' }),
+                fromHostId: TO_ROOM,
+                presenceUuid: expect.any(String),
             },
         ])
         expect(plan.slots).toEqual([])
@@ -201,7 +202,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         // publishes to nobody. That is the correct output of a uniform rule, and suppressing
         // it here is how the host-changelog frame gets lost at the next caller.
         expect(plan.steps.map((step) => step.kind)).toEqual([
-            'capture', 'transferMembership', 'removePresencePort', 'addPresencePort', 'capture', 'narrate', 'narrate',
+            'capture', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding', 'capture', 'narrate', 'narrate',
         ])
         expect(plan.slots.map((slot) => slot.slotId)).toEqual([
             moveLeaveSlotId(FROM_ROOM),
@@ -246,11 +247,11 @@ describe('compilePositionKernelOp --- object moves', () => {
             dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
         }))
 
-        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'transferMembership', 'removePresencePort', 'addPresencePort'])
+        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding'])
         expect(plan.slots).toEqual([])
     })
 
-    describe('containment and presence port', () => {
+    describe('containment and presence binding', () => {
         it('emits an establishRelation step after the transfer when containment is set', () => {
             const plan = compilePositionKernelOp(objectOp({ containment: 'On' }))
 
@@ -270,23 +271,23 @@ describe('compilePositionKernelOp --- object moves', () => {
             expect(plan.steps.some((step) => step.kind === 'establishRelation')).toBe(false)
         })
 
-        it('mints a presence port naming the destination on every object rehost, containment or not', () => {
+        it('mints a presence binding naming the destination on every object rehost, containment or not', () => {
             const plan = compilePositionKernelOp(objectOp())
-            const removeStep = plan.steps.find((step) => step.kind === 'removePresencePort')
+            const removeStep = plan.steps.find((step) => step.kind === 'removePresenceBinding')
             expect(removeStep).toEqual({
-                kind: 'removePresencePort',
+                kind: 'removePresenceBinding',
                 hostId: TRAY,
                 fromHostId: FROM_ROOM,
             })
-            const addStep = plan.steps.find((step) => step.kind === 'addPresencePort')
+            const addStep = plan.steps.find((step) => step.kind === 'addPresenceBinding')
             expect(addStep).toMatchObject({
-                kind: 'addPresencePort',
+                kind: 'addPresenceBinding',
                 hostId: TRAY,
-                port: { fromHostId: CHARACTER_ID, kind: 'Present' },
+                fromHostId: CHARACTER_ID,
             })
         })
 
-        it('mints a presence port for a character-only move too --- port minting is not gated on host kind', () => {
+        it('mints a presence binding for a character-only move too --- binding minting is not gated on host kind', () => {
             const plan = compilePositionKernelOp({
                 kind: 'move',
                 moved: CHARACTER_ID,
@@ -295,15 +296,15 @@ describe('compilePositionKernelOp --- object moves', () => {
                 bundleId: 'BUNDLE#test',
                 headerSlot: null,
             })
-            expect(plan.steps.find((step) => step.kind === 'removePresencePort')).toEqual({
-                kind: 'removePresencePort',
+            expect(plan.steps.find((step) => step.kind === 'removePresenceBinding')).toEqual({
+                kind: 'removePresenceBinding',
                 hostId: CHARACTER_ID,
                 fromHostId: FROM_ROOM,
             })
-            expect(plan.steps.find((step) => step.kind === 'addPresencePort')).toMatchObject({
-                kind: 'addPresencePort',
+            expect(plan.steps.find((step) => step.kind === 'addPresenceBinding')).toMatchObject({
+                kind: 'addPresenceBinding',
                 hostId: CHARACTER_ID,
-                port: { fromHostId: TO_ROOM, kind: 'Present' },
+                fromHostId: TO_ROOM,
             })
         })
 

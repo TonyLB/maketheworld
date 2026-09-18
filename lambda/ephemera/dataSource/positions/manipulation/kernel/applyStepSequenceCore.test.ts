@@ -673,39 +673,14 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
-    describe('presence port steps (addPresencePort/removePresencePort)', () => {
-        it('addPresencePort adds a Present port naming fromHostId to the target graph', () => {
+    describe('presence binding steps (addPresenceBinding/removePresenceBinding)', () => {
+        // presenceNodes Slice 7a (PN-23): these steps mint/remove the presence NODE directly ---
+        // there is no port record any more, so `.ports` is untouched by any of this and only
+        // `.presenceNodes`/`.toStored().nodes` reflects the binding.
+        it('addPresenceBinding mints a presence node naming fromHostId, full coverage by default', () => {
             const trayGraph = testLudicGraph(trayId, { nodes: [] })
             const steps: MutationKernelStep[] = [
-                { kind: 'addPresencePort', hostId: trayId, port: { portId: 'p1', fromHostId: roomId, kind: 'Present' } },
-            ]
-
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
-
-            expect(outcome.verdict).toBe('legal')
-            if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.ports).toEqual([{ portId: 'p1', fromHostId: roomId, kind: 'Present' }])
-        })
-
-        it('removePresencePort removes the matching binding by fromHostId', () => {
-            const trayGraph = testLudicGraph(trayId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'removePresencePort', hostId: trayId, fromHostId: roomId },
-            ]
-
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
-
-            expect(outcome.verdict).toBe('legal')
-            if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.ports).toEqual([])
-        })
-
-        // presenceNodes Slice 3 (PN-8's *both*): a presence node mints 1:1 with its port, sharing
-        // the port's own minted uuid as `PRESENCE#{uuid}`, with full coverage by default.
-        it('addPresencePort also mints the matching presence node, full coverage by default', () => {
-            const trayGraph = testLudicGraph(trayId, { nodes: [] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'addPresencePort', hostId: trayId, port: { portId: 'p1', fromHostId: roomId, kind: 'Present' } },
+                { kind: 'addPresenceBinding', hostId: trayId, fromHostId: roomId, presenceUuid: 'p1' },
             ]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
@@ -722,13 +697,12 @@ describe('applyStepSequenceCore', () => {
             )
         })
 
-        it('removePresencePort also removes the matching presence node', () => {
+        it('removePresenceBinding removes the matching presence node by fromHostId', () => {
             const trayGraph = testLudicGraph(trayId, {
-                ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }],
                 nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } }],
             })
             const steps: MutationKernelStep[] = [
-                { kind: 'removePresencePort', hostId: trayId, fromHostId: roomId },
+                { kind: 'removePresenceBinding', hostId: trayId, fromHostId: roomId },
             ]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
@@ -738,53 +712,65 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.get(trayId)!.toStored().nodes).toEqual([])
         })
 
-        it('removePresencePort against an absent binding is a silent no-op, not illegal', () => {
-            const trayGraph = testLudicGraph(trayId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+        it('removePresenceBinding against an absent binding is a silent no-op, not illegal', () => {
+            const trayGraph = testLudicGraph(trayId, {
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } }],
+            })
             const steps: MutationKernelStep[] = [
-                { kind: 'removePresencePort', hostId: trayId, fromHostId: otherRoomId },
+                { kind: 'removePresenceBinding', hostId: trayId, fromHostId: otherRoomId },
             ]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.ports).toEqual([{ portId: 'p1', fromHostId: roomId, kind: 'Present' }])
+            expect(outcome.graphs.get(trayId)!.toStored().nodes).toEqual([
+                { tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } },
+            ])
         })
 
-        it('a remove-then-add pair leaving one Present port on a character does not throw', () => {
-            const characterGraph = testLudicGraph(characterId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+        it('a remove-then-add pair leaving one presence binding on a character does not throw', () => {
+            const characterGraph = testLudicGraph(characterId, {
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } }],
+            })
             const steps: MutationKernelStep[] = [
-                { kind: 'removePresencePort', hostId: characterId, fromHostId: roomId },
-                { kind: 'addPresencePort', hostId: characterId, port: { portId: 'p2', fromHostId: otherRoomId, kind: 'Present' } },
+                { kind: 'removePresenceBinding', hostId: characterId, fromHostId: roomId },
+                { kind: 'addPresenceBinding', hostId: characterId, fromHostId: otherRoomId, presenceUuid: 'p2' },
             ]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([characterId, characterGraph]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(characterId)!.ports).toEqual([{ portId: 'p2', fromHostId: otherRoomId, kind: 'Present' }])
+            expect(outcome.graphs.get(characterId)!.toStored().nodes).toEqual([
+                { tag: 'Presence', universalKey: 'PRESENCE#p2', fromHostId: otherRoomId, cover: { tag: 'Full' } },
+            ])
         })
 
-        it('throws when a sequence would leave a character with two Present ports --- characters are single-hosted', () => {
-            const characterGraph = testLudicGraph(characterId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+        it('throws when a sequence would leave a character with two presence bindings --- characters are single-hosted', () => {
+            const characterGraph = testLudicGraph(characterId, {
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } }],
+            })
             const steps: MutationKernelStep[] = [
-                { kind: 'addPresencePort', hostId: characterId, port: { portId: 'p2', fromHostId: otherRoomId, kind: 'Present' } },
+                { kind: 'addPresenceBinding', hostId: characterId, fromHostId: otherRoomId, presenceUuid: 'p2' },
             ]
 
             expect(() => applyStepSequenceCore(steps, graphsMap([characterId, characterGraph]))).toThrow(/AGENT\.contract\.md/)
         })
 
-        it('does not throw when an object carries two Present ports --- multi-presence is the point for objects', () => {
-            const trayGraph = testLudicGraph(trayId, { ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Present' }] })
+        it('does not throw when an object carries two presence bindings --- multi-presence is the point for objects', () => {
+            const trayGraph = testLudicGraph(trayId, {
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } }],
+            })
             const steps: MutationKernelStep[] = [
-                { kind: 'addPresencePort', hostId: trayId, port: { portId: 'p2', fromHostId: otherRoomId, kind: 'Present' } },
+                { kind: 'addPresenceBinding', hostId: trayId, fromHostId: otherRoomId, presenceUuid: 'p2' },
             ]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.ports).toHaveLength(2)
+            expect(outcome.graphs.get(trayId)!.presenceNodes).toHaveLength(2)
         })
     })
 })

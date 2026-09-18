@@ -86,11 +86,12 @@ export const edgesReferringToPort = (args: {
  * comparison is possible, and where
  * an exterior reference exists it governs).
  *
- * **Crossing ports only, as of presenceNodes Slice 3 (PN-9 item (c)).** A presence binding is a
- * node now, not a port-list tenant, so both callers (`ludicGraphPortMismatchSweep`,
- * `healLudicGraphPortMismatch`) filter presence ports out before calling this --- there is
- * nothing left here to dispatch on `kind === 'Present'` for, and the branch that used to do that
- * retired with them.
+ * **Crossing ports only, as of presenceNodes Slice 3 (PN-9 item (c)); unconditionally so as of
+ * Slice 7a (PN-3/PN-23).** A presence binding is a node, not a port-list tenant, and since
+ * Slice 7a it carries no port record at all --- both callers (`ludicGraphPortMismatchSweep`,
+ * `healLudicGraphPortMismatch`) once filtered presence ports out before calling this, but there
+ * are none left to filter. There is nothing here to dispatch on `kind === 'Present'` for, and the
+ * branch that used to do that retired with them.
  *
  * **The AB-55 tolerance survives for an absent or unparseable referrer; it does NOT survive for a
  * well-formed referrer holding no edge into this port --- PN-9 item (c), and the two used to

@@ -34,7 +34,7 @@ const universalKeyOf = (reference: ContainmentChildReference): string | undefine
  * Reads current state (never assumed) so a `cacheAsset` rerun over
  * already-cached, unchanged state costs nothing beyond the reads --- see
  * `containmentPopulationSteps.ts`'s doc comment for why neither `transferMembership`'s pure-add
- * branch nor `addPresencePort` is safe to replay unconditionally.
+ * branch nor `addPresenceBinding` is safe to replay unconditionally.
  *
  * One `commitStepSequence` call for every child named in one parent update, not one call per
  * child --- a separate commit per child would open a window where some children of the same
@@ -79,7 +79,7 @@ export const populateContainmentAtCache = async (
             streamEvent,
             // Every subject/target this batch's establishRelation steps names resolves to the
             // same lock target, `parentId` --- mirrors `applyObjectRelationalChange`'s own
-            // same-host convention. `transferMembership`/`addPresencePort` steps don't consult
+            // same-host convention. `transferMembership`/`addPresenceBinding` steps don't consult
             // this resolver at all (their hosts are already explicit fields).
             getCurrentHost: () => parentId,
         }

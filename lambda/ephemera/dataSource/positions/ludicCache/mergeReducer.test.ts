@@ -7,7 +7,7 @@ import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@
 import type { EphemeraLudicGraphComponentNode, EphemeraLudicGraphPort, EphemeraLudicGraphStructureNode, EphemeraLudicRelationalEdgeData, EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { nodesFromPresencePort, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
+import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
 import { collapseCrossingPorts, collapseSameHostStubs, foldSameHostBuckets, mergeSameHostBucket } from './mergeReducer'
 
@@ -25,12 +25,6 @@ const objE = 'OBJECT#E' as EphemeraObjectId
 const objF = 'OBJECT#F' as EphemeraObjectId
 const objE2 = 'OBJECT#E2' as EphemeraObjectId
 
-const presencePort = (portId: string): EphemeraLudicGraphPort => ({
-    portId,
-    fromHostId: roomId,
-    kind: 'Present',
-})
-
 /** A dummy `presence` disambiguator per member --- these fixtures don't exercise a covered
  * component's own multiple bindings (PN-22), so any well-formed `PRESENCE#` id suffices. */
 const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey'][]): EphemeraPresenceCover => ({
@@ -38,7 +32,7 @@ const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey
     members: hosts.map((host) => ({ host, presence: `PRESENCE#${host}-binding` as EphemeraPresenceNodeId })),
 })
 
-/** The presence node minted 1:1 with `presencePort(portId)` (presenceNodes Slice 3). */
+/** The presence node minted for the binding named `portId` (presenceNodes Slice 3; no port record as of Slice 7a). */
 const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: `PRESENCE#${portId}` as EphemeraPresenceNodeId,
@@ -49,7 +43,7 @@ const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLud
 const crossingPort = (portId: string, kind: EphemeraLudicGraphPort['kind'] = 'On'): EphemeraLudicGraphPort => ({
     portId,
     fromHostId: roomId,
-    kind: kind as Exclude<EphemeraLudicGraphPort['kind'], 'Present'>,
+    kind,
 })
 
 const parentLeg = (portId: string, kind: EphemeraLudicRelationalEdgeData['kind'] = 'On'): EphemeraLudicRelationalEdgeData => ({
@@ -134,19 +128,6 @@ describe('collapseCrossingPorts', () => {
         expect(collapseCrossingPorts(parentGraph, childGraph)).toEqual([])
     })
 
-    it('ignores presence ports entirely', () => {
-        const parentGraph = testLudicGraph(roomId, {
-            nodes: [{ tag: 'Room', universalKey: roomId }],
-            edges: [],
-        })
-        const childGraph = testLudicGraph(boxId, {
-            nodes: [{ tag: 'Object', universalKey: boxId }],
-            edges: [],
-            ports: [{ portId: 'presence_1', fromHostId: roomId, kind: 'Present' }],
-        })
-
-        expect(collapseCrossingPorts(parentGraph, childGraph)).toEqual([])
-    })
 })
 
 describe('collapseSameHostStubs', () => {
@@ -161,7 +142,6 @@ describe('collapseSameHostStubs', () => {
                 presenceNode('port_1', enumeratedCover(charA, objC)),
                 presenceNode('port_2', enumeratedCover(charB, objD)),
             ],
-            ports: [presencePort('port_1'), presencePort('port_2')],
             edges: [
                 { tag: 'Relational', from: objC, to: objD, kind: 'Under' },
             ],
@@ -169,15 +149,15 @@ describe('collapseSameHostStubs', () => {
 
         // The naive fold move: cut each bucket alone (rather than unioning first), producing
         // two independently stub-ported halves of the same interior edge --- the case
-        // `nodesFromPresencePorts`'s own doc comment names as needing "its own reconciliation
+        // `nodesFromPresenceBindings`'s own doc comment names as needing "its own reconciliation
         // step". Confirmed target behavior (union-then-cut needs no such step) is already
         // covered by presenceSubGraph.test.ts's "feeding the union into subGraphFromNodes"
         // case; this is the separate-cuts path a fold would actually produce.
-        const bucketA = subGraphFromNodes(graph, nodesFromPresencePort(graph, 'port_1'))
-        const bucketB = subGraphFromNodes(graph, nodesFromPresencePort(graph, 'port_2'))
+        const bucketA = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, 'port_1'))
+        const bucketB = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, 'port_2'))
 
-        expect(bucketA.ports.filter((port) => port.kind !== 'Present')).toHaveLength(1)
-        expect(bucketB.ports.filter((port) => port.kind !== 'Present')).toHaveLength(1)
+        expect(bucketA.ports).toHaveLength(1)
+        expect(bucketB.ports).toHaveLength(1)
 
         expect(collapseSameHostStubs(bucketA, bucketB)).toEqual([
             { tag: 'Relational', from: objC, to: objD, kind: 'Under', chains: [] },
@@ -326,7 +306,6 @@ describe('foldSameHostBuckets', () => {
             presenceNode('port_2', enumeratedCover(charB, objD)),
             presenceNode('port_3', enumeratedCover(charC, objF)),
         ],
-        ports: [presencePort('port_1'), presencePort('port_2'), presencePort('port_3')],
         edges: [
             { tag: 'Relational', from: objC, to: objD, kind: 'Under' },
             { tag: 'Relational', from: objE, to: objF, kind: 'Against' },
@@ -339,9 +318,9 @@ describe('foldSameHostBuckets', () => {
     ]
 
     it('reconstructs both interior edges via the existing pairwise primitive, cutting every bucket up front (two-pass baseline, using only shipped code)', () => {
-        const bucketA = subGraphFromNodes(graph, nodesFromPresencePort(graph, 'port_1'))
-        const bucketB = subGraphFromNodes(graph, nodesFromPresencePort(graph, 'port_2'))
-        const bucketC = subGraphFromNodes(graph, nodesFromPresencePort(graph, 'port_3'))
+        const bucketA = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, 'port_1'))
+        const bucketB = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, 'port_2'))
+        const bucketC = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, 'port_3'))
 
         const result = [
             ...collapseSameHostStubs(bucketA, bucketB),

@@ -940,7 +940,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'Present' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'On' }],
             })).toBe(false)
         })
 
@@ -948,7 +948,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
-                ports: [{ portId: 123, fromHostId: 'OBJECT#box', kind: 'Present' }],
+                ports: [{ portId: 123, fromHostId: 'OBJECT#box', kind: 'On' }],
             })).toBe(false)
         })
 
@@ -956,7 +956,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'OBJECT#box',
                 nodes: [{ tag: 'Object', universalKey: 'OBJECT#box' }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'On' }],
             })).toBe(true)
         })
     })
@@ -964,15 +964,15 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
 describe('isEphemeraLudicGraphPort', () => {
     it('accepts a well-formed port entry', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present' })).toBe(true)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'On' })).toBe(true)
     })
 
     it('rejects a malformed fromHostId', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'Present' })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'On' })).toBe(false)
     })
 
     it('rejects a non-string portId', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 123, fromHostId: 'ROOM#Kitchen', kind: 'Present' })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 123, fromHostId: 'ROOM#Kitchen', kind: 'On' })).toBe(false)
     })
 
     it('rejects a non-object value', () => {
@@ -992,8 +992,18 @@ describe('isEphemeraLudicGraphPort', () => {
 
     // The union is taken unrestricted (PR-11) --- including the three values no corpus case can
     // yet construct. Narrowing it would mint the second partition the reuse exists to avoid.
-    it.each(['On', 'Under', 'Against', 'In', 'PartOf', 'Present'])('accepts a %s port with no label', (kind) => {
+    // `'Present'` dropped from this list at presenceNodes Slice 7a: it is no longer in the domain
+    // this guard accepts at all, see the rejection test below.
+    it.each(['On', 'Under', 'Against', 'In', 'PartOf'])('accepts a %s port with no label', (kind) => {
         expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind })).toBe(true)
+    })
+
+    // presenceNodes Slice 7a (PN-14/PN-23): a presence binding is a node now, never a port, so
+    // `'Present'` retired from this guard's accepted domain outright --- `isEphemeraLudicGraphPort`
+    // used to accept it (as `EphemeraPresencePort`), and now rejects it the same way any other
+    // kind outside `HostRelationalEdgeKind` is rejected.
+    it("rejects a 'Present' kind port outright", () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present' })).toBe(false)
     })
 
     it('accepts a Custom port carrying a non-empty exterior label', () => {
@@ -1009,12 +1019,12 @@ describe('isEphemeraLudicGraphPort', () => {
     })
 
     it('rejects a non-string exterior label on a non-Custom port', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present', exteriorRelationLabel: 12 })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'On', exteriorRelationLabel: 12 })).toBe(false)
     })
 
-    it('rejects a Present port carrying any exterior label, even a valid string (PR-15: presence ports have no such field)', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present', exteriorRelationLabel: 'threads into' })).toBe(false)
-    })
+    // `'rejects a Present port carrying any exterior label ... (PR-15: presence ports have no such
+    // field)'` deleted at presenceNodes Slice 7a: `'Present'` is rejected outright now on `kind`
+    // alone (see above), so there is no longer a distinct "wrong field" case to pin for it.
 })
 
 describe('isEphemeraLudicGraphData', () => {

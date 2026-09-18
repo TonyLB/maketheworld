@@ -204,7 +204,7 @@ describe('factsForStep', () => {
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
-    it('addCrossingPort/removeCrossingPort steps yield no facts --- not a narration channel yet, same as addPresencePort/removePresencePort', () => {
+    it('addCrossingPort/removeCrossingPort steps yield no facts --- not a narration channel yet, same as addPresenceBinding/removePresenceBinding', () => {
         const addStep: MutationKernelStep = {
             kind: 'addCrossingPort',
             hostId: tableId,
@@ -215,13 +215,14 @@ describe('factsForStep', () => {
         expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
-    it('addPresencePort/removePresencePort steps yield no facts --- not a narration channel yet', () => {
+    it('addPresenceBinding/removePresenceBinding steps yield no facts --- not a narration channel yet', () => {
         const addStep: MutationKernelStep = {
-            kind: 'addPresencePort',
+            kind: 'addPresenceBinding',
             hostId: trayId,
-            port: { portId: 'p2', fromHostId: roomId, kind: 'Present' },
+            fromHostId: roomId,
+            presenceUuid: 'p2',
         }
-        const removeStep: MutationKernelStep = { kind: 'removePresencePort', hostId: trayId, fromHostId: roomId }
+        const removeStep: MutationKernelStep = { kind: 'removePresenceBinding', hostId: trayId, fromHostId: roomId }
         expect(factsForStep(addStep, graphsMap(), beatAnchorTime)).toEqual([])
         expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
     })

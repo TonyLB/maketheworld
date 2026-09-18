@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraCrossingPort, EphemeraPresencePort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { TransferMembershipStep } from '../../../actions/enrich/objectManipulation/parsePlanStep'
 import type {
@@ -60,10 +60,10 @@ export type MutationKernelCaptureStep = {
 }
 
 /**
- * the moved object's own presence port, on its own graph (`hostId` is the moved object's
+ * the moved object's own presence binding, on its own graph (`hostId` is the moved object's
  * own id --- a legal `EphemeraMembershipHostId`). Since 2026-09-04, multiplicity lives in
- * the sequence rather than the step --- N bindings is N `addPresencePort` steps, paired with a
- * `removePresencePort` per departure host, rather than one step replacing whatever was there. This
+ * the sequence rather than the step --- N bindings is N `addPresenceBinding` steps, paired with a
+ * `removePresenceBinding` per departure host, rather than one step replacing whatever was there. This
  * is what lets a pure add (spawn/population-everywhere) be expressed without touching
  * `MutationKernelTransferStep` (PR-12 in `AGENT.presence.planning.md`). At-most-one presence
  * (PR-10) is no longer a reducer-enforced property of this step; for characters it is enforced
@@ -71,22 +71,29 @@ export type MutationKernelCaptureStep = {
  * single-hosted, per `AGENT.contract.md`. Objects get no such enforcement, deliberately --- multi-
  * presence is the point. No `Present` edge is written --- PR-10 makes the cover implicit, derived
  * from the binding list, not a record either step maintains.
+ *
+ * **Carries no port record (presenceNodes Slice 7a, PN-23).** The presence binding is a NODE
+ * (`applyStepSequenceCore.ts`'s handler mints it via `addPresenceNode`), not a port pushed into
+ * `EphemeraLudicGraph.ports` --- `EphemeraPresencePort` and its `kind: 'Present'` literal are
+ * retired. `presenceUuid` is still minted fresh per binding (it becomes the node's
+ * `PRESENCE#{presenceUuid}` key), it just no longer rides inside a port object.
  */
-export type MutationKernelAddPresencePortStep = {
-    kind: 'addPresencePort'
+export type MutationKernelAddPresenceBindingStep = {
+    kind: 'addPresenceBinding'
     hostId: EphemeraMembershipHostId
-    port: EphemeraPresencePort
+    fromHostId: EphemeraMembershipHostId
+    presenceUuid: string
 }
 
 /**
  * The remove half of that add/remove split. Addressed by host pair (`hostId` + `fromHostId`), not by
- * `portId` --- unlike `removeCrossingPort`, because the compiler has no prior-state read to learn a
- * `portId` from; that read is exactly what the old replace-all step existed to avoid. Removing an
- * absent binding is a silent no-op in the reducer, which is what lets the compiler emit one of
- * these per departure host without knowing which one (if any) actually held the port.
+ * `presenceUuid` --- unlike `removeCrossingPort`, because the compiler has no prior-state read to
+ * learn a `presenceUuid` from; that read is exactly what the old replace-all step existed to avoid.
+ * Removing an absent binding is a silent no-op in the reducer, which is what lets the compiler emit
+ * one of these per departure host without knowing which one (if any) actually held the binding.
  */
-export type MutationKernelRemovePresencePortStep = {
-    kind: 'removePresencePort'
+export type MutationKernelRemovePresenceBindingStep = {
+    kind: 'removePresenceBinding'
     hostId: EphemeraMembershipHostId
     fromHostId: EphemeraMembershipHostId
 }
@@ -118,8 +125,8 @@ export type MutationKernelStep =
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
     | MutationKernelCaptureStep
-    | MutationKernelAddPresencePortStep
-    | MutationKernelRemovePresencePortStep
+    | MutationKernelAddPresenceBindingStep
+    | MutationKernelRemovePresenceBindingStep
     | MutationKernelAddCrossingPortStep
     | MutationKernelRemoveCrossingPortStep
 
@@ -300,8 +307,8 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'establishRelation' ||
     step.kind === 'dissolveRelation' ||
     step.kind === 'capture' ||
-    step.kind === 'addPresencePort' ||
-    step.kind === 'removePresencePort' ||
+    step.kind === 'addPresenceBinding' ||
+    step.kind === 'removePresenceBinding' ||
     step.kind === 'addCrossingPort' ||
     step.kind === 'removeCrossingPort'
 

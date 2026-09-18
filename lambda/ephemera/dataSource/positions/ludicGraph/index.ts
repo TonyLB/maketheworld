@@ -551,12 +551,12 @@ export class EphemeraLudicGraph {
     }
 
     /**
-     * Mints a presence NODE, not just a port (presenceNodes Slice 3, PN-8's *both*). Unlike
-     * `addObject`/`addCharacter`/etc., which dispatch on `EphemeraPositionAdjacencyContainedId`,
-     * a structure node has no such id to key idempotency on the usual way -- it's keyed on its
-     * own minted `universalKey` instead, which is 1:1 with the presence port it mints alongside
-     * (`applyStepSequenceCore.ts`'s `addPresencePort` handler calls both from one step, sharing
-     * one uuid). Idempotent-add, same shape as the component methods above.
+     * Mints a presence NODE (presenceNodes Slice 3, PN-8's *both*; no port record alongside it as
+     * of Slice 7a, PN-23). Unlike `addObject`/`addCharacter`/etc., which dispatch on
+     * `EphemeraPositionAdjacencyContainedId`, a structure node has no such id to key idempotency
+     * on the usual way -- it's keyed on its own minted `universalKey` instead, built from the
+     * `presenceUuid` `applyStepSequenceCore.ts`'s `addPresenceBinding` handler mints it with.
+     * Idempotent-add, same shape as the component methods above.
      */
     addPresenceNode(node: EphemeraLudicGraphStructureNode): EphemeraLudicGraph {
         if (this._nodes.some((existing) => existing.tag === 'Presence' && existing.universalKey === node.universalKey)) {

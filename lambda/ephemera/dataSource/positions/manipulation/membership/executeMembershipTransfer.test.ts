@@ -139,14 +139,15 @@ describe('executeMembershipTransfer', () => {
         const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
         expect(eventTypes).toEqual(['Object Moved'])
 
-        // A transfer with no caller-supplied steps still mints a presence port, not just a bare
-        // transferMembership step: it compiles through `compilePositionKernelOp`, and port minting
-        // there is universal --- every mover, regardless of host kind.
+        // A transfer with no caller-supplied steps still mints a presence binding, not just a bare
+        // transferMembership step: it compiles through `compilePositionKernelOp`, and binding
+        // minting there is universal --- every mover, regardless of host kind. No port record
+        // (presenceNodes Slice 7a) --- the binding shows up as a presence node instead.
         const committedOwnGraph = (internalCache.Positions.set as jest.Mock).mock.calls
             .map(([graph]: any[]) => graph)
             .find((graph: EphemeraLudicGraph) => graph.hostId === OBJECT_ID)
-        expect(committedOwnGraph?.ports).toEqual([
-            expect.objectContaining({ fromHostId: TO_ROOM, kind: 'Present' }),
+        expect(committedOwnGraph?.presenceNodes).toEqual([
+            expect.objectContaining({ fromHostId: TO_ROOM }),
         ])
     })
 

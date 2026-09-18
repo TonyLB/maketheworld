@@ -7,15 +7,16 @@
  * Slice 3, which the tag's own escape hatch names: "a scope change to raise, not to take" ---
  * raised and taken across several Slice 2/3 items.** The original tag ("No change to
  * `EphemeraLudicGraph`, to `ephemeraMeta.ts`, or to any write path") no longer holds: `ludicGraph`
- * now mints presence NODES, not just ports, which is exactly this file's `nodesFromPresencePort`
- * moving from a prototype's invented rule to reading a real, written `cover` field. Kept below
- * for the history it still records accurately (why the rule was invented, what it measured).
+ * now mints presence NODES (and, as of Slice 7a, no port record at all), which is exactly this
+ * file's `nodesFromPresenceBinding` moving from a prototype's invented rule to reading a real,
+ * written `cover` field. Kept below for the history it still records accurately (why the rule was
+ * invented, what it measured).
  *
  * Rollback trigger, named in advance: a bucket cannot be stated from the child's own graph
- * plus its ports --- i.e. if deciding which nodes are in a binding turns out to require the
- * parent's graph, then presence is not port-indexed and the reducer's premise fails. **Not fired
- * by the Slice 3 changes** --- `cover` is still read from the same graph `nodesFromPresencePort`
- * is called on, never a parent's.
+ * plus its bindings --- i.e. if deciding which nodes are in a binding turns out to require the
+ * parent's graph, then presence is not binding-indexed and the reducer's premise fails. **Not
+ * fired by the Slice 3 changes** --- `cover` is still read from the same graph
+ * `nodesFromPresenceBinding` is called on, never a parent's.
  *
  * Not triggers: fixture verbosity, reducer size, or the number of cases the straddle rule
  * needs. Those are measurements this Prototype exists to take.
@@ -31,12 +32,13 @@ import type { HostRelationalEdge } from './index'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
 
 /**
- * The bucket a presence port names --- the nodes of `graph` present at that binding.
+ * The bucket a presence binding names --- the nodes of `graph` present at that binding.
  * **Re-based 2026-09-17+ (presenceNodes Slice 3): reads the presence node's own `cover` field,
  * never `Present` edges** --- no `Present`-kind edge was ever constructed by any writer, and the
- * 2026-09-16 course correction moved bucket membership onto `cover` instead. The presence node
- * itself now mints 1:1 with its port (`applyStepSequenceCore.ts`'s `addPresencePort` handler),
- * sharing the port's own minted uuid as `PRESENCE#{uuid}`.
+ * 2026-09-16 course correction moved bucket membership onto `cover` instead. **Renamed from
+ * `nodesFromPresencePort` (Slice 7a, PN-23): the presence binding is a NODE, not a port** ---
+ * `presenceUuid` is the bare uuid `applyStepSequenceCore.ts`'s `addPresenceBinding` handler mints
+ * it with, which becomes the node's `PRESENCE#{presenceUuid}` key.
  *
  * - The root is in the bucket unconditionally (PR-9/PN-6), regardless of `cover.tag`.
  * - **`cover.tag === 'Full'`:** every component node of `graph` is in the bucket --- the same
@@ -44,7 +46,7 @@ import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
  *   is written at every arity now, not derived from it, so this is a rewrite of that arm, not a
  *   behavior change for it). Presence/structure nodes are excluded from this set: PN-6 settled
  *   that a presence node is a member of no bucket, present in every cut instead (mirroring how
- *   `subGraphFromNodes` already carries every presence port into every bucket unconditionally).
+ *   `subGraphFromNodes` already carries every presence node into every bucket unconditionally).
  * - **`cover.tag === 'Enumerated'`:** membership is exactly `cover.members`' `host` component
  *   (PN-20: each entry is a `{ host, presence }` pair; `presence` disambiguates which of that
  *   component's own bindings is meant and is not consumed by this function's return type).
@@ -52,12 +54,12 @@ import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
  *   per the mint-time decision recorded in `applyStepSequenceCore.ts`) --- this arm is typed and
  *   exercised in isolation, not yet reachable end-to-end from a real move.
  */
-export const nodesFromPresencePort = (
+export const nodesFromPresenceBinding = (
     graph: EphemeraLudicGraph,
-    portId: string
+    presenceUuid: string
 ): Set<EphemeraLudicTerminalPrimitive> => {
     const root = ephemeraLudicTerminalOwner(graph.rootId)
-    const presenceNode = graph.presenceNodes.find((node) => node.universalKey === `PRESENCE#${portId}`)
+    const presenceNode = graph.presenceNodes.find((node) => node.universalKey === `PRESENCE#${presenceUuid}`)
     if (!presenceNode || presenceNode.cover.tag === 'Full') {
         const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
         return new Set([...componentNodeIds, root])
@@ -67,24 +69,24 @@ export const nodesFromPresencePort = (
 
 /**
  * Slice 2b: the node set for *more than one* binding into the same parent --- a child present at
- * one parent shard through two presence ports (two bindings), rather than one. Folds
- * `nodesFromPresencePort` over `portIds` and unions the results.
+ * one parent shard through two presence bindings, rather than one. Folds
+ * `nodesFromPresenceBinding` over `presenceUuids` and unions the results.
  *
  * **Why this is the whole of 2b.** The naive move would cut each bucket separately
- * (`subGraphFromNodes` once per port) and merge the two resulting graphs afterward --- but that
+ * (`subGraphFromNodes` once per binding) and merge the two resulting graphs afterward --- but that
  * merge would need its own reconciliation step, since a node exclusive to one bucket and joined
  * by a content edge to a node exclusive to the other would come back independently stub-ported
  * on each side. `subGraphFromNodes` takes a node
  * *set*, not a prior cut, so cutting once over the union avoids the artifact instead of undoing
- * it: `subGraphFromNodes(graph, nodesFromPresencePorts(graph, portIds))`. This function supplies
- * only that union; the single-cut composition is the caller's job.
+ * it: `subGraphFromNodes(graph, nodesFromPresenceBindings(graph, presenceUuids))`. This function
+ * supplies only that union; the single-cut composition is the caller's job.
  */
-export const nodesFromPresencePorts = (
+export const nodesFromPresenceBindings = (
     graph: EphemeraLudicGraph,
-    portIds: string[]
+    presenceUuids: string[]
 ): Set<EphemeraLudicTerminalPrimitive> =>
-    portIds.reduce(
-        (acc, portId) => new Set([...acc, ...nodesFromPresencePort(graph, portId)]),
+    presenceUuids.reduce(
+        (acc, presenceUuid) => new Set([...acc, ...nodesFromPresenceBinding(graph, presenceUuid)]),
         new Set<EphemeraLudicTerminalPrimitive>()
     )
 
@@ -149,8 +151,8 @@ type EndpointStatus = 'qualified' | 'disqualified' | 'neutral'
  * reach this bucket at all, which is not a severed relationship but an absent one.
  *
  * **`Present`-kind edges are excluded before any of that classification runs (LR-6, revised).**
- * They are bucket-membership metadata --- `nodesFromPresencePort` has already fully consumed them
- * to produce `nodes` --- not a spatial relationship between two members the way `Under`/`Custom`/
+ * They are bucket-membership metadata --- `nodesFromPresenceBinding` has already fully consumed
+ * them to produce `nodes` --- not a spatial relationship between two members the way `Under`/`Custom`/
  * `PartOf` are, so they are never interior content, never dropped, and never straddle-minted; they
  * simply do not participate. (LR-6 originally rested on a second, mechanical argument too: under
  * the owner-based classification a `Present` edge into another bucket was *guaranteed* to look
@@ -205,7 +207,7 @@ type EndpointStatus = 'qualified' | 'disqualified' | 'neutral'
  * - **One qualified, one disqualified:** LR-1's straddle proper --- a peer in *this same* graph
  *   that simply isn't in the chosen bucket (PR-C1). A stub port is minted (1b-ii) and the
  *   disqualified endpoint is rewritten to `{ owner: graph.hostId, port }`, the same addressing
- *   idiom `nodesFromPresencePort` already uses for the graph's own ports. Where that endpoint was
+ *   idiom `nodesFromPresenceBinding` already uses for a bare uuid. Where that endpoint was
  *   port-qualified, `fromHostId` records only its owner --- but the `port` half is not lost: it is
  *   encoded in the minted id, so the other bucket mints the same id, and the splice recovers the
  *   full address from the leg that still holds it.
@@ -213,12 +215,12 @@ type EndpointStatus = 'qualified' | 'disqualified' | 'neutral'
  * Returns an `EphemeraLudicGraph` rather than a bespoke shape --- the induced sub-graph is a
  * graph on the *same* host (a bucket is a cut of `graph`, not a different graph), so `hostId` and
  * `rootId` are carried over unchanged; the root is always present in `nodes` by Slice 1a's own
- * contract. The returned graph's `ports` are the minted stub ports plus **all** of `graph`'s own
- * presence ports, regardless of bucket (LR-6): `fromHostId` on a presence port is already the
- * "which shard is this whole home to" fact, independent of which bucket is being extracted, so
- * carrying every one of them forward makes that fact recoverable from any single bucket's
- * sub-graph with no merge-time reconciliation needed later. **Crossing ports are carried too, but
- * only the ones a surviving edge actually names** --- a neutral endpoint would otherwise dangle on
+ * contract. **Presence data is carried forward on `nodes` alone (presenceNodes Slice 7a):
+ * `subNodes` already includes every one of `graph.presenceNodes` unconditionally (LR-6's original
+ * argument, restated on nodes rather than ports --- `fromHostId` on a presence node is the "which
+ * shard is this whole home to" fact, independent of which bucket is being extracted), so `ports`
+ * carries no presence entry at all any more.** The returned graph's `ports` are the minted stub
+ * ports plus the crossing ports a surviving edge actually names --- a neutral endpoint would otherwise dangle on
  * a port absent from its own graph, which is the state this function shipped in until 2026-09-14.
  * The restriction to referenced ports is the substantive half: a boundary no edge in this bucket
  * reaches bounds nothing here, and carrying it would assert a crossing this bucket does not have.
@@ -234,9 +236,8 @@ export const subGraphFromNodes = (
 ): EphemeraLudicGraph => {
     // Component nodes are cut by bucket membership as before; presence/structure nodes are
     // carried into every bucket unconditionally instead (PN-6: a presence node is a member of no
-    // bucket, present in every cut), the same treatment `presencePorts` below already gives their
-    // ports. They can't be reconstructed via `nodeIds`-then-`nodeFromId` either way --- a
-    // structure node's `fromHostId`/`cover` have no derivation from the id alone.
+    // bucket, present in every cut). They can't be reconstructed via `nodeIds`-then-`nodeFromId`
+    // either way --- a structure node's `fromHostId`/`cover` have no derivation from the id alone.
     const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
     const subNodes = [
         ...componentNodeIds.filter((id) => nodes.has(id)).map(nodeFromId),
@@ -330,13 +331,13 @@ export const subGraphFromNodes = (
         )
     }
 
-    const presencePorts = graph.ports.filter((port) => port.kind === 'Present')
-
     //
-    // The authored crossing ports that surviving edges actually name. Carried so that a kept edge
-    // does not dangle on a port absent from its own graph --- which is what a neutral endpoint
-    // would otherwise be. Referenced, not wholesale: a boundary no edge in this bucket reaches
-    // bounds nothing here, and carrying it would assert a crossing this bucket does not have.
+    // The authored crossing ports that surviving edges actually name --- `graph.ports` holds only
+    // crossing ports as of presenceNodes Slice 7a (presence is carried on `subNodes` above, never
+    // on a port). Carried so that a kept edge does not dangle on a port absent from its own graph
+    // --- which is what a neutral endpoint would otherwise be. Referenced, not wholesale: a
+    // boundary no edge in this bucket reaches bounds nothing here, and carrying it would assert a
+    // crossing this bucket does not have.
     //
     const referencedPortIds = new Set(
         edges
@@ -345,14 +346,12 @@ export const subGraphFromNodes = (
             .filter(({ owner }) => owner === graph.hostId)
             .map(({ port }) => port)
     )
-    const referencedCrossingPorts = graph.ports.filter(
-        (port) => port.kind !== 'Present' && referencedPortIds.has(port.portId)
-    )
+    const referencedCrossingPorts = graph.ports.filter((port) => referencedPortIds.has(port.portId))
 
     return EphemeraLudicGraph.fromFieldPayload(graph.hostId, {
         rootId: graph.rootId,
         nodes: subNodes,
         edges: edges.map(toStoredRelationalEdge),
-        ports: [...presencePorts, ...referencedCrossingPorts, ...ports],
+        ports: [...referencedCrossingPorts, ...ports],
     })
 }

@@ -5,7 +5,7 @@ import { ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraM
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import type { MutationKernelAddPresencePortStep, MutationKernelStep, MutationKernelTransferStep } from '../kernel/kernelStep'
+import type { MutationKernelAddPresenceBindingStep, MutationKernelStep, MutationKernelTransferStep } from '../kernel/kernelStep'
 
 /**
  * The pure step-computer for cache-time containment authoring (Room-in-Area, Feature-in-Room,
@@ -14,16 +14,17 @@ import type { MutationKernelAddPresencePortStep, MutationKernelStep, MutationKer
  * already fetched, so the idempotency obligation --- `cacheAsset` reruns frequently over state that
  * already reflects a prior write --- is met by checking current state here rather than relying on
  * the reducer to absorb a replay (neither `transferMembership`'s pure-add branch nor
- * `addPresencePort` is safe to replay unconditionally --- see this directory's callers).
+ * `addPresenceBinding` is safe to replay unconditionally --- see this directory's callers).
  *
  * Three independent checks, not a single all-or-nothing branch, because a cache rerun can land in
  * any partially-populated state (e.g. a prior run committed the node-add but failed before the
- * presence port, or `cacheAsset` retried after a partial failure):
+ * presence binding, or `cacheAsset` retried after a partial failure):
  *
  * - **Node membership**: emitted only if `childId` is not already a node of `parentGraph`.
- * - **Presence port**: emitted only if `childGraph` carries no `Present` port with
- *   `fromHostId === parentId` already --- the same one-port-per-binding shape
- *   `presencePortStepsForMove` emits, where multiplicity lives in the sequence rather than the step.
+ * - **Presence binding**: emitted only if `childGraph` carries no presence node with
+ *   `fromHostId === parentId` already (presenceNodes Slice 7a: checked against `presenceNodes`,
+ *   not a port record) --- the same one-binding-per-parent shape `presenceBindingStepsForMove`
+ *   emits, where multiplicity lives in the sequence rather than the step.
  * - **Containment edge**: emitted only if `parentGraph` carries no `PartOf` edge from `childId` to
  *   `parentId` already. `establishRelation`'s `op: 'add'` is already idempotent-safe on an existing
  *   edge (`EphemeraLudicGraph.applyRelationalPatch`) --- this check isn't load-bearing for
@@ -61,14 +62,15 @@ export const containmentPopulationSteps = (
         steps.push(nodeStep)
     }
 
-    const hasPresencePort = childGraph.ports.some((port) => port.kind === 'Present' && port.fromHostId === parentId)
-    if (!hasPresencePort) {
-        const portStep: MutationKernelAddPresencePortStep = {
-            kind: 'addPresencePort',
+    const hasPresenceBinding = childGraph.presenceNodes.some((node) => node.fromHostId === parentId)
+    if (!hasPresenceBinding) {
+        const bindingStep: MutationKernelAddPresenceBindingStep = {
+            kind: 'addPresenceBinding',
             hostId: childId,
-            port: { portId: uuidv4(), fromHostId: parentId, kind: 'Present' },
+            fromHostId: parentId,
+            presenceUuid: uuidv4(),
         }
-        steps.push(portStep)
+        steps.push(bindingStep)
     }
 
     const hasContainmentEdge = parentGraph.relationalEdges.some(

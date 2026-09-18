@@ -181,24 +181,10 @@ describe('healLudicGraphPortMismatch', () => {
         expect(writeHealedLudicGraph).not.toHaveBeenCalled()
     })
 
-    // PR-15, settled 2026-08-26. The repair rewrites `kind` from the exterior edge, so running it
-    // on a presence port would replace `'Present'` with the landing edge's kind and destroy the
-    // binding --- the thing the port exists to record. This function's own early return is what
-    // stops it now (presenceNodes Slice 3 moved the gate here from
-    // `classifyLudicGraphPortMismatch`'s retired presence branch); this asserts the outcome at
-    // the heal boundary, where the damage would be written.
-    it('writes nothing when a foreign-kind edge terminates at a presence port', async () => {
-        const writeHealedLudicGraph = jest.fn(async () => undefined)
-        const outcome = await healLudicGraphPortMismatch(OBJECT_ID, PORT_ID, { dryRun: false }, {
-            getStoredLudicGraph: readerFor({
-                [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }]),
-                [ROOM_ID]: roomGraph([{ kind: 'Custom', relationLabel: 'is connected to' }]),
-            }),
-            writeHealedLudicGraph,
-        })
-        expect(outcome).toEqual({ stale: false })
-        expect(writeHealedLudicGraph).not.toHaveBeenCalled()
-    })
+    // `'writes nothing when a foreign-kind edge terminates at a presence port'` deleted at
+    // presenceNodes Slice 7a: `ludicGraph.ports` never contains a presence entry any more (PN-3/
+    // PN-23), so there is no fixture left that reaches the branch this test exercised, and the
+    // early return it asserted on is gone from the source too.
 
     it('is a no-op on redelivery once the repair has landed (at-least-once safety)', async () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
