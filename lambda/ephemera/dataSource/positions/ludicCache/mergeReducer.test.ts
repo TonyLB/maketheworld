@@ -106,6 +106,35 @@ describe('collapseCrossingPorts', () => {
         expect(result[0].supportedBy).toHaveLength(2)
     })
 
+    // Slice 3f (ISS8149): `edgeId` used to be missing from the grouping key, so two collapsed
+    // edges differing only in `edgeId` merged into one record --- second site of the same defect
+    // `legsAgree`'s test above fixes. They must stay two distinct records, not one with a
+    // concatenated `supportedBy`.
+    it('does not group two collapsed edges that agree on (from, to, kind) but disagree on edgeId', () => {
+        const parentGraph = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
+            edges: [
+                { ...parentLeg('port_1'), edgeId: 'edge_1' },
+                { ...parentLeg('port_2'), edgeId: 'edge_2' },
+            ],
+        })
+        const childGraph = testLudicGraph(boxId, {
+            nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: pebble }],
+            edges: [
+                { ...childLeg('port_1', pebble), edgeId: 'edge_1' },
+                { ...childLeg('port_2', pebble), edgeId: 'edge_2' },
+            ],
+            ports: [crossingPort('port_1'), crossingPort('port_2')],
+        })
+
+        const result = collapseCrossingPorts(parentGraph, childGraph, 'binding_1')
+        expect(result).toHaveLength(2)
+        expect(result.map((edge) => edge.supportedBy)).toEqual(expect.arrayContaining([
+            [[{ presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }]],
+            [[{ presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_2' }]],
+        ]))
+    })
+
     // The payoff for tagging the exterior address (PN-24), and the case Slice 5 could not close.
     // One presence binding has two addresses --- its bare node id, and the exterior
     // `{ owner, port: 'PRESENCE#...' }` form --- so two legs reaching the SAME binding by different
@@ -161,6 +190,23 @@ describe('collapseCrossingPorts', () => {
         expect(collapseCrossingPorts(parentGraph, childGraph, 'binding_1')).toEqual([])
     })
 
+    // Slice 3f (ISS8149): `edgeId` used to be invisible to `legsAgree`, so two legs carrying
+    // different `edgeId` labels collapsed silently, discarding the child leg's label. Nothing
+    // mints an `edgeId` yet, so this is a hand-authored pair per the plan's own instruction not
+    // to defer on that account.
+    it('throws when two legs disagree on edgeId, matching every other identity field it already asserts', () => {
+        const parentGraph = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
+            edges: [{ ...parentLeg('port_1'), edgeId: 'edge_parent' }],
+        })
+        const childGraph = testLudicGraph(boxId, {
+            nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: pebble }],
+            edges: [{ ...childLeg('port_1', pebble), edgeId: 'edge_child' }],
+            ports: [crossingPort('port_1')],
+        })
+
+        expect(() => collapseCrossingPorts(parentGraph, childGraph, 'binding_1')).toThrow(/disagree/)
+    })
 })
 
 describe('collapseSameHostStubs', () => {

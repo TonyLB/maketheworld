@@ -56,16 +56,24 @@ const hasPortTerminal = (portTerminal: EphemeraLudicPortAddress) => (edge: HostR
 
 /**
  * Whether two legs of what is claimed to be one edge actually agree on the fields that make
- * them one edge --- `kind`, `relationLabel` on `Custom`, and `chainId`. Mirrors `edgesMatch`
- * (`ludicGraph/baseClasses.ts`), but that helper also compares endpoints, which two legs of a
- * crossing edge deliberately do not share (one side is port-qualified, the other is the far
- * graph's real node) --- so this is a narrower, local check, not a call to that helper.
+ * them one edge --- `kind`, `relationLabel` on `Custom`, `chainId`, and `edgeId`. Mirrors
+ * `edgesMatch` (`ludicGraph/baseClasses.ts`), but that helper also compares endpoints, which two
+ * legs of a crossing edge deliberately do not share (one side is port-qualified, the other is the
+ * far graph's real node) --- so this is a narrower, local check, not a call to that helper.
+ *
+ * **`edgeId` (Slice 3f, ISS8149):** found missing 2026-09-11 while checking D9 --- every other
+ * identity field here is asserted, and a mismatched `edgeId` used to collapse silently, discarding
+ * the child leg's label. Nothing mints an `edgeId` yet, so this is untested by any shipped writer;
+ * the test fixture is hand-authored, per the plan's own instruction not to defer on that account.
  */
 const legsAgree = (a: HostRelationalEdge, b: HostRelationalEdge): boolean => {
     if (a.kind !== b.kind) {
         return false
     }
     if (a.chainId !== b.chainId) {
+        return false
+    }
+    if (a.edgeId !== b.edgeId) {
         return false
     }
     // Both sides are tested even though the kind equality above already implies the second:
@@ -104,8 +112,15 @@ const outerTerminal = (
  * This became expressible only once `.port` carried its own tag (PN-24). While the id was bare it
  * was shape-indistinguishable from a crossing-port id, and a *unary* key function has no second
  * value to confirm against --- so the dedup gap sat open, documented, through Slice 5.
+ *
+ * **`edgeId` added to the key (Slice 3f, ISS8149):** the second of `legsAgree`'s two gaps ---
+ * two collapsed edges differing only in `edgeId` used to group into one record, first-arrived
+ * label surviving. **Exported (Slice 3a):** the cache-assembly fold groups collapsed edges from
+ * many `collapseCrossingPorts`/`foldSameHostBuckets` calls by this same identity, and that is the
+ * same operation this function already performs within one call --- not the "different call site"
+ * `stubPortIdFromEdge` is, which mints rather than groups.
  */
-const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string => {
+export const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string => {
     const terminalKey = (terminal: EphemeraLudicTerminalId): string =>
         typeof terminal === 'string' ? terminal
             : isPresenceTaggedPortId(terminal.port) ? terminal.port
@@ -116,6 +131,7 @@ const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string => {
         edge.kind,
         edge.kind === 'Custom' ? edge.relationLabel : '',
         edge.chainId ?? '',
+        edge.edgeId ?? '',
     ])
 }
 
