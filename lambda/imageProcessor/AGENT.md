@@ -116,5 +116,5 @@ The Image Processor Lambda sits between the upload system and the WML processing
 ### Related Documentation
 - **[WML System](../../packages/mtw-wml/ts/AGENT.md)**: Core markup language and component system
 - **[Asset Workspace](../../packages/mtw-asset-workspace/AGENT.md)**: Asset processing and management
-- **[Lambda Functions](../README.md)**: Overview of all lambda services
+- **[Lambda Functions](../../README.md)**: Overview of all lambda services
 - **[Client Architecture](../../charcoal-client/AGENT.md)**: Frontend system and image display

@@ -49,9 +49,9 @@ Read surfaces for Dynamo rows owned elsewhere live in [`packages/mtw-gateways`](
 
 ### **Cross-References**
 - **[Lambda Assets](../../../lambda/assets/AGENT.md)**: Asset management using internalCache
-- **[Lambda Ephemera](../../../lambda/ephemera/AGENT.md)**: Real-time game state using internalCache
-- **[Lambda Subscriptions](../../../lambda/subscriptions/AGENT.md)**: Session management using internalCache
-- **[MTW Interfaces](../../mtw-interfaces/AGENT.md)**: Type definitions and interfaces
+- **[Lambda Ephemera](../../../../lambda/ephemera/AGENT.md)**: Real-time game state using internalCache
+- **[Lambda Subscriptions](../../../../lambda/subscriptions/AGENT.md)**: Session management using internalCache
+- **[MTW Interfaces](../../../mtw-interfaces/AGENT.md)**: Type definitions and interfaces
 - **[MTW Utilities](../../mtw-utilities/AGENT.md)**: Utility functions and helpers
 
 ## Usage Patterns
@@ -95,7 +95,7 @@ Read surfaces for Dynamo rows owned elsewhere live in [`packages/mtw-gateways`](
 - **Documentation**: `AGENT*.md` files
 
 ### **Related Documentation**
-- **[Lambda Development Guide](../../../AGENT.development.md)**: General lambda development practices
-- **[Testing Standards](../../../charcoal-client/AGENT.testing.md)**: Testing patterns and standards
-- **[Architecture Philosophy](../../../AGENT.architecture.philosophy.md)**: System design principles
+- **[Lambda Development Guide](../../../../AGENT.development.md)**: General lambda development practices
+- **[Testing Standards](../../../../charcoal-client/AGENT.testing.md)**: Testing patterns and standards
+- **[Architecture Philosophy](../../../../AGENT.architecture.philosophy.md)**: System design principles
 

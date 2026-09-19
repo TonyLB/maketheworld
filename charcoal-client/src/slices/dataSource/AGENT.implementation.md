@@ -18,9 +18,9 @@ Before creating the frontend slice, ensure the backend DataSource work is comple
 2. **Event Contracts**: Types, serializers, and aggregators defined in `mtw-interfaces/ts/eventBridge/[dataSource]/`
 3. **Subscriptions Lambda**: Configured to route events for your `dataSourceKey`
 
-**See**: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) for backend implementation guide.
+**See**: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) for backend implementation guide.
 
-**Discovering existing implementations**: To find frontend slices, use `rg "createDataSourceSlice"` or `rg "dataSourceKey:"` in `src/slices/`. For backend and EventBridge discovery (envelope unions, serializers, lambda DataSources), see [mtw-lambda-patterns AGENT.implementation.md](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) and [mtw-interfaces EventBridge AGENT.implementation.md](../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md).
+**Discovering existing implementations**: To find frontend slices, use `rg "createDataSourceSlice"` or `rg "dataSourceKey:"` in `src/slices/`. For backend and EventBridge discovery (envelope unions, serializers, lambda DataSources), see [mtw-lambda-patterns AGENT.implementation.md](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) and [mtw-interfaces EventBridge AGENT.implementation.md](../../../../packages/mtw-interfaces/ts/eventBridge/AGENT.implementation.md).
 
 ### **Step 1: Import Shared Logic**
 
@@ -271,7 +271,7 @@ replayCursor(S): replayAt ?? createdAt (resolveReplayCursorTimestamp)
 
 **Type discrimination:** `recentEvents` union includes `CompactedCheckpoint` envelopes ([`baseClasses.ts`](./baseClasses.ts): `COMPACTED_CHECKPOINT_HEADER_TYPE`). Authoritative Snapshots persist `replayAt` from wire payload on ledger rows when present.
 
-**Backend parity:** `replayCursor = replayAt ?? createdAt` matches [`resolveReplayCursorTimestamp`](../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) and backend [Snapshot metadata](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md).
+**Backend parity:** `replayCursor = replayAt ?? createdAt` matches [`resolveReplayCursorTimestamp`](../../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts) and backend [Snapshot metadata](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md).
 
 User-facing ledger overview: [AGENT.md](./AGENT.md) **Event ledger model**.
 
@@ -309,8 +309,8 @@ Subscribe replay and live Snapshot StreamEvents carry envelope metadata on the *
 
 - Implementation: [`streamEventPubSub/index.ts`](./streamEventPubSub/index.ts) (`extractReplayAtFromSnapshotHeader`)
 - Module nav: [`streamEventPubSub/AGENT.md`](./streamEventPubSub/AGENT.md)
-- Backend contract: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (Outbound replay path, **Serialization: extendedHeader**)
-- Semantics: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md) (**Snapshot metadata: `createdAt` and `replayAt`**)
+- Backend contract: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (Outbound replay path, **Serialization: extendedHeader**)
+- Semantics: [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md) (**Snapshot metadata: `createdAt` and `replayAt`**)
 
 #### **Slice Factory (`index.ts`)**
 
@@ -527,7 +527,7 @@ When enabled, per `subscribedStreams[streamKey]` store `confirmedRequestIds: Arr
 
 **Slices today:** Only `wmlDataSource` enables tracking (`headerField: 'RequestIds'`). Other `createDataSourceSlice` instances (`contentHeaders`, `libraryDataSource`, `thinkingJobs`) may enable when producers set stream-header `RequestId`.
 
-**Authoritative producer inventory:** [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**).
+**Authoritative producer inventory:** [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**Stream correlation ids**).
 
 ### Dispatched correlation cleanup
 
@@ -650,7 +650,7 @@ Implemented in [`index.test.ts`](./index.test.ts) (`afterProcessEnvelope` descri
 
 - **[User Guide](./AGENT.md)**: High-level functionality and usage
 - **[Planning History](./AGENT.planning.md)**: Development process and decisions
-- **[Backend DataSource Pattern](../../../packages/mtw-lambda-patterns/ts/dataSource/)**: Backend counterpart
+- **[Backend DataSource Pattern](../../../../packages/mtw-lambda-patterns/ts/dataSource)**: Backend counterpart
 
 ---
 

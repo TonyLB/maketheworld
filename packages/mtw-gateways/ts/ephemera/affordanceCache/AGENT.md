@@ -2,9 +2,9 @@
 
 Colocated **`Affordance::${perspectiveKey}`** Dynamo rows under **`ROOM#`**: catalog version metadata + embedded **`ProjectedRoomTopology.exits`** (**D33**). Mirror render-cache handler discipline.
 
-**Authoritative writer:** [`lambda/ephemera/dataSource/affordanceCache/`](../../../../lambda/ephemera/dataSource/affordanceCache/) (**`mtw.ephemera.affordanceCache`** DataSource).
+**Authoritative writer:** [`lambda/ephemera/dataSource/affordanceCache/`](../../../../../lambda/ephemera/dataSource/affordanceCache) (**`mtw.ephemera.affordanceCache`** DataSource).
 
-**Steady-state lambda doc:** [`lambda/ephemera/dataSource/affordanceCache/AGENT.md`](../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md).
+**Steady-state lambda doc:** [`lambda/ephemera/dataSource/affordanceCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md).
 
 **Package index:** [`packages/mtw-gateways/AGENT.md`](../../AGENT.md) (**Affordance cache read surfaces**).
 
@@ -60,5 +60,5 @@ After local Dynamo writes in **`mtw.ephemera.affordanceCache`**, call memo **`se
 
 ## Related
 
-- Topology assembly: [`ts/assets/components/componentTopology/`](../assets/components/componentTopology/)
-- Steady-state: [`lambda/ephemera/dataSource/affordanceCache/AGENT.md`](../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md), [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)
+- Topology assembly: [`ts/assets/components/componentTopology/`](../../assets/components/componentTopology)
+- Steady-state: [`lambda/ephemera/dataSource/affordanceCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md), [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)

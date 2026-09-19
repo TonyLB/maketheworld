@@ -262,5 +262,5 @@ These permissions support:
 
 - **[Self-Repair Design](AGENT.selfRepair.md)**: Detailed self-repair patterns and scenarios
 - **[Development Roadmap](AGENT.development.md)**: Future enhancements and Phase 3 planning
-- **[WML Language](../packages/mtw-wml/ts/AGENT.md)**: WML format and concepts
+- **[WML Language](../../../packages/mtw-wml/ts/AGENT.md)**: WML format and concepts
 - **[AssetWorkspace](../packages/mtw-asset-workspace/ts/AGENT.md)**: AssetWorkspace library documentation

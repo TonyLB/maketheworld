@@ -2,7 +2,7 @@
 
 ## Overview
 
-`ObjectEphemeraMetaData` is a read-through cache for **ephemeraDB** `Meta::Object` rows: Coyote play meta (`stableKey`, trope fields) for improvisational **`OBJECT#`** ids. Distinct from [`ComponentEphemeraMeta`](./componentEphemeraMeta.AGENT.md) (`Meta::Room`) and from [`ImprovisationComponentData`](../../packages/mtw-gateways/ts/ephemera/improvisation/AGENT.md) (merge body on `(OBJECT#, ASSET#IMPROVISATION)`).
+`ObjectEphemeraMetaData` is a read-through cache for **ephemeraDB** `Meta::Object` rows: Coyote play meta (`stableKey`, trope fields) for improvisational **`OBJECT#`** ids. Distinct from [`ComponentEphemeraMeta`](./componentEphemeraMeta.AGENT.md) (`Meta::Room`) and from [`ImprovisationComponentData`](../../../packages/mtw-gateways/ts/ephemera/improvisation/AGENT.md) (merge body on `(OBJECT#, ASSET#IMPROVISATION)`).
 
 ## API
 

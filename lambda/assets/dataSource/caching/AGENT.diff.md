@@ -320,5 +320,5 @@ await assetDB.optimisticUpdate({
 - **[Cache Asset AGENT.md](./AGENT.md)**: Main cache asset documentation
 - **[Assets event handling](../../AGENT.event.md)**: `Cache Consistency Finding` -> `cacheAsset` (diagnostics re-cache)
 - **[Assets Lambda README](../README.md)**: Overview of assets system
-- **[Ephemera System](../../ephemera/)**: Real-time state management
-- **[Internal Cache](../internalCache/)**: Caching system architecture 
+- **[Ephemera System](../../../ephemera)**: Real-time state management
+- **[Internal Cache](../../internalCache)**: Caching system architecture 

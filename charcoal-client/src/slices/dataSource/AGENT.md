@@ -165,7 +165,7 @@ Each subscribed stream stores `recentEvents`: a chronological ledger of envelope
 **Contract invariants:**
 
 1. Update envelopes are canonical --- never removed by CP logic; may be pruned on authoritative Snapshot rebase when `rowCursor(row) <= replayCursor(S)`.
-2. Authoritative Snapshots are backend freeze points; `replayCursor = replayAt ?? createdAt` is the merge and prune boundary (parity with backend [`resolveReplayCursorTimestamp`](../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts)).
+2. Authoritative Snapshots are backend freeze points; `replayCursor = replayAt ?? createdAt` is the merge and prune boundary (parity with backend [`resolveReplayCursorTimestamp`](../../../../packages/mtw-lambda-patterns/ts/dataSource/index.ts)).
 3. CompactedCheckpoints are optional, invalidatable merge caches; timestamp `T` = merged state through all updates with `timestamp <= T`.
 4. **Invalidation (updates):** new information at timestamp `x` drops every CP with `timestamp >= x`.
 5. **Authoritative snapshot rebase:** on authoritative `S`, prune **existing** ledger rows where `rowCursor(row) <= replayCursor(S)` (`rowCursor` uses `replayAt ?? timestamp` for snapshot rows, `timestamp` for updates/CPs), then append `S`.
@@ -180,7 +180,7 @@ Algorithm detail: [AGENT.implementation.md](./AGENT.implementation.md) **Event P
 
 Snapshot events from the backend may contain inline payloads or domain-shaped sidecar descriptors (e.g. a field whose value is `{ sidecarUrl: string }`). The slice passes raw `content` and `header` to `eventSerializer.deserialize({ content, header })`; the serializer routes on `header.type` and for snapshots performs any sidecar fetch and resolution internally when configured with a `DataSourceEnvironment` (e.g. browser fetch).
 
-**Replay cursor:** Snapshots carry **`createdAt`** (envelope timestamp) and optionally **`replayAt`** (replay watermark for sidecar content). The client uses **`replayCursor = replayAt ?? createdAt`** for merge-after and prune-`<=` boundaries --- not envelope `timestamp` alone when they differ. See backend [Snapshot metadata: `createdAt` and `replayAt`](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md).
+**Replay cursor:** Snapshots carry **`createdAt`** (envelope timestamp) and optionally **`replayAt`** (replay watermark for sidecar content). The client uses **`replayCursor = replayAt ?? createdAt`** for merge-after and prune-`<=` boundaries --- not envelope `timestamp` alone when they differ. See backend [Snapshot metadata: `createdAt` and `replayAt`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md).
 
 On the wire, `replayAt` arrives on the Snapshot **header** (not in `update`); StreamEventPubSub lifts it before deserialize. Ingress detail: [AGENT.implementation.md](./AGENT.implementation.md) (**Snapshot metadata on wire (ingress)**).
 
@@ -264,8 +264,8 @@ The generic pattern is complete and production-ready for lifecycle and streaming
 ## Related Documentation
 
 - **[Main Project](../../../AGENT.md)**: Complete project overview
-- **[Development Roadmap](../../../AGENT.development.md)**: Current architecture evolution
-- **[Backend DataSource Pattern](../../../packages/mtw-lambda-patterns/ts/dataSource/)**: Backend counterpart
+- **[Development Roadmap](../../../../AGENT.development.md)**: Current architecture evolution
+- **[Backend DataSource Pattern](../../../../packages/mtw-lambda-patterns/ts/dataSource)**: Backend counterpart
 
 ---
 

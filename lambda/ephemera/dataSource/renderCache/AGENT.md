@@ -13,7 +13,7 @@ This directory implements the **`mtw.ephemera.renderCache`** DataSource: `api.ep
 3. **Domain cache** --- Read **DynamoDB schema**, **Persistence primitives**, and **Exact-match lookup** below for cache rows, `internalCache.RenderCache`, and matcher behavior. **Boundary invariants** for writes vs lookups are under **Boundary invariants** (also skim **Regression / equivalence checks**).
 4. **Code path** --- Entry: [`index.ts`](index.ts). Orchestration subscription: [`subscribedEvents.ts`](subscribedEvents.ts) -> [`handleRenderOrchestrationInbound.ts`](handleRenderOrchestrationInbound.ts). Command path: **`Put Cache Record`** / **`Delete Cache Records`** handlers in the same folder.
 5. **Tests** --- Run from [`lambda/ephemera/`](../../): `npm test`. Contract-focused: [`passThroughContract.scaffold.test.ts`](passThroughContract.scaffold.test.ts); cross-layer: [`../passThroughOrchestrationToCache.integration.test.ts`](../passThroughOrchestrationToCache.integration.test.ts).
-6. **DataSource pattern** --- [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**publishedEvents.ts** / **subscribedEvents.ts**).
+6. **DataSource pattern** --- [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md) (**publishedEvents.ts** / **subscribedEvents.ts**).
 
 ## CloudWatch instrumentation
 
@@ -53,7 +53,8 @@ When changing matching or persistence behavior, validate:
 It is the concrete realization of the schema and flow outlined in:
 
 - [`lambda/ephemera/AGENT.caching.planning.md`](../../AGENT.caching.planning.md)
-- [`lambda/ephemera/AGENT.caching.firstMVP.planning.md`](../../AGENT.caching.firstMVP.planning.md)
+
+(`AGENT.caching.firstMVP.planning.md`, formerly listed here, was a phase-breakdown plan deleted on completion in `ec85a8afd`. Its schema and flow are realized in this document.)
 
 The cache is designed for **Room/Feature/Knowledge/Object/Character** components whose content depends on Mark state and asset-layer perspective. Room is the only kind that uses the Mark-state axis today: Feature/Knowledge/Object/Character are all cache-only hosts pinned to `markState: { markValue: [] }` and `allowGeneration: false` (see [`renderOrchestration/requestIntake.ts`](../renderOrchestration/requestIntake.ts)), which is a deliberate landing place from iteration 10, not a limitation of this cache.
 
@@ -119,7 +120,7 @@ Implementation: [`assetStackIncludesEditAssetId`](../../../../packages/mtw-gatew
 
 **Version-gated lookup:** [`internalCache/renderCache.ts`](../../internalCache/renderCache.ts) `getExactMatch` uses `isAuthoritativeCacheRow` when a `Cache::` catalog row exists; legacy unversioned match when no catalog row yet. [`findRender.ts`](../renderOrchestration/findRender.ts) pointer fast-path requires authoritative row + catalog.
 
-**Retired:** `mtw.ephemera.examples` mirror DataSource (was [`../componentExamples.ts`](../componentExamples.ts)). Steady-state invalidation and diagnostics heal run in this package only.
+**Retired:** `mtw.ephemera.examples` mirror DataSource (was `dataSource/componentExamples.ts`, deleted in `f58bc38b4`; not to be confused with the live `packages/mtw-interfaces/ts/eventBridge/assets/componentExamples.ts`, which is an unrelated payload-type module). Steady-state invalidation and diagnostics heal run in this package only.
 
 ### Record shape
 
@@ -327,7 +328,6 @@ If **`Current Cache Valid`** / **`Exact Match Found`** include a **`cacheId`** b
 For broader architectural context, see:
 
 - [`lambda/ephemera/AGENT.caching.planning.md`](../../AGENT.caching.planning.md) – overall caching and generation design.
-- [`lambda/ephemera/AGENT.caching.firstMVP.planning.md`](../../AGENT.caching.firstMVP.planning.md) – MVP phase breakdown and status.
 - [`lambda/ephemera/AGENT.event.md`](../../AGENT.event.md) – Ephemera events and WebSocket contracts.
 
 ## Tests
@@ -345,4 +345,4 @@ From [`lambda/ephemera/`](../../): `npm test -- --testPathPattern=renderCache` (
 - [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md) --- orchestration stream, single-flight, emission map.
 - [`../perception/AGENT.md`](../perception/AGENT.md) --- **`mtw.ephemera.perception`**: consumer of **`Render Pertains`** / **`Cache Updated`** semantics for audience delivery.
 - [Pass-through contract (draft)](../../../../taskPlanning/lambda/ephemera/dataSource/AGENT.passThrough.contract.planning.md).
-- [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md).
+- [`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md).

@@ -219,5 +219,5 @@ const uploadResult = await uploadURLMessage({
 
 ### Related Systems
 - **[WML System](../../wml/)**: Component processing
-- **[Client Display](../../charcoal-client/)**: Image serving
+- **[Client Display](../../../charcoal-client)**: Image serving
 - **[Asset Cache](../cacheAsset/)**: Component storage

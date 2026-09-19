@@ -31,7 +31,7 @@ rather than relying on WML built from renderer-oriented `ComponentRender` output
 1. **Durability framework** --- [`taskPlanning/AGENT.md`](../../../../../taskPlanning/AGENT.md)
 2. **Prompt consumer semantics** --- [`buildRoomDescriptionPrompt.ts`](../../../../../lambda/ephemera/generateExample/buildRoomDescriptionPrompt.ts)
 3. **Render orchestration handoff** --- [`generateRoomPreview.ts`](../../../../../lambda/ephemera/dataSource/renderOrchestration/generateRoomPreview.ts)
-4. **Current context source** --- [`requestFullRoomDescriptionForCharacter.ts`](../../../../../lambda/ephemera/dataSource/actions/requestFullRoomDescriptionForCharacter.ts)
+4. **Current context source** --- [`requestFullRoomDescriptionForCharacter.ts`](../../../../../lambda/ephemera/dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter.ts)
 5. **Internal cache conventions** --- [`lambda/ephemera/internalCache/AGENT.md`](../../../../../lambda/ephemera/internalCache/AGENT.md)
 
 ## Material decisions to lock

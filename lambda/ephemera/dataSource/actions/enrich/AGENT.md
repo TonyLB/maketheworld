@@ -14,7 +14,7 @@ Current implementation:
 - **Input:** an intent-level outcome from `discriminateIntent` plus original command/context (for example **`occupiedStableKeys`**, **`hostRoomId`**, and enrich-model responses).
 - **Output:** terminal parse payloads (for example **`AcmeOrder`**, **`EstablishRelation`**, or **`Error`** when the placement cap rejects enrich) or pass-through behavior handled by **`parseCommand`** orchestration.
 - **Ownership:** enrich modules should stay focused on enrichment/normalization logic; `parseCommand` remains the orchestrator deciding when enrichment runs.
-- **Lane:** enrich is primarily **deterministic computation** (Plan match, resolve, legality, compile) after classify and Parse **semantic-reasoning** hops. **Trust:** shipped parse paths use **trusted-output** through terminal compile. See [`../../llm/AGENT.concepts.md`](../../llm/AGENT.concepts.md).
+- **Lane:** enrich is primarily **deterministic computation** (Plan match, resolve, legality, compile) after classify and Parse **semantic-reasoning** hops. **Trust:** shipped parse paths use **trusted-output** through terminal compile. See [`../../llm/AGENT.concepts.md`](../../../llm/AGENT.concepts.md).
 
 ## Current files
 
@@ -55,7 +55,7 @@ Module-level flow and **what each hop is for** (Coyote-style): [`objectManipulat
 
 ## Notes
 
-- **Thinking:** lifecycle owner **`enrichAcmeOrder`**; steady-state keys, **`verbose`**, and failure **`errorCode`** mapping: **Acme order enrich thinking** in [`../thinking/AGENT.md`](../thinking/AGENT.md). **`parseCommandCore`** forwards **`ParseCommandDeps.messageBus`** only (no duplicate lifecycle).
+- **Thinking:** lifecycle owner **`enrichAcmeOrder`**; steady-state keys, **`verbose`**, and failure **`errorCode`** mapping: **Acme order enrich thinking** in [`../thinking/AGENT.md`](../../thinking/AGENT.md). **`parseCommandCore`** forwards **`ParseCommandDeps.messageBus`** only (no duplicate lifecycle).
 - Avoid importing `parseCommand` from enrich modules to prevent orchestration cycles.
 - Shared pure helper types may live under `actions/enrich/` if future enrich branches need common contracts.
 - **Tests:** unit helpers in [`acmeOrder/acmeOrderThinkingPersistence.test.ts`](./acmeOrder/acmeOrderThinkingPersistence.test.ts); end-to-end **`parseCommand` + `messageBus`** wiring in [`../parseCommand.test.ts`](../parseCommand.test.ts) (**`parseCommand Acme enrich thinking (messageBus)`**).

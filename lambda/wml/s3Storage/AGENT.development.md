@@ -428,5 +428,5 @@ Understand and optimize storage patterns:
 
 - **[Current Architecture](AGENT.md)**: Phase 2 implementation details
 - **[Self-Repair Design](AGENT.selfRepair.md)**: Self-repair patterns and scenarios
-- **[WML Language](../packages/mtw-wml/ts/AGENT.md)**: WML format and concepts
+- **[WML Language](../../../packages/mtw-wml/ts/AGENT.md)**: WML format and concepts
 - **[AssetWorkspace](../packages/mtw-asset-workspace/ts/AGENT.md)**: AssetWorkspace library documentation

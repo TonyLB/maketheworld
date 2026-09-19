@@ -239,8 +239,8 @@ if (imageComponent instanceof StandardImage) {
 - **NEW**: `lambda/imageProcessor/` - Current image processing pipeline
 
 ### Related Systems
-- **[WML System](../../wml/)**: Component processing
-- **[Client Display](../../../charcoal-client/)**: Image serving
+- **[WML System](../wml)**: Component processing
+- **[Client Display](../../charcoal-client)**: Image serving
 - **[Asset Cache](cacheAsset/)**: Component storage
 - **[Upload System](upload/)**: Image upload process
 

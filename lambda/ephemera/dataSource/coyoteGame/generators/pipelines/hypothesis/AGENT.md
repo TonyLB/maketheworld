@@ -41,7 +41,7 @@ This folder contains pipeline-local prompts, orchestration, parsing, and Bedrock
 
 ## Thinking writes and reads (Ephemera)
 
-**Writes at run start** (not in LLM modules): [`hypothesisThinkingPersistence.ts`](hypothesisThinkingPersistence.ts) mints **`generationId`** / per-segment **`workItemId`**s, then **`publish`es** **`Put Thinking Job Create`** and **`Put Thinking Schedule`** pre-items via **`api.ephemera`** (no scoped lanes; scheduling handlers may run **concurrent** with Bedrock). See [`../../../../dataSource/thinking/AGENT.md`](../../../../dataSource/thinking/AGENT.md) (**Hypothesis bootstrap**).
+**Writes at run start** (not in LLM modules): [`hypothesisThinkingPersistence.ts`](hypothesisThinkingPersistence.ts) mints **`generationId`** / per-segment **`workItemId`**s, then **`publish`es** **`Put Thinking Job Create`** and **`Put Thinking Schedule`** pre-items via **`api.ephemera`** (no scoped lanes; scheduling handlers may run **concurrent** with Bedrock). See [`../../../../dataSource/thinking/AGENT.md`](../../../../thinking/AGENT.md) (**Hypothesis bootstrap**).
 
 ### Segment-success emit pattern
 
@@ -89,7 +89,7 @@ Prompt and parser **keys** are **`CoyoteTrope`** literals in canonical order (`S
 | Plan selection | [`planSelect/buildPlanSelectPrompt.ts`](planSelect/buildPlanSelectPrompt.ts) |
 | Narrative beats | [`narrativeBeats/buildNarrativeBeatPrompt.ts`](narrativeBeats/buildNarrativeBeatPrompt.ts) |
 
-Acme order enrich uses the same pattern in [`../../../actions/enrich/acmeOrder/buildPrompt.ts`](../../../actions/enrich/acmeOrder/buildPrompt.ts); [`runAcmeOrderAffinitiesHarness`](../../../actions/actionHandlers/runAcmeOrderAffinitiesHarness.ts) omits iconic on live enrich eval.
+Acme order enrich uses the same pattern in [`../../../actions/enrich/acmeOrder/buildPrompt.ts`](../../../../actions/enrich/acmeOrder/buildPrompt.ts); [`runAcmeOrderAffinitiesHarness`](../../../../actions/actionHandlers/runAcmeOrderAffinitiesHarness.ts) omits iconic on live enrich eval.
 
 ### Gimmick (policies)
 

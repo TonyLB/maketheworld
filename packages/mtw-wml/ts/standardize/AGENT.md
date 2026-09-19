@@ -53,7 +53,7 @@ npm test -- ts/standardize/index.test.ts ts/standardize/integration/ \
    - **Focus**: How components expose `merge()`, `referencedKeys()`, and other operations that StandardForm orchestrates across the asset.
    - **For edit operations**: If your work involves understanding or modifying how edits (Remove, Replace, Add operations) work, their mathematical properties, or how merging/diffing operates at the component or reference list level, read:
      - [`./components/AGENT.editAlgebra.md`](./components/AGENT.editAlgebra.md) - Mathematical properties of component edit operations (inversion, reference vs. data payload distinction)
-     - [`./components/AGENT.referenceList.editAlgebra.md`](./components/AGENT.referenceList.editAlgebra.md) - Mathematical properties of ReferenceList merge and diff operations (non-associativity, non-idempotency, inversion)
+     - [`./components/AGENT.referenceList.editAlgebra.md`](keys/AGENT.referenceList.editAlgebra.md) - Mathematical properties of ReferenceList merge and diff operations (non-associativity, non-idempotency, inversion)
 
 4. **Anchor on the core StandardForm implementation**
    - **Why**: The public API described here is implemented in a small number of files; reading them shows the real control flow and edge‑case handling.
@@ -69,7 +69,7 @@ npm test -- ts/standardize/index.test.ts ts/standardize/integration/ \
    - **Why**: Tests capture real-world calling patterns and clarify how merge/diff/subset should behave across many components and edge cases.
    - **Read**: Asset-level integration tests under `integration/standardForm.*.test.ts` (e.g. `standardForm.construct.test.ts`, `standardForm.merge.test.ts`, `standardForm.diff.test.ts`, `standardForm.subset.test.ts`, `standardForm.standardizeMode.test.ts`); component-adjacent multi-tag scenarios under `components/*.integration.test.ts` (e.g. `room.integration.test.ts`, `feature.integration.test.ts`, `situation.integration.test.ts`, `guidance.integration.test.ts`); ephemeraWire hubs under `components/*.ephemeraWire.integration.test.ts` (e.g. `room.ephemeraWire.integration.test.ts`, `feature.ephemeraWire.integration.test.ts`, `knowledge.ephemeraWire.integration.test.ts`); `index.test.ts` (thin smoke only); `wmlStandardizeMode.test.ts`; `baseClasses.test.ts`, `processComponents.test.ts`; and unit tests under `components/*.test.ts` (especially `room.test.ts`, `situation.test.ts`, `feature.test.ts`).
    - **Focus**: Concrete examples of asset-level merges, edit components (`Replace`, `Remove`), subset extraction for maps/positions, and how reference changes are expected to appear in diffs.
-   - **For edit operations**: When examining test cases involving `Remove`, `Replace`, or merge/diff operations, refer to [`./components/AGENT.editAlgebra.md`](./components/AGENT.editAlgebra.md) and [`./components/AGENT.referenceList.editAlgebra.md`](./components/AGENT.referenceList.editAlgebra.md) to understand the mathematical properties that govern these operations.
+   - **For edit operations**: When examining test cases involving `Remove`, `Replace`, or merge/diff operations, refer to [`./components/AGENT.editAlgebra.md`](./components/AGENT.editAlgebra.md) and [`./components/AGENT.referenceList.editAlgebra.md`](keys/AGENT.referenceList.editAlgebra.md) to understand the mathematical properties that govern these operations.
 
 7. **Check integration points and known wrinkles before extending behavior**
    - **Why**: StandardForm sits at the intersection of schema, components, render, and authorization; changes in one place often have subtle effects elsewhere.
@@ -514,7 +514,7 @@ const assetWithEdits = new StandardForm({
 - **Edit System**: Processes asset-level and content-level edit components according to the edit algebra
 - **WML Language**: See [`../AGENT.md`](../AGENT.md) for WML format details
 - **Standard Components**: See [`./components/AGENT.md`](./components/AGENT.md) for component details
-- **Component shortName and display labels**: Steady-state contract in [`./components/AGENT.implementation.md`](./components/AGENT.implementation.md#shortname-platform-contract) — optional `shortName` on every `StandardComponent`; asset `_shortName` is separate; UI display labels are charcoal-client [`componentDisplayLabel`](../../../../../charcoal-client/src/lib/componentDisplayLabel.ts), not exported from mtw-wml
+- **Component shortName and display labels**: Steady-state contract in [`./components/AGENT.implementation.md`](./components/AGENT.implementation.md#shortname-platform-contract) — optional `shortName` on every `StandardComponent`; asset `_shortName` is separate; UI display labels are charcoal-client [`componentDisplayLabel`](../../../../charcoal-client/src/lib/componentDisplayLabel.ts), not exported from mtw-wml
 - **Rich Text Processing**: See [`./render/AGENT.md`](./render/AGENT.md) for content handling
 
 ## Navigation Tips

@@ -61,7 +61,7 @@ The `fetchImportDefaults` directory provides functionality for retrieving compon
 ### Cross-References
 
 - See [`../internalCache/AGENT.md`](../internalCache/AGENT.md) for asset data retrieval
-- See [`../../packages/mtw-wml/ts/standardize/AGENT.md`](../../packages/mtw-wml/ts/standardize/AGENT.md) for StandardForm semantic modes
+- See [`../../packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) for StandardForm semantic modes
 - See [`../messageBus/AGENT.md`](../messageBus/AGENT.md) for message processing
 
 ### System Relationships
@@ -124,7 +124,7 @@ The `origin` system provides component-level inheritance tracking that works ind
 
 ### Related Documentation
 
-- See [`../../packages/mtw-wml/ts/standardize/AGENT.md`](../../packages/mtw-wml/ts/standardize/AGENT.md) for StandardForm semantic modes
+- See [`../../packages/mtw-wml/ts/standardize/AGENT.md`](../../../packages/mtw-wml/ts/standardize/AGENT.md) for StandardForm semantic modes
 - See [`../internalCache/AGENT.md`](../internalCache/AGENT.md) for asset data access patterns
 
 ## Development Notes

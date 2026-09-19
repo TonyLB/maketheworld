@@ -59,12 +59,12 @@ For each hop in sequence:
 
 1. Skim task-plan conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 2. Read current trope-centered refactor state and completed phases: [`taskPlanning/lambda/ephemera/dataSource/coyoteGame/AGENT.tropeCenteredRefactor.planning.md`](AGENT.tropeCenteredRefactor.planning.md).
-3. Read trope vocabulary and constraints: [`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md).
-4. Read testing authority for this package before running commands: [`lambda/ephemera/AGENT.testing.md`](../../../../../../lambda/ephemera/AGENT.testing.md). If command examples conflict elsewhere, follow this file for lambda-level Jest usage.
-5. Confirm command context from package scripts: [`lambda/ephemera/package.json`](../../../../../../lambda/ephemera/package.json) and root [`package.json`](../../../../../../package.json).
+3. Read trope vocabulary and constraints: [`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md).
+4. Read testing authority for this package before running commands: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md). If command examples conflict elsewhere, follow this file for lambda-level Jest usage.
+5. Confirm command context from package scripts: [`lambda/ephemera/package.json`](../../../../../lambda/ephemera/package.json) and root [`package.json`](../../../../../package.json).
 6. Review harness authority and fixture source:
-   - [`lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts)
-   - [`lambda/ephemera/dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.test.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.test.ts)
+   - [`lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts)
+   - [`lambda/ephemera/dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.test.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/runCoyoteEngineTestHarness.test.ts)
 7. Run one baseline verification command before edits (from `lambda/ephemera/`):
    - `npm run test -- --watchAll=false dataSource/actions/publishedEvents.test.ts`
 

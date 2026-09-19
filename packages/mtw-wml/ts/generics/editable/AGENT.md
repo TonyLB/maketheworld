@@ -124,4 +124,4 @@ static create(format: string): GeneratedEditableClass {
 ## Related Documentation
 
 - **[Editable Generic System](./index.ts)**: Core editable factory implementation
-- **[Facet System](../standardize/keys/facets/AGENT.facets.md)**: Exit data migrated to ExitFacet pattern using facets
+- **[Facet System](../../standardize/keys/facets/AGENT.facets.md)**: Exit data migrated to ExitFacet pattern using facets

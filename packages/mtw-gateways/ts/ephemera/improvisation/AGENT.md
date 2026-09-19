@@ -2,7 +2,7 @@
 
 ephemeraDB pair-addressed read handler for improvisational object merge bodies on **`(OBJECT#, ASSET#IMPROVISATION)`**. Play meta (**`Meta::Object`**) is **`internalCache.ObjectEphemeraMeta`** (lambda-local), not this handler.
 
-**Authoritative writer:** [`lambda/ephemera/dataSource/objects/`](../../../../lambda/ephemera/dataSource/objects/) improvisation persistence modules.
+**Authoritative writer:** [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects) improvisation persistence modules.
 
 **Package index:** [`packages/mtw-gateways/AGENT.md`](../../AGENT.md).
 
@@ -35,6 +35,6 @@ After local Dynamo writes in **`mtw.ephemera.objects`** improvisation coordinato
 
 ## Related
 
-- Objects lane: [`lambda/ephemera/dataSource/objects/AGENT.md`](../../../../lambda/ephemera/dataSource/objects/AGENT.md)
-- Ephemera composite **`ComponentData`**: [`lambda/ephemera/internalCache/componentData.AGENT.md`](../../../../lambda/ephemera/internalCache/componentData.AGENT.md)
-- Object play meta cache: [`lambda/ephemera/internalCache/objectEphemeraMeta.AGENT.md`](../../../../lambda/ephemera/internalCache/objectEphemeraMeta.AGENT.md)
+- Objects lane: [`lambda/ephemera/dataSource/objects/AGENT.md`](../../../../../lambda/ephemera/dataSource/objects/AGENT.md)
+- Ephemera composite **`ComponentData`**: [`lambda/ephemera/internalCache/componentData.AGENT.md`](../../../../../lambda/ephemera/internalCache/componentData.AGENT.md)
+- Object play meta cache: [`lambda/ephemera/internalCache/objectEphemeraMeta.AGENT.md`](../../../../../lambda/ephemera/internalCache/objectEphemeraMeta.AGENT.md)

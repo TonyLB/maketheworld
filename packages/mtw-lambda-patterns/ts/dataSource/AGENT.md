@@ -209,8 +209,8 @@ The multi-stream architecture enables:
 - **[MessageBus Pattern](../messageBus/AGENT.md)**: Internal event coordination and subscription management
 - **[Fan-in cluster pattern](./AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation)** (shipped): Multi-leg ingress correlation inside `receiveEvents` via `FanInCluster` + `FanInClusterStore`; first consumer --- membership presentation emission on [`mtw.ephemera.perception`](../../../../lambda/ephemera/dataSource/perception/AGENT.md)
 - **[Internal Cache Pattern](../internalCache/AGENT.md)**: Performance optimization
-- **[Lambda Development Guide](../../../AGENT.development.md)**: General lambda patterns
-- **[Architecture Philosophy](../../../AGENT.architecture.philosophy.md)**: System design principles
+- **[Lambda Development Guide](../../../../AGENT.development.md)**: General lambda patterns
+- **[Architecture Philosophy](../../../../AGENT.architecture.philosophy.md)**: System design principles
 
 ## Development Guidelines
 

@@ -28,7 +28,7 @@
 - **Cross-References**: 
   - [`./facets/AGENT.facets.md`](./facets/AGENT.facets.md) - Detailed Facet documentation
   - [`../components/AGENT.md`](../components/AGENT.md) - Component system overview
-  - [`../components/AGENT.referenceList.md`](../components/AGENT.referenceList.md) - ReferenceList patterns
+  - [`../components/AGENT.referenceList.md`](AGENT.referenceList.md) - ReferenceList patterns
 - **System Relationships**: Part of the WML standardization system, used by StandardComponent implementations
 
 ## Usage Patterns

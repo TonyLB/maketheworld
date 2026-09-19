@@ -173,7 +173,7 @@ These paths **enqueue** **`type: 'Perception'`** for [`perceptionMessage`](../..
 
 | Source | Reference |
 | --- | --- |
-| **`repairCharacterLegalPlacement`** (`forceRender`) | [`positions/membership/repairCharacterLegalPlacement.ts`](../positions/membership/repairCharacterLegalPlacement.ts) (no bus adapter; future asset-visibility ingress) |
+| **`repairCharacterLegalPlacement`** (`forceRender`) | [`positions/membership/repairCharacterLegalPlacement.ts`](../positions/manipulation/membership/repairCharacterLegalPlacement.ts) (no bus adapter; future asset-visibility ingress) |
 | **Link API (character)** | [`app.ts`](../../app.ts) |
 | **Map subscription** success path | [`mapSubscription/index.ts`](../../mapSubscription/index.ts) |
 | **Navigate header fallback** | When there is **no** valid arrival-room **`perspectiveKey`** (so no `messageOrchestration` Ingress registration), header refresh uses imperative **`Perception`** with **`header: true`** ([`presentCharacterMove.ts`](../positions/navigate/presentCharacterMove.ts)). Same-room connect/reconnect does **not** use this path; session RoomHeader bootstrap is owned by **`Character Registered`** orientation. |
