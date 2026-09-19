@@ -78,10 +78,19 @@ export type PresentStepSequenceDeps = {
  * messageOrchestration bundle per event (Phase 7) --- no bundle correlation is threaded through
  * here, since nothing today produces more than one describe step per call (see that phase's
  * planning doc note on why this was simplified back out of a declare-upstream shape). Room/Feature/
- * Knowledge/Character referents get real end-to-end delivery this way; Object referents get a
- * **stub** delivery (PK-6): `ensureObjectShortNameCacheRecord.ts` publishes `shortName` only, since
- * `StandardObjectData` has no `render` field yet --- real `<Render>`/`<Example>` authoring support
- * is separate, deferred work.
+ * Knowledge/Object/Character referents all get real end-to-end delivery this way.
+ *
+ * **Object's PK-6 stub is retired** (`cf5472cef`, "Removed stub object perception"). This comment
+ * used to say Object got `shortName` only, via `renderCache/ensureObjectShortNameCacheRecord.ts`,
+ * "since `StandardObjectData` has no `render` field yet." Both halves are now false:
+ * `StandardObjectData.render` exists (`mtw-wml/ts/standardize/components/dataTypes/object.ts`),
+ * the stub file is deleted in favour of `renderCache/ensureAuthoredCatalog.ts`, and
+ * `perception/objectRenderWmlFromCacheRecord.ts` passes `renderedContent` straight through to the
+ * `<Render>` facet exactly as Feature/Knowledge do. Object still additionally carries a
+ * `<ShortName>` --- `<Object>`'s content model structurally requires one --- which is a content-model
+ * difference, not a delivery one. The only remaining `shortName`-only Object render is
+ * `perception/orchestrate.ts`'s `placeholderObjectFullWml`, and that is the in-flight
+ * `'Generating'`/`'Error'` status placeholder, not the description path.
  */
 export const presentStepSequence = async (
     steps: readonly KernelStep[],

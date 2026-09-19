@@ -55,7 +55,7 @@ It is the concrete realization of the schema and flow outlined in:
 - [`lambda/ephemera/AGENT.caching.planning.md`](../../AGENT.caching.planning.md)
 - [`lambda/ephemera/AGENT.caching.firstMVP.planning.md`](../../AGENT.caching.firstMVP.planning.md)
 
-The cache is designed for **Room/Feature/Knowledge** components whose content depends on Mark state and asset-layer perspective.
+The cache is designed for **Room/Feature/Knowledge/Object/Character** components whose content depends on Mark state and asset-layer perspective. Room is the only kind that uses the Mark-state axis today: Feature/Knowledge/Object/Character are all cache-only hosts pinned to `markState: { markValue: [] }` and `allowGeneration: false` (see [`renderOrchestration/requestIntake.ts`](../renderOrchestration/requestIntake.ts)), which is a deliberate landing place from iteration 10, not a limitation of this cache.
 
 ## DynamoDB schema
 
@@ -153,7 +153,7 @@ Implementation: [`assetStackIncludesEditAssetId`](../../../../packages/mtw-gatew
 
 Stored directly in DynamoDB:
 
-- `EphemeraId`: component id (Room/Feature/Knowledge).
+- `EphemeraId`: component id (Room/Feature/Knowledge/Object/Character --- the `EphemeraCacheComponentId` union, declared in [`baseClasses.ts`](baseClasses.ts) and its `mtw-gateways` twin).
 - `DataCategory`: `CACHE#${uuid}`.
 - `markState`, `renderedContent`, `provenance`, `perspectiveId`, `perspectiveMatcher`, `situationId?`, `authoredExampleId?`.
 - `catalogVersion?` (optional; missing treated as **0** for version-gated lookup once catalog rows ship).

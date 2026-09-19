@@ -134,6 +134,8 @@ Minimum pattern:
 
 This pattern reduces avoidable failures from wrong cwd, wrong workspace scope, or wrong test runner assumptions.
 
+**A payoff test should terminate at the observable output, not at the last internal representation before it.** A phase can verify persistence, a merge round trip, and every internal shape along the way, and still ship a feature no user can see --- the gap hides in precisely the layer no test reached. When a phase's payoff is "a player sees X," the test that proves it must assert on X, not on the richest intermediate the phase happened to produce. Earned the hard way by iteration 10 of the object-manipulation ladder, whose integration test asserted a merged `StandardObject` carried its `situations` facet while `look <object>` still rendered *No description* across four independent unclosed gaps.
+
 ## Recommended order checkboxes
 
 Every **`## Recommended order`** section (or similarly named ordered worklist, e.g. `Recommended order (server)`) should begin with a **short instruction line** (one sentence or two) placed immediately under the section heading and **before** the first checklist item. State that pending work uses `[ ]` and completed work uses `[X]`, and mention nested bullets if the section uses them (for example: mark each nested line `[X]` as it is done). Readers often open only the task plan; this line duplicates the minimum convention so they do not have to open [`taskPlanning/AGENT.md`](AGENT.md) for basics.
