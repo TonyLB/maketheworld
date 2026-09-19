@@ -7,8 +7,19 @@
  * This does not build `EphemeraLudicCacheNode`/`EphemeraLudicCacheData` (no `shortName`, no
  * `cover`, no edges) --- that is Slice 3's fold. This hands the fold the per-shard graphs it
  * needs, in walk order, already deduplicated.
+ *
+ * **A character member is never recursed into (Slice 4 bugfix, 2026-09-18).** `EphemeraCharacterId`
+ * is itself an `EphemeraMembershipHostId`, so a naive walk over `graph.nodeIds` would fetch every
+ * present character's own shard and pull their held inventory in as nodes of the *seed's* cache
+ * --- observed as a real regression via `catalogHandles.ts`: a room's cache re-absorbed an object
+ * a character had just picked up, since the walk passed straight through the character who now
+ * held it. `collectNestedObjectIds` (the mechanism this cache replaces) never had this problem
+ * because it only ever recursed through `EphemeraObjectId`s. The seed itself is exempt from this
+ * guard --- it is queued unconditionally before the loop below runs --- so a future
+ * character-seeded walk (e.g. a held-inventory cache) still sees its own contents.
  */
 import internalCache from '../../../internalCache'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMembershipHostId, type EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { EphemeraLudicGraph } from '../ludicGraph'
@@ -55,6 +66,9 @@ export async function enumerateLudicCacheShards(
 
         for (const nodeId of graph.nodeIds) {
             if (!isEphemeraMembershipHostId(nodeId)) {
+                continue
+            }
+            if (isEphemeraCharacterId(nodeId)) {
                 continue
             }
             if (queued.has(nodeId)) {

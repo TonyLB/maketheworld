@@ -7,14 +7,15 @@ import {
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import internalCache from '../../internalCache'
 import type { EphemeraLudicGraph } from '../positions/ludicGraph'
+import { ludicCacheObjectHandles } from '../positions/ludicCache/catalogHandles'
 import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
 import { normalizeExitName } from './roomExitTargetsForCharacter'
-import { shortNameFromComponent, shortNameFromMergedAggregate } from '../objects/objectShortName'
 
 export type RoomInPlayObjectCatalogEntry = {
     objectId: EphemeraObjectId
@@ -30,16 +31,8 @@ export type RoomObjectCatalogForCharacter = {
 
 export type RoomObjectCatalogDeps = {
     getMembershipContainers: (characterId: EphemeraCharacterId) => Promise<string[]>
-    /** Called once, to seed the walk from the room's own graph. */
-    getLudicGraph: (roomId: EphemeraRoomId) => Promise<EphemeraLudicGraph>
-    /**
-     * Called per object by `collectNestedObjectIds` to check whether it hosts further objects.
-     * Same underlying read as `getLudicGraph` (both hit `internalCache.Positions.getLudicGraph`,
-     * which is host-kind-generic) --- kept as a separate, separately-typed dep rather than one
-     * union-typed fetch so call sites stay unambiguous and tests can default this one to "hosts
-     * nothing" (`testLudicGraph(objectId)`) without a runtime tag check in the mock.
-     */
-    getObjectLudicGraph: (objectId: EphemeraObjectId) => Promise<EphemeraLudicGraph>
+    /** Passed straight through to `ludicCacheObjectHandles` --- any host in the rebuild's walk, not just the seed room. */
+    getLudicGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
     getCharacterAssets: (characterId: EphemeraCharacterId) => Promise<readonly string[]>
     resolvePerspective: (
         roomId: EphemeraRoomId,
@@ -51,10 +44,7 @@ export type RoomObjectCatalogDeps = {
 
 const defaultDeps = (): RoomObjectCatalogDeps => ({
     getMembershipContainers: (characterId) => internalCache.Positions.getMembershipContainers(characterId),
-    getLudicGraph: (roomId) => internalCache.Positions.getLudicGraph(roomId),
-    // Same call as getLudicGraph above, just id-narrowed for the object-recursion call site (see
-    // RoomObjectCatalogDeps.getObjectLudicGraph).
-    getObjectLudicGraph: (objectId) => internalCache.Positions.getLudicGraph(objectId),
+    getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
     getCharacterAssets: async (characterId) => {
         const characterMeta = await internalCache.CharacterMeta.get(characterId)
         return characterMeta?.assets ?? []
@@ -71,42 +61,14 @@ const defaultDeps = (): RoomObjectCatalogDeps => ({
 })
 
 /**
- * Walks from a room's own object nodes into hosted objects' own `ludicGraph`s (CC3):
- * hosting kinds put a subordinate object in its host's own shard, so a nested object is not a
- * member of the room's graph at all --- it is only found by fetching its host's own graph.
- * `visited` terminates a cyclic hand-built fixture; `depthCap` (5, a testing bound rather than a
- * claim about real nesting depth) bounds BFS levels independently of cycles.
- */
-export async function collectNestedObjectIds(
-    initialIds: Iterable<EphemeraObjectId>,
-    getObjectLudicGraph: RoomObjectCatalogDeps['getObjectLudicGraph'],
-    depthCap = 5
-): Promise<Set<EphemeraObjectId>> {
-    const collected = new Set<EphemeraObjectId>(initialIds)
-    const visited = new Set<EphemeraObjectId>()
-    let frontier = [...initialIds]
-    for (let depth = 0; depth < depthCap && frontier.length > 0; depth++) {
-        const nextFrontier: EphemeraObjectId[] = []
-        for (const objectId of frontier) {
-            if (visited.has(objectId)) {
-                continue
-            }
-            visited.add(objectId)
-            const hostGraph = await getObjectLudicGraph(objectId)
-            for (const hostedId of hostGraph.objectIds) {
-                if (!collected.has(hostedId)) {
-                    collected.add(hostedId)
-                    nextFrontier.push(hostedId)
-                }
-            }
-        }
-        frontier = nextFrontier
-    }
-    return collected
-}
-
-/**
  * Merged-layer in-room object catalog for classify, enrich, and deterministic resolve (D6).
+ *
+ * **Rebuild Slice 4:** the candidate pool is now built from `ludicCache` (`catalogHandles.ts`)
+ * rather than a flat `collectNestedObjectIds` walk --- see this file's `AGENT.md` "Known gap"
+ * paragraph for what is (still, deliberately) exhaustive rather than presence-bucket-filtered
+ * about this. `assetStack` must be resolved before the cache walk, since `buildLudicCache` needs
+ * it to resolve object shortNames inline --- unlike the old flat walk, there is no way to learn
+ * whether the room has any objects before knowing the character's perspective.
  */
 export async function getRoomObjectCatalogForCharacter(
     characterId: EphemeraCharacterId,
@@ -119,12 +81,6 @@ export async function getRoomObjectCatalogForCharacter(
         return { roomId: null, entries: [] }
     }
 
-    const ludicGraph = await deps.getLudicGraph(roomId)
-    const objectIds = [...await collectNestedObjectIds(ludicGraph.objectIds, deps.getObjectLudicGraph)]
-    if (objectIds.length === 0) {
-        return { roomId, entries: [] }
-    }
-
     const characterAssets = await deps.getCharacterAssets(characterId)
     const resolvedPerspective = await deps.resolvePerspective(roomId, characterAssets)
     if (resolvedPerspective === null) {
@@ -132,23 +88,21 @@ export async function getRoomObjectCatalogForCharacter(
     }
 
     const { assetStack } = resolvedPerspective
-    const entries = (
-        await Promise.all(objectIds.map(async (objectId): Promise<RoomInPlayObjectCatalogEntry | undefined> => {
-            let shortName = await shortNameFromMergedAggregate(objectId, assetStack, deps)
-            if (!shortName) {
-                const pairRow = await deps.getImprovisationObject(objectId)
-                shortName = shortNameFromComponent(pairRow?.component)
-            }
-            if (!shortName) {
-                return undefined
-            }
+    const handles = await ludicCacheObjectHandles(roomId, assetStack, {
+        getLudicGraph: deps.getLudicGraph,
+        getComponentAggregate: deps.getComponentAggregate,
+        getImprovisationObject: deps.getImprovisationObject,
+    })
+
+    const entries = handles
+        .map(({ objectId, shortName }): RoomInPlayObjectCatalogEntry | undefined => {
             const normalizedShortName = normalizeExitName(shortName)
             if (normalizedShortName.length === 0) {
                 return undefined
             }
             return { objectId, normalizedShortName }
-        }))
-    ).filter((entry): entry is RoomInPlayObjectCatalogEntry => entry !== undefined)
+        })
+        .filter((entry): entry is RoomInPlayObjectCatalogEntry => entry !== undefined)
 
     return { roomId, entries }
 }

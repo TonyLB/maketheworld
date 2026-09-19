@@ -3,7 +3,7 @@
  * directory's house style --- no `jest.mock` of `internalCache` anywhere in `ludicCache/` or
  * `ludicGraph/`.
  */
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { EphemeraLudicGraph } from '../ludicGraph'
@@ -14,6 +14,8 @@ const roomA = 'ROOM#A' as EphemeraRoomId
 const objB = 'OBJECT#B' as EphemeraObjectId
 const objC = 'OBJECT#C' as EphemeraObjectId
 const objD = 'OBJECT#D' as EphemeraObjectId
+const characterBob = 'CHARACTER#Bob' as EphemeraCharacterId
+const heldCup = 'OBJECT#Cup' as EphemeraObjectId
 
 describe('enumerateLudicCacheShards', () => {
     it('recurses through a member with no further members (plain, non-cyclic case)', async () => {
@@ -82,6 +84,46 @@ describe('enumerateLudicCacheShards', () => {
 
         expect(result.shardFetchCount).toBe(2)
         expect(result.hostIds).toEqual([roomA, objB])
+    })
+
+    it('never recurses into a character member (a room seed does not absorb held inventory)', async () => {
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Character', universalKey: characterBob }] })],
+            [characterBob, testLudicGraph(characterBob, { nodes: [{ tag: 'Character', universalKey: characterBob }, { tag: 'Object', universalKey: heldCup }] })],
+        ])
+        const fetched: EphemeraMembershipHostId[] = []
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
+            fetched.push(hostId)
+            const graph = graphs.get(hostId)
+            if (!graph) {
+                throw new Error(`No fixture graph for ${hostId}`)
+            }
+            return graph
+        }
+
+        const result = await enumerateLudicCacheShards(roomA, { getLudicGraph })
+
+        expect(result.hostIds).toEqual([roomA])
+        expect(fetched).toEqual([roomA])
+        expect(result.graphs.has(characterBob)).toBe(false)
+    })
+
+    it('still walks a character seed\'s own held members', async () => {
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [characterBob, testLudicGraph(characterBob, { nodes: [{ tag: 'Character', universalKey: characterBob }, { tag: 'Object', universalKey: heldCup }] })],
+            [heldCup, testLudicGraph(heldCup, { nodes: [{ tag: 'Object', universalKey: heldCup }] })],
+        ])
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
+            const graph = graphs.get(hostId)
+            if (!graph) {
+                throw new Error(`No fixture graph for ${hostId}`)
+            }
+            return graph
+        }
+
+        const result = await enumerateLudicCacheShards(characterBob, { getLudicGraph })
+
+        expect(result.hostIds).toEqual([characterBob, heldCup])
     })
 
     it('defaults to internalCache.Positions.getLudicGraph when no deps are supplied', async () => {
