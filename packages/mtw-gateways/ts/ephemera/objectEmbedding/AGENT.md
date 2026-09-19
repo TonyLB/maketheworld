@@ -4,7 +4,7 @@ ephemeraDB read handler for semantic embedding adjacency on **`(OBJECT#, EMBEDDI
 
 **Authoritative writer:** [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects) improvisation persistence coordinators (spawn/update transact **`Put`**; delete transact **`Delete`**).
 
-**Package index:** [`packages/mtw-gateways/AGENT.md`](../../AGENT.md).
+**Package index:** [`packages/mtw-gateways/AGENT.md`](../../../AGENT.md).
 
 ## Primary vs secondary
 

@@ -649,7 +649,7 @@ Implemented in [`index.test.ts`](./index.test.ts) (`afterProcessEnvelope` descri
 ## Related Documentation
 
 - **[User Guide](./AGENT.md)**: High-level functionality and usage
-- **[Planning History](./AGENT.planning.md)**: Development process and decisions
+- **Planning History**: Development process and decisions
 - **[Backend DataSource Pattern](../../../../packages/mtw-lambda-patterns/ts/dataSource)**: Backend counterpart
 
 ---

@@ -210,7 +210,7 @@ it yet; see [`Settings/AGENT.md`](src/components/Settings/AGENT.md).
 - **WebSocket System**: Real-time messaging for both collaborative authoring and live storytelling
 - **WML System**: [`packages/mtw-wml/`](../packages/mtw-wml/ts/AGENT.md) - World markup processing
 - **Interface System**: [`packages/mtw-interfaces/`](../packages/mtw-interfaces/AGENT.md) - Message contracts
-- **Asset System**: [`lambda/assets/`](../lambda/assets/AGENT.md) - Content management
+- **Asset System**: [`lambda/assets/`](../lambda/assets/README.md) - Content management
 - **Ephemera System**: [`lambda/ephemera/`](../lambda/ephemera/AGENT.md) - Real-time game state
 
 ### Cross-References
@@ -305,7 +305,7 @@ case 'SayMessage':
 ### Key Files - Architecture
 
 - **Routing**: [`src/components/AppLayout/index.tsx`](src/components/AppLayout/index.tsx) - Main application routing
-- **State Management**: [`src/store/index.tsx`](src/store/index.tsx) - Redux store configuration
+- **State Management**: `src/store/index.tsx` - Redux store configuration
 - **Message Processing**: [`src/components/Message/AGENT.md`](src/components/Message/AGENT.md) - Message system details
 
 ## Development Notes

@@ -4,7 +4,7 @@ ephemeraDB pair-addressed read handler for improvisational object merge bodies o
 
 **Authoritative writer:** [`lambda/ephemera/dataSource/objects/`](../../../../../lambda/ephemera/dataSource/objects) improvisation persistence modules.
 
-**Package index:** [`packages/mtw-gateways/AGENT.md`](../../AGENT.md).
+**Package index:** [`packages/mtw-gateways/AGENT.md`](../../../AGENT.md).
 
 ## Primary vs secondary
 

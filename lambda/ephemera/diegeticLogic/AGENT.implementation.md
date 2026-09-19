@@ -78,7 +78,7 @@ Classify: [`buildIntentClassificationPrompt.ts`](../dataSource/actions/discrimin
 
 Enrich: [`roomObjectCatalogForCharacter.ts`](../dataSource/actions/roomObjectCatalogForCharacter.ts), [`heldInventoryCatalogForCharacter.ts`](../dataSource/actions/heldInventoryCatalogForCharacter.ts), [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/).
 
-Apply: [`executeObjectMove.ts`](../dataSource/positions/manipulation/membership/executeObjectMove.ts) (both move directions), [`applyObjectRelationalChange.ts`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts), [`buildObjectMovedFact.ts`](../dataSource/positions/manipulation/membership/buildObjectMovedFact.ts).
+Apply: [`planObjectMoveTransfer.ts`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) (both move directions, via [`orchestrateObjectMove.ts`](../dataSource/positions/manipulation/membership/orchestrateObjectMove.ts); replaced `executeObjectMove.ts` in `fb9573c8f`), [`applyObjectRelationalChange.ts`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts), [`buildObjectMovedFact.ts`](../dataSource/positions/manipulation/membership/buildObjectMovedFact.ts).
 
 Transcript: [`objectManipulationPresentationLegAdapters.ts`](../dataSource/perception/objectManipulationPresentationLegAdapters.ts), [`publishObjectManipulationPresentation.ts`](../dataSource/perception/publishObjectManipulationPresentation.ts).
 

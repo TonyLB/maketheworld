@@ -6,7 +6,7 @@ Colocated **`Affordance::${perspectiveKey}`** Dynamo rows under **`ROOM#`**: cat
 
 **Steady-state lambda doc:** [`lambda/ephemera/dataSource/affordanceCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md).
 
-**Package index:** [`packages/mtw-gateways/AGENT.md`](../../AGENT.md) (**Affordance cache read surfaces**).
+**Package index:** [`packages/mtw-gateways/AGENT.md`](../../../AGENT.md) (**Affordance cache read surfaces**).
 
 ## Primary vs secondary
 

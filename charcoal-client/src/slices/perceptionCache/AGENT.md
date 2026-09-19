@@ -180,7 +180,7 @@ const receiveMessages = (dispatch) => ({ payload }) => {
 ### **Related Documentation**
 - **WML Processing**: See [`../../../../packages/mtw-wml/ts/standardize/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/AGENT.md)
 - **Message Components**: See [`../Message/AGENT.md`](../../components/Message/AGENT.md)
-- **Knowledge Component**: See [`../Knowledge/index.tsx`](../Knowledge/index.tsx)
+- **Knowledge Component**: See `../Knowledge/index.tsx`
 
 ## Development Notes
 

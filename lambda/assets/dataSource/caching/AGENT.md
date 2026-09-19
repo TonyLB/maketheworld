@@ -108,7 +108,7 @@ The `cacheAsset` function uses a sophisticated diff analysis system to identify 
 
 ### Cross-References
 - **[Assets Data Source](../index.ts)**: Main data source integration
-- **[Ephemera Cache Asset](../../../ephemera/cacheAsset/)**: Parallel caching function
+- **Ephemera Cache Asset**: Parallel caching function
 - **[Cache Assets Step Function](../../../../stepFunctions/cacheAssets.asl.yaml)**: Legacy orchestration
 - **[Ephemera System](../../../ephemera/)**: Real-time state management
 - **[Internal Cache](../../internalCache/)**: Caching system architecture
@@ -211,7 +211,7 @@ The `cacheAsset` function uses a sophisticated diff analysis system to identify 
 ### Related Documentation
 - **[Assets Lambda README](../../README.md)**: Overview of assets system
 - **[Assets Data Source](../index.ts)**: Data source integration
-- **[Ephemera Cache Asset](../../../ephemera/cacheAsset/)**: Parallel caching function
+- **Ephemera Cache Asset**: Parallel caching function
 - **[Cache Assets Step Function](../../../../stepFunctions/cacheAssets.asl.yaml)**: Legacy orchestration
 - **[Ephemera System](../../../ephemera/)**: Real-time state management
 - **[Internal Cache](../../internalCache/)**: Caching system architecture

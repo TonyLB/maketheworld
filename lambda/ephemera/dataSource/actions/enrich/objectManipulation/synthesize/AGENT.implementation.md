@@ -1,10 +1,10 @@
 # Synthesize executor (`synthesize/`)
 
-This file records **where** Synthesize's Grounding -> Expansion -> Validation executor lives and how its pieces fit together --- not the reasoning behind each design choice (that lives in the files' own doc comments, which is where it belongs: next to the code it constrains) and not vocabulary (**Grounding**/**Expansion**/**Validation**, **Change**/**Assertion** --- see [`../../AGENT.concepts.md`](../../AGENT.concepts.md)).
+This file records **where** Synthesize's Grounding -> Expansion -> Validation executor lives and how its pieces fit together --- not the reasoning behind each design choice (that lives in the files' own doc comments, which is where it belongs: next to the code it constrains) and not vocabulary (**Grounding**/**Expansion**/**Validation**, **Change**/**Assertion** --- see `../../AGENT.concepts.md`).
 
 Parent docs:
 
-- Synthesize sub-role vocabulary, Expansion write-up: [`../../AGENT.concepts.md`](../../AGENT.concepts.md)
+- Synthesize sub-role vocabulary, Expansion write-up: `../../AGENT.concepts.md`
 - Pipeline context (where this executor is invoked from on each live route): [`../AGENT.md`](../AGENT.md) --- "Phase C sandbox" section records the retirement of this executor's ad hoc predecessors
 - What consumes this executor's output (`ExecutorParsePlanStep[]` -> `KernelStep[]` -> commit): [`../../../../positions/manipulation/AGENT.implementation.md`](../../../../positions/manipulation/AGENT.implementation.md)
 

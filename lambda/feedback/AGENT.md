@@ -107,8 +107,8 @@ Targets: {
 
 ### Related Documentation
 - **Project Overview**: See [`../../AGENT.md`](../../AGENT.md) for system architecture
-- **Sessions Package**: See [`../../packages/mtw-sessions/AGENT.md`](../../packages/mtw-sessions/AGENT.md) for target resolution
-- **Utilities Package**: See [`../../packages/mtw-utilities/AGENT.md`](../../packages/mtw-utilities/AGENT.md) for cache utilities
+- **Sessions Package**: See `../../packages/mtw-sessions/AGENT.md` for target resolution
+- **Utilities Package**: See `../../packages/mtw-utilities/AGENT.md` for cache utilities
 
 ## Development Notes
 

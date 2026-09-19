@@ -249,7 +249,7 @@ This would enable a content-headers style UI for characters, where users can see
 ## Navigation
 
 ### **Related Documentation**
-- **[Assets Data Source](../dataSource/AGENT.md)**: Main assets data source implementation
+- **Assets Data Source**: Main assets data source implementation
 - **[DataSource Pattern](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md)**: Base DataSource pattern documentation
 - **[Asset Caching](../dataSource/caching/AGENT.md)**: Current asset caching implementation
 

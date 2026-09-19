@@ -33,7 +33,7 @@ Affordance refresh on membership placement change reuses the existing **`Object 
 | Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: acquire`** (no **`operationKind`** at classify) |
 | Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; atomic path yields **`operationKind: takeHold`** |
 | Egress | **`Object Take Hold`** stream (`characterId`, `objectId`, `roomId`) |
-| Apply | [`orchestrateObjectMove`](../dataSource/positions/manipulation/membership/orchestrateObjectMove.ts) -> [`executeObjectMove`](../dataSource/positions/manipulation/membership/executeObjectMove.ts) |
+| Apply | [`orchestrateObjectMove`](../dataSource/positions/manipulation/membership/orchestrateObjectMove.ts) -> [`planObjectMoveTransfer`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) |
 | Fact | **`Object Moved`**: `froms: [ROOM#...]`, `to: CHARACTER#...` |
 | Transcript | Fan-in -> **`${Player} picks up ${Object}`** |
 
@@ -72,7 +72,7 @@ Implementation: [`compilePositionKernelOp.ts`](../dataSource/positions/manipulat
 | Fact | **`Object Moved`**: `froms: [CHARACTER#...]`, `to: ROOM#...` |
 | Transcript | Fan-in -> **`${Player} drops ${Object}`** |
 
-**Persist path:** [`executeObjectMove`](../dataSource/positions/manipulation/membership/executeObjectMove.ts) --- Synthesize executor re-run at execute time from a grounded seed, compiled to a step sequence, committed via [`commitStepSequence`](../dataSource/positions/manipulation/kernel/commitStepSequence.ts) in one transact. **Must not** add `updateDropLudicGraphs` or any `update*LudicGraphs` fork, and **must not** add a drop-specific execution module --- the direction is a host pair, not a code path. Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md).
+**Persist path:** [`planObjectMoveTransfer`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) --- Synthesize executor re-run at execute time from a grounded seed, compiled to a step sequence and dry-run, then committed by its caller [`orchestrateObjectMove`](../dataSource/positions/manipulation/membership/orchestrateObjectMove.ts) via [`commitAndPresentStepSequence`](../dataSource/positions/manipulation/kernel/commitAndPresentStepSequence.ts) in one transact. (Was `executeObjectMove` until `fb9573c8f`, 2026-09-07, which split build-and-dry-run from commit.) **Must not** add `updateDropLudicGraphs` or any `update*LudicGraphs` fork, and **must not** add a drop-specific execution module --- the direction is a host pair, not a code path. Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md).
 
 **Pre-flight legality:** v1 rejects illegal applies at positions apply (and parse-time resolve failures in actions). Actions does not duplicate full held-inventory legality checks before egress.
 

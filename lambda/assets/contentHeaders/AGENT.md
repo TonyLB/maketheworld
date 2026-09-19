@@ -80,10 +80,10 @@ Event routing uses `StreamingEventHeader` for discrimination. **Header-owned** (
 - **Subscriptions Lambda**: WebSocket client connection management
 
 ### Cross-References
-- **[Assets Data Source](../dataSource/AGENT.md)**: Primary asset data source
-- **[Import Navigator UI](../../../charcoal-client/src/components/Library/ImportNavigator/)**: Frontend consumer
+- **Assets Data Source**: Primary asset data source
+- **Import Navigator UI**: Frontend consumer
 - **[Subscriptions Lambda](../../../lambda/subscriptions/AGENT.md)**: WebSocket integration
-- **[Header Extraction Utilities](./extractHeader.ts)**: Data extraction logic
+- **Header Extraction Utilities**: Data extraction logic
 
 ## Usage Patterns
 

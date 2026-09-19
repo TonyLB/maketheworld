@@ -24,7 +24,7 @@ Graph relationships are stored for anything that can depend upon another item, o
 - Feature (can only have other Features as Descendants, can include cyclic loops)
 - Map (can only have Ancestors)
 
-![MTW Graphs](images/mtwGraphs.jpg)
+!MTW Graphs
 
 ---
 

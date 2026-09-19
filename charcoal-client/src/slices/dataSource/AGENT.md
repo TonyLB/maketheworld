@@ -258,7 +258,7 @@ The generic pattern is complete and production-ready for lifecycle and streaming
 ## Documentation
 
 - **[Implementation Guide](./AGENT.implementation.md)**: Technical overview of the codebase
-- **[Planning History](./AGENT.planning.md)**: Historical record of development process
+- **Planning History**: Historical record of development process
 - **[Content Headers Slice](../contentHeaders/AGENT.md)**: First concrete implementation
 
 ## Related Documentation

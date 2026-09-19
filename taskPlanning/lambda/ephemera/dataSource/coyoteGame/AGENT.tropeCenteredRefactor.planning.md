@@ -30,7 +30,7 @@ Rough target pipeline (names are placeholders until implementation choices land)
 
 - **Types and contracts** for trope-centered metadata, including evolution of Acme order enrich JSON and persistence on `EphemeraMetaRoomObject`-shaped rows.
 - **Compatibility layer** so downstream consumers that still expect **legacy affinities** (`role` + `aptness`) keep working with **derived** or **dual-written** data through at least one release slice.
-- **Hypothesis pipeline** refactor: trope candidates and assembly in place of (or as a successor to) current **cluster combination** paths; see [`combineCandidateOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts) and stage-one/stage-two prompts under [`generators/pipelines/hypothesis/`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/).
+- **Hypothesis pipeline** refactor: trope candidates and assembly in place of (or as a successor to) current **cluster combination** paths; see [`combineCandidateOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts) and stage-one/stage-two prompts under `generators/pipelines/hypothesis/`.
 - **Outcome pipeline** alignment: prompts and formatters that consume staged snapshots; see [`generators/pipelines/outcome/`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/outcome).
 - **Staging text** --- [`formatCoyoteStagedObjectsByRoom`](../../../../../lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts) and anything that echoes **intendedRole** against persisted affinities ([`parseCandidateOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/parseCandidateOutput.ts)).
 
@@ -189,7 +189,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 - [X] Phase 2.5 - Acme trope-affinity quality hardening
   - [X] Build a representative calibration corpus for Acme enrich trope fits (clean trope signals, borderline cases, and likely misclassification patterns).
-    - Artifact: [`acmeEnrichTropeCalibrationCorpus.v1.json`](acmeEnrichTropeCalibrationCorpus.v1.json) with 11 first-pass prompts spanning clean/borderline/likely-misclassification buckets and directional expected trope-fit outcomes.
+    - Artifact: `acmeEnrichTropeCalibrationCorpus.v1.json` with 11 first-pass prompts spanning clean/borderline/likely-misclassification buckets and directional expected trope-fit outcomes.
   - [X] Define first-pass acceptance criteria for trope-affinity usefulness (coverage, trope-label plausibility, narrowing specificity, and failure-rate guardrails).
     - First-pass criteria are encoded in the corpus artifact itself for objective harness evaluation: `expectedLines` defines required directional signal (coverage + trope-label plausibility + narrowing specificity), and `likelyErrors` defines disallowed/failure-pattern guardrails to track fail-rate.
   - [X] Extend affinities test-harness fixture shape to carry calibration metadata (`expectedLines`, `likelyErrors`, bucket/tags) so the corpus can be encoded directly in fixtures and scored without sidecar mapping.

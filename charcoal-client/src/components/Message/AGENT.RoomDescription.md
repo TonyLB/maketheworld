@@ -369,7 +369,7 @@ For complete details on message timeline organization, see [`AGENT.md`](AGENT.md
 ### **Related Documentation**
 - **WML Standard**: See [`../../../../packages/mtw-wml/ts/standardize/components/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.md)
 - **Message Components**: See [`AGENT.md`](AGENT.md) for overall migration strategy
-- **Redux Integration**: See [`../../slices/AGENT.md`](../../slices/AGENT.md) for state management patterns
+- **Redux Integration**: See `../../slices/AGENT.md` for state management patterns
 
 ## Development Notes
 

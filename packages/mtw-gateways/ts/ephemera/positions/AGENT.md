@@ -1,8 +1,8 @@
 # Positions read surfaces (`ts/ephemera/positions`)
 
-Play ludic graph read handler for ephemera. **Authoritative writers:** positions membership coordinators ([`membership/`](../../../../lambda/ephemera/dataSource/positions/membership/), [`manipulation/membership/`](../../../../../lambda/ephemera/dataSource/positions/manipulation/membership)) via **`applyHostEffects`**; relational edge writers via [`applyHostRelationalPatch`](../../../../lambda/ephemera/dataSource/positions/manipulation/applyHostRelationalPatch.ts) per [Manipulation persist layering](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering).
+Play ludic graph read handler for ephemera. **Authoritative writers:** positions membership coordinators (`membership/`, [`manipulation/membership/`](../../../../../lambda/ephemera/dataSource/positions/manipulation/membership)) via **`applyHostEffects`**; relational edge writers via `applyHostRelationalPatch` per [Manipulation persist layering](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#manipulation-persist-layering).
 
-**Package index:** [`packages/mtw-gateways/AGENT.md`](../../AGENT.md).
+**Package index:** [`packages/mtw-gateways/AGENT.md`](../../../AGENT.md).
 
 ## Primary vs secondary
 

@@ -132,7 +132,7 @@ Publishes the following EventBridge events:
 
 ### Cross-References
 
-- **[Assets Lambda](../assets/AGENT.md)**: Character change event source
+- **[Assets Lambda](../assets/README.md)**: Character change event source
 - **[Subscriptions Lambda](../subscriptions/AGENT.md)**: Client subscription infrastructure
 - **[Event Architecture](../../AGENT.architecture.events.md)**: Overall event flow patterns
 
@@ -220,7 +220,7 @@ export const handleCharacterUpdated = async (event: CharacterUpdatedEvent) => {
 
 ### Related Documentation
 
-- **[Assets Lambda](../assets/AGENT.md)**: Character change event source
+- **[Assets Lambda](../assets/README.md)**: Character change event source
 - **[Subscriptions Lambda](../subscriptions/AGENT.md)**: Client subscription management
 - **[Event Architecture](../../AGENT.architecture.events.md)**: Overall event flow design
 - **[Data Source Philosophy](../../AGENT.architecture.philosophy.md)**: Architectural principles

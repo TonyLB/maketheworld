@@ -110,7 +110,7 @@ Record inventory in the area task plan (table: source file, section heading, tag
 1. Update **in-repo links**  - `rg '<old-path>/AGENT\.md'` from repo root; fix relative links to new siblings.
 2. Update **cursor rules** (`.cursor/rules/`) when they cite this area  - normative text should reference `AGENT.contract.md` where applicable.
 3. Update **root [`AGENT.md`](../AGENT.md) Quick Navigation** if this area's entry structure changed.
-4. Optional **stub** at old anchors in `AGENT.md`: one line *Moved to [`AGENT.contract.md`](./AGENT.contract.md#...).*
+4. Optional **stub** at old anchors in `AGENT.md`: one line *Moved to `AGENT.contract.md`.*
 5. Delete empty legacy files rather than keeping placeholders.
 
 ---

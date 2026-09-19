@@ -161,7 +161,7 @@ Defined in [assureDefaultSituationFromPrimitives.ts](./assureDefaultSituationFro
 
 - **wmlDataSource** ([../wmlDataSource/](../wmlDataSource/)): Owns `materializedView` (backend WML); personalAssets derives base via `getWMLBase`
 - **multipleSSM** ([../stateSeekingMachine/multipleSSM.ts](../stateSeekingMachine/multipleSSM.ts)): SSM factory; `augmentPublicDataForSelect` for `base` and `confirmedRequestIds` injection
-- **lifeLine** ([../lifeLine.ts](../lifeLine.ts)): socketDispatch for applyEdit
+- **lifeLine** (../lifeLine.ts): socketDispatch for applyEdit
 - **player** slice: `getAssetZone` for Draft vs published (readonly)
 - **StandardForm** ([packages/mtw-wml/ts/standardize/](../../../../packages/mtw-wml/ts/standardize/AGENT.md)): Merge, diff, toJSON
 

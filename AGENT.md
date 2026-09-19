@@ -69,7 +69,7 @@ Identity, scope, entry links?           -> AGENT.md
 
 Each sibling file should open with a short scope line, for example:
 
-> This file records **contracts** only. Mental models: [`AGENT.concepts.md`](./AGENT.concepts.md). Code map: [`AGENT.implementation.md`](./AGENT.implementation.md).
+> This file records **contracts** only. Mental models: `AGENT.concepts.md`. Code map: `AGENT.implementation.md`.
 
 #### Normative authority
 

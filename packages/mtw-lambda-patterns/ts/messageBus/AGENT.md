@@ -42,7 +42,7 @@ The MessageBus system provides a two-tier architecture for decoupling different 
 - **TypeScript Interfaces**: Message type definitions from `@tonylb/mtw-interfaces`
 
 ### Cross-References
-- **[Lambda Assets](../lambda/assets/AGENT.md)**: Asset management messageBus implementation
+- **[Lambda Assets](../../../../lambda/assets/README.md)**: Asset management messageBus implementation
 - **[Lambda Ephemera](../../../../lambda/ephemera/AGENT.md)**: Real-time game state messageBus
 - **[Internal Cache](../../../../lambda/ephemera/internalCache/AGENT.md)**: Shared state management
 - **[Message Contracts](../../../mtw-interfaces/AGENT.md)**: API message definitions
@@ -88,7 +88,7 @@ The MessageBus system provides a two-tier architecture for decoupling different 
 - **API Integration**: `lambda/*/app.ts` - Message sending from API handlers
 
 ### Related Documentation
-- **[Lambda Assets](../lambda/assets/AGENT.md)**: Asset management system
+- **[Lambda Assets](../../../../lambda/assets/README.md)**: Asset management system
 - **[Lambda Ephemera](../../../../lambda/ephemera/AGENT.md)**: Real-time game state
 - **[Internal Cache](../../../../lambda/ephemera/internalCache/AGENT.md)**: Shared state management
 - **[Testing Standards](../../../../charcoal-client/AGENT.testing.md)**: Testing patterns
