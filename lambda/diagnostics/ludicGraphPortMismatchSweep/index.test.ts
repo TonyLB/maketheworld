@@ -81,24 +81,10 @@ describe('ludicGraphPortMismatchSweep', () => {
         })
     })
 
-    // PR-15, settled 2026-08-26: a presence port is a terminal, so an edge landing on it is not a
-    // disagreement and there is nothing to report. This sweep is where it mattered --- it runs
-    // over stored rows, and every finding it emits triggers a self-heal that rewrites `kind`.
-    it('emits nothing for a presence port a foreign-kind edge terminates at', async () => {
-        const result = await ludicGraphPortMismatchSweep(
-            {},
-            {
-                listCandidateRows: async () => [
-                    objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Present' }]),
-                    roomRow([{ kind: 'Custom', relationLabel: 'is connected to' }]),
-                ],
-                emitFinding,
-            }
-        )
-
-        expect(result).toEqual({ emittedCount: 0, ports: [] })
-        expect(emitFinding).not.toHaveBeenCalled()
-    })
+    // `'emits nothing for a presence port a foreign-kind edge terminates at'` deleted at
+    // presenceNodes Slice 7a: a presence binding is a node, not a port, and `ludicGraph.ports`
+    // never contains one any more --- there is no fixture left that reaches this sweep's own
+    // presence-filtering branch, because that branch is gone too (PN-3/PN-23).
 
     it('emits nothing when the port and the referring edge agree', async () => {
         const result = await ludicGraphPortMismatchSweep(

@@ -669,6 +669,9 @@ const handleParseRequested = async (
         displayProtocol: 'CommandTranscriptMessage',
         message: linesToRenderTree([content.command.trim()]),
     })
+    // The embedding batch below keys off catalogObjectIds, so the ludicCache rebuild inside
+    // getRoomObjectCatalogForCharacter must finish before that fetch runs --- keep this awaited
+    // as a batch, not started in parallel with the embedding fetch.
     const [roomExitContext, roomObjectCatalogResult, heldInventoryCatalogResult] = await Promise.all([
         getRoomExitTargetsForCharacter(content.characterId),
         getRoomObjectCatalogForCharacter(content.characterId),

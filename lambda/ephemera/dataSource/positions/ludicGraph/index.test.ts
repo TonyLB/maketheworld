@@ -407,7 +407,7 @@ describe('EphemeraLudicGraph', () => {
         // ports round-trips through fromFieldPayload/toStored/toJSON/fromJSON
         // exactly like nodes/edges --- the egress list is not a special case.
         it('ports round-trips through fromFieldPayload and toStored', () => {
-            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'Present' as const }]
+            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'On' as const }]
             const graph = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
                 rootId: OBJECT_HOST_ID,
                 nodes: [objectNode(OBJECT_HOST_ID)],
@@ -541,18 +541,18 @@ describe('EphemeraLudicGraph', () => {
             expect(edges).toEqual([{ from: OBJECT_A, to: HOST_ID, kind }])
         })
 
-        // Presence plan PR-4 (reading (d)): 'Present' is a third, partitioning kind, and
-        // extractRelationalEdgesFromStored's fallback branch has its own HOST_RELATIONAL_EDGE_KINDS
-        // Set literal (baseClasses.ts), separate from ephemeraMeta.ts's -- same lockstep-Set
-        // hazard as the In/PartOf test above, checked directly rather than inferred.
-        it('extractRelationalEdgesFromStored survives a Present edge', () => {
+        // `'Present'` retired from `HostRelationalEdgeKind` entirely at presenceNodes Slice 3
+        // (PN-14): `extractRelationalEdgesFromStored`'s fallback recovery Set (baseClasses.ts)
+        // dropped it in the same change, since no writer ever constructed one to recover. A
+        // stored row carrying this shape is now dropped, not survived.
+        it('extractRelationalEdgesFromStored drops a Present edge rather than recovering it', () => {
             const edges = extractRelationalEdgesFromStored({
                 nodes: [],
                 edges: [
                     { tag: 'Relational', from: { owner: HOST_ID, port: 'ab6129d' }, to: OBJECT_A, kind: 'Present' },
                 ] as unknown as [],
             })
-            expect(edges).toEqual([{ from: { owner: HOST_ID, port: 'ab6129d' }, to: OBJECT_A, kind: 'Present' }])
+            expect(edges).toEqual([])
         })
 
         // Port-terminal regression, primary path: a well-formed port-qualified edge now satisfies
@@ -740,17 +740,17 @@ describe('EphemeraLudicGraph', () => {
 
         describe('ports', () => {
             it('addPort appends the port', () => {
-                const next = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' })
-                expect(next.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' }])
+                const next = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' })
+                expect(next.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' }])
             })
 
             it('addPort is idempotent for an existing portId', () => {
-                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' })
-                expect(graph.addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' })).toBe(graph)
+                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' })
+                expect(graph.addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' })).toBe(graph)
             })
 
             it('removePort filters by portId', () => {
-                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' })
+                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' })
                 expect(graph.removePort('port-1').toStored().ports).toEqual([])
             })
 
@@ -760,9 +760,9 @@ describe('EphemeraLudicGraph', () => {
             })
 
             it('ports round-trip through fromJSON/toStored', () => {
-                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' })
+                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' })
                 const restored = EphemeraLudicGraph.fromJSON({ hostId: HOST_ID, ...graph.toStored() })
-                expect(restored.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'Present' }])
+                expect(restored.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' }])
             })
         })
 

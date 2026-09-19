@@ -89,14 +89,36 @@ ludicGraph/  <-- shared primitive
   ^-- actions/enrich/objectManipulation/synthesize/ (selection-time sandbox; shares applyTransferSet with the kernel)
 ```
 
+**Presence descent is unimplemented, and that is the entry.** Behavior lives **nowhere** today. The two emitters --- [`presenceBindingStepsForMove.ts`](manipulation/kernel/compile/presenceBindingStepsForMove.ts) and [`containmentPopulationSteps.ts`](manipulation/containment/containmentPopulationSteps.ts) --- mint **one binding per rehost, facing one host, with no arity check**, and nothing cascades into a moved thing's interior. Depth in the presence structure comes from **graphs nesting** (a host's interior is its own shard, reached by external address), never from a traversal: [`computeCarryClosure`](ludicGraph/expandValidate/interactionUnderTransfer.ts) returns a single-node graph and grows nothing, `carry` having become unreachable under CD3.
+
+**So "presence is a tree" is a prediction, not a description --- do not read the current emitters as having chosen a shape.** The first constructor to implement descent (a child needing one binding per parent bucket it appears in --- [PR-C1](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.presence.corpus.planning.md#pr-c1-the-contraption-in-two-rooms-and-whether-covers-nest)'s *port arity descends*) will probably start with a **tree**; a **DAG** --- one binding named in more than one parent cover, so arity follows genuine distinction rather than ancestry --- is the optimization to weigh at that point. **It gates nothing today, is owed by no current slice, and should not be built ahead of a constructor that would use it.** The `k^h` blowup it would fix needs multi-presence at depth to exist at all; ordinary usage is arity 1, where `k^h` is 1.
+
+**A second, related prediction parked here for the same reason (presenceNodes Slice 5, PN-23 clause 2):** both emitters above mint `cover: { tag: 'Full' }` unconditionally --- neither computes a real, enumerated subset of the host's nodes. `ludicCache`'s fold already expands `'Full'` to a concrete member list at merge time ([`nodesFromPresenceBinding`](ludicGraph/presenceSubGraph.ts)), but that expansion is always *every node in the host*, because no writer has ever computed anything narrower on the `ludicGraph` side. **Computing a real enumerated cover is unbuilt, gates nothing today, and is owed by no current slice** --- the same posture as the descent prediction above, and for the same reason: no constructor needs a partial cover yet. Decided under PN-23 of `AGENT.presenceNodes.planning.md`, a presence-nodes migration plan closed and deleted 2026-09-18; this paragraph is its forwarding address.
+
+**Two things already preserve that choice at no cost, and both must survive refactoring.** `EphemeraPresenceCoverEntry` is `{ host, presence }` ([`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)), so a cover entry **can** name a shared binding rather than only a bare node. And any integrity check must read *a host **one or more** of whose covers names this presence node* --- **written as *exactly one* it forecloses the DAG silently**, by making it fail validation rather than by anyone deciding against it.
+
+**What IS built, end to end (presence-nodes migration, shipped 2026-09-16 through 2026-09-18; graduated here at that plan's Slice 8):**
+
+| Stage | Path |
+| --- | --- |
+| Mint / remove | `applyStepSequenceCore.ts`'s `addPresenceBinding`/`removePresenceBinding` step handlers -> `EphemeraLudicGraph.addPresenceNode`/`removePresenceNode` (`ludicGraph/index.ts`), 1:1 with the port's own minted uuid |
+| Emit (the only two callers of the above) | [`presenceBindingStepsForMove.ts`](manipulation/kernel/compile/presenceBindingStepsForMove.ts), [`containmentPopulationSteps.ts`](manipulation/containment/containmentPopulationSteps.ts) |
+| Cut / read | [`presenceSubGraph.ts`](ludicGraph/presenceSubGraph.ts)'s `nodesFromPresenceBinding(s)` (resolves a `cover`'s `'Full'`/`'Enumerated'` tag to a member set) and `EphemeraLudicGraph.presenceNodes` getter |
+| Merge / fold | `ludicCache/mergeReducer.ts`'s `presenceCacheNodesFromFold` (mints one `consolidated: true` structure node per folded binding, enforcing clause 3 via `assertZeroOrAllPresenceBindings`) |
+| Materialize / integrity | `ludicCache/types.ts`'s `isEphemeraLudicCacheData` (cover-names-absent-node fails; edge-to-absent-presence-node passes) |
+| Resolve | [`findRelationalChain.ts`](../actions/enrich/objectManipulation/synthesize/findRelationalChain.ts)'s `resolveEndpoint`, looking up a `PRESENCE#`-tagged terminal directly rather than through `.ports` |
+
+Normative rules for all of the above: [`AGENT.contract.md`'s presence-nodes section](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path).
+
 ### `ludicCache/` (`ludicCache` prototype types, Channel C)
 
 Type contract for the `ludicCache` prototype (CC0b, [`taskPlanning/.../AGENT.abstractionLayers.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md#recommended-order)) --- types only so far; the rebuild function (CC1) lands here next. Fulfils the `EphemeraLudicCacheData` naming reservation in [`internalCache/AGENT.md`](../../internalCache/AGENT.md).
 
 | File | Role |
 | --- | --- |
-| [`ludicCache/types.ts`](ludicCache/types.ts) | **`EphemeraLudicCacheData`**, **`EphemeraLudicCacheNode`**, **`EphemeraLudicCacheEdge`**, **`EphemeraLudicCacheCrossing`** + type guards |
+| [`ludicCache/types.ts`](ludicCache/types.ts) | **`EphemeraLudicCacheData`**, **`EphemeraLudicCacheNode`** (component arm + `'Presence'` structure arm carrying `cover`/`consolidated`), **`EphemeraLudicCacheEdge`**, **`EphemeraLudicCacheCrossing`** + type guards, including the presence cover-integrity checks in `isEphemeraLudicCacheData` |
 | [`ludicCache/types.test.ts`](ludicCache/types.test.ts) | Unit tests |
+| [`ludicCache/mergeReducer.ts`](ludicCache/mergeReducer.ts) | `foldSameHostBuckets`/`presenceCacheNodesFromFold` --- the merge-time fold that mints presence structure nodes into the cache |
 
 ### `navigate/` (shared execution + post-persist orchestration)
 

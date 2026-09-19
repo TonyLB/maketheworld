@@ -170,6 +170,10 @@ export const ludicGraphPortMismatchSweep = async (
         if (!isEphemeraLudicGraphFieldPayload(row.ludicGraph)) {
             continue
         }
+        // Crossing ports only, and unconditionally so as of presenceNodes Slice 7a: a presence
+        // binding is a node, not a port, and `row.ludicGraph.ports` never contains one --- there
+        // is nothing left to filter out (PN-3/PN-23; `classifyLudicGraphPortMismatch` dropped its
+        // presence branch back at Slice 3).
         for (const port of row.ludicGraph.ports) {
             const verdict = classifyLudicGraphPortMismatch({
                 hostId: row.EphemeraId,

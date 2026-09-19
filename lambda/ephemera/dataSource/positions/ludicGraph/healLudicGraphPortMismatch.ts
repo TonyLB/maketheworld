@@ -1,5 +1,6 @@
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicGraphFieldPayload, EphemeraLudicGraphPort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { classifyLudicGraphPortMismatch } from '@tonylb/mtw-gateways/ts/ephemera/positions'
@@ -61,11 +62,12 @@ const defaultWriteHealedLudicGraph = async (
  * `healable: false`: the break is exterior, and picking one edge to believe would invent an
  * answer rather than repair one.
  *
- * **Crossing-port-only, and it inherits that rather than restating it.** A presence port has no
- * exterior edge to mirror, so the classifier reports no mismatch for one and this heal never
- * reaches its rewrite --- which is the point, since that rewrite would overwrite `kind` with
- * `'Present'` gone and destroy the binding. The branch lives in `classifyLudicGraphPortMismatch`
- * so the sweep and this recheck cannot drift apart on what a presence port means.
+ * **Crossing-port-only.** A presence binding is a node, not a mismatch candidate, as of
+ * presenceNodes Slice 3 (PN-9 item (c)) --- the tolerance used to live inside
+ * `classifyLudicGraphPortMismatch` itself, then moved to a gate here once the sweep stopped
+ * feeding it presence ports (PN-9), and is now gone outright: `ludicGraph.ports` never contains a
+ * presence entry as of Slice 7a (PN-3/PN-23), so `port` below is always a crossing port and there
+ * is nothing left to decline.
  */
 export const healLudicGraphPortMismatch = async (
     ephemeraId: EphemeraMembershipHostId,
@@ -84,6 +86,13 @@ export const healLudicGraphPortMismatch = async (
     }
     const port = ludicGraph.ports.find((entry) => entry.portId === portId)
     if (!port) {
+        return { stale: false }
+    }
+    // `ludicGraph.ports` is stored data, never a `subGraphFromNodes` bucket cut, so `fromHostId`
+    // is always a component host here in practice --- the type also admits a presence id
+    // (presenceNodes Slice 4, PN-6 clause (c)'s stub-port widening), which a stored port never
+    // carries. Treated the same as the shape-guard decline above: not this finding's business.
+    if (!isEphemeraMembershipHostId(port.fromHostId)) {
         return { stale: false }
     }
 

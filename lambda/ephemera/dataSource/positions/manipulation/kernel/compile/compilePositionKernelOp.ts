@@ -7,7 +7,7 @@ import type { KernelStep, MutationKernelCaptureStep, MutationKernelTransferStep,
 import type { MessageOrchestrationSlotSpec } from '../../../../messageOrchestration/localApiEvents'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
 import type { PositionKernelMoveOp } from './positionKernelOp'
-import { presencePortStepsForMove } from './presencePortStepsForMove'
+import { presenceBindingStepsForMove } from './presenceBindingStepsForMove'
 
 export type CompiledPositionKernelPlan = {
     steps: readonly KernelStep[]
@@ -126,14 +126,14 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
 
     const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []
 
-    // one presence port per rehost, every mover regardless of host kind. Mechanics --- the
-    // remove-then-add pair, the missing-clear fix --- live in `presencePortStepsForMove`, of
+    // one presence binding per rehost, every mover regardless of host kind. Mechanics --- the
+    // remove-then-add pair, the missing-clear fix --- live in `presenceBindingStepsForMove`, of
     // which this is the only caller: `executeMembershipTransfer` reaches it through this
     // compiler rather than emitting its own steps.
-    const presencePortSteps = presencePortStepsForMove(primaryMovedId, op.froms, op.to)
+    const presenceBindingSteps = presenceBindingStepsForMove(primaryMovedId, op.froms, op.to)
 
     if (!op.narration) {
-        return { steps: [...dissolveSteps, transferStep, ...establishSteps, ...presencePortSteps], slots: headerSlotList }
+        return { steps: [...dissolveSteps, transferStep, ...establishSteps, ...presenceBindingSteps], slots: headerSlotList }
     }
 
     const { narration } = op
@@ -205,7 +205,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             ...dissolveSteps,
             transferStep,
             ...establishSteps,
-            ...presencePortSteps,
+            ...presenceBindingSteps,
             ...captureToStep,
             ...narrateLeaveSteps,
             ...narrateArriveStep,

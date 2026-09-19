@@ -1,5 +1,6 @@
 import type { EphemeraObjectId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraLudicTerminalOwner, isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import internalCache from '../../../../internalCache'
@@ -57,7 +58,11 @@ export const fetchRelationalReachability = async (
             const graph = await getGraph(hostId)
             graphs.set(hostId, graph)
             for (const port of graph.ports) {
-                if (!visited.has(port.fromHostId)) {
+                // `graph` is a real stored graph (never a `subGraphFromNodes` bucket cut), so
+                // `fromHostId` is always a component host in practice --- the type also admits a
+                // presence id (presenceNodes Slice 4, PN-6 clause (c)'s stub-port widening),
+                // which a stored port never carries; skip rather than coerce.
+                if (isEphemeraMembershipHostId(port.fromHostId) && !visited.has(port.fromHostId)) {
                     next.add(port.fromHostId)
                 }
             }

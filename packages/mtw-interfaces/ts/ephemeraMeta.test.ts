@@ -6,6 +6,8 @@ import {
     isEphemeraLudicGraphData,
     isEphemeraLudicGraphFieldPayload,
     isEphemeraLudicGraphNode,
+    isEphemeraLudicGraphComponentNode,
+    isEphemeraLudicGraphStructureNode,
     isEphemeraLudicGraphPort,
     isEphemeraLudicTerminalPrimitive,
     isEphemeraLudicPortAddress,
@@ -198,6 +200,10 @@ describe('isEphemeraLudicTerminalPrimitive', () => {
         expect(isEphemeraLudicTerminalPrimitive('AREA#Test')).toBe(true)
     })
 
+    it('accepts a presence node id (PN-5)', () => {
+        expect(isEphemeraLudicTerminalPrimitive('PRESENCE#abc123')).toBe(true)
+    })
+
     it('rejects a non-tagged string', () => {
         expect(isEphemeraLudicTerminalPrimitive('BOGUS#X')).toBe(false)
     })
@@ -222,6 +228,10 @@ describe('isEphemeraLudicPortAddress', () => {
 
     it('rejects an empty port segment', () => {
         expect(isEphemeraLudicPortAddress({ owner: 'OBJECT#BOX', port: '' })).toBe(false)
+    })
+
+    it('rejects a presence node as owner (PN-4: a presence node never allocates a port)', () => {
+        expect(isEphemeraLudicPortAddress({ owner: 'PRESENCE#abc123', port: 'ab6129d' })).toBe(false)
     })
 })
 
@@ -288,6 +298,50 @@ describe('ephemeraLudicTerminalsEqual / ephemeraLudicTerminalRefersTo', () => {
     it('treats two port addresses with the same owner and different port as unequal', () => {
         const a = { owner: 'OBJECT#BOX' as const, port: 'ab6129d' }
         const b = { owner: 'OBJECT#BOX' as const, port: 'k7m2q9' }
+        expect(ephemeraLudicTerminalsEqual(a, b)).toBe(false)
+    })
+
+    it('treats a presence node id and a tagged port address naming that same binding as equal (presenceNodes Slice 5 item 3 / PN-24)', () => {
+        const primitive = 'PRESENCE#presence-1' as const
+        const address = { owner: 'ROOM#TABLE' as const, port: 'PRESENCE#presence-1' }
+        expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(true)
+        expect(ephemeraLudicTerminalsEqual(address, primitive)).toBe(true)
+    })
+
+    it('treats a presence node id and a tagged port address naming a different binding as unequal', () => {
+        const primitive = 'PRESENCE#presence-1' as const
+        const address = { owner: 'ROOM#TABLE' as const, port: 'PRESENCE#presence-2' }
+        expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(false)
+    })
+
+    // The UNTAGGED form is no longer an address for the binding at all (PN-24) --- a bare uuid on
+    // a port address names a crossing port, so it must NOT match the presence node that happens to
+    // share its uuid. This is the case the pre-PN-24 encoding could not distinguish.
+    it('does not match a presence node id against an UNTAGGED port address sharing its uuid', () => {
+        const primitive = 'PRESENCE#presence-1' as const
+        const address = { owner: 'ROOM#TABLE' as const, port: 'presence-1' }
+        expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(false)
+    })
+
+    it('does not extend the presence exception to an ordinary (non-presence) primitive sharing its port value', () => {
+        const primitive = 'OBJECT#BOX' as const
+        const address = { owner: 'ROOM#TABLE' as const, port: 'OBJECT#BOX' }
+        expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(false)
+    })
+
+    // Regression for the one break this encoding change could cause silently: a minted stub port id
+    // embeds component ids, so it carries several '#'. `isEphemeraPresenceNodeId` THROWS on that
+    // ("Illegal nested EphemeraId"); the port-id-domain predicate must simply return false.
+    it('does not throw on a stub port id embedding component ids', () => {
+        const primitive = 'PRESENCE#presence-1' as const
+        const address = { owner: 'ROOM#A' as const, port: 'STUB-["OBJECT#C","OBJECT#D","Under",""]' }
+        expect(() => ephemeraLudicTerminalsEqual(primitive, address)).not.toThrow()
+        expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(false)
+    })
+
+    it('treats two crossing-port addresses with the same port but different owners as unequal (owner stays load-bearing for non-presence ports)', () => {
+        const a = { owner: 'ROOM#A' as const, port: 'STUB-xyz' }
+        const b = { owner: 'ROOM#B' as const, port: 'STUB-xyz' }
         expect(ephemeraLudicTerminalsEqual(a, b)).toBe(false)
     })
 })
@@ -383,6 +437,71 @@ describe('isEphemeraLudicGraphNode', () => {
             universalKey: 'CHARACTER#Alpha',
             key: 'hero',
         })).toBe(false)
+    })
+
+    // Structure arm (PN-5, presenceNodes Slice 2; `cover` added Slice 3, PN-19): a presence
+    // node is a minted PRESENCE# key plus the host it is presence for and its cover, never a
+    // real component id.
+    it('accepts a well-formed presence node', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+            cover: { tag: 'Full' },
+        })).toBe(true)
+    })
+
+    it('rejects a Presence-tagged node with a component universalKey', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Presence',
+            universalKey: 'OBJECT#helmet',
+            fromHostId: 'ROOM#A',
+            cover: { tag: 'Full' },
+        })).toBe(false)
+    })
+
+    it('rejects a component-tagged node with a presence universalKey', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Object',
+            universalKey: 'PRESENCE#abc123',
+        })).toBe(false)
+    })
+
+    it('rejects a presence node with a malformed fromHostId', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'PRESENCE#xyz789',
+            cover: { tag: 'Full' },
+        })).toBe(false)
+    })
+
+    it('rejects a presence node with a malformed cover', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+            cover: { tag: 'Bogus' },
+        })).toBe(false)
+    })
+})
+
+describe('isEphemeraLudicGraphComponentNode / isEphemeraLudicGraphStructureNode', () => {
+    it('the component guard accepts exactly the five component arms, never Presence', () => {
+        expect(isEphemeraLudicGraphComponentNode({ tag: 'Object', universalKey: 'OBJECT#helmet' })).toBe(true)
+        expect(isEphemeraLudicGraphComponentNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A', cover: { tag: 'Full' } })).toBe(false)
+    })
+
+    it('the structure guard accepts only a well-formed presence node', () => {
+        expect(isEphemeraLudicGraphStructureNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A', cover: { tag: 'Full' } })).toBe(true)
+        expect(isEphemeraLudicGraphStructureNode({ tag: 'Object', universalKey: 'OBJECT#helmet' })).toBe(false)
+    })
+
+    it('both guards reject non-object values without throwing', () => {
+        expect(isEphemeraLudicGraphComponentNode(null)).toBe(false)
+        expect(isEphemeraLudicGraphComponentNode(undefined)).toBe(false)
+        expect(isEphemeraLudicGraphStructureNode(null)).toBe(false)
+        expect(isEphemeraLudicGraphStructureNode(undefined)).toBe(false)
     })
 })
 
@@ -583,10 +702,10 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(true)
     })
 
-    // Presence plan PR-4 (reading (d)): 'Present' is a third, partitioning kind -- neither
-    // hosting nor peer -- and its runtime Set (HOST_RELATIONAL_EDGE_KINDS) had to be widened by
-    // hand in lockstep with the type, same agreement-check rationale as the In/PartOf test above.
-    it('accepts a Present relational edge', () => {
+    // `'Present'` retired from `HostRelationalEdgeKind` entirely at presenceNodes Slice 3
+    // (PN-14): its runtime Set (HOST_RELATIONAL_EDGE_KINDS) dropped it in the same change, and
+    // no writer ever constructed a `Present`-kind edge (bucket membership moved to `cover`).
+    it('rejects a Present relational edge', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'ROOM#Kitchen',
             ports: [],
@@ -600,7 +719,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 to: 'OBJECT#crystalBall',
                 kind: 'Present',
             }],
-        })).toBe(true)
+        })).toBe(false)
     })
 
     // `relationLabel` belongs structurally to `Custom`: it is the free-text name that kind
@@ -865,7 +984,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'Present' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'On' }],
             })).toBe(false)
         })
 
@@ -873,7 +992,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
-                ports: [{ portId: 123, fromHostId: 'OBJECT#box', kind: 'Present' }],
+                ports: [{ portId: 123, fromHostId: 'OBJECT#box', kind: 'On' }],
             })).toBe(false)
         })
 
@@ -881,7 +1000,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'OBJECT#box',
                 nodes: [{ tag: 'Object', universalKey: 'OBJECT#box' }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'On' }],
             })).toBe(true)
         })
     })
@@ -889,15 +1008,15 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
 describe('isEphemeraLudicGraphPort', () => {
     it('accepts a well-formed port entry', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present' })).toBe(true)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'On' })).toBe(true)
     })
 
     it('rejects a malformed fromHostId', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'Present' })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'On' })).toBe(false)
     })
 
     it('rejects a non-string portId', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 123, fromHostId: 'ROOM#Kitchen', kind: 'Present' })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 123, fromHostId: 'ROOM#Kitchen', kind: 'On' })).toBe(false)
     })
 
     it('rejects a non-object value', () => {
@@ -917,8 +1036,18 @@ describe('isEphemeraLudicGraphPort', () => {
 
     // The union is taken unrestricted (PR-11) --- including the three values no corpus case can
     // yet construct. Narrowing it would mint the second partition the reuse exists to avoid.
-    it.each(['On', 'Under', 'Against', 'In', 'PartOf', 'Present'])('accepts a %s port with no label', (kind) => {
+    // `'Present'` dropped from this list at presenceNodes Slice 7a: it is no longer in the domain
+    // this guard accepts at all, see the rejection test below.
+    it.each(['On', 'Under', 'Against', 'In', 'PartOf'])('accepts a %s port with no label', (kind) => {
         expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind })).toBe(true)
+    })
+
+    // presenceNodes Slice 7a (PN-14/PN-23): a presence binding is a node now, never a port, so
+    // `'Present'` retired from this guard's accepted domain outright --- `isEphemeraLudicGraphPort`
+    // used to accept it (as `EphemeraPresencePort`), and now rejects it the same way any other
+    // kind outside `HostRelationalEdgeKind` is rejected.
+    it("rejects a 'Present' kind port outright", () => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present' })).toBe(false)
     })
 
     it('accepts a Custom port carrying a non-empty exterior label', () => {
@@ -934,12 +1063,12 @@ describe('isEphemeraLudicGraphPort', () => {
     })
 
     it('rejects a non-string exterior label on a non-Custom port', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present', exteriorRelationLabel: 12 })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'On', exteriorRelationLabel: 12 })).toBe(false)
     })
 
-    it('rejects a Present port carrying any exterior label, even a valid string (PR-15: presence ports have no such field)', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Present', exteriorRelationLabel: 'threads into' })).toBe(false)
-    })
+    // `'rejects a Present port carrying any exterior label ... (PR-15: presence ports have no such
+    // field)'` deleted at presenceNodes Slice 7a: `'Present'` is rejected outright now on `kind`
+    // alone (see above), so there is no longer a distinct "wrong field" case to pin for it.
 })
 
 describe('isEphemeraLudicGraphData', () => {

@@ -1,6 +1,7 @@
 import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
@@ -126,9 +127,9 @@ const confirmCarriedHost = (
  * This function has no verdict meaning "the world forbids this" because it makes no such judgment
  * --- it checks mechanism, and legality is the enrich tier's question. See `types.ts`.
  *
- * `addPresencePort`/`removePresencePort`: the moved entity's own presence
+ * `addPresenceBinding`/`removePresenceBinding`: the moved entity's own presence
  * binding, one step per add or remove rather than one step replacing whatever was there --- see
- * `kernelStep.ts`'s doc comments. `removePresencePort` is a plain filter-by-`fromHostId`, so
+ * `kernelStep.ts`'s doc comments. `removePresenceBinding` is a plain filter-by-`fromHostId`, so
  * removing an absent binding is a silent no-op.
  *
  * `capture`: snapshots `graphs.get(hostId).characterIds` into the returned `captures` map and
@@ -265,25 +266,37 @@ export const applyStepSequenceCore = (
             continue
         }
 
-        if (step.kind === 'addPresencePort') {
+        if (step.kind === 'addPresenceBinding') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
-            graphs.set(step.hostId, graph.addPort(step.port))
+            // presenceNodes Slice 7a (PN-23): mints the presence node directly, with no port
+            // record --- `EphemeraPresencePort` is retired, and `presenceUuid` (minted at
+            // compile time, `presenceBindingStepsForMove.ts`) becomes the node's `universalKey`
+            // suffix on its own. Full coverage by default -- nothing here computes real bucket
+            // membership; that is future work, not a migration of anything that exists today (no
+            // `Present` edge was ever written to derive it from).
+            const withNode = graph.addPresenceNode({
+                tag: 'Presence',
+                universalKey: PresenceKey(step.presenceUuid),
+                fromHostId: step.fromHostId,
+                cover: { tag: 'Full' },
+            })
+            graphs.set(step.hostId, withNode)
             continue
         }
-        if (step.kind === 'removePresencePort') {
+        if (step.kind === 'removePresenceBinding') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
-            // A silent no-op when no `Present` port carries this `fromHostId` --- deliberate
+            // A silent no-op when no presence node carries this `fromHostId` --- deliberate,
             // it is what lets the compiler emit one of these per departure host without
-            // knowing which one, if any, actually held the port.
-            const withoutBinding = graph.ports
-                .filter((port) => port.kind === 'Present' && port.fromHostId === step.fromHostId)
-                .reduce((current, port) => current.removePort(port.portId), graph)
+            // knowing which one, if any, actually held the binding.
+            const withoutBinding = graph.presenceNodes
+                .filter((node) => node.fromHostId === step.fromHostId)
+                .reduce((current, node) => current.removePresenceNode(node.universalKey), graph)
             graphs.set(step.hostId, withoutBinding)
             continue
         }
@@ -340,14 +353,16 @@ export const applyStepSequenceCore = (
     // add, so a per-step check would make the invariant depend on emission order. This is a
     // structural-invariant violation (BD-33's category, `types.ts`'s "Throw vs. verdict"), not a
     // `MutationKernelApplyOutcome` verdict, and a ratchet on new writes, not a repair --- a
-    // character already carrying a stale or duplicate port before this sequence ran is untouched.
+    // character already carrying a stale or duplicate binding before this sequence ran is
+    // untouched. Counts presence NODES (presenceNodes Slice 7a) rather than presence ports,
+    // which no longer exist.
     [...graphs.entries()]
         .filter(([hostId]) => isEphemeraCharacterId(hostId))
         .forEach(([hostId, graph]) => {
-            const presenceCount = graph.ports.filter((port) => port.kind === 'Present').length
+            const presenceCount = graph.presenceNodes.length
             if (presenceCount > 1) {
                 throw new Error(
-                    `applyStepSequenceCore: character ${hostId} would carry ${presenceCount} presence ports --- ` +
+                    `applyStepSequenceCore: character ${hostId} would carry ${presenceCount} presence bindings --- ` +
                     `violates the single-hosted restriction in AGENT.contract.md ("A character's membership host is a ROOM, and only a ROOM ... it lifts when that work does"). ` +
                     `If that restriction has been lifted, this validator should be removed, not bypassed.`
                 )

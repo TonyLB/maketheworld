@@ -1,15 +1,16 @@
 import { describe, it, expect } from '@jest/globals'
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraLudicGraphPort, HostRelationalEdgeKind, RelationalEdgeKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPort, HostRelationalEdgeKind, RelationalEdgeKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { classifyLudicGraphPortMismatch } from './classifyLudicGraphPortMismatch'
 
 const HOST_ID = 'OBJECT#Rope' as EphemeraObjectId
 const REFERRER_ID = 'ROOM#Kitchen' as EphemeraRoomId
 const PORT_ID = 'abcd123'
 
-// Defaults to a crossing kind. `Present` short-circuits the whole comparison, so a presence
-// default would let a case silently assert nothing while reading as though it asserted something.
-const port = (overrides: Partial<EphemeraLudicGraphPort> = {}): EphemeraLudicGraphPort => ({
+// Crossing ports only, as of presenceNodes Slice 3 (PN-9 item (c)): a presence port is a node
+// now, not a mismatch candidate, and this function's own `port` parameter is typed
+// `EphemeraCrossingPort` accordingly -- there is no longer a presence arm to default away from.
+const port = (overrides: Partial<EphemeraCrossingPort> = {}): EphemeraCrossingPort => ({
     portId: PORT_ID,
     fromHostId: REFERRER_ID,
     kind: 'On',
@@ -138,12 +139,17 @@ describe('classifyLudicGraphPortMismatch', () => {
     })
 
     describe('gated: no named referrer edge is not a finding', () => {
-        it('reports no mismatch when the referrer graph holds no edge into this port', () => {
+        // Re-expected at presenceNodes Slice 3 (PN-9 item (c)): a *well-formed* referrer holding
+        // no edge into this port used to tolerate it, on the ground that a port with no exterior
+        // edge could legitimately be a presence indicator (P3's retired default 2). With presence
+        // off the port list entirely, every surviving port kind is required to have exactly one
+        // exterior edge, so this is now a mismatch with no correction to offer.
+        it('reports a mismatch with no correction when the referrer graph is well-formed but holds no edge into this port', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
                 port: port({ kind: 'On' }),
                 referrerLudicGraph: referrerGraph([]),
-            })).toEqual({ mismatch: false })
+            })).toEqual({ mismatch: true })
         })
 
         it('reports no mismatch when the referrer graph is absent', () => {
@@ -162,15 +168,17 @@ describe('classifyLudicGraphPortMismatch', () => {
             })).toEqual({ mismatch: false })
         })
 
-        it('reports no mismatch when the referrer edge names the same owner but a different port', () => {
+        // Re-expected at presenceNodes Slice 3 (PN-9 item (c)), same reasoning as the zero-edge
+        // case above: the referrer is well-formed, and no edge names *this* port specifically.
+        it('reports a mismatch with no correction when the referrer edge names the same owner but a different port', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
                 port: port({ kind: 'On' }),
                 referrerLudicGraph: referrerGraph([{ kind: 'On', portId: 'someOtherPort' }]),
-            })).toEqual({ mismatch: false })
+            })).toEqual({ mismatch: true })
         })
 
-        it('reports no mismatch when the referrer edge names the owner unqualified (no port address)', () => {
+        it('reports a mismatch with no correction when the referrer edge names the owner unqualified (no port address)', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
                 port: port({ kind: 'On' }),
@@ -178,70 +186,14 @@ describe('classifyLudicGraphPortMismatch', () => {
                     ...referrerGraph([]),
                     edges: [{ tag: 'Relational' as const, from: REFERRER_ID, to: HOST_ID, kind: 'On' as const }],
                 },
-            })).toEqual({ mismatch: false })
+            })).toEqual({ mismatch: true })
         })
     })
 
-    // PR-15, settled 2026-08-26. A presence port is an edge *terminal*: it has no exterior
-    // endpoint, so no exterior fact mirrors its `kind` and an edge landing on it imposes none.
-    // These are not softened checks --- there is no comparison to soften.
-    describe('presence ports are terminals, and are never compared against an exterior edge', () => {
-        it.each(['On', 'Under', 'Against', 'In', 'PartOf'] as const)(
-            'reports no mismatch when a foreign-kind edge terminates at a presence port (%s)',
-            (kind) => {
-                expect(classifyLudicGraphPortMismatch({
-                    hostId: HOST_ID,
-                    port: port({ kind: 'Present' }),
-                    referrerLudicGraph: referrerGraph([{ kind }]),
-                })).toEqual({ mismatch: false })
-            }
-        )
-
-        it('reports no mismatch when a labelled Custom edge terminates at a presence port', () => {
-            expect(classifyLudicGraphPortMismatch({
-                hostId: HOST_ID,
-                port: port({ kind: 'Present' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'Custom', relationLabel: 'is connected to' }]),
-            })).toEqual({ mismatch: false })
-        })
-
-        // The live hazard this branch exists for: a port-to-port `Custom` edge between two
-        // presence ports is incident to both, agreed with neither, and before the branch the
-        // self-heal rewrote both ports' `kind` from it --- destroying the presence binding at
-        // each end. The port here holds the near end of exactly such an edge.
-        it('reports no mismatch on a port-to-port edge between two presence ports', () => {
-            expect(classifyLudicGraphPortMismatch({
-                hostId: HOST_ID,
-                port: port({ kind: 'Present' }),
-                referrerLudicGraph: {
-                    ...referrerGraph([]),
-                    edges: [{
-                        tag: 'Relational' as const,
-                        from: { owner: HOST_ID, port: PORT_ID },
-                        to: { owner: REFERRER_ID, port: 'farEnd99' },
-                        kind: 'Custom' as const,
-                        relationLabel: 'is connected to',
-                    }],
-                },
-            })).toEqual({ mismatch: false })
-        })
-
-        // A presence port's fan disagreeing with itself is its normal state, not corruption ---
-        // the split-fan case above is a crossing-port finding and does not span both kinds.
-        it('reports no mismatch when several disagreeing edges terminate at one presence port', () => {
-            expect(classifyLudicGraphPortMismatch({
-                hostId: HOST_ID,
-                port: port({ kind: 'Present' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'On' }, { kind: 'Under' }]),
-            })).toEqual({ mismatch: false })
-        })
-
-        it('reports no mismatch when a Present edge agrees with the presence port, for the same reason', () => {
-            expect(classifyLudicGraphPortMismatch({
-                hostId: HOST_ID,
-                port: port({ kind: 'Present' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'Present' }]),
-            })).toEqual({ mismatch: false })
-        })
-    })
+    // `'presence ports are terminals, and are never compared against an exterior edge'` deleted
+    // at presenceNodes Slice 3 (PN-9 item (c)): a presence port is a node now, not a port-list
+    // tenant this function ever sees -- both its callers (`ludicGraphPortMismatchSweep`,
+    // `healLudicGraphPortMismatch`) filter presence ports out before calling, and `port` is typed
+    // `EphemeraCrossingPort` here accordingly, so a presence port can no longer even be
+    // constructed as an argument to test.
 })

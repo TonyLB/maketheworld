@@ -46,7 +46,7 @@ describe('populateContainmentAtCache', () => {
             edges: [{ tag: 'Relational', from: ROOM_A, to: AREA_ID, kind: 'PartOf' }],
         })
         const childGraph = testLudicGraph(ROOM_A, {
-            ports: [{ portId: 'port-1', fromHostId: AREA_ID, kind: 'Present' }],
+            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostId: AREA_ID, cover: { tag: 'Full' } }],
         })
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === AREA_ID ? parentGraph : childGraph

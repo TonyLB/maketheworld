@@ -1,7 +1,8 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCrossingPort, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { HostRelationalEdge } from '../../../../positions/ludicGraph'
 import type { ExpansionEnvironment } from './executorTypes'
@@ -87,16 +88,39 @@ const resolveEndpoint = (
     }
     const portOwnerHostId = ephemeraLudicTerminalOwner(terminal)
     const portOwnerGraph = getGraph(portOwnerHostId)
+    // The exterior address of a presence node (clause 1) carries the binding's own `PRESENCE#`-tagged
+    // node id (Slice 3's 1:1 mint) -- resolved to that node rather than declined, per PN-4/PN-5.
+    // The tag says WHICH collection to read (PN-24), so this dispatches before any port lookup and
+    // reads only `presenceNodes`; a crossing port's id is bare and can never take this branch.
+    if (isPresenceTaggedPortId(portId)) {
+        const presenceNode = portOwnerGraph?.presenceNodes.find((node) => node.universalKey === portId)
+        if (presenceNode) {
+            return { declined: false, endpoint: presenceNode.universalKey, steps: [] }
+        }
+        // Distinct from the crossing-port miss below, and the distinction is the point of tagging
+        // the value: this says the binding exists somewhere but is not in THIS graph (not pulled
+        // into this cut), where a bare-id miss could not tell that from a dangling reference.
+        // Still a dead end to decline, not a throw -- this walk only reads already-committed state.
+        return { declined: true, reason: `presence binding ${portId} is not present in ${portOwnerHostId}` }
+    }
     const port = portOwnerGraph?.ports.find((candidate) => candidate.portId === portId)
-    // A port address with no backing port record is a dangling reference, and a `Present` port
-    // is a presence port (PR-15: never a crossing) -- either way, a dead end to decline, not a
-    // throw; this walk only ever reads already-committed state.
-    if (!port || port.kind === 'Present') {
+    // A crossing-port address with no backing port record is a dangling reference -- a dead end to
+    // decline, not a throw, this walk only ever reads already-committed state.
+    if (!port) {
         return { declined: true, reason: `port ${portId} has no backing crossing-port record` }
     }
     const portStep: RelationalChainStep = { type: 'port', hostId: portOwnerHostId, port }
 
-    const searchHostId = portOwnerHostId === arrivedFromHostId ? port.fromHostId : portOwnerHostId
+    if (portOwnerHostId === arrivedFromHostId && !isEphemeraMembershipHostId(port.fromHostId)) {
+        // `port` is drawn from `portOwnerGraph.ports`, which only ever holds authored crossing
+        // ports (a presence binding is confirmed and returned above before this line is reached)
+        // --- so `fromHostId` is always a component host in practice. The type admits a presence
+        // id too (presenceNodes Slice 4, PN-6 clause (c): a stub port minted for a same-host
+        // straddle can carry one), which this function never receives, so a miss here is a
+        // mint-time integrity break to decline, not a case to silently coerce.
+        return { declined: true, reason: `port ${portId} has a non-host fromHostId ${port.fromHostId}` }
+    }
+    const searchHostId = portOwnerHostId === arrivedFromHostId ? port.fromHostId as EphemeraMembershipHostId : portOwnerHostId
     const graph = getGraph(searchHostId)
     if (!graph) {
         return { declined: true, reason: `host ${searchHostId} has no graph to continue the chain into` }

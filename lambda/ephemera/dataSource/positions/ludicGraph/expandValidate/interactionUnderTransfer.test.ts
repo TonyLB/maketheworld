@@ -43,13 +43,9 @@ describe('classifyInteractionUnderTransfer', () => {
         expect(() => classifyInteractionUnderTransfer(relationKind, 'target')).toThrow(/AB-54/)
     })
 
-    // Presence plan PR-4 (reading (d)): 'Present' is a distinct, partitioning kind -- not a
-    // hosting kind -- so its throw names PR-4/reading (d) rather than AB-53/AB-54, which is a
-    // claim about hosting-kind incidence that doesn't apply here.
-    it('throws naming PR-4 for Present, rather than classifying a partitioning kind', () => {
-        expect(() => classifyInteractionUnderTransfer('Present', 'subject')).toThrow(/PR-4/)
-        expect(() => classifyInteractionUnderTransfer('Present', 'target')).toThrow(/PR-4/)
-    })
+    // `'Present'`'s own case (presence plan PR-4/reading (d)) was deleted at presenceNodes
+    // Slice 3 (PN-14): `'Present'` retired from `HostRelationalEdgeKind` entirely, so it is no
+    // longer a value this function's parameter type can hold, and there is no case left to test.
 })
 
 describe('roleOfObjectInEdge', () => {

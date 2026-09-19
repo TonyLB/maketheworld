@@ -42,7 +42,7 @@ export const computeStepSequenceFootprint = (
             }
             continue
         }
-        if (step.kind === 'addPresencePort' || step.kind === 'removePresencePort') {
+        if (step.kind === 'addPresenceBinding' || step.kind === 'removePresenceBinding') {
             hosts.add(step.hostId)
             continue
         }

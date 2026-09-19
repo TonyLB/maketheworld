@@ -3,7 +3,7 @@ import {
     isEphemeraLudicGraphFieldPayload,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
-    EphemeraLudicGraphPort,
+    EphemeraCrossingPort,
     EphemeraLudicRelationalEdgeData,
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -86,42 +86,40 @@ export const edgesReferringToPort = (args: {
  * comparison is possible, and where
  * an exterior reference exists it governs).
  *
- * **Scoped to a named referrer, and the gate is deliberate.** No matching edge --- because the
- * referrer's graph is absent, fails the shape guard, holds no edge into this port, or holds one
- * into a *different* port on the same owner --- is **not** a mismatch. That case asks *who
- * should refer here*, which only the reverse index answers (AB-55), and answering it by
- * flagging every unreferenced port would report the whole corpus as broken.
+ * **Crossing ports only, as of presenceNodes Slice 3 (PN-9 item (c)); unconditionally so as of
+ * Slice 7a (PN-3/PN-23).** A presence binding is a node, not a port-list tenant, and since
+ * Slice 7a it carries no port record at all --- both callers (`ludicGraphPortMismatchSweep`,
+ * `healLudicGraphPortMismatch`) once filtered presence ports out before calling this, but there
+ * are none left to filter. There is nothing here to dispatch on `kind === 'Present'` for, and the
+ * branch that used to do that retired with them.
  *
- * **Two branches on `kind`, and only one of them compares anything (PR-15, settled 2026-08-26).**
- * A **presence port** is an edge *terminal*, never a crossing: it is the port with no exterior
- * endpoint, so no exterior fact mirrors it and there is nothing for `kind` to disagree with. An
- * edge landing there lands *at* it and imposes no kind on it, so kind-agreement is a category
- * error rather than a check to soften. Every **other** kind has exactly one exterior edge and is
- * checked as written. Whether a crossing port may *also* carry a terminal edge is PR-16 --- open,
- * and deliberately not answered here.
+ * **The AB-55 tolerance survives for an absent or unparseable referrer; it does NOT survive for a
+ * well-formed referrer holding no edge into this port --- PN-9 item (c), and the two used to
+ * collapse to the same early return.** *Who should refer here* is still not this comparison's
+ * question when the referrer's row cannot be read at all (unmaterialized, still catching up, or
+ * shape-stale --- `ludicGraphStaleStructureSweep`'s finding, not this one's). But once the
+ * referrer's graph parses, the old tolerance was covering a second, different case: a port with
+ * no exterior edge could legitimately be a presence indicator (P3's retired default 2). With
+ * presence off the port list entirely, every surviving port kind is required to have exactly one
+ * exterior edge (PR-15/AGENT.contract.md's tightened conflict rule) once its referrer is legible,
+ * so a well-formed referrer with no matching edge is now itself the disagreement to report, with
+ * no correction to offer (the fix is authoring the missing edge, not rewriting the port's own
+ * fields).
  */
 export const classifyLudicGraphPortMismatch = (args: {
     hostId: EphemeraMembershipHostId
-    port: EphemeraLudicGraphPort
+    port: EphemeraCrossingPort
     referrerLudicGraph: unknown
 }): LudicGraphPortMismatchVerdict => {
-    // The presence branch is a test in code rather than an invariant held by construction,
-    // because incidence cannot tell *terminates at* from *crosses*: without it, a `Custom` edge
-    // between two `Present` ports read as a mismatch at both ends and the self-heal rewrote both
-    // ports' `kind` from that edge, destroying the presence binding it was landing on. A stray
-    // `exteriorRelationLabel` on a presence port is judged from the one row and so belongs to the
-    // structure sweep, not to this comparison.
-    if (args.port.kind === 'Present') {
-        return { mismatch: false }
-    }
-
     const matchingEdges = edgesReferringToPort({
         hostId: args.hostId,
         portId: args.port.portId,
         referrerLudicGraph: args.referrerLudicGraph,
     })
     if (!matchingEdges.length) {
-        return { mismatch: false }
+        return isEphemeraLudicGraphFieldPayload(args.referrerLudicGraph)
+            ? { mismatch: true }
+            : { mismatch: false }
     }
 
     const recorded: LudicGraphPortExteriorValues = {

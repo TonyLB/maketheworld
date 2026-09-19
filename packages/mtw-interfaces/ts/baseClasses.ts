@@ -77,6 +77,12 @@ export const isEphemeraSituationId = isEphemeraTaggedId<'SITUATION'>('SITUATION'
 export type EphemeraAreaId = EphemeraWrappedId<'AREA'>
 export const isEphemeraAreaId = isEphemeraTaggedId<'AREA'>('AREA')
 
+/** A presence node's minted key (presenceNodes Slice 2 / PN-5). Deliberately NOT in the
+ * `EphemeraId` allowlist below --- that union is the component-addressable universe, and a
+ * presence node must not become addressable as a component by side effect. */
+export type EphemeraPresenceNodeId = EphemeraWrappedId<'PRESENCE'>
+export const isEphemeraPresenceNodeId = isEphemeraTaggedId<'PRESENCE'>('PRESENCE')
+
 //
 // EphemeraId is the allowlist of id tags the ephemera/messaging layer treats as first-class
 // (cache keys, message targets, aggregate universal keys, etc.). It is aligned with current

@@ -305,11 +305,13 @@ export async function compileRelationalFromSkeleton(
         // produce a containment candidate (isContainmentSpan routes to nestingDefer before
         // this point). **`On` joined this guard 2026-08-22** (Channel D, CD2, reduced scope):
         // it is a hosting kind too now, deferred at ingress the same way, and equally
-        // unreachable here. **`Present` joined 2026-08-22** (presence plan PR-4): it's not a
-        // WML-authorable kind either --- an internal port/cover mechanism, never an
-        // establishRelation/dissolveRelation target --- so it's deferred at ingress the same way.
+        // unreachable here. **`Present` joined 2026-08-22** (presence plan PR-4) and **left
+        // 2026-09-17+ (presenceNodes Slice 3, PN-14):** it was never a WML-authorable kind, and
+        // is now not a `HostRelationalEdgeKind` member at all, so the comparison would be dead
+        // code rather than a defensive check --- the type itself now does what this guard used
+        // to do for that one kind.
         const [firstRelStep] = relSteps
-        if (firstRelStep.relationKind === 'In' || firstRelStep.relationKind === 'PartOf' || firstRelStep.relationKind === 'On' || firstRelStep.relationKind === 'Present') {
+        if (firstRelStep.relationKind === 'In' || firstRelStep.relationKind === 'PartOf' || firstRelStep.relationKind === 'On') {
             continue
         }
 

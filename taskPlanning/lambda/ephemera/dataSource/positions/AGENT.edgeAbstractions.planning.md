@@ -26,6 +26,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 ## Getting Started
 
+0. **Read [`positions/AGENT.ludicNetwork.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md) first** --- its external-addressing section states legs, chains and crossing ports in present tense, which is the vocabulary every row here is denominated in.
 1. **Read [`taskPlanning/AGENT.md`](../../../../AGENT.md) and [`AGENT.designVariant.md`](../../../../AGENT.designVariant.md) once.** Resolved rows [graduate](../../../../AGENT.designVariant.md#graduating-a-resolved-row) rather than being deleted; rows may block no slice at all; code is licensed by tier.
 2. **Read the parent's [locked frame](AGENT.abstractionLayers.planning.md#locked-frame-parts-and-ports-2026-08-06) and its exclusion list.** Its shape claims are this plan's premises, not its subject. If you are arguing whether a whole has its own graph, you are in the wrong document.
 3. **Read [AB-54](AGENT.abstractionLayers.planning.md#settled-register)** --- the hosting / peer / partitioning split. It is the partition every row here reasons over, and the *peer* half is the one nothing aggregates.

@@ -168,7 +168,7 @@ const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean
 /**
  * the only `MutationKernelStep` kinds `buildCrossingLegs.ts`/`compileRelationalFromSkeleton.ts`
  * can ever put in `ParseCommandEstablishRelationResult.steps` on this route --- `transferMembership`,
- * `capture`, and `addPresencePort`/`removePresencePort` never appear here, so this guard does not
+ * `capture`, and `addPresenceBinding`/`removePresenceBinding` never appear here, so this guard does not
  * attempt to validate them.
  */
 const PUBLISHED_MUTATION_KERNEL_STEP_KINDS = new Set([
