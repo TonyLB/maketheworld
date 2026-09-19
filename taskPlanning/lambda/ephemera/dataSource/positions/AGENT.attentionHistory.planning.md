@@ -2,6 +2,8 @@
 
 **Status: in progress --- Phase 0 (corpus) opened 2026-08-12, no cases worked yet. Next step: work [A1--A9](AGENT.attentionHistory.corpus.planning.md) and let them decide the retention question, not the other way round.**
 
+**Forwarding obligation received 2026-09-18 from [`AGENT.ludicCacheRebuild.planning.md`](AGENT.ludicCacheRebuild.planning.md#recommended-order)'s Slice 5:** CC7 (log what would have missed under attention-scoping, without acting on it --- the cheap instrument [PC-3](AGENT.abstractionLayers.proposals.planning.md#open-questions-p6-sub-questions-ids-stable-never-reused) anticipates for the ledger model) could not be built there because there was no definition of "surfaced" to log a miss against. **Whoever gets this plan far enough that "surfaced" has an operational shape owes CC7 as a step here** --- log candidate misses under that shape, without acting on them, and report the number back to PC-3's row.
+
 **Sub-plan of [`AGENT.abstractionLayers.planning.md`](AGENT.abstractionLayers.planning.md)**, split out 2026-08-12. It owns the **semantics of attention** --- what a surfacing event records, what keeps a referent live, and what lets it go. The parent keeps `ludicCache`'s place in the design, the axes frame, and everything about `ludicGraph`.
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md).

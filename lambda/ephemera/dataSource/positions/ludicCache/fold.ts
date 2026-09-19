@@ -32,6 +32,14 @@
  *
  * Tier: Prototype, inheriting `mergeReducer.ts`'s dependency tag and rollback trigger (this file
  * is now part of that rollback set --- see the plan's Tier section).
+ *
+ * **Return shape widened, Slice 5 (PC-3's instrument).** `buildLudicCache` now returns
+ * `{ cache, stats }` rather than a bare `EphemeraLudicCacheData`. `stats` (`shardFetchCount`,
+ * `maxDepth`) is threaded straight from `enumerateLudicCacheShards`, which already computed it and
+ * previously had it discarded here. It does NOT become a field on `EphemeraLudicCacheData` itself
+ * --- that type is the exact shape Slice 6 persists, has its own type guard, and already carries
+ * one documented lesson (`homeShards`, removed 2026-09-10) against denormalizing a derived fact
+ * onto it. `stats` stays a sibling of `cache`, not a member of it.
  */
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { IMPROVISATION_ASSET_ID, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -92,13 +100,18 @@ const componentCacheNode = async (
     return { ...node, shortName } as EphemeraLudicCacheNode
 }
 
+export type BuildLudicCacheStats = {
+    shardFetchCount: number
+    maxDepth: number
+}
+
 export const buildLudicCache = async (
     seedHostId: EphemeraMembershipHostId,
     assetStack: readonly string[],
     deps: BuildLudicCacheDeps = {}
-): Promise<EphemeraLudicCacheData> => {
+): Promise<{ cache: EphemeraLudicCacheData; stats: BuildLudicCacheStats }> => {
     const resolvedDeps = { ...defaultDeps(), ...deps }
-    const { hostIds, graphs } = await enumerateLudicCacheShards(seedHostId, resolvedDeps)
+    const { hostIds, graphs, shardFetchCount, maxDepth } = await enumerateLudicCacheShards(seedHostId, resolvedDeps)
 
     const nodes: EphemeraLudicCacheNode[] = []
     const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
@@ -137,5 +150,8 @@ export const buildLudicCache = async (
         }
     }
 
-    return { hostId: seedHostId, nodes, edges: [...byIdentity.values()] }
+    return {
+        cache: { hostId: seedHostId, nodes, edges: [...byIdentity.values()] },
+        stats: { shardFetchCount, maxDepth },
+    }
 }

@@ -90,4 +90,36 @@ describe('ludicCacheObjectHandles', () => {
 
         expect(handles.map(({ objectId }) => objectId).sort()).toEqual([boxId, pebble].sort())
     })
+
+    // Slice 5 (PC-3): the handler is the instrumentation boundary --- buildLudicCache/
+    // enumerateLudicCacheShards stay pure, so this is the only place that can time a rebuild or
+    // count its objects. Assert the log fires with the right counts, not that behavior changed.
+    it('logs one structured rebuild line carrying counts, never cache structure', async () => {
+        const roomGraph = testLudicGraph(roomA, {
+            nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: namedId }],
+        })
+        const namedGraph = testLudicGraph(namedId, { nodes: [{ tag: 'Object', universalKey: namedId }] })
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, roomGraph], [namedId, namedGraph],
+        ])
+        const spy = jest.spyOn(console, 'log').mockImplementation(() => {})
+
+        await ludicCacheObjectHandles(roomA, [], {
+            ...graphsAsDeps(graphs),
+            getComponentAggregate: jest.fn(async () => []),
+            getImprovisationObject: jest.fn(async () => ({ component: makeObjectComponent('Named Thing') })),
+        })
+
+        expect(spy).toHaveBeenCalledWith('[mtw.ephemera.ludicCache] rebuild', expect.objectContaining({
+            event: 'rebuild',
+            seedHostId: roomA,
+            shardFetchCount: 2,
+            maxDepth: 1,
+            objectCount: 1,
+        }))
+        const [, fields] = spy.mock.calls[0]
+        expect(typeof (fields as { wallTimeMs: unknown }).wallTimeMs).toBe('number')
+
+        spy.mockRestore()
+    })
 })

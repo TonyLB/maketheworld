@@ -37,6 +37,7 @@ describe('enumerateLudicCacheShards', () => {
 
         expect(result.hostIds).toEqual([roomA, objB])
         expect(result.shardFetchCount).toBe(2)
+        expect(result.maxDepth).toBe(1)
         expect(fetchCount).toBe(2)
         expect(result.graphs.get(roomA)).toBe(graphs.get(roomA))
         expect(result.graphs.get(objB)).toBe(graphs.get(objB))
@@ -62,6 +63,7 @@ describe('enumerateLudicCacheShards', () => {
         const result = await enumerateLudicCacheShards(roomA, { getLudicGraph })
 
         expect(result.shardFetchCount).toBe(4)
+        expect(result.maxDepth).toBe(2)
         expect(fetched.filter((id) => id === objD)).toHaveLength(1)
         expect(new Set(result.hostIds).size).toBe(4)
         expect(result.hostIds).toContain(objD)
@@ -83,6 +85,7 @@ describe('enumerateLudicCacheShards', () => {
         const result = await enumerateLudicCacheShards(roomA, { getLudicGraph })
 
         expect(result.shardFetchCount).toBe(2)
+        expect(result.maxDepth).toBe(1)
         expect(result.hostIds).toEqual([roomA, objB])
     })
 
@@ -104,6 +107,7 @@ describe('enumerateLudicCacheShards', () => {
         const result = await enumerateLudicCacheShards(roomA, { getLudicGraph })
 
         expect(result.hostIds).toEqual([roomA])
+        expect(result.maxDepth).toBe(0)
         expect(fetched).toEqual([roomA])
         expect(result.graphs.has(characterBob)).toBe(false)
     })
@@ -124,6 +128,7 @@ describe('enumerateLudicCacheShards', () => {
         const result = await enumerateLudicCacheShards(characterBob, { getLudicGraph })
 
         expect(result.hostIds).toEqual([characterBob, heldCup])
+        expect(result.maxDepth).toBe(1)
     })
 
     it('defaults to internalCache.Positions.getLudicGraph when no deps are supplied', async () => {
@@ -136,6 +141,7 @@ describe('enumerateLudicCacheShards', () => {
 
         expect(spy).toHaveBeenCalledWith(roomA)
         expect(result.shardFetchCount).toBe(1)
+        expect(result.maxDepth).toBe(0)
         spy.mockRestore()
     })
 })

@@ -17,6 +17,12 @@
  * because it only ever recursed through `EphemeraObjectId`s. The seed itself is exempt from this
  * guard --- it is queued unconditionally before the loop below runs --- so a future
  * character-seeded walk (e.g. a held-inventory cache) still sees its own contents.
+ *
+ * **`maxDepth` (Slice 5, PC-3's instrument).** The highest BFS level actually dequeued --- the
+ * seed is depth 0. A returned statistic, same convention as `shardFetchCount`: PC-3 needs reads
+ * and wall time tagged by object count and nesting depth, and re-deriving depth later from
+ * `hostIds`/`graphs` alone is not possible (walk order does not recover level), so it is tracked
+ * during the walk instead.
  */
 import internalCache from '../../../internalCache'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -34,6 +40,8 @@ export type EnumerateLudicCacheShardsResult = {
     graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>
     /** One increment per host actually fetched --- a returned statistic, not a log line. */
     shardFetchCount: number
+    /** The highest BFS level dequeued, seed at 0 --- a returned statistic, not a log line. */
+    maxDepth: number
 }
 
 const defaultDeps = (): Required<EnumerateLudicCacheShardsDeps> => ({
@@ -54,11 +62,13 @@ export async function enumerateLudicCacheShards(
     const hostIds: EphemeraMembershipHostId[] = []
     const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>()
     const queued = new Set<EphemeraMembershipHostId>([seedHostId])
-    const queue: EphemeraMembershipHostId[] = [seedHostId]
+    const queue: { hostId: EphemeraMembershipHostId; depth: number }[] = [{ hostId: seedHostId, depth: 0 }]
 
     let shardFetchCount = 0
+    let maxDepth = 0
     while (queue.length > 0) {
-        const currentHostId = queue.shift() as EphemeraMembershipHostId
+        const { hostId: currentHostId, depth } = queue.shift() as { hostId: EphemeraMembershipHostId; depth: number }
+        maxDepth = Math.max(maxDepth, depth)
         const graph = await getLudicGraph(currentHostId)
         shardFetchCount += 1
         hostIds.push(currentHostId)
@@ -75,9 +85,9 @@ export async function enumerateLudicCacheShards(
                 continue
             }
             queued.add(nodeId)
-            queue.push(nodeId)
+            queue.push({ hostId: nodeId, depth: depth + 1 })
         }
     }
 
-    return { hostIds, graphs, shardFetchCount }
+    return { hostIds, graphs, shardFetchCount, maxDepth }
 }

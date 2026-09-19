@@ -106,7 +106,12 @@ describe('buildLudicCache', () => {
         }
 
         const shortNameDeps = noShortNameDeps()
-        const cache = await buildLudicCache(roomA, [testAssetUUID], { getLudicGraph, ...shortNameDeps })
+        const { cache, stats } = await buildLudicCache(roomA, [testAssetUUID], { getLudicGraph, ...shortNameDeps })
+
+        // Slice 5 (PC-3): stats pass through from enumerateLudicCacheShards unmodified. Six shards
+        // fetched (roomA, objX, objY, objZ, pebble1, pebble2); deepest path is roomA -> objX -> objZ
+        // -> pebble1 (or the objY/pebble2 twin), three hops.
+        expect(stats).toEqual({ shardFetchCount: 6, maxDepth: 3 })
 
         expect(cache.hostId).toBe(roomA)
 
@@ -184,7 +189,7 @@ describe('buildLudicCache', () => {
             return graph
         }
 
-        const cache = await buildLudicCache(roomA, [], { getLudicGraph, ...noShortNameDeps() })
+        const { cache } = await buildLudicCache(roomA, [], { getLudicGraph, ...noShortNameDeps() })
 
         expect(cache.edges).toEqual([])
     })
