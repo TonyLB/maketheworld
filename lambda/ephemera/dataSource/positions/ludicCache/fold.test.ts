@@ -194,6 +194,52 @@ describe('buildLudicCache', () => {
         expect(cache.edges).toEqual([])
     })
 
+    // Slice 5b: componentCacheNode's shortName resolution is the loop's only I/O and must run
+    // concurrently across sibling hosts, not serialize behind the purely synchronous fold/collapse
+    // pass that follows it.
+    it('resolves sibling hosts\' shortNames concurrently rather than one at a time', async () => {
+        const roomGraph = testLudicGraph(roomA, {
+            nodes: [
+                { tag: 'Room', universalKey: roomA },
+                { tag: 'Object', universalKey: objX },
+                { tag: 'Object', universalKey: objY },
+            ],
+        })
+        const xGraph = testLudicGraph(objX, { nodes: [{ tag: 'Object', universalKey: objX }] })
+        const yGraph = testLudicGraph(objY, { nodes: [{ tag: 'Object', universalKey: objY }] })
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, roomGraph], [objX, xGraph], [objY, yGraph],
+        ])
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
+            const graph = graphs.get(hostId)
+            if (!graph) {
+                throw new Error(`No fixture graph for ${hostId}`)
+            }
+            return graph
+        }
+
+        let inFlight = 0
+        let maxInFlight = 0
+        const getComponentAggregate: ReturnType<typeof noShortNameDeps>['getComponentAggregate'] = jest.fn(async () => {
+            inFlight += 1
+            maxInFlight = Math.max(maxInFlight, inFlight)
+            await Promise.resolve()
+            inFlight -= 1
+            return []
+        })
+
+        await buildLudicCache(roomA, [testAssetUUID], {
+            getLudicGraph,
+            getComponentAggregate,
+            getImprovisationObject: jest.fn(async () => undefined),
+        })
+
+        // Two object hosts (objX, objY) each call getComponentAggregate once; a serialized loop
+        // would never have both in flight together.
+        expect(getComponentAggregate).toHaveBeenCalledTimes(2)
+        expect(maxInFlight).toBe(2)
+    })
+
     // 3e: idempotence/confluence --- a retried rebuild against the same underlying graphs must
     // not duplicate a node or grow supportedBy. Byte-identical, not merely equal after sorting,
     // since supportedBy's outer-list order is meaningful (LR-8).

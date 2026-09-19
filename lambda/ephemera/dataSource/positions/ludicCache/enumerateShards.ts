@@ -18,11 +18,28 @@
  * guard --- it is queued unconditionally before the loop below runs --- so a future
  * character-seeded walk (e.g. a held-inventory cache) still sees its own contents.
  *
- * **`maxDepth` (Slice 5, PC-3's instrument).** The highest BFS level actually dequeued --- the
+ * **`maxDepth` (Slice 5, PC-3's instrument).** The highest BFS level actually visited --- the
  * seed is depth 0. A returned statistic, same convention as `shardFetchCount`: PC-3 needs reads
  * and wall time tagged by object count and nesting depth, and re-deriving depth later from
  * `hostIds`/`graphs` alone is not possible (walk order does not recover level), so it is tracked
  * during the walk instead.
+ *
+ * **Level-parallel BFS (Slice 5b, 2026-09-19).** Breadth is parallelizable; depth is not, and
+ * the walk is now shaped around that asymmetry rather than around a single FIFO queue. Every
+ * host at the current level is fetched concurrently (`Promise.all`), since a level's hosts were
+ * all discovered from graphs already in hand and have no data dependency on each other. The next
+ * level cannot start until the current one resolves, because a child's shard is only
+ * *discoverable* by reading its parent's graph --- a chain of depth *d* remains *d* irreducible
+ * sequential round trips. Dedup (`queued`) is still checked/updated entirely synchronously,
+ * after `Promise.all` resolves and before the next round of fetches fires, so two siblings at
+ * the same level naming the same not-yet-visited child still enqueue it exactly once.
+ *
+ * **Batching experiment tried and reverted (Slice 5c, 2026-09-19).** An optional
+ * `getLudicGraphsBatch` dep briefly let a caller swap this per-level fetch for one
+ * `BatchGetItem`, to test whether a single request scales more favourably than several
+ * concurrent ones under an On-Demand table's burst capacity. Live numbers came back slower on
+ * average than the concurrent-`getItem` path above, not faster, refuting the hypothesis; removed
+ * rather than left disabled-in-place --- see the plan's Slice 5c writeup for the numbers.
  */
 import internalCache from '../../../internalCache'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -62,31 +79,39 @@ export async function enumerateLudicCacheShards(
     const hostIds: EphemeraMembershipHostId[] = []
     const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>()
     const queued = new Set<EphemeraMembershipHostId>([seedHostId])
-    const queue: { hostId: EphemeraMembershipHostId; depth: number }[] = [{ hostId: seedHostId, depth: 0 }]
 
     let shardFetchCount = 0
     let maxDepth = 0
-    while (queue.length > 0) {
-        const { hostId: currentHostId, depth } = queue.shift() as { hostId: EphemeraMembershipHostId; depth: number }
+    let frontier: EphemeraMembershipHostId[] = [seedHostId]
+    let depth = 0
+    while (frontier.length > 0) {
         maxDepth = Math.max(maxDepth, depth)
-        const graph = await getLudicGraph(currentHostId)
-        shardFetchCount += 1
-        hostIds.push(currentHostId)
-        graphs.set(currentHostId, graph)
+        const fetchedGraphs = await Promise.all(frontier.map((hostId) => getLudicGraph(hostId)))
 
-        for (const nodeId of graph.nodeIds) {
-            if (!isEphemeraMembershipHostId(nodeId)) {
-                continue
+        const nextFrontier: EphemeraMembershipHostId[] = []
+        frontier.forEach((currentHostId, index) => {
+            const graph = fetchedGraphs[index]
+            shardFetchCount += 1
+            hostIds.push(currentHostId)
+            graphs.set(currentHostId, graph)
+
+            for (const nodeId of graph.nodeIds) {
+                if (!isEphemeraMembershipHostId(nodeId)) {
+                    continue
+                }
+                if (isEphemeraCharacterId(nodeId)) {
+                    continue
+                }
+                if (queued.has(nodeId)) {
+                    continue
+                }
+                queued.add(nodeId)
+                nextFrontier.push(nodeId)
             }
-            if (isEphemeraCharacterId(nodeId)) {
-                continue
-            }
-            if (queued.has(nodeId)) {
-                continue
-            }
-            queued.add(nodeId)
-            queue.push({ hostId: nodeId, depth: depth + 1 })
-        }
+        })
+
+        frontier = nextFrontier
+        depth += 1
     }
 
     return { hostIds, graphs, shardFetchCount, maxDepth }

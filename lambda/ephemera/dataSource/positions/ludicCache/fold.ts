@@ -40,6 +40,14 @@
  * --- that type is the exact shape Slice 6 persists, has its own type guard, and already carries
  * one documented lesson (`homeShards`, removed 2026-09-10) against denormalizing a derived fact
  * onto it. `stats` stays a sibling of `cache`, not a member of it.
+ *
+ * **Two-pass loop (Slice 5b, 2026-09-19).** The former single `for` loop interleaved
+ * `componentCacheNode`'s awaited I/O (`resolveObjectShortName`) with two purely synchronous
+ * computations (`foldSameHostBuckets`, `collapseCrossingPorts`), serializing all three across
+ * every host for no reason the synchronous pair needed. `componentCacheNode` calls for every
+ * `hostId` now run concurrently via `Promise.all`; the synchronous fold/collapse pass runs after,
+ * still iterated in `hostIds` order so 3e's byte-identical-rebuild property is preserved by
+ * construction rather than by an accident of fetch order.
  */
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { IMPROVISATION_ASSET_ID, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -113,13 +121,17 @@ export const buildLudicCache = async (
     const resolvedDeps = { ...defaultDeps(), ...deps }
     const { hostIds, graphs, shardFetchCount, maxDepth } = await enumerateLudicCacheShards(seedHostId, resolvedDeps)
 
-    const nodes: EphemeraLudicCacheNode[] = []
+    // Pass 1: the only I/O in this loop (resolveObjectShortName, via componentCacheNode), run
+    // concurrently across every host --- no data dependency between them.
+    const nodes: EphemeraLudicCacheNode[] = await Promise.all(
+        hostIds.map((hostId) => componentCacheNode(hostId, assetStack, resolvedDeps))
+    )
+
+    // Pass 2: the purely synchronous fold/collapse computation, iterated in hostIds order.
     const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
 
     for (const hostId of hostIds) {
         const graph = graphs.get(hostId) as EphemeraLudicGraph
-
-        nodes.push(await componentCacheNode(hostId, assetStack, resolvedDeps))
 
         // Mechanism 1: this host's own same-host presence-bucket straddles, resolved against its
         // own raw graph. `presenceUuids` is the FULL set of this host's own bindings (never a

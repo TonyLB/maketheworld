@@ -69,6 +69,36 @@ describe('enumerateLudicCacheShards', () => {
         expect(result.hostIds).toContain(objD)
     })
 
+    it('fetches same-level siblings concurrently rather than one at a time (Slice 5b)', async () => {
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: objB }, { tag: 'Object', universalKey: objC }] })],
+            [objB, testLudicGraph(objB, { nodes: [{ tag: 'Object', universalKey: objB }] })],
+            [objC, testLudicGraph(objC, { nodes: [{ tag: 'Object', universalKey: objC }] })],
+        ])
+        let inFlight = 0
+        let maxInFlight = 0
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
+            inFlight += 1
+            maxInFlight = Math.max(maxInFlight, inFlight)
+            // Yield to the microtask queue so a serialized (await-one-at-a-time) implementation
+            // would never have two calls in flight together, while a Promise.all'd level would.
+            await Promise.resolve()
+            const graph = graphs.get(hostId)
+            if (!graph) {
+                throw new Error(`No fixture graph for ${hostId}`)
+            }
+            inFlight -= 1
+            return graph
+        }
+
+        const result = await enumerateLudicCacheShards(roomA, { getLudicGraph })
+
+        expect(maxInFlight).toBe(2)
+        expect(result.hostIds).toEqual([roomA, objB, objC])
+        expect(result.shardFetchCount).toBe(3)
+        expect(result.maxDepth).toBe(1)
+    })
+
     it('terminates on a true back-reference instead of looping forever', async () => {
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
             [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: objB }] })],
