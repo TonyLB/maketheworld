@@ -360,5 +360,77 @@ describe('StandardFeature class', () => {
         `)
         expect(() => new StandardForm(wml)).toThrow(/Feature render is not allowed in asset mode/)
     })
-    
+
+    describe('ludicGraph (Slice 3)', () => {
+        it('round-trips a graph node through JSON', () => {
+            const data: StandardFeatureData = {
+                tag: 'Feature',
+                key: 'drawer',
+                ludicGraph: {
+                    nodes: [{ tag: 'Object', key: 'key' }],
+                },
+            }
+            const feature = new StandardFeature(data)
+            expect(feature.ludicGraph.nodes.toJSON()).toEqual(data.ludicGraph!.nodes)
+            expect(feature.toJSON()).toEqual(data)
+        })
+
+        it('allows a Feature to nest another Feature (Feature-in-Feature, per the containment precedent)', () => {
+            const wml = deIndentWML(`
+                <Feature key=(drawer)>
+                    <ShortName>drawer</ShortName>
+                    <Feature key=(lock)>
+                        <ShortName>lock</ShortName>
+                    </Feature>
+                </Feature>
+            `)
+            const feature = new StandardFeature(wml)
+            expect(feature.ludicGraph.nodes.componentRefs.payload.map((ref) => ref.key)).toEqual(['lock'])
+            expect(schemaToWML([feature.schema])).toEqual(deIndentWML(`
+                <Feature key=(drawer)>
+                    <ShortName>drawer</ShortName>
+                    <Feature key=(lock) />
+                </Feature>
+            `))
+        })
+
+        it('merges a graph-node addition and reflects it via equals/diff', () => {
+            const base = new StandardFeature({ tag: 'Feature', key: 'drawer' })
+            const incoming = new StandardFeature({
+                tag: 'Feature',
+                key: 'drawer',
+                ludicGraph: { nodes: [{ tag: 'Object', key: 'key' }] },
+            })
+            const merged = base.merge(incoming) as StandardFeature
+            expect(merged.ludicGraph.nodes.componentRefs.payload.map((ref) => ref.key)).toEqual(['key'])
+            expect(base.equals(merged)).toBe(false)
+            expect(merged.equals(merged)).toBe(true)
+            expect(base.diff(merged)).not.toBeUndefined()
+        })
+
+        it('is non-empty when only a graph node is present', () => {
+            const withGraphNode = new StandardFeature({
+                tag: 'Feature',
+                key: 'drawer',
+                ludicGraph: { nodes: [{ tag: 'Object', key: 'key' }] },
+            })
+            expect(withGraphNode._payload.isEmpty()).toBe(false)
+        })
+
+        it('buckets a graph-node child via assureReferences and drops it via removeReferences', () => {
+            const feature = new StandardFeature({
+                tag: 'Feature',
+                key: 'drawer',
+                ludicGraph: { nodes: [{ tag: 'Object', key: 'key' }] },
+            })
+            const keyRef = feature._payload.ludicGraph.nodes.componentRefs.payload[0]
+            const { payload: assured, inlineRemainder } = feature._payload.assureReferences([keyRef])
+            expect(inlineRemainder).toEqual([])
+            expect(assured.ludicGraph.nodes.componentRefs.payload.map((ref) => ref.key)).toEqual(['key'])
+
+            const removed = feature._payload.removeReferences([keyRef])
+            expect(removed.ludicGraph.nodes.componentRefs.payload).toEqual([])
+        })
+    })
+
 })

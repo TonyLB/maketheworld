@@ -162,6 +162,57 @@ describe('StandardForm.standardizeMode', () => {
         expect(() => new StandardForm(wml)).toThrow(/Room render is not allowed in asset mode/)
     })
 
+    it('allows an authored presence node on an asset StandardForm (LG-6: no lint clause; nothing authors one yet, but nothing rejects one either)', () => {
+        const sf = new StandardForm({
+            universalKey: 'ASSET#Test',
+            metaData: [],
+            components: [
+                {
+                    tag: 'Room',
+                    key: 'main',
+                    universalKey: 'ROOM#main',
+                    ludicGraph: {
+                        nodes: [
+                            {
+                                tag: 'Presence',
+                                universalKey: 'PRESENCE#test',
+                                fromHostId: { tag: 'Room', key: 'main' },
+                                cover: { tag: 'Full' },
+                            },
+                        ],
+                    },
+                },
+            ],
+        })
+        expect(sf._lookup('ROOM#main')).toBeDefined()
+    })
+
+    it('allows an authored presence node on an ephemeraWire StandardForm', () => {
+        const sf = new StandardForm({
+            universalKey: 'ASSET#Test',
+            metaData: [],
+            standardizeMode: 'ephemeraWire',
+            components: [
+                {
+                    tag: 'Room',
+                    key: 'main',
+                    universalKey: 'ROOM#main',
+                    ludicGraph: {
+                        nodes: [
+                            {
+                                tag: 'Presence',
+                                universalKey: 'PRESENCE#test',
+                                fromHostId: { tag: 'Room', key: 'main' },
+                                cover: { tag: 'Full' },
+                            },
+                        ],
+                    },
+                },
+            ],
+        })
+        expect(sf._lookup('ROOM#main')).toBeDefined()
+    })
+
     /**
      * Ephemera split: one form carries `<Render>` prose; another carries affordances (`<Character>`, `<Object>`).
      * Merge on the same `ROOM#` should combine render payload with objects and character references.

@@ -224,4 +224,78 @@ describe('StandardCharacter class', () => {
         expect(schemaToWML([testCharacterAgain.schema])).toEqual(printed)
         expect(testCharacterAgain.render).toEqual({ displayName: 'Cached Name', summary: ['Summary text'] })
     })
+
+    describe('ludicGraph (Slice 3)', () => {
+        it('round-trips a graph node through JSON', () => {
+            const data: StandardCharacterData = {
+                tag: 'Character',
+                key: 'test',
+                shortName: 'Tess',
+                ludicGraph: {
+                    nodes: [{ tag: 'Feature', key: 'amulet' }],
+                },
+            }
+            const character = new StandardCharacter(data)
+            expect(character.ludicGraph.nodes.toJSON()).toEqual(data.ludicGraph!.nodes)
+            expect(character.toJSON()).toEqual(data)
+        })
+
+        it('allows a Character to nest a Feature, and round-trips the flat-reference schema', () => {
+            const wml = deIndentWML(`
+                <Character key=(test)>
+                    <ShortName>Tess</ShortName>
+                    <Feature key=(amulet)>
+                        <ShortName>amulet</ShortName>
+                    </Feature>
+                </Character>
+            `)
+            const character = new StandardCharacter(wml)
+            expect(character.ludicGraph.nodes.componentRefs.payload.map((ref) => ref.key)).toEqual(['amulet'])
+            expect(schemaToWML([character.schema])).toEqual(deIndentWML(`
+                <Character key=(test)>
+                    <ShortName>Tess</ShortName>
+                    <Feature key=(amulet) />
+                </Character>
+            `))
+        })
+
+        it('merges a graph-node addition and reflects it via the default equals/diff', () => {
+            const base = new StandardCharacter({ tag: 'Character', key: 'test', shortName: 'Tess' })
+            const incoming = new StandardCharacter({
+                tag: 'Character',
+                key: 'test',
+                shortName: 'Tess',
+                ludicGraph: { nodes: [{ tag: 'Feature', key: 'amulet' }] },
+            })
+            const merged = base.merge(incoming) as StandardCharacter
+            expect(merged.ludicGraph.nodes.componentRefs.payload.map((ref) => ref.key)).toEqual(['amulet'])
+            expect(base.equals(merged)).toBe(false)
+            expect(merged.equals(merged)).toBe(true)
+            expect(base.diff(merged)).not.toBeUndefined()
+        })
+
+        it('is non-empty when only a graph node is present', () => {
+            const withGraphNode = new StandardCharacter({
+                tag: 'Character',
+                key: 'test',
+                ludicGraph: { nodes: [{ tag: 'Feature', key: 'amulet' }] },
+            })
+            expect(withGraphNode._payload.isEmpty()).toBe(false)
+        })
+
+        it('buckets a graph-node child via assureReferences and drops it via removeReferences', () => {
+            const character = new StandardCharacter({
+                tag: 'Character',
+                key: 'test',
+                ludicGraph: { nodes: [{ tag: 'Feature', key: 'amulet' }] },
+            })
+            const amuletRef = character._payload.ludicGraph.nodes.componentRefs.payload[0]
+            const { payload: assured, inlineRemainder } = character._payload.assureReferences([amuletRef])
+            expect(inlineRemainder).toEqual([])
+            expect(assured.ludicGraph.nodes.componentRefs.payload.map((ref) => ref.key)).toEqual(['amulet'])
+
+            const removed = character._payload.removeReferences([amuletRef])
+            expect(removed.ludicGraph.nodes.componentRefs.payload).toEqual([])
+        })
+    })
 })

@@ -23,6 +23,7 @@ import {
     processWithConsumers,
     StandardizeConsumerFacetListSituation,
     StandardizeConsumerInline,
+    StandardizeConsumerReferenceList,
     StandardizeConsumerSimple,
     type StandardizeConsumer,
 } from "./fromSchemaPipeline"
@@ -30,11 +31,19 @@ import { defaultedEquals } from "./utils"
 import { parseProseTripletChildren, renderPayloadToSchemaNode, SituationProseFacetList, SituationProseFacetPayload, StandardSituationProseFacet, mapSituationProsePayloadContents } from "../keys/facets/situationRoom"
 import type { StandardFacetData } from "../keys/facets/dataTypes/facet"
 import type { SituationProseFacetPayloadType } from "../keys/facets/situationRoom"
+import { ReferenceList } from "./reference"
+import StandardLudicGraph from "./ludicGraph"
+import { LUDIC_GRAPH_NODE_TAGS } from "./dataTypes/ludicGraph"
+import { excludeUndefined } from "../../lib/lists"
+import { renderReference } from "./utils/schema"
+
+const LUDIC_GRAPH_NODE_TAG_SET = new Set<string>(LUDIC_GRAPH_NODE_TAGS)
 
 export class StandardObjectPayload implements ComponentConstructorMethods<StandardObjectData, StandardObjectData> {
     _shortName?: StandardLiteral;
     _situations: SituationProseFacetList;
     _render?: SituationProseFacetPayload;
+    _ludicGraph: StandardLudicGraph;
     tag = 'Object' as const
 
     constructor(previous?: StandardObjectPayload) {
@@ -42,10 +51,29 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
             this._shortName = previous._shortName
             this._situations = previous._situations.clone()
             this._render = previous._render?.clone()
+            this._ludicGraph = previous._ludicGraph.clone()
         }
         else {
             this._situations = new SituationProseFacetList([])
+            this._ludicGraph = new StandardLudicGraph()
         }
+    }
+
+    get ludicGraph(): StandardLudicGraph {
+        return this._ludicGraph
+    }
+
+    private withLudicGraphNodes(nodes: ReferenceList): void {
+        const graphJSON = this._ludicGraph.toJSON() ?? {}
+        this._ludicGraph = new StandardLudicGraph({
+            ...graphJSON,
+            nodes: this._ludicGraph.nodes.withComponentRefs(nodes).toJSON(),
+        })
+    }
+
+    private appendLudicGraphNodes(list: ReferenceList): void {
+        const merged = this._ludicGraph.nodes.componentRefs.merge(list) ?? new ReferenceList([])
+        this.withLudicGraphNodes(merged)
     }
 
     fromJSON(props: StandardObjectData) {
@@ -53,11 +81,21 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
         this._shortName = createShortNameFromJSON(shortName)
         this._situations = new SituationProseFacetList(props.situations ?? [])
         this._render = props.render ? new SituationProseFacetPayload(props.render) : undefined
+        this._ludicGraph = StandardLudicGraph.fromJSON(props.ludicGraph)
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
         if (treeNodeTypeguard(isSchemaObject)(node)) {
+            const appendNodes = (list: ReferenceList) => {
+                this.appendLudicGraphNodes(list)
+            }
             const consumers: StandardizeConsumer[] = [
+                ...LUDIC_GRAPH_NODE_TAGS.map((tag) => new StandardizeConsumerReferenceList(this, {
+                    tag,
+                    update(list) {
+                        appendNodes.call(this, list)
+                    },
+                })),
                 standardizeShortNameConsumer(this),
                 new StandardizeConsumerFacetListSituation(this, {
                     update(list) {
@@ -106,11 +144,13 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
     }
 
     toJSON(_options?: StandardToJSONOptions): Omit<StandardObjectData, 'key' | 'universalKey'> {
+        const ludicGraphJSON = this._ludicGraph.toJSON()
         return {
             tag: 'Object',
             ...(this.shortName ? { shortName: shortNameToJSON(this.shortName) } : {}),
             ...(this.situations.length ? { situations: this.situations.toJSON() } : {}),
             ...(this._render ? { render: this._render.toJSON() } : {}),
+            ...(ludicGraphJSON ? { ludicGraph: ludicGraphJSON } : {}),
         }
     }
 
@@ -128,6 +168,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
                 ...shortNameSchemaChildren(this.shortName),
                 ...situationSchemas,
                 ...renderSchemas,
+                ...this._ludicGraph.nodes.componentRefs.schema,
             ],
         }
     }
@@ -152,10 +193,12 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
         else {
             returnValue._render = this._render?.clone()
         }
+        returnValue._ludicGraph = this._ludicGraph.merge(incoming._ludicGraph)
         return returnValue as this
     }
 
     referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
+        const rootId = this._ludicGraph.rootId
         return [
             ...this.situations.items.flatMap((facet) => {
                 const ref = facet.reference as StandardReference
@@ -165,6 +208,9 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
                 ]
             }),
             ...(this._render ? this._render.referencedLinkKeys(mapping) : []),
+            ...this._ludicGraph.nodes.componentRefs.payload
+                .filter((reference) => !(rootId && reference.sameKey(rootId)))
+                .map((reference) => ({ referenceType: 'Direct' as const, reference })),
         ]
     }
 
@@ -172,7 +218,8 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
         const hasShortName = Boolean(this._shortName)
         const hasSituations = this._situations.length > 0
         const hasRender = Boolean(this._render)
-        return !(hasShortName || hasSituations || hasRender)
+        const hasLudicGraph = this._ludicGraph.nodes.payload.length > 0
+        return !(hasShortName || hasSituations || hasRender || hasLudicGraph)
     }
 
     invert(): this {
@@ -180,6 +227,11 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
         returnValue._shortName = invertShortName(this._shortName)
         returnValue._situations = this._situations.invert()
         returnValue._render = this._render?.invert()
+        const graphJSON = this._ludicGraph.toJSON() ?? {}
+        returnValue._ludicGraph = new StandardLudicGraph({
+            ...graphJSON,
+            nodes: this._ludicGraph.nodes.invert().toJSON(),
+        })
         return returnValue as this
     }
 
@@ -206,6 +258,11 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
         if (returnValue._render) {
             returnValue._render = returnValue._render.remapReferences(props)
         }
+        const graphJSON = returnValue._ludicGraph.toJSON() ?? {}
+        returnValue._ludicGraph = new StandardLudicGraph({
+            ...graphJSON,
+            nodes: returnValue._ludicGraph.nodes.toFormat(props.mapTo, props.mappings).toJSON(),
+        })
         return returnValue as this
     }
 
@@ -219,6 +276,9 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
             const newFacet = new StandardSituationProseFacet(facetData)
             returnValue._situations = this._situations.merge(new SituationProseFacetList([newFacet])) ?? new SituationProseFacetList([newFacet])
         }
+        else if (LUDIC_GRAPH_NODE_TAG_SET.has(child.tag)) {
+            returnValue.appendLudicGraphNodes(new ReferenceList([child]))
+        }
         else {
             throw new Error(`Invalid child type ${child.tag} for StandardObject`)
         }
@@ -226,9 +286,20 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
     }
 
     assureReferences(children: StandardReference[]): AssureReferencesResult<this> {
+        const bucketChildren = children.filter((c) => LUDIC_GRAPH_NODE_TAG_SET.has(c.tag))
+        const remainder = children.filter((c) => !LUDIC_GRAPH_NODE_TAG_SET.has(c.tag))
+
+        const returnValue = new StandardObjectPayload(this)
+        const bucketReferences = new ReferenceList(
+            bucketChildren.map((child) => child.withRef(0))
+        )
+        const merged = returnValue._ludicGraph.nodes.componentRefs.merge(bucketReferences, { cleanEmptyReferences: false })
+            ?? returnValue._ludicGraph.nodes.componentRefs
+        returnValue.withLudicGraphNodes(merged)
+
         return {
-            payload: new StandardObjectPayload(this) as this,
-            inlineRemainder: children.map(c => c.withRef(0)),
+            payload: returnValue as this,
+            inlineRemainder: remainder.map((c) => c.withRef(0)),
         }
     }
 
@@ -239,6 +310,10 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
                 facet => !references.some(ref => facet.reference.sameKey(ref))
             )
         )
+        const filteredNodes = returnValue._ludicGraph.nodes.componentRefs.filter(
+            (item) => !references.some((ref) => item.sameKey(ref))
+        )
+        returnValue.withLudicGraphNodes(filteredNodes)
         return returnValue as this
     }
 
@@ -251,12 +326,24 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
             return acc
         }, [])
         const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render, mappings)] : []
+
+        let nodesToRender = this._ludicGraph.nodes.componentRefs
+
+        if (options.organization) {
+            const graphChildren = (options.organization.getChildrenOfParent(key) ?? [])
+                .filter((child) => LUDIC_GRAPH_NODE_TAG_SET.has(child.tag))
+            const bucketReferences = new ReferenceList(graphChildren.map((child) => child.withRef(0)))
+            nodesToRender = this._ludicGraph.nodes.componentRefs.merge(bucketReferences, { cleanEmptyReferences: false })
+                ?? this._ludicGraph.nodes.componentRefs
+        }
+
         return {
             data: { tag: 'Object', uuid: key.universalKey },
             children: [
                 ...shortNameSchemaChildren(this.shortName),
                 ...situationSchemas,
                 ...renderSchemas,
+                ...nodesToRender.payload.map(renderReference({ lookup: _lookup, options })).filter(excludeUndefined).flat(1),
             ],
         }
     }
@@ -265,6 +352,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
 export class StandardObject extends componentClassFactory(StandardObjectPayload, 'StandardObject') {
     get situations() { return this._payload.situations }
     get render() { return this._payload.render }
+    get ludicGraph() { return this._payload.ludicGraph }
 
     constructor(
         props: string | StandardObjectData | GenericTreeNode<SchemaTag> | StandardObject,
@@ -296,7 +384,8 @@ export class StandardObject extends componentClassFactory(StandardObjectPayload,
             (Boolean(renderA && renderB) && renderA!.diff(renderB) === undefined)
         return !(situationsDiff?.length) &&
             shortNameEqual &&
-            renderEqual
+            renderEqual &&
+            this.ludicGraph.equals(incoming.ludicGraph)
     }
 }
 
