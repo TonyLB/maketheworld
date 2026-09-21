@@ -72,7 +72,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         const graphJSON = this._ludicGraph.toJSON() ?? {}
         this._ludicGraph = new StandardLudicGraph({
             ...graphJSON,
-            nodes: nodes.toJSON(),
+            nodes: this._ludicGraph.nodes.withComponentRefs(nodes).toJSON(),
         })
     }
 
@@ -231,7 +231,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             const result = (facet as StandardSituationProseFacet).renderFacet(undefined, undefined, mappings)
             return result.newNode ?? result.aggregatedNode
         }).filter(excludeUndefined) as GenericTreeNode<SchemaTag>[]
-        
+
         const objectSchemas: GenericTreeNode<SchemaTag>[] = this._objects.map((o) => ({
             data: { tag: 'Object', uuid: o.uuid as ComponentUUID },
             children: [
@@ -247,7 +247,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             children: [
                 ...shortNameSchemaChildren(this.shortName),
                 ...this.lens.schema,
-                ...this._ludicGraph.nodes.schema,
+                ...this._ludicGraph.nodes.componentRefs.schema,
                 ...this.guidance.schema,
                 ...this.characters.schema,
                 ...situationSchemas,
@@ -260,11 +260,11 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
 
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key, mappings } = options
-        
+
         // If organization is available, use assured references from organization
         // Otherwise, fall back to stored reference lists
         let lensToRender = this.lens
-        let nodesToRender = this._ludicGraph.nodes
+        let nodesToRender = this._ludicGraph.nodes.componentRefs
         let guidanceToRender = this.guidance
         let charactersToRender = this.characters
         let inlineRemainder: StandardReference[] = []
@@ -274,12 +274,12 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             const children = options.organization.getChildrenOfParent(key) ?? []
             const { payload: assured, inlineRemainder: remainder } = this.assureReferences(children)
             lensToRender = assured.lens
-            nodesToRender = assured._ludicGraph.nodes
+            nodesToRender = assured._ludicGraph.nodes.componentRefs
             guidanceToRender = assured.guidance
             charactersToRender = assured.characters
             inlineRemainder = remainder
         }
-        
+
         const exitSchemas = this._exits.items.reduce<GenericTreeNode<SchemaTag>[]>((acc, facet) => {
             const result = facet.renderFacet(undefined, lookup)
             if (result.newNode) {
@@ -296,7 +296,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             else if (result.newNode) acc.push(result.newNode)
             return acc
         }, [])
-        
+
         const objectSchemas: GenericTreeNode<SchemaTag>[] = this._objects.map((o) => ({
             data: { tag: 'Object', uuid: o.uuid as ComponentUUID },
             children: [
@@ -390,13 +390,9 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         )
 
         returnValue._lens = this._lens.merge(SingleReference.fromReferenceList(lensReferences))
-        const mergedNodes = returnValue._ludicGraph.nodes.merge(featureReferences, { cleanEmptyReferences: false })
-            ?? returnValue._ludicGraph.nodes
-        const graphJSON = returnValue._ludicGraph.toJSON() ?? {}
-        returnValue._ludicGraph = new StandardLudicGraph({
-            ...graphJSON,
-            nodes: mergedNodes.toJSON(),
-        })
+        const mergedNodes = returnValue._ludicGraph.nodes.componentRefs.merge(featureReferences, { cleanEmptyReferences: false })
+            ?? returnValue._ludicGraph.nodes.componentRefs
+        returnValue.withLudicGraphNodes(mergedNodes)
         returnValue._guidance = this._guidance.merge(guidanceReferences, { cleanEmptyReferences: false }) ?? this._guidance
         returnValue._characters = this._characters.merge(characterReferences, { cleanEmptyReferences: false }) ?? this._characters
 
@@ -408,25 +404,22 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
 
     removeReferences(references: StandardReference[]): this {
         const returnValue = new StandardRoomPayload(this)
-        
+
         // Filter reference lists by removing items that match any reference in the input
         returnValue._lens = this._lens.filter(
             item => !references.some(ref => item.sameKey(ref))
         )
-        const graphJSON = returnValue._ludicGraph.toJSON() ?? {}
-        returnValue._ludicGraph = new StandardLudicGraph({
-            ...graphJSON,
-            nodes: returnValue._ludicGraph.nodes.filter(
-                item => !references.some(ref => item.sameKey(ref))
-            ).toJSON(),
-        })
+        const filteredNodes = returnValue._ludicGraph.nodes.componentRefs.filter(
+            item => !references.some(ref => item.sameKey(ref))
+        )
+        returnValue.withLudicGraphNodes(filteredNodes)
         returnValue._guidance = this._guidance.filter(
             item => !references.some(ref => item.sameKey(ref))
         )
         returnValue._characters = this._characters.filter(
             item => !references.some(ref => item.sameKey(ref))
         )
-        
+
         return returnValue as this
     }
 
@@ -442,6 +435,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     }
 
     referencedKeys(mapping: StandardReference[]): StandardComponentReferenceKey[] {
+        const rootId = this._ludicGraph.rootId
         return [
             ...this.exits.items.map((facet) => {
                 // Extract reference from facet - exits always reference rooms
@@ -457,7 +451,9 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             }),
             ...(this._render ? this._render.referencedLinkKeys(mapping) : []),
             ...this.lens.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
-            ...this._ludicGraph.nodes.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
+            ...this._ludicGraph.nodes.componentRefs.payload
+                .filter((reference) => !(rootId && reference.sameKey(rootId)))
+                .map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.guidance.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
             ...this.characters.payload.map((reference) => ({ referenceType: 'Direct' as const, reference }))
         ]
@@ -514,12 +510,8 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             returnValue._lens = returnValue._lens.assureItem(child)
         }
         else if (child.tag === 'Feature') {
-            const mergedNodes = returnValue._ludicGraph.nodes.assureItem(child)
-            const graphJSON = returnValue._ludicGraph.toJSON() ?? {}
-            returnValue._ludicGraph = new StandardLudicGraph({
-                ...graphJSON,
-                nodes: mergedNodes.toJSON(),
-            })
+            const mergedNodes = returnValue._ludicGraph.nodes.componentRefs.assureItem(child)
+            returnValue.withLudicGraphNodes(mergedNodes)
         }
         else if (child.tag === 'Guidance') {
             returnValue._guidance = returnValue._guidance.assureItem(child)

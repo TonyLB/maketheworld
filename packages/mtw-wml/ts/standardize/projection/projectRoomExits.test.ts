@@ -26,7 +26,7 @@ describe('projectRoomExits', () => {
                     { tag: 'Room', universalKey: townCenter },
                 ],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'highwayToTown',
                     from: highway,
                     to: townCenter,
@@ -50,7 +50,7 @@ describe('projectRoomExits', () => {
             ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: loopRoom }],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'loopEdge',
                     from: loopRoom,
                     to: loopRoom,
@@ -72,7 +72,7 @@ describe('projectRoomExits', () => {
             ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: highway }],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'portal',
                     from: highway,
                     to: outsideRoom,
@@ -97,7 +97,7 @@ describe('projectRoomExits', () => {
             ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: highway }],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'aEdge',
                     from: highway,
                     to: townCenter,
@@ -112,7 +112,7 @@ describe('projectRoomExits', () => {
             ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: highway }],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'bEdge',
                     from: highway,
                     to: outsideRoom,
@@ -134,7 +134,7 @@ describe('projectRoomExits', () => {
             ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: highway }],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'highwayToTown',
                     from: highway,
                     to: townCenter,
@@ -147,7 +147,7 @@ describe('projectRoomExits', () => {
             key: 'region',
             ludicGraph: {
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'highwayToTown',
                     from: highway,
                     to: { tag: 'Replace', match: townCenter, payload: 'ROOM#ghi' },
@@ -173,14 +173,14 @@ describe('projectRoomExits', () => {
                 ],
                 edges: [
                     {
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'door',
                         from: highway,
                         to: townCenter,
                         payload: { forward: 'door', back: 'door' },
                     },
                     {
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'window',
                         from: highway,
                         to: townCenter,
@@ -203,7 +203,7 @@ describe('projectRoomExits', () => {
             ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: highway }],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'toFeature',
                     from: highway,
                     to: { tag: 'Feature', key: 'gate' },
@@ -223,7 +223,7 @@ describe('projectRoomExits', () => {
                 ludicGraph: {
                     nodes: [{ tag: 'Room', universalKey: highway }],
                     edges: [{
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'edge-a1b2c3d4',
                         payload: {},
                     }],
@@ -240,7 +240,7 @@ describe('projectRoomExits', () => {
                 ludicGraph: {
                     nodes: [{ tag: 'Room', universalKey: highway }],
                     edges: [{
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'e1',
                         from: highway,
                         payload: { forward: 'east' },
@@ -258,7 +258,7 @@ describe('projectRoomExits', () => {
                 ludicGraph: {
                     nodes: [{ tag: 'Room', universalKey: highway }],
                     edges: [{
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'e1',
                         to: highway,
                         payload: { back: 'west' },
@@ -276,7 +276,7 @@ describe('projectRoomExits', () => {
                 ludicGraph: {
                     nodes: [{ tag: 'Room', universalKey: highway }],
                     edges: [{
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'orphan',
                         from: townCenter,
                         to: outsideRoom,
@@ -302,7 +302,7 @@ describe('projectRoomExits', () => {
                     { tag: 'Room', universalKey: townCenter },
                 ],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'other',
                     from: townCenter,
                     to: outsideRoom,

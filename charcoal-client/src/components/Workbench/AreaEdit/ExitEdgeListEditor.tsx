@@ -8,7 +8,7 @@ import ListItemText from '@mui/material/ListItemText'
 import AddIcon from '@mui/icons-material/Add'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
-import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
+import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 import { MakeTheWorldAccordion } from '../../UI'
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import ExitEdgeRowEditor from './ExitEdgeRowEditor'
@@ -34,7 +34,11 @@ export const ExitEdgeListEditor: FunctionComponent<ExitEdgeListEditorProps> = ({
         return null
     }, [AreaId, standardForm])
 
-    const edges = useMemo(() => area?.ludicGraph.edges.items ?? [], [area])
+    const edges = useMemo(() => (
+        (area?.ludicGraph.edges.items ?? []).filter(
+            (edge): edge is StandardLudicNavigationEdge => edge instanceof StandardLudicNavigationEdge
+        )
+    ), [area])
 
     const edgeSummary = useMemo(() => {
         if (!edges.length) {
@@ -60,7 +64,7 @@ export const ExitEdgeListEditor: FunctionComponent<ExitEdgeListEditorProps> = ({
     }, [AreaId, readonly, updateStandard])
 
     const updateEdge = useCallback(
-        (edgeUuid: string, updatedEdge: StandardExitEdge) => {
+        (edgeUuid: string, updatedEdge: StandardLudicNavigationEdge) => {
             updateStandard({
                 type: 'update',
                 update: (draft) => {

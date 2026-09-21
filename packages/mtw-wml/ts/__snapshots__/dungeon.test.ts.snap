@@ -998,11 +998,11 @@ exports[`large WML test should standardize properly 1`] = `
             "tag": "Room",
             "universalKey": undefined,
           },
+          "kind": "Navigation",
           "payload": {
             "back": "out",
             "forward": "cave",
           },
-          "tag": "Exit",
           "to": {
             "key": "cave",
             "tag": "Room",
@@ -1016,11 +1016,11 @@ exports[`large WML test should standardize properly 1`] = `
             "tag": "Room",
             "universalKey": undefined,
           },
+          "kind": "Navigation",
           "payload": {
             "back": "cave",
             "forward": "passage",
           },
-          "tag": "Exit",
           "to": {
             "key": "curvingPassage",
             "tag": "Room",
@@ -1034,11 +1034,11 @@ exports[`large WML test should standardize properly 1`] = `
             "tag": "Room",
             "universalKey": undefined,
           },
+          "kind": "Navigation",
           "payload": {
             "back": "passage",
             "forward": "chamber",
           },
-          "tag": "Exit",
           "to": {
             "key": "chamber",
             "tag": "Room",

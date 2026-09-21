@@ -14,7 +14,7 @@ import {
     findEdgesViolatingParticipantRule,
 } from '@tonylb/mtw-wml/ts/standardize/components/areaTopologyValidation'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
-import { ExitEdgeList, StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
+import { LudicEdgeList, StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 import { referenceFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
 import { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
@@ -40,15 +40,19 @@ export function mergeNodesTagSlice(
     return new ReferenceList([...other, ...tagSlice.payload])
 }
 
+// LG-8: `ludicGraph.nodes` is heterogeneous under alignment. These helpers operate on the
+// component-node arm only (Area authoring never touches presence nodes), so reads go through
+// `.componentRefs` and writes go through `.withComponentRefs` to avoid silently dropping any
+// presence node already on the graph.
 export function setAreaLudicGraphNodes(area: StandardArea, nodes: ReferenceList): void {
     const graphJSON = area.ludicGraph.toJSON() ?? {}
     area._payload._ludicGraph = new StandardLudicGraph({
         ...graphJSON,
-        nodes: nodes.toJSON()
+        nodes: area.ludicGraph.nodes.withComponentRefs(nodes).toJSON()
     })
 }
 
-export function setAreaLudicGraphEdges(area: StandardArea, edges: ExitEdgeList): void {
+export function setAreaLudicGraphEdges(area: StandardArea, edges: LudicEdgeList): void {
     const graphJSON = area.ludicGraph.toJSON() ?? {}
     area._payload._ludicGraph = new StandardLudicGraph({
         ...graphJSON,
@@ -66,18 +70,18 @@ export function removeNodeFromArea(area: StandardArea, ref: StandardReference): 
 
 export { assertEdgeSatisfiesParticipantRule, edgeSatisfiesParticipantRule }
 
-export function findEdgesMissingParticipantEndpoint(area: StandardArea): StandardExitEdge[] {
+export function findEdgesMissingParticipantEndpoint(area: StandardArea): StandardLudicNavigationEdge[] {
     return findEdgesViolatingParticipantRule(area)
 }
 
-export function addEmptyExitEdge(area: StandardArea, edgeUuid?: string): StandardExitEdge {
+export function addEmptyExitEdge(area: StandardArea, edgeUuid?: string): StandardLudicNavigationEdge {
     const uuid = edgeUuid ?? generateEdgeUuid()
-    const newEdge = new StandardExitEdge({
-        tag: 'Exit',
+    const newEdge = new StandardLudicNavigationEdge({
+        kind: 'Navigation',
         uuid,
         payload: {}
     })
-    const merged = area.ludicGraph.edges.merge(new ExitEdgeList([newEdge])) ?? new ExitEdgeList([newEdge])
+    const merged = area.ludicGraph.edges.merge(new LudicEdgeList([newEdge])) ?? new LudicEdgeList([newEdge])
     setAreaLudicGraphEdges(area, merged)
     return newEdge
 }
@@ -87,53 +91,55 @@ export function addEdgeToArea(
     fromUniversalKey: ComponentUUID,
     toUniversalKey: ComponentUUID,
     edgeUuid?: string
-): StandardExitEdge {
+): StandardLudicNavigationEdge {
     const uuid = edgeUuid ?? generateEdgeUuid()
-    const newEdge = new StandardExitEdge({
-        tag: 'Exit',
+    const newEdge = new StandardLudicNavigationEdge({
+        kind: 'Navigation',
         uuid,
         from: { tag: 'Room', universalKey: fromUniversalKey },
         to: { tag: 'Room', universalKey: toUniversalKey },
         payload: {}
     })
-    const merged = area.ludicGraph.edges.merge(new ExitEdgeList([newEdge])) ?? new ExitEdgeList([newEdge])
+    const merged = area.ludicGraph.edges.merge(new LudicEdgeList([newEdge])) ?? new LudicEdgeList([newEdge])
     setAreaLudicGraphEdges(area, merged)
     return newEdge
 }
 
 export function removeEdgeFromArea(area: StandardArea, edgeUuid: string): void {
-    const remaining = area.ludicGraph.edges.items.filter((edge) => edge.uuid !== edgeUuid)
-    setAreaLudicGraphEdges(area, new ExitEdgeList(remaining))
+    const remaining = area.ludicGraph.edges.items.filter((edge) => (
+        !(edge instanceof StandardLudicNavigationEdge) || edge.uuid !== edgeUuid
+    ))
+    setAreaLudicGraphEdges(area, new LudicEdgeList(remaining))
 }
 
 export function updateEdgeInArea(
     area: StandardArea,
     edgeUuid: string,
-    update: (edge: StandardExitEdge) => StandardExitEdge
+    update: (edge: StandardLudicNavigationEdge) => StandardLudicNavigationEdge
 ): void {
     const items = area.ludicGraph.edges.items
-    const index = items.findIndex((edge) => edge.uuid === edgeUuid)
+    const index = items.findIndex((edge) => edge instanceof StandardLudicNavigationEdge && edge.uuid === edgeUuid)
     if (index === -1) {
         return
     }
-    const updated = update(items[index])
+    const updated = update(items[index] as StandardLudicNavigationEdge)
     const newItems = [...items]
     newItems[index] = updated
-    setAreaLudicGraphEdges(area, new ExitEdgeList(newItems))
+    setAreaLudicGraphEdges(area, new LudicEdgeList(newItems))
 }
 
 export function retargetEdgeEndpoint(
-    edge: StandardExitEdge,
+    edge: StandardLudicNavigationEdge,
     endpoint: 'from' | 'to',
     universalKey: ComponentUUID
-): StandardExitEdge {
+): StandardLudicNavigationEdge {
     const edgeJSON = edge.toJSON()
-    if (typeof edgeJSON === 'string' || edgeJSON.tag === 'Remove') {
+    if (typeof edgeJSON === 'string' || ('tag' in edgeJSON && edgeJSON.tag === 'Remove')) {
         throw new Error('Cannot retarget removed edge')
     }
-    const base = edgeJSON.tag === 'Replace' ? edgeJSON.match : edgeJSON
-    return new StandardExitEdge({
-        tag: 'Exit',
+    const base = 'tag' in edgeJSON && edgeJSON.tag === 'Replace' ? edgeJSON.match : edgeJSON
+    return new StandardLudicNavigationEdge({
+        kind: 'Navigation',
         uuid: base.uuid,
         from: endpoint === 'from' ? { tag: 'Room', universalKey } : base.from,
         to: endpoint === 'to' ? { tag: 'Room', universalKey } : base.to,
@@ -142,23 +148,23 @@ export function retargetEdgeEndpoint(
 }
 
 export function updateEdgePayloadLiteral(
-    edge: StandardExitEdge,
+    edge: StandardLudicNavigationEdge,
     field: 'forward' | 'back',
     value: string
-): StandardExitEdge {
+): StandardLudicNavigationEdge {
     const edgeJSON = edge.toJSON()
-    if (typeof edgeJSON === 'string' || edgeJSON.tag === 'Remove') {
+    if (typeof edgeJSON === 'string' || ('tag' in edgeJSON && edgeJSON.tag === 'Remove')) {
         throw new Error('Cannot update removed edge')
     }
-    const base = edgeJSON.tag === 'Replace' ? edgeJSON.match : edgeJSON
+    const base = 'tag' in edgeJSON && edgeJSON.tag === 'Replace' ? edgeJSON.match : edgeJSON
     const payload = { ...(base.payload ?? {}) }
     if (value.trim()) {
         payload[field] = value
     } else {
         delete payload[field]
     }
-    return new StandardExitEdge({
-        tag: 'Exit',
+    return new StandardLudicNavigationEdge({
+        kind: 'Navigation',
         uuid: base.uuid,
         from: base.from,
         to: base.to,
@@ -167,7 +173,7 @@ export function updateEdgePayloadLiteral(
 }
 
 export function resolveEndpointReferenceData(
-    edge: StandardExitEdge,
+    edge: StandardLudicNavigationEdge,
     endpoint: 'from' | 'to'
 ): StandardReferenceData | undefined {
     const endpointValue = endpoint === 'from' ? edge.from : edge.to
@@ -177,7 +183,7 @@ export function resolveEndpointReferenceData(
 
 function participantRoomKeys(area: StandardArea): Set<ComponentUUID> {
     const keys = new Set<ComponentUUID>()
-    for (const node of area.ludicGraph.nodes.payload) {
+    for (const node of area.ludicGraph.nodes.componentRefs.payload) {
         if (node.tag === 'Room' && node.universalKey) {
             keys.add(node.universalKey as ComponentUUID)
         }
@@ -191,7 +197,7 @@ function participantRoomKeys(area: StandardArea): Set<ComponentUUID> {
  */
 export function exitEndpointSelectorIsExcluded(
     area: StandardArea,
-    edge: StandardExitEdge,
+    edge: StandardLudicNavigationEdge,
     endpoint: 'from' | 'to'
 ): ((universalKey: ComponentUUID) => boolean) | undefined {
     const otherEndpoint = endpoint === 'from' ? edge.to : edge.from
@@ -199,7 +205,7 @@ export function exitEndpointSelectorIsExcluded(
     if (!otherRef) {
         return undefined
     }
-    const otherInGraph = area.ludicGraph.nodes.payload.some((node) => node.sameKey(otherRef))
+    const otherInGraph = area.ludicGraph.nodes.componentRefs.payload.some((node) => node.sameKey(otherRef))
     if (otherInGraph) {
         return undefined
     }
@@ -208,7 +214,7 @@ export function exitEndpointSelectorIsExcluded(
 }
 
 export function resolveEndpointLabel(
-    edge: StandardExitEdge,
+    edge: StandardLudicNavigationEdge,
     endpoint: 'from' | 'to',
     standardForm: StandardForm
 ): string {
@@ -236,7 +242,7 @@ export function resolveEndpointLabel(
     return 'Unknown'
 }
 
-export function literalPayloadValue(edge: StandardExitEdge, field: 'forward' | 'back'): string {
+export function literalPayloadValue(edge: StandardLudicNavigationEdge, field: 'forward' | 'back'): string {
     const payload = edge.payload
     if (!payload) {
         return ''

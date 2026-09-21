@@ -7,7 +7,7 @@ import Typography from '@mui/material/Typography'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
-import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
+import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import ComponentSelectorDialog from '../foundations/ComponentSelector/ComponentSelectorDialog'
 import {
@@ -20,8 +20,8 @@ import {
 
 export type ExitEdgeRowEditorProps = {
     area: StandardArea
-    edge: StandardExitEdge
-    onUpdate: (edge: StandardExitEdge) => void
+    edge: StandardLudicNavigationEdge
+    onUpdate: (edge: StandardLudicNavigationEdge) => void
     onDelete: () => void
     disabled?: boolean
     participantRuleWarning?: boolean

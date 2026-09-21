@@ -1,7 +1,7 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { referencesFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
-import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
+import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 
 import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 
@@ -34,9 +34,9 @@ export function objectTouchesExitEdgeOnGraph(
     const envelope = graph.toPlayEnvelope()
     const edges = envelope.edges ?? []
     for (const rawEdge of edges) {
-        let exitEdge: StandardExitEdge
+        let exitEdge: StandardLudicNavigationEdge
         try {
-            exitEdge = new StandardExitEdge(rawEdge)
+            exitEdge = new StandardLudicNavigationEdge(rawEdge)
         } catch {
             continue
         }

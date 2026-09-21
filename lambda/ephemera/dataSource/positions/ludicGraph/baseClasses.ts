@@ -16,7 +16,7 @@ import {
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 import { referencesFromExitEndpoint } from '@tonylb/mtw-wml/ts/standardize/keys/edges/endpointReference'
-import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
+import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 
 /**
  * `from`/`to` are `EphemeraLudicTerminalId` --- any legal host-kind component, or a
@@ -85,7 +85,7 @@ export function extractRelationalEdgesFromStored(
         }
 
         try {
-            const exitEdge = new StandardExitEdge(rawEdge)
+            const exitEdge = new StandardLudicNavigationEdge(rawEdge)
             void exitEdge
         } catch {
             if (
@@ -216,7 +216,7 @@ export function edgeReferencesObjectId(
     }
 
     try {
-        const exitEdge = new StandardExitEdge(rawEdge)
+        const exitEdge = new StandardLudicNavigationEdge(rawEdge)
         const endpointRefs = [
             ...referencesFromExitEndpoint(exitEdge.from),
             ...referencesFromExitEndpoint(exitEdge.to),

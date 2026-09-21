@@ -184,7 +184,7 @@ describe('selectIdentityPlanTuple', () => {
     it('defers (not resolved) when the object touches an exit edge (Slice 4b: now decided during selection)', () => {
         const roomGraphWithExit = testLudicGraphFromEnvelope(roomId, {
             nodes: [{ tag: 'Object' as const, universalKey: broomId }],
-            edges: [{ tag: 'Exit', uuid: 'edge-1', from: broomId, to: 'OBJECT#Table' as EphemeraObjectId, payload: {} }],
+            edges: [{ kind: 'Navigation', uuid: 'edge-1', from: broomId, to: 'OBJECT#Table' as EphemeraObjectId, payload: {} }],
         })
         const stateWithExit = buildSandboxState([roomGraphWithExit, characterGraph])
 

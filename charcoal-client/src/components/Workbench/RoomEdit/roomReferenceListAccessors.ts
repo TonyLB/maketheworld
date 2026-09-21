@@ -35,16 +35,28 @@ export const roomGuidanceListAccessor: ReferenceListSessionAccessor<StandardRoom
     }
 }
 
+// LG-4: `_ludicGraph.nodes` is heterogeneous under alignment (component nodes + presence
+// structure nodes), so this accessor filters to Feature-tagged, non-root component nodes on
+// read, and on write merges the edit back through `withComponentRefs` rather than replacing the
+// whole node list -- a plain replacement would silently drop any Character/Object/root/Presence
+// node already on the graph.
 export const roomFeaturesListAccessor: ReferenceListSessionAccessor<StandardRoom> = {
     getReferenceList: (room) => {
         const payload = room._payload as unknown as RoomReferenceListPayloadHost
-        return payload._ludicGraph?.nodes ?? new ReferenceList([])
+        const rootId = payload._ludicGraph?.rootId
+        const componentRefs = payload._ludicGraph?.nodes.componentRefs ?? new ReferenceList([])
+        return componentRefs.filter((item) => item.tag === 'Feature' && !(rootId && item.sameKey(rootId)))
     },
     setReferenceList: (room, list) => {
         const payload = room._payload as unknown as RoomReferenceListPayloadHost
+        const rootId = payload._ludicGraph?.rootId
+        const existingComponentRefs = payload._ludicGraph?.nodes.componentRefs ?? new ReferenceList([])
+        const nonFeatureRefs = existingComponentRefs.filter((item) => item.tag !== 'Feature' || Boolean(rootId && item.sameKey(rootId)))
+        const mergedComponentRefs = new ReferenceList([...nonFeatureRefs.payload, ...list.payload])
+        const graph = payload._ludicGraph ?? new StandardLudicGraph()
         payload._ludicGraph = new StandardLudicGraph({
-            ...(payload._ludicGraph?.toJSON() ?? {}),
-            nodes: list.toJSON(),
+            ...(graph.toJSON() ?? {}),
+            nodes: graph.nodes.withComponentRefs(mergedComponentRefs).toJSON(),
         })
     }
 }
