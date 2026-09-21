@@ -235,5 +235,45 @@ describe("StandardLudicGraph", () => {
             const graph = StandardLudicGraph.fromJSON(data)
             expect(graph.toJSON()).toEqual(data)
         })
+
+        it("round-trips a relational edge with a port-qualified terminal (LG-11)", () => {
+            const data = {
+                edges: [
+                    {
+                        kind: 'Custom' as const,
+                        from: 'OBJECT#rope' as const,
+                        to: { owner: { tag: 'Object' as const, key: 'box' }, port: '8f3a' },
+                        relationLabel: 'TiedTo',
+                    },
+                ],
+            }
+            const graph = StandardLudicGraph.fromJSON(data)
+            expect(graph.toJSON()).toEqual(data)
+        })
+
+        it("round-trips a relational edge landing directly on a bare presence-node terminal (LG-11, PR-15)", () => {
+            const data = {
+                edges: [
+                    { kind: 'In' as const, from: 'OBJECT#ropeEndA' as const, to: { presence: 'PRESENCE#p1' } },
+                ],
+            }
+            const graph = StandardLudicGraph.fromJSON(data)
+            expect(graph.toJSON()).toEqual(data)
+        })
+
+        it("remaps the owner half of a port-qualified terminal on toFormat, leaving the port opaque", () => {
+            const graph = StandardLudicGraph.fromJSON({
+                edges: [
+                    {
+                        kind: 'Under' as const,
+                        from: { owner: { tag: 'Room' as const, key: 'lab', universalKey: 'ROOM#lab' as const }, port: '8f3a' },
+                        to: 'OBJECT#cup',
+                    },
+                ],
+            })
+            const formatted = graph.edges.toFormat('universal')
+            const edge = formatted.payload[0].toJSON() as any
+            expect(edge.from).toEqual({ owner: 'ROOM#lab', port: '8f3a' })
+        })
     })
 })

@@ -65,14 +65,49 @@ export const isStandardLudicNavigationEdgeData = (arg: unknown): arg is Standard
 }
 
 /**
+ * LG-11: a relational edge's endpoint, mirroring `EphemeraLudicTerminalId` -- a bare component
+ * reference, a port-qualified address on one (a crossing port, or a presence binding's exterior
+ * address), or a bare presence-node self-reference (PR-15/PN-6 clause (c): an edge may land
+ * directly on one of its own graph's presence bindings, never port-qualified in that case).
+ * Stored edges land on all three forms (`AGENT.ludicNetwork.md` sections 2 and 4), so the wire
+ * type has to as well or the stored-to-wire projection (Slice 4) silently drops a real terminal
+ * -- exactly the failure mode alignment exists to retire. `port` is an opaque string, same as
+ * `EphemeraLudicPortAddress.port`: either a minted crossing-port uuid or a `PRESENCE#<uuid>`
+ * binding address, undiscriminated here for the same reason it is undiscriminated on the
+ * ephemera side (the tag lives on the value, not the type). The presence arm is a distinct
+ * `{ presence }` shape, not a bare string, because `StandardReferenceData`'s own bare-string form
+ * is a `ComponentUUID` and a presence id is not a component (LG-8's reasoning again, at the edge
+ * layer rather than the node layer).
+ */
+export type StandardLudicTerminalData =
+    | StandardReferenceData
+    | { owner: StandardReferenceData; port: string }
+    | { presence: string }
+
+export const isStandardLudicTerminalData = (arg: unknown): arg is StandardLudicTerminalData => {
+    if (isStandardReferenceData(arg)) {
+        return true
+    }
+    if (typeof arg !== 'object' || arg === null) {
+        return false
+    }
+    if ('presence' in arg) {
+        const entry = arg as { presence: unknown }
+        return typeof entry.presence === 'string' && entry.presence.length > 0
+    }
+    const address = arg as { owner: unknown; port: unknown }
+    return isStandardReferenceData(address.owner) && typeof address.port === 'string' && address.port.length > 0
+}
+
+/**
  * Bearing (Topology, non-traversable) and every Membership/Peer kind: no WML surface tag and no
  * author path yet in this slice -- typed and unit-exercised, unreachable from real authoring,
- * per the lift rule. Endpoints are plain `StandardReferenceData`, not the Exit-specific editable
- * wrapper: there is no schema tag driving Replace/Remove edits on these fields yet.
+ * per the lift rule. Endpoints are `StandardLudicTerminalData` (LG-11), not the Exit-specific
+ * editable wrapper: there is no schema tag driving Replace/Remove edits on these fields yet.
  */
 type StandardLudicRelationalEdgeBase = {
-    from: StandardReferenceData
-    to: StandardReferenceData
+    from: StandardLudicTerminalData
+    to: StandardLudicTerminalData
     edgeId?: string
     chainId?: string
     ref?: number
@@ -96,7 +131,7 @@ export const isStandardLudicRelationalEdgeData = (arg: unknown): arg is Standard
     if (typeof data.kind !== 'string' || !LUDIC_RELATIONAL_EDGE_KIND_SET.has(data.kind)) {
         return false
     }
-    if (!isStandardReferenceData(data.from) || !isStandardReferenceData(data.to)) {
+    if (!isStandardLudicTerminalData(data.from) || !isStandardLudicTerminalData(data.to)) {
         return false
     }
     if (data.edgeId !== undefined && (typeof data.edgeId !== 'string' || data.edgeId.length === 0)) {

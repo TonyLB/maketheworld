@@ -13,6 +13,7 @@ import {
     StandardLudicEdgeData,
     StandardLudicNavigationEdgeData,
     StandardLudicRelationalEdgeData,
+    StandardLudicTerminalData,
 } from "./dataTypes/ludicEdge"
 
 //
@@ -157,6 +158,80 @@ export class StandardLudicNavigationEdge implements LudicEdgeListItem {
     }
 }
 
+/** LG-11: the class-side mirror of `StandardLudicTerminalData` -- a `StandardReference`, a
+ * port-qualified address whose `owner` half is one, or a bare presence-node self-reference
+ * (opaque id, no `StandardReference` involved -- a presence id is not a component). */
+type LudicEdgeTerminal = StandardReference | { owner: StandardReference; port: string } | { presence: string }
+
+const isPortQualifiedTerminal = (terminal: LudicEdgeTerminal): terminal is { owner: StandardReference; port: string } =>
+    !(terminal instanceof StandardReference) && 'owner' in terminal
+
+const isPresenceTerminal = (terminal: LudicEdgeTerminal): terminal is { presence: string } =>
+    !(terminal instanceof StandardReference) && 'presence' in terminal
+
+const terminalFromJSON = (data: StandardLudicTerminalData): LudicEdgeTerminal => {
+    if (typeof data === 'object' && data !== null && 'presence' in data) {
+        return { presence: data.presence }
+    }
+    if (typeof data === 'object' && data !== null && 'owner' in data) {
+        return { owner: new StandardReference(data.owner), port: data.port }
+    }
+    return new StandardReference(data)
+}
+
+const terminalToJSON = (terminal: LudicEdgeTerminal): StandardLudicTerminalData => {
+    if (isPresenceTerminal(terminal)) {
+        return { presence: terminal.presence }
+    }
+    if (isPortQualifiedTerminal(terminal)) {
+        return { owner: terminal.owner.toJSON(), port: terminal.port }
+    }
+    return terminal.toJSON()
+}
+
+const terminalClone = (terminal: LudicEdgeTerminal): LudicEdgeTerminal => {
+    if (isPresenceTerminal(terminal)) {
+        return { presence: terminal.presence }
+    }
+    if (isPortQualifiedTerminal(terminal)) {
+        return { owner: terminal.owner.clone(), port: terminal.port }
+    }
+    return terminal.clone()
+}
+
+const terminalSameKey = (a: LudicEdgeTerminal, b: LudicEdgeTerminal): boolean => {
+    if (isPresenceTerminal(a) || isPresenceTerminal(b)) {
+        return isPresenceTerminal(a) && isPresenceTerminal(b) && a.presence === b.presence
+    }
+    if (isPortQualifiedTerminal(a) || isPortQualifiedTerminal(b)) {
+        return isPortQualifiedTerminal(a) && isPortQualifiedTerminal(b) &&
+            a.owner.sameKey(b.owner) && a.port === b.port
+    }
+    return !isPortQualifiedTerminal(a) && !isPortQualifiedTerminal(b) && a.sameKey(b as StandardReference)
+}
+
+/** The presence arm passes through unchanged -- a presence id embeds a uuid, not a component
+ * key/universalKey pair, so there is nothing for a format change or a key lookup to remap. */
+const terminalToFormat = (terminal: LudicEdgeTerminal, format: ReferenceFormat): LudicEdgeTerminal => {
+    if (isPresenceTerminal(terminal)) {
+        return terminal
+    }
+    if (isPortQualifiedTerminal(terminal)) {
+        return { owner: terminal.owner.toFormat(format), port: terminal.port }
+    }
+    return terminal.toFormat(format)
+}
+
+const terminalLookup = (terminal: LudicEdgeTerminal, mappings: LookupMappings): LudicEdgeTerminal => {
+    if (isPresenceTerminal(terminal)) {
+        return terminal
+    }
+    if (isPortQualifiedTerminal(terminal)) {
+        return { owner: terminal.owner.lookup(mappings), port: terminal.port }
+    }
+    return terminal.lookup(mappings)
+}
+
 /**
  * Membership (`In`/`On`/`PartOf`), Peer (`Under`/`Against`/`Custom`), and Bearing (Topology,
  * non-traversable). No WML surface tag, no author path this slice. Identity and list membership
@@ -166,8 +241,8 @@ export class StandardLudicNavigationEdge implements LudicEdgeListItem {
  */
 export class StandardLudicRelationalEdge implements LudicEdgeListItem {
     readonly kind: Exclude<LudicEdgeKind, 'Navigation'>
-    _from: StandardReference
-    _to: StandardReference
+    _from: LudicEdgeTerminal
+    _to: LudicEdgeTerminal
     _edgeId?: string
     _chainId?: string
     _relationLabel?: string
@@ -176,8 +251,8 @@ export class StandardLudicRelationalEdge implements LudicEdgeListItem {
     constructor(arg: StandardLudicRelationalEdge | (StandardLudicRelationalEdgeData & { ref?: number })) {
         if (arg instanceof StandardLudicRelationalEdge) {
             this.kind = arg.kind
-            this._from = arg._from.clone()
-            this._to = arg._to.clone()
+            this._from = terminalClone(arg._from)
+            this._to = terminalClone(arg._to)
             this._edgeId = arg._edgeId
             this._chainId = arg._chainId
             this._relationLabel = arg._relationLabel
@@ -185,16 +260,16 @@ export class StandardLudicRelationalEdge implements LudicEdgeListItem {
             return
         }
         this.kind = arg.kind
-        this._from = new StandardReference(arg.from)
-        this._to = new StandardReference(arg.to)
+        this._from = terminalFromJSON(arg.from)
+        this._to = terminalFromJSON(arg.to)
         this._edgeId = arg.edgeId
         this._chainId = arg.chainId
         this._relationLabel = arg.kind === 'Custom' ? arg.relationLabel : undefined
         this._ref = arg.ref ?? 1
     }
 
-    get from(): StandardReference { return this._from }
-    get to(): StandardReference { return this._to }
+    get from(): LudicEdgeTerminal { return this._from }
+    get to(): LudicEdgeTerminal { return this._to }
     get edgeId(): string | undefined { return this._edgeId }
     get chainId(): string | undefined { return this._chainId }
     get relationLabel(): string | undefined { return this._relationLabel }
@@ -205,8 +280,8 @@ export class StandardLudicRelationalEdge implements LudicEdgeListItem {
             return false
         }
         return this.kind === other.kind &&
-            this._from.sameKey(other._from) &&
-            this._to.sameKey(other._to) &&
+            terminalSameKey(this._from, other._from) &&
+            terminalSameKey(this._to, other._to) &&
             this._relationLabel === other._relationLabel
     }
 
@@ -258,8 +333,8 @@ export class StandardLudicRelationalEdge implements LudicEdgeListItem {
     toJSON(): StandardEditableData<StandardLudicRelationalEdgeData> {
         const base = {
             kind: this.kind,
-            from: this._from.toJSON(),
-            to: this._to.toJSON(),
+            from: terminalToJSON(this._from),
+            to: terminalToJSON(this._to),
             ...(this._edgeId !== undefined ? { edgeId: this._edgeId } : {}),
             ...(this._chainId !== undefined ? { chainId: this._chainId } : {}),
         }
@@ -271,15 +346,15 @@ export class StandardLudicRelationalEdge implements LudicEdgeListItem {
 
     toFormat(format: ReferenceFormat): StandardLudicRelationalEdge {
         const result = new StandardLudicRelationalEdge(this)
-        result._from = this._from.toFormat(format)
-        result._to = this._to.toFormat(format)
+        result._from = terminalToFormat(this._from, format)
+        result._to = terminalToFormat(this._to, format)
         return result
     }
 
     lookup(mappings: LookupMappings): StandardLudicRelationalEdge {
         const result = new StandardLudicRelationalEdge(this)
-        result._from = this._from.lookup(mappings)
-        result._to = this._to.lookup(mappings)
+        result._from = terminalLookup(this._from, mappings)
+        result._to = terminalLookup(this._to, mappings)
         return result
     }
 
