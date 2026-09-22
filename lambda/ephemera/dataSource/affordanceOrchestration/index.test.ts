@@ -1,6 +1,7 @@
 import { affordanceOrchestrationDataSource } from './index'
 import * as orchestrationHandler from './orchestrationHandler'
 import * as fanOutAffordanceRefresh from './fanOutAffordanceRefreshForRoom'
+import * as bumpNonRoomHostCatalogs from './bumpNonRoomHostCatalogsForObjectMoved'
 import * as topologyInvalidatedHandler from '../affordanceCache/handleTopologyInvalidated'
 import * as orientationHandler from '../connectionsCharacterRegistered/handleCharacterRegisteredOrientation'
 import messageBus from '../../messageBus'
@@ -184,6 +185,7 @@ describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
 
     it('delegates mtw.ephemera.positions Object Moved to fanOutAffordanceRefreshForRoom', async () => {
         const fanOutSpy = jest.spyOn(fanOutAffordanceRefresh, 'fanOutAffordanceRefreshForRoom').mockResolvedValue(undefined)
+        const bumpSpy = jest.spyOn(bumpNonRoomHostCatalogs, 'bumpNonRoomHostCatalogsForObjectMoved').mockResolvedValue(undefined)
         const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateAffordanceRequest').mockResolvedValue(undefined)
         const payload = {
             type: 'Object Moved' as const,
@@ -220,7 +222,48 @@ describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
             reason: 'objects',
         }))
         expect(orchestrateSpy).not.toHaveBeenCalled()
+        expect(bumpSpy).toHaveBeenCalledTimes(1)
+        expect(bumpSpy).toHaveBeenCalledWith([])
         fanOutSpy.mockRestore()
+        bumpSpy.mockRestore()
+        orchestrateSpy.mockRestore()
+    })
+
+    it('bumps non-Room host catalogs on mtw.ephemera.positions Object Moved, alongside room fan-out', async () => {
+        const fanOutSpy = jest.spyOn(fanOutAffordanceRefresh, 'fanOutAffordanceRefreshForRoom').mockResolvedValue(undefined)
+        const bumpSpy = jest.spyOn(bumpNonRoomHostCatalogs, 'bumpNonRoomHostCatalogsForObjectMoved').mockResolvedValue(undefined)
+        const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateAffordanceRequest').mockResolvedValue(undefined)
+        const payload = {
+            type: 'Object Moved' as const,
+            objectId: 'OBJECT#cup',
+            froms: ['OBJECT#shelf' as const],
+            to: 'OBJECT#table' as const,
+            beatAnchorTime: 1,
+        }
+        const events: any[] = [
+            {
+                header: {
+                    dataSourceKey: 'mtw.ephemera.positions',
+                    streamKey: 'OBJECT#cup',
+                    timestamp: Date.now(),
+                    type: 'Object Moved',
+                },
+                getContent: () => Promise.resolve(payload),
+            },
+        ]
+
+        await affordanceOrchestrationDataSource.receiveEvents?.({
+            events,
+            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEnvelope: jest.fn().mockResolvedValue(undefined),
+        })
+
+        expect(fanOutSpy).not.toHaveBeenCalled()
+        expect(bumpSpy).toHaveBeenCalledTimes(1)
+        expect(bumpSpy).toHaveBeenCalledWith(expect.arrayContaining(['OBJECT#shelf', 'OBJECT#table']))
+        expect(orchestrateSpy).not.toHaveBeenCalled()
+        fanOutSpy.mockRestore()
+        bumpSpy.mockRestore()
         orchestrateSpy.mockRestore()
     })
 
