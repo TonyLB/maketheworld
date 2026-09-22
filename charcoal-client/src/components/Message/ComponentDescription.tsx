@@ -23,6 +23,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import { SituationProseFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { DEFAULT_SITUATION_ID } from '../../slices/personalAssets'
+import { formatObjectContentsLine } from '../../slices/messages/roomHeaderPhaseC'
 
 type ComponentDescriptionProps = {
     parsedWML: StandardForm;
@@ -62,6 +63,7 @@ export const ComponentDescription = ({
 }: ComponentDescriptionProps) => {
     let name: StandardLiteral = new StandardLiteral('Unknown', { tag: 'DisplayName' })
     let description: StandardRender = new StandardRender([])
+    let contentsLine: string | null = null
 
     const componentUUID = metaData.componentUUID
     const component = parsedWML.byUniversalId[componentUUID]
@@ -81,6 +83,7 @@ export const ComponentDescription = ({
         if (prosePayload) {
             description = prosePayload._description || new StandardRender([])
         }
+        contentsLine = formatObjectContentsLine(parsedWML, componentUUID)
     }
 
     const bevelCSS = bevel
@@ -129,6 +132,11 @@ export const ComponentDescription = ({
                             : <em>No description</em>
                     })()
                 }
+                {contentsLine && (
+                    <Typography variant='body2' component='p' sx={{ marginTop: '8px' }}>
+                        {contentsLine}
+                    </Typography>
+                )}
             </Box>
         </MessageComponent>
 }
