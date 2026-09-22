@@ -18,6 +18,8 @@ import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/component
 import { getRoomCharacterList } from './hydrateRoomRoster'
 import { roomCharacterListToStandardCharacterData } from './roomWireMergeHelpers'
 import type { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
+import { toWireLudicGraphFull } from '../dataSource/positions/ludicGraph/wireProjection'
+import type { StandardObjectData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/object'
 
 /** Cache key for AffordanceRoomDeliverable (roomId, perspectiveKey). */
 export function generateAffordanceRoomDeliverableCacheKey(
@@ -120,16 +122,16 @@ export class AffordanceRoomDeliverableData {
             throw new Error(`ComponentAggregate did not return StandardRoom for ${roomId}`)
         }
 
-        const objectWireRows = await Promise.all(objectIds.map(async (objectId) => {
+        const objectComponents = (await Promise.all(objectIds.map(async (objectId): Promise<StandardObjectData | undefined> => {
             const pairRow = await this._objectReads.getImprovisationObject(objectId)
             const component = pairRow?.component
             const shortName = component instanceof StandardObject && component.shortName
                 ? shortNameToJSON(component.shortName)
                 : undefined
             return typeof shortName === 'string'
-                ? { uuid: objectId, shortName }
+                ? { tag: 'Object', universalKey: objectId, shortName }
                 : undefined
-        }))
+        }))).filter((row): row is StandardObjectData => row !== undefined)
 
         const exits = affordanceRow.topology.exits
         const shortNameLiteral = mergedRoom.shortName
@@ -140,9 +142,7 @@ export class AffordanceRoomDeliverableData {
             ...(exits.length ? { exits } : {}),
             characters: roomCharacterList.map((char) => char.EphemeraId),
             shortName: shortNameLiteral?.toJSON(),
-            ...(objectWireRows.some((row) => row !== undefined)
-                ? { objects: objectWireRows.filter((row): row is { uuid: typeof objectIds[number]; shortName: string } => row !== undefined) }
-                : {}),
+            ludicGraph: toWireLudicGraphFull(ludicGraph),
         }
 
         const characterComponents = roomCharacterListToStandardCharacterData(roomCharacterList)
@@ -152,6 +152,7 @@ export class AffordanceRoomDeliverableData {
                 { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
                 roomRow,
                 ...characterComponents,
+                ...objectComponents,
             ],
             { standardizeMode: 'ephemeraWire' }
         )

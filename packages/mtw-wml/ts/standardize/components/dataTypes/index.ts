@@ -12,7 +12,7 @@ import { StandardKnowledgeData, isStandardKnowledgeData } from "./knowledge"
 import { StandardMapData, StandardMapInputData, isStandardMapData, isStandardMapInputData } from "./map"
 import { StandardMessageData, isStandardMessageData } from "./message"
 import { StandardMomentData, isStandardMomentData } from "./moment"
-import { StandardRoomData, StandardRoomInputData, StandardRoomObjectData, StandardRoomRenderData, isStandardRoomData, isStandardRoomInputData } from "./room"
+import { StandardRoomData, StandardRoomInputData, StandardRoomRenderData, isStandardRoomData, isStandardRoomInputData } from "./room"
 import { StandardMarkData, isStandardMarkData } from "./mark"
 import { StandardLensData, StandardLensInputData, isStandardLensData, isStandardLensInputData } from "./lens"
 import { StandardGuidanceData, StandardGuidanceInputData, isStandardGuidanceData, isStandardGuidanceInputData } from "./guidance"
@@ -33,7 +33,7 @@ import { RenderTree } from "@tonylb/mtw-base/ts/renderTree"
 import { ReferenceListData } from "../../keys/dataTypes/reference"
 import type { WmlStandardizeMode } from "../../wmlStandardizeMode"
 
-export type { StandardRoomObjectData, StandardRoomRenderData, StandardLudicGraphData, LudicGraphNodeTag }
+export type { StandardRoomRenderData, StandardLudicGraphData, LudicGraphNodeTag }
 export { LUDIC_GRAPH_NODE_TAGS, isStandardLudicGraphData }
 export {
     isStandardCharacterData,

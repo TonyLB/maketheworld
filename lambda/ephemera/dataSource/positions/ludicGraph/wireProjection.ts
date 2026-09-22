@@ -226,6 +226,25 @@ export const toWireLudicGraph = (
 }
 
 /**
+ * Slice 5a: the un-cut projection, for a host that is never itself a hosted thing with presence
+ * multiplicity -- a Room. Rooms are never members of another play graph (`AGENT.ludicNetwork.md`
+ * section 1), so there is no presence binding to sub-graph by; this ships the host's whole stored
+ * graph as-is, reusing the same field-by-field mappers `toWireLudicGraph` uses after its cut.
+ */
+export const toWireLudicGraphFull = (graph: EphemeraLudicGraph): StandardLudicGraphData => {
+    const stored = graph.toStored()
+    const nodes: LudicGraphNodeListData = stored.nodes.map(nodeToWire)
+    const edges: LudicEdgeListData = graph.relationalEdges.map(edgeToWire)
+    const ports: LudicGraphPortListData = stored.ports.map(portToWire)
+    return {
+        rootId: ephemeraComponentIdToReferenceData(stored.rootId as EphemeraMembershipHostId),
+        ...(nodes.length ? { nodes } : {}),
+        ...(edges.length ? { edges } : {}),
+        ...(ports.length ? { ports } : {}),
+    }
+}
+
+/**
  * The inverse, for the totality round-trip test: WML's wire shape back to a stored field
  * payload. A `Navigation`-kind edge entry is out of scope and throws rather than silently
  * dropping -- stored payloads never carry one (Exit lives only in Area's own authored `edges`,

@@ -2,6 +2,7 @@ import { schemaToWML, treeFromWML } from '../../schema'
 import { StandardForm } from '..'
 import { deIndentWML } from '../../schema/utils'
 import StandardRoom from './room'
+import StandardObject from './object'
 
 jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
     return {
@@ -10,7 +11,12 @@ jest.mock('@tonylb/mtw-utilities/ts/uuid/index', () => {
 })
 
 describe('StandardRoom ephemeraWire integration', () => {
-    it('parses Object children under Room in ephemeraWire', () => {
+    // `_objects`/`StandardRoomObjectData` were retired in Slice 5 (LG-2): a nested `<Object>`
+    // under `<Room>` is now a graph membership reference (like `<Feature>`), not a flat
+    // shortName pair. The full definition still parses inline, exactly as before -- it is
+    // also independently discovered as a real top-level `StandardObject` component, via the
+    // same returnRemainderAddition mechanism Feature/Character already use.
+    it('parses Object children under Room in ephemeraWire as ludicGraph membership', () => {
         const wml = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(main) uuid=(main)>
@@ -25,14 +31,15 @@ describe('StandardRoom ephemeraWire integration', () => {
         `)
         const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
         const room = sf._lookup('ROOM#main') as StandardRoom
-        expect(room.objects).toEqual([
-            { uuid: 'OBJECT#skates', shortName: 'roller skates' },
-            { uuid: 'OBJECT#shovel', shortName: 'shovel' },
+        expect(room.ludicGraph.nodesByTag('Object').payload.map((ref) => ref.universalKey).sort()).toEqual([
+            'OBJECT#shovel',
+            'OBJECT#skates',
         ])
-        expect((room.toJSON() as { objects?: { uuid: string; shortName: string }[] }).objects).toEqual([
-            { uuid: 'OBJECT#skates', shortName: 'roller skates' },
-            { uuid: 'OBJECT#shovel', shortName: 'shovel' },
-        ])
+        const skates = sf._lookup('OBJECT#skates') as StandardObject
+        const shovel = sf._lookup('OBJECT#shovel') as StandardObject
+        expect(skates).toBeInstanceOf(StandardObject)
+        expect(skates.shortName?.toJSON()).toBe('roller skates')
+        expect(shovel.shortName?.toJSON()).toBe('shovel')
     })
 
     it('normalizes Object uuid=(OBJECT#id) same as bare id in ephemeraWire', () => {
@@ -56,8 +63,10 @@ describe('StandardRoom ephemeraWire integration', () => {
         `)
         const roomBare = (new StandardForm(wmlBare, { standardizeMode: 'ephemeraWire' })._lookup('ROOM#main') as StandardRoom)
         const roomPrefixed = (new StandardForm(wmlPrefixed, { standardizeMode: 'ephemeraWire' })._lookup('ROOM#main') as StandardRoom)
-        expect(roomBare.objects).toEqual(roomPrefixed.objects)
-        expect(roomBare.objects[0].uuid).toBe('OBJECT#skates')
+        expect(roomBare.ludicGraph.nodesByTag('Object').payload.map((ref) => ref.universalKey)).toEqual(
+            roomPrefixed.ludicGraph.nodesByTag('Object').payload.map((ref) => ref.universalKey)
+        )
+        expect(roomBare.ludicGraph.nodesByTag('Object').payload[0].universalKey).toBe('OBJECT#skates')
     })
 
     it('throws when Object uuid has wrong typed prefix', () => {

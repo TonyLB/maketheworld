@@ -91,6 +91,8 @@ At play time, room membership is stored as a **room play graph** plus a **revers
 
 A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply. Objects follow the same steady-state rule (nodes only); multi-room object adjacency is drift repaired via [`repairObjectPlacementDrift`](manipulation/membership/repairObjectPlacementDrift.ts).
 
+**A separate, narrower two-lists question sits at the WML authoring layer, not this one.** `StandardRoom` in `packages/mtw-wml` carries its own authored `<Character>` reference list (`_characters`) independent of `ludicGraph.nodes`'s `CHARACTER#` entries --- WML's authoring surface has not been through the same graph-is-sole-authority pass this section describes for the play graph. `componentLudicGraphAlignment`'s Slice 5 (LG-2) retired the WML-layer's analogous `_objects` field in favor of deriving object membership from `ludicGraph` directly; whether `_characters` should follow the same path, or whether the authored/runtime asymmetry is intentional, is forwarded (not resolved) as a cross-reference near [`AGENT.presence.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.presence.planning.md)'s PR-6.
+
 ### Object room placement (nodes only)
 
 Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation:

@@ -2,6 +2,26 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { mergePerceivedRoomForms, formatRoomContentsLine } from './roomHeaderPhaseC'
 
+/**
+ * Builds a room wire form from real WML text, the way `affordanceRoomDeliverable.ts` does
+ * post-alignment: a room-nested `<Object>` is a `ludicGraph` membership reference whose full
+ * inline definition (uuid + `<ShortName>`) is also promoted to a real top-level `Object`
+ * component, which is what `formatRoomContentsLine` resolves via `byUniversalId`.
+ */
+function roomFormWithObjects(objects: { uuid: string; shortName: string }[]): StandardForm {
+    const objectTags = objects
+        .map(({ uuid, shortName }) => `<Object uuid=(${uuid})><ShortName>${shortName}</ShortName></Object>`)
+        .join('\n                        ')
+    const wml = deIndentWML(`
+        <Asset uuid=(Test)>
+            <Room key=(main) uuid=(ROOM#main)>
+                ${objectTags}
+            </Room>
+        </Asset>
+    `)
+    return new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+}
+
 describe('roomHeaderPhaseC', () => {
     describe('mergePerceivedRoomForms', () => {
         it('returns render.merge(affordance) when both exist', () => {
@@ -16,17 +36,8 @@ describe('roomHeaderPhaseC', () => {
                     </Room>
                 </Asset>
             `)
-            const affordanceWml = deIndentWML(`
-                <Asset uuid=(Test)>
-                    <Room key=(main) uuid=(ROOM#main)>
-                        <Object uuid=(crate)>
-                            <ShortName>wooden crate</ShortName>
-                        </Object>
-                    </Room>
-                </Asset>
-            `)
             const render = new StandardForm(renderWml, { standardizeMode: 'ephemeraWire' })
-            const affordance = new StandardForm(affordanceWml, { standardizeMode: 'ephemeraWire' })
+            const affordance = roomFormWithObjects([{ uuid: 'OBJECT#crate', shortName: 'wooden crate' }])
             const merged = mergePerceivedRoomForms(render, affordance)
             expect(merged).toBeDefined()
             const room = merged!.byUniversalId['ROOM#main']
@@ -72,41 +83,24 @@ describe('roomHeaderPhaseC', () => {
         })
 
         it('formats a single object as label only', () => {
-            const wml = deIndentWML(`
-                <Asset uuid=(Test)>
-                    <Room key=(main) uuid=(ROOM#main)>
-                        <Object uuid=(o1)><ShortName>crate</ShortName></Object>
-                    </Room>
-                </Asset>
-            `)
-            const form = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+            const form = roomFormWithObjects([{ uuid: 'OBJECT#o1', shortName: 'crate' }])
             expect(formatRoomContentsLine(form, 'ROOM#main')).toEqual('Contents: crate')
         })
 
         it('formats two objects with and', () => {
-            const wml = deIndentWML(`
-                <Asset uuid=(Test)>
-                    <Room key=(main) uuid=(ROOM#main)>
-                        <Object uuid=(o1)><ShortName>apple</ShortName></Object>
-                        <Object uuid=(o2)><ShortName>banana</ShortName></Object>
-                    </Room>
-                </Asset>
-            `)
-            const form = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+            const form = roomFormWithObjects([
+                { uuid: 'OBJECT#o1', shortName: 'apple' },
+                { uuid: 'OBJECT#o2', shortName: 'banana' },
+            ])
             expect(formatRoomContentsLine(form, 'ROOM#main')).toEqual('Contents: apple and banana')
         })
 
         it('formats three or more as Oxford list', () => {
-            const wml = deIndentWML(`
-                <Asset uuid=(Test)>
-                    <Room key=(main) uuid=(ROOM#main)>
-                        <Object uuid=(o1)><ShortName>a</ShortName></Object>
-                        <Object uuid=(o2)><ShortName>b</ShortName></Object>
-                        <Object uuid=(o3)><ShortName>c</ShortName></Object>
-                    </Room>
-                </Asset>
-            `)
-            const form = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+            const form = roomFormWithObjects([
+                { uuid: 'OBJECT#o1', shortName: 'a' },
+                { uuid: 'OBJECT#o2', shortName: 'b' },
+                { uuid: 'OBJECT#o3', shortName: 'c' },
+            ])
             expect(formatRoomContentsLine(form, 'ROOM#main')).toEqual('Contents: a, b, and c')
         })
     })

@@ -1,6 +1,7 @@
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import { componentDisplayLabel } from '../../lib/componentDisplayLabel'
 
 /** Merge full room-shaped forms: render base, affordances incoming. Falls back to render-only if merge throws. */
 export function mergePerceivedRoomForms(
@@ -26,11 +27,15 @@ export function formatRoomContentsLine(parsedWML: StandardForm | undefined, comp
     if (!(component instanceof StandardRoom)) {
         return null
     }
-    const objects = component.objects
-    if (!objects?.length) {
+    const objectRefs = component.ludicGraph.nodesByTag('Object')
+    if (!objectRefs.payload.length) {
         return null
     }
-    const names = objects.map((o) => o.shortName.trim()).filter(Boolean)
+    const names = objectRefs.payload
+        .map((ref) => (ref.universalKey ? parsedWML.byUniversalId[ref.universalKey] : undefined))
+        .filter((c): c is NonNullable<typeof c> => Boolean(c))
+        .map((c) => componentDisplayLabel(c))
+        .filter((name): name is string => Boolean(name))
     if (names.length === 0) {
         return null
     }
