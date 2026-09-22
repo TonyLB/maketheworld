@@ -18,6 +18,7 @@ export type CompileObjectRehostFromSkeletonInput = {
     skeleton: ParseSkeleton
     subject: Referent
     target: Referent
+    containment: 'On' | 'In'
     hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
@@ -65,8 +66,10 @@ const resolveSingleObjectId = (
  * execution are not the same moment (the object could move between them).
  *
  * Scope cuts, deliberate: multi-candidate (ambiguous) resolution errors out rather than
- * disambiguating; `In`/`PartOf` never reach this function (parseCommand.ts still hard-errors
- * them before this point) --- only one hosting kind is built.
+ * disambiguating; `PartOf` never reaches this function (parseCommand.ts still hard-errors
+ * it before this point, per ND-4 in AGENT.nestedObjectLook.planning.md) --- `containment`
+ * is `input.containment`, forwarded from the caller's matched relational-defer kind, not
+ * hardcoded.
  */
 export async function compileObjectRehostFromSkeleton(
     input: CompileObjectRehostFromSkeletonInput,
@@ -103,7 +106,7 @@ export async function compileObjectRehostFromSkeleton(
         subjectId: subjectResolved.objectId,
         targetId: targetResolved.objectId,
         hostId: hostRoomId,
-        containment: 'On',
+        containment: input.containment,
         confidence: intentConfidence,
     }
 }

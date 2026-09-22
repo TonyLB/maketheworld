@@ -374,8 +374,9 @@ export type ParseCommandEstablishRelationResult = {
  * context only, matching `orchestrateObjectMove`'s `roomId`) --- not `subjectId`'s current
  * host, which the positions-layer consumer resolves fresh via `getMembershipContainers`
  * rather than trusting a value baked in at parse time. `containment` is typed as the full
- * AB-54 hosting-kind union for forward compatibility, but only `'On'` is ever constructed
- * today --- `In`/`PartOf` still hard-error before reaching this type.
+ * AB-54 hosting-kind union; `On` and `In` both construct this type today (nestedObjectLook
+ * Phase 4), `PartOf` still hard-errors before reaching it (ND-4: no player phrase for it, by
+ * design).
  */
 export type ParseCommandObjectRehostResult = {
     type: 'ObjectRehost'

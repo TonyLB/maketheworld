@@ -1469,8 +1469,9 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('returns nesting Error for in relational route via the native skeleton pipeline', async () => {
+    it('returns ObjectRehost for in relational route via the native skeleton pipeline', async () => {
         const coinId = 'OBJECT#Coin'
+        const jarId = 'OBJECT#Jar'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"Command","confidence":0.9}',
@@ -1484,8 +1485,12 @@ describe('parseCommand LLM path', () => {
         const result = await parseCommand(
             {
                 command: 'put the coin in the jar',
-                roomObjectLabels: ['coin'],
-                roomObjectCatalog: [{ objectId: coinId, normalizedShortName: 'coin' }],
+                hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
+                roomObjectLabels: ['coin', 'jar'],
+                roomObjectCatalog: [
+                    { objectId: coinId, normalizedShortName: 'coin' },
+                    { objectId: jarId, normalizedShortName: 'jar' },
+                ],
             },
             {
                 invokeBedrockParseCommandImpl,
@@ -1495,8 +1500,12 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.nestingRelational,
+            type: 'ObjectRehost',
+            subjectId: coinId,
+            targetId: jarId,
+            hostId: 'ROOM#Bridge',
+            containment: 'In',
+            confidence: 0.9,
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
