@@ -162,7 +162,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
                 ...shortNameSchemaChildren(this.shortName),
                 ...situationSchemas,
                 ...renderSchemas,
-                ...this._ludicGraph.nodes.componentRefs.schema,
+                ...this._ludicGraph.nonRootComponentRefs.schema,
             ]
         }
     }
@@ -187,13 +187,16 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
                 ?? this._ludicGraph.nodes.componentRefs
         }
 
+        // Excludes the root itself --- see the identical note in `object.ts`'s `nestedSchema`.
+        const nonRootNodesToRender = this._ludicGraph.excludeRoot(nodesToRender)
+
         return {
             data: { tag: 'Feature', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...shortNameSchemaChildren(this.shortName),
                 ...situationSchemas,
                 ...renderSchemas,
-                ...nodesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1),
+                ...nonRootNodesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1),
             ]
         }
     }

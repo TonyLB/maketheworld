@@ -213,7 +213,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             children: [
                 ...shortNameSchemaChildren(this.shortName),
                 ...this.lens.schema,
-                ...this._ludicGraph.nodes.componentRefs.schema,
+                ...this._ludicGraph.nonRootComponentRefs.schema,
                 ...this.guidance.schema,
                 ...this.characters.schema,
                 ...situationSchemas,
@@ -263,13 +263,15 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         }, [])
 
         const renderSchemas: GenericTreeNode<SchemaTag>[] = this._render ? [renderPayloadToSchemaNode(this._render, mappings)] : []
+        // Excludes the root itself --- see the identical note in `object.ts`'s `nestedSchema`.
+        const nonRootNodesToRender = this._ludicGraph.excludeRoot(nodesToRender)
         // Pass this Room's key as parent context to children for correct rendering
         return {
             data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...shortNameSchemaChildren(this.shortName),
                 ...lensToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
-                ...nodesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
+                ...nonRootNodesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...guidanceToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...charactersToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...inlineRemainder.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),

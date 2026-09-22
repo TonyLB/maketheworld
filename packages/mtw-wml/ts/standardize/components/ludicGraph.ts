@@ -65,6 +65,31 @@ export class StandardLudicGraph {
         return [...this._ports]
     }
 
+    /**
+     * `nodes.componentRefs` minus the root, if present --- the root is always a member of `nodes`
+     * (concepts clause 3), which is correct for the graph model but wrong to serialize as a schema
+     * child: `<Tag uuid=(id)>...<Tag uuid=(id) /></Tag>` (the host referencing itself) is both
+     * semantically empty and structurally invalid on re-parse (a reference-only occurrence has no
+     * `ShortName`, which every host tag's converter requires unconditionally). Every host class's
+     * `schema()` should spread this, not `nodes.componentRefs.schema`, directly --- the same
+     * root-exclusion `referencedKeys()`/`nodesByTag` already apply to their own derived lists.
+     */
+    get nonRootComponentRefs(): ReferenceList {
+        return this.excludeRoot(this._nodes.componentRefs)
+    }
+
+    /**
+     * Strips the root, if present, out of an arbitrary already-built `ReferenceList` --- used by
+     * `nonRootComponentRefs` above, and by each host class's `nestedSchema()` (the top-level
+     * `StandardForm.schema`-getter path, distinct from and in addition to `schema()`) once it has
+     * assembled its own node-reference list, however that list was assembled (raw `nodes`, or
+     * merged with organization-derived children).
+     */
+    excludeRoot(list: ReferenceList): ReferenceList {
+        const rootId = this._rootId
+        return list.filter((item) => !(rootId && item.sameKey(rootId)))
+    }
+
     toJSON(): StandardLudicGraphData | undefined {
         const nodesJSON = this._nodes.payload.length ? this._nodes.toJSON() : undefined
         const edgesJSON = this._edges.length ? this._edges.toJSON() : undefined

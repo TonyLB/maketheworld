@@ -213,7 +213,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
                 this.image,
                 ...situationSchemas,
                 ...renderSchemas,
-                ...this._ludicGraph.nodes.componentRefs.schema,
+                ...this._ludicGraph.nonRootComponentRefs.schema,
             ].filter(excludeUndefined).flat(1)
         }
     }
@@ -396,6 +396,9 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
                 ?? this._ludicGraph.nodes.componentRefs
         }
 
+        // Excludes the root itself --- see the identical note in `object.ts`'s `nestedSchema`.
+        const nonRootNodesToRender = this._ludicGraph.excludeRoot(nodesToRender)
+
         return {
             data: { tag: 'Character', key: key.key ?? '', uuid: key.universalKey },
             children: [
@@ -405,7 +408,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
                 this.image,
                 ...situationSchemas,
                 ...renderSchemas,
-                ...nodesToRender.payload.map(renderReference({ lookup: _lookup, options })).filter(excludeUndefined).flat(1),
+                ...nonRootNodesToRender.payload.map(renderReference({ lookup: _lookup, options })).filter(excludeUndefined).flat(1),
             ].filter(excludeUndefined).flat(1)
         }
     }

@@ -168,7 +168,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
                 ...shortNameSchemaChildren(this.shortName),
                 ...situationSchemas,
                 ...renderSchemas,
-                ...this._ludicGraph.nodes.componentRefs.schema,
+                ...this._ludicGraph.nonRootComponentRefs.schema,
             ],
         }
     }
@@ -337,13 +337,19 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
                 ?? this._ludicGraph.nodes.componentRefs
         }
 
+        // Excludes the root itself --- the root is always a member of `nodes` (concepts clause 3),
+        // correct for the graph model but wrong as a rendered child: a self-referencing
+        // `<Object uuid=(id) />` inside its own `<Object uuid=(id)>` is both semantically empty
+        // and structurally invalid on re-parse (a reference-only occurrence has no `ShortName`).
+        const nonRootNodesToRender = this._ludicGraph.excludeRoot(nodesToRender)
+
         return {
             data: { tag: 'Object', uuid: key.universalKey },
             children: [
                 ...shortNameSchemaChildren(this.shortName),
                 ...situationSchemas,
                 ...renderSchemas,
-                ...nodesToRender.payload.map(renderReference({ lookup: _lookup, options })).filter(excludeUndefined).flat(1),
+                ...nonRootNodesToRender.payload.map(renderReference({ lookup: _lookup, options })).filter(excludeUndefined).flat(1),
             ],
         }
     }
