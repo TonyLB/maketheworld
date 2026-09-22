@@ -1,8 +1,8 @@
 /**
- * Slice 4 of `AGENT.componentLudicGraphAlignment.planning.md`: the stored-to-wire projection.
- * Alignment (Slices 0-3) made `StandardLudicGraphData` the same type contract as
- * `EphemeraLudicGraphFieldPayload`; this is the function that actually exercises it, sub-graphed
- * by presence binding (the lift rule's binding parameter, carried even while arity is 1 today).
+ * The stored-to-wire projection. `StandardLudicGraphData` (`packages/mtw-wml`) is the same type
+ * contract as `EphemeraLudicGraphFieldPayload`; this is the function that actually exercises it,
+ * sub-graphed by presence binding (the lift rule's binding parameter, carried even while arity is
+ * 1 today). See `AGENT.ludicNetwork.md` section 6 for the lift rule this follows.
  *
  * Both directions live here, not just the forward one -- `fromWireLudicGraph` exists so the
  * totality round-trip test can assert what alignment claims: same shape in, same shape out,

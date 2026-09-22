@@ -33,7 +33,7 @@
 
 | Style | When | Examples |
 | --- | --- | --- |
-| **Direct `orchestrateAffordanceRequest`** | Producer is already inside affordanceOrchestration `receiveEvents` (or shares `streamEvent` in the same invocation) | Session orientation affordances, Objects Changed fan-out, TopologyInvalidated fan-out |
+| **Direct `orchestrateAffordanceRequest`** | Producer is already inside affordanceOrchestration `receiveEvents` (or shares `streamEvent` in the same invocation) | Session orientation affordances, Objects Changed fan-out, TopologyInvalidated fan-out, Object Moved fan-out |
 | **Bus `Affordances Requested` kick** (`sendAffordancesRequested` -> `publish`) | External or cross-module producers not already in the orchestration handler graph | `RoomUpdate` / `sendAffordanceRefreshRequestedForRoom`, integration harnesses |
 
 **External adapters (outside this DataSource):**
@@ -58,6 +58,14 @@ Wiring: [`app.ts`](../../app.ts) side-effect imports `./dataSource/affordanceOrc
 ### `mtw.ephemera.objects` **`Objects Changed`**
 
 Handled in [`index.ts`](index.ts) **`receiveEvents`**: **`fanOutAffordanceRefreshForRoom`** with reason **`objects`** (one **`orchestrateAffordanceRequest`** per distinct occupant perspective).
+
+### `mtw.ephemera.positions` **`Object Moved`**
+
+Handled in [`index.ts`](index.ts) **`receiveEvents`**: [`roomsAffectedByObjectMoved`](roomsAffectedByObjectMoved.ts) reduces the published `froms`/`to` (`EphemeraMembershipHostId[]`/`EphemeraMembershipHostId | null`) down to the `EphemeraRoomId`s among them (`isEphemeraRoomId` filter), and **`fanOutAffordanceRefreshForRoom`** runs with reason **`objects`** for each.
+
+**This is a room-scoped filter by design, not an oversight: Rooms are the only host kind with a live-update channel.** Feature/Character/Object are pull, not push --- a player sees their render only by looking, and gets no standing subscription to changes thereafter (this module's whole job is the room live-update channel; it has no analogue for the other three kinds and should not grow one for this).
+
+**The real, still-open gap is on the pull side, in `renderCache`, not here.** When a thing moves into or out of an `OBJECT#` host, nothing bumps that host's own `Cache::${perspectiveKey}` catalog rows the way [`handleExampleInvalidated.ts`](../renderCache/handleExampleInvalidated.ts) does for an authored blueprint edit (see [`renderCache/AGENT.md`](../renderCache/AGENT.md)'s **Authored cache (invalidate + hydrate)**). So a container's cached look-render is not merely "not pushed" --- it is **not invalidated either**, and the next `look` at it would serve the stale `CACHE#` row rather than lazily rehydrating, the same way an authored edit forces a rehydrate today. This only matters once something renders nested `ludicGraph` contents into that cached row; until then there is nothing to go stale. Whoever builds that display should wire `Object Moved` (or `Objects Changed`) into a `catalogVersion` bump for the affected host(s), mirroring `handleExampleInvalidated.ts`'s bump-only/no-push shape --- not extend this module's room-scoped push pipeline, which is the wrong mechanism for a pull-based kind.
 
 ### `mtw.assets.componentTopology` **`TopologyInvalidated`**
 
