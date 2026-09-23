@@ -20,7 +20,7 @@ import type {
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { StandardExitEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/exitEdge'
+import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 
 import type { HostRelationalPatch } from '../manipulation/types'
 import {
@@ -91,6 +91,15 @@ export class RelationalEdgeStillReferencedError extends Error {
     }
 }
 
+/**
+ * `PlayLudicGraph['edges']` is WML's aligned, kind-discriminated `LudicEdgeListData` (LG-9): the
+ * Navigation arm is today's `<Exit>`, kept play-only here exactly as before; every other kind is
+ * a relational edge in WML's own shape (`kind`, no `tag: 'Relational'`), not the ephemera-stored
+ * shape `isEphemeraLudicRelationalEdgeData` checks for. Nothing populates a non-Navigation entry
+ * in a play envelope yet, so those fall through and are dropped here, same as an
+ * `isEphemeraLudicRelationalEdgeData` match always was -- routing them into the stored relational
+ * shape is the stored-to-wire projection's job (Slice 4), not this split's.
+ */
 const extractPlayOnlyEdges = (envelope: PlayLudicGraph): PlayLudicGraph['edges'] => {
     const edges = envelope.edges ?? []
     const playOnly: NonNullable<PlayLudicGraph['edges']> = []
@@ -99,7 +108,7 @@ const extractPlayOnlyEdges = (envelope: PlayLudicGraph): PlayLudicGraph['edges']
             continue
         }
         try {
-            void new StandardExitEdge(rawEdge)
+            void new StandardLudicNavigationEdge(rawEdge)
             playOnly.push(rawEdge)
         } catch {
             // ignore unknown edge shapes

@@ -6,12 +6,12 @@
 
 ## Current state
 
-- **TopLevelEditor** ([charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx](charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx)): has Add, Reference existing (ComponentSelectorDialog), and **Import** (ImportComponentDialog). Import dispatches `addImport`; `addImport` creates the component with `_from`, adds it to `_topLevel` when `!explicitParent`, and runs `fetchImports`.
-- **ReferenceListEditor** ([charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditor.tsx](charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditor.tsx)): has Add and optional Reference existing (ComponentSelectorDialog with `tag` + `isExcluded`). **No Import**.
-- **ImportComponentDialog** ([charcoal-client/src/components/Workbench/ImportComponentDialog.tsx](charcoal-client/src/components/Workbench/ImportComponentDialog.tsx)): tabs (Recently Visited, Canon, Library, Personal), asset selector, components grouped by type. No tag filter, no search, no `isExcluded`.
-- **ComponentSelectorDialog** ([charcoal-client/src/components/Workbench/foundations/ComponentSelector/ComponentSelectorDialog.tsx](charcoal-client/src/components/Workbench/foundations/ComponentSelector/ComponentSelectorDialog.tsx)): optional `tag` (flat list vs grouped), `isExcluded`, section headers with icons, primary/secondary text.
+- **TopLevelEditor** ([charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx](../../charcoal-client/src/components/Workbench/foundations/ReferenceList/TopLevelEditor.tsx)): has Add, Reference existing (ComponentSelectorDialog), and **Import** (ImportComponentDialog). Import dispatches `addImport`; `addImport` creates the component with `_from`, adds it to `_topLevel` when `!explicitParent`, and runs `fetchImports`.
+- **ReferenceListEditor** ([charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditor.tsx](../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditor.tsx)): has Add and optional Reference existing (ComponentSelectorDialog with `tag` + `isExcluded`). **No Import**.
+- **ImportComponentDialog** ([charcoal-client/src/components/Workbench/ImportComponentDialog.tsx](../../charcoal-client/src/components/Workbench/ImportComponentDialog.tsx)): tabs (Recently Visited, Canon, Library, Personal), asset selector, components grouped by type. No tag filter, no search, no `isExcluded`.
+- **ComponentSelectorDialog** ([charcoal-client/src/components/Workbench/foundations/ComponentSelector/ComponentSelectorDialog.tsx](../../charcoal-client/src/components/Workbench/foundations/ComponentSelector/ComponentSelectorDialog.tsx)): optional `tag` (flat list vs grouped), `isExcluded`, section headers with icons, primary/secondary text.
 
-Schema import types ([packages/mtw-base/ts/schema/metaData.ts](packages/mtw-base/ts/schema/metaData.ts)): `Room | Area | Feature | Knowledge | Map | Moment | Message | Lens`. Content headers' `groupComponentsByType` groups Room, Area, Feature, Knowledge, Map, Image, Character (no Moment/Message/Lens in grouping yet).
+Schema import types ([packages/mtw-base/ts/schema/metaData.ts](../../packages/mtw-base/ts/schema/metaData.ts)): `Room | Area | Feature | Knowledge | Map | Moment | Message | Lens`. Content headers' `groupComponentsByType` groups Room, Area, Feature, Knowledge, Map, Image, Character (no Moment/Message/Lens in grouping yet).
 
 ---
 
@@ -19,7 +19,7 @@ Schema import types ([packages/mtw-base/ts/schema/metaData.ts](packages/mtw-base
 
 Refactor `addImport` so that **all** callers pass an `addToReferenceList` context-function. Routing of the new ref (and `explicitParent`) is determined solely by that callback; `addImport` no longer bakes in _topLevel as a default.
 
-- In [charcoal-client/src/slices/personalAssets/index.ts](charcoal-client/src/slices/personalAssets/index.ts):
+- In [charcoal-client/src/slices/personalAssets/index.ts](../../charcoal-client/src/slices/personalAssets/index.ts):
   - **Signature**: `addToReferenceList` is a **required** parameter: `addToReferenceList: (draft: StandardForm) => { referenceList: ReferenceList; setReferenceList: (list: ReferenceList) => void; parentKey: StandardKey | undefined } | null`. When the callback returns `null`, the import is still applied (component created/updated with `_from`) but no ref is added to any list (edge case; normally callers always return a descriptor).
   - **Behavior**: `addImport` will: create/update the component with `_from`; call `addToReferenceList(draft)` to get the descriptor; if non-null, set `component.explicitParent` from `parentKey` (when `parentKey` is defined; top-level uses `undefined` or ASSET sentinel as needed); call `setReferenceList(referenceList.assureItem(component.reference))`. Then dispatch `fetchImports` as today. No special-case logic for _topLevel inside `addImport`.
   - **Top-level case**: TopLevelEditor (and any other “add to asset root” caller) passes an `addToReferenceList` that returns `{ referenceList: draft._topLevel ?? new ReferenceList([]), setReferenceList: (list) => { draft._topLevel = list }, parentKey: undefined }` (or the appropriate ASSET-level sentinel so the component is treated as top-level). All _topLevel behavior lives in that context-function, not inside `addImport`.
@@ -28,7 +28,7 @@ Refactor `addImport` so that **all** callers pass an `addToReferenceList` contex
 
 ## 2. Extend ImportComponentDialog (filtering and display)
 
-In [charcoal-client/src/components/Workbench/ImportComponentDialog.tsx](charcoal-client/src/components/Workbench/ImportComponentDialog.tsx):
+In [charcoal-client/src/components/Workbench/ImportComponentDialog.tsx](../../charcoal-client/src/components/Workbench/ImportComponentDialog.tsx):
 
 - **Optional tag filter**: Add optional prop `tag?: SchemaImportMapping['type']`. When set, filter components to that type only. In zone tabs, show a single section or flat list (similar to ComponentSelectorDialog when `tag` is set). In Recently Visited, filter entries by `tag` so only matching types are shown or emphasized.
 - **Optional isExcluded**: Add `isExcluded?: (universalKey: ComponentUUID) => boolean` to hide components already in the current list (e.g. when opened from ReferenceListEditor).
@@ -44,7 +44,7 @@ Do **not** merge ComponentSelectorDialog and ImportComponentDialog into one comp
 
 ## 3. ReferenceListEditor: add Import option
 
-In [charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditor.tsx](charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditor.tsx):
+In [charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditor.tsx](../../charcoal-client/src/components/Workbench/foundations/ReferenceList/ReferenceListEditor.tsx):
 
 - **When to show Import**: Only when the list's `tag` is one of the schema import types: `Room | Feature | Knowledge | Map | Moment | Message`. Add something like `enableImport?: boolean` or derive it from `tag` (e.g. `const canImport = ['Room','Feature','Knowledge','Map','Moment','Message'].includes(tag)`). If you prefer a prop, default it to that derived value.
 - **UI**: Add an "Import" row (e.g. ImportExport icon + "Import") in `actionAffordances`, similar to TopLevelEditor, that opens ImportComponentDialog.
@@ -60,7 +60,7 @@ Ensure `listContext` can return not only `referenceList` / `setReferenceList` bu
 
 ## 4. Content headers and types (optional / follow-up)
 
-- [charcoal-client/src/slices/contentHeaders/selectors.ts](charcoal-client/src/slices/contentHeaders/selectors.ts): `groupComponentsByType` includes **Area** (done). Still no Moment/Message/Lens buckets. SchemaImportMapping also includes **Moment** and **Message**. If the materialized view can expose those types, extend `groupComponentsByType` (or add a separate grouping for the import dialog) so that when the user filters by Moment or Message, components are shown. If the backend/content headers do not yet expose Moment/Message, document that and leave tag filter for those as "no results" for now.
+- [charcoal-client/src/slices/contentHeaders/selectors.ts](../../charcoal-client/src/slices/contentHeaders/selectors.ts): `groupComponentsByType` includes **Area** (done). Still no Moment/Message/Lens buckets. SchemaImportMapping also includes **Moment** and **Message**. If the materialized view can expose those types, extend `groupComponentsByType` (or add a separate grouping for the import dialog) so that when the user filters by Moment or Message, components are shown. If the backend/content headers do not yet expose Moment/Message, document that and leave tag filter for those as "no results" for now.
 
 ---
 

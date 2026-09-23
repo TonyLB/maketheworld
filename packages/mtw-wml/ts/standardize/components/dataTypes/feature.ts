@@ -3,6 +3,7 @@ import { checkAll, checkTypes } from "./typeguards";
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable";
 import { FacetListData } from "../../keys/abstract";
 import { isSituationProseFacetPayload, type SituationProseFacetPayloadType } from "../../keys/facets/situationRoom";
+import { isStandardLudicGraphData, StandardLudicGraphData } from "./ludicGraph"
 
 /** Ephemera wire: prose from `<Render>`; same JSON shape as Situation prose facet payload. */
 export type StandardFeatureRenderData = SituationProseFacetPayloadType
@@ -13,6 +14,7 @@ export type StandardFeatureData = {
     situations?: FacetListData<SituationProseFacetPayloadType>;
     /** Ephemera wire: resolved DisplayName / Summary / Description from `<Render>`. */
     render?: StandardFeatureRenderData;
+    ludicGraph?: StandardLudicGraphData;
 } & StandardBaseData
 
 const isStandardFeatureRenderData = (x: unknown): x is StandardFeatureRenderData => (
@@ -41,6 +43,8 @@ export const isStandardFeatureData = (arg: any): arg is StandardFeatureData => {
             situations: 'facetList',
         }),
         !('render' in arg) ||
-            isStandardFeatureRenderData(arg.render)
+            isStandardFeatureRenderData(arg.render),
+        !('ludicGraph' in arg) ||
+            isStandardLudicGraphData(arg.ludicGraph)
     )
 }

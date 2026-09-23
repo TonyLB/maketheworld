@@ -29,6 +29,8 @@ import { isAffordancesRequestedCommand } from './localApiEvents'
 import { orchestrateAffordanceRequest } from './orchestrationHandler'
 import { fanOutAffordanceRefreshForRoom } from './fanOutAffordanceRefreshForRoom'
 import { roomsAffectedByObjectMoved } from './roomsAffectedByObjectMoved'
+import { nonRoomHostsAffectedByObjectMoved } from './nonRoomHostsAffectedByObjectMoved'
+import { bumpNonRoomHostCatalogsForObjectMoved } from './bumpNonRoomHostCatalogsForObjectMoved'
 import { isObjectMovedPublishedPayload } from '../positions/publishedEvents'
 import type { AffordanceOrchestrationPublishedPayload } from './publishedEvents'
 import messageBus from '../../messageBus'
@@ -85,13 +87,15 @@ export const affordanceOrchestrationDataSource = new EphemeraDataSource<
                     return
                 }
                 const affectedRooms = roomsAffectedByObjectMoved(raw)
-                for (const roomId of affectedRooms) {
-                    await fanOutAffordanceRefreshForRoom({
+                const affectedNonRoomHosts = nonRoomHostsAffectedByObjectMoved(raw)
+                await Promise.all([
+                    ...affectedRooms.map((roomId) => fanOutAffordanceRefreshForRoom({
                         roomId,
                         reason: 'objects',
                         streamEvent,
-                    })
-                }
+                    })),
+                    bumpNonRoomHostCatalogsForObjectMoved(affectedNonRoomHosts),
+                ])
                 return
             }
             if (isConnectionsCharacterRegisteredEnvelope(event)) {

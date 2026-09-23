@@ -12,11 +12,11 @@ export function areaLudicGraphNodesTagAccessor(
     nodeTag: LudicGraphNodeTag
 ): ReferenceListSessionAccessor<StandardArea> {
     return {
-        getReferenceList: (area) => filterNodesByTag(area.ludicGraph.nodes, nodeTag),
+        getReferenceList: (area) => filterNodesByTag(area.ludicGraph.nodes.componentRefs, nodeTag),
         setReferenceList: (area, tagSlice) => {
             setAreaLudicGraphNodes(
                 area,
-                mergeNodesTagSlice(area.ludicGraph.nodes, nodeTag, tagSlice)
+                mergeNodesTagSlice(area.ludicGraph.nodes.componentRefs, nodeTag, tagSlice)
             )
         }
     }

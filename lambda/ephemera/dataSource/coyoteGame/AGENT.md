@@ -114,7 +114,7 @@ We intentionally do **not** resolve seam labels back to `EphemeraRoomId`. Pipeli
 1. **Bijection or primary key** - overrides must not map two canonical ids to the same label without an explicit disambiguation rule.
 2. **Legacy tokens** - models or fixtures may still say `VORTEX`; `normalizeSeamRoomLabelToken` maps legacy strip + new seam to one token for validators; a reverse map must accept the same set and reject unknowns.
 3. **Hop-1 handoff** - [`generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts`](generators/pipelines/hypothesis/planSelect/parsePlanSelectOutput.ts) would need strict validation of `room` vs the snapshot-derived allowlist (today: type-only).
-4. **Phase-plan** - [`packages/mtw-interfaces/ts/coyotePhasePlan.ts`](packages/mtw-interfaces/ts/coyotePhasePlan.ts) mixes snapshot `stableKey`s, reserved `setting`, and topology strings in `derivedFrom`; you must disambiguate labels from stable keys before resolving to ids.
+4. **Phase-plan** - [`packages/mtw-interfaces/ts/coyotePhasePlan.ts`](../../../../packages/mtw-interfaces/ts/coyotePhasePlan.ts) mixes snapshot `stableKey`s, reserved `setting`, and topology strings in `derivedFrom`; you must disambiguate labels from stable keys before resolving to ids.
 5. **Tests / fixtures** - many literals; every boundary that should round-trip needs canonical-id assertions again.
 6. **Scope** - overrides are global constants today; per-asset worlds would need scoped maps before reverse lookup is safe.
 

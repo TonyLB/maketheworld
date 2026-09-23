@@ -26,7 +26,11 @@ describe('StandardObject ephemeraWire integration', () => {
         expect(sf._components.filter((c) => c instanceof StandardObject)).toHaveLength(1)
     })
 
-    it('keeps room-nested Object on StandardRoom.objects, not top-level components', () => {
+    // `_objects`/`StandardRoomObjectData` were retired in Slice 5 (LG-2): a room-nested `<Object>`
+    // is now a graph membership reference (like `<Feature>`), and its full inline definition is
+    // *also* independently promoted to a real top-level component -- it no longer stays off
+    // `sf._components` the way the old `_objects` mechanism deliberately kept it off.
+    it('carries a room-hosted Object as a top-level component, referenced by the room ludicGraph', () => {
         const wml = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(main) uuid=(main)>
@@ -38,8 +42,10 @@ describe('StandardObject ephemeraWire integration', () => {
         `)
         const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
         const room = sf._lookup('ROOM#main') as StandardRoom
-        expect(room.objects).toEqual([{ uuid: 'OBJECT#skates', shortName: 'roller skates' }])
-        expect(sf._components.filter((c) => c instanceof StandardObject)).toHaveLength(0)
+        expect(room.ludicGraph.nodesByTag('Object').payload.map((ref) => ref.universalKey)).toEqual(['OBJECT#skates'])
+        expect(sf._components.filter((c) => c instanceof StandardObject)).toHaveLength(1)
+        const object = sf._lookup('OBJECT#skates') as StandardObject
+        expect(object.shortName?._payload?.plain?.toJSON()).toBe('roller skates')
     })
 })
 

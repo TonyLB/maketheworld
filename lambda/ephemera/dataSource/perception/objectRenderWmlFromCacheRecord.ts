@@ -2,6 +2,10 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import type { StandardObjectData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/object'
+import type { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character'
+import type { StandardFeatureData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/feature'
+import type { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
+import type { StandardLudicGraphData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/ludicGraph'
 import type { EphemeraCacheDynamoItem, EphemeraCacheRenderedContent } from '../renderCache/baseClasses'
 import { situationRoomRenderPayloadFromCacheRenderedContent } from '../renderCache/renderedContentToSituationRoomPayload'
 import { selectDefaultSituationCacheRecord } from '../renderCache/selectDefaultSituationCacheRecord'
@@ -31,11 +35,25 @@ const PLACEHOLDER_SHORT_NAME = '⁠'
  * when unresolved, so Object never renders nameless. `renderedContent` (including any authored
  * `displayName`) passes straight through to the `<Render>` facet, exactly like Room/Feature/
  * Knowledge/Character.
+ *
+ * `ludicGraph` (nested contents, nestedObjectLook Phase 1) is the object's own hosted shard,
+ * wire-projected by the caller (`toWireLudicGraphFull`) --- a bare reference list, since
+ * `StandardReferenceData` has no shortName slot. `hostedNodeNameStubs` is the list that *does*
+ * carry names: one stub component (`{tag, universalKey, shortName/displayName}`) per node
+ * referenced in `ludicGraph`, so each reference's name reaches the wire despite the reference
+ * itself having nowhere to hold it --- the same sibling-stub-in-the-same-`StandardForm` pattern
+ * `affordanceRoomDeliverable.ts` already uses for a Room's present objects/characters. This
+ * function stays synchronous and pure: both are resolved upstream by the caller and handed in as
+ * plain data, matching `fallbackShortName`.
  */
 export function objectRenderWmlFromCacheRecord(
     objectId: EphemeraObjectId,
     renderedContent: EphemeraCacheRenderedContent,
-    { fallbackShortName }: { fallbackShortName?: string } = {}
+    { fallbackShortName, ludicGraph, hostedNodeNameStubs }: {
+        fallbackShortName?: string
+        ludicGraph?: StandardLudicGraphData
+        hostedNodeNameStubs?: (StandardObjectData | StandardCharacterData | StandardFeatureData | StandardRoomData)[]
+    } = {}
 ): string {
     const shortName = fallbackShortName || PLACEHOLDER_SHORT_NAME
     const renderPayload = situationRoomRenderPayloadFromCacheRenderedContent(renderedContent)
@@ -44,10 +62,12 @@ export function objectRenderWmlFromCacheRecord(
         universalKey: objectId,
         shortName,
         ...(renderPayload ? { render: renderPayload } : {}),
+        ...(ludicGraph ? { ludicGraph } : {}),
     }
     const form = new StandardForm([
         { tag: 'Asset', universalKey: 'ASSET#render', key: 'render' },
         objectRow,
+        ...(hostedNodeNameStubs ?? []),
     ], { standardizeMode: 'ephemeraWire' })
     return schemaToWML([form.schema])
 }

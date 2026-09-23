@@ -302,7 +302,9 @@ export type PredictHypothesisPublishedPayload = {
 export type LookCommandRequestedPublishedPayload = {
     type: 'Look Command Requested';
     characterId: EphemeraCharacterId;
-    /** Room, Feature, Knowledge, Object (stub, shortName only --- see PK-6), or Character host for this look. */
+    /** Room, Feature, Knowledge, Object, or Character host for this look. All five deliver real
+     * rendered content; Object's PK-6 shortName-only stub was retired in `cf5472cef` --- see
+     * `positions/manipulation/kernel/presentStepSequence.ts` for what replaced it. */
     componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId | EphemeraCharacterId;
     confidence: number;
 }

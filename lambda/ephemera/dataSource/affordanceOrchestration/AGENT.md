@@ -33,7 +33,7 @@
 
 | Style | When | Examples |
 | --- | --- | --- |
-| **Direct `orchestrateAffordanceRequest`** | Producer is already inside affordanceOrchestration `receiveEvents` (or shares `streamEvent` in the same invocation) | Session orientation affordances, Objects Changed fan-out, TopologyInvalidated fan-out |
+| **Direct `orchestrateAffordanceRequest`** | Producer is already inside affordanceOrchestration `receiveEvents` (or shares `streamEvent` in the same invocation) | Session orientation affordances, Objects Changed fan-out, TopologyInvalidated fan-out, Object Moved fan-out |
 | **Bus `Affordances Requested` kick** (`sendAffordancesRequested` -> `publish`) | External or cross-module producers not already in the orchestration handler graph | `RoomUpdate` / `sendAffordanceRefreshRequestedForRoom`, integration harnesses |
 
 **External adapters (outside this DataSource):**
@@ -58,6 +58,14 @@ Wiring: [`app.ts`](../../app.ts) side-effect imports `./dataSource/affordanceOrc
 ### `mtw.ephemera.objects` **`Objects Changed`**
 
 Handled in [`index.ts`](index.ts) **`receiveEvents`**: **`fanOutAffordanceRefreshForRoom`** with reason **`objects`** (one **`orchestrateAffordanceRequest`** per distinct occupant perspective).
+
+### `mtw.ephemera.positions` **`Object Moved`**
+
+Handled in [`index.ts`](index.ts) **`receiveEvents`**: [`roomsAffectedByObjectMoved`](roomsAffectedByObjectMoved.ts) reduces the published `froms`/`to` (`EphemeraMembershipHostId[]`/`EphemeraMembershipHostId | null`) down to the `EphemeraRoomId`s among them (`isEphemeraRoomId` filter), and **`fanOutAffordanceRefreshForRoom`** runs with reason **`objects`** for each.
+
+**This is a room-scoped filter by design, not an oversight: Rooms are the only host kind with a live-update channel.** Feature/Character/Object are pull, not push --- a player sees their render only by looking, and gets no standing subscription to changes thereafter (this module's whole job is the room live-update channel; it has no analogue for the other three kinds and should not grow one for this).
+
+**The pull-side gap is closed (nestedObjectLook, shipped 2026-09-22).** [`nonRoomHostsAffectedByObjectMoved.ts`](nonRoomHostsAffectedByObjectMoved.ts) reduces the same published `froms`/`to` down to the non-Room hostable kinds among them (`EphemeraObjectId | EphemeraFeatureId | EphemeraCharacterId`), and [`bumpNonRoomHostCatalogsForObjectMoved.ts`](bumpNonRoomHostCatalogsForObjectMoved.ts) bumps each affected host's `Cache::${perspectiveKey}` catalog rows --- reusing `renderCache`'s own `conditionalInvalidateCatalogRow`/`queryCatalogRowsForComponent`, mirroring [`handleExampleInvalidated.ts`](../renderCache/handleExampleInvalidated.ts)'s bump-only/no-push shape (see [`renderCache/AGENT.md`](../renderCache/AGENT.md) for the producer-side symmetry). This runs in [`index.ts`](index.ts) as a **sibling** effect alongside --- not inside --- `fanOutAffordanceRefreshForRoom`: two independent reactions to the same `Object Moved` event, not one absorbing the other. A cached `look <object>` no longer serves stale nested contents across repeated looks after a hosted member moves in or out.
 
 ### `mtw.assets.componentTopology` **`TopologyInvalidated`**
 

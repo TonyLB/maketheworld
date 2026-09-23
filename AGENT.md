@@ -69,7 +69,7 @@ Identity, scope, entry links?           -> AGENT.md
 
 Each sibling file should open with a short scope line, for example:
 
-> This file records **contracts** only. Mental models: [`AGENT.concepts.md`](./AGENT.concepts.md). Code map: [`AGENT.implementation.md`](./AGENT.implementation.md).
+> This file records **contracts** only. Mental models: `AGENT.concepts.md`. Code map: `AGENT.implementation.md`.
 
 #### Normative authority
 
@@ -91,7 +91,7 @@ Large single topics may use `AGENT.<topic>.md` when one concepts or contract fil
 Use relative paths. Link to the **specific sibling** (contract, implementation, concepts), not always `AGENT.md`:
 ```markdown
 See [`./AGENT.contract.md`](./AGENT.contract.md) for normative gateway wiring.
-See [`../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md`](../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md) for publish/settle behavior.
+See [`../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md`](packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.md) for publish/settle behavior.
 ```
 
 #### **Integration and navigation**

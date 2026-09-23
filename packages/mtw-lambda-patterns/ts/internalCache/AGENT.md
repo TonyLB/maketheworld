@@ -48,11 +48,11 @@ The system provides common patterns that can be reused across lambdas:
 Read surfaces for Dynamo rows owned elsewhere live in [`packages/mtw-gateways`](../../../mtw-gateways/AGENT.md). Lambda code should **register** package **`create*CacheHandler`** factories on **`InternalCache`** and read via **`internalCache.<Handler>.get`** --- including **compute-only** gateways (**`ComponentAggregate`**, **`ComponentExamples`**) that compose other handlers, not only projection-read gateways that inject **`assetDB`**. **Do not** duplicate partition/sort encoding in `internalCache`; **do not** call gateway **`assemble*`** exports directly in steady-state lambda paths when a cache handler is documented as primary. **`DeferredCache.invalidate(key)`** invalidates a cached entry when authoritative data changes (see **Wrapping gateways in InternalCache** in [`packages/mtw-gateways/AGENT.md`](../../../mtw-gateways/AGENT.md)).
 
 ### **Cross-References**
-- **[Lambda Assets](../../../lambda/assets/AGENT.md)**: Asset management using internalCache
-- **[Lambda Ephemera](../../../lambda/ephemera/AGENT.md)**: Real-time game state using internalCache
-- **[Lambda Subscriptions](../../../lambda/subscriptions/AGENT.md)**: Session management using internalCache
-- **[MTW Interfaces](../../mtw-interfaces/AGENT.md)**: Type definitions and interfaces
-- **[MTW Utilities](../../mtw-utilities/AGENT.md)**: Utility functions and helpers
+- **[Lambda Assets](../../../../lambda/assets/README.md)**: Asset management using internalCache
+- **[Lambda Ephemera](../../../../lambda/ephemera/AGENT.md)**: Real-time game state using internalCache
+- **[Lambda Subscriptions](../../../../lambda/subscriptions/AGENT.md)**: Session management using internalCache
+- **[MTW Interfaces](../../../mtw-interfaces/AGENT.md)**: Type definitions and interfaces
+- **MTW Utilities**: Utility functions and helpers
 
 ## Usage Patterns
 
@@ -95,7 +95,7 @@ Read surfaces for Dynamo rows owned elsewhere live in [`packages/mtw-gateways`](
 - **Documentation**: `AGENT*.md` files
 
 ### **Related Documentation**
-- **[Lambda Development Guide](../../../AGENT.development.md)**: General lambda development practices
-- **[Testing Standards](../../../charcoal-client/AGENT.testing.md)**: Testing patterns and standards
-- **[Architecture Philosophy](../../../AGENT.architecture.philosophy.md)**: System design principles
+- **[Lambda Development Guide](../../../../AGENT.development.md)**: General lambda development practices
+- **[Testing Standards](../../../../charcoal-client/AGENT.testing.md)**: Testing patterns and standards
+- **[Architecture Philosophy](../../../../AGENT.architecture.philosophy.md)**: System design principles
 

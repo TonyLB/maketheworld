@@ -54,8 +54,8 @@ SNS notifications inform the uploading client of processing results, including t
 - **AWS SDK**: S3 and SNS client operations
 
 ### Cross-References
-- **[WML Lambda](../wml/AGENT.md)**: Integration with asset processing system
-- **[Asset System](../assets/AGENT.md)**: Content management and version control
+- **[WML Lambda](../wml/README.md)**: Integration with asset processing system
+- **[Asset System](../assets/README.md)**: Content management and version control
 - **[Client System](../../charcoal-client/AGENT.md)**: Frontend image handling and display
 - **[Upload System](../assets/upload/AGENT.md)**: Legacy upload functionality being replaced
 - **[WML Components](../../packages/mtw-wml/ts/standardize/components/AGENT.md)**: StandardImage component implementation
@@ -115,6 +115,6 @@ The Image Processor Lambda sits between the upload system and the WML processing
 
 ### Related Documentation
 - **[WML System](../../packages/mtw-wml/ts/AGENT.md)**: Core markup language and component system
-- **[Asset Workspace](../../packages/mtw-asset-workspace/AGENT.md)**: Asset processing and management
-- **[Lambda Functions](../README.md)**: Overview of all lambda services
+- **[Asset Workspace](../../packages/mtw-asset-workspace/README.md)**: Asset processing and management
+- **[Lambda Functions](../../README.md)**: Overview of all lambda services
 - **[Client Architecture](../../charcoal-client/AGENT.md)**: Frontend system and image display

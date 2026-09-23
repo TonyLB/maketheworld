@@ -33,6 +33,12 @@ import {
     knowledgeRenderWmlFromCacheRecord,
 } from './featureKnowledgeRenderWmlFromCacheRecord'
 import { objectRenderWmlFromCacheRecord } from './objectRenderWmlFromCacheRecord'
+import { toWireLudicGraphFull } from '../positions/ludicGraph/wireProjection'
+import type { StandardObjectData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/object'
+import type { StandardCharacterData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/character'
+import type { StandardFeatureData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/feature'
+import type { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
+import type { StandardLudicGraphData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/ludicGraph'
 import { characterRenderWmlFromCacheRecord } from './characterRenderWmlFromCacheRecord'
 import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
 import { roomHeaderWmlFromCacheRecord } from './roomRenderWmlFromCacheRecord'
@@ -490,6 +496,80 @@ async function handleFeatureKnowledgeOrchestrationErrorOrDeferred(
 }
 
 /**
+ * nestedObjectLook Phase 1: resolve the object's own hosted shard (`On`/`In`/`PartOf` members,
+ * one level, kind-agnostic --- `EphemeraLudicGraph`'s typed id getters read node presence only,
+ * never edge/relation kind) into wire data for `objectRenderWmlFromCacheRecord`. Stays entirely
+ * upstream of that function, which stays synchronous and pure --- matches how `fallbackShortName`
+ * is already resolved here and handed in as plain data.
+ *
+ * `toWireLudicGraphFull` --- the same helper `affordanceRoomDeliverable.ts` already uses for a
+ * Room's `ludicGraph` field --- includes the root itself in `nodes` (correct per
+ * `EphemeraLudicGraph`'s own root-in-nodes invariant). That used to serialize as a self-nested
+ * `<Object uuid=(id)/>` with no `ShortName`, invalid on re-parse; fixed at the source in
+ * `packages/mtw-wml` (`StandardLudicGraph.excludeRoot`, threaded through every host class's
+ * `nestedSchema()`), so callers no longer need to route around it.
+ *
+ * Each hosted node's name travels as a **sibling stub component** (`{tag, universalKey,
+ * shortName/displayName}`) in the same `StandardForm`, not embedded in the `StandardReferenceData`
+ * node itself (that type has no shortName slot) --- the same pattern `affordanceRoomDeliverable.ts`
+ * uses for a room's present objects/characters. Object nodes resolve via `resolveObjectShortName`;
+ * Character nodes via `CharacterMeta`; Feature/Room nodes have no resolver anywhere in the codebase
+ * yet (`positions/ludicCache/fold.ts`'s documented gap) and fall back to their own id, matching
+ * that file's precedent. A hosted node with no stub behind it (unresolved Object shortName) still
+ * round-trips to nothing --- the WML writer drops a childless, ShortName-less reference on its own
+ * --- so no separate filtering is needed here either.
+ *
+ * Returns two lists that must travel together but serve different roles: `ludicGraph` is the bare
+ * `{tag, universalKey}` graph (no names --- that type has nowhere to put one); `hostedNodeNameStubs`
+ * is where the names actually live, one stub component per reference.
+ */
+async function resolveHostedNodeWmlData(
+    componentId: EphemeraObjectId,
+    assetStack: readonly string[]
+): Promise<{ ludicGraph?: StandardLudicGraphData; hostedNodeNameStubs: (StandardObjectData | StandardCharacterData | StandardFeatureData | StandardRoomData)[] }> {
+    const graph = await internalCache.Positions.getLudicGraph(componentId)
+    const hostedObjectIds = [...graph.objectIds].filter((id) => id !== componentId)
+    const hostedCharacterIds = [...graph.characterIds]
+    const hostedFeatureIds = [...graph.featureIds]
+    const hostedRoomIds = [...graph.roomIds]
+    if (!(hostedObjectIds.length || hostedCharacterIds.length || hostedFeatureIds.length || hostedRoomIds.length)) {
+        return { hostedNodeNameStubs: [] }
+    }
+
+    const objectDeps = {
+        getComponentAggregate: (perspectives: Parameters<typeof internalCache.ComponentAggregate.get>[0]) => internalCache.ComponentAggregate.get(perspectives),
+        getImprovisationObject: (objectId: EphemeraObjectId) => internalCache.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID),
+    }
+
+    const objectComponents = (await Promise.all(hostedObjectIds.map(async (objectId): Promise<StandardObjectData | undefined> => {
+        const shortName = await resolveObjectShortName(objectId, assetStack, objectDeps)
+        return shortName ? { tag: 'Object', universalKey: objectId, shortName } : undefined
+    }))).filter((row): row is StandardObjectData => row !== undefined)
+
+    const characterComponents = await Promise.all(hostedCharacterIds.map(async (characterId): Promise<StandardCharacterData> => {
+        const meta = await internalCache.CharacterMeta.get(characterId)
+        return { tag: 'Character', universalKey: characterId, displayName: meta.Name || undefined }
+    }))
+
+    const featureComponents: StandardFeatureData[] = hostedFeatureIds.map((featureId) => ({
+        tag: 'Feature',
+        universalKey: featureId,
+        shortName: featureId,
+    }))
+
+    const roomComponents: StandardRoomData[] = hostedRoomIds.map((roomId) => ({
+        tag: 'Room',
+        universalKey: roomId,
+        shortName: roomId,
+    }))
+
+    return {
+        ludicGraph: toWireLudicGraphFull(graph),
+        hostedNodeNameStubs: [...objectComponents, ...characterComponents, ...featureComponents, ...roomComponents],
+    }
+}
+
+/**
  * Object description fan-in: single-viewer, terminal-only-once, mirrors handleFeatureKnowledge*'s
  * featureDescription arm exactly (no SESSION# targeting --- Object has no such
  * concept). Object rides the real `ensureAuthoredCatalog` (Phase 4) same as Feature/Knowledge/
@@ -504,15 +584,17 @@ async function handleObjectRenderPertains(
     if (!isEphemeraObjectId(componentId)) {
         return
     }
+    const assetStack = payload.cacheRecord.perspectiveMatcher.requiredAssetIds
     const fallbackShortName = await resolveObjectShortName(
         componentId,
-        payload.cacheRecord.perspectiveMatcher.requiredAssetIds,
+        assetStack,
         {
             getComponentAggregate: (perspectives) => internalCache.ComponentAggregate.get(perspectives),
             getImprovisationObject: (objectId) => internalCache.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID),
         }
     )
-    const wmlContent = objectRenderWmlFromCacheRecord(componentId, payload.cacheRecord.renderedContent, { fallbackShortName })
+    const { ludicGraph, hostedNodeNameStubs } = await resolveHostedNodeWmlData(componentId, assetStack)
+    const wmlContent = objectRenderWmlFromCacheRecord(componentId, payload.cacheRecord.renderedContent, { fallbackShortName, ludicGraph, hostedNodeNameStubs })
     const publishedListeners = reportIngressContent(bus, componentId, payload.perspectiveKey, 'render', {
         kind: 'literal',
         message: {

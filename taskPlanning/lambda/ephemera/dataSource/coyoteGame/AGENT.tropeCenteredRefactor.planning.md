@@ -6,7 +6,7 @@ Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 ## Purpose
 
-Capture a **task-scoped** migration plan for restructuring Coyote plan generation around the **four ordered tropes** (see durable conceptual doc [`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md)) while **preserving a working path** for code that today consumes **`CoyoteAffinityPossibility`** arrays on staged objects and Acme order lines.
+Capture a **task-scoped** migration plan for restructuring Coyote plan generation around the **four ordered tropes** (see durable conceptual doc [`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md)) while **preserving a working path** for code that today consumes **`CoyoteAffinityPossibility`** arrays on staged objects and Acme order lines.
 
 This file is disposable after the initiative completes; steady-state architecture belongs in package `AGENT.md` files and code.
 
@@ -30,9 +30,9 @@ Rough target pipeline (names are placeholders until implementation choices land)
 
 - **Types and contracts** for trope-centered metadata, including evolution of Acme order enrich JSON and persistence on `EphemeraMetaRoomObject`-shaped rows.
 - **Compatibility layer** so downstream consumers that still expect **legacy affinities** (`role` + `aptness`) keep working with **derived** or **dual-written** data through at least one release slice.
-- **Hypothesis pipeline** refactor: trope candidates and assembly in place of (or as a successor to) current **cluster combination** paths; see [`combineCandidateOutput`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/combineCandidateOutput.ts) and stage-one/stage-two prompts under [`generators/pipelines/hypothesis/`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/).
-- **Outcome pipeline** alignment: prompts and formatters that consume staged snapshots; see [`generators/pipelines/outcome/`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/outcome/).
-- **Staging text** --- [`formatCoyoteStagedObjectsByRoom`](../../../../../../lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts) and anything that echoes **intendedRole** against persisted affinities ([`parseCandidateOutput`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/parseCandidateOutput.ts)).
+- **Hypothesis pipeline** refactor: trope candidates and assembly in place of (or as a successor to) current **cluster combination** paths; see [`combineCandidateOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts) and stage-one/stage-two prompts under `generators/pipelines/hypothesis/`.
+- **Outcome pipeline** alignment: prompts and formatters that consume staged snapshots; see [`generators/pipelines/outcome/`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/outcome).
+- **Staging text** --- [`formatCoyoteStagedObjectsByRoom`](../../../../../lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts) and anything that echoes **intendedRole** against persisted affinities ([`parseCandidateOutput`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/parseCandidateOutput.ts)).
 
 ### Explicit deferrals (unless the plan is updated)
 
@@ -48,12 +48,12 @@ Rough target pipeline (names are placeholders until implementation choices land)
 
 | Concern | Location |
 | --- | --- |
-| Affinity unions, validation, Acme normalize | [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts) |
-| Acme enrich prompt (affinity role tags) | [`lambda/ephemera/dataSource/actions/enrich/acmeOrder/buildPrompt.ts`](../../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/buildPrompt.ts) |
-| Bus + parse validation of orders | [`lambda/ephemera/dataSource/actions/publishedEvents.ts`](../../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts), [`baseClasses.ts`](../../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) |
-| Staged snapshot lines for LLM | [`lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts) |
-| Conceptual tropes (durable) | [`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md) |
-| Coyote package index | [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) |
+| Affinity unions, validation, Acme normalize | [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts) |
+| Acme enrich prompt (affinity role tags) | [`lambda/ephemera/dataSource/actions/enrich/acmeOrder/buildPrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/buildPrompt.ts) |
+| Bus + parse validation of orders | [`lambda/ephemera/dataSource/actions/publishedEvents.ts`](../../../../../lambda/ephemera/dataSource/actions/publishedEvents.ts), [`baseClasses.ts`](../../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) |
+| Staged snapshot lines for LLM | [`lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/utilities/coyoteRoomObjectSnapshot.ts) |
+| Conceptual tropes (durable) | [`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md) |
+| Coyote package index | [`lambda/ephemera/dataSource/coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) |
 
 ## Compatibility: affinities and downstream consumers
 
@@ -87,16 +87,16 @@ Document deterministic stub rules as part of Phase 0 deliverables in this file.
 ## Getting started
 
 1. Skim task-plan conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
-2. Read tropes vocabulary and constraints: [`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md).
-3. Read current affinity contract: [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts).
-4. Trace Acme enrich -> publish -> objects merge for one order: [`actions/enrich/acmeOrder/`](../../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder/), [`objects/`](../../../../../../lambda/ephemera/dataSource/objects/).
-5. Skim hypothesis pipeline entry and cluster combiner: [`coyoteHypothesisPipeline.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts), [`combineCandidateOutput.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/combineCandidateOutput.ts).
-6. Read testing authority for this area before running commands: [`lambda/ephemera/AGENT.testing.md`](../../../../../../lambda/ephemera/AGENT.testing.md). If commands conflict with generic examples, follow this file for lambda-level Jest usage.
-7. Confirm command context from package scripts before test execution: [`lambda/ephemera/package.json`](../../../../../../lambda/ephemera/package.json) and repo root [`package.json`](../../../../../../package.json). This avoids wrong workspace/cwd assumptions.
+2. Read tropes vocabulary and constraints: [`lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.tropes.md).
+3. Read current affinity contract: [`packages/mtw-interfaces/ts/coyotePlanAffinities.ts`](../../../../../packages/mtw-interfaces/ts/coyotePlanAffinities.ts).
+4. Trace Acme enrich -> publish -> objects merge for one order: [`actions/enrich/acmeOrder/`](../../../../../lambda/ephemera/dataSource/actions/enrich/acmeOrder), [`objects/`](../../../../../lambda/ephemera/dataSource/objects).
+5. Skim hypothesis pipeline entry and cluster combiner: [`coyoteHypothesisPipeline.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/coyoteHypothesisPipeline.ts), [`combineCandidateOutput.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/pipelines/hypothesis/candidates/combineCandidateOutput.ts).
+6. Read testing authority for this area before running commands: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md). If commands conflict with generic examples, follow this file for lambda-level Jest usage.
+7. Confirm command context from package scripts before test execution: [`lambda/ephemera/package.json`](../../../../../lambda/ephemera/package.json) and repo root [`package.json`](../../../../../package.json). This avoids wrong workspace/cwd assumptions.
 8. Run one baseline verification command before edits (from `lambda/ephemera/`):
    - `npm run test -- --watchAll=false dataSource/actions/publishedEvents.test.ts`
 
-Ephemeral testing notes for this package (durable command source): [`lambda/ephemera/AGENT.testing.md`](../../../../../../lambda/ephemera/AGENT.testing.md).
+Ephemeral testing notes for this package (durable command source): [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md).
 
 ## Design decisions (current draft)
 
@@ -189,7 +189,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 - [X] Phase 2.5 - Acme trope-affinity quality hardening
   - [X] Build a representative calibration corpus for Acme enrich trope fits (clean trope signals, borderline cases, and likely misclassification patterns).
-    - Artifact: [`acmeEnrichTropeCalibrationCorpus.v1.json`](acmeEnrichTropeCalibrationCorpus.v1.json) with 11 first-pass prompts spanning clean/borderline/likely-misclassification buckets and directional expected trope-fit outcomes.
+    - Artifact: `acmeEnrichTropeCalibrationCorpus.v1.json` with 11 first-pass prompts spanning clean/borderline/likely-misclassification buckets and directional expected trope-fit outcomes.
   - [X] Define first-pass acceptance criteria for trope-affinity usefulness (coverage, trope-label plausibility, narrowing specificity, and failure-rate guardrails).
     - First-pass criteria are encoded in the corpus artifact itself for objective harness evaluation: `expectedLines` defines required directional signal (coverage + trope-label plausibility + narrowing specificity), and `likelyErrors` defines disallowed/failure-pattern guardrails to track fail-rate.
   - [X] Extend affinities test-harness fixture shape to carry calibration metadata (`expectedLines`, `likelyErrors`, bucket/tags) so the corpus can be encoded directly in fixtures and scored without sidecar mapping.
@@ -210,7 +210,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [X] Phase 3B - hypothesis `clustering` rework
   - [X] Rework `clustering` into candidate trope assignments with provisional object-to-trope grouping and first-draft execution detail.
   - [X] Add focused tests for clustering parse/merge behavior under trope-first data (including malformed/partial model outputs).
-  - [X] Re-freeze clustering fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
+  - [X] Re-freeze clustering fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
   - Locked implementation notes:
     - Stage-one seam contract is now trope-candidate-first: root `candidates` + optional `notes`, with each candidate carrying `candidateId`, `executionSummary`, ordered `tropeAssignments`, and optional candidate-local `outliers`.
     - Parser strictness remains exact-key-only with additional candidate hardening: required execution fields, canonical trope order enforcement, duplicate trope rejection, and per-candidate staged `stableKey` partition checks.
@@ -219,7 +219,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [X] Phase 3C - hypothesis `plan selection` rework
   - [X] Rework `plan selection` into conflict catalog + rubric comparison + best-candidate selection.
   - [X] Add tests for handoff extraction and failure routing when conflict/rubric sections are missing or invalid.
-  - [X] Re-freeze plan-selection fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
+  - [X] Re-freeze plan-selection fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
   - Locked implementation notes:
     - Plan-selection prompt contract now requires sectioned output in order (`## Conflict catalog`, `## Rubric comparison`, `## Winner selection`) before the final handoff JSON fence, while preserving required handoff keys `paragraphSummary` and `rubricIssues`.
     - Hop-1 handoff parsing now hard-fails when required conflict/rubric/winner section headings are missing, in addition to existing malformed or mistyped JSON handoff failures; pipeline failure routing remains abort-to-stub before phase-plan invocation.
@@ -228,7 +228,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 - [X] Phase 3D - hypothesis `phase-plan` rework
   - [X] Rework `phase-plan` into deconflicted final trope sequence (second-draft detail) plus golden-path walk-through generation by trope beats.
   - [X] Add tests for phase-plan parse validation reasoning (structured-failure tolerated when prose hypothesis parses).
-  - [X] Re-freeze phase-plan fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
+  - [X] Re-freeze phase-plan fixture slices in [`coyoteEngineTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/coyoteGame/generators/testHarness/coyoteEngineTestFixtures.ts).
   - Locked implementation notes:
     - Phase-plan JSON contract now encodes final selection shape directly: required root keys `tropeSequence`, `deconflictionSummary`, and `phases`, where `tropeSequence` is unique and canonical-order constrained (`Contraption` -> `Distraction` -> `Disadvantage` -> `Finishing Move`) and `phases` are index-aligned trope beats.
     - Each phase now carries trope-beat structure (`trope`, `tropeBeat`, `stableKeysUsed`, `virtualEntities`, `achievement`, optional `prepVsBeat`) so downstream consumers can preserve second-draft detail and render beat-by-beat execution outlines.
@@ -255,7 +255,7 @@ Pending work uses `[ ]` and completed work uses `[X]`. Mark nested bullets `[X]`
 
 - [ ] Phase 5 - cleanup and durable docs
   - [ ] Remove deterministic legacy-role stubs and legacy role consumers after first-pass migration proves unnecessary dependencies are gone.
-  - [ ] Move lasting architecture descriptions into [`coyoteGame/AGENT.md`](../../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) and related pipeline `AGENT.md` files.
+  - [ ] Move lasting architecture descriptions into [`coyoteGame/AGENT.md`](../../../../../lambda/ephemera/dataSource/coyoteGame/AGENT.md) and related pipeline `AGENT.md` files.
   - [ ] Archive or delete this task plan per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 ## Verification

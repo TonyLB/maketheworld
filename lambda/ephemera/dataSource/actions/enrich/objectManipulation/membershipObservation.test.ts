@@ -1,5 +1,5 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
+import type { StandardLudicNavigationEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../../../positions/ludicGraph/testFixtures'
 import {
@@ -49,8 +49,8 @@ describe('objectTouchesExitEdgeOnGraph', () => {
     })
 
     it('returns true when an exit edge references the object', () => {
-        const edge: StandardExitEdgeData = {
-            tag: 'Exit',
+        const edge: StandardLudicNavigationEdgeData = {
+            kind: 'Navigation',
             uuid: 'edge-1',
             from: broomId,
             to: tableId,
@@ -63,8 +63,8 @@ describe('objectTouchesExitEdgeOnGraph', () => {
     })
 
     it('returns true when object appears on to endpoint only', () => {
-        const edge: StandardExitEdgeData = {
-            tag: 'Exit',
+        const edge: StandardLudicNavigationEdgeData = {
+            kind: 'Navigation',
             uuid: 'edge-2',
             from: tableId,
             to: broomId,

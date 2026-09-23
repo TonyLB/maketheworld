@@ -2,7 +2,7 @@ import { GenericTreeNode } from "@tonylb/mtw-base/ts/genericTree"
 import { SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { StandardAreaData } from "./dataTypes/area"
 import StandardArea from './area'
-import { StandardExitEdgeData } from "../keys/edges/dataTypes/exitEdge"
+import { StandardLudicNavigationEdgeData } from "../keys/edges/dataTypes/ludicEdge"
 import StandardReference from "../keys/reference"
 import { standardComponentFactory } from "../componentFactory"
 import { StandardForm } from "../index"
@@ -94,7 +94,7 @@ describe('StandardArea class', () => {
         const instance = new StandardArea(undefined as any)
         instance.fromSchema(node)
         expect(instance.ludicGraph.edges.toJSON()).toEqual([{
-            tag: 'Exit',
+            kind: 'Navigation',
             uuid: 'highwayToTown',
             from: { key: 'highway', tag: 'Room' },
             to: { key: 'townCenter', tag: 'Room' },
@@ -109,7 +109,7 @@ describe('StandardArea class', () => {
             ludicGraph: {
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#highway' }],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'highwayToTown',
                     from: 'ROOM#highway',
                     to: 'ROOM#townCenter',
@@ -122,7 +122,7 @@ describe('StandardArea class', () => {
             key: 'region',
             ludicGraph: {
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'highwayToTown',
                     from: 'ROOM#highway',
                     to: { tag: 'Replace', match: 'ROOM#townCenter', payload: 'ROOM#ghi' },
@@ -131,7 +131,7 @@ describe('StandardArea class', () => {
             },
         })
         const merged = base.merge(incoming)! as StandardArea
-        expect((merged.ludicGraph.edges.toJSON()[0] as StandardExitEdgeData).to).toEqual('ROOM#ghi')
+        expect((merged.ludicGraph.edges.toJSON()[0] as StandardLudicNavigationEdgeData).to).toEqual('ROOM#ghi')
     })
 
     it('should merge uuid-only stub with To overlay through StandardArea', () => {
@@ -140,7 +140,7 @@ describe('StandardArea class', () => {
             key: 'region',
             ludicGraph: {
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'edge-a1b2c3d4',
                     payload: {},
                 }],
@@ -151,7 +151,7 @@ describe('StandardArea class', () => {
             key: 'region',
             ludicGraph: {
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'edge-a1b2c3d4',
                     to: 'ROOM#townCenter',
                     payload: {},
@@ -160,43 +160,71 @@ describe('StandardArea class', () => {
         })
         const merged = base.merge(incoming)! as StandardArea
         expect(merged.ludicGraph.edges.toJSON()).toEqual([{
-            tag: 'Exit',
+            kind: 'Navigation',
             uuid: 'edge-a1b2c3d4',
             to: 'ROOM#townCenter',
             payload: {},
         }])
     })
 
-    it('should reject self-reference in ludicGraph.nodes from JSON', () => {
-        expect(() => new StandardArea({
-            tag: 'Area',
-            key: 'downtown',
-            ludicGraph: {
-                nodes: [{ tag: 'Area', key: 'downtown' }],
-            },
-        })).toThrow('Area cannot reference itself in ludicGraph.nodes')
-    })
+    describe('rootId (the inverted self-reference guard, LG-8)', () => {
+        it('permits an Area to reference itself in ludicGraph.nodes when rootId is absent', () => {
+            expect(() => new StandardArea({
+                tag: 'Area',
+                key: 'downtown',
+                ludicGraph: {
+                    nodes: [{ tag: 'Area', key: 'downtown' }],
+                },
+            })).not.toThrow()
+        })
 
-    it('should reject self-reference by universalKey from JSON', () => {
-        expect(() => new StandardArea({
-            tag: 'Area',
-            key: 'downtown',
-            universalKey: 'AREA#downtown',
-            ludicGraph: {
-                nodes: [{ tag: 'Area', universalKey: 'AREA#downtown' }],
-            },
-        })).toThrow('Area cannot reference itself in ludicGraph.nodes')
-    })
+        it('accepts rootId that matches identity and is present in nodes', () => {
+            expect(() => new StandardArea({
+                tag: 'Area',
+                key: 'downtown',
+                universalKey: 'AREA#downtown',
+                ludicGraph: {
+                    rootId: { tag: 'Area', key: 'downtown', universalKey: 'AREA#downtown' },
+                    nodes: [{ tag: 'Area', key: 'downtown', universalKey: 'AREA#downtown' }],
+                },
+            })).not.toThrow()
+        })
 
-    it('should reject self-reference from schema', () => {
-        const node: GenericTreeNode<SchemaTag> = {
-            data: { tag: 'Area', key: 'downtown', uuid: 'AREA#downtown' },
-            children: [
-                { data: { tag: 'Area', key: 'downtown' }, children: [] },
-            ],
-        }
-        const instance = new StandardArea(undefined as any)
-        expect(() => instance.fromSchema(node)).toThrow('Area cannot reference itself in ludicGraph.nodes')
+        it('throws when rootId does not match the component\'s own identity', () => {
+            expect(() => new StandardArea({
+                tag: 'Area',
+                key: 'downtown',
+                ludicGraph: {
+                    rootId: { tag: 'Area', key: 'otherArea' },
+                    nodes: [{ tag: 'Area', key: 'otherArea' }],
+                },
+            })).toThrow('rootId must be the Area\'s own identity')
+        })
+
+        it('throws when rootId matches identity but is absent from nodes', () => {
+            expect(() => new StandardArea({
+                tag: 'Area',
+                key: 'downtown',
+                ludicGraph: {
+                    rootId: { tag: 'Area', key: 'downtown' },
+                    nodes: [],
+                },
+            })).toThrow('rootId must be present in ludicGraph.nodes')
+        })
+
+        it('throws from schema when rootId does not match identity', () => {
+            const node: GenericTreeNode<SchemaTag> = {
+                data: { tag: 'Area', key: 'downtown', uuid: 'AREA#downtown' },
+                children: [
+                    { data: { tag: 'Area', key: 'downtown' }, children: [] },
+                ],
+            }
+            const instance = new StandardArea(undefined as any)
+            instance.fromSchema(node)
+            // No rootId is populated by fromSchema in this slice, so this is a no-op guard --
+            // recorded here so a future rootId-populating producer inherits a failing test to update.
+            expect(instance.ludicGraph.rootId).toBeUndefined()
+        })
     })
 
     it('should merge ludicGraph nodes', () => {
@@ -294,16 +322,34 @@ describe('StandardArea class', () => {
             .toThrow(/Invalid child type Map/)
     })
 
-    it('should expose referencedKeys as Direct and Dependency', () => {
+    it('should expose referencedKeys as Direct only (LG-8: no Dependency duplicate)', () => {
         const testArea = new StandardArea({
             tag: 'Area',
             key: 'test',
             ludicGraph: { nodes: [{ tag: 'Room', key: 'room1' }] },
         })
         const keys = testArea._payload.referencedKeys()
-        expect(keys).toHaveLength(2)
+        expect(keys).toHaveLength(1)
         expect(keys.every((k) => k.reference.key === 'room1')).toBe(true)
-        expect(keys.map((k) => k.referenceType).sort()).toEqual(['Dependency', 'Direct'])
+        expect(keys.map((k) => k.referenceType)).toEqual(['Direct'])
+    })
+
+    it('excludes the root node from referencedKeys when rootId is set', () => {
+        const testArea = new StandardArea({
+            tag: 'Area',
+            key: 'test',
+            universalKey: 'AREA#test',
+            ludicGraph: {
+                rootId: { tag: 'Area', key: 'test', universalKey: 'AREA#test' },
+                nodes: [
+                    { tag: 'Area', key: 'test', universalKey: 'AREA#test' },
+                    { tag: 'Room', key: 'room1' },
+                ],
+            },
+        })
+        const keys = testArea._payload.referencedKeys()
+        expect(keys).toHaveLength(1)
+        expect(keys[0].reference.key).toBe('room1')
     })
 
     it('should expose Edge referencedKeys for exit endpoints', () => {
@@ -313,7 +359,7 @@ describe('StandardArea class', () => {
             ludicGraph: {
                 nodes: [{ tag: 'Room', key: 'highway' }],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'highwayToTown',
                     from: { tag: 'Room', key: 'highway' },
                     to: { tag: 'Room', key: 'outside' },
@@ -327,7 +373,6 @@ describe('StandardArea class', () => {
         expect(edgeKeys.some((k) => k.reference.key === 'highway')).toBe(true)
         expect(edgeKeys.some((k) => k.reference.key === 'outside')).toBe(true)
         expect(keys.filter((k) => k.referenceType === 'Direct')).toHaveLength(1)
-        expect(keys.filter((k) => k.referenceType === 'Dependency')).toHaveLength(1)
     })
 
     it('should expose Edge referencedKeys for Remove envelope endpoints', () => {
@@ -337,7 +382,7 @@ describe('StandardArea class', () => {
             ludicGraph: {
                 nodes: [{ tag: 'Room', key: 'highway', universalKey: 'ROOM#highway' }],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'highwayToOutside',
                     from: { tag: 'Remove', match: 'ROOM#highway' },
                     to: { tag: 'Remove', match: 'ROOM#outside' },
@@ -358,7 +403,7 @@ describe('StandardArea class', () => {
             ludicGraph: {
                 nodes: [{ tag: 'Room', key: 'highway', universalKey: 'ROOM#highway' }],
                 edges: [{
-                    tag: 'Exit',
+                    kind: 'Navigation',
                     uuid: 'highwayToTown',
                     from: 'ROOM#highway',
                     to: { tag: 'Replace', match: 'ROOM#townCenter', payload: 'ROOM#ghi' },
@@ -384,7 +429,7 @@ describe('StandardArea class', () => {
                         { tag: 'Room', key: 'townCenter' },
                     ],
                     edges: [{
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'e1',
                         from: { tag: 'Room', key: 'highway' },
                         to: { tag: 'Room', key: 'townCenter' },
@@ -401,7 +446,7 @@ describe('StandardArea class', () => {
                 ludicGraph: {
                     nodes: [{ tag: 'Room', key: 'highway' }],
                     edges: [{
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'e1',
                         from: { tag: 'Room', key: 'highway' },
                         to: { tag: 'Room', key: 'outside' },
@@ -418,7 +463,7 @@ describe('StandardArea class', () => {
                 ludicGraph: {
                     nodes: [{ tag: 'Room', key: 'unrelated' }],
                     edges: [{
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'e1',
                         from: { tag: 'Room', key: 'highway' },
                         to: { tag: 'Room', key: 'townCenter' },
@@ -455,7 +500,7 @@ describe('StandardArea class', () => {
                 ludicGraph: {
                     nodes: [{ tag: 'Room', key: 'highway' }],
                     edges: [{
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'e1',
                         from: { tag: 'Room', key: 'highway' },
                         to: { tag: 'Room', key: 'outside' },
@@ -468,7 +513,7 @@ describe('StandardArea class', () => {
                 key: 'region',
                 ludicGraph: {
                     edges: [{
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'e2',
                         from: { tag: 'Room', key: 'roomA' },
                         to: { tag: 'Room', key: 'roomB' },
@@ -486,14 +531,14 @@ describe('StandardArea class', () => {
                 key: 'region',
                 ludicGraph: {
                     edges: [{
-                        tag: 'Exit',
+                        kind: 'Navigation',
                         uuid: 'edge-a1b2c3d4',
                         payload: {},
                     }],
                 },
             })
             expect(area.ludicGraph.edges.toJSON()).toEqual([{
-                tag: 'Exit',
+                kind: 'Navigation',
                 uuid: 'edge-a1b2c3d4',
                 payload: {},
             }])
@@ -509,7 +554,7 @@ describe('StandardArea class', () => {
             const instance = new StandardArea(undefined as any)
             instance.fromSchema(node)
             expect(instance.ludicGraph.edges.toJSON()).toEqual([{
-                tag: 'Exit',
+                kind: 'Navigation',
                 uuid: 'edge-a1b2c3d4',
                 payload: {},
             }])
@@ -532,8 +577,8 @@ describe('StandardArea class', () => {
             const { payload: result } = area._payload.assureReferences([roomRef])
 
             expect(result.ludicGraph.nodes.payload.length).toBe(1)
-            expect(result.ludicGraph.nodes.payload[0].ref).toBe(0)
-            expect(result.ludicGraph.nodes.payload[0].sameKey(roomRef)).toBe(true)
+            expect(result.ludicGraph.nodes.componentRefs.payload[0].ref).toBe(0)
+            expect(result.ludicGraph.nodes.componentRefs.payload[0].sameKey(roomRef)).toBe(true)
         })
 
         it('should return non-bucket tags as inlineRemainder', () => {

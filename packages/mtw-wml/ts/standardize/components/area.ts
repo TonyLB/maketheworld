@@ -30,7 +30,8 @@ import {
 } from "./fromSchemaPipeline"
 import StandardLudicGraph from "./ludicGraph"
 import { LUDIC_GRAPH_NODE_TAGS } from "./dataTypes/ludicGraph"
-import { ExitEdgeList, StandardExitEdge, validateAreaExitSchemaNode } from "../keys/edges/exitEdge"
+import { StandardExitEdge, validateAreaExitSchemaNode } from "../keys/edges/exitEdge"
+import { LudicEdgeList, LudicEdgeListItem, StandardLudicNavigationEdge } from "../keys/edges/ludicEdge"
 import { referencesFromExitEndpoint } from "../keys/edges/endpointReference"
 import { isSchemaExit } from "@tonylb/mtw-base/ts/schema/components"
 
@@ -61,17 +62,17 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
         const graphJSON = this._ludicGraph.toJSON() ?? {}
         this._ludicGraph = new StandardLudicGraph({
             ...graphJSON,
-            nodes: nodes.toJSON(),
+            nodes: this._ludicGraph.nodes.withComponentRefs(nodes).toJSON(),
         })
     }
 
     private appendLudicGraphNodes(list: ReferenceList): void {
-        const merged = this._ludicGraph.nodes.merge(list) ?? new ReferenceList([])
+        const merged = this._ludicGraph.nodes.componentRefs.merge(list) ?? new ReferenceList([])
         this.withLudicGraphNodes(merged)
     }
 
-    private appendLudicGraphEdges(list: ExitEdgeList): void {
-        const merged = this._ludicGraph.edges.merge(list) ?? new ExitEdgeList([])
+    private appendLudicGraphEdges(items: LudicEdgeListItem[]): void {
+        const merged = this._ludicGraph.edges.merge(new LudicEdgeList(items)) ?? new LudicEdgeList([])
         const graphJSON = this._ludicGraph.toJSON() ?? {}
         this._ludicGraph = new StandardLudicGraph({
             ...graphJSON,
@@ -79,10 +80,24 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
         })
     }
 
-    private assertNoSelfAreaReference(identity: {
+    /**
+     * The self-reference guard inverts under alignment (LG-8): Area's own node is the graph's
+     * root, present in `nodes`, rather than forbidden from it. `rootId` is optional --- nothing
+     * in this slice populates it yet (that is Slice 4's wire projection) --- so the positive
+     * invariant is asserted only when `rootId` is actually set; an absent `rootId` is simply
+     * "not yet aligned," not an error. When it IS set, it must equal this component's own
+     * identity and name a node that is actually present in `nodes`, so the case the old guard
+     * caught (self-reference where none was intended) stays caught, inverted rather than
+     * abandoned.
+     */
+    private assertRootIdConsistency(identity: {
         key?: string | StandardEditableData<string>;
         universalKey?: ComponentUUID;
     }): void {
+        const rootId = this._ludicGraph.rootId
+        if (!rootId) {
+            return
+        }
         const plainKey = typeof identity.key === 'string' ? identity.key : undefined
         if (!plainKey && !identity.universalKey) {
             return
@@ -92,18 +107,21 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
             ...(plainKey ? { key: plainKey } : {}),
             ...(identity.universalKey ? { universalKey: identity.universalKey } : {}),
         })
-        const hasSelfReference = this._ludicGraph.nodes.payload.some(
+        if (!rootId.sameKey(selfReference)) {
+            throw new Error('Area ludicGraph.rootId must be the Area\'s own identity')
+        }
+        const presentInNodes = this._ludicGraph.nodes.componentRefs.payload.some(
             (reference) => reference.tag === 'Area' && reference.sameKey(selfReference)
         )
-        if (hasSelfReference) {
-            throw new Error('Area cannot reference itself in ludicGraph.nodes')
+        if (!presentInNodes) {
+            throw new Error('Area ludicGraph.rootId must be present in ludicGraph.nodes')
         }
     }
 
     fromJSON(props: StandardAreaData) {
         this._shortName = createShortNameFromJSON(props.shortName)
         this._ludicGraph = StandardLudicGraph.fromJSON(props.ludicGraph)
-        this.assertNoSelfAreaReference({ key: props.key, universalKey: props.universalKey })
+        this.assertRootIdConsistency({ key: props.key, universalKey: props.universalKey })
     }
 
     fromSchema(node: GenericTreeNode<SchemaTag>, _context?: StandardizeFromSchemaContext): GenericTree<SchemaTag> {
@@ -127,15 +145,15 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
                                 throw new Error('Expected Exit schema node')
                             }
                             validateAreaExitSchemaNode(exitNode)
-                            return new StandardExitEdge([exitNode])
+                            return new StandardLudicNavigationEdge(new StandardExitEdge([exitNode]))
                         })
-                        this.appendLudicGraphEdges(new ExitEdgeList(parsedEdges))
+                        this.appendLudicGraphEdges(parsedEdges)
                     },
                 }),
                 new StandardizeConsumerInline(),
             ]
             const returnRemainder = processWithConsumers(this, consumers, node.children)
-            this.assertNoSelfAreaReference({ key: node.data.key, universalKey: node.data.uuid })
+            this.assertRootIdConsistency({ key: node.data.key, universalKey: node.data.uuid })
             return returnRemainder
         }
         throw new Error('Schema mismatch in StandardArea constructor')
@@ -155,7 +173,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
             data: { tag: 'Area', key, uuid: universalKey },
             children: [
                 ...shortNameSchemaChildren(this._shortName),
-                ...this._ludicGraph.nodes.schema,
+                ...this._ludicGraph.nonRootComponentRefs.schema,
                 ...this._ludicGraph.edges.schema,
             ]
         }
@@ -164,21 +182,24 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
     nestedSchema(lookup: (key: string | StandardKey) => StandardComponent | undefined, options: NestedSchemaOptions): GenericTreeNode<SchemaTag> {
         const { key } = options
 
-        let nodesToRender = this._ludicGraph.nodes
+        let nodesToRender = this._ludicGraph.nodes.componentRefs
         let inlineRemainder: StandardReference[] = []
 
         if (options.organization) {
             const children = options.organization.getChildrenOfParent(key) ?? []
             const { payload: assured, inlineRemainder: remainder } = this.assureReferences(children)
-            nodesToRender = assured._ludicGraph.nodes
+            nodesToRender = assured._ludicGraph.nodes.componentRefs
             inlineRemainder = remainder
         }
+
+        // Excludes the root itself --- see the identical note in `object.ts`'s `nestedSchema`.
+        const nonRootNodesToRender = this._ludicGraph.excludeRoot(nodesToRender)
 
         return {
             data: { tag: 'Area', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...shortNameSchemaChildren(this._shortName),
-                ...nodesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1),
+                ...nonRootNodesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1),
                 ...this._ludicGraph.edges.schema,
                 ...inlineRemainder.map(renderReference({ lookup, options })).filter(excludeUndefined),
             ]
@@ -197,15 +218,17 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
     }
 
     referencedKeys(): StandardComponentReferenceKey[] {
-        const nodeKeys: StandardComponentReferenceKey[] = [
-            ...this._ludicGraph.nodes.payload.map((reference) => ({ referenceType: 'Direct' as const, reference })),
-            ...this._ludicGraph.nodes.payload.map((reference) => ({ referenceType: 'Dependency' as const, reference })),
-        ]
+        const rootId = this._ludicGraph.rootId
+        const nodeKeys: StandardComponentReferenceKey[] = this._ludicGraph.nodes.componentRefs.payload
+            .filter((reference) => !(rootId && reference.sameKey(rootId)))
+            .map((reference) => ({ referenceType: 'Direct' as const, reference }))
         const edgeKeys: StandardComponentReferenceKey[] = this._ludicGraph.edges.items.flatMap((edge) => {
-            const endpointRefs = [
-                ...referencesFromExitEndpoint(edge.from),
-                ...referencesFromExitEndpoint(edge.to),
-            ]
+            const endpointRefs: StandardReference[] = edge instanceof StandardLudicNavigationEdge
+                ? [
+                    ...referencesFromExitEndpoint(edge.from),
+                    ...referencesFromExitEndpoint(edge.to),
+                ]
+                : [(edge as any).from, (edge as any).to]
             return endpointRefs.map((reference) => ({ referenceType: 'Edge' as const, reference }))
         })
         return [...nodeKeys, ...edgeKeys]
@@ -262,13 +285,9 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
         const bucketReferences = new ReferenceList(
             bucketChildren.map((child) => child.withRef(0))
         )
-        const merged = returnValue._ludicGraph.nodes.merge(bucketReferences, { cleanEmptyReferences: false })
-            ?? returnValue._ludicGraph.nodes
-        const graphJSON = returnValue._ludicGraph.toJSON() ?? {}
-        returnValue._ludicGraph = new StandardLudicGraph({
-            ...graphJSON,
-            nodes: merged.toJSON(),
-        })
+        const merged = returnValue._ludicGraph.nodes.componentRefs.merge(bucketReferences, { cleanEmptyReferences: false })
+            ?? returnValue._ludicGraph.nodes.componentRefs
+        returnValue.withLudicGraphNodes(merged)
 
         return {
             payload: returnValue as this,
@@ -278,13 +297,10 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
 
     removeReferences(references: StandardReference[]): this {
         const returnValue = new StandardAreaPayload(this)
-        const graphJSON = returnValue._ludicGraph.toJSON() ?? {}
-        returnValue._ludicGraph = new StandardLudicGraph({
-            ...graphJSON,
-            nodes: returnValue._ludicGraph.nodes.filter(
-                (item) => !references.some((ref) => item.sameKey(ref))
-            ).toJSON(),
-        })
+        const filtered = returnValue._ludicGraph.nodes.componentRefs.filter(
+            (item) => !references.some((ref) => item.sameKey(ref))
+        )
+        returnValue.withLudicGraphNodes(filtered)
         return returnValue as this
     }
 }

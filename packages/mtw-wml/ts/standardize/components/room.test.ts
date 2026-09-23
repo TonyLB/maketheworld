@@ -1279,7 +1279,7 @@ describe('StandardRoom class', () => {
             expect(inlineRemainder[0].tag).toBe('Mark')
             expect(result.ludicGraph.nodes.payload.length).toBe(1)
             expect(result.ludicGraph.nodes.payload[0].ref).toBe(0)
-            expect(result.ludicGraph.nodes.payload[0].sameKey(featureRef)).toBe(true)
+            expect(result.ludicGraph.nodes.componentRefs.payload[0].sameKey(featureRef)).toBe(true)
             
             expect(result.characters.payload.length).toBe(1)
             expect(result.characters.payload[0].ref).toBe(0)
@@ -1318,10 +1318,10 @@ describe('StandardRoom class', () => {
             const { payload: result } = room._payload.assureReferences([existingFeature, newFeature, newGuidance])
             
             expect(result.ludicGraph.nodes.payload.length).toBe(2)
-            const existingFeatInResult = result.ludicGraph.nodes.payload.find(ref => ref.sameKey(existingFeature))
+            const existingFeatInResult = result.ludicGraph.nodes.componentRefs.payload.find(ref => ref.sameKey(existingFeature))
             expect(existingFeatInResult?.ref).toBe(1)
             
-            const newFeatInResult = result.ludicGraph.nodes.payload.find(ref => ref.sameKey(newFeature))
+            const newFeatInResult = result.ludicGraph.nodes.componentRefs.payload.find(ref => ref.sameKey(newFeature))
             expect(newFeatInResult?.ref).toBe(0)
             
             expect(result.guidance.payload.length).toBe(1)
@@ -1374,7 +1374,7 @@ describe('StandardRoom class', () => {
             const { payload: result } = room._payload.assureReferences([featureRef, guidanceRef, charRef])
             
             expect(result.ludicGraph.nodes.payload.length).toBe(1)
-            expect(result.ludicGraph.nodes.payload[0].sameKey(featureRef)).toBe(true)
+            expect(result.ludicGraph.nodes.componentRefs.payload[0].sameKey(featureRef)).toBe(true)
             
             expect(result.guidance.payload.length).toBe(1)
             expect(result.guidance.payload[0].sameKey(guidanceRef)).toBe(true)
@@ -1394,7 +1394,7 @@ describe('StandardRoom class', () => {
 
             // Feature goes to bucket
             expect(result.ludicGraph.nodes.payload.length).toBe(1)
-            expect(result.ludicGraph.nodes.payload[0].sameKey(featureRef)).toBe(true)
+            expect(result.ludicGraph.nodes.componentRefs.payload[0].sameKey(featureRef)).toBe(true)
             // Mark goes to remainder (Room has no Mark bucket)
             expect(inlineRemainder.length).toBe(1)
             expect(inlineRemainder[0].tag).toBe('Mark')
@@ -1421,7 +1421,7 @@ describe('StandardRoom class', () => {
             const result = room._payload.removeReferences([featureRef, guidanceRef])
             
             expect(result.ludicGraph.nodes.payload.length).toBe(1)
-            expect(result.ludicGraph.nodes.payload[0].sameKey(new StandardReference({ tag: 'Feature', key: 'feat2' }))).toBe(true)
+            expect(result.ludicGraph.nodes.componentRefs.payload[0].sameKey(new StandardReference({ tag: 'Feature', key: 'feat2' }))).toBe(true)
             
             expect(result.guidance.payload.length).toBe(0)
             

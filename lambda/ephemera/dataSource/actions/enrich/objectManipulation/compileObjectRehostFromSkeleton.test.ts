@@ -31,6 +31,7 @@ describe('compileObjectRehostFromSkeleton', () => {
                 skeleton: rehostSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
                 subject: objectSpanRef('cup', 'cupRef'),
                 target: objectSpanRef('tray', 'trayRef'),
+                containment: 'On',
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
@@ -50,6 +51,33 @@ describe('compileObjectRehostFromSkeleton', () => {
         })
     })
 
+    it('returns ObjectRehost with containment In when the caller forwards the In kind', async () => {
+        const result = await compileObjectRehostFromSkeleton(
+            {
+                command: 'put cup in tray',
+                skeleton: rehostSkeleton('put', 'cup', 'cupRef', 'in', 'tray', 'trayRef'),
+                subject: objectSpanRef('cup', 'cupRef'),
+                target: objectSpanRef('tray', 'trayRef'),
+                containment: 'In',
+                hostRoomId: roomId,
+                roomObjectCatalog: [
+                    { objectId: cupId, normalizedShortName: 'cup' },
+                    { objectId: trayId, normalizedShortName: 'tray' },
+                ],
+            },
+            0.9
+        )
+
+        expect(result).toEqual({
+            type: 'ObjectRehost',
+            subjectId: cupId,
+            targetId: trayId,
+            hostId: roomId,
+            containment: 'In',
+            confidence: 0.9,
+        })
+    })
+
     it('resolves the subject from held inventory when it is not in the room catalog', async () => {
         const result = await compileObjectRehostFromSkeleton(
             {
@@ -57,6 +85,7 @@ describe('compileObjectRehostFromSkeleton', () => {
                 skeleton: rehostSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
                 subject: objectSpanRef('cup', 'cupRef'),
                 target: objectSpanRef('tray', 'trayRef'),
+                containment: 'On',
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: trayId, normalizedShortName: 'tray' }],
                 heldInventoryCatalog: [{ objectId: cupId, normalizedShortName: 'cup' }],
@@ -81,6 +110,7 @@ describe('compileObjectRehostFromSkeleton', () => {
                 skeleton: rehostSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
                 subject: objectSpanRef('cup', 'cupRef'),
                 target: objectSpanRef('tray', 'trayRef'),
+                containment: 'On',
             },
             0.9
         )
@@ -95,6 +125,7 @@ describe('compileObjectRehostFromSkeleton', () => {
                 skeleton: rehostSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
                 subject: objectSpanRef('cup', 'cupRef'),
                 target: objectSpanRef('tray', 'trayRef'),
+                containment: 'On',
                 hostRoomId: roomId,
             },
             0.9
@@ -111,6 +142,7 @@ describe('compileObjectRehostFromSkeleton', () => {
                 skeleton: rehostSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
                 subject: objectSpanRef('cup', 'cupRef'),
                 target: objectSpanRef('tray', 'trayRef'),
+                containment: 'On',
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },

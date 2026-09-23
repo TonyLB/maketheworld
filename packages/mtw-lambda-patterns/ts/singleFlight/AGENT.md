@@ -88,8 +88,8 @@ Each singleFlight implementation relies upon a local DynamoDB table for distribu
 
 ### Cross-References
 - **[DataSource Pattern](../dataSource/AGENT.md)**: Primary current use case for Snapshot generation coordination
-- **[Lambda Development Guide](../../../AGENT.development.md)**: General lambda patterns and development practices
-- **[Architecture Philosophy](../../../AGENT.architecture.philosophy.md)**: System design principles and cost optimization
+- **[Lambda Development Guide](../../../../AGENT.development.md)**: General lambda patterns and development practices
+- **[Architecture Philosophy](../../../../AGENT.architecture.philosophy.md)**: System design principles and cost optimization
 
 ## Usage Patterns
 

@@ -98,7 +98,7 @@ describe('areaEditMutations', () => {
         expect(area.ludicGraph.edges.items).toHaveLength(1)
         expect(edge.uuid).toBeTruthy()
         expect(edge.toJSON()).toEqual({
-            tag: 'Exit',
+            kind: 'Navigation',
             uuid: edge.uuid,
             payload: {},
         })

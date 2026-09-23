@@ -109,7 +109,7 @@ export const getCachedPerception = ({
 ### **Cross-References**
 - **Message Routing**: See [`../lifeLine/index.api.ts`](../lifeLine/index.api.ts) for message dispatch
 - **WML Processing**: See [`../../../../packages/mtw-wml/ts/standardize/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/AGENT.md) for WML format details
-- **Component Rendering**: See [`../Message/AGENT.md`](../Message/AGENT.md) for display components
+- **Component Rendering**: See [`../Message/AGENT.md`](../../components/Message/AGENT.md) for display components
 
 ### **System Relationships**
 
@@ -179,8 +179,8 @@ const receiveMessages = (dispatch) => ({ payload }) => {
 
 ### **Related Documentation**
 - **WML Processing**: See [`../../../../packages/mtw-wml/ts/standardize/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/AGENT.md)
-- **Message Components**: See [`../Message/AGENT.md`](../Message/AGENT.md)
-- **Knowledge Component**: See [`../Knowledge/index.tsx`](../Knowledge/index.tsx)
+- **Message Components**: See [`../Message/AGENT.md`](../../components/Message/AGENT.md)
+- **Knowledge Component**: See `../Knowledge/index.tsx`
 
 ## Development Notes
 

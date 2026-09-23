@@ -36,8 +36,8 @@ Interaction fixtures cover `DoubleSpace` near `br` / Track B `Space`, and `Doubl
 | Client unit | `descendantsFromRender.test.ts`, `descendantsToRender.test.ts`, `constrainedWhitespace.test.ts` | Converter and Slate plugin details |
 | Client parent echo | [`StandardRenderEditor.test.tsx`](src/components/Workbench/foundations/StandardRender/StandardRenderEditor.test.tsx) | Sync loop: parent rerenders echoed `StandardRender`; slate shape survives |
 | Player display | [`RenderTreeContent.test.tsx`](src/components/Message/RenderTreeContent.test.tsx) | Display collapse for atomic tags |
-| WML merge/diff | [`packages/mtw-wml/ts/standardize/render/index.test.ts`](../../packages/mtw-wml/ts/standardize/render/index.test.ts) | `Whitespace preservation`, `Track D -- diff/merge round-trip` |
-| WML parse | [`compressWhitespace.test.ts`](../../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.test.ts) | Parse-time Space+br and atomic tag normalization |
+| WML merge/diff | [`packages/mtw-wml/ts/standardize/render/index.test.ts`](../packages/mtw-wml/ts/standardize/render/index.test.ts) | `Whitespace preservation`, `Track D -- diff/merge round-trip` |
+| WML parse | [`compressWhitespace.test.ts`](../packages/mtw-wml/ts/schema/utils/schemaOutput/compressWhitespace.test.ts) | Parse-time Space+br and atomic tag normalization |
 
 ### Verification commands
 

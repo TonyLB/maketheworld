@@ -41,7 +41,9 @@ describe('StandardForm.standardizeMode', () => {
         expect(sf.toJSON().standardizeMode).toBe('ephemeraWire')
     })
 
-    it('rejects Object under Room in asset mode', () => {
+    it('rejects an Object-tagged ludicGraph node on a Room in asset mode', () => {
+        // A room-nested <Object> parses fine as a graph membership reference (LG-7's "not yet"
+        // gate is enforced by assetWirePolicy, not by the parser -- same seam as exits/render).
         const wml = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(main) uuid=(main)>
@@ -51,7 +53,7 @@ describe('StandardForm.standardizeMode', () => {
                 </Room>
             </Asset>
         `)
-        expect(() => new StandardForm(wml)).toThrow(/Room objects are not allowed in asset mode/)
+        expect(() => new StandardForm(wml)).toThrow(/Authored objects in rooms are intended but unbuilt/)
     })
 
     it('allows top-level Object under Asset in asset mode', () => {
@@ -162,9 +164,63 @@ describe('StandardForm.standardizeMode', () => {
         expect(() => new StandardForm(wml)).toThrow(/Room render is not allowed in asset mode/)
     })
 
+    it('allows an authored presence node on an asset StandardForm (LG-6: no lint clause; nothing authors one yet, but nothing rejects one either)', () => {
+        const sf = new StandardForm({
+            universalKey: 'ASSET#Test',
+            metaData: [],
+            components: [
+                {
+                    tag: 'Room',
+                    key: 'main',
+                    universalKey: 'ROOM#main',
+                    ludicGraph: {
+                        nodes: [
+                            {
+                                tag: 'Presence',
+                                universalKey: 'PRESENCE#test',
+                                fromHostId: { tag: 'Room', key: 'main' },
+                                cover: { tag: 'Full' },
+                            },
+                        ],
+                    },
+                },
+            ],
+        })
+        expect(sf._lookup('ROOM#main')).toBeDefined()
+    })
+
+    it('allows an authored presence node on an ephemeraWire StandardForm', () => {
+        const sf = new StandardForm({
+            universalKey: 'ASSET#Test',
+            metaData: [],
+            standardizeMode: 'ephemeraWire',
+            components: [
+                {
+                    tag: 'Room',
+                    key: 'main',
+                    universalKey: 'ROOM#main',
+                    ludicGraph: {
+                        nodes: [
+                            {
+                                tag: 'Presence',
+                                universalKey: 'PRESENCE#test',
+                                fromHostId: { tag: 'Room', key: 'main' },
+                                cover: { tag: 'Full' },
+                            },
+                        ],
+                    },
+                },
+            ],
+        })
+        expect(sf._lookup('ROOM#main')).toBeDefined()
+    })
+
     /**
-     * Ephemera split: one form carries `<Render>` prose; another carries affordances (`<Character>`, `<Object>`).
-     * Merge on the same `ROOM#` should combine render payload with objects and character references.
+     * Ephemera split: one form carries `<Render>` prose; another carries affordances (`<Character>`,
+     * `<Object>`). Merge on the same `ROOM#` should combine render payload with the graph's object
+     * membership and the character references. Post-alignment, a room-nested `<Object>` is a
+     * ludicGraph membership reference whose full inline definition is also promoted to a real
+     * top-level `Object` component (LG-2) -- unlike `<Character>`, which stays a bare reference here.
      */
     it('merges ephemeraWire render form with affordance form for the same room UUID', () => {
         const renderWml = deIndentWML(`
@@ -199,10 +255,10 @@ describe('StandardForm.standardizeMode', () => {
             deIndentWML(`
             <Asset uuid=(Test)>
                 <Room uuid=(main) key=(main) ref={2}>
-                    <Character key=(ally) />
-                    <Character key=(npc) />
                     <Object uuid=(crate)><ShortName>wooden crate</ShortName></Object>
                     <Object uuid=(lantern)><ShortName>brass lantern</ShortName></Object>
+                    <Character key=(ally) />
+                    <Character key=(npc) />
                     <Render>
                         <DisplayName>Parlor</DisplayName>
                         <Summary>A quiet room</Summary>
@@ -212,5 +268,12 @@ describe('StandardForm.standardizeMode', () => {
             </Asset>
             `)
         )
+        const mergedRoom = final.byUniversalId['ROOM#main'] as StandardRoom
+        expect(mergedRoom.ludicGraph.nodesByTag('Object').payload.map((ref) => ref.universalKey).sort()).toEqual([
+            'OBJECT#crate',
+            'OBJECT#lantern',
+        ])
+        expect((final.byUniversalId['OBJECT#crate'] as any)?.shortName?.toJSON()).toEqual('wooden crate')
+        expect((final.byUniversalId['OBJECT#lantern'] as any)?.shortName?.toJSON()).toEqual('brass lantern')
     })
 })

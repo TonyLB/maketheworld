@@ -328,8 +328,9 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         initialize: ({ parseOpen, contextStack }): SchemaObjectTag => {
             const hasRoomContext = contextStack.some(({ data }) => isSchemaRoom(data))
             const hasAssetContext = contextStack.some(({ data }) => isSchemaAsset(data))
-            if (!hasRoomContext && !hasAssetContext) {
-                throw new Error('Object tag can only be used inside a Room or Asset')
+            const hasObjectContext = contextStack.some(({ data }) => isSchemaObject(data))
+            if (!hasRoomContext && !hasAssetContext && !hasObjectContext) {
+                throw new Error('Object tag can only be used inside a Room, Asset, or Object')
             }
             const { uuid, key, ref } = validateProperties(componentTemplates.Object)(parseOpen)
             const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
@@ -345,7 +346,8 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         typeCheckContents: (item: SchemaTag): boolean => (
-            isSchemaShortName(item) || isSchemaSituation(item) || isSchemaRender(item) || isSchemaReplace(item) || isSchemaRemove(item)
+            isSchemaShortName(item) || isSchemaSituation(item) || isSchemaRender(item) || isSchemaReplace(item) || isSchemaRemove(item) ||
+            isSchemaArea(item) || isSchemaRoom(item) || isSchemaFeature(item) || isSchemaCharacter(item) || isSchemaObject(item)
         ),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaTag> => {
             if (!isSchemaObject(initialTag)) {

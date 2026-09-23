@@ -39,7 +39,7 @@ The Assets Lambda hosts seven data sources, each serving a specific purpose:
 
 **Implementation**: [`./dataSource/index.ts`](./dataSource/index.ts)
 
-**Documentation**: See [`./dataSource/AGENT.md`](./dataSource/AGENT.md) (if exists) or inline comments in implementation
+**Documentation**: See `./dataSource/AGENT.md` (if exists) or inline comments in implementation
 
 ### 2. **mtw.assets.contentHeaders** (Content Headers)
 

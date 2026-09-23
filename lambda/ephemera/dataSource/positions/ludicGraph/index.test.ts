@@ -1,5 +1,5 @@
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
+import type { StandardLudicNavigationEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
 
 import {
     edgeReferencesObjectId,
@@ -242,8 +242,8 @@ describe('EphemeraLudicGraph', () => {
         })
 
         it('still silently strips a play-only (exit) edge referencing the object when no relational edge remains', () => {
-            const exitEdge: StandardExitEdgeData = {
-                tag: 'Exit',
+            const exitEdge: StandardLudicNavigationEdgeData = {
+                kind: 'Navigation',
                 uuid: 'edge-asserted',
                 from: OBJECT_A,
                 to: OBJECT_B,

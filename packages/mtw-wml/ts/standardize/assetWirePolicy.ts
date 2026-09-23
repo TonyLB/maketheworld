@@ -9,8 +9,10 @@ export const validateAssetWirePolicyForComponent = (component: StandardComponent
         if (component.exits.length > 0) {
             throw new Error('Room exits are not allowed in asset mode')
         }
-        if (component.objects.length > 0) {
-            throw new Error('Room objects are not allowed in asset mode')
+        if (component.ludicGraph.nodesByTag('Object').payload.length > 0) {
+            throw new Error(
+                'Authored objects in rooms are intended but unbuilt -- blocked pending recache reconciliation (identity across asset-stack merge and across recache). See standardize/AGENT.md, Asset wire policy section, LG-7.'
+            )
         }
         if (component.render !== undefined) {
             throw new Error('Room render is not allowed in asset mode')

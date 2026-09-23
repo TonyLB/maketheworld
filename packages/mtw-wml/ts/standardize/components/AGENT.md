@@ -19,7 +19,7 @@ This document describes the **abstract concept** of Component types in WML and t
    - **Why**: Components support invertible edit operations (`Add`, `Remove`), and understanding how these operations merge and interact is crucial for implementing or modifying component behavior. (Note: `Replace` operations are no longer supported at component/reference level - they are expressed as `Add` + `Remove` pairs.)
    - **Read**: 
      - [`AGENT.editAlgebra.md`](./AGENT.editAlgebra.md) - Mathematical properties of component edit operations (inversion, reference vs. data payload distinction, non-associativity)
-     - [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md) - Mathematical properties of ReferenceList merge and diff operations (non-associativity, non-idempotency, inversion)
+     - [`AGENT.referenceList.editAlgebra.md`](../keys/AGENT.referenceList.editAlgebra.md) - Mathematical properties of ReferenceList merge and diff operations (non-associativity, non-idempotency, inversion)
    - **Focus**: How edits are invertible, how merging works algebraically, and how reference list operations differ from standard algebraic operations.
 
 3. **Review component implementation patterns**
@@ -234,7 +234,7 @@ See `dataTypes/AGENT.md` for detailed documentation of this distinction.
 
 ## Topology and exits
 
-Navigational topology is owned by **Area** **`ludicGraph.edges`**, not **Room** blueprint rows. Asset authoring **forbids** room-local **`<Exit to=`** under **Room**; runtime **`StandardRoom.exits`** on ephemeraWire forms is synthesized from Area edges via **`projectRoomExits`**. See [`AGENT.implementation.md`](./AGENT.implementation.md) (**StandardRoom**, **StandardArea**), [`../keys/edges/AGENT.edges.md`](../keys/edges/AGENT.edges.md), and [`../../documentation/README.syntax.md`](../../documentation/README.syntax.md).
+Navigational topology is owned by **Area** **`ludicGraph.edges`**, not **Room** blueprint rows. Asset authoring **forbids** room-local **`<Exit to=`** under **Room**; runtime **`StandardRoom.exits`** on ephemeraWire forms is synthesized from Area edges via **`projectRoomExits`**. See [`AGENT.implementation.md`](./AGENT.implementation.md) (**StandardRoom**, **StandardArea**), [`../keys/edges/AGENT.edges.md`](../keys/edges/AGENT.edges.md), and [`../../documentation/README.syntax.md`](../../../documentation/README.syntax.md).
 
 ## Related Documentation
 

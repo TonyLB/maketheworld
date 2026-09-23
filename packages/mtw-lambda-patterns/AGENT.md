@@ -50,10 +50,10 @@ Immutable value type for Titan Text Embedding v2 vectors: quantize normalized fl
 - **AWS SDK**: Integration with AWS services (SNS, DynamoDB, etc.)
 
 ### Cross-References
-- **[Lambda Assets](../../lambda/assets/AGENT.md)**: Asset management using messageBus
+- **[Lambda Assets](../../lambda/assets/README.md)**: Asset management using messageBus
 - **[Lambda Ephemera](../../lambda/ephemera/AGENT.md)**: Real-time game state using messageBus
 - **[MTW Interfaces](../mtw-interfaces/AGENT.md)**: Type definitions and interfaces
-- **[MTW Utilities](../mtw-utilities/AGENT.md)**: Utility functions and helpers
+- **MTW Utilities**: Utility functions and helpers
 
 ## Usage Patterns
 

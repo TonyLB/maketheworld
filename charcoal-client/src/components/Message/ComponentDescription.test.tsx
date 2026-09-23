@@ -297,4 +297,111 @@ describe('ComponentDescription', () => {
             expect(screen.getByText('A dog of remarkable dignity.')).toBeDefined()
         })
     })
+
+    describe('Object nested contents (nestedObjectLook Phase 3)', () => {
+        const ASSET_ROW = { tag: 'Asset' as const, universalKey: 'ASSET#render', key: 'render' }
+        const TABLE_ID = 'OBJECT#testTable'
+        const metaData: PerceptionObjectMetaData = { componentUUID: TABLE_ID }
+
+        it('renders no Contents line when the object hosts nothing', () => {
+            const standardForm = new StandardForm([
+                ASSET_ROW,
+                { tag: 'Object', universalKey: TABLE_ID, shortName: 'A Table' },
+            ], { standardizeMode: 'ephemeraWire' })
+
+            render(
+                <ComponentDescription
+                    parsedWML={standardForm}
+                    metaData={metaData}
+                    icon={<SearchIcon />}
+                    onClickLink={noopOnClickLink}
+                />
+            )
+
+            expect(screen.queryByText(/Contents:/)).toBeNull()
+        })
+
+        it('renders a single hosted node', () => {
+            const CUP_ID = 'OBJECT#testCup'
+            const standardForm = new StandardForm([
+                ASSET_ROW,
+                {
+                    tag: 'Object', universalKey: TABLE_ID, shortName: 'A Table',
+                    ludicGraph: { rootId: TABLE_ID, nodes: [
+                        { tag: 'Object', universalKey: TABLE_ID },
+                        { tag: 'Object', universalKey: CUP_ID },
+                    ] },
+                },
+                { tag: 'Object', universalKey: CUP_ID, shortName: 'a tin cup' },
+            ], { standardizeMode: 'ephemeraWire' })
+
+            render(
+                <ComponentDescription
+                    parsedWML={standardForm}
+                    metaData={metaData}
+                    icon={<SearchIcon />}
+                    onClickLink={noopOnClickLink}
+                />
+            )
+
+            expect(screen.getByText('Contents: a tin cup')).toBeDefined()
+        })
+
+        it('renders several hosted nodes with an Oxford-style join', () => {
+            const CUP_ID = 'OBJECT#testCup'
+            const SPOON_ID = 'OBJECT#testSpoon'
+            const NAPKIN_ID = 'OBJECT#testNapkin'
+            const standardForm = new StandardForm([
+                ASSET_ROW,
+                {
+                    tag: 'Object', universalKey: TABLE_ID, shortName: 'A Table',
+                    ludicGraph: { rootId: TABLE_ID, nodes: [
+                        { tag: 'Object', universalKey: TABLE_ID },
+                        { tag: 'Object', universalKey: CUP_ID },
+                        { tag: 'Object', universalKey: SPOON_ID },
+                        { tag: 'Object', universalKey: NAPKIN_ID },
+                    ] },
+                },
+                { tag: 'Object', universalKey: CUP_ID, shortName: 'a tin cup' },
+                { tag: 'Object', universalKey: SPOON_ID, shortName: 'a spoon' },
+                { tag: 'Object', universalKey: NAPKIN_ID, shortName: 'a napkin' },
+            ], { standardizeMode: 'ephemeraWire' })
+
+            render(
+                <ComponentDescription
+                    parsedWML={standardForm}
+                    metaData={metaData}
+                    icon={<SearchIcon />}
+                    onClickLink={noopOnClickLink}
+                />
+            )
+
+            expect(screen.getByText('Contents: a tin cup, a spoon, and a napkin')).toBeDefined()
+        })
+
+        it('drops a hosted reference with no stub component in the form, rather than showing a placeholder', () => {
+            const UNRESOLVED_ID = 'OBJECT#testUnresolved'
+            const standardForm = new StandardForm([
+                ASSET_ROW,
+                {
+                    tag: 'Object', universalKey: TABLE_ID, shortName: 'A Table',
+                    ludicGraph: { rootId: TABLE_ID, nodes: [
+                        { tag: 'Object', universalKey: TABLE_ID },
+                        { tag: 'Object', universalKey: UNRESOLVED_ID },
+                    ] },
+                },
+            ], { standardizeMode: 'ephemeraWire' })
+
+            render(
+                <ComponentDescription
+                    parsedWML={standardForm}
+                    metaData={metaData}
+                    icon={<SearchIcon />}
+                    onClickLink={noopOnClickLink}
+                />
+            )
+
+            expect(screen.queryByText(/Contents:/)).toBeNull()
+        })
+    })
 })

@@ -87,7 +87,7 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 
 ### Testing
 
-Import session test utilities from [`foundations/WorkbenchComponent/testing/harness.tsx`](./foundations/WorkbenchComponent/testing/harness.tsx) and [`testing/mock.ts`](./foundations/WorkbenchComponent/testing/mock.ts), or [`foundations/WorkbenchAssetMeta/testing/harness.tsx`](./foundations/WorkbenchAssetMeta/testing/harness.tsx) for asset-meta sessions --- not from the production barrel. See [Development Notes](#development-notes) and [charcoal-client/AGENT.testing.md](../../AGENT.testing.md).
+Import session test utilities from [`foundations/WorkbenchComponent/testing/harness.tsx`](./foundations/WorkbenchComponent/testing/harness.tsx) and [`testing/mock.ts`](./foundations/WorkbenchComponent/testing/mock.ts), or [`foundations/WorkbenchAssetMeta/testing/harness.tsx`](./foundations/WorkbenchAssetMeta/testing/harness.tsx) for asset-meta sessions --- not from the production barrel. See [Development Notes](#development-notes) and [charcoal-client/AGENT.testing.md](../../../AGENT.testing.md).
 
 ### Authoring operations (deletion and visibility)
 
@@ -412,5 +412,5 @@ Playing-mode exit chips ([`Message/RoomExit`](../Message/RoomExit.tsx), map ephe
 
 - **Map exit tools**: `addExit` is a no-op until Area authoring Phase 3+ (see topology refactor plan)
 - **Component Complexity**: Some components mix layout, navigation, and editing concerns
-- **Testing Coverage**: Expand tests for Workbench components; follow [AGENT.testing.md](../../AGENT.testing.md) for Vitest patterns. For `useWorkbenchComponent` session tests, import from [`foundations/WorkbenchComponent/testing/harness.tsx`](./foundations/WorkbenchComponent/testing/harness.tsx) (and [`testing/mock.ts`](./foundations/WorkbenchComponent/testing/mock.ts) for `seedWorkbenchAsset` / `updateStandardMock`); do not import test utilities from the production barrel.
+- **Testing Coverage**: Expand tests for Workbench components; follow [AGENT.testing.md](../../../AGENT.testing.md) for Vitest patterns. For `useWorkbenchComponent` session tests, import from [`foundations/WorkbenchComponent/testing/harness.tsx`](./foundations/WorkbenchComponent/testing/harness.tsx) (and [`testing/mock.ts`](./foundations/WorkbenchComponent/testing/mock.ts) for `seedWorkbenchAsset` / `updateStandardMock`); do not import test utilities from the production barrel.
 - **Non-Workbench authoring paths**: Maps, Library route editors, and other legacy `updateStandard` call sites outside the Workbench consistency layer; see [consistency AGENT.md](./foundations/consistency/AGENT.md) for Workbench norms.

@@ -13,7 +13,7 @@ This document describes the **mathematical properties and relationships** of edi
 To discuss component data algebra concisely, we use a local notation:
 
 - **Data Tags**: `fieldName:+value` indicates a value is added/set, `fieldName:-value` indicates a value is removed, `fieldName:old->new` indicates a replace operation
-- **Reference Lists**: Use the notation from [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md): `{+ref1, -ref2}` for references added/removed
+- **Reference Lists**: Use the notation from [`AGENT.referenceList.editAlgebra.md`](../keys/AGENT.referenceList.editAlgebra.md): `{+ref1, -ref2}` for references added/removed
 
 For example, component data can be expressed as:
 - `{shortName:+new, features:{+feat1, -feat2}}` for a room with a ShortName added and features list containing feat1 added and feat2 removed
@@ -22,13 +22,13 @@ For example, component data can be expressed as:
 
 The inverse of a component data payload is the payload constructed of the inverse of each of the independent data sections:
 - **Data Tags**: A data field like `ShortName` has its own bespoke inversion (`+value` ↔ `-value`, `old->new` ↔ `new->old`)
-- **Reference Lists**: `ReferenceList` inversion is described in [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md)
+- **Reference Lists**: `ReferenceList` inversion is described in [`AGENT.referenceList.editAlgebra.md`](../keys/AGENT.referenceList.editAlgebra.md)
 
 Example: Inverting component data `{shortName:old->new, features:{+feat1, -feat2}}` produces `{shortName:new->old, features:{-feat1, +feat2}}`.
 
 ### Non-associative and non-idempotent
 
-As with `ReferenceList` mergers, we cannot count on component merges to be _either_ associative (i.e. order independent) _or_ idempotent. See [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md) for a more in-depth discussion.
+As with `ReferenceList` mergers, we cannot count on component merges to be _either_ associative (i.e. order independent) _or_ idempotent. See [`AGENT.referenceList.editAlgebra.md`](../keys/AGENT.referenceList.editAlgebra.md) for a more in-depth discussion.
 
 ## Component Appearance: Reference and Data Duality
 
@@ -58,7 +58,7 @@ This storage approach is algebraically equivalent: removing component data `{sho
 
 ## Related Documentation
 
-- [`AGENT.referenceList.editAlgebra.md`](./AGENT.referenceList.editAlgebra.md) - Mathematical properties of ReferenceList merge and diff operations
+- [`AGENT.referenceList.editAlgebra.md`](../keys/AGENT.referenceList.editAlgebra.md) - Mathematical properties of ReferenceList merge and diff operations
 - [`AGENT.md`](./AGENT.md) - Conceptual overview and navigation guide
 - [`AGENT.usage.md`](./AGENT.usage.md) - Practical code examples and usage patterns
 - [`AGENT.implementation.md`](./AGENT.implementation.md) - Component types, architectural patterns, and testing details

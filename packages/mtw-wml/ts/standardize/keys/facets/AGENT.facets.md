@@ -88,7 +88,7 @@
 - This fallback is a short-term compatibility tradeoff, not a neutral semantic default.
 - Keep strict rejection for malformed present payload values; tolerance is only for omitted payload.
 - Follow-up cleanup plan:
-  - [`taskPlanning/packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md`](../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md)
+  - [`taskPlanning/packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md`](../../../../../../taskPlanning/packages/mtw-wml/standardize/AGENT.positionSubsystemOverhaul.planning.md)
 
 ## Missing-payload policy (high level)
 

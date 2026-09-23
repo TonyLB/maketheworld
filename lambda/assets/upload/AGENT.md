@@ -130,9 +130,9 @@ return `${appBaseURL}/images/${universalKey}.png`
 - **Asset Cache**: Component data storage
 
 ### Cross-References
-- **[WML Parse System](../../wml/parseWML.ts)**: Image processing integration (deprecated - now uses applyEdit)
-- **[Format Image](../../wml/formatImage/)**: **DEPRECATED** - Old image processing function, replaced by `lambda/imageProcessor/`
-- **[Client Image Display](../../charcoal-client/src/components/Library/Edit/LibraryAsset.tsx)**: Image serving
+- **WML Parse System**: Image processing integration (deprecated - now uses applyEdit)
+- **Format Image**: **DEPRECATED** - Old image processing function, replaced by `lambda/imageProcessor/`
+- **Client Image Display**: Image serving
 - **[Asset Properties](../README.images.md)**: Current image association system
 
 ## Usage Patterns
@@ -219,5 +219,5 @@ const uploadResult = await uploadURLMessage({
 
 ### Related Systems
 - **[WML System](../../wml/)**: Component processing
-- **[Client Display](../../charcoal-client/)**: Image serving
-- **[Asset Cache](../cacheAsset/)**: Component storage
+- **[Client Display](../../../charcoal-client)**: Image serving
+- **Asset Cache**: Component storage

@@ -157,8 +157,8 @@ MapDThree/
 ### Related Documentation
 
 - See [`AGENT.md`](AGENT.md) for overall Maps component architecture
-- See [`../Controller/AGENT.md`](../Controller/AGENT.md) for state management details
-- See [`../../../lambda/wml/AGENT.md`](../../../lambda/wml/AGENT.md) for WML system integration
+- See `../Controller/AGENT.md` for state management details
+- See [`../../../lambda/wml/AGENT.md`](../../../../lambda/wml/README.md) for WML system integration
 
 ## Development Notes
 

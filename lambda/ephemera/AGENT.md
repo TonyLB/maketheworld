@@ -62,7 +62,7 @@ The Ephemera Lambda integrates with other system components through:
 
 #### **Diagnostics occupancy drift**
 
-Diagnostics emits **`Room Occupancy Drift Finding`** on `mtw.diagnostics` (read-only sweep: [`lambda/diagnostics/roomOccupancyDriftSweep/`](../../diagnostics/roomOccupancyDriftSweep/)). Downstream repair is owned by **`mtw.ephemera.positions`** via [`repairRoomOccupancyDrift`](dataSource/positions/membership/repairRoomOccupancyDrift.ts) (graph-forward scan, sessions gate, adjacency sync). Parent **`mtw.ephemera`** no longer subscribes to this finding type.
+Diagnostics emits **`Room Occupancy Drift Finding`** on `mtw.diagnostics` (read-only sweep: [`lambda/diagnostics/roomOccupancyDriftSweep/`](../diagnostics/roomOccupancyDriftSweep)). Downstream repair is owned by **`mtw.ephemera.positions`** via [`repairRoomOccupancyDrift`](dataSource/positions/manipulation/membership/repairRoomOccupancyDrift.ts) (graph-forward scan, sessions gate, adjacency sync). Parent **`mtw.ephemera`** no longer subscribes to this finding type.
 
 #### **`mtw.ephemera.positions` (positions in play)**
 

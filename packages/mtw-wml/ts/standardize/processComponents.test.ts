@@ -10,6 +10,7 @@ const componentOrder: string[] = [
     'Image',
     'Room',
     'Feature',
+    'Object',
     'Knowledge',
     'Map',
     'Message',
@@ -139,7 +140,10 @@ describe("processComponents", () => {
         expect(topLevelKeys).not.toContain('testGlobal')
     })
 
-    it('should parse Object under Room via processComponents (mode-blind)', () => {
+    // `_objects`/StandardRoomObjectData were retired in Slice 5 (LG-2): a `<Object>` tag nested
+    // under `<Room>` is now a graph membership reference, and processComponents (mode-blind)
+    // independently discovers its full inline definition as a real top-level StandardObject.
+    it('parses Object under Room via processComponents as ludicGraph membership plus a top-level component (mode-blind)', () => {
         const testSource = `
             <Asset uuid=(Test)>
                 <Room key=(main) uuid=(main)>
@@ -157,7 +161,8 @@ describe("processComponents", () => {
             assetUUID: 'ASSET#Test',
         })
         const room = result.components.find((component) => component.tag === 'Room') as StandardRoom
-        expect(room.objects).toEqual([{ uuid: 'OBJECT#skates', shortName: 'roller skates' }])
+        expect(room.ludicGraph.nodesByTag('Object').payload.map((ref) => ref.universalKey)).toEqual(['OBJECT#skates'])
+        expect(result.components.filter((component) => component.tag === 'Object')).toHaveLength(1)
     })
 
     it('should combine descriptions in rooms and features', () => {

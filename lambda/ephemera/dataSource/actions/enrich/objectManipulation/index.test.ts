@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
+import type { StandardLudicNavigationEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../../../positions/ludicGraph/testFixtures'
 import { enrichObjectManipulation } from './index'
@@ -45,8 +45,8 @@ const relationalPositionsReadDeps = () => ({
     getLudicGraph: jest.fn().mockResolvedValue(roomGraphWithBroomAndTable),
 })
 
-const touchingEdge: StandardExitEdgeData = {
-    tag: 'Exit',
+const touchingEdge: StandardLudicNavigationEdgeData = {
+    kind: 'Navigation',
     uuid: 'edge-1',
     from: broomId,
     to: tableId,

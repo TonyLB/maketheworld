@@ -93,6 +93,42 @@ describe('objectRenderWmlFromCacheRecord', () => {
     })
 })
 
+describe('objectRenderWmlFromCacheRecord --- nestedObjectLook Phase 1 (ludicGraph)', () => {
+    const objectId = 'OBJECT#TestOne' as const
+    const cupId = 'OBJECT#TestCup' as const
+
+    it('omits ludicGraph entirely when not provided (empty field, not a placeholder)', () => {
+        const wml = objectRenderWmlFromCacheRecord(objectId, { description: [] }, { fallbackShortName: 'a table' })
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const object = parsed.byUniversalId[objectId] as StandardObject
+        expect(object.ludicGraph.toJSON()).toBeUndefined()
+    })
+
+    it('carries a hosted node reference and its sibling stub component name', () => {
+        const wml = objectRenderWmlFromCacheRecord(
+            objectId,
+            { description: [] },
+            {
+                fallbackShortName: 'a table',
+                ludicGraph: {
+                    rootId: { tag: 'Object', universalKey: objectId },
+                    nodes: [{ tag: 'Object', universalKey: cupId }],
+                },
+                hostedNodeNameStubs: [{ tag: 'Object', universalKey: cupId, shortName: 'a tin cup' }],
+            }
+        )
+        const parsed = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        const object = parsed.byUniversalId[objectId] as StandardObject
+        expect(object.ludicGraph.toJSON()).toBeDefined()
+        const referencedKeys = object.ludicGraph.nodes.componentRefs.payload.map((ref) => ref.universalKey)
+        expect(referencedKeys).toContain(cupId)
+
+        const cupStub = parsed.byUniversalId[cupId] as StandardObject
+        expect(cupStub).toBeInstanceOf(StandardObject)
+        expect(cupStub.shortName?._payload?.plain?.toJSON()).toBe('a tin cup')
+    })
+})
+
 describe('objectRenderChannelWmlForObjectId', () => {
     const objectId = 'OBJECT#TestOne' as const
 

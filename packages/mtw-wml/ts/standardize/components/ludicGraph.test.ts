@@ -54,9 +54,10 @@ describe("StandardLudicGraph", () => {
             })
             const merged = base.merge(incoming)
             expect(merged.nodes.payload).toHaveLength(3)
-            expect(merged.nodes.payload.find((ref) => ref.tag === 'Area' && ref.key === 'downtown')?.ref).toBe(1)
-            expect(merged.nodes.payload.find((ref) => ref.tag === 'Room' && ref.key === 'cafe')?.ref).toBe(2)
-            expect(merged.nodes.payload.find((ref) => ref.tag === 'Feature' && ref.key === 'fountain')?.ref).toBe(1)
+            const mergedRefs = merged.nodes.componentRefs.payload
+            expect(mergedRefs.find((ref) => ref.tag === 'Area' && ref.key === 'downtown')?.ref).toBe(1)
+            expect(mergedRefs.find((ref) => ref.tag === 'Room' && ref.key === 'cafe')?.ref).toBe(2)
+            expect(mergedRefs.find((ref) => ref.tag === 'Feature' && ref.key === 'fountain')?.ref).toBe(1)
         })
     })
 
@@ -76,9 +77,10 @@ describe("StandardLudicGraph", () => {
             })
             const diffed = base.diff(incoming)
             expect(diffed).toBeDefined()
-            expect(diffed!.nodes.payload.find((ref) => ref.tag === 'Area' && ref.key === 'downtown')?.ref).toBe(-1)
-            expect(diffed!.nodes.payload.find((ref) => ref.tag === 'Room' && ref.key === 'cafe')?.ref).toBe(1)
-            expect(diffed!.nodes.payload.find((ref) => ref.tag === 'Feature' && ref.key === 'fountain')?.ref).toBe(1)
+            const diffedRefs = diffed!.nodes.componentRefs.payload
+            expect(diffedRefs.find((ref) => ref.tag === 'Area' && ref.key === 'downtown')?.ref).toBe(-1)
+            expect(diffedRefs.find((ref) => ref.tag === 'Room' && ref.key === 'cafe')?.ref).toBe(1)
+            expect(diffedRefs.find((ref) => ref.tag === 'Feature' && ref.key === 'fountain')?.ref).toBe(1)
         })
 
         it("returns undefined when diff is empty", () => {
@@ -150,6 +152,128 @@ describe("StandardLudicGraph", () => {
             ])
             const graph = new StandardLudicGraph(list)
             expect(graph.toJSON()?.nodes).toHaveLength(1)
+        })
+    })
+
+    describe("alignment round-trip (LG-1/LG-8/LG-9/LG-10)", () => {
+        it("round-trips every node union member and both absent-field cases without loss", () => {
+            const data = {
+                rootId: { tag: 'Room' as const, key: 'lab', universalKey: 'ROOM#lab' as const },
+                nodes: [
+                    { tag: 'Room' as const, key: 'lab', universalKey: 'ROOM#lab' as const },
+                    { tag: 'Area' as const, key: 'downtown' },
+                    { tag: 'Feature' as const, key: 'fountain' },
+                    { tag: 'Character' as const, key: 'guard' },
+                    { tag: 'Object' as const, key: 'box' },
+                    {
+                        tag: 'Presence' as const,
+                        universalKey: 'PRESENCE#p1',
+                        fromHostId: 'ROOM#lab' as const,
+                        cover: { tag: 'Full' as const },
+                    },
+                ],
+            }
+            const graph = StandardLudicGraph.fromJSON(data)
+            expect(graph.rootId?.universalKey).toBe('ROOM#lab')
+            expect(graph.presenceNodes).toHaveLength(1)
+            expect(graph.presenceNodes[0].universalKey).toBe('PRESENCE#p1')
+            expect(graph.toJSON()).toEqual(data)
+        })
+
+        it("round-trips a presence node with an Enumerated cover", () => {
+            const data = {
+                nodes: [
+                    {
+                        tag: 'Presence' as const,
+                        universalKey: 'PRESENCE#p2',
+                        fromHostId: 'ROOM#hall' as const,
+                        cover: {
+                            tag: 'Enumerated' as const,
+                            members: [{ host: 'OBJECT#rope' as const, presence: 'PRESENCE#p2' }],
+                        },
+                    },
+                ],
+            }
+            const graph = StandardLudicGraph.fromJSON(data)
+            expect(graph.toJSON()).toEqual(data)
+        })
+
+        it("round-trips one edge of every kind (Topology/Membership/Peer)", () => {
+            const data = {
+                edges: [
+                    { kind: 'Navigation' as const, uuid: 'e1', payload: {} },
+                    { kind: 'Bearing' as const, from: 'ROOM#a' as const, to: 'ROOM#b' as const },
+                    { kind: 'In' as const, from: 'OBJECT#cup' as const, to: 'OBJECT#box' as const },
+                    { kind: 'On' as const, from: 'OBJECT#cup' as const, to: 'OBJECT#tray' as const },
+                    { kind: 'PartOf' as const, from: 'OBJECT#spring' as const, to: 'OBJECT#contraption' as const },
+                    { kind: 'Under' as const, from: 'OBJECT#a' as const, to: 'OBJECT#b' as const },
+                    { kind: 'Against' as const, from: 'OBJECT#a' as const, to: 'OBJECT#b' as const },
+                    { kind: 'Custom' as const, from: 'OBJECT#a' as const, to: 'OBJECT#b' as const, relationLabel: 'spliced to' },
+                ],
+            }
+            const graph = StandardLudicGraph.fromJSON(data)
+            expect(graph.edges.length).toBe(8)
+            expect(graph.toJSON()).toEqual(data)
+        })
+
+        it("round-trips ports (contract parity only -- no WML writer populates them)", () => {
+            const data = {
+                ports: [
+                    { portId: '8f3a', fromHostId: 'ROOM#lab' as const, kind: 'Custom', exteriorRelationLabel: 'TiedTo' },
+                ],
+            }
+            const graph = StandardLudicGraph.fromJSON(data)
+            expect(graph.toJSON()).toEqual(data)
+        })
+
+        it("carries edgeId/chainId on a relational edge base field", () => {
+            const data = {
+                edges: [
+                    { kind: 'PartOf' as const, from: 'OBJECT#ropeEndA' as const, to: 'OBJECT#rope' as const, edgeId: 'route1', chainId: 'chain1' },
+                ],
+            }
+            const graph = StandardLudicGraph.fromJSON(data)
+            expect(graph.toJSON()).toEqual(data)
+        })
+
+        it("round-trips a relational edge with a port-qualified terminal (LG-11)", () => {
+            const data = {
+                edges: [
+                    {
+                        kind: 'Custom' as const,
+                        from: 'OBJECT#rope' as const,
+                        to: { owner: { tag: 'Object' as const, key: 'box' }, port: '8f3a' },
+                        relationLabel: 'TiedTo',
+                    },
+                ],
+            }
+            const graph = StandardLudicGraph.fromJSON(data)
+            expect(graph.toJSON()).toEqual(data)
+        })
+
+        it("round-trips a relational edge landing directly on a bare presence-node terminal (LG-11, PR-15)", () => {
+            const data = {
+                edges: [
+                    { kind: 'In' as const, from: 'OBJECT#ropeEndA' as const, to: { presence: 'PRESENCE#p1' } },
+                ],
+            }
+            const graph = StandardLudicGraph.fromJSON(data)
+            expect(graph.toJSON()).toEqual(data)
+        })
+
+        it("remaps the owner half of a port-qualified terminal on toFormat, leaving the port opaque", () => {
+            const graph = StandardLudicGraph.fromJSON({
+                edges: [
+                    {
+                        kind: 'Under' as const,
+                        from: { owner: { tag: 'Room' as const, key: 'lab', universalKey: 'ROOM#lab' as const }, port: '8f3a' },
+                        to: 'OBJECT#cup',
+                    },
+                ],
+            })
+            const formatted = graph.edges.toFormat('universal')
+            const edge = formatted.payload[0].toJSON() as any
+            expect(edge.from).toEqual({ owner: 'ROOM#lab', port: '8f3a' })
         })
     })
 })

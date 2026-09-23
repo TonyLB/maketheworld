@@ -1,5 +1,5 @@
 import StandardArea from './area'
-import { StandardExitEdge } from '../keys/edges/exitEdge'
+import { StandardLudicNavigationEdge } from '../keys/edges/ludicEdge'
 import {
     assertEdgeSatisfiesParticipantRule,
     edgeSatisfiesParticipantRule,
@@ -19,32 +19,32 @@ describe('areaTopologyValidation', () => {
         },
     })
 
-    const bothInGraphEdge = new StandardExitEdge({
-        tag: 'Exit',
+    const bothInGraphEdge = new StandardLudicNavigationEdge({
+        kind: 'Navigation',
         uuid: 'e1',
         from: { tag: 'Room', key: 'highway' },
         to: { tag: 'Room', key: 'townCenter' },
         payload: {},
     })
 
-    const portalEdge = new StandardExitEdge({
-        tag: 'Exit',
+    const portalEdge = new StandardLudicNavigationEdge({
+        kind: 'Navigation',
         uuid: 'e2',
         from: { tag: 'Room', key: 'highway' },
         to: { tag: 'Room', key: 'outside' },
         payload: {},
     })
 
-    const orphanEdge = new StandardExitEdge({
-        tag: 'Exit',
+    const orphanEdge = new StandardLudicNavigationEdge({
+        kind: 'Navigation',
         uuid: 'e3',
         from: { tag: 'Room', key: 'roomA' },
         to: { tag: 'Room', key: 'roomB' },
         payload: {},
     })
 
-    const uuidOnlyEdge = new StandardExitEdge({
-        tag: 'Exit',
+    const uuidOnlyEdge = new StandardLudicNavigationEdge({
+        kind: 'Navigation',
         uuid: 'edge-a1b2c3d4',
         payload: {},
     })

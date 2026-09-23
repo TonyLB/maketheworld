@@ -49,7 +49,7 @@ Pass `toDynamoRecord()` output (or nested `semanticEmbedding` field with `vector
 
 ## Dynamo handler proof
 
-Existing `mtw-utilities` Dynamo mixin handlers round-trip `Uint8Array` via AWS SDK `marshall` / `unmarshall` with no handler changes. Proof tests: [`binaryRoundTrip.test.ts`](../../../../mtw-utilities/ts/dynamoDB/mixins/binaryRoundTrip.test.ts). Run:
+Existing `mtw-utilities` Dynamo mixin handlers round-trip `Uint8Array` via AWS SDK `marshall` / `unmarshall` with no handler changes. Proof tests: [`binaryRoundTrip.test.ts`](../../../mtw-utilities/ts/dynamoDB/mixins/binaryRoundTrip.test.ts). Run:
 
 ```bash
 cd packages/mtw-utilities && npm test -- binaryRoundTrip

@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { StandardExitEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/exitEdge'
+import type { StandardLudicNavigationEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../../../positions/ludicGraph/testFixtures'
 import { compileMembershipAtomic } from './compileMembershipAtomic'
@@ -17,8 +17,8 @@ const broomCatalog = [{ objectId: broomId, normalizedShortName: 'broom' }]
 const pouchCatalog = [{ objectId: pouchId, normalizedShortName: 'pouch' }]
 const bagCatalog = [{ objectId: bagId, normalizedShortName: 'bag' }]
 
-const touchingEdge: StandardExitEdgeData = {
-    tag: 'Exit',
+const touchingEdge: StandardLudicNavigationEdgeData = {
+    kind: 'Navigation',
     uuid: 'edge-1',
     from: broomId,
     to: tableId,

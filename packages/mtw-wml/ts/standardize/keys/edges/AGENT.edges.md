@@ -117,9 +117,25 @@ All other edges --- uuid-only stubs, one-sided edges, orphan edges (both endpoin
 
 At ephemeraWire, room **`ExitFacetList`** is synthesized from merged Area edges via [`projectRoomExits`](../../projection/projectRoomExits.ts) (tests: [`projectRoomExits.test.ts`](../../projection/projectRoomExits.test.ts)). Gateways pull assembly: [`componentTopology`](../../../../../../packages/mtw-gateways/ts/assets/components/componentTopology/) via **`createComponentTopologyCacheHandler`** on Ephemera **`internalCache`** (see [`packages/mtw-gateways/AGENT.md`](../../../../../../packages/mtw-gateways/AGENT.md), [`lambda/ephemera/internalCache/AGENT.md`](../../../../../../lambda/ephemera/internalCache/AGENT.md)).
 
+## The heterogeneous edge list (shipped)
+
+**`StandardLudicGraph.edges` is `LudicEdgeList`** ([`ludicEdge.ts`](./ludicEdge.ts), data types in [`dataTypes/ludicEdge.ts`](./dataTypes/ludicEdge.ts)) --- a single list over three kind classes, aligned field-for-field to ephemera's relational edges. `kind` is the sole discriminant; **no `category` field restates it**:
+
+| Class | Kinds | Meaning |
+| --- | --- | --- |
+| **Topology** | `Navigation`, `Bearing` | Relates **places** (Area scale): `from`/`to`, per-direction labels. `Navigation` is today's `<Exit>`; `Bearing` is a non-traversable spatial fact ("north of" without a door). |
+| **Membership** | `In`, `On`, `PartOf` | Puts the subordinate node in the superior's own graph --- a cup `On` a tray is a node in the **tray's** `ludicGraph`, and the tray is a node in the room's. |
+| **Peer** | `Under`, `Against`, `Custom` (+ `relationLabel` on `Custom`) | Leaves both endpoints in one graph and hosts nothing. |
+
+**`Navigation` is the only kind with a WML surface tag and an author path.** `StandardLudicNavigationEdge` **wraps `StandardExitEdge` internally** and translates only the outer discriminant (`tag: 'Exit'` stored -> `kind: 'Navigation'`); it reuses `StandardExitEdge`'s Replace/Remove-editable endpoints, `uuid` identity, and `<Exit>` schema parsing verbatim --- nothing about v1's Exit behavior below changed. `ExitEdgeList`/`StandardExitEdge` are **untouched and unwidened**; `LudicEdgeList` is a sibling type, not a modification of them.
+
+**Bearing and every Membership/Peer kind are typed and unit-exercised (round-trip tested) but have no WML surface tag or author path yet** --- per the lift rule (take the type contract now, defer the behavior; see [`AGENT.ludicNetwork.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md#6-lifting-a-shape-into-wml)). Their endpoints are plain `StandardLudicTerminalData` (a bare component reference, a port-qualified `{owner, port}` address, or a bare `{presence}` self-reference --- mirroring `EphemeraLudicTerminalId`), not the Exit-specific editable wrapper, since there is no schema tag driving Replace/Remove edits on them yet.
+
+**Identity (LG-10): the authored `uuid` on `Navigation` *is* the `edgeId`.** Not two schemes --- one slot that was never filled. `edgeId` is an optional stable label a relation may carry, endpoint-independent, consulted by nothing that mints one automatically; `Navigation`'s `uuid` fills that same slot (merge/diff/edit identity within one Area, surviving endpoint `Replace`). Other kinds carry `edgeId`/`chainId` as optional base fields with structural (`kind` + endpoints + label) `sameKey`, since nothing mints an author identity for them yet. `chainId` stays orthogonal to `edgeId`: one route realizing a relationship, consulted by `edgesMatch` ahead of structure --- the legs of a relation crossing a port boundary share a `chainId`, and `edgeId`/`chainId` sit on the shared edge base (not scoped to any one kind), so a portal decomposed into two `Navigation` legs sharing a `chainId` is exactly as valid as it is for a Membership/Peer edge, though nothing mints one today.
+
 ## Future edge members
 
-**Ludic graph shape / Edge list pattern:** `ludicGraph.edges` is a **tagged union**; **Exit** is the first member only. Additional edge kinds add a new `tag`, payload module, and item class via [`edgeClassFactory`](./edgeFactory.ts) / [`edgeListClassFactory`](./edgeListFactory.ts) --- same list merge-by-`uuid` habit within one Area.
+**Ludic graph shape / Edge list pattern:** `ludicGraph.edges` is a **tagged union** over the three classes above. A fourth kind adds a new `kind` value, payload shape, and typeguard branch inside `dataTypes/ludicEdge.ts` / `ludicEdge.ts` --- same list-merge habit within one Area for any kind that gets a `uuid`-identified WML surface tag.
 
 ### Endpoint wrapper (planned abstraction)
 
@@ -138,25 +154,22 @@ No subclass hierarchy is required if the factory + shared class suffice; **`Stan
 
 **When endpoint wire differs** (non-`From`/`To` tags, non-reference payload, different merge rules): do **not** force-fit `StandardEdgeEndpoint`; only reuse **edge list / uuid-keyed item** infrastructure.
 
-### List typing note
+### List typing note (resolved --- see above)
 
-v1 [`StandardLudicGraph`](../../components/ludicGraph.ts) holds **`ExitEdgeList`** only. A second union member implies a heterogeneous **`EdgeList`** (discriminated by item `tag`) or a parallel list type --- detail deferred until the second shape is designed; do not overload [`ExitEdgeList`](./exitEdge.ts) with mixed tags.
+**Shipped.** [`StandardLudicGraph`](../../components/ludicGraph.ts) holds the heterogeneous `LudicEdgeList` described in [The heterogeneous edge list (shipped)](#the-heterogeneous-edge-list-shipped) above, not `ExitEdgeList` alone. The identity-scheme question this note used to leave open (does a heterogeneous list assume `uuid` covers both authoring identity and play identity) is answered there too: the authored `uuid` on `Navigation` **is** the `edgeId`, one slot rather than two schemes.
 
-Play-time **Relational** edges ([`EphemeraLudicRelationalEdgeData`](../../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) are a separate layer with its own kind vocabulary and its own identity scheme. Heterogeneous WML **`EdgeList`** for room/container graphs is TBD, and the three notes below are what it would have to reconcile.
-
-**Kinds partition in three classes, not one flat list** (`HostRelationalEdgeKind`; spec: [`positions/AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#wholes-parts-and-ports), AB-54):
+Play-time **Relational** edges ([`EphemeraLudicRelationalEdgeData`](../../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) are the source this WML shape aligns to. Their kind vocabulary (`HostRelationalEdgeKind`) partitions in **two** classes, not three (spec: [`positions/AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#wholes-parts-and-ports), AB-54; `Present` was retired from this enum at presenceNodes Slice 3, PN-14 --- presence moved to its own node type, not an edge kind):
 
 | Class | Kinds | Meaning |
 | --- | --- | --- |
 | **Hosting** | `On`, `In`, `PartOf` | Puts the subordinate node in the superior's own graph --- a cup `On` a tray is a node in the **tray's** `ludicGraph`, and the tray is a node in the room's |
 | **Peer** | `Under`, `Against`, `Custom` | Leaves both endpoints in one graph and hosts nothing |
-| **Partitioning** | `Present` | Neither hosting nor peer |
+
+WML's own `LudicEdgeList` above adds a **third** class, **Topology** (`Navigation`/`Bearing`), that `HostRelationalEdgeKind` does not have --- Area-scale place relations have no play-time relational-edge analogue; they're the layer `<Exit>` already modelled before this alignment.
 
 **`On` is not an authorable relation, and host graphs are not only rooms.** Because `On` is a hosting kind, it is reached as a **containment argument on a rehost operation** rather than by establishing an edge --- there is no operation that "establishes `On`". Hosting also makes **objects** hosts with their own `ludicGraph`, so any future member covering these kinds must not assume a room-scoped graph or an author-declared `On` edge.
 
-**Two identity schemes, deliberately unrelated.** This doc's **Edge uuid identity** invariant is authoring-time and scoped to one Area. Relational edges instead carry optional `edgeId` (the relationship: its endpoints) and `chainId` (**one route** realizing it --- the legs of a relation crossing a port boundary share a `chainId`, and a second route over the same relationship mints a new `chainId` on the existing `edgeId`). The fields round-trip through storage today but no write path mints them yet. **A heterogeneous `EdgeList` must decide which scheme it stores rather than assuming `uuid` covers both.**
-
-**Cross-linked here 2026-09-11, both directions, after a design-doc contradiction reached the opposite conclusion from this paragraph with confidence.** This is the invariant that decides what a "port" is allowed to do on the play-time (`positions/`) side: the legs of one crossing share an `edgeId`, so they cannot carry different `kind`s or labels. See [`positions/AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#wholes-parts-and-ports) for the corrected illustration and [`taskPlanning/.../AGENT.abstractionLayers.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md#getting-started) for the design plan that owns port/crossing vocabulary --- its `Getting Started` now reads this paragraph before either.
+**Cross-linked here 2026-09-11, both directions, after a design-doc contradiction reached the opposite conclusion from this paragraph with confidence.** The invariant that decides what a "port" is allowed to do on the play-time (`positions/`) side: the legs of one crossing share an `edgeId`, so they cannot carry different `kind`s or labels. See [`positions/AGENT.concepts.md`](../../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#wholes-parts-and-ports) for the corrected illustration and [`taskPlanning/.../AGENT.abstractionLayers.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md#getting-started) for the design plan that owns port/crossing vocabulary --- its `Getting Started` now reads this paragraph before either.
 
 ## Related docs
 

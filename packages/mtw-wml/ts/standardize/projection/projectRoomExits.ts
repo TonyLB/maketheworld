@@ -7,6 +7,7 @@ import type { StandardFacetData } from '../keys/facets/dataTypes/facet'
 import type { ExitPayload } from '../keys/facets/dataTypes/facet'
 import { ExitFacetList, StandardExitFacet } from '../keys/facets/exit'
 import StandardReference from '../keys/reference'
+import { StandardLudicNavigationEdge } from '../keys/edges/ludicEdge'
 
 const isRoomUniversalKey = (value: string | undefined): value is ComponentUUID =>
     typeof value === 'string' && value.startsWith('ROOM#')
@@ -57,7 +58,9 @@ export function projectRoomExits(
     const facets: StandardExitFacet[] = []
 
     for (const area of mergedAreas) {
-        for (const edge of area.ludicGraph.edges.items) {
+        const navigationEdges = area.ludicGraph.edges.items
+            .filter((edge): edge is StandardLudicNavigationEdge => edge instanceof StandardLudicNavigationEdge)
+        for (const edge of navigationEdges) {
             const fromRef = referenceFromExitEndpoint(edge.from)
             const toRef = referenceFromExitEndpoint(edge.to)
             const forwardLabel = literalPlainString(edge.payload.forward)

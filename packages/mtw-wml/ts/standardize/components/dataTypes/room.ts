@@ -8,11 +8,6 @@ import { isSituationProseFacetPayload, type SituationProseFacetPayloadType } fro
 import { Override } from "../../types"
 import { isStandardLudicGraphData, StandardLudicGraphData } from "./ludicGraph"
 
-export type StandardRoomObjectData = {
-    uuid: string;
-    shortName: string;
-}
-
 /** Ephemera wire: prose from `<Render>`; same JSON shape as Situation room facet payload (literal + RenderTree fields). */
 export type StandardRoomRenderData = SituationProseFacetPayloadType
 
@@ -25,8 +20,6 @@ export type StandardRoomData = {
     ludicGraph?: StandardLudicGraphData;
     guidance?: ReferenceListData;
     characters?: ReferenceListData;
-    /** Ephemera wire: runtime objects (OBJECT# + ShortName); same JSON shape as Objects Change ingress add row. */
-    objects?: StandardRoomObjectData[];
     /** Ephemera wire: resolved DisplayName / Summary / Description from `<Render>`. */
     render?: StandardRoomRenderData;
 } & StandardBaseData
@@ -35,15 +28,6 @@ export type StandardRoomInputData = Override<StandardRoomData, {
     exits?: FacetListInputData<ExitPayload>;
     situations?: FacetListInputData<SituationProseFacetPayloadType>;
 }>
-
-const isStandardRoomObjectData = (x: unknown): x is StandardRoomObjectData => (
-    typeof x === 'object'
-    && x !== null
-    && 'uuid' in x
-    && 'shortName' in x
-    && typeof (x as StandardRoomObjectData).uuid === 'string'
-    && typeof (x as StandardRoomObjectData).shortName === 'string'
-)
 
 const isStandardRoomRenderData = (x: unknown): x is StandardRoomRenderData => (
     typeof x === 'object'
@@ -75,8 +59,6 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
             characters: 'referenceList'
         }),
         !('ludicGraph' in arg) || isStandardLudicGraphData(arg.ludicGraph),
-        !('objects' in arg) ||
-            (Array.isArray(arg.objects) && (arg.objects as unknown[]).every(isStandardRoomObjectData)),
         !('render' in arg) ||
             isStandardRoomRenderData(arg.render)
     )
@@ -101,8 +83,6 @@ export const isStandardRoomInputData = (arg: any): arg is StandardRoomInputData 
             characters: 'referenceList'
         }),
         !('ludicGraph' in arg) || isStandardLudicGraphData(arg.ludicGraph),
-        !('objects' in arg) ||
-            (Array.isArray(arg.objects) && (arg.objects as unknown[]).every(isStandardRoomObjectData)),
         !('render' in arg) ||
             isStandardRoomRenderData(arg.render)
     )

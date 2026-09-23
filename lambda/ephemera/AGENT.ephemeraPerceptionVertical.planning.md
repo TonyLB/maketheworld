@@ -15,7 +15,7 @@ This is **not** only the [`perception/`](perception/) folder. It **includes** or
 | [`dataSource/state/`](dataSource/state/) | Authoritative `Meta::Room` world-state, `mtw.ephemera.state`, `State Changed` and related ingress/outbound |
 | [`dataSource/renderOrchestration/`](dataSource/renderOrchestration/) | Resolve / pointer / exact match / generation policy, passive path, lifecycle messages (`RenderReady`, etc.) |
 | [`dataSource/renderCache/`](dataSource/renderCache/) | Dynamo cache rows, `mtw.ephemera.renderCache`, `Put Cache Record` / `Cache Updated` (today), future alignment with orchestration streams |
-| [`renderCache/`](renderCache/) (module) | Types, helpers, schema; pairs with DataSource above |
+| `renderCache/` (module) | Types, helpers, schema; pairs with DataSource above |
 | [`conversations/`](conversations/) | Correlation (`conversationId`), composite handles, `sendMessage`, staging for multi-step UX |
 | [`perception/`](perception/) | Enrichment and delivery into the chat spine; future **fan-in** assembler role |
 | [`messageBus/`](messageBus/) | Internal typed messages vs `StreamingEvent` DataSource envelopes; graduation targets |

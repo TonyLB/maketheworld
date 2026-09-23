@@ -21,6 +21,7 @@ import { EPHEMERA_CACHE_PROVENANCE_AUTHORED } from '../renderCache/baseClasses'
 import { orchestrateRoomDescriptionStreams } from './orchestrate'
 import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
 import { registerIngressSlot } from '../messageOrchestration'
+import { testLudicGraph } from '../positions/ludicGraph/testFixtures'
 
 const assetDBMock = jest.mocked(assetDB)
 const ephemeraDBMock = jest.mocked(ephemeraDB)
@@ -230,5 +231,161 @@ describe('orchestrateRoomDescriptionStreams object fan-in', () => {
         await messageBus.flushAndSettle()
 
         expect(publishSpy.mock.calls.map((c) => c[0]).filter((m: any) => m?.type === 'PublishMessage')).toHaveLength(0)
+    })
+
+    describe('nestedObjectLook Phase 1: hosted shard delivery', () => {
+        it('omits ludicGraph entirely when the object hosts nothing (empty field, not a placeholder)', async () => {
+            jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(testLudicGraph(OBJECT_ID))
+
+            const publishSpy = spyPublish()
+            await registerObjectDescriptionSlot()
+
+            await orchestrateRoomDescriptionStreams(
+                {
+                    type: 'Render Pertains',
+                    componentId: OBJECT_ID,
+                    perspectiveKey: PERSPECTIVE_KEY,
+                    cacheId: CACHE_ID,
+                    cacheRecord: objectTerminalCacheRecord(),
+                } as any,
+                messageBus
+            )
+            await messageBus.flushAndSettle()
+
+            const terminalPublish = publishSpy.mock.calls
+                .map((c) => c[0] as any)
+                .find((m) => m?.type === 'PublishMessage')
+            expect(terminalPublish).toBeDefined()
+            const parsed = new StandardForm(terminalPublish!.wmlContent as string, { standardizeMode: 'ephemeraWire' })
+            const object = parsed.byUniversalId[OBJECT_ID] as StandardObject
+            expect(object.ludicGraph.toJSON()).toBeUndefined()
+        })
+
+        it.each(['On', 'In', 'PartOf'] as const)(
+            'carries a %s-hosted object\'s reference and a resolvable shortName one level deep',
+            async (kind) => {
+                const CUP_ID = 'OBJECT#test-cup' as const
+                internalCache.ImprovisationComponentData.set(CUP_ID, IMPROVISATION_ASSET_ID, new StandardObject({
+                    tag: 'Object',
+                    universalKey: CUP_ID,
+                    shortName: 'a tin cup',
+                }))
+                jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(testLudicGraph(OBJECT_ID, {
+                    nodes: [
+                        { tag: 'Object', universalKey: OBJECT_ID },
+                        { tag: 'Object', universalKey: CUP_ID },
+                    ],
+                    edges: [{ tag: 'Relational', from: CUP_ID, to: OBJECT_ID, kind }],
+                }))
+
+                const publishSpy = spyPublish()
+                await registerObjectDescriptionSlot()
+
+                await orchestrateRoomDescriptionStreams(
+                    {
+                        type: 'Render Pertains',
+                        componentId: OBJECT_ID,
+                        perspectiveKey: PERSPECTIVE_KEY,
+                        cacheId: CACHE_ID,
+                        cacheRecord: objectTerminalCacheRecord(),
+                    } as any,
+                    messageBus
+                )
+                await messageBus.flushAndSettle()
+
+                const terminalPublish = publishSpy.mock.calls
+                    .map((c) => c[0] as any)
+                    .find((m) => m?.type === 'PublishMessage')
+                expect(terminalPublish).toBeDefined()
+                const wmlContent = terminalPublish!.wmlContent as string
+                const parsed = new StandardForm(wmlContent, { standardizeMode: 'ephemeraWire' })
+
+                const object = parsed.byUniversalId[OBJECT_ID] as StandardObject
+                expect(object.ludicGraph.toJSON()).toBeDefined()
+                const referencedKeys = object.ludicGraph.nodes.componentRefs.payload.map((ref) => ref.universalKey)
+                expect(referencedKeys).toContain(CUP_ID)
+
+                const cupStub = parsed.byUniversalId[CUP_ID] as StandardObject
+                expect(cupStub).toBeInstanceOf(StandardObject)
+                expect(cupStub.shortName?._payload?.plain?.toJSON()).toBe('a tin cup')
+            }
+        )
+
+        it('drops a hosted object with no resolvable shortName entirely, rather than a nameless reference', async () => {
+            const UNNAMED_ID = 'OBJECT#test-unnamed' as const
+            jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(testLudicGraph(OBJECT_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: OBJECT_ID },
+                    { tag: 'Object', universalKey: UNNAMED_ID },
+                ],
+                edges: [{ tag: 'Relational', from: UNNAMED_ID, to: OBJECT_ID, kind: 'On' }],
+            }))
+
+            const publishSpy = spyPublish()
+            await registerObjectDescriptionSlot()
+
+            await orchestrateRoomDescriptionStreams(
+                {
+                    type: 'Render Pertains',
+                    componentId: OBJECT_ID,
+                    perspectiveKey: PERSPECTIVE_KEY,
+                    cacheId: CACHE_ID,
+                    cacheRecord: objectTerminalCacheRecord(),
+                } as any,
+                messageBus
+            )
+            await messageBus.flushAndSettle()
+
+            const terminalPublish = publishSpy.mock.calls
+                .map((c) => c[0] as any)
+                .find((m) => m?.type === 'PublishMessage')
+            expect(terminalPublish).toBeDefined()
+            const wmlContent = terminalPublish!.wmlContent as string
+            const parsed = new StandardForm(wmlContent, { standardizeMode: 'ephemeraWire' })
+            const object = parsed.byUniversalId[OBJECT_ID] as StandardObject
+            // No shortName resolves anywhere for the unnamed object (no ImprovisationComponentData/
+            // ComponentAggregate mocked for it), and it's the only hosted node --- a bare,
+            // nameless reference would round-trip as invalid WML (a self-closing `<Object>` with
+            // no `ShortName` child), so it's omitted entirely, same as the empty-graph case.
+            expect(object.ludicGraph.toJSON()).toBeUndefined()
+            expect(parsed.byUniversalId[UNNAMED_ID]).toBeUndefined()
+        })
+
+        it('falls back to the node id for a hosted Feature, which has no shortName resolver anywhere in the codebase yet', async () => {
+            const FEATURE_ID = 'FEATURE#test-lever' as const
+            jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(testLudicGraph(OBJECT_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: OBJECT_ID },
+                    { tag: 'Feature', universalKey: FEATURE_ID },
+                ],
+                edges: [{ tag: 'Relational', from: FEATURE_ID, to: OBJECT_ID, kind: 'PartOf' }],
+            }))
+
+            const publishSpy = spyPublish()
+            await registerObjectDescriptionSlot()
+
+            await orchestrateRoomDescriptionStreams(
+                {
+                    type: 'Render Pertains',
+                    componentId: OBJECT_ID,
+                    perspectiveKey: PERSPECTIVE_KEY,
+                    cacheId: CACHE_ID,
+                    cacheRecord: objectTerminalCacheRecord(),
+                } as any,
+                messageBus
+            )
+            await messageBus.flushAndSettle()
+
+            const terminalPublish = publishSpy.mock.calls
+                .map((c) => c[0] as any)
+                .find((m) => m?.type === 'PublishMessage')
+            expect(terminalPublish).toBeDefined()
+            const wmlContent = terminalPublish!.wmlContent as string
+            const parsed = new StandardForm(wmlContent, { standardizeMode: 'ephemeraWire' })
+            const object = parsed.byUniversalId[OBJECT_ID] as StandardObject
+            expect(object.ludicGraph.toJSON()).toBeDefined()
+            const referencedKeys = object.ludicGraph.nodes.componentRefs.payload.map((ref) => ref.universalKey)
+            expect(referencedKeys).toContain(FEATURE_ID)
+        })
     })
 })

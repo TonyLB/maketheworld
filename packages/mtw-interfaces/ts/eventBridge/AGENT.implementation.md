@@ -297,4 +297,4 @@ describe('MyEventSerializer', () => {
 
 - **[EventBridge Overview](./AGENT.md)**: High-level overview of EventBridge contracts
 - **[DataSource Pattern](../../../mtw-lambda-patterns/ts/dataSource/AGENT.md)**: How to implement DataSources using these contracts
-- **[Migration History](./AGENT.migration.md)**: Historical context of the EventBridge migration
+- **Migration History**: Historical context of the EventBridge migration

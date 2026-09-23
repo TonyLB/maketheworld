@@ -185,10 +185,10 @@ if (imageComponent instanceof StandardImage) {
 
 ### Cross-References
 - **[Upload System](upload/)**: Image upload process
-- **[Format Image](../../wml/formatImage/)**: **DEPRECATED** - Old image processing function, replaced by `lambda/imageProcessor/`
-- **[Client Display](../../../charcoal-client/src/components/Library/Edit/)**: Image serving
+- **Format Image**: **DEPRECATED** - Old image processing function, replaced by `lambda/imageProcessor/`
+- **Client Display**: Image serving
 - **[Asset Properties](README.images.md)**: Current image association system
-- **[WML Parse](../../wml/parseWML.ts)**: **DEPRECATED** - Old WML integration, replaced by applyEdit flow
+- **WML Parse**: **DEPRECATED** - Old WML integration, replaced by applyEdit flow
 
 ## Error Handling
 
@@ -239,9 +239,9 @@ if (imageComponent instanceof StandardImage) {
 - **NEW**: `lambda/imageProcessor/` - Current image processing pipeline
 
 ### Related Systems
-- **[WML System](../../wml/)**: Component processing
-- **[Client Display](../../../charcoal-client/)**: Image serving
-- **[Asset Cache](cacheAsset/)**: Component storage
+- **[WML System](../wml)**: Component processing
+- **[Client Display](../../charcoal-client)**: Image serving
+- **Asset Cache**: Component storage
 - **[Upload System](upload/)**: Image upload process
 
 ## Usage Patterns

@@ -163,9 +163,9 @@ Maps/
 
 ### Related Documentation
 
-- See [`../../Library/AGENT.md`](../../Library/AGENT.md) for asset editing context
-- See [`../ActiveCharacter/AGENT.md`](../ActiveCharacter/AGENT.md) for character system integration
-- See [`../../../lambda/wml/AGENT.md`](../../../lambda/wml/AGENT.md) for WML system details
+- See `../../Library/AGENT.md` for asset editing context
+- See `../ActiveCharacter/AGENT.md` for character system integration
+- See [`../../../lambda/wml/AGENT.md`](../../../../lambda/wml/README.md) for WML system details
 - See [`AGENT.d3.md`](AGENT.d3.md) for detailed D3.js visualization subsystem documentation
 
 ## Development Notes

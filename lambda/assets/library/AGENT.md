@@ -120,11 +120,11 @@ The Library data source **provides data to**:
 
 ### Cross-References
 
-- **[Assets Data Source](../dataSource/AGENT.md)**: Parent data source that publishes zone change events
+- **Assets Data Source**: Parent data source that publishes zone change events
 - **[DataSource Pattern](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md)**: Generic pattern implementation
 - **[Event Contracts](../../../packages/mtw-interfaces/ts/eventBridge/assets/library/)**: Event type definitions and serializers
 - **[Frontend DataSource Slice](../../../charcoal-client/src/slices/dataSource/AGENT.md)**: Generic frontend subscription pattern
-- **[Library UI Component](../../../charcoal-client/src/components/Library/index.tsx)**: Primary consumer
+- **Library UI Component**: Primary consumer
 
 ## Usage Patterns
 
@@ -154,7 +154,7 @@ if (!isSubscribed) {
 }
 ```
 
-**Complete Example**: See [`charcoal-client/src/components/Library/index.tsx`](../../../charcoal-client/src/components/Library/index.tsx) lines 100-110 for the production implementation.
+**Complete Example**: See `charcoal-client/src/components/Library/index.tsx` lines 100-110 for the production implementation.
 
 ### Combining with Other Data Sources
 
@@ -170,7 +170,7 @@ The Library data source provides **only asset IDs**. To display rich metadata, c
 
 ### Getting Started
 
-1. **Understand the Pattern**: Review [`../dataSource/AGENT.md`](../dataSource/AGENT.md) to understand the generic DataSource pattern
+1. **Understand the Pattern**: Review `../dataSource/AGENT.md` to understand the generic DataSource pattern
 2. **Review Event Contracts**: See [`packages/mtw-interfaces/ts/eventBridge/assets/library/`](../../../packages/mtw-interfaces/ts/eventBridge/assets/library/) for event type definitions
 3. **Study Frontend Integration**: Look at [`charcoal-client/src/slices/libraryDataSource/`](../../../charcoal-client/src/slices/libraryDataSource/) for subscription management
 
@@ -194,7 +194,7 @@ The Library data source provides **only asset IDs**. To display rich metadata, c
 ### Related Documentation
 
 - **[DataSource Pattern Guide](../../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.md)**: Generic pattern documentation
-- **[Assets Data Source](../dataSource/AGENT.md)**: Parent data source
+- **Assets Data Source**: Parent data source
 - **[Content Headers Data Source](../contentHeaders/AGENT.md)**: Complementary metadata source
 
 ## Development Notes

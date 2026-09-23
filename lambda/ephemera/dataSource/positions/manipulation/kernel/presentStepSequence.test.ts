@@ -69,7 +69,7 @@ describe('presentStepSequence', () => {
         expect(streamEvent.mock.calls[1][0].update.componentId).toBe(FEATURE_ID)
     })
 
-    it('publishes a Look Command Requested event for an object describe step (PK-6 stub, shortName only)', async () => {
+    it('publishes a Look Command Requested event for an object describe step', async () => {
         const steps: KernelStep[] = [{ kind: 'describe', referentId: OBJECT_ID, referentKind: 'object' }]
 
         await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus })

@@ -91,13 +91,14 @@ async function parseCommandCore(
         const family = classifySkeletonFamily(parseResult.tokens)
 
         if (family.type === 'relationalDefer') {
-            if (family.kind === 'On') {
+            if (family.kind === 'On' || family.kind === 'In') {
                 const result = await compileObjectRehostFromSkeleton(
                     {
                         command: input.command,
                         skeleton: parseResult.tokens,
                         subject: family.subject,
                         target: family.target,
+                        containment: family.kind,
                         hostRoomId: input.hostRoomId,
                         roomObjectCatalog: input.roomObjectCatalog,
                         heldInventoryCatalog: input.heldInventoryCatalog,

@@ -116,7 +116,7 @@ List accessor: [`topLevelAssetMetaListAccessor.ts`](topLevelAssetMetaListAccesso
 
 ### Room `_lens` (SingleReference)
 
-[`LensHeader`](../LensEdit/LensHeader.tsx) on the Room component session uses the same session pattern as **`ReferenceListSessionEditor`**, with a single **`SingleReference`** slot on **`working._lens`** instead of a list accessor.
+[`LensHeader`](../../LensEdit/LensHeader.tsx) on the Room component session uses the same session pattern as **`ReferenceListSessionEditor`**, with a single **`SingleReference`** slot on **`working._lens`** instead of a list accessor.
 
 | Operation | Persist path |
 | --- | --- |

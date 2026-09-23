@@ -44,9 +44,9 @@
 - `../../internalCache`: S3 client caching
 
 **Cross-References**:
-- [`../../AGENT.s3Storage.md`](../AGENT.s3Storage.md): S3 storage architecture
-- [`../../AGENT.event.md`](../AGENT.event.md): Event streaming patterns
-- [`../../../assets/moveAsset/`](../../../assets/moveAsset/): Original implementation reference
+- [`../../AGENT.s3Storage.md`](../../AGENT.s3Storage.md): S3 storage architecture
+- [`../../AGENT.event.md`](../../AGENT.event.md): Event streaming patterns
+- `../../../assets/moveAsset/`: Original implementation reference
 
 **API Contracts**:
 - Processes internal `Move Asset` events via `receiveEvents`
@@ -95,9 +95,9 @@ const result = await moveAsset(request)
 - `index.test.ts`: Comprehensive test coverage
 
 **Related Documentation**:
-- [`../AGENT.zones.md`](../AGENT.zones.md): Zone system overview and conceptual architecture
-- [`../AGENT.s3Storage.md`](../AGENT.s3Storage.md): S3 storage patterns
-- [`../AGENT.event.md`](../AGENT.event.md): Event handling architecture
+- [`../AGENT.zones.md`](../../AGENT.zones.md): Zone system overview and conceptual architecture
+- [`../AGENT.s3Storage.md`](../../AGENT.s3Storage.md): S3 storage patterns
+- [`../AGENT.event.md`](../../AGENT.event.md): Event handling architecture
 
 ## Development Notes
 
