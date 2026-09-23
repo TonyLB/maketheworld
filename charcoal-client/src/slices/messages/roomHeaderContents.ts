@@ -57,7 +57,7 @@ export function formatRoomContentsLine(parsedWML: StandardForm | undefined, comp
 }
 
 /**
- * Oxford-style "Contents: ..." line for an Object's own hosted nodes (nestedObjectLook Phase 3).
+ * Oxford-style "Contents: ..." line for an Object's own hosted nodes.
  * Kind-agnostic --- `nonRootComponentRefs` already strips the root and reads whatever
  * `On`/`In`/`PartOf` hosting left in place, no relation-kind filtering --- unlike
  * `formatRoomContentsLine`, which deliberately only lists a room's floor Objects. Null when the

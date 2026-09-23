@@ -23,7 +23,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import { SituationProseFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { DEFAULT_SITUATION_ID } from '../../slices/personalAssets'
-import { formatObjectContentsLine } from '../../slices/messages/roomHeaderPhaseC'
+import { formatObjectContentsLine } from '../../slices/messages/roomHeaderContents'
 
 type ComponentDescriptionProps = {
     parsedWML: StandardForm;

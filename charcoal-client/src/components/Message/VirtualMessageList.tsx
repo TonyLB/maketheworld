@@ -24,7 +24,7 @@ import { useActiveCharacter } from '../ActiveCharacter'
 import { Message as MessageComponent } from '.'
 import { RoomDescription } from './RoomDescription'
 import { MessageRoomBreakdownHeader } from '../../slices/messages/selectors'
-import { mergePerceivedRoomForms } from '../../slices/messages/roomHeaderPhaseC'
+import { mergePerceivedRoomForms } from '../../slices/messages/roomHeaderContents'
 
 /** Sticky header: merge render + affordance WML; withhold affordance slice until render catch-up or 10s. */
 const StickyRoomGroupHeader = ({
