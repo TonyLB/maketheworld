@@ -1,6 +1,6 @@
 # Edge abstractions: what one edge means at another scale
 
-**Status: STUB, opened 2026-08-24 from conversation. Design stage, Phase 0 not started.** Nothing below is decided. **No code is in scope**, and unlike its sibling on presence this plan has no near-term reason to reach for one --- it exists to make a question *askable*, not to unblock a caller. Code is licensed by tier; see [Graduation tiers](../../../../AGENT.designVariant.md#graduation-tiers-when-a-decision-licenses-code).
+**Status (restated 2026-09-23): design stage; PH0--PH2 started and PH3 not; four rows settled (EA-1, EA-2, EA-8, EA-11). No longer a stub.** ~~**Status: STUB, opened 2026-08-24 from conversation. Design stage, Phase 0 not started.** Nothing below is decided.~~ Opened 2026-08-24 from conversation. **No code is in scope**, and unlike its sibling on presence this plan has no near-term reason to reach for one --- it exists to make a question *askable*, not to unblock a caller. Code is licensed by tier; see [Graduation tiers](../../../../AGENT.designVariant.md#graduation-tiers-when-a-decision-licenses-code).
 
 **Read [Two scales of one edge](#two-scales-of-one-edge) before the rows.** It is a working formulation, not a settled one, but every row below is phrased in its vocabulary.
 
