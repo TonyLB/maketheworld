@@ -31,7 +31,7 @@ import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/ex
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
 import { SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
-import { formatRoomContentsLine } from '../../slices/messages/roomHeaderPhaseC'
+import { formatRoomContentsLine } from '../../slices/messages/roomHeaderContents'
 
 const roomShellSx = (live: boolean, header: boolean | undefined) => {
     const tint = live ? blue[200] : grey[200]

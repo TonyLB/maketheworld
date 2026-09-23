@@ -1,6 +1,6 @@
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
-import { mergePerceivedRoomForms, formatRoomContentsLine } from './roomHeaderPhaseC'
+import { mergePerceivedRoomForms, formatRoomContentsLine } from './roomHeaderContents'
 
 /**
  * Builds a room wire form from real WML text, the way `affordanceRoomDeliverable.ts` does
@@ -22,7 +22,7 @@ function roomFormWithObjects(objects: { uuid: string; shortName: string }[]): St
     return new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
 }
 
-describe('roomHeaderPhaseC', () => {
+describe('roomHeaderContents', () => {
     describe('mergePerceivedRoomForms', () => {
         it('returns render.merge(affordance) when both exist', () => {
             const renderWml = deIndentWML(`
