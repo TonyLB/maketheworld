@@ -9,6 +9,7 @@ import type { CompiledPositionKernelPlan } from '../kernel/compile/compilePositi
 import { buildObjectMoveOp } from './buildObjectMoveOp'
 import { repairMechanicalDissolve } from './repairMechanicalDissolve'
 import { defaultGetGraph } from '../relational/findRelationalChainsForRemoval'
+import { hasPresenceAncestor } from '../../ludicGraph/presenceAncestry'
 
 export type PlanObjectMoveTransferArgs = {
     entityId: EphemeraObjectId
@@ -45,6 +46,15 @@ export const planObjectMoveTransfer = async (
     args: PlanObjectMoveTransferArgs
 ): Promise<PlanObjectMoveTransferResult> => {
     const getGraph = args.getGraph ?? defaultGetGraph
+
+    // Refuse a move into the mover itself or anything inside it (AB-63): the commit would close a
+    // containment cycle, leaving both objects unreachable from any room. Only a move can add a
+    // containment link, so checking each one keeps the whole structure acyclic. Checked here, not
+    // under lock: a concurrent move along the same chain can still slip past (see AB-63's row).
+    if (await hasPresenceAncestor(args.toHostId, args.entityId, getGraph)) {
+        return { ok: false, errorCode: 'containmentCycle' }
+    }
+
     const fromGraph = await getGraph(args.fromHostId)
 
     const buildArgs = {
