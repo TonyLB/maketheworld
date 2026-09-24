@@ -1,4 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import { planObjectMoveTransfer } from './planObjectMoveTransfer'
 import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -201,6 +202,49 @@ describe('planObjectMoveTransfer', () => {
             expect(result.plan.steps.some((step) => step.kind === 'establishRelation')).toBe(false)
             const dissolveStep = result.plan.steps.find((step) => step.kind === 'dissolveRelation')
             expect(dissolveStep).toEqual(expect.objectContaining({ subjectId: CUP_ID, targetId: TRAY_ID }))
+        })
+    })
+
+    describe('containment cycle (AB-63)', () => {
+        it('refuses putting the tray on a cup that is already on the tray, before reading any departure graph', async () => {
+            const cupGraph = testLudicGraph(CUP_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: CUP_ID },
+                    { tag: 'Presence', universalKey: PresenceKey('cup-on-tray'), fromHostId: TRAY_ID, cover: { tag: 'Full' } },
+                ],
+            })
+            const getGraph = jest.fn(async (hostId: string): Promise<EphemeraLudicGraph> => (
+                hostId === CUP_ID ? cupGraph : testLudicGraph(hostId as EphemeraObjectId)
+            ))
+
+            const result = await planObjectMoveTransfer({
+                entityId: TRAY_ID,
+                fromHostId: ROOM_ID,
+                toHostId: CUP_ID,
+                bundleId: 'BUNDLE#test',
+                narration,
+                containment: 'On',
+                getGraph,
+            })
+
+            expect(result).toEqual({ ok: false, errorCode: 'containmentCycle' })
+            expect(getGraph).not.toHaveBeenCalledWith(ROOM_ID)
+        })
+
+        it('refuses putting the tray on itself', async () => {
+            const getGraph = jest.fn(async (hostId: string): Promise<EphemeraLudicGraph> => testLudicGraph(hostId as EphemeraObjectId))
+
+            const result = await planObjectMoveTransfer({
+                entityId: TRAY_ID,
+                fromHostId: ROOM_ID,
+                toHostId: TRAY_ID,
+                bundleId: 'BUNDLE#test',
+                narration,
+                containment: 'On',
+                getGraph,
+            })
+
+            expect(result).toEqual({ ok: false, errorCode: 'containmentCycle' })
         })
     })
 
