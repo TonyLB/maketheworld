@@ -61,8 +61,8 @@ Object manipulation parse (take / drop / relate) is being built as a sequence of
 
 **Build order:**
 
-0. **Collect the failing corpus first.**
-   - Gather 15-20 real commands that currently end in `Unimplemented` or a hard Error ("stash the coin in my pocket", "set the cup beside the plate").
+0. **Collect the corpus first.** It is started in [Step 0 corpus](#step-0-corpus-started-2026-09-24) below.
+   - Gather 15-20 real commands. Two kinds belong: commands that currently end in `Unimplemented`, a hard Error or a silent defer (the fallback's targets), and commands that currently *succeed* when they arguably shouldn't (the attempt phase's targets). The seed rows had both kinds, roughly half each.
    - The prompt and the operation menu are designed against these, not invented examples.
    - Also fix [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md)'s relational playbook, which still says `In` routes to `nestingRelational`; `In` has been player-reachable via object rehost since 2026-09-22.
 1. **Plan-only fallback on the no-template branch, becoming joint when Identify is unconfident.**
@@ -81,29 +81,41 @@ Object manipulation parse (take / drop / relate) is being built as a sequence of
    - **If it wants to resolve a defer into multi-host co-location (BD-16 (3)), stop.** That is the abstraction plan's resume trigger (1), not something to improvise here.
 4. **Calibration last**, as the owning plan already sequences it: BD-19 (3), then BD-25. The naive combiner stays until then.
 
-**Direction, not yet designed: separate the player's *attempt* from the plan structure (2026-09-23).** This came out of the conversation that scoped step 0's corpus. It reshapes steps 1 and 3, so settle it before writing either one.
+**Prerequisite for steps 1 and 3: the command attempt phase (2026-09-23).** Iteration 2's plan-only/joint fallback (step 1) and synthesis fallback (step 3) are the same shape of call as a future adjudicator: attempt prose in, structured outcome out. So they are built as consumers of the attempt, after [`AGENT.commandAttemptPhase.planning.md`](AGENT.commandAttemptPhase.planning.md) reaches its slice 2. That plan holds the reasoning (why a `move` is the wrong input for adjudication, and why the attempt is prose rather than a frame), the format questions, and the pipeline change. [Adjudication layers](#adjudication-layers-2026-09-24) below places these steps as layer 2. What stays here is step 0's part:
 
-- **The problem.** Every family compiles straight from Plan to an outcome: `ObjectRehost` becomes a `move`. The pipeline never keeps an *attempt* that later code could still reason about. For the Coyote Game that is harmless, because outcomes are fixed by genre: preparation-phase actions succeed, and execution-phase attempts always fail in a way the engine authors. But letting "adjudication is trivial" shape the design would harden into debt. We would build a pipeline that cannot take adjudication later without reworking every prompt and test. Design for where adjudication *will* sit, and implement it trivially for now.
-- **Why the structure we have is the wrong input for adjudication.** "`move` OBJECT#… `In` OBJECT#…" is already written in the language of results, which is what adjudication is meant to decide. Adjudicating "throw the crumpled paper at the waste-basket" needs the method, which referents are involved, and what they are like (light and crumpled; open-topped and close by). "Put the paper in the basket" and "throw the paper at the basket" share an *intended* outcome, so they collapse into one primitive today. "Throw a knife at a dodging monkey" shares the throw's *manner* but has a different outcome space. Keeping attempt and outcome apart is what lets one command resemble both.
-- **The attempt is prose written for an LLM, not a frame.** It carries:
-  - the player's words;
-  - each object phrase tied to its grounded referent and that referent's description;
-  - the phase;
-  - situation context from `ludicCache` (what is near or on what).
-
-  It has **no role vocabulary** (acted-on / goal / instrument) and **no property schema** ("aerodynamic"). Slots like those are case frames, which a symbolic reasoner needs and an LLM consumer does not. They also repeat the frame-extract stage retired 2026-07-20. The LLM infers from the descriptions whatever properties matter for this method.
-- **Structure only where deterministic code reads it.**
-  1. *The fast path.* Plan's ungrounded primitive rides along as an optional machine-readable intended effect, so that a template match in the preparation phase skips the LLM entirely.
-  2. *The adjudicator's output.* Synthesize and the kernel are deterministic, so the outcome comes back structured: which referents end up where, what is created or destroyed, and narration. The role vocabulary belongs here, in the existing `PositionKernelOp` + peer-edge language, growing as new outcome classes arrive.
-- **Where Adjudicate sits:** Parse → Identify ∥ Plan (*attempt*) → **Adjudicate** (attempt + descriptions) → outcome → Synthesize (carry closure, dissolved edges) → Validation / dry-run veto → kernel.
-  - Adjudicate runs *before* Synthesize, because carry and edge dissolution are consequences of what happened, not inputs to deciding it.
-  - Validation stays after Adjudicate, so an adjudicated outcome still has to be legal. The existing dry-run veto is today's only, allow-or-refuse adjudication.
-  - Coyote's implementation is a phase switch: identity in preparation, an engine-authored failure in execution.
-- **Consequence for this rung.** The plan-only/joint fallback (step 1) and the synthesis fallback (step 3) are the same shape of call as a future LLM adjudicator: attempt prose in, structured outcome out. Designing how that prose is assembled makes these fallbacks the seam's first consumer rather than something to rework later. The open design questions are:
-  - where the descriptions come from (catalog and `ludicCache` nodes carry `shortName` and an embedding, not descriptions);
-  - how much `ludicCache` context to include;
-  - whether narration splits into manner (from the attempt) and result (from the adjudicator), rather than sharing `move`'s single `narration` field.
 - **Corpus implications for step 0.** Tag each command with its phase and with the set of outcome classes it could produce, and record its expected outcome, or "decline". Outcome classes named so far are narration, position, state, intent-parking, construction/deconstruction, and read-only perception. Only position has an executor, so the non-position commands are there to check that the fallback declines them. Don't tag an adjudication mode: no decision in this rung turns on it.
+
+#### Step 0 corpus (started 2026-09-24)
+
+"Today" was traced through the code on 2026-09-24, not run. It assumes Parse segments the command into the obvious verb / span / preposition / span tokens. Parse is an LLM, so a different segmentation changes the route. The phase is preparation throughout, since no execution-phase manipulation command exists yet ([CA-5](AGENT.commandAttemptPhase.planning.md#open-decisions-implementation--plan-only)). **Genre rule for preparation (2026-09-24):** every *challenge* is permitted, so a hard-but-possible attempt succeeds, but a *physically impossible* one is still rejected.
+
+| # | Command | Setup | Today | Outcome classes | What it probes |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `disconnect capacitor from circuit board` | capacitor `PartOf` board | **Unimplemented**: `disconnect` is not a template verb. But bare `get capacitor` **succeeds** and silently detaches the part, because `findOwnRootContainmentEdge` strips any hosting-kind edge, `PartOf` included | position (hosting kind changes from `PartOf` to something); deconstruction | The destination is unstated ("from" names only the source), so where the part ends up is the adjudicator's call. Also: should a plain take be allowed to detach a part at all? |
+| 2 | `get gigantic boulder` | boulder in room | **Succeeds** (membership acquire) | position | **Expected (Coyote preparation): succeeds, painstakingly.** A *challenge* is genre-permitted in preparation. The manner of the success belongs in narration. Outside Coyote, it is a fast-path match an adjudicator should be able to overturn on strength |
+| 3 | `place fork to the left of plate` | both in room | **Succeeds** as a `Custom` edge labelled "to the left of" (`place` is an establish verb, and any unknown preposition becomes a `Custom` label) | position (peer edge) | Not unimplemented, but *opaque*: the edge records a string with no spatial meaning. Is an opaque label an acceptable outcome, or should the adjudicator map it onto the closed menu? |
+| 4 | `balance cup on top of candlestick` | both in room | **Unimplemented**: `balance` is not a template verb. The paraphrase `put cup on top of candlestick` **succeeds** (`On` rehost) | position | The manner is the verb. Collapsing it into `put` throws away exactly the part adjudication needs (stability) |
+| 5 | `put motorcycle on shoebox` | both in room | **Succeeds** (`On` rehost). No size check exists anywhere | position | **Expected: the `On` reading is rejected as physically impossible, even in Coyote preparation.** The command has a conceptual two-candidate *outcome* pool: (1, preferred) motorcycle becomes an `On` member of the shoebox; (2) a sibling edge, shoebox `Under` motorcycle. Impossibility eliminates (1) and leaves (2). Candidate pools exist today only over referents (BD-23's joint space, BD-25's naive `candidates[0]`), not over interpretations of the outcome. Probably fully addressed in a later iteration |
+| 6 | `get rope` | rope tied to a post (`Custom` edge, e.g. from `tie rope to post`) | **Silent failure**: acquire's `isolatedFromRelations` hits `classifyInteractionUnderTransfer`'s `Custom` → `defer`. The contract says a defer commits nothing and gives the player no feedback | position (+ untie) | **Attempt expansion.** "Take the entire coil of rope" says the player intends *both* to untie it *and* to get it. The untie is an added intended attempt, not a dissolution the adjudicator decides, so "dissolutions are consequences" still holds. Parse, Adjudicate, or (most likely) a backtrack exchange (iteration 4) could add it. Today the case lands in Synthesize as BD-10's `Custom` defer |
+| 7 | `pull rope` | rope tied to something inside a container (a crossing port pair) | **Unimplemented**: `pull` is not a template verb | position of the *other* end; possibly the container too; narration | The effect lands on something the player didn't name, reached through an edge. No outcome in today's language propagates along a relation |
+
+### Adjudication layers (2026-09-24)
+
+The adjudication problem the step 0 corpus exposed breaks into layers, each one enabled by infrastructure from an earlier layer. That is the same shape as this ladder. The layers cut across rungs, so they are not rungs themselves: two are unowned, and per "Deferred, not rung-sized" they don't get a number until someone picks them up. The rows cited are from the [step 0 corpus](#step-0-corpus-started-2026-09-24).
+
+| Layer | What it needs | Corpus rows | Owner |
+| --- | --- | --- | --- |
+| **0. Attempt + seam** | Infrastructure only; nothing is adjudicated | enables all below | [`AGENT.commandAttemptPhase.planning.md`](AGENT.commandAttemptPhase.planning.md), slices 0-2 |
+| **1. Adjudicate one attempt against one candidate** | Layer 0; the Coyote phase switch; then a feasibility verdict (its CA-6) | 2, and 5 (reject only) | Same plan, slice 3 |
+| **2. Fallbacks as attempt consumers** | Layer 0 | 1, 4 (verbs outside the templates, mapped onto the menu) | Iteration 2, steps 1 and 3 |
+| **3. Outcome candidate pools, pruned by impossibility** | Layer 1's verdicts, plus pools over outcome readings (today's pools are over referents only) | 5 in full; possibly 3 | Unowned; later iteration |
+| **4. Attempt expansion** | Backtracking | 6 | Iteration 4 ([`AGENT.backtrackChannel.planning.md`](AGENT.backtrackChannel.planning.md)), which now becomes a real prerequisite rather than a parallel rung |
+| **5. Effects that travel along relations** | A bigger outcome language; likely multi-host reconciliation | 7 | Unowned; it touches the deferred [abstraction plan](../positions/AGENT.abstractionLayers.planning.md)'s resume trigger (1) |
+
+**What the table does not capture:**
+- **Referent descriptions are a dependency of every layer from 1 on**, not a layer of their own. They are the attempt plan's CA-1, and the most likely bottleneck.
+- **Rows 1 and 3 are partly vocabulary questions** (where a detached part goes; what "to the left of" means spatially). No infrastructure layer settles those.
+- **Layer 5 is the least likely to split into further layers.** Its place at the bottom is partly a judgement that it is the hardest.
 
 ### Deferred, not rung-sized
 
