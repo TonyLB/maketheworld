@@ -108,6 +108,22 @@ describe('component data gateway', () => {
             expect(pair.component.universalKey).toBe('ROOM#TestOne')
         })
 
+        it('round-trips a Gloss field through the ephemeraDB EphemeraId PK row', () => {
+            const row = {
+                DataCategory: 'ASSET#IMPROVISATION',
+                EphemeraId: 'ROOM#TestOne',
+                tag: 'Room' as const,
+                key: 'TestOne',
+                shortName: 'Test room',
+                gloss: 'a red tin cup, fist-sized, light',
+                exits: [] as { reference: { tag: 'Room'; key: string }; payload: string }[],
+                examples: [{ key: 'base', tag: 'Example' as const }],
+            }
+            const pair = standardComponentPairFromAssetDbGetItemsRow('ROOM#TestOne', row as any)
+            expect(pair.assetId).toBe('ASSET#IMPROVISATION')
+            expect((pair.component.toJSON() as { gloss?: string }).gloss).toBe('a red tin cup, fist-sized, light')
+        })
+
         it('round-trips an OBJECT# improvisation pair row with a SITUATION#DEFAULT situations facet (Phase 5 spawn-time prose)', () => {
             const row = {
                 DataCategory: 'ASSET#IMPROVISATION',
