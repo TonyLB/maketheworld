@@ -21,17 +21,30 @@ const catalogPerspectiveDeps = {
     getComponentAggregate: async () => [],
 }
 
+/** Resolves each host's shortName from `names` via a mocked merged aggregate, matching the real
+ * per-host `getComponentAggregate([perspective])` call shape. */
+const namedComponentAggregate = (names: Record<string, string>) =>
+    async ([perspective]: { universalKey: string, mergeParticipationOrder: readonly `ASSET#${string}`[] }[]) => {
+        const name = names[perspective.universalKey]
+        return name
+            ? [mergedComponentResult({
+                universalKey: perspective.universalKey as EphemeraObjectId,
+                merged: makeObjectComponent(name),
+                mergeParticipationOrderApplied: perspective.mergeParticipationOrder,
+            })]
+            : []
+    }
+
 describe('getHeldInventoryCatalogForCharacter', () => {
     it('returns empty catalog when character inventory graph has no objects', async () => {
         const result = await getHeldInventoryCatalogForCharacter(characterId, {
             getLudicGraph: async () => testLudicGraph(characterId),
-            getImprovisationObject: async () => ({}),
         })
 
         expect(result).toEqual({ entries: [] })
     })
 
-    it('returns catalog entries from improvisation fallback when aggregate has no shortName', async () => {
+    it('returns catalog entries resolved from the merged aggregate', async () => {
         const result = await getHeldInventoryCatalogForCharacter(characterId, {
             ...catalogPerspectiveDeps,
             getLudicGraph: async () => testLudicGraph(characterId, {
@@ -40,15 +53,10 @@ describe('getHeldInventoryCatalogForCharacter', () => {
                     { tag: 'Object', universalKey: anvilId },
                 ],
             }),
-            getImprovisationObject: async (objectId) => {
-                if (objectId === broomId) {
-                    return { component: makeObjectComponent('  Broom  ') }
-                }
-                if (objectId === anvilId) {
-                    return { component: makeObjectComponent('Heavy   Anvil') }
-                }
-                return {}
-            },
+            getComponentAggregate: namedComponentAggregate({
+                [broomId]: '  Broom  ',
+                [anvilId]: 'Heavy   Anvil',
+            }),
         })
 
         expect(result.entries).toEqual([
@@ -57,7 +65,7 @@ describe('getHeldInventoryCatalogForCharacter', () => {
         ])
     })
 
-    it('prefers merged ComponentAggregate shortName over improvisation', async () => {
+    it('resolves an authored merged ComponentAggregate shortName', async () => {
         const result = await getHeldInventoryCatalogForCharacter(characterId, {
             ...catalogPerspectiveDeps,
             getLudicGraph: async () => testLudicGraph(characterId, {
@@ -70,9 +78,6 @@ describe('getHeldInventoryCatalogForCharacter', () => {
                     mergeParticipationOrderApplied: ['ASSET#Test'],
                 }),
             ]),
-            getImprovisationObject: async () => ({
-                component: makeObjectComponent('wrong improvisation name'),
-            }),
         })
 
         expect(result.entries).toEqual([
@@ -86,7 +91,6 @@ describe('getHeldInventoryCatalogForCharacter', () => {
             getLudicGraph: async () => testLudicGraph(characterId, {
                 nodes: [{ tag: 'Object', universalKey: noNameId }],
             }),
-            getImprovisationObject: async () => ({ component: new StandardObject({ tag: 'Object' }) }),
         })
 
         expect(result.entries).toEqual([])

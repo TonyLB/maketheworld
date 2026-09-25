@@ -2,58 +2,53 @@ import type { AssetUUID } from '@tonylb/mtw-base/ts/schema'
 import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { appendImprovisationToPerspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { shortNameToJSON } from '@tonylb/mtw-wml/ts/standardize/components/shortNameField'
-import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 /**
- * Shared object shortName resolution --- extracted from `actions/roomObjectCatalogForCharacter.ts` so
+ * Shared component shortName resolution --- extracted from `actions/roomObjectCatalogForCharacter.ts` so
  * `renderCache/ensureObjectShortNameCacheRecord.ts` (the Object description stub) can resolve the same
- * perspective-merged shortName without duplicating the asset-merge logic.
+ * perspective-merged shortName without duplicating the asset-merge logic. `shortName` is a member of
+ * `StandardComponent` itself, not Object-specific, so any component kind resolves the same way.
  */
 export const shortNameFromComponent = (component: StandardComponent | undefined): string | undefined => {
-    if (!(component instanceof StandardObject) || !component.shortName) {
+    if (!component?.shortName) {
         return undefined
     }
     const shortName = shortNameToJSON(component.shortName)
     return typeof shortName === 'string' ? shortName : undefined
 }
 
-export const shortNameFromMergedAggregate = async (
-    objectId: EphemeraObjectId,
+/**
+ * Live shortName resolution for any cache-kind host, via the merged aggregate only. `getAcrossAssets`
+ * already routes `ASSET#IMPROVISATION` through the same ephemeraDB pair-row table a separate
+ * improvisation lookup would read (`EphemeraComponentDataCompositeCache`) --- a second fallback read
+ * would only ever fire when this one already found nothing anywhere in the stack, so there is none.
+ * `appendImprovisationToPerspective` only accepts Object/Character ids (improvisation never applies
+ * to Room/Feature/Area), so other kinds pass `assetStack` straight through as the participation order.
+ */
+export const resolveComponentShortName = async (
+    hostId: EphemeraMembershipHostId,
     assetStack: readonly string[],
     deps: { getComponentAggregate: ComponentAggregateMergedCache['get'] }
 ): Promise<string | undefined> => {
-    const mergeParticipationOrder = appendImprovisationToPerspective([...assetStack] as AssetUUID[], [objectId])
+    const mergeParticipationOrder = isEphemeraObjectId(hostId) || isEphemeraCharacterId(hostId)
+        ? appendImprovisationToPerspective([...assetStack] as AssetUUID[], [hostId])
+        : [...assetStack] as AssetUUID[]
     const perspective = aggregatePerspectiveExplicit({
-        universalKey: objectId,
+        universalKey: hostId,
         mergeParticipationOrder,
     })
     const aggregateResults = await deps.getComponentAggregate([perspective])
     return shortNameFromComponent(aggregateResults[0]?.merged)
 }
 
-/**
- * Live shortName resolution: merged aggregate first, then the improvisation pair row --- the same
- * two-step fallback `roomObjectCatalogForCharacter.ts` and `heldInventoryCatalogForCharacter.ts`
- * already duplicate inline, and the resolution the retired `ensureObjectShortNameCacheRecord.ts`
- * stub used to perform on every look. Used as a WML-build-time fallback so Object's real
- * `ensureAuthoredCatalog` path (an authored-facet-only cache, like Feature/Knowledge/Character) never
- * regresses to a nameless Object when no `SITUATION#DEFAULT` facet has been authored yet.
- */
-export const resolveObjectShortName = async (
+/** Thin Object-typed wrapper over {@link resolveComponentShortName} for existing Object-only callers. */
+export const resolveObjectShortName = (
     objectId: EphemeraObjectId,
     assetStack: readonly string[],
-    deps: {
-        getComponentAggregate: ComponentAggregateMergedCache['get']
-        getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent } | undefined>
-    }
-): Promise<string | undefined> => {
-    let shortName = await shortNameFromMergedAggregate(objectId, assetStack, deps)
-    if (!shortName) {
-        const pairRow = await deps.getImprovisationObject(objectId)
-        shortName = shortNameFromComponent(pairRow?.component)
-    }
-    return shortName
-}
+    deps: { getComponentAggregate: ComponentAggregateMergedCache['get'] }
+): Promise<string | undefined> => resolveComponentShortName(objectId, assetStack, deps)

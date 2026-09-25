@@ -14,7 +14,6 @@ import type {
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
-    IMPROVISATION_ASSET_ID,
     isEphemeraCharacterId,
     isEphemeraFeatureId,
     isEphemeraKnowledgeId,
@@ -538,7 +537,6 @@ async function resolveHostedNodeWmlData(
 
     const objectDeps = {
         getComponentAggregate: (perspectives: Parameters<typeof internalCache.ComponentAggregate.get>[0]) => internalCache.ComponentAggregate.get(perspectives),
-        getImprovisationObject: (objectId: EphemeraObjectId) => internalCache.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID),
     }
 
     const objectComponents = (await Promise.all(hostedObjectIds.map(async (objectId): Promise<StandardObjectData | undefined> => {
@@ -590,7 +588,6 @@ async function handleObjectRenderPertains(
         assetStack,
         {
             getComponentAggregate: (perspectives) => internalCache.ComponentAggregate.get(perspectives),
-            getImprovisationObject: (objectId) => internalCache.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID),
         }
     )
     const { ludicGraph, hostedNodeNameStubs } = await resolveHostedNodeWmlData(componentId, assetStack)

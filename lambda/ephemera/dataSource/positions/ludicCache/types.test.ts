@@ -41,10 +41,18 @@ describe('isEphemeraLudicCacheNode', () => {
         })).toBe(false)
     })
 
-    it('rejects a missing shortName', () => {
+    it('accepts a missing shortName (unresolved)', () => {
         expect(isEphemeraLudicCacheNode({
             tag: 'Object',
             universalKey: 'OBJECT#helmet',
+        })).toBe(true)
+    })
+
+    it('rejects a non-string shortName', () => {
+        expect(isEphemeraLudicCacheNode({
+            tag: 'Object',
+            universalKey: 'OBJECT#helmet',
+            shortName: 12,
         })).toBe(false)
     })
 
@@ -231,7 +239,7 @@ describe('isEphemeraLudicCacheData', () => {
     it('rejects an invalid node in nodes', () => {
         expect(isEphemeraLudicCacheData({
             hostId: 'ROOM#Test',
-            nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet' }],
+            nodes: [{ tag: 'Object', universalKey: 'OBJECT#helmet', shortName: 12 }],
             edges: [],
         })).toBe(false)
     })

@@ -29,14 +29,6 @@ export type LudicCacheObjectHandle = {
     shortName: string
 }
 
-/**
- * `componentCacheNode` (`fold.ts`) falls back to `shortName: hostId` when no real shortName
- * resolves --- there is no placeholder-vs-real discriminator on `EphemeraLudicCacheNode`. A real
- * shortName is never equal to the object's own id, so this is a safe (if sharp-edged) way to tell
- * "nothing resolved" apart from "the shortName really is this" without touching Slice 3's shipped
- * node-construction code. Do not reuse this equality check anywhere the fallback shape might not
- * hold.
- */
 export const ludicCacheObjectHandles = async (
     seedHostId: EphemeraMembershipHostId,
     assetStack: readonly string[],
@@ -51,7 +43,7 @@ export const ludicCacheObjectHandles = async (
             continue
         }
         objectCount += 1
-        if (node.shortName === node.universalKey) {
+        if (node.shortName === undefined) {
             continue
         }
         handles.push({ objectId: node.universalKey, shortName: node.shortName })

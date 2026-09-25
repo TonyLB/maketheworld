@@ -3,10 +3,8 @@ import {
     EphemeraCharacterId,
     EphemeraObjectId,
     EphemeraRoomId,
-    IMPROVISATION_ASSET_ID,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
@@ -39,7 +37,6 @@ export type RoomObjectCatalogDeps = {
         characterAssets: readonly string[]
     ) => Promise<{ assetStack: readonly string[] } | null>
     getComponentAggregate: ComponentAggregateMergedCache['get']
-    getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent }>
 }
 
 const defaultDeps = (): RoomObjectCatalogDeps => ({
@@ -57,7 +54,6 @@ const defaultDeps = (): RoomObjectCatalogDeps => ({
         return { assetStack: resolved.perspective.assetStack }
     },
     getComponentAggregate: (perspectives) => internalCache.ComponentAggregate.get(perspectives),
-    getImprovisationObject: (objectId) => internalCache.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID),
 })
 
 /**
@@ -91,7 +87,6 @@ export async function getRoomObjectCatalogForCharacter(
     const handles = await ludicCacheObjectHandles(roomId, assetStack, {
         getLudicGraph: deps.getLudicGraph,
         getComponentAggregate: deps.getComponentAggregate,
-        getImprovisationObject: deps.getImprovisationObject,
     })
 
     const entries = handles

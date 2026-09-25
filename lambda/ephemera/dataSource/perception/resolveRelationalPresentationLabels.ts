@@ -71,6 +71,14 @@ const shortNameFromMergedAggregate = async (
     return shortNameFromComponent(aggregateResults[0]?.merged)
 }
 
+/**
+ * `assetStack === null` means no perspective resolved (no room to merge assets against), so the
+ * merged aggregate can't be attempted at all and the improvisation pair row is the only source.
+ * When `assetStack` is present, the aggregate's participation order already includes
+ * `ASSET#IMPROVISATION` (`appendImprovisationToPerspective`), routed through the same ephemeraDB
+ * pair-row table --- so a second, separate improvisation read after a resolved `assetStack` would
+ * only ever repeat a lookup the aggregate already made.
+ */
 const resolveObjectShortName = async (
     objectId: EphemeraObjectId,
     roomId: EphemeraRoomId,
@@ -79,9 +87,7 @@ const resolveObjectShortName = async (
 ): Promise<string> => {
     if (assetStack !== null) {
         const fromAggregate = await shortNameFromMergedAggregate(objectId, assetStack, deps)
-        if (fromAggregate) {
-            return fromAggregate
-        }
+        return fromAggregate || 'something'
     }
     const pairRow = await deps.getImprovisationObject(objectId)
     return shortNameFromComponent(pairRow?.component) || 'something'

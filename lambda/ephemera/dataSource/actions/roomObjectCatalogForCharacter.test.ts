@@ -32,18 +32,31 @@ const catalogPerspectiveDeps = {
     getComponentAggregate: async () => [],
 }
 
+/** Resolves each host's shortName from `names` via a mocked merged aggregate, matching the real
+ * per-host `getComponentAggregate([perspective])` call shape. */
+const namedComponentAggregate = (names: Record<string, string>) =>
+    async ([perspective]: { universalKey: string, mergeParticipationOrder: readonly `ASSET#${string}`[] }[]) => {
+        const name = names[perspective.universalKey]
+        return name
+            ? [mergedComponentResult({
+                universalKey: perspective.universalKey as EphemeraObjectId,
+                merged: makeObjectComponent(name),
+                mergeParticipationOrderApplied: perspective.mergeParticipationOrder,
+            })]
+            : []
+    }
+
 describe('getRoomObjectCatalogForCharacter', () => {
     it('returns empty catalog when character has no room', async () => {
         const result = await getRoomObjectCatalogForCharacter(characterId, {
             getMembershipContainers: async () => [],
             getLudicGraph: async () => testLudicGraph(roomId),
-            getImprovisationObject: async () => ({}),
         })
 
         expect(result).toEqual({ roomId: null, entries: [] })
     })
 
-    it('returns catalog entries from improvisation fallback when aggregate has no shortName', async () => {
+    it('returns catalog entries resolved from the merged aggregate', async () => {
         const result = await getRoomObjectCatalogForCharacter(characterId, {
             ...catalogPerspectiveDeps,
             getMembershipContainers: async () => [roomId],
@@ -55,15 +68,10 @@ describe('getRoomObjectCatalogForCharacter', () => {
                     ],
                 }),
             }),
-            getImprovisationObject: async (objectId) => {
-                if (objectId === broomId) {
-                    return { component: makeObjectComponent('  Broom  ') }
-                }
-                if (objectId === anvilId) {
-                    return { component: makeObjectComponent('Heavy   Anvil') }
-                }
-                return {}
-            },
+            getComponentAggregate: namedComponentAggregate({
+                [broomId]: '  Broom  ',
+                [anvilId]: 'Heavy   Anvil',
+            }),
         })
 
         expect(result.roomId).toBe(roomId)
@@ -74,7 +82,7 @@ describe('getRoomObjectCatalogForCharacter', () => {
         expect(roomObjectLabelsFromCatalog(result.entries)).toEqual(['broom', 'heavy anvil'])
     })
 
-    it('prefers merged ComponentAggregate shortName over improvisation', async () => {
+    it('resolves an authored merged ComponentAggregate shortName', async () => {
         const result = await getRoomObjectCatalogForCharacter(characterId, {
             ...catalogPerspectiveDeps,
             getMembershipContainers: async () => [roomId],
@@ -90,9 +98,6 @@ describe('getRoomObjectCatalogForCharacter', () => {
                     mergeParticipationOrderApplied: ['ASSET#Test'],
                 }),
             ]),
-            getImprovisationObject: async () => ({
-                component: makeObjectComponent('wrong improvisation name'),
-            }),
         })
 
         expect(result.entries).toEqual([
@@ -109,7 +114,6 @@ describe('getRoomObjectCatalogForCharacter', () => {
                     nodes: [{ tag: 'Object', universalKey: noNameId }],
                 }),
             }),
-            getImprovisationObject: async () => ({ component: new StandardObject({ tag: 'Object' }) }),
         })
 
         expect(result.entries).toEqual([])
@@ -130,15 +134,10 @@ describe('getRoomObjectCatalogForCharacter', () => {
                     nodes: [{ tag: 'Object', universalKey: cupId }],
                 }),
             }),
-            getImprovisationObject: async (objectId) => {
-                if (objectId === tableId) {
-                    return { component: makeObjectComponent('Table') }
-                }
-                if (objectId === cupId) {
-                    return { component: makeObjectComponent('Cup') }
-                }
-                return {}
-            },
+            getComponentAggregate: namedComponentAggregate({
+                [tableId]: 'Table',
+                [cupId]: 'Cup',
+            }),
         })
 
         expect(result.entries).toEqual([
