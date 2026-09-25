@@ -97,14 +97,14 @@ export async function resolveObjectMovePresentationLabels(
 
     const characterAssets = await deps.getCharacterAssets(args.characterId)
     const resolvedPerspective = await deps.resolvePerspective(args.roomId, characterAssets)
-    let objectShortName: string | undefined
-    if (resolvedPerspective !== null) {
-        objectShortName = await shortNameFromMergedAggregate(args.objectId, resolvedPerspective.assetStack, deps)
-    }
-    if (!objectShortName) {
-        const pairRow = await deps.getImprovisationObject(args.objectId)
-        objectShortName = shortNameFromComponent(pairRow?.component)
-    }
+    // `resolvedPerspective === null` means no perspective resolved, so the merged aggregate can't
+    // be attempted and the improvisation pair row is the only source. When a perspective IS
+    // resolved, its participation order already includes `ASSET#IMPROVISATION` --- routed through
+    // the same ephemeraDB pair-row table --- so a separate improvisation read afterward would only
+    // ever repeat a lookup the aggregate already made.
+    const objectShortName = resolvedPerspective !== null
+        ? await shortNameFromMergedAggregate(args.objectId, resolvedPerspective.assetStack, deps)
+        : shortNameFromComponent((await deps.getImprovisationObject(args.objectId))?.component)
 
     return {
         characterName,

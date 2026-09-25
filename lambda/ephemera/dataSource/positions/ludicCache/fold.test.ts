@@ -13,10 +13,16 @@
  * that child --- present inside both `objX` and `objY`, with an interior `pebble1 -Under->
  * pebble2` edge split across its two bindings' covers.
  */
-import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicGraphStructureNode, EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
+import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
+import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
+import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
+import { StandardFeature } from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
+import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 
 import { EphemeraLudicGraph } from '../ludicGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
@@ -54,7 +60,6 @@ const testAssetUUID = 'ASSET#test'
 
 const noShortNameDeps = () => ({
     getComponentAggregate: jest.fn(async () => []),
-    getImprovisationObject: jest.fn(async () => undefined),
 })
 
 describe('buildLudicCache', () => {
@@ -115,17 +120,16 @@ describe('buildLudicCache', () => {
 
         expect(cache.hostId).toBe(roomA)
 
-        // Component nodes: one per walked host, shortName resolved inline for objects
-        // (placeholder --- the mock deps return nothing authored --- vs. the host's own id for
-        // every non-object component, which never attempts the object resolver at all).
-        expect(shortNameDeps.getComponentAggregate).toHaveBeenCalledTimes(5) // objX, objY, objZ, pebble1, pebble2
+        // Component nodes: one per walked host, shortName resolved via the merged aggregate for
+        // every kind alike (the mock deps return nothing authored, so all resolve unresolved/undefined).
+        expect(shortNameDeps.getComponentAggregate).toHaveBeenCalledTimes(6) // roomA, objX, objY, objZ, pebble1, pebble2
         expect(cache.nodes).toEqual(expect.arrayContaining([
-            { tag: 'Room', universalKey: roomA, shortName: roomA },
-            { tag: 'Object', universalKey: objX, shortName: objX },
-            { tag: 'Object', universalKey: objY, shortName: objY },
-            { tag: 'Object', universalKey: objZ, shortName: objZ },
-            { tag: 'Object', universalKey: pebble1, shortName: pebble1 },
-            { tag: 'Object', universalKey: pebble2, shortName: pebble2 },
+            { tag: 'Room', universalKey: roomA },
+            { tag: 'Object', universalKey: objX },
+            { tag: 'Object', universalKey: objY },
+            { tag: 'Object', universalKey: objZ },
+            { tag: 'Object', universalKey: pebble1 },
+            { tag: 'Object', universalKey: pebble2 },
         ]))
 
         // Presence cache nodes: X's and Y's own bindings to ROOM (each bringing objZ along), and
@@ -231,13 +235,12 @@ describe('buildLudicCache', () => {
         await buildLudicCache(roomA, [testAssetUUID], {
             getLudicGraph,
             getComponentAggregate,
-            getImprovisationObject: jest.fn(async () => undefined),
         })
 
-        // Two object hosts (objX, objY) each call getComponentAggregate once; a serialized loop
-        // would never have both in flight together.
-        expect(getComponentAggregate).toHaveBeenCalledTimes(2)
-        expect(maxInFlight).toBe(2)
+        // Three component hosts (roomA, objX, objY) each call getComponentAggregate once; a
+        // serialized loop would never have all three in flight together.
+        expect(getComponentAggregate).toHaveBeenCalledTimes(3)
+        expect(maxInFlight).toBe(3)
     })
 
     // 3e: idempotence/confluence --- a retried rebuild against the same underlying graphs must
@@ -270,5 +273,88 @@ describe('buildLudicCache', () => {
         const second = await buildLudicCache(roomA, [testAssetUUID], deps)
 
         expect(second).toEqual(first)
+    })
+
+    // Slice 1 (reasoningGloss): `shortName` resolves for every cache kind, not only Object ---
+    // the generalized `resolveComponentShortName` covers Room/Feature/Object alike via the same
+    // merged-aggregate mechanism. Character is exercised separately below: a character present
+    // as a MEMBER of another host's graph is deliberately never walked (`enumerateShards.ts`'s
+    // "never recursed into" guard, unrelated to this slice), so this scenario uses Feature and
+    // Object as the non-seed members --- both kinds the walk does visit.
+    it('resolves shortName for a room, a feature, and an object hosted in the same room', async () => {
+        const featureId = 'FEATURE#Statue' as EphemeraFeatureId
+
+        const roomGraph = testLudicGraph(roomA, {
+            nodes: [
+                { tag: 'Room', universalKey: roomA },
+                { tag: 'Feature', universalKey: featureId },
+                { tag: 'Object', universalKey: boxId },
+            ],
+        })
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, roomGraph],
+            [featureId, testLudicGraph(featureId, { nodes: [{ tag: 'Feature', universalKey: featureId }] })],
+            [boxId, testLudicGraph(boxId, { nodes: [{ tag: 'Object', universalKey: boxId }] })],
+        ])
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
+            const graph = graphs.get(hostId)
+            if (!graph) {
+                throw new Error(`No fixture graph for ${hostId}`)
+            }
+            return graph
+        }
+
+        const componentByKey: Record<string, StandardComponent> = {
+            [roomA]: new StandardRoom({ tag: 'Room', shortName: 'a quiet courtyard' }),
+            [featureId]: new StandardFeature({ tag: 'Feature', shortName: 'a weathered statue' }),
+            [boxId]: new StandardObject({ tag: 'Object', shortName: 'a wooden box' }),
+        }
+        const getComponentAggregate = jest.fn(async (
+            [perspective]: { universalKey: string, mergeParticipationOrder: readonly `ASSET#${string}`[] }[]
+        ) => {
+            const component = componentByKey[perspective.universalKey]
+            return component
+                ? [mergedComponentResult({
+                    universalKey: perspective.universalKey as EphemeraObjectId,
+                    merged: component,
+                    mergeParticipationOrderApplied: perspective.mergeParticipationOrder,
+                })]
+                : []
+        })
+
+        const { cache } = await buildLudicCache(roomA, [testAssetUUID], { getLudicGraph, getComponentAggregate })
+
+        expect(cache.nodes).toEqual(expect.arrayContaining([
+            { tag: 'Room', universalKey: roomA, shortName: 'a quiet courtyard' },
+            { tag: 'Feature', universalKey: featureId, shortName: 'a weathered statue' },
+            { tag: 'Object', universalKey: boxId, shortName: 'a wooden box' },
+        ]))
+    })
+
+    // The seed itself is always walked regardless of kind (`enumerateShards.ts`'s exemption for
+    // the seed from the character-recursion guard), so a character-seeded cache --- the shape a
+    // future held-inventory-style cache would build --- resolves the character's own shortName.
+    it('resolves shortName for a character-seeded cache', async () => {
+        const characterId = 'CHARACTER#Guide' as EphemeraCharacterId
+        const characterGraph = testLudicGraph(characterId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
+            if (hostId !== characterId) {
+                throw new Error(`No fixture graph for ${hostId}`)
+            }
+            return characterGraph
+        }
+        const getComponentAggregate = jest.fn(async (
+            [perspective]: { universalKey: string, mergeParticipationOrder: readonly `ASSET#${string}`[] }[]
+        ) => [mergedComponentResult({
+            universalKey: perspective.universalKey as EphemeraCharacterId,
+            merged: new StandardCharacter({ tag: 'Character', shortName: 'a friendly guide' }),
+            mergeParticipationOrderApplied: perspective.mergeParticipationOrder,
+        })])
+
+        const { cache } = await buildLudicCache(characterId, [testAssetUUID], { getLudicGraph, getComponentAggregate })
+
+        expect(cache.nodes).toEqual(expect.arrayContaining([
+            { tag: 'Character', universalKey: characterId, shortName: 'a friendly guide' },
+        ]))
     })
 })

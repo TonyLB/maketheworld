@@ -10,12 +10,11 @@
  * aggregate.
  *
  * **`shardFetchCount` counts SHARDS, NOT DYNAMODB READS --- do not read it as a read count.**
- * Each shard costs one `Meta::Object` graph read, and each *object* additionally costs up to two
- * shortName reads (`resolveObjectShortName`: a merged-aggregate read against assetDB, then an
- * `ASSET#IMPROVISATION` fallback against ephemeraDB). True reads therefore run roughly 2--3x this
- * number. The 2026-09-19 live measurement is consistent with that: ~33ms per shard resolves to a
- * plausible ~12--14ms per round trip under a 3-reads-per-object model, where one-read-per-shard
- * would imply an implausibly slow `GetItem`.
+ * Each shard costs one `Meta::Object` graph read, plus one `resolveComponentShortName` merged-
+ * aggregate read per node (which already routes `ASSET#IMPROVISATION` through the same
+ * ephemeraDB pair-row table a separate improvisation lookup would read --- see
+ * `objectShortName.ts` --- so there is no second read to account for). True reads therefore run
+ * roughly 2x `shardFetchCount`, not more.
  */
 
 const LOG_PREFIX = '[mtw.ephemera.ludicCache] rebuild'

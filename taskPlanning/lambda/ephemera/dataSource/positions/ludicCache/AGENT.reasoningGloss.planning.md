@@ -1,6 +1,6 @@
 # Reasoning gloss
 
-**Status:** Not started, opened 2026-09-24. Next: slice 1 (`shortName` for every cache kind), which needs RG-1.
+**Status:** Slice 1 shipped 2026-09-25. Next: slice 2 (literal-field factory).
 
 This plan is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../../AGENT.md). It is an implementation plan.
 
@@ -42,19 +42,19 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| RG-1 | **Which name a Character's cache node carries.** Character declares both `shortName` and `displayName`. Other kinds have only `shortName`. Also confirm that a character's `CHARACTER#` id finds its component in the merged read (player characters come from player-library assets, not the room's asset stack). | 1 | Open |
-| RG-2 | **`Gloss` text rules.** Leaning: optional on every kind; trimmed; an empty `Gloss` is treated as absent rather than an error (unlike Object's required, non-empty `ShortName`); plain text only, no render markup. | 3 | Open |
+| RG-1 | **Which name a Character's cache node carries.** Resolved: `shortName` only, same as every other kind. `displayName` is a render-facing field (`charcoal-client`'s `componentDisplayLabel.ts` falls back to it there); using it for a reasoning-facing cache node would perpetuate a render/reasoning crossover this plan exists to avoid, not extend. `CHARACTER#` ids need no special-casing in the merged read: `shortNameFromMergedAggregate` is keyed only on `universalKey`, independent of which asset stack (room's or player-library) the component came from, so generalizing the resolver in slice 1 resolves Character the same way as any other kind. | 1 | Resolved 2026-09-24 |
+| RG-2 | **`Gloss` text rules.** Resolved, as leaned: optional on every kind; trimmed; an empty `Gloss` is treated as absent rather than an error (unlike Object's required, non-empty `ShortName`); plain text only, no render markup. | 3 | Resolved 2026-09-24 |
 
 ## Recommended order
 
 Mark pending work `[ ]` and completed work `[X]`, including nested lines, as each one is done.
 
-1. [ ] **`shortName` for every cache kind** (Ephemera only; RG-1).
-   - [ ] Generalize `shortNameFromComponent` / `resolveObjectShortName` to any component that carries a `shortName` (a `resolveComponentShortName`). Keep the `ASSET#IMPROVISATION` fallback for objects only.
-   - [ ] Remove `componentCacheNode`'s id-placeholder branch in `fold.ts`, and its doc comment's "recorded gap".
-   - [ ] Re-read `catalogHandles.ts`'s "`shortName === universalKey` means unresolved" check against the new behaviour.
-   - [ ] Tests: a cache built over a room holding a character, a feature and an object resolves all three names. Existing object-only tests stay green.
-   - [ ] Compare `logLudicCacheRebuild` wall time before and after on a dev room. Only a visible knee is a reason to act (for example, skipping names for kinds no consumer reads).
+1. [X] **`shortName` for every cache kind** (Ephemera only; RG-1). Shipped 2026-09-25.
+   - [X] Generalize `shortNameFromComponent` / `resolveObjectShortName` to any component that carries a `shortName` (a `resolveComponentShortName`). **Scope grew, with sign-off:** the `ASSET#IMPROVISATION` fallback turned out to be dead duplication (the merged aggregate already routes `ASSET#IMPROVISATION` through the same ephemeraDB pair-row table via `EphemeraComponentDataCompositeCache`), so it was removed rather than generalized --- see `objectShortName.ts`'s new doc comment. Two call sites (`resolveRelationalPresentationLabels.ts`, `resolveObjectMovePresentationLabels.ts`) keep a narrowed version of the fallback for their genuinely distinct null-perspective case, where the aggregate is never attempted at all.
+   - [X] Remove `componentCacheNode`'s id-placeholder branch in `fold.ts`, and its doc comment's "recorded gap".
+   - [X] Replace `catalogHandles.ts`'s "`shortName === universalKey` means unresolved" sentinel with a real one: `EphemeraLudicCacheNode.shortName` is now `shortName?: string`, and unresolved is genuinely `undefined` (no more coincidental equality inference). `isEphemeraLudicCacheNode` widened to match.
+   - [X] Tests: `fold.test.ts` gained two payoff cases --- a room/feature/object walk, and a character-seeded cache (a character present as another host's *member* is never walked, per `enumerateShards.ts`'s "never recursed into" guard, unrelated to this slice; the seed itself always is). All prior tests updated for the dropped `getImprovisationObject` dep and the optional-`shortName` sentinel change; full `lambda/ephemera` suite green (2972 tests).
+   - [X] Wall-time: not measured live (no dev-room access this session); analytically, one DB read per object was removed (the dead fallback), so `logLudicCacheRebuild`'s per-object cost should improve, not regress. `ludicCacheInstrumentation.ts`'s doc comment corrected accordingly.
 2. [ ] **Literal-field factory** (`mtw-wml`; no behaviour change).
    - [ ] Parameterize `shortNameField.ts` by tag, so `ShortName` becomes one use of a literal-field factory.
    - [ ] Every existing `shortName` test stays green unchanged.

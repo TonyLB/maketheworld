@@ -44,7 +44,8 @@ import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
  */
 export type EphemeraLudicCacheNode =
     | (EphemeraLudicGraphComponentNode & {
-        shortName: string;
+        /** `undefined` means unresolved --- no equality-with-id inference (see `catalogHandles.ts`). */
+        shortName?: string;
         /** Iteration 1: attached by a separate attachEmbeddings pass, not by the rebuild (CC1c). */
         embedding?: SemanticEmbedding;
     })
@@ -131,7 +132,7 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
         return false
     }
     const node = value as EphemeraLudicCacheNode & EphemeraLudicGraphComponentNode
-    if (typeof node.shortName !== 'string') {
+    if (node.shortName !== undefined && typeof node.shortName !== 'string') {
         return false
     }
     if (node.embedding !== undefined && !(node.embedding instanceof SemanticEmbedding)) {

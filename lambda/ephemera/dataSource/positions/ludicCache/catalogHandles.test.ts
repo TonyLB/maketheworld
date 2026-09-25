@@ -1,5 +1,6 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
 import { EphemeraLudicGraph } from '../ludicGraph'
@@ -15,7 +16,21 @@ const namedId = 'OBJECT#Named' as EphemeraObjectId
 
 const noShortNameDeps = () => ({
     getComponentAggregate: jest.fn(async () => []),
-    getImprovisationObject: jest.fn(async () => undefined),
+})
+
+/** Resolves each host's shortName from `names` via a mocked merged aggregate, matching the real
+ * per-host `getComponentAggregate([perspective])` call shape. */
+const namedShortNameDeps = (names: Record<string, string>) => ({
+    getComponentAggregate: jest.fn(async ([perspective]: { universalKey: string, mergeParticipationOrder: readonly `ASSET#${string}`[] }[]) => {
+        const name = names[perspective.universalKey]
+        return name
+            ? [mergedComponentResult({
+                universalKey: perspective.universalKey as EphemeraObjectId,
+                merged: makeObjectComponent(name),
+                mergeParticipationOrderApplied: perspective.mergeParticipationOrder,
+            })]
+            : []
+    }),
 })
 
 const graphsAsDeps = (graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>) => ({
@@ -40,14 +55,13 @@ describe('ludicCacheObjectHandles', () => {
 
         const handles = await ludicCacheObjectHandles(roomA, [], {
             ...graphsAsDeps(graphs),
-            getComponentAggregate: jest.fn(async () => []),
-            getImprovisationObject: jest.fn(async () => ({ component: makeObjectComponent('Named Thing') })),
+            ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
         })
 
         expect(handles).toEqual([{ objectId: namedId, shortName: 'Named Thing' }])
     })
 
-    it('excludes an object whose shortName never resolved (the fallback-to-id placeholder)', async () => {
+    it('excludes an object whose shortName never resolved', async () => {
         const roomGraph = testLudicGraph(roomA, {
             nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: namedId }],
         })
@@ -79,13 +93,9 @@ describe('ludicCacheObjectHandles', () => {
             [roomA, roomGraph], [boxId, boxGraph], [pebble, pebbleGraph],
         ])
 
-        const names: Record<string, string> = { [boxId]: 'Box', [pebble]: 'Pebble' }
         const handles = await ludicCacheObjectHandles(roomA, [], {
             ...graphsAsDeps(graphs),
-            getComponentAggregate: jest.fn(async () => []),
-            getImprovisationObject: jest.fn(async (objectId: EphemeraObjectId) => ({
-                component: makeObjectComponent(names[objectId]),
-            })),
+            ...namedShortNameDeps({ [boxId]: 'Box', [pebble]: 'Pebble' }),
         })
 
         expect(handles.map(({ objectId }) => objectId).sort()).toEqual([boxId, pebble].sort())
@@ -106,8 +116,7 @@ describe('ludicCacheObjectHandles', () => {
 
         await ludicCacheObjectHandles(roomA, [], {
             ...graphsAsDeps(graphs),
-            getComponentAggregate: jest.fn(async () => []),
-            getImprovisationObject: jest.fn(async () => ({ component: makeObjectComponent('Named Thing') })),
+            ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
         })
 
         expect(spy).toHaveBeenCalledWith('[mtw.ephemera.ludicCache] rebuild', expect.objectContaining({
