@@ -20,6 +20,14 @@ import {
     shortNameToJSON,
     standardizeShortNameConsumer,
 } from "./shortNameField"
+import {
+    createGlossFromJSON,
+    invertGloss,
+    mergeGloss,
+    glossSchemaChildren,
+    glossToJSON,
+    standardizeGlossConsumer,
+} from "./glossField"
 import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import {
     processWithConsumers,
@@ -39,12 +47,14 @@ const LUDIC_GRAPH_NODE_TAG_SET = new Set<string>(LUDIC_GRAPH_NODE_TAGS)
 
 export class StandardAreaPayload implements ComponentConstructorMethods<StandardAreaData, StandardAreaData> {
     _shortName?: StandardLiteral;
+    _gloss?: StandardLiteral;
     _ludicGraph: StandardLudicGraph;
     tag = 'Area' as const
 
     constructor(previous?: StandardAreaPayload) {
         if (previous) {
             this._shortName = previous._shortName
+            this._gloss = previous._gloss
             this._ludicGraph = previous._ludicGraph.clone()
         }
         else {
@@ -57,6 +67,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
     }
 
     get shortName() { return this._shortName }
+    get gloss() { return this._gloss }
 
     private withLudicGraphNodes(nodes: ReferenceList): void {
         const graphJSON = this._ludicGraph.toJSON() ?? {}
@@ -120,6 +131,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
 
     fromJSON(props: StandardAreaData) {
         this._shortName = createShortNameFromJSON(props.shortName)
+        this._gloss = createGlossFromJSON(props.gloss)
         this._ludicGraph = StandardLudicGraph.fromJSON(props.ludicGraph)
         this.assertRootIdConsistency({ key: props.key, universalKey: props.universalKey })
     }
@@ -131,6 +143,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
             }
             const consumers: StandardizeConsumer[] = [
                 standardizeShortNameConsumer(this),
+                standardizeGlossConsumer(this),
                 ...LUDIC_GRAPH_NODE_TAGS.map((tag) => new StandardizeConsumerReferenceList(this, {
                     tag,
                     update(list) {
@@ -164,6 +177,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
         return {
             tag: 'Area',
             ...(this._shortName ? { shortName: shortNameToJSON(this._shortName) } : {}),
+            ...(this._gloss ? { gloss: glossToJSON(this._gloss) } : {}),
             ...(ludicGraphJSON ? { ludicGraph: ludicGraphJSON } : {}),
         }
     }
@@ -173,6 +187,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
             data: { tag: 'Area', key, uuid: universalKey },
             children: [
                 ...shortNameSchemaChildren(this._shortName),
+                ...glossSchemaChildren(this._gloss),
                 ...this._ludicGraph.nonRootComponentRefs.schema,
                 ...this._ludicGraph.edges.schema,
             ]
@@ -199,6 +214,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
             data: { tag: 'Area', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...shortNameSchemaChildren(this._shortName),
+                ...glossSchemaChildren(this._gloss),
                 ...nonRootNodesToRender.payload.map(renderReference({ lookup, options })).filter(excludeUndefined).flat(1),
                 ...this._ludicGraph.edges.schema,
                 ...inlineRemainder.map(renderReference({ lookup, options })).filter(excludeUndefined),
@@ -209,6 +225,7 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
     merge(incoming: this): this {
         const returnValue = new StandardAreaPayload()
         returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
+        returnValue._gloss = mergeGloss(this._gloss, incoming._gloss)
         returnValue._ludicGraph = this._ludicGraph.merge(incoming._ludicGraph)
         return returnValue as this
     }
@@ -260,14 +277,16 @@ export class StandardAreaPayload implements ComponentConstructorMethods<Standard
 
     isEmpty(): boolean {
         const hasShortName = Boolean(this._shortName)
+        const hasGloss = Boolean(this._gloss)
         const hasLudicGraph =
             this._ludicGraph.nodes.payload.length > 0 || !this._ludicGraph.edges.isEmpty()
-        return !(hasShortName || hasLudicGraph)
+        return !(hasShortName || hasGloss || hasLudicGraph)
     }
 
     invert(): this {
         const returnValue = new StandardAreaPayload()
         returnValue._shortName = invertShortName(this._shortName)
+        returnValue._gloss = invertGloss(this._gloss)
         const graphJSON = this._ludicGraph.toJSON() ?? {}
         returnValue._ludicGraph = new StandardLudicGraph({
             ...graphJSON,
@@ -323,7 +342,8 @@ export class StandardArea extends componentClassFactory(StandardAreaPayload, 'St
             return false
         }
         const shortNameEqual = (this.shortName ?? new StandardLiteral('')).equals(incoming.shortName ?? new StandardLiteral(''))
-        return shortNameEqual && this.ludicGraph.equals(incoming.ludicGraph)
+        const glossEqual = (this.gloss ?? new StandardLiteral('')).equals(incoming.gloss ?? new StandardLiteral(''))
+        return shortNameEqual && glossEqual && this.ludicGraph.equals(incoming.ludicGraph)
     }
 
     override invert(): StandardArea {

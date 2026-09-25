@@ -4,7 +4,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger, parsePositionCoordinates } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaParent, isSchemaFrom, isSchemaTo, isSchemaForward, isSchemaBack, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaParentTag, SchemaFromTag, SchemaToTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaGloss, isSchemaParent, isSchemaFrom, isSchemaTo, isSchemaForward, isSchemaBack, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaGlossTag, SchemaParentTag, SchemaFromTag, SchemaToTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaDescription, isSchemaDisplayName, isSchemaSummary } from "@tonylb/mtw-base/ts/schema/prose"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { SchemaTag, isSchemaAsset, isSchemaCharacter, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
@@ -24,6 +24,7 @@ const componentTemplates = {
     Summary: {},
     DisplayName: {},
     ShortName: {},
+    Gloss: {},
     Instructions: {},
     Default: {},
     Parent: {},
@@ -94,6 +95,7 @@ const componentTemplates = {
 } as const
 
 const { converter: shortNameConverter, printMap: shortNamePrintMap } = literalTagFactory('ShortName')
+const { converter: glossConverter, printMap: glossPrintMap } = literalTagFactory('Gloss')
 const { converter: instructionsConverter, printMap: instructionsPrintMap } = literalTagFactory('Instructions')
 const { converter: defaultConverter, printMap: defaultPrintMap } = literalTagFactory('Default')
 const { converter: forwardConverter, printMap: forwardPrintMap } = literalTagFactory('Forward')
@@ -237,6 +239,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         }
     },
     ShortName: shortNameConverter,
+    Gloss: glossConverter,
     Instructions: instructionsConverter,
     Default: defaultConverter,
     Forward: forwardConverter,
@@ -346,7 +349,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             }
         },
         typeCheckContents: (item: SchemaTag): boolean => (
-            isSchemaShortName(item) || isSchemaSituation(item) || isSchemaRender(item) || isSchemaReplace(item) || isSchemaRemove(item) ||
+            isSchemaShortName(item) || isSchemaGloss(item) || isSchemaSituation(item) || isSchemaRender(item) || isSchemaReplace(item) || isSchemaRemove(item) ||
             isSchemaArea(item) || isSchemaRoom(item) || isSchemaFeature(item) || isSchemaCharacter(item) || isSchemaObject(item)
         ),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaTag> => {
@@ -609,6 +612,7 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
         })
     },
     ShortName: shortNamePrintMap,
+    Gloss: glossPrintMap,
     Instructions: instructionsPrintMap,
     Default: defaultPrintMap,
     Forward: forwardPrintMap,

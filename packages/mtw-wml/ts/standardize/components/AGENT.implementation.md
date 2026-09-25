@@ -98,6 +98,18 @@ Optional **`shortName`** is a first-class field on every **`StandardComponent`**
 
 **Direct `_payload._shortName` assignment** is allowed only in: legacy Workbench `updateStandard` editors not on `WorkbenchComponentProvider` (see asset-level exceptions in [Workbench AGENT.md](../../../../../charcoal-client/src/components/Workbench/AGENT.md#asset-level-updatestandard-exceptions)), `StandardForm.subset` Room stub copy ([`index.ts`](../index.ts)), and tests. Feature, Knowledge, Room, Area, Guidance, Mark, and Lens shortName editors use the session + **`withShortName()`** on flush (`prepareComponentForFlush`). Prefer **`withShortName()`** for new code.
 
+## gloss (reasoning-facing, five kinds only)
+
+Optional **`gloss`** is a short, factual description of a thing **for reasoning, not display** — distinct from `shortName` (a display label) and from the render `Summary`/`Description` facets (player-facing, situational). It lands only on the five `ludicCache` kinds: **Character, Object, Room, Feature, Area** — not the platform-wide 13/13 that `shortName` covers. See [`taskPlanning/lambda/ephemera/dataSource/positions/ludicCache/AGENT.reasoningGloss.planning.md`](../../../../../../taskPlanning/lambda/ephemera/dataSource/positions/ludicCache/AGENT.reasoningGloss.planning.md) for the reasoning use this field exists to serve; that plan's Design section is the source of truth until it graduates.
+
+Built as the second real instantiation of [`literalFieldFactory`](./literalField.ts) (the standardize-side factory `shortNameField.ts` was extracted from, whose own doc comment names `Gloss` as the motivating second use). Mirrors `shortName`'s wiring field-for-field on all five payload classes (constructor/fromJSON/fromSchema consumer/getter/toJSON/schema/nestedSchema/merge/invert/isEmpty), plus the base-class generic `get gloss()`/`withGloss()` on [`StandardComponent`](./baseClasses.ts)/[`component.ts`](./component.ts) mirroring `shortName`/`withShortName`.
+
+**Differs from `shortName` in one respect (RG-2):** `gloss` is trimmed, and an empty (or whitespace-only) `<Gloss>` is treated as absent rather than an error — the opposite of Object's `<ShortName>`, which throws on empty. Neither the shared `literalFieldFactory` nor `shortName` itself changed to get this; [`glossField.ts`](./glossField.ts) wraps the factory's `createFromJSON`/`standardizeConsumer` with a `normalizeGloss` step (trim a plain-text literal, treat trimmed-empty as `undefined`; pass a Remove/Replace-wrapped edit through untouched, mirroring why Object's own `ShortName` finalize declines to trim edit-wrapped content). `mergeGloss`/`invertGloss`/`glossToJSON`/`glossSchemaChildren` are direct passthroughs of the shared factory — merge is additive (`StandardLiteral.merge`), not last-write-wins.
+
+Object's schema converter (`schema/converters/components.ts`) admits `Gloss` in its `typeCheckContents` allow-list alongside `ShortName`, but — unlike `ShortName` — gets no parallel `finalize` enforcement (no "exactly one non-empty" gate): a scope call made when this field shipped, since RG-2 already makes `Gloss` optional everywhere. Room, Feature, Area, and Character have no `typeCheckContents`/`finalize` gate for either field, so `Gloss` needed no schema-layer change there.
+
+**No authoring UI yet** (`<Gloss>` in Workbench is a separate, not-yet-filed issue) and **no Ephemera/Assets consumer yet** — this field's shape is built ahead of both, per the reasoningGloss plan.
+
 ### Asset `StandardForm._shortName` (not component shortName)
 
 **Asset-level** `_shortName` on `StandardForm` is **asset title metadata**, separate from per-component `shortName`. Do not conflate the two. See [`../AGENT.md`](../AGENT.md) (omission-over-empty and asset metadata).

@@ -34,6 +34,7 @@ import {
 } from "../wmlStandardizeMode";
 import { StandardLiteral } from "../literal";
 import { isShortNamePayloadHost } from "./shortNameField";
+import { isGlossPayloadHost } from "./glossField";
 
 export interface AssureReferencesResult<T> {
     payload: T
@@ -239,6 +240,9 @@ export const componentClassFactory = <
         get tag(): ComponentTag { return this._payload.tag }
         get shortName(): StandardLiteral | undefined {
             return (this._payload as { shortName?: StandardLiteral }).shortName
+        }
+        get gloss(): StandardLiteral | undefined {
+            return (this._payload as { gloss?: StandardLiteral }).gloss
         }
         get referenceData(): StandardReferenceData {
             if (!this.key) {
@@ -618,6 +622,14 @@ export const componentClassFactory = <
             const returnValue = this.clone() as GeneratedComponentClass
             if (isShortNamePayloadHost(returnValue._payload)) {
                 returnValue._payload._shortName = shortName
+            }
+            return this._wrap(returnValue)
+        }
+
+        withGloss(gloss: StandardLiteral | undefined): StandardComponent {
+            const returnValue = this.clone() as GeneratedComponentClass
+            if (isGlossPayloadHost(returnValue._payload)) {
+                returnValue._payload._gloss = gloss
             }
             return this._wrap(returnValue)
         }

@@ -39,6 +39,7 @@ export interface StandardComponent {
     standardKey: StandardKey;
     explicitParent?: StandardExplicitParent;
     shortName?: StandardLiteral;
+    gloss?: StandardLiteral;
     clone(): StandardComponent;
     withMapping(mapping: StandardReference[]): StandardComponent;
     withKey(key: string): StandardComponent;
@@ -63,6 +64,7 @@ export interface StandardComponent {
     withImport(fromAsset: AssetUUID): StandardComponent;
     withOrigin(origin: AssetUUID[] | undefined): StandardComponent;
     withShortName(shortName: StandardLiteral | undefined): StandardComponent;
+    withGloss(gloss: StandardLiteral | undefined): StandardComponent;
     invert?(): StandardComponent;
     /**
      * Assures that the given child references exist in the appropriate buckets with ref={0} if needed.

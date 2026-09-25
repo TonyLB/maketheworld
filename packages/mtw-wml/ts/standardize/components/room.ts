@@ -21,6 +21,14 @@ import {
     shortNameToJSON,
     standardizeShortNameConsumer,
 } from "./shortNameField"
+import {
+    createGlossFromJSON,
+    invertGloss,
+    mergeGloss,
+    glossSchemaChildren,
+    glossToJSON,
+    standardizeGlossConsumer,
+} from "./glossField"
 import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { renderReference } from "./utils/schema"
 import { isSchemaString } from "@tonylb/mtw-base/ts/schema/renderTree"
@@ -34,6 +42,7 @@ import StandardLudicGraph from "./ludicGraph"
 
 export class StandardRoomPayload implements ComponentConstructorMethods<StandardRoomInputData, StandardRoomData> {
     _shortName?: StandardLiteral;
+    _gloss?: StandardLiteral;
     _exits: ExitFacetList;
     _situations: SituationProseFacetList;
     _lens: SingleReference;
@@ -46,6 +55,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     constructor(previous?: StandardRoomPayload) {
         if (previous) {
             this._shortName = previous._shortName
+            this._gloss = previous._gloss
             this._exits = previous.exits.clone()
             this._situations = previous.situations.clone()
             this._lens = previous._lens.clone()
@@ -75,6 +85,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     fromJSON(props: StandardRoomInputData) {
         const { shortName } = props
         this._shortName = createShortNameFromJSON(shortName)
+        this._gloss = createGlossFromJSON(props.gloss)
         this._exits = new ExitFacetList(props.exits ?? [])
         this._situations = new SituationProseFacetList(props.situations ?? [])
         this._lens = SingleReference.fromData(props.lens)
@@ -90,6 +101,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             // Unconsumed children (e.g. unknown tags) cause processWithConsumers to throw. See AGENT.implementation.md (fromSchema: process-and-remainder pipeline).
             const consumers: StandardizeConsumer[] = [
                 standardizeShortNameConsumer(this),
+                standardizeGlossConsumer(this),
                 new StandardizeConsumerReferenceList(this, {
                     tag: "Lens",
                     update(list) {
@@ -165,6 +177,9 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     get shortName() {
         return this._shortName
     }
+    get gloss() {
+        return this._gloss
+    }
     get render() {
         return this._render?.toJSON()
     }
@@ -180,6 +195,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         return {
             tag: 'Room',
             shortName: shortNameToJSON(this.shortName),
+            ...(this.gloss ? { gloss: glossToJSON(this.gloss) } : {}),
             ...(this.exits.length ? { exits: this.exits.toJSON() } : {}),
             ...(this.situations.length ? { situations: this.situations.toJSON() } : {}),
             ...(this.lens.payload.length ? { lens: this.lens.toJSON() } : {}),
@@ -212,6 +228,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             data: { tag: 'Room', key, uuid: universalKey },
             children: [
                 ...shortNameSchemaChildren(this.shortName),
+                ...glossSchemaChildren(this.gloss),
                 ...this.lens.schema,
                 ...this._ludicGraph.nonRootComponentRefs.schema,
                 ...this.guidance.schema,
@@ -270,6 +287,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
             data: { tag: 'Room', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...shortNameSchemaChildren(this.shortName),
+                ...glossSchemaChildren(this.gloss),
                 ...lensToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...nonRootNodesToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
                 ...guidanceToRender.payload.map(renderReference({ lookup, options: { ...options, parent: key } })).filter(excludeUndefined),
@@ -285,6 +303,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     merge(incoming: this): this {
         const returnValue = new StandardRoomPayload()
         returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
+        returnValue._gloss = mergeGloss(this._gloss, incoming._gloss)
         const mergedExits = this._exits.merge(incoming._exits)
         returnValue._exits = mergedExits ?? new ExitFacetList([])
         const mergedSituations = this._situations.merge(incoming._situations)
@@ -308,6 +327,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         const returnValue = new StandardRoomPayload()
         // Invert shortName if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._shortName = invertShortName(this._shortName)
+        returnValue._gloss = invertGloss(this._gloss)
         returnValue._exits = this._exits.invert()
         returnValue._situations = this._situations.invert()
         // Invert each ReferenceList
@@ -430,6 +450,16 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
                     return returnValue[0].data.value
                 })
         }
+        if (returnValue._gloss) {
+            returnValue._gloss = returnValue._gloss
+                .mapContents((value: string): string => {
+                    const returnValue = callback([{ data: { tag: 'String', value }, children: [] }])
+                    if (!returnValue.length || !isSchemaString(returnValue[0].data)) {
+                        return ''
+                    }
+                    return returnValue[0].data.value
+                })
+        }
         returnValue._situations = new SituationProseFacetList(
             returnValue._situations.items.map((facet) => {
                 const remappedPayload = mapSituationProsePayloadContents(facet.payload, callback)
@@ -487,6 +517,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     isEmpty(): boolean {
         // A room is empty if it has no shortName, no exits, no situations, and no references (lens, features, guidance, characters)
         const hasShortName = Boolean(this._shortName)
+        const hasGloss = Boolean(this._gloss)
         const hasExits = this._exits.length > 0
         const hasSituations = this._situations.length > 0
         const hasLens = this._lens.payload.length > 0
@@ -494,7 +525,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         const hasGuidance = this._guidance.payload.length > 0
         const hasCharacters = this._characters.payload.length > 0
         const hasRender = Boolean(this._render)
-        return !(hasShortName || hasExits || hasSituations || hasLens || hasFeatures || hasGuidance || hasCharacters || hasRender)
+        return !(hasShortName || hasGloss || hasExits || hasSituations || hasLens || hasFeatures || hasGuidance || hasCharacters || hasRender)
     }
 }
 
@@ -524,6 +555,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         const exitsDiff = this.exits.diff(incoming.exits)
         const situationsDiff = this.situations.diff(incoming.situations)
         const shortNameEqual = (this.shortName ?? new StandardLiteral('')).equals(incoming.shortName ?? new StandardLiteral(''))
+        const glossEqual = (this.gloss ?? new StandardLiteral('')).equals(incoming.gloss ?? new StandardLiteral(''))
         // Intentional non-adoption for this slice: room.render remains strict payload deep-equality
         // until we decide whether render payload should use StandardRender/defaultedEquals semantics
         // or a dedicated SituationRoomFacetPayload.equals contract.
@@ -534,6 +566,7 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
             !(exitsDiff?.length) &&
             !(situationsDiff?.length) &&
             shortNameEqual &&
+            glossEqual &&
             deepEqual(this.render, incoming.render)
     }
 
