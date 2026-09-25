@@ -6,6 +6,7 @@ import { isStandardLudicGraphData, StandardLudicGraphData } from "./ludicGraph"
 export type StandardAreaData = {
     tag: 'Area';
     shortName?: StandardEditableData<string>;
+    gloss?: StandardEditableData<string>;
     ludicGraph?: StandardLudicGraphData;
 } & StandardBaseData
 
@@ -22,6 +23,7 @@ export const isStandardAreaData = (arg: unknown): arg is StandardAreaData => {
             key: 'key',
             universalKey: 'string',
             shortName: 'literal',
+            gloss: 'literal',
         })
     )
 }

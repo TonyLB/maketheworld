@@ -4,11 +4,11 @@ import { SchemaImageTag } from "./image";
 import { SchemaImportTag } from "./metaData";
 import checkTypes, { CheckTypes } from "../utils/checkTypes";
 import { literalTagFactory, SchemaLiteralTag } from "./literalTagFactory";
-import { SchemaShortNameTag } from "./components";
+import { SchemaShortNameTag, SchemaGlossTag } from "./components";
 import { SchemaRemoveTag, SchemaReplaceTag } from "./edit";
 import { ComponentUUID, isSchemaAssetUUID } from ".";
 
-export type SchemaCharacterLegalContents = SchemaDisplayNameTag | SchemaShortNameTag | SchemaRemoveTag | SchemaReplaceTag | SchemaPronounsTag | SchemaImageTag | SchemaImportTag
+export type SchemaCharacterLegalContents = SchemaDisplayNameTag | SchemaShortNameTag | SchemaGlossTag | SchemaRemoveTag | SchemaReplaceTag | SchemaPronounsTag | SchemaImageTag | SchemaImportTag
 
 export type SchemaPronounsTag = SchemaLiteralTag<'Pronouns'>
 

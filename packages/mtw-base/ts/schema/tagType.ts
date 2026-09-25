@@ -27,6 +27,7 @@ export type SchemaTagType =
     'DoubleBR' |
     'Link' |
     'ShortName' |
+    'Gloss' |
     'Instructions' |
     'Default' |
     'Match' |
@@ -74,6 +75,7 @@ export const isLegalSchemaTag = (value: any): value is SchemaTagType => (
         'DoubleBR',
         'Link',
         'ShortName',
+        'Gloss',
         'Instructions',
         'Default',
         'Match',

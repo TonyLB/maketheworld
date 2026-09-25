@@ -11,6 +11,7 @@ export type StandardFeatureRenderData = SituationProseFacetPayloadType
 export type StandardFeatureData = {
     tag: 'Feature';
     shortName?: StandardEditableData<string>;
+    gloss?: StandardEditableData<string>;
     situations?: FacetListData<SituationProseFacetPayloadType>;
     /** Ephemera wire: resolved DisplayName / Summary / Description from `<Render>`. */
     render?: StandardFeatureRenderData;
@@ -40,6 +41,7 @@ export const isStandardFeatureData = (arg: any): arg is StandardFeatureData => {
             key: 'key',
             universalKey: 'string',
             shortName: 'literal',
+            gloss: 'literal',
             situations: 'facetList',
         }),
         !('render' in arg) ||

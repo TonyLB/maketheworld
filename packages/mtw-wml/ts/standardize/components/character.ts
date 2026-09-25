@@ -16,6 +16,14 @@ import {
     shortNameToJSON,
     standardizeShortNameConsumer,
 } from "./shortNameField"
+import {
+    createGlossFromJSON,
+    invertGloss,
+    mergeGloss,
+    glossSchemaChildren,
+    glossToJSON,
+    standardizeGlossConsumer,
+} from "./glossField"
 import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
 import StandardReference from "../keys/reference"
@@ -45,6 +53,7 @@ const LUDIC_GRAPH_NODE_TAG_SET = new Set<string>(LUDIC_GRAPH_NODE_TAGS)
 export class StandardCharacterPayload implements ComponentConstructorMethods<StandardCharacterData, StandardCharacterData> {
     _displayName?: StandardLiteral;
     _shortName?: StandardLiteral;
+    _gloss?: StandardLiteral;
     _pronouns?: StandardLiteral;
     _image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
     _situations: SituationProseFacetList;
@@ -55,6 +64,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     constructor(previous?: StandardCharacterPayload) {
         if (previous) {
             this._shortName = previous._shortName
+            this._gloss = previous._gloss
             this._displayName = previous._displayName
             this._image = previous._image
             this._pronouns = previous._pronouns
@@ -88,6 +98,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     fromJSON(props: StandardCharacterData) {
         const { shortName, pronouns, displayName } = props
         this._shortName = createShortNameFromJSON(shortName)
+        this._gloss = createGlossFromJSON(props.gloss)
         this._pronouns = pronouns ? new StandardLiteral(pronouns, { tag: 'Pronouns' }) : undefined
         this._displayName = displayName ? new StandardLiteral(displayName, { tag: 'DisplayName' }) : undefined
         this._image = props.image
@@ -109,6 +120,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
                     },
                 })),
                 standardizeShortNameConsumer(this),
+                standardizeGlossConsumer(this),
                 new StandardizeConsumerStandardLiteral(this, {
                     tag: "Pronouns",
                     update(literal) {
@@ -174,6 +186,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     }
 
     get shortName() { return this._shortName }
+    get gloss() { return this._gloss }
     get pronouns() { return this._pronouns}
     get displayName() { return this._displayName }
     get image() { return this._image }
@@ -187,6 +200,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         return {
             tag: 'Character',
             shortName: shortNameToJSON(this.shortName),
+            ...(this.gloss ? { gloss: glossToJSON(this.gloss) } : {}),
             pronouns: this?.pronouns?.toJSON(),
             displayName: this.displayName?.toJSON(),
             image: this.image,
@@ -208,6 +222,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             data: { tag: 'Character', key, uuid: universalKey },
             children: [
                 ...shortNameSchemaChildren(this.shortName),
+                ...glossSchemaChildren(this.gloss),
                 ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema())).flat(1),
                 ...(this._displayName?.nestedSchema({ tag: 'DisplayName' }) ?? []),
                 this.image,
@@ -224,6 +239,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         }
         const returnValue = new StandardCharacterPayload()
         returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
+        returnValue._gloss = mergeGloss(this._gloss, incoming._gloss)
         returnValue._pronouns = (this._pronouns && incoming._pronouns) ? this._pronouns.merge(incoming._pronouns) : this._pronouns ?? incoming._pronouns
         returnValue._displayName = (this._displayName && incoming._displayName) ? this._displayName.merge(incoming._displayName) : this._displayName ?? incoming._displayName
         returnValue._image = this._image ?? incoming._image
@@ -316,18 +332,20 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
         // A character is empty if it has no displayName, shortName, pronouns, image, situations, render, or graph
         const hasDisplayName = Boolean(this._displayName)
         const hasShortName = Boolean(this._shortName)
+        const hasGloss = Boolean(this._gloss)
         const hasPronouns = Boolean(this._pronouns)
         const hasImage = Boolean(this._image)
         const hasSituations = this._situations.length > 0
         const hasRender = Boolean(this._render)
         const hasLudicGraph = this._ludicGraph.nodes.payload.length > 0
-        return !(hasDisplayName || hasShortName || hasPronouns || hasImage || hasSituations || hasRender || hasLudicGraph)
+        return !(hasDisplayName || hasShortName || hasGloss || hasPronouns || hasImage || hasSituations || hasRender || hasLudicGraph)
     }
 
     invert(): this {
         const returnValue = new StandardCharacterPayload()
         // Invert shortName if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._shortName = invertShortName(this._shortName)
+        returnValue._gloss = invertGloss(this._gloss)
         // Invert pronouns if it exists (StandardLiteral has invert() from standardEditableFactory)
         returnValue._pronouns = this._pronouns ? this._pronouns.invert() as StandardLiteral : undefined
         // Invert displayName if it exists (StandardLiteral has invert())
@@ -403,6 +421,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
             data: { tag: 'Character', key: key.key ?? '', uuid: key.universalKey },
             children: [
                 ...shortNameSchemaChildren(this.shortName),
+                ...glossSchemaChildren(this.gloss),
                 ...[this.pronouns].filter(excludeUndefined).map((pronouns) => (pronouns.nestedSchema())).flat(1),
                 ...(this._displayName?.nestedSchema({ tag: 'DisplayName' }) ?? []),
                 this.image,

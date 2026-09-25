@@ -20,6 +20,14 @@ import {
     standardizeShortNameConsumer,
 } from "./shortNameField"
 import {
+    createGlossFromJSON,
+    invertGloss,
+    mergeGloss,
+    glossSchemaChildren,
+    glossToJSON,
+    standardizeGlossConsumer,
+} from "./glossField"
+import {
     processWithConsumers,
     StandardizeConsumerFacetListSituation,
     StandardizeConsumerInline,
@@ -41,6 +49,7 @@ const LUDIC_GRAPH_NODE_TAG_SET = new Set<string>(LUDIC_GRAPH_NODE_TAGS)
 
 export class StandardObjectPayload implements ComponentConstructorMethods<StandardObjectData, StandardObjectData> {
     _shortName?: StandardLiteral;
+    _gloss?: StandardLiteral;
     _situations: SituationProseFacetList;
     _render?: SituationProseFacetPayload;
     _ludicGraph: StandardLudicGraph;
@@ -49,6 +58,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
     constructor(previous?: StandardObjectPayload) {
         if (previous) {
             this._shortName = previous._shortName
+            this._gloss = previous._gloss
             this._situations = previous._situations.clone()
             this._render = previous._render?.clone()
             this._ludicGraph = previous._ludicGraph.clone()
@@ -79,6 +89,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
     fromJSON(props: StandardObjectData) {
         const { shortName } = props
         this._shortName = createShortNameFromJSON(shortName)
+        this._gloss = createGlossFromJSON(props.gloss)
         this._situations = new SituationProseFacetList(props.situations ?? [])
         this._render = props.render ? new SituationProseFacetPayload(props.render) : undefined
         this._ludicGraph = StandardLudicGraph.fromJSON(props.ludicGraph)
@@ -97,6 +108,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
                     },
                 })),
                 standardizeShortNameConsumer(this),
+                standardizeGlossConsumer(this),
                 new StandardizeConsumerFacetListSituation(this, {
                     update(list) {
                         this._situations = list
@@ -138,6 +150,9 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
     get shortName() {
         return this._shortName
     }
+    get gloss() {
+        return this._gloss
+    }
     get situations() { return this._situations }
     get render() {
         return this._render?.toJSON()
@@ -148,6 +163,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
         return {
             tag: 'Object',
             ...(this.shortName ? { shortName: shortNameToJSON(this.shortName) } : {}),
+            ...(this.gloss ? { gloss: glossToJSON(this.gloss) } : {}),
             ...(this.situations.length ? { situations: this.situations.toJSON() } : {}),
             ...(this._render ? { render: this._render.toJSON() } : {}),
             ...(ludicGraphJSON ? { ludicGraph: ludicGraphJSON } : {}),
@@ -166,6 +182,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
             data: { tag: 'Object', uuid: universalKey },
             children: [
                 ...shortNameSchemaChildren(this.shortName),
+                ...glossSchemaChildren(this.gloss),
                 ...situationSchemas,
                 ...renderSchemas,
                 ...this._ludicGraph.nonRootComponentRefs.schema,
@@ -183,6 +200,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
     merge(incoming: this): this {
         const returnValue = new StandardObjectPayload()
         returnValue._shortName = mergeShortName(this._shortName, incoming._shortName)
+        returnValue._gloss = mergeGloss(this._gloss, incoming._gloss)
         const mergedSituations = this._situations.merge(incoming._situations)
         returnValue._situations = mergedSituations ?? new SituationProseFacetList([])
         if (incoming._render !== undefined) {
@@ -216,15 +234,17 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
 
     isEmpty(): boolean {
         const hasShortName = Boolean(this._shortName)
+        const hasGloss = Boolean(this._gloss)
         const hasSituations = this._situations.length > 0
         const hasRender = Boolean(this._render)
         const hasLudicGraph = this._ludicGraph.nodes.payload.length > 0
-        return !(hasShortName || hasSituations || hasRender || hasLudicGraph)
+        return !(hasShortName || hasGloss || hasSituations || hasRender || hasLudicGraph)
     }
 
     invert(): this {
         const returnValue = new StandardObjectPayload()
         returnValue._shortName = invertShortName(this._shortName)
+        returnValue._gloss = invertGloss(this._gloss)
         returnValue._situations = this._situations.invert()
         returnValue._render = this._render?.invert()
         const graphJSON = this._ludicGraph.toJSON() ?? {}
@@ -347,6 +367,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
             data: { tag: 'Object', uuid: key.universalKey },
             children: [
                 ...shortNameSchemaChildren(this.shortName),
+                ...glossSchemaChildren(this.gloss),
                 ...situationSchemas,
                 ...renderSchemas,
                 ...nonRootNodesToRender.payload.map(renderReference({ lookup: _lookup, options })).filter(excludeUndefined).flat(1),
@@ -382,6 +403,7 @@ export class StandardObject extends componentClassFactory(StandardObjectPayload,
             return false
         }
         const shortNameEqual = defaultedEquals(this.shortName, incoming.shortName)
+        const glossEqual = defaultedEquals(this.gloss, incoming.gloss)
         const situationsDiff = this.situations.diff(incoming.situations)
         const renderA = this._payload._render
         const renderB = incoming._payload._render
@@ -390,6 +412,7 @@ export class StandardObject extends componentClassFactory(StandardObjectPayload,
             (Boolean(renderA && renderB) && renderA!.diff(renderB) === undefined)
         return !(situationsDiff?.length) &&
             shortNameEqual &&
+            glossEqual &&
             renderEqual &&
             this.ludicGraph.equals(incoming.ludicGraph)
     }

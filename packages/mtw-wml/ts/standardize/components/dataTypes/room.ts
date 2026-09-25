@@ -14,6 +14,7 @@ export type StandardRoomRenderData = SituationProseFacetPayloadType
 export type StandardRoomData = {
     tag: 'Room';
     shortName?: StandardEditableData<string>;
+    gloss?: StandardEditableData<string>;
     exits?: FacetListData<ExitPayload>;
     situations?: FacetListData<SituationProseFacetPayloadType>;
     lens?: ReferenceListData;
@@ -52,6 +53,7 @@ export const isStandardRoomData = (arg: any): arg is StandardRoomData => {
             key: 'key',
             universalKey: 'string',
             shortName: 'literal',
+            gloss: 'literal',
             exits: 'facetList',
             situations: 'facetList',
             lens: 'referenceList',
@@ -76,6 +78,7 @@ export const isStandardRoomInputData = (arg: any): arg is StandardRoomInputData 
             key: 'key',
             universalKey: 'string',
             shortName: 'literal',
+            gloss: 'literal',
             exits: 'facetListInput',
             situations: 'facetListInput',
             lens: 'referenceList',

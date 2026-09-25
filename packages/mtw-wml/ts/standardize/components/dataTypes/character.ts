@@ -13,6 +13,7 @@ export type StandardCharacterRenderData = SituationProseFacetPayloadType
 export type StandardCharacterData = {
     tag: 'Character';
     shortName?: StandardEditableData<string>;
+    gloss?: StandardEditableData<string>;
     pronouns?: StandardEditableData<string>;
     displayName?: StandardEditableData<string>;
     image?: EditWrappedStandardNode<SchemaImageTag, SchemaTag>;
@@ -45,6 +46,7 @@ export const isStandardCharacterData = (arg: any): arg is StandardCharacterData 
             key: 'key',
             universalKey: 'string',
             shortName: 'literal',
+            gloss: 'literal',
             pronouns: 'literal',
             displayName: 'literal',
             image: 'node',
