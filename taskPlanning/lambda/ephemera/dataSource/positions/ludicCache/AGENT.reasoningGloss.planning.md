@@ -1,6 +1,6 @@
 # Reasoning gloss
 
-**Status:** Slice 1 shipped 2026-09-25. Next: slice 2 (literal-field factory).
+**Status:** Slice 2 shipped 2026-09-25. Next: slice 3 (`Gloss` in WML for the five kinds).
 
 This plan is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../../AGENT.md). It is an implementation plan.
 
@@ -55,9 +55,9 @@ Mark pending work `[ ]` and completed work `[X]`, including nested lines, as eac
    - [X] Replace `catalogHandles.ts`'s "`shortName === universalKey` means unresolved" sentinel with a real one: `EphemeraLudicCacheNode.shortName` is now `shortName?: string`, and unresolved is genuinely `undefined` (no more coincidental equality inference). `isEphemeraLudicCacheNode` widened to match.
    - [X] Tests: `fold.test.ts` gained two payoff cases --- a room/feature/object walk, and a character-seeded cache (a character present as another host's *member* is never walked, per `enumerateShards.ts`'s "never recursed into" guard, unrelated to this slice; the seed itself always is). All prior tests updated for the dropped `getImprovisationObject` dep and the optional-`shortName` sentinel change; full `lambda/ephemera` suite green (2972 tests).
    - [X] Wall-time: not measured live (no dev-room access this session); analytically, one DB read per object was removed (the dead fallback), so `logLudicCacheRebuild`'s per-object cost should improve, not regress. `ludicCacheInstrumentation.ts`'s doc comment corrected accordingly.
-2. [ ] **Literal-field factory** (`mtw-wml`; no behaviour change).
-   - [ ] Parameterize `shortNameField.ts` by tag, so `ShortName` becomes one use of a literal-field factory.
-   - [ ] Every existing `shortName` test stays green unchanged.
+2. [X] **Literal-field factory** (`mtw-wml`; no behaviour change). Shipped 2026-09-25.
+   - [X] Parameterize `shortNameField.ts` by tag, so `ShortName` becomes one use of a literal-field factory. New `literalFieldFactory(tag, fieldName)` in [`literalField.ts`](../../../../../../packages/mtw-wml/ts/standardize/components/literalField.ts), the standardize-side counterpart to `mtw-base`'s schema-side `literalTagFactory`. `shortNameField.ts` is now a thin instantiation (`literalFieldFactory('ShortName', '_shortName')`) re-exporting the same six functions and one typeguard under their original names; none of the 12 importing component files changed.
+   - [X] Every existing `shortName` test stays green unchanged. `shortNameField.test.ts` untouched; full `mtw-wml` suite green (2064 tests), plus `tsc -p packages/mtw-wml/tsconfig.json --noEmit` clean.
 3. [ ] **`Gloss` in WML for the five kinds** (`mtw-wml`; RG-2).
    - [ ] Schema: a `Gloss` literal tag via `literalTagFactory`, its typeguard and `SchemaTag` entry, and allowed as a child of `Character`, `Object`, `Room`, `Feature` and `Area` in `schema/converters/components.ts`.
    - [ ] Standardize: the second use of the slice 2 factory, wired into the five component classes at every place `shortName` is.
