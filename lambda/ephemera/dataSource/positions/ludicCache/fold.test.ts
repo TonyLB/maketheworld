@@ -306,8 +306,8 @@ describe('buildLudicCache', () => {
 
         const componentByKey: Record<string, StandardComponent> = {
             [roomA]: new StandardRoom({ tag: 'Room', shortName: 'a quiet courtyard' }),
-            [featureId]: new StandardFeature({ tag: 'Feature', shortName: 'a weathered statue' }),
-            [boxId]: new StandardObject({ tag: 'Object', shortName: 'a wooden box' }),
+            [featureId]: new StandardFeature({ tag: 'Feature', shortName: 'a weathered statue', gloss: 'chipped marble, missing a hand' }),
+            [boxId]: new StandardObject({ tag: 'Object', shortName: 'a wooden box', gloss: 'battered tin, dented lid' }),
         }
         const getComponentAggregate = jest.fn(async (
             [perspective]: { universalKey: string, mergeParticipationOrder: readonly `ASSET#${string}`[] }[]
@@ -326,9 +326,12 @@ describe('buildLudicCache', () => {
 
         expect(cache.nodes).toEqual(expect.arrayContaining([
             { tag: 'Room', universalKey: roomA, shortName: 'a quiet courtyard' },
-            { tag: 'Feature', universalKey: featureId, shortName: 'a weathered statue' },
-            { tag: 'Object', universalKey: boxId, shortName: 'a wooden box' },
+            { tag: 'Feature', universalKey: featureId, shortName: 'a weathered statue', gloss: 'chipped marble, missing a hand' },
+            { tag: 'Object', universalKey: boxId, shortName: 'a wooden box', gloss: 'battered tin, dented lid' },
         ]))
+        // The room was given no Gloss, so its cache node has none --- absence, not an empty string sentinel.
+        const roomNode = cache.nodes.find((node) => node.universalKey === roomA)
+        expect((roomNode as { gloss?: string } | undefined)?.gloss).toBeUndefined()
     })
 
     // The seed itself is always walked regardless of kind (`enumerateShards.ts`'s exemption for

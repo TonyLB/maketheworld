@@ -6,6 +6,7 @@ import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interface
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { appendImprovisationToPerspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { shortNameToJSON } from '@tonylb/mtw-wml/ts/standardize/components/shortNameField'
+import { glossToJSON } from '@tonylb/mtw-wml/ts/standardize/components/glossField'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 /**
@@ -23,18 +24,33 @@ export const shortNameFromComponent = (component: StandardComponent | undefined)
 }
 
 /**
- * Live shortName resolution for any cache-kind host, via the merged aggregate only. `getAcrossAssets`
- * already routes `ASSET#IMPROVISATION` through the same ephemeraDB pair-row table a separate
- * improvisation lookup would read (`EphemeraComponentDataCompositeCache`) --- a second fallback read
- * would only ever fire when this one already found nothing anywhere in the stack, so there is none.
- * `appendImprovisationToPerspective` only accepts Object/Character ids (improvisation never applies
- * to Room/Feature/Area), so other kinds pass `assetStack` straight through as the participation order.
+ * `gloss` counterpart to {@link shortNameFromComponent} (reasoningGloss slice 5). `Gloss` is optional on
+ * every kind (RG-2), so absence here is as valid as a resolved string --- there is no separate "unresolved"
+ * sentinel to track.
  */
-export const resolveComponentShortName = async (
+export const glossFromComponent = (component: StandardComponent | undefined): string | undefined => {
+    if (!component?.gloss) {
+        return undefined
+    }
+    const gloss = glossToJSON(component.gloss)
+    return typeof gloss === 'string' ? gloss : undefined
+}
+
+/**
+ * The merged-aggregate read shared by {@link resolveComponentShortName} and
+ * {@link resolveComponentCacheFields} --- one perspective fetch, however many fields a caller resolves
+ * off the result. `getAcrossAssets` already routes `ASSET#IMPROVISATION` through the same ephemeraDB
+ * pair-row table a separate improvisation lookup would read (`EphemeraComponentDataCompositeCache`) ---
+ * a second fallback read would only ever fire when this one already found nothing anywhere in the
+ * stack, so there is none. `appendImprovisationToPerspective` only accepts Object/Character ids
+ * (improvisation never applies to Room/Feature/Area), so other kinds pass `assetStack` straight through
+ * as the participation order.
+ */
+const resolveMergedComponent = async (
     hostId: EphemeraMembershipHostId,
     assetStack: readonly string[],
     deps: { getComponentAggregate: ComponentAggregateMergedCache['get'] }
-): Promise<string | undefined> => {
+): Promise<StandardComponent | undefined> => {
     const mergeParticipationOrder = isEphemeraObjectId(hostId) || isEphemeraCharacterId(hostId)
         ? appendImprovisationToPerspective([...assetStack] as AssetUUID[], [hostId])
         : [...assetStack] as AssetUUID[]
@@ -43,7 +59,27 @@ export const resolveComponentShortName = async (
         mergeParticipationOrder,
     })
     const aggregateResults = await deps.getComponentAggregate([perspective])
-    return shortNameFromComponent(aggregateResults[0]?.merged)
+    return aggregateResults[0]?.merged
+}
+
+/** Live shortName resolution for any cache-kind host, via the merged aggregate only. */
+export const resolveComponentShortName = async (
+    hostId: EphemeraMembershipHostId,
+    assetStack: readonly string[],
+    deps: { getComponentAggregate: ComponentAggregateMergedCache['get'] }
+): Promise<string | undefined> => shortNameFromComponent(await resolveMergedComponent(hostId, assetStack, deps))
+
+/**
+ * `shortName` and `gloss` off one merged-aggregate read (reasoningGloss slice 5) --- for callers that
+ * want both, so resolving `gloss` alongside `shortName` costs no extra aggregate fetch.
+ */
+export const resolveComponentCacheFields = async (
+    hostId: EphemeraMembershipHostId,
+    assetStack: readonly string[],
+    deps: { getComponentAggregate: ComponentAggregateMergedCache['get'] }
+): Promise<{ shortName?: string; gloss?: string }> => {
+    const component = await resolveMergedComponent(hostId, assetStack, deps)
+    return { shortName: shortNameFromComponent(component), gloss: glossFromComponent(component) }
 }
 
 /** Thin Object-typed wrapper over {@link resolveComponentShortName} for existing Object-only callers. */
