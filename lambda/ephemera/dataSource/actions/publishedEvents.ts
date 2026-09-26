@@ -319,7 +319,7 @@ export type AcmeOrderPublishedOrder = {
     /** `SITUATION#DEFAULT` flavor-text prose from Acme enrich; consumed at object spawn. */
     defaultSituation?: AcmeOrderEnrichDefaultSituationProse;
     defaultSituationFailed?: boolean;
-    /** Short, reasoning-facing identity description from Acme enrich (see reasoningGloss plan); absence is valid. */
+    /** Short, reasoning-facing identity description from Acme enrich (see `actions/AGENT.concepts.md`'s `CommandAttempt` section); absence is valid. */
     gloss?: string;
 }
 

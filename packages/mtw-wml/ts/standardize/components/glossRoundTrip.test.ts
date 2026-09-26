@@ -102,7 +102,7 @@ describe('Object gloss round-trip (nested in Room context, per Object\'s own con
     })
 })
 
-describe('Gloss is optional (RG-2)', () => {
+describe('Gloss is optional', () => {
     it('parses Object with no Gloss child at all, no error', () => {
         const object = new StandardObject({ tag: 'Object', universalKey: 'OBJECT#test', shortName: 'Test' } as StandardObjectData)
         expect(object.gloss).toBeUndefined()
@@ -117,14 +117,14 @@ describe('Gloss is optional (RG-2)', () => {
     })
 })
 
-describe('Gloss is trimmed (RG-2)', () => {
+describe('Gloss is trimmed', () => {
     it('trims leading and trailing whitespace', () => {
         const object = new StandardObject({ tag: 'Object', universalKey: 'OBJECT#test', shortName: 'Test', gloss: `  ${LABEL}  ` } as StandardObjectData)
         expect(object.gloss?.toJSON()).toEqual(LABEL)
     })
 })
 
-describe('An empty Gloss is absent, not an error (RG-2)', () => {
+describe('An empty Gloss is absent, not an error', () => {
     it('an empty-string Gloss leaves gloss undefined, without throwing', () => {
         expect(() => new StandardObject({ tag: 'Object', universalKey: 'OBJECT#test', shortName: 'Test', gloss: '' } as StandardObjectData)).not.toThrow()
         const object = new StandardObject({ tag: 'Object', universalKey: 'OBJECT#test', shortName: 'Test', gloss: '' } as StandardObjectData)

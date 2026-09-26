@@ -275,6 +275,16 @@ The philosophy establishes patterns for future system expansion:
 3. **Can equivalent functionality be achieved with event-driven alternatives?**
 4. **Does it support the community affordability goal?**
 
+## Code Organization: Abstractions You Can Reason Over
+
+**Status: newly articulated (2026-09-26), and followed inconsistently across the codebase.** Expect a lot of refactoring over time to align existing code with it. Where existing code doesn't follow it, that is debt, not a counter-precedent.
+
+The codebase is too large to hold in one context window, or to reason over coherently even if it fit. Development needs abstractions that let you reason about extending a subsystem without knowing its details. Otherwise progress grinds to a halt as the codebase grows.
+
+The model is `mtw-wml`'s standardize components. Adding `Gloss` to every manipulable component was easy to reason about, because every component answers one declared set of questions (`ComponentConstructorMethods`), and each field is a unit of extension with a sibling to copy.
+
+TS classes are one tool for this. They help in two roles: as **members of a family** behind a declared interface, and as **containers** that compose members. Which to use depends on which axis grows: new members, or new operations. The working rule and its lessons are in [`AGENT.architecture.codeOrganization.md`](AGENT.architecture.codeOrganization.md).
+
 ## Navigation Tips
 
 1. **Start with Philosophy**: Understand the "perception-driven" principle before diving into implementation

@@ -283,6 +283,7 @@ For complete testing pattern documentation including dependency injection, real-
 - **[Cross-cutting concepts](AGENT.concepts.md)**: Narrative transcript, multi-channel room UI, diegetic logic (concepts at ephemera root and [`diegeticLogic/`](diegeticLogic/))
 - **[Event Flow Documentation](AGENT.event.md)**: Comprehensive event processing patterns, WebSocket handling, and migration planning
 - **[Testing Patterns](AGENT.testing.md)**: Dependency injection patterns, real-time system testing, and migration testing strategy
+- **[Code organization](../../AGENT.architecture.codeOrganization.md)**: Project-wide convention: classes as family members and containers; which axis grows
 - **[DataSource layer](dataSource/AGENT.md)**: `EphemeraDataSource` packages, internal bus keys, cross-cutting contracts (multi-channel, narrative transcript; see [`AGENT.concepts.md`](AGENT.concepts.md))
 - **[Perception System](perception/AGENT.md)**: Detailed perception processing and filtering documentation
 - **[Internal Cache System](internalCache/AGENT.md)**: Caching architecture supporting real-time performance

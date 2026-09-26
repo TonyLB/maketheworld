@@ -162,6 +162,7 @@ See [`../../../packages/mtw-lambda-patterns/ts/messageBus/AGENT.implementation.m
 #### **Core Principles**
 - **[Architectural Philosophy](AGENT.architecture.philosophy.md)**: Perception-driven processing, cost optimization, and the "tree falls in forest" principle
 - **[Event Architecture](AGENT.architecture.events.md)**: Technical implementation of event processing, character presence filtering, and performance optimization
+- **[Code organization](AGENT.architecture.codeOrganization.md)**: Abstractions you can reason over without the details; classes as family members and containers. Newly articulated (2026-09-26) and inconsistently followed, so expect refactoring to align with it
 
 ### **Development Guidelines**
 

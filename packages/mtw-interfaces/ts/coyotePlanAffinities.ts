@@ -524,7 +524,7 @@ function normalizeTropeFields(raw: {
     return output
 }
 
-/** Trims `gloss`; empty normalizes to absent (RG-2: absence is valid, not a failure state, so no parallel `glossFailed` flag). */
+/** Trims `gloss`; empty normalizes to absent. Absence is a valid gloss, not a failure state, so there is no parallel `glossFailed` flag. */
 function normalizeGlossField(raw: unknown): { gloss?: string } {
     if (typeof raw !== 'string') {
         return {}
