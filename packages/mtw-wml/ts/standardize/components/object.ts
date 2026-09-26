@@ -26,6 +26,7 @@ import {
     glossSchemaChildren,
     glossToJSON,
     standardizeGlossConsumer,
+    type GlossHost,
 } from "./glossField"
 import {
     processWithConsumers,
@@ -376,7 +377,7 @@ export class StandardObjectPayload implements ComponentConstructorMethods<Standa
     }
 }
 
-export class StandardObject extends componentClassFactory(StandardObjectPayload, 'StandardObject') {
+export class StandardObject extends componentClassFactory(StandardObjectPayload, 'StandardObject') implements GlossHost {
     get situations() { return this._payload.situations }
     get render() { return this._payload.render }
     get ludicGraph() { return this._payload.ludicGraph }
@@ -396,6 +397,14 @@ export class StandardObject extends componentClassFactory(StandardObjectPayload,
         const returnValue = new StandardObject(this)
         returnValue._payload = new StandardObjectPayload(this._payload)
         return returnValue
+    }
+
+    get gloss(): StandardLiteral | undefined { return this._payload._gloss }
+
+    withGloss(gloss: StandardLiteral | undefined): this {
+        const returnValue = this.clone()
+        returnValue._payload._gloss = gloss
+        return this._wrap(returnValue)
     }
 
     override equals(incoming: StandardComponent): boolean {

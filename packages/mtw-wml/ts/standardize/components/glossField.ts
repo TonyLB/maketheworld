@@ -2,17 +2,31 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { StandardLiteral } from "../literal"
 import { literalFieldFactory } from "./literalField"
 import { StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
+import type { StandardComponent } from "./baseClasses"
 
 export type GlossPayloadHost = { _gloss?: StandardLiteral }
+
+//
+// The component-level capability: only Room, Area, Feature, Character and Object host a Gloss,
+// and each of those classes implements GlossHost. Callers holding a StandardComponent narrow
+// with isGlossHost, which checks for the declared withGloss method (not the payload).
+//
+export interface GlossHost {
+    gloss?: StandardLiteral;
+    withGloss(gloss: StandardLiteral | undefined): this;
+}
+
+export const isGlossHost = (component: StandardComponent): component is StandardComponent & GlossHost => (
+    'withGloss' in component && typeof component.withGloss === 'function'
+)
 
 const glossFactory = literalFieldFactory('Gloss', '_gloss')
 
 //
 // Gloss is trimmed, and an empty (or whitespace-only) Gloss is absent rather than
-// an error --- unlike ShortName on Object, which throws on empty. Only a plain-text literal
-// is trimmed/absent-checked here; a Remove/Replace-wrapped edit is passed through untouched,
-// mirroring Object's own ShortName finalize (the final text only exists after merge, so an
-// edit node isn't something this layer can resolve or validate).
+// an error. Only a plain-text literal is trimmed/absent-checked here; a Remove/Replace-wrapped
+// edit is passed through untouched (the final text only exists after merge, so an edit node
+// isn't something this layer can resolve or validate).
 //
 const normalizeGloss = (literal?: StandardLiteral): StandardLiteral | undefined => {
     if (!literal) {
@@ -32,7 +46,6 @@ const normalizeGloss = (literal?: StandardLiteral): StandardLiteral | undefined 
     return new StandardLiteral(trimmed, { tag: 'Gloss' })
 }
 
-export const isGlossPayloadHost = glossFactory.isPayloadHost
 export const createGlossFromJSON = (data?: StandardEditableData<string>): StandardLiteral | undefined => (
     normalizeGloss(glossFactory.createFromJSON(data))
 )

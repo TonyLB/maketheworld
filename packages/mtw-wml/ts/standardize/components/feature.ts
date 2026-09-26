@@ -22,6 +22,7 @@ import {
     glossSchemaChildren,
     glossToJSON,
     standardizeGlossConsumer,
+    type GlossHost,
 } from "./glossField"
 import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import {
@@ -362,7 +363,7 @@ export class StandardFeaturePayload implements ComponentConstructorMethods<Stand
     }
 }
 
-export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') {
+export class StandardFeature extends componentClassFactory(StandardFeaturePayload, 'StandardFeature') implements GlossHost {
     get situations() { return this._payload.situations }
     get render() { return this._payload.render }
     get ludicGraph() { return this._payload.ludicGraph }
@@ -375,6 +376,14 @@ export class StandardFeature extends componentClassFactory(StandardFeaturePayloa
         const returnValue = new StandardFeature(this)
         returnValue._payload = new StandardFeaturePayload(this._payload)
         return returnValue
+    }
+
+    get gloss(): StandardLiteral | undefined { return this._payload._gloss }
+
+    withGloss(gloss: StandardLiteral | undefined): this {
+        const returnValue = this.clone()
+        returnValue._payload._gloss = gloss
+        return this._wrap(returnValue)
     }
 
     override equals(incoming: StandardComponent): boolean {

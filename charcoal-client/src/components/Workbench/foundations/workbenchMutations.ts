@@ -170,7 +170,7 @@ export const normalizeOptionalLiteral = (
 
 /** Normalize shortName before flush (D11) via mtw-wml `withShortName` (returns new instance). */
 export const prepareComponentForFlush = <T extends StandardComponent>(component: T): T =>
-    component.withShortName(normalizeOptionalLiteral(component.shortName)) as T
+    component.withShortName(normalizeOptionalLiteral(component.shortName))
 
 /**
  * Flush assign only (not the edit path): prepare `working` for persist (D11) and assign to

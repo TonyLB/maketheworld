@@ -33,8 +33,6 @@ import {
     type StandardizeFromSchemaContext,
 } from "../wmlStandardizeMode";
 import { StandardLiteral } from "../literal";
-import { isShortNamePayloadHost } from "./shortNameField";
-import { isGlossPayloadHost } from "./glossField";
 
 export interface AssureReferencesResult<T> {
     payload: T
@@ -49,6 +47,7 @@ export type ComponentConstructorMethodsDiff<D extends ComponentKey> = {
 }
 
 export interface ComponentConstructorMethods<DInput, DOutput> {
+    _shortName?: StandardLiteral;
     fromJSON(line: DInput): void;
     fromSchema(node: GenericTreeNode<SchemaTag>, context?: StandardizeFromSchemaContext): GenericTree<SchemaTag>;
     subset(options: StandardFormSubsetRequest): this;
@@ -239,10 +238,7 @@ export const componentClassFactory = <
         get fileName(): string | undefined { return undefined }
         get tag(): ComponentTag { return this._payload.tag }
         get shortName(): StandardLiteral | undefined {
-            return (this._payload as { shortName?: StandardLiteral }).shortName
-        }
-        get gloss(): StandardLiteral | undefined {
-            return (this._payload as { gloss?: StandardLiteral }).gloss
+            return this._payload._shortName
         }
         get referenceData(): StandardReferenceData {
             if (!this.key) {
@@ -618,19 +614,9 @@ export const componentClassFactory = <
             return this._wrap(returnValue)
         }
 
-        withShortName(shortName: StandardLiteral | undefined): StandardComponent {
+        withShortName(shortName: StandardLiteral | undefined): this {
             const returnValue = this.clone() as GeneratedComponentClass
-            if (isShortNamePayloadHost(returnValue._payload)) {
-                returnValue._payload._shortName = shortName
-            }
-            return this._wrap(returnValue)
-        }
-
-        withGloss(gloss: StandardLiteral | undefined): StandardComponent {
-            const returnValue = this.clone() as GeneratedComponentClass
-            if (isGlossPayloadHost(returnValue._payload)) {
-                returnValue._payload._gloss = gloss
-            }
+            returnValue._payload._shortName = shortName
             return this._wrap(returnValue)
         }
 

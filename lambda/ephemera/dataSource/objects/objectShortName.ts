@@ -6,7 +6,7 @@ import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interface
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { appendImprovisationToPerspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import { shortNameToJSON } from '@tonylb/mtw-wml/ts/standardize/components/shortNameField'
-import { glossToJSON } from '@tonylb/mtw-wml/ts/standardize/components/glossField'
+import { glossToJSON, isGlossHost } from '@tonylb/mtw-wml/ts/standardize/components/glossField'
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 /**
@@ -24,12 +24,12 @@ export const shortNameFromComponent = (component: StandardComponent | undefined)
 }
 
 /**
- * `gloss` counterpart to {@link shortNameFromComponent}. `Gloss` is optional on
- * every kind, so absence here is as valid as a resolved string --- there is no separate "unresolved"
- * sentinel to track.
+ * `gloss` counterpart to {@link shortNameFromComponent}. Only the five `GlossHost` kinds (Room, Area,
+ * Feature, Character, Object) carry a `Gloss`, and it is optional on each, so absence here --- including
+ * any other kind --- is as valid as a resolved string; there is no separate "unresolved" sentinel to track.
  */
 export const glossFromComponent = (component: StandardComponent | undefined): string | undefined => {
-    if (!component?.gloss) {
+    if (!component || !isGlossHost(component) || !component.gloss) {
         return undefined
     }
     const gloss = glossToJSON(component.gloss)

@@ -6,16 +6,13 @@ import { StandardizeConsumerStandardLiteral } from "./fromSchemaPipeline"
 
 //
 // literalFieldFactory produces the shared bundle of helpers (create/toJSON/merge/invert/
-// schemaChildren/standardizeConsumer/payload-host typeguard) that every single-string
+// schemaChildren/standardizeConsumer) that every single-string
 // literal field on a StandardComponent payload needs, parameterized by the schema tag
 // (e.g. 'ShortName', 'Gloss') and the payload's private field name (e.g. '_shortName').
 // The standardize-side counterpart to mtw-base's schema-side literalTagFactory.
 //
 export const literalFieldFactory = <F extends string>(tag: SchemaTag["tag"], fieldName: F) => {
     type LiteralFieldPayloadHost = { [K in F]?: StandardLiteral }
-
-    const isPayloadHost = (payload: unknown): payload is LiteralFieldPayloadHost =>
-        typeof payload === 'object' && payload !== null && fieldName in payload
 
     const createFromJSON = (
         data?: StandardEditableData<string>
@@ -47,7 +44,6 @@ export const literalFieldFactory = <F extends string>(tag: SchemaTag["tag"], fie
         })
 
     return {
-        isPayloadHost,
         createFromJSON,
         toJSON,
         merge,
