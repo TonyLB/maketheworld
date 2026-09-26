@@ -1,6 +1,6 @@
 # Command attempt phase
 
-**Status:** Slice 1 done (2026-09-26). Next: slice 1.5 (evaluate the class-encapsulation prototype).
+**Status:** Slice 1.5 done (2026-09-26). Next: slice 1.6 (consider the four families for early refactoring).
 
 This plan is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md). It is an implementation plan, not the design variant, because the open questions are few and each one belongs to a slice.
 
@@ -72,18 +72,25 @@ Mark pending work `[ ]` and completed work `[X]`, including nested lines, as eac
    - [X] Add unit tests pinning the slice-0 examples verbatim (the fixture is the spec), with fixtures both with and without a gloss. `commandAttempt/index.test.ts` covers rows 2, 3, 5 (both today's-bug and the target impossible reading), and 6 (two actions, one challenge, plus room-context rendering); rows 8/9 needed no class-level fixture (row 9 pins a boundary --- no attempt is built at all --- not a behavior of this class).
    - [X] **Obligation:** this slice settles where the attempt vocabulary (the format; state-overrides-the-gloss; the prose convention) lives (`actions/AGENT.concepts.md` per the graduation note above, or elsewhere if that changes). Settled: `actions/AGENT.concepts.md` (new `CommandAttempt` section, 2026-09-26). Done: the reasoning-gloss plan's Design section graduated to `packages/mtw-wml/ts/standardize/components/AGENT.md` ("Literal-field factory: `ShortName` and `Gloss`", the field itself) and `actions/AGENT.concepts.md` (the reasoning-use rules: state overrides the gloss, the prose convention); its "When done" links from the iterations plan, this file, and AB-37 are repointed; the planning file itself is deleted.
 
-- [ ] **1.5. Evaluate the class-encapsulation prototype.** No code changes. The output is a short list of lessons and a decision, not a refactor.
-   - [ ] Cold-read `CommandAttempt` as a newcomer would. Record what the class made easier to reason about, and what it made harder (tests, construction, the fixture-as-spec style).
-   - [ ] Check the prototype rule: grep for the plain-data type outside `fromJSON`/`toJSON`/the bus sites, and for free functions taking an attempt. Record each leak and what drew it out.
-   - [ ] Decide: adopt as a convention for new domain objects in `lambda/ephemera`, adopt with changes, or don't. Record the decision and lessons in a durable home, which this step picks. `lambda/ephemera` has no `AGENT.implementation.md` today.
-   - [ ] **Bounded:** no existing structure is retrofitted in this plan. Retrofit candidates the evaluation notices get filed as issues or noted in the durable home, not scheduled here.
-   - [ ] Slice 2 is the first time the attempt crosses the bus, so it re-tests the prototype rule. If the rule breaks there, add the lesson to the durable home rather than reopening this slice.
+- [X] **1.5. Evaluate the class-encapsulation prototype.** No code changes. The output is a short list of lessons and a decision, not a refactor. Done 2026-09-26. The evaluation question turned out to be "does the pattern ground an abstraction you can reason over without the details?", not "is the class clean code?" Decision and lessons are in [`AGENT.architecture.codeOrganization.md`](../../../../../AGENT.architecture.codeOrganization.md) (repo root; the rule is project-wide style, not Ephemera-specific).
+   - [X] Cold-read `CommandAttempt` as a newcomer would. Record what the class made easier to reason about, and what it made harder (tests, construction, the fixture-as-spec style). Finding: it gives locality but little reasoning leverage, because it is a container without its families. Its methods hold bespoke logic rather than delegating to members.
+   - [X] Check the prototype rule: grep for the plain-data type outside `fromJSON`/`toJSON`/the bus sites, and for free functions taking an attempt. Record each leak and what drew it out. No leaks, but the class has zero callers outside its own tests, so this is weak evidence. Smaller lessons (`fromJSON` doubling as the domain constructor, array-position `recordVerdict`, doc comments citing plan-row IDs) are recorded as techniques in the durable home.
+   - [X] Decide: adopt as a convention for new domain objects in `lambda/ephemera`, adopt with changes, or don't. Record the decision and lessons in a durable home, which this step picks. **Adopt, reframed:** use a class for two roles --- members of a family (behind a declared interface) and containers that compose members --- and choose class-per-member versus union-plus-switch by which axis grows. Durable home: new root `AGENT.architecture.codeOrganization.md`, summarized in `AGENT.architecture.philosophy.md` and linked from root `AGENT.md` and `lambda/ephemera/AGENT.md`.
+   - [X] **Bounded:** no existing structure is retrofitted in this plan. Retrofit candidates the evaluation notices get filed as issues or noted in the durable home, not scheduled here. Noted there: four candidate families in the command-attempt pipeline (actions, challenges, verdicts/outcomes, referents). Slice 1.6 considers them.
+   - Slice 2's re-test of the convention at the bus crossing moved to slice 2's own checklist.
+
+- [ ] **1.6. Consider the four families for early refactoring.** Slice 1.5 answered the higher-level question (when a class helps reasoning). This slice applies that answer to the four candidate families it found, before slice 2 builds more code against today's shapes. The output is a decision per family, not a refactor. Any refactor it picks becomes its own slice, or part of slice 2.
+   - [ ] For each family (actions, challenges, verdicts/outcomes, referents), apply the [convention](../../../../../AGENT.architecture.codeOrganization.md)'s test: which axis grows (members, or operations)? Is it a family of members behind a declared interface, a table keyed by a closed union, or a union with exhaustive switches?
+   - [ ] For each, decide: refactor before slice 2, fold into slice 2, or leave for later. The question for "early" is whether slice 2 would otherwise build new code against a shape the convention would change.
+   - [ ] Decide what `CommandAttempt` composes as a container. Its methods (`result`, `renderProse`) should delegate to whichever families it holds, rather than holding bespoke logic.
+   - [ ] Record the decisions here (as slice edits, or rows in Open decisions if a real fork remains). Record anything the convention itself learns in the durable home.
 
 2. [ ] **Make room in the pipeline** (CA-3, CA-7). This slice changes no behaviour.
    - [ ] Build the attempt where Identify and Plan results meet, for the object-manipulation families only (rehost, membership, relational).
    - [ ] Add the expansion step: it adds the relation dissolves the graph requires, with their graph challenges, as the one place this classification runs before Adjudicate. Synthesize consumes its result instead of classifying again (CA-7).
    - [ ] Add an `adjudicate` seam whose stub keeps today's behaviour: an attempt with no challenges succeeds with its desired result; any challenge maps to today's defer. Corpus row 6 (the rope tied to a post) still silently fails at the end of this slice, on purpose.
    - [ ] Existing route tests stay green, and one test asserts the attempt reaches the seam with its actions and challenges.
+   - [ ] This is the first time the attempt crosses the bus, so it re-tests the [class convention](../../../../../AGENT.architecture.codeOrganization.md). If the convention breaks here, add the lesson to that file rather than reopening slice 1.5.
 3. [ ] **Coyote meets graph challenges.** This slice changes behaviour. Every player command is a preparation command, and in preparation every challenge is met.
    - [ ] The stub now records *met* for every graph challenge, so row 6's rope is untied and taken.
    - [ ] The met verdict has to reach both places that would still defer: the Plan-stage legality dry run, which today treats a candidate with a `Custom` edge as defer, and the `positions` commit recheck (CA-7).
@@ -110,6 +117,6 @@ cd lambda/ephemera && npm run test -- --watchAll=false \
 
 ## Verification
 
-- Slices 1-4: the baseline command above, plus any new test files the slice adds. Slice 1.5 changes no code.
+- Slices 1-4: the baseline command above, plus any new test files the slice adds. Slices 1.5 and 1.6 change no code.
 - Slice 2 in particular: diff no snapshot or narration assertion. A slice that changes no behaviour and still needs test edits has changed behaviour.
 - Slices 3 and 4: payoff tests end at the published narration or the committed graph, not at the attempt value. Slice 3 is the first slice expected to change an existing test's outcome (any test pinning row 6's silent failure).

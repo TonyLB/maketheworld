@@ -275,7 +275,7 @@ describe('buildLudicCache', () => {
         expect(second).toEqual(first)
     })
 
-    // Slice 1 (reasoningGloss): `shortName` resolves for every cache kind, not only Object ---
+    // `shortName` resolves for every cache kind, not only Object ---
     // the generalized `resolveComponentShortName` covers Room/Feature/Object alike via the same
     // merged-aggregate mechanism. Character is exercised separately below: a character present
     // as a MEMBER of another host's graph is deliberately never walked (`enumerateShards.ts`'s

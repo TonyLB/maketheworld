@@ -8,7 +8,7 @@ export type GlossPayloadHost = { _gloss?: StandardLiteral }
 const glossFactory = literalFieldFactory('Gloss', '_gloss')
 
 //
-// RG-2: Gloss is trimmed, and an empty (or whitespace-only) Gloss is absent rather than
+// Gloss is trimmed, and an empty (or whitespace-only) Gloss is absent rather than
 // an error --- unlike ShortName on Object, which throws on empty. Only a plain-text literal
 // is trimmed/absent-checked here; a Remove/Replace-wrapped edit is passed through untouched,
 // mirroring Object's own ShortName finalize (the final text only exists after merge, so an

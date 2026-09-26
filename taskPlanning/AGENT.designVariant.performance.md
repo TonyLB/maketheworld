@@ -118,6 +118,10 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | 2026-09-24 | `other` | Proposed "a fact is essential if no operation can change it" to scope a reasoning gloss --- a classification by the current verb set; user rejected it as frame thinking, replaced by baseline + state override. |
 | 2026-09-24 | `overbroad-inheritance` | Carried AB-37's summary-staleness cost onto the reasoning gloss and called the gloss its "base case"; AB-37's summary is a projection over position/relations, the gloss is identity. User's question surfaced it. |
 | 2026-09-24 | `proxy-read` | Recorded the gloss as stored "beside `shortName` and `EMBEDDING#IMPROMPTU`" without opening either path; `shortName` is a component field read from the merged component, the embedding is a separate row attached by a separate pass. |
+| 2026-09-26 | `framing-inherited` | Graded commandAttemptPhase slice 1.5 as a code review of the class (surface, integrity, leaks); user's question was whether the pattern grounds an abstraction you can reason over without the details --- second correction of this kind on the same memory. |
+| 2026-09-26 | `other` | Treated the user's confirmation of four families (evidence) as a go-ahead to document and design them; the question it supported was how to adjust house style to use TS classes as an organizing tool. |
+| 2026-09-26 | `other` | Offered "values whose origin matters" as a third reason to use a class, with an invented example and no evidence in the branch; closest real case (`EphemeraLudicGraph`'s constructors) is invariant protection, already set aside. User asked for its provenance. |
+| 2026-09-26 | `framing-inherited` | Filed a project-wide style rule in `lambda/ephemera/AGENT.implementation.md` because slice 1.5's text scoped the question to `lambda/ephemera`; the file type is a code map anyway. User pointed out the rule is project style. |
 
 ## Patterns
 

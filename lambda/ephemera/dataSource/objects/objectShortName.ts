@@ -24,8 +24,8 @@ export const shortNameFromComponent = (component: StandardComponent | undefined)
 }
 
 /**
- * `gloss` counterpart to {@link shortNameFromComponent} (reasoningGloss slice 5). `Gloss` is optional on
- * every kind (RG-2), so absence here is as valid as a resolved string --- there is no separate "unresolved"
+ * `gloss` counterpart to {@link shortNameFromComponent}. `Gloss` is optional on
+ * every kind, so absence here is as valid as a resolved string --- there is no separate "unresolved"
  * sentinel to track.
  */
 export const glossFromComponent = (component: StandardComponent | undefined): string | undefined => {
@@ -70,7 +70,7 @@ export const resolveComponentShortName = async (
 ): Promise<string | undefined> => shortNameFromComponent(await resolveMergedComponent(hostId, assetStack, deps))
 
 /**
- * `shortName` and `gloss` off one merged-aggregate read (reasoningGloss slice 5) --- for callers that
+ * `shortName` and `gloss` off one merged-aggregate read --- for callers that
  * want both, so resolving `gloss` alongside `shortName` costs no extra aggregate fetch.
  */
 export const resolveComponentCacheFields = async (

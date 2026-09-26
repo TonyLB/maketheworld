@@ -46,7 +46,7 @@ export type EphemeraLudicCacheNode =
     | (EphemeraLudicGraphComponentNode & {
         /** `undefined` means unresolved --- no equality-with-id inference (see `catalogHandles.ts`). */
         shortName?: string;
-        /** `undefined` means unresolved or absent --- `Gloss` is optional on every kind (RG-2), so no sentinel is needed. */
+        /** `undefined` means unresolved or absent --- `Gloss` is optional on every kind, so no sentinel is needed. */
         gloss?: string;
         /** Iteration 1: attached by a separate attachEmbeddings pass, not by the rebuild (CC1c). */
         embedding?: SemanticEmbedding;
