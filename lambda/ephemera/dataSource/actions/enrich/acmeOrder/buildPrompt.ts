@@ -91,6 +91,8 @@ For **\`valid\`: true** lines, the machine record is **\`name\`**, **\`stableKey
 
 Each **\`defaultSituation\`** carries one short **\`description\`** (one or two plain sentences describing the object as a player would first see it — straight physical description, not cartoon-trope narrowing language) and, optionally, **\`displayName\`** (a short player-facing name, defaults to **\`name\`** if omitted) and **\`summary\`** (a one-line summary shorter than **\`description\`**). This is flavor text for the object's own look/examine text, independent of the Step 1/2 catalog and trope classification above. Only if you genuinely cannot produce grounded prose for a line, omit **\`defaultSituation\`** entirely and set **\`defaultSituationFailed\`**: true — never invent empty or placeholder text, and never use that escape as a shortcut for an ordinary object.
 
+**\`gloss\`** is a separate, optional field: a short factual description for *reasoning* about the object rather than for a player to read — the kind of line that would let something tell this object apart from a similarly-named one ("a red tin cup, fist-sized, light" rather than a look/examine sentence). Plain facts only, no cartoon-trope language and no narration. Omit it entirely rather than inventing filler when nothing distinguishing comes to mind.
+
 The **Coyote-wide keys already in use** list appears **after** these instructions. When upstream
 product spans are included, they appear before the **full player command** at the end of this prompt.
 
@@ -296,7 +298,8 @@ downward).
       ],
       "defaultSituation": {
         "description": "A squat cast-iron anvil, chipped along one edge, heavy enough to leave a dent where it lands."
-      }
+      },
+      "gloss": "a cast-iron anvil, squat and chipped, roughly a hundred pounds"
     },
     {
       "valid": true,
@@ -319,7 +322,8 @@ downward).
         "displayName": "Catapult",
         "summary": "A timber catapult on iron wheels.",
         "description": "A timber catapult on iron wheels, its throwing arm cocked back against a drum of braided rope."
-      }
+      },
+      "gloss": "a wooden catapult on iron wheels, arm cocked back, taller than a person"
     },
     { "valid": false, "name": "Justice", "errorType": "Not tangible" }
   ],

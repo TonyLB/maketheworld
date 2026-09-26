@@ -141,6 +141,8 @@ export type AcmeOrderEnrichModelLine =
           tropeAffinitiesFailed?: boolean;
           defaultSituation?: AcmeOrderEnrichDefaultSituationProse;
           defaultSituationFailed?: boolean;
+          /** Short, reasoning-facing identity description (distinct from `defaultSituation`'s player-facing prose); absence is valid. */
+          gloss?: string;
       }
     | {
           valid: false;
@@ -462,6 +464,7 @@ function salvageAcmeOrderEnrichLine(raw: unknown): AcmeOrderEnrichModelLine | nu
             defaultSituation: isAcmeOrderEnrichDefaultSituationProse(o.defaultSituation) ? o.defaultSituation : undefined,
             defaultSituationFailed: o.defaultSituationFailed === true,
         }),
+        ...normalizeGlossField(o.gloss),
     }
     return isAcmeOrderEnrichModelLine(candidate) ? candidate : null
 }
@@ -521,6 +524,15 @@ function normalizeTropeFields(raw: {
     return output
 }
 
+/** Trims `gloss`; empty normalizes to absent (RG-2: absence is valid, not a failure state, so no parallel `glossFailed` flag). */
+function normalizeGlossField(raw: unknown): { gloss?: string } {
+    if (typeof raw !== 'string') {
+        return {}
+    }
+    const trimmed = raw.trim()
+    return trimmed.length > 0 ? { gloss: trimmed } : {}
+}
+
 /** Absent/empty `defaultSituation` normalizes to `defaultSituationFailed: true` (mirrors `normalizeTropeFields`). */
 function normalizeDefaultSituationFields(raw: {
     defaultSituation?: AcmeOrderEnrichDefaultSituationProse;
@@ -558,12 +570,14 @@ export function normalizeAcmeOrderEnrichLine(raw: unknown, fallbackName: string)
             sourceKind: 'valid_line',
         })
         const normalizedDefaultSituation = normalizeDefaultSituationFields(raw)
+        const normalizedGloss = normalizeGlossField(raw.gloss)
         return {
             valid: true,
             name: raw.name,
             stableKey: trimStableKeyOrFallback(raw.stableKey, raw.name),
             ...normalizedTrope,
             ...normalizedDefaultSituation,
+            ...normalizedGloss,
         }
     }
     const salvaged = salvageAcmeOrderEnrichLine(raw)
@@ -660,6 +674,9 @@ export function isAcmeOrderEnrichModelLine(entry: unknown): entry is AcmeOrderEn
         return false
     }
     if (o.defaultSituationFailed === true && o.defaultSituation !== undefined) {
+        return false
+    }
+    if ('gloss' in o && o.gloss !== undefined && typeof o.gloss !== 'string') {
         return false
     }
     return true

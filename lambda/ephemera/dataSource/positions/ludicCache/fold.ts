@@ -42,7 +42,7 @@
  * onto it. `stats` stays a sibling of `cache`, not a member of it.
  *
  * **Two-pass loop (Slice 5b, 2026-09-19).** The former single `for` loop interleaved
- * `componentCacheNode`'s awaited I/O (`resolveComponentShortName`) with two purely synchronous
+ * `componentCacheNode`'s awaited I/O (`resolveComponentCacheFields`) with two purely synchronous
  * computations (`foldSameHostBuckets`, `collapseCrossingPorts`), serializing all three across
  * every host for no reason the synchronous pair needed. `componentCacheNode` calls for every
  * `hostId` now run concurrently via `Promise.all`; the synchronous fold/collapse pass runs after,
@@ -56,7 +56,7 @@ import { stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../../internalCache'
 import { EphemeraLudicGraph, nodeFromId } from '../ludicGraph'
-import { resolveComponentShortName } from '../../objects/objectShortName'
+import { resolveComponentCacheFields } from '../../objects/objectShortName'
 import { enumerateLudicCacheShards, type EnumerateLudicCacheShardsDeps } from './enumerateShards'
 import { collapseCrossingPorts, collapsedEdgeIdentityKey, foldSameHostBuckets } from './mergeReducer'
 import type { EphemeraLudicCacheData, EphemeraLudicCacheEdge, EphemeraLudicCacheNode } from './types'
@@ -86,8 +86,8 @@ const componentCacheNode = async (
     deps: Required<BuildLudicCacheDeps>
 ): Promise<EphemeraLudicCacheNode> => {
     const node = nodeFromId(hostId)
-    const shortName = await resolveComponentShortName(hostId, assetStack, deps)
-    return { ...node, shortName } as EphemeraLudicCacheNode
+    const { shortName, gloss } = await resolveComponentCacheFields(hostId, assetStack, deps)
+    return { ...node, shortName, gloss } as EphemeraLudicCacheNode
 }
 
 export type BuildLudicCacheStats = {
@@ -103,7 +103,7 @@ export const buildLudicCache = async (
     const resolvedDeps = { ...defaultDeps(), ...deps }
     const { hostIds, graphs, shardFetchCount, maxDepth } = await enumerateLudicCacheShards(seedHostId, resolvedDeps)
 
-    // Pass 1: the only I/O in this loop (resolveObjectShortName, via componentCacheNode), run
+    // Pass 1: the only I/O in this loop (resolveComponentCacheFields, via componentCacheNode), run
     // concurrently across every host --- no data dependency between them.
     const nodes: EphemeraLudicCacheNode[] = await Promise.all(
         hostIds.map((hostId) => componentCacheNode(hostId, assetStack, resolvedDeps))

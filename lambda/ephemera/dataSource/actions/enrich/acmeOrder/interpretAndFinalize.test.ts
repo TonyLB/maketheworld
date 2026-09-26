@@ -181,6 +181,35 @@ describe('finalizeAcmeOrderFromEnrich', () => {
         expect((merged.orders[1] as { defaultSituation?: unknown }).defaultSituation).toBeUndefined()
     })
 
+    it('threads gloss through to the parse order when present, and omits it when absent', () => {
+        const merged = finalizeAcmeOrderFromEnrich(
+            intentConf,
+            {
+                lines: [
+                    {
+                        valid: true,
+                        name: 'anvil',
+                        stableKey: 'anvil',
+                        gloss: 'a squat cast-iron anvil, chipped along one edge',
+                    },
+                    {
+                        valid: true,
+                        name: 'glue',
+                        stableKey: 'glue',
+                    },
+                ],
+            },
+            false,
+            'fallback'
+        )
+        expect(merged.orders[0]).toMatchObject({
+            valid: true,
+            name: 'anvil',
+            gloss: 'a squat cast-iron anvil, chipped along one edge',
+        })
+        expect((merged.orders[1] as { gloss?: unknown }).gloss).toBeUndefined()
+    })
+
     it('single synthetic failure when enrichInvokeFailed', () => {
         const merged = finalizeAcmeOrderFromEnrich(intentConf, null, true, 'order rope')
         expect(merged.orders).toHaveLength(1)

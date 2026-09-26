@@ -143,6 +143,7 @@ function enrichLineToParseLine(line: AcmeOrderEnrichModelLine): ParseCommandAcme
         tropeAffinitiesFailed: line.tropeAffinitiesFailed === true || (line.tropeAffinities ?? []).length === 0,
         ...(line.defaultSituation !== undefined ? { defaultSituation: line.defaultSituation } : {}),
         defaultSituationFailed: line.defaultSituationFailed === true || line.defaultSituation === undefined,
+        ...(line.gloss !== undefined ? { gloss: line.gloss } : {}),
     }
 }
 
