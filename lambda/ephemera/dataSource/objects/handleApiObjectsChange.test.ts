@@ -378,6 +378,54 @@ describe('handleAcmeOrderAddObjects', () => {
         )
     })
 
+    it('passes gloss through to spawn args when present', async () => {
+        const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [{
+                shortName: 'anvil',
+                stableKey: 'anvil',
+                gloss: 'a squat cast-iron anvil, chipped along one edge',
+            }],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            resolveCharacterRoomId,
+            uuidFactory,
+            spawnOneImpl: spawnOneMock,
+        })
+
+        expect(spawnOneMock).toHaveBeenCalledWith(
+            expect.objectContaining({ gloss: 'a squat cast-iron anvil, chipped along one edge' }),
+            expect.any(Object)
+        )
+    })
+
+    it('omits gloss from spawn args when absent', async () => {
+        const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
+        const uuidFactory = jest.fn(() => 'u1')
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [{ shortName: 'anvil', stableKey: 'anvil' }],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            resolveCharacterRoomId,
+            uuidFactory,
+            spawnOneImpl: spawnOneMock,
+        })
+
+        expect(spawnOneMock).toHaveBeenCalledWith(
+            expect.not.objectContaining({ gloss: expect.anything() }),
+            expect.any(Object)
+        )
+    })
+
     it('does nothing when orders are empty', async () => {
         const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
 

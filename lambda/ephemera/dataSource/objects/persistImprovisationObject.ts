@@ -25,6 +25,7 @@ import { buildShortNameSemanticEmbedding } from './embedding/buildShortNameSeman
 import { impromptuEmbeddingNeedsRefresh } from './embedding/impromptuEmbeddingNeedsRefresh'
 import { objectEmbeddingPutItem } from './embedding/objectEmbeddingPutItem'
 import { invalidateImprovisationObjectCaches } from './invalidateImprovisationObjectCaches'
+import { glossFromComponent } from './objectShortName'
 
 const META_OBJECT_DATA_CATEGORY = 'Meta::Object' as const
 
@@ -41,6 +42,8 @@ export type SpawnImprovisationObjectArgs = {
     embedding?: SemanticEmbedding;
     /** `SITUATION#DEFAULT` prose facet (Acme-generated); already-built merge-body shape. */
     situations?: FacetListData<SituationProseFacetPayloadType>;
+    /** Short, reasoning-facing identity description (Acme-generated); absence is valid. */
+    gloss?: string;
 }
 
 export type UpdateImprovisationObjectArgs = {
@@ -52,6 +55,8 @@ export type UpdateImprovisationObjectArgs = {
     affectedRoomIds?: EphemeraRoomId[];
     /** Explicit override; omit to preserve whatever `situations` the prior pair row already carried. */
     situations?: FacetListData<SituationProseFacetPayloadType>;
+    /** Explicit override; omit to preserve whatever `gloss` the prior pair row already carried. */
+    gloss?: string;
 }
 
 export type DeleteImprovisationObjectArgs = {
@@ -77,21 +82,24 @@ export type PersistImprovisationObjectDependencies = {
 const pairRowFromShortName = (
     objectId: EphemeraObjectId,
     shortName: string,
-    situations?: FacetListData<SituationProseFacetPayloadType>
+    situations?: FacetListData<SituationProseFacetPayloadType>,
+    gloss?: string
 ) => ({
     EphemeraId: objectId,
     DataCategory: IMPROVISATION_ASSET_ID,
     tag: 'Object' as const,
     shortName,
     ...(situations !== undefined && situations.length > 0 ? { situations } : {}),
+    ...(gloss !== undefined && gloss.length > 0 ? { gloss } : {}),
 })
 
 export const improvisationPairPutItem = (
     objectId: EphemeraObjectId,
     shortName: string,
-    situations?: FacetListData<SituationProseFacetPayloadType>
+    situations?: FacetListData<SituationProseFacetPayloadType>,
+    gloss?: string
 ) => ({
-    Put: pairRowFromShortName(objectId, shortName, situations),
+    Put: pairRowFromShortName(objectId, shortName, situations, gloss),
 })
 
 const metaRowFromArgs = (args: {
@@ -179,7 +187,7 @@ export const persistSpawnImprovisationObject = async (
         ReturnType<typeof metaObjectPutItem> |
         ReturnType<typeof objectEmbeddingPutItem>
     > = [
-        improvisationPairPutItem(args.objectId, args.shortName, args.situations),
+        improvisationPairPutItem(args.objectId, args.shortName, args.situations, args.gloss),
         metaObjectPutItem(args),
     ]
 
@@ -202,6 +210,7 @@ export const persistSpawnImprovisationObject = async (
             universalKey: args.objectId,
             shortName: args.shortName,
             ...(args.situations !== undefined && args.situations.length > 0 ? { situations: args.situations } : {}),
+            ...(args.gloss !== undefined && args.gloss.length > 0 ? { gloss: args.gloss } : {}),
         })
         invalidateImprovisationObjectCaches({
             objectId: args.objectId,
@@ -243,6 +252,7 @@ export const persistUpdateImprovisationObject = async (
     const nextShortName = args.shortName ?? (priorPair.toJSON().shortName as string | undefined) ?? ''
     const priorSituations = priorPair.situations.toJSON() as FacetListData<SituationProseFacetPayloadType>
     const nextSituations = args.situations ?? (priorSituations.length > 0 ? priorSituations : undefined)
+    const nextGloss = args.gloss ?? glossFromComponent(priorPair)
     const nextMeta = metaRowFromArgs({
         objectId: args.objectId,
         stableKey: args.stableKey ?? priorMeta.stableKey,
@@ -281,7 +291,7 @@ export const persistUpdateImprovisationObject = async (
         { Put: EphemeraMetaObject } |
         ReturnType<typeof objectEmbeddingPutItem>
     > = [
-        { Put: pairRowFromShortName(args.objectId, nextShortName, nextSituations) },
+        { Put: pairRowFromShortName(args.objectId, nextShortName, nextSituations, nextGloss) },
         { Put: nextMeta },
     ]
 
@@ -304,6 +314,7 @@ export const persistUpdateImprovisationObject = async (
             universalKey: args.objectId,
             shortName: nextShortName,
             ...(nextSituations !== undefined && nextSituations.length > 0 ? { situations: nextSituations } : {}),
+            ...(nextGloss !== undefined && nextGloss.length > 0 ? { gloss: nextGloss } : {}),
         })
         invalidateImprovisationObjectCaches({
             objectId: args.objectId,

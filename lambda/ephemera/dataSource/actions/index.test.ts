@@ -1307,6 +1307,56 @@ describe('ephemeraActionsDataSource', () => {
             })
         })
 
+        it('threads gloss through to the published Acme Order streamEvent when present', async () => {
+            mockedParseCommand.mockResolvedValue({
+                type: 'AcmeOrder',
+                orders: [{
+                    valid: true,
+                    name: 'anvil',
+                    stableKey: 'anvil',
+                    gloss: 'a squat cast-iron anvil, chipped along one edge',
+                }],
+                confidence: 0.9,
+            })
+            const expectedStableKey = finalizeStableKeysDeterministic(
+                [{ name: 'anvil', proposedStableKey: 'anvil' }],
+                new Set(),
+            )[0]
+            const streamEvent = jest.fn(async () => {})
+
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'order anvil',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Acme Order' },
+                update: {
+                    type: 'Acme Order',
+                    characterId: 'CHARACTER#123',
+                    orders: [{
+                        shortName: 'anvil',
+                        stableKey: expectedStableKey,
+                        gloss: 'a squat cast-iron anvil, chipped along one edge',
+                    }],
+                    confidence: 0.9,
+                },
+            })
+        })
+
         it('repairs stableKey when Coyote-wide occupancy collides', async () => {
             mockedCollectCoyoteOccupiedStableKeys.mockResolvedValue(new Set(['rocket-powered-roller-skates']))
             mockedParseCommand.mockResolvedValue({

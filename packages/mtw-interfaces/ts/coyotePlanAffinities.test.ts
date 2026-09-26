@@ -120,6 +120,28 @@ describe('isAcmeOrderEnrichModelLine', () => {
             })
         ).toBe(false)
     })
+
+    it('accepts a valid line with a gloss string', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                valid: true,
+                name: 'anvil',
+                stableKey: 'anvil',
+                gloss: 'a squat cast-iron anvil, chipped along one edge',
+            })
+        ).toBe(true)
+    })
+
+    it('rejects a non-string gloss', () => {
+        expect(
+            isAcmeOrderEnrichModelLine({
+                valid: true,
+                name: 'anvil',
+                stableKey: 'anvil',
+                gloss: 5,
+            })
+        ).toBe(false)
+    })
 })
 
 describe('isAcmeOrderEnrichDefaultSituationProse', () => {
@@ -181,6 +203,43 @@ describe('normalizeAcmeOrderEnrichLine', () => {
                 valid: true,
                 name: 'anvil',
                 stableKey: 'anvil',
+            }, 'fallback')
+        ).toEqual({
+            valid: true,
+            name: 'anvil',
+            stableKey: 'anvil',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
+            defaultSituationFailed: true,
+        })
+    })
+
+    it('preserves a trimmed gloss when present and non-empty', () => {
+        expect(
+            normalizeAcmeOrderEnrichLine({
+                valid: true,
+                name: 'anvil',
+                stableKey: 'anvil',
+                gloss: '  a squat cast-iron anvil, chipped along one edge  ',
+            }, 'fallback')
+        ).toEqual({
+            valid: true,
+            name: 'anvil',
+            stableKey: 'anvil',
+            tropeAffinities: [],
+            tropeAffinitiesFailed: true,
+            defaultSituationFailed: true,
+            gloss: 'a squat cast-iron anvil, chipped along one edge',
+        })
+    })
+
+    it('omits gloss entirely when absent or empty', () => {
+        expect(
+            normalizeAcmeOrderEnrichLine({
+                valid: true,
+                name: 'anvil',
+                stableKey: 'anvil',
+                gloss: '   ',
             }, 'fallback')
         ).toEqual({
             valid: true,

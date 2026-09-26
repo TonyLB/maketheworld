@@ -130,6 +130,7 @@ const acmeOrderToSpawnArgs = (
         const situations = defaultSituationFacetFromProse(entry.defaultSituation)
         return situations !== undefined ? { situations } : {}
     })(),
+    ...(entry.gloss !== undefined ? { gloss: entry.gloss } : {}),
 })
 
 /**

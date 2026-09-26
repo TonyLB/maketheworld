@@ -319,6 +319,8 @@ export type AcmeOrderPublishedOrder = {
     /** `SITUATION#DEFAULT` flavor-text prose from Acme enrich; consumed at object spawn. */
     defaultSituation?: AcmeOrderEnrichDefaultSituationProse;
     defaultSituationFailed?: boolean;
+    /** Short, reasoning-facing identity description from Acme enrich (see reasoningGloss plan); absence is valid. */
+    gloss?: string;
 }
 
 export type AcmeOrderPublishedPayload = {
@@ -572,6 +574,9 @@ export const isAcmeOrderPublishedOrder = (value: unknown): value is AcmeOrderPub
         return false
     }
     if ('defaultSituationFailed' in o && typeof o.defaultSituationFailed !== 'boolean') {
+        return false
+    }
+    if ('gloss' in o && o.gloss !== undefined && typeof o.gloss !== 'string') {
         return false
     }
     return true

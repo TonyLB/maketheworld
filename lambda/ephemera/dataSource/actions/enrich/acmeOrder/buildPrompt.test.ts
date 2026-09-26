@@ -19,6 +19,7 @@ describe('buildParseAcmeOrderEnrichPrompt', () => {
         expect(invariantPrefix).toContain('workshop-glue')
         expect(invariantPrefix).toContain('portable-hole')
         expect(invariantPrefix).toContain('Iconic genre examples')
+        expect(invariantPrefix).toContain('is a separate, optional field')
         expect(dynamicSuffix).toContain('order rope')
         expect(dynamicSuffix).toContain('Player command')
         expect(dynamicSuffix).toContain('Coyote-wide stable keys already in use')
