@@ -1,6 +1,10 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { CommandAttempt, type CommandAttemptData } from './index'
+import type { AttemptActionData } from './action'
+import type { ChallengeData } from './challenge'
+import { MetVerdict, ImpossibleVerdict } from './verdict'
+import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
 
 const boulderId = 'OBJECT#Boulder1' as EphemeraObjectId
 const forkId = 'OBJECT#Fork1' as EphemeraObjectId
@@ -8,6 +12,13 @@ const plateId = 'OBJECT#Plate1' as EphemeraObjectId
 const motorcycleId = 'OBJECT#Motorcycle1' as EphemeraObjectId
 const shoeboxId = 'OBJECT#Shoebox1' as EphemeraObjectId
 const ropeId = 'OBJECT#Rope1' as EphemeraObjectId
+const postId = 'OBJECT#Post1' as EphemeraObjectId
+
+const positionAction = (challenges: ChallengeData[], desiredResultDescription?: string): AttemptActionData => ({
+    kind: 'position',
+    challenges,
+    ...(desiredResultDescription !== undefined ? { desiredResultDescription } : {}),
+})
 
 describe('CommandAttempt', () => {
     describe('row 2 --- get gigantic boulder', () => {
@@ -21,12 +32,7 @@ describe('CommandAttempt', () => {
                     gloss: 'granite, easily as tall as a person, half-sunk in the dirt',
                 },
             ],
-            actions: [
-                {
-                    desiredResultDescription: "the boulder is in the character's possession",
-                    challenges: [],
-                },
-            ],
+            actions: [positionAction([], "the boulder is in the character's possession")],
         }
 
         it('renders the six-section prose', () => {
@@ -65,12 +71,7 @@ describe('CommandAttempt', () => {
                 { refKey: 'forkRef', id: forkId, shortName: 'a fork' },
                 { refKey: 'plateRef', id: plateId, shortName: 'a plate' },
             ],
-            actions: [
-                {
-                    desiredResultDescription: 'the fork is to the left of the plate',
-                    challenges: [],
-                },
-            ],
+            actions: [positionAction([], 'the fork is to the left of the plate')],
         }
 
         it('renders referents with no gloss and succeeds with no challenge', () => {
@@ -115,12 +116,7 @@ describe('CommandAttempt', () => {
             const attempt = CommandAttempt.fromJSON({
                 words: 'put motorcycle on shoebox',
                 referents,
-                actions: [
-                    {
-                        desiredResultDescription: 'the motorcycle is on the shoebox',
-                        challenges: [],
-                    },
-                ],
+                actions: [positionAction([], 'the motorcycle is on the shoebox')],
             })
             expect(attempt.result).toEqual({
                 status: 'succeeded',
@@ -129,28 +125,23 @@ describe('CommandAttempt', () => {
         })
 
         it('once a world-knowledge detector records an impossible verdict, the attempt refuses with its reason', () => {
+            const weightChallenge: ChallengeData = {
+                kind: 'worldKnowledge',
+                id: 'motorcycleWeightVsShoebox',
+                description: 'the motorcycle might be too heavy for the shoebox to bear',
+            }
             const pending = CommandAttempt.fromJSON({
                 words: 'put motorcycle on shoebox',
                 referents,
-                actions: [
-                    {
-                        desiredResultDescription: 'the motorcycle is on the shoebox',
-                        challenges: [
-                            {
-                                description: 'the motorcycle might be too heavy for the shoebox to bear',
-                                verdict: 'pending',
-                            },
-                        ],
-                    },
-                ],
+                actions: [positionAction([weightChallenge], 'the motorcycle is on the shoebox')],
             })
             expect(pending.result).toEqual({ status: 'pending' })
 
             const adjudicated = pending.recordVerdict(
-                0,
-                0,
-                'impossible',
-                'putting the motorcycle on the shoebox is impossible --- a motorcycle far outweighs an empty shoebox.'
+                'motorcycleWeightVsShoebox',
+                new ImpossibleVerdict(
+                    'putting the motorcycle on the shoebox is impossible --- a motorcycle far outweighs an empty shoebox.'
+                )
             )
             expect(adjudicated.result).toEqual({
                 status: 'impossible',
@@ -165,25 +156,31 @@ describe('CommandAttempt', () => {
     })
 
     describe("row 6 --- get rope (rope lashed to a post)", () => {
+        const lashedEdge: HostRelationalEdge = {
+            from: ropeId,
+            to: postId,
+            kind: 'Custom',
+            relationLabel: 'is lashed to',
+        }
+
         const data: CommandAttemptData = {
             words: 'get rope',
             referents: [
                 { refKey: 'ropeRef', id: ropeId, shortName: 'a coil of rope' },
             ],
             actions: [
-                {
-                    desiredResultDescription: 'the rope is untied',
-                    challenges: [
+                positionAction(
+                    [
                         {
+                            kind: 'customEdge',
+                            id: 'ropeLashing',
+                            edge: lashedEdge,
                             description: 'the rope is lashed to the post; that lashing must be undone.',
-                            verdict: 'pending',
                         },
                     ],
-                },
-                {
-                    desiredResultDescription: 'taken',
-                    challenges: [],
-                },
+                    'the rope is untied'
+                ),
+                positionAction([], 'taken'),
             ],
         }
 
@@ -196,7 +193,7 @@ describe('CommandAttempt', () => {
         })
 
         it('succeeds once Coyote preparation records every challenge as met', () => {
-            const attempt = CommandAttempt.fromJSON(data).recordVerdict(0, 0, 'met')
+            const attempt = CommandAttempt.fromJSON(data).recordVerdict('ropeLashing', new MetVerdict())
             expect(attempt.result).toEqual({
                 status: 'succeeded',
                 outcome: 'the rope is untied and taken',
@@ -223,10 +220,10 @@ describe('CommandAttempt', () => {
                 words: 'get rope',
                 referents: [{ refKey: 'ropeRef', id: ropeId, shortName: 'a coil of rope' }],
                 actions: [
-                    {
-                        desiredResultDescription: 'taken',
-                        challenges: [{ description: 'none', verdict: 'met' }],
-                    },
+                    positionAction(
+                        [{ kind: 'worldKnowledge', id: 'taken', description: 'none', verdict: { kind: 'met' } }],
+                        'taken'
+                    ),
                 ],
             })
             const roundTripped = CommandAttempt.fromJSON(original.toJSON())

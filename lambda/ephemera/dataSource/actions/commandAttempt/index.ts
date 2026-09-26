@@ -1,44 +1,27 @@
 import type { EphemeraThingId } from '../enrich/objectManipulation/thing'
-import type { UngroundedPlanStep } from '../enrich/objectManipulation/plan/ungroundedPrimitive'
+import type { AttemptAction, AttemptActionData } from './action'
+import { attemptActionFromJSON, attemptActionToJSON, withActionChallenges } from './action'
+import type { Verdict } from './verdict'
+
+export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction } from './action'
+export type { Challenge, ChallengeData } from './challenge'
+export { CustomEdgeChallenge, UnderDeferChallenge, WorldKnowledgeChallenge } from './challenge'
+export type { Verdict, VerdictData } from './verdict'
+export { MetVerdict, ImpossibleVerdict } from './verdict'
 
 /**
  * A grounded, described participant in an attempt --- distinct from
  * `plan/ungroundedPrimitive.ts`'s `Referent`, which names an ungrounded, span-based
  * reference. This one names whatever Identify has already resolved a span to, carried
  * here purely for prose (section 2 of CA-1's format); nothing deterministic reads it.
+ * Referents are not a member family (1.6): every kind answers the same questions as
+ * data, differing only in where the data is looked up, so this stays a plain type.
  */
 export type CommandAttemptReferent = {
     refKey: string
     id: EphemeraThingId
     shortName: string
     gloss?: string
-}
-
-export type ChallengeVerdict = 'pending' | 'met' | 'impossible'
-
-/**
- * `description` is the challenge sentence, fixed before adjudication runs (CA-1's
- * confirmed wording rule: a `Custom` edge's challenge phrases directly off its
- * `relationLabel`). `reason` is populated only once a verdict of `impossible` is
- * recorded --- the human-readable "why," which is not the same text as the neutral
- * pre-adjudication description (CA-6's worked example, row 5).
- */
-export type Challenge = {
-    description: string
-    verdict: ChallengeVerdict
-    reason?: string
-}
-
-/**
- * `desiredResult` is Plan's ungrounded primitive (the action's structural intent);
- * `desiredResultDescription` is its prose gloss. Nothing deterministic reads the
- * description --- it exists only so `renderProse`/`result` can stay pure renderers
- * over structured data (CA-2) instead of taking hand-authored strings out of band.
- */
-export type AttemptAction = {
-    desiredResult?: UngroundedPlanStep
-    desiredResultDescription?: string
-    challenges: Challenge[]
 }
 
 export type AttemptResult =
@@ -60,25 +43,18 @@ export type RoomContextSection = {
 export type CommandAttemptData = {
     words: string
     referents: CommandAttemptReferent[]
-    actions: AttemptAction[]
+    actions: AttemptActionData[]
 }
 
 const cloneReferent = (referent: CommandAttemptReferent): CommandAttemptReferent => ({ ...referent })
-
-const cloneChallenge = (challenge: Challenge): Challenge => ({ ...challenge })
-
-const cloneAction = (action: AttemptAction): AttemptAction => ({
-    ...(action.desiredResult !== undefined ? { desiredResult: action.desiredResult } : {}),
-    ...(action.desiredResultDescription !== undefined ? { desiredResultDescription: action.desiredResultDescription } : {}),
-    challenges: action.challenges.map(cloneChallenge),
-})
 
 /**
  * A player's attempted command: an ordered list of actions, each an optional desired
  * result plus the challenges that make it non-trivial (see
  * `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.commandAttemptPhase.planning.md`).
- * This slice's prototype rule: every operation on an attempt, small helpers included, is
- * a method here, and the plain-data shape (`CommandAttemptData`) appears only at
+ * Composes the action, challenge and verdict families (slice 1.7): `renderProse` and
+ * `result` delegate to members rather than holding bespoke per-kind logic. The plain-data
+ * shape (`CommandAttemptData`, and each family's own `*Data`) appears only at
  * `fromJSON`/`toJSON`.
  */
 export class CommandAttempt {
@@ -97,7 +73,7 @@ export class CommandAttempt {
         return new CommandAttempt(
             data.words,
             data.referents.map(cloneReferent),
-            data.actions.map(cloneAction)
+            data.actions.map(attemptActionFromJSON)
         )
     }
 
@@ -105,7 +81,7 @@ export class CommandAttempt {
         return {
             words: this.words,
             referents: this._referents.map(cloneReferent),
-            actions: this._actions.map(cloneAction),
+            actions: this._actions.map(attemptActionToJSON),
         }
     }
 
@@ -114,53 +90,53 @@ export class CommandAttempt {
     }
 
     actions(): AttemptAction[] {
-        return this._actions.map(cloneAction)
+        return this._actions
     }
 
     /**
-     * CA-2's deterministic result update: records a verdict (and, for `impossible`, its
-     * reason) on one action's challenge, without touching the player's words. Pure ---
-     * returns a new attempt rather than mutating this one.
+     * CA-2's deterministic result update, domain-addressed (slice 1.7): finds the
+     * challenge carrying `challengeId` across every action and records this verdict on
+     * it. Pure --- returns a new attempt rather than mutating this one. Throws if no
+     * challenge with that id exists, since a caller addressing a challenge that isn't
+     * there is a bug, not a legal no-op.
      */
-    recordVerdict(actionIndex: number, challengeIndex: number, verdict: ChallengeVerdict, reason?: string): CommandAttempt {
-        const actions = this._actions.map((action, actionIdx) => {
-            if (actionIdx !== actionIndex) {
-                return cloneAction(action)
+    recordVerdict(challengeId: string, verdict: Verdict): CommandAttempt {
+        let found = false
+        const actions = this._actions.map((action) => {
+            const challenges = action.challenges()
+            if (!challenges.some((challenge) => challenge.id === challengeId)) {
+                return action
             }
-            return {
-                ...cloneAction(action),
-                challenges: action.challenges.map((challenge, challengeIdx) => {
-                    if (challengeIdx !== challengeIndex) {
-                        return cloneChallenge(challenge)
-                    }
-                    return {
-                        ...cloneChallenge(challenge),
-                        verdict,
-                        ...(reason !== undefined ? { reason } : {}),
-                    }
-                }),
-            }
+            found = true
+            return withActionChallenges(
+                action,
+                challenges.map((challenge) => (challenge.id === challengeId ? challenge.withVerdict(verdict) : challenge))
+            )
         })
+        if (!found) {
+            throw new Error(`CommandAttempt.recordVerdict: no challenge with id '${challengeId}'`)
+        }
         return new CommandAttempt(this.words, this._referents.map(cloneReferent), actions)
     }
 
     /**
-     * CA-2: derived from the challenge verdicts, never stored. Impossibility wins over a
-     * still-pending or already-met challenge elsewhere in the attempt (one impossible
-     * reading refuses the whole attempt); any still-pending challenge keeps the attempt
-     * pending; only once every challenge across every action is met does it succeed.
+     * CA-2: derived from the challenge verdicts, never stored. Folds by asking each
+     * recorded verdict its proceed/refuse question (1.6) rather than comparing verdict
+     * strings: an `undefined` verdict keeps the attempt pending; any verdict that
+     * refuses (impossible) wins over everything else; only once every challenge has a
+     * verdict that proceeds does the attempt succeed.
      */
     get result(): AttemptResult {
-        const allChallenges = this._actions.flatMap((action) => action.challenges)
-        const impossible = allChallenges.find((challenge) => challenge.verdict === 'impossible')
-        if (impossible) {
-            return { status: 'impossible', reason: impossible.reason ?? impossible.description }
+        const allChallenges = this._actions.flatMap((action) => action.challenges())
+        const refusal = allChallenges.find((challenge) => challenge.verdict?.refuses())
+        if (refusal && refusal.verdict) {
+            return { status: 'impossible', reason: refusal.verdict.resultText() }
         }
-        if (allChallenges.some((challenge) => challenge.verdict === 'pending')) {
+        if (allChallenges.some((challenge) => challenge.verdict === undefined)) {
             return { status: 'pending' }
         }
         const outcome = this._actions
-            .map((action) => action.desiredResultDescription)
+            .map((action) => action.describe())
             .filter((description): description is string => Boolean(description))
             .join(' and ')
         return { status: 'succeeded', outcome }
@@ -168,7 +144,8 @@ export class CommandAttempt {
 
     /**
      * CA-1's six-section format, in order: words, referents, state (always present, empty
-     * until a state axis exists), room context, actions, result.
+     * until a state axis exists), room context, actions, result. Delegates each action's
+     * and challenge's own line to its member.
      */
     renderProse(roomContext?: RoomContextSection): string {
         const lines: string[] = []
@@ -191,13 +168,14 @@ export class CommandAttempt {
         lines.push('')
         lines.push('Actions:')
         for (const action of this._actions) {
-            lines.push(`- desired result: ${action.desiredResultDescription ?? '(none)'}`)
-            if (action.challenges.length === 0) {
+            lines.push(`- desired result: ${action.describe() ?? '(none)'}`)
+            const challenges = action.challenges()
+            if (challenges.length === 0) {
                 lines.push('  challenges: none detected')
             } else {
                 lines.push('  challenges:')
-                for (const challenge of action.challenges) {
-                    lines.push(`  - ${challenge.description} (${challenge.verdict})`)
+                for (const challenge of challenges) {
+                    lines.push(`  - ${challenge.describe()} (${challenge.verdict?.kind ?? 'pending'})`)
                 }
             }
         }
