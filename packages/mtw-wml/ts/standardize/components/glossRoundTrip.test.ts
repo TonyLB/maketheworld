@@ -108,12 +108,19 @@ describe('Gloss is optional', () => {
         expect(object.gloss).toBeUndefined()
     })
 
-    it('contrasts with Object ShortName, which is required and throws when absent from WML', () => {
-        expect(() => new StandardObject(deIndentWML(`
+    it('parses Object with no ShortName child at all, no error (ShortName is optional on Object, like every other kind)', () => {
+        const schema = new Schema()
+        const testSource = deIndentWML(`
             <Asset uuid=(Test)>
                 <Object uuid=(test)></Object>
             </Asset>
-        `))).toThrow()
+        `)
+        schema.loadWML(testSource)
+        const objectNode = schema.schema[0].children[0]
+        const object = new StandardObject(objectNode)
+        expect(object.shortName).toBeUndefined()
+        const printed = schemaToWML([object.schema])
+        expect(printed).toEqual('<Object uuid=(test) />')
     })
 })
 

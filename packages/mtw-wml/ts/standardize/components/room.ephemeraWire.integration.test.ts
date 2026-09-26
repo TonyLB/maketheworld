@@ -98,7 +98,7 @@ describe('StandardRoom ephemeraWire integration', () => {
         expect(printed).not.toContain('uuid=(OBJECT#')
     })
 
-    it('throws when Object ShortName is whitespace-only inside Room', () => {
+    it('parses Object with a whitespace-only ShortName inside Room, like every other kind', () => {
         const wml = deIndentWML(`
             <Asset uuid=(Test)>
                 <Room key=(main) uuid=(main)>
@@ -108,7 +108,11 @@ describe('StandardRoom ephemeraWire integration', () => {
                 </Room>
             </Asset>
         `)
-        expect(() => treeFromWML(wml)).toThrow(/Object ShortName must contain non-empty text/)
+        const object = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })._lookup('OBJECT#o1') as StandardObject
+        expect(object).toBeInstanceOf(StandardObject)
+        // Whitespace-only text content between tags is not significant WML formatting, so it
+        // does not survive as ShortName's content -- the field is present (like Room) but empty.
+        expect(object.shortName?.toJSON()).toEqual('')
     })
 
     it('parses Render under Room in ephemeraWire', () => {
