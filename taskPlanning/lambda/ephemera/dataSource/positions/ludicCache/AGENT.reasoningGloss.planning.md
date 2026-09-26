@@ -1,6 +1,6 @@
 # Reasoning gloss
 
-**Status:** Slice 6 shipped 2026-09-25. Next: "Open the authoring-UI issue" line only.
+**Status:** All Recommended order items complete (slice 6 shipped 2026-09-25; authoring-UI issue filed as ISS8187). Plan-scoped implementation work is done; graduation to durable docs per "When done" is still open.
 
 This plan is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../../AGENT.md). It is an implementation plan.
 
@@ -75,7 +75,7 @@ Mark pending work `[ ]` and completed work `[X]`, including nested lines, as eac
      - **Feeding gloss into the embedding.** `EMBEDDING#IMPROMPTU` still embeds `shortName` only (`buildShortNameSemanticEmbedding`); wiring gloss text in to help Identify resolve descriptive phrases ("the heavy bottle") is new work, deferred to whichever slice/plan next needs referent disambiguation by description rather than name.
      - **Authored-object overlay.** No code path exists for an improvised gloss to fill a gap on an already-authored object --- spawn/update always mint or target a fresh `OBJECT#`, never an authored id. Confirmed unimplemented (not merely unverified): building it would mean accepting an existing authored objectId in the spawn/update path and gating on "already has an authored gloss." Deferred until a concrete case needs it.
    - [X] Tests: `coyotePlanAffinities.test.ts` (model line + normalize), `buildPrompt.test.ts` (prompt instruction present), `interpretAndFinalize.test.ts` (threading + omission), `actions/index.test.ts` (full parse-to-published-event flow), `handleApiObjectsChange.test.ts` (spawn-args mapping, present/absent), `persistImprovisationObject.test.ts` (spawn writes gloss to pair row + cache-seeded `StandardObject`; update preserves/overwrites). No new `fold.test.ts` case: slice 5's existing "resolves shortName for a room, a feature, and an object" case already proved `buildLudicCache` reads `gloss` off any `StandardObject` regardless of which asset produced it (the resolver is asset-agnostic per `objectShortName.ts`'s own doc comment), so an improvisation-shaped fixture there would re-prove already-proven mechanics rather than add coverage. Full `mtw-interfaces` suite green (750 tests); full `lambda/ephemera` suite green (2979 tests); `tsc --noEmit` clean.
-- [ ] **Open the authoring-UI issue**: `<Gloss>` in the Workbench editor for the five kinds. Confirm with the user before posting.
+- [X] **Open the authoring-UI issue**: `<Gloss>` in the Workbench editor for the five kinds. Filed by the user as ISS8187, 2026-09-25.
 
 ## Getting started
 
