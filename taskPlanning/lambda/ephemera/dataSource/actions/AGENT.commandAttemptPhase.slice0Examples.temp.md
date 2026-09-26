@@ -1,6 +1,6 @@
 # Slice 0 worked examples (temporary --- delete once slice 1 pins these as test fixtures)
 
-Six commands from [iteration 2's step-0 corpus](AGENT.objectManipulationIterations.planning.md#step-0-corpus-started-2026-09-24), hand-written against CA-1's six-section format. Referent glosses use the settled register from [`AGENT.reasoningGloss.planning.md`](../positions/ludicCache/AGENT.reasoningGloss.planning.md) (comma-spliced noun-phrase fragments, plain physical facts, no flavour language) --- confirmed shipped, `EphemeraLudicCacheNode.gloss?: string` (`positions/ludicCache/types.ts:50`).
+Six commands from [iteration 2's step-0 corpus](AGENT.objectManipulationIterations.planning.md#step-0-corpus-started-2026-09-24), hand-written against CA-1's six-section format. Referent glosses use the settled register from the reasoning-gloss plan (comma-spliced noun-phrase fragments, plain physical facts, no flavour language; graduated to `lambda/ephemera/dataSource/actions/AGENT.concepts.md`'s `CommandAttempt` section, 2026-09-26) --- confirmed shipped, `EphemeraLudicCacheNode.gloss?: string` (`positions/ludicCache/types.ts:50`).
 
 Each example shows the six sections in order: (1) words, (2) referents, (3) state, (4) room context, (5) actions, (6) result. Section 3 is always empty (no state axis exists yet) but the heading is always present, per CA-1.
 

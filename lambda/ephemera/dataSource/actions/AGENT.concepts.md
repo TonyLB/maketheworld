@@ -111,6 +111,20 @@ A **`DeterministicTemplate`** is a structural interface --- `matchString(command
 
 ---
 
+## `CommandAttempt`
+
+A player's attempted command, structured so later code can still reason about *what was attempted*, not just its compiled result --- built to keep "adjudication is trivial today" from hardening into a pipeline with nowhere to put adjudication later. Full rationale and the six-section prose format's derivation: [`taskPlanning/.../AGENT.commandAttemptPhase.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.commandAttemptPhase.planning.md). Shipped as a standalone class, [`commandAttempt/index.ts`](commandAttempt/index.ts) (slice 1); not yet wired into the pipeline (slice 2).
+
+**An attempt is a list of `AttemptAction`s, each an optional desired result plus the challenges that make it non-trivial.** Most actions have no challenge, and an attempt with none is simply done --- no adjudication. A `Challenge` carries a verdict (`pending` / `met` / `impossible`); **impossibility is a challenge verdict, not a separate check**, and one impossible challenge refuses the whole attempt regardless of any other challenge's state. The attempt's `result` getter derives `pending` / `succeeded` / `impossible` from the challenge verdicts --- it is never stored, so a verdict update (`recordVerdict`, pure) is the only way the result changes.
+
+**Desired result reuses `plan/ungroundedPrimitive.ts`'s `UngroundedPlanStep`** (Plan's ungrounded primitive) for the action's structural intent; a separate `desiredResultDescription` carries its prose gloss, since nothing deterministic reads the prose today (only a future LLM adjudicator or fallback would).
+
+**`CommandAttemptReferent`** is a distinct type from `plan/ungroundedPrimitive.ts`'s `Referent`, despite the shared name in casual conversation: that one is an ungrounded, span-based reference (Plan's output, before grounding); `CommandAttemptReferent` is grounded and described (an id, a short name, an optional gloss) --- carried purely for prose, matching `EphemeraLudicCacheNode.gloss?: string`'s "present only where authored or improvised" convention.
+
+**The six-section prose format (`renderProse`)** --- words, referents, state, room context, actions, result --- is built only when an LLM will read it; nothing in slice 1 reads it deterministically. **Room context is not attempt-owned state**: it is supplied to `renderProse` at render time by a scope function, since none exists yet in the pipeline.
+
+**`gloss` (a referent's optional short physical description, `EphemeraLudicCacheNode.gloss?: string`) is a reasoning field, not a render field** --- one description per thing, global like `shortName` (not per situation), rewritten only at identity events (authoring edits, improvisation updates, divide/merge), never at a play-time mutation. **Current state overrides it**: a gloss's facts hold unless a later game-state override supersedes them (e.g. a painted-blue cup instead of a red one) --- section 3 ("State") of the prose format exists to carry that override, marked as superseding the gloss, and is read by an LLM as a convention rather than resolved by code (resolving it in code would need a property schema). No state axis exists yet, so section 3 is always empty today, but its heading is always present so the convention is fixed ahead of one existing. See `packages/mtw-wml/ts/standardize/components/AGENT.md` ("Literal-field factory: `ShortName` and `Gloss`") for how the field itself is authored/stored.
+
 ## Non-goals (for this file)
 
 - Does not specify the ungrounded-primitive type shape or referent grammar --- open, tracked in the parent plan's Phase C design debt, not here (implementation fork, not settled vocabulary).
