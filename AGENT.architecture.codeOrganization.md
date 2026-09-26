@@ -29,6 +29,8 @@ In `mtw-wml`, adding `Gloss` to every manipulable component was easy to reason a
 - **The set of members keeps growing** (new kinds keep arriving): use a class per member. One member's answers stay together, and adding a member touches one place.
 - **The members are stable and the operations keep growing:** use a discriminated union with exhaustive switches (`never` checks), and plain functions. Adding an operation touches one place.
 
+**Judge growth by forward demand.** For a structure that isn't in the pipeline yet, look at what the roadmap says will arrive. Its git history, its current producers (often none), and its current lack of nuance are not evidence. A three-valued verdict type looks closed only because nothing adjudicates yet.
+
 A table keyed by a closed union is a lightweight version of the first case, for families whose answers are data rather than behavior. [`interactionUnderTransfer.ts`](lambda/ephemera/dataSource/positions/ludicGraph/expandValidate/interactionUnderTransfer.ts)'s `CLOSED_RELATION_BEHAVIOR` is one example: a `Record<ClosedRelationKind, ...>` the compiler forces complete.
 
 ## Apply it at every level that grows
@@ -48,9 +50,13 @@ Declaring a family's questions doesn't make each member thread every sub-part th
 
 ## Worked example: the command-attempt pipeline
 
-[`lambda/ephemera/dataSource/actions/commandAttempt/`](lambda/ephemera/dataSource/actions/commandAttempt/index.ts)'s `CommandAttempt` was the prototype that produced this convention. As shipped (2026-09-26), it is a container without its families: its methods hold bespoke logic (`renderProse`, `recordVerdict`) rather than delegating to members. The command-attempt pipeline has four candidate families that the container would compose. None has been refactored yet:
+[`lambda/ephemera/dataSource/actions/commandAttempt/`](lambda/ephemera/dataSource/actions/commandAttempt/index.ts)'s `CommandAttempt` was the prototype that produced this convention. As shipped (2026-09-26), it is a container without its families: its methods hold bespoke logic (`renderProse`, `recordVerdict`) rather than delegating to members. The command-attempt pipeline has four candidate families. Applying the test to each, by forward demand (2026-09-26):
 
-- **Actions.** Plan's step kinds.
-- **Challenges.** Today only a relation-edge `defer`; more kinds are coming.
-- **Verdicts and outcomes.** Roughly a dozen stage-local verdict unions exist today, with `defer` repeated across several.
-- **Referents.** Ungrounded and grounded referents are already two unrelated types for one referent at two stages.
+- **Actions: a family.** New kinds of desired result are queued (outcome classes beyond position, effects along relations), and each member answers the same questions: describe yourself, list your challenges, give your outcome.
+- **Challenges: a family.** Relation-edge defers, lock state, feasibility, stability and strength are all queued. Each kind differs in wording, in how it's detected, and in what a *met* verdict must propagate.
+- **Verdicts: a family.** Success with a manner ("painstakingly") and failure with a consequence are posited. Each member answers: proceed, refuse or fail? What manner goes to narration? How does it render? `pending` is the absence of a verdict, not a member.
+- **Referents: not a family.** Object, Character and Feature answer the same questions as data, and differ only in where the data is looked up. The work there is a named constructor from Identify's output.
+
+The first three are refactored in the command-attempt plan's slice 1.7, before the attempt is wired into the pipeline. That plan is [`taskPlanning/.../AGENT.commandAttemptPhase.planning.md`](taskPlanning/lambda/ephemera/dataSource/actions/AGENT.commandAttemptPhase.planning.md). The container then composes referents and actions (each holding its challenges) and folds their answers.
+
+**A separate observation, not part of this container:** roughly a dozen stage-local verdict unions exist elsewhere in the pipeline (dry run, kernel apply, grounding), with `defer` repeated across several. Each answers a different stage's question, and nothing on the roadmap asks them to share a type.
