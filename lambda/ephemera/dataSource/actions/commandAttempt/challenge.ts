@@ -19,6 +19,7 @@ export interface Challenge {
     metPropagation(): { edge: HostRelationalEdge } | undefined
     /** Pure: returns a new challenge with this verdict recorded. */
     withVerdict(verdict: Verdict): Challenge
+    toJSON(): ChallengeData
 }
 
 export type ChallengeData =
@@ -179,5 +180,4 @@ export const challengeFromJSON = (data: ChallengeData): Challenge => {
     }
 }
 
-export const challengeToJSON = (challenge: Challenge): ChallengeData =>
-    (challenge as CustomEdgeChallenge | UnderDeferChallenge | WorldKnowledgeChallenge).toJSON()
+export const challengeToJSON = (challenge: Challenge): ChallengeData => challenge.toJSON()

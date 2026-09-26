@@ -3,7 +3,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { CommandAttempt, type CommandAttemptData } from './index'
 import type { AttemptActionData } from './action'
 import type { ChallengeData } from './challenge'
-import { MetVerdict, ImpossibleVerdict } from './verdict'
+import { MetVerdict, ImpossibleVerdict, type Verdict } from './verdict'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
 
 const boulderId = 'OBJECT#Boulder1' as EphemeraObjectId
@@ -211,6 +211,29 @@ describe('CommandAttempt', () => {
             expect(prose).toContain(
                 'Room context: ROOM#Dock --- nodes: "a coil of rope", "a wooden post". Edges: "a coil of rope" is lashed to "a wooden post".'
             )
+        })
+    })
+
+    describe('result fold', () => {
+        it('never reports success for a verdict that neither proceeds nor refuses', () => {
+            // Stand-in for a future member such as `failed`: success must require every
+            // verdict to proceed, not merely that none refuses.
+            const stalledVerdict: Verdict = {
+                kind: 'met',
+                proceeds: () => false,
+                refuses: () => false,
+                narrationDetail: () => undefined,
+                resultText: () => 'stalled',
+                toJSON: () => ({ kind: 'met' }),
+            }
+            const attempt = CommandAttempt.fromJSON({
+                words: 'get rope',
+                referents: [{ refKey: 'ropeRef', id: ropeId, shortName: 'a coil of rope' }],
+                actions: [
+                    positionAction([{ kind: 'worldKnowledge', id: 'knot', description: 'the knot is tight' }], 'taken'),
+                ],
+            }).recordVerdict('knot', stalledVerdict)
+            expect(() => attempt.result).toThrow(/neither proceeds nor refuses/)
         })
     })
 

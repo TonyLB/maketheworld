@@ -12,6 +12,9 @@ import { challengeFromJSON, challengeToJSON } from './challenge'
 export interface AttemptActionMember {
     describe(): string | undefined
     challenges(): Challenge[]
+    /** Pure: returns a new action of the same kind holding these challenges. */
+    withChallenges(challenges: Challenge[]): AttemptActionMember
+    toJSON(): AttemptActionData
 }
 
 /**
@@ -70,7 +73,7 @@ export type AttemptActionData = {
     challenges: ChallengeData[]
 }
 
-export type AttemptAction = PositionAttemptAction
+export type AttemptAction = AttemptActionMember
 
 export const attemptActionFromJSON = (data: AttemptActionData): AttemptAction => {
     switch (data.kind) {
@@ -80,6 +83,3 @@ export const attemptActionFromJSON = (data: AttemptActionData): AttemptAction =>
 }
 
 export const attemptActionToJSON = (action: AttemptAction): AttemptActionData => action.toJSON()
-
-export const withActionChallenges = (action: AttemptAction, challenges: Challenge[]): AttemptAction =>
-    action.withChallenges(challenges)

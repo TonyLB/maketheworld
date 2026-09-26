@@ -21,6 +21,7 @@ export interface Verdict {
     narrationDetail(): string | undefined
     /** Text for the attempt's result section when this verdict is the one that decides the outcome. */
     resultText(): string
+    toJSON(): VerdictData
 }
 
 export type VerdictData =
@@ -91,5 +92,4 @@ export class ImpossibleVerdict implements Verdict {
 export const verdictFromJSON = (data: VerdictData): Verdict =>
     data.kind === 'met' ? MetVerdict.fromJSON() : ImpossibleVerdict.fromJSON(data)
 
-export const verdictToJSON = (verdict: Verdict): VerdictData =>
-    (verdict as MetVerdict | ImpossibleVerdict).toJSON()
+export const verdictToJSON = (verdict: Verdict): VerdictData => verdict.toJSON()

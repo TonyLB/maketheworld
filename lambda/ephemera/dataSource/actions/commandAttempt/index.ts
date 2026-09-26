@@ -1,6 +1,6 @@
 import type { EphemeraThingId } from '../enrich/objectManipulation/thing'
 import type { AttemptAction, AttemptActionData } from './action'
-import { attemptActionFromJSON, attemptActionToJSON, withActionChallenges } from './action'
+import { attemptActionFromJSON, attemptActionToJSON } from './action'
 import type { Verdict } from './verdict'
 
 export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction } from './action'
@@ -108,8 +108,7 @@ export class CommandAttempt {
                 return action
             }
             found = true
-            return withActionChallenges(
-                action,
+            return action.withChallenges(
                 challenges.map((challenge) => (challenge.id === challengeId ? challenge.withVerdict(verdict) : challenge))
             )
         })
@@ -124,7 +123,9 @@ export class CommandAttempt {
      * recorded verdict its proceed/refuse question (1.6) rather than comparing verdict
      * strings: an `undefined` verdict keeps the attempt pending; any verdict that
      * refuses (impossible) wins over everything else; only once every challenge has a
-     * verdict that proceeds does the attempt succeed.
+     * verdict that proceeds does the attempt succeed. A verdict that neither proceeds nor
+     * refuses (e.g. a future `failed`) has no result status yet, so it throws rather than
+     * falling through to success --- adding such a member must extend `AttemptResult`.
      */
     get result(): AttemptResult {
         const allChallenges = this._actions.flatMap((action) => action.challenges())
@@ -134,6 +135,12 @@ export class CommandAttempt {
         }
         if (allChallenges.some((challenge) => challenge.verdict === undefined)) {
             return { status: 'pending' }
+        }
+        const stalled = allChallenges.find((challenge) => !challenge.verdict?.proceeds())
+        if (stalled) {
+            throw new Error(
+                `CommandAttempt.result: verdict '${stalled.verdict?.kind}' on challenge '${stalled.id}' neither proceeds nor refuses`
+            )
         }
         const outcome = this._actions
             .map((action) => action.describe())
