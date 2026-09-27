@@ -11,6 +11,7 @@ import {
     StandardSituationProseFacet
 } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { defaultedEquals } from '@tonylb/mtw-wml/ts/standardize/components/utils'
+import { isGlossHost } from '@tonylb/mtw-wml/ts/standardize/components/glossField'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
@@ -163,9 +164,18 @@ export const normalizeOptionalLiteral = (
     return new StandardLiteral(plain.trim())
 }
 
-/** Normalize shortName before flush (D11) via mtw-wml `withShortName` (returns new instance). */
-export const prepareComponentForFlush = <T extends StandardComponent>(component: T): T =>
-    component.withShortName(normalizeOptionalLiteral(component.shortName))
+/**
+ * Normalize shortName (and gloss, when hosted) before flush (D11), via mtw-wml's `with...`
+ * methods (each returns a new instance). Narrows with `isGlossHost` rather than relying on a
+ * method that does nothing on other kinds, since not every StandardComponent hosts Gloss.
+ */
+export const prepareComponentForFlush = <T extends StandardComponent>(component: T): T => {
+    const withShortName = component.withShortName(normalizeOptionalLiteral(component.shortName)) as T
+    if (isGlossHost(withShortName)) {
+        return withShortName.withGloss(normalizeOptionalLiteral(withShortName.gloss)) as T
+    }
+    return withShortName
+}
 
 /**
  * Flush assign only (not the edit path): prepare `working` for persist (D11) and assign to

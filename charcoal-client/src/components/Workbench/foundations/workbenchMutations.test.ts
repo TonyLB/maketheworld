@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
+import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
@@ -156,6 +158,31 @@ describe('shortName mutations (D11)', () => {
     })
 })
 
+describe('gloss mutations (D11)', () => {
+    it('prepareComponentForFlush trims a padded gloss without mutating input', () => {
+        const feature = featureWithShortName('Original')
+        feature._payload._gloss = new StandardLiteral('  padded  ')
+        const flushed = prepareComponentForFlush(feature)
+        expect(flushed.gloss?.toJSON()).toBe('padded')
+        expect(feature.gloss?.toJSON()).toBe('  padded  ')
+    })
+
+    it('prepareComponentForFlush clears a whitespace-only gloss', () => {
+        const feature = featureWithShortName('Original')
+        feature._payload._gloss = new StandardLiteral('   ')
+        const flushed = prepareComponentForFlush(feature)
+        expect(flushed.gloss).toBeUndefined()
+        expect((flushed.toJSON() as { gloss?: unknown }).gloss).toBeUndefined()
+    })
+
+    it('prepareComponentForFlush leaves a non-GlossHost component unchanged', () => {
+        const knowledge = new StandardKnowledge(deIndentWML('<Knowledge key=(test) />'))
+        const flushed = prepareComponentForFlush(knowledge)
+        expect(flushed).toBeInstanceOf(StandardKnowledge)
+        expect(flushed.equals(knowledge)).toBe(true)
+    })
+})
+
 describe('applyWorkingComponentToDraft', () => {
     const assetWithFeature = (): StandardForm =>
         new StandardForm(
@@ -193,6 +220,20 @@ describe('applyWorkingComponentToDraft', () => {
 
         expect(flushed.shortName?.toJSON()).toBe('Trimmed')
         expect(draft.byUniversalId[FEATURE_ID]?.shortName?.toJSON()).toBe('Trimmed')
+    })
+
+    it('flushes a gloss to WML text carrying <Gloss>', () => {
+        const draft = assetWithFeature()
+        const working = draft.byUniversalId[FEATURE_ID]!.clone() as StandardFeature
+        working._payload._gloss = new StandardLiteral('  A cracked clay pot.  ')
+
+        const flushed = applyWorkingComponentToDraft(draft, FEATURE_ID, working)
+
+        // Real persistence round-trips through JSON (see personalAssets/index.ts's WML save
+        // path), which is what re-attaches each literal's wrapper tag; asserting straight off
+        // flushed.schema would fail on a tag-less in-memory literal that persistence never sees.
+        const reparsed = new StandardFeature(flushed.toJSON())
+        expect(schemaToWML([reparsed.schema])).toContain('<Gloss>A cracked clay pot.</Gloss>')
     })
 })
 

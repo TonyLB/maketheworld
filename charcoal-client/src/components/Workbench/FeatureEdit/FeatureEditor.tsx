@@ -9,7 +9,8 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import DefaultRenderEditor from '../foundations/DefaultRenderEditor'
 import {
     WorkbenchComponentProvider,
-    WorkbenchShortNameField
+    WorkbenchShortNameField,
+    WorkbenchGlossField
 } from '../foundations/WorkbenchComponent'
 import Spacer from '../WorkbenchSpacer'
 
@@ -51,6 +52,7 @@ export const FeatureEditor: FunctionComponent = () => {
                             position: 'relative'
                         }}>
                             <WorkbenchShortNameField />
+                            <WorkbenchGlossField />
                             <Spacer />
                             <DefaultRenderEditor />
                         </Box>

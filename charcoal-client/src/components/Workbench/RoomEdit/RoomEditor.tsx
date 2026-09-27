@@ -15,7 +15,8 @@ import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardLens } from '@tonylb/mtw-wml/ts/standardize/components/worldState'
 import {
     WorkbenchComponentProvider,
-    WorkbenchShortNameField
+    WorkbenchShortNameField,
+    WorkbenchGlossField
 } from '../foundations/WorkbenchComponent'
 import Spacer from '../WorkbenchSpacer'
 import { ReferenceListSessionEditor } from '../foundations/ReferenceList'
@@ -85,6 +86,7 @@ export const RoomEditor: FunctionComponent = () => {
                             position: 'relative'
                         }}>
                             <WorkbenchShortNameField />
+                            <WorkbenchGlossField />
                             <Spacer />
                             <DefaultRenderEditor />
                             <FeatureListEditor RoomId={universalKey} />
