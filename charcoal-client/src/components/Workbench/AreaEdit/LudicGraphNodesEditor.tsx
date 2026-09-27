@@ -24,7 +24,8 @@ const NODE_TAG_LABELS: Record<LudicGraphNodeTag, string> = {
     Room: 'Rooms',
     Feature: 'Features',
     Character: 'Characters',
-    Area: 'Areas'
+    Area: 'Areas',
+    Object: 'Objects'
 }
 
 const NODE_TAG_IMPORT: Partial<Record<LudicGraphNodeTag, boolean>> = {

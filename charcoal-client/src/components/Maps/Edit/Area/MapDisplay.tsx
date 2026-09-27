@@ -141,7 +141,7 @@ export const MapDisplay: FunctionComponent<MapDisplayProps> = ({
             //
             const deduplicatedExits: ExitDeduplicationState[] = Object.entries(exits
                 .reduce<Record<string, Record<string, { from: boolean; to: boolean }>>>((previous, { from: fromRoomId, to: toRoomId }) => (
-                    produce(previous, (draft) => {
+                    toRoomId === undefined ? previous : produce(previous, (draft) => {
                         if (fromRoomId > toRoomId) {
                             draft[fromRoomId] = draft[fromRoomId] ?? {}
                             draft[fromRoomId][toRoomId] = draft[fromRoomId][toRoomId] ?? { from: false, to: false }

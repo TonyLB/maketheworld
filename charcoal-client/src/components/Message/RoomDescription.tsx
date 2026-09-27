@@ -29,7 +29,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardExitFacet } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
 import { StandardCharacter } from '@tonylb/mtw-wml/ts/standardize/components/character'
-import { SituationRoomFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
+import { SituationProseFacetPayload } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { formatRoomContentsLine } from '../../slices/messages/roomHeaderContents'
 
@@ -82,17 +82,17 @@ export const RoomDescription = ({ parsedWML, metaData, header, currentHeader, is
         
         if (component instanceof StandardRoom) {
             // Prefer ephemera `<Render>` (StandardRoom.render), then Situation facets, then defaults
-            let prosePayload: SituationRoomFacetPayload | undefined
+            let prosePayload: SituationProseFacetPayload | undefined
             if (component.render) {
-                const fromRender = new SituationRoomFacetPayload(component.render)
-                if (!SituationRoomFacetPayload.isEmpty(fromRender)) {
+                const fromRender = new SituationProseFacetPayload(component.render)
+                if (!SituationProseFacetPayload.isEmpty(fromRender)) {
                     prosePayload = fromRender
                 }
             }
             if (!prosePayload) {
                 const firstSituationFacet = component.situations.items[0]
                 if (firstSituationFacet) {
-                    prosePayload = firstSituationFacet.payload as SituationRoomFacetPayload
+                    prosePayload = firstSituationFacet.payload as SituationProseFacetPayload
                 }
             }
             if (prosePayload) {
