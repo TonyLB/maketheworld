@@ -36,6 +36,7 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { useLibraryImageURL } from '../foundations/useWorkbenchAsset'
+import { normalizeOptionalLiteral } from '../foundations/workbenchMutations'
 
 const LiteralShortNameField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
     const { updateStandard } = useWorkbenchAsset()
@@ -67,6 +68,39 @@ const LiteralShortNameField: FunctionComponent<{ character: StandardCharacter }>
         label="Short Name"
         value={currentNameValue}
         onChange={(event) => { setCurrentNameValue(event.target.value) }}
+    />
+}
+
+export const LiteralGlossField: FunctionComponent<{ character: StandardCharacter }> = ({ character }) => {
+    const { updateStandard } = useWorkbenchAsset()
+
+    const [currentGlossValue, setCurrentGlossValue] = useState(() => {
+        return character.gloss?._payload?.plain?.toJSON() ?? ''
+    })
+
+    const debouncedGlossValue = useDebounce(currentGlossValue, 500)
+
+    useEffect(() => {
+        if ((character.gloss?._payload?.plain?.toJSON() ?? '') !== debouncedGlossValue) {
+            updateStandard({
+                type: 'update',
+                update: (incoming: StandardForm) => {
+                    const base = incoming.byUniversalId[character.universalKey!]
+                    if (base instanceof StandardCharacter) {
+                        incoming.byUniversalId[character.universalKey!] = base.withGloss(normalizeOptionalLiteral(new StandardLiteral(debouncedGlossValue)))
+                    }
+                    return incoming
+                }
+            })
+        }
+    }, [character, updateStandard, debouncedGlossValue])
+
+    return <TextField
+        id="gloss-field"
+        label="Gloss"
+        placeholder="A physical description for reasoning only -- players never see this."
+        value={currentGlossValue}
+        onChange={(event) => { setCurrentGlossValue(event.target.value) }}
     />
 }
 
@@ -214,6 +248,7 @@ export const CharacterEditor: FunctionComponent = () => {
                                 </FileWrapper>
                                 <Stack spacing={2} sx={{ flexGrow: 1 }}>
                                     <LiteralShortNameField character={character} />
+                                    <LiteralGlossField character={character} />
                                 </Stack>
                             </Stack>
                         </Stack>
