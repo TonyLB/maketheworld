@@ -26,7 +26,6 @@ vi.mock('../useWorkbenchAsset', () => ({
 }))
 
 import { useWorkbenchComponentContext } from './useWorkbenchComponent'
-import { setWorkingShortNameFromString } from '../workbenchMutations'
 import {
     renderWorkbenchComponentSession,
     resetWorkbenchAssetMock,
@@ -105,9 +104,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Updated')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Updated')))
         })
 
         expect(getSession().working?.shortName?.toJSON()).toBe('Updated')
@@ -123,9 +120,7 @@ describe('useWorkbenchComponent', () => {
         expect(getSession().isDirty).toBe(false)
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Updated')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Updated')))
         })
 
         expect(getSession().isDirty).toBe(true)
@@ -181,9 +176,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Local edit')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Local edit')))
         })
 
         expect(getSession().working?.shortName?.toJSON()).toBe('Local edit')
@@ -220,9 +213,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Immediate')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Immediate')))
         })
 
         act(() => {
@@ -242,9 +233,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Debounced')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Debounced')))
         })
 
         expect(updateStandardMock).not.toHaveBeenCalled()
@@ -266,13 +255,9 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'First')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('First')))
             vi.advanceTimersByTime(50)
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Second')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Second')))
             vi.advanceTimersByTime(FLUSH_DELAY_MS)
         })
 
@@ -288,9 +273,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Scheduled')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Scheduled')))
         })
 
         act(() => {
@@ -312,9 +295,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Persisted')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Persisted')))
         })
 
         expect(getSession().isDirty).toBe(true)
@@ -335,9 +316,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Unmount flush')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Unmount flush')))
         })
 
         expect(getSession().isDirty).toBe(true)
@@ -370,9 +349,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, '   ')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('   ')))
         })
 
         act(() => {
@@ -392,9 +369,7 @@ describe('useWorkbenchComponent', () => {
         const priorLiteral = getSession().lastReceived!.shortName
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                draft._payload._shortName = new StandardLiteral('Original')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Original')))
         })
 
         const { lastReceived, working } = getSession()
@@ -442,9 +417,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Local')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Local')))
         })
 
         act(() => {
@@ -477,9 +450,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Local')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Local')))
         })
 
         act(() => {
@@ -503,9 +474,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Local')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Local')))
         })
 
         act(() => {
@@ -537,9 +506,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'Persisted')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('Persisted')))
             vi.advanceTimersByTime(FLUSH_DELAY_MS)
         })
 
@@ -549,9 +516,7 @@ describe('useWorkbenchComponent', () => {
         })
 
         act(() => {
-            getSession().updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, 'After echo')
-            })
+            getSession().setComponent(getSession().working!.withShortName(new StandardLiteral('After echo')))
         })
 
         const session = getSession()

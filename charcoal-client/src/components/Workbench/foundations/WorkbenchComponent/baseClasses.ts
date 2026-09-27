@@ -25,6 +25,7 @@ export type WorkbenchComponentSession<T extends StandardComponent> = {
     lastReceived: T | undefined
     committed: T | undefined
     updateComponent: (updater: (draft: T) => void) => void
+    setComponent: (next: T) => void
     flushToStandardForm: () => void
     flushNow: () => void
     isDirty: boolean
