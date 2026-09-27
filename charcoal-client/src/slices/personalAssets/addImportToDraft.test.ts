@@ -113,13 +113,13 @@ describe('addImportToDraft', () => {
         const addToReferenceList = (d: StandardForm) => {
             const room = d.byUniversalId['ROOM#room1']
             if (!(room instanceof StandardRoom)) return null
-            const features = room._payload._ludicGraph?.nodes ?? new ReferenceList([])
+            const nodes = room._payload._ludicGraph.nodes
             return {
-                referenceList: features,
+                referenceList: nodes.componentRefs,
                 setReferenceList: (list: ReferenceList) => {
                     room._payload._ludicGraph = new StandardLudicGraph({
-                        ...(room._payload._ludicGraph?.toJSON() ?? {}),
-                        nodes: list.toJSON(),
+                        ...room._payload._ludicGraph.toJSON(),
+                        nodes: nodes.withComponentRefs(list).toJSON(),
                     })
                 }
             }
