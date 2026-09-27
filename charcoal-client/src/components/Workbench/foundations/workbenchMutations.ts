@@ -5,13 +5,13 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import type { ShortNamePayloadHost } from '@tonylb/mtw-wml/ts/standardize/components/shortNameField'
 import {
     SituationProseFacetList,
     SituationProseFacetPayload,
     StandardSituationProseFacet
 } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 import { defaultedEquals } from '@tonylb/mtw-wml/ts/standardize/components/utils'
+import { isGlossHost } from '@tonylb/mtw-wml/ts/standardize/components/glossField'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { StandardRender } from '@tonylb/mtw-wml/ts/standardize/render'
@@ -142,10 +142,6 @@ export type ReconcileCommittedComponentResult<T extends StandardComponent> = {
 const cloneComponent = <T extends StandardComponent>(component: T): T =>
     component.clone() as T
 
-type ComponentWithShortNamePayload = StandardComponent & {
-    _payload: ShortNamePayloadHost
-}
-
 /** Stable plain string for UI/tests. */
 export const literalPlainString = (literal?: StandardLiteral): string => {
     const json = literal?.toJSON()
@@ -168,9 +164,18 @@ export const normalizeOptionalLiteral = (
     return new StandardLiteral(plain.trim())
 }
 
-/** Normalize shortName before flush (D11) via mtw-wml `withShortName` (returns new instance). */
-export const prepareComponentForFlush = <T extends StandardComponent>(component: T): T =>
-    component.withShortName(normalizeOptionalLiteral(component.shortName)) as T
+/**
+ * Normalize shortName (and gloss, when hosted) before flush (D11), via mtw-wml's `with...`
+ * methods (each returns a new instance). Narrows with `isGlossHost` rather than relying on a
+ * method that does nothing on other kinds, since not every StandardComponent hosts Gloss.
+ */
+export const prepareComponentForFlush = <T extends StandardComponent>(component: T): T => {
+    const withShortName = component.withShortName(normalizeOptionalLiteral(component.shortName)) as T
+    if (isGlossHost(withShortName)) {
+        return withShortName.withGloss(normalizeOptionalLiteral(withShortName.gloss)) as T
+    }
+    return withShortName
+}
 
 /**
  * Flush assign only (not the edit path): prepare `working` for persist (D11) and assign to
@@ -186,10 +191,6 @@ export const applyWorkingComponentToDraft = <T extends StandardComponent>(
     return flushed
 }
 
-/**
- * Set shortName on working copy from a string (no trim; flush uses `withShortName` + D11).
- * Edit path assigns payload directly; prefer `withShortName` on flush via `prepareComponentForFlush`.
- */
 export const projectAssetMetaFromStandardForm = (form: StandardForm): WorkbenchAssetMetaWorking => ({
     shortName: form.shortName,
     summary: form.summary,
@@ -299,14 +300,6 @@ export const reconcileCommittedAssetMeta = ({
             superseded: true
         }
     }
-}
-
-export const setWorkingShortNameFromString = <T extends StandardComponent = StandardComponent>(
-    component: T,
-    value: string
-): void => {
-    const payload = (component as unknown as ComponentWithShortNamePayload)._payload
-    payload._shortName = value ? new StandardLiteral(value) : undefined
 }
 
 /** Set asset-meta shortName on working (edit path; flush uses prepareAssetMetaForFlush). */

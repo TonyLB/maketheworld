@@ -28,6 +28,7 @@ import {
     glossSchemaChildren,
     glossToJSON,
     standardizeGlossConsumer,
+    type GlossHost,
 } from "./glossField"
 import type { StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { renderReference } from "./utils/schema"
@@ -529,7 +530,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     }
 }
 
-export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') {
+export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'StandardRoom') implements GlossHost {
     get exits() { return this._payload.exits }
     get situations() { return this._payload.situations }
     get lens() { return this._payload.lens }
@@ -546,6 +547,14 @@ export class StandardRoom extends componentClassFactory(StandardRoomPayload, 'St
         const returnValue = new StandardRoom(this)
         returnValue._payload = new StandardRoomPayload(this._payload)
         return returnValue
+    }
+
+    get gloss(): StandardLiteral | undefined { return this._payload._gloss }
+
+    withGloss(gloss: StandardLiteral | undefined): this {
+        const returnValue = this.clone()
+        returnValue._payload._gloss = gloss
+        return this._wrap(returnValue)
     }
 
     override equals(incoming: StandardComponent): boolean {

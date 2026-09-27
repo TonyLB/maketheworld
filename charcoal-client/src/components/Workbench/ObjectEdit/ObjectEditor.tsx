@@ -1,20 +1,38 @@
 import React, { FunctionComponent, useMemo } from 'react'
 import { Box } from '@mui/material'
+import { useSelector } from 'react-redux'
 
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
-import { useSelector } from 'react-redux'
 import { getCurrentComponentId } from '../../../slices/UI/workbench'
-import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
-import DefaultRenderEditor from '../foundations/DefaultRenderEditor'
+import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
+import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import {
     WorkbenchComponentProvider,
     WorkbenchShortNameField,
     WorkbenchGlossField
 } from '../foundations/WorkbenchComponent'
-import Spacer from '../WorkbenchSpacer'
 
-export const FeatureEditor: FunctionComponent = () => {
+const objectGuard = (
+    component: StandardComponent | undefined
+): component is StandardObject => component instanceof StandardObject
+
+export const ObjectEditorBody: FunctionComponent = () => (
+    <Box sx={{
+        marginLeft: '0.5em',
+        marginTop: '0.5em',
+        display: 'flex',
+        flexDirection: 'column',
+        rowGap: '0.25em',
+        width: "calc(100% - 0.5em)",
+        position: 'relative'
+    }}>
+        <WorkbenchShortNameField />
+        <WorkbenchGlossField />
+    </Box>
+)
+
+export const ObjectEditor: FunctionComponent = () => {
     const { standardForm } = useWorkbenchAsset()
     const currentComponentId = useSelector(getCurrentComponentId)
 
@@ -23,39 +41,26 @@ export const FeatureEditor: FunctionComponent = () => {
         return currentComponentId as ComponentUUID
     }, [currentComponentId])
 
-    const feature = useMemo<StandardFeature | undefined>(() => {
+    const object = useMemo<StandardObject | undefined>(() => {
         if (!universalKey) return undefined
         const c = standardForm.byUniversalId[universalKey]
-        if (c && c instanceof StandardFeature) return c
+        if (c && c instanceof StandardObject) return c
         return undefined
     }, [universalKey, standardForm])
 
-    if (!universalKey || !(universalKey in standardForm.byUniversalId) || !feature) {
+    if (!universalKey || !(universalKey in standardForm.byUniversalId) || !object) {
         return <Box />
     }
 
     return (
         <WorkbenchComponentProvider
             componentId={universalKey}
-            guard={(c): c is StandardFeature => c instanceof StandardFeature}
+            guard={objectGuard}
         >
             <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
                 <Box sx={{ flexGrow: 1, position: "relative", width: "100%", overflowY: 'auto' }}>
                     <Box sx={{ padding: 2 }}>
-                        <Box sx={{
-                            marginLeft: '0.5em',
-                            marginTop: '0.5em',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            rowGap: '0.25em',
-                            width: "calc(100% - 0.5em)",
-                            position: 'relative'
-                        }}>
-                            <WorkbenchShortNameField />
-                            <WorkbenchGlossField />
-                            <Spacer />
-                            <DefaultRenderEditor />
-                        </Box>
+                        <ObjectEditorBody />
                     </Box>
                 </Box>
             </Box>
@@ -63,4 +68,4 @@ export const FeatureEditor: FunctionComponent = () => {
     )
 }
 
-export default FeatureEditor
+export default ObjectEditor

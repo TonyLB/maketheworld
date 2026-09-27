@@ -21,7 +21,7 @@ The Workbench sits within the Charcoal Client's [dual-mode architecture](../../.
 - **Reference Lists**: WML `ReferenceList` fields (e.g. `features`, `guidance`, `lens`, `marks`) rendered as accordion lists with add/remove; see [AGENT.reference-lists.md](./foundations/ReferenceList/AGENT.reference-lists.md)
 - **Layered Context**: Sibling-in-context editing for Room Situation facets and Guidance (Photoshop-layer style); see [AGENT.layered-context-patterns.md](./foundations/LayeredContext/AGENT.layered-context-patterns.md)
 - **StandardForm**: WML asset representation; the Workbench reads and mutates `StandardForm` via `updateStandard` from `useWorkbenchAsset`; per-component editing uses **`useWorkbenchComponent`** ([Component editing session](#component-editing-session-two-tier-model)); asset root ShortName, Summary, and `_topLevel` use **`useWorkbenchAssetMeta`** ([Asset-meta editing session](#asset-meta-editing-session))
-- **Consistency layer**: **`materializeComponentInAsset`** eager on Redux local draft (`updateLocal`); **`applyWorkbenchFlush`** at component session flush via **`update`** (merged baseline); **`applyAssetMetaFlush`** at asset-meta flush via **`updateLocal`**; **`confirmSiteDisassociateBefore*`** on list disassociates; TopLevel **Purge** via **`purgeComponentFromAssetFlow`** --- see [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md)
+- **Consistency layer**: **`materializeComponentInAsset`** eager on Redux local draft (`updateLocal`); **`applyWorkbenchFlush`** at component session flush via **`update`** (merged baseline); **`applyAssetMetaFlush`** at asset-meta flush via **`updateLocal`**; **`confirmSiteDisassociateBefore*`** on list disassociates; TopLevel **Purge** via **`purgeComponentFromAssetFlow`** --- see [foundations/consistency/AGENT.md](./foundations/consistency/AGENT.md). **`materializeComponent`** seeds a new Object's ShortName to `"object"` (a convenience default, not a validity guard --- an emptied Object ShortName still flushes as absent, like any other kind).
 
 ---
 
@@ -33,7 +33,7 @@ Workbench component editors use a **working `StandardComponent`** in React state
 
 | Tier | What | Cost | When |
 | --- | --- | --- | --- |
-| **Working copy** | `StandardRoom` (etc.) in session state from `useWorkbenchComponent` | Component `clone()` + payload mutate | Every field change via `updateComponent` |
+| **Working copy** | `StandardRoom` (etc.) in session state from `useWorkbenchComponent` | Field writes go through declared `with…()` methods (`withShortName`, `withGloss`, ...), never `_payload` mutation or a cast; `updateComponent` mutates for the remaining fields that don't yet have one | Every field change via `updateComponent` / `setComponent` |
 | **Committed copy** | `standardForm.byUniversalId[id]` from `useWorkbenchAsset` | Asset `standardForm._clone()` + diff + merge into `edit` | Debounced **`flushToStandardForm`** (~1000ms default), plus **`flushNow`** on unmount / breadcrumb |
 
 ```text
@@ -75,7 +75,7 @@ UI primitives (StandardLiteralEditor, StandardRenderEditor)
 
 ### Session-bound field components
 
-- **`WorkbenchShortNameField`**, **`DefaultRenderEditor`**, **`ReferenceListSessionEditor`**, **`FacetListSessionEditor`**, **`LensHeader`** (Room **`_lens`**), **`RoomSituationsListEditor`:** context-only; `updateComponent` on **`working`**; no per-action `updateStandard` on the edit path. Room **`_lens`**: create/reference/import via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmSiteDisassociateBeforeComponentDisassociate`** then disassociate on **`working._lens`** only. Room non-DEFAULT situations: create/reference via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmSiteDisassociateBeforeComponentDisassociate`** then disassociate on **`working.situations`** only (no eager `_topLevel` on create). Facet lists (Lens marks, Guidance marks): **`FacetListSessionEditor`** + domain accessors; see [AGENT.facet-list.md](./foundations/FacetList/AGENT.facet-list.md).
+- **`WorkbenchShortNameField`**, **`WorkbenchGlossField`**, **`DefaultRenderEditor`**, **`ReferenceListSessionEditor`**, **`FacetListSessionEditor`**, **`LensHeader`** (Room **`_lens`**), **`RoomSituationsListEditor`:** context-only; `updateComponent` on **`working`**; no per-action `updateStandard` on the edit path. Room **`_lens`**: create/reference/import via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmSiteDisassociateBeforeComponentDisassociate`** then disassociate on **`working._lens`** only. Room non-DEFAULT situations: create/reference via **`materializeComponentInAsset`** + **`onAssociateReference`**; remove via **`confirmSiteDisassociateBeforeComponentDisassociate`** then disassociate on **`working.situations`** only (no eager `_topLevel` on create). Facet lists (Lens marks, Guidance marks): **`FacetListSessionEditor`** + domain accessors; see [AGENT.facet-list.md](./foundations/FacetList/AGENT.facet-list.md).
 - **`debounce={false}`** on `StandardLiteralEditor` / `StandardRenderEditor` under a provider so only the session debounces flush.
 - **`readonly`:** field prop **and** asset `readonly` from `useWorkbenchAsset` (non-Draft / published).
 
@@ -248,7 +248,7 @@ type WorkbenchBreadcrumbEntry = {
 ### System Relationships
 
 - **AppLayout**: Renders `WorkbenchContainer` with `open`, `onClose`, `assetId`, `secondaryContext`; controls workbench visibility
-- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `AreaEditor`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Room Situation/Guidance tabs), `GuidanceEditor`, `MarkEditor`, `LensDetail`, `CharacterEditor`; `StandardMap` components render `InDevelopment` --- see `MapEdit/` note below
+- **WorkbenchAssetEditor**: Orchestrates view routing based on `getCurrentView`, `getCurrentComponentId`, `getCurrentComponentLayerId`; delegates to `AssetEditForm`, `AreaEditor`, `RoomEditor`, `FeatureEditor`, `KnowledgeEditor`, `LayeredContextView` (Room Situation/Guidance tabs), `GuidanceEditor`, `MarkEditor`, `LensDetail`, `CharacterEditor`, `ObjectEditor`; `StandardMap` components render `InDevelopment` --- see `MapEdit/` note below
 
 ---
 
@@ -342,7 +342,9 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `RoomEdit/` | RoomEditor (component session for shortName; FeatureListEditor, Lens via LensEdit/LensHeader, **`RoomSituationsListEditor`** for non-DEFAULT situations). Room-local exits removed --- topology via **AreaEdit** / **`ExitEdgeListEditor`**. |
 | `FeatureEdit/` | FeatureEditor (component session; shortName + DEFAULT prose via session fields) |
 | `KnowledgeEdit/` | KnowledgeEditor (component session; shortName + DEFAULT prose via session fields) |
-| `foundations/WorkbenchComponent/WorkbenchShortNameField.tsx` | Context-only shortName field (`useWorkbenchComponent` session) |
+| `foundations/WorkbenchComponent/createWorkbenchLiteralField.tsx` | Shared factory for session literal fields: descriptor (host guard, `read`/`write`, label/placeholder) -> field component |
+| `foundations/WorkbenchComponent/WorkbenchShortNameField.tsx` | Context-only shortName field (`useWorkbenchComponent` session); the factory's ShortName instance (unconditional host guard --- every kind hosts ShortName) |
+| `foundations/WorkbenchComponent/WorkbenchGlossField.tsx` | Context-only gloss field; the factory's Gloss instance, guarded by `isGlossHost` (Room, Area, Feature, Object only) |
 | `foundations/DefaultRenderEditor.tsx` | Context-only DEFAULT situation facet prose (Room, Feature, Knowledge); session `working` + `updateComponent` |
 | `RoomEdit/roomReferenceListAccessors.ts` | Room Guidance/Features `listAccessor` for `ReferenceListSessionEditor` |
 | `AreaEdit/areaLudicGraphNodesAccessors.ts` | Per-tag `ludicGraph.nodes` slice accessors for `ReferenceListSessionEditor` |
@@ -363,6 +365,7 @@ Room, Feature, and Knowledge display prose use **Situation** facets (`situations
 | `MarkEdit/` | MarkEditor (full-screen session); `MarkInlineEditor` + `MarkInlineEditorWithSession` (per-row Mark shortName; Lens mark facet rows) |
 | `MapEdit/` | **Kept as prototype, not live** (2026-08-08) --- `WorkbenchAssetEditor` no longer routes to `MapEditor`; `StandardMap` components render `InDevelopment` instead. Unreferenced by any route, same as `Maps/View`/`Maps/Edit` under `charcoal-client/src/components/Maps/AGENT.md`. `MapEditor`, `MapArea`, `MapController`, `MapLayers`, `UnshownRooms` are a second, more fully-developed `MapDThree` integration (drag-to-position rooms, exit-drawing tool) than `Maps/View`'s read-only pattern --- deliberately retained, not an oversight. Do not sweep as dead code |
 | `CharacterEdit/` | CharacterEditor |
+| `ObjectEdit/` | ObjectEditor (`WorkbenchComponentProvider` + `ObjectEditorBody`; ShortName and Gloss only --- prose and placement are out of scope) |
 | `foundations/StandardRender/StandardRenderEditor.tsx` | Rich text (Slate); shared with Editor components |
 | `foundations/ReferenceList/referenceListAdapter.ts` | `referenceListToItems` for list display |
 | `foundations/consistency/` | Pure TS + Redux thunk: **`materializeComponent`**, **`materializeComponentInAsset`**, **`applyWorkbenchFlush`**, **`applyAssetMetaFlush`**, **`confirmSiteDisassociateBefore*`**, **`purgeComponentFromAssetFlow`**, **`previewPurgeClosure`** |

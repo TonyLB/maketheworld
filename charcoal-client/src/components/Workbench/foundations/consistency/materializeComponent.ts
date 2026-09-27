@@ -4,6 +4,8 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { componentTagFromUniversalKey } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/abstract'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
+import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 
 import { addImportToDraft } from '../../../../slices/personalAssets/addImportToDraft'
 
@@ -50,8 +52,12 @@ export function materializeComponent(
     if (!component) {
         throw new Error(`Could not create component for tag ${tag}`)
     }
-    draft.byUniversalId[universalKey] = component
-    const ref = component.reference
+    // Convenience default, not a validity guard: a new Object starts labelled so it isn't blank.
+    const seeded = component instanceof StandardObject
+        ? component.withShortName(new StandardLiteral('object', { tag: 'ShortName' }))
+        : component
+    draft.byUniversalId[universalKey] = seeded
+    const ref = seeded.reference
     if (!ref) {
         throw new Error(`Could not create reference for ${universalKey}`)
     }

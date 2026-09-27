@@ -5,13 +5,13 @@ import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { ReferenceList } from '@tonylb/mtw-wml/ts/standardize/keys/referenceList'
+import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { standardComponentFactory } from '@tonylb/mtw-wml/ts/standardize/componentFactory'
 
 import {
     applyWorkingComponentToDraft,
-    prepareComponentForFlush,
-    setWorkingShortNameFromString
+    prepareComponentForFlush
 } from '../workbenchMutations'
 import { roomGuidanceListAccessor } from '../../RoomEdit/roomReferenceListAccessors'
 import * as materializeModule from './materializeComponent'
@@ -29,8 +29,8 @@ describe('applyWorkbenchFlush', () => {
                 <Feature uuid=(feat1)><ShortName>Old</ShortName></Feature>
             </Asset>
         `))
-        const working = draft.byUniversalId[FEATURE_ID]!.clone() as StandardFeature
-        setWorkingShortNameFromString(working, 'New')
+        let working = draft.byUniversalId[FEATURE_ID]!.clone() as StandardFeature
+        working = working.withShortName(new StandardLiteral('New'))
 
         applyWorkbenchFlush(draft, { componentId: FEATURE_ID, working })
 
@@ -153,8 +153,8 @@ describe('applyWorkbenchFlush', () => {
             const merged = inherited.merge(local)
             const roomInMerged = merged.byUniversalId[ROOM_LOBBY_ID]
             expect(roomInMerged).toBeInstanceOf(StandardRoom)
-            const working = (roomInMerged as StandardRoom).clone()
-            setWorkingShortNameFromString(working, 'Lobby in the pitch-black')
+            let working = (roomInMerged as StandardRoom).clone()
+            working = working.withShortName(new StandardLiteral('Lobby in the pitch-black'))
             return { base, inherited, edit, local, merged, working }
         }
 

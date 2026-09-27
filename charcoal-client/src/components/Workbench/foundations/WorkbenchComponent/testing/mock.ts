@@ -221,3 +221,17 @@ export const getFlushedFeatureShortName = (
     const shortNameJson = component.shortName?.toJSON()
     return typeof shortNameJson === 'string' ? shortNameJson : undefined
 }
+
+/** Read gloss from the component assigned by the most recent flush mock call. */
+export const getFlushedFeatureGloss = (
+    componentId: ComponentUUID,
+    baseForm: StandardForm
+): string | undefined => {
+    const updated = applyLastUpdateStandardMock(baseForm._clone())
+    const component = updated.byUniversalId[componentId]
+    if (!(component instanceof StandardFeature)) {
+        return undefined
+    }
+    const glossJson = component.gloss?.toJSON()
+    return typeof glossJson === 'string' ? glossJson : undefined
+}

@@ -3,6 +3,7 @@ import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
 
 import { materializeComponent } from './materializeComponent'
 
@@ -67,6 +68,26 @@ describe('materializeComponent', () => {
             universalKey: 'ROOM#testRoomTwo',
             from: 'ASSET#testImportTwo'
         })
+    })
+
+    it('seeds a default ShortName on a new Object', () => {
+        const draft = new StandardForm(`<Asset uuid=(test) />`)
+        const ref = materializeComponent(draft, { universalKey: 'OBJECT#newObject' as ComponentUUID })
+
+        expect(ref.universalKey).toBe('OBJECT#newObject')
+        const component = draft.byUniversalId['OBJECT#newObject']
+        expect(component).toBeDefined()
+        expect(component instanceof StandardObject).toBe(true)
+        expect((component as StandardObject).shortName?.toJSON()).toBe('object')
+    })
+
+    it('does not seed a ShortName on other new kinds', () => {
+        const draft = new StandardForm(`<Asset uuid=(test) />`)
+        materializeComponent(draft, { universalKey: 'ROOM#newRoomTwo' as ComponentUUID })
+
+        const component = draft.byUniversalId['ROOM#newRoomTwo']
+        expect(component instanceof StandardRoom).toBe(true)
+        expect((component as StandardRoom).shortName).toBeUndefined()
     })
 
     it('throws when importing an unsupported component type', () => {

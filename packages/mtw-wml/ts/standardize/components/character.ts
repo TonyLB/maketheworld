@@ -23,6 +23,7 @@ import {
     glossSchemaChildren,
     glossToJSON,
     standardizeGlossConsumer,
+    type GlossHost,
 } from "./glossField"
 import type { StandardFormConstructionOptions, StandardizeFromSchemaContext } from "../wmlStandardizeMode"
 import { NestedSchemaOptions, StandardComponent, StandardComponentReferenceKey } from "./baseClasses"
@@ -433,7 +434,7 @@ export class StandardCharacterPayload implements ComponentConstructorMethods<Sta
     }
 }
 
-export class StandardCharacter extends componentClassFactory(StandardCharacterPayload, 'StandardCharacter') {
+export class StandardCharacter extends componentClassFactory(StandardCharacterPayload, 'StandardCharacter') implements GlossHost {
     get pronouns() { return this._payload.pronouns }
     get displayName() { return this._payload.displayName }
     get image() { return this._payload.image }
@@ -456,6 +457,14 @@ export class StandardCharacter extends componentClassFactory(StandardCharacterPa
         const returnValue = new StandardCharacter(this)
         returnValue._payload = new StandardCharacterPayload(this._payload)
         return returnValue
+    }
+
+    get gloss(): StandardLiteral | undefined { return this._payload._gloss }
+
+    withGloss(gloss: StandardLiteral | undefined): this {
+        const returnValue = this.clone()
+        returnValue._payload._gloss = gloss
+        return this._wrap(returnValue)
     }
 
     // No equals() override: the base class default (deepEqual on toJSON()) already

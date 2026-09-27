@@ -6,10 +6,7 @@ import type { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/component
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 
 import { StandardLiteralEditor } from "../foundations/StandardLiteral"
-import {
-    literalPlainString,
-    setWorkingShortNameFromString
-} from "../foundations/workbenchMutations"
+import { literalPlainString } from "../foundations/workbenchMutations"
 import {
     WorkbenchComponentProvider,
     useWorkbenchComponent
@@ -27,7 +24,7 @@ const markGuard = (
  * Description and remove affordances are handled elsewhere (detail view, list).
  */
 export const MarkInlineEditor: FunctionComponent<MarkInlineEditorProps> = () => {
-    const { working, updateComponent, readonly: sessionReadonly, missing } =
+    const { working, setComponent, readonly: sessionReadonly, missing } =
         useWorkbenchComponent<StandardMark>()
 
     const displayLiteral = useMemo(
@@ -37,11 +34,13 @@ export const MarkInlineEditor: FunctionComponent<MarkInlineEditorProps> = () => 
 
     const handleChange = useCallback(
         (newLiteral: StandardLiteral) => {
-            updateComponent((draft) => {
-                setWorkingShortNameFromString(draft, literalPlainString(newLiteral))
-            })
+            if (!working) {
+                return
+            }
+            const value = literalPlainString(newLiteral)
+            setComponent(working.withShortName(value ? newLiteral : undefined))
         },
-        [updateComponent]
+        [working, setComponent]
     )
 
     if (missing || !working) {

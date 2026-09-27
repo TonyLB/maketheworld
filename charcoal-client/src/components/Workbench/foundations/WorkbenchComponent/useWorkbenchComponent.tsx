@@ -387,6 +387,22 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
         [missing, scheduleDebouncedFlush]
     )
 
+    // `next` is a finished instance from a `with…` call, not an Immer draft:
+    // this session's `working` is plain React state (useState), never inside
+    // an Immer produce() (unlike personalAssets' whole-asset `update`, whose
+    // callback draft is `Draft<StandardForm>`). Plain `T`, not `Draft<T>`.
+    const setComponent = useCallback(
+        (next: T) => {
+            if (missing) {
+                return
+            }
+            workingRef.current = next
+            setWorking(next)
+            scheduleDebouncedFlush()
+        },
+        [missing, scheduleDebouncedFlush]
+    )
+
     const isDirty = useMemo(() => {
         if (!lastReceived || !working) {
             return false
@@ -401,6 +417,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
             lastReceived,
             committed,
             updateComponent,
+            setComponent,
             flushToStandardForm,
             flushNow,
             isDirty,
@@ -413,6 +430,7 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
             lastReceived,
             committed,
             updateComponent,
+            setComponent,
             flushToStandardForm,
             flushNow,
             isDirty,
@@ -423,7 +441,11 @@ export const WorkbenchComponentProvider = <T extends StandardComponent>({
 
     return (
         <WorkbenchComponentContext.Provider
-            value={session as WorkbenchComponentContextValue<StandardComponent>}
+            // setComponent's parameter makes WorkbenchComponentSession<T> contravariant in T
+            // (unlike updateComponent, whose doubly-nested T is net covariant), so bridging
+            // between this provider's concrete T and the context's StandardComponent needs
+            // the `unknown` step TS suggests rather than a direct `as`.
+            value={session as unknown as WorkbenchComponentContextValue<StandardComponent>}
         >
             {children}
         </WorkbenchComponentContext.Provider>
@@ -437,7 +459,7 @@ export const useWorkbenchComponentContext = <
     if (context === undefined) {
         throw new Error('useWorkbenchComponentContext must be used within WorkbenchComponentProvider')
     }
-    return context as WorkbenchComponentSession<T>
+    return context as unknown as WorkbenchComponentSession<T>
 }
 
 export const useWorkbenchComponent = <

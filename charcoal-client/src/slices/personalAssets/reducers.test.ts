@@ -10,7 +10,6 @@ import { deIndentWML } from "@tonylb/mtw-wml/ts/schema/utils"
 import { publicSelectors } from "./selectors"
 import StandardRoom from "@tonylb/mtw-wml/ts/standardize/components/room"
 import { applyWorkbenchFlush } from "../../components/Workbench/foundations/consistency/applyWorkbenchFlush"
-import { setWorkingShortNameFromString } from "../../components/Workbench/foundations/workbenchMutations"
 import { StandardLiteral } from "@tonylb/mtw-wml/ts/standardize/literal"
 import { StandardRender } from "@tonylb/mtw-wml/ts/standardize/render"
 import {
@@ -836,8 +835,8 @@ describe('personalAsset slice reducers', () => {
             )
             const roomInMerged = mergedForm.byUniversalId[ROOM_ID]
             expect(roomInMerged).toBeInstanceOf(StandardRoom)
-            const working = (roomInMerged as StandardRoom).clone()
-            setWorkingShortNameFromString(working, 'Lobby in the pitch-black')
+            let working = (roomInMerged as StandardRoom).clone()
+            working = working.withShortName(new StandardLiteral('Lobby in the pitch-black'))
             return working
         }
 
@@ -928,10 +927,10 @@ describe('personalAsset slice reducers', () => {
             })
             expect(mergedRoomShortName(preFlushState, baseJSON, ROOM_ID)).toBeUndefined()
 
-            const working = new StandardRoom(deIndentWML(`
+            let working = new StandardRoom(deIndentWML(`
                 <Room uuid=(vortex) from=(ASSET#primitives) />
             `))
-            setWorkingShortNameFromString(working, 'Cliff Base')
+            working = working.withShortName(new StandardLiteral('Cliff Base'))
 
             const postFlushState = runUpdateLocalWithLayers(
                 baseWml,
@@ -970,12 +969,12 @@ describe('personalAsset slice reducers', () => {
                 </Asset>
             `
             const baseJSON = wmlToJSON(baseWml)
-            const working = new StandardRoom(deIndentWML(`
+            let working = new StandardRoom(deIndentWML(`
                 <Room uuid=(vortex) from=(ASSET#primitives) />
             `))
-            setWorkingShortNameFromString(working, 'Cliff Base')
+            working = working.withShortName(new StandardLiteral('Cliff Base'))
 
-            const flush = (state: PersonalAssetsPublic): PersonalAssetsPublic =>
+            const flush =(state: PersonalAssetsPublic): PersonalAssetsPublic =>
                 produce(state, (draft) => {
                     updateStandard(draft, {
                         type: 'updateStandard',

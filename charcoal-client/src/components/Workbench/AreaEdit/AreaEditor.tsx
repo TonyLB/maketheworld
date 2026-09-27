@@ -7,7 +7,8 @@ import { getCurrentComponentId } from '../../../slices/UI/workbench'
 import { useWorkbenchAsset } from '../foundations/useWorkbenchAsset'
 import {
     WorkbenchComponentProvider,
-    WorkbenchShortNameField
+    WorkbenchShortNameField,
+    WorkbenchGlossField
 } from '../foundations/WorkbenchComponent'
 import Spacer from '../WorkbenchSpacer'
 import LudicGraphNodesEditor from './LudicGraphNodesEditor'
@@ -59,6 +60,7 @@ export const AreaEditor: FunctionComponent = () => {
                             }}
                         >
                             <WorkbenchShortNameField />
+                            <WorkbenchGlossField />
                             <Spacer />
                             <LudicGraphNodesEditor AreaId={universalKey} />
                             <Spacer />

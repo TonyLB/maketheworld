@@ -11,6 +11,7 @@ import { useWorkbenchAsset } from './foundations/useWorkbenchAsset'
 import AssetEditForm from './WorkbenchAssetEditForm'
 import RoomEditor from './RoomEdit/RoomEditor'
 import FeatureEditor from './FeatureEdit/FeatureEditor'
+import ObjectEditor from './ObjectEdit/ObjectEditor'
 import KnowledgeEditor from './KnowledgeEdit/KnowledgeEditor'
 import { LayeredContextView } from './foundations/LayeredContext'
 import GuidanceEditor from './GuidanceEdit/GuidanceEditor'
@@ -28,6 +29,7 @@ import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowled
 import StandardGuidance from '@tonylb/mtw-wml/ts/standardize/components/guidance'
 import StandardSituation from '@tonylb/mtw-wml/ts/standardize/components/situation'
 import StandardArea from '@tonylb/mtw-wml/ts/standardize/components/area'
+import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
 import AreaEditor from './AreaEdit/AreaEditor'
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 
@@ -79,6 +81,10 @@ export const WorkbenchAssetEditor: FunctionComponent = () => {
 
         if (component instanceof StandardFeature) {
             return <FeatureEditor />
+        }
+
+        if (component instanceof StandardObject) {
+            return <ObjectEditor />
         }
 
         if (component instanceof StandardKnowledge) {

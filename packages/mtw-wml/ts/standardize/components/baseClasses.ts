@@ -8,7 +8,7 @@ import StandardReference from "../keys/reference";
 import { StandardKey } from "../keys/key";
 import { StandardExplicitParent, StandardExplicitKey } from "../explicit";
 import { OrganizationContext } from "../schemaOrganization";
-import { StandardLiteral } from "../literal";
+import type { ShortNameHost } from "./shortNameField";
 export type StandardToJSONOptions = {
     stripUniversalKey?: boolean;
     /** @deprecated Legacy schema-tree hook (no-op). */
@@ -31,15 +31,13 @@ export type NestedSchemaOptions = {
 export type StandardDiffOptions = {
 }
 
-export interface StandardComponent {
+export interface StandardComponent extends ShortNameHost {
     _key?: StandardExplicitKey;
     _from?: AssetUUID;
     key?: string;
     universalKey?: ComponentUUID;
     standardKey: StandardKey;
     explicitParent?: StandardExplicitParent;
-    shortName?: StandardLiteral;
-    gloss?: StandardLiteral;
     clone(): StandardComponent;
     withMapping(mapping: StandardReference[]): StandardComponent;
     withKey(key: string): StandardComponent;
@@ -63,8 +61,6 @@ export interface StandardComponent {
     withChild(child: StandardReference): StandardComponent;
     withImport(fromAsset: AssetUUID): StandardComponent;
     withOrigin(origin: AssetUUID[] | undefined): StandardComponent;
-    withShortName(shortName: StandardLiteral | undefined): StandardComponent;
-    withGloss(gloss: StandardLiteral | undefined): StandardComponent;
     invert?(): StandardComponent;
     /**
      * Assures that the given child references exist in the appropriate buckets with ref={0} if needed.

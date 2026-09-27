@@ -361,45 +361,12 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
                 throw new Error('Object tag must have a non-empty uuid')
             }
             const uuidNormalized = enforceTypedKey('OBJECT')(uuidTrimmed)
-            // Respects Remove/Replace wrappers around ShortName (see splitTaggedChildren), so an
-            // incremental edit (e.g. merge/diff round-trip) satisfies the "must have a ShortName"
-            // requirement without needing a literal, fully-resolved <ShortName> child.
-            const { matched: shortNameMatches, remainder: otherChildren } = splitTaggedChildren({ children, tag: 'ShortName' })
-            if (shortNameMatches.length === 0) {
-                throw new Error('Object tag must contain exactly one ShortName child')
-            }
-            if (shortNameMatches.length > 1) {
-                throw new Error('Object tag must contain exactly one ShortName child')
-            }
-            const [shortNameMatch] = shortNameMatches
-            let shortNameChildren: GenericTree<SchemaTag>
-            if (isSchemaShortName(shortNameMatch.data)) {
-                // Bare ShortName: canonicalize to a single trimmed String child, as before.
-                const textValue = shortNameMatch.children
-                    .map(({ data }) => data)
-                    .filter(isSchemaString)
-                    .map(({ value }) => value)
-                    .join('')
-                    .trim()
-                if (!textValue) {
-                    throw new Error('Object ShortName must contain non-empty text after trim')
-                }
-                shortNameChildren = [{
-                    data: { tag: 'ShortName' },
-                    children: [{ data: { tag: 'String' as const, value: textValue }, children: [] }],
-                }]
-            }
-            else {
-                // Remove/Replace-wrapped ShortName edit: the final text only exists after merge,
-                // so preserve the edit node as-is rather than trying to resolve/validate it here.
-                shortNameChildren = [shortNameMatch]
-            }
+            // ShortName is optional on Object, like every other kind (matches Room: no
+            // schema-layer cardinality/trim gate on ShortName; that normalization happens
+            // downstream in the standardize layer via shortNameField.ts).
             return {
                 data: { tag: 'Object', uuid: uuidNormalized },
-                children: [
-                    ...shortNameChildren,
-                    ...otherChildren,
-                ],
+                children,
             }
         },
     },

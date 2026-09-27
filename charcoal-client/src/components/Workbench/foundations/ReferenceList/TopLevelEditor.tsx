@@ -15,6 +15,7 @@ import ImageIcon from "@mui/icons-material/Image"
 import TextSnippetIcon from "@mui/icons-material/TextSnippet"
 import LandscapeIcon from "@mui/icons-material/Landscape"
 import CallMadeIcon from "@mui/icons-material/CallMade"
+import Inventory2Icon from "@mui/icons-material/Inventory2"
 
 import { useWorkbenchAsset } from "../useWorkbenchAsset"
 import { useWorkbenchAssetMeta } from "../WorkbenchAssetMeta/useWorkbenchAssetMeta"
@@ -45,13 +46,14 @@ import StandardKnowledge from "@tonylb/mtw-wml/ts/standardize/components/knowled
 import StandardMap from "@tonylb/mtw-wml/ts/standardize/components/map"
 import StandardImage from "@tonylb/mtw-wml/ts/standardize/components/image"
 import StandardArea from "@tonylb/mtw-wml/ts/standardize/components/area"
+import StandardObject from "@tonylb/mtw-wml/ts/standardize/components/object"
 import { StandardComponent } from "@tonylb/mtw-wml/ts/standardize/components/baseClasses"
 import { enforceTypedKey } from "@tonylb/mtw-utilities/ts/types"
 import { v4 as uuidv4 } from "uuid"
 import { AssetUUID, ComponentUUID } from "@tonylb/mtw-base/ts/schema"
 import type { SchemaImportMapping } from "@tonylb/mtw-base/ts/schema/metaData"
 
-type AddComponentTag = "Character" | "Map" | "Room" | "Area" | "Feature" | "Knowledge" | "Image" | "Situation"
+type AddComponentTag = "Character" | "Map" | "Room" | "Area" | "Feature" | "Object" | "Knowledge" | "Image" | "Situation"
 
 const ADD_OPTIONS: { tag: AddComponentTag; icon: React.ReactNode; label: string }[] = [
     { tag: "Character", icon: <PersonIcon sx={{ fontSize: "1rem" }} />, label: "Character" },
@@ -59,6 +61,7 @@ const ADD_OPTIONS: { tag: AddComponentTag; icon: React.ReactNode; label: string 
     { tag: "Area", icon: <LandscapeIcon sx={{ fontSize: "1rem" }} />, label: "Area" },
     { tag: "Room", icon: <HomeIcon sx={{ fontSize: "1rem" }} />, label: "Room" },
     { tag: "Feature", icon: <FeatureIcon sx={{ fontSize: "1rem" }} />, label: "Feature" },
+    { tag: "Object", icon: <Inventory2Icon sx={{ fontSize: "1rem" }} />, label: "Object" },
     { tag: "Knowledge", icon: <KnowledgeIcon sx={{ fontSize: "1rem" }} />, label: "Knowledge" },
     { tag: "Image", icon: <ImageIcon sx={{ fontSize: "1rem" }} />, label: "Image" },
     { tag: "Situation", icon: <TextSnippetIcon sx={{ fontSize: "1rem" }} />, label: "Situation" }
@@ -70,6 +73,7 @@ const TAG_ICONS: Record<string, React.ReactNode> = {
     Area: <LandscapeIcon sx={{ fontSize: "1.25rem" }} />,
     Room: <HomeIcon sx={{ fontSize: "1.25rem" }} />,
     Feature: <FeatureIcon sx={{ fontSize: "1.25rem" }} />,
+    Object: <Inventory2Icon sx={{ fontSize: "1.25rem" }} />,
     Knowledge: <KnowledgeIcon sx={{ fontSize: "1.25rem" }} />,
     Image: <ImageIcon sx={{ fontSize: "1.25rem" }} />,
     Situation: <TextSnippetIcon sx={{ fontSize: "1.25rem" }} />
@@ -79,6 +83,7 @@ const isTopLevelAssociable = (comp: StandardComponent): boolean =>
     comp instanceof StandardRoom ||
     comp instanceof StandardArea ||
     comp instanceof StandardFeature ||
+    comp instanceof StandardObject ||
     comp instanceof StandardKnowledge ||
     comp instanceof StandardMap ||
     comp instanceof StandardCharacter ||
@@ -266,6 +271,7 @@ export const TopLevelEditor: FunctionComponent<TopLevelEditorProps> = ({
                 | "ROOM"
                 | "AREA"
                 | "FEATURE"
+                | "OBJECT"
                 | "KNOWLEDGE"
                 | "CHARACTER"
                 | "MAP"
