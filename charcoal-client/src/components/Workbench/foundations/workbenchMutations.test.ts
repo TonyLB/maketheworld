@@ -4,6 +4,7 @@ import { schemaToWML } from '@tonylb/mtw-wml/ts/schema'
 import { deIndentWML } from '@tonylb/mtw-wml/ts/schema/utils'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
+import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
 import StandardReference from '@tonylb/mtw-wml/ts/standardize/components/reference'
 import { StandardLiteral } from '@tonylb/mtw-wml/ts/standardize/literal'
@@ -234,6 +235,47 @@ describe('applyWorkingComponentToDraft', () => {
         // flushed.schema would fail on a tag-less in-memory literal that persistence never sees.
         const reparsed = new StandardFeature(flushed.toJSON())
         expect(schemaToWML([reparsed.schema])).toContain('<Gloss>A cracked clay pot.</Gloss>')
+    })
+})
+
+describe('ObjectEditor payoff (WG-1, WG-2)', () => {
+    const OBJECT_ID = 'OBJECT#obj1' as ComponentUUID
+
+    const assetWithObject = (): StandardForm =>
+        new StandardForm(
+            deIndentWML(`
+                <Asset uuid=(test)>
+                    <Object uuid=(obj1)>
+                        <ShortName>object</ShortName>
+                    </Object>
+                </Asset>
+            `)
+        )
+
+    it('flushes a newly-added Object with its seeded ShortName and an authored Gloss, re-parsing cleanly', () => {
+        const draft = assetWithObject()
+        const working = draft.byUniversalId[OBJECT_ID]!.clone() as StandardObject
+        working._payload._gloss = new StandardLiteral('A tarnished brass key.')
+
+        const flushed = applyWorkingComponentToDraft(draft, OBJECT_ID, working)
+
+        const reparsed = new StandardObject(flushed.toJSON())
+        const printed = schemaToWML([reparsed.schema])
+        expect(printed).toContain('<ShortName>object</ShortName>')
+        expect(printed).toContain('<Gloss>A tarnished brass key.</Gloss>')
+    })
+
+    it('flushes a cleared Object ShortName with no <ShortName> tag, re-parsing without throwing', () => {
+        const draft = assetWithObject()
+        const working = draft.byUniversalId[OBJECT_ID]!.clone() as StandardObject
+        working._payload._shortName = new StandardLiteral('   ')
+
+        const flushed = applyWorkingComponentToDraft(draft, OBJECT_ID, working)
+
+        expect(flushed.shortName).toBeUndefined()
+        expect(() => new StandardObject(flushed.toJSON())).not.toThrow()
+        const reparsed = new StandardObject(flushed.toJSON())
+        expect(schemaToWML([reparsed.schema])).not.toContain('<ShortName')
     })
 })
 
