@@ -87,7 +87,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
 
     // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed; no producer can build a
     // port-qualified boundary edge yet, so skip rather than assume (matches the ludicGraph
-    // boundary/carry-closure narrows, ludicGraph/AGENT.md's BD-36 paragraph).
+    // boundary narrows, ludicGraph/AGENT.md's BD-36 paragraph).
     // `hostId: op.froms[0]` --- `dissolvedEdges` is only ever populated by `buildObjectMoveOp`
     // (single-origin, always `froms: [args.fromHostId]`), so every severed boundary edge belongs
     // to that one departure host. Not derived per-edge because

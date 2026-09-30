@@ -27,6 +27,8 @@ import { logLudicCacheRebuild } from './ludicCacheInstrumentation'
 export type LudicCacheObjectHandle = {
     objectId: EphemeraObjectId
     shortName: string
+    /** Reasoning gloss, present only where authored or improvised (see `AGENT.concepts.md`'s `CommandAttempt` section). Still a flat scalar, not a widening past the handle boundary this file's own header comment states. */
+    gloss?: string
 }
 
 export const ludicCacheObjectHandles = async (
@@ -46,7 +48,11 @@ export const ludicCacheObjectHandles = async (
         if (node.shortName === undefined) {
             continue
         }
-        handles.push({ objectId: node.universalKey, shortName: node.shortName })
+        handles.push({
+            objectId: node.universalKey,
+            shortName: node.shortName,
+            ...(node.gloss !== undefined ? { gloss: node.gloss } : {}),
+        })
     }
     logLudicCacheRebuild({
         seedHostId,

@@ -6,6 +6,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { ActionsPublishedPayload } from '../../../actions/publishedEvents'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
+import type { CommandAttempt } from '../../../actions/commandAttempt'
 import { commitAndPresentStepSequence } from '../kernel/commitAndPresentStepSequence'
 import { resolveObjectMovePresentationLabels } from '../../../perception/resolveObjectMovePresentationLabels'
 import { planObjectMoveTransfer } from './planObjectMoveTransfer'
@@ -37,6 +38,13 @@ export type OrchestrateObjectMoveArgs = {
     characterId: EphemeraCharacterId;
     /** Hosting kinds only (AB-54); see `ExecuteObjectMoveArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf';
+    /**
+     * CommandAttemptPhase slice 2: the reconstructed, adjudicated attempt (see
+     * `positions/index.ts`'s dispatch, where `CommandAttempt.fromJSON` + `adjudicateAttempt`
+     * run). Threaded through but not yet consumed for any commit decision --- slice 3 is
+     * what reads a `met` verdict here.
+     */
+    attempt?: CommandAttempt;
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
 }

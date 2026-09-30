@@ -3,6 +3,7 @@ import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { invokeBedrockObjectManipulationEnrich } from '../../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
+import { groundMembershipCandidates, type GroundedMembershipCandidate } from '../groundMembershipCandidates'
 import { identityPlanCandidateFromSpan, type IdentityPlanCandidate } from '../identityPlanCandidate'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import {
@@ -102,10 +103,17 @@ export async function selectIdentityOnlyFallbackTuple(
     input: IdentityOnlyFallbackInput,
     dryRunContext: IdentityOnlyFallbackDryRunContext = {},
     deps: IdentityOnlyFallbackDeps = {}
-): Promise<SelectPlanTupleResult<IdentityPlanCandidate>> {
+): Promise<SelectPlanTupleResult<GroundedMembershipCandidate>> {
     const { sandboxState = new Map(), roomId, actorCharacterId } = dryRunContext
-    const candidates = await proposeIdentityOnlyFallbackTuples(input, deps)
-    const selectInput: SelectPlanTupleInput<IdentityPlanCandidate> = {
+    const candidates = groundMembershipCandidates(await proposeIdentityOnlyFallbackTuples(input, deps), {
+        words: input.command,
+        span: input.rawObjectSpan,
+        catalog: input.catalog,
+        sandboxState,
+        roomId,
+        actorCharacterId,
+    })
+    const selectInput: SelectPlanTupleInput<GroundedMembershipCandidate> = {
         candidates,
         getConfidence: (candidate) => candidate.confidence,
         dryRun: (candidate) => sandboxMembershipDryRun(candidate, sandboxState, roomId, actorCharacterId),

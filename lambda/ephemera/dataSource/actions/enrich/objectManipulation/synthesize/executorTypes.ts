@@ -61,9 +61,8 @@ export type DescribeReferentKind = 'room' | 'object' | 'character' | 'feature' |
 
 /**
  * The perception kernel's one grounded-effect shape (iteration 9/PK-1): a single already-resolved
- * referent to render a description for. Singular, not carry-closed like `transferMembership`'s
- * `entityIds` --- Grounding resolves an object-directed look to exactly one referent, and there is no
- * carry/expansion concept for a read. Reused verbatim by the kernel layer (`kernelStep.ts`), the same
+ * referent to render a description for. Singular --- Grounding resolves an object-directed look to
+ * exactly one referent, and a read has no expansion concept. Reused verbatim by the kernel layer (`kernelStep.ts`), the same
  * way `establishRelation`/`dissolveRelation` are: a `describe` step needs no kernel-specific widening,
  * since it carries no host-transfer concern for BD-36's entity-kind generalization to apply to.
  */
@@ -124,10 +123,9 @@ export type GroundedSameHostAssertion = {
 }
 
 /**
- * `objectIds` is a singleton right after Grounding and carry-closed after
- * operand-expansion --- the same tag-transition widening `transferMembership`
- * already uses, and (per Fix 2) genuinely shared with a same-object
- * `transferMembership` via the `GroupId` ledger.
+ * `objectIds` is the moved object Grounding resolved --- the same set its paired
+ * `transferMembership` moves. Anything hosted by that object lives in its own shard and
+ * travels with it, so no step widens this set.
  */
 export type GroundedIsolatedFromRelationsAssertion = {
     kind: 'assertion'
@@ -146,21 +144,11 @@ export type GroundedAssertion = GroundedBinaryAssertion | GroundedSameHostAssert
 export type WorklistInstruction =
     | { id: InstructionId; tag: 'ungrounded'; step: Change | Assertion }
     | { id: InstructionId; tag: 'grounded'; step: ExecutorParsePlanStep | GroundedAssertion }
-    | { id: InstructionId; tag: 'operandExpanded'; step: ExecutorParsePlanStep | GroundedAssertion }
-
-/** Canonical identity for a settled carry-closure group (Fix 2). */
-export type GroupId = string
 
 /**
- * BD-30's "common referent" / settled-groups ledger, revised for
- * member-indexed lookup (Fix 2): `groupIdByObject` lets a later
- * operand-expansion starting from a *different* object recognize it's
- * already part of a settled closure, not just a lookup keyed on the original
- * starting id.
+ * The live-state reads one worklist run shares: injected callbacks, not DB calls.
  */
 export type ExpansionEnvironment = {
-    settledGroups: Map<GroupId, EphemeraLudicGraph>
-    groupIdByObject: Map<EphemeraObjectId, GroupId>
     getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined
     getCurrentHost: (id: EphemeraObjectId) => EphemeraMembershipHostId | undefined
     /**

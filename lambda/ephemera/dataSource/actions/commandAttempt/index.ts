@@ -69,6 +69,11 @@ export class CommandAttempt {
         this._actions = actions
     }
 
+    /** Domain constructor: an attempt built in-pipeline from its referents and actions. */
+    static create(words: string, referents: readonly CommandAttemptReferent[], actions: readonly AttemptAction[]): CommandAttempt {
+        return new CommandAttempt(words, referents.map(cloneReferent), [...actions])
+    }
+
     static fromJSON(data: CommandAttemptData): CommandAttempt {
         return new CommandAttempt(
             data.words,

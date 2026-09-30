@@ -9,7 +9,7 @@ import { findOwnRootContainmentEdge } from './findOwnRootContainmentEdge'
 import type { ObjectMoveNarrationInput, PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
 
 export type BuildObjectMoveOpArgs = {
-    /** The moved object. `computeCarryClosure` has been a singleton since CD3 (2026-09-06), so this is the whole moved set, not just its primary member. */
+    /** The moved object --- the whole moved set: anything it hosts lives in its own shard and travels with it. */
     entityId: EphemeraObjectId
     /**
      * The departure host's graph, as of whenever the caller fetched it. Used to derive
@@ -56,8 +56,7 @@ export type BuildObjectMoveOpArgs = {
  * so the ingredients are all in hand before the commit and one compiled plan serves both halves; a
  * second compile would be two chances to disagree in exchange for nothing.
  *
- * No `carriedCount` --- retired 2026-09-07 along with `PositionKernelMovedSet`'s `closure`
- * shape; see `positionKernelOp.ts`'s `ObjectMoveNarrationInput` doc comment.
+ * No carried-object count; see `positionKernelOp.ts`'s `ObjectMoveNarrationInput` doc comment.
  *
  * `dissolvedEdges` is derived here from `fromGraph`, not handed in pre-computed by the caller ---
  * this function is the sole producer of that field's value now (3d, 2026-09-08), taking over the

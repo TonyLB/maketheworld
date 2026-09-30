@@ -228,8 +228,8 @@ export const applyStepSequenceCore = (
             }
 
             // Pure remove (no destination) or pure add (no departure hosts): each entity id is
-            // added/removed on its own host independently --- there is no boundary-sweep or
-            // carry-closure to run here (the caller already seeded explicit `dissolveRelation`
+            // added/removed on its own host independently --- there is no boundary sweep to run
+            // here (the caller already seeded explicit `dissolveRelation`
             // steps for a pure remove; a pure add is a freshly-spawned entity with no prior edges).
             // One loop over `nodeIds`/`addNode`/`removeNode` covers all four entity kinds ---
             // `EphemeraLudicGraph.addNode`/`removeNode` is the

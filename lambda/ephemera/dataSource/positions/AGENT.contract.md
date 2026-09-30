@@ -122,7 +122,7 @@ A **`MutationKernelCaptureStep`** carries **`hostId`** + **`captureId`** and **n
 take / drop / give is derived from **which side of the move was the room**, inside [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts): `to` is a room -> `drop`; a `from` is a room -> `takeHold`; neither -> `give`.
 
 - **No call site may pass a verb**, and no code may infer one backwards from a published fact. The retired `inferOperationFromFact` did exactly that, and `give` falls out of the forward rule with no new discriminant.
-- The moved set **must** travel as `moved: EphemeraObjectId | EphemeraCharacterId` --- a bare entity id, for both objects and characters. **Retired 2026-09-07:** `PositionKernelMovedSet`'s `{kind:'closure', fragment}` / `{kind:'entity', entityId}` split, and the `carriedCount` field it fed. `computeCarryClosure` has been a singleton read since CD3 (2026-09-06) --- no relation kind ever classifies to an absorbing outcome --- so a closure fragment never carried more than its own `startId`, and the second shape had nothing left to represent once that was true.
+- The moved set **must** travel as `moved: EphemeraObjectId | EphemeraCharacterId` --- a bare entity id, for both objects and characters. The id is the whole moved set: anything the entity hosts lives in its own shard and travels with it, so no step widens the set and narration counts no carried objects.
 - Severed boundary edges **must not** enter the moved set. Expansion classifies them ([`boundaryEdgeOutcomes`](ludicGraph/expandValidate/interactionUnderTransfer.ts)) and they travel to the compiler on `op.dissolvedEdges`, which renders them into `dissolveRelation` steps ahead of the transfer. **Expansion classifies; the compiler sequences.**
 
 ### Narration is presented only for a committed mutation
@@ -257,7 +257,7 @@ A severed boundary relation streams **`Object Relation Changed`** alongside the 
 
 **Intents stay distinct; execution unifies.** `Object Take Hold` and `Object Drop` remain two events with two Plan-stage legality branches, because the player-facing errors genuinely differ per direction ("you're not carrying that" vs. "you're already holding that") and they are different utterances. The world-effect is one operation. **Must not** reintroduce a per-direction execution module, and **must not** introduce `updateDropLudicGraphs` or any new `update*LudicGraphs` fork.
 
-The transfer set is **re-derived, not scrubbed from trusted ingress**: operand expansion recomputes the carry closure fresh against current graph state, and the reducer re-validates presence and boundary-edge classification on the locked graphs at commit time. A concurrent modification since selection aborts the whole transact rather than applying a stale plan.
+The plan is **re-derived, not scrubbed from trusted ingress**: `buildObjectMoveOp` re-classifies boundary edges from the departure host's current graph, and the reducer re-validates presence and boundary-edge classification on the locked graphs at commit time. A concurrent modification since selection aborts the whole transact rather than applying a stale plan.
 
 The post-persist bundle is the kernel's, per entity in the transfer set:
 
@@ -423,10 +423,12 @@ Positions **must** subscribe to:
 | `Object Establish Relation` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/relational/executeObjectEstablishRelation.ts`](manipulation/relational/executeObjectEstablishRelation.ts) |
 | `Object Dissolve Relation` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/relational/executeObjectEstablishRelation.ts`](manipulation/relational/executeObjectEstablishRelation.ts) (`executeEstablishEdgeChain`, shared with establish) |
 
+**CommandAttemptPhase slice 2 (2026-09-29): `positions/index.ts`'s dispatch is the sole reconstruction point for a published `attempt`.** When a payload above carries an optional `attempt: CommandAttemptData`, `index.ts` **must** be the only place that calls `CommandAttempt.fromJSON` on it, immediately followed by the `adjudicateAttempt` seam ([`actions/commandAttempt/adjudicate.ts`](../actions/commandAttempt/adjudicate.ts)), before handing the result through to `orchestrateObjectMove`/`executeEstablishEdgeChain` as a plain `attempt?: CommandAttempt` arg. **`adjudicateAttempt` is a no-op through slice 2** --- it records no verdicts and gates no commit decision; a challenge-free attempt already resolves to `succeeded` via `CommandAttempt.result` with no extra code, and any attempt carrying a real graph challenge stays `pending`, matching today's silent defer. Do not read the presence of this wiring as adjudication being live --- it isn't, until a future slice records a verdict here and threads it into the dry run / commit recheck.
+
 ### `Object Take Hold` (positions-owned)
 
 - **Ingress:** typed pick-up via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1).
-- **Must** trust actions-resolved `objectIds` (carry-closed transfer set, BD-13; size 1 for an ordinary command) and `roomId` (source room at egress) at apply --- no re-read of in-room catalog in positions.
+- **Must** trust actions-resolved `objectIds` (the moved object; one entry) and `roomId` (source room at egress) at apply --- no re-read of in-room catalog in positions.
 - **Must** call [`orchestrateObjectMove`](manipulation/membership/orchestrateObjectMove.ts) with `{ objectIds, fromHostId: roomId, toHostId: characterId }` --- one atomic `MultiKeyUpdate` transact (departure room + arrival character) via [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts). The branch names its **host pair** and nothing else: **must not** pass a verb, a direction flag, or an acting character (see [Narration and presentation](#narration-and-presentation)).
 - **Live re-derivation, not bounded scrub from trusted ingress alone:** the executor re-runs at execute time and the `MultiKeyUpdate` reducer re-validates the transfer (presence + boundary-edge classification) against freshly-fetched host graphs at commit time --- a concurrent modification since selection aborts the whole transact rather than applying a stale plan.
 - **Character inventory:** **must** add every object in `objectIds` at target `characterId`; internal relational edges among the set are recreated on the destination host, derived live from the fetched source graph (not passed in).
@@ -434,7 +436,7 @@ Positions **must** subscribe to:
 ### `Object Drop` (positions-owned)
 
 - **Ingress:** typed drop via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1). Stream contract: **`Object Drop`**, payload `{ characterId, objectIds, roomId }` (symmetric to **`Object Take Hold`**; `objectIds` is a set, not a singular id). Payload type + guard in actions [`publishedEvents.ts`](../actions/publishedEvents.ts); actions **`Parse Requested`** publishes **`Object Drop`** when enrich yields `operationKind: drop`.
-- **Must** trust actions-resolved `objectIds` (carry-closed transfer set, BD-13; size 1 for an ordinary command) and `roomId` (destination room at egress) at apply --- no re-read of held inventory catalog in positions.
+- **Must** trust actions-resolved `objectIds` (the moved object; one entry) and `roomId` (destination room at egress) at apply --- no re-read of held inventory catalog in positions.
 - **Must** call [`orchestrateObjectMove`](manipulation/membership/orchestrateObjectMove.ts) with `{ objectIds, fromHostId: characterId, toHostId: roomId }` --- the same entry point as take-hold, with the host pair reversed; one atomic `MultiKeyUpdate` transact (departure character + arrival room) via [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts).
 - **Live re-derivation, not bounded scrub from trusted ingress alone:** same commit-time re-validation as `Object Take Hold`, above.
 

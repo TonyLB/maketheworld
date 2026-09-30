@@ -26,9 +26,8 @@ export type MembershipMoveNarrationInput = {
  * without a new discriminant, and it is why the retired `inferOperationFromFact` could be deleted
  * rather than ported: the compiler holds the verb forwards instead of reasoning back to it.
  *
- * No `carriedCount` --- retired 2026-09-07: `computeCarryClosure` has been a singleton since
- * CD3 (2026-09-06), so a moved object never carries anything else with it, and the field's own
- * `> 1` narration branch was dead from the moment CD3 shipped.
+ * No carried-object count: a moved object's hosted contents live in its own shard and travel
+ * with it, so the move names one entity and narration names that one object.
  */
 export type ObjectMoveNarrationInput = {
     kind: 'objectMove'
@@ -47,11 +46,8 @@ export type ObjectMoveNarrationInput = {
  * an entity between two membership hosts, the same shape as a character moving room to room, so the
  * direction never needed to be an op discriminant, and no sibling `Take`/`Drop` ops exist.
  *
- * `moved` is a bare entity id, not a `{kind, ...}` union --- retired 2026-09-07 along with
- * `PositionKernelMovedSet`. The union existed to let a closure's primacy come from `fragment.rootId`
- * rather than a separately-asserted id; since CD3 (2026-09-06) `computeCarryClosure` is always a
- * singleton, primacy and "the whole moved set" are the same one id, so the second shape had nothing
- * left to represent.
+ * `moved` is a bare entity id: the whole moved set is that one entity, since anything it hosts
+ * lives in its own shard and travels with it.
  *
  * `narration` is deliberately optional, not a field every `Move` carries: object-lifecycle moves
  * (spawn/destroy/place/remove) narrate nothing today, and populating narration fields they'd never
@@ -75,8 +71,8 @@ export type PositionKernelMoveOp = {
      * Boundary edges severed by this move, **already classified as dissolve by Expansion**.
      * The compiler renders them into `dissolveRelation` steps ahead of the
      * transfer --- it sequences, it does not classify. Classification stays in Expansion because
-     * `boundaryEdgeOutcomes` can also return verdicts (`error` on a stray carry-classified boundary
-     * edge, `defer` on a `Custom` edge, BD-10) and `compilePositionKernelOp` has no verdict channel;
+     * classification has outcomes besides `dissolve` (`defer` on a `Custom` edge, BD-10; a thrown
+     * AB-54 invariant on a hosting-kind edge) and `compilePositionKernelOp` has no verdict channel;
      * giving it one would cost the purity that lets compilation correctly skip the Plan-stage dry run.
      */
     dissolvedEdges?: readonly HostRelationalEdge[]

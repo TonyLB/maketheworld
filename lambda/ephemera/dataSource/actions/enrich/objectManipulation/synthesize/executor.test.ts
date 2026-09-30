@@ -4,9 +4,8 @@ import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import { objectSpanRef } from '../plan/ungroundedPrimitive'
 import type { TransferMembershipChange } from '../plan/ungroundedPrimitive'
 import type { GroundingContext } from './groundReferent'
-import { createExpansionEnvironment } from './expansionEnvironment'
 import { runExecutor, seedTransferMembership } from './executor'
-import type { WorklistInstruction } from './executorTypes'
+import type { ExpansionEnvironment, WorklistInstruction } from './executorTypes'
 
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
@@ -36,10 +35,11 @@ describe('runExecutor', () => {
             .addCharacter(COMPANION_ID)
             .addRelationalEdge({ from: TRAY_ID, to: COMPANION_ID, kind: 'Against' })
 
-        const env = createExpansionEnvironment(
-            (hostId) => (hostId === ROOM_ID ? graph : undefined),
-            (id) => ([TRAY_ID, COMPANION_ID].includes(id) ? ROOM_ID : undefined)
-        )
+        const env: ExpansionEnvironment = {
+            getGraph: (hostId) => (hostId === ROOM_ID ? graph : undefined),
+            getCurrentHost: (id) => ([TRAY_ID, COMPANION_ID].includes(id) ? ROOM_ID : undefined),
+            getMembershipContainers: () => [],
+        }
 
         const seed: WorklistInstruction[] = [
             { id: 'isolated', tag: 'grounded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },
@@ -83,11 +83,11 @@ describe('runExecutor', () => {
         // establishRelation step.
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(SAUCER_ID).addObject(CUP_ID)
 
-        const env = createExpansionEnvironment(
-            (hostId) => (hostId === ROOM_ID ? roomGraph : undefined),
-            (id) => ((id === SAUCER_ID || id === CUP_ID) ? ROOM_ID : undefined),
-            (id) => ((id === SAUCER_ID || id === CUP_ID) ? [ROOM_ID] : [])
-        )
+        const env: ExpansionEnvironment = {
+            getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined),
+            getCurrentHost: (id) => ((id === SAUCER_ID || id === CUP_ID) ? ROOM_ID : undefined),
+            getMembershipContainers: (id) => ((id === SAUCER_ID || id === CUP_ID) ? [ROOM_ID] : []),
+        }
 
         const seed: WorklistInstruction[] = [
             {
@@ -116,16 +116,16 @@ describe('runExecutor', () => {
         const ROPE_ID = 'OBJECT#Rope' as EphemeraObjectId
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(ROPE_ID).addObject(TABLE_ID)
 
-        const env = createExpansionEnvironment(
-            (hostId) => (hostId === ROOM_ID ? roomGraph : undefined),
-            (id) => (id === ROPE_ID ? ROOM_ID : TABLE_ID),
-            (id) => {
+        const env: ExpansionEnvironment = {
+            getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined),
+            getCurrentHost: (id) => (id === ROPE_ID ? ROOM_ID : TABLE_ID),
+            getMembershipContainers: (id) => {
                 if (id === ROPE_ID) return [ROOM_ID]
                 if (id === CUP_ID) return [TABLE_ID]
                 if (id === TABLE_ID) return [ROOM_ID]
                 return []
-            }
-        )
+            },
+        }
 
         // Only the sameHost assertion is seeded --- there is no sibling establishRelation
         // instruction at all any more (the seed is collapsed). A direct rope->cup edge is
@@ -182,10 +182,11 @@ describe('runExecutor', () => {
             .addObject(TABLE_ID)
             .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Against' })
 
-        const env = createExpansionEnvironment(
-            (hostId) => (hostId === ROOM_ID ? graph : undefined),
-            (id) => ([TRAY_ID, TABLE_ID].includes(id) ? ROOM_ID : undefined)
-        )
+        const env: ExpansionEnvironment = {
+            getGraph: (hostId) => (hostId === ROOM_ID ? graph : undefined),
+            getCurrentHost: (id) => ([TRAY_ID, TABLE_ID].includes(id) ? ROOM_ID : undefined),
+            getMembershipContainers: () => [],
+        }
 
         const seed: WorklistInstruction[] = [
             { id: 'isolated', tag: 'grounded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },
@@ -211,10 +212,11 @@ describe('runExecutor', () => {
             .addObject(WEIRD_ID)
             .addRelationalEdge({ from: TRAY_ID, to: WEIRD_ID, kind: 'Custom', relationLabel: 'tangled up with' })
 
-        const env = createExpansionEnvironment(
-            (hostId) => (hostId === ROOM_ID ? graph : undefined),
-            (id) => ([TRAY_ID, WEIRD_ID].includes(id) ? ROOM_ID : undefined)
-        )
+        const env: ExpansionEnvironment = {
+            getGraph: (hostId) => (hostId === ROOM_ID ? graph : undefined),
+            getCurrentHost: (id) => ([TRAY_ID, WEIRD_ID].includes(id) ? ROOM_ID : undefined),
+            getMembershipContainers: () => [],
+        }
 
         const seed: WorklistInstruction[] = [
             { id: 'isolated', tag: 'grounded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },
@@ -227,10 +229,11 @@ describe('runExecutor', () => {
 
     it('runs a fully-grounded seed with no GroundingContext supplied', () => {
         const graph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID)
-        const env = createExpansionEnvironment(
-            (hostId) => (hostId === ROOM_ID ? graph : undefined),
-            (id) => (id === TRAY_ID ? ROOM_ID : undefined)
-        )
+        const env: ExpansionEnvironment = {
+            getGraph: (hostId) => (hostId === ROOM_ID ? graph : undefined),
+            getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined),
+            getMembershipContainers: () => [],
+        }
 
         // BD-34's pairing invariant, spelled inline rather than via the retired
         // `seedGroundedTransferMembership` (2026-09-07: its sole caller,
@@ -252,10 +255,11 @@ describe('runExecutor', () => {
 
     it('errors rather than throwing when an ungrounded instruction is seeded with no GroundingContext', () => {
         const graph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID)
-        const env = createExpansionEnvironment(
-            (hostId) => (hostId === ROOM_ID ? graph : undefined),
-            (id) => (id === TRAY_ID ? ROOM_ID : undefined)
-        )
+        const env: ExpansionEnvironment = {
+            getGraph: (hostId) => (hostId === ROOM_ID ? graph : undefined),
+            getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined),
+            getMembershipContainers: () => [],
+        }
 
         const result = runExecutor(
             seedTransferMembership({

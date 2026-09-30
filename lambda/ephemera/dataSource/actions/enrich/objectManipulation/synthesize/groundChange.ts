@@ -35,13 +35,10 @@ export type GroundChangeResult =
  * (`containedBy` unused, `sameHost` unbuilt), so this is a type-level
  * exclusion, not a TODO.
  *
- * `transferMembership` produces **single-object, not-yet-carry-closed**
- * `objectIds` sets per candidate --- growing one to a full carry-closed set is
- * Expansion's job (`computeCarryClosure`, `interactionUnderTransfer.ts`),
- * deliberately not invoked here. How Grounding and Expansion interleave is an
- * open question (`AGENT.concepts.md`, "Synthesize's three sub-roles") --- this
- * function's output is a valid but potentially incomplete candidate set by
- * design, not a finished answer to that question.
+ * `transferMembership` produces a **single-object** `objectIds` set per candidate,
+ * and that set is complete: anything the object hosts lives in its own shard and
+ * travels with it. What Grounding leaves for Expansion is the relational edges the
+ * move must dissolve or defer on (`isolatedFromRelations`, in `executor.ts`).
  *
  * `establishRelation`/`dissolveRelation` derive their host as
  * `currentHost(actingCharacter)`, per BD-6's still-current default (BD-15/16's

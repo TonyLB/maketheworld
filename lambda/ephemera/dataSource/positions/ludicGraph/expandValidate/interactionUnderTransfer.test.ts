@@ -5,17 +5,10 @@ import { testLudicGraph } from '../testFixtures'
 import {
     boundaryEdgeOutcomes,
     classifyInteractionUnderTransfer,
-    computeCarryClosure,
-    roleOfObjectInEdge,
 } from './interactionUnderTransfer'
 
-const trayId = 'OBJECT#Tray' as EphemeraObjectId
-const tableId = 'OBJECT#Table' as EphemeraObjectId
 const bookId = 'OBJECT#Book' as EphemeraObjectId
 const glassId = 'OBJECT#Glass' as EphemeraObjectId
-const bootsId = 'OBJECT#Boots' as EphemeraObjectId
-const aId = 'OBJECT#A' as EphemeraObjectId
-const bId = 'OBJECT#B' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 
 describe('classifyInteractionUnderTransfer', () => {
@@ -48,89 +41,6 @@ describe('classifyInteractionUnderTransfer', () => {
     // longer a value this function's parameter type can hold, and there is no case left to test.
 })
 
-describe('roleOfObjectInEdge', () => {
-    const edge: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
-
-    it('returns subject when objectId is the from endpoint', () => {
-        expect(roleOfObjectInEdge(bookId, edge)).toBe('subject')
-    })
-
-    it('returns target when objectId is the to endpoint', () => {
-        expect(roleOfObjectInEdge(trayId, edge)).toBe('target')
-    })
-
-    it('returns undefined when objectId is not on the edge', () => {
-        expect(roleOfObjectInEdge(glassId, edge)).toBeUndefined()
-    })
-})
-
-// computeCarryClosure returns an EphemeraLudicGraph (the former standalone
-// CarryClosureFragment collapsed into it), rooted and hosted at the starting object
-// (hostId === rootId === startId). Assertions check .rootId/.objectIds/.relationalEdges
-// rather than a bespoke {rootId, members, edges} shape.
-//
-// `carry` was only ever produced by `On` (case 'On': target -> 'carry'), and `On` joined
-// the hosting-kind throw 2026-08-22 (Channel D, CD2, reduced scope) -- so absorption was
-// already dead code, reachable by no relation kind, before CD3 (2026-09-06) retired `carry`
-// from `InteractionUnderTransferOutcome` and turned this function into an always-singleton
-// read. The former "absorbs an On edge" tests are gone; what remains documents the two live
-// consequences: no peer kind ever absorbs (unchanged), and a hosting-kind edge reachable
-// during the walk still throws rather than being silently skipped, which is a real edge case,
-// not a hypothetical -- a room holding a pre-existing `On` edge that gets transferred will hit
-// it. What a genuine multi-member closure would read from instead (a shard read) is unbuilt,
-// deliberately, per CD3's own text.
-describe('computeCarryClosure', () => {
-    it('does not absorb across an Under edge in either direction', () => {
-        const bootsUnderTable: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: bootsId, to: tableId, kind: 'Under' }
-        const graph = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Object', universalKey: bootsId },
-                { tag: 'Object', universalKey: tableId },
-            ],
-            edges: [bootsUnderTable],
-        })
-
-        const tableClosure = computeCarryClosure(tableId, graph)
-        expect(tableClosure.rootId).toBe(tableId)
-        expect(tableClosure.objectIds).toEqual(new Set([tableId]))
-        expect(tableClosure.relationalEdges).toEqual([])
-
-        const bootsClosure = computeCarryClosure(bootsId, graph)
-        expect(bootsClosure.rootId).toBe(bootsId)
-        expect(bootsClosure.objectIds).toEqual(new Set([bootsId]))
-        expect(bootsClosure.relationalEdges).toEqual([])
-    })
-
-    it('does not absorb across an Against edge either -- no kind produces carry any more', () => {
-        const aAgainstB: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: aId, to: bId, kind: 'Against' }
-        const graph = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Object', universalKey: aId },
-                { tag: 'Object', universalKey: bId },
-            ],
-            edges: [aAgainstB],
-        })
-
-        const closure = computeCarryClosure(bId, graph)
-        expect(closure.rootId).toBe(bId)
-        expect(closure.objectIds).toEqual(new Set([bId]))
-        expect(closure.relationalEdges).toEqual([])
-    })
-
-    it('throws if a hosting-kind edge (On/In/PartOf) is reached during the walk, per the classifier invariant', () => {
-        const bookOnTray: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: bookId, to: trayId, kind: 'On' }
-        const graph = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Object', universalKey: trayId },
-                { tag: 'Object', universalKey: bookId },
-            ],
-            edges: [bookOnTray],
-        })
-
-        expect(() => computeCarryClosure(trayId, graph)).toThrow(/AB-54/)
-    })
-})
-
 describe('boundaryEdgeOutcomes', () => {
     it('reports only the true external edge for a resolved transfer set (peer kinds only -- On/In/PartOf throw)', () => {
         const glassAgainstBook: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: glassId, to: bookId, kind: 'Against' }
@@ -141,9 +51,7 @@ describe('boundaryEdgeOutcomes', () => {
             ],
             edges: [glassAgainstBook],
         })
-        const closure = computeCarryClosure(bookId, graph)
-
-        const outcomes = boundaryEdgeOutcomes(closure.objectIds, graph)
+        const outcomes = boundaryEdgeOutcomes(new Set([bookId]), graph)
 
         expect(outcomes).toHaveLength(1)
         expect(outcomes[0]).toEqual({

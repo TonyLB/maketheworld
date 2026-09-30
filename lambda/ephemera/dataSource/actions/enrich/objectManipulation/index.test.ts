@@ -94,6 +94,7 @@ describe('enrichObjectManipulation', () => {
             operationKind: 'takeHold',
             objectIds: [broomId],
             confidence: 0.92,
+            attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
@@ -128,6 +129,7 @@ describe('enrichObjectManipulation', () => {
             operationKind: 'drop',
             objectIds: [broomId],
             confidence: 0.91,
+            attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
@@ -247,6 +249,7 @@ describe('enrichObjectManipulation', () => {
                 relationKind: 'Under',
                 hostId: roomId,
             }],
+            attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
@@ -297,6 +300,7 @@ describe('enrichObjectManipulation', () => {
                 relationLabel: 'around',
                 hostId: characterId,
             }],
+            attempt: expect.anything(),
         })
     })
 
@@ -345,6 +349,7 @@ describe('enrichObjectManipulation', () => {
                 relationKind: 'Against',
                 hostId: roomId,
             }],
+            attempt: expect.anything(),
         })
     })
 
@@ -395,6 +400,7 @@ describe('enrichObjectManipulation', () => {
                 relationLabel: 'around',
                 hostId: roomId,
             }],
+            attempt: expect.anything(),
         })
     })
 
@@ -452,6 +458,7 @@ describe('enrichObjectManipulation', () => {
                 relationLabel: 'off',
                 hostId: roomId,
             }],
+            attempt: expect.anything(),
         })
     })
 
@@ -557,6 +564,7 @@ describe('enrichObjectManipulation', () => {
             operationKind: 'drop',
             objectIds: [broomId],
             confidence: 0.85,
+            attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
     })
@@ -643,6 +651,7 @@ describe('enrichObjectManipulation', () => {
             operationKind: 'takeHold',
             objectIds: [broomId],
             confidence: 0.88,
+            attempt: expect.anything(),
         })
         expect(embedSpan).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
@@ -693,6 +702,7 @@ describe('enrichObjectManipulation', () => {
                 relationKind: 'Against',
                 hostId: roomId,
             }],
+            attempt: expect.anything(),
         })
     })
 
@@ -725,6 +735,7 @@ describe('enrichObjectManipulation', () => {
             operationKind: 'takeHold',
             objectIds: [broomId],
             confidence: 0.92,
+            attempt: expect.anything(),
         })
     })
 })

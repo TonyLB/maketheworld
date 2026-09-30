@@ -27,7 +27,7 @@ describe('buildObjectMoveOp', () => {
         expect(op.headerSlot).toBeNull()
     })
 
-    it('builds narration ingredients with no carriedCount (retired: computeCarryClosure is a singleton since CD3)', () => {
+    it('builds narration ingredients naming only the moved object', () => {
         const op = buildObjectMoveOp({
             entityId: TRAY,
             fromGraph: emptyFromGraph,

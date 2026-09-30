@@ -31,6 +31,7 @@ import type { ObjectManipulationPositionsReadDeps } from './enrich/objectManipul
 import type { MutationKernelStep } from '../positions/manipulation/kernel/kernelStep'
 import type { EmbedObjectSpanResult } from '../objects/embedding/embedObjectSpan'
 import type { MessageBus } from '../../messageBus/baseClasses'
+import type { CommandAttemptData } from './commandAttempt'
 
 const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProtocol> = new Set([
     'SayMessage',
@@ -315,15 +316,16 @@ export type ParseCommandObjectRelateIntentResult = {
 
 /**
  * Grounded atomic object manipulation after enrich + resolve (v1: `takeHold`, `drop`).
- * `objectIds` is the carry-closed transfer set (BD-13) --- size 1 for an ordinary command,
- * size >1 when Expansion (`expandTransferMembership`) computed a real multi-object carry
- * (Pipeline A -> B migration Slice 3, 2026-07-15). Always non-empty.
+ * `objectIds` is the moved object --- one entry. Anything it hosts lives in its own shard
+ * and travels with it, so nothing widens this set. Always non-empty.
  */
 export type ParseCommandObjectManipulationResult = {
     type: 'ObjectManipulation'
     operationKind: 'takeHold' | 'drop'
     objectIds: EphemeraObjectId[]
     confidence: ParseCommandConfidence
+    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join. */
+    attempt?: CommandAttemptData
 }
 
 /** Relational operator direction from frame extract (BD-12). */
@@ -363,6 +365,8 @@ export type ParseCommandEstablishRelationResult = {
      * host for the result as a whole once a crossing is involved.
      */
     steps: readonly MutationKernelStep[]
+    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join. */
+    attempt?: CommandAttemptData
 } & RelationalKindAndLabel<'Under' | 'Against' | 'Custom'>
 
 /**
@@ -385,6 +389,8 @@ export type ParseCommandObjectRehostResult = {
     hostId: EphemeraRoomId
     containment: 'On' | 'In' | 'PartOf'
     confidence: ParseCommandConfidence
+    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join. */
+    attempt?: CommandAttemptData
 }
 
 /**

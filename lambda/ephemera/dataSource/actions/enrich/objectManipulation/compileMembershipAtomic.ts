@@ -27,6 +27,7 @@ import {
 } from './membershipObservation'
 import { buildSandboxState } from './sandboxState'
 import { selectMembershipFromPool } from './selectMembershipFromPool'
+import { groundMembershipCandidates } from './groundMembershipCandidates'
 
 export type CompileMembershipAtomicDeps = {
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich
@@ -91,6 +92,7 @@ export async function compileMembershipAtomic(
         roomId: frame.hostRoomId,
         actorCharacterId: frame.characterId,
         commandSpan: frame.rawObjectSpans[0],
+        words: frame.command,
     })
 
     if (selection.type === 'error') {
@@ -130,12 +132,16 @@ export async function compileMembershipAtomic(
 
     if (selection.type === 'resolved' && preGateOutcome.type === 'atomic') {
         // Selector already decided locus legality + exit-edge + boundary-edge completeness
-        // (Slice 4b, sandbox-mediated); pre-gates here only rule out multiPresent.
+        // (Slice 4b, sandbox-mediated); pre-gates here only rule out multiPresent. The
+        // selected attempt's boundary actions are always `dissolve`-only here by
+        // construction: `sandboxMembershipDryRun` declines to resolve a candidate fast
+        // whenever a boundary edge classifies `defer`, routing it to the exit below.
         return {
             type: 'ObjectManipulation',
             operationKind: selection.operationKind,
             objectIds: selection.objectIds,
             confidence: intentConfidence,
+            attempt: selection.candidate.attempt.toJSON(),
         }
     }
 
@@ -177,6 +183,37 @@ export async function compileMembershipAtomic(
 
     if (complexityInvokeFailed && result.type === 'Error' && parseFailureReason !== undefined) {
         return { type: 'Error', errorMessage: parseFailureReason }
+    }
+
+    if (result.type === 'ObjectManipulation') {
+        // This is the branch a defer-classified boundary edge (row 6's Custom-tied rope)
+        // actually reaches today --- `sandboxMembershipDryRun` already declined to resolve
+        // it fast, so the graph challenge the attempt carries only shows up here. When the
+        // LLM keeps the selected operation, the selected candidate's attempt is published
+        // as is. When it changes the operation, the LLM's operation wins: it is what gets
+        // published and what positions executes, so the attempt is re-grounded for the
+        // selected identity paired with that operation, through the same stage.
+        const attempt = result.operationKind === selection.candidate.plan.operationKind
+            ? selection.candidate.attempt
+            : groundMembershipCandidates(
+                [{
+                    identity: selection.candidate.identity,
+                    plan: { kind: 'transferMembership', operationKind: result.operationKind },
+                    confidence: selection.candidate.confidence,
+                }],
+                {
+                    words: frame.command,
+                    span: frame.rawObjectSpans[0] ?? objectId,
+                    catalog: identityCatalog,
+                    sandboxState,
+                    roomId: frame.hostRoomId,
+                    actorCharacterId: frame.characterId,
+                }
+            )[0]!.attempt
+        return {
+            ...result,
+            attempt: attempt.toJSON(),
+        }
     }
 
     return result

@@ -18,8 +18,8 @@ export type DryRunOutcome = {
     decidable: boolean
     reason?: string
     /**
-     * Membership-only: the carry-closed transfer set (BD-13), when a `legal` verdict came from
-     * `sandboxMembershipDryRun`'s Expansion-mediated dry run. Absent for relational dry runs and
+     * Membership-only: the moved object (one entry), when a `legal` verdict came from
+     * `sandboxMembershipDryRun`'s executor-mediated dry run. Absent for relational dry runs and
      * for any non-`legal` verdict.
      */
     objectIds?: EphemeraObjectId[]

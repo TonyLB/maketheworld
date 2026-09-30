@@ -37,9 +37,8 @@ export type CompileDescribeFromSkeletonResult =
  * Object-directed look's Plan pipeline (iteration 9, Phase 4): Plan match
  * (matchLookTemplate) -> Identify (runIdentityStageOverSkeleton) -> Grounding
  * (groundReferent, singular). No Expansion/Validation leg --- unlike relational,
- * a describe referent is singular with no carry-closure and no relation to
- * another referent, so there is no sameHost repair or cycle-legality check to
- * run, and no general Synthesize executor seed is built. Only ever produces
+ * a describe referent is singular with no relation to another referent, so
+ * there is no `sameHost` placement or cycle-legality check to run, and no general Synthesize executor seed is built. Only ever produces
  * candidates the catalog scan can populate today (Object only --- catalog
  * population for Character/Feature is iteration 10 on the object-manipulation
  * ladder; see `dataSource/actions/AGENT.implementation.md`),

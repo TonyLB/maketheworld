@@ -69,6 +69,13 @@ describe('compileRelationalFromSkeleton', () => {
                 relationKind: 'Under',
                 hostId: roomId,
             }],
+            attempt: expect.objectContaining({
+                words: 'put broom under table',
+                referents: [
+                    { refKey: 'OBJECT#Broom/subject', id: broomId, shortName: 'broom' },
+                    { refKey: 'OBJECT#Table/target', id: tableId, shortName: 'table' },
+                ],
+            }),
         })
     })
 

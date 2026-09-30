@@ -170,7 +170,7 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 
 **May revisit** when graph-grounded fact verification lands.
 
-[`factsForStep`](kernel/factsForStep.ts) walks the *output-ordered* steps rather than a hand-assembled subset, which is what makes a carry's `[dissolveRelation*, transferMembership]` stream its dissolve facts before the moved fact. It emits **one combined fact per entity** (with plural `froms` and nullable `to`), not one per host, so the widened lifecycle routes keep the same single-fact-per-entity behavior their predecessors had.
+[`factsForStep`](kernel/factsForStep.ts) walks the *output-ordered* steps rather than a hand-assembled subset, which is what makes a move's `[dissolveRelation*, transferMembership]` stream its dissolve facts before the moved fact. It emits **one combined fact per entity** (with plural `froms` and nullable `to`), not one per host, so the widened lifecycle routes keep the same single-fact-per-entity behavior their predecessors had.
 
 Character-kind emission is folded into `factsForStep` rather than layered on after `commitStepSequence` returns --- that is what keeps `Character Moved` streaming before the kernel's own `RoomUpdate` publish loop, matching `Object Moved`'s ordering guarantee. `orchestrateCharacterRoomMembership`'s test suite asserts this ordering.
 
@@ -232,7 +232,7 @@ Object-lifecycle administrative routes (room place/remove, spawn, destroy/edit, 
        to carry) --- the same shared compiler every other route uses, not a hand-built literal (3e)
     -> commitStepSequence
 
-Carry-closure-transfer routes (object take-hold / drop)
+Object-move routes (object take-hold / drop / give)
   Ingress args (orchestrateObjectMove / planObjectMoveTransfer, 3d 2026-09-08)
     -> buildObjectMoveOp derives dissolvedEdges structurally from the departure host's own graph
        (own-root strip + boundaryEdgeOutcomes classify) -> PositionKernelMoveOp -> compilePositionKernelOp

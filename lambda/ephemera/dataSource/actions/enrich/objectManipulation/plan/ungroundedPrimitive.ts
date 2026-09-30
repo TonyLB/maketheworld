@@ -51,15 +51,14 @@ export type ContainedByAssertion = {
 
 /**
  * BD-28/BD-34: "this object's (or object-set's) relations to anything outside
- * itself must be severed" --- what carry/take/drop needs to sever boundary
+ * itself must be severed" --- what take/drop needs to sever boundary
  * relations explicitly (streaming a fact) rather than via `removeObject`'s
  * implicit edge-stripping. Folded into `Assertion` rather than a fourth
  * top-level `UngroundedPlanStep` kind or a new `Change` primitive: it shares
  * `Assertion`'s retirement shape (evaluates live state, mints 0+ repair-shaped
- * children, contributes no kernel step of its own) even though it needs
- * operand-expansion (unlike `containedBy`) --- see
- * `AGENT.synthesizeStepSequencing.planning.md`'s "Executor design" for the
- * full reasoning. No `negate`: unlike the binary predicates above, this one
+ * children, contributes no kernel step of its own) --- see
+ * `synthesize/AGENT.implementation.md` for how the executor lowers it. No
+ * `negate`: unlike the binary predicates above, this one
  * has no meaningful negated form Plan would ever emit.
  */
 export type IsolatedFromRelationsAssertion = {

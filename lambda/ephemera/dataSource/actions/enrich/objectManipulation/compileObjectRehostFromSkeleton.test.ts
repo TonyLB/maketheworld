@@ -48,6 +48,7 @@ describe('compileObjectRehostFromSkeleton', () => {
             hostId: roomId,
             containment: 'On',
             confidence: 0.9,
+            attempt: expect.anything(),
         })
     })
 
@@ -75,6 +76,7 @@ describe('compileObjectRehostFromSkeleton', () => {
             hostId: roomId,
             containment: 'In',
             confidence: 0.9,
+            attempt: expect.anything(),
         })
     })
 
@@ -100,6 +102,7 @@ describe('compileObjectRehostFromSkeleton', () => {
             hostId: roomId,
             containment: 'On',
             confidence: 0.9,
+            attempt: expect.anything(),
         })
     })
 

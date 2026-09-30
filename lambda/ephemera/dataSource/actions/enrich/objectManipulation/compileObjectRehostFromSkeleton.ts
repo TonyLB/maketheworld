@@ -5,6 +5,7 @@ import type { ParseCommandErrorResult, ParseCommandObjectRehostResult } from '..
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import type { IdentityStageDeps } from './identityStage'
 import { runIdentityStageOverSkeleton } from './identifySkeletonSpans'
 import type { ParseSkeleton } from './parse/parseToken'
@@ -12,6 +13,9 @@ import type { Referent } from './plan/ungroundedPrimitive'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { resolvedSpansFromPools } from './resolvedSpansFromPools'
 import type { ResolvedSpan } from './synthesize/groundReferent'
+import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
+import { PositionAttemptAction } from '../../commandAttempt/action'
+import type { CommandAttemptData } from '../../commandAttempt'
 
 export type CompileObjectRehostFromSkeletonInput = {
     command: string
@@ -52,6 +56,46 @@ const resolveSingleObjectId = (
         return { type: 'error', errorMessage: objectManipulationErrorMessages.ambiguousMatch }
     }
     return { type: 'ok', objectId: objectCandidates[0] }
+}
+
+/**
+ * Trivial attempt-building for rehost (slice 2). This route deliberately never
+ * resolves the subject's current host at parse time (see
+ * `compileObjectRehostFromSkeleton`'s own doc comment below), so no graph is in hand to
+ * classify boundary edges --- unlike the
+ * membership route, this isn't a gap, it's an honest "not detected on the fast path."
+ * No `UngroundedPlanStep` shape exists yet for a rehost's containment argument (`Change`
+ * only has `transferMembership`/`establishRelation`/`dissolveRelation`), so
+ * `desiredResult` stays undefined and the prose gloss alone carries the intent ---
+ * `PositionAttemptAction`'s structural half is optional for exactly this reason.
+ */
+const buildRehostAttempt = (
+    command: string,
+    subjectId: EphemeraObjectId,
+    targetId: EphemeraObjectId,
+    containment: 'On' | 'In' | 'PartOf',
+    catalog: readonly ObjectManipulationCatalogEntry[]
+): CommandAttemptData => {
+    const entryFor = (objectId: EphemeraObjectId) => catalog.find((entry) => entry.objectId === objectId)
+    const subjectEntry = entryFor(subjectId)
+    const targetEntry = entryFor(targetId)
+    const subjectRefKey = `${subjectId}/subject`
+    const targetRefKey = `${targetId}/target`
+    const preposition = containment === 'On' ? 'on' : 'in'
+    const action = new PositionAttemptAction(
+        [],
+        undefined,
+        `Put ${subjectEntry?.normalizedShortName ?? subjectId} ${preposition} ${targetEntry?.normalizedShortName ?? targetId}`
+    )
+
+    return {
+        words: command,
+        referents: [
+            buildCommandAttemptReferent(subjectRefKey, subjectId, subjectEntry?.normalizedShortName ?? subjectId, subjectEntry?.gloss),
+            buildCommandAttemptReferent(targetRefKey, targetId, targetEntry?.normalizedShortName ?? targetId, targetEntry?.gloss),
+        ],
+        actions: [action.toJSON()],
+    }
 }
 
 /**
@@ -108,5 +152,6 @@ export async function compileObjectRehostFromSkeleton(
         hostId: hostRoomId,
         containment: input.containment,
         confidence: intentConfidence,
+        attempt: buildRehostAttempt(input.command, subjectResolved.objectId, targetResolved.objectId, input.containment, catalog),
     }
 }

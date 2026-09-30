@@ -15,8 +15,7 @@
  * independent contributions to the final edge set, not a pipeline.
  *
  * `hostId` is recorded as `seedHostId`, never derived --- the same convention
- * `computeCarryClosure` (`ludicGraph/expandValidate/interactionUnderTransfer.ts`) already uses
- * for a graph's `rootId`: the caller-known identity, written straight in. `EphemeraLudicCacheData`
+ * `EphemeraLudicGraph` uses for its `rootId`: the caller-known identity, written straight in. `EphemeraLudicCacheData`
  * has no separate `rootId` field (CC0b) --- `hostId` already is that record.
  *
  * **3b (findings 5/6, terminal-triggered composition and recovery as one operation) is satisfied

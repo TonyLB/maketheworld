@@ -49,10 +49,21 @@ import {
 import { orchestrateCharacterMove } from './navigate/orchestrateCharacterMove'
 import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { executeEstablishEdgeChain } from './manipulation/relational/executeObjectEstablishRelation'
+import { CommandAttempt, type CommandAttemptData } from '../actions/commandAttempt'
+import { adjudicateAttempt } from '../actions/commandAttempt/adjudicate'
 import { repairRoomOccupancyDrift } from './manipulation/membership/repairRoomOccupancyDrift'
 import { healLudicGraphStructure } from './ludicGraph/healLudicGraphStructure'
 import { healLudicGraphPortMismatch } from './ludicGraph/healLudicGraphPortMismatch'
 import type { PositionsPublishedPayload } from './publishedEvents'
+
+/**
+ * CommandAttemptPhase slice 2 (CA-3): the one bus-crossing reconstruction point, shared
+ * by every route below. Reconstructs the published attempt (if any --- most routes today
+ * don't build one yet, or the caller's own error paths never reached the wiring) and runs
+ * it through the `adjudicate` seam before handing it to the commit-side orchestrator.
+ */
+const reconstructAndAdjudicateAttempt = (data: CommandAttemptData | undefined): CommandAttempt | undefined =>
+    data === undefined ? undefined : adjudicateAttempt(CommandAttempt.fromJSON(data))
 
 export const ephemeraPositionsDataSource = new EphemeraDataSource<
     never,
@@ -104,6 +115,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     toHostId: content.roomId,
                     roomId: content.roomId,
                     characterId: content.characterId,
+                    attempt: reconstructAndAdjudicateAttempt(content.attempt),
                     messageBus,
                     streamEvent,
                 })
@@ -121,6 +133,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 // above --- the old single-host `executeObjectDissolveRelation` is retired.
                 await executeEstablishEdgeChain({
                     steps: content.steps,
+                    attempt: reconstructAndAdjudicateAttempt(content.attempt),
                     messageBus,
                     streamEvent,
                 })
@@ -139,6 +152,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 // unresolved UX/copy question, not this row's job.
                 await executeEstablishEdgeChain({
                     steps: content.steps,
+                    attempt: reconstructAndAdjudicateAttempt(content.attempt),
                     messageBus,
                     streamEvent,
                 })
@@ -165,6 +179,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     roomId: content.roomId,
                     characterId: content.characterId,
                     containment: content.containment,
+                    attempt: reconstructAndAdjudicateAttempt(content.attempt),
                     messageBus,
                     streamEvent,
                 })
@@ -194,6 +209,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     toHostId: content.characterId,
                     roomId: content.roomId,
                     characterId: content.characterId,
+                    attempt: reconstructAndAdjudicateAttempt(content.attempt),
                     messageBus,
                     streamEvent,
                 })

@@ -32,7 +32,7 @@ const findHostOf = (
 /**
  * BD-27c's generic fact-streaming mapping: walks the *output-ordered* steps (not a hand-assembled
  * subset) and maps each to zero-or-more facts. Streaming in step order (BD-28) is what guarantees a
- * carry's steps --- `[dissolveRelation*, transferMembership]` --- stream their dissolve facts before
+ * move's steps --- `[dissolveRelation*, transferMembership]` --- stream their dissolve facts before
  * the moved fact.
  *
  * Character-kind fact emission (folded in for the character-route Migrate row, BD-36): the character

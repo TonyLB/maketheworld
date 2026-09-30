@@ -56,19 +56,30 @@ describe('selectMembershipFromPool', () => {
             ],
         }
 
-        expect(selectMembershipFromPool({
+        const result = selectMembershipFromPool({
             spanPools: [pool],
             verbClass: 'release',
             catalog,
             sandboxState,
             roomId,
             actorCharacterId: characterId,
-        })).toEqual({
+        })
+        expect(result).toEqual({
             type: 'resolved',
             objectId: satchelId,
             objectIds: [satchelId],
             operationKind: 'drop',
             catalogScope: 'held',
+            candidate: expect.objectContaining({ identity: expect.objectContaining({ objectId: satchelId }) }),
+        })
+        // CommandAttemptPhase slice 2.6: the selected candidate carries its grounded attempt.
+        if (result.type !== 'resolved') {
+            throw new Error('expected resolved')
+        }
+        expect(result.candidate.attempt.toJSON()).toEqual({
+            words: 'bag',
+            referents: [{ refKey: 'primaryObject', id: satchelId, shortName: 'satchel' }],
+            actions: [expect.objectContaining({ desiredResultDescription: 'Drop: satchel', challenges: [] })],
         })
     })
 

@@ -1060,6 +1060,7 @@ describe('parseCommand LLM path', () => {
             operationKind: 'takeHold',
             objectIds: [broomId],
             confidence: 0.94,
+            attempt: expect.anything(),
         })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
@@ -1238,6 +1239,7 @@ describe('parseCommand LLM path', () => {
                     relationLabel: 'off',
                     hostId: 'ROOM#Bridge',
                 }],
+                attempt: expect.anything(),
             })
             expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
@@ -1379,6 +1381,7 @@ describe('parseCommand LLM path', () => {
                 relationKind: 'Under',
                 hostId: 'ROOM#Bridge',
             }],
+            attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
@@ -1464,6 +1467,7 @@ describe('parseCommand LLM path', () => {
                 relationKind: 'Under',
                 hostId: 'ROOM#Bridge',
             }],
+            attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
@@ -1506,6 +1510,7 @@ describe('parseCommand LLM path', () => {
             hostId: 'ROOM#Bridge',
             containment: 'In',
             confidence: 0.9,
+            attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
@@ -1548,6 +1553,7 @@ describe('parseCommand LLM path', () => {
             hostId: 'ROOM#Bridge',
             containment: 'On',
             confidence: 0.9,
+            attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
@@ -1617,6 +1623,7 @@ describe('parseCommand LLM path', () => {
                 operationKind: 'takeHold',
                 objectIds: [broomId],
                 confidence: 1,
+                attempt: expect.anything(),
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
@@ -1651,6 +1658,7 @@ describe('parseCommand LLM path', () => {
                 operationKind: 'takeHold',
                 objectIds: [broomId],
                 confidence: 1,
+                attempt: expect.anything(),
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
@@ -1714,6 +1722,7 @@ describe('parseCommand LLM path', () => {
                 operationKind: 'drop',
                 objectIds: [broomId],
                 confidence: 1,
+                attempt: expect.anything(),
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
@@ -1741,6 +1750,7 @@ describe('parseCommand LLM path', () => {
                 operationKind: 'takeHold',
                 objectIds: [broomId],
                 confidence: 1,
+                attempt: expect.anything(),
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })

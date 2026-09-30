@@ -7,7 +7,6 @@ import { groundAssertion } from './groundAssertion'
 import { groundChange } from './groundChange'
 import type { GroundingContext } from './groundReferent'
 import { expandSameHost } from './expandSameHost'
-import { lookupOrComputeClosure } from './expansionEnvironment'
 import type {
     ExecutorParsePlanStep,
     ExpansionEnvironment,
@@ -110,50 +109,6 @@ const groundInstruction = (step: Change | Assertion, context: GroundingContext):
         return { ok: false, reason: result.reason }
     }
     return { ok: true, step: result.assertion }
-}
-
-/**
- * Operand-expansion is a universal phase every grounded instruction passes
- * through; it is a no-op except where an instance's own semantics define a
- * closable operand set --- today, exactly `transferMembership` and
- * `isolatedFromRelations`, both reusing `lookupOrComputeClosure` (Fix 2), so
- * a paired pair sharing one starting object computes the closure at most once.
- */
-const operandExpand = (
-    step: ExecutorParsePlanStep | GroundedAssertion,
-    env: ExpansionEnvironment
-): GroundResult => {
-    if (step.kind === 'transferMembership') {
-        const [startId] = step.objectIds
-        if (startId === undefined) {
-            return { ok: false, reason: 'transferMembership has no object to expand' }
-        }
-        const sourceGraph = env.getGraph(step.fromHostId)
-        if (!sourceGraph) {
-            return { ok: false, reason: `No graph found for host ${step.fromHostId}` }
-        }
-        const closure = lookupOrComputeClosure(env, startId, sourceGraph)
-        return { ok: true, step: { ...step, objectIds: closure.objectIds } }
-    }
-
-    if (step.kind === 'assertion' && step.predicate === 'isolatedFromRelations') {
-        const [startId] = step.objectIds
-        if (startId === undefined) {
-            return { ok: false, reason: 'isolatedFromRelations has no object to expand' }
-        }
-        const hostId = env.getCurrentHost(startId)
-        if (!hostId) {
-            return { ok: false, reason: `No current host found for ${startId}` }
-        }
-        const graph = env.getGraph(hostId)
-        if (!graph) {
-            return { ok: false, reason: `No graph found for host ${hostId}` }
-        }
-        const closure = lookupOrComputeClosure(env, startId, graph)
-        return { ok: true, step: { ...step, objectIds: closure.objectIds } }
-    }
-
-    return { ok: true, step }
 }
 
 type CommandExpandOutcome =
@@ -296,12 +251,14 @@ export type ExecutorOutcome =
 
 /**
  * BD-30's phase-stratified worklist, realized. Priority per iteration: (1)
- * ground the first `ungrounded`; (2) else operand-expand the first
- * `grounded`; (3) else command-expand the frontmost `operandExpanded` item,
+ * ground the first `ungrounded`; (2) else command-expand the frontmost item,
  * retiring it into the output list (atomic effect) or replacing it with its
  * minted children pushed to the front (generator). Strict list-order (FIFO)
  * selection at every phase, plus push-to-front, is what gives BD-28's
  * sequencing resolution its guarantee --- no separate priority tier needed.
+ * Grounding never widens an operand set: an object's hosted contents live in
+ * its own shard and travel with it, so no phase between grounding and
+ * command-expansion computes a moved set.
  *
  * `groundingContext` is optional because a fully-grounded seed never reaches
  * phase (1): every child minted during a run is already grounded (see the
@@ -347,25 +304,9 @@ export const runExecutor = (
             continue
         }
 
-        const groundedIndex = worklist.findIndex((item) => item.tag === 'grounded')
-        if (groundedIndex >= 0) {
-            const item = worklist[groundedIndex]!
-            if (item.tag !== 'grounded') {
-                continue
-            }
-            const result = operandExpand(item.step, env)
-            if (!result.ok) {
-                return { verdict: 'error', reason: result.reason }
-            }
-            worklist = worklist.map((entry, index) =>
-                index === groundedIndex ? { id: item.id, tag: 'operandExpanded' as const, step: result.step } : entry
-            )
-            continue
-        }
-
         const [frontmost, ...rest] = worklist
-        if (frontmost === undefined || frontmost.tag !== 'operandExpanded') {
-            return { verdict: 'error', reason: 'Internal error: expected an operandExpanded frontmost instruction' }
+        if (frontmost === undefined || frontmost.tag !== 'grounded') {
+            return { verdict: 'error', reason: 'Internal error: expected a grounded frontmost instruction' }
         }
         const commandResult = commandExpand(frontmost.step, env)
         if (commandResult.kind === 'error') {
