@@ -5,13 +5,18 @@ import {
     T_JOINT_ABS_UNARY,
     T_JOINT_MARGIN,
 } from './embeddingMatch/thresholds'
+import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import {
+    groundMembershipCandidates,
+    membershipSourceHostId,
+    type GroundedMembershipCandidate,
+} from './groundMembershipCandidates'
 import type { IdentityPlanCandidate } from './identityPlanCandidate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { SandboxState } from './sandboxState'
 import type { SpanResolutionConsultAlternative, SpanResolutionOutcome } from './spanResolution'
-import { actingCharacterRef, currentHostRef, objectSpanRef } from './plan/ungroundedPrimitive'
 import type { GroundingContext } from './synthesize/groundReferent'
-import { createExpansionEnvironment } from './synthesize/expansionEnvironment'
+import type { ExpansionEnvironment } from './synthesize/executorTypes'
 import { runExecutor, seedTransferMembership } from './synthesize/executor'
 import { validateMembershipPlanDryRun } from './validatePlanDryRun'
 import type { DryRunOutcome } from './validatePlanDryRun'
@@ -150,9 +155,9 @@ function selectAmongLegal<T>(
     }
 }
 
-export type ScoredIdentityPlanCandidate = ScoredPlanCandidate<IdentityPlanCandidate>
+export type ScoredIdentityPlanCandidate = ScoredPlanCandidate<GroundedMembershipCandidate>
 
-export type SelectIdentityPlanTupleResult = SelectPlanTupleResult<IdentityPlanCandidate>
+export type SelectIdentityPlanTupleResult = SelectPlanTupleResult<GroundedMembershipCandidate>
 
 export type SelectIdentityPlanTupleInput = {
     candidates: readonly IdentityPlanCandidate[]
@@ -160,15 +165,18 @@ export type SelectIdentityPlanTupleInput = {
     sandboxState?: SandboxState
     roomId?: EphemeraRoomId
     actorCharacterId?: EphemeraCharacterId
-    /** Used to build Consult proposedCommand strings. */
+    /** The object phrase: the attempt's desired result refers to it, and Consult proposedCommand strings use it. */
     commandSpan?: string
+    /** The player's words, for each candidate's attempt. */
+    words?: string
+    /** Supplies each candidate's short name and gloss when grounding its attempt. */
+    catalog?: readonly ObjectManipulationCatalogEntry[]
 }
 
 /**
  * Executor-mediated membership dry run: invokes the general Synthesize executor
  * (`seedTransferMembership` + `runExecutor`). This dry run is
- * Plan-stage: it still needs Grounding (a real candidate search) and so still
- * runs the full executor. **The live commit side no longer mirrors this**
+ * Plan-stage. **The live commit side no longer mirrors this**
  * (take/drop/give's `planObjectMoveTransfer`, 3d 2026-09-08, replacing `executeMembershipTransfer`'s
  * retired `honorDefer` path, 2026-09-07)
  * --- by execute time both hosts are already concrete, so there is nothing left
@@ -180,14 +188,15 @@ export type SelectIdentityPlanTupleInput = {
  * is orthogonal to Expansion's boundary sweep and stays a separate up-front
  * gate, run before the executor.
  *
- * Identify already resolved this candidate to a concrete `objectId`; Grounding
- * here is trivial (a `resolvedSpans` map with exactly one entry), not a search
- * --- the general executor is still the right vehicle rather than a bypass,
- * since it is what actually threads the `isolatedFromRelations` boundary sweep
- * through to `DryRunOutcome.objectIds`.
+ * Validates an already-grounded attempt (built by `groundMembershipCandidates`): the
+ * executor is seeded from the attempt's own desired result. Identify already resolved
+ * this candidate to a concrete `objectId`, so Grounding here is trivial (a
+ * `resolvedSpans` map with exactly one entry), not a search --- the general executor is
+ * still the right vehicle rather than a bypass, since it is what actually threads the
+ * `isolatedFromRelations` boundary sweep through to `DryRunOutcome.objectIds`.
  */
 export const sandboxMembershipDryRun = (
-    candidate: IdentityPlanCandidate,
+    candidate: GroundedMembershipCandidate,
     state: SandboxState,
     roomId: EphemeraRoomId | undefined,
     actorCharacterId: EphemeraCharacterId | undefined
@@ -204,7 +213,7 @@ export const sandboxMembershipDryRun = (
         }
     }
 
-    const sourceHostId = locus.kind === 'room' ? roomId : actorCharacterId
+    const sourceHostId = membershipSourceHostId(locus, roomId, actorCharacterId)
     const destinationHostId = locus.kind === 'room' ? actorCharacterId : roomId
     if (sourceHostId === undefined || destinationHostId === undefined) {
         return {
@@ -226,23 +235,23 @@ export const sandboxMembershipDryRun = (
         return { verdict: 'illegal', decidable: true, reason: objectManipulationErrorMessages.noMembershipHost }
     }
 
-    const stableRefKey = 'sandboxMembershipDryRun/object'
+    const { desiredResult } = candidate
+    const stableRefKey = desiredResult.object.referentType === 'objectSpan' ? desiredResult.object.stableRefKey : undefined
+    if (stableRefKey === undefined) {
+        // planMembershipDesiredResult always stamps one; reaching here is a construction bug.
+        throw new Error('sandboxMembershipDryRun: desired result has no object stableRefKey to ground against')
+    }
     const groundingContext: GroundingContext = {
         actingCharacterId: actorCharacterId,
         resolvedSpans: new Map([[stableRefKey, { verdict: 'resolved', candidateIds: [objectId] }]]),
         getCurrentHost: (componentId) => (componentId === actorCharacterId ? roomId : undefined),
     }
-    const seed = seedTransferMembership({
-        kind: 'change',
-        primitive: 'transferMembership',
-        object: objectSpanRef('object', stableRefKey),
-        from: locus.kind === 'room' ? currentHostRef(actingCharacterRef) : actingCharacterRef,
-        to: locus.kind === 'room' ? actingCharacterRef : currentHostRef(actingCharacterRef),
-    })
-    const env = createExpansionEnvironment(
-        (hostId) => state.get(hostId),
-        () => sourceHostId
-    )
+    const seed = seedTransferMembership(desiredResult)
+    const env: ExpansionEnvironment = {
+        getGraph: (hostId) => state.get(hostId),
+        getCurrentHost: () => sourceHostId,
+        getMembershipContainers: () => [],
+    }
 
     const outcome = runExecutor(seed, env, groundingContext)
 
@@ -269,9 +278,17 @@ export const sandboxMembershipDryRun = (
 export function selectIdentityPlanTuple(
     input: SelectIdentityPlanTupleInput
 ): SelectIdentityPlanTupleResult {
-    const { candidates, sandboxState = new Map(), roomId, actorCharacterId, commandSpan = 'object' } = input
+    const { candidates, sandboxState = new Map(), roomId, actorCharacterId, commandSpan = 'object', words = commandSpan, catalog = [] } = input
+    const grounded = groundMembershipCandidates(candidates, {
+        words,
+        span: commandSpan,
+        catalog,
+        sandboxState,
+        roomId,
+        actorCharacterId,
+    })
     return selectPlanTuple({
-        candidates,
+        candidates: grounded,
         getConfidence: (candidate) => candidate.confidence,
         dryRun: (candidate) => sandboxMembershipDryRun(candidate, sandboxState, roomId, actorCharacterId),
         toConsultAlternative: (candidate) =>

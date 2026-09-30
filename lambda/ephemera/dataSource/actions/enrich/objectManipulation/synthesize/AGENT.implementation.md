@@ -19,8 +19,7 @@ Two invariants worth knowing before touching this, both enforced by `runExecutor
 | File | Role |
 | --- | --- |
 | [`executor.ts`](executor.ts) | The worklist driver (`runExecutor`) and seeding helpers (`seedFromUngroundedSteps`, `seedTransferMembership` --- the BD-34 constructor pairing a `transferMembership` with its `isolatedFromRelations` sibling by construction) |
-| [`executorTypes.ts`](executorTypes.ts) | `WorklistInstruction`'s progress-tagged states (`ungrounded`, `grounded`), `ExpansionEnvironment`, `ExecutorParsePlanStep` (the grounded output shape --- `parsePlanStep.ts`'s relational steps minus `hostRoomId`, per BD-33's assert-and-throw) |
-| [`expansionEnvironment.ts`](expansionEnvironment.ts) | `createExpansionEnvironment`: the live-state reads (`getGraph`, `getCurrentHost`, `getMembershipContainers`) one worklist run shares |
+| [`executorTypes.ts`](executorTypes.ts) | `WorklistInstruction`'s progress-tagged states (`ungrounded`, `grounded`), `ExpansionEnvironment` (the live-state reads one worklist run shares, which callers pass as an object literal), `ExecutorParsePlanStep` (the grounded output shape --- `parsePlanStep.ts`'s relational steps minus `hostRoomId`, per BD-33's assert-and-throw) |
 | [`groundReferent.ts`](groundReferent.ts) | Grounding for a single `Referent`: ranked candidate pools per `stableRefKey` into a settled id (or the joint candidate space `groundChange` fans out over) |
 | [`groundChange.ts`](groundChange.ts) | Grounding for a `Change`: Cartesian product across its `Referent`s, same-object combinations kept (BD-23) |
 | [`groundAssertion.ts`](groundAssertion.ts) | Grounding for an `Assertion` (`sameHost`/`containedBy`/`isolatedFromRelations`) |

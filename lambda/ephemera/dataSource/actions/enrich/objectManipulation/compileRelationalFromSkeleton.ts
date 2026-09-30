@@ -26,9 +26,8 @@ import { filterLegalRelationalCandidates } from './synthesize/filterLegalRelatio
 import { walkAncestryContainers } from './synthesize/findShardBoundary'
 import { groundChange } from './synthesize/groundChange'
 import type { GroundingContext } from './synthesize/groundReferent'
-import { createExpansionEnvironment } from './synthesize/expansionEnvironment'
 import { runExecutor } from './synthesize/executor'
-import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep, GroundedSameHostAssertion, WorklistInstruction } from './synthesize/executorTypes'
+import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep, ExpansionEnvironment, GroundedSameHostAssertion, WorklistInstruction } from './synthesize/executorTypes'
 import type { MutationKernelStep } from '../../../positions/manipulation/kernel/kernelStep'
 import { objectSpanRef } from './plan/ungroundedPrimitive'
 import type { EstablishRelationChange, DissolveRelationChange } from './plan/ungroundedPrimitive'
@@ -304,7 +303,11 @@ export async function compileRelationalFromSkeleton(
         // rather than dropping the candidate --- see below.
         // `expandSameHost`/`commandExpand`/`buildCrossingLegs` are unit-tested directly for the
         // deeper cases (`expandSameHost.test.ts`, `executor.test.ts`, `buildCrossingLegs.test.ts`).
-        const env = createExpansionEnvironment(getGraph, getCurrentHostForExpansion, getMembershipContainersForExpansion)
+        const env: ExpansionEnvironment = {
+            getGraph,
+            getCurrentHost: getCurrentHostForExpansion,
+            getMembershipContainers: getMembershipContainersForExpansion,
+        }
         const outcome = runExecutor(seed, env, context)
 
         // `defer`/`error`: this route has no Consult/LLM-fallback path today (unlike

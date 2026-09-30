@@ -3,6 +3,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import type { ManipulationVerbClass } from '../../baseClasses'
 import type { ObjectManipulationCatalogEntry, ObjectManipulationCatalogScope } from './catalogMerge'
 import { existencePresenceGuard } from './existencePresenceGuard'
+import type { GroundedMembershipCandidate } from './groundMembershipCandidates'
 import { proposeMembershipTuples } from './proposeMembershipTuples'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { SandboxState } from './sandboxState'
@@ -21,11 +22,15 @@ export type SelectMembershipFromPoolResult =
         objectIds: EphemeraObjectId[]
         operationKind: 'takeHold' | 'drop'
         catalogScope: ObjectManipulationCatalogScope
+        /** The selected (identity, plan) tuple with its grounded attempt. */
+        candidate: GroundedMembershipCandidate
     }
     | {
         type: 'defer'
         objectId: EphemeraObjectId
         catalogScope: ObjectManipulationCatalogScope
+        /** The selected (identity, plan) tuple with its grounded attempt. */
+        candidate: GroundedMembershipCandidate
     }
     | {
         type: 'consult'
@@ -49,6 +54,8 @@ export type SelectMembershipFromPoolInput = {
     roomId?: EphemeraRoomId
     actorCharacterId?: EphemeraCharacterId
     commandSpan?: string
+    /** The player's words, for each candidate's attempt. */
+    words?: string
 }
 
 /**
@@ -58,7 +65,7 @@ export type SelectMembershipFromPoolInput = {
 export function selectMembershipFromPool(
     input: SelectMembershipFromPoolInput
 ): SelectMembershipFromPoolResult {
-    const { spanPools, verbClass, catalog, sandboxState, roomId, actorCharacterId, commandSpan } = input
+    const { spanPools, verbClass, catalog, sandboxState, roomId, actorCharacterId, commandSpan, words } = input
 
     if (spanPools.length === 0) {
         return {
@@ -75,6 +82,8 @@ export function selectMembershipFromPool(
         roomId,
         actorCharacterId,
         commandSpan: commandSpan ?? pool.span,
+        words,
+        catalog,
     })
 
     return mapSelection(selection, catalog)
@@ -121,6 +130,7 @@ function mapSelection(
             type: 'defer',
             objectId: candidate.identity.objectId,
             catalogScope,
+            candidate,
         }
     }
 
@@ -130,5 +140,6 @@ function mapSelection(
         objectIds: selection.dryRun.objectIds ?? [candidate.identity.objectId],
         operationKind: candidate.plan.operationKind,
         catalogScope,
+        candidate,
     }
 }

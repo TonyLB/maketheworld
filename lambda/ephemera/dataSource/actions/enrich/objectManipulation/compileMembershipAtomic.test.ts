@@ -382,5 +382,56 @@ describe('compileMembershipAtomic', () => {
                 description: expect.stringContaining('is lashed to'),
             })
         )
+        // Slice 2.6: the LLM kept the selected operation, so the selected candidate's attempt is published.
+        expect(result.attempt?.actions[0]?.desiredResultDescription).toBe('Take: rope')
+    })
+
+    it('CommandAttemptPhase slice 2.6: when the complexity LLM changes the operation, the published attempt is re-grounded for the LLM\'s operation', async () => {
+        const postId = 'OBJECT#Post' as EphemeraObjectId
+        const ropeId = 'OBJECT#Rope' as EphemeraObjectId
+        const roomGraphWithCustomEdge = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [{ tag: 'Relational', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' }],
+        })
+        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
+        const getLudicGraph = hostAwareGetLudicGraph({ [roomId]: roomGraphWithCustomEdge })
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"disposition":"atomic","operationKind":"drop"}',
+        })
+
+        const result = await compileMembershipAtomic(
+            {
+                command: 'take the entire coil of rope',
+                rawObjectSpans: ['rope'],
+                verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [{ objectId: ropeId, normalizedShortName: 'rope' }, { objectId: postId, normalizedShortName: 'post' }],
+            },
+            0.9,
+            {
+                invokeBedrockObjectManipulationComplexityImpl,
+                positionsReadDeps: { getMembershipContainers, getLudicGraph },
+            }
+        )
+
+        expect(result.type).toBe('ObjectManipulation')
+        if (result.type !== 'ObjectManipulation') {
+            return
+        }
+        expect(result.operationKind).toBe('drop')
+        const primaryAction = result.attempt?.actions[0]
+        expect(primaryAction?.desiredResultDescription).toBe('Drop: rope')
+        expect(primaryAction?.desiredResult).toEqual(expect.objectContaining({
+            from: { referentType: 'actingCharacter' },
+            to: { referentType: 'currentHost', referentTarget: { referentType: 'actingCharacter' } },
+        }))
+        // Same identity, same locus graph: the boundary expansion is unchanged.
+        expect(result.attempt?.actions).toHaveLength(2)
+        expect(result.attempt?.actions[1]?.challenges[0]).toEqual(expect.objectContaining({ kind: 'customEdge' }))
     })
 })
