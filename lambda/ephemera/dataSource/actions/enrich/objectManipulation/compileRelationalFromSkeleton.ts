@@ -29,8 +29,8 @@ import type { GroundingContext } from './synthesize/groundReferent'
 import { runExecutor } from './synthesize/executor'
 import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep, ExpansionEnvironment, GroundedSameHostAssertion, WorklistInstruction } from './synthesize/executorTypes'
 import type { MutationKernelStep } from '../../../positions/manipulation/kernel/kernelStep'
-import { objectSpanRef } from './plan/ungroundedPrimitive'
-import type { EstablishRelationChange, DissolveRelationChange } from './plan/ungroundedPrimitive'
+import { actingCharacterRef, currentHostRef, objectSpanRef } from './plan/planStep'
+import type { EstablishRelationChange, DissolveRelationChange } from './plan/planStep'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
 import { PositionAttemptAction } from '../../commandAttempt/action'
@@ -82,6 +82,7 @@ const buildRelationalAttempt = (
         primitive: candidate.kind,
         subject: objectSpanRef(subjectEntry?.normalizedShortName ?? candidate.subjectId, subjectRefKey),
         target: objectSpanRef(targetEntry?.normalizedShortName ?? candidate.targetId, targetRefKey),
+        host: currentHostRef(actingCharacterRef),
         ...(candidate.relationKind === 'Custom'
             ? { relationKind: 'Custom' as const, relationLabel: candidate.relationLabel }
             : { relationKind: candidate.relationKind }),

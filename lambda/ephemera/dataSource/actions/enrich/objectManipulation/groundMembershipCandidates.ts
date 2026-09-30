@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { CommandAttempt } from '../../commandAttempt'
@@ -11,9 +11,9 @@ import {
     actingCharacterRef,
     currentHostRef,
     objectSpanRef,
-    type Referent,
+    withGroundedId,
     type TransferMembershipChange,
-} from './plan/ungroundedPrimitive'
+} from './plan/planStep'
 import type { SandboxState } from './sandboxState'
 import type { SpanCandidateLocus } from './spanResolution'
 
@@ -21,7 +21,8 @@ import type { SpanCandidateLocus } from './spanResolution'
  * An (identity, plan) tuple grounded into its attempt: the selection unit on the
  * membership route. `desiredResult` is the exact value the attempt's primary action
  * wraps, carried alongside so `sandboxMembershipDryRun` seeds the executor from it
- * without narrowing the attempt's action family.
+ * without narrowing the attempt's action family. Its `object` carries the candidate's
+ * `groundedId`; `from`/`to` stay derived, since this stage knows only the object.
  */
 export type GroundedMembershipCandidate = IdentityPlanCandidate & {
     desiredResult: TransferMembershipChange
@@ -83,7 +84,8 @@ export const membershipSourceHostId = (
 
 /**
  * Ground + expand, run before scoring: one grounded attempt per (identity, plan) tuple.
- * Grounding ties the object phrase to the candidate's catalog entry (short name, gloss);
+ * Grounding adds the candidate's id to Plan's object referent (keeping its span and
+ * `stableRefKey`) and ties the phrase to the candidate's catalog entry (short name, gloss);
  * Expansion adds one action per boundary edge from the candidate's source graph (CA-7),
  * with a graph challenge on each `defer`. A candidate with no source graph grounds its
  * referent but skips expansion.
@@ -99,8 +101,6 @@ export const groundMembershipCandidates = (
 ): GroundedMembershipCandidate[] => {
     const { words, span, catalog, sandboxState, roomId, actorCharacterId } = context
     const catalogById = new Map(catalog.map((entry) => [entry.objectId, entry]))
-    const referentOf = (id: EphemeraObjectId): Referent =>
-        objectSpanRef(catalogById.get(id)?.normalizedShortName ?? id, id)
 
     const plannedByOperation = new Map<'takeHold' | 'drop', TransferMembershipChange>()
     const planned = (operationKind: 'takeHold' | 'drop'): TransferMembershipChange => {
@@ -116,7 +116,11 @@ export const groundMembershipCandidates = (
     return candidates.map((candidate): GroundedMembershipCandidate => {
         const { objectId, locus } = candidate.identity
         const { operationKind } = candidate.plan
-        const desiredResult = planned(operationKind)
+        const plannedResult = planned(operationKind)
+        const desiredResult: TransferMembershipChange = {
+            ...plannedResult,
+            object: withGroundedId(plannedResult.object, objectId),
+        }
 
         const catalogEntry = catalogById.get(objectId)
         const shortName = catalogEntry?.normalizedShortName ?? span
@@ -130,7 +134,7 @@ export const groundMembershipCandidates = (
         const sourceHostId = membershipSourceHostId(locus, roomId, actorCharacterId)
         const sourceGraph = sourceHostId !== undefined ? sandboxState.get(sourceHostId) : undefined
         const actions = sourceGraph !== undefined
-            ? attemptActionsFromBoundaryOutcomes(primaryAction, new Set([objectId]), sourceGraph, referentOf)
+            ? attemptActionsFromBoundaryOutcomes(primaryAction, new Set([objectId]), sourceGraph)
             : [primaryAction]
 
         return {

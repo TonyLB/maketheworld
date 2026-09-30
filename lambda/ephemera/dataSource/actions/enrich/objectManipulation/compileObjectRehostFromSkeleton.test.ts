@@ -3,7 +3,7 @@ import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts
 import { compileObjectRehostFromSkeleton } from './compileObjectRehostFromSkeleton'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ParseSkeleton } from './parse/parseToken'
-import { objectSpanRef } from './plan/ungroundedPrimitive'
+import { objectSpanRef } from './plan/planStep'
 
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
 const trayId = 'OBJECT#Tray' as EphemeraObjectId

@@ -1,4 +1,4 @@
-import type { UngroundedPlanStep } from '../enrich/objectManipulation/plan/ungroundedPrimitive'
+import type { PlanStep } from '../enrich/objectManipulation/plan/planStep'
 import type { Challenge, ChallengeData } from './challenge'
 import { challengeFromJSON, challengeToJSON } from './challenge'
 
@@ -18,7 +18,7 @@ export interface AttemptActionMember {
 }
 
 /**
- * The only member today. Plan's `UngroundedPlanStep` already discriminates five
+ * The only member today. Plan's `PlanStep` already discriminates five
  * primitive shapes (`transferMembership` / `establishRelation` / `dissolveRelation` /
  * `containedBy` / `isolatedFromRelations`), but all five are one *outcome class* ---
  * position --- so they share this one action member rather than five. `desiredResult`
@@ -26,11 +26,11 @@ export interface AttemptActionMember {
  * `describe()` since nothing deterministic reads the structural half yet.
  */
 export class PositionAttemptAction implements AttemptActionMember {
-    readonly desiredResult?: UngroundedPlanStep
+    readonly desiredResult?: PlanStep
     readonly desiredResultDescription?: string
     private readonly _challenges: Challenge[]
 
-    constructor(challenges: Challenge[], desiredResult?: UngroundedPlanStep, desiredResultDescription?: string) {
+    constructor(challenges: Challenge[], desiredResult?: PlanStep, desiredResultDescription?: string) {
         this._challenges = challenges
         this.desiredResult = desiredResult
         this.desiredResultDescription = desiredResultDescription
@@ -68,7 +68,7 @@ export class PositionAttemptAction implements AttemptActionMember {
 
 export type AttemptActionData = {
     kind: 'position'
-    desiredResult?: UngroundedPlanStep
+    desiredResult?: PlanStep
     desiredResultDescription?: string
     challenges: ChallengeData[]
 }

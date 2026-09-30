@@ -1,6 +1,6 @@
 import type { ParseSkeleton } from '../parse/parseToken'
 import type { ManipulationVerbClass } from '../../../baseClasses'
-import type { Referent } from './ungroundedPrimitive'
+import type { Referent } from './planStep'
 import { matchLookTemplate } from './matchLookTemplate'
 import { matchRelationalTemplate } from './matchRelationalTemplate'
 

@@ -9,7 +9,7 @@ import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import type { IdentityStageDeps } from './identityStage'
 import { runIdentityStageOverSkeleton } from './identifySkeletonSpans'
 import type { ParseSkeleton } from './parse/parseToken'
-import type { Referent } from './plan/ungroundedPrimitive'
+import type { Referent } from './plan/planStep'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { resolvedSpansFromPools } from './resolvedSpansFromPools'
 import type { ResolvedSpan } from './synthesize/groundReferent'
@@ -64,7 +64,7 @@ const resolveSingleObjectId = (
  * `compileObjectRehostFromSkeleton`'s own doc comment below), so no graph is in hand to
  * classify boundary edges --- unlike the
  * membership route, this isn't a gap, it's an honest "not detected on the fast path."
- * No `UngroundedPlanStep` shape exists yet for a rehost's containment argument (`Change`
+ * No `PlanStep` shape exists yet for a rehost's containment argument (`Change`
  * only has `transferMembership`/`establishRelation`/`dissolveRelation`), so
  * `desiredResult` stays undefined and the prose gloss alone carries the intent ---
  * `PositionAttemptAction`'s structural half is optional for exactly this reason.

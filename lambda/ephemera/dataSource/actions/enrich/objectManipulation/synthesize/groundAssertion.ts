@@ -1,6 +1,6 @@
 import { isEphemeraObjectId, type EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { Assertion, Referent } from '../plan/ungroundedPrimitive'
+import type { Assertion, Referent } from '../plan/planStep'
 import { groundReferent, type GroundingContext } from './groundReferent'
 import type { GroundedAssertion } from './executorTypes'
 

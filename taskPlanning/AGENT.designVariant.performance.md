@@ -122,6 +122,7 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | 2026-09-26 | `other` | Treated the user's confirmation of four families (evidence) as a go-ahead to document and design them; the question it supported was how to adjust house style to use TS classes as an organizing tool. |
 | 2026-09-26 | `other` | Offered "values whose origin matters" as a third reason to use a class, with an invented example and no evidence in the branch; closest real case (`EphemeraLudicGraph`'s constructors) is invariant protection, already set aside. User asked for its provenance. |
 | 2026-09-26 | `framing-inherited` | Filed a project-wide style rule in `lambda/ephemera/AGENT.implementation.md` because slice 1.5's text scoped the question to `lambda/ephemera`; the file type is a code map anyway. User pointed out the rule is project style. |
+| 2026-09-30 | `framing-inherited` | Planned `GroundedReferent` as a separate `{referentType: 'grounded'; id}` arm, copying the slice text's sketch; it discards the span/refKey already known. User: optional `groundedId` on every arm, required in the refined type. |
 
 ## Patterns
 

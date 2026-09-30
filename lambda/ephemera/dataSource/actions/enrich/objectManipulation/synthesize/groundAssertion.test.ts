@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { objectSpanRef } from '../plan/ungroundedPrimitive'
-import type { Assertion } from '../plan/ungroundedPrimitive'
+import { objectSpanRef } from '../plan/planStep'
+import type { Assertion } from '../plan/planStep'
 import type { GroundingContext, ResolvedSpan } from './groundReferent'
 import { groundAssertion } from './groundAssertion'
 

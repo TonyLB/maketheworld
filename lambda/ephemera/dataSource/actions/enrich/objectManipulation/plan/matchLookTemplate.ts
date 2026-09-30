@@ -1,6 +1,6 @@
 import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
-import type { Referent } from './ungroundedPrimitive'
-import { objectSpanRef } from './ungroundedPrimitive'
+import type { Referent } from './planStep'
+import { objectSpanRef } from './planStep'
 
 const LOOK_VERBS = new Set(['look', 'l', 'examine', 'x'])
 
