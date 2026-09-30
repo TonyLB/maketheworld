@@ -17,7 +17,7 @@ export type SelectMembershipFromPoolResult =
     | {
         type: 'resolved'
         objectId: EphemeraObjectId
-        /** Carry-closed transfer set (BD-13); size 1 for an ordinary command. */
+        /** The moved object (one entry); anything it hosts travels with its shard. */
         objectIds: EphemeraObjectId[]
         operationKind: 'takeHold' | 'drop'
         catalogScope: ObjectManipulationCatalogScope

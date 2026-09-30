@@ -316,9 +316,8 @@ export type ParseCommandObjectRelateIntentResult = {
 
 /**
  * Grounded atomic object manipulation after enrich + resolve (v1: `takeHold`, `drop`).
- * `objectIds` is the carry-closed transfer set (BD-13) --- size 1 for an ordinary command,
- * size >1 when Expansion (`expandTransferMembership`) computed a real multi-object carry
- * (Pipeline A -> B migration Slice 3, 2026-07-15). Always non-empty.
+ * `objectIds` is the moved object --- one entry. Anything it hosts lives in its own shard
+ * and travels with it, so nothing widens this set. Always non-empty.
  */
 export type ParseCommandObjectManipulationResult = {
     type: 'ObjectManipulation'

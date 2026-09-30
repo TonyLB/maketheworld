@@ -165,9 +165,8 @@ export type SelectIdentityPlanTupleInput = {
 }
 
 /**
- * Executor-mediated membership dry run (Migrate slice, 2026-07-23): invokes the
- * general Synthesize executor (`seedTransferMembership` + `runExecutor`) in
- * place of `expandTransferMembership` + `evaluateSandboxPlan`. This dry run is
+ * Executor-mediated membership dry run: invokes the general Synthesize executor
+ * (`seedTransferMembership` + `runExecutor`). This dry run is
  * Plan-stage: it still needs Grounding (a real candidate search) and so still
  * runs the full executor. **The live commit side no longer mirrors this**
  * (take/drop/give's `planObjectMoveTransfer`, 3d 2026-09-08, replacing `executeMembershipTransfer`'s
@@ -178,15 +177,14 @@ export type SelectIdentityPlanTupleInput = {
  * executor to reach the same classification. `validateMembershipPlanDryRun`'s
  * locus-vs-operationKind base check
  * (FT-2.2 --- "declared drop but object is on the room graph", exit-edge defer)
- * is orthogonal to Expansion's carry-closure/boundary-sweep and stays a
- * separate up-front gate, run before the executor --- it is not part of what
- * `evaluateSandboxPlan` retires.
+ * is orthogonal to Expansion's boundary sweep and stays a separate up-front
+ * gate, run before the executor.
  *
  * Identify already resolved this candidate to a concrete `objectId`; Grounding
  * here is trivial (a `resolvedSpans` map with exactly one entry), not a search
  * --- the general executor is still the right vehicle rather than a bypass,
- * since it is what actually threads the shared carry-closure/`isolatedFromRelations`
- * machinery through to `DryRunOutcome.objectIds`.
+ * since it is what actually threads the `isolatedFromRelations` boundary sweep
+ * through to `DryRunOutcome.objectIds`.
  */
 export const sandboxMembershipDryRun = (
     candidate: IdentityPlanCandidate,

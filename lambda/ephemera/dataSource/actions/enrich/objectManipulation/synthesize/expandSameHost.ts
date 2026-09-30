@@ -9,8 +9,8 @@ import type { ExpansionEnvironment } from './executorTypes'
 
 /**
  * `error` is hard-terminal and `defer` today only ever escalates to an LLM
- * validator (BD-10) --- same caveat as `GroundReferentResult`/
- * `ExpandTransferMembershipResult` (BD-18, `AGENT.backtrackChannel.planning.md`):
+ * validator (BD-10) --- same caveat as `GroundReferentResult`
+ * (BD-18, `AGENT.backtrackChannel.planning.md`):
  * keep this union open to further outcomes rather than letting the Pipeline
  * A -> B migration harden call sites around just these.
  */
@@ -21,8 +21,7 @@ export type ExpandSameHostResult =
 
 /**
  * BD-16's second Expansion instance: "a relation is intended --- where does it
- * go?" Originally the mirror image of `expandTransferMembership.ts` (BD-13),
- * answering it with a *transfer*: move the subject onto the object's host and
+ * go?" It once answered with a *transfer*: move the subject onto the object's host and
  * call the precondition repaired. **That answer was retired, 2026-09-01.**
  * A violated `sameHost` on a peer relation is not a sign that something is in
  * the wrong place --- it is the ordinary case of two things in different shards
@@ -48,9 +47,8 @@ export type ExpandSameHostResult =
  * function they need their own branch built for them.
  *
  * `env` carries plain injected callbacks, not live DB calls --- matches
- * `GroundingContext`/`expandTransferMembership.ts`'s convention. Standalone and unwired: does
- * not decide how Grounding and Expansion interleave (`AGENT.concepts.md`, "Synthesize's three
- * sub-roles") --- this function only operates on already-grounded ids.
+ * `GroundingContext`'s convention. It only operates on already-grounded ids; the executor's
+ * `sameHost` command-expansion is its one caller.
  *
  * **`establishRelation` and `dissolveRelation` ask genuinely different questions of
  * genuinely different state**, and now call genuinely different primitives --- `findShardBoundary`

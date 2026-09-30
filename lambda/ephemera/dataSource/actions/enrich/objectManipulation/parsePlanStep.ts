@@ -10,7 +10,7 @@ import type { PeerRelationalEdgeKind } from './relationKind'
 
 export type TransferMembershipStep = {
     kind: 'transferMembership'
-    objectIds: ReadonlySet<EphemeraObjectId> // BD-13: a set, not a single id --- carry-closure produces multi-member transfers
+    objectIds: ReadonlySet<EphemeraObjectId> // BD-13: a set, though every live producer names one object --- hosted contents travel with its shard
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
 }

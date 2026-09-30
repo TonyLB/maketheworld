@@ -51,7 +51,7 @@ export type CharacterHomePublishedPayload = {
     bundleId?: string;
 }
 
-/** `objectIds` is the carry-closed transfer set (BD-13); size 1 for an ordinary take-hold. */
+/** `objectIds` is the moved object (one entry); anything it hosts travels with its shard. */
 export type ObjectTakeHoldPublishedPayload = {
     type: 'Object Take Hold';
     characterId: EphemeraCharacterId;
@@ -62,7 +62,7 @@ export type ObjectTakeHoldPublishedPayload = {
     attempt?: CommandAttemptData;
 }
 
-/** `objectIds` is the carry-closed transfer set (BD-13); size 1 for an ordinary drop. */
+/** `objectIds` is the moved object (one entry); anything it hosts travels with its shard. */
 export type ObjectDropPublishedPayload = {
     type: 'Object Drop';
     characterId: EphemeraCharacterId;
