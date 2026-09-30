@@ -10,10 +10,10 @@ export type { Verdict, VerdictData } from './verdict'
 export { MetVerdict, ImpossibleVerdict } from './verdict'
 
 /**
- * A grounded, described participant in an attempt --- distinct from
- * `plan/ungroundedPrimitive.ts`'s `Referent`, which names an ungrounded, span-based
- * reference. This one names whatever Identify has already resolved a span to, carried
- * here purely for prose (section 2 of CA-1's format); nothing deterministic reads it.
+ * Prose data for one phrase the player used (section 2 of CA-1's format): the phrase's
+ * `refKey`, the id it grounded to, and how to describe that thing. It is not how an
+ * action's steps name the thing --- those hold `plan/planStep.ts`'s `Referent`, which
+ * carries its own `groundedId` once known --- and nothing deterministic reads it.
  * Referents are not a member family (1.6): every kind answers the same questions as
  * data, differing only in where the data is looked up, so this stays a plain type.
  */

@@ -1,5 +1,6 @@
 import type { ParseSkeleton } from '../parse/parseToken'
 import { matchRelationalTemplate } from './matchRelationalTemplate'
+import { actingCharacterRef, currentHostRef } from './planStep'
 
 describe('matchRelationalTemplate', () => {
     it('matches an establishRelation template with an enum relation ("put broom under table")', () => {
@@ -17,6 +18,7 @@ describe('matchRelationalTemplate', () => {
                 primitive: 'establishRelation',
                 subject: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
                 target: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+                host: currentHostRef(actingCharacterRef),
                 relationKind: 'Under',
             },
         })
@@ -54,6 +56,7 @@ describe('matchRelationalTemplate', () => {
                 primitive: 'dissolveRelation',
                 subject: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
                 target: { referentType: 'objectSpan', span: 'crate', stableRefKey: 'crateRef' },
+                host: currentHostRef(actingCharacterRef),
                 relationKind: 'Custom',
                 relationLabel: 'off',
             },
@@ -106,6 +109,7 @@ describe('matchRelationalTemplate', () => {
                 primitive: 'establishRelation',
                 subject: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
                 target: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+                host: currentHostRef(actingCharacterRef),
                 relationKind: 'Custom',
                 relationLabel: 'to',
             },

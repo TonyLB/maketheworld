@@ -2,14 +2,12 @@ import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts
 import { testLudicGraph } from '../../positions/ludicGraph/testFixtures'
 import { attemptActionsFromBoundaryOutcomes } from './expandBoundaryChallenges'
 import { PositionAttemptAction } from './action'
-import { objectSpanRef } from '../enrich/objectManipulation/plan/ungroundedPrimitive'
+import { graphNodeRef } from '../enrich/objectManipulation/plan/planStep'
 
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const ropeId = 'OBJECT#Rope' as EphemeraObjectId
 const anvilId = 'OBJECT#Anvil' as EphemeraObjectId
 const postId = 'OBJECT#Post' as EphemeraObjectId
-
-const referentOf = (id: EphemeraObjectId) => objectSpanRef(id, id)
 
 describe('attemptActionsFromBoundaryOutcomes', () => {
     it('adds one challenge-free action for a dissolve-classified boundary edge', () => {
@@ -22,7 +20,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction([], undefined, 'Take: rope')
 
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph, referentOf)
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
 
         expect(actions).toHaveLength(2)
         expect(actions[0]).toBe(primaryAction)
@@ -39,7 +37,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction([], undefined, 'Take: rope')
 
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph, referentOf)
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
 
         expect(actions).toHaveLength(2)
         const dissolveAction = actions[1]
@@ -52,13 +50,36 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         expect(challenges[0]?.describe()).toContain('is lashed to')
     })
 
+    it('grounds each dissolve in the edge\'s own direction, even when the moved object is the edge\'s target', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [{ tag: 'Relational', from: postId, to: ropeId, kind: 'Custom', relationLabel: 'is lashed to' }],
+        })
+        const primaryAction = new PositionAttemptAction([], undefined, 'Take: rope')
+
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
+
+        expect(actions[1]?.toJSON().desiredResult).toEqual({
+            kind: 'change',
+            primitive: 'dissolveRelation',
+            subject: graphNodeRef(postId),
+            target: graphNodeRef(ropeId),
+            host: graphNodeRef(roomId),
+            relationKind: 'Custom',
+            relationLabel: 'is lashed to',
+        })
+    })
+
     it('returns only the primary action when the graph has no boundary edges', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Object' as const, universalKey: ropeId }],
         })
         const primaryAction = new PositionAttemptAction([], undefined, 'Take: rope')
 
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph, referentOf)
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
 
         expect(actions).toEqual([primaryAction])
     })

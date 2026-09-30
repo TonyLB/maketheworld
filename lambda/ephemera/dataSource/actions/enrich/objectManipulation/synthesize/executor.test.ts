@@ -1,10 +1,10 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
-import { objectSpanRef } from '../plan/ungroundedPrimitive'
-import type { TransferMembershipChange } from '../plan/ungroundedPrimitive'
+import { graphNodeRef, objectSpanRef } from '../plan/planStep'
+import type { DissolveRelationChange, GroundedReferent, TransferMembershipChange } from '../plan/planStep'
 import type { GroundingContext } from './groundReferent'
-import { runExecutor, seedTransferMembership } from './executor'
+import { runExecutor, seedFromGroundedSteps, seedTransferMembership } from './executor'
 import type { ExpansionEnvironment, WorklistInstruction } from './executorTypes'
 
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -273,5 +273,67 @@ describe('runExecutor', () => {
         )
 
         expect(result).toEqual({ verdict: 'error', reason: expect.stringContaining('GroundingContext') })
+    })
+})
+
+describe('seedFromGroundedSteps', () => {
+    const lashedDissolve = (hostId: EphemeraRoomId | EphemeraCharacterId): DissolveRelationChange<GroundedReferent> => ({
+        kind: 'change',
+        primitive: 'dissolveRelation',
+        subject: graphNodeRef(CUP_ID),
+        target: graphNodeRef(SAUCER_ID),
+        host: graphNodeRef(hostId),
+        relationKind: 'Custom',
+        relationLabel: 'is glued to',
+    })
+
+    it('seeds a fully grounded relational step as a grounded instruction, reading each groundedId', () => {
+        const [instruction] = seedFromGroundedSteps([lashedDissolve(ROOM_ID)])
+
+        expect(instruction).toEqual({
+            id: expect.any(String),
+            tag: 'grounded',
+            step: {
+                kind: 'dissolveRelation',
+                subjectId: CUP_ID,
+                targetId: SAUCER_ID,
+                hostId: ROOM_ID,
+                relationKind: 'Custom',
+                relationLabel: 'is glued to',
+            },
+        })
+    })
+
+    it('keeps a non-Room host, which groundChange\'s derived-host filter would drop', () => {
+        const [instruction] = seedFromGroundedSteps([lashedDissolve(CHARACTER_ID)])
+
+        expect(instruction?.step).toEqual(expect.objectContaining({ hostId: CHARACTER_ID }))
+    })
+
+    it('lowers a grounded transferMembership', () => {
+        const [instruction] = seedFromGroundedSteps([{
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: graphNodeRef(TRAY_ID),
+            from: graphNodeRef(ROOM_ID),
+            to: graphNodeRef(CHARACTER_ID),
+        }])
+
+        expect(instruction?.step).toEqual({
+            kind: 'transferMembership',
+            objectIds: new Set([TRAY_ID]),
+            fromHostId: ROOM_ID,
+            toHostId: CHARACTER_ID,
+        })
+    })
+
+    it('throws on an ill-typed grounded id', () => {
+        expect(() => seedFromGroundedSteps([{
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: graphNodeRef(ROOM_ID),
+            from: graphNodeRef(ROOM_ID),
+            to: graphNodeRef(CHARACTER_ID),
+        }])).toThrow('ill-typed')
     })
 })

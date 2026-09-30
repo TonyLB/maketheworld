@@ -4,6 +4,7 @@ import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { groundMembershipCandidates, planMembershipDesiredResult } from './groundMembershipCandidates'
 import type { IdentityPlanCandidate } from './identityPlanCandidate'
+import { withGroundedId } from './plan/planStep'
 import { buildSandboxState } from './sandboxState'
 import type { SpanCandidateLocus } from './spanResolution'
 
@@ -58,7 +59,8 @@ describe('groundMembershipCandidates', () => {
 
         expect(grounded).toHaveLength(2)
         for (const entry of grounded) {
-            expect(entry.desiredResult).toEqual(planMembershipDesiredResult('takeHold', 'rope'))
+            const planned = planMembershipDesiredResult('takeHold', 'rope')
+            expect(entry.desiredResult).toEqual({ ...planned, object: withGroundedId(planned.object, entry.identity.objectId) })
             expect(entry.attempt.toJSON().actions[0]).toEqual(
                 expect.objectContaining({ desiredResult: entry.desiredResult })
             )

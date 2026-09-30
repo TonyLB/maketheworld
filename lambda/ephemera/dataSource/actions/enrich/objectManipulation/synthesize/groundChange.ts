@@ -1,8 +1,7 @@
 import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { Change } from '../plan/ungroundedPrimitive'
-import { actingCharacterRef, currentHostRef } from '../plan/ungroundedPrimitive'
+import type { Change } from '../plan/planStep'
 import type { ParsePlanStep } from '../parsePlanStep'
 import { groundReferent, type GroundingContext } from './groundReferent'
 
@@ -40,12 +39,14 @@ export type GroundChangeResult =
  * travels with it. What Grounding leaves for Expansion is the relational edges the
  * move must dissolve or defer on (`isolatedFromRelations`, in `executor.ts`).
  *
- * `establishRelation`/`dissolveRelation` derive their host as
- * `currentHost(actingCharacter)`, per BD-6's still-current default (BD-15/16's
- * `sameHost` generalization, which would let a held-item pair ground to a
- * Character host, isn't built yet). A derived host candidate that isn't a Room
- * is filtered out per-combination rather than failing the whole call, since
- * that widening is explicitly out-of-scope future work (BD-15 slice 3).
+ * `establishRelation`/`dissolveRelation` ground the Change's own `host`. Plan sets it
+ * to BD-6's default, `currentHost(actingCharacter)` (BD-15/16's `sameHost`
+ * generalization, which would let a held-item pair ground to a Character host, isn't
+ * built yet). A host candidate that isn't a Room is filtered out per-combination
+ * rather than failing the whole call, since that widening is explicitly out-of-scope
+ * future work (BD-15 slice 3). A step whose referents are all grounded already
+ * (Expansion's dissolves) never comes here: `seedFromGroundedSteps` (`executor.ts`)
+ * seeds it as a grounded instruction, so a grounded non-Room host is not filtered.
  */
 export const groundChange = (change: Change, context: GroundingContext): GroundChangeResult => {
     switch (change.primitive) {
@@ -59,7 +60,7 @@ export const groundChange = (change: Change, context: GroundingContext): GroundC
             if (!target.ok) {
                 return target
             }
-            const host = groundReferent(currentHostRef(actingCharacterRef), context)
+            const host = groundReferent(change.host, context)
             if (!host.ok) {
                 return host
             }

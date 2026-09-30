@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { Referent } from '../plan/ungroundedPrimitive'
+import type { Referent } from '../plan/planStep'
 import type { EphemeraThingId } from '../thing'
 
 export type ResolvedSpan =
@@ -39,9 +39,10 @@ export type GroundReferentResult =
     | { ok: false; reason: string }
 
 /**
- * Resolves a `Referent` (`objectSpan` / `actingCharacter` / `currentHost`) into
- * its full candidate list --- the compositional interpretation `AGENT.concepts.md`
- * calls Grounding. `currentHost(X)` grounds `X` first (possibly multiple
+ * Resolves a `Referent` into its full candidate list --- the compositional
+ * interpretation `AGENT.concepts.md` calls Grounding. A referent whose `groundedId`
+ * is already known is its own single candidate, whatever its kind (a `graphNode` is
+ * always one). Otherwise: `currentHost(X)` grounds `X` first (possibly multiple
  * candidates), then looks up each candidate's current host via the injected
  * callback, dropping any that don't resolve rather than failing the whole
  * referent --- one candidate's host lookup failing doesn't invalidate another
@@ -51,6 +52,9 @@ export const groundReferent = (
     referent: Referent,
     context: GroundingContext
 ): GroundReferentResult => {
+    if (referent.groundedId !== undefined) {
+        return { ok: true, candidates: [referent.groundedId] }
+    }
     switch (referent.referentType) {
         case 'objectSpan': {
             if (referent.stableRefKey === undefined) {
@@ -85,5 +89,9 @@ export const groundReferent = (
             }
             return { ok: true, candidates: hosts }
         }
+        case 'graphNode':
+            // Unreachable: a graphNode is born grounded, so the check above returns first.
+            // Kept so the switch stays exhaustive over referent kinds.
+            return { ok: true, candidates: [referent.groundedId] }
     }
 }

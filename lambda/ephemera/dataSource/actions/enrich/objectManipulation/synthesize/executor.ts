@@ -1,7 +1,9 @@
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf, relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { boundaryEdgeOutcomes } from '../../../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
-import type { Assertion, Change, TransferMembershipChange, UngroundedPlanStep } from '../plan/ungroundedPrimitive'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { Assertion, Change, GroundedReferent, TransferMembershipChange, PlanStep } from '../plan/planStep'
 import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'
 import { groundAssertion } from './groundAssertion'
 import { groundChange } from './groundChange'
@@ -23,14 +25,14 @@ const mintInstructionId = (): InstructionId => {
 }
 
 /**
- * Seeds an ordered list of Plan-emitted `UngroundedPlanStep`s directly, tagged
+ * Seeds an ordered list of Plan-emitted `PlanStep`s directly, tagged
  * `ungrounded`, in the order given --- the general seeding path for anything
  * that isn't a `transferMembership` (which must go through
  * `seedTransferMembership` instead, so its `isolatedFromRelations` pairing is
  * never forgotten). Matches the existing `[sameHostAssertion, change]` seed
  * order convention (BD-15(1)).
  */
-export const seedFromUngroundedSteps = (steps: readonly UngroundedPlanStep[]): WorklistInstruction[] =>
+export const seedFromUngroundedSteps = (steps: readonly PlanStep[]): WorklistInstruction[] =>
     steps.map((step) => ({ id: mintInstructionId(), tag: 'ungrounded', step }))
 
 /**
@@ -50,6 +52,42 @@ export const seedTransferMembership = (change: TransferMembershipChange): Workli
         { id: mintInstructionId(), tag: 'ungrounded', step: change },
     ]
 }
+
+/**
+ * Lowers a step whose every referent is already grounded (Expansion's dissolves) to its
+ * executor effect, reading each referent's `groundedId`. Such a step never meets
+ * `groundChange`, so a grounded non-Room host (an actor's inventory graph) is not
+ * filtered by its derived-host Room check. A mistyped id is a caller contract
+ * violation and throws. Assertions are not lowered: none is produced grounded.
+ */
+const lowerGroundedStep = (step: PlanStep<GroundedReferent>): ExecutorParsePlanStep => {
+    if (step.kind === 'assertion') {
+        throw new Error(`seedFromGroundedSteps: a grounded '${step.predicate}' assertion has no lowering`)
+    }
+    if (step.primitive === 'transferMembership') {
+        const objectId = step.object.groundedId
+        const fromHostId = step.from.groundedId
+        const toHostId = step.to.groundedId
+        if (!isEphemeraObjectId(objectId) || !isEphemeraMembershipHostId(fromHostId) || !isEphemeraMembershipHostId(toHostId)) {
+            throw new Error(`seedFromGroundedSteps: ill-typed transferMembership ids (${objectId}, ${fromHostId}, ${toHostId})`)
+        }
+        return { kind: 'transferMembership', objectIds: new Set([objectId]), fromHostId, toHostId }
+    }
+    const subjectId = step.subject.groundedId
+    const targetId = step.target.groundedId
+    const hostId = step.host.groundedId
+    if (!isEphemeraLudicTerminalPrimitive(subjectId) || !isEphemeraLudicTerminalPrimitive(targetId) || !isEphemeraMembershipHostId(hostId)) {
+        throw new Error(`seedFromGroundedSteps: ill-typed ${step.primitive} ids (${subjectId}, ${targetId}, ${hostId})`)
+    }
+    return { kind: step.primitive, subjectId, targetId, hostId, ...relationKindAndLabelFrom(step) }
+}
+
+/**
+ * Seeds fully grounded steps as `grounded` instructions, in the order given, skipping
+ * Grounding entirely (a `runExecutor` seed may carry grounded instructions directly).
+ */
+export const seedFromGroundedSteps = (steps: readonly PlanStep<GroundedReferent>[]): WorklistInstruction[] =>
+    steps.map((step) => ({ id: mintInstructionId(), tag: 'grounded', step: lowerGroundedStep(step) }))
 
 type GroundResult =
     | { ok: true; step: ExecutorParsePlanStep | GroundedAssertion }

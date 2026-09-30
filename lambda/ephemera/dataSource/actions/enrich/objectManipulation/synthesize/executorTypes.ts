@@ -9,7 +9,7 @@ import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } f
 import type { EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
-import type { Assertion, Change } from '../plan/ungroundedPrimitive'
+import type { Assertion, Change } from '../plan/planStep'
 import type { TransferMembershipStep } from '../parsePlanStep'
 
 /**
@@ -103,7 +103,7 @@ export type GroundedBinaryAssertion = {
  * one shared shape) --- `sameHost` is a placement-resolver, not a check with an inverse (its own
  * `negate` was already dropped), so once `containedBy`'s `negate` went back to being
  * unconditionally required, the two no longer belonged in one type. See `SameHostAssertion`'s
- * doc comment in `ungroundedPrimitive.ts` for `relationKind`'s own carried-copy rationale;
+ * doc comment in `planStep.ts` for `relationKind`'s own carried-copy rationale;
  * `relationLabel` is `relationKind: 'Custom'` only --- the crossing-port producer's
  * `exteriorRelationLabel`/leg label needs the actual text, not just the `Custom` tag.
  */

@@ -1,7 +1,7 @@
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { actingCharacterRef, currentHostRef, objectSpanRef } from '../plan/ungroundedPrimitive'
-import type { Change } from '../plan/ungroundedPrimitive'
+import { actingCharacterRef, currentHostRef, objectSpanRef } from '../plan/planStep'
+import type { Change } from '../plan/planStep'
 import type { GroundingContext, ResolvedSpan } from './groundReferent'
 import { groundChange } from './groundChange'
 
@@ -25,6 +25,7 @@ describe('groundChange', () => {
             primitive: 'establishRelation',
             subject: objectSpanRef('tray', 'trayRef'),
             target: objectSpanRef('table', 'tableRef'),
+            host: currentHostRef(actingCharacterRef),
             relationKind: 'Under',
         }
         const context = contextWith([
@@ -50,6 +51,7 @@ describe('groundChange', () => {
             primitive: 'dissolveRelation',
             subject: objectSpanRef('tray', 'trayRef'),
             target: objectSpanRef('table', 'tableRef'),
+            host: currentHostRef(actingCharacterRef),
             relationKind: 'Custom',
             relationLabel: 'balanced on',
         }
@@ -77,6 +79,7 @@ describe('groundChange', () => {
             primitive: 'establishRelation',
             subject: objectSpanRef('bench', 'benchRef1'),
             target: objectSpanRef('bench', 'benchRef2'),
+            host: currentHostRef(actingCharacterRef),
             relationKind: 'Under',
         }
         const context = contextWith([
@@ -106,6 +109,7 @@ describe('groundChange', () => {
             primitive: 'establishRelation',
             subject: objectSpanRef('tray', 'trayRef'),
             target: objectSpanRef('table', 'tableRef'),
+            host: currentHostRef(actingCharacterRef),
             relationKind: 'Under',
         }
         const context: GroundingContext = {
@@ -127,6 +131,7 @@ describe('groundChange', () => {
             primitive: 'establishRelation',
             subject: objectSpanRef('tray', 'trayRef'),
             target: objectSpanRef('table', 'tableRef'),
+            host: currentHostRef(actingCharacterRef),
             relationKind: 'Under',
         }
         const context = contextWith([['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }]])

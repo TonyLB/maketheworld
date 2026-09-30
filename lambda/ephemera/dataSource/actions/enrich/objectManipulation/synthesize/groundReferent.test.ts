@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { actingCharacterRef, currentHostRef, objectSpanRef } from '../plan/ungroundedPrimitive'
+import { actingCharacterRef, currentHostRef, graphNodeRef, objectSpanRef, withGroundedId } from '../plan/planStep'
 import { groundReferent, type GroundingContext, type ResolvedSpan } from './groundReferent'
 
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
@@ -141,5 +141,32 @@ describe('groundReferent', () => {
         // but the type allows it, so the recursion itself must not break.
         const result = groundReferent(currentHostRef(currentHostRef(actingCharacterRef)), context)
         expect(result).toEqual({ ok: true, candidates: [ROOM_ID] })
+    })
+
+    describe('a referent whose groundedId is known', () => {
+        it('is its own single candidate, with no resolvedSpans entry needed', () => {
+            const context = baseContext(new Map())
+
+            expect(groundReferent(withGroundedId(objectSpanRef('tray', 'trayRef'), TRAY_ID), context)).toEqual({
+                ok: true,
+                candidates: [TRAY_ID],
+            })
+        })
+
+        it('passes a grounded currentHost through without grounding its target', () => {
+            const context = baseContext(new Map())
+
+            expect(groundReferent(withGroundedId(currentHostRef(objectSpanRef('stool', 'stoolRef')), OTHER_ROOM_ID), context)).toEqual({
+                ok: true,
+                candidates: [OTHER_ROOM_ID],
+            })
+        })
+
+        it('grounds a graphNode to its id', () => {
+            expect(groundReferent(graphNodeRef(BENCH_A_ID), baseContext(new Map()))).toEqual({
+                ok: true,
+                candidates: [BENCH_A_ID],
+            })
+        })
     })
 })

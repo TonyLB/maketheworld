@@ -4,7 +4,7 @@ import {
     objectSpanRef,
     type Assertion,
     type Change,
-} from './ungroundedPrimitive'
+} from './planStep'
 
 describe('Referent constructors', () => {
     it('builds an objectSpan referent', () => {
@@ -56,6 +56,7 @@ describe('Change literal shapes', () => {
             primitive: 'establishRelation',
             subject: objectSpanRef('cord'),
             target: objectSpanRef('crate'),
+            host: currentHostRef(actingCharacterRef),
             relationKind: 'Custom',
             relationLabel: 'tied around',
         }
@@ -68,6 +69,7 @@ describe('Change literal shapes', () => {
             primitive: 'dissolveRelation',
             subject: objectSpanRef('rope'),
             target: objectSpanRef('crate'),
+            host: currentHostRef(actingCharacterRef),
             relationKind: 'On',
         }
         expect(change.primitive).toBe('dissolveRelation')

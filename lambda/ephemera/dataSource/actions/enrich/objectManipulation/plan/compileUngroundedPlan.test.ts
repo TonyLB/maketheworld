@@ -2,7 +2,7 @@ import type { MembershipManipulationFrame } from '../membershipFrame'
 import type { ManipulationFrame } from '../manipulationFrame'
 
 import { compileMembershipUngroundedPlan, compileRelationalUngroundedPlan } from './compileUngroundedPlan'
-import { actingCharacterRef, currentHostRef, objectSpanRef } from './ungroundedPrimitive'
+import { actingCharacterRef, currentHostRef, objectSpanRef } from './planStep'
 
 const membershipFrame = (overrides: Partial<MembershipManipulationFrame>): MembershipManipulationFrame => ({
     command: 'take the golf club',
@@ -72,6 +72,7 @@ describe('compileRelationalUngroundedPlan', () => {
                     primitive: 'establishRelation',
                     subject: objectSpanRef('broom'),
                     target: objectSpanRef('table'),
+                    host: currentHostRef(actingCharacterRef),
                     relationKind: 'Under',
                 },
             ],
@@ -98,6 +99,7 @@ describe('compileRelationalUngroundedPlan', () => {
                     primitive: 'dissolveRelation',
                     subject: objectSpanRef('rope'),
                     target: objectSpanRef('crate'),
+                    host: currentHostRef(actingCharacterRef),
                     relationKind: 'Under',
                 },
             ],
@@ -118,6 +120,7 @@ describe('compileRelationalUngroundedPlan', () => {
                     primitive: 'establishRelation',
                     subject: objectSpanRef('cord'),
                     target: objectSpanRef('crate'),
+                    host: currentHostRef(actingCharacterRef),
                     relationKind: 'Custom',
                     relationLabel: 'tied around',
                 },

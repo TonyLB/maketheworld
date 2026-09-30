@@ -4,7 +4,8 @@ import { relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../positions/ludicGraph'
 import { boundaryEdgeOutcomes } from '../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
-import type { DissolveRelationChange, Referent } from '../enrich/objectManipulation/plan/ungroundedPrimitive'
+import type { DissolveRelationChange, GroundedReferent } from '../enrich/objectManipulation/plan/planStep'
+import { graphNodeRef } from '../enrich/objectManipulation/plan/planStep'
 import type { AttemptAction } from './action'
 import { PositionAttemptAction } from './action'
 import type { Challenge } from './challenge'
@@ -32,12 +33,15 @@ const describeUnderDeferChallenge = (): string =>
  * reading it out of Synthesize's executor outcome, which doesn't expose the edge today ---
  * a duplicate but cheap, pure, in-memory classification, not a widening of `executor.ts`'s
  * outcome types.
+ *
+ * Each dissolve's referents are grounded (`graphNode`s): Expansion finds the edge's far
+ * end in the graph, and no phrase named it. `subject`/`target` follow the edge's own
+ * direction, whichever end is the moved object, and `host` is the graph's host.
  */
 export const attemptActionsFromBoundaryOutcomes = (
     primaryAction: AttemptAction,
     transferSet: ReadonlySet<EphemeraObjectId>,
-    graph: EphemeraLudicGraph,
-    referentOf: (id: EphemeraObjectId) => Referent
+    graph: EphemeraLudicGraph
 ): AttemptAction[] => {
     const outcomes = boundaryEdgeOutcomes(transferSet, graph)
         // Safe filter, matching executor.ts's own: no producer can build a port-qualified
@@ -47,13 +51,12 @@ export const attemptActionsFromBoundaryOutcomes = (
             typeof entry.edge.from === 'string' && isEphemeraObjectId(entry.edge.from)
             && typeof entry.edge.to === 'string' && isEphemeraObjectId(entry.edge.to))
     const boundaryActions = outcomes.map((entry): AttemptAction => {
-        const movedId = (entry.movedRole === 'subject' ? entry.edge.from : entry.edge.to) as EphemeraObjectId
-        const otherId = (entry.movedRole === 'subject' ? entry.edge.to : entry.edge.from) as EphemeraObjectId
-        const desiredResult: DissolveRelationChange = {
+        const desiredResult: DissolveRelationChange<GroundedReferent> = {
             kind: 'change',
             primitive: 'dissolveRelation',
-            subject: referentOf(movedId),
-            target: referentOf(otherId),
+            subject: graphNodeRef(entry.edge.from as EphemeraObjectId),
+            target: graphNodeRef(entry.edge.to as EphemeraObjectId),
+            host: graphNodeRef(graph.hostId),
             ...relationKindAndLabelOf(entry.edge),
         }
 

@@ -6,11 +6,11 @@ import {
     actingCharacterRef,
     currentHostRef,
     objectSpanRef,
-    type UngroundedPlanStep,
-} from './ungroundedPrimitive'
+    type PlanStep,
+} from './planStep'
 
 export type CompileUngroundedPlanResult =
-    | { type: 'success'; steps: UngroundedPlanStep[] }
+    | { type: 'success'; steps: PlanStep[] }
     | { type: 'nestingDefer' }
     | { type: 'multiObject' }
 
@@ -51,8 +51,8 @@ export function compileMembershipUngroundedPlan(
  * Plan-stage compiler (zero KR access): maps a shipped, already-extracted
  * relational frame into ungrounded steps. Reuses the already-deterministic,
  * already-KR-free `normalizeRelationSpan` (B2) rather than reimplementing
- * phrase-to-enum mapping. Host is not encoded on the Change --- it's implicit
- * (`currentHost(actingCharacter)`, per BD-6) rather than per-instruction.
+ * phrase-to-enum mapping. The Change's `host` is BD-6's default,
+ * `currentHost(actingCharacter)`, left ungrounded for Grounding to resolve.
  * `frame.characterId` / `frame.hostRoomId` are deliberately not read, even
  * though upstream has already populated them --- Plan's job is span/verb
  * reasoning only, regardless of what happens to already be grounded.
@@ -60,7 +60,7 @@ export function compileMembershipUngroundedPlan(
  * BD-15/16 originally prepended a `sameHost` `Assertion` before every `Change`
  * step here, unconditionally. **That was dropped, 2026-09-01**, along with
  * `SameHostAssertion`/`Assertion`'s `sameHost` member entirely
- * (`ungroundedPrimitive.ts`): this function has no live caller (the live
+ * (`planStep.ts`): this function has no live caller (the live
  * ingress route, `compileRelationalFromSkeleton.ts`, builds a pre-grounded
  * `GroundedSameHostAssertion` directly and never reaches this scaffold), so
  * there was nothing left to keep the ungrounded shape in sync for.
@@ -82,6 +82,7 @@ export function compileRelationalUngroundedPlan(
         primitive: frame.operationKind,
         subject,
         target,
+        host: currentHostRef(actingCharacterRef),
         ...(relation.type === 'custom'
             ? { relationKind: 'Custom' as const, relationLabel: relation.relationLabel }
             : { relationKind: relation.kind }),
