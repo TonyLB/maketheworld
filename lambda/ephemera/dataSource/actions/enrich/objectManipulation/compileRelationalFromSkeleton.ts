@@ -30,6 +30,12 @@ import { createExpansionEnvironment } from './synthesize/expansionEnvironment'
 import { runExecutor } from './synthesize/executor'
 import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep, GroundedSameHostAssertion, WorklistInstruction } from './synthesize/executorTypes'
 import type { MutationKernelStep } from '../../../positions/manipulation/kernel/kernelStep'
+import { objectSpanRef } from './plan/ungroundedPrimitive'
+import type { EstablishRelationChange, DissolveRelationChange } from './plan/ungroundedPrimitive'
+import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
+import { PositionAttemptAction } from '../../commandAttempt/action'
+import type { CommandAttemptData } from '../../commandAttempt'
 
 export type CompileRelationalFromSkeletonInput = {
     command: string
@@ -53,6 +59,50 @@ const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
     getMembershipContainers: (objectId) => internalCache.Positions.getMembershipContainers(objectId),
     getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
 })
+
+/**
+ * Trivial attempt-building for the relational route (slice 2): establishing or
+ * dissolving a peer edge is not a membership transfer, so there is no
+ * boundary-edge-under-transfer question to classify (unlike the membership route) ---
+ * one action, no challenges, matching the "no challenges detected" fast-path semantics
+ * honestly rather than as a gap.
+ */
+const buildRelationalAttempt = (
+    command: string,
+    candidate: EstablishRelationStep | DissolveRelationStep,
+    catalog: readonly ObjectManipulationCatalogEntry[]
+): CommandAttemptData => {
+    const entryFor = (objectId: EphemeraObjectId) => catalog.find((entry) => entry.objectId === objectId)
+    const subjectEntry = entryFor(candidate.subjectId)
+    const targetEntry = entryFor(candidate.targetId)
+    const subjectRefKey = `${candidate.subjectId}/subject`
+    const targetRefKey = `${candidate.targetId}/target`
+
+    const desiredResult: EstablishRelationChange | DissolveRelationChange = {
+        kind: 'change',
+        primitive: candidate.kind,
+        subject: objectSpanRef(subjectEntry?.normalizedShortName ?? candidate.subjectId, subjectRefKey),
+        target: objectSpanRef(targetEntry?.normalizedShortName ?? candidate.targetId, targetRefKey),
+        ...(candidate.relationKind === 'Custom'
+            ? { relationKind: 'Custom' as const, relationLabel: candidate.relationLabel }
+            : { relationKind: candidate.relationKind }),
+    }
+    const verbDescription = candidate.kind === 'establishRelation' ? 'Establish relation' : 'Dissolve relation'
+    const action = new PositionAttemptAction(
+        [],
+        desiredResult,
+        `${verbDescription}: ${subjectEntry?.normalizedShortName ?? candidate.subjectId} / ${targetEntry?.normalizedShortName ?? candidate.targetId}`
+    )
+
+    return {
+        words: command,
+        referents: [
+            buildCommandAttemptReferent(subjectRefKey, candidate.subjectId, subjectEntry?.normalizedShortName ?? candidate.subjectId, subjectEntry?.gloss),
+            buildCommandAttemptReferent(targetRefKey, candidate.targetId, targetEntry?.normalizedShortName ?? candidate.targetId, targetEntry?.gloss),
+        ],
+        actions: [action.toJSON()],
+    }
+}
 
 /**
  * The native relational pipeline (see AGENT.md, relational branch, and
@@ -415,5 +465,6 @@ export async function compileRelationalFromSkeleton(
             : { relationKind: chosen.candidate.relationKind }),
         confidence: intentConfidence,
         steps: chosen.steps,
+        attempt: buildRelationalAttempt(input.command, chosen.candidate, catalog),
     }
 }

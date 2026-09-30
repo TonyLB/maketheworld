@@ -237,6 +237,7 @@ describe('object rehost In payoff (integration)', () => {
             hostId: ROOM_ID,
             containment: 'In',
             confidence: 0.9,
+            attempt: expect.anything(),
         })
 
         // Step B: real mutation-kernel commit. `orchestrateObjectMove` itself runs unmocked; only

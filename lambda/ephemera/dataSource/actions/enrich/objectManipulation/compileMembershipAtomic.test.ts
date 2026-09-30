@@ -58,7 +58,12 @@ describe('compileMembershipAtomic', () => {
             operationKind: 'takeHold',
             objectIds: [broomId],
             confidence: 0.92,
+            attempt: expect.objectContaining({
+                words: 'pick up the broom',
+                referents: [{ refKey: 'primaryObject', id: broomId, shortName: 'broom' }],
+            }),
         })
+        expect((result as { attempt?: { actions: unknown[] } }).attempt?.actions).toHaveLength(1)
     })
 
     it('BD-20: rejects a multi-span frame (arity check now lives here, after Identify, not ahead of it) without invoking the complexity LLM', async () => {
@@ -113,6 +118,10 @@ describe('compileMembershipAtomic', () => {
             operationKind: 'drop',
             objectIds: [pouchId],
             confidence: 0.88,
+            attempt: expect.objectContaining({
+                words: 'toss the pouch',
+                referents: [{ refKey: 'primaryObject', id: pouchId, shortName: 'pouch' }],
+            }),
         })
     })
 
@@ -256,6 +265,7 @@ describe('compileMembershipAtomic', () => {
             operationKind: 'drop',
             objectIds: [satchelId],
             confidence: 0.9,
+            attempt: expect.anything(),
         })
     })
 
@@ -324,5 +334,53 @@ describe('compileMembershipAtomic', () => {
             expect(result.reason).toBe(objectManipulationErrorMessages.noMatch)
         }
         expect(getMembershipContainers).not.toHaveBeenCalled()
+    })
+
+    it('CommandAttemptPhase slice 2: a Custom-tied boundary edge (row 6 shape) defers to the complexity LLM, and the resulting attempt carries a dissolve action with a CustomEdgeChallenge', async () => {
+        const postId = 'OBJECT#Post' as EphemeraObjectId
+        const ropeId = 'OBJECT#Rope' as EphemeraObjectId
+        const roomGraphWithCustomEdge = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [{ tag: 'Relational', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' }],
+        })
+        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
+        const getLudicGraph = hostAwareGetLudicGraph({ [roomId]: roomGraphWithCustomEdge })
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"disposition":"atomic","operationKind":"takeHold"}',
+        })
+
+        const result = await compileMembershipAtomic(
+            {
+                command: 'take the entire coil of rope',
+                rawObjectSpans: ['rope'],
+                verbClass: 'acquire',
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [{ objectId: ropeId, normalizedShortName: 'rope' }, { objectId: postId, normalizedShortName: 'post' }],
+            },
+            0.9,
+            {
+                invokeBedrockObjectManipulationComplexityImpl,
+                positionsReadDeps: { getMembershipContainers, getLudicGraph },
+            }
+        )
+
+        expect(result.type).toBe('ObjectManipulation')
+        if (result.type !== 'ObjectManipulation') {
+            return
+        }
+        expect(result.attempt?.actions).toHaveLength(2)
+        const dissolveAction = result.attempt?.actions[1]
+        expect(dissolveAction?.challenges).toHaveLength(1)
+        expect(dissolveAction?.challenges[0]).toEqual(
+            expect.objectContaining({
+                kind: 'customEdge',
+                description: expect.stringContaining('is lashed to'),
+            })
+        )
     })
 })

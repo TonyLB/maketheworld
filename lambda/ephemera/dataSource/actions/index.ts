@@ -540,6 +540,7 @@ const publishStreamEventsForIntent = async (
                     objectIds: parseResult.objectIds,
                     roomId: fromRoomId,
                     confidence: parseResult.confidence,
+                    ...(parseResult.attempt !== undefined ? { attempt: parseResult.attempt } : {}),
                 },
             })
         }
@@ -553,6 +554,7 @@ const publishStreamEventsForIntent = async (
                     objectIds: parseResult.objectIds,
                     roomId: fromRoomId,
                     confidence: parseResult.confidence,
+                    ...(parseResult.attempt !== undefined ? { attempt: parseResult.attempt } : {}),
                 },
             })
         }
@@ -593,6 +595,7 @@ const publishStreamEventsForIntent = async (
                     ...relationKindAndLabelFrom(parseResult),
                     confidence: parseResult.confidence,
                     steps: stepsWithHostId,
+                    ...(parseResult.attempt !== undefined ? { attempt: parseResult.attempt } : {}),
                 },
             })
         }
@@ -609,6 +612,7 @@ const publishStreamEventsForIntent = async (
                     ...relationKindAndLabelFrom(parseResult),
                     confidence: parseResult.confidence,
                     steps: stepsWithHostId,
+                    ...(parseResult.attempt !== undefined ? { attempt: parseResult.attempt } : {}),
                 },
             })
         }
@@ -625,6 +629,7 @@ const publishStreamEventsForIntent = async (
                 roomId: parseResult.hostId,
                 containment: parseResult.containment,
                 confidence: parseResult.confidence,
+                ...(parseResult.attempt !== undefined ? { attempt: parseResult.attempt } : {}),
             },
         })
     }

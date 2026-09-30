@@ -8,6 +8,7 @@ import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { CommitStepSequenceDeps } from '../kernel/commitStepSequence'
 import type { MutationKernelStep } from '../kernel/kernelStep'
 import type { MutationKernelCaptures } from '../kernel/types'
+import type { CommandAttempt } from '../../../actions/commandAttempt'
 
 export type ExecuteEstablishEdgeChainArgs = {
     steps: readonly MutationKernelStep[]
@@ -16,6 +17,12 @@ export type ExecuteEstablishEdgeChainArgs = {
     suppressRelationalFacts?: boolean
     characterNames?: CommitStepSequenceDeps['characterNames']
     transactWrite?: CommitStepSequenceDeps['transactWrite']
+    /**
+     * CommandAttemptPhase slice 2: the reconstructed, adjudicated attempt (see
+     * `positions/index.ts`'s dispatch). Threaded through but not yet consumed for any
+     * commit decision.
+     */
+    attempt?: CommandAttempt
 }
 
 export type ExecuteEstablishEdgeChainResult =

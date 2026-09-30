@@ -37,6 +37,7 @@ import { resolveConnectTargetRoom } from './manipulation/membership/resolveConne
 import { repairRoomOccupancyDrift } from './manipulation/membership/repairRoomOccupancyDrift'
 import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { executeEstablishEdgeChain } from './manipulation/relational/executeObjectEstablishRelation'
+import { CommandAttempt, type CommandAttemptData } from '../actions/commandAttempt'
 
 import './index'
 
@@ -291,6 +292,54 @@ describe('positions receive paths (integration)', () => {
             await messageBus.flushAndSettle()
 
             expect(orchestrateObjectMoveMock).not.toHaveBeenCalled()
+        })
+
+        it('CommandAttemptPhase slice 2: a published attempt round-trips through fromJSON + the adjudicate seam and reaches orchestrateObjectMove with its actions/challenges intact', async () => {
+            const attemptData: CommandAttemptData = {
+                words: 'take the entire coil of rope',
+                referents: [{ refKey: 'primaryObject', id: 'OBJECT#Rope', shortName: 'rope' }],
+                actions: [
+                    { kind: 'position', desiredResultDescription: 'Take: rope', challenges: [] },
+                    {
+                        kind: 'position',
+                        desiredResultDescription: 'Dissolve: is lashed to',
+                        challenges: [
+                            {
+                                kind: 'customEdge',
+                                id: 'challenge-1',
+                                edge: { from: 'OBJECT#Rope', to: 'OBJECT#Post', kind: 'Custom', relationLabel: 'is lashed to' },
+                                description: 'Boundary relation to dissolve: is lashed to.',
+                            },
+                        ],
+                    },
+                ],
+            }
+
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Take Hold', {
+                type: 'Object Take Hold',
+                characterId: CHARACTER_ID,
+                objectIds: ['OBJECT#Rope'],
+                roomId: ROOM_A,
+                confidence: 0.9,
+                attempt: attemptData,
+            })
+
+            await messageBus.flushAndSettle()
+
+            expect(orchestrateObjectMoveMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    attempt: expect.any(CommandAttempt),
+                })
+            )
+            const [call] = orchestrateObjectMoveMock.mock.calls
+            const attempt = call?.[0].attempt as CommandAttempt
+            expect(attempt.words).toBe('take the entire coil of rope')
+            expect(attempt.actions()).toHaveLength(2)
+            expect(attempt.actions()[1]?.challenges()).toHaveLength(1)
+            expect(attempt.actions()[1]?.challenges()[0]?.describe()).toBe('Boundary relation to dissolve: is lashed to.')
+            // Slice 2's stub adjudicate leaves the challenge un-adjudicated (pending) --- corpus
+            // row 6 stays silently unresolved on purpose, per this slice's own scope.
+            expect(attempt.result).toEqual({ status: 'pending' })
         })
     })
 

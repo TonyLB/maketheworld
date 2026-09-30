@@ -19,6 +19,8 @@ import { isEphemeraLudicGraphPort, isEphemeraLudicTerminalId } from '@tonylb/mtw
 import type { AcmeOrderEnrichDefaultSituationProse, CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { areCoyoteObjectTropeFieldsValid, isAcmeOrderEnrichDefaultSituationProse } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import type { MutationKernelStep } from '../positions/manipulation/kernel/kernelStep'
+import type { CommandAttemptData } from './commandAttempt'
+import { isCommandAttemptData } from './commandAttempt/adjudicate'
 
 /**
  * Outbound stream payloads for mtw.ephemera.actions (bus-only DataSource).
@@ -56,6 +58,8 @@ export type ObjectTakeHoldPublishedPayload = {
     objectIds: EphemeraObjectId[];
     roomId: EphemeraRoomId;
     confidence?: number;
+    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join and reconstructed positions-side at the adjudicate seam. */
+    attempt?: CommandAttemptData;
 }
 
 /** `objectIds` is the carry-closed transfer set (BD-13); size 1 for an ordinary drop. */
@@ -65,6 +69,8 @@ export type ObjectDropPublishedPayload = {
     objectIds: EphemeraObjectId[];
     roomId: EphemeraRoomId;
     confidence?: number;
+    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join and reconstructed positions-side at the adjudicate seam. */
+    attempt?: CommandAttemptData;
 }
 
 
@@ -100,6 +106,8 @@ export type ObjectEstablishRelationPublishedPayload = {
      * stays narration-only rather than being derived from this array at read time.
      */
     steps: readonly MutationKernelStep[];
+    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join and reconstructed positions-side at the adjudicate seam. */
+    attempt?: CommandAttemptData;
 } & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
 export type ObjectDissolveRelationPublishedPayload = {
@@ -124,6 +132,8 @@ export type ObjectDissolveRelationPublishedPayload = {
      * handler --- carried here so it is available once that row wires it in.
      */
     steps: readonly MutationKernelStep[];
+    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join and reconstructed positions-side at the adjudicate seam. */
+    attempt?: CommandAttemptData;
 } & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
 /** Shared by the payload-level and step-level relational kind/label checks below --- both spell the same `RelationalKindAndLabel<HostRelationalEdgeKindPublished>` fragment. */
@@ -161,6 +171,9 @@ const isHostRelationalIngressFieldsValid = (v: Record<string, unknown>): boolean
         if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
             return false
         }
+    }
+    if (v.attempt !== undefined && !isCommandAttemptData(v.attempt)) {
+        return false
     }
     return true
 }
@@ -251,6 +264,8 @@ export type ObjectRehostPublishedPayload = {
     roomId: EphemeraRoomId;
     containment: ContainmentKindPublished;
     confidence?: number;
+    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join and reconstructed positions-side at the adjudicate seam. */
+    attempt?: CommandAttemptData;
 }
 
 export const isObjectRehostPublishedPayload = (
@@ -282,6 +297,9 @@ export const isObjectRehostPublishedPayload = (
         if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
             return false
         }
+    }
+    if (v.attempt !== undefined && !isCommandAttemptData(v.attempt)) {
+        return false
     }
     return true
 }
@@ -470,6 +488,9 @@ export const isObjectTakeHoldPublishedPayload = (
             return false
         }
     }
+    if (v.attempt !== undefined && !isCommandAttemptData(v.attempt)) {
+        return false
+    }
     return true
 }
 
@@ -496,6 +517,9 @@ export const isObjectDropPublishedPayload = (
         if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
             return false
         }
+    }
+    if (v.attempt !== undefined && !isCommandAttemptData(v.attempt)) {
+        return false
     }
     return true
 }

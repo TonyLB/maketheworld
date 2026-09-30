@@ -423,6 +423,8 @@ Positions **must** subscribe to:
 | `Object Establish Relation` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/relational/executeObjectEstablishRelation.ts`](manipulation/relational/executeObjectEstablishRelation.ts) |
 | `Object Dissolve Relation` | [`index.ts`](index.ts) `receiveEvents` -> [`manipulation/relational/executeObjectEstablishRelation.ts`](manipulation/relational/executeObjectEstablishRelation.ts) (`executeEstablishEdgeChain`, shared with establish) |
 
+**CommandAttemptPhase slice 2 (2026-09-29): `positions/index.ts`'s dispatch is the sole reconstruction point for a published `attempt`.** When a payload above carries an optional `attempt: CommandAttemptData`, `index.ts` **must** be the only place that calls `CommandAttempt.fromJSON` on it, immediately followed by the `adjudicateAttempt` seam ([`actions/commandAttempt/adjudicate.ts`](../actions/commandAttempt/adjudicate.ts)), before handing the result through to `orchestrateObjectMove`/`executeEstablishEdgeChain` as a plain `attempt?: CommandAttempt` arg. **`adjudicateAttempt` is a no-op through slice 2** --- it records no verdicts and gates no commit decision; a challenge-free attempt already resolves to `succeeded` via `CommandAttempt.result` with no extra code, and any attempt carrying a real graph challenge stays `pending`, matching today's silent defer. Do not read the presence of this wiring as adjudication being live --- it isn't, until a future slice records a verdict here and threads it into the dry run / commit recheck.
+
 ### `Object Take Hold` (positions-owned)
 
 - **Ingress:** typed pick-up via actions **`Parse Requested`** only (no **`Action Assessed`** branch in v1).

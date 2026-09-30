@@ -20,6 +20,8 @@ export type RoomInPlayObjectCatalogEntry = {
     normalizedShortName: string
     /** Pre-attached at parse ingress via handleParseRequested (EM-6). */
     embedding?: SemanticEmbedding
+    /** From the `ludicCache` node's reasoning gloss (`AGENT.concepts.md`'s `CommandAttempt` section); present only where authored or improvised. */
+    gloss?: string
 }
 
 export type RoomObjectCatalogForCharacter = {
@@ -90,12 +92,12 @@ export async function getRoomObjectCatalogForCharacter(
     })
 
     const entries = handles
-        .map(({ objectId, shortName }): RoomInPlayObjectCatalogEntry | undefined => {
+        .map(({ objectId, shortName, gloss }): RoomInPlayObjectCatalogEntry | undefined => {
             const normalizedShortName = normalizeExitName(shortName)
             if (normalizedShortName.length === 0) {
                 return undefined
             }
-            return { objectId, normalizedShortName }
+            return { objectId, normalizedShortName, ...(gloss !== undefined ? { gloss } : {}) }
         })
         .filter((entry): entry is RoomInPlayObjectCatalogEntry => entry !== undefined)
 
