@@ -20,7 +20,7 @@ import type { ExpansionEnvironment } from './synthesize/executorTypes'
 import { runExecutor, seedFromGroundedSteps, seedFromUngroundedSteps } from './synthesize/executor'
 import { isGroundedStep, type PlanStep } from './plan/planStep'
 import { validateMembershipPlanDryRun } from './validatePlanDryRun'
-import type { DryRunOutcome } from './validatePlanDryRun'
+import type { DryRunOutcome, ValidatedPlan } from './validatePlanDryRun'
 
 export type ScoredPlanCandidate<T> = {
     candidate: T
@@ -286,7 +286,24 @@ export const sandboxMembershipDryRun = (
         return { verdict: 'illegal', decidable: true, reason: objectManipulationErrorMessages.unimplementedAtomicOperation }
     }
 
-    return { verdict: 'legal', decidable: true, objectIds: [...transferStep.objectIds] }
+    return {
+        verdict: 'legal',
+        decidable: true,
+        plan: {
+            steps: outcome.steps,
+            ...(outcome.extraKernelSteps && outcome.extraKernelSteps.length > 0
+                ? { extraKernelSteps: outcome.extraKernelSteps }
+                : {}),
+        },
+    }
+}
+
+/** The moved object (one entry); anything it hosts travels with its shard (`transferMembership`'s own invariant). */
+export const transferredObjectIds = (plan: ValidatedPlan | undefined): EphemeraObjectId[] | undefined => {
+    const transferStep = plan?.steps.find(
+        (step): step is Extract<typeof step, { kind: 'transferMembership' }> => step.kind === 'transferMembership'
+    )
+    return transferStep ? [...transferStep.objectIds] : undefined
 }
 
 /**

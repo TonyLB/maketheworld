@@ -1,6 +1,6 @@
 # Generalize the command-attempt pipeline
 
-**Status:** Drafted 2026-10-01 (ISS8202). AP-1 to AP-5 settled 2026-10-01; slice 0 and slice 1a done. Next: slice 1b.
+**Status:** Drafted 2026-10-01 (ISS8202). AP-1 to AP-5 settled 2026-10-01; slice 0, slice 1a and slice 1b done. Next: slice 1c.
 
 This plan is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md). It is an implementation plan: the open questions are few, and each belongs to a slice.
 
@@ -103,10 +103,11 @@ Mark pending work `[ ]` and completed work `[X]`, including nested lines, as eac
    - [X] Fixed two stray code comments naming the old module (`complexityPreGates.ts`, `embeddingMatch/thresholds.ts`) and the markdown links pointing at `selectIdentityPlanTuple.ts` in `actions/AGENT.concepts.md`, `enrich/objectManipulation/AGENT.md` and `embeddingMatch/AGENT.md` (link target only; prose describing today's membership-specific behaviour is untouched --- 1d rewrites that once the stage is actually shared).
    - [X] Full suite (a module is renamed): 371 suites / 3013 tests green, plus `tsc --noEmit` clean. Grepped module paths, not just symbols (`grep -rn "from '.*selectIdentityPlanTuple'"` and `grep -rn "SpanResolutionConsultAlternative"`, both empty). Only test diff: the import-path line in `selectPlanCandidate.test.ts`.
 
-- [ ] **1b. The dry run carries its validated plan out.**
-   - [ ] `DryRunOutcome`'s legal arm carries `ValidatedPlan`, replacing `objectIds` and the unread `hostId`. `mapSelection` reads the moved object from it instead of reducing the outcome to the `transferMembership` step's `objectIds`.
-   - [ ] Delete `validateRelationalPlanDryRun` and its test (test-only).
-   - [ ] Membership's published `ObjectManipulation` result is unchanged. If it changes, stop: that is a behaviour change and belongs in its own slice.
+- [X] **1b. The dry run carries its validated plan out.** Done 2026-10-01.
+   - [X] `DryRunOutcome`'s legal arm carries `ValidatedPlan` (`steps` + optional `extraKernelSteps`, `ExecutorOutcome`'s legal-arm shape), replacing `objectIds` and the unread `hostId`. `mapSelection` reads the moved object from it via a new `transferredObjectIds` helper (`selectPlanCandidate.ts`) instead of reducing the outcome to the `transferMembership` step's `objectIds` inside the dry run itself.
+   - [X] Deleted `validateRelationalPlanDryRun`, `ValidateRelationalPlanContext` and their test file (`validateRelationalPlanDryRun.test.ts`) --- confirmed dead outside that test by grep before removal.
+   - [X] Membership's published `ObjectManipulation` result is unchanged (`compileMembershipAtomic.test.ts`, `selectMembershipFromPool.test.ts` pass with no assertion diff). Only test diff: `selectPlanCandidate.test.ts`'s one `result.dryRun.objectIds` assertion, rewritten against the new `plan` field via `transferredObjectIds`.
+   - [X] Full suite: 370/371 suites, 3009/3018 tests green (1 suite skipped, pre-existing; counts down from 371/3013 only because the dead test file was deleted), plus `tsc --noEmit` clean. Grepped `\.objectIds\b` and `validateRelationalPlanDryRun|ValidateRelationalPlanContext` across the lambda --- no stragglers.
 
 - [ ] **1c. Validation per step, still inside `sandboxMembershipDryRun`.**
    - [ ] Restate `validateMembershipPlanDryRun` as validation of the `transferMembership` step: the object's actual host equals the grounded `from`, and an exit edge defers. `membershipSourceHostId` gives way to grounding `from`.

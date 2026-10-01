@@ -1,16 +1,19 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
-import { evaluateRelationalLegality } from './evaluateRelationalLegality'
-import type {
-    IdentityPlanCandidate,
-    RelationalIdentityPlanCandidate,
-} from './identityPlanCandidate'
+import type { IdentityPlanCandidate } from './identityPlanCandidate'
 import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import type { ExecutorParsePlanStep } from './synthesize/executorTypes'
+import type { MutationKernelStep } from '../../../positions/manipulation/kernel/kernelStep'
 
 export type DryRunVerdict = 'legal' | 'defer' | 'illegal'
+
+/** `ExecutorOutcome`'s legal arm shape (`synthesize/executor.ts`), carried out of the dry run. */
+export type ValidatedPlan = {
+    steps: readonly ExecutorParsePlanStep[]
+    extraKernelSteps?: readonly MutationKernelStep[]
+}
 
 export type DryRunOutcome = {
     verdict: DryRunVerdict
@@ -18,27 +21,17 @@ export type DryRunOutcome = {
     decidable: boolean
     reason?: string
     /**
-     * Membership-only: the moved object (one entry), when a `legal` verdict came from
-     * `sandboxMembershipDryRun`'s executor-mediated dry run. Absent for relational dry runs and
-     * for any non-`legal` verdict.
+     * Membership-only: the validated, fully expanded plan the executor produced, when a
+     * `legal` verdict came from `sandboxMembershipDryRun`'s executor-mediated dry run.
+     * Absent for relational dry runs and for any non-`legal` verdict.
      */
-    objectIds?: EphemeraObjectId[]
-    /**
-     * Relational-only: the host actually selected among candidate hosts (Room or
-     * Character) when the verdict is `legal` (BD-15/16). Absent for membership dry
-     * runs and for any non-`legal` verdict.
-     */
-    hostId?: EphemeraMembershipHostId
+    plan?: ValidatedPlan
 }
 
 export type ValidateMembershipPlanContext = {
     /** When present, exit-edge contact escalates an otherwise-legal atomic to defer. */
     ludicGraph?: EphemeraLudicGraph
     actorCharacterId?: EphemeraCharacterId
-}
-
-export type ValidateRelationalPlanContext = {
-    ludicGraph: EphemeraLudicGraph
 }
 
 /**
@@ -97,29 +90,4 @@ function escalateExitEdgeIfNeeded(
         }
     }
     return { verdict: 'legal', decidable: true }
-}
-
-/**
- * Single-step relational dry-run (FT-3.3). Wraps evaluateRelationalLegality;
- * allow -> legal, failures -> illegal (no Consult from legality).
- */
-export function validateRelationalPlanDryRun(
-    candidate: RelationalIdentityPlanCandidate,
-    context: ValidateRelationalPlanContext
-): DryRunOutcome {
-    const legality = evaluateRelationalLegality({
-        operationKind: candidate.plan.operationKind,
-        subjectId: candidate.subject.objectId,
-        targetId: candidate.target.objectId,
-        normalizedRelation: candidate.plan.relation,
-        graph: context.ludicGraph,
-    })
-    if (legality.type === 'allow') {
-        return { verdict: 'legal', decidable: true }
-    }
-    return {
-        verdict: 'illegal',
-        decidable: true,
-        reason: legality.errorMessage,
-    }
 }

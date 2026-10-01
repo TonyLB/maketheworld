@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import { identityPlanCandidateFromSpan } from './identityPlanCandidate'
 import { T_JOINT_ABS, T_JOINT_ABS_UNARY, T_JOINT_MARGIN } from './embeddingMatch/thresholds'
-import { selectIdentityPlanTuple } from './selectPlanCandidate'
+import { selectIdentityPlanTuple, transferredObjectIds } from './selectPlanCandidate'
 import type { ObjectSpanCandidate } from './spanResolution'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { buildSandboxState } from './sandboxState'
@@ -275,7 +275,7 @@ describe('selectIdentityPlanTuple', () => {
 
         expect(result.verdict).toBe('resolved')
         if (result.verdict === 'resolved') {
-            expect(result.dryRun.objectIds).toEqual([broomId])
+            expect(transferredObjectIds(result.dryRun.plan)).toEqual([broomId])
             expect(result.candidate.attempt.result.status).toBe('succeeded')
         }
     })

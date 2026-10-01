@@ -9,6 +9,7 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { SandboxState } from './sandboxState'
 import {
     selectIdentityPlanTuple,
+    transferredObjectIds,
     type SelectIdentityPlanTupleResult,
 } from './selectPlanCandidate'
 import type { ConsultAlternative, SpanCandidatePool } from './spanResolution'
@@ -137,7 +138,7 @@ function mapSelection(
     return {
         type: 'resolved',
         objectId: candidate.identity.objectId,
-        objectIds: selection.dryRun.objectIds ?? [candidate.identity.objectId],
+        objectIds: transferredObjectIds(selection.dryRun.plan) ?? [candidate.identity.objectId],
         operationKind: candidate.plan.operationKind,
         catalogScope,
         candidate,
