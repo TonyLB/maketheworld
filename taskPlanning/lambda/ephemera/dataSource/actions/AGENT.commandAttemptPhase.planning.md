@@ -39,7 +39,7 @@ This plan is **layers 0-1** of the [adjudication layers](AGENT.objectManipulatio
 
 When a design question in a slice here turns out to belong to layers 2-5, record it with that layer's owner named there, and don't absorb it here.
 
-**Only the membership route is built to the Target shape.** Its stages carry membership names (`groundMembershipCandidates`, `sandboxMembershipDryRun`, `selectMembershipFromPool`) because their code is membership-specific, not because the design is. Relational and rehost still build one attempt, after their own selection (relational's is a `candidates[0]` placeholder). Bringing them onto the same chain is not this plan's work. It belongs to [BD-25](AGENT.manipulationFrameAndRelational.planning.md#bd-25) (relational candidate ranking, iteration 2), which records that membership's chain is extracted into a shared stage rather than copied, and renamed at that point.
+**Only the membership route is built to the Target shape.** Its stages carry membership names (`groundMembershipCandidates`, `sandboxMembershipDryRun`, `selectMembershipFromPool`) because their code is membership-specific, not because the design is. Relational and rehost still build one attempt, after their own selection (relational's is a `candidates[0]` placeholder). Bringing them onto the same chain is not this plan's work. It belongs to [BD-25](AGENT.manipulationFrameAndRelational.planning.md#bd-25) (relational candidate ranking, iteration 2), which records that membership's chain is extracted into a shared stage rather than copied, and renamed at that point. That extraction is now owned by [`AGENT.commandAttemptPipeline.planning.md`](AGENT.commandAttemptPipeline.planning.md) (2026-10-01).
 
 ## Premises checked against code (2026-09-24)
 
