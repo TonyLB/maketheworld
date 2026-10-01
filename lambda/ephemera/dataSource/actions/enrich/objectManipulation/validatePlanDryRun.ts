@@ -1,7 +1,8 @@
-import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 import type { IdentityPlanCandidate } from './identityPlanCandidate'
+import { membershipOperationKindFromLocus } from './identityPlanCandidate'
 import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ExecutorParsePlanStep } from './synthesize/executorTypes'
@@ -31,12 +32,15 @@ export type DryRunOutcome = {
 export type ValidateMembershipPlanContext = {
     /** When present, exit-edge contact escalates an otherwise-legal atomic to defer. */
     ludicGraph?: EphemeraLudicGraph
-    actorCharacterId?: EphemeraCharacterId
 }
 
 /**
- * Single-step membership dry-run (FT-2.2). Legality from locus vs operationKind;
- * exit-edge / unmodeled loci defer. No compound sandbox.
+ * Validates a `transferMembership` step (FT-2.2): the object's actual host must equal the
+ * host the step's `from` referent requires, or an exit edge defers. For v1 loci, `from`
+ * grounds to the room for `takeHold` and to the actor for `drop` (`planMembershipDesiredResult`),
+ * so `membershipOperationKindFromLocus` --- the locus's own inverse of that mapping --- is
+ * read as "does the locus satisfy `from`" rather than a bare operationKind table.
+ * `heldByOtherCharacter` / `withinObject` loci are not closed-world atomic in v1 and defer.
  */
 export function validateMembershipPlanDryRun(
     candidate: IdentityPlanCandidate,
@@ -45,34 +49,27 @@ export function validateMembershipPlanDryRun(
     const { locus } = candidate.identity
     const { operationKind } = candidate.plan
 
-    if (locus.kind === 'room') {
-        if (operationKind !== 'takeHold') {
-            return {
-                verdict: 'illegal',
-                decidable: true,
-                reason: objectManipulationErrorMessages.notCarryingObject,
-            }
+    const satisfiedOperationKind = membershipOperationKindFromLocus(locus)
+    if (satisfiedOperationKind === undefined) {
+        // heldByOtherCharacter / withinObject: not closed-world atomic in v1
+        return {
+            verdict: 'defer',
+            decidable: false,
+            reason: objectManipulationErrorMessages.unimplementedAtomicOperation,
         }
-        return escalateExitEdgeIfNeeded(candidate.identity.objectId, context)
     }
 
-    if (locus.kind === 'heldByActor') {
-        if (operationKind !== 'drop') {
-            return {
-                verdict: 'illegal',
-                decidable: true,
-                reason: objectManipulationErrorMessages.alreadyHoldingObject,
-            }
+    if (satisfiedOperationKind !== operationKind) {
+        return {
+            verdict: 'illegal',
+            decidable: true,
+            reason: locus.kind === 'room'
+                ? objectManipulationErrorMessages.notCarryingObject
+                : objectManipulationErrorMessages.alreadyHoldingObject,
         }
-        return escalateExitEdgeIfNeeded(candidate.identity.objectId, context)
     }
 
-    // heldByOtherCharacter / withinObject: not closed-world atomic in v1
-    return {
-        verdict: 'defer',
-        decidable: false,
-        reason: objectManipulationErrorMessages.unimplementedAtomicOperation,
-    }
+    return escalateExitEdgeIfNeeded(candidate.identity.objectId, context)
 }
 
 function escalateExitEdgeIfNeeded(

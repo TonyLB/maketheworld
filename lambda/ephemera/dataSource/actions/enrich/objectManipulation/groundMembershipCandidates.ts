@@ -65,9 +65,12 @@ export const planMembershipDesiredResult = (
 })
 
 /**
- * The host a membership candidate moves out of, chosen by locus. Undefined for loci
- * that are not closed-world atomic in v1 (another character's inventory, inside an
- * object), and when the relevant host id is missing.
+ * The object's actual host, read off its locus --- independent of which operation a
+ * candidate claims. Expansion needs this (boundary edges live on the graph the object is
+ * really on, whichever operation is proposed); so does exit-edge escalation. Undefined for
+ * loci that are not closed-world atomic in v1 (another character's inventory, inside an
+ * object), and when the relevant host id is missing. Validation (`validateMembershipPlanDryRun`)
+ * is the one place this gets compared against what the step's `from` referent requires.
  */
 export const membershipSourceHostId = (
     locus: SpanCandidateLocus,
