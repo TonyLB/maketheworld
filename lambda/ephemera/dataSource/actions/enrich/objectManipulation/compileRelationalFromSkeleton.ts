@@ -76,7 +76,7 @@ type RelationalCandidateId = {
  * substitution, and the attempt built from that grounded change --- before Expand,
  * before the dry run, before selection. Mirrors `MembershipPlanCandidate`
  * (`selectPlanCandidate.ts`), minus the generic `PlanCandidate` wiring: this route
- * doesn't reach the shared `selectPlanTuple` stage yet (that's slice 2c).
+ * doesn't reach the shared `selectPlanTuple` stage yet (that's slice 2d).
  */
 type RelationalGroundedCandidate = {
     candidateId: RelationalCandidateId
@@ -362,9 +362,8 @@ export async function compileRelationalFromSkeleton(
             getCurrentHost: getCurrentHostForExpansion,
             getMembershipContainers: getMembershipContainersForExpansion,
         }
-        // Hand-built here until the broad/narrow relation decisions (AP-6 to AP-8 in
-        // AGENT.commandAttemptPipeline.planning.md) settle where a grounded relational intent
-        // becomes a placement request. Its ids are the substituted subject/target; Plan's
+        // Hand-built here until slice 2b of AGENT.commandAttemptPipeline.planning.md seeds the
+        // grounded edge itself and command-expansion turns it into a chain (AP-6 to AP-8). Its ids are the substituted subject/target; Plan's
         // placeholder `host` is not read, since Expansion derives the real host.
         const { candidateId } = candidate
         const sameHostAssertion: GroundedSameHostAssertion = {
