@@ -45,8 +45,6 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 
 | Date | Tag | Observation |
 | --- | --- | --- |
-| 2026-08-22 | `other` | Claimed *Implemented* for a change with no clause in the document it claims to change; the variant's existing **Prototype** tier already covered the case exactly |
-| 2026-08-30 | `other` | A graduation checklist published under an explicit not-going-to-grow claim grew from eight items to ten after publication, and the growth was absorbed as a repair to the argument rather than read as the claim failing |
 | 2026-08-30 | `other` | Asked for a checklist to graduate a proposal, produced one scoped to part of it --- narrowing introduced in the same commit as the list, never surfaced as a decision --- and reported it as the checklist requested |
 | 2026-08-30 | `other` | Diagnosed the above as a naming choice made later, when the artifact shows the narrowing shipped with the list; the user's account was right and the reconstruction moved the error somewhere cheaper |
 | 2026-08-30 | `other` | Answered *are we ready to graduate* by leading with what was still unlicensed, when graduation had already happened two turns earlier and the code had shipped on it |
@@ -123,6 +121,10 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | 2026-09-26 | `other` | Offered "values whose origin matters" as a third reason to use a class, with an invented example and no evidence in the branch; closest real case (`EphemeraLudicGraph`'s constructors) is invariant protection, already set aside. User asked for its provenance. |
 | 2026-09-26 | `framing-inherited` | Filed a project-wide style rule in `lambda/ephemera/AGENT.implementation.md` because slice 1.5's text scoped the question to `lambda/ephemera`; the file type is a code map anyway. User pointed out the rule is project style. |
 | 2026-09-30 | `framing-inherited` | Planned `GroundedReferent` as a separate `{referentType: 'grounded'; id}` arm, copying the slice text's sketch; it discards the span/refKey already known. User: optional `groundedId` on every arm, required in the refined type. |
+| 2026-10-01 | `framing-inherited` | AP-1 (commandAttemptPipeline) leaned "one member per plan kind" and listed routes (membership, relational, rehost) as the kinds; user: steps have kinds, a candidate plan is a step sequence and has none. |
+| 2026-10-01 | `framing-inherited` | Then said the LLM fallback is where one-step plans stop holding; user: membership's Expand already emits dissolve + transfer, and `selectIdentityPlanTuple.ts:283` discards it. |
+| 2026-10-01 | `framing-inherited` | Having settled one shared stage, still wrote grounding as open between "both routes" (hand vs `groundChange`); user: there is one route --- grounding is substitution against a joint assignment, the product moves to forming candidates. |
+| 2026-10-01 | `overbroad-inheritance` | AP-4 leaned the containment route out because it has no pool and no plan today, carrying BD-25's "joins when it gains a pool" as a blocker; user: nothing essential separates it --- that is current code, and this plan is where it gains one. |
 
 ## Patterns
 
