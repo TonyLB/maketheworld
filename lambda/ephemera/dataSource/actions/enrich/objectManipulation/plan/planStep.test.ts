@@ -1,6 +1,8 @@
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     actingCharacterRef,
     currentHostRef,
+    groundStepBySubstitution,
     objectSpanRef,
     type Assertion,
     type Change,
@@ -73,6 +75,54 @@ describe('Change literal shapes', () => {
             relationKind: 'On',
         }
         expect(change.primitive).toBe('dissolveRelation')
+    })
+})
+
+describe('groundStepBySubstitution', () => {
+    const ropeId = 'OBJECT#Rope' as EphemeraObjectId
+
+    it('substitutes a transferMembership object referent whose stableRefKey is assigned', () => {
+        const step: Change = {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: objectSpanRef('rope', 'primaryObject'),
+            from: currentHostRef(actingCharacterRef),
+            to: actingCharacterRef,
+        }
+        const grounded = groundStepBySubstitution(step, new Map([['primaryObject', ropeId]]))
+        expect(grounded).toEqual({
+            ...step,
+            object: { ...objectSpanRef('rope', 'primaryObject'), groundedId: ropeId },
+        })
+    })
+
+    it('leaves derived referents (no stableRefKey) and unassigned keys untouched', () => {
+        const step: Change = {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: objectSpanRef('rope', 'otherKey'),
+            from: currentHostRef(actingCharacterRef),
+            to: actingCharacterRef,
+        }
+        const grounded = groundStepBySubstitution(step, new Map([['primaryObject', ropeId]]))
+        expect(grounded).toEqual(step)
+    })
+
+    it('substitutes subject/target referents on an establishRelation change', () => {
+        const step: Change = {
+            kind: 'change',
+            primitive: 'establishRelation',
+            subject: objectSpanRef('cord', 'subjectRef'),
+            target: objectSpanRef('crate', 'targetRef'),
+            host: currentHostRef(actingCharacterRef),
+            relationKind: 'Custom',
+            relationLabel: 'tied around',
+        }
+        const grounded = groundStepBySubstitution(step, new Map([['subjectRef', ropeId]]))
+        expect(grounded).toEqual({
+            ...step,
+            subject: { ...objectSpanRef('cord', 'subjectRef'), groundedId: ropeId },
+        })
     })
 })
 

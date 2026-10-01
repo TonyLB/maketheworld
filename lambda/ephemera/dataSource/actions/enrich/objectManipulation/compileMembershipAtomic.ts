@@ -27,7 +27,8 @@ import {
 } from './membershipObservation'
 import { buildSandboxState } from './sandboxState'
 import { selectMembershipFromPool } from './selectMembershipFromPool'
-import { groundMembershipCandidates } from './groundMembershipCandidates'
+import { groundMembershipCandidate } from './proposeMembershipCandidates'
+import { expandAndAdjudicateMembershipCandidate, membershipPlanStageEnvironment } from './selectPlanCandidate'
 
 export type CompileMembershipAtomicDeps = {
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich
@@ -195,21 +196,23 @@ export async function compileMembershipAtomic(
         // selected identity paired with that operation, through the same stage.
         const attempt = result.operationKind === selection.candidate.plan.operationKind
             ? selection.candidate.attempt
-            : groundMembershipCandidates(
-                [{
-                    identity: selection.candidate.identity,
-                    plan: { kind: 'transferMembership', operationKind: result.operationKind },
-                    confidence: selection.candidate.confidence,
-                }],
-                {
-                    words: frame.command,
-                    span: frame.rawObjectSpans[0] ?? objectId,
-                    catalog: identityCatalog,
-                    sandboxState,
-                    roomId: frame.hostRoomId,
-                    actorCharacterId: frame.characterId,
-                }
-            )[0]!.attempt
+            : expandAndAdjudicateMembershipCandidate(
+                groundMembershipCandidate(
+                    {
+                        identity: selection.candidate.identity,
+                        plan: { kind: 'transferMembership', operationKind: result.operationKind },
+                        confidence: selection.candidate.confidence,
+                    },
+                    {
+                        words: frame.command,
+                        span: frame.rawObjectSpans[0] ?? objectId,
+                        catalog: identityCatalog,
+                    }
+                ),
+                membershipPlanStageEnvironment(sandboxState, frame.hostRoomId, frame.characterId),
+                frame.hostRoomId,
+                frame.characterId
+            ).attempt
         return {
             ...result,
             attempt: attempt.toJSON(),

@@ -107,6 +107,34 @@ export const withGroundedId = <R extends Referent>(referent: R, groundedId: Grou
     groundedId,
 })
 
+/**
+ * Grounds a step by substitution (AP-1, `AGENT.commandAttemptPipeline.planning.md`):
+ * an `objectSpan` referent whose `stableRefKey` has an entry in the assignment gets that
+ * id, keeping everything else about it. Referents with no `stableRefKey`, or none in the
+ * assignment, pass through unchanged --- e.g. membership's derived `from`/`to` referents,
+ * which ground later in the executor's own grounding pass, not here. Route-agnostic: every
+ * producer (membership today, relational from slice 2a) grounds its own ungrounded `Change`
+ * the same way, over its own stableRefKey assignment.
+ */
+export const groundStepBySubstitution = (
+    step: Change,
+    groundedIdByRefKey: ReadonlyMap<string, GroundedId>
+): Change => {
+    const substitute = (referent: Referent): Referent => {
+        if (referent.referentType === 'objectSpan' && referent.stableRefKey !== undefined) {
+            const groundedId = groundedIdByRefKey.get(referent.stableRefKey)
+            if (groundedId !== undefined) {
+                return withGroundedId(referent, groundedId)
+            }
+        }
+        return referent
+    }
+    if (step.primitive === 'transferMembership') {
+        return { ...step, object: substitute(step.object), from: substitute(step.from), to: substitute(step.to) }
+    }
+    return { ...step, subject: substitute(step.subject), target: substitute(step.target), host: substitute(step.host) }
+}
+
 /** True when every referent of this step carries a known id. */
 export const isGroundedStep = (step: PlanStep): step is PlanStep<GroundedReferent> => {
     const referents: Referent[] = step.kind === 'assertion'

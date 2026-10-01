@@ -7,9 +7,10 @@ import { MetVerdict } from './verdict'
 
 /**
  * Adjudicate, the Coyote evaluator: a phase of the actions pipeline, run per candidate by
- * the membership ground + expand stage (`groundMembershipCandidates`) before the dry run
- * validates the attempt. Its verdicts ride the published attempt; positions honors them at
- * commit and never judges.
+ * the shared stage's `expandAndAdjudicateMembershipCandidate`
+ * (`enrich/objectManipulation/selectPlanCandidate.ts`) before the dry run validates the
+ * attempt. Its verdicts ride the published attempt; positions honors them at commit and
+ * never judges.
  *
  * Every player command is a preparation command, and in preparation a challenge on whether
  * a facilitating action can physically happen is met. So this records *met* on every
