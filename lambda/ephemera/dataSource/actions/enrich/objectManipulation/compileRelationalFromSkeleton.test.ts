@@ -71,9 +71,10 @@ describe('compileRelationalFromSkeleton', () => {
             }],
             attempt: expect.objectContaining({
                 words: 'put broom under table',
+                // Parse's own stableRefKey (slice 2a), not a synthesized `${id}/subject` key.
                 referents: [
-                    { refKey: 'OBJECT#Broom/subject', id: broomId, shortName: 'broom' },
-                    { refKey: 'OBJECT#Table/target', id: tableId, shortName: 'table' },
+                    { refKey: 'broomRef', id: broomId, shortName: 'broom' },
+                    { refKey: 'tableRef', id: tableId, shortName: 'table' },
                 ],
             }),
         })

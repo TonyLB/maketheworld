@@ -41,15 +41,6 @@ export type IdentityPlanCandidate = {
     confidence: number
 }
 
-/** Two-span relational `(identity, plan)` candidate (FT-3.3). */
-export type RelationalIdentityPlanCandidate = {
-    subject: IdentityPlanIdentity
-    target: IdentityPlanIdentity
-    plan: RelationalPlanStub
-    /** min(subject, target) joint relevance --- one thin span sinks the command. */
-    confidence: number
-}
-
 export function membershipOperationKindFromVerbClass(
     verbClass: ManipulationVerbClass
 ): 'takeHold' | 'drop' {
@@ -101,25 +92,5 @@ export function identityPlanCandidateFromSpan(
             operationKind,
         },
         confidence: candidate.jointRelevance,
-    }
-}
-
-export function relationalIdentityPlanCandidateFromSpans(
-    subject: ObjectSpanCandidate,
-    target: ObjectSpanCandidate,
-    operationKind: RelationalOperationKind,
-    relation: NormalizedRelation
-): RelationalIdentityPlanCandidate {
-    const subjectIdentity = identityFromSpanCandidate(subject)
-    const targetIdentity = identityFromSpanCandidate(target)
-    return {
-        subject: subjectIdentity,
-        target: targetIdentity,
-        plan: {
-            kind: operationKind,
-            operationKind,
-            relation,
-        },
-        confidence: Math.min(subject.jointRelevance, target.jointRelevance),
     }
 }
