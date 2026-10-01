@@ -12,7 +12,7 @@ import {
     selectPlanTuple,
     type SelectPlanTupleInput,
     type SelectPlanTupleResult,
-} from '../selectIdentityPlanTuple'
+} from '../selectPlanCandidate'
 import type { SandboxState } from '../sandboxState'
 import type { ObjectSpanCandidate } from '../spanResolution'
 import { buildIdentityOnlyFallbackPrompt } from './buildIdentityOnlyFallbackPrompt'

@@ -14,7 +14,7 @@ import {
 import type { IdentityPlanCandidate } from './identityPlanCandidate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { SandboxState } from './sandboxState'
-import type { SpanResolutionConsultAlternative, SpanResolutionOutcome } from './spanResolution'
+import type { ConsultAlternative, SpanResolutionOutcome } from './spanResolution'
 import type { GroundingContext } from './synthesize/groundReferent'
 import type { ExpansionEnvironment } from './synthesize/executorTypes'
 import { runExecutor, seedFromGroundedSteps, seedFromUngroundedSteps } from './synthesize/executor'
@@ -37,7 +37,7 @@ export type SelectPlanTupleResult<T> =
     }
     | {
         verdict: 'consult'
-        alternatives: readonly SpanResolutionConsultAlternative[]
+        alternatives: readonly ConsultAlternative[]
         legalSurvivors: readonly ScoredPlanCandidate<T>[]
     }
     | {
@@ -59,7 +59,7 @@ export type SelectPlanTupleInput<T> = {
     candidates: readonly T[]
     getConfidence: (candidate: T) => number
     dryRun: (candidate: T) => DryRunOutcome
-    toConsultAlternative: (candidate: T) => SpanResolutionConsultAlternative
+    toConsultAlternative: (candidate: T) => ConsultAlternative
 }
 
 /**
@@ -117,7 +117,7 @@ export function selectPlanTuple<T>(
 function selectAmongLegal<T>(
     legal: ScoredPlanCandidate<T>[],
     getConfidence: (candidate: T) => number,
-    toConsultAlternative: (candidate: T) => SpanResolutionConsultAlternative
+    toConsultAlternative: (candidate: T) => ConsultAlternative
 ): SelectPlanTupleResult<T> {
     const head = legal[0]!
     const absFloor = legal.length === 1 ? T_JOINT_ABS_UNARY : T_JOINT_ABS
@@ -316,7 +316,7 @@ export function selectIdentityPlanTuple(
 export function membershipConsultAlternative(
     candidate: IdentityPlanCandidate,
     commandSpan: string
-): SpanResolutionConsultAlternative {
+): ConsultAlternative {
     void commandSpan
     const verb = candidate.plan.operationKind === 'drop' ? 'drop' : 'take'
     return {

@@ -9,8 +9,8 @@ import {
     selectPlanTuple,
     type SelectPlanTupleInput,
     type SelectPlanTupleResult,
-} from '../selectIdentityPlanTuple'
-import type { SpanResolutionConsultAlternative } from '../spanResolution'
+} from '../selectPlanCandidate'
+import type { ConsultAlternative } from '../spanResolution'
 import type { DryRunOutcome } from '../validatePlanDryRun'
 
 /**
@@ -73,7 +73,7 @@ const planOnlyFallbackDryRun = (): DryRunOutcome => ({
 
 const planOnlyFallbackConsultAlternative = (
     candidate: PlanOnlyFallbackCandidate
-): SpanResolutionConsultAlternative => ({
+): ConsultAlternative => ({
     objectId: candidate.identity.objectId,
     label: candidate.identity.label,
     proposedCommand: candidate.identity.label,

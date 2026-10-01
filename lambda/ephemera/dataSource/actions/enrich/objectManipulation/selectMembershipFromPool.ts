@@ -10,8 +10,8 @@ import type { SandboxState } from './sandboxState'
 import {
     selectIdentityPlanTuple,
     type SelectIdentityPlanTupleResult,
-} from './selectIdentityPlanTuple'
-import type { SpanCandidatePool, SpanResolutionConsultAlternative } from './spanResolution'
+} from './selectPlanCandidate'
+import type { ConsultAlternative, SpanCandidatePool } from './spanResolution'
 import { locusToCatalogScope } from './unaryCollapse'
 
 export type SelectMembershipFromPoolResult =
@@ -34,7 +34,7 @@ export type SelectMembershipFromPoolResult =
     }
     | {
         type: 'consult'
-        alternatives: readonly SpanResolutionConsultAlternative[]
+        alternatives: readonly ConsultAlternative[]
     }
     | {
         type: 'abstain'

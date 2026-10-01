@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import { identityPlanCandidateFromSpan } from './identityPlanCandidate'
 import { T_JOINT_ABS, T_JOINT_ABS_UNARY, T_JOINT_MARGIN } from './embeddingMatch/thresholds'
-import { selectIdentityPlanTuple } from './selectIdentityPlanTuple'
+import { selectIdentityPlanTuple } from './selectPlanCandidate'
 import type { ObjectSpanCandidate } from './spanResolution'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { buildSandboxState } from './sandboxState'
