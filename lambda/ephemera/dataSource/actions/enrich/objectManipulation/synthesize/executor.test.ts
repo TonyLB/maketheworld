@@ -2,9 +2,9 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import { graphNodeRef, objectSpanRef } from '../plan/planStep'
-import type { DissolveRelationChange, GroundedReferent, TransferMembershipChange } from '../plan/planStep'
+import type { DissolveRelationChange, GroundedReferent } from '../plan/planStep'
 import type { GroundingContext } from './groundReferent'
-import { runExecutor, seedFromGroundedSteps, seedTransferMembership } from './executor'
+import { runExecutor, seedFromGroundedSteps, seedFromUngroundedSteps } from './executor'
 import type { ExpansionEnvironment, WorklistInstruction } from './executorTypes'
 
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -27,52 +27,6 @@ describe('runExecutor', () => {
     // into the transfer set), which is now dead -- `On` joined `In`/`PartOf`'s hosting-kind
     // throw, and `carry` is unreachable from any relation kind. Real shard-based hosting (CD2h)
     // is what would eventually carry the cup along again, by construction.
-
-    it('dissolves a boundary edge to a non-Object (Character) endpoint, no throw', () => {
-        const COMPANION_ID = 'CHARACTER#Companion' as EphemeraCharacterId
-        const graph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(TRAY_ID)
-            .addCharacter(COMPANION_ID)
-            .addRelationalEdge({ from: TRAY_ID, to: COMPANION_ID, kind: 'Against' })
-
-        const env: ExpansionEnvironment = {
-            getGraph: (hostId) => (hostId === ROOM_ID ? graph : undefined),
-            getCurrentHost: (id) => ([TRAY_ID, COMPANION_ID].includes(id) ? ROOM_ID : undefined),
-            getMembershipContainers: () => [],
-        }
-
-        const seed: WorklistInstruction[] = [
-            { id: 'isolated', tag: 'grounded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },
-            { id: 'transfer', tag: 'grounded', step: { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID } },
-        ]
-
-        const result = runExecutor(seed, env, emptyGroundingContext)
-
-        expect(result).toEqual({
-            verdict: 'legal',
-            steps: [
-                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: COMPANION_ID, hostId: ROOM_ID, relationKind: 'Against' },
-                { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
-            ],
-        })
-    })
-
-    it('seedTransferMembership always pairs a transferMembership Change with isolatedFromRelations, isolatedFromRelations first', () => {
-        const change: TransferMembershipChange = {
-            kind: 'change',
-            primitive: 'transferMembership',
-            object: objectSpanRef('tray', 'trayRef'),
-            from: objectSpanRef('tray', 'trayRef'),
-            to: objectSpanRef('tray', 'trayRef'),
-        }
-
-        const seeded = seedTransferMembership(change)
-
-        expect(seeded).toHaveLength(2)
-        expect(seeded[0]!.tag).toBe('ungrounded')
-        expect(seeded[0]!.step).toEqual({ kind: 'assertion', predicate: 'isolatedFromRelations', object: change.object })
-        expect(seeded[1]!.step).toBe(change)
-    })
 
     it('a sameHost pair that already shares a host retires as a single portless leg, from the assertion alone', () => {
         // `satisfied` (deleted 2026-09-01) used to retire a matching sameHost assertion with no
@@ -176,56 +130,11 @@ describe('runExecutor', () => {
         ])
     })
 
-    it('BD-28: a lone isolatedFromRelations (no paired transfer) mints its DissolveRelationSteps directly', () => {
-        const graph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(TRAY_ID)
-            .addObject(TABLE_ID)
-            .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Against' })
-
-        const env: ExpansionEnvironment = {
-            getGraph: (hostId) => (hostId === ROOM_ID ? graph : undefined),
-            getCurrentHost: (id) => ([TRAY_ID, TABLE_ID].includes(id) ? ROOM_ID : undefined),
-            getMembershipContainers: () => [],
-        }
-
-        const seed: WorklistInstruction[] = [
-            { id: 'isolated', tag: 'grounded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },
-        ]
-
-        const result = runExecutor(seed, env, emptyGroundingContext)
-
-        expect(result).toEqual({
-            verdict: 'legal',
-            steps: [{ kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Against' }],
-        })
-    })
-
     // The former "errors if a carry-classified edge survives to command-expansion time" test is
     // retired 2026-08-22 (Channel D, CD2, reduced scope): the guard it exercised only fires for
     // a 'carry' outcome surviving unexpectedly, and `carry` is now unreachable from any relation
     // kind -- `On` (its only producer) joined `In`/`PartOf`'s hosting-kind throw. Reaching this
     // scenario today throws AB-54's invariant error instead, at `boundaryEdgeOutcomes` itself.
-
-    it('defers the whole run on a Custom-kind boundary edge, not a partial result', () => {
-        const graph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(TRAY_ID)
-            .addObject(WEIRD_ID)
-            .addRelationalEdge({ from: TRAY_ID, to: WEIRD_ID, kind: 'Custom', relationLabel: 'tangled up with' })
-
-        const env: ExpansionEnvironment = {
-            getGraph: (hostId) => (hostId === ROOM_ID ? graph : undefined),
-            getCurrentHost: (id) => ([TRAY_ID, WEIRD_ID].includes(id) ? ROOM_ID : undefined),
-            getMembershipContainers: () => [],
-        }
-
-        const seed: WorklistInstruction[] = [
-            { id: 'isolated', tag: 'grounded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },
-        ]
-
-        const result = runExecutor(seed, env, emptyGroundingContext)
-
-        expect(result).toEqual({ verdict: 'defer', decidable: false, reason: expect.any(String) })
-    })
 
     it('runs a fully-grounded seed with no GroundingContext supplied', () => {
         const graph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID)
@@ -235,11 +144,7 @@ describe('runExecutor', () => {
             getMembershipContainers: () => [],
         }
 
-        // BD-34's pairing invariant, spelled inline rather than via the retired
-        // `seedGroundedTransferMembership` (2026-09-07: its sole caller,
-        // `executeObjectMove`, no longer re-runs the executor at all).
         const seed: WorklistInstruction[] = [
-            { id: 'isolated', tag: 'grounded', step: { kind: 'assertion', predicate: 'isolatedFromRelations', objectIds: new Set([TRAY_ID]) } },
             { id: 'transfer', tag: 'grounded', step: { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID } },
         ]
 
@@ -262,13 +167,13 @@ describe('runExecutor', () => {
         }
 
         const result = runExecutor(
-            seedTransferMembership({
+            seedFromUngroundedSteps([{
                 kind: 'change',
                 primitive: 'transferMembership',
                 object: objectSpanRef('object', 'tray'),
                 from: objectSpanRef('from', 'room'),
                 to: objectSpanRef('to', 'character'),
-            }),
+            }]),
             env
         )
 

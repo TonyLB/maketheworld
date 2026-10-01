@@ -81,6 +81,13 @@ describe('groundMembershipCandidates', () => {
         ])
     })
 
+    it('adjudicates each attempt: the Custom-edge challenge is met, so row 6\'s attempt succeeds', () => {
+        const [grounded] = groundMembershipCandidates([candidate(ropeId, { kind: 'room' }, 'takeHold')], context)
+
+        expect(grounded!.attempt.toJSON().actions[1]?.challenges[0]?.verdict).toEqual({ kind: 'met' })
+        expect(grounded!.attempt.result.status).toBe('succeeded')
+    })
+
     it('grounds the referent from the catalog, gloss included', () => {
         const [grounded] = groundMembershipCandidates([candidate(ropeId, { kind: 'room' }, 'takeHold')], context)
 

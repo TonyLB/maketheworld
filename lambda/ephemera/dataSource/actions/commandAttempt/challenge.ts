@@ -6,16 +6,18 @@ import { verdictFromJSON, verdictToJSON } from './verdict'
  * Challenge family (slice 1.7, per 1.6's decision that challenges grow along the
  * member axis). Every member answers: its wording (`describe`), its detection source
  * (deterministic from the graph, or invisible to the fast path --- world-knowledge),
- * and what a *met* verdict propagates (CA-7: a graph challenge must carry its edge so
- * a later slice can reach the dry run and the commit recheck; a world-knowledge
- * challenge has nothing to propagate).
+ * and what a *met* verdict propagates (a graph challenge carries its edge, which the
+ * commit side dissolves on the attempt's behalf via `CommandAttempt.metPropagations()`;
+ * a world-knowledge challenge has nothing to propagate). Which members a given
+ * adjudicator may judge is that adjudicator's policy (`adjudicate.ts`), not a member
+ * question.
  */
 export interface Challenge {
     readonly id: string
     readonly verdict: Verdict | undefined
     readonly detectionSource: 'graph' | 'worldKnowledge'
     describe(): string
-    /** What a `met` verdict on this challenge propagates forward (CA-7). `undefined` if nothing does. */
+    /** What a `met` verdict on this challenge propagates forward to the commit side. `undefined` if nothing does. */
     metPropagation(): { edge: HostRelationalEdge } | undefined
     /** Pure: returns a new challenge with this verdict recorded. */
     withVerdict(verdict: Verdict): Challenge
@@ -33,7 +35,7 @@ export type ChallengeData =
  * challenge at all" question, but not a generic sentence-synthesis rule --- row 6's full
  * sentence ("the rope is lashed to the post; that lashing must be undone.") has an
  * authored second clause no transform of `relationLabel` alone reliably reproduces. So
- * this member carries the edge (for CA-7 propagation and detection source) alongside the
+ * this member carries the edge (for met propagation and detection source) alongside the
  * wording as given, rather than synthesizing prose from `relationLabel`.
  */
 export class CustomEdgeChallenge implements Challenge {

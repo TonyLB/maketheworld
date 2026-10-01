@@ -44,26 +44,6 @@ describe('groundAssertion', () => {
         })
     })
 
-    it('grounds an isolatedFromRelations Assertion into a singleton objectIds set', () => {
-        const assertion: Assertion = {
-            kind: 'assertion',
-            predicate: 'isolatedFromRelations',
-            object: objectSpanRef('tray', 'trayRef'),
-        }
-        const context = contextWith([
-            ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
-        ])
-
-        expect(groundAssertion(assertion, context)).toEqual({
-            ok: true,
-            assertion: {
-                kind: 'assertion',
-                predicate: 'isolatedFromRelations',
-                objectIds: new Set([TRAY_ID]),
-            },
-        })
-    })
-
     it('errors (BD-32) when a referent grounds to more than one candidate', () => {
         const assertion: Assertion = {
             kind: 'assertion',
@@ -84,11 +64,14 @@ describe('groundAssertion', () => {
     it('propagates an unresolved referent as a grounding failure', () => {
         const assertion: Assertion = {
             kind: 'assertion',
-            predicate: 'isolatedFromRelations',
-            object: objectSpanRef('tray', 'trayRef'),
+            predicate: 'containedBy',
+            subject: objectSpanRef('tray', 'trayRef'),
+            object: objectSpanRef('table', 'tableRef'),
+            negate: false,
         }
         const context = contextWith([
             ['trayRef', { verdict: 'unresolved', reason: 'no catalog match' }],
+            ['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }],
         ])
 
         const result = groundAssertion(assertion, context)

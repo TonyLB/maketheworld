@@ -10,6 +10,8 @@ import { challengeFromJSON, challengeToJSON } from './challenge'
  * give your outcome (the eventual kernel-vocabulary result, once something adjudicates).
  */
 export interface AttemptActionMember {
+    /** The structural intent, in Plan's step vocabulary: what deterministic code lowers. */
+    readonly desiredResult?: PlanStep
     describe(): string | undefined
     challenges(): Challenge[]
     /** Pure: returns a new action of the same kind holding these challenges. */
@@ -18,12 +20,12 @@ export interface AttemptActionMember {
 }
 
 /**
- * The only member today. Plan's `PlanStep` already discriminates five
+ * The only member today. Plan's `PlanStep` already discriminates four
  * primitive shapes (`transferMembership` / `establishRelation` / `dissolveRelation` /
- * `containedBy` / `isolatedFromRelations`), but all five are one *outcome class* ---
- * position --- so they share this one action member rather than five. `desiredResult`
- * is the structural intent; `desiredResultDescription` is its prose gloss, read by
- * `describe()` since nothing deterministic reads the structural half yet.
+ * `containedBy`), but all four are one *outcome class* --- position --- so they share
+ * this one action member rather than four. `desiredResult` is the structural intent,
+ * which the membership dry run lowers to executor steps; `desiredResultDescription` is
+ * its prose gloss, read by `describe()`.
  */
 export class PositionAttemptAction implements AttemptActionMember {
     readonly desiredResult?: PlanStep

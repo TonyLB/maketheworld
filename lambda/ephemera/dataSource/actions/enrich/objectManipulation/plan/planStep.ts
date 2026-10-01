@@ -74,25 +74,7 @@ export type ContainedByAssertion<R extends Referent = Referent> = {
     negate: boolean
 }
 
-/**
- * BD-28/BD-34: "this object's (or object-set's) relations to anything outside
- * itself must be severed" --- what take/drop needs to sever boundary
- * relations explicitly (streaming a fact) rather than via `removeObject`'s
- * implicit edge-stripping. Folded into `Assertion` rather than a fourth
- * top-level `PlanStep` kind or a new `Change` primitive: it shares
- * `Assertion`'s retirement shape (evaluates live state, mints 0+ repair-shaped
- * children, contributes no kernel step of its own) --- see
- * `synthesize/AGENT.implementation.md` for how the executor lowers it. No
- * `negate`: unlike the binary predicates above, this one
- * has no meaningful negated form Plan would ever emit.
- */
-export type IsolatedFromRelationsAssertion<R extends Referent = Referent> = {
-    kind: 'assertion'
-    predicate: 'isolatedFromRelations'
-    object: R
-}
-
-export type Assertion<R extends Referent = Referent> = ContainedByAssertion<R> | IsolatedFromRelationsAssertion<R>
+export type Assertion<R extends Referent = Referent> = ContainedByAssertion<R>
 
 /**
  * A Plan step, generic over what is known about its referents: `PlanStep` (the default)
@@ -124,3 +106,13 @@ export const withGroundedId = <R extends Referent>(referent: R, groundedId: Grou
     ...referent,
     groundedId,
 })
+
+/** True when every referent of this step carries a known id. */
+export const isGroundedStep = (step: PlanStep): step is PlanStep<GroundedReferent> => {
+    const referents: Referent[] = step.kind === 'assertion'
+        ? [step.subject, step.object]
+        : step.primitive === 'transferMembership'
+            ? [step.object, step.from, step.to]
+            : [step.subject, step.target, step.host]
+    return referents.every((referent) => referent.groundedId !== undefined)
+}

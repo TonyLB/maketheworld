@@ -3,6 +3,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import { CommandAttempt } from '../../commandAttempt'
 import { PositionAttemptAction } from '../../commandAttempt/action'
+import { adjudicateAttempt } from '../../commandAttempt/adjudicate'
 import { attemptActionsFromBoundaryOutcomes } from '../../commandAttempt/expandBoundaryChallenges'
 import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
@@ -83,17 +84,18 @@ export const membershipSourceHostId = (
 }
 
 /**
- * Ground + expand, run before scoring: one grounded attempt per (identity, plan) tuple.
- * Grounding adds the candidate's id to Plan's object referent (keeping its span and
- * `stableRefKey`) and ties the phrase to the candidate's catalog entry (short name, gloss);
- * Expansion adds one action per boundary edge from the candidate's source graph (CA-7),
- * with a graph challenge on each `defer`. A candidate with no source graph grounds its
- * referent but skips expansion.
+ * Ground + expand + adjudicate, run before scoring: one grounded, adjudicated attempt per
+ * (identity, plan) tuple. Grounding adds the candidate's id to Plan's object referent
+ * (keeping its span and `stableRefKey`) and ties the phrase to the candidate's catalog entry
+ * (short name, gloss). Expansion adds one facilitating action per boundary edge from the
+ * candidate's source graph, with a graph challenge on each `defer`. Adjudicate then judges
+ * the challenges it may (`adjudicateAttempt`), so the dry run validates a judged attempt. A
+ * candidate with no source graph grounds its referent but skips expansion.
  *
  * Kept out of the selector's `dryRun` callback, which maps one candidate to one outcome:
- * a sibling attempt (CA-8's multi-host reading) comes into being at expansion, so the
- * pool is built here. This is a `map` today and becomes a `flatMap` when a sibling
- * producer arrives.
+ * a sibling attempt (a plan without this precondition, e.g. taking part of a lashed
+ * rope) comes into being at expansion, so the pool is built here. This is a `map` today
+ * and becomes a `flatMap` when a sibling producer arrives.
  */
 export const groundMembershipCandidates = (
     candidates: readonly IdentityPlanCandidate[],
@@ -140,7 +142,7 @@ export const groundMembershipCandidates = (
         return {
             ...candidate,
             desiredResult,
-            attempt: CommandAttempt.create(words, [referent], actions),
+            attempt: adjudicateAttempt(CommandAttempt.create(words, [referent], actions)),
         }
     })
 }

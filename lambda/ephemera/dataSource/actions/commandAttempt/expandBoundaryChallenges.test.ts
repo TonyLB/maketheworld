@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { testLudicGraph } from '../../positions/ludicGraph/testFixtures'
 import { attemptActionsFromBoundaryOutcomes } from './expandBoundaryChallenges'
 import { PositionAttemptAction } from './action'
@@ -25,6 +25,27 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         expect(actions).toHaveLength(2)
         expect(actions[0]).toBe(primaryAction)
         expect(actions[1]?.challenges()).toHaveLength(0)
+    })
+
+    it('expands a boundary edge to a non-Object (Character) endpoint too', () => {
+        const companionId = 'CHARACTER#Companion' as EphemeraCharacterId
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Character' as const, universalKey: companionId },
+            ],
+            edges: [{ tag: 'Relational', from: ropeId, to: companionId, kind: 'Against' }],
+        })
+        const primaryAction = new PositionAttemptAction([], undefined, 'Take: rope')
+
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
+
+        expect(actions).toHaveLength(2)
+        expect(actions[1]?.desiredResult).toEqual(expect.objectContaining({
+            primitive: 'dissolveRelation',
+            subject: graphNodeRef(ropeId),
+            target: graphNodeRef(companionId),
+        }))
     })
 
     it('adds one action carrying a CustomEdgeChallenge (with the real edge) for a defer-classified boundary edge', () => {

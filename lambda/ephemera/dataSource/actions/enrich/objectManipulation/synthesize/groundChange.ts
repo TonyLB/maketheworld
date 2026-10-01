@@ -36,8 +36,9 @@ export type GroundChangeResult =
  *
  * `transferMembership` produces a **single-object** `objectIds` set per candidate,
  * and that set is complete: anything the object hosts lives in its own shard and
- * travels with it. What Grounding leaves for Expansion is the relational edges the
- * move must dissolve or defer on (`isolatedFromRelations`, in `executor.ts`).
+ * travels with it. The relational edges the move must dissolve are not Grounding's:
+ * Expansion adds them to the attempt as facilitating actions before the executor runs
+ * (`commandAttempt/expandBoundaryChallenges.ts`).
  *
  * `establishRelation`/`dissolveRelation` ground the Change's own `host`. Plan sets it
  * to BD-6's default, `currentHost(actingCharacter)` (BD-15/16's `sameHost`

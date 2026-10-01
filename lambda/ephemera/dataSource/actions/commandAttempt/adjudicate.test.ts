@@ -14,30 +14,54 @@ describe('adjudicateAttempt', () => {
         expect(result).toEqual({ status: 'succeeded', outcome: 'Take: broom' })
     })
 
-    it('leaves an attempt with an unresolved graph challenge pending --- matching today\'s silent defer', () => {
-        const attempt = CommandAttempt.fromJSON({
-            words: 'take the rope',
-            referents: [{ refKey: 'primaryObject', id: 'OBJECT#Rope', shortName: 'rope' }],
-            actions: [
-                { kind: 'position', desiredResultDescription: 'Take: rope', challenges: [] },
-                {
-                    kind: 'position',
-                    desiredResultDescription: 'Dissolve: is lashed to',
-                    challenges: [
-                        {
-                            kind: 'customEdge',
-                            id: 'challenge-1',
-                            edge: { from: 'OBJECT#Rope', to: 'OBJECT#Post', kind: 'Custom', relationLabel: 'is lashed to' },
-                            description: 'Boundary relation to dissolve: is lashed to.',
-                        },
-                    ],
-                },
-            ],
-        })
+    const ropeAttempt = (challenge: object) => CommandAttempt.fromJSON({
+        words: 'take the rope',
+        referents: [{ refKey: 'primaryObject', id: 'OBJECT#Rope', shortName: 'rope' }],
+        actions: [
+            { kind: 'position', desiredResultDescription: 'Take: rope', challenges: [] },
+            {
+                kind: 'position',
+                desiredResultDescription: 'Dissolve: is lashed to',
+                challenges: [challenge as never],
+            },
+        ],
+    })
 
-        const result = adjudicateAttempt(attempt).result
+    const lashedChallenge = {
+        kind: 'customEdge',
+        id: 'challenge-1',
+        edge: { from: 'OBJECT#Rope', to: 'OBJECT#Post', kind: 'Custom', relationLabel: 'is lashed to' },
+        description: 'Boundary relation to dissolve: is lashed to.',
+    }
 
-        expect(result).toEqual({ status: 'pending' })
+    it('records met on a Custom-edge challenge, so row 6\'s rope is untied and taken', () => {
+        const judged = adjudicateAttempt(ropeAttempt(lashedChallenge))
+
+        expect(judged.actions()[1]?.challenges()[0]?.verdict?.kind).toBe('met')
+        expect(judged.result).toEqual({ status: 'succeeded', outcome: 'Take: rope and Dissolve: is lashed to' })
+    })
+
+    it('leaves an Under subject-move challenge pending: clearance and pinned are different facilitating actions', () => {
+        const judged = adjudicateAttempt(ropeAttempt({
+            kind: 'underDefer',
+            id: 'challenge-1',
+            edge: { from: 'OBJECT#Rope', to: 'OBJECT#Boulder', kind: 'Under' },
+            description: 'Boundary relation to dissolve: the subject is Under something that must move first.',
+        }))
+
+        expect(judged.result).toEqual({ status: 'pending' })
+    })
+
+    it('leaves a world-knowledge challenge pending', () => {
+        const judged = adjudicateAttempt(ropeAttempt({ kind: 'worldKnowledge', id: 'challenge-1', description: 'The rope is very heavy.' }))
+
+        expect(judged.result).toEqual({ status: 'pending' })
+    })
+
+    it('does not overwrite a verdict already recorded', () => {
+        const judged = adjudicateAttempt(ropeAttempt({ ...lashedChallenge, verdict: { kind: 'impossible', reason: 'no' } }))
+
+        expect(judged.result).toEqual({ status: 'impossible', reason: 'no' })
     })
 })
 

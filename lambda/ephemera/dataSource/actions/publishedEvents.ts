@@ -58,7 +58,7 @@ export type ObjectTakeHoldPublishedPayload = {
     objectIds: EphemeraObjectId[];
     roomId: EphemeraRoomId;
     confidence?: number;
-    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join and reconstructed positions-side at the adjudicate seam. */
+    /** The player's attempt, with any verdicts Adjudicate recorded actions-side. `positions/index.ts` reconstructs it, and the commit side honors its verdicts. */
     attempt?: CommandAttemptData;
 }
 
@@ -69,7 +69,7 @@ export type ObjectDropPublishedPayload = {
     objectIds: EphemeraObjectId[];
     roomId: EphemeraRoomId;
     confidence?: number;
-    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join and reconstructed positions-side at the adjudicate seam. */
+    /** The player's attempt, with any verdicts Adjudicate recorded actions-side. `positions/index.ts` reconstructs it, and the commit side honors its verdicts. */
     attempt?: CommandAttemptData;
 }
 
@@ -106,7 +106,7 @@ export type ObjectEstablishRelationPublishedPayload = {
      * stays narration-only rather than being derived from this array at read time.
      */
     steps: readonly MutationKernelStep[];
-    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join and reconstructed positions-side at the adjudicate seam. */
+    /** The player's attempt, with any verdicts Adjudicate recorded actions-side. `positions/index.ts` reconstructs it, and the commit side honors its verdicts. */
     attempt?: CommandAttemptData;
 } & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
@@ -132,7 +132,7 @@ export type ObjectDissolveRelationPublishedPayload = {
      * handler --- carried here so it is available once that row wires it in.
      */
     steps: readonly MutationKernelStep[];
-    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join and reconstructed positions-side at the adjudicate seam. */
+    /** The player's attempt, with any verdicts Adjudicate recorded actions-side. `positions/index.ts` reconstructs it, and the commit side honors its verdicts. */
     attempt?: CommandAttemptData;
 } & RelationalKindAndLabel<HostRelationalEdgeKindPublished>
 
@@ -264,7 +264,7 @@ export type ObjectRehostPublishedPayload = {
     roomId: EphemeraRoomId;
     containment: ContainmentKindPublished;
     confidence?: number;
-    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join and reconstructed positions-side at the adjudicate seam. */
+    /** The player's attempt, with any verdicts Adjudicate recorded actions-side. `positions/index.ts` reconstructs it, and the commit side honors its verdicts. */
     attempt?: CommandAttemptData;
 }
 

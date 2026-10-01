@@ -1,9 +1,8 @@
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf, relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { boundaryEdgeOutcomes } from '../../../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
+import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { Assertion, Change, GroundedReferent, TransferMembershipChange, PlanStep } from '../plan/planStep'
+import type { Assertion, Change, GroundedReferent, PlanStep } from '../plan/planStep'
 import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'
 import { groundAssertion } from './groundAssertion'
 import { groundChange } from './groundChange'
@@ -25,36 +24,17 @@ const mintInstructionId = (): InstructionId => {
 }
 
 /**
- * Seeds an ordered list of Plan-emitted `PlanStep`s directly, tagged
- * `ungrounded`, in the order given --- the general seeding path for anything
- * that isn't a `transferMembership` (which must go through
- * `seedTransferMembership` instead, so its `isolatedFromRelations` pairing is
- * never forgotten). Matches the existing `[sameHostAssertion, change]` seed
- * order convention (BD-15(1)).
+ * Seeds an ordered list of Plan-emitted `PlanStep`s directly, tagged `ungrounded`, in
+ * the order given. Matches the existing `[sameHostAssertion, change]` seed order
+ * convention (BD-15(1)). A move's boundary dissolves are not the executor's to find:
+ * Expansion adds them to the attempt as facilitating actions, and the caller seeds them
+ * grounded, ahead of the move (BD-28's order), through `seedFromGroundedSteps`.
  */
 export const seedFromUngroundedSteps = (steps: readonly PlanStep[]): WorklistInstruction[] =>
     steps.map((step) => ({ id: mintInstructionId(), tag: 'ungrounded', step }))
 
 /**
- * BD-34's centralized pairing constructor, Plan-seed half: a `transferMembership`
- * `Change` is never seeded alone --- its `isolatedFromRelations` sibling is
- * seeded first (BD-28's sequencing resolution), referencing the same object
- * referent, both `ungrounded`.
- */
-export const seedTransferMembership = (change: TransferMembershipChange): WorklistInstruction[] => {
-    const isolatedFromRelations: Assertion = {
-        kind: 'assertion',
-        predicate: 'isolatedFromRelations',
-        object: change.object,
-    }
-    return [
-        { id: mintInstructionId(), tag: 'ungrounded', step: isolatedFromRelations },
-        { id: mintInstructionId(), tag: 'ungrounded', step: change },
-    ]
-}
-
-/**
- * Lowers a step whose every referent is already grounded (Expansion's dissolves) to its
+ * Lowers a step whose every referent is already grounded (Expansion's facilitating dissolves) to its
  * executor effect, reading each referent's `groundedId`. Such a step never meets
  * `groundChange`, so a grounded non-Room host (an actor's inventory graph) is not
  * filtered by its derived-host Room check. A mistyped id is a caller contract
@@ -165,8 +145,8 @@ type CommandExpandOutcome =
 /**
  * Dispatches per specific primitive/predicate, never on `kind: 'change' | 'assertion'`
  * (BD-34 review correction). `transferMembership`/`establishRelation`/`dissolveRelation`
- * retire directly (atomic effects); `sameHost`/`isolatedFromRelations` evaluate live
- * state and retire as generators, minting 0+ children. `containedBy` has no shipped
+ * retire directly (atomic effects); `sameHost` evaluates live state and retires as a
+ * generator, minting 0+ children. `containedBy` has no shipped
  * evaluation logic anywhere in this codebase yet (verified: no live route implements
  * it) --- errors rather than fabricating behavior, per "grow the technique set as
  * concrete cases demand."
@@ -220,55 +200,6 @@ const commandExpand = (
             }
             return { kind: 'error', reason: result.reason }
         }
-        case 'isolatedFromRelations': {
-            const [startId] = step.objectIds
-            if (startId === undefined) {
-                return { kind: 'error', reason: 'isolatedFromRelations has no object to sweep' }
-            }
-            const hostId = env.getCurrentHost(startId)
-            if (!hostId) {
-                return { kind: 'error', reason: `No current host found for ${startId}` }
-            }
-            const graph = env.getGraph(hostId)
-            if (!graph) {
-                return { kind: 'error', reason: `No graph found for host ${hostId}` }
-            }
-
-            const outcomes = boundaryEdgeOutcomes(step.objectIds, graph)
-
-            const deferOutcome = outcomes.find((entry) => entry.outcome === 'defer')
-            if (deferOutcome !== undefined) {
-                return {
-                    kind: 'defer',
-                    decidable: deferOutcome.edge.kind !== 'Custom',
-                    reason: 'Boundary edge interaction under transfer requires LLM validation (BD-10)',
-                }
-            }
-
-            // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed, but no producer can
-            // build a port-qualified boundary edge yet (this is Object-only carry/boundary
-            // machinery, ludicGraph/AGENT.md's BD-36 paragraph) --- skip rather than assume.
-            const dissolveOutcomes = outcomes.filter(
-                (entry) => entry.outcome === 'dissolve'
-                    && isEphemeraLudicTerminalPrimitive(entry.edge.from)
-                    && isEphemeraLudicTerminalPrimitive(entry.edge.to)
-            )
-            const children: WorklistInstruction[] = dissolveOutcomes.map((entry) => ({
-                id: mintInstructionId(),
-                tag: 'grounded' as const,
-                step: {
-                    kind: 'dissolveRelation' as const,
-                    // Safe: filtered to primitive endpoints above.
-                    subjectId: entry.edge.from as EphemeraLudicTerminalPrimitive,
-                    targetId: entry.edge.to as EphemeraLudicTerminalPrimitive,
-                    // A boundary edge under transfer lives in the departing entity's own host graph
-                    // (the same `hostId` this branch already resolved `startId`'s current host to).
-                    hostId,
-                    ...relationKindAndLabelOf(entry.edge),
-                },
-            }))
-            return { kind: 'consumed', children }
-        }
     }
 }
 
@@ -299,16 +230,12 @@ export type ExecutorOutcome =
  * command-expansion computes a moved set.
  *
  * `groundingContext` is optional because a fully-grounded seed never reaches
- * phase (1): every child minted during a run is already grounded (see the
- * `dissolveRelation` children below), so only a seed can carry an `ungrounded`
- * instruction. A caller that already holds concrete ids can seed a `grounded`
- * instruction directly and omit it, rather than assembling a context whose
- * resolutions would be identity mappings --- no live caller does today
- * (`executeMembershipTransfer`'s take/drop/give path retired its own
- * grounded seed in favor of calling `boundaryEdgeOutcomes` directly,
- * 2026-09-07; that path is now `buildObjectMoveOp`, moved there in turn by 3d, 2026-09-08's
- * `honorDefer` deletion), but nothing about this function requires one to. Seeding an
- * `ungrounded` instruction without one is a caller error and errors out.
+ * phase (1): every child minted during a run is already grounded (`sameHost`'s
+ * crossing legs), so only a seed can carry an `ungrounded` instruction. A caller that
+ * already holds concrete ids can seed `grounded` instructions directly
+ * (`seedFromGroundedSteps`) and omit it, rather than assembling a context whose
+ * resolutions would be identity mappings. Seeding an `ungrounded` instruction without
+ * one is a caller error and errors out.
  */
 export const runExecutor = (
     seed: readonly WorklistInstruction[],

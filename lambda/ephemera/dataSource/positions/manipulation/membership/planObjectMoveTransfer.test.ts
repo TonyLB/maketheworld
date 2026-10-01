@@ -125,6 +125,41 @@ describe('planObjectMoveTransfer', () => {
             // new coverage the retired mode never had.
             expect(result).toEqual({ ok: false, errorCode: 'transferInteractionDefer' })
         })
+
+        it('row 6: a Custom boundary edge the attempt recorded as met is dissolved, and the take is legal', async () => {
+            const POST_ID = 'OBJECT#Post' as EphemeraObjectId
+            const lashed = { from: TRAY_ID, to: POST_ID, kind: 'Custom' as const, relationLabel: 'is lashed to' }
+            const roomGraph = testLudicGraph(ROOM_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: TRAY_ID },
+                    { tag: 'Object', universalKey: POST_ID },
+                ],
+                edges: [{ tag: 'Relational', ...lashed }],
+            })
+            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
+            const getGraph = async (hostId: string): Promise<EphemeraLudicGraph> => (hostId === ROOM_ID ? roomGraph : emptyCharacterGraph)
+            const args = {
+                entityId: TRAY_ID,
+                fromHostId: ROOM_ID,
+                toHostId: CHARACTER_ID,
+                bundleId: 'BUNDLE#test',
+                narration,
+                getGraph,
+            }
+
+            expect(await planObjectMoveTransfer(args)).toEqual(expect.objectContaining({ ok: false }))
+
+            const result = await planObjectMoveTransfer({ ...args, metEdges: [lashed] })
+
+            expect(result.ok).toBe(true)
+            if (result.ok) {
+                expect(result.plan.steps).toContainEqual(expect.objectContaining({
+                    kind: 'dissolveRelation',
+                    subjectId: TRAY_ID,
+                    targetId: POST_ID,
+                }))
+            }
+        })
     })
 
     /**
