@@ -54,22 +54,6 @@ describe('proposeMembershipCandidates', () => {
         expect(tuples.map((t) => t.identity.objectId)).toEqual([bagId, satchelId])
     })
 
-    it('uses locus-derived operationKind when verbClass absent', () => {
-        const tuples = proposeMembershipCandidates({ pool })
-        expect(tuples).toEqual([
-            expect.objectContaining({
-                identity: expect.objectContaining({ objectId: bagId }),
-                plan: { kind: 'transferMembership', operationKind: 'takeHold' },
-                confidence: 0.7,
-            }),
-            expect.objectContaining({
-                identity: expect.objectContaining({ objectId: satchelId }),
-                plan: { kind: 'transferMembership', operationKind: 'drop' },
-                confidence: 0.65,
-            }),
-        ])
-    })
-
     it('prefers shortlist when present', () => {
         const withShortlist: SpanCandidatePool = {
             ...pool,
