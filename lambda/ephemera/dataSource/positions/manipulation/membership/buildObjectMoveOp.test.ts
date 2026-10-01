@@ -134,6 +134,54 @@ describe('buildObjectMoveOp', () => {
         expect(op.dissolvedEdges).toEqual([])
     })
 
+    describe('met edges (the attempt\'s verdicts, honored not judged)', () => {
+        const POST = 'OBJECT#Post' as EphemeraObjectId
+        const lashed = { from: TRAY, to: POST, kind: 'Custom' as const, relationLabel: 'is lashed to' }
+        const lashedGraph = testLudicGraph(ROOM, {
+            nodes: [{ tag: 'Object', universalKey: TRAY }, { tag: 'Object', universalKey: POST }],
+            edges: [{ tag: 'Relational', ...lashed }],
+        })
+
+        it('dissolves a defer-classified Custom edge that matches a met edge', () => {
+            const op = buildObjectMoveOp({
+                entityId: TRAY,
+                fromGraph: lashedGraph,
+                fromHostId: ROOM,
+                toHostId: CHARACTER,
+                bundleId: 'BUNDLE#test',
+                metEdges: [lashed],
+            })
+
+            expect(op.dissolvedEdges).toEqual([lashed])
+        })
+
+        it('ignores a met edge that is no longer in the graph, rather than dissolving a missing edge', () => {
+            const op = buildObjectMoveOp({
+                entityId: TRAY,
+                fromGraph: emptyFromGraph,
+                fromHostId: ROOM,
+                toHostId: CHARACTER,
+                bundleId: 'BUNDLE#test',
+                metEdges: [lashed],
+            })
+
+            expect(op.dissolvedEdges).toEqual([])
+        })
+
+        it('leaves a defer edge nobody judged in place, even when another edge was met', () => {
+            const op = buildObjectMoveOp({
+                entityId: TRAY,
+                fromGraph: lashedGraph,
+                fromHostId: ROOM,
+                toHostId: CHARACTER,
+                bundleId: 'BUNDLE#test',
+                metEdges: [{ ...lashed, relationLabel: 'is tied to' }],
+            })
+
+            expect(op.dissolvedEdges).toEqual([])
+        })
+    })
+
     it('folds extraDissolvedEdges in alongside the structurally-derived set (the post-repair rebuild)', () => {
         const repairedEdge = { from: TRAY, to: CHANDELIER, kind: 'Under' as const }
         const op = buildObjectMoveOp({

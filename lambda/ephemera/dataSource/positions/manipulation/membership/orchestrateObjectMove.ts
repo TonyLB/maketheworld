@@ -39,10 +39,9 @@ export type OrchestrateObjectMoveArgs = {
     /** Hosting kinds only (AB-54); see `ExecuteObjectMoveArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf';
     /**
-     * CommandAttemptPhase slice 2: the reconstructed, adjudicated attempt (see
-     * `positions/index.ts`'s dispatch, where `CommandAttempt.fromJSON` + `adjudicateAttempt`
-     * run). Threaded through but not yet consumed for any commit decision --- slice 3 is
-     * what reads a `met` verdict here.
+     * The reconstructed attempt, adjudicated actions-side (see `positions/index.ts`'s
+     * dispatch). Its met edges go to the plan stage, which dissolves each one still present
+     * as a `defer` boundary edge: positions honors a verdict and never judges one.
      */
     attempt?: CommandAttempt;
     messageBus: MessageBus;
@@ -98,6 +97,7 @@ export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Pr
         toHostId: args.toHostId,
         bundleId,
         narration: { characterName, objectShortName },
+        metEdges: args.attempt?.metPropagations() ?? [],
         ...(args.containment ? { containment: args.containment } : {}),
     })
 

@@ -294,7 +294,7 @@ describe('positions receive paths (integration)', () => {
             expect(orchestrateObjectMoveMock).not.toHaveBeenCalled()
         })
 
-        it('CommandAttemptPhase slice 2: a published attempt round-trips through fromJSON + the adjudicate seam and reaches orchestrateObjectMove with its actions/challenges intact', async () => {
+        it('a published attempt round-trips through fromJSON and reaches orchestrateObjectMove with its actions, challenges and verdicts intact', async () => {
             const attemptData: CommandAttemptData = {
                 words: 'take the entire coil of rope',
                 referents: [{ refKey: 'primaryObject', id: 'OBJECT#Rope', shortName: 'rope' }],
@@ -309,6 +309,7 @@ describe('positions receive paths (integration)', () => {
                                 id: 'challenge-1',
                                 edge: { from: 'OBJECT#Rope', to: 'OBJECT#Post', kind: 'Custom', relationLabel: 'is lashed to' },
                                 description: 'Boundary relation to dissolve: is lashed to.',
+                                verdict: { kind: 'met' },
                             },
                         ],
                     },
@@ -337,9 +338,12 @@ describe('positions receive paths (integration)', () => {
             expect(attempt.actions()).toHaveLength(2)
             expect(attempt.actions()[1]?.challenges()).toHaveLength(1)
             expect(attempt.actions()[1]?.challenges()[0]?.describe()).toBe('Boundary relation to dissolve: is lashed to.')
-            // Slice 2's stub adjudicate leaves the challenge un-adjudicated (pending) --- corpus
-            // row 6 stays silently unresolved on purpose, per this slice's own scope.
-            expect(attempt.result).toEqual({ status: 'pending' })
+            // Adjudicate ran actions-side; positions only reconstructs, so the met verdict arrives
+            // as published and its edge is what the commit side will honor.
+            expect(attempt.result.status).toBe('succeeded')
+            expect(attempt.metPropagations()).toEqual([
+                { from: 'OBJECT#Rope', to: 'OBJECT#Post', kind: 'Custom', relationLabel: 'is lashed to' },
+            ])
         })
     })
 

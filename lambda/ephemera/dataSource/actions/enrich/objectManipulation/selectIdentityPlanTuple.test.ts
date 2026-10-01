@@ -248,17 +248,45 @@ describe('selectIdentityPlanTuple', () => {
         expect(result.verdict).toBe('resolved')
     })
 
-    it('Slice 2: a Custom-kind boundary edge still defers (unchanged shape, now reachable via real classification)', () => {
+    const takeBroomWith = (edges: NonNullable<Parameters<typeof testLudicGraph>[1]>['edges']) => {
         const tableId = 'OBJECT#Table' as EphemeraObjectId
-        const roomGraphWithCustom = testLudicGraph(roomId, {
+        const roomGraphWithEdge = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: broomId },
                 { tag: 'Object' as const, universalKey: tableId },
             ],
-            edges: [{ tag: 'Relational', from: broomId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
+            edges,
         })
-        const stateWithCustom = buildSandboxState([roomGraphWithCustom, characterGraph])
+        return selectIdentityPlanTuple({
+            candidates: [
+                identityPlanCandidateFromSpan(
+                    candidate(broomId, 'broom', 1, { kind: 'room' }),
+                    'takeHold'
+                ),
+            ],
+            sandboxState: buildSandboxState([roomGraphWithEdge, characterGraph]),
+            roomId,
+            actorCharacterId: characterId,
+        })
+    }
 
+    it('Slice 3: a Custom-kind boundary edge resolves: Adjudicate meets its challenge and the dry run lowers the dissolve', () => {
+        const result = takeBroomWith([{ tag: 'Relational', from: broomId, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'Custom', relationLabel: 'tied to' }])
+
+        expect(result.verdict).toBe('resolved')
+        if (result.verdict === 'resolved') {
+            expect(result.dryRun.objectIds).toEqual([broomId])
+            expect(result.candidate.attempt.result.status).toBe('succeeded')
+        }
+    })
+
+    it('Slice 3: an Under subject-move boundary edge still defers: Adjudicate leaves its challenge pending', () => {
+        const result = takeBroomWith([{ tag: 'Relational', from: broomId, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'Under' }])
+
+        expect(result.verdict).toBe('defer')
+    })
+
+    it('Slice 3: a room-locus candidate whose source graph is missing is illegal, not lowered as complete', () => {
         const result = selectIdentityPlanTuple({
             candidates: [
                 identityPlanCandidateFromSpan(
@@ -266,11 +294,11 @@ describe('selectIdentityPlanTuple', () => {
                     'takeHold'
                 ),
             ],
-            sandboxState: stateWithCustom,
+            sandboxState: buildSandboxState([characterGraph]),
             roomId,
             actorCharacterId: characterId,
         })
 
-        expect(result.verdict).toBe('defer')
+        expect(result).toEqual({ verdict: 'error', reason: `No graph found for host ${roomId}` })
     })
 })

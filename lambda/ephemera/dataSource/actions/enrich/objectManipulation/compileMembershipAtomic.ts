@@ -132,10 +132,11 @@ export async function compileMembershipAtomic(
 
     if (selection.type === 'resolved' && preGateOutcome.type === 'atomic') {
         // Selector already decided locus legality + exit-edge + boundary-edge completeness
-        // (Slice 4b, sandbox-mediated); pre-gates here only rule out multiPresent. The
-        // selected attempt's boundary actions are always `dissolve`-only here by
-        // construction: `sandboxMembershipDryRun` declines to resolve a candidate fast
-        // whenever a boundary edge classifies `defer`, routing it to the exit below.
+        // (Slice 4b, sandbox-mediated); pre-gates here only rule out multiPresent. Every
+        // challenge on the selected attempt has a verdict here by construction:
+        // `sandboxMembershipDryRun` resolves a candidate fast only when its attempt has
+        // succeeded, so a met `Custom`-edge challenge (row 6's lashed rope) publishes here and
+        // positions honors it at commit.
         return {
             type: 'ObjectManipulation',
             operationKind: selection.operationKind,
@@ -186,9 +187,8 @@ export async function compileMembershipAtomic(
     }
 
     if (result.type === 'ObjectManipulation') {
-        // This is the branch a defer-classified boundary edge (row 6's Custom-tied rope)
-        // actually reaches today --- `sandboxMembershipDryRun` already declined to resolve
-        // it fast, so the graph challenge the attempt carries only shows up here. When the
+        // A boundary edge whose challenge Adjudicate leaves pending (an `Under` subject-move)
+        // reaches this branch: `sandboxMembershipDryRun` defers a pending attempt. When the
         // LLM keeps the selected operation, the selected candidate's attempt is published
         // as is. When it changes the operation, the LLM's operation wins: it is what gets
         // published and what positions executes, so the attempt is re-grounded for the

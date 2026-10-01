@@ -336,7 +336,7 @@ describe('compileMembershipAtomic', () => {
         expect(getMembershipContainers).not.toHaveBeenCalled()
     })
 
-    it('CommandAttemptPhase slice 2: a Custom-tied boundary edge (row 6 shape) defers to the complexity LLM, and the resulting attempt carries a dissolve action with a CustomEdgeChallenge', async () => {
+    it('CommandAttemptPhase slice 3: a Custom-tied boundary edge (row 6 shape) resolves on the fast branch, its CustomEdgeChallenge met', async () => {
         const postId = 'OBJECT#Post' as EphemeraObjectId
         const ropeId = 'OBJECT#Rope' as EphemeraObjectId
         const roomGraphWithCustomEdge = testLudicGraph(roomId, {
@@ -373,6 +373,9 @@ describe('compileMembershipAtomic', () => {
         if (result.type !== 'ObjectManipulation') {
             return
         }
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+        expect(result.operationKind).toBe('takeHold')
+        expect(result.objectIds).toEqual([ropeId])
         expect(result.attempt?.actions).toHaveLength(2)
         const dissolveAction = result.attempt?.actions[1]
         expect(dissolveAction?.challenges).toHaveLength(1)
@@ -380,24 +383,25 @@ describe('compileMembershipAtomic', () => {
             expect.objectContaining({
                 kind: 'customEdge',
                 description: expect.stringContaining('is lashed to'),
+                verdict: { kind: 'met' },
             })
         )
-        // Slice 2.6: the LLM kept the selected operation, so the selected candidate's attempt is published.
         expect(result.attempt?.actions[0]?.desiredResultDescription).toBe('Take: rope')
     })
 
     it('CommandAttemptPhase slice 2.6: when the complexity LLM changes the operation, the published attempt is re-grounded for the LLM\'s operation', async () => {
-        const postId = 'OBJECT#Post' as EphemeraObjectId
+        // An Under subject-move is what still defers to the complexity exit (Adjudicate leaves it pending).
+        const boulderId = 'OBJECT#Boulder' as EphemeraObjectId
         const ropeId = 'OBJECT#Rope' as EphemeraObjectId
-        const roomGraphWithCustomEdge = testLudicGraph(roomId, {
+        const roomGraphWithUnderEdge = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: ropeId },
-                { tag: 'Object' as const, universalKey: postId },
+                { tag: 'Object' as const, universalKey: boulderId },
             ],
-            edges: [{ tag: 'Relational', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' }],
+            edges: [{ tag: 'Relational', from: ropeId, to: boulderId, kind: 'Under' }],
         })
         const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getLudicGraph = hostAwareGetLudicGraph({ [roomId]: roomGraphWithCustomEdge })
+        const getLudicGraph = hostAwareGetLudicGraph({ [roomId]: roomGraphWithUnderEdge })
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"disposition":"atomic","operationKind":"drop"}',
@@ -410,7 +414,7 @@ describe('compileMembershipAtomic', () => {
                 verbClass: 'acquire',
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [{ objectId: ropeId, normalizedShortName: 'rope' }, { objectId: postId, normalizedShortName: 'post' }],
+                roomObjectCatalog: [{ objectId: ropeId, normalizedShortName: 'rope' }, { objectId: boulderId, normalizedShortName: 'boulder' }],
             },
             0.9,
             {
@@ -432,6 +436,7 @@ describe('compileMembershipAtomic', () => {
         }))
         // Same identity, same locus graph: the boundary expansion is unchanged.
         expect(result.attempt?.actions).toHaveLength(2)
-        expect(result.attempt?.actions[1]?.challenges[0]).toEqual(expect.objectContaining({ kind: 'customEdge' }))
+        expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
+        expect(result.attempt?.actions[1]?.challenges[0]).toEqual(expect.objectContaining({ kind: 'underDefer' }))
     })
 })

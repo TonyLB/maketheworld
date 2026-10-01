@@ -1,22 +1,35 @@
-import type { CommandAttemptData, CommandAttemptReferent } from './index'
-import { CommandAttempt } from './index'
+import type { CommandAttempt, CommandAttemptData, CommandAttemptReferent } from './index'
 import type { AttemptActionData } from './action'
 import type { ChallengeData } from './challenge'
+import { CustomEdgeChallenge } from './challenge'
 import type { VerdictData } from './verdict'
+import { MetVerdict } from './verdict'
 
 /**
- * The Adjudicate seam (CA-3, slice 2): resolved to run positions-side, in
- * `positions/index.ts`'s dispatch, right after reconstructing the attempt from the
- * published payload --- the one place every route already crosses the bus, and where
- * a future `met` verdict needs to land to reach the commit recheck (CA-7).
+ * Adjudicate, the Coyote evaluator: a phase of the actions pipeline, run per candidate by
+ * the membership ground + expand stage (`groundMembershipCandidates`) before the dry run
+ * validates the attempt. Its verdicts ride the published attempt; positions honors them at
+ * commit and never judges.
  *
- * Slice 2's body is a documented no-op: it records no verdicts. A challenge-free
- * attempt already resolves to `succeeded` via `CommandAttempt.result` (nothing to
- * adjudicate), and any attempt carrying a real graph challenge stays `pending` ---
- * matching today's silent defer exactly (corpus row 6 stays silently unadjudicated on
- * purpose). Slice 3 is what records `met` on every graph challenge here.
+ * Every player command is a preparation command, and in preparation a challenge on whether
+ * a facilitating action can physically happen is met. So this records *met* on every
+ * unjudged `Custom`-edge challenge and nothing else. It dispatches on challenge type because
+ * which kinds a genre may judge is this adjudicator's policy, not something each challenge
+ * should answer:
+ * - a `Custom` edge's facilitating dissolve is always right: untying or cutting the lashing
+ *   leaves the same graph, so the choice is manner;
+ * - an `Under` subject-move could mean clearance (pull the rope out) or pinned (the boulder
+ *   must move first), which are different facilitating actions the graph cannot tell apart.
+ *   Judging it would pick a reading, so it stays pending (and the command still defers);
+ * - a world-knowledge challenge is not a graph question at all (CA-6).
+ *
+ * There is no genre source, just as there is no phase source: Coyote is the only genre.
  */
-export const adjudicateAttempt = (attempt: CommandAttempt): CommandAttempt => attempt
+export const adjudicateAttempt = (attempt: CommandAttempt): CommandAttempt =>
+    attempt.actions()
+        .flatMap((action) => action.challenges())
+        .filter((challenge) => challenge instanceof CustomEdgeChallenge && challenge.verdict === undefined)
+        .reduce((judged, challenge) => judged.recordVerdict(challenge.id, new MetVerdict()), attempt)
 
 const isVerdictData = (value: unknown): value is VerdictData => {
     if (!value || typeof value !== 'object') {

@@ -17,7 +17,8 @@ import type { SandboxState } from './sandboxState'
 import type { SpanResolutionConsultAlternative, SpanResolutionOutcome } from './spanResolution'
 import type { GroundingContext } from './synthesize/groundReferent'
 import type { ExpansionEnvironment } from './synthesize/executorTypes'
-import { runExecutor, seedTransferMembership } from './synthesize/executor'
+import { runExecutor, seedFromGroundedSteps, seedFromUngroundedSteps } from './synthesize/executor'
+import { isGroundedStep, type PlanStep } from './plan/planStep'
 import { validateMembershipPlanDryRun } from './validatePlanDryRun'
 import type { DryRunOutcome } from './validatePlanDryRun'
 
@@ -174,26 +175,22 @@ export type SelectIdentityPlanTupleInput = {
 }
 
 /**
- * Executor-mediated membership dry run: invokes the general Synthesize executor
- * (`seedTransferMembership` + `runExecutor`). This dry run is
- * Plan-stage. **The live commit side no longer mirrors this**
- * (take/drop/give's `planObjectMoveTransfer`, 3d 2026-09-08, replacing `executeMembershipTransfer`'s
- * retired `honorDefer` path, 2026-09-07)
- * --- by execute time both hosts are already concrete, so there is nothing left
- * for Grounding to resolve, and the commit side calls `boundaryEdgeOutcomes`/
- * `classifyInteractionUnderTransfer` directly rather than re-running the whole
- * executor to reach the same classification. `validateMembershipPlanDryRun`'s
- * locus-vs-operationKind base check
- * (FT-2.2 --- "declared drop but object is on the room graph", exit-edge defer)
- * is orthogonal to Expansion's boundary sweep and stays a separate up-front
- * gate, run before the executor.
+ * Membership dry run: validates an already-grounded, adjudicated attempt (built by
+ * `groundMembershipCandidates`). `validateMembershipPlanDryRun`'s locus-vs-operationKind
+ * base check (FT-2.2 --- "declared drop but object is on the room graph", exit-edge defer)
+ * runs first, as an up-front gate. Then the attempt's result decides:
+ * - `pending`: a challenge Adjudicate may not judge (an `Under` subject-move) defers to the
+ *   complexity LLM, as before;
+ * - `impossible`: illegal;
+ * - `succeeded`: the attempt is lowered and run through the executor. Its fully grounded
+ *   steps (Expansion's facilitating dissolves) are seeded first, BD-28's order; the primary
+ *   `transferMembership` is seeded ungrounded, and its object already carries the
+ *   candidate's `groundedId`, so only `from`/`to` are derived.
  *
- * Validates an already-grounded attempt (built by `groundMembershipCandidates`): the
- * executor is seeded from the attempt's own desired result. Identify already resolved
- * this candidate to a concrete `objectId`, so Grounding here is trivial (a
- * `resolvedSpans` map with exactly one entry), not a search --- the general executor is
- * still the right vehicle rather than a bypass, since it is what actually threads the
- * `isolatedFromRelations` boundary sweep through to `DryRunOutcome.objectIds`.
+ * The executor no longer classifies boundary edges itself: Expansion did, once, and a met
+ * challenge is lowered like any other facilitating action. The commit side does not re-run
+ * this: `planObjectMoveTransfer` re-derives the boundary sweep against a later snapshot and
+ * honors the attempt's met edges.
  */
 export const sandboxMembershipDryRun = (
     candidate: GroundedMembershipCandidate,
@@ -223,8 +220,9 @@ export const sandboxMembershipDryRun = (
         }
     }
 
+    const sourceGraph = state.get(sourceHostId)
     const baseOutcome = validateMembershipPlanDryRun(candidate, {
-        ludicGraph: state.get(sourceHostId),
+        ludicGraph: sourceGraph,
         actorCharacterId,
     })
     if (baseOutcome.verdict !== 'legal') {
@@ -233,6 +231,19 @@ export const sandboxMembershipDryRun = (
 
     if (actorCharacterId === undefined) {
         return { verdict: 'illegal', decidable: true, reason: objectManipulationErrorMessages.noMembershipHost }
+    }
+    if (sourceGraph === undefined) {
+        // Without a source graph, Expansion could not look for boundary edges, so the attempt
+        // cannot be trusted as complete.
+        return { verdict: 'illegal', decidable: true, reason: `No graph found for host ${sourceHostId}` }
+    }
+
+    const result = candidate.attempt.result
+    if (result.status === 'pending') {
+        return { verdict: 'defer', decidable: true, reason: 'Boundary edge interaction under transfer requires LLM validation (BD-10)' }
+    }
+    if (result.status === 'impossible') {
+        return { verdict: 'illegal', decidable: true, reason: result.reason }
     }
 
     const { desiredResult } = candidate
@@ -246,7 +257,13 @@ export const sandboxMembershipDryRun = (
         resolvedSpans: new Map([[stableRefKey, { verdict: 'resolved', candidateIds: [objectId] }]]),
         getCurrentHost: (componentId) => (componentId === actorCharacterId ? roomId : undefined),
     }
-    const seed = seedTransferMembership(desiredResult)
+    const steps = candidate.attempt.actions()
+        .map((action) => action.desiredResult)
+        .filter((step): step is PlanStep => step !== undefined)
+    const seed = [
+        ...seedFromGroundedSteps(steps.filter(isGroundedStep)),
+        ...seedFromUngroundedSteps(steps.filter((step) => !isGroundedStep(step))),
+    ]
     const env: ExpansionEnvironment = {
         getGraph: (hostId) => state.get(hostId),
         getCurrentHost: () => sourceHostId,

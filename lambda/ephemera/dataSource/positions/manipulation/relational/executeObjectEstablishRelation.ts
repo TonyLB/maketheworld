@@ -18,9 +18,9 @@ export type ExecuteEstablishEdgeChainArgs = {
     characterNames?: CommitStepSequenceDeps['characterNames']
     transactWrite?: CommitStepSequenceDeps['transactWrite']
     /**
-     * CommandAttemptPhase slice 2: the reconstructed, adjudicated attempt (see
-     * `positions/index.ts`'s dispatch). Threaded through but not yet consumed for any
-     * commit decision.
+     * The reconstructed attempt (see `positions/index.ts`'s dispatch). Threaded through but
+     * not consumed: a relational attempt carries no graph challenge, so it has no verdict to
+     * honor.
      */
     attempt?: CommandAttempt
 }

@@ -48,20 +48,6 @@ export const groundAssertion = (
                 },
             }
         }
-        case 'isolatedFromRelations': {
-            const objectId = groundSingleObjectId(assertion.object, context)
-            if (!objectId.ok) {
-                return objectId
-            }
-            return {
-                ok: true,
-                assertion: {
-                    kind: 'assertion',
-                    predicate: 'isolatedFromRelations',
-                    objectIds: new Set([objectId.id]),
-                },
-            }
-        }
     }
 }
 

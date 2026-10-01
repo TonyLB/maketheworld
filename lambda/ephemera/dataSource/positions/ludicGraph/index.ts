@@ -77,9 +77,9 @@ export const nodeFromId = (id: EphemeraLudicTerminalPrimitive): EphemeraLudicGra
 
 /**
  * BD-33/BD-35's assert-and-throw contract: thrown by `removeObject`/`removeCharacter`
- * when a relational edge still references the id being removed --- a dedicated upstream Assertion +
- * repair (`isolatedFromRelations`) was supposed to have severed it first via an explicit
- * `DissolveRelationStep`. Exported for `instanceof` checks in callers/tests.
+ * when a relational edge still references the id being removed --- an upstream facilitating
+ * action (Expansion's boundary dissolves, `commandAttempt/expandBoundaryChallenges.ts`) was
+ * supposed to have severed it first via an explicit `DissolveRelationStep`. Exported for `instanceof` checks in callers/tests.
  */
 export class RelationalEdgeStillReferencedError extends Error {
     constructor(

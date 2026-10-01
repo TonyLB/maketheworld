@@ -2,6 +2,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
+import type { HostRelationalEdge } from '../types'
 import { isKernelMutationStep } from '../kernel/kernelStep'
 import { dryRunStepSequence } from '../kernel/dryRunStepSequence'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
@@ -17,6 +18,8 @@ export type PlanObjectMoveTransferArgs = {
     toHostId: EphemeraMembershipHostId
     bundleId: string
     narration: { characterName: string; objectShortName: string }
+    /** Edges whose challenges the attempt recorded as met; see `BuildObjectMoveOpArgs.metEdges`. */
+    metEdges?: readonly HostRelationalEdge[]
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
     /** injectable for test seams only. */
@@ -64,6 +67,7 @@ export const planObjectMoveTransfer = async (
         toHostId: args.toHostId,
         bundleId: args.bundleId,
         narration: args.narration,
+        ...(args.metEdges ? { metEdges: args.metEdges } : {}),
         ...(args.containment ? { containment: args.containment } : {}),
     }
 

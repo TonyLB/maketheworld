@@ -16,6 +16,7 @@ jest.mock('../kernel/commitStepSequence', () => ({
 }))
 
 import { orchestrateObjectMove } from './orchestrateObjectMove'
+import { CommandAttempt } from '../../../actions/commandAttempt'
 import { planObjectMoveTransfer } from './planObjectMoveTransfer'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import { resolveObjectMovePresentationLabels } from '../../../perception/resolveObjectMovePresentationLabels'
@@ -164,6 +165,36 @@ describe('orchestrateObjectMove', () => {
             narration: { characterName: 'Alice', objectShortName: 'tray' },
         }))
         expect(commitStepSequenceMock).not.toHaveBeenCalled()
+    })
+
+    it('passes the attempt\'s met edges into the plan stage', async () => {
+        planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'transferInteractionDefer' })
+        const lashed = { from: TRAY, to: 'OBJECT#Post', kind: 'Custom', relationLabel: 'is lashed to' }
+        const attempt = CommandAttempt.fromJSON({
+            words: 'take the tray',
+            referents: [],
+            actions: [
+                { kind: 'position', desiredResultDescription: 'Take: tray', challenges: [] },
+                {
+                    kind: 'position',
+                    desiredResultDescription: 'Dissolve: is lashed to',
+                    challenges: [{ kind: 'customEdge', id: 'c1', edge: lashed as never, description: 'd', verdict: { kind: 'met' } }],
+                },
+            ],
+        })
+
+        await orchestrateObjectMove({
+            objectIds: [TRAY],
+            fromHostId: ROOM,
+            toHostId: CHARACTER,
+            roomId: ROOM,
+            characterId: CHARACTER,
+            attempt,
+            messageBus,
+            streamEvent,
+        })
+
+        expect(planObjectMoveTransferMock).toHaveBeenCalledWith(expect.objectContaining({ metEdges: [lashed] }))
     })
 
     it('never narrates a refused plan', async () => {

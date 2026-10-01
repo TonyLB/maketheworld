@@ -122,18 +122,7 @@ export type GroundedSameHostAssertion = {
     operationKind: 'establishRelation' | 'dissolveRelation'
 }
 
-/**
- * `objectIds` is the moved object Grounding resolved --- the same set its paired
- * `transferMembership` moves. Anything hosted by that object lives in its own shard and
- * travels with it, so no step widens this set.
- */
-export type GroundedIsolatedFromRelationsAssertion = {
-    kind: 'assertion'
-    predicate: 'isolatedFromRelations'
-    objectIds: ReadonlySet<EphemeraObjectId>
-}
-
-export type GroundedAssertion = GroundedBinaryAssertion | GroundedSameHostAssertion | GroundedIsolatedFromRelationsAssertion
+export type GroundedAssertion = GroundedBinaryAssertion | GroundedSameHostAssertion
 
 /**
  * BD-30's progress-tagged instruction. `'retired'` is deliberately not a tag
