@@ -117,7 +117,8 @@ export const POOL_GAP_TRIM_RELATIVE_DROP = 0.15
 
 // -----------------------------------------------------------------------------
 // FT-5 selector (joint relevance scale) --- wired on membership via selectPlanCandidate
-// (FT-2.2) and on relational via selectSingleSpanFromPool bridge.
+// (FT-2.2) and, since slice 2d, on relational via the same selectPlanTuple call
+// (compileRelationalFromSkeleton.ts); the old selectSingleSpanFromPool bridge is retired.
 // Fit from mocked identity corpus pool metrics (FT-1.3); live Bedrock headroom in pool snapshot.
 // Consumes jointRelevance + marginToRunnerUp on [0,1] absolute scale --- NOT pool admission.
 

@@ -80,7 +80,7 @@ describe('compileRelationalFromSkeleton', () => {
         })
     })
 
-    it('grounds "put bench under bench" to two distinct benches, not a self-relation (BD-23)', async () => {
+    it('grounds "put bench under bench" to two distinct benches, not a self-relation (BD-23), and Consults over the symmetric pair (2d)', async () => {
         const getLudicGraph = jest.fn().mockResolvedValue(
             testLudicGraph(roomId, {
                 nodes: [
@@ -105,11 +105,18 @@ describe('compileRelationalFromSkeleton', () => {
             { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph } }
         )
 
-        expect(result.type).toBe('EstablishRelation')
-        if (result.type === 'EstablishRelation') {
-            expect(result.subjectId).not.toBe(result.targetId)
-            expect([benchAId, benchBId]).toContain(result.subjectId)
-            expect([benchAId, benchBId]).toContain(result.targetId)
+        // AP-12 excludes self-relation at the producer, leaving exactly the two
+        // genuinely-distinct orderings (benchA under benchB, benchB under benchA) ---
+        // not the four combinations a naive product would form. Their confidence ties
+        // (both benches match the "bench" span identically), so `selectPlanTuple`'s thin
+        // margin now asks instead of silently committing to one (slice 2d), where the old
+        // `candidates[0]` placeholder would have picked an arbitrary ordering.
+        expect(result.type).toBe('Consult')
+        if (result.type === 'Consult') {
+            expect(result.alternatives).toHaveLength(2)
+            for (const alternative of result.alternatives) {
+                expect(alternative.proposedCommand).toBe('put the bench under the bench')
+            }
         }
     })
 
@@ -259,7 +266,7 @@ describe('compileRelationalFromSkeleton', () => {
         expect(result.type).toBe('Abstain')
     })
 
-    it('drops a Custom-relation candidate whose subject/object hosts differ (sameHost defer --- no Consult path on this route)', async () => {
+    it('abstains on a Custom-relation candidate whose subject/object hosts differ (sameHost defer, no complexity LLM on this route)', async () => {
         const charmId = 'OBJECT#Charm' as EphemeraObjectId
         const necklaceId = 'OBJECT#Necklace' as EphemeraObjectId
         const roomGraph = testLudicGraph(roomId, {

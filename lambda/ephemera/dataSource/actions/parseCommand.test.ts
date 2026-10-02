@@ -1473,6 +1473,52 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
+    it('returns Consult for relational route with an ambiguous exact target pool (two tables, slice 2d)', async () => {
+        const broomId = 'OBJECT#Broom'
+        const table1Id = 'OBJECT#Table1'
+        const table2Id = 'OBJECT#Table2'
+        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"type":"Command","confidence":0.9}',
+        })
+        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
+        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
+            success: true,
+            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"broom"},{"type":"text","text":"under"},{"type":"objectSpan","span":"table"}]}',
+        })
+
+        const result = await parseCommand(
+            {
+                command: 'put the broom under the table',
+                characterId: 'CHARACTER#123',
+                hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
+                roomObjectLabels: ['broom', 'table'],
+                roomObjectCatalog: [
+                    { objectId: broomId, normalizedShortName: 'broom' },
+                    { objectId: table1Id, normalizedShortName: 'table' },
+                    { objectId: table2Id, normalizedShortName: 'table' },
+                ],
+            },
+            {
+                invokeBedrockParseCommandImpl,
+                invokeBedrockObjectManipulationComplexityImpl,
+                invokeBedrockObjectManipulationParseImpl,
+                objectManipulationPositionsReadDeps: relationalPositionsReadDepsForTests([broomId, table1Id, table2Id]),
+            }
+        )
+
+        expect(result).toEqual({
+            type: 'Consult',
+            confidence: 0.9,
+            alternatives: [
+                { proposedCommand: 'put the broom under the table' },
+                { proposedCommand: 'put the broom under the table' },
+            ],
+        })
+        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
+    })
+
     it('returns ObjectRehost for in relational route via the native skeleton pipeline', async () => {
         const coinId = 'OBJECT#Coin'
         const jarId = 'OBJECT#Jar'

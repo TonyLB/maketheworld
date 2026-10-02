@@ -6,6 +6,7 @@ import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } f
 import internalCache from '../../../../internalCache'
 import type {
     ParseCommandAbstainResult,
+    ParseCommandConsultResult,
     ParseCommandErrorResult,
     ParseCommandEstablishRelationResult,
 } from '../../baseClasses'
@@ -21,13 +22,15 @@ import type { ParseSkeleton } from './parse/parseToken'
 import type { PeerRelationalEdgeKind } from './relationKind'
 import { matchRelationalTemplate } from './plan/matchRelationalTemplate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { selectPlanTuple } from './selectPlanCandidate'
+import type { DryRunOutcome } from './validatePlanDryRun'
 import { walkAncestryContainers } from './synthesize/findShardBoundary'
 import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
 import type { ExecutorRelationalChain, ExpansionEnvironment } from './synthesize/executorTypes'
 import { lowerRelationalChain } from './synthesize/buildCrossingLegs'
 import { groundStepBySubstitution, type Change, type EstablishRelationChange, type DissolveRelationChange, type GroundedId, type GroundedReferent, type Referent } from './plan/planStep'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
-import type { ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
+import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
 import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
 import { PositionAttemptAction } from '../../commandAttempt/action'
 import { CommandAttempt } from '../../commandAttempt'
@@ -47,6 +50,7 @@ export type CompileRelationalFromSkeletonDeps = IdentityStageDeps & {
 
 export type CompileRelationalFromSkeletonResult =
     | ParseCommandEstablishRelationResult
+    | ParseCommandConsultResult
     | ParseCommandAbstainResult
     | ParseCommandErrorResult
 
@@ -73,8 +77,8 @@ type RelationalCandidateId = {
  * (one id per `stableRefKey` in `match.change`), the `Change` grounded against it by
  * substitution, and the attempt built from that grounded change --- before Expand,
  * before the dry run, before selection. Mirrors `MembershipPlanCandidate`
- * (`selectPlanCandidate.ts`), minus the generic `PlanCandidate` wiring: this route
- * doesn't reach the shared `selectPlanTuple` stage yet (that's slice 2d).
+ * (`selectPlanCandidate.ts`), minus the generic `PlanCandidate` wiring (this route's
+ * `confidence` already is what `selectPlanTuple`'s `getConfidence` reads, slice 2d).
  */
 type RelationalGroundedCandidate = {
     candidateId: RelationalCandidateId
@@ -83,6 +87,10 @@ type RelationalGroundedCandidate = {
     change: EstablishRelationChange | DissolveRelationChange
     confidence: number
     attempt: CommandAttempt
+    /** Catalog display names, carried forward so `relationalConsultAlternative` (slice 2d)
+     * can build its wording without re-querying the catalog. */
+    subjectLabel: string
+    targetLabel: string
 }
 
 type ProposeRelationalCandidatesResult =
@@ -208,7 +216,7 @@ const proposeRelationalCandidates = (
             [action]
         )
 
-        return { candidateId, change: groundedChange, confidence, attempt }
+        return { candidateId, change: groundedChange, confidence, attempt, subjectLabel: subjectName, targetLabel: targetName }
     })
     return { ok: true, candidates }
 }
@@ -346,19 +354,16 @@ export async function compileRelationalFromSkeleton(
     }
     const getGraph = (hostId: EphemeraMembershipHostId): EphemeraLudicGraph | undefined => hostGraphMap.get(hostId)
 
-    type PreparedCandidate = {
-        // The grounded candidate's own id/relationKind data --- always a plain
-        // Object-to-Object pair, unlike a crossing's own leg endpoints. Source for the
-        // widened result's flat subjectId/targetId/operationKind/relationKind fields.
-        candidateId: RelationalCandidateId
-        attempt: CommandAttempt
-        // The candidate's expanded chain, still a value (AP-6): lowered to kernel steps only
-        // once a candidate is chosen.
-        chain: ExecutorRelationalChain
-    }
-
-    const preparedCandidates: PreparedCandidate[] = []
-    for (const candidate of groundedCandidates) {
+    /**
+     * Per-candidate dry run (slice 2d), mirroring `sandboxMembershipDryRun`'s role for
+     * `selectPlanTuple`: seeds the executor from the grounded edge and reports a
+     * `DryRunOutcome` instead of pushing a survivor onto a local list. The three checks
+     * that used to drop a candidate silently (non-`legal` Expansion, no chain found, a
+     * hosting-kind leading edge) now report `illegal`/`defer` so `selectPlanTuple` can
+     * rank, Consult or abstain across every candidate at once, rather than stopping at
+     * the first survivor.
+     */
+    const relationalDryRun = (candidate: RelationalGroundedCandidate): DryRunOutcome => {
         const env: ExpansionEnvironment = {
             getGraph,
             getCurrentHost: getCurrentHostForExpansion,
@@ -370,28 +375,27 @@ export async function compileRelationalFromSkeleton(
         const seed = seedFromGroundedSteps([candidate.change as EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>])
         const outcome = runExecutor(seed, env)
 
-        // `defer`/`error`: this route has no Consult/LLM-fallback path today (unlike
-        // membership) --- drop the candidate, same as any other Grounding or Expansion
-        // decline. `defer` is the known gap iteration 2's plan-only/joint fallback
-        // work is meant to eventually close.
-        if (outcome.verdict !== 'legal') {
-            continue
+        if (outcome.verdict === 'defer') {
+            return { verdict: 'defer', decidable: outcome.decidable, reason: outcome.reason }
+        }
+        if (outcome.verdict === 'error') {
+            return { verdict: 'illegal', decidable: true, reason: outcome.reason }
         }
 
         // The one edge seeded retires as its one chain.
         const chain = outcome.steps.find((step): step is ExecutorRelationalChain => step.kind === 'relationalChain')
         if (chain === undefined) {
-            continue
+            return { verdict: 'illegal', decidable: true, reason: 'No relational chain found for this candidate' }
         }
 
         // HostRelationalEdgeKind was widened (ephemeraMeta.ts) to admit containment ('In'/
         // 'PartOf'), but this ingress-facing route's relationKind stays the narrow set
-        // (BD-2's kind-narrowing clause, relationKind.ts) --- same drop-the-candidate
-        // idiom as the `verdict !== 'legal'` branch above. Read off the chain, not
-        // `candidate`: `candidate` is already narrowly typed (`PeerRelationalEdgeKind`,
-        // relationKind.ts) and cannot literally hold a hosting kind, but the chain's edges carry
-        // the wide `HostRelationalEdgeKind`, and `buildCrossingLegs` mints every edge of a chain
-        // from the same kind and label, so checking the first suffices. Unreachable today: no
+        // (BD-2's kind-narrowing clause, relationKind.ts) --- same illegal-candidate idiom
+        // as the no-chain case above. Read off the chain, not `candidate`: `candidate` is
+        // already narrowly typed (`PeerRelationalEdgeKind`, relationKind.ts) and cannot
+        // literally hold a hosting kind, but the chain's edges carry the wide
+        // `HostRelationalEdgeKind`, and `buildCrossingLegs` mints every edge of a chain from
+        // the same kind and label, so checking the first suffices. Unreachable today: no
         // ingress path can produce a containment candidate (isContainmentSpan routes to
         // nestingDefer before this point). **`On` joined this guard 2026-08-22** (Channel D,
         // CD2, reduced scope): it is a hosting kind too now, deferred at ingress the same way,
@@ -402,51 +406,85 @@ export async function compileRelationalFromSkeleton(
         // does what this guard used to do for that one kind.
         const firstEdge = chain.steps.find((step) => step.type === 'edge')
         if (firstEdge === undefined || firstEdge.type !== 'edge') {
-            continue
+            return { verdict: 'illegal', decidable: true, reason: 'No edge found in this candidate\'s chain' }
         }
         if (firstEdge.edge.kind === 'In' || firstEdge.edge.kind === 'PartOf' || firstEdge.edge.kind === 'On') {
-            continue
+            return { verdict: 'illegal', decidable: true, reason: 'Hosting-kind relation is not supported on the ingress relational route' }
         }
 
         // A candidate whose Expansion found a chain is legal: there is no construction-time
         // Validation on this route (AP-11, AP-12). The kernel rechecks every leg against
         // locked live state at commit.
-        preparedCandidates.push({ candidateId: candidate.candidateId, attempt: candidate.attempt, chain })
+        return { verdict: 'legal', decidable: true, plan: { steps: outcome.steps } }
     }
 
-    if (preparedCandidates.length === 0) {
+    /**
+     * AP-3's "one-line template... from operation kind, relation and the two labels": one
+     * formula for every enum relation kind (the kind's own name as the preposition) plus
+     * `Custom`'s free-text label, and a single dissolve phrasing. No `objectId` --- a
+     * relational alternative names two referents, not one, and `ConsultAlternative.objectId`
+     * is already optional (AP-3).
+     */
+    const relationalConsultAlternative = (candidate: RelationalGroundedCandidate): ConsultAlternative => {
+        const { candidateId, subjectLabel, targetLabel } = candidate
+        const label = `${subjectLabel} / ${targetLabel}`
+        if (candidateId.kind === 'dissolveRelation') {
+            return { label, proposedCommand: `separate the ${subjectLabel} from the ${targetLabel}` }
+        }
+        const preposition = candidateId.relationKind === 'Custom' ? candidateId.relationLabel : candidateId.relationKind.toLowerCase()
+        return { label, proposedCommand: `put the ${subjectLabel} ${preposition} the ${targetLabel}` }
+    }
+
+    const selection = selectPlanTuple({
+        candidates: groundedCandidates,
+        getConfidence: (candidate) => candidate.confidence,
+        dryRun: relationalDryRun,
+        toConsultAlternative: relationalConsultAlternative,
+    })
+
+    if (selection.verdict === 'consult') {
         return {
-            type: 'Abstain',
+            type: 'Consult',
+            alternatives: selection.alternatives.map(({ proposedCommand, objectId }) => ({ proposedCommand, objectId })),
             confidence: intentConfidence,
-            reason: 'No relational candidate in the pool found a chain',
         }
     }
 
-    // Naive placeholder selection (2026-07-19, unchanged by BD-16): rank/confidence-based
-    // selection among multiple legal candidates is deliberately deferred (BD-25 --- see the
-    // BD-N index in taskPlanning/.../AGENT.objectManipulationIterations.planning.md,
-    // which routes to iteration 2) --- once the
-    // evidence-weighting work generalizes to this deterministic path, this
-    // should combine each candidate's grounded Identify confidence
-    // (ObjectSpanCandidate.jointRelevance) with a plan-suitability rubric
-    // (simplicity, limited Carry/auto-resolves, Room-over-Character-inventory
-    // preference) and commit only past a real front-runner threshold, rather
-    // than just taking the first legal candidate.
-    const chosen = preparedCandidates[0]!
+    if (selection.verdict === 'abstain' || selection.verdict === 'error') {
+        return {
+            type: 'Abstain',
+            confidence: intentConfidence,
+            reason: selection.reason,
+        }
+    }
+
+    if (selection.verdict === 'defer') {
+        // This route has no complexity LLM to hand a `defer` candidate to (unlike
+        // membership) --- it abstains instead of re-grounding, same family as today.
+        return {
+            type: 'Abstain',
+            confidence: intentConfidence,
+            reason: selection.dryRun.reason ?? 'No relational candidate in the pool found a chain',
+        }
+    }
+
+    const { candidate, dryRun } = selection
+    // Guaranteed present: `relationalDryRun` only reports `legal` once it has found one.
+    const chain = dryRun.plan!.steps.find((step): step is ExecutorRelationalChain => step.kind === 'relationalChain')!
 
     // sourced from the grounded candidate's own id, not a step --- always plain
     // Object-to-Object, unlike a crossing's own leg endpoints.
     return {
         type: 'EstablishRelation',
-        operationKind: chosen.candidateId.kind,
-        subjectId: chosen.candidateId.subjectId,
-        targetId: chosen.candidateId.targetId,
-        ...(chosen.candidateId.relationKind === 'Custom'
-            ? { relationKind: 'Custom' as const, relationLabel: chosen.candidateId.relationLabel }
-            : { relationKind: chosen.candidateId.relationKind }),
+        operationKind: candidate.candidateId.kind,
+        subjectId: candidate.candidateId.subjectId,
+        targetId: candidate.candidateId.targetId,
+        ...(candidate.candidateId.relationKind === 'Custom'
+            ? { relationKind: 'Custom' as const, relationLabel: candidate.candidateId.relationLabel }
+            : { relationKind: candidate.candidateId.relationKind }),
         confidence: intentConfidence,
         // Lowered once, for the chosen candidate only (AP-6).
-        steps: lowerRelationalChain(chosen.chain.steps, chosen.chain.operationKind),
-        attempt: chosen.attempt.toJSON(),
+        steps: lowerRelationalChain(chain.steps, chain.operationKind),
+        attempt: candidate.attempt.toJSON(),
     }
 }
