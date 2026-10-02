@@ -70,9 +70,8 @@ const readLiveHosts = async (
  * resolves presentation labels, and builds (not commits) the plan via the existing
  * `planObjectMoveTransfer`.
  *
- * `roomId` for presentation is whichever of `from`/`to` is a Room --- v1's locus rule
- * (`planMembershipDesiredResult`) means a membership move's two hosts are always
- * {room, actingCharacter}.
+ * `roomId` for presentation is the acting character's live room, not either endpoint: a take
+ * from a table moves between two non-Room hosts.
  */
 const buildMembershipFragment = async (
     change: TransferMembershipChange<GroundedReferent>,
@@ -91,9 +90,15 @@ const buildMembershipFragment = async (
         console.error(`[mtw.ephemera.positions] commitAttempt: membership action dropped: ${entityId} is no longer on ${fromHostId}`)
         return undefined
     }
+    if (fromHostId === toHostId) {
+        // A take of something already held (picked up since the dry run): nothing to move.
+        console.error(`[mtw.ephemera.positions] commitAttempt: membership action dropped: ${entityId} is already on ${toHostId}`)
+        return undefined
+    }
 
-    const roomId = isEphemeraRoomId(fromHostId) ? fromHostId : isEphemeraRoomId(toHostId) ? toHostId : undefined
-    if (roomId === undefined) {
+    const roomId = liveHosts.get(args.characterId)
+    if (roomId === undefined || !isEphemeraRoomId(roomId)) {
+        console.error(`[mtw.ephemera.positions] commitAttempt: membership action dropped: ${args.characterId} is not in exactly one room`)
         return undefined
     }
 

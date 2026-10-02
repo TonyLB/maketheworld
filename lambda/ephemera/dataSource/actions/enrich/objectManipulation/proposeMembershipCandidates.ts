@@ -26,7 +26,9 @@ const primaryObjectRefKey = 'primaryObject'
 
 /**
  * Plan's half of a membership attempt: depends only on the operation and the object
- * phrase, not on which identity candidate it is paired with.
+ * phrase, not on which identity candidate it is paired with. A take moves the object from
+ * wherever it is (`currentHost` of the object itself: the room, or a table it sits on) to
+ * the actor; a drop moves it from the actor to the room the actor is in.
  */
 export const planMembershipDesiredResult = (
     operationKind: 'takeHold' | 'drop',
@@ -36,7 +38,7 @@ export const planMembershipDesiredResult = (
     kind: 'change',
     primitive: 'transferMembership',
     object: objectSpanRef(span, refKey),
-    from: operationKind === 'takeHold' ? currentHostRef(actingCharacterRef) : actingCharacterRef,
+    from: operationKind === 'takeHold' ? currentHostRef(objectSpanRef(span, refKey)) : actingCharacterRef,
     to: operationKind === 'takeHold' ? actingCharacterRef : currentHostRef(actingCharacterRef),
 })
 

@@ -107,8 +107,8 @@ export const withGroundedId = <R extends Referent>(referent: R, groundedId: Grou
  * A structural key for a referent with no `stableRefKey` of its own (AP-10,
  * `AGENT.commandAttemptPipeline.planning.md`): `'actingCharacter'`, `` `currentHost(actingCharacter)` ``,
  * `` `currentHost(span:<key>)` ``. Total over `Referent` so a `currentHost` nested on any kind stays
- * nameable, even though only `actingCharacter` is ever nested live today (`compileMembershipUngroundedPlan`,
- * the one scaffold that would nest a `currentHost` on an `objectSpan`, has no live caller).
+ * nameable: membership nests both live (a take's `from` is `currentHost(span:primaryObject)`, a
+ * drop's `to` is `currentHost(actingCharacter)`).
  */
 export type DerivedReferentKey = string
 

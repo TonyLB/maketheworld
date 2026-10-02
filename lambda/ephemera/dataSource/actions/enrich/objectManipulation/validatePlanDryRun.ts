@@ -35,7 +35,8 @@ export type ValidateMembershipPlanContext = {
 /**
  * Validates a `transferMembership` step (FT-2.2): the object's actual host must equal the
  * host the step's `from` referent requires, or an exit edge defers. For v1 loci, `from`
- * grounds to the room for `takeHold` and to the actor for `drop` (`planMembershipDesiredResult`),
+ * grounds to the object's current host for `takeHold` (the room, for a `room` locus) and to
+ * the actor for `drop` (`planMembershipDesiredResult`),
  * so `membershipOperationKindFromLocus` --- the locus's own inverse of that mapping --- is
  * read as "does the locus satisfy `from`" rather than a bare operationKind table.
  * `heldByOtherCharacter` / `withinObject` loci are not closed-world atomic in v1 and defer.

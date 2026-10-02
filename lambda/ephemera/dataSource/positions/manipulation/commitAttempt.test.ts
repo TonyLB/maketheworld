@@ -62,7 +62,7 @@ const membershipAttempt = (operation: 'takeHold' | 'drop' = 'takeHold'): Command
 )
 
 /** Character is in ROOM; the broom is wherever `broomHost` says. */
-const mockLiveHosts = (broomHost: EphemeraRoomId | EphemeraCharacterId | undefined) => {
+const mockLiveHosts = (broomHost: EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId | undefined) => {
     getMembershipContainersMock.mockImplementation(async (id) => {
         if (id === CHARACTER) {
             return [ROOM]
@@ -121,6 +121,19 @@ describe('commitAttempt', () => {
         )
     })
 
+    it('grounds a take from wherever the object live is (on a table, not the room)', async () => {
+        mockLiveHosts(TABLE)
+        planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'stop' })
+
+        await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
+
+        expect(planObjectMoveTransferMock).toHaveBeenCalledWith(expect.objectContaining({
+            entityId: BROOM,
+            fromHostId: TABLE,
+            toHostId: CHARACTER,
+        }))
+    })
+
     it('grounds a published drop with the character as source and the room as destination', async () => {
         mockLiveHosts(CHARACTER)
         planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'stop' })
@@ -143,7 +156,16 @@ describe('commitAttempt', () => {
         expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
     })
 
-    it('does not commit when the object is no longer on the grounded source host (drift)', async () => {
+    it('does not commit a drop of an object no longer held (drift)', async () => {
+        mockLiveHosts(ROOM)
+
+        await commitAttempt({ attempt: membershipAttempt('drop'), characterId: CHARACTER, messageBus, streamEvent })
+
+        expect(planObjectMoveTransferMock).not.toHaveBeenCalled()
+        expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+    })
+
+    it('does not commit a take of an object already held', async () => {
         mockLiveHosts(CHARACTER)
 
         await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
