@@ -1,73 +1,56 @@
 import { isEphemeraObjectId, type EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { Assertion, Referent } from '../plan/planStep'
-import { groundReferent, type GroundingContext } from './groundReferent'
+import type { Assertion, Referent, ReferentAssignment } from '../plan/planStep'
+import { derivedReferentKey } from '../plan/planStep'
 import type { GroundedAssertion } from './executorTypes'
 
 /**
- * `ok: false` is hard-terminal today, same caveat as `GroundReferentResult`/
- * `GroundChangeResult` --- see BD-18 (`AGENT.backtrackChannel.planning.md`)
- * for the unbuilt Synthesize -> Identify backtrack direction this shape
- * should stay compatible with.
- */
-export type GroundAssertionResult =
-    | { ok: true; assertion: GroundedAssertion }
-    | { ok: false; reason: string }
-
-/**
- * Grounds an `Assertion` (Plan's output) into a `GroundedAssertion` --- the
- * executor's worklist operand, per BD-32's confirmed scope: **exactly one**
- * candidate per referent, the same rule `groundChange` applies to a `Change`
- * (AP-1). A referent grounding to more than one candidate here
- * is an error, documented as unreachable: the outer per-candidate selection
- * layer (BD-32) has already narrowed `GroundingContext.resolvedSpans` down to
- * one id per `stableRefKey` before the worklist ever runs.
+ * Grounds an `Assertion` (Plan's output) into a `GroundedAssertion`, the same substitution
+ * `groundChange` applies to a `Change` (AP-1, AP-10): total over a complete
+ * `ReferentAssignment`, throwing on a missing key rather than returning a result a caller
+ * branches on. No shipped predicate emission reaches this today (`containedBy` unused) ---
+ * kept in step with `groundChange`'s shape for when one does.
  */
 export const groundAssertion = (
     assertion: Assertion,
-    context: GroundingContext
-): GroundAssertionResult => {
+    assignment: ReferentAssignment
+): GroundedAssertion => {
     switch (assertion.predicate) {
-        case 'containedBy': {
-            const subjectId = groundSingleObjectId(assertion.subject, context)
-            if (!subjectId.ok) {
-                return subjectId
-            }
-            const objectId = groundSingleObjectId(assertion.object, context)
-            if (!objectId.ok) {
-                return objectId
-            }
+        case 'containedBy':
             return {
-                ok: true,
-                assertion: {
-                    kind: 'assertion',
-                    predicate: 'containedBy',
-                    subjectId: subjectId.id,
-                    objectId: objectId.id,
-                    negate: assertion.negate,
-                },
+                kind: 'assertion',
+                predicate: 'containedBy',
+                subjectId: groundSingleObjectId(assertion.subject, assignment),
+                objectId: groundSingleObjectId(assertion.object, assignment),
+                negate: assertion.negate,
             }
-        }
     }
 }
 
 const groundSingleObjectId = (
     referent: Referent,
-    context: GroundingContext
-): { ok: true; id: EphemeraObjectId } | { ok: false; reason: string } => {
-    const result = groundReferent(referent, context)
-    if (!result.ok) {
-        return { ok: false, reason: result.reason }
-    }
-    const objectCandidates = result.candidates.filter(isEphemeraObjectId)
-    if (objectCandidates.length === 0) {
-        return { ok: false, reason: 'No well-typed EphemeraObjectId candidate produced for this referent' }
-    }
-    if (objectCandidates.length > 1) {
-        return {
-            ok: false,
-            reason: 'Referent grounded to more than one candidate --- unreachable once the outer per-candidate layer (BD-32) has already selected one',
+    assignment: ReferentAssignment
+): EphemeraObjectId => {
+    if (referent.groundedId !== undefined) {
+        if (!isEphemeraObjectId(referent.groundedId)) {
+            throw new Error('groundAssertion: referent is not grounded to an EphemeraObjectId')
         }
+        return referent.groundedId
     }
-    return { ok: true, id: objectCandidates[0]! }
+    if (referent.referentType === 'objectSpan') {
+        if (referent.stableRefKey === undefined) {
+            throw new Error(`groundAssertion: objectSpan referent for span "${referent.span}" has no stableRefKey to ground against`)
+        }
+        const groundedId = assignment.spans.get(referent.stableRefKey)
+        if (groundedId === undefined || !isEphemeraObjectId(groundedId)) {
+            throw new Error(`groundAssertion: no well-typed EphemeraObjectId span assignment for stableRefKey "${referent.stableRefKey}"`)
+        }
+        return groundedId
+    }
+    const key = derivedReferentKey(referent)
+    const groundedId = assignment.derived.get(key)
+    if (groundedId === undefined || !isEphemeraObjectId(groundedId)) {
+        throw new Error(`groundAssertion: no well-typed EphemeraObjectId derived assignment for "${key}"`)
+    }
+    return groundedId
 }

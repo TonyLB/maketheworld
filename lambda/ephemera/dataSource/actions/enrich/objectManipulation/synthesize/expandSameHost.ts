@@ -50,9 +50,9 @@ export type ExpandSameHostResult =
  * outcome look load-bearing. If CD2h ever routes hosting kinds through this
  * function they need their own branch built for them.
  *
- * `env` carries plain injected callbacks, not live DB calls --- matches
- * `GroundingContext`'s convention. It only operates on already-grounded ids; the executor's
- * `sameHost` command-expansion is its one caller.
+ * `env` carries plain injected callbacks, not live DB calls --- the same convention
+ * `ExpansionEnvironment` uses throughout. It only operates on already-grounded ids; the
+ * executor's `sameHost` command-expansion is its one caller.
  *
  * **`establishRelation` and `dissolveRelation` ask genuinely different questions of
  * genuinely different state**, and now call genuinely different primitives --- `findShardBoundary`

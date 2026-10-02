@@ -28,7 +28,8 @@ import { walkAncestryContainers } from './synthesize/findShardBoundary'
 import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
 import type { ExecutorRelationalChain, ExpansionEnvironment } from './synthesize/executorTypes'
 import { lowerRelationalChain } from './synthesize/buildCrossingLegs'
-import { groundStepBySubstitution, type Change, type EstablishRelationChange, type DissolveRelationChange, type GroundedId, type GroundedReferent, type Referent } from './plan/planStep'
+import type { Change, EstablishRelationChange, DissolveRelationChange, GroundedId, GroundedReferent, Referent, ReferentAssignment } from './plan/planStep'
+import { groundChange } from './synthesize/groundChange'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
 import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
@@ -102,9 +103,9 @@ type ProposeRelationalCandidatesResult =
 const groundedObjectId = (referent: Referent): EphemeraObjectId => {
     const id = referent.groundedId
     if (id === undefined || !isEphemeraObjectId(id)) {
-        // groundStepBySubstitution always grounds subject/target when the assignment
-        // covers both of match.change's stableRefKeys, which the producer below
-        // guarantees --- reaching here is a construction bug.
+        // groundChange always grounds subject/target when the assignment covers both of
+        // match.change's stableRefKeys, which the producer below guarantees --- reaching
+        // here is a construction bug.
         throw new Error('compileRelationalFromSkeleton: expected a grounded Object id on a relational candidate\'s subject/target referent')
     }
     return id
@@ -116,7 +117,8 @@ const groundedObjectId = (referent: Referent): EphemeraObjectId => {
  * `match.change`'s own `stableRefKey`s (subject, then target --- the step's field
  * order), filtered to Object candidates (`identityFromSpanCandidate` throws on anything
  * else), enumerated into joint assignments (`enumerateIdentityAssignments`, AP-2's `min`
- * confidence), each grounded by substitution (`groundStepBySubstitution`) and wrapped in
+ * confidence), each grounded in one total pass (`groundChange`, AP-10 --- the assignment is
+ * already complete, since a relational `Change` has no derived referents at all) and wrapped in
  * an attempt --- one primary action, no boundary challenges, since establishing or
  * dissolving a peer edge is not a membership transfer and this route detects no graph
  * challenge today (`AGENT.concepts.md`'s `CommandAttempt` section).
@@ -186,7 +188,8 @@ const proposeRelationalCandidates = (
         const groundedIdByRefKey = new Map<string, GroundedId>(
             [...identities].map(([key, identity]) => [key, identity.objectId])
         )
-        const groundedChange = groundStepBySubstitution(change, groundedIdByRefKey) as EstablishRelationChange | DissolveRelationChange
+        const assignment: ReferentAssignment = { spans: groundedIdByRefKey, derived: new Map() }
+        const groundedChange = groundChange(change, assignment) as EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>
         const subjectId = groundedObjectId(groundedChange.subject)
         const targetId = groundedObjectId(groundedChange.target)
 

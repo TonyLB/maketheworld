@@ -1,10 +1,7 @@
 import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { Assertion, Change, GroundedReferent, PlanStep } from '../plan/planStep'
-import { groundAssertion } from './groundAssertion'
-import { groundChange } from './groundChange'
-import type { GroundingContext } from './groundReferent'
+import type { Change, GroundedReferent, PlanStep } from '../plan/planStep'
 import { expandSameHost } from './expandSameHost'
 import type {
     ExecutorOutputStep,
@@ -23,24 +20,15 @@ const mintInstructionId = (): InstructionId => {
     return `instr-${instructionIdCounter}`
 }
 
-/**
- * Seeds an ordered list of Plan-emitted `PlanStep`s directly, tagged `ungrounded`, in
- * the order given (BD-15(1)). A move's boundary dissolves are not the executor's to find:
- * Expansion adds them to the attempt as facilitating actions, and the caller seeds them
- * grounded, ahead of the move (BD-28's order), through `seedFromGroundedSteps`.
- */
-export const seedFromUngroundedSteps = (steps: readonly PlanStep[]): WorklistInstruction[] =>
-    steps.map((step) => ({ id: mintInstructionId(), tag: 'ungrounded', step }))
-
 type GroundedInstructionStepResult =
     | { ok: true; step: ExecutorParsePlanStep | GroundedRelationalChange }
     | { ok: false; reason: string }
 
 /**
- * The one choice a grounded `Change` makes on its way into the worklist, shared by
- * seeding (`seedFromGroundedSteps`) and Grounding (`groundInstruction`). A relational
- * `Change` stays as it is: it has no `host` and command-expands into a chain
- * (AP-6) rather than lowering straight to a step. A `transferMembership` lowers to its
+ * The one choice a grounded `Change` makes on its way into the worklist (`seedFromGroundedSteps`,
+ * the only seeder --- AP-10 retired the executor's own grounding phase, so every seed is already
+ * grounded). A relational `Change` stays as it is: it has no `host` and command-expands into a
+ * chain (AP-6) rather than lowering straight to a step. A `transferMembership` lowers to its
  * executor effect, here, where each id is checked for its slot; Grounding attaches ids
  * without typing them. A grounded non-Room host (an actor's inventory graph) is admitted.
  */
@@ -58,10 +46,11 @@ const groundedInstructionStep = (change: Change<GroundedReferent>): GroundedInst
 }
 
 /**
- * Seeds fully grounded steps as `grounded` instructions, in the order given, skipping
- * Grounding entirely (a `runExecutor` seed may carry grounded instructions directly), through
- * `groundedInstructionStep`. A mistyped id is a caller contract violation and throws.
- * Assertions are not seeded: none is produced grounded.
+ * Seeds fully grounded steps as worklist instructions, in the order given --- the only
+ * seeder (AP-10: grounding happens once, completely, before anything is seeded; the
+ * executor's own grounding phase retired), through `groundedInstructionStep`. A mistyped
+ * id is a caller contract violation and throws. Assertions are not seeded: none is
+ * produced grounded.
  */
 export const seedFromGroundedSteps = (steps: readonly PlanStep<GroundedReferent>[]): WorklistInstruction[] =>
     steps.map((step) => {
@@ -72,32 +61,8 @@ export const seedFromGroundedSteps = (steps: readonly PlanStep<GroundedReferent>
         if (!result.ok) {
             throw new Error(`seedFromGroundedSteps: ${result.reason}`)
         }
-        return { id: mintInstructionId(), tag: 'grounded' as const, step: result.step }
+        return { id: mintInstructionId(), step: result.step }
     })
-
-type GroundResult =
-    | { ok: true; step: ExecutorParsePlanStep | GroundedAssertion | GroundedRelationalChange }
-    | { ok: false; reason: string }
-
-/**
- * Grounds one `ungrounded` instruction: `groundChange` gives the one grounded `Change`
- * (AP-1), and `groundedInstructionStep` makes the same choice seeding makes.
- */
-const groundInstruction = (step: Change | Assertion, context: GroundingContext): GroundResult => {
-    if (step.kind === 'change') {
-        const result = groundChange(step, context)
-        if (!result.ok) {
-            return result
-        }
-        return groundedInstructionStep(result.change)
-    }
-
-    const result = groundAssertion(step, context)
-    if (!result.ok) {
-        return { ok: false, reason: result.reason }
-    }
-    return { ok: true, step: result.assertion }
-}
 
 type CommandExpandOutcome =
     | { kind: 'retire'; output: ExecutorOutputStep }
@@ -169,58 +134,28 @@ export type ExecutorOutcome =
     | { verdict: 'error'; reason: string }
 
 /**
- * BD-30's phase-stratified worklist, realized. Priority per iteration: (1)
- * ground the first `ungrounded`; (2) else command-expand the frontmost item,
- * retiring it into the output list (atomic effect) or replacing it with its
- * minted children pushed to the front (generator). Strict list-order (FIFO)
- * selection at every phase, plus push-to-front, is what gives BD-28's
- * sequencing resolution its guarantee --- no separate priority tier needed.
- * Grounding never widens an operand set: an object's hosted contents live in
- * its own shard and travel with it, so no phase between grounding and
- * command-expansion computes a moved set.
- *
- * `groundingContext` is optional because a fully-grounded seed never reaches
- * phase (1): any child minted during a run is already grounded, so only a seed can
- * carry an `ungrounded` instruction. A caller that
- * already holds concrete ids can seed `grounded` instructions directly
- * (`seedFromGroundedSteps`) and omit it, rather than assembling a context whose
- * resolutions would be identity mappings. Seeding an `ungrounded` instruction without
- * one is a caller error and errors out.
+ * BD-30's phase-stratified worklist, realized. Every instruction entering this loop is
+ * already grounded (AP-10: grounding happens once, completely, before seeding --- the
+ * executor's former grounding phase, which used to ground the first `ungrounded`
+ * instruction ahead of command-expansion each iteration, retired along with it). So there
+ * is one phase left: command-expand the frontmost item, retiring it into the output list
+ * (atomic effect) or replacing it with its minted children pushed to the front (generator).
+ * Strict list-order (FIFO) selection, plus push-to-front, is what gives BD-28's sequencing
+ * resolution its guarantee. Grounding never widened an operand set and still doesn't: an
+ * object's hosted contents live in its own shard and travel with it, so no phase computes a
+ * moved set.
  */
 export const runExecutor = (
     seed: readonly WorklistInstruction[],
-    env: ExpansionEnvironment,
-    groundingContext?: GroundingContext
+    env: ExpansionEnvironment
 ): ExecutorOutcome => {
     let worklist: WorklistInstruction[] = [...seed]
     const output: ExecutorOutputStep[] = []
 
     while (worklist.length > 0) {
-        const ungroundedIndex = worklist.findIndex((item) => item.tag === 'ungrounded')
-        if (ungroundedIndex >= 0) {
-            const item = worklist[ungroundedIndex]!
-            if (item.tag !== 'ungrounded') {
-                continue
-            }
-            if (groundingContext === undefined) {
-                return {
-                    verdict: 'error',
-                    reason: 'runExecutor: an ungrounded instruction was seeded without a GroundingContext',
-                }
-            }
-            const result = groundInstruction(item.step, groundingContext)
-            if (!result.ok) {
-                return { verdict: 'error', reason: result.reason }
-            }
-            worklist = worklist.map((entry, index) =>
-                index === ungroundedIndex ? { id: item.id, tag: 'grounded' as const, step: result.step } : entry
-            )
-            continue
-        }
-
         const [frontmost, ...rest] = worklist
-        if (frontmost === undefined || frontmost.tag !== 'grounded') {
-            return { verdict: 'error', reason: 'Internal error: expected a grounded frontmost instruction' }
+        if (frontmost === undefined) {
+            return { verdict: 'error', reason: 'Internal error: expected a frontmost instruction' }
         }
         const commandResult = commandExpand(frontmost.step, env)
         if (commandResult.kind === 'error') {

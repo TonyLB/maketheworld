@@ -1,10 +1,9 @@
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
-import { graphNodeRef, objectSpanRef } from '../plan/planStep'
+import { graphNodeRef } from '../plan/planStep'
 import type { DissolveRelationChange, GroundedReferent } from '../plan/planStep'
-import type { GroundingContext } from './groundReferent'
-import { runExecutor, seedFromGroundedSteps, seedFromUngroundedSteps } from './executor'
+import { runExecutor, seedFromGroundedSteps } from './executor'
 import type { ExpansionEnvironment, WorklistInstruction } from './executorTypes'
 
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -14,12 +13,6 @@ const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const SAUCER_ID = 'OBJECT#Saucer' as EphemeraObjectId
 const WEIRD_ID = 'OBJECT#Weird' as EphemeraObjectId
-
-const emptyGroundingContext: GroundingContext = {
-    actingCharacterId: CHARACTER_ID,
-    resolvedSpans: new Map(),
-    getCurrentHost: () => undefined,
-}
 
 describe('runExecutor', () => {
     // The former "BD-13: carries a connected object..." test is retired 2026-08-22 (Channel D,
@@ -48,7 +41,6 @@ describe('runExecutor', () => {
         const seed: WorklistInstruction[] = [
             {
                 id: 'relation',
-                tag: 'grounded',
                 step: {
                     kind: 'change',
                     primitive: 'establishRelation',
@@ -59,7 +51,7 @@ describe('runExecutor', () => {
             },
         ]
 
-        const result = runExecutor(seed, env, emptyGroundingContext)
+        const result = runExecutor(seed, env)
 
         expect(result).toEqual({
             verdict: 'legal',
@@ -94,7 +86,6 @@ describe('runExecutor', () => {
         const seed: WorklistInstruction[] = [
             {
                 id: 'relation',
-                tag: 'grounded',
                 step: {
                     kind: 'change',
                     primitive: 'establishRelation',
@@ -106,7 +97,7 @@ describe('runExecutor', () => {
             },
         ]
 
-        const result = runExecutor(seed, env, emptyGroundingContext)
+        const result = runExecutor(seed, env)
 
         expect(result.verdict).toBe('legal')
         if (result.verdict !== 'legal') return
@@ -135,7 +126,7 @@ describe('runExecutor', () => {
     // kind -- `On` (its only producer) joined `In`/`PartOf`'s hosting-kind throw. Reaching this
     // scenario today throws AB-54's invariant error instead, at `boundaryEdgeOutcomes` itself.
 
-    it('runs a fully-grounded seed with no GroundingContext supplied', () => {
+    it('runs a fully-grounded seed', () => {
         const graph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID)
         const env: ExpansionEnvironment = {
             getGraph: (hostId) => (hostId === ROOM_ID ? graph : undefined),
@@ -144,7 +135,7 @@ describe('runExecutor', () => {
         }
 
         const seed: WorklistInstruction[] = [
-            { id: 'transfer', tag: 'grounded', step: { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID } },
+            { id: 'transfer', step: { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID } },
         ]
 
         const result = runExecutor(seed, env)
@@ -155,28 +146,6 @@ describe('runExecutor', () => {
                 { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
             ],
         })
-    })
-
-    it('errors rather than throwing when an ungrounded instruction is seeded with no GroundingContext', () => {
-        const graph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID)
-        const env: ExpansionEnvironment = {
-            getGraph: (hostId) => (hostId === ROOM_ID ? graph : undefined),
-            getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined),
-            getMembershipContainers: () => [],
-        }
-
-        const result = runExecutor(
-            seedFromUngroundedSteps([{
-                kind: 'change',
-                primitive: 'transferMembership',
-                object: objectSpanRef('object', 'tray'),
-                from: objectSpanRef('from', 'room'),
-                to: objectSpanRef('to', 'character'),
-            }]),
-            env
-        )
-
-        expect(result).toEqual({ verdict: 'error', reason: expect.stringContaining('GroundingContext') })
     })
 })
 
@@ -194,7 +163,6 @@ describe('seedFromGroundedSteps', () => {
 
         expect(instruction).toEqual({
             id: expect.any(String),
-            tag: 'grounded',
             step: dissolve,
         })
     })

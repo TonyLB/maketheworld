@@ -15,10 +15,19 @@ import type { IdentityPlanCandidate, IdentityPlanIdentity, MembershipPlanStub } 
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { SandboxState } from './sandboxState'
 import type { ConsultAlternative, SpanCandidateLocus, SpanResolutionOutcome } from './spanResolution'
-import type { GroundingContext } from './synthesize/groundReferent'
 import type { ExpansionEnvironment } from './synthesize/executorTypes'
-import { runExecutor, seedFromGroundedSteps, seedFromUngroundedSteps } from './synthesize/executor'
-import { isGroundedStep, type PlanStep, type TransferMembershipChange } from './plan/planStep'
+import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
+import { groundChange } from './synthesize/groundChange'
+import {
+    actingCharacterRef,
+    currentHostRef,
+    derivedReferentKey,
+    isGroundedStep,
+    type GroundedReferent,
+    type PlanStep,
+    type ReferentAssignment,
+    type TransferMembershipChange,
+} from './plan/planStep'
 import { validateMembershipPlanDryRun } from './validatePlanDryRun'
 import type { DryRunOutcome, ValidatedPlan } from './validatePlanDryRun'
 
@@ -32,22 +41,20 @@ import type { DryRunOutcome, ValidatedPlan } from './validatePlanDryRun'
 export type PlanCandidate = {
     identities: ReadonlyMap<string, IdentityPlanIdentity>
     confidence: number
-    /** Grounded by substitution; not yet expanded (no boundary actions) or adjudicated. */
+    /**
+     * Not yet expanded (no boundary actions) or adjudicated. Grounded exactly where the
+     * route's assignment is already complete at this point: relational's producer grounds
+     * fully here (its `Change` has no derived referents at all, AP-6/AP-7/AP-8). Membership's
+     * does not --- its `from`/`to` are derived, so its attempt stays wholly ungrounded until
+     * `sandboxMembershipDryRun`'s `groundMembershipDesiredResult` has a sandbox snapshot to
+     * build the derived half from (AP-10).
+     */
     attempt: CommandAttempt
 }
 
-/**
- * Built by the route (sandbox state, prefetch), not by the stage itself. Only `expansion`
- * has a real caller today (membership's own Expand, below); `grounding` is declared per
- * the stage sketch for the executor's one-answer grounder, and gains a caller once a
- * producer needs it.
- */
+/** Built by the route (sandbox state, prefetch), not by the stage itself. */
 export type PlanStageEnvironment = {
     expansion: ExpansionEnvironment
-    /** No builder populates this yet --- membership's Expand needs only `expansion`. A
-     * producer gains a real `grounding` once it needs the executor's one-answer grounder
-     * ahead of the dry run (slice 2a). */
-    grounding?: Pick<GroundingContext, 'actingCharacterId' | 'getCurrentHost'>
 }
 
 /**
@@ -85,12 +92,15 @@ export const membershipSourceHostId = (
 }
 
 /**
- * Expand + Adjudicate, the shared stage's half of AP-1's ground + expand split (the
- * producer already grounded `candidate.attempt` by substitution). Expansion adds one
- * facilitating action per boundary edge from the candidate's source graph, with a graph
- * challenge on each `defer`; Adjudicate then judges the challenges it may
- * (`adjudicateAttempt`), so the dry run validates a judged attempt. A candidate with no
- * source graph grounds its referent but skips expansion.
+ * Expand + Adjudicate, the shared stage's half of AP-1's ground + expand split. Grounding
+ * itself does not run here (AP-10): the primary action's `desiredResult` stays ungrounded
+ * until `sandboxMembershipDryRun`'s `groundMembershipDesiredResult` has a sandbox snapshot
+ * to ground its derived `from`/`to` against; this function only reads concrete values already
+ * in hand (`candidate.identity`, `roomId`, `actorCharacterId`), never the step's own referents.
+ * Expansion adds one facilitating action per boundary edge from the candidate's source graph
+ * (each already fully grounded --- `graphNode` referents, born grounded), with a graph
+ * challenge on each `defer`; Adjudicate then judges the challenges it may (`adjudicateAttempt`),
+ * so the dry run validates a judged attempt. A candidate with no source graph skips expansion.
  */
 export const expandAndAdjudicateMembershipCandidate = (
     candidate: MembershipPlanCandidate,
@@ -281,17 +291,54 @@ export type SelectIdentityPlanTupleInput = {
 }
 
 /**
- * Membership dry run: validates an already-grounded, adjudicated attempt (built by the
- * producer, then this stage's `expandAndAdjudicateMembershipCandidate`). `validateMembershipPlanDryRun`'s locus-vs-operationKind
- * base check (FT-2.2 --- "declared drop but object is on the room graph", exit-edge defer)
- * runs first, as an up-front gate. Then the attempt's result decides:
+ * AP-10's derived half, built against the sandbox snapshot this dry run holds --- the only
+ * place membership's two derived referents (`actingCharacter`, `currentHost(actingCharacter)`)
+ * can be resolved, since Plan/the producer never see sandbox state. Not a generic graph
+ * walk: `roomId`/`actorCharacterId`, validated non-undefined by the caller, already ARE
+ * these two values (locus decides which of the two is the move's source vs. destination for
+ * takeHold vs. drop; either way, both referents ground to the same pair). Combined with the
+ * span half (freshly built from `candidate.identity.objectId`, since the producer no longer
+ * grounds the step at all --- `groundMembershipCandidate`'s doc comment) into one complete
+ * `ReferentAssignment`, so `groundChange` grounds the whole step in a single, total pass.
+ */
+const groundMembershipDesiredResult = (
+    step: TransferMembershipChange,
+    objectId: EphemeraObjectId,
+    actorCharacterId: EphemeraCharacterId,
+    roomId: EphemeraRoomId
+): TransferMembershipChange<GroundedReferent> => {
+    const stableRefKey = step.object.referentType === 'objectSpan' ? step.object.stableRefKey : undefined
+    if (stableRefKey === undefined) {
+        // planMembershipDesiredResult always stamps one; reaching here is a construction bug.
+        throw new Error('groundMembershipDesiredResult: desired result has no object stableRefKey to ground against')
+    }
+    const assignment: ReferentAssignment = {
+        spans: new Map([[stableRefKey, objectId]]),
+        derived: new Map([
+            [derivedReferentKey(actingCharacterRef), actorCharacterId],
+            [derivedReferentKey(currentHostRef(actingCharacterRef)), roomId],
+        ]),
+    }
+    return groundChange(step, assignment) as TransferMembershipChange<GroundedReferent>
+}
+
+/**
+ * Membership dry run: validates an already-expanded, adjudicated attempt (built by the
+ * producer, then this stage's `expandAndAdjudicateMembershipCandidate` --- neither grounds
+ * the primary step; see their doc comments). `validateMembershipPlanDryRun`'s
+ * locus-vs-operationKind base check (FT-2.2 --- "declared drop but object is on the room
+ * graph", exit-edge defer) runs first, as an up-front gate. Then the attempt's result
+ * decides:
  * - `pending`: a challenge Adjudicate may not judge (an `Under` subject-move) defers to the
  *   complexity LLM, as before;
  * - `impossible`: illegal;
- * - `succeeded`: the attempt is lowered and run through the executor. Its fully grounded
- *   steps (Expansion's facilitating dissolves) are seeded first, BD-28's order; the primary
- *   `transferMembership` is seeded ungrounded, and its object already carries the
- *   candidate's `groundedId`, so only `from`/`to` are derived.
+ * - `succeeded`: the primary step is grounded in full (`groundMembershipDesiredResult`, one
+ *   `groundChange` call, span and derived together --- AP-10), then the attempt is seeded
+ *   and run through the executor. Facilitating dissolves (already fully grounded ---
+ *   `graphNode` referents, born grounded) seed first, BD-28's order; the newly-grounded
+ *   primary `transferMembership` seeds last. Every seeded step is grounded by construction,
+ *   so nothing here mirrors the executor's former mid-worklist grounding phase (retired,
+ *   AP-10).
  *
  * The executor no longer classifies boundary edges itself: Expansion did, once, and a met
  * challenge is lowered like any other facilitating action. The commit side does not re-run
@@ -334,7 +381,11 @@ export const sandboxMembershipDryRun = (
         return baseOutcome
     }
 
-    if (actorCharacterId === undefined) {
+    if (actorCharacterId === undefined || roomId === undefined) {
+        // Narrows both for groundMembershipDesiredResult below. Unreachable in practice: the
+        // sourceHostId/destinationHostId check above already requires both defined, for
+        // either locus (room's source is roomId, heldByActor's destination is roomId; the
+        // other locus mirrors it for actorCharacterId).
         return { verdict: 'illegal', decidable: true, reason: objectManipulationErrorMessages.noMembershipHost }
     }
     if (sourceGraph === undefined) {
@@ -351,31 +402,23 @@ export const sandboxMembershipDryRun = (
         return { verdict: 'illegal', decidable: true, reason: result.reason }
     }
 
-    const { desiredResult } = candidate
-    const stableRefKey = desiredResult.object.referentType === 'objectSpan' ? desiredResult.object.stableRefKey : undefined
-    if (stableRefKey === undefined) {
-        // planMembershipDesiredResult always stamps one; reaching here is a construction bug.
-        throw new Error('sandboxMembershipDryRun: desired result has no object stableRefKey to ground against')
-    }
-    const groundingContext: GroundingContext = {
-        actingCharacterId: actorCharacterId,
-        resolvedSpans: new Map([[stableRefKey, { verdict: 'resolved', candidateIds: [objectId] }]]),
-        getCurrentHost: (componentId) => (componentId === actorCharacterId ? roomId : undefined),
-    }
-    const steps = candidate.attempt.actions()
+    const groundedPrimary = groundMembershipDesiredResult(candidate.desiredResult, objectId, actorCharacterId, roomId)
+    // actions()[0] is always the primary action (attemptActionsFromBoundaryOutcomes's own
+    // return shape: `[primaryAction, ...boundaryActions]`), so the rest are facilitating
+    // dissolves, already fully grounded (graphNode referents). Seeded first, BD-28's order;
+    // the newly-grounded primary seeds last.
+    const facilitatingSteps = candidate.attempt.actions()
+        .slice(1)
         .map((action) => action.desiredResult)
-        .filter((step): step is PlanStep => step !== undefined)
-    const seed = [
-        ...seedFromGroundedSteps(steps.filter(isGroundedStep)),
-        ...seedFromUngroundedSteps(steps.filter((step) => !isGroundedStep(step))),
-    ]
+        .filter((step): step is PlanStep<GroundedReferent> => step !== undefined && isGroundedStep(step))
+    const seed = seedFromGroundedSteps([...facilitatingSteps, groundedPrimary])
     const env: ExpansionEnvironment = {
         getGraph: (hostId) => state.get(hostId),
         getCurrentHost: () => sourceHostId,
         getMembershipContainers: () => [],
     }
 
-    const outcome = runExecutor(seed, env, groundingContext)
+    const outcome = runExecutor(seed, env)
 
     if (outcome.verdict === 'error') {
         return { verdict: 'illegal', decidable: true, reason: outcome.reason }

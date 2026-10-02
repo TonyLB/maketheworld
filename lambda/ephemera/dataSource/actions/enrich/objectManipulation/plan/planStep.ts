@@ -4,8 +4,8 @@ import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraM
 import type { EphemeraThingId } from '../thing'
 
 /**
- * The id a referent grounds to --- the same union Grounding's candidates carry
- * (`GroundReferentResult`, `synthesize/groundReferent.ts`).
+ * The id a referent grounds to --- the same union a `ReferentAssignment`'s two namespaces
+ * carry (below).
  */
 export type GroundedId = EphemeraThingId | EphemeraMembershipHostId
 
@@ -104,31 +104,37 @@ export const withGroundedId = <R extends Referent>(referent: R, groundedId: Grou
 })
 
 /**
- * Grounds a step by substitution (AP-1, `AGENT.commandAttemptPipeline.planning.md`):
- * an `objectSpan` referent whose `stableRefKey` has an entry in the assignment gets that
- * id, keeping everything else about it. Referents with no `stableRefKey`, or none in the
- * assignment, pass through unchanged --- e.g. membership's derived `from`/`to` referents,
- * which ground later in the executor's own grounding pass, not here. Route-agnostic: every
- * producer (membership today, relational from slice 2a) grounds its own ungrounded `Change`
- * the same way, over its own stableRefKey assignment.
+ * A structural key for a referent with no `stableRefKey` of its own (AP-10,
+ * `AGENT.commandAttemptPipeline.planning.md`): `'actingCharacter'`, `` `currentHost(actingCharacter)` ``,
+ * `` `currentHost(span:<key>)` ``. Total over `Referent` so a `currentHost` nested on any kind stays
+ * nameable, even though only `actingCharacter` is ever nested live today (`compileMembershipUngroundedPlan`,
+ * the one scaffold that would nest a `currentHost` on an `objectSpan`, has no live caller).
  */
-export const groundStepBySubstitution = (
-    step: Change,
-    groundedIdByRefKey: ReadonlyMap<string, GroundedId>
-): Change => {
-    const substitute = (referent: Referent): Referent => {
-        if (referent.referentType === 'objectSpan' && referent.stableRefKey !== undefined) {
-            const groundedId = groundedIdByRefKey.get(referent.stableRefKey)
-            if (groundedId !== undefined) {
-                return withGroundedId(referent, groundedId)
-            }
-        }
-        return referent
+export type DerivedReferentKey = string
+
+export const derivedReferentKey = (referent: Referent): DerivedReferentKey => {
+    switch (referent.referentType) {
+        case 'actingCharacter':
+            return 'actingCharacter'
+        case 'objectSpan':
+            return `span:${referent.stableRefKey}`
+        case 'currentHost':
+            return `currentHost(${derivedReferentKey(referent.referentTarget)})`
+        case 'graphNode':
+            return `graphNode:${referent.groundedId}`
     }
-    if (step.primitive === 'transferMembership') {
-        return { ...step, object: substitute(step.object), from: substitute(step.from), to: substitute(step.to) }
-    }
-    return { ...step, subject: substitute(step.subject), target: substitute(step.target) }
+}
+
+/**
+ * Grounding's input (AP-10): one value per referent, in two namespaces with different
+ * lifetimes. A span's value is decided once, when identities are selected, and belongs to
+ * the candidate wherever it goes --- keyed by `stableRefKey` (Identify/Plan's key). A derived
+ * value (`actingCharacter`, `currentHost(X)`) is a fact about one snapshot of the world, built
+ * fresh by whoever holds that snapshot --- keyed structurally, by `derivedReferentKey`.
+ */
+export type ReferentAssignment = {
+    spans: ReadonlyMap<string, GroundedId>
+    derived: ReadonlyMap<DerivedReferentKey, GroundedId>
 }
 
 /** True when every referent of this step carries a known id. */

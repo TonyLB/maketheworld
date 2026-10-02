@@ -1,8 +1,7 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     actingCharacterRef,
     currentHostRef,
-    groundStepBySubstitution,
+    derivedReferentKey,
     objectSpanRef,
     type Assertion,
     type Change,
@@ -76,50 +75,17 @@ describe('Change literal shapes', () => {
     })
 })
 
-describe('groundStepBySubstitution', () => {
-    const ropeId = 'OBJECT#Rope' as EphemeraObjectId
-
-    it('substitutes a transferMembership object referent whose stableRefKey is assigned', () => {
-        const step: Change = {
-            kind: 'change',
-            primitive: 'transferMembership',
-            object: objectSpanRef('rope', 'primaryObject'),
-            from: currentHostRef(actingCharacterRef),
-            to: actingCharacterRef,
-        }
-        const grounded = groundStepBySubstitution(step, new Map([['primaryObject', ropeId]]))
-        expect(grounded).toEqual({
-            ...step,
-            object: { ...objectSpanRef('rope', 'primaryObject'), groundedId: ropeId },
-        })
+describe('derivedReferentKey', () => {
+    it('keys actingCharacter structurally', () => {
+        expect(derivedReferentKey(actingCharacterRef)).toBe('actingCharacter')
     })
 
-    it('leaves derived referents (no stableRefKey) and unassigned keys untouched', () => {
-        const step: Change = {
-            kind: 'change',
-            primitive: 'transferMembership',
-            object: objectSpanRef('rope', 'otherKey'),
-            from: currentHostRef(actingCharacterRef),
-            to: actingCharacterRef,
-        }
-        const grounded = groundStepBySubstitution(step, new Map([['primaryObject', ropeId]]))
-        expect(grounded).toEqual(step)
+    it('keys currentHost(actingCharacter) by nesting', () => {
+        expect(derivedReferentKey(currentHostRef(actingCharacterRef))).toBe('currentHost(actingCharacter)')
     })
 
-    it('substitutes subject/target referents on an establishRelation change', () => {
-        const step: Change = {
-            kind: 'change',
-            primitive: 'establishRelation',
-            subject: objectSpanRef('cord', 'subjectRef'),
-            target: objectSpanRef('crate', 'targetRef'),
-            relationKind: 'Custom',
-            relationLabel: 'tied around',
-        }
-        const grounded = groundStepBySubstitution(step, new Map([['subjectRef', ropeId]]))
-        expect(grounded).toEqual({
-            ...step,
-            subject: { ...objectSpanRef('cord', 'subjectRef'), groundedId: ropeId },
-        })
+    it('keys currentHost(objectSpan) by its stableRefKey, even though no live producer nests one today', () => {
+        expect(derivedReferentKey(currentHostRef(objectSpanRef('rope', 'ropeRef')))).toBe('currentHost(span:ropeRef)')
     })
 })
 

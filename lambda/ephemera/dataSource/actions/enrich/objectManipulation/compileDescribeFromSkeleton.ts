@@ -1,5 +1,4 @@
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type {
     ParseCommandAbstainResult,
@@ -11,12 +10,10 @@ import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCha
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import type { IdentityStageDeps } from './identityStage'
 import { runIdentityStageOverSkeleton } from './identifySkeletonSpans'
+import { objectCandidatesForSpan } from './objectCandidatesForSpan'
 import type { ParseSkeleton } from './parse/parseToken'
 import { matchLookTemplate } from './plan/matchLookTemplate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import { resolvedSpansFromPools } from './resolvedSpansFromPools'
-import type { GroundingContext } from './synthesize/groundReferent'
-import { groundReferent } from './synthesize/groundReferent'
 
 export type CompileDescribeFromSkeletonInput = {
     command: string
@@ -35,8 +32,8 @@ export type CompileDescribeFromSkeletonResult =
 
 /**
  * Object-directed look's Plan pipeline (iteration 9, Phase 4): Plan match
- * (matchLookTemplate) -> Identify (runIdentityStageOverSkeleton) -> Grounding
- * (groundReferent, singular). No Expansion/Validation leg --- unlike relational,
+ * (matchLookTemplate) -> Identify (runIdentityStageOverSkeleton) -> a direct pool read
+ * (`objectCandidatesForSpan`, singular). No Expansion/Validation leg --- unlike relational,
  * a describe referent is singular with no relation to another referent, so
  * there is no `sameHost` placement or cycle-legality check to run, and no general Synthesize executor seed is built. Only ever produces
  * candidates the catalog scan can populate today (Object only --- catalog
@@ -65,7 +62,6 @@ export async function compileDescribeFromSkeleton(
             errorMessage: objectManipulationErrorMessages.noActingCharacter,
         }
     }
-    const characterId = input.characterId
 
     const catalog = mergeObjectManipulationCatalogs(
         input.roomObjectCatalog ?? [],
@@ -77,18 +73,15 @@ export async function compileDescribeFromSkeleton(
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    const context: GroundingContext = {
-        actingCharacterId: characterId,
-        resolvedSpans: resolvedSpansFromPools(identityResult.spanPools),
-        getCurrentHost: () => undefined,
+    if (match.referent.referentType !== 'objectSpan' || match.referent.stableRefKey === undefined) {
+        return {
+            type: 'Abstain',
+            confidence: intentConfidence,
+            reason: `${match.referent.referentType} referent has no stableRefKey to resolve against`,
+        }
     }
 
-    const groundResult = groundReferent(match.referent, context)
-    if (!groundResult.ok) {
-        return { type: 'Abstain', confidence: intentConfidence, reason: groundResult.reason }
-    }
-
-    const objectCandidate = groundResult.candidates.find(isEphemeraObjectId)
+    const objectCandidate = objectCandidatesForSpan(identityResult.spanPools, match.referent.stableRefKey)[0]
     if (objectCandidate === undefined) {
         return {
             type: 'Abstain',

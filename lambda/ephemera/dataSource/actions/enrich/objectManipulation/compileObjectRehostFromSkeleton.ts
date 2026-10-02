@@ -1,5 +1,4 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ParseCommandErrorResult, ParseCommandObjectRehostResult } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
@@ -8,11 +7,11 @@ import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import type { IdentityStageDeps } from './identityStage'
 import { runIdentityStageOverSkeleton } from './identifySkeletonSpans'
+import { objectCandidatesForSpan } from './objectCandidatesForSpan'
 import type { ParseSkeleton } from './parse/parseToken'
 import type { Referent } from './plan/planStep'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import { resolvedSpansFromPools } from './resolvedSpansFromPools'
-import type { ResolvedSpan } from './synthesize/groundReferent'
+import type { SpanCandidatePool } from './spanResolution'
 import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
 import { PositionAttemptAction } from '../../commandAttempt/action'
 import type { CommandAttemptData } from '../../commandAttempt'
@@ -36,19 +35,12 @@ export type CompileObjectRehostFromSkeletonResult =
 
 const resolveSingleObjectId = (
     referent: Referent,
-    resolvedSpans: ReadonlyMap<string, ResolvedSpan>
+    spanPools: ReadonlyMap<string, SpanCandidatePool>
 ): { type: 'ok'; objectId: EphemeraObjectId } | { type: 'error'; errorMessage: string } => {
     if (referent.referentType !== 'objectSpan' || referent.stableRefKey === undefined) {
         return { type: 'error', errorMessage: objectManipulationErrorMessages.noMatch }
     }
-    const resolved = resolvedSpans.get(referent.stableRefKey)
-    // 'unresolved' only arises from an empty catalog, which `runIdentityStageOverSkeleton`
-    // already turns into a `noCatalog` error before this point --- defensive, not reachable
-    // via this route today (same idiom `compileRelationalFromSkeleton.ts` uses elsewhere).
-    if (!resolved || resolved.verdict === 'unresolved') {
-        return { type: 'error', errorMessage: objectManipulationErrorMessages.noMatch }
-    }
-    const objectCandidates = resolved.candidateIds.filter(isEphemeraObjectId)
+    const objectCandidates = objectCandidatesForSpan(spanPools, referent.stableRefKey)
     if (objectCandidates.length === 0) {
         return { type: 'error', errorMessage: objectManipulationErrorMessages.noMatch }
     }
@@ -134,13 +126,11 @@ export async function compileObjectRehostFromSkeleton(
     if (identityResult.type === 'error') {
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
-    const resolvedSpans = resolvedSpansFromPools(identityResult.spanPools)
-
-    const subjectResolved = resolveSingleObjectId(input.subject, resolvedSpans)
+    const subjectResolved = resolveSingleObjectId(input.subject, identityResult.spanPools)
     if (subjectResolved.type === 'error') {
         return { type: 'Error', errorMessage: subjectResolved.errorMessage }
     }
-    const targetResolved = resolveSingleObjectId(input.target, resolvedSpans)
+    const targetResolved = resolveSingleObjectId(input.target, identityResult.spanPools)
     if (targetResolved.type === 'error') {
         return { type: 'Error', errorMessage: targetResolved.errorMessage }
     }

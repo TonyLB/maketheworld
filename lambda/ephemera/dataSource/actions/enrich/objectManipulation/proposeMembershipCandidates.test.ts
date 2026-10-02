@@ -7,7 +7,6 @@ import {
     proposeMembershipCandidates,
 } from './proposeMembershipCandidates'
 import type { IdentityPlanCandidate } from './identityPlanCandidate'
-import { withGroundedId } from './plan/planStep'
 import type { SpanCandidateLocus, SpanCandidatePool } from './spanResolution'
 
 const bagId = 'OBJECT#Bag' as EphemeraObjectId
@@ -87,12 +86,12 @@ describe('groundMembershipCandidate', () => {
         confidence: 0.8,
     })
 
-    it('builds one grounded, un-expanded attempt per tuple, its primary action wrapping the carried desired result', () => {
+    it('builds one un-expanded attempt per tuple, its primary action wrapping the wholly ungrounded desired result (AP-10: grounding defers to the dry run)', () => {
         const context = { words: 'take the rope', span: 'rope', catalog }
         const grounded = groundMembershipCandidate(candidate(ropeId, { kind: 'room' }, 'takeHold'), context)
 
         const planned = planMembershipDesiredResult('takeHold', 'rope')
-        expect(grounded.desiredResult).toEqual({ ...planned, object: withGroundedId(planned.object, ropeId) })
+        expect(grounded.desiredResult).toEqual(planned)
         expect(grounded.attempt.toJSON().actions).toEqual([
             expect.objectContaining({ desiredResult: grounded.desiredResult }),
         ])

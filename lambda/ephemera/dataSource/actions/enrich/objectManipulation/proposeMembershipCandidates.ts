@@ -11,7 +11,6 @@ import {
 import {
     actingCharacterRef,
     currentHostRef,
-    groundStepBySubstitution,
     objectSpanRef,
     type TransferMembershipChange,
 } from './plan/planStep'
@@ -50,14 +49,23 @@ export type GroundMembershipCandidateContext = {
 }
 
 /**
- * Grounds one (identity, plan) tuple by substitution --- the producer's half of AP-1's
- * ground + expand split. Builds the planned `Change` (Plan's job), substitutes the
- * candidate's id in by `stableRefKey` (`groundStepBySubstitution`, route-agnostic), and
- * wraps the result in an **un-expanded** attempt (one primary action, no boundary
- * dissolves yet --- Expand is the shared stage's job, `selectPlanCandidate.ts`). Called
- * per candidate by the pool-walking producer below, and directly by callers that already
- * hold an `IdentityPlanCandidate` outside a pool (the identity-only fallback, the
- * complexity-LLM re-ground exit).
+ * The producer's half of AP-1's ground + expand split --- builds the planned `Change`
+ * (Plan's job) and wraps it in an **un-expanded** attempt (one primary action, no boundary
+ * dissolves yet --- Expand is the shared stage's job, `selectPlanCandidate.ts`). Called per
+ * candidate by the pool-walking producer below, and directly by callers that already hold
+ * an `IdentityPlanCandidate` outside a pool (the identity-only fallback, the complexity-LLM
+ * re-ground exit).
+ *
+ * **Despite its name, this no longer grounds the step** (AP-10, revised 2026-10-02 while
+ * planning slice 2e): `plannedResult`'s `object` referent carries no `groundedId` here ---
+ * only `candidate.identities`/`candidate.identity.objectId` (used below for the attempt's
+ * referent/description, and read directly by Expand, `expandAndAdjudicateMembershipCandidate`)
+ * carry the identity. The step is grounded in full --- span and the derived `from`/`to`
+ * together, one `groundChange` call --- by `sandboxMembershipDryRun`'s
+ * `groundMembershipDesiredResult`, since that is the first point a sandbox snapshot (the
+ * derived half's only source) is in hand. `TransferMembershipChange`'s own type still admits
+ * either a bare or a grounded `object`/`from`/`to`, so nothing here needs its own grounded
+ * variant.
  */
 export const groundMembershipCandidate = (
     candidate: IdentityPlanCandidate,
@@ -67,18 +75,14 @@ export const groundMembershipCandidate = (
     const { objectId } = candidate.identity
     const { operationKind } = candidate.plan
 
-    const plannedResult = planMembershipDesiredResult(operationKind, span)
-    const groundedStep = groundStepBySubstitution(
-        plannedResult,
-        new Map([[primaryObjectRefKey, objectId]])
-    ) as TransferMembershipChange
+    const plannedResult: TransferMembershipChange = planMembershipDesiredResult(operationKind, span)
 
     const catalogEntry = catalog.find((entry) => entry.objectId === objectId)
     const shortName = catalogEntry?.normalizedShortName ?? span
     const referent = buildCommandAttemptReferent(primaryObjectRefKey, objectId, shortName, catalogEntry?.gloss)
     const primaryAction = new PositionAttemptAction(
         [],
-        groundedStep,
+        plannedResult,
         `${operationKind === 'takeHold' ? 'Take' : 'Drop'}: ${shortName}`
     )
 
@@ -87,7 +91,7 @@ export const groundMembershipCandidate = (
         plan: candidate.plan,
         identities: new Map([[primaryObjectRefKey, candidate.identity]]),
         confidence: candidate.confidence,
-        desiredResult: groundedStep,
+        desiredResult: plannedResult,
         attempt: CommandAttempt.create(words, [referent], [primaryAction]),
     }
 }

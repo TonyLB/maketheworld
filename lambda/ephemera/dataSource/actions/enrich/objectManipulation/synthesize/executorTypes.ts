@@ -9,7 +9,7 @@ import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } f
 import type { EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
-import type { Assertion, Change, DissolveRelationChange, EstablishRelationChange, GroundedReferent } from '../plan/planStep'
+import type { DissolveRelationChange, EstablishRelationChange, GroundedReferent } from '../plan/planStep'
 import type { TransferMembershipStep } from '../parsePlanStep'
 import type { RelationalChainStep } from './findRelationalChain'
 
@@ -121,14 +121,17 @@ export type GroundedAssertion = GroundedBinaryAssertion
 export type GroundedRelationalChange = EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>
 
 /**
- * BD-30's progress-tagged instruction. `'retired'` is deliberately not a tag
- * here --- a retired instruction has left the worklist entirely, either into
- * the output-ordered list (atomic effects) or nowhere (generators, which
- * contribute only their minted children).
+ * BD-30's worklist instruction. Always grounded (AP-10): grounding happens once, completely,
+ * before anything is seeded (`seedFromGroundedSteps` is the only seeder), so the worklist
+ * never carries an ungrounded `Change`/`Assertion` --- unlike `'retired'`, which is
+ * deliberately not a tag here either, since a retired instruction has left the worklist
+ * entirely, either into the output-ordered list (atomic effects) or nowhere (generators,
+ * which contribute only their minted children).
  */
-export type WorklistInstruction =
-    | { id: InstructionId; tag: 'ungrounded'; step: Change | Assertion }
-    | { id: InstructionId; tag: 'grounded'; step: ExecutorParsePlanStep | GroundedAssertion | GroundedRelationalChange }
+export type WorklistInstruction = {
+    id: InstructionId
+    step: ExecutorParsePlanStep | GroundedAssertion | GroundedRelationalChange
+}
 
 /**
  * The live-state reads one worklist run shares: injected callbacks, not DB calls.
