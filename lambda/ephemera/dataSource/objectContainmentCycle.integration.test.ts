@@ -1,5 +1,5 @@
 /**
- * AB-63 regression: the real object-rehost path refuses a move that would close a containment
+ * AB-63 regression: the real object-containment path refuses a move that would close a containment
  * cycle. `In` became player-reachable 2026-09-22, so "put the cup in the box", then "put the box
  * in the cup", is a two-command sequence any player can type --- and before
  * `planObjectMoveTransfer`'s `hasPresenceAncestor` check (`positions/ludicGraph/presenceAncestry.ts`)
@@ -7,11 +7,11 @@
  *
  * Real, unmocked: `orchestrateObjectMove` -> `planObjectMoveTransfer` (dry run) ->
  * `commitAndPresentStepSequence` -> `commitStepSequence`, against a mocked `ephemeraDB` leaf ---
- * the same harness as `objectRehostInPayoff.integration.test.ts`, except that this test's
+ * the same harness as `objectContainmentInPayoff.integration.test.ts`, except that this test's
  * `transactWrite` mock writes each committed graph back into its store, so a second move sees the
  * first one's result at commit time as well as at plan time.
  *
- * Parse is skipped: `compileObjectRehostFromSkeleton` resolves ids and nothing else, so it cannot
+ * Parse is skipped: `compileObjectContainmentFromSkeleton` resolves ids and nothing else, so it cannot
  * refuse a cycle either way. `fromHostId` is passed as the room, which is what `positions/index.ts`
  * reads from `getMembershipContainers` for an object sitting directly in the room.
  *
@@ -84,7 +84,7 @@ const move = (subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => orches
     streamEvent: jest.fn().mockResolvedValue(undefined),
 })
 
-describe('object rehost containment cycle (AB-63)', () => {
+describe('object containment cycle (AB-63)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         let timestamp = 1_000_000_000_000

@@ -3,7 +3,7 @@ import {
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
     isEphemeraPositionsActionsCharacterHomeEnvelope,
-    isEphemeraPositionsActionsObjectRehostEnvelope,
+    isEphemeraPositionsActionsObjectContainmentEnvelope,
     isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
@@ -139,16 +139,16 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope(envelope as any)).toBe(true)
     })
 
-    it('accepts mtw.ephemera.actions Object Rehost envelope', () => {
+    it('accepts mtw.ephemera.actions Object Containment envelope', () => {
         const envelope = {
             header: {
                 dataSourceKey: 'mtw.ephemera.actions',
                 streamKey: 'CHARACTER#alpha',
                 timestamp: Date.now(),
-                type: 'Object Rehost' as const,
+                type: 'Object Containment' as const,
             },
             getContent: () => Promise.resolve({
-                type: 'Object Rehost' as const,
+                type: 'Object Containment' as const,
                 characterId: 'CHARACTER#alpha' as const,
                 subjectId: 'OBJECT#Cup' as const,
                 targetId: 'OBJECT#Tray' as const,
@@ -158,7 +158,7 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         }
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
-        expect(isEphemeraPositionsActionsObjectRehostEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsActionsObjectContainmentEnvelope(envelope as any)).toBe(true)
     })
 
     it('rejects unrelated event type on mtw.ephemera.actions', () => {
@@ -176,7 +176,7 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope as any)).toBe(false)
         expect(isEphemeraPositionsActionsCharacterHomeEnvelope(envelope as any)).toBe(false)
         expect(isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope(envelope as any)).toBe(false)
-        expect(isEphemeraPositionsActionsObjectRehostEnvelope(envelope as any)).toBe(false)
+        expect(isEphemeraPositionsActionsObjectContainmentEnvelope(envelope as any)).toBe(false)
     })
 
     it('accepts mtw.diagnostics Room Occupancy Drift Finding envelope', () => {

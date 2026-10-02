@@ -7,7 +7,7 @@
  *
  * Real, unmocked, in this order:
  *   1. `parseCommand` (mocking only its two Bedrock impls, as `parseCommand.test.ts` does) turning
- *      the player phrase "put the ball in the box" into a real `ObjectRehost` parse result with
+ *      the player phrase "put the ball in the box" into a real `ObjectContainment` parse result with
  *      `containment: 'In'`.
  *   2. `orchestrateObjectMove` (the real mutation-kernel entry point for take/drop/give/rehost ---
  *      not mocked, unlike `receivePaths.integration.test.ts`'s convention) driving
@@ -61,7 +61,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
-import { isParseCommandObjectRehostResult } from './actions/baseClasses'
+import { isParseCommandObjectContainmentResult } from './actions/baseClasses'
 import { orchestrateObjectMove } from './positions/manipulation/membership/orchestrateObjectMove'
 import { testLudicGraph } from './positions/ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from './positions/ludicGraph'
@@ -145,7 +145,7 @@ const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>)
     })
 )
 
-describe('object rehost In payoff (integration)', () => {
+describe('object containment In payoff (integration)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         let timestamp = 1_000_000_000_000
@@ -226,12 +226,12 @@ describe('object rehost In payoff (integration)', () => {
             }
         )
 
-        expect(isParseCommandObjectRehostResult(parseResult)).toBe(true)
-        if (!isParseCommandObjectRehostResult(parseResult)) {
+        expect(isParseCommandObjectContainmentResult(parseResult)).toBe(true)
+        if (!isParseCommandObjectContainmentResult(parseResult)) {
             throw new Error('unreachable: asserted above')
         }
         expect(parseResult).toEqual({
-            type: 'ObjectRehost',
+            type: 'ObjectContainment',
             subjectId: BALL_ID,
             targetId: BOX_ID,
             hostId: ROOM_ID,

@@ -7,7 +7,7 @@
  *
  * External ingress: `mtw.connections.characters` (presence), `mtw.ephemera.actions`
  * (`Character Navigate`, `Character Home`, `Ludic Network Change Requested` (AP-9: the
- * generalized hand-off for membership/relational attempts), `Object Rehost`),
+ * generalized hand-off for membership/relational attempts), `Object Containment`),
  * `mtw.diagnostics` (`Room Occupancy Drift Finding`, `Ludic Graph Stale Structure Finding`). Additional
  * position-affecting subscriptions can be added here without inventing another one-off
  * DataSource module.
@@ -26,12 +26,12 @@ import {
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
 import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload } from '../actions/publishedEvents'
-import { isCharacterHomePublishedPayload, isLudicNetworkChangeRequestedPublishedPayload, isObjectRehostPublishedPayload } from '../actions/publishedEvents'
+import { isCharacterHomePublishedPayload, isLudicNetworkChangeRequestedPublishedPayload, isObjectContainmentPublishedPayload } from '../actions/publishedEvents'
 import {
     isEphemeraPositionsActionsCharacterHomeEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
     isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope,
-    isEphemeraPositionsActionsObjectRehostEnvelope,
+    isEphemeraPositionsActionsObjectContainmentEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope,
@@ -110,7 +110,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 // AP-9 (slice 3a): the generalized hand-off, replacing `Object Take Hold`/
                 // `Object Drop`/`Object Establish Relation`/`Object Dissolve Relation` (retired
                 // 3a-iv). `commitAttempt` dispatches per action and commits the whole attempt
-                // as one sequence --- see its own doc comment. `Object Rehost` still publishes
+                // as one sequence --- see its own doc comment. `Object Containment` still publishes
                 // on its own until containment joins this event (slice 3c).
                 await commitAttempt({
                     attempt: CommandAttempt.fromJSON(content.attempt),
@@ -120,9 +120,9 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 })
                 return
             }
-            if (isEphemeraPositionsActionsObjectRehostEnvelope(envelope)) {
+            if (isEphemeraPositionsActionsObjectContainmentEnvelope(envelope)) {
                 const content = await envelope.getContent()
-                if (!content || !isObjectRehostPublishedPayload(content)) {
+                if (!content || !isObjectContainmentPublishedPayload(content)) {
                     return
                 }
                 // `fromHostId` is read fresh here, not published at parse time --- the

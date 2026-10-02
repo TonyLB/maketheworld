@@ -51,7 +51,7 @@ import {
     isParseCommandNavigationResult,
     isParseCommandObjectManipulationResult,
     isParseCommandEstablishRelationResult,
-    isParseCommandObjectRehostResult,
+    isParseCommandObjectContainmentResult,
     isParseCommandPredictHypothesisResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
@@ -299,7 +299,7 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
  * AP-9 (slice 3a-i): publishes the generalized `Ludic Network Change Requested` hand-off
  * alongside a per-primitive event, for membership and relational exits only. No-op when
  * `attempt` is undefined (a degenerate fixture, never the live path --- both producers
- * build an attempt unconditionally). Containment (`Object Rehost`) joins in slice 3c, once
+ * build an attempt unconditionally). Containment (`Object Containment`) joins in slice 3c, once
  * its attempt carries a `desiredResult`.
  */
 const publishLudicNetworkChangeRequested = async (
@@ -589,12 +589,12 @@ const publishStreamEventsForIntent = async (
             await publishLudicNetworkChangeRequested(streamEvent, characterId, parseResult.attempt, parseResult.confidence)
         }
     }
-    else if (isParseCommandObjectRehostResult(parseResult)) {
+    else if (isParseCommandObjectContainmentResult(parseResult)) {
         await streamEvent({
             streamKey: characterId,
-            header: { type: 'Object Rehost' },
+            header: { type: 'Object Containment' },
             update: {
-                type: 'Object Rehost',
+                type: 'Object Containment',
                 characterId,
                 subjectId: parseResult.subjectId,
                 targetId: parseResult.targetId,

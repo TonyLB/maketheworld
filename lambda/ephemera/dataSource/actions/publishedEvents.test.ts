@@ -4,7 +4,7 @@ import {
     isCharacterNavigatePublishedPayload,
     isLookCommandRequestedPublishedPayload,
     isLudicNetworkChangeRequestedPublishedPayload,
-    isObjectRehostPublishedPayload,
+    isObjectContainmentPublishedPayload,
     isPredictHypothesisPublishedPayload,
 } from './publishedEvents'
 
@@ -286,7 +286,7 @@ describe('isLudicNetworkChangeRequestedPublishedPayload', () => {
     })
 
     it('rejects wrong or missing type', () => {
-        expect(isLudicNetworkChangeRequestedPublishedPayload({ ...minimal, type: 'Object Rehost' })).toBe(false)
+        expect(isLudicNetworkChangeRequestedPublishedPayload({ ...minimal, type: 'Object Containment' })).toBe(false)
         const { type: _t, ...rest } = minimal
         expect(isLudicNetworkChangeRequestedPublishedPayload(rest)).toBe(false)
     })
@@ -308,9 +308,9 @@ describe('isLudicNetworkChangeRequestedPublishedPayload', () => {
     })
 })
 
-describe('isObjectRehostPublishedPayload', () => {
+describe('isObjectContainmentPublishedPayload', () => {
     const minimal = {
-        type: 'Object Rehost' as const,
+        type: 'Object Containment' as const,
         characterId: 'CHARACTER#test',
         subjectId: 'OBJECT#Cup',
         targetId: 'OBJECT#Tray',
@@ -319,30 +319,30 @@ describe('isObjectRehostPublishedPayload', () => {
     }
 
     it('accepts a valid payload', () => {
-        expect(isObjectRehostPublishedPayload(minimal)).toBe(true)
+        expect(isObjectContainmentPublishedPayload(minimal)).toBe(true)
     })
 
     it('accepts optional confidence', () => {
-        expect(isObjectRehostPublishedPayload({ ...minimal, confidence: 0.92 })).toBe(true)
+        expect(isObjectContainmentPublishedPayload({ ...minimal, confidence: 0.92 })).toBe(true)
     })
 
     it('rejects wrong or missing type', () => {
-        expect(isObjectRehostPublishedPayload({ ...minimal, type: 'Object Drop' })).toBe(false)
+        expect(isObjectContainmentPublishedPayload({ ...minimal, type: 'Object Drop' })).toBe(false)
         const { type: _t, ...rest } = minimal
-        expect(isObjectRehostPublishedPayload(rest)).toBe(false)
+        expect(isObjectContainmentPublishedPayload(rest)).toBe(false)
     })
 
     it('rejects invalid ids or containment', () => {
-        expect(isObjectRehostPublishedPayload({ ...minimal, characterId: 'ROOM#x' })).toBe(false)
-        expect(isObjectRehostPublishedPayload({ ...minimal, subjectId: 'ROOM#x' })).toBe(false)
-        expect(isObjectRehostPublishedPayload({ ...minimal, targetId: 'ROOM#x' })).toBe(false)
-        expect(isObjectRehostPublishedPayload({ ...minimal, roomId: 'OBJECT#x' })).toBe(false)
-        expect(isObjectRehostPublishedPayload({ ...minimal, containment: 'Under' })).toBe(false)
+        expect(isObjectContainmentPublishedPayload({ ...minimal, characterId: 'ROOM#x' })).toBe(false)
+        expect(isObjectContainmentPublishedPayload({ ...minimal, subjectId: 'ROOM#x' })).toBe(false)
+        expect(isObjectContainmentPublishedPayload({ ...minimal, targetId: 'ROOM#x' })).toBe(false)
+        expect(isObjectContainmentPublishedPayload({ ...minimal, roomId: 'OBJECT#x' })).toBe(false)
+        expect(isObjectContainmentPublishedPayload({ ...minimal, containment: 'Under' })).toBe(false)
     })
 
     it('rejects non-finite confidence', () => {
-        expect(isObjectRehostPublishedPayload({ ...minimal, confidence: NaN })).toBe(false)
-        expect(isObjectRehostPublishedPayload({ ...minimal, confidence: Infinity })).toBe(false)
+        expect(isObjectContainmentPublishedPayload({ ...minimal, confidence: NaN })).toBe(false)
+        expect(isObjectContainmentPublishedPayload({ ...minimal, confidence: Infinity })).toBe(false)
     })
 })
 

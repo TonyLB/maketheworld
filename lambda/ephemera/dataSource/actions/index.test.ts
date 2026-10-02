@@ -2370,9 +2370,9 @@ describe('ephemeraActionsDataSource', () => {
             expect(streamEvent).not.toHaveBeenCalled()
         })
 
-        it('emits Object Rehost streamEvent when an On rehost is grounded', async () => {
+        it('emits Object Containment streamEvent when an On containment move is grounded', async () => {
             mockedParseCommand.mockResolvedValue({
-                type: 'ObjectRehost',
+                type: 'ObjectContainment',
                 subjectId: 'OBJECT#Cup',
                 targetId: 'OBJECT#Tray',
                 hostId: hostRoom,
@@ -2400,9 +2400,9 @@ describe('ephemeraActionsDataSource', () => {
 
             expect(streamEvent).toHaveBeenCalledWith({
                 streamKey: 'CHARACTER#123',
-                header: { type: 'Object Rehost' },
+                header: { type: 'Object Containment' },
                 update: {
-                    type: 'Object Rehost',
+                    type: 'Object Containment',
                     characterId: 'CHARACTER#123',
                     subjectId: 'OBJECT#Cup',
                     targetId: 'OBJECT#Tray',

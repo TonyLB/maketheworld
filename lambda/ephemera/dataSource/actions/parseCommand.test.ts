@@ -1519,7 +1519,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('returns ObjectRehost for in relational route via the native skeleton pipeline', async () => {
+    it('returns ObjectContainment for in relational route via the native skeleton pipeline', async () => {
         const coinId = 'OBJECT#Coin'
         const jarId = 'OBJECT#Jar'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
@@ -1550,7 +1550,7 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({
-            type: 'ObjectRehost',
+            type: 'ObjectContainment',
             subjectId: coinId,
             targetId: jarId,
             hostId: 'ROOM#Bridge',
@@ -1562,7 +1562,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('returns ObjectRehost for "on" relational route via the native skeleton pipeline', async () => {
+    it('returns ObjectContainment for "on" relational route via the native skeleton pipeline', async () => {
         const cupId = 'OBJECT#Cup'
         const trayId = 'OBJECT#Tray'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
@@ -1593,7 +1593,7 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({
-            type: 'ObjectRehost',
+            type: 'ObjectContainment',
             subjectId: cupId,
             targetId: trayId,
             hostId: 'ROOM#Bridge',

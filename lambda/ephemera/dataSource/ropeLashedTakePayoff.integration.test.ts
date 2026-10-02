@@ -13,7 +13,7 @@
  *   2. The published attempt crosses the bus as data (`JSON.parse(JSON.stringify(...))`) and is
  *      rebuilt with `CommandAttempt.fromJSON`, as `positions/index.ts`'s dispatch does.
  *   3. The real `orchestrateObjectMove` -> `planObjectMoveTransfer` -> `commitStepSequence`,
- *      against a mocked `ephemeraDB` leaf, following `objectRehostInPayoff.integration.test.ts`'s
+ *      against a mocked `ephemeraDB` leaf, following `objectContainmentInPayoff.integration.test.ts`'s
  *      harness (see its header for why a post-commit `getLudicGraph` sees the committed graph).
  */
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
@@ -48,7 +48,7 @@ const CHARACTER_ID = 'CHARACTER#Tester' as EphemeraCharacterId
 
 const lashedEdge = { from: ROPE_ID, to: POST_ID, kind: 'Custom' as const, relationLabel: 'is lashed to' }
 
-/** Same stand-in as `objectRehostInPayoff.integration.test.ts`: runs the real reducer over the seeded graphs. */
+/** Same stand-in as `objectContainmentInPayoff.integration.test.ts`: runs the real reducer over the seeded graphs. */
 const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => (
     jest.fn(async (items: any[]): Promise<void> => {
         const multiKeyItem = items.find((item) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate

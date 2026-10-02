@@ -303,12 +303,12 @@ describe('positions receive paths (integration)', () => {
         })
     })
 
-    describe('Object Rehost', () => {
-        it('routes mtw.ephemera.actions Object Rehost through orchestrateObjectMove with a freshly-resolved fromHostId', async () => {
+    describe('Object Containment', () => {
+        it('routes mtw.ephemera.actions Object Containment through orchestrateObjectMove with a freshly-resolved fromHostId', async () => {
             getMembershipContainersMock.mockResolvedValue([ROOM_A])
 
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Rehost', {
-                type: 'Object Rehost',
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Containment', {
+                type: 'Object Containment',
                 characterId: CHARACTER_ID,
                 subjectId: 'OBJECT#Cup',
                 targetId: 'OBJECT#Tray',
@@ -343,8 +343,8 @@ describe('positions receive paths (integration)', () => {
         it('does not call orchestrateObjectMove when the subject has no single current host (drift)', async () => {
             getMembershipContainersMock.mockResolvedValue([])
 
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Rehost', {
-                type: 'Object Rehost',
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Containment', {
+                type: 'Object Containment',
                 characterId: CHARACTER_ID,
                 subjectId: 'OBJECT#Cup',
                 targetId: 'OBJECT#Tray',

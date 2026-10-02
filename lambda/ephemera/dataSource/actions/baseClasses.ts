@@ -382,8 +382,8 @@ export type ParseCommandEstablishRelationResult = {
  * Phase 4), `PartOf` still hard-errors before reaching it (ND-4: no player phrase for it, by
  * design).
  */
-export type ParseCommandObjectRehostResult = {
-    type: 'ObjectRehost'
+export type ParseCommandObjectContainmentResult = {
+    type: 'ObjectContainment'
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
     hostId: EphemeraRoomId
@@ -425,7 +425,7 @@ export type ParseCommandResult =
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandObjectManipulationResult
     | ParseCommandEstablishRelationResult
-    | ParseCommandObjectRehostResult
+    | ParseCommandObjectContainmentResult
     | ParseCommandObjectMembershipIntentResult
     | ParseCommandObjectRelateIntentResult
     | ParseCommandCommandIntentResult
@@ -747,10 +747,10 @@ export function isParseCommandEstablishRelationResult(
 
 const HOSTING_KINDS = new Set<string>(['On', 'In', 'PartOf'])
 
-export function isParseCommandObjectRehostResult(
+export function isParseCommandObjectContainmentResult(
     result: ParseCommandResult
-): result is ParseCommandObjectRehostResult {
-    if (result.type !== 'ObjectRehost') {
+): result is ParseCommandObjectContainmentResult {
+    if (result.type !== 'ObjectContainment') {
         return false
     }
     if (!HOSTING_KINDS.has(result.containment)) {
