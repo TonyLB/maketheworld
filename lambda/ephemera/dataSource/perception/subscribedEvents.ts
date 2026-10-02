@@ -23,18 +23,16 @@ import {
     AFFORDANCE_CACHE_DATA_SOURCE_KEY,
     type AffordancesPertainPayload,
 } from '../affordanceCache/publishedEvents'
-import type { ObjectDissolveRelationPublishedPayload, ObjectEstablishRelationPublishedPayload } from '../actions/publishedEvents'
+import type { LudicNetworkChangeRequestedPublishedPayload } from '../actions/publishedEvents'
 import type { ObjectRelationChangedPublishedPayload } from '../positions/publishedEvents'
 import {
-    isPerceptionActionsObjectDissolveRelationEnvelope,
-    isPerceptionActionsObjectEstablishRelationEnvelope,
+    isPerceptionActionsLudicNetworkChangeRequestedEnvelope,
     isPerceptionPositionsObjectRelationChangedEnvelope,
     toObjectManipulationPresentationLeg,
 } from './objectManipulationPresentationLegAdapters'
 
 export {
-    isPerceptionActionsObjectDissolveRelationEnvelope,
-    isPerceptionActionsObjectEstablishRelationEnvelope,
+    isPerceptionActionsLudicNetworkChangeRequestedEnvelope,
     isPerceptionPositionsObjectRelationChangedEnvelope,
     toObjectManipulationPresentationLeg,
 } from './objectManipulationPresentationLegAdapters'
@@ -69,8 +67,7 @@ export type PerceptionSubscribedContent =
     | RenderCacheRenderPertainsPayload
     | PerceptionFanInOrchestrationPayload
     | AffordancesPertainPayload
-    | ObjectEstablishRelationPublishedPayload
-    | ObjectDissolveRelationPublishedPayload
+    | LudicNetworkChangeRequestedPublishedPayload
     | ObjectRelationChangedPublishedPayload
 
 export const isPerceptionRenderPertainsStreamEnvelope = (
@@ -104,9 +101,9 @@ export const isPerceptionSubscribedEnvelope = (
         // Object Take Hold / Object Drop / Object Moved were dropped in Phase 4: object moves
         // narrate through the mutation kernel now, so perception has no reason to see them. Same
         // shape as Phase 3's removal of the Character Navigate/Home/Connected/Disconnected/Moved
-        // subscriptions when membership narration migrated.
-        || isPerceptionActionsObjectEstablishRelationEnvelope(envelope)
-        || isPerceptionActionsObjectDissolveRelationEnvelope(envelope)
+        // subscriptions when membership narration migrated. `Ludic Network Change Requested`
+        // (AP-9, slice 3a-iv) replaces `Object Establish Relation`/`Object Dissolve Relation`.
+        || isPerceptionActionsLudicNetworkChangeRequestedEnvelope(envelope)
         || isPerceptionPositionsObjectRelationChangedEnvelope(envelope)
 )
 

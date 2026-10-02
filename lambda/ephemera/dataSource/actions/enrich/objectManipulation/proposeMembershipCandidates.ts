@@ -60,10 +60,10 @@ export type GroundMembershipCandidateContext = {
  * planning slice 2e): `plannedResult`'s `object` referent carries no `groundedId` here ---
  * only `candidate.identities`/`candidate.identity.objectId` (used below for the attempt's
  * referent/description, and read directly by Expand, `expandAndAdjudicateMembershipCandidate`)
- * carry the identity. The step is grounded in full --- span and the derived `from`/`to`
- * together, one `groundChange` call --- by `sandboxMembershipDryRun`'s
- * `groundMembershipDesiredResult`, since that is the first point a sandbox snapshot (the
- * derived half's only source) is in hand. `TransferMembershipChange`'s own type still admits
+ * carry the identity, and the attempt's referent carries it onward (the span half). The step
+ * is grounded per snapshot --- `buildReferentAssignment` then `groundChange` --- by
+ * `sandboxMembershipDryRun` for its own dry run, and again by positions' `commitAttempt`
+ * after the hand-off; the published step stays ungrounded. `TransferMembershipChange`'s own type still admits
  * either a bare or a grounded `object`/`from`/`to`, so nothing here needs its own grounded
  * variant.
  */

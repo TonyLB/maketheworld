@@ -1054,27 +1054,34 @@ describe('mtw.ephemera.perception DataSource', () => {
 
         // Take/drop routing cases were removed in Phase 4 --- those events no longer reach this
         // data source at all (see `subscribedEvents.test.ts`, which pins the non-subscription).
-        // What survives here is the relational family's end-to-end fan-in routing.
+        // What survives here is the relational family's end-to-end fan-in routing, now through
+        // `Ludic Network Change Requested` (AP-9, slice 3a-iv) rather than the retired
+        // `Object Establish Relation`/`Object Dissolve Relation` events.
         it('intent + fact batch publishes single establish-relation WorldMessage', async () => {
             const publishSpy = spyPublish()
+            jest.spyOn(internalCache.Positions, 'getMembershipContainers').mockResolvedValue([TAKE_HOLD_ROOM])
 
             publishObjectManipulationStreamingEvent(
                 EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
-                'Object Establish Relation',
+                'Ludic Network Change Requested',
                 {
-                    type: 'Object Establish Relation',
+                    type: 'Ludic Network Change Requested',
                     characterId: TAKE_HOLD_CHARACTER,
-                    subjectId: TAKE_HOLD_OBJECT,
-                    targetId: 'OBJECT#Table',
-                    hostId: TAKE_HOLD_ROOM,
-                    relationKind: 'Under',
-                    steps: [{
-                        kind: 'establishRelation',
-                        subjectId: TAKE_HOLD_OBJECT,
-                        targetId: 'OBJECT#Table',
-                        relationKind: 'Under',
-                        hostId: TAKE_HOLD_ROOM,
-                    }],
+                    attempt: {
+                        words: 'put the broom under the table',
+                        referents: [],
+                        actions: [{
+                            kind: 'position',
+                            desiredResult: {
+                                kind: 'change',
+                                primitive: 'establishRelation',
+                                subject: { referentType: 'objectSpan', span: 'subject', groundedId: TAKE_HOLD_OBJECT },
+                                target: { referentType: 'objectSpan', span: 'target', groundedId: 'OBJECT#Table' },
+                                relationKind: 'Under',
+                            },
+                            challenges: [],
+                        }],
+                    },
                 },
                 TAKE_HOLD_CHARACTER
             )
@@ -1110,24 +1117,29 @@ describe('mtw.ephemera.perception DataSource', () => {
 
         it('intent + fact batch publishes single dissolve-relation WorldMessage', async () => {
             const publishSpy = spyPublish()
+            jest.spyOn(internalCache.Positions, 'getMembershipContainers').mockResolvedValue([TAKE_HOLD_ROOM])
 
             publishObjectManipulationStreamingEvent(
                 EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
-                'Object Dissolve Relation',
+                'Ludic Network Change Requested',
                 {
-                    type: 'Object Dissolve Relation',
+                    type: 'Ludic Network Change Requested',
                     characterId: TAKE_HOLD_CHARACTER,
-                    subjectId: TAKE_HOLD_OBJECT,
-                    targetId: 'OBJECT#Table',
-                    hostId: TAKE_HOLD_ROOM,
-                    relationKind: 'Under',
-                    steps: [{
-                        kind: 'dissolveRelation',
-                        subjectId: TAKE_HOLD_OBJECT,
-                        targetId: 'OBJECT#Table',
-                        relationKind: 'Under',
-                        hostId: TAKE_HOLD_ROOM,
-                    }],
+                    attempt: {
+                        words: 'take the broom off the table',
+                        referents: [],
+                        actions: [{
+                            kind: 'position',
+                            desiredResult: {
+                                kind: 'change',
+                                primitive: 'dissolveRelation',
+                                subject: { referentType: 'objectSpan', span: 'subject', groundedId: TAKE_HOLD_OBJECT },
+                                target: { referentType: 'objectSpan', span: 'target', groundedId: 'OBJECT#Table' },
+                                relationKind: 'Under',
+                            },
+                            challenges: [],
+                        }],
+                    },
                 },
                 TAKE_HOLD_CHARACTER
             )

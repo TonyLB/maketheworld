@@ -137,12 +137,14 @@ export type ReferentAssignment = {
     derived: ReadonlyMap<DerivedReferentKey, GroundedId>
 }
 
-/** True when every referent of this step carries a known id. */
-export const isGroundedStep = (step: PlanStep): step is PlanStep<GroundedReferent> => {
-    const referents: Referent[] = step.kind === 'assertion'
+/** Every referent slot of a step, whatever its kind. */
+export const stepReferents = (step: PlanStep): Referent[] =>
+    step.kind === 'assertion'
         ? [step.subject, step.object]
         : step.primitive === 'transferMembership'
             ? [step.object, step.from, step.to]
             : [step.subject, step.target]
-    return referents.every((referent) => referent.groundedId !== undefined)
-}
+
+/** True when every referent of this step carries a known id. */
+export const isGroundedStep = (step: PlanStep): step is PlanStep<GroundedReferent> =>
+    stepReferents(step).every((referent) => referent.groundedId !== undefined)

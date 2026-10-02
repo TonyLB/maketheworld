@@ -132,7 +132,7 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 | --- | --- |
 | `suppressRelationalFacts` | Gates only the `Object Relation Changed` fact, never `Object Moved`. Destroy/edit leaves it unset so dissolution becomes player-visible; multi-room drift repair sets it `true` as a silent consistency fixup |
 | `characterNames` | Pre-resolved display names so `factsForStep` can build a populated `Character Moved` fact while staying synchronous. Only `orchestrateCharacterRoomMembership` populates it |
-| `relationalEdges` | The relational edges the steps realize, with their real subject and target. When set, `Object Relation Changed` comes from these, one per edge (`factForRelationalEdge`), and the relational steps yield none. Only `executeEstablishEdgeChain` sets it; the batched administrative clear does not, so a crossing it dissolves emits no fact |
+| `relationalEdges` | The relational edges the steps realize, with their real subject and target. When set, `Object Relation Changed` comes from these, one per edge (`factForRelationalEdge`), and the relational steps yield none. Only [`commitAttempt.ts`](../commitAttempt.ts) sets it (one entry per relational action, AP-9); the batched administrative clear does not, so a crossing it dissolves emits no fact |
 | `transactWrite` | Test seam; defaults to `ephemeraDB.transactWrite` |
 
 ### Apply modes
@@ -244,12 +244,13 @@ Object-move routes (object take-hold / drop / give)
        anything else -> ok: false with the real reason code
     -> commitStepSequence (mutation steps) -> presentStepSequence (narrate steps, on ok: true)
 
-Relational establish/dissolve routes
-  Ingress args (compileRelationalFromSkeleton, Expansion-derived)
-    -> ParseCommandEstablishRelationResult.steps (MutationKernelStep[], each with its own carried hostId)
-    -> published payload carries steps across the actions -> positions boundary
-    -> executeEstablishEdgeChain (pass-through, operationKind-agnostic)
-    -> commitStepSequence
+Relational establish/dissolve routes (AP-9, slice 3a, 2026-10-02)
+  Ingress carries the whole selected attempt (Ludic Network Change Requested), not pre-built steps
+    -> commitAttempt.ts dispatches the relational action by its desiredResult's primitive
+    -> planRelationalEdgeTransfer.ts rebuilds the chain fresh against live state (ancestry walk +
+       runExecutor, the same synthesize/ modules actions' own pre-publish dry run uses)
+    -> lowerRelationalChain (MutationKernelStep[], each with its own carried hostId)
+    -> commitAttempt.ts concatenates with any other action's steps -> one commitStepSequence call
 ```
 
 The `bounded` apply mode the retired planner offered (remove only from trusted-ingress hosts, without end-state-scrubbing the rest) had no caller among the migrated routes and was not carried forward; a future caller needing it must add it back explicitly.
@@ -262,26 +263,24 @@ Public coordinator APIs remain membership-shaped at ingress --- **not** raw step
 
 Relational operations add/remove **edges** on a fixed host `ludicGraph` without changing membership host. They do **not** route through the shared membership adapter; they compose with membership transfer by appearing in the same step sequence.
 
-**Both establish's and dissolve's ingress moved off this coordinator.** Neither `Object Establish Relation` nor `Object Dissolve Relation` goes through `applyObjectRelationalChange` any more --- the Expansion-derived `steps` chain (shared across both operation kinds) already *is* the step sequence `applyObjectRelationalChange` used to build for the single-host case, so both ingress branches call `commitStepSequence` directly through the same shared function:
+**Both establish's and dissolve's ingress moved off this coordinator, then off `executeEstablishEdgeChain` too (AP-9, slice 3a, 2026-10-02).** Neither ingress goes through `applyObjectRelationalChange`. The old single hand-off (`Object Establish Relation`/`Object Dissolve Relation` carrying a pre-built `steps` chain, committed pass-through via `executeEstablishEdgeChain`) is retired: that chain was computed once, actions-side, at parse time, against a dry-run snapshot. The generalized `Ludic Network Change Requested` event instead carries the grounded edge inside the attempt, and positions rebuilds the chain itself, fresh, against live state:
 
 ```text
-Object Establish Relation carries `steps` (Expansion-derived)
-Object Dissolve Relation carries `steps` too 
+Ludic Network Change Requested carries the attempt (grounded edge: subject, target, kind, label)
         |
         v
-executeEstablishEdgeChain pass-through, operationKind-agnostic:
-        |                             builds getCurrentHost from each step's own carried
-        | hostId, no verification layer
+commitAttempt.ts            dispatches the relational action to planRelationalEdgeTransfer.ts
+        |                   (ancestry walk + runExecutor, same mechanism actions' own dry run uses)
         v
-commitStepSequence                    one transactWrite; re-validates live on locked graphs
+commitStepSequence          one transactWrite; re-validates live on locked graphs (as before)
 ```
 
-`applyObjectRelationalChange` is not dead code, though --- it still backs the boundary-sweep dissolve steps `executeMembershipTransfer`/`applyTransferSet` emit during an ordinary membership move (an entirely different call site, unrelated to the `Object Dissolve Relation` ingress branch above). Its own repair-transfer branch (`[dissolveRelation*, transferMembership, establishRelation]`) was retired outright, 2026-09-01 --- a relation whose endpoints are in different shards is a crossing to build as legs, not a misplacement to fix by moving an endpoint --- so today it only ever builds a single-step `[establishRelation]`/`[dissolveRelation]` sequence, at whichever call site still uses it.
+`applyObjectRelationalChange` is not dead code, though --- it still backs the boundary-sweep dissolve steps `executeMembershipTransfer`/`applyTransferSet` emit during an ordinary membership move (an entirely different call site, unrelated to the relational ingress above). Its own repair-transfer branch (`[dissolveRelation*, transferMembership, establishRelation]`) was retired outright, 2026-09-01 --- a relation whose endpoints are in different shards is a crossing to build as legs, not a misplacement to fix by moving an endpoint --- so today it only ever builds a single-step `[establishRelation]`/`[dissolveRelation]` sequence, at whichever call site still uses it.
 
 | Item | Value |
 | --- | --- |
-| **Ingress (establish and dissolve)** | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) (`executeEstablishEdgeChain`, shared, direct to `commitStepSequence`) |
-| **Boundary-sweep coordinator (unrelated call site)** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) (used by `executeMembershipTransfer`/`applyTransferSet` during a membership move, not by either ingress branch above) |
+| **Ingress (establish and dissolve)** | [`relational/planRelationalEdgeTransfer.ts`](relational/planRelationalEdgeTransfer.ts), called from [`../commitAttempt.ts`](../commitAttempt.ts), direct to `commitStepSequence` |
+| **Boundary-sweep coordinator (unrelated call site)** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) (used by `executeMembershipTransfer`/`applyTransferSet` during a membership move, not by the relational ingress above) |
 | **Edge helpers** | [`../ludicGraph/`](../ludicGraph/) (`HostRelationalEdge`, `edgesMatch`, relational mutators, `hostDataCategory`/`graphFromMeta` Room/Character dispatch) |
 | **Fact** | [`relational/buildObjectRelationalFact.ts`](relational/buildObjectRelationalFact.ts) -> [`relational/streamObjectRelationalFact.ts`](relational/streamObjectRelationalFact.ts) |
 | **Normative contract** | [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch) |
@@ -301,7 +300,7 @@ commitStepSequence                    one transactWrite; re-validates live on lo
 | Improvisational object spawn | `executeMembershipTransfer` via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Object destroy / edit | `executeMembershipTransfer` (`target: null`) | end-state-to-null, inline diff + chain-aware relational sweep | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | **`takeHold`** / **`drop`** (one route, host pair reversed) | [`membership/orchestrateObjectMove.ts`](membership/orchestrateObjectMove.ts) -> [`membership/planObjectMoveTransfer.ts`](membership/planObjectMoveTransfer.ts) (3d, 2026-09-08) | `buildObjectMoveOp`-derived `boundaryEdgeOutcomes` classify, dry-run via `dryRunStepSequence`, `repairMechanicalDissolve` on `repairable`/`mechanical` --- no Synthesize executor (2026-09-07) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
-| Establish / dissolve relation | [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) (`executeEstablishEdgeChain`, shared) | Expansion-derived `steps` chain, each with its own carried `hostId`; no coordinator-level carry or repair | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Establish / dissolve relation | [`../commitAttempt.ts`](../commitAttempt.ts) -> [`relational/planRelationalEdgeTransfer.ts`](relational/planRelationalEdgeTransfer.ts) | Rebuilds the chain fresh against live state at commit time (AP-9, slice 3a); no coordinator-level carry or repair | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 
 (`executeMembershipTransfer` lives in [`membership/executeMembershipTransfer.ts`](membership/executeMembershipTransfer.ts) --- it absorbed the standalone `applyObjectRoomMembership`/`applyObjectClearMembership`/`orchestrateCharacterRoomMembership`-membership-half coordinators and the retired `adapters/` planner outright, per [Section C's End-to-end flow](#end-to-end-flow) above; `bounded` mode was not carried forward. `executeObjectMove` --- the take/drop/give path's former separate function --- was unified into it as `honorDefer: true` (2026-09-07), then split back out again as `planObjectMoveTransfer` (3d, 2026-09-08) once the two dissolve mechanisms were named as sibling repair policies rather than left as an execute-time flag; see the code-map row below. **The character-route half also split back out**, 2026-09-08 (3e) --- `orchestrateCharacterRoomMembership` no longer calls `executeMembershipTransfer` at all, for the same shape of reason: the character route's diff and op-build belong upstream of it (`planCharacterMoveTransfer`), not inside a function shared with object-lifecycle admin moves that have no narration to carry. `executeMembershipTransfer` is once again, as its own doc comment now says, purely the object-lifecycle administrative path.)
 
@@ -386,7 +385,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | Path | Role |
 | --- | --- |
 | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) | Relational coordinator; builds the step sequence for satisfied and repaired cases |
-| [`relational/executeObjectEstablishRelation.ts`](relational/executeObjectEstablishRelation.ts) | `executeEstablishEdgeChain`, the sole ingress for **both** `Object Establish Relation` (which deleted the sibling single-host `executeObjectEstablishRelation`, zero live callers) and `Object Dissolve Relation` (which deleted the sibling single-host `executeObjectDissolveRelation` the same way, once `content.steps` was wired in). `operationKind`-agnostic despite the establish-flavored name: takes the already-lowered `steps: MutationKernelStep[]` off the published payload (the chosen candidate's chain, lowered in chain order by `lowerRelationalChain`, `buildCrossingLegs.ts`), builds `getCurrentHost` from each step's own carried `hostId` rather than deriving it, and calls `commitStepSequence` directly with no separate verification layer --- no `applyObjectRelationalChange` involved. Handles a portless/same-host candidate (one-entry `steps`) and a genuine multi-host crossing (establish or dissolve) uniformly, matching this stack's sibling-naming precedent for one policy per shape rather than a branch (`repairMechanicalDissolve`/`repairAdministrativeChainDissolve`, 3d, 2026-09-08) --- just resolved down to one function here since the single-host shape stopped needing its own on either side. |
+| [`relational/planRelationalEdgeTransfer.ts`](relational/planRelationalEdgeTransfer.ts) | **AP-9 (slice 3a, 2026-10-02), retiring `executeObjectEstablishRelation.ts`/`executeEstablishEdgeChain` (zero remaining callers once the per-primitive events retired).** The sole ingress for both establish and dissolve relational actions, called from [`../commitAttempt.ts`](../commitAttempt.ts). Takes the grounded edge (subject, target, kind, label) off the selected attempt's action and rebuilds its chain fresh against live state --- ancestry walk (`walkAncestryContainers`) + `runExecutor`/`seedFromGroundedSteps`, the same actions-side `synthesize/` mechanism `compileRelationalFromSkeleton.ts`'s own pre-publish dry run uses --- then lowers the chosen chain (`lowerRelationalChain`) and returns its steps for `commitAttempt.ts` to concatenate and commit. Handles a portless/same-host candidate (one-leg chain) and a genuine multi-host crossing (establish or dissolve) uniformly, matching this stack's sibling-naming precedent for one policy per shape rather than a branch (`repairMechanicalDissolve`/`repairAdministrativeChainDissolve`, 3d, 2026-09-08). |
 | [`relational/buildObjectRelationalFact.ts`](relational/buildObjectRelationalFact.ts) | `Object Relation Changed` payload builder |
 | [`relational/streamObjectRelationalFact.ts`](relational/streamObjectRelationalFact.ts) | Fact stream wrapper |
 | [`relational/types.ts`](relational/types.ts) | `RelationalIngressArgs`, `RelationalApplyResult` |

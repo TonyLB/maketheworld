@@ -1,6 +1,6 @@
 /**
  * Object *relational* presentation fan-in ingress: envelope guards and leg mappers for
- * mtw.ephemera.actions Object Establish Relation / Object Dissolve Relation and
+ * mtw.ephemera.actions Ludic Network Change Requested (AP-9's relational actions) and
  * mtw.ephemera.positions Object Relation Changed.
  *
  * Take Hold / Drop / Object Moved left this file in Phase 4: object moves now narrate through the
@@ -8,6 +8,13 @@
  * (`positions/manipulation/membership/orchestrateObjectMove.ts`), so there is nothing here to join
  * an intent leg to a fact leg for. `Object Moved` facts are still streamed by `commitStepSequence`;
  * perception simply no longer subscribes to them.
+ *
+ * Re-pointed from `Object Establish Relation`/`Object Dissolve Relation` (slice 3a-iv): those
+ * events carried a flat, narration-only `hostId` --- known buggy for a genuine crossing
+ * (`AGENT.relationalNarration.planning.md`). The generalized hand-off carries no host at all
+ * (AP-6: a relation's host lives on its chain's legs, not its edge), so this reads the
+ * subject's current host fresh, the same way `planRelationalEdgeTransfer.ts` does --- not a
+ * regression, since the old flat field was already wrong for a crossing.
  */
 import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
@@ -17,15 +24,14 @@ import {
     makeStreamingEnvelopeGuardFromHeaderGuard,
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type {
-    ObjectDissolveRelationPublishedPayload,
-    ObjectEstablishRelationPublishedPayload,
-} from '../actions/publishedEvents'
+import internalCache from '../../internalCache'
+import type { LudicNetworkChangeRequestedPublishedPayload } from '../actions/publishedEvents'
 import {
     EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
-    isObjectDissolveRelationPublishedPayload,
-    isObjectEstablishRelationPublishedPayload,
+    isLudicNetworkChangeRequestedPublishedPayload,
 } from '../actions/publishedEvents'
+import { CommandAttempt } from '../actions/commandAttempt'
+import type { DissolveRelationChange, EstablishRelationChange, GroundedReferent } from '../actions/enrich/objectManipulation/plan/planStep'
 import type { ObjectRelationChangedPublishedPayload } from '../positions/publishedEvents'
 import {
     EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
@@ -33,30 +39,20 @@ import {
 } from '../positions/publishedEvents'
 import type { ObjectManipulationPresentationLeg } from './objectManipulationPresentationFanIn'
 
-export type PerceptionActionsObjectEstablishRelationHeader =
-    StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_ACTIONS_DATA_SOURCE_KEY; type: 'Object Establish Relation' }
-
-export type PerceptionActionsObjectDissolveRelationHeader =
-    StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_ACTIONS_DATA_SOURCE_KEY; type: 'Object Dissolve Relation' }
+export type PerceptionActionsLudicNetworkChangeRequestedHeader =
+    StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_ACTIONS_DATA_SOURCE_KEY; type: 'Ludic Network Change Requested' }
 
 export type PerceptionPositionsObjectRelationChangedHeader =
     StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Object Relation Changed' }
 
 export type PerceptionObjectManipulationPresentationSubscribedContent =
-    | ObjectEstablishRelationPublishedPayload
-    | ObjectDissolveRelationPublishedPayload
+    | LudicNetworkChangeRequestedPublishedPayload
     | ObjectRelationChangedPublishedPayload
 
-const isPerceptionActionsObjectEstablishRelationHeader: HeaderGuard<PerceptionActionsObjectEstablishRelationHeader> = (
+const isPerceptionActionsLudicNetworkChangeRequestedHeader: HeaderGuard<PerceptionActionsLudicNetworkChangeRequestedHeader> = (
     h
-): h is PerceptionActionsObjectEstablishRelationHeader => (
-    h.dataSourceKey === EPHEMERA_ACTIONS_DATA_SOURCE_KEY && h.type === 'Object Establish Relation'
-)
-
-const isPerceptionActionsObjectDissolveRelationHeader: HeaderGuard<PerceptionActionsObjectDissolveRelationHeader> = (
-    h
-): h is PerceptionActionsObjectDissolveRelationHeader => (
-    h.dataSourceKey === EPHEMERA_ACTIONS_DATA_SOURCE_KEY && h.type === 'Object Dissolve Relation'
+): h is PerceptionActionsLudicNetworkChangeRequestedHeader => (
+    h.dataSourceKey === EPHEMERA_ACTIONS_DATA_SOURCE_KEY && h.type === 'Ludic Network Change Requested'
 )
 
 const isPerceptionPositionsObjectRelationChangedHeader: HeaderGuard<PerceptionPositionsObjectRelationChangedHeader> = (
@@ -65,15 +61,10 @@ const isPerceptionPositionsObjectRelationChangedHeader: HeaderGuard<PerceptionPo
     h.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY && h.type === 'Object Relation Changed'
 )
 
-export const isPerceptionActionsObjectEstablishRelationEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    ObjectEstablishRelationPublishedPayload,
-    PerceptionActionsObjectEstablishRelationHeader
->(isPerceptionActionsObjectEstablishRelationHeader)
-
-export const isPerceptionActionsObjectDissolveRelationEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    ObjectDissolveRelationPublishedPayload,
-    PerceptionActionsObjectDissolveRelationHeader
->(isPerceptionActionsObjectDissolveRelationHeader)
+export const isPerceptionActionsLudicNetworkChangeRequestedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    LudicNetworkChangeRequestedPublishedPayload,
+    PerceptionActionsLudicNetworkChangeRequestedHeader
+>(isPerceptionActionsLudicNetworkChangeRequestedHeader)
 
 export const isPerceptionPositionsObjectRelationChangedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ObjectRelationChangedPublishedPayload,
@@ -83,17 +74,44 @@ export const isPerceptionPositionsObjectRelationChangedEnvelope = makeStreamingE
 export const isPerceptionObjectManipulationPresentationEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<PerceptionObjectManipulationPresentationSubscribedContent> => (
-    isPerceptionActionsObjectEstablishRelationEnvelope(envelope)
-    || isPerceptionActionsObjectDissolveRelationEnvelope(envelope)
+    isPerceptionActionsLudicNetworkChangeRequestedEnvelope(envelope)
     || isPerceptionPositionsObjectRelationChangedEnvelope(envelope)
 )
+
+/** The first relational action in an attempt, if any --- today's attempts hold exactly one action. */
+const firstRelationalChange = (
+    attempt: CommandAttempt
+): EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent> | undefined => {
+    for (const action of attempt.actions()) {
+        const desiredResult = action.desiredResult
+        if (desiredResult?.kind === 'change' && (desiredResult.primitive === 'establishRelation' || desiredResult.primitive === 'dissolveRelation')) {
+            return desiredResult as EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>
+        }
+    }
+    return undefined
+}
 
 export const toObjectManipulationPresentationLeg = async (
     envelope: StreamingEventEnvelope<unknown>
 ): Promise<ObjectManipulationPresentationLeg[]> => {
-    if (isPerceptionActionsObjectEstablishRelationEnvelope(envelope)) {
+    if (isPerceptionActionsLudicNetworkChangeRequestedEnvelope(envelope)) {
         const content = await envelope.getContent()
-        if (!isObjectEstablishRelationPublishedPayload(content) || !isEphemeraRoomId(content.hostId)) {
+        if (!isLudicNetworkChangeRequestedPublishedPayload(content)) {
+            return []
+        }
+        const change = firstRelationalChange(CommandAttempt.fromJSON(content.attempt))
+        if (change === undefined) {
+            // Membership (take/drop) narrates through the mutation kernel instead ---
+            // nothing to join a relational leg for.
+            return []
+        }
+        const subjectId = change.subject.groundedId
+        const targetId = change.target.groundedId
+        if (!isEphemeraObjectId(subjectId) || !isEphemeraObjectId(targetId)) {
+            return []
+        }
+        const fromHostIds = await internalCache.Positions.getMembershipContainers(subjectId)
+        if (fromHostIds.length !== 1 || !isEphemeraRoomId(fromHostIds[0])) {
             // Character-hosted relation narration is unresolved UX/copy design (BD-15/16),
             // same precondition BD-13's carried-set narration had before it shipped ---
             // not built here.
@@ -101,29 +119,12 @@ export const toObjectManipulationPresentationLeg = async (
         }
         return [{
             kind: 'relationalIntent',
-            operation: 'establishRelation',
+            operation: change.primitive,
             characterId: content.characterId,
-            subjectId: content.subjectId,
-            targetId: content.targetId,
-            roomId: content.hostId,
-            ...relationKindAndLabelFrom(content),
-        }]
-    }
-
-    if (isPerceptionActionsObjectDissolveRelationEnvelope(envelope)) {
-        const content = await envelope.getContent()
-        if (!isObjectDissolveRelationPublishedPayload(content) || !isEphemeraRoomId(content.hostId)) {
-            // See the establishRelation branch above --- Character-hosted narration not built yet.
-            return []
-        }
-        return [{
-            kind: 'relationalIntent',
-            operation: 'dissolveRelation',
-            characterId: content.characterId,
-            subjectId: content.subjectId,
-            targetId: content.targetId,
-            roomId: content.hostId,
-            ...relationKindAndLabelFrom(content),
+            subjectId,
+            targetId,
+            roomId: fromHostIds[0],
+            ...relationKindAndLabelFrom(change),
         }]
     }
 
@@ -140,7 +141,7 @@ export const toObjectManipulationPresentationLeg = async (
             || !isEphemeraObjectId(content.subjectId)
             || !isEphemeraObjectId(content.targetId)
         ) {
-            // See the establishRelation branch above --- Character-hosted narration not built yet.
+            // See the relational-intent branch above --- Character-hosted narration not built yet.
             return []
         }
         return [{
