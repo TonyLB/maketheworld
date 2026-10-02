@@ -16,7 +16,8 @@ import { streamMembershipFact } from '../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
-import { factsForStep } from './factsForStep'
+import { factForRelationalEdge, factsForStep } from './factsForStep'
+import type { RelationalEdgeFactSource } from './factsForStep'
 import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelCaptures, MutationKernelCommitResult } from './types'
 
@@ -41,6 +42,15 @@ export type CommitStepSequenceDeps = {
      * populates this today; every other caller's steps carry no character entityIds, so it's a no-op.
      */
     characterNames?: ReadonlyMap<EphemeraCharacterId, string>
+    /**
+     * The relational edges these steps realize, for a caller that commits whole edges. When
+     * supplied, `Object Relation Changed` comes from these, one fact per edge, and not from the
+     * relational steps: a crossing's legs all have a port endpoint and name no real pair, and
+     * a one-leg chain is the same edge either way. Gated by `suppressRelationalFacts` like any
+     * relational fact. Unset (a move's boundary dissolves, the administrative clears), each
+     * relational step with primitive endpoints yields its own fact, as before.
+     */
+    relationalEdges?: readonly RelationalEdgeFactSource[]
 }
 
 type CommitStepSequenceTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
@@ -212,6 +222,9 @@ export const commitStepSequence = async (
     }
 
     for (const step of steps) {
+        if (deps.relationalEdges !== undefined && (step.kind === 'establishRelation' || step.kind === 'dissolveRelation')) {
+            continue
+        }
         for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs, deps.characterNames)) {
             if (fact.type === 'Object Moved') {
                 await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
@@ -222,6 +235,15 @@ export const commitStepSequence = async (
             else if (!deps.suppressRelationalFacts) {
                 await streamObjectRelationalFact(fact, { streamEvent: deps.streamEvent })
             }
+        }
+    }
+
+    if (!deps.suppressRelationalFacts) {
+        for (const edge of deps.relationalEdges ?? []) {
+            await streamObjectRelationalFact(
+                factForRelationalEdge(edge, committedGraphs, beatAnchorTime, priorGraphs),
+                { streamEvent: deps.streamEvent }
+            )
         }
     }
 

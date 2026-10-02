@@ -185,7 +185,7 @@ describe('compileRelationalFromSkeleton', () => {
         })
     })
 
-    it('abstains when the only grounded candidate is an illegal self-relation', async () => {
+    it('abstains when the only grounded candidate is a self-relation', async () => {
         const getLudicGraph = jest.fn().mockResolvedValue(
             testLudicGraph(roomId, {
                 nodes: [{ tag: 'Object' as const, universalKey: lampId }],
@@ -206,6 +206,32 @@ describe('compileRelationalFromSkeleton', () => {
 
         expect(result.type).toBe('Abstain')
         expect((result as { confidence: number }).confidence).toBe(0.9)
+    })
+
+    it('drops a self-relation of a non-Under kind at the producer (no self-relations, AP-12)', async () => {
+        const getLudicGraph = jest.fn().mockResolvedValue(
+            testLudicGraph(roomId, {
+                nodes: [{ tag: 'Object' as const, universalKey: lampId }],
+            })
+        )
+
+        const result = await compileRelationalFromSkeleton(
+            {
+                command: 'put lamp around lamp',
+                skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'around', 'lamp', 'lampRef2'),
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
+            },
+            0.9,
+            { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph } }
+        )
+
+        expect(result).toEqual({
+            type: 'Abstain',
+            confidence: 0.9,
+            reason: 'No combination of two distinct grounded objects produced a well-typed establishRelation/dissolveRelation step',
+        })
     })
 
     it('abstains when a span resolves to no catalog candidates', async () => {

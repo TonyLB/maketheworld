@@ -17,6 +17,7 @@
  * folder layout, guard registry in `subscribedEvents.ts`) is intentionally
  * named generally so that growth is additive.
  */
+import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import EphemeraDataSource from '../abstract'
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
@@ -134,6 +135,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 // above --- the old single-host `executeObjectDissolveRelation` is retired.
                 await executeEstablishEdgeChain({
                     steps: content.steps,
+                    edge: { subjectId: content.subjectId, targetId: content.targetId, operation: 'dissolve', ...relationKindAndLabelFrom(content) },
                     attempt: reconstructAttempt(content.attempt),
                     messageBus,
                     streamEvent,
@@ -153,6 +155,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 // unresolved UX/copy question, not this row's job.
                 await executeEstablishEdgeChain({
                     steps: content.steps,
+                    edge: { subjectId: content.subjectId, targetId: content.targetId, operation: 'establish', ...relationKindAndLabelFrom(content) },
                     attempt: reconstructAttempt(content.attempt),
                     messageBus,
                     streamEvent,

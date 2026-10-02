@@ -93,7 +93,7 @@ Multi-host simulation (Phase C): caller holds **`EphemeraLudicGraph[]`** and ups
 | `manipulation/kernel/` `MultiKeyUpdate` reducer | `graphFromMeta` / `fromRoomMeta` / `fromCharacterMeta`, `toStored()` | Dynamo read/write boundary |
 | `actions/enrich/objectManipulation/` (`membershipObservation`, `buildPrompt`) | `toPlayEnvelope` | The only genuine authored-shape consumers: Exit-edge sniffing and LLM prompt text |
 | `manipulation/relational/` | `edgesMatch` | Coordinator observation |
-| `evaluateRelationalLegality`, `compileRelationalFromSkeleton` | read-only class methods | Actions lane; no persist |
+| `compileRelationalFromSkeleton` | read-only class methods | Actions lane; no persist |
 | `internalCache.Positions` | wrapper `get` / `set` | Ephemera read/write boundary; `fromFieldPayload` / `toStored()` inside [`ludicGraphCache.ts`](../../../internalCache/ludicGraphCache.ts) --- the same lossless pair the kernel uses (corrected 2026-09-03; it was `fromPlayEnvelope`/`toPlayEnvelope`, which emptied `ports` in both directions) --- **do not reintroduce a WML-mediated serde here.** Now that `packages/mtw-wml`'s `StandardLudicGraphData` is aligned to this same type contract (field for field, including `rootId` and `ports`), a WML-mediated serde would no longer be *lossy* the way the 2026-09-03 bug was --- which makes it *tempting* rather than obviously wrong. It would still be pointless: `fromFieldPayload`/`toStored` is already lossless and direct, and routing a stored graph through a WML component for no reason but habit adds a translation with nothing to show for it |
 | Gateways | memoize `EphemeraLudicGraphFieldPayload` verbatim | Stored truth, not an authored projection |
 

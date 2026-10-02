@@ -132,6 +132,7 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 | --- | --- |
 | `suppressRelationalFacts` | Gates only the `Object Relation Changed` fact, never `Object Moved`. Destroy/edit leaves it unset so dissolution becomes player-visible; multi-room drift repair sets it `true` as a silent consistency fixup |
 | `characterNames` | Pre-resolved display names so `factsForStep` can build a populated `Character Moved` fact while staying synchronous. Only `orchestrateCharacterRoomMembership` populates it |
+| `relationalEdges` | The relational edges the steps realize, with their real subject and target. When set, `Object Relation Changed` comes from these, one per edge (`factForRelationalEdge`), and the relational steps yield none. Only `executeEstablishEdgeChain` sets it; the batched administrative clear does not, so a crossing it dissolves emits no fact |
 | `transactWrite` | Test seam; defaults to `ephemeraDB.transactWrite` |
 
 ### Apply modes
@@ -175,6 +176,8 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 Character-kind emission is folded into `factsForStep` rather than layered on after `commitStepSequence` returns --- that is what keeps `Character Moved` streaming before the kernel's own `RoomUpdate` publish loop, matching `Object Moved`'s ordering guarantee. `orchestrateCharacterRoomMembership`'s test suite asserts this ordering.
 
 `factsForStep` also takes a **pre-apply graph snapshot**: a `dissolveRelation` endpoint can be removed from the footprint entirely by a later pure-remove step in the same sequence (destroy), leaving it absent from the post-apply map. The snapshot lets the fact re-derive the host it actually held the edge on rather than throwing.
+
+**A relation's fact comes from its edge, not its legs.** A crossing leg has a port endpoint and names no real pair, so `factsForStep` yields nothing for it. A caller that commits a whole edge passes it as `relationalEdges`, and `factForRelationalEdge` builds one fact from the edge's real subject and target, hosted on the subject's graph, however many legs the chain has. Without `relationalEdges`, each relational step with primitive endpoints yields its own fact (a move's boundary dissolves).
 
 ### Ordering: commit, then present
 

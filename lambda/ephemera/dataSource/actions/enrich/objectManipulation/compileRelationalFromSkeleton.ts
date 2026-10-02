@@ -21,7 +21,6 @@ import type { ParseSkeleton } from './parse/parseToken'
 import type { PeerRelationalEdgeKind } from './relationKind'
 import { matchRelationalTemplate } from './plan/matchRelationalTemplate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import { filterLegalRelationalCandidates } from './synthesize/filterLegalRelationalCandidates'
 import { walkAncestryContainers } from './synthesize/findShardBoundary'
 import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
 import type { ExecutorRelationalChain, ExpansionEnvironment } from './synthesize/executorTypes'
@@ -165,12 +164,14 @@ const proposeRelationalCandidates = (
     // Subject first, then target: the step's field order, which keeps the old product's order.
     const subjectKey = subjectPool.key
     const targetKey = targetPool.key
+    // A relation joins two different things, for every kind (AP-12): an assignment that
+    // grounds subject and target to the same object is never a candidate.
     const assignments = enumerateIdentityAssignments(new Map([
         [subjectKey, subjectPool.candidates],
         [targetKey, targetPool.candidates],
-    ]))
+    ])).filter(({ identities }) => identities.get(subjectKey)?.objectId !== identities.get(targetKey)?.objectId)
     if (assignments.length === 0) {
-        return { ok: false, outcome: 'abstain', reason: 'No valid combination of grounded candidates produced a well-typed establishRelation/dissolveRelation step' }
+        return { ok: false, outcome: 'abstain', reason: 'No combination of two distinct grounded objects produced a well-typed establishRelation/dissolveRelation step' }
     }
 
     const candidates = assignments.map(({ identities, confidence }) => {
@@ -218,12 +219,12 @@ const proposeRelationalCandidates = (
  * (matchRelationalTemplate) -> Identify (runIdentityStageOverSkeleton) -> the
  * producer (proposeRelationalCandidates: joint assignments, grounding by
  * substitution, the attempt built per candidate) -> Expansion (expandSameHost, BD-16,
- * reached through a per-candidate `sameHost` seed) -> Validation
- * (filterLegalRelationalCandidates) --- replaced the retired frame-extract +
- * selectRelationalFromPools flow on the live relational route.
+ * reached through a per-candidate `sameHost` seed) --- replaced the retired frame-extract +
+ * selectRelationalFromPools flow on the live relational route. A candidate whose Expansion
+ * finds a chain is legal; the kernel rechecks every leg at commit.
  *
  * Deliberately has no fallback to that legacy flow: a noMatch/nestingDefer
- * skeleton, or a command Grounding/Validation can't make sense of, abstains or
+ * skeleton, or a command Grounding or Expansion can't make sense of, abstains or
  * errors outright rather than retrying through frame-extract.
  *
  * Each candidate's grounded `Change` still carries Plan's `host: currentHost(actingCharacter)`
@@ -370,7 +371,7 @@ export async function compileRelationalFromSkeleton(
         const outcome = runExecutor(seed, env)
 
         // `defer`/`error`: this route has no Consult/LLM-fallback path today (unlike
-        // membership) --- drop the candidate, same as any other Grounding/Validation
+        // membership) --- drop the candidate, same as any other Grounding or Expansion
         // decline. `defer` is the known gap iteration 2's plan-only/joint fallback
         // work is meant to eventually close.
         if (outcome.verdict !== 'legal') {
@@ -407,22 +408,9 @@ export async function compileRelationalFromSkeleton(
             continue
         }
 
-        // Legality checking (BD-23: bothObjectsOnGraph + Under cycle detection), against the
-        // real current graph, of a one-leg chain only. This route once also validated
-        // against a *simulated* post-transfer graph, for the repair outcome that moved the
-        // subject onto the target's host; that outcome was retired, 2026-09-01, so there is
-        // no longer a candidate whose legality depends on a move that has not happened yet.
-        // **Named gap, not fixed here:** a crossing passes unchecked (see
-        // `filterLegalRelationalCandidates`), and the structural safety net is commit time:
-        // `applyRelationalPatch` (`ludicGraph/index.ts`) already throws on
-        // `!bothObjectsOnGraph` before any write. `detectRelationalCycle` is not run for a
-        // crossing `Under` candidate, so a cyclic `Under` crossing is not rejected pre-commit
-        // today. Slice 2c's chain validation and temporary `Under` guard close this.
-        const legalResult = filterLegalRelationalCandidates([chain], { getGraph })
-        if (!legalResult.ok || legalResult.candidates.length === 0) {
-            continue
-        }
-
+        // A candidate whose Expansion found a chain is legal: there is no construction-time
+        // Validation on this route (AP-11, AP-12). The kernel rechecks every leg against
+        // locked live state at commit.
         preparedCandidates.push({ candidateId: candidate.candidateId, attempt: candidate.attempt, chain })
     }
 
@@ -430,7 +418,7 @@ export async function compileRelationalFromSkeleton(
         return {
             type: 'Abstain',
             confidence: intentConfidence,
-            reason: 'No relational candidate in the pool passed Validation legality checks',
+            reason: 'No relational candidate in the pool found a chain',
         }
     }
 

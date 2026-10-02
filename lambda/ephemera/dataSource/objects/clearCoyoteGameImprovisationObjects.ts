@@ -183,6 +183,8 @@ export const clearCoyoteGameImprovisationObjects = async (
                 hostByReferencedId.set(step.targetId, step.hostId)
             }
         }
+        // Known gap: no `relationalEdges`, so a crossing chain in this batch emits no
+        // `Object Relation Changed` (its legs name ports); fixing it needs one edge per chain.
         const dissolveResult = await commitStepSequence(
             { steps: dissolveSteps },
             {

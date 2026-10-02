@@ -103,7 +103,7 @@ Copy is **deterministic template** (no copy-generating LLM hop), assembled by th
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
-| Enrich | Frame extract LLM (**`operationKind: establishRelation`**, BD-12) -> **`normalizeRelationSpan`** -> **`compileRelational`** -> **`evaluateRelationalLegality`** |
+| Enrich | Parse skeleton -> **`matchRelationalTemplate`** (**`operationKind: establishRelation`**) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileRelationalFromSkeleton`** |
 | Egress | **`Object Establish Relation`** stream (`characterId`, `subjectId`, `targetId`, `roomId`, `relationKind`, optional `relationLabel`) |
 | Apply | [`applyObjectRelationalChange`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectEstablishRelation`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) -> **`applyHostRelationalPatch`** (`op: 'add'`) |
 | Fact | **`Object Relation Changed`**: `operation: 'establish'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |
@@ -138,7 +138,7 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
-| Enrich | Frame extract LLM (**`operationKind: dissolveRelation`**, BD-12) -> **`normalizeRelationSpan`** -> **`compileRelational`** -> **`evaluateRelationalLegality`** |
+| Enrich | Parse skeleton -> **`matchRelationalTemplate`** (**`operationKind: dissolveRelation`**) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileRelationalFromSkeleton`** |
 | Egress | **`Object Dissolve Relation`** stream (same payload shape as establish) |
 | Apply | [`executeEstablishEdgeChain`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) (shared with establish) -> `commitStepSequence` (`op: 'remove'`) |
 | Fact | **`Object Relation Changed`**: `operation: 'dissolve'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |

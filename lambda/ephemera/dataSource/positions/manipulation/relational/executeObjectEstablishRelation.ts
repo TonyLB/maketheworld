@@ -6,12 +6,15 @@ import type { PositionsPublishedPayload } from '../../publishedEvents'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { CommitStepSequenceDeps } from '../kernel/commitStepSequence'
+import type { RelationalEdgeFactSource } from '../kernel/factsForStep'
 import type { MutationKernelStep } from '../kernel/kernelStep'
 import type { MutationKernelCaptures } from '../kernel/types'
 import type { CommandAttempt } from '../../../actions/commandAttempt'
 
 export type ExecuteEstablishEdgeChainArgs = {
     steps: readonly MutationKernelStep[]
+    /** The one edge `steps` realize, with its real subject and target: the source of its one fact. */
+    edge: RelationalEdgeFactSource
     messageBus: MessageBus
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
     suppressRelationalFacts?: boolean
@@ -71,6 +74,7 @@ export const executeEstablishEdgeChain = async (
             messageBus: args.messageBus,
             streamEvent: args.streamEvent,
             getCurrentHost: (id) => hostByReferencedId.get(id),
+            relationalEdges: [args.edge],
             ...(args.suppressRelationalFacts !== undefined ? { suppressRelationalFacts: args.suppressRelationalFacts } : {}),
             ...(args.characterNames ? { characterNames: args.characterNames } : {}),
             ...(args.transactWrite ? { transactWrite: args.transactWrite } : {}),

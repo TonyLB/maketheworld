@@ -457,6 +457,7 @@ describe('positions receive paths (integration)', () => {
             expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     steps,
+                    edge: { subjectId: 'OBJECT#Broom', targetId: 'OBJECT#Table', operation: 'establish', relationKind: 'Under' },
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })
@@ -504,6 +505,7 @@ describe('positions receive paths (integration)', () => {
             expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     steps,
+                    edge: { subjectId: 'OBJECT#String', targetId: 'OBJECT#Cup', operation: 'establish', relationKind: 'Custom', relationLabel: 'tied to' },
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })
@@ -535,6 +537,7 @@ describe('positions receive paths (integration)', () => {
             expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     steps,
+                    edge: { subjectId: 'OBJECT#Broom', targetId: 'OBJECT#Table', operation: 'dissolve', relationKind: 'Under' },
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })
@@ -581,6 +584,7 @@ describe('positions receive paths (integration)', () => {
             expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     steps,
+                    edge: { subjectId: 'OBJECT#String', targetId: 'OBJECT#Cup', operation: 'dissolve', relationKind: 'Custom', relationLabel: 'tied to' },
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
                 })

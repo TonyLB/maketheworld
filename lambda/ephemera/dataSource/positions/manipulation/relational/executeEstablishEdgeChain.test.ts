@@ -15,6 +15,7 @@ describe('executeEstablishEdgeChain', () => {
 
     const messageBus = { publish: jest.fn() }
     const streamEvent = jest.fn()
+    const edge = { subjectId: 'OBJECT#String', targetId: 'OBJECT#Cup', operation: 'establish', relationKind: 'Custom', relationLabel: 'tie' } as const
 
     it("commits the string-in-room / cup-on-table crossing chain (one addCrossingPort, two establishRelation legs) unmerged and in order", async () => {
         commitStepSequenceMock.mockResolvedValue({
@@ -45,12 +46,14 @@ describe('executeEstablishEdgeChain', () => {
             },
         ]
 
-        const result = await executeEstablishEdgeChain({ steps, messageBus: messageBus as any, streamEvent: streamEvent as any })
+        const result = await executeEstablishEdgeChain({ steps, edge, messageBus: messageBus as any, streamEvent: streamEvent as any })
 
         expect(result).toEqual({ ok: true, beatAnchorTime: 12345, captures: new Map() })
         expect(commitStepSequenceMock).toHaveBeenCalledTimes(1)
         const [passedArgs, deps] = commitStepSequenceMock.mock.calls[0]
         expect(passedArgs.steps).toEqual(steps)
+        // The edge's real pair, not any leg's port address, is what the kernel builds the fact from.
+        expect(deps.relationalEdges).toEqual([edge])
         // Port-address endpoints are never resolved through getCurrentHost --- only the primitive
         // endpoints of each establishRelation/dissolveRelation step are, keyed by that step's own hostId.
         expect(deps.getCurrentHost('OBJECT#Cup' as any)).toEqual('OBJECT#Table')
@@ -77,7 +80,7 @@ describe('executeEstablishEdgeChain', () => {
             },
         ]
 
-        const result = await executeEstablishEdgeChain({ steps, messageBus: messageBus as any, streamEvent: streamEvent as any })
+        const result = await executeEstablishEdgeChain({ steps, edge, messageBus: messageBus as any, streamEvent: streamEvent as any })
 
         expect(result.ok).toBe(true)
         const [, deps] = commitStepSequenceMock.mock.calls[0]
@@ -104,7 +107,7 @@ describe('executeEstablishEdgeChain', () => {
             },
         ]
 
-        const result = await executeEstablishEdgeChain({ steps, messageBus: messageBus as any, streamEvent: streamEvent as any })
+        const result = await executeEstablishEdgeChain({ steps, edge, messageBus: messageBus as any, streamEvent: streamEvent as any })
 
         expect(result).toEqual({ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage: 'boom' })
         expect(consoleErrorSpy).toHaveBeenCalled()
@@ -139,7 +142,7 @@ describe('executeEstablishEdgeChain', () => {
             { kind: 'removeCrossingPort', hostId: 'OBJECT#Table', portId: 'PORT#1' },
         ]
 
-        const result = await executeEstablishEdgeChain({ steps, messageBus: messageBus as any, streamEvent: streamEvent as any })
+        const result = await executeEstablishEdgeChain({ steps, edge, messageBus: messageBus as any, streamEvent: streamEvent as any })
 
         expect(result).toEqual({ ok: true, beatAnchorTime: 54321, captures: new Map() })
         expect(commitStepSequenceMock).toHaveBeenCalledTimes(1)
@@ -174,7 +177,7 @@ describe('executeEstablishEdgeChain', () => {
             },
         ]
 
-        const result = await executeEstablishEdgeChain({ steps, messageBus: messageBus as any, streamEvent: streamEvent as any })
+        const result = await executeEstablishEdgeChain({ steps, edge, messageBus: messageBus as any, streamEvent: streamEvent as any })
 
         expect(result.ok).toBe(true)
         const [passedArgs] = commitStepSequenceMock.mock.calls[0]

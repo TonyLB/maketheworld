@@ -145,10 +145,6 @@ const parseErrorMessageForPlayer = (errorMessage?: string): string => {
             return 'You are already holding that.'
         case objectManipulationErrorMessages.noHostRoom:
             return 'You are not in a room, so you cannot do that.'
-        case objectManipulationErrorMessages.notOnHostGraph:
-            return 'You do not see that object here.'
-        case objectManipulationErrorMessages.dissolveNoMatchingEdge:
-            return 'There is no such relation to remove.'
         case objectManipulationErrorMessages.nestingRelational:
             return 'Putting something inside another object is not supported yet.'
         case objectManipulationErrorMessages.complexRelational:
