@@ -28,13 +28,14 @@ describe('runExecutor', () => {
     // throw, and `carry` is unreachable from any relation kind. Real shard-based hosting (CD2h)
     // is what would eventually carry the cup along again, by construction.
 
-    it('a sameHost pair that already shares a host retires as a single portless leg, from the assertion alone', () => {
+    it('a relational pair that already shares a host retires as a single portless leg, from the Change alone', () => {
         // `satisfied` (deleted 2026-09-01) used to retire a matching sameHost assertion with no
         // children, relying on a sibling establishRelation instruction (seeded alongside it) to
         // retire unmodified as the actual edge. That sibling is gone --- an endpoint is its own
         // zero-hop ancestor, so `findShardBoundary`/`buildCrossingLegs` resolve an
         // already-shared host to a single portless leg, which is now the *only* source of the
-        // establishRelation step.
+        // establishRelation step. The grounded `Change` itself seeds directly (AP-7/AP-8): it
+        // carries no host, and command-expansion dispatches on its primitive to find the chain.
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(SAUCER_ID).addObject(CUP_ID)
 
         const env: ExpansionEnvironment = {
@@ -45,15 +46,14 @@ describe('runExecutor', () => {
 
         const seed: WorklistInstruction[] = [
             {
-                id: 'sameHost',
+                id: 'relation',
                 tag: 'grounded',
                 step: {
-                    kind: 'assertion',
-                    predicate: 'sameHost',
-                    subjectId: SAUCER_ID,
-                    objectId: CUP_ID,
+                    kind: 'change',
+                    primitive: 'establishRelation',
+                    subject: graphNodeRef(SAUCER_ID),
+                    target: graphNodeRef(CUP_ID),
                     relationKind: 'Under',
-                    operationKind: 'establishRelation',
                 },
             },
         ]
@@ -66,7 +66,7 @@ describe('runExecutor', () => {
         })
     })
 
-    it("a sameHost violation that crosses a shard boundary mints crossing legs as steps and the port record as extraKernelSteps", () => {
+    it("a relational Change that crosses a shard boundary mints crossing legs as steps and the port record as extraKernelSteps", () => {
         const ROPE_ID = 'OBJECT#Rope' as EphemeraObjectId
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(ROPE_ID).addObject(TABLE_ID)
 
@@ -81,24 +81,23 @@ describe('runExecutor', () => {
             },
         }
 
-        // Only the sameHost assertion is seeded --- there is no sibling establishRelation
+        // Only the grounded Change is seeded --- there is no sibling establishRelation
         // instruction at all any more (the seed is collapsed). A direct rope->cup edge is
         // never valid once the relation crosses a boundary (they never come to share a host), so
-        // the crossing legs below are the assertion's own children, same as the portless-leg
+        // the crossing legs below are the Change's own children, same as the portless-leg
         // same-host case above --- a caller wiring this route for real must seed accordingly (see
         // `compileRelationalFromSkeleton.ts`'s own seed-construction comment).
         const seed: WorklistInstruction[] = [
             {
-                id: 'sameHost',
+                id: 'relation',
                 tag: 'grounded',
                 step: {
-                    kind: 'assertion',
-                    predicate: 'sameHost',
-                    subjectId: ROPE_ID,
-                    objectId: CUP_ID,
+                    kind: 'change',
+                    primitive: 'establishRelation',
+                    subject: graphNodeRef(ROPE_ID),
+                    target: graphNodeRef(CUP_ID),
                     relationKind: 'Custom',
                     relationLabel: 'to',
-                    operationKind: 'establishRelation',
                 },
             },
         ]
@@ -182,37 +181,22 @@ describe('runExecutor', () => {
 })
 
 describe('seedFromGroundedSteps', () => {
-    const lashedDissolve = (hostId: EphemeraRoomId | EphemeraCharacterId): DissolveRelationChange<GroundedReferent> => ({
-        kind: 'change',
-        primitive: 'dissolveRelation',
-        subject: graphNodeRef(CUP_ID),
-        target: graphNodeRef(SAUCER_ID),
-        host: graphNodeRef(hostId),
-        relationKind: 'Custom',
-        relationLabel: 'is glued to',
-    })
-
-    it('seeds a fully grounded relational step as a grounded instruction, reading each groundedId', () => {
-        const [instruction] = seedFromGroundedSteps([lashedDissolve(ROOM_ID)])
+    it('seeds a fully grounded relational Change as-is, for command-expansion to find its chain (AP-7/AP-8)', () => {
+        const dissolve: DissolveRelationChange<GroundedReferent> = {
+            kind: 'change',
+            primitive: 'dissolveRelation',
+            subject: graphNodeRef(CUP_ID),
+            target: graphNodeRef(SAUCER_ID),
+            relationKind: 'Custom',
+            relationLabel: 'is glued to',
+        }
+        const [instruction] = seedFromGroundedSteps([dissolve])
 
         expect(instruction).toEqual({
             id: expect.any(String),
             tag: 'grounded',
-            step: {
-                kind: 'dissolveRelation',
-                subjectId: CUP_ID,
-                targetId: SAUCER_ID,
-                hostId: ROOM_ID,
-                relationKind: 'Custom',
-                relationLabel: 'is glued to',
-            },
+            step: dissolve,
         })
-    })
-
-    it('keeps a non-Room host, which groundChange\'s derived-host filter would drop', () => {
-        const [instruction] = seedFromGroundedSteps([lashedDissolve(CHARACTER_ID)])
-
-        expect(instruction?.step).toEqual(expect.objectContaining({ hostId: CHARACTER_ID }))
     })
 
     it('lowers a grounded transferMembership', () => {

@@ -1,5 +1,5 @@
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { Assertion, Change, GroundedReferent, PlanStep } from '../plan/planStep'
@@ -12,6 +12,7 @@ import type {
     ExecutorParsePlanStep,
     ExpansionEnvironment,
     GroundedAssertion,
+    GroundedRelationalChange,
     InstructionId,
     WorklistInstruction,
 } from './executorTypes'
@@ -34,40 +35,45 @@ export const seedFromUngroundedSteps = (steps: readonly PlanStep[]): WorklistIns
     steps.map((step) => ({ id: mintInstructionId(), tag: 'ungrounded', step }))
 
 /**
- * Lowers a step whose every referent is already grounded (Expansion's facilitating dissolves) to its
+ * Lowers a grounded `transferMembership` step (Expansion's facilitating dissolves) to its
  * executor effect, reading each referent's `groundedId`. Such a step never meets
  * `groundChange`, so a grounded non-Room host (an actor's inventory graph) is not
  * filtered by its derived-host Room check. A mistyped id is a caller contract
  * violation and throws. Assertions are not lowered: none is produced grounded.
+ *
+ * A grounded relational `Change` (`establishRelation`/`dissolveRelation`) has no
+ * lowering here: it has no `host` to read (AP-7) and never lowers straight to a
+ * step --- every relational edge command-expands into a chain instead (AP-6/AP-8).
  */
 const lowerGroundedStep = (step: PlanStep<GroundedReferent>): ExecutorParsePlanStep => {
     if (step.kind === 'assertion') {
         throw new Error(`seedFromGroundedSteps: a grounded '${step.predicate}' assertion has no lowering`)
     }
-    if (step.primitive === 'transferMembership') {
-        const objectId = step.object.groundedId
-        const fromHostId = step.from.groundedId
-        const toHostId = step.to.groundedId
-        if (!isEphemeraObjectId(objectId) || !isEphemeraMembershipHostId(fromHostId) || !isEphemeraMembershipHostId(toHostId)) {
-            throw new Error(`seedFromGroundedSteps: ill-typed transferMembership ids (${objectId}, ${fromHostId}, ${toHostId})`)
-        }
-        return { kind: 'transferMembership', objectIds: new Set([objectId]), fromHostId, toHostId }
+    if (step.primitive !== 'transferMembership') {
+        throw new Error(`seedFromGroundedSteps: a grounded '${step.primitive}' change has no direct lowering --- it must command-expand`)
     }
-    const subjectId = step.subject.groundedId
-    const targetId = step.target.groundedId
-    const hostId = step.host.groundedId
-    if (!isEphemeraLudicTerminalPrimitive(subjectId) || !isEphemeraLudicTerminalPrimitive(targetId) || !isEphemeraMembershipHostId(hostId)) {
-        throw new Error(`seedFromGroundedSteps: ill-typed ${step.primitive} ids (${subjectId}, ${targetId}, ${hostId})`)
+    const objectId = step.object.groundedId
+    const fromHostId = step.from.groundedId
+    const toHostId = step.to.groundedId
+    if (!isEphemeraObjectId(objectId) || !isEphemeraMembershipHostId(fromHostId) || !isEphemeraMembershipHostId(toHostId)) {
+        throw new Error(`seedFromGroundedSteps: ill-typed transferMembership ids (${objectId}, ${fromHostId}, ${toHostId})`)
     }
-    return { kind: step.primitive, subjectId, targetId, hostId, ...relationKindAndLabelFrom(step) }
+    return { kind: 'transferMembership', objectIds: new Set([objectId]), fromHostId, toHostId }
 }
 
 /**
  * Seeds fully grounded steps as `grounded` instructions, in the order given, skipping
- * Grounding entirely (a `runExecutor` seed may carry grounded instructions directly).
+ * Grounding entirely (a `runExecutor` seed may carry grounded instructions directly). A
+ * grounded relational `Change` seeds as-is (AP-8): it command-expands into a chain rather
+ * than lowering directly, since it carries no `host` (AP-7). Everything else (today, only
+ * `transferMembership`) lowers through `lowerGroundedStep` as before.
  */
 export const seedFromGroundedSteps = (steps: readonly PlanStep<GroundedReferent>[]): WorklistInstruction[] =>
-    steps.map((step) => ({ id: mintInstructionId(), tag: 'grounded', step: lowerGroundedStep(step) }))
+    steps.map((step) => (
+        step.kind === 'change' && step.primitive !== 'transferMembership'
+            ? { id: mintInstructionId(), tag: 'grounded' as const, step }
+            : { id: mintInstructionId(), tag: 'grounded' as const, step: lowerGroundedStep(step) }
+    ))
 
 type GroundResult =
     | { ok: true; step: ExecutorParsePlanStep | GroundedAssertion }
@@ -75,12 +81,10 @@ type GroundResult =
 
 /**
  * Grounds one `ungrounded` instruction. Reuses `groundChange`/`groundAssertion` unchanged.
- * A grounded relational `Change`'s `hostRoomId` (BD-6's `currentHost(actingCharacter)` default)
- * carries straight through as `ExecutorEstablishRelationStep`/`ExecutorDissolveRelationStep`'s own
- * `hostId` --- this path is confirmed dead on every live route today (every ingress
- * seed goes through `expandSameHost`'s `sameHost` assertion instead), but it is
- * still real code the type system must satisfy, and `hostRoomId` was already computed for exactly
- * this purpose before this function discarded it.
+ * `groundChange` never returns an `establishRelation`/`dissolveRelation` candidate any more
+ * (AP-7/AP-8: relational `Change`s ground by substitution in the producer, not here), so the
+ * two branches below are confirmed dead on every live route today, but are still real code the
+ * type system must satisfy against `groundChange`'s declared return type.
  */
 const groundInstruction = (step: Change | Assertion, context: GroundingContext): GroundResult => {
     if (step.kind === 'change') {
@@ -145,18 +149,56 @@ type CommandExpandOutcome =
 /**
  * Dispatches per specific primitive/predicate, never on `kind: 'change' | 'assertion'`
  * (BD-34 review correction). `transferMembership`/`establishRelation`/`dissolveRelation`
- * retire directly (atomic effects); `sameHost` evaluates live state and retires as a
- * generator, minting 0+ children. `containedBy` has no shipped
- * evaluation logic anywhere in this codebase yet (verified: no live route implements
- * it) --- errors rather than fabricating behavior, per "grow the technique set as
- * concrete cases demand."
+ * retire directly (atomic effects); a grounded relational `Change` (`establishRelation`/
+ * `dissolveRelation` primitive) evaluates live state and retires as a generator, minting 0+
+ * children --- replacing the retired `GroundedSameHostAssertion`/`'sameHost'` case (AP-8).
+ * `containedBy` has no shipped evaluation logic anywhere in this codebase yet (verified: no
+ * live route implements it) --- errors rather than fabricating behavior, per "grow the
+ * technique set as concrete cases demand."
  */
 const commandExpand = (
-    step: ExecutorParsePlanStep | GroundedAssertion,
+    step: ExecutorParsePlanStep | GroundedAssertion | GroundedRelationalChange,
     env: ExpansionEnvironment
 ): CommandExpandOutcome => {
     if (isExecutorParsePlanStep(step)) {
         return { kind: 'retire', output: step }
+    }
+
+    if (step.kind === 'change') {
+        const subjectId = step.subject.groundedId
+        const targetId = step.target.groundedId
+        if (!isEphemeraObjectId(subjectId) || !isEphemeraObjectId(targetId)) {
+            return { kind: 'error', reason: `commandExpand: ill-typed ${step.primitive} ids (${subjectId}, ${targetId})` }
+        }
+        const result = expandSameHost(
+            {
+                subjectId,
+                objectId: targetId,
+                operationKind: step.primitive,
+                ...relationKindAndLabelFrom(step),
+            },
+            env
+        )
+        if (result.verdict === 'crossed') {
+            // Leg steps (establishRelation/dissolveRelation, already executor-shaped) retire
+            // through the ordinary worklist; the port-record steps (addCrossingPort) cannot ---
+            // they are not an ExecutorParsePlanStep --- so they ride the side-channel instead.
+            const legSteps = result.steps.filter(
+                (kernelStep): kernelStep is Extract<MutationKernelStep, { kind: 'establishRelation' | 'dissolveRelation' }> =>
+                    kernelStep.kind === 'establishRelation' || kernelStep.kind === 'dissolveRelation'
+            )
+            const portSteps = result.steps.filter((kernelStep) => kernelStep.kind !== 'establishRelation' && kernelStep.kind !== 'dissolveRelation')
+            const children: WorklistInstruction[] = legSteps.map((legStep) => ({
+                id: mintInstructionId(),
+                tag: 'grounded' as const,
+                step: legStep,
+            }))
+            return { kind: 'consumed', children, ...(portSteps.length > 0 ? { extraKernelSteps: portSteps } : {}) }
+        }
+        if (result.verdict === 'defer') {
+            return { kind: 'defer', decidable: result.decidable, reason: result.reason }
+        }
+        return { kind: 'error', reason: result.reason }
     }
 
     switch (step.predicate) {
@@ -165,41 +207,6 @@ const commandExpand = (
                 kind: 'error',
                 reason: 'containedBy command-expansion is not yet implemented --- no concrete worked example requires it this slice',
             }
-        case 'sameHost': {
-            if (step.relationKind === undefined) {
-                return { kind: 'error', reason: 'sameHost assertion missing relationKind --- required to command-expand' }
-            }
-            const result = expandSameHost(
-                {
-                    subjectId: step.subjectId,
-                    objectId: step.objectId,
-                    relationKind: step.relationKind,
-                    relationLabel: step.relationLabel,
-                    operationKind: step.operationKind,
-                },
-                env
-            )
-            if (result.verdict === 'crossed') {
-                // Leg steps (establishRelation, already executor-shaped) retire through the
-                // ordinary worklist; the port-record steps (addCrossingPort) cannot --- they are
-                // not an ExecutorParsePlanStep --- so they ride the side-channel instead.
-                const legSteps = result.steps.filter(
-                    (kernelStep): kernelStep is Extract<MutationKernelStep, { kind: 'establishRelation' | 'dissolveRelation' }> =>
-                        kernelStep.kind === 'establishRelation' || kernelStep.kind === 'dissolveRelation'
-                )
-                const portSteps = result.steps.filter((kernelStep) => kernelStep.kind !== 'establishRelation' && kernelStep.kind !== 'dissolveRelation')
-                const children: WorklistInstruction[] = legSteps.map((legStep) => ({
-                    id: mintInstructionId(),
-                    tag: 'grounded' as const,
-                    step: legStep,
-                }))
-                return { kind: 'consumed', children, ...(portSteps.length > 0 ? { extraKernelSteps: portSteps } : {}) }
-            }
-            if (result.verdict === 'defer') {
-                return { kind: 'defer', decidable: result.decidable, reason: result.reason }
-            }
-            return { kind: 'error', reason: result.reason }
-        }
     }
 }
 

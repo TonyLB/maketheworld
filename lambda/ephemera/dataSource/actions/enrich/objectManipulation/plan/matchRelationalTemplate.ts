@@ -1,7 +1,7 @@
 import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
 import { normalizeRelationSpan } from '../normalizeRelationSpan'
 import type { Change, Referent } from './planStep'
-import { actingCharacterRef, currentHostRef, objectSpanRef } from './planStep'
+import { objectSpanRef } from './planStep'
 
 const ESTABLISH_VERBS = new Set(['put', 'place', 'lean', 'tie'])
 const DISSOLVE_VERBS = new Set(['take', 'remove'])
@@ -74,7 +74,6 @@ export function matchRelationalTemplate(skeleton: ParseSkeleton): RelationalTemp
         primitive: operationKind,
         subject,
         target,
-        host: currentHostRef(actingCharacterRef),
         ...(relation.type === 'custom'
             ? { relationKind: 'Custom' as const, relationLabel: relation.relationLabel }
             : { relationKind: relation.kind }),

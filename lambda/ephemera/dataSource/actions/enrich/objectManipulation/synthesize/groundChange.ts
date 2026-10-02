@@ -1,4 +1,4 @@
-import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { Change } from '../plan/planStep'
@@ -40,70 +40,22 @@ export type GroundChangeResult =
  * Expansion adds them to the attempt as facilitating actions before the executor runs
  * (`commandAttempt/expandBoundaryChallenges.ts`).
  *
- * `establishRelation`/`dissolveRelation` ground the Change's own `host`. Plan sets it
- * to BD-6's default, `currentHost(actingCharacter)` (BD-15/16's `sameHost`
- * generalization, which would let a held-item pair ground to a Character host, isn't
- * built yet). A host candidate that isn't a Room is filtered out per-combination
- * rather than failing the whole call, since that widening is explicitly out-of-scope
- * future work (BD-15 slice 3). A step whose referents are all grounded already
- * (Expansion's dissolves) never comes here: `seedFromGroundedSteps` (`executor.ts`)
- * seeds it as a grounded instruction, so a grounded non-Room host is not filtered.
+ * `establishRelation`/`dissolveRelation` never reach this product (AP-7/AP-8,
+ * `AGENT.commandAttemptPipeline.planning.md`): a relational `Change` has no `host`
+ * referent to join into the Cartesian product (an edge has no host; Expansion picks
+ * one per chain leg), and its `subject`/`target` ground by substitution in the
+ * producer instead, before this function would ever see them. The case below fails
+ * immediately rather than being omitted, so the switch over `change.primitive` stays
+ * exhaustive for the type system.
  */
 export const groundChange = (change: Change, context: GroundingContext): GroundChangeResult => {
     switch (change.primitive) {
         case 'establishRelation':
-        case 'dissolveRelation': {
-            const subject = groundReferent(change.subject, context)
-            if (!subject.ok) {
-                return subject
+        case 'dissolveRelation':
+            return {
+                ok: false,
+                reason: 'establishRelation/dissolveRelation do not ground through groundChange: a relational Change has no host referent (AP-7), and its subject/target ground by substitution in the producer, before Grounding would see them (AP-8)',
             }
-            const target = groundReferent(change.target, context)
-            if (!target.ok) {
-                return target
-            }
-            const host = groundReferent(change.host, context)
-            if (!host.ok) {
-                return host
-            }
-
-            // ParsePlanStep's relationKind is HostRelationalEdgeKind's narrow set
-            // (parsePlanStep.ts), even though HostRelationalEdgeKind itself (ephemeraMeta.ts) also
-            // admits containment ('In'/'PartOf') and 'On'. Both are unreachable here:
-            // isContainmentSpan routes containment language to nestingDefer before a Change
-            // carrying one reaches here; 'On' is a hosting kind deferred at ingress the same way
-            // (Channel D, CD2). `'Present'` was a third, checked here until presenceNodes Slice 3
-            // (PN-14) retired it from `HostRelationalEdgeKind` entirely --- it is no longer a
-            // value this field's type can even hold, so the type does what this guard used to.
-            if (change.relationKind === 'In' || change.relationKind === 'PartOf' || change.relationKind === 'On') {
-                return { ok: false, reason: 'Containment relation kinds are not yet groundable as establishRelation/dissolveRelation steps' }
-            }
-
-            const candidates: ParsePlanStep[] = []
-            for (const subjectCandidate of subject.candidates) {
-                if (!isEphemeraObjectId(subjectCandidate)) continue
-                for (const targetCandidate of target.candidates) {
-                    if (!isEphemeraObjectId(targetCandidate)) continue
-                    for (const hostCandidate of host.candidates) {
-                        if (!isEphemeraRoomId(hostCandidate)) continue
-                        candidates.push({
-                            kind: change.primitive,
-                            subjectId: subjectCandidate,
-                            targetId: targetCandidate,
-                            // Inlined: the containment/presence guard above narrowed
-                            // `change` to the ingress-lane kinds that `ParsePlanStep` accepts.
-                            ...(change.relationKind === 'Custom'
-                                ? { relationKind: 'Custom' as const, relationLabel: change.relationLabel }
-                                : { relationKind: change.relationKind }),
-                            hostRoomId: hostCandidate,
-                        })
-                    }
-                }
-            }
-            if (candidates.length === 0) {
-                return { ok: false, reason: 'No valid combination of grounded candidates produced a well-typed establishRelation/dissolveRelation step' }
-            }
-            return { ok: true, candidates }
-        }
         case 'transferMembership': {
             const object = groundReferent(change.object, context)
             if (!object.ok) {

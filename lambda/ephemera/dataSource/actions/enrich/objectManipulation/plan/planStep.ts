@@ -45,8 +45,6 @@ export type EstablishRelationChange<R extends Referent = Referent> = {
     primitive: 'establishRelation'
     subject: R
     target: R
-    /** The graph the relation lives in. Plan's default is BD-6's `currentHost(actingCharacter)`. */
-    host: R
 } & RelationalKindAndLabel
 
 export type DissolveRelationChange<R extends Referent = Referent> = {
@@ -54,8 +52,6 @@ export type DissolveRelationChange<R extends Referent = Referent> = {
     primitive: 'dissolveRelation'
     subject: R
     target: R
-    /** The graph the relation lives in. Plan's default is BD-6's `currentHost(actingCharacter)`. */
-    host: R
 } & RelationalKindAndLabel
 
 export type Change<R extends Referent = Referent> = TransferMembershipChange<R> | EstablishRelationChange<R> | DissolveRelationChange<R>
@@ -132,7 +128,7 @@ export const groundStepBySubstitution = (
     if (step.primitive === 'transferMembership') {
         return { ...step, object: substitute(step.object), from: substitute(step.from), to: substitute(step.to) }
     }
-    return { ...step, subject: substitute(step.subject), target: substitute(step.target), host: substitute(step.host) }
+    return { ...step, subject: substitute(step.subject), target: substitute(step.target) }
 }
 
 /** True when every referent of this step carries a known id. */
@@ -141,6 +137,6 @@ export const isGroundedStep = (step: PlanStep): step is PlanStep<GroundedReferen
         ? [step.subject, step.object]
         : step.primitive === 'transferMembership'
             ? [step.object, step.from, step.to]
-            : [step.subject, step.target, step.host]
+            : [step.subject, step.target]
     return referents.every((referent) => referent.groundedId !== undefined)
 }

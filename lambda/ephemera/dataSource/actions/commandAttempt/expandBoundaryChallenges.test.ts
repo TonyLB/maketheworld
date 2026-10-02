@@ -88,7 +88,6 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
             primitive: 'dissolveRelation',
             subject: graphNodeRef(postId),
             target: graphNodeRef(ropeId),
-            host: graphNodeRef(roomId),
             relationKind: 'Custom',
             relationLabel: 'is lashed to',
         })

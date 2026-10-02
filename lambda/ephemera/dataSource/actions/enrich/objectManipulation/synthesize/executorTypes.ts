@@ -6,10 +6,10 @@ import type {
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
-import type { Assertion, Change } from '../plan/planStep'
+import type { Assertion, Change, DissolveRelationChange, EstablishRelationChange, GroundedReferent } from '../plan/planStep'
 import type { TransferMembershipStep } from '../parsePlanStep'
 
 /**
@@ -98,31 +98,15 @@ export type GroundedBinaryAssertion = {
     negate: boolean
 }
 
-/**
- * This is split out of `GroundedBinaryAssertion` (which fused it with `containedBy` under
- * one shared shape) --- `sameHost` is a placement-resolver, not a check with an inverse (its own
- * `negate` was already dropped), so once `containedBy`'s `negate` went back to being
- * unconditionally required, the two no longer belonged in one type. See `SameHostAssertion`'s
- * doc comment in `planStep.ts` for `relationKind`'s own carried-copy rationale;
- * `relationLabel` is `relationKind: 'Custom'` only --- the crossing-port producer's
- * `exteriorRelationLabel`/leg label needs the actual text, not just the `Custom` tag.
- */
-export type GroundedSameHostAssertion = {
-    kind: 'assertion'
-    predicate: 'sameHost'
-    subjectId: EphemeraObjectId
-    objectId: EphemeraObjectId
-    relationKind?: HostRelationalEdgeKind
-    relationLabel?: string
-    /**
-     * the collapsed ingress seed no longer carries a sibling relational step, so this
-     * assertion is the only place `establishRelation`/`dissolveRelation` survives to Expansion ---
-     * `expandSameHost`/`buildCrossingLegs` need it to pick the retiring step's own kind.
-     */
-    operationKind: 'establishRelation' | 'dissolveRelation'
-}
+export type GroundedAssertion = GroundedBinaryAssertion
 
-export type GroundedAssertion = GroundedBinaryAssertion | GroundedSameHostAssertion
+/**
+ * A grounded relational `Change` (AP-8, `AGENT.commandAttemptPipeline.planning.md`): carries no
+ * `host` (AP-7) and never lowers straight to an executor step --- command-expansion dispatches
+ * on its `primitive` and finds its chain (establish via `findShardBoundary`, dissolve via
+ * `findRelationalChain`), replacing the retired `GroundedSameHostAssertion`.
+ */
+export type GroundedRelationalChange = EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>
 
 /**
  * BD-30's progress-tagged instruction. `'retired'` is deliberately not a tag
@@ -132,7 +116,7 @@ export type GroundedAssertion = GroundedBinaryAssertion | GroundedSameHostAssert
  */
 export type WorklistInstruction =
     | { id: InstructionId; tag: 'ungrounded'; step: Change | Assertion }
-    | { id: InstructionId; tag: 'grounded'; step: ExecutorParsePlanStep | GroundedAssertion }
+    | { id: InstructionId; tag: 'grounded'; step: ExecutorParsePlanStep | GroundedAssertion | GroundedRelationalChange }
 
 /**
  * The live-state reads one worklist run shares: injected callbacks, not DB calls.
@@ -151,7 +135,7 @@ export type ExpansionEnvironment = {
 }
 
 export const isExecutorParsePlanStep = (
-    step: ExecutorParsePlanStep | GroundedAssertion
+    step: ExecutorParsePlanStep | GroundedAssertion | GroundedRelationalChange
 ): step is ExecutorParsePlanStep =>
     step.kind === 'transferMembership'
     || step.kind === 'establishRelation'

@@ -1,4 +1,3 @@
-import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -24,10 +23,10 @@ import { matchRelationalTemplate } from './plan/matchRelationalTemplate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { filterLegalRelationalCandidates } from './synthesize/filterLegalRelationalCandidates'
 import { walkAncestryContainers } from './synthesize/findShardBoundary'
-import { runExecutor } from './synthesize/executor'
-import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep, ExpansionEnvironment, GroundedSameHostAssertion, WorklistInstruction } from './synthesize/executorTypes'
+import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
+import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep, ExpansionEnvironment } from './synthesize/executorTypes'
 import type { MutationKernelStep } from '../../../positions/manipulation/kernel/kernelStep'
-import { groundStepBySubstitution, type Change, type EstablishRelationChange, type DissolveRelationChange, type GroundedId, type Referent } from './plan/planStep'
+import { groundStepBySubstitution, type Change, type EstablishRelationChange, type DissolveRelationChange, type GroundedId, type GroundedReferent, type Referent } from './plan/planStep'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import type { ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
 import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
@@ -80,8 +79,8 @@ type RelationalCandidateId = {
  */
 type RelationalGroundedCandidate = {
     candidateId: RelationalCandidateId
-    /** Grounded by substitution: `subject`/`target` carry `groundedId`; `host` is Plan's
-     * BD-6 placeholder, which nothing reads (Expansion derives the real host). */
+    /** Grounded by substitution: `subject`/`target` carry `groundedId`. A relational
+     * `Change` has no `host` (AP-7): where the relation lives is Expansion's question. */
     change: EstablishRelationChange | DissolveRelationChange
     confidence: number
     attempt: CommandAttempt
@@ -362,21 +361,10 @@ export async function compileRelationalFromSkeleton(
             getCurrentHost: getCurrentHostForExpansion,
             getMembershipContainers: getMembershipContainersForExpansion,
         }
-        // Hand-built here until slice 2b of AGENT.commandAttemptPipeline.planning.md seeds the
-        // grounded edge itself and command-expansion turns it into a chain (AP-6 to AP-8). Its ids are the substituted subject/target; Plan's
-        // placeholder `host` is not read, since Expansion derives the real host.
-        const { candidateId } = candidate
-        const sameHostAssertion: GroundedSameHostAssertion = {
-            kind: 'assertion',
-            predicate: 'sameHost',
-            subjectId: candidateId.subjectId,
-            objectId: candidateId.targetId,
-            operationKind: candidateId.kind,
-            ...relationKindAndLabelFrom(candidateId),
-        }
-        const seed: WorklistInstruction[] = [
-            { id: `${candidateId.subjectId}/sameHost`, tag: 'grounded', step: sameHostAssertion },
-        ]
+        // The grounded edge itself seeds directly (AP-6/AP-8): command-expansion dispatches on
+        // its `primitive` and finds its chain (`findShardBoundary` for establish,
+        // `findRelationalChain` for dissolve), the same mechanism every relational edge now uses.
+        const seed = seedFromGroundedSteps([candidate.change as EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>])
         const outcome = runExecutor(seed, env)
 
         // `defer`/`error`: this route has no Consult/LLM-fallback path today (unlike
