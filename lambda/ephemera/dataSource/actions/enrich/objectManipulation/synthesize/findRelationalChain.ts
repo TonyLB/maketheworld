@@ -158,7 +158,7 @@ const resolveEndpoint = (
  * `endpoints[0]`/`endpoints[1]` are the true primitive endpoints reached walking outward from
  * `seed.edge.from`/`seed.edge.to` respectively; `steps` is ordered `endpoints[0] -> endpoints[1]`
  * (the seed edge itself in the middle). Order is a display/debugging convenience only --
- * `buildCrossingDissolveLegs` maps each step independently, with no ordering dependency between
+ * `lowerRelationalChain` maps each step independently, with no ordering dependency between
  * them.
  */
 export type FindRelationalChainFromLegResult =

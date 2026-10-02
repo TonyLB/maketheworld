@@ -30,12 +30,12 @@ export type ApplyTransferSetOutcome =
 
 /**
  * BD-27c/BD-33/BD-35 Expand+Validate core for a membership transfer (BD-13): assumes any boundary
- * edge that should dissolve has already been severed by an explicit `DissolveRelationStep` earlier
+ * edge that should dissolve has already been severed by an explicit `dissolveRelation` step earlier
  * in the same kernel-apply loop --- it does not rely on `EphemeraLudicGraph.removeObject`'s
  * silent edge-stripping (retired 2026-07-23) to make dissolution happen. A `dissolve`-classified
  * boundary edge still present at this point is therefore reported as `repairable`
  * (`unresolvedDissolveEdge`, `authority: 'mechanical'`, carrying the edge), not silently resolved:
- * the repair is to emit the missing `DissolveRelationStep` and re-propose.
+ * the repair is to emit the missing `dissolveRelation` step and re-propose.
  *
  * Never expands `transferSet` itself.
  *
@@ -93,7 +93,7 @@ export function applyTransferSet(
     }
 
     // A dissolve-classified boundary edge still present here means an explicit
-    // DissolveRelationStep that should have run earlier in the same kernel-apply loop did not ---
+    // dissolveRelation step that should have run earlier in the same kernel-apply loop did not ---
     // mechanically repairable, and invisible to the player, since the edge was already classified
     // as one that dissolves under this transfer.
     const dissolveOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'dissolve')

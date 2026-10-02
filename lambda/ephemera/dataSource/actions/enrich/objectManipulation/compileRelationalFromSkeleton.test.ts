@@ -325,8 +325,8 @@ describe('compileRelationalFromSkeleton', () => {
         expect(result.relationKind).toBe('Custom')
         expect(result.relationKind === 'Custom' && result.relationLabel).toBe('to')
 
-        // Order asserted explicitly, not just membership --- this is exactly what the
-        // extraKernelSteps-then-steps reconstruction in the producer has to get right.
+        // Order asserted explicitly, not just membership --- the chain is lowered in its
+        // own order, each port ahead of the leg that references it.
         expect(result.steps).toHaveLength(3)
         const [portStep, tableLeg, roomLeg] = result.steps
 

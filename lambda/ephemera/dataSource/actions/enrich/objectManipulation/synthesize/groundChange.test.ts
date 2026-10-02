@@ -1,6 +1,6 @@
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { actingCharacterRef, currentHostRef, objectSpanRef } from '../plan/planStep'
+import { actingCharacterRef, currentHostRef, graphNodeRef, objectSpanRef, withGroundedId } from '../plan/planStep'
 import type { Change } from '../plan/planStep'
 import type { GroundingContext, ResolvedSpan } from './groundReferent'
 import { groundChange } from './groundChange'
@@ -16,32 +16,53 @@ const contextWith = (resolvedSpans: [string, ResolvedSpan][]): GroundingContext 
     getCurrentHost: (componentId) => (componentId === CHARACTER_ID ? ROOM_ID : undefined),
 })
 
+// The expected result: the same Change, each referent kept and given its id.
+const groundedTransfer = (change: Change, objectId: string, fromId: string, toId: string) => {
+    if (change.primitive !== 'transferMembership') throw new Error('expected a transferMembership Change')
+    return {
+        ...change,
+        object: { ...change.object, groundedId: objectId },
+        from: { ...change.from, groundedId: fromId },
+        to: { ...change.to, groundedId: toId },
+    }
+}
+
 describe('groundChange', () => {
-    it('fails establishRelation/dissolveRelation immediately: relational Changes ground by substitution, not through groundChange (AP-7/AP-8)', () => {
-        const establish: Change = {
+    it('grounds a substituted relational Change by passing its known ids through, referents kept', () => {
+        const change: Change = {
             kind: 'change',
             primitive: 'establishRelation',
-            subject: objectSpanRef('tray', 'trayRef'),
-            target: objectSpanRef('table', 'tableRef'),
+            subject: withGroundedId(objectSpanRef('tray', 'trayRef'), TRAY_ID),
+            target: graphNodeRef(TABLE_ID),
             relationKind: 'Under',
         }
-        const dissolve: Change = {
-            kind: 'change',
-            primitive: 'dissolveRelation',
-            subject: objectSpanRef('tray', 'trayRef'),
-            target: objectSpanRef('table', 'tableRef'),
-            relationKind: 'Under',
-        }
-        const context = contextWith([
-            ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
-            ['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }],
-        ])
 
-        expect(groundChange(establish, context).ok).toBe(false)
-        expect(groundChange(dissolve, context).ok).toBe(false)
+        expect(groundChange(change, contextWith([]))).toEqual({
+            ok: true,
+            change: {
+                kind: 'change',
+                primitive: 'establishRelation',
+                subject: { referentType: 'objectSpan', span: 'tray', stableRefKey: 'trayRef', groundedId: TRAY_ID },
+                target: { referentType: 'graphNode', groundedId: TABLE_ID },
+                relationKind: 'Under',
+            },
+        })
     })
 
-    it('grounds a transferMembership Change into a single-element, not-yet-carry-closed objectIds set', () => {
+    it('fails a referent that still grounds to several candidates --- the product is the producer\'s, not Grounding\'s (AP-1)', () => {
+        const change: Change = {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: objectSpanRef('tray', 'trayRef'),
+            from: currentHostRef(actingCharacterRef),
+            to: actingCharacterRef,
+        }
+        const context = contextWith([['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID, TABLE_ID] }]])
+
+        expect(groundChange(change, context)).toEqual({ ok: false, reason: expect.stringContaining('expected exactly one') })
+    })
+
+    it('grounds each referent of a transferMembership Change to one id, derived ones included, keeping each referent', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'transferMembership',
@@ -57,16 +78,11 @@ describe('groundChange', () => {
 
         expect(groundChange(change, context)).toEqual({
             ok: true,
-            candidates: [{
-                kind: 'transferMembership',
-                objectIds: new Set([TRAY_ID]),
-                fromHostId: ROOM_ID,
-                toHostId: CHARACTER_ID,
-            }],
+            change: groundedTransfer(change, TRAY_ID, ROOM_ID, CHARACTER_ID),
         })
     })
 
-    it('admits Object and Feature host candidates for transferMembership', () => {
+    it('grounds Object and Feature hosts for transferMembership (lowering types them)', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'transferMembership',
@@ -87,16 +103,11 @@ describe('groundChange', () => {
 
         expect(groundChange(change, context)).toEqual({
             ok: true,
-            candidates: [{
-                kind: 'transferMembership',
-                objectIds: new Set([TRAY_ID]),
-                fromHostId: BOX_ID,
-                toHostId: NICHE_ID,
-            }],
+            change: groundedTransfer(change, TRAY_ID, BOX_ID, NICHE_ID),
         })
     })
 
-    it('admits an Area host candidate for transferMembership', () => {
+    it('grounds an Area host for transferMembership', () => {
         // Area is not an `EphemeraThingId` (thing.ts deliberately excludes it), so it can
         // never resolve directly off an objectSpan the way Object/Feature candidates do ---
         // it can only arrive via `currentHost(X)`, whose `getCurrentHost` callback returns
@@ -127,12 +138,7 @@ describe('groundChange', () => {
 
         expect(groundChange(change, context)).toEqual({
             ok: true,
-            candidates: [{
-                kind: 'transferMembership',
-                objectIds: new Set([TRAY_ID]),
-                fromHostId: BOX_ID,
-                toHostId: DOWNTOWN_ID,
-            }],
+            change: groundedTransfer(change, TRAY_ID, BOX_ID, DOWNTOWN_ID),
         })
     })
 

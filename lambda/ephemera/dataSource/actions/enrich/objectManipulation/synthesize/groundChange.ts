@@ -1,8 +1,5 @@
-import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-
-import type { Change } from '../plan/planStep'
-import type { ParsePlanStep } from '../parsePlanStep'
+import type { Change, GroundedReferent, Referent } from '../plan/planStep'
+import { withGroundedId } from '../plan/planStep'
 import { groundReferent, type GroundingContext } from './groundReferent'
 
 /**
@@ -13,83 +10,73 @@ import { groundReferent, type GroundingContext } from './groundReferent'
  * compatible with.
  */
 export type GroundChangeResult =
-    | { ok: true; candidates: readonly ParsePlanStep[] }
+    | { ok: true; change: Change<GroundedReferent> }
     | { ok: false; reason: string }
 
-/**
- * Grounds a single `Change` (Plan's output) into the *joint candidate space* of
- * `ParsePlanStep`s it could produce (BD-23, 2026-07-19) --- not a single answer.
- * Each referent field may ground to multiple candidates; this takes the
- * Cartesian product across all of a Change's referent fields, constructing one
- * step per combination. Per-combination type checks (is this candidate actually
- * an object id / room id / membership host id?) filter out ill-typed
- * combinations individually --- one bad combination doesn't invalidate others.
- * **Same-object combinations (subject and target grounding to the identical id)
- * are deliberately never filtered here** --- a self-reference isn't inherently
- * invalid at this layer; whether it's actually legal (e.g. "can't put an object
- * on itself") is Validation's job, a later, separate step. Fails only when the
- * resulting candidate list is empty.
- *
- * Does not handle `Assertion` --- Plan's shipped compiler never emits one today
- * (`containedBy` unused, `sameHost` unbuilt), so this is a type-level
- * exclusion, not a TODO.
- *
- * `transferMembership` produces a **single-object** `objectIds` set per candidate,
- * and that set is complete: anything the object hosts lives in its own shard and
- * travels with it. The relational edges the move must dissolve are not Grounding's:
- * Expansion adds them to the attempt as facilitating actions before the executor runs
- * (`commandAttempt/expandBoundaryChallenges.ts`).
- *
- * `establishRelation`/`dissolveRelation` never reach this product (AP-7/AP-8,
- * `AGENT.commandAttemptPipeline.planning.md`): a relational `Change` has no `host`
- * referent to join into the Cartesian product (an edge has no host; Expansion picks
- * one per chain leg), and its `subject`/`target` ground by substitution in the
- * producer instead, before this function would ever see them. The case below fails
- * immediately rather than being omitted, so the switch over `change.primitive` stays
- * exhaustive for the type system.
- */
-export const groundChange = (change: Change, context: GroundingContext): GroundChangeResult => {
-    switch (change.primitive) {
-        case 'establishRelation':
-        case 'dissolveRelation':
-            return {
-                ok: false,
-                reason: 'establishRelation/dissolveRelation do not ground through groundChange: a relational Change has no host referent (AP-7), and its subject/target ground by substitution in the producer, before Grounding would see them (AP-8)',
-            }
-        case 'transferMembership': {
-            const object = groundReferent(change.object, context)
-            if (!object.ok) {
-                return object
-            }
-            const from = groundReferent(change.from, context)
-            if (!from.ok) {
-                return from
-            }
-            const to = groundReferent(change.to, context)
-            if (!to.ok) {
-                return to
-            }
+type GroundOneResult =
+    | { ok: true; referent: GroundedReferent }
+    | { ok: false; reason: string }
 
-            const candidates: ParsePlanStep[] = []
-            for (const objectCandidate of object.candidates) {
-                if (!isEphemeraObjectId(objectCandidate)) continue
-                for (const fromCandidate of from.candidates) {
-                    if (!isEphemeraMembershipHostId(fromCandidate)) continue
-                    for (const toCandidate of to.candidates) {
-                        if (!isEphemeraMembershipHostId(toCandidate)) continue
-                        candidates.push({
-                            kind: 'transferMembership',
-                            objectIds: new Set([objectCandidate]),
-                            fromHostId: fromCandidate,
-                            toHostId: toCandidate,
-                        })
-                    }
-                }
-            }
-            if (candidates.length === 0) {
-                return { ok: false, reason: 'No valid combination of grounded candidates produced a well-typed transferMembership step' }
-            }
-            return { ok: true, candidates }
+const groundOne = (referent: Referent, context: GroundingContext): GroundOneResult => {
+    const result = groundReferent(referent, context)
+    if (!result.ok) {
+        return result
+    }
+    const [groundedId, ...rest] = result.candidates
+    if (groundedId === undefined || rest.length > 0) {
+        return {
+            ok: false,
+            reason: `${referent.referentType} referent grounded to ${result.candidates.length} candidates --- expected exactly one (AP-1: the product over identity candidates is formed by the producer, before Grounding)`,
         }
     }
+    return { ok: true, referent: withGroundedId(referent, groundedId) }
+}
+
+/**
+ * Grounds a single `Change` (Plan's output) to one answer: the same `Change`, every referent
+ * kept and given its id (AP-1, `AGENT.commandAttemptPipeline.planning.md`). A referent with a
+ * known `groundedId` passes through; a derived one (`actingCharacter`, `currentHost(X)`) is
+ * looked up. The product over identity candidates is not formed here: the producer forms it
+ * before Grounding (`enumerateIdentityAssignments`) and grounds phrase-named referents by
+ * substitution (`groundStepBySubstitution`), one assignment per candidate. So a referent that
+ * still grounds to several candidates fails rather than fanning out.
+ *
+ * Primitive-agnostic: a relational `Change` grounds the same way, though its referents already
+ * carry ids by the time any live caller sees it. Typing each id for its slot (is this an object,
+ * is that a membership host?) is lowering's job (`executor.ts`), not Grounding's. Whether a
+ * self-reference is legal ("can't put an object on itself") is Validation's.
+ *
+ * Does not handle `Assertion` --- Plan's shipped compiler never emits one today
+ * (`containedBy` unused), so this is a type-level exclusion, not a TODO.
+ *
+ * `transferMembership`'s object is one object, and that is complete: anything it hosts lives
+ * in its own shard and travels with it. The relational edges the move must dissolve are not
+ * Grounding's: Expansion adds them to the attempt as facilitating actions before the executor
+ * runs (`commandAttempt/expandBoundaryChallenges.ts`).
+ */
+export const groundChange = (change: Change, context: GroundingContext): GroundChangeResult => {
+    if (change.primitive === 'transferMembership') {
+        const object = groundOne(change.object, context)
+        if (!object.ok) {
+            return object
+        }
+        const from = groundOne(change.from, context)
+        if (!from.ok) {
+            return from
+        }
+        const to = groundOne(change.to, context)
+        if (!to.ok) {
+            return to
+        }
+        return { ok: true, change: { ...change, object: object.referent, from: from.referent, to: to.referent } }
+    }
+    const subject = groundOne(change.subject, context)
+    if (!subject.ok) {
+        return subject
+    }
+    const target = groundOne(change.target, context)
+    if (!target.ok) {
+        return target
+    }
+    return { ok: true, change: { ...change, subject: subject.referent, target: target.referent } }
 }

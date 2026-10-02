@@ -9,13 +9,12 @@ export type ResolvedSpan =
     | { verdict: 'unresolved'; reason: string }
 
 /**
- * Grounding's input (BD-23, 2026-07-19): ranked candidate pools per stableRefKey,
- * not one settled verdict per span. Two objectSpan referents with distinct
- * stableRefKeys can carry the same or different candidate lists --- Grounding's
- * job is to enumerate combinations across a Change's referents (see
- * groundChange.ts), never to collapse to one answer or reject a same-object
- * combination itself. That legality judgment belongs to Validation, a later,
- * separate step.
+ * Grounding's input (BD-23, 2026-07-19): candidate lists per stableRefKey. The product
+ * over a Change's identity candidates is formed by the producer, before Grounding (AP-1,
+ * `AGENT.commandAttemptPipeline.planning.md`), so by the time `groundChange` reads this,
+ * each list a referent consults should hold one id; `groundChange` fails one that doesn't.
+ * Grounding never rejects a same-object assignment itself: that legality judgment belongs
+ * to Validation, a later, separate step.
  */
 export type GroundingContext = {
     actingCharacterId: EphemeraCharacterId

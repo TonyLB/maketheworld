@@ -6,7 +6,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { MutationKernelStep } from '../kernel/kernelStep'
-import { buildCrossingDissolveLegs } from '../../../actions/enrich/objectManipulation/synthesize/buildCrossingLegs'
+import { lowerRelationalChain } from '../../../actions/enrich/objectManipulation/synthesize/buildCrossingLegs'
 import { fetchRelationalReachability, findRelationalChainsTouching } from '../relational/findRelationalChainsForRemoval'
 
 export type RepairAdministrativeChainDissolveResult = {
@@ -40,7 +40,7 @@ export const repairAdministrativeChainDissolve = async (
         const graphs = await fetchRelationalReachability(entitySet, getMembershipContainers, getGraph)
         const chains = findRelationalChainsTouching(entitySet, graphs)
         chains.forEach((chain) => {
-            buildCrossingDissolveLegs(chain).forEach((step) => {
+            lowerRelationalChain(chain, 'dissolveRelation').forEach((step) => {
                 dissolveSteps.push(step)
                 if (step.kind === 'dissolveRelation') {
                     if (isEphemeraLudicTerminalPrimitive(step.subjectId)) {

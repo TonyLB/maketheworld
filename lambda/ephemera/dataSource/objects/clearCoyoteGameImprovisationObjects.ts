@@ -21,7 +21,7 @@ import {
     fetchRelationalReachability,
     findRelationalChainsTouching,
 } from '../positions/manipulation/relational/findRelationalChainsForRemoval'
-import { buildCrossingDissolveLegs } from '../actions/enrich/objectManipulation/synthesize/buildCrossingLegs'
+import { lowerRelationalChain } from '../actions/enrich/objectManipulation/synthesize/buildCrossingLegs'
 import type { ObjectsChangedPayload } from './events'
 import { streamObjectsChangedFact } from './events'
 import { persistDeleteImprovisationObject } from './persistImprovisationObject'
@@ -170,7 +170,7 @@ export const clearCoyoteGameImprovisationObjects = async (
     const reachableGraphs = await fetchRelationalReachability(objectIdSet, getMembershipContainers, getGraph)
     const chains = findRelationalChainsTouching(objectIdSet, reachableGraphs)
     if (chains.length > 0) {
-        const dissolveSteps = chains.flatMap((chain) => buildCrossingDissolveLegs(chain))
+        const dissolveSteps = chains.flatMap((chain) => lowerRelationalChain(chain, 'dissolveRelation'))
         const hostByReferencedId = new Map<EphemeraLudicTerminalPrimitive, EphemeraMembershipHostId>()
         for (const step of dissolveSteps) {
             if (step.kind !== 'dissolveRelation') {

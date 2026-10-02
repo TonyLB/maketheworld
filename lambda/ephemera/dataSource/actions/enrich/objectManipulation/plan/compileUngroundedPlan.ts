@@ -51,9 +51,9 @@ export function compileMembershipUngroundedPlan(
  * Plan-stage compiler (zero KR access): maps a shipped, already-extracted
  * relational frame into ungrounded steps. Reuses the already-deterministic,
  * already-KR-free `normalizeRelationSpan` (B2) rather than reimplementing
- * phrase-to-enum mapping. A relational `Change` carries no `host` (AP-7,
- * `AGENT.commandAttemptPipeline.planning.md`): where the relation lives is
- * Expansion's question, not Plan's. `frame.characterId` / `frame.hostRoomId`
+ * phrase-to-enum mapping. A relational `Change` carries no `host` (see
+ * `synthesize/AGENT.implementation.md`, "Relational edges"): where the relation
+ * lives is Expansion's question, not Plan's. `frame.characterId` / `frame.hostRoomId`
  * are deliberately not read, even though upstream has already populated
  * them --- Plan's job is span/verb reasoning only, regardless of what
  * happens to already be grounded.

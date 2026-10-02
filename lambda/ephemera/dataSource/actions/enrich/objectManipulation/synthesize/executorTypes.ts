@@ -11,15 +11,11 @@ import type { EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, Relationa
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { Assertion, Change, DissolveRelationChange, EstablishRelationChange, GroundedReferent } from '../plan/planStep'
 import type { TransferMembershipStep } from '../parsePlanStep'
+import type { RelationalChainStep } from './findRelationalChain'
 
 /**
- * `EstablishRelationStep`/`DissolveRelationStep` (`parsePlanStep.ts`) minus
- * `hostRoomId` --- the BD-33 assert-and-throw shape, where a relational
- * effect step derives its host from its own endpoint ids at apply time
- * instead of carrying one. Local to the executor (not a `parsePlanStep.ts`
- * edit) because the live relational route still constructs/reads
- * `hostRoomId` today; `parsePlanStep.ts` itself only loses the field at the
- * Migrate slice, once the live route stops needing it.
+ * A relational effect step: one leg of a chain (AP-6), lowered from it by
+ * `lowerRelationalChain` and reused verbatim as the kernel's relational step.
  *
  * `subjectId`/`targetId` are `EphemeraLudicTerminalId`-typed: any legal host-kind component, or a
  * port-qualified reference on one (a crossing leg's far-side endpoint is a port address, not a bare
@@ -30,8 +26,8 @@ import type { TransferMembershipStep } from '../parsePlanStep'
  * `establishRelation`/`dissolveRelation` step living entirely within one host's own graph --- no
  * separate "leg" step kind.
  *
- * **`hostId`:** mandatory, computed once at Expansion (`expandSameHost`'s resolved host; each
- * `buildCrossingLegs` leg's own placement) rather than re-derived at apply time. This disambiguates
+ * **`hostId`:** mandatory, computed once at Expansion (each leg's own placement in the chain
+ * `buildCrossingLegs` builds or `findRelationalChain` finds) rather than re-derived at apply time. This disambiguates
  * two cases a host-intersection search cannot: an endpoint multi-hosted in >=2 shared graphs at
  * once, and a port-to-port edge on one object where interior/exterior scope isn't recoverable from
  * the two port addresses alone. Matches the field `MutationKernelAddCrossingPortStep`/
@@ -87,6 +83,21 @@ export type ExecutorParsePlanStep =
     | ExecutorDissolveRelationStep
     | ExecutorDescribeStep
 
+/**
+ * A relational edge's chain (AP-6, `AGENT.commandAttemptPipeline.planning.md`), retired from the
+ * worklist as one output: every leg with its host and every port it crosses, establish's freshly
+ * built or dissolve's found. It stays a value through selection; `lowerRelationalChain`
+ * (`buildCrossingLegs.ts`) turns the chosen one into kernel steps.
+ */
+export type ExecutorRelationalChain = {
+    kind: 'relationalChain'
+    operationKind: 'establishRelation' | 'dissolveRelation'
+    steps: readonly RelationalChainStep[]
+}
+
+/** What a worklist run retires: an executor step, or a relational edge's whole chain. */
+export type ExecutorOutputStep = ExecutorParsePlanStep | ExecutorRelationalChain
+
 /** Stable per-instruction identity --- causal tracking and settled-groups ledger keys. */
 export type InstructionId = string
 
@@ -101,10 +112,11 @@ export type GroundedBinaryAssertion = {
 export type GroundedAssertion = GroundedBinaryAssertion
 
 /**
- * A grounded relational `Change` (AP-8, `AGENT.commandAttemptPipeline.planning.md`): carries no
- * `host` (AP-7) and never lowers straight to an executor step --- command-expansion dispatches
- * on its `primitive` and finds its chain (establish via `findShardBoundary`, dissolve via
- * `findRelationalChain`), replacing the retired `GroundedSameHostAssertion`.
+ * A grounded relational `Change`: the edge as a worklist instruction (`AGENT.implementation.md`,
+ * "Relational edges"). It carries no `host` and never lowers straight to an executor step:
+ * command-expansion dispatches on its `primitive` and finds its chain (establish via
+ * `findShardBoundary`, dissolve via `findRelationalChain`), retiring as one
+ * `ExecutorRelationalChain`.
  */
 export type GroundedRelationalChange = EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>
 

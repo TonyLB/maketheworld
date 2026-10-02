@@ -5,15 +5,13 @@ import type { IdentityPlanCandidate } from './identityPlanCandidate'
 import { membershipOperationKindFromLocus } from './identityPlanCandidate'
 import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import type { ExecutorParsePlanStep } from './synthesize/executorTypes'
-import type { MutationKernelStep } from '../../../positions/manipulation/kernel/kernelStep'
+import type { ExecutorOutputStep } from './synthesize/executorTypes'
 
 export type DryRunVerdict = 'legal' | 'defer' | 'illegal'
 
 /** `ExecutorOutcome`'s legal arm shape (`synthesize/executor.ts`), carried out of the dry run. */
 export type ValidatedPlan = {
-    steps: readonly ExecutorParsePlanStep[]
-    extraKernelSteps?: readonly MutationKernelStep[]
+    steps: readonly ExecutorOutputStep[]
 }
 
 export type DryRunOutcome = {

@@ -1,10 +1,10 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'
 import { findShardBoundary } from './findShardBoundary'
-import { buildCrossingLegs, buildCrossingDissolveLegs } from './buildCrossingLegs'
+import { buildCrossingLegs } from './buildCrossingLegs'
 import { findRelationalChain } from './findRelationalChain'
+import type { RelationalChainStep } from './findRelationalChain'
 import type { ExpansionEnvironment } from './executorTypes'
 
 /**
@@ -14,8 +14,12 @@ import type { ExpansionEnvironment } from './executorTypes'
  * keep this union open to further outcomes rather than letting the Pipeline
  * A -> B migration harden call sites around just these.
  */
+/**
+ * `crossed` carries the chain as a value (AP-6): every leg with its host and every port it
+ * crosses. Lowering it to kernel steps is `lowerRelationalChain`'s job, not this function's.
+ */
 export type ExpandSameHostResult =
-    | { verdict: 'crossed'; steps: MutationKernelStep[] }
+    | { verdict: 'crossed'; chain: RelationalChainStep[] }
     | { verdict: 'defer'; decidable: boolean; reason: string }
     | { verdict: 'error'; reason: string }
 
@@ -57,8 +61,8 @@ export type ExpandSameHostResult =
  * for dissolve. Before this, both operation kinds walked containment ancestry unconditionally;
  * that was silently correct for dissolve only in the portless/same-host case, where "where
  * ancestries meet" and "where the existing edge already is" coincide by construction --- it was
- * never exercised for a genuine crossing dissolve, which `buildCrossingLegs` refused
- * (`notYetImplemented`) before the coincidence could break. `findRelationalChain` needs
+ * never exercised for a genuine crossing dissolve, which the establish builder refused
+ * before the coincidence could break. `findRelationalChain` needs
  * `getGraph`/`getCurrentHost`, which the old bare `getMembershipContainers` callback didn't
  * carry, hence the widened `env` parameter.
  */
@@ -67,12 +71,11 @@ export const expandSameHost = (
         subjectId: EphemeraObjectId
         objectId: EphemeraObjectId
         relationKind: HostRelationalEdgeKind
-        /** `relationKind: 'Custom'` only --- see `GroundedBinaryAssertion`'s doc comment. */
+        /** `relationKind: 'Custom'` only. */
         relationLabel?: string
         /**
-         * the collapsed ingress seed carries no sibling relational step any more, so
-         * this is now the only place that knows whether the relation being expressed is an
-         * establish or a dissolve --- `buildCrossingLegs`/`buildCrossingDissolveLegs` need it.
+         * establish builds a fresh chain (`findShardBoundary`, `buildCrossingLegs`); dissolve
+         * finds the existing one (`findRelationalChain`).
          */
         operationKind: 'establishRelation' | 'dissolveRelation'
     },
@@ -89,12 +92,10 @@ export const expandSameHost = (
     }
 
     // input validation, deliberately above every state lookup --- this asks nothing
-    // about the world. `relationKind`/`relationLabel` arrive as two flat fields here (via
-    // `GroundedBinaryAssertion`, which unions predicates and so cannot use
-    // `RelationalKindAndLabel`'s discriminated pairing), which makes a label-less `Custom`
-    // expressible at this boundary even though no producer of one exists: the live seed builds
-    // the pair from an `EstablishRelationStep`/`DissolveRelationStep`, where the union
-    // guarantees a label. Erroring rather than falling through to the `Custom` defer below,
+    // about the world. `relationKind`/`relationLabel` arrive as two flat fields here, which
+    // makes a label-less `Custom` expressible at this boundary even though no producer of one
+    // exists: the live caller spreads the pair from a grounded relational `Change`, whose
+    // `RelationalKindAndLabel` union guarantees a label. Erroring rather than falling through to the `Custom` defer below,
     // which would route a malformed assertion to an LLM validator that has nothing to say
     // about a `Custom` relation with no text.
     if (relationKind === 'Custom' && relationLabel === undefined) {
@@ -119,13 +120,12 @@ export const expandSameHost = (
             // the enum relations), and the gate was the only thing holding `Under`/`Against` back.
             const boundary = findShardBoundary({ subjectId, targetId: objectId }, env.getMembershipContainers)
             if (boundary.verdict === 'crossed') {
-                const legs = buildCrossingLegs({
+                const chain = buildCrossingLegs({
                     subjectId,
                     targetId: objectId,
                     commonAncestor: boundary.commonAncestor,
                     subjectPath: boundary.subjectPath,
                     targetPath: boundary.targetPath,
-                    operationKind,
                     // Narrowed once, so both arms of `RelationalKindAndLabel`'s discriminated
                     // union spread cleanly --- `relationLabel` is checked non-undefined by the
                     // malformed-input guard at the top of the function, which is why
@@ -134,9 +134,7 @@ export const expandSameHost = (
                         ? { relationKind: 'Custom' as const, relationLabel: relationLabel as string }
                         : { relationKind }),
                 })
-                if (legs.verdict === 'built') {
-                    return { verdict: 'crossed', steps: legs.steps }
-                }
+                return { verdict: 'crossed', chain }
             }
         } else {
             // dissolve asks a different question than establish --- not "where do I
@@ -153,7 +151,7 @@ export const expandSameHost = (
                 { getGraph: env.getGraph, getCurrentHost: env.getCurrentHost }
             )
             if (chain.verdict === 'found') {
-                return { verdict: 'crossed', steps: buildCrossingDissolveLegs(chain.steps) }
+                return { verdict: 'crossed', chain: chain.steps }
             }
         }
     }

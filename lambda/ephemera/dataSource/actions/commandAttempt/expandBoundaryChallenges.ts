@@ -41,7 +41,7 @@ const describeUnderDeferChallenge = (): string =>
  *
  * Each dissolve's referents are grounded (`graphNode`s): Expansion finds the edge's far end
  * in the graph, and no phrase named it. `subject`/`target` follow the edge's own direction,
- * whichever end is the moved object. The Change carries no `host` (AP-7): the executor's
+ * whichever end is the moved object. The Change carries no `host`: the executor's
  * `dissolveRelation` command-expansion rediscovers this exact edge by chain discovery
  * (`findRelationalChain`), the same mechanism the ingress relational route uses.
  */

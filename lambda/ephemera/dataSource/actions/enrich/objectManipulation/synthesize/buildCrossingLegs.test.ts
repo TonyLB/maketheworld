@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCrossingPort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import { buildCrossingLegs, buildCrossingDissolveLegs } from './buildCrossingLegs'
+import { buildCrossingLegs, lowerRelationalChain } from './buildCrossingLegs'
 import type { RelationalChainStep } from './findRelationalChain'
 
 const ROOM_ID = 'ROOM#Vortex' as EphemeraRoomId
@@ -20,24 +20,46 @@ const D2_ID = 'OBJECT#D2' as EphemeraObjectId
 const E_ID = 'OBJECT#E' as EphemeraObjectId
 const F_ID = 'OBJECT#F' as EphemeraObjectId
 
+// Most cases assert the lowered establish steps, exactly as they did before the builder and the
+// lowerer were split (AP-6): `buildAndLower` composes the two the way every caller does.
+const buildAndLower = (input: Parameters<typeof buildCrossingLegs>[0]) =>
+    lowerRelationalChain(buildCrossingLegs(input), 'establishRelation')
+
 describe('buildCrossingLegs', () => {
-    it("the readout case: rope in room, cup on table -- exactly two legs and one crossing port, on the interior (table) side", () => {
-        const result = buildCrossingLegs({
+    it('returns the chain as a value: each port before the leg that references it, the final leg at the common ancestor', () => {
+        const chain = buildCrossingLegs({
             subjectId: STRING_ID,
             targetId: CUP_ID,
             commonAncestor: ROOM_ID,
             subjectPath: [ROOM_ID],
             targetPath: [TABLE_ID, ROOM_ID],
-            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'tied to',
         })
 
-        expect(result.verdict).toBe('built')
-        if (result.verdict !== 'built') return
-        expect(result.steps).toHaveLength(3)
+        expect(chain).toHaveLength(3)
+        const [portStep, tableLeg, roomLeg] = chain
+        expect(portStep).toMatchObject({ type: 'port', hostId: TABLE_ID, port: { fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' } })
+        if (portStep?.type !== 'port') return
+        const portAddress = { owner: TABLE_ID, port: portStep.port.portId }
+        expect(tableLeg).toEqual({ type: 'edge', hostId: TABLE_ID, edge: { from: portAddress, to: CUP_ID, kind: 'Custom', relationLabel: 'tied to' } })
+        expect(roomLeg).toEqual({ type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: portAddress, kind: 'Custom', relationLabel: 'tied to' } })
+    })
 
-        const [addPortStep, tableLegStep, roomLegStep] = result.steps
+    it("the readout case: rope in room, cup on table -- exactly two legs and one crossing port, on the interior (table) side", () => {
+        const result = buildAndLower({
+            subjectId: STRING_ID,
+            targetId: CUP_ID,
+            commonAncestor: ROOM_ID,
+            subjectPath: [ROOM_ID],
+            targetPath: [TABLE_ID, ROOM_ID],
+            relationKind: 'Custom',
+            relationLabel: 'tied to',
+        })
+
+        expect(result).toHaveLength(3)
+
+        const [addPortStep, tableLegStep, roomLegStep] = result
         expect(addPortStep).toMatchObject({
             kind: 'addCrossingPort',
             hostId: TABLE_ID,
@@ -66,22 +88,19 @@ describe('buildCrossingLegs', () => {
     })
 
     it('symmetric case: subject has the extra hop instead of target (string in a box, cup direct in room)', () => {
-        const result = buildCrossingLegs({
+        const result = buildAndLower({
             subjectId: STRING_ID,
             targetId: CUP_ID,
             commonAncestor: ROOM_ID,
             subjectPath: [BOX_ID, ROOM_ID],
             targetPath: [ROOM_ID],
-            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'tied to',
         })
 
-        expect(result.verdict).toBe('built')
-        if (result.verdict !== 'built') return
-        expect(result.steps).toHaveLength(3)
+        expect(result).toHaveLength(3)
 
-        const [addPortStep, boxLegStep, roomLegStep] = result.steps
+        const [addPortStep, boxLegStep, roomLegStep] = result
         expect(addPortStep).toMatchObject({ kind: 'addCrossingPort', hostId: BOX_ID, port: { fromHostId: ROOM_ID } })
         if (addPortStep.kind !== 'addCrossingPort') return
         const portId = addPortStep.port.portId
@@ -105,27 +124,7 @@ describe('buildCrossingLegs', () => {
     })
 
     it('degenerate same-shard case (both paths length 1): a single leg, no port minted', () => {
-        const result = buildCrossingLegs({
-            subjectId: STRING_ID,
-            targetId: CUP_ID,
-            commonAncestor: ROOM_ID,
-            subjectPath: [ROOM_ID],
-            targetPath: [ROOM_ID],
-            operationKind: 'establishRelation',
-            relationKind: 'Custom',
-            relationLabel: 'tied to',
-        })
-
-        expect(result).toEqual({
-            verdict: 'built',
-            steps: [
-                { kind: 'establishRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
-            ],
-        })
-    })
-
-    it('a degenerate same-shard dissolve produces a dissolveRelation step, not establishRelation', () => {
-        const result = buildCrossingLegs({
+        const result = buildAndLower({
             subjectId: STRING_ID,
             targetId: CUP_ID,
             commonAncestor: ROOM_ID,
@@ -133,89 +132,75 @@ describe('buildCrossingLegs', () => {
             targetPath: [ROOM_ID],
             relationKind: 'Custom',
             relationLabel: 'tied to',
-            operationKind: 'dissolveRelation',
         })
 
-        expect(result).toEqual({
-            verdict: 'built',
-            steps: [
-                { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
-            ],
-        })
+        expect(result).toEqual([
+            { kind: 'establishRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
+        ])
     })
 
-    it('reports notYetImplemented for a dissolve that crosses a real boundary --- removing a minted port is unbuilt', () => {
-        const result = buildCrossingLegs({
+    it('a degenerate same-shard chain lowered for dissolve produces a dissolveRelation step, not establishRelation', () => {
+        const result = lowerRelationalChain(buildCrossingLegs({
             subjectId: STRING_ID,
             targetId: CUP_ID,
             commonAncestor: ROOM_ID,
             subjectPath: [ROOM_ID],
-            targetPath: [TABLE_ID, ROOM_ID],
+            targetPath: [ROOM_ID],
             relationKind: 'Custom',
             relationLabel: 'tied to',
-            operationKind: 'dissolveRelation',
-        })
+        }), 'dissolveRelation')
 
-        expect(result.verdict).toBe('notYetImplemented')
+        expect(result).toEqual([
+            { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
+        ])
     })
 
     it('zero-length target path (the target IS the common ancestor): a single leg in that host, no port minted', () => {
-        const result = buildCrossingLegs({
+        const result = buildAndLower({
             subjectId: CUP_ID,
             targetId: TABLE_ID,
             commonAncestor: TABLE_ID,
             subjectPath: [TABLE_ID],
             targetPath: [],
-            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'tied to',
         })
 
-        expect(result).toEqual({
-            verdict: 'built',
-            steps: [
-                { kind: 'establishRelation', subjectId: CUP_ID, targetId: TABLE_ID, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'tied to' },
-            ],
-        })
+        expect(result).toEqual([
+            { kind: 'establishRelation', subjectId: CUP_ID, targetId: TABLE_ID, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'tied to' },
+        ])
     })
 
     it('zero-length subject path: the same single leg with the hosting endpoint as subject', () => {
-        const result = buildCrossingLegs({
+        const result = buildAndLower({
             subjectId: TABLE_ID,
             targetId: CUP_ID,
             commonAncestor: TABLE_ID,
             subjectPath: [],
             targetPath: [TABLE_ID],
-            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'tied to',
         })
 
-        expect(result).toEqual({
-            verdict: 'built',
-            steps: [
-                { kind: 'establishRelation', subjectId: TABLE_ID, targetId: CUP_ID, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'tied to' },
-            ],
-        })
+        expect(result).toEqual([
+            { kind: 'establishRelation', subjectId: TABLE_ID, targetId: CUP_ID, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'tied to' },
+        ])
     })
 
     it('zero-length subject path against a one-extra-hop target: one port on the interior side, two legs', () => {
-        const result = buildCrossingLegs({
+        const result = buildAndLower({
             subjectId: TABLE_ID,
             targetId: CUP_ID,
             commonAncestor: TABLE_ID,
             subjectPath: [],
             targetPath: [BOX_ID, TABLE_ID],
-            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'tied to',
         })
 
-        expect(result.verdict).toBe('built')
-        if (result.verdict !== 'built') return
-        expect(result.steps).toHaveLength(3)
+        expect(result).toHaveLength(3)
 
-        const [addPortStep, boxLegStep, tableLegStep] = result.steps
+        const [addPortStep, boxLegStep, tableLegStep] = result
         expect(addPortStep).toMatchObject({
             kind: 'addCrossingPort',
             hostId: BOX_ID,
@@ -246,41 +231,35 @@ describe('buildCrossingLegs', () => {
     })
 
     it('a non-Custom relation kind carries no relationLabel on the port or the legs', () => {
-        const result = buildCrossingLegs({
+        const result = buildAndLower({
             subjectId: STRING_ID,
             targetId: CUP_ID,
             commonAncestor: ROOM_ID,
             subjectPath: [ROOM_ID],
             targetPath: [TABLE_ID, ROOM_ID],
-            operationKind: 'establishRelation',
             relationKind: 'Under',
         })
 
-        expect(result.verdict).toBe('built')
-        if (result.verdict !== 'built') return
-        const [addPortStep] = result.steps
+        const [addPortStep] = result
         expect(addPortStep).toMatchObject({ kind: 'addCrossingPort', port: { kind: 'Under' } })
         if (addPortStep.kind !== 'addCrossingPort') return
         expect(addPortStep.port).not.toHaveProperty('exteriorRelationLabel')
     })
 
     it("both sides have an extra hop at once --- a middle leg with two port-address endpoints, the shape this row exists to unblock (tree: B contains C and E; C contains D; E contains F; tie D to F)", () => {
-        const result = buildCrossingLegs({
+        const result = buildAndLower({
             subjectId: D_ID,
             targetId: F_ID,
             commonAncestor: B_ID,
             subjectPath: [C_ID, B_ID],
             targetPath: [E_ID, B_ID],
-            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'tied to',
         })
 
-        expect(result.verdict).toBe('built')
-        if (result.verdict !== 'built') return
-        expect(result.steps).toHaveLength(5)
+        expect(result).toHaveLength(5)
 
-        const [addPortC, legDtoC, addPortE, legEtoF, finalLeg] = result.steps
+        const [addPortC, legDtoC, addPortE, legEtoF, finalLeg] = result
         expect(addPortC).toMatchObject({ kind: 'addCrossingPort', hostId: C_ID, port: { fromHostId: B_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' } })
         expect(addPortE).toMatchObject({ kind: 'addCrossingPort', hostId: E_ID, port: { fromHostId: B_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' } })
         if (addPortC.kind !== 'addCrossingPort' || addPortE.kind !== 'addCrossingPort') return
@@ -301,22 +280,19 @@ describe('buildCrossingLegs', () => {
     })
 
     it('a genuine 3-shard chain on one side (cup on tray on table, tied to a string in the room) --- two chained ports, deeper than one extra hop', () => {
-        const result = buildCrossingLegs({
+        const result = buildAndLower({
             subjectId: STRING_ID,
             targetId: CUP_ID,
             commonAncestor: ROOM_ID,
             subjectPath: [ROOM_ID],
             targetPath: [TRAY_ID, TABLE_ID, ROOM_ID],
-            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'tied to',
         })
 
-        expect(result.verdict).toBe('built')
-        if (result.verdict !== 'built') return
-        expect(result.steps).toHaveLength(5)
+        expect(result).toHaveLength(5)
 
-        const [addPortTray, legTrayToCup, addPortTable, legTableToTray, finalLeg] = result.steps
+        const [addPortTray, legTrayToCup, addPortTable, legTableToTray, finalLeg] = result
         expect(addPortTray).toMatchObject({ kind: 'addCrossingPort', hostId: TRAY_ID, port: { fromHostId: TABLE_ID } })
         expect(addPortTable).toMatchObject({ kind: 'addCrossingPort', hostId: TABLE_ID, port: { fromHostId: ROOM_ID } })
         if (addPortTray.kind !== 'addCrossingPort' || addPortTable.kind !== 'addCrossingPort') return
@@ -329,22 +305,19 @@ describe('buildCrossingLegs', () => {
     })
 
     it('a chain of depth 2 on the subject side and depth 1 on the target side at once, confirming the two sides do not interfere (D2 contains D; C contains D2; B contains C and E; E contains F; tie D to F)', () => {
-        const result = buildCrossingLegs({
+        const result = buildAndLower({
             subjectId: D_ID,
             targetId: F_ID,
             commonAncestor: B_ID,
             subjectPath: [D2_ID, C_ID, B_ID],
             targetPath: [E_ID, B_ID],
-            operationKind: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'tied to',
         })
 
-        expect(result.verdict).toBe('built')
-        if (result.verdict !== 'built') return
-        expect(result.steps).toHaveLength(7)
+        expect(result).toHaveLength(7)
 
-        const [addPortD2, legDtoD2, addPortC, legD2toC, addPortE, legEtoF, finalLeg] = result.steps
+        const [addPortD2, legDtoD2, addPortC, legD2toC, addPortE, legEtoF, finalLeg] = result
         expect(addPortD2).toMatchObject({ kind: 'addCrossingPort', hostId: D2_ID, port: { fromHostId: C_ID } })
         expect(addPortC).toMatchObject({ kind: 'addCrossingPort', hostId: C_ID, port: { fromHostId: B_ID } })
         expect(addPortE).toMatchObject({ kind: 'addCrossingPort', hostId: E_ID, port: { fromHostId: B_ID } })
@@ -366,23 +339,9 @@ describe('buildCrossingLegs', () => {
         })
     })
 
-    it('dissolving a genuine crossing still reports notYetImplemented, deeper than one hop', () => {
-        const result = buildCrossingLegs({
-            subjectId: STRING_ID,
-            targetId: CUP_ID,
-            commonAncestor: ROOM_ID,
-            subjectPath: [ROOM_ID],
-            targetPath: [TRAY_ID, TABLE_ID, ROOM_ID],
-            operationKind: 'dissolveRelation',
-            relationKind: 'Custom',
-            relationLabel: 'tied to',
-        })
-
-        expect(result.verdict).toBe('notYetImplemented')
-    })
 })
 
-describe('buildCrossingDissolveLegs', () => {
+describe('lowerRelationalChain, dissolve', () => {
     it("the readout case, reversed: a 3-step found chain (edge, port, edge) becomes [dissolveRelation, removeCrossingPort, dissolveRelation]", () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
         const steps: RelationalChainStep[] = [
@@ -391,7 +350,7 @@ describe('buildCrossingDissolveLegs', () => {
             { type: 'edge', hostId: TABLE_ID, edge: { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'tied to' } },
         ]
 
-        expect(buildCrossingDissolveLegs(steps)).toEqual([
+        expect(lowerRelationalChain(steps, 'dissolveRelation')).toEqual([
             {
                 kind: 'dissolveRelation',
                 subjectId: STRING_ID,
@@ -417,7 +376,7 @@ describe('buildCrossingDissolveLegs', () => {
             { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'tied to' } },
         ]
 
-        expect(buildCrossingDissolveLegs(steps)).toEqual([
+        expect(lowerRelationalChain(steps, 'dissolveRelation')).toEqual([
             { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
         ])
     })
@@ -427,12 +386,12 @@ describe('buildCrossingDissolveLegs', () => {
             { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: CUP_ID, kind: 'Under' } },
         ]
 
-        const [dissolveStep] = buildCrossingDissolveLegs(steps)
+        const [dissolveStep] = lowerRelationalChain(steps, 'dissolveRelation')
         expect(dissolveStep).toEqual({ kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Under' })
         expect(dissolveStep).not.toHaveProperty('relationLabel')
     })
 
-    it('a two-hop chain on one side --- deeper than buildCrossingLegs itself can mint --- maps through with no cap and no notYetImplemented case', () => {
+    it('a two-hop chain on one side --- deeper than buildCrossingLegs itself can mint --- maps through with no cap', () => {
         const portA: EphemeraCrossingPort = { portId: 'port-a', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
         const portB: EphemeraCrossingPort = { portId: 'port-b', fromHostId: BOX_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
         const steps: RelationalChainStep[] = [
@@ -443,7 +402,7 @@ describe('buildCrossingDissolveLegs', () => {
             { type: 'edge', hostId: TRAY_ID, edge: { from: { owner: TRAY_ID, port: 'port-b' }, to: CUP_ID, kind: 'Custom', relationLabel: 'tied to' } },
         ]
 
-        const result = buildCrossingDissolveLegs(steps)
+        const result = lowerRelationalChain(steps, 'dissolveRelation')
 
         expect(result).toHaveLength(5)
         expect(result.map((step) => step.kind)).toEqual([

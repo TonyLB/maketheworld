@@ -26,7 +26,7 @@ describe('applyTransferSet', () => {
     })
 
     it("legal: BD-13's worked example, with the tray-table dissolve edge already explicitly removed", () => {
-        // Simulates an explicit DissolveRelationStep having already run in the same kernel-apply
+        // Simulates an explicit dissolveRelation step having already run in the same kernel-apply
         // loop --- the real precondition this function assumes.
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
@@ -69,7 +69,7 @@ describe('applyTransferSet', () => {
 
         // A discriminated result, not a thrown RelationalEdgeStillReferencedError --- keeps
         // dry-run callers on a discriminated result, per the design doc. `repairable` rather than
-        // a flat rejection: the missing DissolveRelationStep is exactly what a re-proposing caller
+        // a flat rejection: the missing dissolveRelation step is exactly what a re-proposing caller
         // would add, and the edge to aim it at rides along.
         expect(outcome).toEqual({
             verdict: 'repairable',

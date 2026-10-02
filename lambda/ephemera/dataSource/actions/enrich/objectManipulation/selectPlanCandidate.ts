@@ -396,9 +396,6 @@ export const sandboxMembershipDryRun = (
         decidable: true,
         plan: {
             steps: outcome.steps,
-            ...(outcome.extraKernelSteps && outcome.extraKernelSteps.length > 0
-                ? { extraKernelSteps: outcome.extraKernelSteps }
-                : {}),
         },
     }
 }

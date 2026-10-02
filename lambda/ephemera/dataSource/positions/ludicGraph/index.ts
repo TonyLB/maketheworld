@@ -79,14 +79,14 @@ export const nodeFromId = (id: EphemeraLudicTerminalPrimitive): EphemeraLudicGra
  * BD-33/BD-35's assert-and-throw contract: thrown by `removeObject`/`removeCharacter`
  * when a relational edge still references the id being removed --- an upstream facilitating
  * action (Expansion's boundary dissolves, `commandAttempt/expandBoundaryChallenges.ts`) was
- * supposed to have severed it first via an explicit `DissolveRelationStep`. Exported for `instanceof` checks in callers/tests.
+ * supposed to have severed it first via an explicit `dissolveRelation` step. Exported for `instanceof` checks in callers/tests.
  */
 export class RelationalEdgeStillReferencedError extends Error {
     constructor(
         public readonly id: EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId,
         public readonly hostId: EphemeraMembershipHostId
     ) {
-        super(`${id} still has a relational edge on host ${hostId} --- an explicit DissolveRelationStep should have run first`)
+        super(`${id} still has a relational edge on host ${hostId} --- an explicit dissolveRelation step should have run first`)
         this.name = 'RelationalEdgeStillReferencedError'
     }
 }
@@ -434,7 +434,7 @@ export class EphemeraLudicGraph {
     /**
      * BD-33/BD-35 assert-and-throw contract: checks no relational edge still references `objectId`
      * (throwing `RelationalEdgeStillReferencedError` if one does, since an explicit
-     * `DissolveRelationStep` should have run first) rather than silently stripping it, as the
+     * `dissolveRelation` step should have run first) rather than silently stripping it, as the
      * retired plain `removeObject`/`applyTransferSet.ts`/`applyMembershipEffect` (deleted 2026-07-23,
      * once `applyHostEffects` --- their last live caller --- retired) used to. Play-only/exit edges
      * are a distinct invariant, untouched by this contract --- they keep the old silent-strip

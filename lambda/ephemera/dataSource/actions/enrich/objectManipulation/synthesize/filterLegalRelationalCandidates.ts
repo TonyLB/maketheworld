@@ -1,45 +1,68 @@
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
-import {
-    isTransferMembershipStep,
-    type EstablishRelationStep,
-    type DissolveRelationStep,
-    type ParsePlanStep,
-} from '../parsePlanStep'
+import type { EphemeraLudicGraph, HostRelationalEdge } from '../../../../positions/ludicGraph'
 import { evaluateRelationalLegality } from '../evaluateRelationalLegality'
 import type { NormalizedRelation } from '../relationKind'
 import { detectRelationalCycle } from './detectRelationalCycle'
+import type { ExecutorRelationalChain } from './executorTypes'
 
 export type RelationalCandidateGraphLookup = {
     getGraph: (hostId: EphemeraMembershipHostId) => EphemeraLudicGraph | undefined
 }
 
 export type FilterLegalRelationalCandidatesResult =
-    | { ok: true; candidates: readonly ParsePlanStep[] }
+    | { ok: true; candidates: readonly ExecutorRelationalChain[] }
     | { ok: false; reason: string }
 
-const normalizedRelationFromStep = (
-    step: EstablishRelationStep | DissolveRelationStep
-): NormalizedRelation =>
-    step.relationKind === 'Custom'
-        ? { type: 'custom', kind: 'Custom', relationLabel: step.relationLabel ?? '' }
-        : { type: 'enum', kind: step.relationKind }
+/** `undefined` for a kind outside the ingress lane's peer kinds (a hosting kind). */
+const normalizedRelationFromEdge = (edge: HostRelationalEdge): NormalizedRelation | undefined => {
+    if (edge.kind === 'Custom') {
+        return { type: 'custom', kind: 'Custom', relationLabel: edge.relationLabel }
+    }
+    if (edge.kind === 'Under' || edge.kind === 'Against') {
+        return { type: 'enum', kind: edge.kind }
+    }
+    return undefined
+}
 
+/**
+ * Checks a one-leg chain's single edge against that leg's own graph. A chain with more legs
+ * (a crossing) passes unchecked, as it always has: checking every leg's graph is slice 2c's
+ * behaviour change (AP-6, `AGENT.commandAttemptPipeline.planning.md`), not this function's yet.
+ * The one-leg edge's endpoints must be Objects, as the ingress lane's always are.
+ */
 const isLegalRelationalCandidate = (
-    step: EstablishRelationStep | DissolveRelationStep,
+    chain: ExecutorRelationalChain,
     context: RelationalCandidateGraphLookup
 ): boolean => {
-    const graph = context.getGraph(step.hostRoomId)
+    if (chain.steps.length !== 1) {
+        return true
+    }
+    const [leg] = chain.steps
+    if (leg?.type !== 'edge') {
+        return false
+    }
+    const { hostId, edge } = leg
+    const subjectId = edge.from
+    const targetId = edge.to
+    if (typeof subjectId !== 'string' || typeof targetId !== 'string' || !isEphemeraObjectId(subjectId) || !isEphemeraObjectId(targetId)) {
+        return false
+    }
+    const normalizedRelation = normalizedRelationFromEdge(edge)
+    if (normalizedRelation === undefined) {
+        return false
+    }
+    const graph = context.getGraph(hostId)
     if (graph === undefined) {
         return false
     }
 
     const legality = evaluateRelationalLegality({
-        operationKind: step.kind,
-        subjectId: step.subjectId,
-        targetId: step.targetId,
-        normalizedRelation: normalizedRelationFromStep(step),
+        operationKind: chain.operationKind,
+        subjectId,
+        targetId,
+        normalizedRelation,
         graph,
     })
     if (legality.type !== 'allow') {
@@ -50,21 +73,21 @@ const isLegalRelationalCandidate = (
     // reduced scope) -- ingress can no longer produce it, so only `Under` needs the cycle check
     // here. `detectRelationalCycle` itself keeps its own `'On' | 'Under'` signature unchanged;
     // narrowing it (or not) for other callers is CD4's question, not this call site's.
-    if (step.relationKind !== 'Under') {
+    if (edge.kind !== 'Under') {
         return true
     }
 
     try {
         const simulatedGraph = graph.applyRelationalPatch({
-            hostId: step.hostRoomId,
+            hostId,
             edge: {
-                from: step.subjectId,
-                to: step.targetId,
-                kind: step.relationKind,
+                from: subjectId,
+                to: targetId,
+                kind: edge.kind,
             },
-            op: step.kind === 'establishRelation' ? 'add' : 'remove',
+            op: chain.operationKind === 'establishRelation' ? 'add' : 'remove',
         })
-        return !detectRelationalCycle(simulatedGraph, step.relationKind)
+        return !detectRelationalCycle(simulatedGraph, edge.kind)
     } catch {
         // evaluateRelationalLegality already confirmed this operation should be
         // applicable (both objects on graph, dissolve has a matching edge); a
@@ -75,28 +98,22 @@ const isLegalRelationalCandidate = (
 }
 
 /**
- * Step 2b step 5 (BD-23): Validation for Grounding's joint candidate space.
- * Grounding (`groundChange.ts`) deliberately keeps same-object combinations
- * in its output rather than rejecting them --- this is where that judgment
- * actually happens, by simulating each relational candidate's edge and
+ * Step 2b step 5 (BD-23): Validation of relational candidates, each an expanded chain
+ * (AP-6). Grounding deliberately keeps same-object assignments rather than rejecting
+ * them --- this is where that judgment actually happens, by simulating each one-leg
+ * chain's edge and
  * checking the *outcome* graph for an illegal On/Under cycle (a self-relation
  * is simply a one-node cycle, caught by the same general mechanism, not a
  * bespoke subjectId === targetId rule). Supplements, rather than replaces,
  * `evaluateRelationalLegality`'s existing checks (bothObjectsOnGraph,
  * dissolve-must-match, complexRelational) --- those run first, unchanged.
- * `transferMembership` candidates pass through untouched (relational-only
- * pass); one illegal candidate never invalidates the rest of the pool.
+ * One illegal candidate never invalidates the rest of the pool.
  */
 export function filterLegalRelationalCandidates(
-    candidates: readonly ParsePlanStep[],
+    candidates: readonly ExecutorRelationalChain[],
     context: RelationalCandidateGraphLookup
 ): FilterLegalRelationalCandidatesResult {
-    const legal = candidates.filter((step) => {
-        if (isTransferMembershipStep(step)) {
-            return true
-        }
-        return isLegalRelationalCandidate(step, context)
-    })
+    const legal = candidates.filter((chain) => isLegalRelationalCandidate(chain, context))
 
     if (candidates.length > 0 && legal.length === 0) {
         return {

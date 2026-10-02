@@ -17,8 +17,8 @@ export type GroundAssertionResult =
 /**
  * Grounds an `Assertion` (Plan's output) into a `GroundedAssertion` --- the
  * executor's worklist operand, per BD-32's confirmed scope: **exactly one**
- * candidate per referent, not the joint candidate space `groundChange`
- * produces for `Change`. A referent grounding to more than one candidate here
+ * candidate per referent, the same rule `groundChange` applies to a `Change`
+ * (AP-1). A referent grounding to more than one candidate here
  * is an error, documented as unreachable: the outer per-candidate selection
  * layer (BD-32) has already narrowed `GroundingContext.resolvedSpans` down to
  * one id per `stableRefKey` before the worklist ever runs.
