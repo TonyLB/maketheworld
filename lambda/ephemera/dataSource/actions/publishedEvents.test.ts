@@ -4,7 +4,6 @@ import {
     isCharacterNavigatePublishedPayload,
     isLookCommandRequestedPublishedPayload,
     isLudicNetworkChangeRequestedPublishedPayload,
-    isObjectContainmentPublishedPayload,
     isPredictHypothesisPublishedPayload,
 } from './publishedEvents'
 
@@ -305,44 +304,6 @@ describe('isLudicNetworkChangeRequestedPublishedPayload', () => {
     it('rejects non-finite confidence', () => {
         expect(isLudicNetworkChangeRequestedPublishedPayload({ ...minimal, confidence: NaN })).toBe(false)
         expect(isLudicNetworkChangeRequestedPublishedPayload({ ...minimal, confidence: Infinity })).toBe(false)
-    })
-})
-
-describe('isObjectContainmentPublishedPayload', () => {
-    const minimal = {
-        type: 'Object Containment' as const,
-        characterId: 'CHARACTER#test',
-        subjectId: 'OBJECT#Cup',
-        targetId: 'OBJECT#Tray',
-        roomId: 'ROOM#Bridge',
-        containment: 'On' as const,
-    }
-
-    it('accepts a valid payload', () => {
-        expect(isObjectContainmentPublishedPayload(minimal)).toBe(true)
-    })
-
-    it('accepts optional confidence', () => {
-        expect(isObjectContainmentPublishedPayload({ ...minimal, confidence: 0.92 })).toBe(true)
-    })
-
-    it('rejects wrong or missing type', () => {
-        expect(isObjectContainmentPublishedPayload({ ...minimal, type: 'Object Drop' })).toBe(false)
-        const { type: _t, ...rest } = minimal
-        expect(isObjectContainmentPublishedPayload(rest)).toBe(false)
-    })
-
-    it('rejects invalid ids or containment', () => {
-        expect(isObjectContainmentPublishedPayload({ ...minimal, characterId: 'ROOM#x' })).toBe(false)
-        expect(isObjectContainmentPublishedPayload({ ...minimal, subjectId: 'ROOM#x' })).toBe(false)
-        expect(isObjectContainmentPublishedPayload({ ...minimal, targetId: 'ROOM#x' })).toBe(false)
-        expect(isObjectContainmentPublishedPayload({ ...minimal, roomId: 'OBJECT#x' })).toBe(false)
-        expect(isObjectContainmentPublishedPayload({ ...minimal, containment: 'Under' })).toBe(false)
-    })
-
-    it('rejects non-finite confidence', () => {
-        expect(isObjectContainmentPublishedPayload({ ...minimal, confidence: NaN })).toBe(false)
-        expect(isObjectContainmentPublishedPayload({ ...minimal, confidence: Infinity })).toBe(false)
     })
 })
 

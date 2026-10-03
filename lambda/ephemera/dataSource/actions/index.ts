@@ -590,20 +590,11 @@ const publishStreamEventsForIntent = async (
         }
     }
     else if (isParseCommandObjectContainmentResult(parseResult)) {
-        await streamEvent({
-            streamKey: characterId,
-            header: { type: 'Object Containment' },
-            update: {
-                type: 'Object Containment',
-                characterId,
-                subjectId: parseResult.subjectId,
-                targetId: parseResult.targetId,
-                roomId: parseResult.hostId,
-                containment: parseResult.containment,
-                confidence: parseResult.confidence,
-                ...(parseResult.attempt !== undefined ? { attempt: parseResult.attempt } : {}),
-            },
-        })
+        // AP-9 (slice 3c): containment publishes only the generalized hand-off now ---
+        // `Object Containment` retired, folded into `Ludic Network Change Requested`, same as
+        // membership/relational (slice 3a). Its attempt's `transferMembership` action now
+        // carries a `containment` flag `commitAttempt` threads through.
+        await publishLudicNetworkChangeRequested(streamEvent, characterId, parseResult.attempt, parseResult.confidence)
     }
 }
 

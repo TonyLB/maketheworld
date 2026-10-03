@@ -2370,7 +2370,8 @@ describe('ephemeraActionsDataSource', () => {
             expect(streamEvent).not.toHaveBeenCalled()
         })
 
-        it('emits Object Containment streamEvent when an On containment move is grounded', async () => {
+        it('emits Ludic Network Change Requested when an On containment move is grounded (AP-9, slice 3c)', async () => {
+            const attempt = { words: 'put the cup on the tray', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectContainment',
                 subjectId: 'OBJECT#Cup',
@@ -2378,6 +2379,7 @@ describe('ephemeraActionsDataSource', () => {
                 hostId: hostRoom,
                 containment: 'On',
                 confidence: 0.9,
+                attempt,
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2400,14 +2402,11 @@ describe('ephemeraActionsDataSource', () => {
 
             expect(streamEvent).toHaveBeenCalledWith({
                 streamKey: 'CHARACTER#123',
-                header: { type: 'Object Containment' },
+                header: { type: 'Ludic Network Change Requested' },
                 update: {
-                    type: 'Object Containment',
+                    type: 'Ludic Network Change Requested',
                     characterId: 'CHARACTER#123',
-                    subjectId: 'OBJECT#Cup',
-                    targetId: 'OBJECT#Tray',
-                    roomId: hostRoom,
-                    containment: 'On',
+                    attempt,
                     confidence: 0.9,
                 },
             })

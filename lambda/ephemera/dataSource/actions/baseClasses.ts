@@ -389,8 +389,12 @@ export type ParseCommandObjectContainmentResult = {
     hostId: EphemeraRoomId
     containment: 'On' | 'In' | 'PartOf'
     confidence: ParseCommandConfidence
-    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join. */
-    attempt?: CommandAttemptData
+    /**
+     * CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join.
+     * Required since slice 3c: the generalized hand-off (`publishLudicNetworkChangeRequested`)
+     * no-ops silently without one, so an optional field here would hide a construction bug.
+     */
+    attempt: CommandAttemptData
 }
 
 /**

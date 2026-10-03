@@ -46,38 +46,12 @@ export type CharacterHomePublishedPayload = {
     bundleId?: string;
 }
 
-/** AB-54 hosting kinds; only `'On'` is ever emitted today (only one hosting kind is built). */
-export type ContainmentKindPublished = 'On' | 'In' | 'PartOf'
-
-const CONTAINMENT_KINDS_PUBLISHED = new Set<ContainmentKindPublished>(['On', 'In', 'PartOf'])
-
 /**
- * `On` is a containment move carrying a containment argument, not a relation --- deliberately
- * separate from the relational hand-off (`Ludic Network Change Requested`'s relational
- * actions), which narrowed `On` out on 2026-08-22. `roomId` is narration context (the
- * acting character's room), not `subjectId`'s current host --- the `mtw.ephemera.positions`
- * consumer resolves that fresh via `getMembershipContainers` rather than trusting a value
- * published at parse time.
- */
-export type ObjectContainmentPublishedPayload = {
-    type: 'Object Containment';
-    characterId: EphemeraCharacterId;
-    subjectId: EphemeraObjectId;
-    targetId: EphemeraObjectId;
-    roomId: EphemeraRoomId;
-    containment: ContainmentKindPublished;
-    confidence?: number;
-    /** The player's attempt, with any verdicts Adjudicate recorded actions-side. `positions/index.ts` reconstructs it, and the commit side honors its verdicts. */
-    attempt?: CommandAttemptData;
-}
-
-/**
- * AP-9: the generalized hand-off, replacing the per-primitive events above. Carries the
- * whole selected attempt --- no primitive named in the header, since a plan can mix kinds
- * (slice 3c's containment is the first to). Published alongside the per-primitive events
- * during slice 3a (3a-i to 3a-iii) so `positions` can be migrated without a flag day; the
- * per-primitive events for membership and relational retire in 3a-iv. `Object Containment`
- * keeps publishing on its own until containment joins in slice 3c.
+ * AP-9: the generalized hand-off, replacing the per-primitive events (`Object Take Hold`/
+ * `Object Drop`/`Object Establish Relation`/`Object Dissolve Relation`, retired slice 3a-iv;
+ * `Object Containment`, retired slice 3c). Carries the whole selected attempt --- no
+ * primitive named in the header, since a plan can mix kinds (containment's `transferMembership`
+ * action carries an optional `containment` flag, slice 3c).
  */
 export type LudicNetworkChangeRequestedPublishedPayload = {
     type: 'Ludic Network Change Requested';
@@ -106,42 +80,6 @@ export const isLudicNetworkChangeRequestedPublishedPayload = (
         if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
             return false
         }
-    }
-    return true
-}
-
-export const isObjectContainmentPublishedPayload = (
-    value: unknown
-): value is ObjectContainmentPublishedPayload => {
-    if (!value || typeof value !== 'object') {
-        return false
-    }
-    const v = value as Record<string, unknown>
-    if (v.type !== 'Object Containment') {
-        return false
-    }
-    if (typeof v.characterId !== 'string' || !isEphemeraCharacterId(v.characterId)) {
-        return false
-    }
-    if (typeof v.subjectId !== 'string' || !isEphemeraObjectId(v.subjectId)) {
-        return false
-    }
-    if (typeof v.targetId !== 'string' || !isEphemeraObjectId(v.targetId)) {
-        return false
-    }
-    if (typeof v.roomId !== 'string' || !isEphemeraRoomId(v.roomId)) {
-        return false
-    }
-    if (typeof v.containment !== 'string' || !CONTAINMENT_KINDS_PUBLISHED.has(v.containment as ContainmentKindPublished)) {
-        return false
-    }
-    if (v.confidence !== undefined) {
-        if (typeof v.confidence !== 'number' || !Number.isFinite(v.confidence)) {
-            return false
-        }
-    }
-    if (v.attempt !== undefined && !isCommandAttemptData(v.attempt)) {
-        return false
     }
     return true
 }
@@ -414,7 +352,6 @@ export type ActionsPublishedPayload =
     | ActionsStubPublishedPayload
     | CharacterNavigatePublishedPayload
     | CharacterHomePublishedPayload
-    | ObjectContainmentPublishedPayload
     | LudicNetworkChangeRequestedPublishedPayload
     | CharacterSpokePublishedPayload
     | AcmeOrderPublishedPayload

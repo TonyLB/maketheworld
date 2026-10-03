@@ -71,6 +71,29 @@ const mockLiveHosts = (broomHost: EphemeraRoomId | EphemeraCharacterId | Ephemer
     })
 }
 
+/** A containment move's attempt (slice 3c): one `transferMembership` action carrying a
+ * `containment` flag, `from` derived from the subject's own span (`currentHost(span:subject)`),
+ * ungrounded on `object`/`to` --- same shape the real producer builds. */
+const containmentAttempt = (containment: 'On' | 'In' = 'On'): CommandAttempt => CommandAttempt.fromJSON({
+    words: 'put the cup on the tray',
+    referents: [
+        { refKey: 'subject', id: BROOM, shortName: 'cup' },
+        { refKey: 'target', id: TABLE, shortName: 'tray' },
+    ],
+    actions: [{
+        kind: 'position',
+        desiredResult: {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'subject' },
+            from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'subject' } },
+            to: { referentType: 'objectSpan', span: 'tray', stableRefKey: 'target' },
+            containment,
+        } as never,
+        challenges: [],
+    }],
+})
+
 const relationalAttempt = (primitive: 'establishRelation' | 'dissolveRelation' = 'establishRelation'): CommandAttempt => CommandAttempt.fromJSON({
     words: 'put the broom under the table',
     referents: [],
@@ -279,11 +302,11 @@ describe('commitAttempt', () => {
         expect(plan.steps).toEqual([membershipStep, relationalStep])
     })
 
-    it('is a no-op for an action with no desiredResult (containment, not yet joined per AP-4)', async () => {
+    it('is a no-op for an action with no desiredResult', async () => {
         const attempt = CommandAttempt.fromJSON({
-            words: 'put the cup on the tray',
+            words: 'look at the cup',
             referents: [],
-            actions: [{ kind: 'position', desiredResultDescription: 'Rehost: cup', challenges: [] }],
+            actions: [{ kind: 'position', desiredResultDescription: 'Describe: cup', challenges: [] }],
         })
 
         await commitAttempt({ attempt, characterId: CHARACTER, messageBus, streamEvent })
@@ -291,5 +314,32 @@ describe('commitAttempt', () => {
         expect(planObjectMoveTransferMock).not.toHaveBeenCalled()
         expect(planRelationalEdgeTransferMock).not.toHaveBeenCalled()
         expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+    })
+
+    it('dispatches a containment action through planObjectMoveTransfer with its containment flag (slice 3c, AP-4)', async () => {
+        mockLiveHosts(ROOM)
+        const plan = { steps: [{ kind: 'transferMembership', entityIds: new Set([BROOM]), fromHostIds: new Set([ROOM]), toHostId: TABLE }], slots: [] }
+        planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
+
+        await commitAttempt({ attempt: containmentAttempt('On'), characterId: CHARACTER, messageBus, streamEvent })
+
+        expect(planObjectMoveTransferMock).toHaveBeenCalledWith(expect.objectContaining({
+            entityId: BROOM,
+            fromHostId: ROOM,
+            toHostId: TABLE,
+            containment: 'On',
+        }))
+        expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('omits the containment field when planObjectMoveTransfer is called for an ordinary membership move', async () => {
+        mockLiveHosts(ROOM)
+        const plan = { steps: [{ kind: 'transferMembership', entityIds: new Set([BROOM]), fromHostIds: new Set([ROOM]), toHostId: CHARACTER }], slots: [] }
+        planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
+
+        await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
+
+        const [callArgs] = planObjectMoveTransferMock.mock.calls[0]!
+        expect(callArgs).not.toHaveProperty('containment')
     })
 })

@@ -115,6 +115,10 @@ const buildMembershipFragment = async (
         bundleId,
         narration: { characterName, objectShortName },
         metEdges: attemptMetEdges,
+        // Containment (slice 3c): `planObjectMoveTransfer`/`buildObjectMoveOp`/
+        // `compilePositionKernelOp` already thread this through to the establish step whose
+        // `hostId` is always `toHostId` by construction --- no ancestry walk needed.
+        ...(change.containment ? { containment: change.containment } : {}),
     })
 
     if (!planResult.ok) {

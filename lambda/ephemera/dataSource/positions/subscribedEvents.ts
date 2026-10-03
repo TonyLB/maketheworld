@@ -17,7 +17,7 @@ import type {
     ConnectionsCharactersDisconnectedEvent,
     ConnectionsCharactersEventUpdate
 } from '@tonylb/mtw-interfaces/ts/eventBridge/connections/characters'
-import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload, LudicNetworkChangeRequestedPublishedPayload, ObjectContainmentPublishedPayload } from '../actions/publishedEvents'
+import type { CharacterHomePublishedPayload, CharacterNavigatePublishedPayload, LudicNetworkChangeRequestedPublishedPayload } from '../actions/publishedEvents'
 import type { DiagnosticsLudicGraphPortMismatchFindingEvent, DiagnosticsLudicGraphStaleStructureFindingEvent, DiagnosticsRoomOccupancyDriftFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
 export type EphemeraPositionsConnectionsCharactersHeader =
@@ -29,12 +29,9 @@ export type EphemeraPositionsActionsCharacterNavigateHeader =
 export type EphemeraPositionsActionsCharacterHomeHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Character Home' }
 
-export type EphemeraPositionsActionsObjectContainmentHeader =
-    StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Object Containment' }
-
-/** AP-9 (slice 3a): the generalized hand-off for membership/relational attempts, replacing
- * `Object Take Hold`/`Object Drop`/`Object Establish Relation`/`Object Dissolve Relation`
- * (retired 3a-iv). `Object Containment` stays separate until containment joins it (slice 3c). */
+/** AP-9 (slice 3a/3c): the generalized hand-off for membership/relational/containment
+ * attempts, replacing `Object Take Hold`/`Object Drop`/`Object Establish Relation`/
+ * `Object Dissolve Relation` (retired 3a-iv) and `Object Containment` (retired 3c). */
 export type EphemeraPositionsActionsLudicNetworkChangeRequestedHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Ludic Network Change Requested' }
 
@@ -51,7 +48,6 @@ export type EphemeraPositionsSubscribedHeader =
     | EphemeraPositionsConnectionsCharactersHeader
     | EphemeraPositionsActionsCharacterNavigateHeader
     | EphemeraPositionsActionsCharacterHomeHeader
-    | EphemeraPositionsActionsObjectContainmentHeader
     | EphemeraPositionsActionsLudicNetworkChangeRequestedHeader
     | EphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader
     | EphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingHeader
@@ -61,7 +57,6 @@ export type EphemeraPositionsSubscribedContent =
     | ConnectionsCharactersEventUpdate
     | CharacterNavigatePublishedPayload
     | CharacterHomePublishedPayload
-    | ObjectContainmentPublishedPayload
     | LudicNetworkChangeRequestedPublishedPayload
     | DiagnosticsRoomOccupancyDriftFindingEvent
     | DiagnosticsLudicGraphStaleStructureFindingEvent
@@ -79,11 +74,6 @@ export type EphemeraPositionsActionsCharacterNavigateEnvelope = {
 export type EphemeraPositionsActionsCharacterHomeEnvelope = {
     header: EphemeraPositionsActionsCharacterHomeHeader;
     getContent: () => Promise<CharacterHomePublishedPayload>;
-}
-
-export type EphemeraPositionsActionsObjectContainmentEnvelope = {
-    header: EphemeraPositionsActionsObjectContainmentHeader;
-    getContent: () => Promise<ObjectContainmentPublishedPayload>;
 }
 
 export type EphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope = {
@@ -136,12 +126,6 @@ const isEphemeraPositionsActionsCharacterHomeHeader: HeaderGuard<EphemeraPositio
     header.dataSourceKey === 'mtw.ephemera.actions' && header.type === 'Character Home'
 )
 
-const isEphemeraPositionsActionsObjectContainmentHeader: HeaderGuard<EphemeraPositionsActionsObjectContainmentHeader> = (
-    header
-): header is EphemeraPositionsActionsObjectContainmentHeader => (
-    header.dataSourceKey === 'mtw.ephemera.actions' && header.type === 'Object Containment'
-)
-
 const isEphemeraPositionsActionsLudicNetworkChangeRequestedHeader: HeaderGuard<EphemeraPositionsActionsLudicNetworkChangeRequestedHeader> = (
     header
 ): header is EphemeraPositionsActionsLudicNetworkChangeRequestedHeader => (
@@ -163,7 +147,6 @@ export const isEphemeraPositionsSubscribedHeader: HeaderGuard<EphemeraPositionsS
     isEphemeraPositionsConnectionsCharactersHeader(header)
     || isEphemeraPositionsActionsCharacterNavigateHeader(header)
     || isEphemeraPositionsActionsCharacterHomeHeader(header)
-    || isEphemeraPositionsActionsObjectContainmentHeader(header)
     || isEphemeraPositionsActionsLudicNetworkChangeRequestedHeader(header)
     || isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingHeader(header)
     || isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingHeader(header)
@@ -183,11 +166,6 @@ export const isEphemeraPositionsActionsCharacterHomeEnvelope = makeStreamingEnve
     CharacterHomePublishedPayload,
     EphemeraPositionsActionsCharacterHomeHeader
 >(isEphemeraPositionsActionsCharacterHomeHeader)
-
-export const isEphemeraPositionsActionsObjectContainmentEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    ObjectContainmentPublishedPayload,
-    EphemeraPositionsActionsObjectContainmentHeader
->(isEphemeraPositionsActionsObjectContainmentHeader)
 
 export const isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     LudicNetworkChangeRequestedPublishedPayload,

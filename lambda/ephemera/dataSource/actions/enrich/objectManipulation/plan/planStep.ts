@@ -38,6 +38,13 @@ export type TransferMembershipChange<R extends Referent = Referent> = {
     object: R
     from: R
     to: R
+    /**
+     * A containment move (slice 3c): the transfer also establishes an `On`/`In` edge whose
+     * host is always `to` by construction, not discovered by ancestry walk --- containment's
+     * producer (`compileObjectContainmentFromSkeleton.ts`) sets this; `PartOf` never reaches
+     * here (ND-4, `parseCommand.ts` hard-errors it earlier).
+     */
+    containment?: 'On' | 'In'
 }
 
 export type EstablishRelationChange<R extends Referent = Referent> = {

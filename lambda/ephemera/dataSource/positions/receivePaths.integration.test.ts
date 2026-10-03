@@ -303,62 +303,6 @@ describe('positions receive paths (integration)', () => {
         })
     })
 
-    describe('Object Containment', () => {
-        it('routes mtw.ephemera.actions Object Containment through orchestrateObjectMove with a freshly-resolved fromHostId', async () => {
-            getMembershipContainersMock.mockResolvedValue([ROOM_A])
-
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Containment', {
-                type: 'Object Containment',
-                characterId: CHARACTER_ID,
-                subjectId: 'OBJECT#Cup',
-                targetId: 'OBJECT#Tray',
-                roomId: ROOM_A,
-                containment: 'On',
-                confidence: 0.9,
-            })
-
-            await messageBus.flushAndSettle()
-
-            expect(getMembershipContainersMock).toHaveBeenCalledWith('OBJECT#Cup')
-            // fromHostId comes from the fresh getMembershipContainers lookup, not the
-            // published event --- the event carries no fromHostId field at all.
-            expect(orchestrateObjectMoveMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    objectIds: ['OBJECT#Cup'],
-                    fromHostId: ROOM_A,
-                    toHostId: 'OBJECT#Tray',
-                    roomId: ROOM_A,
-                    // The bug this proves fixed: neither fromHostId (a room) nor toHostId (an
-                    // object) is a character, so orchestrateObjectMove can no longer derive one
-                    // from the hosts --- it must be threaded through explicitly instead.
-                    characterId: CHARACTER_ID,
-                    containment: 'On',
-                    messageBus: expect.any(Object),
-                    streamEvent: expect.any(Function),
-                })
-            )
-            expect(commitAttemptMock).not.toHaveBeenCalled()
-        })
-
-        it('does not call orchestrateObjectMove when the subject has no single current host (drift)', async () => {
-            getMembershipContainersMock.mockResolvedValue([])
-
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Containment', {
-                type: 'Object Containment',
-                characterId: CHARACTER_ID,
-                subjectId: 'OBJECT#Cup',
-                targetId: 'OBJECT#Tray',
-                roomId: ROOM_A,
-                containment: 'On',
-                confidence: 0.9,
-            })
-
-            await messageBus.flushAndSettle()
-
-            expect(orchestrateObjectMoveMock).not.toHaveBeenCalled()
-        })
-    })
-
     describe('Room Occupancy Drift Finding', () => {
         it('routes mtw.diagnostics finding through repairRoomOccupancyDrift', async () => {
             publishPositionsStreamingEvent('mtw.diagnostics', 'Room Occupancy Drift Finding', {
