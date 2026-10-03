@@ -174,11 +174,15 @@ export type ParseCommandLookRoomResult = {
  * object-directed look ("look/examine <object>") from the Plan-stage `matchLookTemplate`
  * matcher (iteration 9, Phase 4) --- the latter is the one producer of this type that
  * *is* reachable from Bedrock parse; the doc comment below only describes the other three.
+ * `attempt` is populated only by the object-directed producer (`compileDescribeFromSkeleton`,
+ * slice 4 of `AGENT.commandAttemptPipeline.planning.md`): the other three producers build no
+ * `CommandAttempt` and have nothing to put there.
  */
 export type ParseCommandLookComponentResult = {
     type: 'LookComponent'
     componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId | EphemeraCharacterId
     confidence: ParseCommandConfidence
+    attempt?: CommandAttemptData
 }
 
 /** Trusted UI speech (Say / Narrate / OOC). Not produced by Bedrock parse. */

@@ -83,7 +83,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
 
         const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
 
-        expect(actions[1]?.toJSON().desiredResult).toEqual({
+        expect((actions[1]?.toJSON() as any).desiredResult).toEqual({
             kind: 'change',
             primitive: 'dissolveRelation',
             subject: graphNodeRef(postId),

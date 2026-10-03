@@ -1417,6 +1417,7 @@ describe('parseCommand LLM path', () => {
             type: 'LookComponent',
             componentId: rocketSkatesId,
             confidence: 0.9,
+            attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
     })

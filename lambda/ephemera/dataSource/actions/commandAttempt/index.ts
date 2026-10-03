@@ -4,7 +4,7 @@ import type { AttemptAction, AttemptActionData } from './action'
 import { attemptActionFromJSON, attemptActionToJSON } from './action'
 import type { Verdict } from './verdict'
 
-export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction } from './action'
+export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction, NarrateAttemptAction } from './action'
 export type { Challenge, ChallengeData } from './challenge'
 export { CustomEdgeChallenge, UnderDeferChallenge, WorldKnowledgeChallenge } from './challenge'
 export type { Verdict, VerdictData } from './verdict'

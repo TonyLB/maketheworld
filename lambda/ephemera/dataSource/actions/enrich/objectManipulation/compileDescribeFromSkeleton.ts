@@ -1,19 +1,27 @@
-import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type {
     ParseCommandAbstainResult,
+    ParseCommandConsultResult,
     ParseCommandErrorResult,
     ParseCommandLookComponentResult,
 } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
 import type { IdentityStageDeps } from './identityStage'
 import { runIdentityStageOverSkeleton } from './identifySkeletonSpans'
-import { objectCandidatesForSpan } from './objectCandidatesForSpan'
 import type { ParseSkeleton } from './parse/parseToken'
 import { matchLookTemplate } from './plan/matchLookTemplate'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { selectPlanTuple } from './selectPlanCandidate'
+import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
+import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
+import { NarrateAttemptAction } from '../../commandAttempt/action'
+import { CommandAttempt } from '../../commandAttempt'
 
 export type CompileDescribeFromSkeletonInput = {
     command: string
@@ -27,20 +35,93 @@ export type CompileDescribeFromSkeletonDeps = IdentityStageDeps
 
 export type CompileDescribeFromSkeletonResult =
     | ParseCommandLookComponentResult
+    | ParseCommandConsultResult
     | ParseCommandAbstainResult
     | ParseCommandErrorResult
 
 /**
- * Object-directed look's Plan pipeline (iteration 9, Phase 4): Plan match
- * (matchLookTemplate) -> Identify (runIdentityStageOverSkeleton) -> a direct pool read
- * (`objectCandidatesForSpan`, singular). No Expansion/Validation leg --- unlike relational,
- * a describe referent is singular with no relation to another referent, so
- * there is no `sameHost` placement or cycle-legality check to run, and no general Synthesize executor seed is built. Only ever produces
- * candidates the catalog scan can populate today (Object only --- catalog
- * population for Character/Feature is iteration 10 on the object-manipulation
- * ladder; see `dataSource/actions/AGENT.implementation.md`),
- * so filtering to EphemeraObjectId candidates is today a no-op guard, not a
- * scope restriction that silently drops real Character/Feature matches.
+ * One producer candidate (AP-1's stage sketch, slice 4), mirroring
+ * `ContainmentGroundedCandidate` (`compileObjectContainmentFromSkeleton.ts`) reduced to one
+ * referent: no AP-12 self-relation guard applies, since there's nothing to compare a single
+ * referent against.
+ */
+type DescribeGroundedCandidate = {
+    candidateId: EphemeraObjectId
+    confidence: number
+    attempt: CommandAttempt
+    label: string
+}
+
+type ProposeDescribeCandidatesResult =
+    | { ok: true; candidates: DescribeGroundedCandidate[] }
+    | { ok: false; reason: string }
+
+/**
+ * The describe route's producer (AP-1/AP-5, slice 4), modeled directly on
+ * `proposeContainmentCandidates` reduced from two referents to one: one identity pool,
+ * enumerated into assignments (`enumerateIdentityAssignments`, AP-2's confidence, which for
+ * one key is just that key's own `jointRelevance`), each building a `CommandAttempt` whose
+ * one action is a `NarrateAttemptAction` --- describing a referent is not a world mutation,
+ * so there is no `PlanStep`/`desiredResult` for it, only prose.
+ */
+const proposeDescribeCandidates = (
+    command: string,
+    stableRefKey: string,
+    spanPools: ReadonlyMap<string, SpanCandidatePool>,
+    catalog: readonly ObjectManipulationCatalogEntry[]
+): ProposeDescribeCandidatesResult => {
+    const pool = spanPools.get(stableRefKey)
+    if (!pool) {
+        return { ok: false, reason: `No resolution supplied for stableRefKey "${stableRefKey}"` }
+    }
+    const candidates: readonly ObjectSpanCandidate[] = (pool.shortlist ?? pool.candidates)
+        .filter((candidate) => isEphemeraObjectId(candidate.id))
+    if (candidates.length === 0) {
+        return { ok: false, reason: `No candidates found for span "${pool.span}"` }
+    }
+
+    const assignments = enumerateIdentityAssignments(new Map([[stableRefKey, candidates]]))
+    if (assignments.length === 0) {
+        return { ok: false, reason: 'No object candidate in the pool resolved to a describable referent' }
+    }
+
+    const describeCandidates = assignments.map(({ identities, confidence }) => {
+        const candidateId = identities.get(stableRefKey)!.objectId
+        const entry = catalog.find((entry) => entry.objectId === candidateId)
+        const label = entry?.normalizedShortName ?? candidateId
+
+        const action = new NarrateAttemptAction([], `Look at the ${label}`)
+        const attempt = CommandAttempt.create(
+            command,
+            [buildCommandAttemptReferent(stableRefKey, candidateId, label, entry?.gloss)],
+            [action]
+        )
+
+        return { candidateId, confidence, attempt, label }
+    })
+    return { ok: true, candidates: describeCandidates }
+}
+
+/** AP-3's Consult wording for describe: one line naming the single referent. */
+const describeConsultAlternative = (candidate: DescribeGroundedCandidate): ConsultAlternative => ({
+    objectId: candidate.candidateId,
+    label: candidate.label,
+    proposedCommand: `look at the ${candidate.label}`,
+})
+
+/**
+ * Object-directed look's Plan pipeline (iteration 9, Phase 4; producer/stage split slice 4):
+ * Plan match (matchLookTemplate) -> Identify (runIdentityStageOverSkeleton) -> the describe
+ * producer (`proposeDescribeCandidates`) -> `selectPlanTuple` (AP-1/AP-5). No Expansion/
+ * Validation leg --- unlike relational, a describe referent is singular with no relation to
+ * another referent, so there is no `sameHost` placement or cycle-legality check to run, and
+ * no general Synthesize executor seed is built; every candidate is trivially legal, so the
+ * dry run is a constant `legal`, and `selectPlanTuple` runs the same floor/margin/Consult
+ * machinery every route uses. Only ever produces candidates the catalog scan can populate
+ * today (Object only --- catalog population for Character/Feature is iteration 10 on the
+ * object-manipulation ladder; see `dataSource/actions/AGENT.implementation.md`), so filtering
+ * to EphemeraObjectId candidates is today a no-op guard, not a scope restriction that
+ * silently drops real Character/Feature matches.
  */
 export async function compileDescribeFromSkeleton(
     input: CompileDescribeFromSkeletonInput,
@@ -81,18 +162,49 @@ export async function compileDescribeFromSkeleton(
         }
     }
 
-    const objectCandidate = objectCandidatesForSpan(identityResult.spanPools, match.referent.stableRefKey)[0]
-    if (objectCandidate === undefined) {
+    const proposed = proposeDescribeCandidates(input.command, match.referent.stableRefKey, identityResult.spanPools, catalog)
+    if (!proposed.ok) {
+        return { type: 'Abstain', confidence: intentConfidence, reason: proposed.reason }
+    }
+
+    const selection = selectPlanTuple({
+        candidates: proposed.candidates,
+        getConfidence: (candidate) => candidate.confidence,
+        dryRun: () => ({ verdict: 'legal', decidable: true }),
+        toConsultAlternative: describeConsultAlternative,
+    })
+
+    if (selection.verdict === 'consult') {
         return {
-            type: 'Abstain',
+            type: 'Consult',
+            alternatives: selection.alternatives.map(({ proposedCommand, objectId }) => ({ proposedCommand, objectId })),
             confidence: intentConfidence,
-            reason: 'No object candidate in the pool resolved to a describable referent',
         }
     }
 
+    if (selection.verdict === 'abstain' || selection.verdict === 'error') {
+        return {
+            type: 'Abstain',
+            confidence: intentConfidence,
+            reason: selection.reason,
+        }
+    }
+
+    if (selection.verdict === 'defer') {
+        // Cannot occur: the dry run above always reports `legal`, never `defer`.
+        return {
+            type: 'Abstain',
+            confidence: intentConfidence,
+            reason: selection.dryRun.reason ?? objectManipulationErrorMessages.noMatch,
+        }
+    }
+
+    const { candidate } = selection
+
     return {
         type: 'LookComponent',
-        componentId: objectCandidate,
+        componentId: candidate.candidateId,
         confidence: intentConfidence,
+        attempt: candidate.attempt.toJSON(),
     }
 }

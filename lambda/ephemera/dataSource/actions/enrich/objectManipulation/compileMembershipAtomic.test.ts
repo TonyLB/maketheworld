@@ -386,7 +386,11 @@ describe('compileMembershipAtomic', () => {
                 verdict: { kind: 'met' },
             })
         )
-        expect(result.attempt?.actions[0]?.desiredResultDescription).toBe('Take: rope')
+        const primaryAction = result.attempt?.actions[0]
+        if (primaryAction?.kind !== 'position') {
+            throw new Error('Expected a position action')
+        }
+        expect(primaryAction.desiredResultDescription).toBe('Take: rope')
     })
 
     it('CommandAttemptPhase slice 2.6: when the complexity LLM changes the operation, the published attempt is re-grounded for the LLM\'s operation', async () => {
@@ -429,8 +433,11 @@ describe('compileMembershipAtomic', () => {
         }
         expect(result.operationKind).toBe('drop')
         const primaryAction = result.attempt?.actions[0]
-        expect(primaryAction?.desiredResultDescription).toBe('Drop: rope')
-        expect(primaryAction?.desiredResult).toEqual(expect.objectContaining({
+        if (primaryAction?.kind !== 'position') {
+            throw new Error('Expected a position action')
+        }
+        expect(primaryAction.desiredResultDescription).toBe('Drop: rope')
+        expect(primaryAction.desiredResult).toEqual(expect.objectContaining({
             from: { referentType: 'actingCharacter' },
             to: { referentType: 'currentHost', referentTarget: { referentType: 'actingCharacter' } },
         }))

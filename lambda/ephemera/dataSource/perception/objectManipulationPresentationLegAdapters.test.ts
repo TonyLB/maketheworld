@@ -35,7 +35,7 @@ const relationalAttempt = (
             subject: { referentType: 'objectSpan', span: 'subject', groundedId: subjectId },
             target: { referentType: 'objectSpan', span: 'target', groundedId: targetId },
             relationKind,
-        } as CommandAttemptData['actions'][number]['desiredResult'],
+        } as Extract<CommandAttemptData['actions'][number], { kind: 'position' }>['desiredResult'],
         challenges: [],
     }],
 })

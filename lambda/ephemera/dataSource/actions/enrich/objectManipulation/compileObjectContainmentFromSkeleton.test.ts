@@ -209,7 +209,7 @@ describe('compileObjectContainmentFromSkeleton', () => {
         if (result.type !== 'ObjectContainment') {
             throw new Error(`expected ObjectContainment, got ${result.type}`)
         }
-        const desiredResult = result.attempt.actions[0]?.desiredResult as any
+        const desiredResult = (result.attempt.actions[0] as any)?.desiredResult
         expect(desiredResult).toMatchObject({
             kind: 'change',
             primitive: 'transferMembership',
