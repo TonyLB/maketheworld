@@ -112,6 +112,8 @@ When **`Parse Requested`** runs Acme enrich, **`parseCommand`** passes **`messag
 | [`../AGENT.md`](../AGENT.md) | Ephemera DataSource directory index (**`mtw.ephemera.actions`** row) |
 | [`../narration/AGENT.md`](../narration/AGENT.md) | **`Character Spoke`** consumer; terminal character-voice depiction (active) |
 | [`AGENT.implementation.md`](./AGENT.implementation.md) | Implementation playbook: affordance wiring, stream contracts, message protocols, test checklist |
+| [`AGENT.concepts.md`](./AGENT.concepts.md) | Object-manipulation pipeline vocabulary: Identify / Plan / Synthesize, referents, `CommandAttempt` |
+| [`AGENT.contract.md`](./AGENT.contract.md) | Object-manipulation pipeline rules: Grounding, Validation, command-attempt result |
 | [`enrich/AGENT.md`](./enrich/AGENT.md) | Post-discrimination enrich namespace contract; current `acmeOrder` implementation boundary |
 | [`../objects/AGENT.md`](../objects/AGENT.md) | Improvisational object spawn/clear; Acme **`stableKey`** pass-through to **`Meta::Object`** |
 | [`../coyoteGame/AGENT.md`](../coyoteGame/AGENT.md) | Staged snapshot; **`stableKey`** on rows vs prompt text |
