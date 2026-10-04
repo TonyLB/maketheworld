@@ -74,10 +74,11 @@ export class CustomEdgeChallenge implements Challenge {
 
 /**
  * An `Under` subject-move defer. Structurally identical to `CustomEdgeChallenge` today
- * (edge + authored wording), kept as its own member per 1.6's explicit direction so
- * future divergent behavior (once `Under` wording is designed) has a home. **`Under`
- * wording stays carried forward as CA-1's open item** --- no worked example produces an
- * `Under`-defer case, so no wording is invented here.
+ * (edge + authored wording), kept as its own member so divergent behavior has a home.
+ * The open question is not wording: the graph cannot tell a rope under a table
+ * (clearance) from one under a boulder (pinned), which need different facilitating
+ * actions, so no adjudicator can be certain the expanded action satisfies the precondition
+ * and this challenge stays pending. Wording follows once a reading is chosen.
  */
 export class UnderDeferChallenge implements Challenge {
     readonly id: string
