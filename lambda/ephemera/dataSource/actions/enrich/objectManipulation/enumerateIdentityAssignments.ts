@@ -2,13 +2,13 @@ import { identityFromSpanCandidate } from './identityPlanCandidate'
 import type { PlanCandidate } from './selectPlanCandidate'
 import type { ObjectSpanCandidate } from './spanResolution'
 
-/** One joint assignment: an identity per `stableRefKey`, with AP-2's confidence. */
+/** One joint assignment: an identity per `stableRefKey`, with its `min` confidence. */
 export type IdentityAssignment = Pick<PlanCandidate, 'identities' | 'confidence'>
 
 /**
  * Forms the product in "plans × identity candidates": every joint assignment over the
  * given pools, one candidate per `stableRefKey`. Confidence is the `min` over the chosen
- * candidates' `jointRelevance` (AP-2), so with one key it is that candidate's own.
+ * candidates' `jointRelevance`, so with one key it is that candidate's own.
  *
  * Route-agnostic: it never sees a step's primitive, and the caller passes only the keys
  * of phrase-named referents (derived referents ground later, in the executor). Which

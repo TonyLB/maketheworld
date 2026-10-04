@@ -57,11 +57,11 @@ export type OrchestrateCharacterMoveArgs = {
  * serially before or after it --- it needs `beatAnchorTime` from the commit result, so it cannot start
  * earlier, and there is no reason to make presentation wait on it. This is why navigate/home/connect
  * do not route through the kernel's generic `commitAndPresentStepSequence` composer even though
- * `orchestrateObjectMove` does: that composer is strictly serial (commit, then present), and cannot
+ * the object-move route does: that composer is strictly serial (commit, then present), and cannot
  * express a write running *alongside* presentation. Do not "simplify" this by folding the ladder write
  * into the composer or by serializing it behind narration.
  *
- * `orchestrateObjectMove` is a sibling, not absorbed here --- 3g's correction: it commits or does not
+ * The object-move route (`commitAttempt`) is a sibling, not absorbed here --- 3g's correction: it commits or does not
  * depending on entity kind, which is the disjoint-bodies case ruled out for a shared name.
  *
  * Rules: `dataSource/positions/AGENT.contract.md` --- "Narration and presentation".

@@ -6,7 +6,7 @@
  * `Meta::Room.ludicGraph` + adjacency index (S2-6).
  *
  * External ingress: `mtw.connections.characters` (presence), `mtw.ephemera.actions`
- * (`Character Navigate`, `Character Home`, `Ludic Network Change Requested` (AP-9: the
+ * (`Character Navigate`, `Character Home`, `Ludic Network Change Requested` (the
  * generalized hand-off for membership/relational/containment attempts)),
  * `mtw.diagnostics` (`Room Occupancy Drift Finding`, `Ludic Graph Stale Structure Finding`). Additional
  * position-affecting subscriptions can be added here without inventing another one-off
@@ -94,7 +94,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 if (!content || !isLudicNetworkChangeRequestedPublishedPayload(content)) {
                     return
                 }
-                // AP-9 (slice 3a/3c): the generalized hand-off, replacing `Object Take Hold`/
+                // The generalized hand-off, replacing `Object Take Hold`/
                 // `Object Drop`/`Object Establish Relation`/`Object Dissolve Relation` (retired
                 // 3a-iv) and `Object Containment` (retired 3c). `commitAttempt` dispatches per
                 // action and commits the whole attempt as one sequence --- see its own doc

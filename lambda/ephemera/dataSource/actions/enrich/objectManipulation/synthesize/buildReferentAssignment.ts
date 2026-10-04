@@ -4,7 +4,7 @@ import { derivedReferentKey, stepReferents } from '../plan/planStep'
 /**
  * One snapshot of the world, as derived referents need it: who the actor is, and where a
  * thing currently is. Whoever holds the snapshot supplies it --- actions' dry run from its
- * frame, positions from live cache after the hand-off (AP-10). `undefined` means "not
+ * frame, positions from live cache after the hand-off. `undefined` means "not
  * knowable from this snapshot" (no actor, not in exactly one host).
  */
 export type DerivedReferentResolver = {
@@ -15,7 +15,7 @@ export type DerivedReferentResolver = {
 /**
  * Builds the `ReferentAssignment` `groundChange`/`groundAssertion` consume for one step: the
  * span half as given (decided once, at identity selection), plus a derived entry for every
- * ungrounded derived referent the step holds, resolved against `resolver` (AP-10's derived
+ * ungrounded derived referent the step holds, resolved against `resolver` (the derived
  * half, rebuilt per snapshot). Walks the step's referents generically, so a new derived
  * shape (`currentHost(span:<key>)`, containment's) needs no new entry here.
  *

@@ -39,7 +39,7 @@ export type TransferMembershipChange<R extends Referent = Referent> = {
     from: R
     to: R
     /**
-     * A containment move (slice 3c): the transfer also establishes an `On`/`In` edge whose
+     * A containment move: the transfer also establishes an `On`/`In` edge whose
      * host is always `to` by construction, not discovered by ancestry walk --- containment's
      * producer (`compileObjectContainmentFromSkeleton.ts`) sets this; `PartOf` never reaches
      * here (ND-4, `parseCommand.ts` hard-errors it earlier).
@@ -111,8 +111,7 @@ export const withGroundedId = <R extends Referent>(referent: R, groundedId: Grou
 })
 
 /**
- * A structural key for a referent with no `stableRefKey` of its own (AP-10,
- * `AGENT.commandAttemptPipeline.planning.md`): `'actingCharacter'`, `` `currentHost(actingCharacter)` ``,
+ * A structural key for a referent with no `stableRefKey` of its own: `'actingCharacter'`, `` `currentHost(actingCharacter)` ``,
  * `` `currentHost(span:<key>)` ``. Total over `Referent` so a `currentHost` nested on any kind stays
  * nameable: membership nests both live (a take's `from` is `currentHost(span:primaryObject)`, a
  * drop's `to` is `currentHost(actingCharacter)`).
@@ -133,7 +132,7 @@ export const derivedReferentKey = (referent: Referent): DerivedReferentKey => {
 }
 
 /**
- * Grounding's input (AP-10): one value per referent, in two namespaces with different
+ * Grounding's input: one value per referent, in two namespaces with different
  * lifetimes. A span's value is decided once, when identities are selected, and belongs to
  * the candidate wherever it goes --- keyed by `stableRefKey` (Identify/Plan's key). A derived
  * value (`actingCharacter`, `currentHost(X)`) is a fact about one snapshot of the world, built

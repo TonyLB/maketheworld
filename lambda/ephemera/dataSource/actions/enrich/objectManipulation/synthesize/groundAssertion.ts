@@ -6,7 +6,7 @@ import type { GroundedAssertion } from './executorTypes'
 
 /**
  * Grounds an `Assertion` (Plan's output) into a `GroundedAssertion`, the same substitution
- * `groundChange` applies to a `Change` (AP-1, AP-10): total over a complete
+ * `groundChange` applies to a `Change`: total over a complete
  * `ReferentAssignment`, throwing on a missing key rather than returning a result a caller
  * branches on. No shipped predicate emission reaches this today (`containedBy` unused) ---
  * kept in step with `groundChange`'s shape for when one does.

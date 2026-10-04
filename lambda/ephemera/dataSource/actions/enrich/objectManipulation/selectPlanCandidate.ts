@@ -29,11 +29,11 @@ import { validateMembershipPlanDryRun } from './validatePlanDryRun'
 import type { DryRunOutcome, ValidatedPlan } from './validatePlanDryRun'
 
 /**
- * AP-1's stage sketch (`AGENT.commandAttemptPipeline.planning.md#stage-sketch`): the
+ * The shared selection stage's candidate (`actions/AGENT.implementation.md`, "Shared selection stage"): the
  * selection unit every producer builds and the shared stage consumes. `identities` is the
  * joint assignment, one entry per `stableRefKey` --- membership populates a single entry
  * today and keeps reading its own flat `identity` field (below); a multi-referent producer
- * (relational, slice 2a) is the first real reader of the map form.
+ * (relational) is the first real reader of the map form.
  */
 export type PlanCandidate = {
     identities: ReadonlyMap<string, IdentityPlanIdentity>
@@ -41,10 +41,10 @@ export type PlanCandidate = {
     /**
      * Not yet expanded (no boundary actions) or adjudicated. Grounded exactly where the
      * route's assignment is already complete at this point: relational's producer grounds
-     * fully here (its `Change` has no derived referents at all, AP-6/AP-7/AP-8). Membership's
+     * fully here (its `Change` has no derived referents at all). Membership's
      * does not --- its `from`/`to` are derived, so its attempt stays wholly ungrounded until
      * `sandboxMembershipDryRun` has a snapshot to
-     * build the derived half from (AP-10).
+     * build the derived half from.
      */
     attempt: CommandAttempt
 }
@@ -55,8 +55,7 @@ export type PlanStageEnvironment = {
 }
 
 /**
- * Membership's own candidate, extending `PlanCandidate` with what its exit needs (AP-1's
- * stage sketch), replacing `GroundedMembershipCandidate`. `desiredResult` is the exact
+ * Membership's own candidate, extending `PlanCandidate` with what its exit needs, replacing `GroundedMembershipCandidate`. `desiredResult` is the exact
  * value the attempt's primary action wraps, carried alongside so `sandboxMembershipDryRun`
  * seeds the executor from it without narrowing the attempt's action family.
  */
@@ -89,8 +88,8 @@ export const membershipSourceHostId = (
 }
 
 /**
- * Expand + Adjudicate, the shared stage's half of AP-1's ground + expand split. Grounding
- * itself does not run here (AP-10): the primary action's `desiredResult` stays ungrounded
+ * Expand + Adjudicate, the shared stage's half of the ground + expand split. Grounding
+ * itself does not run here: the primary action's `desiredResult` stays ungrounded
  * until `sandboxMembershipDryRun` has a snapshot
  * to ground its derived `from`/`to` against; this function only reads concrete values already
  * in hand (`candidate.identity`, `roomId`, `actorCharacterId`), never the step's own referents.
@@ -122,7 +121,7 @@ export const expandAndAdjudicateMembershipCandidate = (
 }
 
 /** Builds the stage's `expansion` environment from the sandbox-state-backed graph lookup
- * `sandboxMembershipDryRun` already builds inline, named once per AP-1's sketch. */
+ * `sandboxMembershipDryRun` already builds inline, named once for the shared stage. */
 export const membershipPlanStageEnvironment = (
     sandboxState: SandboxState,
     roomId: EphemeraRoomId | undefined,
@@ -290,7 +289,7 @@ export type SelectIdentityPlanTupleInput = {
 }
 
 /**
- * The dry run's snapshot, as AP-10's derived half needs it: the frame says where the actor
+ * The dry run's snapshot, as grounding's derived half needs it: the frame says where the actor
  * is (`roomId`), and the candidate's locus says where the object is (`sourceHostId`). Nothing
  * else is knowable here --- Plan/the producer never see sandbox state.
  */
@@ -315,12 +314,11 @@ const dryRunReferentResolver = (
  *   complexity LLM, as before;
  * - `impossible`: illegal;
  * - `succeeded`: the primary step is grounded in full (`buildReferentAssignment` against
- *   `dryRunReferentResolver`, then one `groundChange` call --- AP-10), then the attempt is seeded
+ *   `dryRunReferentResolver`, then one `groundChange` call), then the attempt is seeded
  *   and run through the executor. Facilitating dissolves (already fully grounded ---
  *   `graphNode` referents, born grounded) seed first, BD-28's order; the newly-grounded
  *   primary `transferMembership` seeds last. Every seeded step is grounded by construction,
- *   so nothing here mirrors the executor's former mid-worklist grounding phase (retired,
- *   AP-10).
+ *   so nothing here mirrors the executor's former mid-worklist grounding phase (retired).
  *
  * The executor no longer classifies boundary edges itself: Expansion did, once, and a met
  * challenge is lowered like any other facilitating action. The commit side does not re-run

@@ -26,9 +26,9 @@ type GroundedInstructionStepResult =
 
 /**
  * The one choice a grounded `Change` makes on its way into the worklist (`seedFromGroundedSteps`,
- * the only seeder --- AP-10 retired the executor's own grounding phase, so every seed is already
+ * the only seeder --- the executor's own grounding phase is retired, so every seed is already
  * grounded). A relational `Change` stays as it is: it has no `host` and command-expands into a
- * chain (AP-6) rather than lowering straight to a step. A `transferMembership` lowers to its
+ * chain rather than lowering straight to a step. A `transferMembership` lowers to its
  * executor effect, here, where each id is checked for its slot; Grounding attaches ids
  * without typing them. A grounded non-Room host (an actor's inventory graph) is admitted.
  */
@@ -47,7 +47,7 @@ const groundedInstructionStep = (change: Change<GroundedReferent>): GroundedInst
 
 /**
  * Seeds fully grounded steps as worklist instructions, in the order given --- the only
- * seeder (AP-10: grounding happens once, completely, before anything is seeded; the
+ * seeder (grounding happens once, completely, before anything is seeded; the
  * executor's own grounding phase retired), through `groundedInstructionStep`. A mistyped
  * id is a caller contract violation and throws. Assertions are not seeded: none is
  * produced grounded.
@@ -69,9 +69,9 @@ type CommandExpandOutcome =
     /**
      * BD-30's generator: the instruction is replaced by its minted children, pushed to the
      * front. No command-expansion produces one today --- a relational edge retires as one
-     * chain instead (AP-6) --- but it is the worklist's mechanism for an instruction that
-     * expands into further instructions, which containment's two-step plans (slice 3c) are
-     * expected to need.
+     * chain instead --- but it is the worklist's mechanism for an instruction that
+     * expands into further instructions. (Containment, once expected to need it, rides a
+     * `containment` flag on its one `transferMembership` step instead.)
      */
     | { kind: 'consumed'; children: WorklistInstruction[] }
     | { kind: 'defer'; decidable: boolean; reason: string }
@@ -82,7 +82,7 @@ type CommandExpandOutcome =
  * (BD-34 review correction). `transferMembership`/`establishRelation`/`dissolveRelation`
  * retire directly (atomic effects); a grounded relational `Change` (`establishRelation`/
  * `dissolveRelation` primitive) evaluates live state and retires as its whole chain, one
- * `ExecutorRelationalChain` (AP-6), lowered to kernel steps only after selection.
+ * `ExecutorRelationalChain`, lowered to kernel steps only after selection.
  * `containedBy` has no shipped evaluation logic anywhere in this codebase yet (verified: no
  * live route implements it) --- errors rather than fabricating behavior, per "grow the
  * technique set as concrete cases demand."
@@ -135,7 +135,7 @@ export type ExecutorOutcome =
 
 /**
  * BD-30's phase-stratified worklist, realized. Every instruction entering this loop is
- * already grounded (AP-10: grounding happens once, completely, before seeding --- the
+ * already grounded (grounding happens once, completely, before seeding --- the
  * executor's former grounding phase, which used to ground the first `ungrounded`
  * instruction ahead of command-expansion each iteration, retired along with it). So there
  * is one phase left: command-expand the frontmost item, retiring it into the output list

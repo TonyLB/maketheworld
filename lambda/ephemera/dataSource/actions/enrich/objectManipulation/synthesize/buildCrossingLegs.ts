@@ -20,7 +20,7 @@ const portFieldsFrom = (kindAndLabel: CrossingKindAndLabel): Pick<EphemeraCrossi
         : { kind: kindAndLabel.relationKind }
 
 /**
- * The establish-side chain builder (AP-6, `AGENT.commandAttemptPipeline.planning.md`),
+ * The establish-side chain builder,
  * consuming `findShardBoundary`'s `'crossed'` result. It returns the chain as a value ---
  * every leg with its host, and every port it crosses --- in `findRelationalChain`'s
  * `RelationalChainStep` shape, so establish and dissolve share one chain type; lowering it to
@@ -61,7 +61,7 @@ const portFieldsFrom = (kindAndLabel: CrossingKindAndLabel): Pick<EphemeraCrossi
  * the convention keeps the chain's own order legible.
  *
  * Establish only: a dissolve's chain already exists, so it is found (`findRelationalChain`),
- * not built. No `chainId` is minted (AP-6 defers it until one edge can have several chains).
+ * not built. No `chainId` is minted (deferred until one edge can have several chains).
  */
 export const buildCrossingLegs = (
     input: {
@@ -114,7 +114,7 @@ export const buildCrossingLegs = (
 }
 
 /**
- * Lowers a relational chain to kernel steps (AP-6), for establish or dissolve alike --- the one
+ * Lowers a relational chain to kernel steps, for establish or dissolve alike --- the one
  * chain type differs between the two only here: a port becomes `addCrossingPort` or
  * `removeCrossingPort`, an edge `establishRelation` or `dissolveRelation`, each in the chain's
  * own order. That order carries no data dependency either way: a port step and a relational

@@ -296,11 +296,9 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
 }
 
 /**
- * AP-9 (slice 3a-i): publishes the generalized `Ludic Network Change Requested` hand-off
- * alongside a per-primitive event, for membership and relational exits only. No-op when
- * `attempt` is undefined (a degenerate fixture, never the live path --- both producers
- * build an attempt unconditionally). Containment (`Object Containment`) joins in slice 3c, once
- * its attempt carries a `desiredResult`.
+ * Publishes the generalized `Ludic Network Change Requested` hand-off for the membership,
+ * relational and containment exits. No-op when `attempt` is undefined (a degenerate
+ * fixture, never the live path --- every producer builds an attempt unconditionally).
  */
 const publishLudicNetworkChangeRequested = async (
     streamEvent: StreamEventFn,
@@ -555,7 +553,7 @@ const publishStreamEventsForIntent = async (
             })
         }
         else {
-            // AP-9 (slice 3a-iv): membership publishes only the generalized hand-off now ---
+            // Membership publishes only the generalized hand-off now ---
             // `Object Drop`/`Object Take Hold` retired. `publishLudicNetworkChangeRequested`
             // no-ops (and logs nothing) if `parseResult.attempt` is somehow undefined, which
             // never happens on the live path (both producers build an attempt unconditionally).
@@ -565,7 +563,7 @@ const publishStreamEventsForIntent = async (
     else if (isParseCommandEstablishRelationResult(parseResult)) {
         // `hostId` here only guards the not-a-room OOC message below (derived from the final
         // step's host --- the common-ancestor chain step, or the sole step for a portless
-        // candidate); the generalized hand-off (AP-9) carries the attempt, not `steps`, so
+        // candidate); the generalized hand-off carries the attempt, not `steps`, so
         // this has no other reader. `transferMembership` is the one `MutationKernelStep` kind
         // without a `hostId` field --- this route's `steps` never contains one (only
         // establish/dissolve/port steps), but the filter keeps that narrowing explicit.
@@ -582,7 +580,7 @@ const publishStreamEventsForIntent = async (
             })
         }
         else {
-            // AP-9 (slice 3a-iv): relational publishes only the generalized hand-off now ---
+            // Relational publishes only the generalized hand-off now ---
             // `Object Establish Relation`/`Object Dissolve Relation` retired. `hostId` and
             // `stepsWithHostId` (above) no longer have a reader here; they stay computed above
             // only for the not-a-room OOC message guard.
@@ -590,9 +588,9 @@ const publishStreamEventsForIntent = async (
         }
     }
     else if (isParseCommandObjectContainmentResult(parseResult)) {
-        // AP-9 (slice 3c): containment publishes only the generalized hand-off now ---
+        // Containment publishes only the generalized hand-off now ---
         // `Object Containment` retired, folded into `Ludic Network Change Requested`, same as
-        // membership/relational (slice 3a). Its attempt's `transferMembership` action now
+        // membership/relational. Its attempt's `transferMembership` action now
         // carries a `containment` flag `commitAttempt` threads through.
         await publishLudicNetworkChangeRequested(streamEvent, characterId, parseResult.attempt, parseResult.confidence)
     }

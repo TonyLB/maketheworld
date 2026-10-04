@@ -255,7 +255,7 @@ describe('CommandAttempt', () => {
         })
     })
 
-    describe('NarrateAttemptAction (slice 4, AP-5)', () => {
+    describe('NarrateAttemptAction', () => {
         const narrateAction = (description?: string): AttemptActionData => ({
             kind: 'narrate',
             challenges: [],

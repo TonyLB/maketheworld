@@ -29,7 +29,7 @@ describe('runExecutor', () => {
         // already-shared host to a single portless leg, which is now the *only* source of the
         // establishRelation step. The grounded `Change` itself seeds directly: it
         // carries no host, and command-expansion dispatches on its primitive to find the chain,
-        // which retires as one output, still a value (AP-6).
+        // which retires as one output, still a value.
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(SAUCER_ID).addObject(CUP_ID)
 
         const env: ExpansionEnvironment = {
@@ -82,7 +82,7 @@ describe('runExecutor', () => {
         // instruction at all any more (the seed is collapsed). A direct rope->cup edge is
         // never valid once the relation crosses a boundary (they never come to share a host), so
         // the crossing legs below are the Change's own chain, same as the one-leg same-host case
-        // above. The port rides inside the chain: no side channel (AP-6).
+        // above. The port rides inside the chain: no side channel.
         const seed: WorklistInstruction[] = [
             {
                 id: 'relation',

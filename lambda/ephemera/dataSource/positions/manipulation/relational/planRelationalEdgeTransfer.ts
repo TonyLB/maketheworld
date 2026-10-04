@@ -20,7 +20,7 @@ export type PlanRelationalEdgeTransferResult =
     | { ok: false; errorCode: string; errorMessage: string }
 
 /**
- * Relational's live-state replan (AP-9, slice 3a-iii) --- mirrors `planObjectMoveTransfer`'s
+ * Relational's live-state replan --- mirrors `planObjectMoveTransfer`'s
  * shape for membership: takes the grounded edge and rebuilds its chain fresh, against
  * ancestry/graphs read now, rather than trusting the `steps` a stale dry-run snapshot
  * computed at parse time (`compileRelationalFromSkeleton.ts`'s `relationalDryRun`, which this
@@ -31,7 +31,7 @@ export type PlanRelationalEdgeTransferResult =
  * Reaches into `actions/enrich/objectManipulation/synthesize/` directly --- not a new
  * dependency direction: `repairAdministrativeChainDissolve.ts` and
  * `clearCoyoteGameImprovisationObjects.ts` already import `lowerRelationalChain` from there
- * (AP-9's premises, checked 2026-10-02). Actions-side still needs the same modules for its own
+ * (checked 2026-10-02). Actions-side still needs the same modules for its own
  * pre-publish dry run during selection, so leaving them in place avoids inverting that
  * dependency for no benefit.
  */

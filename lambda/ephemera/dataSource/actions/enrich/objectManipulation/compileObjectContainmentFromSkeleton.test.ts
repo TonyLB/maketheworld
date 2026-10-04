@@ -137,7 +137,7 @@ describe('compileObjectContainmentFromSkeleton', () => {
         expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noCatalog })
     })
 
-    it('returns Consult, naming both candidates, when the subject span resolves to more than one object (slice 3c, AP-4)', async () => {
+    it('returns Consult, naming both candidates, when the subject span resolves to more than one object', async () => {
         const secondCupId = 'OBJECT#Cup2' as EphemeraObjectId
         const result = await compileObjectContainmentFromSkeleton(
             {
@@ -166,7 +166,7 @@ describe('compileObjectContainmentFromSkeleton', () => {
         })
     })
 
-    it('abstains when subject and target resolve to the same object (AP-12, reused)', async () => {
+    it('abstains when subject and target resolve to the same object', async () => {
         const result = await compileObjectContainmentFromSkeleton(
             {
                 command: 'put cup on cup',

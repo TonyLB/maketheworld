@@ -69,8 +69,7 @@ export class PositionAttemptAction implements AttemptActionMember {
 }
 
 /**
- * The first member of the queued **narration** outcome class (slice 4 of
- * `AGENT.commandAttemptPipeline.planning.md`, AP-5): describing a referent is not a
+ * The first member of the queued **narration** outcome class: describing a referent is not a
  * world mutation, so it has no `PlanStep` shape and `desiredResult` is always
  * `undefined` --- narration doesn't belong in `PlanStep`'s vocabulary at all, not just
  * an unfilled field. `description` is the prose gloss, read by `describe()`, the same

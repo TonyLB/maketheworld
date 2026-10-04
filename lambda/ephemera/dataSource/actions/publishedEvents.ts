@@ -47,11 +47,11 @@ export type CharacterHomePublishedPayload = {
 }
 
 /**
- * AP-9: the generalized hand-off, replacing the per-primitive events (`Object Take Hold`/
- * `Object Drop`/`Object Establish Relation`/`Object Dissolve Relation`, retired slice 3a-iv;
- * `Object Containment`, retired slice 3c). Carries the whole selected attempt --- no
- * primitive named in the header, since a plan can mix kinds (containment's `transferMembership`
- * action carries an optional `containment` flag, slice 3c).
+ * The generalized hand-off, replacing the per-primitive events (`Object Take Hold`/
+ * `Object Drop`/`Object Establish Relation`/`Object Dissolve Relation`/`Object Containment`,
+ * all retired). Carries the whole selected attempt --- no primitive named in the header,
+ * since a plan can mix kinds (containment's `transferMembership` action carries an optional
+ * `containment` flag).
  */
 export type LudicNetworkChangeRequestedPublishedPayload = {
     type: 'Ludic Network Change Requested';

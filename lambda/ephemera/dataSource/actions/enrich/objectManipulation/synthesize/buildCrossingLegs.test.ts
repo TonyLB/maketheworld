@@ -21,7 +21,7 @@ const E_ID = 'OBJECT#E' as EphemeraObjectId
 const F_ID = 'OBJECT#F' as EphemeraObjectId
 
 // Most cases assert the lowered establish steps, exactly as they did before the builder and the
-// lowerer were split (AP-6): `buildAndLower` composes the two the way every caller does.
+// lowerer were split: `buildAndLower` composes the two the way every caller does.
 const buildAndLower = (input: Parameters<typeof buildCrossingLegs>[0]) =>
     lowerRelationalChain(buildCrossingLegs(input), 'establishRelation')
 

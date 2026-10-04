@@ -86,7 +86,7 @@ describe('groundMembershipCandidate', () => {
         confidence: 0.8,
     })
 
-    it('builds one un-expanded attempt per tuple, its primary action wrapping the wholly ungrounded desired result (AP-10: grounding defers to the dry run)', () => {
+    it('builds one un-expanded attempt per tuple, its primary action wrapping the wholly ungrounded desired result (grounding defers to the dry run)', () => {
         const context = { words: 'take the rope', span: 'rope', catalog }
         const grounded = groundMembershipCandidate(candidate(ropeId, { kind: 'room' }, 'takeHold'), context)
 

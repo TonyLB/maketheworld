@@ -174,8 +174,8 @@ export type ParseCommandLookRoomResult = {
  * object-directed look ("look/examine <object>") from the Plan-stage `matchLookTemplate`
  * matcher (iteration 9, Phase 4) --- the latter is the one producer of this type that
  * *is* reachable from Bedrock parse; the doc comment below only describes the other three.
- * `attempt` is populated only by the object-directed producer (`compileDescribeFromSkeleton`,
- * slice 4 of `AGENT.commandAttemptPipeline.planning.md`): the other three producers build no
+ * `attempt` is populated only by the object-directed producer (`compileDescribeFromSkeleton`):
+ * the other three producers build no
  * `CommandAttempt` and have nothing to put there.
  */
 export type ParseCommandLookComponentResult = {
@@ -379,7 +379,7 @@ export type ParseCommandEstablishRelationResult = {
  * shard. Deliberately separate from `ParseCommandEstablishRelationResult`, which narrowed
  * `On` out on 2026-08-22: there is no `Change`/edge here for that type's
  * `RelationalKindAndLabel` to describe. `hostId` is the acting character's room (narration
- * context only, matching `orchestrateObjectMove`'s `roomId`) --- not `subjectId`'s current
+ * context only, matching the object-move `roomId`) --- not `subjectId`'s current
  * host, which the positions-layer consumer resolves fresh via `getMembershipContainers`
  * rather than trusting a value baked in at parse time. `containment` is typed as the full
  * AB-54 hosting-kind union; `On` and `In` both construct this type today (nestedObjectLook

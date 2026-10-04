@@ -1055,7 +1055,7 @@ describe('mtw.ephemera.perception DataSource', () => {
         // Take/drop routing cases were removed in Phase 4 --- those events no longer reach this
         // data source at all (see `subscribedEvents.test.ts`, which pins the non-subscription).
         // What survives here is the relational family's end-to-end fan-in routing, now through
-        // `Ludic Network Change Requested` (AP-9, slice 3a-iv) rather than the retired
+        // `Ludic Network Change Requested` rather than the retired
         // `Object Establish Relation`/`Object Dissolve Relation` events.
         it('intent + fact batch publishes single establish-relation WorldMessage', async () => {
             const publishSpy = spyPublish()

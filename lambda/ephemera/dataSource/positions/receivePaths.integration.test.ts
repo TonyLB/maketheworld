@@ -22,10 +22,6 @@ jest.mock('../../internalCache', () => ({
     },
 }))
 
-jest.mock('./manipulation/membership/orchestrateObjectMove', () => ({
-    orchestrateObjectMove: jest.fn(),
-}))
-
 jest.mock('./manipulation/commitAttempt', () => ({
     commitAttempt: jest.fn(),
 }))
@@ -35,7 +31,6 @@ import internalCache from '../../internalCache'
 import { orchestrateCharacterMove } from './navigate/orchestrateCharacterMove'
 import { resolveConnectTargetRoom } from './manipulation/membership/resolveConnectTargetRoom'
 import { repairRoomOccupancyDrift } from './manipulation/membership/repairRoomOccupancyDrift'
-import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
 import { commitAttempt } from './manipulation/commitAttempt'
 import { CommandAttempt, type CommandAttemptData } from '../actions/commandAttempt'
 
@@ -55,9 +50,6 @@ const characterMetaGetMock = internalCache.CharacterMeta.get as jest.MockedFunct
 >
 const getMembershipContainersMock = internalCache.Positions.getMembershipContainers as jest.MockedFunction<
     typeof internalCache.Positions.getMembershipContainers
->
-const orchestrateObjectMoveMock = orchestrateObjectMove as jest.MockedFunction<
-    typeof orchestrateObjectMove
 >
 const commitAttemptMock = commitAttempt as jest.MockedFunction<
     typeof commitAttempt
@@ -111,7 +103,6 @@ describe('positions receive paths (integration)', () => {
             },
             trimmedRoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
         })
-        orchestrateObjectMoveMock.mockResolvedValue(undefined)
         commitAttemptMock.mockResolvedValue(undefined)
         getMembershipContainersMock.mockResolvedValue([ROOM_A])
         repairRoomOccupancyDriftMock.mockResolvedValue({ ghostsPurged: 0, adjacencySynced: 0 })
@@ -223,7 +214,7 @@ describe('positions receive paths (integration)', () => {
     })
 
     describe('Ludic Network Change Requested', () => {
-        it('routes the generalized hand-off through commitAttempt (AP-9, replacing Object Take Hold/Drop/Establish Relation/Dissolve Relation)', async () => {
+        it('routes the generalized hand-off through commitAttempt (replacing Object Take Hold/Drop/Establish Relation/Dissolve Relation)', async () => {
             const attemptData: CommandAttemptData = {
                 words: 'pick up the broom',
                 referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
@@ -249,7 +240,6 @@ describe('positions receive paths (integration)', () => {
             )
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
             expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
-            expect(orchestrateObjectMoveMock).not.toHaveBeenCalled()
         })
 
         it('a published attempt round-trips through fromJSON and reaches commitAttempt with its actions, challenges and verdicts intact', async () => {

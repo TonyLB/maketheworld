@@ -40,9 +40,9 @@ export type CompileDescribeFromSkeletonResult =
     | ParseCommandErrorResult
 
 /**
- * One producer candidate (AP-1's stage sketch, slice 4), mirroring
+ * One producer candidate (the shared selection stage's input), mirroring
  * `ContainmentGroundedCandidate` (`compileObjectContainmentFromSkeleton.ts`) reduced to one
- * referent: no AP-12 self-relation guard applies, since there's nothing to compare a single
+ * referent: no self-relation guard applies, since there's nothing to compare a single
  * referent against.
  */
 type DescribeGroundedCandidate = {
@@ -57,9 +57,9 @@ type ProposeDescribeCandidatesResult =
     | { ok: false; reason: string }
 
 /**
- * The describe route's producer (AP-1/AP-5, slice 4), modeled directly on
+ * The describe route's producer, modeled directly on
  * `proposeContainmentCandidates` reduced from two referents to one: one identity pool,
- * enumerated into assignments (`enumerateIdentityAssignments`, AP-2's confidence, which for
+ * enumerated into assignments (`enumerateIdentityAssignments`, whose confidence for
  * one key is just that key's own `jointRelevance`), each building a `CommandAttempt` whose
  * one action is a `NarrateAttemptAction` --- describing a referent is not a world mutation,
  * so there is no `PlanStep`/`desiredResult` for it, only prose.
@@ -102,7 +102,7 @@ const proposeDescribeCandidates = (
     return { ok: true, candidates: describeCandidates }
 }
 
-/** AP-3's Consult wording for describe: one line naming the single referent. */
+/** Consult wording for describe: one line naming the single referent. */
 const describeConsultAlternative = (candidate: DescribeGroundedCandidate): ConsultAlternative => ({
     objectId: candidate.candidateId,
     label: candidate.label,
@@ -110,9 +110,9 @@ const describeConsultAlternative = (candidate: DescribeGroundedCandidate): Consu
 })
 
 /**
- * Object-directed look's Plan pipeline (iteration 9, Phase 4; producer/stage split slice 4):
+ * Object-directed look's Plan pipeline (iteration 9, Phase 4; since split into producer and shared stage):
  * Plan match (matchLookTemplate) -> Identify (runIdentityStageOverSkeleton) -> the describe
- * producer (`proposeDescribeCandidates`) -> `selectPlanTuple` (AP-1/AP-5). No Expansion/
+ * producer (`proposeDescribeCandidates`) -> `selectPlanTuple`. No Expansion/
  * Validation leg --- unlike relational, a describe referent is singular with no relation to
  * another referent, so there is no `sameHost` placement or cycle-legality check to run, and
  * no general Synthesize executor seed is built; every candidate is trivially legal, so the

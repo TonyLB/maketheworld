@@ -14,7 +14,7 @@ import type { TransferMembershipStep } from '../parsePlanStep'
 import type { RelationalChainStep } from './findRelationalChain'
 
 /**
- * A relational effect step: one leg of a chain (AP-6), lowered from it by
+ * A relational effect step: one leg of a chain, lowered from it by
  * `lowerRelationalChain` and reused verbatim as the kernel's relational step.
  *
  * `subjectId`/`targetId` are `EphemeraLudicTerminalId`-typed: any legal host-kind component, or a
@@ -84,7 +84,7 @@ export type ExecutorParsePlanStep =
     | ExecutorDescribeStep
 
 /**
- * A relational edge's chain (AP-6, `AGENT.commandAttemptPipeline.planning.md`), retired from the
+ * A relational edge's chain, retired from the
  * worklist as one output: every leg with its host and every port it crosses, establish's freshly
  * built or dissolve's found. It stays a value through selection; `lowerRelationalChain`
  * (`buildCrossingLegs.ts`) turns the chosen one into kernel steps.
@@ -121,7 +121,7 @@ export type GroundedAssertion = GroundedBinaryAssertion
 export type GroundedRelationalChange = EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>
 
 /**
- * BD-30's worklist instruction. Always grounded (AP-10): grounding happens once, completely,
+ * BD-30's worklist instruction. Always grounded: grounding happens once, completely,
  * before anything is seeded (`seedFromGroundedSteps` is the only seeder), so the worklist
  * never carries an ungrounded `Change`/`Assertion` --- unlike `'retired'`, which is
  * deliberately not a tag here either, since a retired instruction has left the worklist

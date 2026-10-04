@@ -51,15 +51,14 @@ export type GroundMembershipCandidateContext = {
 }
 
 /**
- * The producer's half of AP-1's ground + expand split --- builds the planned `Change`
+ * The producer's half of the ground + expand split --- builds the planned `Change`
  * (Plan's job) and wraps it in an **un-expanded** attempt (one primary action, no boundary
  * dissolves yet --- Expand is the shared stage's job, `selectPlanCandidate.ts`). Called per
  * candidate by the pool-walking producer below, and directly by callers that already hold
  * an `IdentityPlanCandidate` outside a pool (the identity-only fallback, the complexity-LLM
  * re-ground exit).
  *
- * **Despite its name, this no longer grounds the step** (AP-10, revised 2026-10-02 while
- * planning slice 2e): `plannedResult`'s `object` referent carries no `groundedId` here ---
+ * **Despite its name, this no longer grounds the step** (revised 2026-10-02):`plannedResult`'s `object` referent carries no `groundedId` here ---
  * only `candidate.identities`/`candidate.identity.objectId` (used below for the attempt's
  * referent/description, and read directly by Expand, `expandAndAdjudicateMembershipCandidate`)
  * carry the identity, and the attempt's referent carries it onward (the span half). The step

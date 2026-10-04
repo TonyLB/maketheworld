@@ -48,7 +48,7 @@ type ActionFragment = {
 const emptyFragment: ActionFragment = { steps: [], slots: [] }
 
 /**
- * Positions' snapshot for AP-10's derived half, read once per attempt after the hand-off:
+ * Positions' snapshot for grounding's derived half, read once per attempt after the hand-off:
  * the current host of the acting character and of every thing the attempt refers to, each
  * kept only when it is in exactly one host (zero or several is not knowable here, and a step
  * depending on it drops). Also serves membership's drift check below.
@@ -114,7 +114,7 @@ const buildMembershipFragment = async (
         toHostId,
         bundleId,
         narration: { characterName, objectShortName },
-        // Containment (slice 3c): `planObjectMoveTransfer`/`buildObjectMoveOp`/
+        // Containment: `planObjectMoveTransfer`/`buildObjectMoveOp`/
         // `compilePositionKernelOp` already thread this through to the establish step whose
         // `hostId` is always `toHostId` by construction --- no ancestry walk needed.
         ...(change.containment ? { containment: change.containment } : {}),
@@ -153,7 +153,7 @@ const buildRelationalFragment = async (
 }
 
 /**
- * The generic per-attempt commit path (AP-9): dispatches each action by its `desiredResult`'s
+ * The generic per-attempt commit path: dispatches each action by its `desiredResult`'s
  * primitive, re-expanding it against live state (membership via `planObjectMoveTransfer`,
  * relational via `planRelationalEdgeTransfer`), concatenates every action's resulting kernel
  * steps into one sequence in the attempt's own action order, and commits the whole attempt in
@@ -185,7 +185,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     // `commitAndPresentStepSequence`'s call below).
     const bundleId = uuidv4()
 
-    // AP-10: the span half travels on the attempt's referents; the derived half is rebuilt
+    // The span half travels on the attempt's referents; the derived half is rebuilt
     // here, against live state, for every action alike (a relational step, published fully
     // grounded, passes through unchanged).
     const spans = new Map(attempt.referents().map(({ refKey, id }) => [refKey, id]))
@@ -224,7 +224,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     const slots = fragments.flatMap((fragment) => fragment.slots)
     const relationalEdges = fragments.flatMap((fragment) => (fragment.relationalEdge ? [fragment.relationalEdge] : []))
 
-    // Mirrors `executeEstablishEdgeChain`'s own resolver (AP-9's premises): every relational
+    // Mirrors `executeEstablishEdgeChain`'s own resolver: every relational
     // step already carries its own `hostId`, so no live lookup is needed to answer
     // `computeStepSequenceFootprint`'s question for a relational endpoint. `transferMembership`
     // steps never call this (their hosts are already on the step itself), so this map only

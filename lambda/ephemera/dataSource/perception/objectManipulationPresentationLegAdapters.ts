@@ -1,18 +1,18 @@
 /**
  * Object *relational* presentation fan-in ingress: envelope guards and leg mappers for
- * mtw.ephemera.actions Ludic Network Change Requested (AP-9's relational actions) and
+ * mtw.ephemera.actions Ludic Network Change Requested (its relational actions) and
  * mtw.ephemera.positions Object Relation Changed.
  *
  * Take Hold / Drop / Object Moved left this file in Phase 4: object moves now narrate through the
  * mutation kernel's compiled step sequence and a positionally-captured audience
- * (`positions/manipulation/membership/orchestrateObjectMove.ts`), so there is nothing here to join
+ * (`positions/manipulation/commitAttempt.ts`), so there is nothing here to join
  * an intent leg to a fact leg for. `Object Moved` facts are still streamed by `commitStepSequence`;
  * perception simply no longer subscribes to them.
  *
- * Re-pointed from `Object Establish Relation`/`Object Dissolve Relation` (slice 3a-iv): those
+ * Re-pointed from `Object Establish Relation`/`Object Dissolve Relation`: those
  * events carried a flat, narration-only `hostId` --- known buggy for a genuine crossing
  * (`AGENT.relationalNarration.planning.md`). The generalized hand-off carries no host at all
- * (AP-6: a relation's host lives on its chain's legs, not its edge), so this reads the
+ * (a relation's host lives on its chain's legs, not its edge), so this reads the
  * subject's current host fresh, the same way `planRelationalEdgeTransfer.ts` does --- not a
  * regression, since the old flat field was already wrong for a crossing.
  */

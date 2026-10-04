@@ -83,7 +83,7 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * and this is the one caller that still throws the distinction away; lifting that is BD-18's, not
  * a matter of reading `outcome.verdict` here.
  *
- * Now wired to every live route: `orchestrateObjectMove` directly (take/drop/give, via
+ * Now wired to every live route: `commitAttempt` (take/drop/give, via
  * `planObjectMoveTransfer`'s dry-run-then-plan --- 3d, 2026-09-08, replacing `executeMembershipTransfer`'s
  * retired `honorDefer` mode), `executeMembershipTransfer` itself (the object-lifecycle Migrate row:
  * destroy/edit/spawn/place/drift-repair; this absorbed `applyObjectClearMembership`/

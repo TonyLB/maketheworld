@@ -102,7 +102,7 @@ export const isPerceptionSubscribedEnvelope = (
         // narrate through the mutation kernel now, so perception has no reason to see them. Same
         // shape as Phase 3's removal of the Character Navigate/Home/Connected/Disconnected/Moved
         // subscriptions when membership narration migrated. `Ludic Network Change Requested`
-        // (AP-9, slice 3a-iv) replaces `Object Establish Relation`/`Object Dissolve Relation`.
+        // replaces `Object Establish Relation`/`Object Dissolve Relation`.
         || isPerceptionActionsLudicNetworkChangeRequestedEnvelope(envelope)
         || isPerceptionPositionsObjectRelationChangedEnvelope(envelope)
 )

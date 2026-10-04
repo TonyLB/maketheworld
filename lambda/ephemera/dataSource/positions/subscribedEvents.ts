@@ -29,7 +29,7 @@ export type EphemeraPositionsActionsCharacterNavigateHeader =
 export type EphemeraPositionsActionsCharacterHomeHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.actions'; type: 'Character Home' }
 
-/** AP-9 (slice 3a/3c): the generalized hand-off for membership/relational/containment
+/** The generalized hand-off for membership/relational/containment
  * attempts, replacing `Object Take Hold`/`Object Drop`/`Object Establish Relation`/
  * `Object Dissolve Relation` (retired 3a-iv) and `Object Containment` (retired 3c). */
 export type EphemeraPositionsActionsLudicNetworkChangeRequestedHeader =

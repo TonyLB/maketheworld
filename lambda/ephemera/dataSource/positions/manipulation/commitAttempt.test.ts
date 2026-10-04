@@ -77,7 +77,7 @@ const mockLiveHosts = (broomHost: EphemeraRoomId | EphemeraCharacterId | Ephemer
     })
 }
 
-/** A containment move's attempt (slice 3c): one `transferMembership` action carrying a
+/** A containment move's attempt: one `transferMembership` action carrying a
  * `containment` flag, `from` derived from the subject's own span (`currentHost(span:subject)`),
  * ungrounded on `object`/`to` --- same shape the real producer builds. */
 const containmentAttempt = (containment: 'On' | 'In' = 'On'): CommandAttempt => CommandAttempt.fromJSON({
@@ -323,7 +323,7 @@ describe('commitAttempt', () => {
         expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
     })
 
-    it('dispatches a containment action through planObjectMoveTransfer with its containment flag (slice 3c, AP-4)', async () => {
+    it('dispatches a containment action through planObjectMoveTransfer with its containment flag', async () => {
         mockLiveHosts(ROOM)
         const plan = { steps: [{ kind: 'transferMembership', entityIds: new Set([BROOM]), fromHostIds: new Set([ROOM]), toHostId: TABLE }], slots: [] }
         planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })

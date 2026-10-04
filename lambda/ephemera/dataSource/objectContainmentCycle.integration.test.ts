@@ -5,15 +5,15 @@
  * `planObjectMoveTransfer`'s `hasPresenceAncestor` check (`positions/ludicGraph/presenceAncestry.ts`)
  * it committed, emptying the room's graph and leaving box and cup holding each other.
  *
- * Real, unmocked: `orchestrateObjectMove` -> `planObjectMoveTransfer` (dry run) ->
+ * Real, unmocked: `commitAttempt` -> its dry run over the attempt's whole sequence ->
  * `commitAndPresentStepSequence` -> `commitStepSequence`, against a mocked `ephemeraDB` leaf ---
  * the same harness as `objectContainmentInPayoff.integration.test.ts`, except that this test's
  * `transactWrite` mock writes each committed graph back into its store, so a second move sees the
  * first one's result at commit time as well as at plan time.
  *
  * Parse is skipped: `compileObjectContainmentFromSkeleton` resolves ids and nothing else, so it cannot
- * refuse a cycle either way. `fromHostId` is passed as the room, which is what `positions/index.ts`
- * reads from `getMembershipContainers` for an object sitting directly in the room.
+ * refuse a cycle either way. The attempt is built by hand, as `commitAttempt.test.ts`'s
+ * `containmentAttempt` does, with the subject's source host read live at commit (`currentHost`).
  *
  * The harm asserted is reachability, not an infinite loop: `enumerateLudicCacheShards` guards with
  * a visited set, so a cycle does not hang it --- instead both objects drop out of the room's walk,
@@ -35,7 +35,8 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
-import { orchestrateObjectMove } from './positions/manipulation/membership/orchestrateObjectMove'
+import { CommandAttempt } from './actions/commandAttempt'
+import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { enumerateLudicCacheShards } from './positions/ludicCache/enumerateShards'
 import { testLudicGraph } from './positions/ludicGraph/testFixtures'
 
@@ -73,13 +74,27 @@ const transactWriteMock = jest.fn(async (items: any[]): Promise<void> => {
     })
 })
 
-const move = (subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => orchestrateObjectMove({
-    objectIds: [subjectId],
-    fromHostId: ROOM_ID,
-    toHostId: targetId,
-    roomId: ROOM_ID,
+const move = (subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => commitAttempt({
+    attempt: CommandAttempt.fromJSON({
+        words: 'put the subject in the target',
+        referents: [
+            { refKey: 'subject', id: subjectId, shortName: subjectId },
+            { refKey: 'target', id: targetId, shortName: targetId },
+        ],
+        actions: [{
+            kind: 'position',
+            desiredResult: {
+                kind: 'change',
+                primitive: 'transferMembership',
+                object: { referentType: 'objectSpan', span: 'subject', stableRefKey: 'subject' },
+                from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'subject', stableRefKey: 'subject' } },
+                to: { referentType: 'objectSpan', span: 'target', stableRefKey: 'target' },
+                containment: 'In',
+            } as never,
+            challenges: [],
+        }],
+    }),
     characterId: CHARACTER_ID,
-    containment: 'In',
     messageBus: { publish: jest.fn() } as any,
     streamEvent: jest.fn().mockResolvedValue(undefined),
 })
@@ -114,6 +129,24 @@ describe('object containment cycle (AB-63)', () => {
             return undefined
         })
         ephemeraDBMock.transactWrite.mockImplementation(transactWriteMock)
+        // The adjacency read's query leaf is not modelled here (as in `ropeLashedTakePayoff`): answer
+        // "which hosts hold this id" from the live graphs instead, so the commit sees each move's result.
+        jest.spyOn(internalCache.Positions, 'getMembershipContainers').mockImplementation(async (id) => {
+            if (id === CHARACTER_ID) {
+                return [ROOM_ID] as any
+            }
+            const containers: string[] = []
+            for (const hostId of [ROOM_ID, BOX_ID, CUP_ID]) {
+                if (hostId !== id && (await internalCache.Positions.getLudicGraph(hostId)).nodeIds.has(id)) {
+                    containers.push(hostId)
+                }
+            }
+            return containers as any
+        })
+    })
+
+    afterEach(() => {
+        jest.restoreAllMocks()
     })
 
     it('refuses "put the box in the cup" while the cup is in the box', async () => {

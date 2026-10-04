@@ -71,7 +71,7 @@ describe('compileRelationalFromSkeleton', () => {
             }],
             attempt: expect.objectContaining({
                 words: 'put broom under table',
-                // Parse's own stableRefKey (slice 2a), not a synthesized `${id}/subject` key.
+                // Parse's own stableRefKey, not a synthesized `${id}/subject` key.
                 referents: [
                     { refKey: 'broomRef', id: broomId, shortName: 'broom' },
                     { refKey: 'tableRef', id: tableId, shortName: 'table' },
@@ -105,11 +105,11 @@ describe('compileRelationalFromSkeleton', () => {
             { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph } }
         )
 
-        // AP-12 excludes self-relation at the producer, leaving exactly the two
+        // The producer excludes self-relation, leaving exactly the two
         // genuinely-distinct orderings (benchA under benchB, benchB under benchA) ---
         // not the four combinations a naive product would form. Their confidence ties
         // (both benches match the "bench" span identically), so `selectPlanTuple`'s thin
-        // margin now asks instead of silently committing to one (slice 2d), where the old
+        // margin now asks instead of silently committing to one, where the old
         // `candidates[0]` placeholder would have picked an arbitrary ordering.
         expect(result.type).toBe('Consult')
         if (result.type === 'Consult') {
@@ -215,7 +215,7 @@ describe('compileRelationalFromSkeleton', () => {
         expect((result as { confidence: number }).confidence).toBe(0.9)
     })
 
-    it('drops a self-relation of a non-Under kind at the producer (no self-relations, AP-12)', async () => {
+    it('drops a self-relation of a non-Under kind at the producer (no self-relations)', async () => {
         const getLudicGraph = jest.fn().mockResolvedValue(
             testLudicGraph(roomId, {
                 nodes: [{ tag: 'Object' as const, universalKey: lampId }],

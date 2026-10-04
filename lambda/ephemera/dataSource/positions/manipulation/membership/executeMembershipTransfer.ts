@@ -50,7 +50,7 @@ const defaultGetMembershipContainers = (id: EphemeraObjectId | EphemeraCharacter
  * **Character routes no longer call this function** (3e, 2026-09-08): `orchestrateCharacterRoomMembership`
  * now builds and compiles its plan upstream via `planCharacterMoveTransfer` and commits directly.
  * **Take/drop/give no longer calls this function either** (3d, 2026-09-08): `honorDefer`, the mode
- * that let a single caller (`orchestrateObjectMove`) opt into a player-refusable, single-hop
+ * that let a single caller (the object-move route) opt into a player-refusable, single-hop
  * defer-aware check, is deleted --- that path is `commitAttempt` (via `planObjectMoveTransfer`),
  * which builds, dry-runs and commits its own plan without going through this function at all. What remains here is exactly the
  * administrative object path (2026-09-06) unified from `applyObjectRoomMembership`/

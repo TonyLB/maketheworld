@@ -15,7 +15,7 @@ import type { ExpansionEnvironment } from './executorTypes'
  * A -> B migration harden call sites around just these.
  */
 /**
- * `crossed` carries the chain as a value (AP-6): every leg with its host and every port it
+ * `crossed` carries the chain as a value: every leg with its host and every port it
  * crosses. Lowering it to kernel steps is `lowerRelationalChain`'s job, not this function's.
  */
 export type ExpandSameHostResult =

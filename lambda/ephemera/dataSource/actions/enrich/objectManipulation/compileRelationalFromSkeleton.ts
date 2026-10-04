@@ -62,7 +62,7 @@ const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
 
 /**
  * The candidate's edge, as published: two Objects and a relation, with no host --- a host
- * belongs to each leg of its chain (AP-6), and the published host comes from each
+ * belongs to each leg of its chain, and the published host comes from each
  * leg's own `hostId`. `relationKind`/`relationLabel` stay the narrow ingress-lane set
  * (`PeerRelationalEdgeKind`, `relationKind.ts`, BD-2's kind-narrowing clause); `proposeRelationalCandidates`
  * rejects a containment kind before building one.
@@ -74,12 +74,12 @@ type RelationalCandidateId = {
 } & RelationalKindAndLabel<PeerRelationalEdgeKind>
 
 /**
- * One producer candidate (AP-1's stage sketch, slice 2a): a joint identity assignment
+ * One producer candidate (the shared selection stage's input): a joint identity assignment
  * (one id per `stableRefKey` in `match.change`), the `Change` grounded against it by
  * substitution, and the attempt built from that grounded change --- before Expand,
  * before the dry run, before selection. Mirrors `MembershipPlanCandidate`
  * (`selectPlanCandidate.ts`), minus the generic `PlanCandidate` wiring (this route's
- * `confidence` already is what `selectPlanTuple`'s `getConfidence` reads, slice 2d).
+ * `confidence` already is what `selectPlanTuple`'s `getConfidence` reads).
  */
 type RelationalGroundedCandidate = {
     candidateId: RelationalCandidateId
@@ -88,7 +88,7 @@ type RelationalGroundedCandidate = {
     change: EstablishRelationChange | DissolveRelationChange
     confidence: number
     attempt: CommandAttempt
-    /** Catalog display names, carried forward so `relationalConsultAlternative` (slice 2d)
+    /** Catalog display names, carried forward so `relationalConsultAlternative`
      * can build its wording without re-querying the catalog. */
     subjectLabel: string
     targetLabel: string
@@ -112,12 +112,12 @@ const groundedObjectId = (referent: Referent): EphemeraObjectId => {
 }
 
 /**
- * The producer's half of AP-1's ground + expand split (mirrors
+ * The producer's half of the ground + expand split (mirrors
  * `proposeMembershipCandidates.ts`/`groundMembershipCandidate`): one identity pool per
  * `match.change`'s own `stableRefKey`s (subject, then target --- the step's field
  * order), filtered to Object candidates (`identityFromSpanCandidate` throws on anything
- * else), enumerated into joint assignments (`enumerateIdentityAssignments`, AP-2's `min`
- * confidence), each grounded in one total pass (`groundChange`, AP-10 --- the assignment is
+ * else), enumerated into joint assignments (`enumerateIdentityAssignments`, `min`
+ * confidence), each grounded in one total pass (`groundChange` --- the assignment is
  * already complete, since a relational `Change` has no derived referents at all) and wrapped in
  * an attempt --- one primary action, no boundary challenges, since establishing or
  * dissolving a peer edge is not a membership transfer and this route detects no graph
@@ -174,7 +174,7 @@ const proposeRelationalCandidates = (
     // Subject first, then target: the step's field order, which keeps the old product's order.
     const subjectKey = subjectPool.key
     const targetKey = targetPool.key
-    // A relation joins two different things, for every kind (AP-12): an assignment that
+    // A relation joins two different things, for every kind: an assignment that
     // grounds subject and target to the same object is never a candidate.
     const assignments = enumerateIdentityAssignments(new Map([
         [subjectKey, subjectPool.candidates],
@@ -358,7 +358,7 @@ export async function compileRelationalFromSkeleton(
     const getGraph = (hostId: EphemeraMembershipHostId): EphemeraLudicGraph | undefined => hostGraphMap.get(hostId)
 
     /**
-     * Per-candidate dry run (slice 2d), mirroring `sandboxMembershipDryRun`'s role for
+     * Per-candidate dry run, mirroring `sandboxMembershipDryRun`'s role for
      * `selectPlanTuple`: seeds the executor from the grounded edge and reports a
      * `DryRunOutcome` instead of pushing a survivor onto a local list. The three checks
      * that used to drop a candidate silently (non-`legal` Expansion, no chain found, a
@@ -372,7 +372,7 @@ export async function compileRelationalFromSkeleton(
             getCurrentHost: getCurrentHostForExpansion,
             getMembershipContainers: getMembershipContainersForExpansion,
         }
-        // The grounded edge itself seeds directly (AP-6): command-expansion dispatches on
+        // The grounded edge itself seeds directly: command-expansion dispatches on
         // its `primitive` and finds its chain (`findShardBoundary` for establish,
         // `findRelationalChain` for dissolve), the same mechanism every relational edge now uses.
         const seed = seedFromGroundedSteps([candidate.change as EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>])
@@ -416,17 +416,17 @@ export async function compileRelationalFromSkeleton(
         }
 
         // A candidate whose Expansion found a chain is legal: there is no construction-time
-        // Validation on this route (AP-11, AP-12). The kernel rechecks every leg against
+        // Validation on this route. The kernel rechecks every leg against
         // locked live state at commit.
         return { verdict: 'legal', decidable: true, plan: { steps: outcome.steps } }
     }
 
     /**
-     * AP-3's "one-line template... from operation kind, relation and the two labels": one
+     * A "one-line template... from operation kind, relation and the two labels": one
      * formula for every enum relation kind (the kind's own name as the preposition) plus
      * `Custom`'s free-text label, and a single dissolve phrasing. No `objectId` --- a
      * relational alternative names two referents, not one, and `ConsultAlternative.objectId`
-     * is already optional (AP-3).
+     * is already optional.
      */
     const relationalConsultAlternative = (candidate: RelationalGroundedCandidate): ConsultAlternative => {
         const { candidateId, subjectLabel, targetLabel } = candidate
@@ -486,7 +486,7 @@ export async function compileRelationalFromSkeleton(
             ? { relationKind: 'Custom' as const, relationLabel: candidate.candidateId.relationLabel }
             : { relationKind: candidate.candidateId.relationKind }),
         confidence: intentConfidence,
-        // Lowered once, for the chosen candidate only (AP-6).
+        // Lowered once, for the chosen candidate only.
         steps: lowerRelationalChain(chain.steps, chain.operationKind),
         attempt: candidate.attempt.toJSON(),
     }

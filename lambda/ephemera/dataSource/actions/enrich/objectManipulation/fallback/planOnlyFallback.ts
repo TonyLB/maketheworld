@@ -20,7 +20,7 @@ import type { DryRunOutcome } from '../validatePlanDryRun'
  * for: an identity shortlist entry's `jointRelevance` and the LLM's own reported
  * plan confidence are different kinds of measurement, cross-producted (BD-19
  * (2)), so `confidence` here is a combined value, precomputed at construction,
- * same precomputed-not-lazy convention `enumerateIdentityAssignments` (AP-2)
+ * same precomputed-not-lazy convention `enumerateIdentityAssignments`
  * uses for a joint identity assignment's own confidence.
  */
 export type PlanOnlyFallbackCandidate = {

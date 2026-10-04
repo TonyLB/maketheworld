@@ -120,7 +120,7 @@ describe('compileDescribeFromSkeleton', () => {
         expect(result.type).toBe('Error')
     })
 
-    it('returns Consult, naming both candidates, when the span resolves to more than one object (slice 4, AP-5)', async () => {
+    it('returns Consult, naming both candidates, when the span resolves to more than one object', async () => {
         const secondRocketSkatesId = 'OBJECT#RocketSkates2' as EphemeraObjectId
         const result = await compileDescribeFromSkeleton(
             {
@@ -145,7 +145,7 @@ describe('compileDescribeFromSkeleton', () => {
         })
     })
 
-    it('carries a NarrateAttemptAction on the published attempt (slice 4)', async () => {
+    it('carries a NarrateAttemptAction on the published attempt', async () => {
         const result = await compileDescribeFromSkeleton(
             {
                 command: 'look rocket skates',

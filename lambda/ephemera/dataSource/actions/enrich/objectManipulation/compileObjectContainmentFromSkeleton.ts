@@ -43,7 +43,7 @@ export type CompileObjectContainmentFromSkeletonResult =
     | ParseCommandErrorResult
 
 /**
- * One producer candidate (AP-1's stage sketch, slice 3c), mirroring
+ * One producer candidate (the shared selection stage's input), mirroring
  * `RelationalGroundedCandidate` (`compileRelationalFromSkeleton.ts`): a joint identity
  * assignment over subject/target, the attempt built from it, and enough to render Consult
  * wording --- before selection.
@@ -84,13 +84,13 @@ const keyedPool = (
 }
 
 /**
- * The containment route's producer (AP-1/AP-4, slice 3c), modeled directly on
+ * The containment route's producer, modeled directly on
  * `proposeRelationalCandidates`: one identity pool per referent, enumerated into joint
- * assignments (`enumerateIdentityAssignments`, AP-2's `min` confidence), with AP-12's
+ * assignments (`enumerateIdentityAssignments`, `min` confidence), with relational's
  * self-relation rule reused ("put cup on cup" is never a candidate). Unlike relational,
  * grounding is deliberately deferred here, not done eagerly: the step's `from` is a derived
  * referent (`currentHost(subject)`) with no live snapshot to resolve it against yet, and
- * AP-10's resolution to the partial-grounding fork is to defer *all* grounding of a step to
+ * the resolution to the partial-grounding fork is to defer *all* grounding of a step to
  * one place --- the dry run or, for containment, `commitAttempt`'s own generic resolution
  * against live state. So the attempt's `desiredResult` stays ungrounded here, carrying real
  * `stableRefKey`s on `object`/`to` so it can ground later purely from the attempt's own
@@ -112,7 +112,7 @@ const proposeContainmentCandidates = (
 
     const subjectKey = subjectPool.key
     const targetKey = targetPool.key
-    // A containment move joins two different things (AP-12, reused): an assignment that
+    // A containment move joins two different things: an assignment that
     // grounds subject and target to the same object is never a candidate.
     const assignments = enumerateIdentityAssignments(new Map([
         [subjectKey, subjectPool.candidates],
@@ -165,7 +165,7 @@ const proposeContainmentCandidates = (
 }
 
 /**
- * AP-3's Consult wording for containment: one line naming both referents, mirroring
+ * Consult wording for containment: one line naming both referents, mirroring
  * `relationalConsultAlternative`'s shape. No `objectId` --- a containment alternative names
  * two referents, not one.
  */
@@ -186,13 +186,13 @@ const containmentConsultAlternative = (
  * `PartOf` never reaches this function (parseCommand.ts still hard-errors it before this
  * point, per ND-4 in AGENT.nestedObjectLook.planning.md).
  *
- * Slice 3c: the route now produces a real candidate pool (AP-4), replacing the former
+ * The route produces a real candidate pool, replacing the former
  * hard-error-on-ambiguity (`resolveSingleObjectId`'s `ambiguousMatch`). It deliberately still
  * never resolves the subject's *current* host at parse time --- that's read fresh by the
  * positions-layer consumer (`getMembershipContainers`, via `commitAttempt`'s generic derived-
  * referent resolution) at execution time rather than baked in here, since parse and execution
  * are not the same moment (the object could move between them). There is no construction-time
- * legality check beyond the self-containment guard above (AP-11/AP-12's precedent): cycle
+ * legality check beyond the self-containment guard above (relational's precedent): cycle
  * detection (`hasPresenceAncestor`) and "already there" stay at commit, as today.
  */
 export async function compileObjectContainmentFromSkeleton(

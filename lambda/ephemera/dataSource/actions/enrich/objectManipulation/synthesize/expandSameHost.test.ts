@@ -13,7 +13,7 @@ const NECKLACE_ID = 'OBJECT#Necklace' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 
-// `expandSameHost` returns the chain as a value (AP-6); these cases assert its lowered kernel
+// `expandSameHost` returns the chain as a value; these cases assert its lowered kernel
 // steps, exactly as they did before the chain and its lowering were split.
 const expandAndLower = (...args: Parameters<typeof expandSameHost>) => {
     const result = expandSameHost(...args)

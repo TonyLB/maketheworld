@@ -2370,7 +2370,7 @@ describe('ephemeraActionsDataSource', () => {
             expect(streamEvent).not.toHaveBeenCalled()
         })
 
-        it('emits Ludic Network Change Requested when an On containment move is grounded (AP-9, slice 3c)', async () => {
+        it('emits Ludic Network Change Requested when an On containment move is grounded', async () => {
             const attempt = { words: 'put the cup on the tray', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectContainment',

@@ -1474,7 +1474,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
-    it('returns Consult for relational route with an ambiguous exact target pool (two tables, slice 2d)', async () => {
+    it('returns Consult for relational route with an ambiguous exact target pool (two tables)', async () => {
         const broomId = 'OBJECT#Broom'
         const table1Id = 'OBJECT#Table1'
         const table2Id = 'OBJECT#Table2'

@@ -46,7 +46,7 @@ describe('groundChange', () => {
         })
     })
 
-    it('throws when an objectSpan referent has no span assignment for its stableRefKey --- a construction bug (AP-10)', () => {
+    it('throws when an objectSpan referent has no span assignment for its stableRefKey --- a construction bug', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'transferMembership',

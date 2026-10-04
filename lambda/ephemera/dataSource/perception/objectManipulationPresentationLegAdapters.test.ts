@@ -63,7 +63,7 @@ const envelope = (
  * the route."
  *
  * Re-pointed from `Object Establish Relation`/`Object Dissolve Relation` to `Ludic Network Change
- * Requested` (AP-9, slice 3a-iv): the host is no longer carried flat, so `toObjectManipulationPresentationLeg`
+ * Requested`: the host is no longer carried flat, so `toObjectManipulationPresentationLeg`
  * reads it fresh via `internalCache.Positions.getMembershipContainers`, mocked here.
  */
 describe('objectManipulationPresentationLegAdapters', () => {
