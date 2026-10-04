@@ -1,143 +1,63 @@
-import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-
-import type { Change } from '../plan/planStep'
-import type { ParsePlanStep } from '../parsePlanStep'
-import { groundReferent, type GroundingContext } from './groundReferent'
+import type { Change, GroundedReferent, Referent, ReferentAssignment } from '../plan/planStep'
+import { derivedReferentKey, withGroundedId } from '../plan/planStep'
 
 /**
- * `ok: false` is hard-terminal today, same caveat as `GroundReferentResult`
- * (whose failures propagate straight through here) --- see BD-18
- * (`AGENT.backtrackChannel.planning.md`) for the unbuilt
- * Synthesize -> Identify backtrack direction this shape should stay
- * compatible with.
+ * Grounds one `Referent` against a `ReferentAssignment`: already-grounded passes through,
+ * an `objectSpan` looks up its `stableRefKey` in `assignment.spans`, and `actingCharacter`/
+ * `currentHost` look up their structural key in `assignment.derived`. A missing key is a
+ * construction bug (the product over identity candidates is formed by the producer,
+ * before Grounding; the two namespaces are each supposed to be complete by the time
+ * `groundChange` runs) and throws, rather than returning a result a caller branches on.
  */
-export type GroundChangeResult =
-    | { ok: true; candidates: readonly ParsePlanStep[] }
-    | { ok: false; reason: string }
+const groundOneReferent = (referent: Referent, assignment: ReferentAssignment): GroundedReferent => {
+    if (referent.groundedId !== undefined) {
+        return referent as GroundedReferent
+    }
+    if (referent.referentType === 'objectSpan') {
+        if (referent.stableRefKey === undefined) {
+            throw new Error(`groundChange: objectSpan referent for span "${referent.span}" has no stableRefKey to ground against`)
+        }
+        const groundedId = assignment.spans.get(referent.stableRefKey)
+        if (groundedId === undefined) {
+            throw new Error(`groundChange: no span assignment for stableRefKey "${referent.stableRefKey}"`)
+        }
+        return withGroundedId(referent, groundedId)
+    }
+    const key = derivedReferentKey(referent)
+    const groundedId = assignment.derived.get(key)
+    if (groundedId === undefined) {
+        throw new Error(`groundChange: no derived assignment for "${key}"`)
+    }
+    return withGroundedId(referent, groundedId)
+}
 
 /**
- * Grounds a single `Change` (Plan's output) into the *joint candidate space* of
- * `ParsePlanStep`s it could produce (BD-23, 2026-07-19) --- not a single answer.
- * Each referent field may ground to multiple candidates; this takes the
- * Cartesian product across all of a Change's referent fields, constructing one
- * step per combination. Per-combination type checks (is this candidate actually
- * an object id / room id / membership host id?) filter out ill-typed
- * combinations individually --- one bad combination doesn't invalidate others.
- * **Same-object combinations (subject and target grounding to the identical id)
- * are deliberately never filtered here** --- a self-reference isn't inherently
- * invalid at this layer; whether it's actually legal (e.g. "can't put an object
- * on itself") is Validation's job, a later, separate step. Fails only when the
- * resulting candidate list is empty.
+ * Grounds a single `Change` (Plan's output) to one answer: the same `Change`, every referent
+ * kept and given its id. Pure
+ * substitution against a complete `ReferentAssignment` --- it does not walk live KR state
+ * itself; whoever builds the assignment (the producer, for the span half; whoever holds a
+ * snapshot, for the derived half) does that. Total and throwing: a referent whose key is
+ * missing from the assignment is a construction bug, not a runtime outcome.
  *
- * Does not handle `Assertion` --- Plan's shipped compiler never emits one today
- * (`containedBy` unused, `sameHost` unbuilt), so this is a type-level
- * exclusion, not a TODO.
+ * Primitive-agnostic: a relational `Change` grounds the same way. Typing each id for its slot
+ * (is this an object, is that a membership host?) is lowering's job (`executor.ts`), not
+ * Grounding's. Whether a self-reference is legal ("can't put an object on itself") is the
+ * producer's/Validation's.
  *
- * `transferMembership` produces a **single-object** `objectIds` set per candidate,
- * and that set is complete: anything the object hosts lives in its own shard and
- * travels with it. The relational edges the move must dissolve are not Grounding's:
- * Expansion adds them to the attempt as facilitating actions before the executor runs
- * (`commandAttempt/expandBoundaryChallenges.ts`).
- *
- * `establishRelation`/`dissolveRelation` ground the Change's own `host`. Plan sets it
- * to BD-6's default, `currentHost(actingCharacter)` (BD-15/16's `sameHost`
- * generalization, which would let a held-item pair ground to a Character host, isn't
- * built yet). A host candidate that isn't a Room is filtered out per-combination
- * rather than failing the whole call, since that widening is explicitly out-of-scope
- * future work (BD-15 slice 3). A step whose referents are all grounded already
- * (Expansion's dissolves) never comes here: `seedFromGroundedSteps` (`executor.ts`)
- * seeds it as a grounded instruction, so a grounded non-Room host is not filtered.
+ * Does not handle `Assertion` --- see `groundAssertion.ts`.
  */
-export const groundChange = (change: Change, context: GroundingContext): GroundChangeResult => {
-    switch (change.primitive) {
-        case 'establishRelation':
-        case 'dissolveRelation': {
-            const subject = groundReferent(change.subject, context)
-            if (!subject.ok) {
-                return subject
-            }
-            const target = groundReferent(change.target, context)
-            if (!target.ok) {
-                return target
-            }
-            const host = groundReferent(change.host, context)
-            if (!host.ok) {
-                return host
-            }
-
-            // ParsePlanStep's relationKind is HostRelationalEdgeKind's narrow set
-            // (parsePlanStep.ts), even though HostRelationalEdgeKind itself (ephemeraMeta.ts) also
-            // admits containment ('In'/'PartOf') and 'On'. Both are unreachable here:
-            // isContainmentSpan routes containment language to nestingDefer before a Change
-            // carrying one reaches here; 'On' is a hosting kind deferred at ingress the same way
-            // (Channel D, CD2). `'Present'` was a third, checked here until presenceNodes Slice 3
-            // (PN-14) retired it from `HostRelationalEdgeKind` entirely --- it is no longer a
-            // value this field's type can even hold, so the type does what this guard used to.
-            if (change.relationKind === 'In' || change.relationKind === 'PartOf' || change.relationKind === 'On') {
-                return { ok: false, reason: 'Containment relation kinds are not yet groundable as establishRelation/dissolveRelation steps' }
-            }
-
-            const candidates: ParsePlanStep[] = []
-            for (const subjectCandidate of subject.candidates) {
-                if (!isEphemeraObjectId(subjectCandidate)) continue
-                for (const targetCandidate of target.candidates) {
-                    if (!isEphemeraObjectId(targetCandidate)) continue
-                    for (const hostCandidate of host.candidates) {
-                        if (!isEphemeraRoomId(hostCandidate)) continue
-                        candidates.push({
-                            kind: change.primitive,
-                            subjectId: subjectCandidate,
-                            targetId: targetCandidate,
-                            // Inlined: the containment/presence guard above narrowed
-                            // `change` to the ingress-lane kinds that `ParsePlanStep` accepts.
-                            ...(change.relationKind === 'Custom'
-                                ? { relationKind: 'Custom' as const, relationLabel: change.relationLabel }
-                                : { relationKind: change.relationKind }),
-                            hostRoomId: hostCandidate,
-                        })
-                    }
-                }
-            }
-            if (candidates.length === 0) {
-                return { ok: false, reason: 'No valid combination of grounded candidates produced a well-typed establishRelation/dissolveRelation step' }
-            }
-            return { ok: true, candidates }
+export const groundChange = (change: Change, assignment: ReferentAssignment): Change<GroundedReferent> => {
+    if (change.primitive === 'transferMembership') {
+        return {
+            ...change,
+            object: groundOneReferent(change.object, assignment),
+            from: groundOneReferent(change.from, assignment),
+            to: groundOneReferent(change.to, assignment),
         }
-        case 'transferMembership': {
-            const object = groundReferent(change.object, context)
-            if (!object.ok) {
-                return object
-            }
-            const from = groundReferent(change.from, context)
-            if (!from.ok) {
-                return from
-            }
-            const to = groundReferent(change.to, context)
-            if (!to.ok) {
-                return to
-            }
-
-            const candidates: ParsePlanStep[] = []
-            for (const objectCandidate of object.candidates) {
-                if (!isEphemeraObjectId(objectCandidate)) continue
-                for (const fromCandidate of from.candidates) {
-                    if (!isEphemeraMembershipHostId(fromCandidate)) continue
-                    for (const toCandidate of to.candidates) {
-                        if (!isEphemeraMembershipHostId(toCandidate)) continue
-                        candidates.push({
-                            kind: 'transferMembership',
-                            objectIds: new Set([objectCandidate]),
-                            fromHostId: fromCandidate,
-                            toHostId: toCandidate,
-                        })
-                    }
-                }
-            }
-            if (candidates.length === 0) {
-                return { ok: false, reason: 'No valid combination of grounded candidates produced a well-typed transferMembership step' }
-            }
-            return { ok: true, candidates }
-        }
+    }
+    return {
+        ...change,
+        subject: groundOneReferent(change.subject, assignment),
+        target: groundOneReferent(change.target, assignment),
     }
 }

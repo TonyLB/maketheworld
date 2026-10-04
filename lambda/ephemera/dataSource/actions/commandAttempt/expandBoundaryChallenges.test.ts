@@ -23,8 +23,8 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
 
         expect(actions).toHaveLength(2)
-        expect(actions[0]).toBe(primaryAction)
-        expect(actions[1]?.challenges()).toHaveLength(0)
+        expect(actions[1]).toBe(primaryAction)
+        expect(actions[0]?.challenges()).toHaveLength(0)
     })
 
     it('expands a boundary edge to a non-Object (Character) endpoint too', () => {
@@ -41,7 +41,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
 
         expect(actions).toHaveLength(2)
-        expect(actions[1]?.desiredResult).toEqual(expect.objectContaining({
+        expect(actions[0]?.desiredResult).toEqual(expect.objectContaining({
             primitive: 'dissolveRelation',
             subject: graphNodeRef(ropeId),
             target: graphNodeRef(companionId),
@@ -61,13 +61,13 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
 
         expect(actions).toHaveLength(2)
-        const dissolveAction = actions[1]
+        const dissolveAction = actions[0]
         const challenges = dissolveAction?.challenges() ?? []
         expect(challenges).toHaveLength(1)
         expect(challenges[0]?.detectionSource).toBe('graph')
-        expect(challenges[0]?.metPropagation()).toEqual({
+        expect(challenges[0]?.toJSON()).toEqual(expect.objectContaining({
             edge: { from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' },
-        })
+        }))
         expect(challenges[0]?.describe()).toContain('is lashed to')
     })
 
@@ -83,12 +83,11 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
 
         const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
 
-        expect(actions[1]?.toJSON().desiredResult).toEqual({
+        expect((actions[0]?.toJSON() as any).desiredResult).toEqual({
             kind: 'change',
             primitive: 'dissolveRelation',
             subject: graphNodeRef(postId),
             target: graphNodeRef(ropeId),
-            host: graphNodeRef(roomId),
             relationKind: 'Custom',
             relationLabel: 'is lashed to',
         })

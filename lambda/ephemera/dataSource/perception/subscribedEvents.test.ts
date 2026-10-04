@@ -132,12 +132,12 @@ describe('perception subscribedEvents', () => {
     })
 
     it('isPerceptionSubscribedEnvelope matches relational object manipulation ingress', () => {
-        const establishRelation = {
+        const ludicNetworkChangeRequested = {
             header: {
                 dataSourceKey: 'mtw.ephemera.actions',
                 streamKey: 'CHARACTER#Alice',
                 timestamp: Date.now(),
-                type: 'Object Establish Relation',
+                type: 'Ludic Network Change Requested',
             },
             getContent: () => Promise.resolve({}),
         }
@@ -150,7 +150,7 @@ describe('perception subscribedEvents', () => {
             },
             getContent: () => Promise.resolve({}),
         }
-        expect(isPerceptionSubscribedEnvelope(establishRelation as any)).toBe(true)
+        expect(isPerceptionSubscribedEnvelope(ludicNetworkChangeRequested as any)).toBe(true)
         expect(isPerceptionSubscribedEnvelope(relationChanged as any)).toBe(true)
     })
 

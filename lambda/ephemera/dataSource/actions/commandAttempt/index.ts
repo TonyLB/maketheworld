@@ -1,10 +1,9 @@
-import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
 import type { EphemeraThingId } from '../enrich/objectManipulation/thing'
 import type { AttemptAction, AttemptActionData } from './action'
 import { attemptActionFromJSON, attemptActionToJSON } from './action'
 import type { Verdict } from './verdict'
 
-export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction } from './action'
+export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction, NarrateAttemptAction } from './action'
 export type { Challenge, ChallengeData } from './challenge'
 export { CustomEdgeChallenge, UnderDeferChallenge, WorldKnowledgeChallenge } from './challenge'
 export type { Verdict, VerdictData } from './verdict'
@@ -122,21 +121,6 @@ export class CommandAttempt {
             throw new Error(`CommandAttempt.recordVerdict: no challenge with id '${challengeId}'`)
         }
         return new CommandAttempt(this.words, this._referents.map(cloneReferent), actions)
-    }
-
-    /**
-     * The edges whose challenges were met, folded from each met challenge's own
-     * `metPropagation()`: what the commit side dissolves on the attempt's behalf. Positions
-     * honors these against its own later snapshot and never judges a challenge itself.
-     */
-    metPropagations(): HostRelationalEdge[] {
-        return this._actions
-            .flatMap((action) => action.challenges())
-            .filter((challenge) => challenge.verdict?.proceeds())
-            .flatMap((challenge) => {
-                const propagation = challenge.metPropagation()
-                return propagation ? [propagation.edge] : []
-            })
     }
 
     /**

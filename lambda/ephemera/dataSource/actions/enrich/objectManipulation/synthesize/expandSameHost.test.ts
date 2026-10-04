@@ -4,6 +4,7 @@ import type { EphemeraCrossingPort } from '@tonylb/mtw-interfaces/ts/ephemeraMet
 
 import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import { expandSameHost } from './expandSameHost'
+import { lowerRelationalChain } from './buildCrossingLegs'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
@@ -11,6 +12,15 @@ const CHARM_ID = 'OBJECT#Charm' as EphemeraObjectId
 const NECKLACE_ID = 'OBJECT#Necklace' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
+
+// `expandSameHost` returns the chain as a value; these cases assert its lowered kernel
+// steps, exactly as they did before the chain and its lowering were split.
+const expandAndLower = (...args: Parameters<typeof expandSameHost>) => {
+    const result = expandSameHost(...args)
+    return result.verdict === 'crossed'
+        ? { verdict: 'crossed' as const, steps: lowerRelationalChain(result.chain, args[0].operationKind) }
+        : result
+}
 
 describe('expandSameHost', () => {
     it('a peer relation between two objects that already share a host resolves as a crossing with one portless leg', () => {
@@ -23,7 +33,7 @@ describe('expandSameHost', () => {
             return []
         }
 
-        const result = expandSameHost(
+        const result = expandAndLower(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
             { getMembershipContainers }
         )
@@ -42,7 +52,7 @@ describe('expandSameHost', () => {
         // `findShardBoundary` is ever called. Unreachable live (the ingress lane defers `on` per
         // CD2); asserted so that making it reachable is a deliberate act with a branch built for
         // it, not a silent fall-through into peer-relation machinery.
-        const result = expandSameHost({ subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', operationKind: 'establishRelation' })
+        const result = expandAndLower({ subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', operationKind: 'establishRelation' })
 
         expect(result.verdict).toBe('error')
         if (result.verdict !== 'error') return
@@ -57,7 +67,7 @@ describe('expandSameHost', () => {
             return []
         }
 
-        const result = expandSameHost(
+        const result = expandAndLower(
             { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Under', operationKind: 'establishRelation' },
             { getMembershipContainers }
         )
@@ -84,7 +94,7 @@ describe('expandSameHost', () => {
             return []
         }
 
-        const result = expandSameHost(
+        const result = expandAndLower(
             { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Against', operationKind: 'establishRelation' },
             { getMembershipContainers }
         )
@@ -95,11 +105,11 @@ describe('expandSameHost', () => {
     })
 
     it('an Under relation with no reachable boundary defers, and not in Custom\'s words', () => {
-        const underResult = expandSameHost(
+        const underResult = expandAndLower(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
             { getMembershipContainers: () => [] }
         )
-        const customResult = expandSameHost(
+        const customResult = expandAndLower(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
             { getMembershipContainers: () => [] }
         )
@@ -116,7 +126,7 @@ describe('expandSameHost', () => {
     })
 
     it('defers on a Custom relation kind when no shared boundary is reachable', () => {
-        const result = expandSameHost(
+        const result = expandAndLower(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
             { getMembershipContainers: () => [] }
         )
@@ -132,7 +142,7 @@ describe('expandSameHost', () => {
             return []
         }
 
-        const result = expandSameHost(
+        const result = expandAndLower(
             { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
             { getMembershipContainers }
         )
@@ -161,7 +171,7 @@ describe('expandSameHost', () => {
     })
 
     it('falls back to defer when no crossing boundary is found (genuinely no shared ancestor)', () => {
-        const result = expandSameHost(
+        const result = expandAndLower(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
             { getMembershipContainers: () => [] }
         )
@@ -175,11 +185,11 @@ describe('expandSameHost', () => {
         // label, so with none there is no relation to reason about. The two must stay
         // distinguishable in wording, for the same reason `Under`/`Against`'s pair of defers must be ---
         // the reason string is what routes the follow-up.
-        const unlabelled = expandSameHost(
+        const unlabelled = expandAndLower(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', operationKind: 'establishRelation' },
             { getMembershipContainers: () => [] }
         )
-        const labelled = expandSameHost(
+        const labelled = expandAndLower(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
             { getMembershipContainers: () => [] }
         )
@@ -197,7 +207,7 @@ describe('expandSameHost', () => {
         // at all, a label-less Custom still reports the label problem, not a boundary-lookup
         // failure. The guard has to survive the deletion of the host/graph lookups that
         // used to sit below it.
-        const result = expandSameHost({ subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', operationKind: 'establishRelation' })
+        const result = expandAndLower({ subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', operationKind: 'establishRelation' })
 
         expect(result.verdict).toBe('error')
         if (result.verdict !== 'error') return
@@ -211,7 +221,7 @@ describe('expandSameHost', () => {
                 .addObject(TABLE_ID)
                 .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Under' })
 
-            const result = expandSameHost(
+            const result = expandAndLower(
                 { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
                 { getMembershipContainers: () => [], getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined), getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined) }
             )
@@ -222,7 +232,7 @@ describe('expandSameHost', () => {
             })
         })
 
-        it("a genuine crossing dissolve (the string-in-room / cup-on-table crossing chain, reversed) resolves via findRelationalChain/buildCrossingDissolveLegs, where buildCrossingLegs would have reported notYetImplemented", () => {
+        it("a genuine crossing dissolve (the string-in-room / cup-on-table crossing chain, reversed) resolves via findRelationalChain", () => {
             const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
                 .addObject(NECKLACE_ID)
@@ -233,7 +243,7 @@ describe('expandSameHost', () => {
                 .addPort(port)
                 .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CHARM_ID, kind: 'Custom', relationLabel: 'to' })
 
-            const result = expandSameHost(
+            const result = expandAndLower(
                 { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'dissolveRelation' },
                 {
                     getMembershipContainers: () => [],
@@ -269,7 +279,7 @@ describe('expandSameHost', () => {
         it('defers, with dissolve-specific wording, when no matching chain is found', () => {
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID).addObject(TABLE_ID)
 
-            const result = expandSameHost(
+            const result = expandAndLower(
                 { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
                 { getMembershipContainers: () => [], getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined), getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined) }
             )
@@ -289,7 +299,7 @@ describe('expandSameHost', () => {
                 .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Under' })
                 .addRelationalEdge({ from: TABLE_ID, to: TRAY_ID, kind: 'Under' })
 
-            const result = expandSameHost(
+            const result = expandAndLower(
                 { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
                 { getMembershipContainers: () => [], getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined), getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined) }
             )
@@ -298,11 +308,11 @@ describe('expandSameHost', () => {
         })
 
         it('establish and dissolve produce different defer wording for the same unreachable case', () => {
-            const establishResult = expandSameHost(
+            const establishResult = expandAndLower(
                 { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
                 { getMembershipContainers: () => [] }
             )
-            const dissolveResult = expandSameHost(
+            const dissolveResult = expandAndLower(
                 { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
                 { getMembershipContainers: () => [], getGraph: () => undefined, getCurrentHost: () => undefined }
             )

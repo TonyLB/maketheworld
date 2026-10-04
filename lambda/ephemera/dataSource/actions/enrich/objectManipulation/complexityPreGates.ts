@@ -10,7 +10,7 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
  * KR-state property orthogonal to any single candidate's locus, so it can't
  * be decided during selection at all. The locus/exit-edge legality this
  * function used to re-derive post-selection is now decided correctly,
- * earlier, by `selectIdentityPlanTuple`'s own sandbox-mediated dry run
+ * earlier, by `selectPlanCandidate`'s own sandbox-mediated dry run
  * (real graph access, no longer an empty context) --- re-checking it here
  * was the same `objectTouchesExitEdgeOnGraph` check running twice.
  */

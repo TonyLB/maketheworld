@@ -4,7 +4,7 @@ import { discriminateIntent } from './discriminateIntent'
 export { navigationIntentErrorMessages } from './discriminateIntent/exitResolution'
 export { objectManipulationErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
 import { compileDescribeFromSkeleton } from './enrich/objectManipulation/compileDescribeFromSkeleton'
-import { compileObjectRehostFromSkeleton } from './enrich/objectManipulation/compileObjectRehostFromSkeleton'
+import { compileObjectContainmentFromSkeleton } from './enrich/objectManipulation/compileObjectContainmentFromSkeleton'
 import { enrichObjectManipulation } from './enrich/objectManipulation'
 import { objectSpansFromSkeleton } from './enrich/objectManipulation/parse/objectSpansFromSkeleton'
 import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
@@ -92,7 +92,7 @@ async function parseCommandCore(
 
         if (family.type === 'relationalDefer') {
             if (family.kind === 'On' || family.kind === 'In') {
-                const result = await compileObjectRehostFromSkeleton(
+                const result = await compileObjectContainmentFromSkeleton(
                     {
                         command: input.command,
                         skeleton: parseResult.tokens,

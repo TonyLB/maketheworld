@@ -254,4 +254,31 @@ describe('CommandAttempt', () => {
             expect(roundTripped.renderProse()).toEqual(original.renderProse())
         })
     })
+
+    describe('NarrateAttemptAction', () => {
+        const narrateAction = (description?: string): AttemptActionData => ({
+            kind: 'narrate',
+            challenges: [],
+            ...(description !== undefined ? { description } : {}),
+        })
+
+        it('round-trips through toJSON/fromJSON, with no challenges and no desiredResult', () => {
+            const data: CommandAttemptData = {
+                words: 'look at the cup',
+                referents: [{ refKey: 'cupRef', id: forkId, shortName: 'a cup' }],
+                actions: [narrateAction('Look at the cup')],
+            }
+            const attempt = CommandAttempt.fromJSON(data)
+            expect(attempt.toJSON()).toEqual(data)
+        })
+
+        it('succeeds immediately, since it detects no challenge, with its description as the outcome', () => {
+            const attempt = CommandAttempt.fromJSON({
+                words: 'look at the cup',
+                referents: [{ refKey: 'cupRef', id: forkId, shortName: 'a cup' }],
+                actions: [narrateAction('Look at the cup')],
+            })
+            expect(attempt.result).toEqual({ status: 'succeeded', outcome: 'Look at the cup' })
+        })
+    })
 })

@@ -4,8 +4,8 @@ import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraM
 import type { EphemeraThingId } from '../thing'
 
 /**
- * The id a referent grounds to --- the same union Grounding's candidates carry
- * (`GroundReferentResult`, `synthesize/groundReferent.ts`).
+ * The id a referent grounds to --- the same union a `ReferentAssignment`'s two namespaces
+ * carry (below).
  */
 export type GroundedId = EphemeraThingId | EphemeraMembershipHostId
 
@@ -38,6 +38,13 @@ export type TransferMembershipChange<R extends Referent = Referent> = {
     object: R
     from: R
     to: R
+    /**
+     * A containment move: the transfer also establishes an `On`/`In` edge whose
+     * host is always `to` by construction, not discovered by ancestry walk --- containment's
+     * producer (`compileObjectContainmentFromSkeleton.ts`) sets this; `PartOf` never reaches
+     * here (ND-4, `parseCommand.ts` hard-errors it earlier).
+     */
+    containment?: 'On' | 'In'
 }
 
 export type EstablishRelationChange<R extends Referent = Referent> = {
@@ -45,8 +52,6 @@ export type EstablishRelationChange<R extends Referent = Referent> = {
     primitive: 'establishRelation'
     subject: R
     target: R
-    /** The graph the relation lives in. Plan's default is BD-6's `currentHost(actingCharacter)`. */
-    host: R
 } & RelationalKindAndLabel
 
 export type DissolveRelationChange<R extends Referent = Referent> = {
@@ -54,8 +59,6 @@ export type DissolveRelationChange<R extends Referent = Referent> = {
     primitive: 'dissolveRelation'
     subject: R
     target: R
-    /** The graph the relation lives in. Plan's default is BD-6's `currentHost(actingCharacter)`. */
-    host: R
 } & RelationalKindAndLabel
 
 export type Change<R extends Referent = Referent> = TransferMembershipChange<R> | EstablishRelationChange<R> | DissolveRelationChange<R>
@@ -107,12 +110,47 @@ export const withGroundedId = <R extends Referent>(referent: R, groundedId: Grou
     groundedId,
 })
 
-/** True when every referent of this step carries a known id. */
-export const isGroundedStep = (step: PlanStep): step is PlanStep<GroundedReferent> => {
-    const referents: Referent[] = step.kind === 'assertion'
+/**
+ * A structural key for a referent with no `stableRefKey` of its own: `'actingCharacter'`, `` `currentHost(actingCharacter)` ``,
+ * `` `currentHost(span:<key>)` ``. Total over `Referent` so a `currentHost` nested on any kind stays
+ * nameable: membership nests both live (a take's `from` is `currentHost(span:primaryObject)`, a
+ * drop's `to` is `currentHost(actingCharacter)`).
+ */
+export type DerivedReferentKey = string
+
+export const derivedReferentKey = (referent: Referent): DerivedReferentKey => {
+    switch (referent.referentType) {
+        case 'actingCharacter':
+            return 'actingCharacter'
+        case 'objectSpan':
+            return `span:${referent.stableRefKey}`
+        case 'currentHost':
+            return `currentHost(${derivedReferentKey(referent.referentTarget)})`
+        case 'graphNode':
+            return `graphNode:${referent.groundedId}`
+    }
+}
+
+/**
+ * Grounding's input: one value per referent, in two namespaces with different
+ * lifetimes. A span's value is decided once, when identities are selected, and belongs to
+ * the candidate wherever it goes --- keyed by `stableRefKey` (Identify/Plan's key). A derived
+ * value (`actingCharacter`, `currentHost(X)`) is a fact about one snapshot of the world, built
+ * fresh by whoever holds that snapshot --- keyed structurally, by `derivedReferentKey`.
+ */
+export type ReferentAssignment = {
+    spans: ReadonlyMap<string, GroundedId>
+    derived: ReadonlyMap<DerivedReferentKey, GroundedId>
+}
+
+/** Every referent slot of a step, whatever its kind. */
+export const stepReferents = (step: PlanStep): Referent[] =>
+    step.kind === 'assertion'
         ? [step.subject, step.object]
         : step.primitive === 'transferMembership'
             ? [step.object, step.from, step.to]
-            : [step.subject, step.target, step.host]
-    return referents.every((referent) => referent.groundedId !== undefined)
-}
+            : [step.subject, step.target]
+
+/** True when every referent of this step carries a known id. */
+export const isGroundedStep = (step: PlanStep): step is PlanStep<GroundedReferent> =>
+    stepReferents(step).every((referent) => referent.groundedId !== undefined)

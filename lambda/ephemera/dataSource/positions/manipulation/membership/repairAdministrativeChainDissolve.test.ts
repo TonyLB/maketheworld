@@ -11,7 +11,7 @@ const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 /**
  * Direct unit coverage of the administrative repair policy extracted from
  * `executeMembershipTransfer`'s pre-3d body (3d, 2026-09-08). The chain-walk/crossing-leg
- * mechanics it composes (`findRelationalChainsTouching`, `buildCrossingDissolveLegs`,
+ * mechanics it composes (`findRelationalChainsTouching`, `lowerRelationalChain`,
  * `fetchRelationalReachability`) have their own suites; the two "removing the interior/exterior
  * side of a crossing" cases that exercise this policy end to end through a real commit stay in
  * `executeMembershipTransfer.test.ts`, since they assert commit-level behavior this function

@@ -12,7 +12,7 @@ This file records **where behavior lives** for `mtw.ephemera.positions` through 
 | [`subscribedEvents.ts`](subscribedEvents.ts) | Header/envelope guards for external ingress |
 | [`publishedEvents.ts`](publishedEvents.ts) | Outbound stream contract (`Character Moved` + **`Object Moved`** + **`Object Relation Changed`**) + stream helpers |
 | [`handleConnectionsCharactersPresence.ts`](handleConnectionsCharactersPresence.ts) | Connect (membership API + orchestrate) / disconnect handlers |
-| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts); `Object Take Hold` and `Object Drop` -> [`manipulation/membership/orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts) (one entry point; the two branches differ only in which host is `fromHostId`); `Object Establish Relation` / `Object Dissolve Relation` -> [`manipulation/relational/`](manipulation/relational/) |
+| [`index.ts`](index.ts) `receiveEvents` | `Character Navigate` / `Character Home` -> [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts); `Ludic Network Change Requested` -> [`manipulation/commitAttempt.ts`](manipulation/commitAttempt.ts), which dispatches each action by primitive (`transferMembership` -> [`manipulation/membership/planObjectMoveTransfer.ts`](manipulation/membership/planObjectMoveTransfer.ts) directly, threading a containment action's optional `containment` flag through; `establishRelation`/`dissolveRelation` -> [`manipulation/relational/planRelationalEdgeTransfer.ts`](manipulation/relational/planRelationalEdgeTransfer.ts)) and commits every action's steps in one sequence. The bespoke `Object Containment` event is retired |
 
 ### `manipulation/` (planning adapters + kernel)
 
@@ -38,8 +38,9 @@ Spec: [`manipulation/AGENT.implementation.md` --- Host-local relational patch](m
 
 | File | Role |
 | --- | --- |
-| [`manipulation/membership/orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts) | Narration owner for **both** `Object Take Hold` and `Object Drop`. Derives the acting character and room from the host pair, resolves labels, then wraps `executeObjectMove`; declares the bundle and presents narration on `ok: true` |
-| [`manipulation/membership/executeMembershipTransfer.ts`](manipulation/membership/executeMembershipTransfer.ts) | **The administrative object path only**, as of `fb9573c8f` (2026-09-07). This file used to be `executeObjectMove.ts` and carry two entry points; the take-hold/drop/give one (`executeObjectMove`, a single-origin move seeding the Synthesize executor) is **gone** --- that route is now [`planObjectMoveTransfer.ts`](manipulation/membership/planObjectMoveTransfer.ts) via [`orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts), which builds and dry-runs its own plan. What survives here is `executeMembershipTransfer`: single entity (object or character), diffed against its own `priorContainers`, no carry closure, never touches the Synthesize executor --- absorbed `applyObjectRoomMembership`/`applyObjectClearMembership`/`applyCharacterRoomMembership`'s membership-half body. Object entities get an explicit chain-aware sweep (`findRelationalChainsTouching` + `buildCrossingDissolveLegs`, following crossing ports across hosts --- replaced the old primitive-only `boundaryEdgeOutcomes` loop, which silently skipped any relational edge with a port-address endpoint); character entities never do (`HostRelationalEdge` is object-only). Returns a `MembershipApplyResult`-shaped `{froms, to, changed,...}` |
+| [`manipulation/commitAttempt.ts`](manipulation/commitAttempt.ts) | The generic per-attempt commit path. Dispatches each action of a reconstructed `CommandAttempt` by its `desiredResult`'s primitive, re-expands it against live state, concatenates every action's kernel steps, and commits the whole attempt in one `commitAndPresentStepSequence` call |
+| [`manipulation/relational/planRelationalEdgeTransfer.ts`](manipulation/relational/planRelationalEdgeTransfer.ts) | Relational's live-state replan, mirroring `planObjectMoveTransfer`'s shape: takes the grounded edge, re-walks ancestry and rebuilds the chain fresh via the same actions-side `synthesize/` modules actions itself uses for its pre-publish dry run (`findShardBoundary`/`buildCrossingLegs`, reached through `runExecutor`) |
+| [`manipulation/membership/executeMembershipTransfer.ts`](manipulation/membership/executeMembershipTransfer.ts) | **The administrative object path only**, as of `fb9573c8f` (2026-09-07). This file used to be `executeObjectMove.ts` and carry two entry points; the take-hold/drop/give one (`executeObjectMove`, a single-origin move seeding the Synthesize executor) is **gone** --- that route is now [`planObjectMoveTransfer.ts`](manipulation/membership/planObjectMoveTransfer.ts) via [`commitAttempt`](manipulation/commitAttempt.ts), which builds and dry-runs its own plan. What survives here is `executeMembershipTransfer`: single entity (object or character), diffed against its own `priorContainers`, no carry closure, never touches the Synthesize executor --- absorbed `applyObjectRoomMembership`/`applyObjectClearMembership`/`applyCharacterRoomMembership`'s membership-half body. Object entities get an explicit chain-aware sweep (`findRelationalChainsTouching` + `lowerRelationalChain`, following crossing ports across hosts --- replaced the old primitive-only `boundaryEdgeOutcomes` loop, which silently skipped any relational edge with a port-address endpoint); character entities never do (`HostRelationalEdge` is object-only). Returns a `MembershipApplyResult`-shaped `{froms, to, changed,...}` |
 | [`manipulation/membership/types.ts`](manipulation/membership/types.ts) | Bare `MembershipDiff` (host-general; no type argument) is the kernel-step tier's diff shape, built once per step by `factsForStep` and consumed by both `buildObjectMovedFact` and `buildCharacterMovedFact` --- the latter narrows it to Room internally when building the Room-only `Character Moved` wire fact. `MembershipDiff<EphemeraRoomId>` is the character route's own narrower, derived instantiation (see line 115 below). 3h/3h-ii. |
 
 #### Adding a cross-host manipulation apply coordinator
@@ -48,7 +49,7 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 
 1. **Authority** --- every object-lifecycle membership change (spawn/place/remove/drift-repair/take-hold/drop/give) reaches the kernel through **`positions/manipulation/membership/`** (`executeObjectMove`/`executeMembershipTransfer`), a single pipeline. Import shared primitives (**[`ludicGraph/`](ludicGraph/)**, **`buildObjectMovedFact`**, transact item builders).
 
-2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts). If the operator is a **membership move**, it very likely does **not** need a new execute module: name its host pair and route to [`orchestrateObjectMove.ts`](manipulation/membership/orchestrateObjectMove.ts). `give` is the worked example --- `(CHARACTER# -> CHARACTER#)` needs no new code below ingress.
+2. **Ingress** --- register envelope guard in [`subscribedEvents.ts`](subscribedEvents.ts); route in [`index.ts`](index.ts). If the operator is a **membership move**, it very likely does **not** need a new execute module: name its host pair and route to [`commitAttempt`](manipulation/commitAttempt.ts). `give` is the worked example --- `(CHARACTER# -> CHARACTER#)` needs no new code below ingress.
 
 3. **Post-persist bundle** --- do **not** write one. The kernel already streams **`Object Moved`** first, seeds **`internalCache.Positions`** on every committed graph, invalidates the affordance deliverable for Room hosts, and publishes **`RoomUpdate`**. Add only what is genuinely verb-specific. Contract: [Cross-host object membership-changed bundle](AGENT.contract.md#cross-host-object-membership-changed-bundle-object-move-takehold--drop--give).
 
@@ -60,12 +61,12 @@ Use when an atomic operator transfers an **`Object`** node between **membership 
 
 | Operator | Host direction | Intent payload | Planning + kernel | `RoomUpdate` / affordance scope |
 | --- | --- | --- | --- | --- |
-| **`takeHold`** | room -> character | `objectIds`, `roomId`, `characterId` | `orchestrateObjectMove` -> Synthesize executor -> `commitStepSequence` | Room hosts only |
+| **`takeHold`** | room -> character | `objectIds`, `roomId`, `characterId` | the object-move route (`commitAttempt`) -> Synthesize executor -> `commitStepSequence` | Room hosts only |
 | **`drop`** | character -> room | `objectIds`, `roomId`, `characterId` | the same, host pair reversed | destination room |
 
 The **intent payload** column is the only per-operator row that genuinely varies. Everything right of it is shared, and the narration verb is derived from the host direction rather than declared --- so a new membership-move operator adds an ingress guard and a dispatch branch, and nothing else.
 
-7. **Tests** --- ingress unit tests under **`manipulation/membership/*.test.ts`**; routing in [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) **`Object Take Hold`** and **`Object Drop`** describe blocks.
+7. **Tests** --- ingress unit tests under **`manipulation/membership/*.test.ts`** and [`manipulation/commitAttempt.test.ts`](manipulation/commitAttempt.test.ts); routing in [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts)'s **`Ludic Network Change Requested`** describe block.
 
 ### `ludicGraph/` (play manipulation model)
 
@@ -85,7 +86,7 @@ Host-bound **`EphemeraLudicGraph`** class --- membership + relational simulation
 ludicGraph/  <-- shared primitive
   ^-- manipulation/kernel/ (applyStepSequenceCore simulation; graphFromMeta + toStored at the Dynamo boundary)
   ^-- manipulation/relational/ (edge helpers, edgesMatch)
-  ^-- actions/enrich/objectManipulation/evaluateRelationalLegality, compileRelationalFromSkeleton (read-only)
+  ^-- actions/enrich/objectManipulation/compileRelationalFromSkeleton (read-only)
   ^-- actions/enrich/objectManipulation/synthesize/ (selection-time dry run; shares interactionUnderTransfer's classifier with the commit path)
 ```
 
@@ -169,9 +170,8 @@ Objects lane callers use **`executeMembershipTransfer`** ([`manipulation/members
 | [`subscribedEvents.test.ts`](subscribedEvents.test.ts) | Guard acceptance/rejection (connections + actions navigate + diagnostics drift finding) |
 | [`publishedEvents.test.ts`](publishedEvents.test.ts) | `Character Moved` **`froms[]`** payload guard + stream helpers |
 | [`handleConnectionsCharactersPresence.test.ts`](handleConnectionsCharactersPresence.test.ts) | Connect membership apply + navigate tail; disconnect routes through coordinator |
-| [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) | Cross-layer `receiveEvents` routing (connect / disconnect / navigate / home / **`Object Take Hold`** / **`Object Drop`** / drift finding) |
+| [`receivePaths.integration.test.ts`](receivePaths.integration.test.ts) | Cross-layer `receiveEvents` routing (connect / disconnect / navigate / home / **`Ludic Network Change Requested`** (membership, relational and containment alike) / drift finding) |
 | [`manipulation/membership/executeMembershipTransfer.test.ts`](manipulation/membership/executeMembershipTransfer.test.ts) | The administrative transfer path: committed step sequence, result shape, **no capture steps when narration is absent**. The take/drop/give half this row used to cover (the old `executeObjectMove.test.ts`'s second describe block) moved with its subject to [`planObjectMoveTransfer.test.ts`](manipulation/membership/planObjectMoveTransfer.test.ts) |
-| [`manipulation/membership/orchestrateObjectMove.test.ts`](manipulation/membership/orchestrateObjectMove.test.ts) | Bundle declaration, both bracket slots reported, labels resolved once, and **never narrates a commit that did not happen** |
 | [`manipulation/membership/executeMembershipTransfer.test.ts`](manipulation/membership/executeMembershipTransfer.test.ts) | Single-entity administrative transfer: no-op short-circuit, room-to-room boundary sweep, spawn (empty priors), clear (multi-host, target null), `suppressRelationalFacts`, character entities skip the sweep, `compileMutationSteps` override, commit-failure propagation |
 | [`manipulation/kernel/applyStepSequenceCore.test.ts`](manipulation/kernel/applyStepSequenceCore.test.ts), [`manipulation/kernel/commitStepSequence.test.ts`](manipulation/kernel/commitStepSequence.test.ts) | Kernel transact, validation, entity-kind-general (object + character) transfer/dissolve/establish shapes |
 | [`manipulation/kernel/compile/compilePositionKernelOp.test.ts`](manipulation/kernel/compile/compilePositionKernelOp.test.ts) | Compiler steps/slots ordering, arity-driven connect/disconnect shapes, narration-absent (object-lifecycle) path, verb derivation for all three of takeHold/drop/give, closure-wide `entityIds`, dissolves ordered ahead of the transfer, and **both bracket sides emitted for a character host rather than suppressing the empty one** |
@@ -191,6 +191,16 @@ Objects lane callers use **`executeMembershipTransfer`** ([`manipulation/members
 | [`navigate/presentCharacterMove.test.ts`](navigate/presentCharacterMove.test.ts) | Post-persist bundle declare + header slot registration (no `MapUpdate`), plus the disconnect-shaped (`to: null`) cases merged in 3f |
 
 ---
+
+## Shelved: retiring the closed kinds `Against` and `Under`
+
+Not owned by any plan yet; a lean, not a decision. The user leans toward removing `Against` and `Under` as more complication than performance gain. Nothing is `mechanical` once they are gone, and no repair path needs them. What it would reach:
+
+- The classifier's closed-kind table in [`interactionUnderTransfer.ts`](ludicGraph/expandValidate/interactionUnderTransfer.ts) (`dissolve` class; `Under` when its target moves).
+- The no-challenge boundary actions in [`expandBoundaryChallenges.ts`](../actions/commandAttempt/expandBoundaryChallenges.ts).
+- The relational ingress's closed-kind fast path.
+
+Refusing an uncovered boundary edge at commit (`commitAttempt` dry-runs the attempt's whole sequence) already covers both kinds without special cases, so removing them does not need a new commit rule.
 
 ## Registration
 

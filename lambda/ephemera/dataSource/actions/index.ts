@@ -6,13 +6,13 @@
  * **`finalizeStableKeysDeterministic`** before **`streamEvent`** ---
  * see **`Where enforcement runs`** in [`AGENT.md`](./AGENT.md) (**Acme catalog lines and `stableKey`**).
  */
-import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { v4 as uuidv4 } from 'uuid'
 import { isEphemeraCharacterId, isEphemeraObjectId, type EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 import EphemeraDataSource from '../abstract'
 import type { AcmeOrderPublishedOrder, ActionsPublishedPayload } from './publishedEvents'
+import type { CommandAttemptData } from './commandAttempt'
 import type { ActionsSubscribedContent } from './subscribedEvents'
 import {
     isActionsActionAssessedEnvelope,
@@ -51,7 +51,7 @@ import {
     isParseCommandNavigationResult,
     isParseCommandObjectManipulationResult,
     isParseCommandEstablishRelationResult,
-    isParseCommandObjectRehostResult,
+    isParseCommandObjectContainmentResult,
     isParseCommandPredictHypothesisResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
@@ -145,10 +145,6 @@ const parseErrorMessageForPlayer = (errorMessage?: string): string => {
             return 'You are already holding that.'
         case objectManipulationErrorMessages.noHostRoom:
             return 'You are not in a room, so you cannot do that.'
-        case objectManipulationErrorMessages.notOnHostGraph:
-            return 'You do not see that object here.'
-        case objectManipulationErrorMessages.dissolveNoMatchingEdge:
-            return 'There is no such relation to remove.'
         case objectManipulationErrorMessages.nestingRelational:
             return 'Putting something inside another object is not supported yet.'
         case objectManipulationErrorMessages.complexRelational:
@@ -297,6 +293,32 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
             ],
         })
     }
+}
+
+/**
+ * Publishes the generalized `Ludic Network Change Requested` hand-off for the membership,
+ * relational and containment exits. No-op when `attempt` is undefined (a degenerate
+ * fixture, never the live path --- every producer builds an attempt unconditionally).
+ */
+const publishLudicNetworkChangeRequested = async (
+    streamEvent: StreamEventFn,
+    characterId: EphemeraCharacterId,
+    attempt: CommandAttemptData | undefined,
+    confidence: number,
+): Promise<void> => {
+    if (attempt === undefined) {
+        return
+    }
+    await streamEvent({
+        streamKey: characterId,
+        header: { type: 'Ludic Network Change Requested' },
+        update: {
+            type: 'Ludic Network Change Requested',
+            characterId,
+            attempt,
+            confidence,
+        },
+    })
 }
 
 const publishStreamEventsForIntent = async (
@@ -530,46 +552,21 @@ const publishStreamEventsForIntent = async (
                 message: [noRoomMessage],
             })
         }
-        else if (parseResult.operationKind === 'drop') {
-            await streamEvent({
-                streamKey: characterId,
-                header: { type: 'Object Drop' },
-                update: {
-                    type: 'Object Drop',
-                    characterId,
-                    objectIds: parseResult.objectIds,
-                    roomId: fromRoomId,
-                    confidence: parseResult.confidence,
-                    ...(parseResult.attempt !== undefined ? { attempt: parseResult.attempt } : {}),
-                },
-            })
-        }
         else {
-            await streamEvent({
-                streamKey: characterId,
-                header: { type: 'Object Take Hold' },
-                update: {
-                    type: 'Object Take Hold',
-                    characterId,
-                    objectIds: parseResult.objectIds,
-                    roomId: fromRoomId,
-                    confidence: parseResult.confidence,
-                    ...(parseResult.attempt !== undefined ? { attempt: parseResult.attempt } : {}),
-                },
-            })
+            // Membership publishes only the generalized hand-off now ---
+            // `Object Drop`/`Object Take Hold` retired. `publishLudicNetworkChangeRequested`
+            // no-ops (and logs nothing) if `parseResult.attempt` is somehow undefined, which
+            // never happens on the live path (both producers build an attempt unconditionally).
+            await publishLudicNetworkChangeRequested(streamEvent, characterId, parseResult.attempt, parseResult.confidence)
         }
     }
     else if (isParseCommandEstablishRelationResult(parseResult)) {
-        // `ParseCommandEstablishRelationResult` no longer carries a flat `hostId` ---
-        // once `steps` can span more than one host (a genuine crossing), there is no single
-        // canonical host to assert (each leg carries its own). `hostId` below is still
-        // derived from the *final* step's host (the common-ancestor chain step, or the sole step
-        // for a portless candidate), but its role was narrowed to narration/perception only
-        // (`objectManipulationPresentationLegAdapters.ts` gates on it being a Room) --- the commit
-        // mechanism reads `steps` directly (`executeEstablishEdgeChain`), not this field.
-        // `transferMembership` is the one `MutationKernelStep` kind without a `hostId` field ---
-        // this route's `steps` never contains one (only establish/dissolve/port steps), but the
-        // filter keeps that narrowing explicit rather than asserted.
+        // `hostId` here only guards the not-a-room OOC message below (derived from the final
+        // step's host --- the common-ancestor chain step, or the sole step for a portless
+        // candidate); the generalized hand-off carries the attempt, not `steps`, so
+        // this has no other reader. `transferMembership` is the one `MutationKernelStep` kind
+        // without a `hostId` field --- this route's `steps` never contains one (only
+        // establish/dissolve/port steps), but the filter keeps that narrowing explicit.
         const stepsWithHostId = parseResult.steps.filter(
             (step): step is Exclude<typeof step, { kind: 'transferMembership' }> => step.kind !== 'transferMembership'
         )
@@ -582,56 +579,20 @@ const publishStreamEventsForIntent = async (
                 message: ['You are not in a room, so you cannot do that.'],
             })
         }
-        else if (parseResult.operationKind === 'dissolveRelation') {
-            await streamEvent({
-                streamKey: characterId,
-                header: { type: 'Object Dissolve Relation' },
-                update: {
-                    type: 'Object Dissolve Relation',
-                    characterId,
-                    subjectId: parseResult.subjectId,
-                    targetId: parseResult.targetId,
-                    hostId,
-                    ...relationKindAndLabelFrom(parseResult),
-                    confidence: parseResult.confidence,
-                    steps: stepsWithHostId,
-                    ...(parseResult.attempt !== undefined ? { attempt: parseResult.attempt } : {}),
-                },
-            })
-        }
         else {
-            await streamEvent({
-                streamKey: characterId,
-                header: { type: 'Object Establish Relation' },
-                update: {
-                    type: 'Object Establish Relation',
-                    characterId,
-                    subjectId: parseResult.subjectId,
-                    targetId: parseResult.targetId,
-                    hostId,
-                    ...relationKindAndLabelFrom(parseResult),
-                    confidence: parseResult.confidence,
-                    steps: stepsWithHostId,
-                    ...(parseResult.attempt !== undefined ? { attempt: parseResult.attempt } : {}),
-                },
-            })
+            // Relational publishes only the generalized hand-off now ---
+            // `Object Establish Relation`/`Object Dissolve Relation` retired. `hostId` and
+            // `stepsWithHostId` (above) no longer have a reader here; they stay computed above
+            // only for the not-a-room OOC message guard.
+            await publishLudicNetworkChangeRequested(streamEvent, characterId, parseResult.attempt, parseResult.confidence)
         }
     }
-    else if (isParseCommandObjectRehostResult(parseResult)) {
-        await streamEvent({
-            streamKey: characterId,
-            header: { type: 'Object Rehost' },
-            update: {
-                type: 'Object Rehost',
-                characterId,
-                subjectId: parseResult.subjectId,
-                targetId: parseResult.targetId,
-                roomId: parseResult.hostId,
-                containment: parseResult.containment,
-                confidence: parseResult.confidence,
-                ...(parseResult.attempt !== undefined ? { attempt: parseResult.attempt } : {}),
-            },
-        })
+    else if (isParseCommandObjectContainmentResult(parseResult)) {
+        // Containment publishes only the generalized hand-off now ---
+        // `Object Containment` retired, folded into `Ludic Network Change Requested`, same as
+        // membership/relational. Its attempt's `transferMembership` action now
+        // carries a `containment` flag `commitAttempt` threads through.
+        await publishLudicNetworkChangeRequested(streamEvent, characterId, parseResult.attempt, parseResult.confidence)
     }
 }
 

@@ -1,16 +1,18 @@
-import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
-import { evaluateRelationalLegality } from './evaluateRelationalLegality'
-import type {
-    IdentityPlanCandidate,
-    RelationalIdentityPlanCandidate,
-} from './identityPlanCandidate'
+import type { IdentityPlanCandidate } from './identityPlanCandidate'
+import { membershipOperationKindFromLocus } from './identityPlanCandidate'
 import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import type { ExecutorOutputStep } from './synthesize/executorTypes'
 
 export type DryRunVerdict = 'legal' | 'defer' | 'illegal'
+
+/** `ExecutorOutcome`'s legal arm shape (`synthesize/executor.ts`), carried out of the dry run. */
+export type ValidatedPlan = {
+    steps: readonly ExecutorOutputStep[]
+}
 
 export type DryRunOutcome = {
     verdict: DryRunVerdict
@@ -18,32 +20,26 @@ export type DryRunOutcome = {
     decidable: boolean
     reason?: string
     /**
-     * Membership-only: the moved object (one entry), when a `legal` verdict came from
-     * `sandboxMembershipDryRun`'s executor-mediated dry run. Absent for relational dry runs and
-     * for any non-`legal` verdict.
+     * Membership-only: the validated, fully expanded plan the executor produced, when a
+     * `legal` verdict came from `sandboxMembershipDryRun`'s executor-mediated dry run.
+     * Absent for relational dry runs and for any non-`legal` verdict.
      */
-    objectIds?: EphemeraObjectId[]
-    /**
-     * Relational-only: the host actually selected among candidate hosts (Room or
-     * Character) when the verdict is `legal` (BD-15/16). Absent for membership dry
-     * runs and for any non-`legal` verdict.
-     */
-    hostId?: EphemeraMembershipHostId
+    plan?: ValidatedPlan
 }
 
 export type ValidateMembershipPlanContext = {
     /** When present, exit-edge contact escalates an otherwise-legal atomic to defer. */
     ludicGraph?: EphemeraLudicGraph
-    actorCharacterId?: EphemeraCharacterId
-}
-
-export type ValidateRelationalPlanContext = {
-    ludicGraph: EphemeraLudicGraph
 }
 
 /**
- * Single-step membership dry-run (FT-2.2). Legality from locus vs operationKind;
- * exit-edge / unmodeled loci defer. No compound sandbox.
+ * Validates a `transferMembership` step (FT-2.2): the object's actual host must equal the
+ * host the step's `from` referent requires, or an exit edge defers. For v1 loci, `from`
+ * grounds to the object's current host for `takeHold` (the room, for a `room` locus) and to
+ * the actor for `drop` (`planMembershipDesiredResult`),
+ * so `membershipOperationKindFromLocus` --- the locus's own inverse of that mapping --- is
+ * read as "does the locus satisfy `from`" rather than a bare operationKind table.
+ * `heldByOtherCharacter` / `withinObject` loci are not closed-world atomic in v1 and defer.
  */
 export function validateMembershipPlanDryRun(
     candidate: IdentityPlanCandidate,
@@ -52,34 +48,27 @@ export function validateMembershipPlanDryRun(
     const { locus } = candidate.identity
     const { operationKind } = candidate.plan
 
-    if (locus.kind === 'room') {
-        if (operationKind !== 'takeHold') {
-            return {
-                verdict: 'illegal',
-                decidable: true,
-                reason: objectManipulationErrorMessages.notCarryingObject,
-            }
+    const satisfiedOperationKind = membershipOperationKindFromLocus(locus)
+    if (satisfiedOperationKind === undefined) {
+        // heldByOtherCharacter / withinObject: not closed-world atomic in v1
+        return {
+            verdict: 'defer',
+            decidable: false,
+            reason: objectManipulationErrorMessages.unimplementedAtomicOperation,
         }
-        return escalateExitEdgeIfNeeded(candidate.identity.objectId, context)
     }
 
-    if (locus.kind === 'heldByActor') {
-        if (operationKind !== 'drop') {
-            return {
-                verdict: 'illegal',
-                decidable: true,
-                reason: objectManipulationErrorMessages.alreadyHoldingObject,
-            }
+    if (satisfiedOperationKind !== operationKind) {
+        return {
+            verdict: 'illegal',
+            decidable: true,
+            reason: locus.kind === 'room'
+                ? objectManipulationErrorMessages.notCarryingObject
+                : objectManipulationErrorMessages.alreadyHoldingObject,
         }
-        return escalateExitEdgeIfNeeded(candidate.identity.objectId, context)
     }
 
-    // heldByOtherCharacter / withinObject: not closed-world atomic in v1
-    return {
-        verdict: 'defer',
-        decidable: false,
-        reason: objectManipulationErrorMessages.unimplementedAtomicOperation,
-    }
+    return escalateExitEdgeIfNeeded(candidate.identity.objectId, context)
 }
 
 function escalateExitEdgeIfNeeded(
@@ -97,29 +86,4 @@ function escalateExitEdgeIfNeeded(
         }
     }
     return { verdict: 'legal', decidable: true }
-}
-
-/**
- * Single-step relational dry-run (FT-3.3). Wraps evaluateRelationalLegality;
- * allow -> legal, failures -> illegal (no Consult from legality).
- */
-export function validateRelationalPlanDryRun(
-    candidate: RelationalIdentityPlanCandidate,
-    context: ValidateRelationalPlanContext
-): DryRunOutcome {
-    const legality = evaluateRelationalLegality({
-        operationKind: candidate.plan.operationKind,
-        subjectId: candidate.subject.objectId,
-        targetId: candidate.target.objectId,
-        normalizedRelation: candidate.plan.relation,
-        graph: context.ludicGraph,
-    })
-    if (legality.type === 'allow') {
-        return { verdict: 'legal', decidable: true }
-    }
-    return {
-        verdict: 'illegal',
-        decidable: true,
-        reason: legality.errorMessage,
-    }
 }

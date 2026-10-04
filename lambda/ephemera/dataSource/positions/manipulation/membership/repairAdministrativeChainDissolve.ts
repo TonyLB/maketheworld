@@ -6,7 +6,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { MutationKernelStep } from '../kernel/kernelStep'
-import { buildCrossingDissolveLegs } from '../../../actions/enrich/objectManipulation/synthesize/buildCrossingLegs'
+import { lowerRelationalChain } from '../../../actions/enrich/objectManipulation/synthesize/buildCrossingLegs'
 import { fetchRelationalReachability, findRelationalChainsTouching } from '../relational/findRelationalChainsForRemoval'
 
 export type RepairAdministrativeChainDissolveResult = {
@@ -20,8 +20,9 @@ export type RepairAdministrativeChainDissolveResult = {
  * character and no legality question to ask, so this runs chain-aware and unconditional ---
  * following crossing ports across hosts and dissolving every relational chain touching the
  * departing entity, with no "carry vs. defer" ambiguity the way a real move has, since nothing
- * needs to decide where the other participant ends up. Sibling of `repairMechanicalDissolve`,
- * which is the opposite, authority-gated policy for a player action.
+ * needs to decide where the other participant ends up. A player move is the opposite: it
+ * repairs nothing, and refuses any boundary edge its command attempt does not dissolve
+ * (`commitAttempt`).
  *
  * Extracted verbatim from `executeMembershipTransfer`'s pre-3d body --- no behavior change.
  * `boundaryEdgeOutcomes` stays Object-only, so a Character entity produces no dissolve steps here
@@ -40,7 +41,7 @@ export const repairAdministrativeChainDissolve = async (
         const graphs = await fetchRelationalReachability(entitySet, getMembershipContainers, getGraph)
         const chains = findRelationalChainsTouching(entitySet, graphs)
         chains.forEach((chain) => {
-            buildCrossingDissolveLegs(chain).forEach((step) => {
+            lowerRelationalChain(chain, 'dissolveRelation').forEach((step) => {
                 dissolveSteps.push(step)
                 if (step.kind === 'dissolveRelation') {
                     if (isEphemeraLudicTerminalPrimitive(step.subjectId)) {

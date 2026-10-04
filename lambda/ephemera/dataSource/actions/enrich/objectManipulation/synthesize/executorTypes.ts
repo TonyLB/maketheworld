@@ -6,20 +6,16 @@ import type {
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
-import type { Assertion, Change } from '../plan/planStep'
+import type { DissolveRelationChange, EstablishRelationChange, GroundedReferent } from '../plan/planStep'
 import type { TransferMembershipStep } from '../parsePlanStep'
+import type { RelationalChainStep } from './findRelationalChain'
 
 /**
- * `EstablishRelationStep`/`DissolveRelationStep` (`parsePlanStep.ts`) minus
- * `hostRoomId` --- the BD-33 assert-and-throw shape, where a relational
- * effect step derives its host from its own endpoint ids at apply time
- * instead of carrying one. Local to the executor (not a `parsePlanStep.ts`
- * edit) because the live relational route still constructs/reads
- * `hostRoomId` today; `parsePlanStep.ts` itself only loses the field at the
- * Migrate slice, once the live route stops needing it.
+ * A relational effect step: one leg of a chain, lowered from it by
+ * `lowerRelationalChain` and reused verbatim as the kernel's relational step.
  *
  * `subjectId`/`targetId` are `EphemeraLudicTerminalId`-typed: any legal host-kind component, or a
  * port-qualified reference on one (a crossing leg's far-side endpoint is a port address, not a bare
@@ -30,8 +26,8 @@ import type { TransferMembershipStep } from '../parsePlanStep'
  * `establishRelation`/`dissolveRelation` step living entirely within one host's own graph --- no
  * separate "leg" step kind.
  *
- * **`hostId`:** mandatory, computed once at Expansion (`expandSameHost`'s resolved host; each
- * `buildCrossingLegs` leg's own placement) rather than re-derived at apply time. This disambiguates
+ * **`hostId`:** mandatory, computed once at Expansion (each leg's own placement in the chain
+ * `buildCrossingLegs` builds or `findRelationalChain` finds) rather than re-derived at apply time. This disambiguates
  * two cases a host-intersection search cannot: an endpoint multi-hosted in >=2 shared graphs at
  * once, and a port-to-port edge on one object where interior/exterior scope isn't recoverable from
  * the two port addresses alone. Matches the field `MutationKernelAddCrossingPortStep`/
@@ -87,6 +83,21 @@ export type ExecutorParsePlanStep =
     | ExecutorDissolveRelationStep
     | ExecutorDescribeStep
 
+/**
+ * A relational edge's chain, retired from the
+ * worklist as one output: every leg with its host and every port it crosses, establish's freshly
+ * built or dissolve's found. It stays a value through selection; `lowerRelationalChain`
+ * (`buildCrossingLegs.ts`) turns the chosen one into kernel steps.
+ */
+export type ExecutorRelationalChain = {
+    kind: 'relationalChain'
+    operationKind: 'establishRelation' | 'dissolveRelation'
+    steps: readonly RelationalChainStep[]
+}
+
+/** What a worklist run retires: an executor step, or a relational edge's whole chain. */
+export type ExecutorOutputStep = ExecutorParsePlanStep | ExecutorRelationalChain
+
 /** Stable per-instruction identity --- causal tracking and settled-groups ledger keys. */
 export type InstructionId = string
 
@@ -98,41 +109,29 @@ export type GroundedBinaryAssertion = {
     negate: boolean
 }
 
+export type GroundedAssertion = GroundedBinaryAssertion
+
 /**
- * This is split out of `GroundedBinaryAssertion` (which fused it with `containedBy` under
- * one shared shape) --- `sameHost` is a placement-resolver, not a check with an inverse (its own
- * `negate` was already dropped), so once `containedBy`'s `negate` went back to being
- * unconditionally required, the two no longer belonged in one type. See `SameHostAssertion`'s
- * doc comment in `planStep.ts` for `relationKind`'s own carried-copy rationale;
- * `relationLabel` is `relationKind: 'Custom'` only --- the crossing-port producer's
- * `exteriorRelationLabel`/leg label needs the actual text, not just the `Custom` tag.
+ * A grounded relational `Change`: the edge as a worklist instruction (`AGENT.implementation.md`,
+ * "Relational edges"). It carries no `host` and never lowers straight to an executor step:
+ * command-expansion dispatches on its `primitive` and finds its chain (establish via
+ * `findShardBoundary`, dissolve via `findRelationalChain`), retiring as one
+ * `ExecutorRelationalChain`.
  */
-export type GroundedSameHostAssertion = {
-    kind: 'assertion'
-    predicate: 'sameHost'
-    subjectId: EphemeraObjectId
-    objectId: EphemeraObjectId
-    relationKind?: HostRelationalEdgeKind
-    relationLabel?: string
-    /**
-     * the collapsed ingress seed no longer carries a sibling relational step, so this
-     * assertion is the only place `establishRelation`/`dissolveRelation` survives to Expansion ---
-     * `expandSameHost`/`buildCrossingLegs` need it to pick the retiring step's own kind.
-     */
-    operationKind: 'establishRelation' | 'dissolveRelation'
+export type GroundedRelationalChange = EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>
+
+/**
+ * BD-30's worklist instruction. Always grounded: grounding happens once, completely,
+ * before anything is seeded (`seedFromGroundedSteps` is the only seeder), so the worklist
+ * never carries an ungrounded `Change`/`Assertion` --- unlike `'retired'`, which is
+ * deliberately not a tag here either, since a retired instruction has left the worklist
+ * entirely, either into the output-ordered list (atomic effects) or nowhere (generators,
+ * which contribute only their minted children).
+ */
+export type WorklistInstruction = {
+    id: InstructionId
+    step: ExecutorParsePlanStep | GroundedAssertion | GroundedRelationalChange
 }
-
-export type GroundedAssertion = GroundedBinaryAssertion | GroundedSameHostAssertion
-
-/**
- * BD-30's progress-tagged instruction. `'retired'` is deliberately not a tag
- * here --- a retired instruction has left the worklist entirely, either into
- * the output-ordered list (atomic effects) or nowhere (generators, which
- * contribute only their minted children).
- */
-export type WorklistInstruction =
-    | { id: InstructionId; tag: 'ungrounded'; step: Change | Assertion }
-    | { id: InstructionId; tag: 'grounded'; step: ExecutorParsePlanStep | GroundedAssertion }
 
 /**
  * The live-state reads one worklist run shares: injected callbacks, not DB calls.
@@ -151,7 +150,7 @@ export type ExpansionEnvironment = {
 }
 
 export const isExecutorParsePlanStep = (
-    step: ExecutorParsePlanStep | GroundedAssertion
+    step: ExecutorParsePlanStep | GroundedAssertion | GroundedRelationalChange
 ): step is ExecutorParsePlanStep =>
     step.kind === 'transferMembership'
     || step.kind === 'establishRelation'

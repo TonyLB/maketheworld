@@ -71,15 +71,16 @@ describe('compileRelationalFromSkeleton', () => {
             }],
             attempt: expect.objectContaining({
                 words: 'put broom under table',
+                // Parse's own stableRefKey, not a synthesized `${id}/subject` key.
                 referents: [
-                    { refKey: 'OBJECT#Broom/subject', id: broomId, shortName: 'broom' },
-                    { refKey: 'OBJECT#Table/target', id: tableId, shortName: 'table' },
+                    { refKey: 'broomRef', id: broomId, shortName: 'broom' },
+                    { refKey: 'tableRef', id: tableId, shortName: 'table' },
                 ],
             }),
         })
     })
 
-    it('grounds "put bench under bench" to two distinct benches, not a self-relation (BD-23)', async () => {
+    it('grounds "put bench under bench" to two distinct benches, not a self-relation (BD-23), and Consults over the symmetric pair (2d)', async () => {
         const getLudicGraph = jest.fn().mockResolvedValue(
             testLudicGraph(roomId, {
                 nodes: [
@@ -104,11 +105,18 @@ describe('compileRelationalFromSkeleton', () => {
             { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph } }
         )
 
-        expect(result.type).toBe('EstablishRelation')
-        if (result.type === 'EstablishRelation') {
-            expect(result.subjectId).not.toBe(result.targetId)
-            expect([benchAId, benchBId]).toContain(result.subjectId)
-            expect([benchAId, benchBId]).toContain(result.targetId)
+        // The producer excludes self-relation, leaving exactly the two
+        // genuinely-distinct orderings (benchA under benchB, benchB under benchA) ---
+        // not the four combinations a naive product would form. Their confidence ties
+        // (both benches match the "bench" span identically), so `selectPlanTuple`'s thin
+        // margin now asks instead of silently committing to one, where the old
+        // `candidates[0]` placeholder would have picked an arbitrary ordering.
+        expect(result.type).toBe('Consult')
+        if (result.type === 'Consult') {
+            expect(result.alternatives).toHaveLength(2)
+            for (const alternative of result.alternatives) {
+                expect(alternative.proposedCommand).toBe('put the bench under the bench')
+            }
         }
     })
 
@@ -184,7 +192,7 @@ describe('compileRelationalFromSkeleton', () => {
         })
     })
 
-    it('abstains when the only grounded candidate is an illegal self-relation', async () => {
+    it('abstains when the only grounded candidate is a self-relation', async () => {
         const getLudicGraph = jest.fn().mockResolvedValue(
             testLudicGraph(roomId, {
                 nodes: [{ tag: 'Object' as const, universalKey: lampId }],
@@ -205,6 +213,32 @@ describe('compileRelationalFromSkeleton', () => {
 
         expect(result.type).toBe('Abstain')
         expect((result as { confidence: number }).confidence).toBe(0.9)
+    })
+
+    it('drops a self-relation of a non-Under kind at the producer (no self-relations)', async () => {
+        const getLudicGraph = jest.fn().mockResolvedValue(
+            testLudicGraph(roomId, {
+                nodes: [{ tag: 'Object' as const, universalKey: lampId }],
+            })
+        )
+
+        const result = await compileRelationalFromSkeleton(
+            {
+                command: 'put lamp around lamp',
+                skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'around', 'lamp', 'lampRef2'),
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
+            },
+            0.9,
+            { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph } }
+        )
+
+        expect(result).toEqual({
+            type: 'Abstain',
+            confidence: 0.9,
+            reason: 'No combination of two distinct grounded objects produced a well-typed establishRelation/dissolveRelation step',
+        })
     })
 
     it('abstains when a span resolves to no catalog candidates', async () => {
@@ -232,7 +266,7 @@ describe('compileRelationalFromSkeleton', () => {
         expect(result.type).toBe('Abstain')
     })
 
-    it('drops a Custom-relation candidate whose subject/object hosts differ (sameHost defer --- no Consult path on this route)', async () => {
+    it('abstains on a Custom-relation candidate whose subject/object hosts differ (sameHost defer, no complexity LLM on this route)', async () => {
         const charmId = 'OBJECT#Charm' as EphemeraObjectId
         const necklaceId = 'OBJECT#Necklace' as EphemeraObjectId
         const roomGraph = testLudicGraph(roomId, {
@@ -324,8 +358,8 @@ describe('compileRelationalFromSkeleton', () => {
         expect(result.relationKind).toBe('Custom')
         expect(result.relationKind === 'Custom' && result.relationLabel).toBe('to')
 
-        // Order asserted explicitly, not just membership --- this is exactly what the
-        // extraKernelSteps-then-steps reconstruction in the producer has to get right.
+        // Order asserted explicitly, not just membership --- the chain is lowered in its
+        // own order, each port ahead of the leg that references it.
         expect(result.steps).toHaveLength(3)
         const [portStep, tableLeg, roomLeg] = result.steps
 

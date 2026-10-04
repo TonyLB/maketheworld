@@ -3,11 +3,7 @@ import {
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
     isEphemeraPositionsActionsCharacterHomeEnvelope,
-    isEphemeraPositionsActionsObjectTakeHoldEnvelope,
-    isEphemeraPositionsActionsObjectDropEnvelope,
-    isEphemeraPositionsActionsObjectEstablishRelationEnvelope,
-    isEphemeraPositionsActionsObjectDissolveRelationEnvelope,
-    isEphemeraPositionsActionsObjectRehostEnvelope,
+    isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope,
@@ -122,126 +118,24 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsActionsCharacterHomeEnvelope(envelope as any)).toBe(true)
     })
 
-    it('accepts mtw.ephemera.actions Object Take Hold envelope', () => {
+    it('accepts mtw.ephemera.actions Ludic Network Change Requested envelope', () => {
         const envelope = {
             header: {
                 dataSourceKey: 'mtw.ephemera.actions',
                 streamKey: 'CHARACTER#alpha',
                 timestamp: Date.now(),
-                type: 'Object Take Hold' as const,
+                type: 'Ludic Network Change Requested' as const,
             },
             getContent: () => Promise.resolve({
-                type: 'Object Take Hold' as const,
+                type: 'Ludic Network Change Requested' as const,
                 characterId: 'CHARACTER#alpha' as const,
-                objectId: 'OBJECT#Broom' as const,
-                roomId: 'ROOM#from' as const,
+                attempt: { words: 'pick up the broom', referents: [], actions: [] },
                 confidence: 0.9,
             }),
         }
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
-        expect(isEphemeraPositionsActionsObjectTakeHoldEnvelope(envelope as any)).toBe(true)
-    })
-
-    it('accepts mtw.ephemera.actions Object Drop envelope', () => {
-        const envelope = {
-            header: {
-                dataSourceKey: 'mtw.ephemera.actions',
-                streamKey: 'CHARACTER#alpha',
-                timestamp: Date.now(),
-                type: 'Object Drop' as const,
-            },
-            getContent: () => Promise.resolve({
-                type: 'Object Drop' as const,
-                characterId: 'CHARACTER#alpha' as const,
-                objectId: 'OBJECT#Broom' as const,
-                roomId: 'ROOM#from' as const,
-                confidence: 0.9,
-            }),
-        }
-
-        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
-        expect(isEphemeraPositionsActionsObjectDropEnvelope(envelope as any)).toBe(true)
-    })
-
-    it('accepts mtw.ephemera.actions Object Establish Relation envelope', () => {
-        const envelope = {
-            header: {
-                dataSourceKey: 'mtw.ephemera.actions',
-                streamKey: 'CHARACTER#alpha',
-                timestamp: Date.now(),
-                type: 'Object Establish Relation' as const,
-            },
-            getContent: () => Promise.resolve({
-                type: 'Object Establish Relation' as const,
-                characterId: 'CHARACTER#alpha' as const,
-                subjectId: 'OBJECT#Broom' as const,
-                targetId: 'OBJECT#Table' as const,
-                hostId: 'ROOM#from' as const,
-                relationKind: 'Under' as const,
-                steps: [{
-                    kind: 'establishRelation' as const,
-                    subjectId: 'OBJECT#Broom' as const,
-                    targetId: 'OBJECT#Table' as const,
-                    relationKind: 'Under' as const,
-                    hostId: 'ROOM#from' as const,
-                }],
-            }),
-        }
-
-        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
-        expect(isEphemeraPositionsActionsObjectEstablishRelationEnvelope(envelope as any)).toBe(true)
-    })
-
-    it('accepts mtw.ephemera.actions Object Rehost envelope', () => {
-        const envelope = {
-            header: {
-                dataSourceKey: 'mtw.ephemera.actions',
-                streamKey: 'CHARACTER#alpha',
-                timestamp: Date.now(),
-                type: 'Object Rehost' as const,
-            },
-            getContent: () => Promise.resolve({
-                type: 'Object Rehost' as const,
-                characterId: 'CHARACTER#alpha' as const,
-                subjectId: 'OBJECT#Cup' as const,
-                targetId: 'OBJECT#Tray' as const,
-                roomId: 'ROOM#from' as const,
-                containment: 'On' as const,
-            }),
-        }
-
-        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
-        expect(isEphemeraPositionsActionsObjectRehostEnvelope(envelope as any)).toBe(true)
-    })
-
-    it('accepts mtw.ephemera.actions Object Dissolve Relation envelope', () => {
-        const envelope = {
-            header: {
-                dataSourceKey: 'mtw.ephemera.actions',
-                streamKey: 'CHARACTER#alpha',
-                timestamp: Date.now(),
-                type: 'Object Dissolve Relation' as const,
-            },
-            getContent: () => Promise.resolve({
-                type: 'Object Dissolve Relation' as const,
-                characterId: 'CHARACTER#alpha' as const,
-                subjectId: 'OBJECT#Broom' as const,
-                targetId: 'OBJECT#Table' as const,
-                roomId: 'ROOM#from' as const,
-                relationKind: 'On' as const,
-                steps: [{
-                    kind: 'dissolveRelation' as const,
-                    subjectId: 'OBJECT#Broom' as const,
-                    targetId: 'OBJECT#Table' as const,
-                    relationKind: 'Under' as const,
-                    hostId: 'ROOM#from' as const,
-                }],
-            }),
-        }
-
-        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
-        expect(isEphemeraPositionsActionsObjectDissolveRelationEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope(envelope as any)).toBe(true)
     })
 
     it('rejects unrelated event type on mtw.ephemera.actions', () => {
@@ -258,8 +152,7 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(false)
         expect(isEphemeraPositionsActionsCharacterNavigateEnvelope(envelope as any)).toBe(false)
         expect(isEphemeraPositionsActionsCharacterHomeEnvelope(envelope as any)).toBe(false)
-        expect(isEphemeraPositionsActionsObjectTakeHoldEnvelope(envelope as any)).toBe(false)
-        expect(isEphemeraPositionsActionsObjectDropEnvelope(envelope as any)).toBe(false)
+        expect(isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope(envelope as any)).toBe(false)
     })
 
     it('accepts mtw.diagnostics Room Occupancy Drift Finding envelope', () => {

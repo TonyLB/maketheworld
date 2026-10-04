@@ -2,7 +2,13 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import { identityPlanCandidateFromSpan } from './identityPlanCandidate'
 import { T_JOINT_ABS, T_JOINT_ABS_UNARY, T_JOINT_MARGIN } from './embeddingMatch/thresholds'
-import { selectIdentityPlanTuple } from './selectIdentityPlanTuple'
+import { groundMembershipCandidate } from './proposeMembershipCandidates'
+import {
+    expandAndAdjudicateMembershipCandidate,
+    membershipPlanStageEnvironment,
+    selectIdentityPlanTuple,
+    transferredObjectIds,
+} from './selectPlanCandidate'
 import type { ObjectSpanCandidate } from './spanResolution'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { buildSandboxState } from './sandboxState'
@@ -275,7 +281,7 @@ describe('selectIdentityPlanTuple', () => {
 
         expect(result.verdict).toBe('resolved')
         if (result.verdict === 'resolved') {
-            expect(result.dryRun.objectIds).toEqual([broomId])
+            expect(transferredObjectIds(result.dryRun.plan)).toEqual([broomId])
             expect(result.candidate.attempt.result.status).toBe('succeeded')
         }
     })
@@ -300,5 +306,63 @@ describe('selectIdentityPlanTuple', () => {
         })
 
         expect(result).toEqual({ verdict: 'error', reason: `No graph found for host ${roomId}` })
+    })
+})
+
+describe('expandAndAdjudicateMembershipCandidate', () => {
+    const ropeId = 'OBJECT#Rope' as EphemeraObjectId
+    const postId = 'OBJECT#Post' as EphemeraObjectId
+
+    it('expands a Custom-tied object from its locus graph into a dissolve action carrying a CustomEdgeChallenge, then Adjudicate meets it', () => {
+        const roomGraphWithEdge = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [{ tag: 'Relational', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' }],
+        })
+        const stateWithEdge = buildSandboxState([roomGraphWithEdge, characterGraph])
+        const grounded = groundMembershipCandidate(
+            identityPlanCandidateFromSpan(candidate(ropeId, 'rope', 0.8, { kind: 'room' }), 'takeHold'),
+            { words: 'take the rope', span: 'rope', catalog: [] }
+        )
+
+        const result = expandAndAdjudicateMembershipCandidate(
+            grounded,
+            membershipPlanStageEnvironment(stateWithEdge, roomId, characterId),
+            roomId,
+            characterId
+        )
+
+        const actions = result.attempt.toJSON().actions
+        expect(actions).toHaveLength(2)
+        expect(actions[1]?.challenges).toEqual([])
+        expect(actions[0]?.challenges).toEqual([
+            expect.objectContaining({ kind: 'customEdge', description: expect.stringContaining('is lashed to') }),
+        ])
+        expect(actions[0]?.challenges[0]?.verdict).toEqual({ kind: 'met' })
+        expect(result.attempt.result.status).toBe('succeeded')
+    })
+
+    it('skips expansion when the locus has no source graph (not room or heldByActor)', () => {
+        const grounded = groundMembershipCandidate(
+            {
+                identity: { objectId: ropeId, label: 'rope', locus: { kind: 'withinObject', hostId: postId, hostLabel: 'post' }, jointRelevance: 0.8, sourceTags: ['exact'] },
+                plan: { kind: 'transferMembership', operationKind: 'takeHold' },
+                confidence: 0.8,
+            },
+            { words: 'take the rope', span: 'rope', catalog: [] }
+        )
+
+        const result = expandAndAdjudicateMembershipCandidate(
+            grounded,
+            membershipPlanStageEnvironment(sandboxState, roomId, characterId),
+            roomId,
+            characterId
+        )
+
+        expect(result.attempt.toJSON().actions).toEqual([
+            expect.objectContaining({ desiredResultDescription: 'Take: rope', challenges: [] }),
+        ])
     })
 })

@@ -1700,12 +1700,14 @@ describe('ephemeraActionsDataSource', () => {
     describe('ParseCommandObjectManipulationResult', () => {
         const from = 'ROOM#from' as EphemeraRoomId
 
-        it('emits Object Take Hold streamEvent when takeHold is grounded', async () => {
+        it('emits Ludic Network Change Requested when takeHold is grounded', async () => {
+            const attempt = { words: 'pick up the broom', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectManipulation',
                 operationKind: 'takeHold',
                 objectIds: ['OBJECT#Broom'],
                 confidence: 0.9,
+                attempt,
             })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: from,
@@ -1733,12 +1735,11 @@ describe('ephemeraActionsDataSource', () => {
 
             expect(streamEvent).toHaveBeenCalledWith({
                 streamKey: 'CHARACTER#123',
-                header: { type: 'Object Take Hold' },
+                header: { type: 'Ludic Network Change Requested' },
                 update: {
-                    type: 'Object Take Hold',
+                    type: 'Ludic Network Change Requested',
                     characterId: 'CHARACTER#123',
-                    objectIds: ['OBJECT#Broom'],
-                    roomId: from,
+                    attempt,
                     confidence: 0.9,
                 },
             })
@@ -1749,12 +1750,14 @@ describe('ephemeraActionsDataSource', () => {
             )
         })
 
-        it('emits Object Drop streamEvent when drop is grounded', async () => {
+        it('emits Ludic Network Change Requested when drop is grounded', async () => {
+            const attempt = { words: 'drop the broom', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'ObjectManipulation',
                 operationKind: 'drop',
                 objectIds: ['OBJECT#Broom'],
                 confidence: 0.9,
+                attempt,
             })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
                 fromRoomId: from,
@@ -1782,12 +1785,11 @@ describe('ephemeraActionsDataSource', () => {
 
             expect(streamEvent).toHaveBeenCalledWith({
                 streamKey: 'CHARACTER#123',
-                header: { type: 'Object Drop' },
+                header: { type: 'Ludic Network Change Requested' },
                 update: {
-                    type: 'Object Drop',
+                    type: 'Ludic Network Change Requested',
                     characterId: 'CHARACTER#123',
-                    objectIds: ['OBJECT#Broom'],
-                    roomId: from,
+                    attempt,
                     confidence: 0.9,
                 },
             })
@@ -2101,7 +2103,8 @@ describe('ephemeraActionsDataSource', () => {
     describe('ParseCommandEstablishRelationResult', () => {
         const hostRoom = 'ROOM#from' as EphemeraRoomId
 
-        it('emits Object Establish Relation streamEvent when establishRelation is grounded', async () => {
+        it('emits Ludic Network Change Requested when establishRelation is grounded', async () => {
+            const attempt = { words: 'put the broom on the table', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'EstablishRelation',
                 operationKind: 'establishRelation',
@@ -2119,6 +2122,7 @@ describe('ephemeraActionsDataSource', () => {
                     relationKind: 'Under',
                     hostId: hostRoom,
                 }],
+                attempt,
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2141,22 +2145,12 @@ describe('ephemeraActionsDataSource', () => {
 
             expect(streamEvent).toHaveBeenCalledWith({
                 streamKey: 'CHARACTER#123',
-                header: { type: 'Object Establish Relation' },
+                header: { type: 'Ludic Network Change Requested' },
                 update: {
-                    type: 'Object Establish Relation',
+                    type: 'Ludic Network Change Requested',
                     characterId: 'CHARACTER#123',
-                    subjectId: 'OBJECT#Broom',
-                    targetId: 'OBJECT#Table',
-                    hostId: hostRoom,
-                    relationKind: 'Under',
+                    attempt,
                     confidence: 0.9,
-                    steps: [{
-                        kind: 'establishRelation',
-                        subjectId: 'OBJECT#Broom',
-                        targetId: 'OBJECT#Table',
-                        relationKind: 'Under',
-                        hostId: hostRoom,
-                    }],
                 },
             })
             expect(mockMessageBus.publish).not.toHaveBeenCalledWith(
@@ -2166,7 +2160,8 @@ describe('ephemeraActionsDataSource', () => {
             )
         })
 
-        it('emits Object Establish Relation with Custom relationLabel', async () => {
+        it('emits Ludic Network Change Requested with Custom relationLabel', async () => {
+            const attempt = { words: 'tie the rope around the crate', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'EstablishRelation',
                 operationKind: 'establishRelation',
@@ -2183,6 +2178,7 @@ describe('ephemeraActionsDataSource', () => {
                     relationLabel: 'tied around',
                     hostId: hostRoom,
                 }],
+                attempt,
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2205,29 +2201,17 @@ describe('ephemeraActionsDataSource', () => {
 
             expect(streamEvent).toHaveBeenCalledWith({
                 streamKey: 'CHARACTER#123',
-                header: { type: 'Object Establish Relation' },
+                header: { type: 'Ludic Network Change Requested' },
                 update: {
-                    type: 'Object Establish Relation',
+                    type: 'Ludic Network Change Requested',
                     characterId: 'CHARACTER#123',
-                    subjectId: 'OBJECT#Rope',
-                    targetId: 'OBJECT#Crate',
-                    hostId: hostRoom,
-                    relationKind: 'Custom',
-                    relationLabel: 'tied around',
+                    attempt,
                     confidence: 0.85,
-                    steps: [{
-                        kind: 'establishRelation',
-                        subjectId: 'OBJECT#Rope',
-                        targetId: 'OBJECT#Crate',
-                        relationKind: 'Custom',
-                        relationLabel: 'tied around',
-                        hostId: hostRoom,
-                    }],
                 },
             })
         })
 
-        it('emits Object Establish Relation carrying every step of a genuine crossing', async () => {
+        it('emits Ludic Network Change Requested carrying the attempt for a genuine crossing', async () => {
             const tableId = 'OBJECT#Table' as EphemeraObjectId
             const portStep = {
                 kind: 'addCrossingPort' as const,
@@ -2252,6 +2236,7 @@ describe('ephemeraActionsDataSource', () => {
                     hostId: tableId,
                 },
             ]
+            const attempt = { words: 'tie string to cup', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'EstablishRelation',
                 operationKind: 'establishRelation',
@@ -2261,6 +2246,7 @@ describe('ephemeraActionsDataSource', () => {
                 relationLabel: 'tied to',
                 confidence: 0.9,
                 steps: [portStep, ...legSteps],
+                attempt,
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2283,23 +2269,18 @@ describe('ephemeraActionsDataSource', () => {
 
             expect(streamEvent).toHaveBeenCalledWith({
                 streamKey: 'CHARACTER#123',
-                header: { type: 'Object Establish Relation' },
+                header: { type: 'Ludic Network Change Requested' },
                 update: {
-                    type: 'Object Establish Relation',
+                    type: 'Ludic Network Change Requested',
                     characterId: 'CHARACTER#123',
-                    subjectId: 'OBJECT#String',
-                    targetId: 'OBJECT#Cup',
-                    // The last step's hostId --- narration-only.
-                    hostId: 'OBJECT#Table',
-                    relationKind: 'Custom',
-                    relationLabel: 'tied to',
+                    attempt,
                     confidence: 0.9,
-                    steps: [portStep, ...legSteps],
                 },
             })
         })
 
-        it('emits Object Dissolve Relation streamEvent when dissolveRelation is grounded', async () => {
+        it('emits Ludic Network Change Requested when dissolveRelation is grounded', async () => {
+            const attempt = { words: 'take the rope off the crate', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'EstablishRelation',
                 operationKind: 'dissolveRelation',
@@ -2316,6 +2297,7 @@ describe('ephemeraActionsDataSource', () => {
                     relationLabel: 'tied around',
                     hostId: hostRoom,
                 }],
+                attempt,
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2338,24 +2320,12 @@ describe('ephemeraActionsDataSource', () => {
 
             expect(streamEvent).toHaveBeenCalledWith({
                 streamKey: 'CHARACTER#123',
-                header: { type: 'Object Dissolve Relation' },
+                header: { type: 'Ludic Network Change Requested' },
                 update: {
-                    type: 'Object Dissolve Relation',
+                    type: 'Ludic Network Change Requested',
                     characterId: 'CHARACTER#123',
-                    subjectId: 'OBJECT#Rope',
-                    targetId: 'OBJECT#Crate',
-                    hostId: hostRoom,
-                    relationKind: 'Custom',
-                    relationLabel: 'tied around',
+                    attempt,
                     confidence: 0.9,
-                    steps: [{
-                        kind: 'dissolveRelation',
-                        subjectId: 'OBJECT#Rope',
-                        targetId: 'OBJECT#Crate',
-                        relationKind: 'Custom',
-                        relationLabel: 'tied around',
-                        hostId: hostRoom,
-                    }],
                 },
             })
         })
@@ -2400,14 +2370,16 @@ describe('ephemeraActionsDataSource', () => {
             expect(streamEvent).not.toHaveBeenCalled()
         })
 
-        it('emits Object Rehost streamEvent when an On rehost is grounded', async () => {
+        it('emits Ludic Network Change Requested when an On containment move is grounded', async () => {
+            const attempt = { words: 'put the cup on the tray', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'ObjectRehost',
+                type: 'ObjectContainment',
                 subjectId: 'OBJECT#Cup',
                 targetId: 'OBJECT#Tray',
                 hostId: hostRoom,
                 containment: 'On',
                 confidence: 0.9,
+                attempt,
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2430,14 +2402,11 @@ describe('ephemeraActionsDataSource', () => {
 
             expect(streamEvent).toHaveBeenCalledWith({
                 streamKey: 'CHARACTER#123',
-                header: { type: 'Object Rehost' },
+                header: { type: 'Ludic Network Change Requested' },
                 update: {
-                    type: 'Object Rehost',
+                    type: 'Ludic Network Change Requested',
                     characterId: 'CHARACTER#123',
-                    subjectId: 'OBJECT#Cup',
-                    targetId: 'OBJECT#Tray',
-                    roomId: hostRoom,
-                    containment: 'On',
+                    attempt,
                     confidence: 0.9,
                 },
             })

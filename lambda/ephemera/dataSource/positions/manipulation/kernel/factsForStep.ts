@@ -2,13 +2,14 @@ import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalPrimitive, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { buildObjectMovedFact } from '../membership/buildObjectMovedFact'
 import { buildCharacterMovedFact } from '../membership/buildCharacterMovedFact'
 import { buildRelationalFact } from '../relational/buildObjectRelationalFact'
+import type { RelationalIngressOperation } from '../relational/types'
 import type {
     CharacterMovedPublishedPayload,
     ObjectMovedPublishedPayload,
@@ -103,8 +104,8 @@ export const factsForStep = (
         return [...objectFacts, ...characterFacts]
     }
 
-    // a crossing leg's port-address endpoint has no established fact shape yet --- same
-    // "not a narration channel yet" deferral `addPresenceBinding`/`removePresenceBinding` already use above.
+    // a crossing leg names a port, not the edge's real pair, so it yields no fact; the edge's
+    // one fact comes from `factForRelationalEdge`, when the caller supplies the edge.
     if (!isEphemeraLudicTerminalPrimitive(step.subjectId) || !isEphemeraLudicTerminalPrimitive(step.targetId)) {
         return []
     }
@@ -123,4 +124,41 @@ export const factsForStep = (
             beatAnchorTime,
         }),
     ]
+}
+
+/**
+ * A relational edge as the player's command named it: its real subject and target, not any
+ * leg's port address. A caller that commits whole edges hands these to `commitStepSequence`
+ * (`relationalEdges`), and each yields one `Object Relation Changed` fact, however many legs
+ * its chain has.
+ */
+export type RelationalEdgeFactSource = {
+    subjectId: EphemeraObjectId
+    targetId: EphemeraObjectId
+    operation: RelationalIngressOperation
+} & RelationalKindAndLabel
+
+/**
+ * One edge's fact. The host is the subject's, re-derived from the graphs the same way
+ * `factsForStep` does for a leg: the committed graphs, then the pre-apply snapshot (a dissolve
+ * whose subject left the footprint).
+ */
+export const factForRelationalEdge = (
+    edge: RelationalEdgeFactSource,
+    finalGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>,
+    beatAnchorTime: number,
+    priorGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph> = finalGraphs
+): ObjectRelationChangedPublishedPayload => {
+    const hostId = findHostOf(edge.subjectId, finalGraphs) ?? findHostOf(edge.subjectId, priorGraphs)
+    if (hostId === undefined) {
+        throw new Error(`factForRelationalEdge: cannot re-derive host for ${edge.subjectId} from the final or prior graph map`)
+    }
+    return buildRelationalFact({
+        subjectId: edge.subjectId,
+        targetId: edge.targetId,
+        hostId,
+        ...relationKindAndLabelFrom(edge),
+        operation: edge.operation,
+        beatAnchorTime,
+    })
 }

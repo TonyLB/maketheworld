@@ -45,15 +45,15 @@ export type SpanCandidatePool = {
     shortlist?: readonly ObjectSpanCandidate[]
 }
 
-export type SpanResolutionConsultAlternative = {
-    objectId: EphemeraObjectId
+export type ConsultAlternative = {
+    objectId?: EphemeraObjectId
     label: string
     proposedCommand: string
 }
 
 export type SpanResolutionOutcome =
     | { verdict: 'resolved'; objectId: EphemeraObjectId; locus: SpanCandidateLocus }
-    | { verdict: 'consult'; alternatives: readonly SpanResolutionConsultAlternative[] }
+    | { verdict: 'consult'; alternatives: readonly ConsultAlternative[] }
     | { verdict: 'error'; reason: string }
 
 const SPAN_RELEVANCE_SOURCE_TAGS: ReadonlySet<SpanRelevanceSourceTag> = new Set([
@@ -191,8 +191,7 @@ export function isSpanResolutionOutcome(value: unknown): value is SpanResolution
             }
             const alt = alternative as Record<string, unknown>
             return (
-                typeof alt.objectId === 'string'
-                && isEphemeraObjectId(alt.objectId)
+                (alt.objectId === undefined || (typeof alt.objectId === 'string' && isEphemeraObjectId(alt.objectId)))
                 && typeof alt.label === 'string'
                 && alt.label.trim().length > 0
                 && typeof alt.proposedCommand === 'string'

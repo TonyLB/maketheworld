@@ -371,6 +371,108 @@ describe('commitStepSequence', () => {
         })
     })
 
+    describe('relationalEdges: one fact per edge', () => {
+        // string sits in the room; cup sits on the table, whose own graph holds it.
+        const STRING_ID = 'OBJECT#String' as EphemeraObjectId
+        const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
+        const tie = { relationKind: 'Custom' as const, relationLabel: 'tied to' }
+        const port = { owner: TABLE_ID, port: 'p1' }
+        const crossingSteps: MutationKernelStep[] = [
+            { kind: 'addCrossingPort', hostId: TABLE_ID, port: { portId: 'p1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' } },
+            { kind: 'establishRelation', subjectId: port, targetId: CUP_ID, hostId: TABLE_ID, ...tie },
+            { kind: 'establishRelation', subjectId: STRING_ID, targetId: port, hostId: ROOM_ID, ...tie },
+        ]
+        const crossingGraphs = () => ({
+            [ROOM_ID]: testLudicGraph(ROOM_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: STRING_ID },
+                    { tag: 'Object', universalKey: TABLE_ID },
+                ],
+            }),
+            [TABLE_ID]: testLudicGraph(TABLE_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: TABLE_ID },
+                    { tag: 'Object', universalKey: CUP_ID },
+                ],
+            }),
+        })
+        const hostOf = (id: unknown) => (id === CUP_ID ? TABLE_ID : ROOM_ID)
+
+        it('a crossing tie streams exactly one Object Relation Changed, naming the string and the cup', async () => {
+            const { transactWrite } = makeTransactWriteMock(crossingGraphs())
+
+            const result = await commitStepSequence(
+                { steps: crossingSteps },
+                {
+                    messageBus: messageBus as any,
+                    streamEvent,
+                    getCurrentHost: hostOf as any,
+                    transactWrite,
+                    relationalEdges: [{ subjectId: STRING_ID, targetId: CUP_ID, operation: 'establish', ...tie }],
+                }
+            )
+
+            expect(result).toEqual(expect.objectContaining({ ok: true }))
+            const updates = streamEvent.mock.calls.map(([payload]: any[]) => payload.update)
+            expect(updates).toEqual([
+                expect.objectContaining({
+                    type: 'Object Relation Changed',
+                    subjectId: STRING_ID,
+                    targetId: CUP_ID,
+                    hostId: ROOM_ID,
+                    operation: 'establish',
+                    ...tie,
+                }),
+            ])
+        })
+
+        it('a one-leg relation with its edge supplied streams one fact, as without it', async () => {
+            const roomGraph = testLudicGraph(ROOM_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: TRAY_ID },
+                    { tag: 'Object', universalKey: TABLE_ID },
+                ],
+            })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+
+            const result = await commitStepSequence(
+                { steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, ...tie }] },
+                {
+                    messageBus: messageBus as any,
+                    streamEvent,
+                    getCurrentHost: () => ROOM_ID,
+                    transactWrite,
+                    relationalEdges: [{ subjectId: TRAY_ID, targetId: TABLE_ID, operation: 'establish', ...tie }],
+                }
+            )
+
+            expect(result.ok).toBe(true)
+            const updates = streamEvent.mock.calls.map(([payload]: any[]) => payload.update)
+            expect(updates).toEqual([
+                expect.objectContaining({ type: 'Object Relation Changed', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID }),
+            ])
+        })
+
+        it('suppressRelationalFacts suppresses the edge\'s fact too', async () => {
+            const { transactWrite } = makeTransactWriteMock(crossingGraphs())
+
+            const result = await commitStepSequence(
+                { steps: crossingSteps },
+                {
+                    messageBus: messageBus as any,
+                    streamEvent,
+                    getCurrentHost: hostOf as any,
+                    transactWrite,
+                    suppressRelationalFacts: true,
+                    relationalEdges: [{ subjectId: STRING_ID, targetId: CUP_ID, operation: 'establish', ...tie }],
+                }
+            )
+
+            expect(result.ok).toBe(true)
+            expect(streamEvent).not.toHaveBeenCalled()
+        })
+    })
+
     describe('capture step', () => {
         it('a legal commit returns the captured roster keyed by captureId', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })

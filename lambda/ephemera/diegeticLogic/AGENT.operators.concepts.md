@@ -33,7 +33,7 @@ Affordance refresh on membership placement change reuses the existing **`Object 
 | Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: acquire`** (no **`operationKind`** at classify) |
 | Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; atomic path yields **`operationKind: takeHold`** |
 | Egress | **`Object Take Hold`** stream (`characterId`, `objectId`, `roomId`) |
-| Apply | [`orchestrateObjectMove`](../dataSource/positions/manipulation/membership/orchestrateObjectMove.ts) -> [`planObjectMoveTransfer`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) |
+| Apply | [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) -> [`planObjectMoveTransfer`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) |
 | Fact | **`Object Moved`**: `froms: [ROOM#...]`, `to: CHARACTER#...` |
 | Transcript | Fan-in -> **`${Player} picks up ${Object}`** |
 
@@ -51,7 +51,7 @@ Per [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md) **Withhold**: v1 
 
 Copy is **deterministic template** (no copy-generating LLM hop), assembled by the positions **presentation kernel** at flush from ingredients the compiler put on the narrate step. Labels resolve via [`resolveObjectMovePresentationLabels.ts`](../dataSource/perception/resolveObjectMovePresentationLabels.ts); fallbacks **`Someone`** / **`something`** when names are unavailable. The verb is **not** declared by this operator --- it is derived from which side of the move was the room.
 
-Implementation: [`compilePositionKernelOp.ts`](../dataSource/positions/manipulation/kernel/compile/compilePositionKernelOp.ts) (verb + steps), [`presentStepSequence.ts`](../dataSource/positions/manipulation/kernel/presentStepSequence.ts) (copy + audience), [`orchestrateObjectMove.ts`](../dataSource/positions/manipulation/membership/orchestrateObjectMove.ts) (routing). Rules: [`positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#narration-and-presentation).
+Implementation: [`compilePositionKernelOp.ts`](../dataSource/positions/manipulation/kernel/compile/compilePositionKernelOp.ts) (verb + steps), [`presentStepSequence.ts`](../dataSource/positions/manipulation/kernel/presentStepSequence.ts) (copy + audience), [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) (routing). Rules: [`positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#narration-and-presentation).
 
 ---
 
@@ -68,11 +68,11 @@ Implementation: [`compilePositionKernelOp.ts`](../dataSource/positions/manipulat
 | Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: release`**; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
 | Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; in-room-only + release language -> **`notCarryingObject`**; atomic path yields **`operationKind: drop`** |
 | Egress | **`Object Drop`** stream (`characterId`, `objectId`, `roomId`) |
-| Apply | [`orchestrateObjectMove`](../dataSource/positions/manipulation/membership/orchestrateObjectMove.ts) --- the same entry point as `takeHold`, host pair reversed |
+| Apply | [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) --- the same entry point as `takeHold`, host pair reversed |
 | Fact | **`Object Moved`**: `froms: [CHARACTER#...]`, `to: ROOM#...` |
 | Transcript | Fan-in -> **`${Player} drops ${Object}`** |
 
-**Persist path:** [`planObjectMoveTransfer`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) --- Synthesize executor re-run at execute time from a grounded seed, compiled to a step sequence and dry-run, then committed by its caller [`orchestrateObjectMove`](../dataSource/positions/manipulation/membership/orchestrateObjectMove.ts) via [`commitAndPresentStepSequence`](../dataSource/positions/manipulation/kernel/commitAndPresentStepSequence.ts) in one transact. (Was `executeObjectMove` until `fb9573c8f`, 2026-09-07, which split build-and-dry-run from commit.) **Must not** add `updateDropLudicGraphs` or any `update*LudicGraphs` fork, and **must not** add a drop-specific execution module --- the direction is a host pair, not a code path. Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md).
+**Persist path:** [`planObjectMoveTransfer`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) --- Synthesize executor re-run at execute time from a grounded seed, compiled to a step sequence and dry-run, then committed by its caller [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) via [`commitAndPresentStepSequence`](../dataSource/positions/manipulation/kernel/commitAndPresentStepSequence.ts) in one transact. (Was `executeObjectMove` until `fb9573c8f`, 2026-09-07, which split build-and-dry-run from commit.) **Must not** add `updateDropLudicGraphs` or any `update*LudicGraphs` fork, and **must not** add a drop-specific execution module --- the direction is a host pair, not a code path. Detail: [`manipulation/AGENT.implementation.md`](../dataSource/positions/manipulation/AGENT.implementation.md).
 
 **Pre-flight legality:** v1 rejects illegal applies at positions apply (and parse-time resolve failures in actions). Actions does not duplicate full held-inventory legality checks before egress.
 
@@ -103,7 +103,7 @@ Copy is **deterministic template** (no copy-generating LLM hop), assembled by th
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
-| Enrich | Frame extract LLM (**`operationKind: establishRelation`**, BD-12) -> **`normalizeRelationSpan`** -> **`compileRelational`** -> **`evaluateRelationalLegality`** |
+| Enrich | Parse skeleton -> **`matchRelationalTemplate`** (**`operationKind: establishRelation`**) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileRelationalFromSkeleton`** |
 | Egress | **`Object Establish Relation`** stream (`characterId`, `subjectId`, `targetId`, `roomId`, `relationKind`, optional `relationLabel`) |
 | Apply | [`applyObjectRelationalChange`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectEstablishRelation`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) -> **`applyHostRelationalPatch`** (`op: 'add'`) |
 | Fact | **`Object Relation Changed`**: `operation: 'establish'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |
@@ -138,7 +138,7 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
-| Enrich | Frame extract LLM (**`operationKind: dissolveRelation`**, BD-12) -> **`normalizeRelationSpan`** -> **`compileRelational`** -> **`evaluateRelationalLegality`** |
+| Enrich | Parse skeleton -> **`matchRelationalTemplate`** (**`operationKind: dissolveRelation`**) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileRelationalFromSkeleton`** |
 | Egress | **`Object Dissolve Relation`** stream (same payload shape as establish) |
 | Apply | [`executeEstablishEdgeChain`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) (shared with establish) -> `commitStepSequence` (`op: 'remove'`) |
 | Fact | **`Object Relation Changed`**: `operation: 'dissolve'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |

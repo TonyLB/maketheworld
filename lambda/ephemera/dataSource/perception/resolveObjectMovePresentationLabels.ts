@@ -78,7 +78,7 @@ const shortNameFromMergedAggregate = async (
  *
  * Renamed from `resolveTakeHoldPresentationLabels` in Phase 4: it always served both directions ---
  * the take-hold name was one of the "tells" that take and drop were one operation with two intents.
- * Called from `positions/manipulation/membership/orchestrateObjectMove.ts` now that the two-leg
+ * Called from the object-move route in `positions/manipulation/commitAttempt.ts` now that the two-leg
  * take/drop fan-in it used to serve is retired; it stays here in `perception/` on the same precedent
  * as `publishMembershipPresentation.ts`'s surviving suffix builders, which `presentStepSequence`
  * likewise imports across the data-source boundary.

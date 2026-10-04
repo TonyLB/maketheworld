@@ -1,255 +1,133 @@
-import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { actingCharacterRef, currentHostRef, objectSpanRef } from '../plan/planStep'
-import type { Change } from '../plan/planStep'
-import type { GroundingContext, ResolvedSpan } from './groundReferent'
+import {
+    actingCharacterRef,
+    currentHostRef,
+    derivedReferentKey,
+    graphNodeRef,
+    objectSpanRef,
+    withGroundedId,
+} from '../plan/planStep'
+import type { Change, ReferentAssignment } from '../plan/planStep'
 import { groundChange } from './groundChange'
 
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
-const BENCH_A_ID = 'OBJECT#BenchA' as EphemeraObjectId
-const BENCH_B_ID = 'OBJECT#BenchB' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 
-const contextWith = (resolvedSpans: [string, ResolvedSpan][]): GroundingContext => ({
-    actingCharacterId: CHARACTER_ID,
-    resolvedSpans: new Map(resolvedSpans),
-    getCurrentHost: (componentId) => (componentId === CHARACTER_ID ? ROOM_ID : undefined),
-})
+const groundedTransfer = (change: Change, objectId: string, fromId: string, toId: string) => {
+    if (change.primitive !== 'transferMembership') throw new Error('expected a transferMembership Change')
+    return {
+        ...change,
+        object: { ...change.object, groundedId: objectId },
+        from: { ...change.from, groundedId: fromId },
+        to: { ...change.to, groundedId: toId },
+    }
+}
 
 describe('groundChange', () => {
-    it('grounds an establishRelation Change into a single-candidate EstablishRelationStep list', () => {
+    it('grounds a substituted relational Change by passing its known ids through, referents kept', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'establishRelation',
-            subject: objectSpanRef('tray', 'trayRef'),
-            target: objectSpanRef('table', 'tableRef'),
-            host: currentHostRef(actingCharacterRef),
+            subject: withGroundedId(objectSpanRef('tray', 'trayRef'), TRAY_ID),
+            target: graphNodeRef(TABLE_ID),
             relationKind: 'Under',
         }
-        const context = contextWith([
-            ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
-            ['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }],
-        ])
+        const assignment: ReferentAssignment = { spans: new Map(), derived: new Map() }
 
-        expect(groundChange(change, context)).toEqual({
-            ok: true,
-            candidates: [{
-                kind: 'establishRelation',
-                subjectId: TRAY_ID,
-                targetId: TABLE_ID,
-                relationKind: 'Under',
-                hostRoomId: ROOM_ID,
-            }],
+        expect(groundChange(change, assignment)).toEqual({
+            kind: 'change',
+            primitive: 'establishRelation',
+            subject: { referentType: 'objectSpan', span: 'tray', stableRefKey: 'trayRef', groundedId: TRAY_ID },
+            target: { referentType: 'graphNode', groundedId: TABLE_ID },
+            relationKind: 'Under',
         })
     })
 
-    it('grounds a dissolveRelation Change, passing relationLabel through for Custom kind', () => {
+    it('throws when an objectSpan referent has no span assignment for its stableRefKey --- a construction bug', () => {
+        const change: Change = {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: objectSpanRef('tray', 'trayRef'),
+            from: currentHostRef(actingCharacterRef),
+            to: actingCharacterRef,
+        }
+        const assignment: ReferentAssignment = {
+            spans: new Map(),
+            derived: new Map([
+                [derivedReferentKey(actingCharacterRef), CHARACTER_ID],
+                [derivedReferentKey(currentHostRef(actingCharacterRef)), ROOM_ID],
+            ]),
+        }
+
+        expect(() => groundChange(change, assignment)).toThrow('no span assignment')
+    })
+
+    it('grounds every referent of a transferMembership Change in one pass, span and derived together', () => {
+        const change: Change = {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: objectSpanRef('tray', 'trayRef'),
+            from: currentHostRef(actingCharacterRef),
+            to: actingCharacterRef,
+        }
+        const assignment: ReferentAssignment = {
+            spans: new Map([['trayRef', TRAY_ID]]),
+            derived: new Map([
+                [derivedReferentKey(actingCharacterRef), CHARACTER_ID],
+                [derivedReferentKey(currentHostRef(actingCharacterRef)), ROOM_ID],
+            ]),
+        }
+
+        expect(groundChange(change, assignment)).toEqual(groundedTransfer(change, TRAY_ID, ROOM_ID, CHARACTER_ID))
+    })
+
+    it('grounds a Feature host for transferMembership (lowering types it, not Grounding)', () => {
+        const NICHE_ID = 'FEATURE#Niche' as EphemeraFeatureId
+        const change: Change = {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: objectSpanRef('tray', 'trayRef'),
+            from: objectSpanRef('niche', 'nicheRef'),
+            to: actingCharacterRef,
+        }
+        const assignment: ReferentAssignment = {
+            spans: new Map([['trayRef', TRAY_ID], ['nicheRef', NICHE_ID]]),
+            derived: new Map([[derivedReferentKey(actingCharacterRef), CHARACTER_ID]]),
+        }
+
+        expect(groundChange(change, assignment)).toEqual(groundedTransfer(change, TRAY_ID, NICHE_ID, CHARACTER_ID))
+    })
+
+    it('throws when a derived referent (actingCharacter/currentHost) has no entry in the assignment', () => {
+        const change: Change = {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: objectSpanRef('tray', 'trayRef'),
+            from: currentHostRef(actingCharacterRef),
+            to: actingCharacterRef,
+        }
+        const assignment: ReferentAssignment = {
+            spans: new Map([['trayRef', TRAY_ID]]),
+            derived: new Map(),
+        }
+
+        expect(() => groundChange(change, assignment)).toThrow('no derived assignment')
+    })
+
+    it('passes an already-grounded referent through untouched, consulting neither namespace', () => {
         const change: Change = {
             kind: 'change',
             primitive: 'dissolveRelation',
-            subject: objectSpanRef('tray', 'trayRef'),
-            target: objectSpanRef('table', 'tableRef'),
-            host: currentHostRef(actingCharacterRef),
+            subject: graphNodeRef(TRAY_ID),
+            target: graphNodeRef(TABLE_ID),
             relationKind: 'Custom',
-            relationLabel: 'balanced on',
+            relationLabel: 'tied to',
         }
-        const context = contextWith([
-            ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
-            ['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }],
-        ])
+        const assignment: ReferentAssignment = { spans: new Map(), derived: new Map() }
 
-        expect(groundChange(change, context)).toEqual({
-            ok: true,
-            candidates: [{
-                kind: 'dissolveRelation',
-                subjectId: TRAY_ID,
-                targetId: TABLE_ID,
-                relationKind: 'Custom',
-                relationLabel: 'balanced on',
-                hostRoomId: ROOM_ID,
-            }],
-        })
-    })
-
-    it('offers all 4 combinations, including both same-object ones, for two referents sharing a two-candidate pool (BD-23, "put bench on bench")', () => {
-        const change: Change = {
-            kind: 'change',
-            primitive: 'establishRelation',
-            subject: objectSpanRef('bench', 'benchRef1'),
-            target: objectSpanRef('bench', 'benchRef2'),
-            host: currentHostRef(actingCharacterRef),
-            relationKind: 'Under',
-        }
-        const context = contextWith([
-            ['benchRef1', { verdict: 'resolved', candidateIds: [BENCH_A_ID, BENCH_B_ID] }],
-            ['benchRef2', { verdict: 'resolved', candidateIds: [BENCH_A_ID, BENCH_B_ID] }],
-        ])
-
-        const result = groundChange(change, context)
-        expect(result.ok).toBe(true)
-        if (!result.ok) return
-
-        const pairs = result.candidates.map((step) => (
-            step.kind === 'establishRelation' ? [step.subjectId, step.targetId] : null
-        ))
-        expect(pairs).toEqual(expect.arrayContaining([
-            [BENCH_A_ID, BENCH_A_ID],
-            [BENCH_A_ID, BENCH_B_ID],
-            [BENCH_B_ID, BENCH_A_ID],
-            [BENCH_B_ID, BENCH_B_ID],
-        ]))
-        expect(result.candidates).toHaveLength(4)
-    })
-
-    it('fails an establishRelation Change when the derived host is not a room for any candidate', () => {
-        const change: Change = {
-            kind: 'change',
-            primitive: 'establishRelation',
-            subject: objectSpanRef('tray', 'trayRef'),
-            target: objectSpanRef('table', 'tableRef'),
-            host: currentHostRef(actingCharacterRef),
-            relationKind: 'Under',
-        }
-        const context: GroundingContext = {
-            actingCharacterId: CHARACTER_ID,
-            resolvedSpans: new Map([
-                ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
-                ['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }],
-            ]),
-            getCurrentHost: (componentId) => (componentId === CHARACTER_ID ? CHARACTER_ID : undefined),
-        }
-
-        const result = groundChange(change, context)
-        expect(result.ok).toBe(false)
-    })
-
-    it('fails an establishRelation Change when subject does not resolve', () => {
-        const change: Change = {
-            kind: 'change',
-            primitive: 'establishRelation',
-            subject: objectSpanRef('tray', 'trayRef'),
-            target: objectSpanRef('table', 'tableRef'),
-            host: currentHostRef(actingCharacterRef),
-            relationKind: 'Under',
-        }
-        const context = contextWith([['tableRef', { verdict: 'resolved', candidateIds: [TABLE_ID] }]])
-
-        const result = groundChange(change, context)
-        expect(result.ok).toBe(false)
-    })
-
-    it('grounds a transferMembership Change into a single-element, not-yet-carry-closed objectIds set', () => {
-        const change: Change = {
-            kind: 'change',
-            primitive: 'transferMembership',
-            object: objectSpanRef('tray', 'trayRef'),
-            from: currentHostRef(objectSpanRef('tray', 'trayRef')),
-            to: actingCharacterRef,
-        }
-        const context: GroundingContext = {
-            actingCharacterId: CHARACTER_ID,
-            resolvedSpans: new Map([['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }]]),
-            getCurrentHost: (componentId) => (componentId === TRAY_ID ? ROOM_ID : undefined),
-        }
-
-        expect(groundChange(change, context)).toEqual({
-            ok: true,
-            candidates: [{
-                kind: 'transferMembership',
-                objectIds: new Set([TRAY_ID]),
-                fromHostId: ROOM_ID,
-                toHostId: CHARACTER_ID,
-            }],
-        })
-    })
-
-    it('admits Object and Feature host candidates for transferMembership', () => {
-        const change: Change = {
-            kind: 'change',
-            primitive: 'transferMembership',
-            object: objectSpanRef('tray', 'trayRef'),
-            from: currentHostRef(objectSpanRef('tray', 'trayRef')),
-            to: objectSpanRef('niche', 'nicheRef'),
-        }
-        const BOX_ID = 'OBJECT#Box' as EphemeraObjectId
-        const NICHE_ID = 'FEATURE#Niche' as EphemeraFeatureId
-        const context: GroundingContext = {
-            actingCharacterId: CHARACTER_ID,
-            resolvedSpans: new Map([
-                ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
-                ['nicheRef', { verdict: 'resolved', candidateIds: [NICHE_ID] }],
-            ]),
-            getCurrentHost: (componentId) => (componentId === TRAY_ID ? BOX_ID : undefined),
-        }
-
-        expect(groundChange(change, context)).toEqual({
-            ok: true,
-            candidates: [{
-                kind: 'transferMembership',
-                objectIds: new Set([TRAY_ID]),
-                fromHostId: BOX_ID,
-                toHostId: NICHE_ID,
-            }],
-        })
-    })
-
-    it('admits an Area host candidate for transferMembership', () => {
-        // Area is not an `EphemeraThingId` (thing.ts deliberately excludes it), so it can
-        // never resolve directly off an objectSpan the way Object/Feature candidates do ---
-        // it can only arrive via `currentHost(X)`, whose `getCurrentHost` callback returns
-        // `EphemeraMembershipHostId`. Ground both `from` and `to` as current hosts of two
-        // different objects to exercise that path.
-        const ANCHOR_ID = 'OBJECT#Anchor' as EphemeraObjectId
-        const change: Change = {
-            kind: 'change',
-            primitive: 'transferMembership',
-            object: objectSpanRef('tray', 'trayRef'),
-            from: currentHostRef(objectSpanRef('tray', 'trayRef')),
-            to: currentHostRef(objectSpanRef('anchor', 'anchorRef')),
-        }
-        const BOX_ID = 'OBJECT#Box' as EphemeraObjectId
-        const DOWNTOWN_ID = 'AREA#Downtown' as EphemeraAreaId
-        const context: GroundingContext = {
-            actingCharacterId: CHARACTER_ID,
-            resolvedSpans: new Map([
-                ['trayRef', { verdict: 'resolved', candidateIds: [TRAY_ID] }],
-                ['anchorRef', { verdict: 'resolved', candidateIds: [ANCHOR_ID] }],
-            ]),
-            getCurrentHost: (componentId) => {
-                if (componentId === TRAY_ID) return BOX_ID
-                if (componentId === ANCHOR_ID) return DOWNTOWN_ID
-                return undefined
-            },
-        }
-
-        expect(groundChange(change, context)).toEqual({
-            ok: true,
-            candidates: [{
-                kind: 'transferMembership',
-                objectIds: new Set([TRAY_ID]),
-                fromHostId: BOX_ID,
-                toHostId: DOWNTOWN_ID,
-            }],
-        })
-    })
-
-    it('fails a transferMembership Change when the object referent does not resolve', () => {
-        const change: Change = {
-            kind: 'change',
-            primitive: 'transferMembership',
-            object: objectSpanRef('tray', 'trayRef'),
-            from: currentHostRef(objectSpanRef('tray', 'trayRef')),
-            to: actingCharacterRef,
-        }
-        const context: GroundingContext = {
-            actingCharacterId: CHARACTER_ID,
-            resolvedSpans: new Map(),
-            getCurrentHost: () => ROOM_ID,
-        }
-
-        const result = groundChange(change, context)
-        expect(result.ok).toBe(false)
+        expect(groundChange(change, assignment)).toEqual(change)
     })
 })

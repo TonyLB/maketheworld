@@ -22,12 +22,8 @@ jest.mock('../../internalCache', () => ({
     },
 }))
 
-jest.mock('./manipulation/membership/orchestrateObjectMove', () => ({
-    orchestrateObjectMove: jest.fn(),
-}))
-
-jest.mock('./manipulation/relational/executeObjectEstablishRelation', () => ({
-    executeEstablishEdgeChain: jest.fn(),
+jest.mock('./manipulation/commitAttempt', () => ({
+    commitAttempt: jest.fn(),
 }))
 
 import messageBus from '../../messageBus'
@@ -35,8 +31,7 @@ import internalCache from '../../internalCache'
 import { orchestrateCharacterMove } from './navigate/orchestrateCharacterMove'
 import { resolveConnectTargetRoom } from './manipulation/membership/resolveConnectTargetRoom'
 import { repairRoomOccupancyDrift } from './manipulation/membership/repairRoomOccupancyDrift'
-import { orchestrateObjectMove } from './manipulation/membership/orchestrateObjectMove'
-import { executeEstablishEdgeChain } from './manipulation/relational/executeObjectEstablishRelation'
+import { commitAttempt } from './manipulation/commitAttempt'
 import { CommandAttempt, type CommandAttemptData } from '../actions/commandAttempt'
 
 import './index'
@@ -56,11 +51,8 @@ const characterMetaGetMock = internalCache.CharacterMeta.get as jest.MockedFunct
 const getMembershipContainersMock = internalCache.Positions.getMembershipContainers as jest.MockedFunction<
     typeof internalCache.Positions.getMembershipContainers
 >
-const orchestrateObjectMoveMock = orchestrateObjectMove as jest.MockedFunction<
-    typeof orchestrateObjectMove
->
-const executeEstablishEdgeChainMock = executeEstablishEdgeChain as jest.MockedFunction<
-    typeof executeEstablishEdgeChain
+const commitAttemptMock = commitAttempt as jest.MockedFunction<
+    typeof commitAttempt
 >
 
 const CHARACTER_ID = 'CHARACTER#alpha' as const
@@ -111,7 +103,7 @@ describe('positions receive paths (integration)', () => {
             },
             trimmedRoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
         })
-        orchestrateObjectMoveMock.mockResolvedValue(undefined)
+        commitAttemptMock.mockResolvedValue(undefined)
         getMembershipContainersMock.mockResolvedValue([ROOM_A])
         repairRoomOccupancyDriftMock.mockResolvedValue({ ghostsPurged: 0, adjacencySynced: 0 })
         characterMetaGetMock.mockResolvedValue({
@@ -221,24 +213,26 @@ describe('positions receive paths (integration)', () => {
         })
     })
 
-    describe('Object Take Hold', () => {
-        it('routes mtw.ephemera.actions Object Take Hold through orchestrateObjectMove as room -> character', async () => {
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Take Hold', {
-                type: 'Object Take Hold',
+    describe('Ludic Network Change Requested', () => {
+        it('routes the generalized hand-off through commitAttempt (replacing Object Take Hold/Drop/Establish Relation/Dissolve Relation)', async () => {
+            const attemptData: CommandAttemptData = {
+                words: 'pick up the broom',
+                referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
+                actions: [{ kind: 'position', desiredResultDescription: 'Take: broom', challenges: [] }],
+            }
+
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Ludic Network Change Requested', {
+                type: 'Ludic Network Change Requested',
                 characterId: CHARACTER_ID,
-                objectIds: ['OBJECT#Broom'],
-                roomId: ROOM_A,
+                attempt: attemptData,
                 confidence: 0.9,
             })
 
             await messageBus.flushAndSettle()
 
-            // Direction lives only here, as the host pair --- take-hold is room -> character.
-            expect(orchestrateObjectMoveMock).toHaveBeenCalledWith(
+            expect(commitAttemptMock).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    objectIds: ['OBJECT#Broom'],
-                    fromHostId: ROOM_A,
-                    toHostId: CHARACTER_ID,
+                    attempt: expect.any(CommandAttempt),
                     characterId: CHARACTER_ID,
                     messageBus: expect.any(Object),
                     streamEvent: expect.any(Function),
@@ -248,58 +242,11 @@ describe('positions receive paths (integration)', () => {
             expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
         })
 
-        it('resolves fromHostId fresh (not content.roomId) so a nested object can be taken (put cup on table, then get cup)', async () => {
-            // Reproduces a production bug: `content.roomId` is the character's room, not
-            // necessarily the object's current host once objects can nest inside other objects
-            // A cup left `On` a table is a node of the table's own graph, not the
-            // room's --- trusting `content.roomId` as `fromHostId` sent a stale source host into
-            // `commitStepSequence`, which threw `staleTransferCandidate` at commit time.
-            getMembershipContainersMock.mockResolvedValue(['OBJECT#Table' as any])
-
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Take Hold', {
-                type: 'Object Take Hold',
-                characterId: CHARACTER_ID,
-                objectIds: ['OBJECT#Cup'],
-                roomId: ROOM_A,
-                confidence: 0.9,
-            })
-
-            await messageBus.flushAndSettle()
-
-            expect(getMembershipContainersMock).toHaveBeenCalledWith('OBJECT#Cup')
-            expect(orchestrateObjectMoveMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    objectIds: ['OBJECT#Cup'],
-                    fromHostId: 'OBJECT#Table',
-                    toHostId: CHARACTER_ID,
-                    roomId: ROOM_A,
-                    characterId: CHARACTER_ID,
-                })
-            )
-        })
-
-        it('does not call orchestrateObjectMove when the object has no single current host (drift)', async () => {
-            getMembershipContainersMock.mockResolvedValue([])
-
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Take Hold', {
-                type: 'Object Take Hold',
-                characterId: CHARACTER_ID,
-                objectIds: ['OBJECT#Cup'],
-                roomId: ROOM_A,
-                confidence: 0.9,
-            })
-
-            await messageBus.flushAndSettle()
-
-            expect(orchestrateObjectMoveMock).not.toHaveBeenCalled()
-        })
-
-        it('a published attempt round-trips through fromJSON and reaches orchestrateObjectMove with its actions, challenges and verdicts intact', async () => {
+        it('a published attempt round-trips through fromJSON and reaches commitAttempt with its actions, challenges and verdicts intact', async () => {
             const attemptData: CommandAttemptData = {
                 words: 'take the entire coil of rope',
                 referents: [{ refKey: 'primaryObject', id: 'OBJECT#Rope', shortName: 'rope' }],
                 actions: [
-                    { kind: 'position', desiredResultDescription: 'Take: rope', challenges: [] },
                     {
                         kind: 'position',
                         desiredResultDescription: 'Dissolve: is lashed to',
@@ -313,278 +260,36 @@ describe('positions receive paths (integration)', () => {
                             },
                         ],
                     },
+                    { kind: 'position', desiredResultDescription: 'Take: rope', challenges: [] },
                 ],
             }
 
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Take Hold', {
-                type: 'Object Take Hold',
+            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Ludic Network Change Requested', {
+                type: 'Ludic Network Change Requested',
                 characterId: CHARACTER_ID,
-                objectIds: ['OBJECT#Rope'],
-                roomId: ROOM_A,
-                confidence: 0.9,
                 attempt: attemptData,
+                confidence: 0.9,
             })
 
             await messageBus.flushAndSettle()
 
-            expect(orchestrateObjectMoveMock).toHaveBeenCalledWith(
+            expect(commitAttemptMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     attempt: expect.any(CommandAttempt),
                 })
             )
-            const [call] = orchestrateObjectMoveMock.mock.calls
+            const [call] = commitAttemptMock.mock.calls
             const attempt = call?.[0].attempt as CommandAttempt
             expect(attempt.words).toBe('take the entire coil of rope')
             expect(attempt.actions()).toHaveLength(2)
-            expect(attempt.actions()[1]?.challenges()).toHaveLength(1)
-            expect(attempt.actions()[1]?.challenges()[0]?.describe()).toBe('Boundary relation to dissolve: is lashed to.')
+            expect(attempt.actions()[0]?.challenges()).toHaveLength(1)
+            expect(attempt.actions()[0]?.challenges()[0]?.describe()).toBe('Boundary relation to dissolve: is lashed to.')
+            expect(attempt.actions()[0]?.challenges()[0]?.toJSON()).toEqual(expect.objectContaining({
+                edge: { from: 'OBJECT#Rope', to: 'OBJECT#Post', kind: 'Custom', relationLabel: 'is lashed to' },
+            }))
             // Adjudicate ran actions-side; positions only reconstructs, so the met verdict arrives
-            // as published and its edge is what the commit side will honor.
+            // as published, and the result the commit side gates on has succeeded.
             expect(attempt.result.status).toBe('succeeded')
-            expect(attempt.metPropagations()).toEqual([
-                { from: 'OBJECT#Rope', to: 'OBJECT#Post', kind: 'Custom', relationLabel: 'is lashed to' },
-            ])
-        })
-    })
-
-    describe('Object Drop', () => {
-        it('routes mtw.ephemera.actions Object Drop through orchestrateObjectMove as character -> room', async () => {
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Drop', {
-                type: 'Object Drop',
-                characterId: CHARACTER_ID,
-                objectIds: ['OBJECT#Broom'],
-                roomId: ROOM_A,
-                confidence: 0.9,
-            })
-
-            await messageBus.flushAndSettle()
-
-            // Same execution path as take-hold; only the host pair is reversed, which is
-            // the whole of the take-vs-drop distinction after Phase 3.6's unification.
-            expect(orchestrateObjectMoveMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    objectIds: ['OBJECT#Broom'],
-                    fromHostId: CHARACTER_ID,
-                    toHostId: ROOM_A,
-                    characterId: CHARACTER_ID,
-                    messageBus: expect.any(Object),
-                    streamEvent: expect.any(Function),
-                })
-            )
-            expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
-            expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
-        })
-    })
-
-    describe('Object Rehost', () => {
-        it('routes mtw.ephemera.actions Object Rehost through orchestrateObjectMove with a freshly-resolved fromHostId', async () => {
-            getMembershipContainersMock.mockResolvedValue([ROOM_A])
-
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Rehost', {
-                type: 'Object Rehost',
-                characterId: CHARACTER_ID,
-                subjectId: 'OBJECT#Cup',
-                targetId: 'OBJECT#Tray',
-                roomId: ROOM_A,
-                containment: 'On',
-                confidence: 0.9,
-            })
-
-            await messageBus.flushAndSettle()
-
-            expect(getMembershipContainersMock).toHaveBeenCalledWith('OBJECT#Cup')
-            // fromHostId comes from the fresh getMembershipContainers lookup, not the
-            // published event --- the event carries no fromHostId field at all.
-            expect(orchestrateObjectMoveMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    objectIds: ['OBJECT#Cup'],
-                    fromHostId: ROOM_A,
-                    toHostId: 'OBJECT#Tray',
-                    roomId: ROOM_A,
-                    // The bug this proves fixed: neither fromHostId (a room) nor toHostId (an
-                    // object) is a character, so orchestrateObjectMove can no longer derive one
-                    // from the hosts --- it must be threaded through explicitly instead.
-                    characterId: CHARACTER_ID,
-                    containment: 'On',
-                    messageBus: expect.any(Object),
-                    streamEvent: expect.any(Function),
-                })
-            )
-            expect(executeEstablishEdgeChainMock).not.toHaveBeenCalled()
-        })
-
-        it('does not call orchestrateObjectMove when the subject has no single current host (drift)', async () => {
-            getMembershipContainersMock.mockResolvedValue([])
-
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Rehost', {
-                type: 'Object Rehost',
-                characterId: CHARACTER_ID,
-                subjectId: 'OBJECT#Cup',
-                targetId: 'OBJECT#Tray',
-                roomId: ROOM_A,
-                containment: 'On',
-                confidence: 0.9,
-            })
-
-            await messageBus.flushAndSettle()
-
-            expect(orchestrateObjectMoveMock).not.toHaveBeenCalled()
-        })
-    })
-
-    describe('Object Establish Relation', () => {
-        it('routes mtw.ephemera.actions Object Establish Relation through executeEstablishEdgeChain', async () => {
-            const steps = [{
-                kind: 'establishRelation',
-                subjectId: 'OBJECT#Broom',
-                targetId: 'OBJECT#Table',
-                relationKind: 'Under',
-                hostId: ROOM_A,
-            }]
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Establish Relation', {
-                type: 'Object Establish Relation',
-                characterId: CHARACTER_ID,
-                subjectId: 'OBJECT#Broom',
-                targetId: 'OBJECT#Table',
-                hostId: ROOM_A,
-                relationKind: 'Under',
-                confidence: 0.9,
-                steps,
-            })
-
-            await messageBus.flushAndSettle()
-
-            expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    steps,
-                    messageBus: expect.any(Object),
-                    streamEvent: expect.any(Function),
-                })
-            )
-        })
-
-        it('routes a genuine crossing (tie string to cup shape) through executeEstablishEdgeChain with every step intact', async () => {
-            const steps = [
-                {
-                    kind: 'addCrossingPort',
-                    hostId: 'OBJECT#Table',
-                    port: { portId: 'p1', fromHostId: ROOM_A, kind: 'Custom', exteriorRelationLabel: 'tied to' },
-                },
-                {
-                    kind: 'establishRelation',
-                    subjectId: 'OBJECT#String',
-                    targetId: { owner: 'OBJECT#Table', port: 'p1' },
-                    relationKind: 'Custom',
-                    relationLabel: 'tied to',
-                    hostId: ROOM_A,
-                },
-                {
-                    kind: 'establishRelation',
-                    subjectId: { owner: 'OBJECT#Table', port: 'p1' },
-                    targetId: 'OBJECT#Cup',
-                    relationKind: 'Custom',
-                    relationLabel: 'tied to',
-                    hostId: 'OBJECT#Table',
-                },
-            ]
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Establish Relation', {
-                type: 'Object Establish Relation',
-                characterId: CHARACTER_ID,
-                subjectId: 'OBJECT#String',
-                targetId: 'OBJECT#Cup',
-                hostId: 'OBJECT#Table',
-                relationKind: 'Custom',
-                relationLabel: 'tied to',
-                confidence: 0.9,
-                steps,
-            })
-
-            await messageBus.flushAndSettle()
-
-            expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    steps,
-                    messageBus: expect.any(Object),
-                    streamEvent: expect.any(Function),
-                })
-            )
-        })
-    })
-
-    describe('Object Dissolve Relation', () => {
-        it('routes mtw.ephemera.actions Object Dissolve Relation through executeEstablishEdgeChain', async () => {
-            const steps = [{
-                kind: 'dissolveRelation',
-                subjectId: 'OBJECT#Broom',
-                targetId: 'OBJECT#Table',
-                relationKind: 'Under',
-                hostId: ROOM_A,
-            }]
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Dissolve Relation', {
-                type: 'Object Dissolve Relation',
-                characterId: CHARACTER_ID,
-                subjectId: 'OBJECT#Broom',
-                targetId: 'OBJECT#Table',
-                hostId: ROOM_A,
-                relationKind: 'Under',
-                steps,
-            })
-
-            await messageBus.flushAndSettle()
-
-            expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    steps,
-                    messageBus: expect.any(Object),
-                    streamEvent: expect.any(Function),
-                })
-            )
-        })
-
-        it("routes a genuine crossing dissolve (tie string to cup shape, reversed) through executeEstablishEdgeChain with every step intact", async () => {
-            const steps = [
-                {
-                    kind: 'dissolveRelation',
-                    subjectId: 'OBJECT#String',
-                    targetId: { owner: 'OBJECT#Table', port: 'p1' },
-                    relationKind: 'Custom',
-                    relationLabel: 'tied to',
-                    hostId: ROOM_A,
-                },
-                {
-                    kind: 'dissolveRelation',
-                    subjectId: { owner: 'OBJECT#Table', port: 'p1' },
-                    targetId: 'OBJECT#Cup',
-                    relationKind: 'Custom',
-                    relationLabel: 'tied to',
-                    hostId: 'OBJECT#Table',
-                },
-                {
-                    kind: 'removeCrossingPort',
-                    hostId: 'OBJECT#Table',
-                    portId: 'p1',
-                },
-            ]
-            publishPositionsStreamingEvent('mtw.ephemera.actions', 'Object Dissolve Relation', {
-                type: 'Object Dissolve Relation',
-                characterId: CHARACTER_ID,
-                subjectId: 'OBJECT#String',
-                targetId: 'OBJECT#Cup',
-                hostId: 'OBJECT#Table',
-                relationKind: 'Custom',
-                relationLabel: 'tied to',
-                steps,
-            })
-
-            await messageBus.flushAndSettle()
-
-            expect(executeEstablishEdgeChainMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    steps,
-                    messageBus: expect.any(Object),
-                    streamEvent: expect.any(Function),
-                })
-            )
         })
     })
 

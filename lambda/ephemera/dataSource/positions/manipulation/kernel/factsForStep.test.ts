@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { factsForStep } from './factsForStep'
+import { factForRelationalEdge, factsForStep } from './factsForStep'
 import type { MutationKernelStep } from './kernelStep'
 import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -237,5 +237,41 @@ describe('factsForStep', () => {
             relationLabel: 'to',
         }
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
+    })
+})
+
+describe('factForRelationalEdge', () => {
+    it('a crossing edge yields one fact naming its real subject and target, hosted on the subject\'s graph', () => {
+        // tray sits in the room; glass sits on the table, whose own graph holds it.
+        const roomGraph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: tableId },
+            ],
+            edges: [{ tag: 'Relational', from: trayId, to: { owner: tableId, port: 'p1' }, kind: 'Custom', relationLabel: 'tied to' }],
+        })
+        const tableGraph = testLudicGraph(tableId, {
+            nodes: [
+                { tag: 'Object', universalKey: tableId },
+                { tag: 'Object', universalKey: glassId },
+            ],
+            ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'tied to' }],
+            edges: [{ tag: 'Relational', from: { owner: tableId, port: 'p1' }, to: glassId, kind: 'Custom', relationLabel: 'tied to' }],
+        })
+        const fact = factForRelationalEdge(
+            { subjectId: trayId, targetId: glassId, operation: 'establish', relationKind: 'Custom', relationLabel: 'tied to' },
+            graphsMap([roomId, roomGraph], [tableId, tableGraph]),
+            beatAnchorTime
+        )
+        expect(fact).toEqual({
+            type: 'Object Relation Changed',
+            subjectId: trayId,
+            targetId: glassId,
+            hostId: roomId,
+            relationKind: 'Custom',
+            relationLabel: 'tied to',
+            operation: 'establish',
+            beatAnchorTime,
+        })
     })
 })

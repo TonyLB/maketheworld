@@ -174,11 +174,15 @@ export type ParseCommandLookRoomResult = {
  * object-directed look ("look/examine <object>") from the Plan-stage `matchLookTemplate`
  * matcher (iteration 9, Phase 4) --- the latter is the one producer of this type that
  * *is* reachable from Bedrock parse; the doc comment below only describes the other three.
+ * `attempt` is populated only by the object-directed producer (`compileDescribeFromSkeleton`):
+ * the other three producers build no
+ * `CommandAttempt` and have nothing to put there.
  */
 export type ParseCommandLookComponentResult = {
     type: 'LookComponent'
     componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId | EphemeraCharacterId
     confidence: ParseCommandConfidence
+    attempt?: CommandAttemptData
 }
 
 /** Trusted UI speech (Say / Narrate / OOC). Not produced by Bedrock parse. */
@@ -375,22 +379,26 @@ export type ParseCommandEstablishRelationResult = {
  * shard. Deliberately separate from `ParseCommandEstablishRelationResult`, which narrowed
  * `On` out on 2026-08-22: there is no `Change`/edge here for that type's
  * `RelationalKindAndLabel` to describe. `hostId` is the acting character's room (narration
- * context only, matching `orchestrateObjectMove`'s `roomId`) --- not `subjectId`'s current
+ * context only, matching the object-move `roomId`) --- not `subjectId`'s current
  * host, which the positions-layer consumer resolves fresh via `getMembershipContainers`
  * rather than trusting a value baked in at parse time. `containment` is typed as the full
  * AB-54 hosting-kind union; `On` and `In` both construct this type today (nestedObjectLook
  * Phase 4), `PartOf` still hard-errors before reaching it (ND-4: no player phrase for it, by
  * design).
  */
-export type ParseCommandObjectRehostResult = {
-    type: 'ObjectRehost'
+export type ParseCommandObjectContainmentResult = {
+    type: 'ObjectContainment'
     subjectId: EphemeraObjectId
     targetId: EphemeraObjectId
     hostId: EphemeraRoomId
     containment: 'On' | 'In' | 'PartOf'
     confidence: ParseCommandConfidence
-    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join. */
-    attempt?: CommandAttemptData
+    /**
+     * CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join.
+     * Required since slice 3c: the generalized hand-off (`publishLudicNetworkChangeRequested`)
+     * no-ops silently without one, so an optional field here would hide a construction bug.
+     */
+    attempt: CommandAttemptData
 }
 
 /**
@@ -425,7 +433,7 @@ export type ParseCommandResult =
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandObjectManipulationResult
     | ParseCommandEstablishRelationResult
-    | ParseCommandObjectRehostResult
+    | ParseCommandObjectContainmentResult
     | ParseCommandObjectMembershipIntentResult
     | ParseCommandObjectRelateIntentResult
     | ParseCommandCommandIntentResult
@@ -747,10 +755,10 @@ export function isParseCommandEstablishRelationResult(
 
 const HOSTING_KINDS = new Set<string>(['On', 'In', 'PartOf'])
 
-export function isParseCommandObjectRehostResult(
+export function isParseCommandObjectContainmentResult(
     result: ParseCommandResult
-): result is ParseCommandObjectRehostResult {
-    if (result.type !== 'ObjectRehost') {
+): result is ParseCommandObjectContainmentResult {
+    if (result.type !== 'ObjectContainment') {
         return false
     }
     if (!HOSTING_KINDS.has(result.containment)) {

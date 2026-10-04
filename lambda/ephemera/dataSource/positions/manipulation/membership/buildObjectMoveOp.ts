@@ -1,11 +1,8 @@
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { HostRelationalEdge } from '../types'
-import { edgesMatch } from '../../ludicGraph/baseClasses'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { boundaryEdgeOutcomes } from '../../ludicGraph/expandValidate/interactionUnderTransfer'
 import { findOwnRootContainmentEdge } from './findOwnRootContainmentEdge'
 import type { ObjectMoveNarrationInput, PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
 
@@ -13,30 +10,15 @@ export type BuildObjectMoveOpArgs = {
     /** The moved object --- the whole moved set: anything it hosts lives in its own shard and travels with it. */
     entityId: EphemeraObjectId
     /**
-     * The departure host's graph, as of whenever the caller fetched it. Used to derive
-     * `dissolvedEdges` (3d, 2026-09-08): the mover's own containment edge into this graph's root
-     * (if any) and every boundary edge `dissolve`-classified against it are both stripped here,
-     * unconditionally --- not gated on any caller flag, per the "own-root-containment-edge strip
-     * moves to compile" instruction. A `defer`-classified edge is dissolved only when it matches
-     * one of `metEdges`: this function has no authority to decide whether severing one is
-     * acceptable, so an unjudged `defer` edge is left in place for `applyTransferSet` to report
-     * as `repairable`/`worldChanging` when the compiled plan is actually evaluated.
+     * The departure host's graph, as of whenever the caller fetched it. Used only to find the
+     * mover's own containment edge into this graph's root (if any), which is stripped here
+     * unconditionally: leaving a host means leaving its containment, as entering one means
+     * gaining it (`containment`). No other edge is dissolved here. A boundary edge's dissolve
+     * is a facilitating action the command attempt states explicitly, and the commit path
+     * commits it as a sibling of this op; one the attempt does not cover is left in place for
+     * `applyTransferSet` to report as `repairable`, and the move is refused.
      */
     fromGraph: EphemeraLudicGraph
-    /**
-     * Edges whose challenges the command attempt recorded as met, actions-side. Each fresh
-     * `defer` outcome that `edgesMatch`es one is dissolved. They are matched against this
-     * snapshot rather than folded into `extraDissolvedEdges`, because the graph may have changed
-     * since the verdict: a met edge that is already gone is ignored (dissolving it would throw
-     * "not present"), and a new `defer` edge nobody judged is still refused.
-     */
-    metEdges?: readonly HostRelationalEdge[]
-    /**
-     * A repair applied after a prior dry run reported `repairable`/`mechanical` --- folded in
-     * alongside the structurally-known edges above so a caller can rebuild the op once, rather than
-     * this function needing to re-run `boundaryEdgeOutcomes` against an already-repaired graph.
-     */
-    extraDissolvedEdges?: readonly HostRelationalEdge[]
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
     bundleId: string
@@ -67,27 +49,13 @@ export type BuildObjectMoveOpArgs = {
  *
  * No carried-object count; see `positionKernelOp.ts`'s `ObjectMoveNarrationInput` doc comment.
  *
- * `dissolvedEdges` is derived here from `fromGraph`, not handed in pre-computed by the caller ---
- * this function is the sole producer of that field's value now (3d, 2026-09-08), taking over the
- * own-root-strip-plus-boundary-sweep computation that `executeMembershipTransfer`'s retired
- * `honorDefer` mode used to hand-roll. See `fromGraph`'s own doc comment above for what is and is
- * not folded in.
+ * `dissolvedEdges` is derived here from `fromGraph`, not handed in pre-computed by the caller: it
+ * holds only the mover's own containment edge. See `fromGraph`'s own doc comment above for why
+ * boundary edges are not folded in.
  */
 export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMoveOp => {
     const ownRootContainmentEdge = findOwnRootContainmentEdge(args.entityId, args.fromGraph)
-    const strippedFromGraph = ownRootContainmentEdge ? args.fromGraph.removeRelationalEdge(ownRootContainmentEdge) : args.fromGraph
-    const outcomes = boundaryEdgeOutcomes(new Set([args.entityId]), strippedFromGraph)
-
-    const metEdges = args.metEdges ?? []
-    const dissolvedEdges: HostRelationalEdge[] = [
-        ...(ownRootContainmentEdge ? [ownRootContainmentEdge] : []),
-        ...outcomes
-            .filter((entry) => (entry.outcome === 'dissolve' || metEdges.some((metEdge) => edgesMatch(metEdge, entry.edge)))
-                && isEphemeraLudicTerminalPrimitive(entry.edge.from)
-                && isEphemeraLudicTerminalPrimitive(entry.edge.to))
-            .map((entry) => entry.edge),
-        ...(args.extraDissolvedEdges ?? []),
-    ]
+    const dissolvedEdges: HostRelationalEdge[] = ownRootContainmentEdge ? [ownRootContainmentEdge] : []
 
     return {
         kind: 'move',

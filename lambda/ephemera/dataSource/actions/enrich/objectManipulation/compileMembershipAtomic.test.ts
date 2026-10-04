@@ -377,7 +377,7 @@ describe('compileMembershipAtomic', () => {
         expect(result.operationKind).toBe('takeHold')
         expect(result.objectIds).toEqual([ropeId])
         expect(result.attempt?.actions).toHaveLength(2)
-        const dissolveAction = result.attempt?.actions[1]
+        const dissolveAction = result.attempt?.actions[0]
         expect(dissolveAction?.challenges).toHaveLength(1)
         expect(dissolveAction?.challenges[0]).toEqual(
             expect.objectContaining({
@@ -386,7 +386,11 @@ describe('compileMembershipAtomic', () => {
                 verdict: { kind: 'met' },
             })
         )
-        expect(result.attempt?.actions[0]?.desiredResultDescription).toBe('Take: rope')
+        const primaryAction = result.attempt?.actions[1]
+        if (primaryAction?.kind !== 'position') {
+            throw new Error('Expected a position action')
+        }
+        expect(primaryAction.desiredResultDescription).toBe('Take: rope')
     })
 
     it('CommandAttemptPhase slice 2.6: when the complexity LLM changes the operation, the published attempt is re-grounded for the LLM\'s operation', async () => {
@@ -428,15 +432,18 @@ describe('compileMembershipAtomic', () => {
             return
         }
         expect(result.operationKind).toBe('drop')
-        const primaryAction = result.attempt?.actions[0]
-        expect(primaryAction?.desiredResultDescription).toBe('Drop: rope')
-        expect(primaryAction?.desiredResult).toEqual(expect.objectContaining({
+        const primaryAction = result.attempt?.actions[1]
+        if (primaryAction?.kind !== 'position') {
+            throw new Error('Expected a position action')
+        }
+        expect(primaryAction.desiredResultDescription).toBe('Drop: rope')
+        expect(primaryAction.desiredResult).toEqual(expect.objectContaining({
             from: { referentType: 'actingCharacter' },
             to: { referentType: 'currentHost', referentTarget: { referentType: 'actingCharacter' } },
         }))
         // Same identity, same locus graph: the boundary expansion is unchanged.
         expect(result.attempt?.actions).toHaveLength(2)
         expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
-        expect(result.attempt?.actions[1]?.challenges[0]).toEqual(expect.objectContaining({ kind: 'underDefer' }))
+        expect(result.attempt?.actions[0]?.challenges[0]).toEqual(expect.objectContaining({ kind: 'underDefer' }))
     })
 })

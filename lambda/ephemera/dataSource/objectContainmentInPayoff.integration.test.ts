@@ -7,26 +7,26 @@
  *
  * Real, unmocked, in this order:
  *   1. `parseCommand` (mocking only its two Bedrock impls, as `parseCommand.test.ts` does) turning
- *      the player phrase "put the ball in the box" into a real `ObjectRehost` parse result with
+ *      the player phrase "put the ball in the box" into a real `ObjectContainment` parse result with
  *      `containment: 'In'`.
- *   2. `orchestrateObjectMove` (the real mutation-kernel entry point for take/drop/give/rehost ---
- *      not mocked, unlike `receivePaths.integration.test.ts`'s convention) driving
- *      `planObjectMoveTransfer` -> `commitAndPresentStepSequence` -> `commitStepSequence` for real,
- *      against a mocked `ephemeraDB` leaf (this repo's standard integration-test boundary). Called
- *      directly with the resolved ids/containment rather than via `positions/index.ts`'s
- *      `receiveEvents`, since the object under test is this kernel's real execution, not the
- *      envelope-routing layer `receivePaths.integration.test.ts` already covers.
+ *   2. `commitAttempt` (the real per-attempt commit `positions/index.ts` dispatches --- not mocked,
+ *      unlike `receivePaths.integration.test.ts`'s convention) driving the combined dry run ->
+ *      `commitAndPresentStepSequence` -> `commitStepSequence` for real, against a mocked `ephemeraDB`
+ *      leaf (this repo's standard integration-test boundary). The attempt is the one `parseCommand`
+ *      published, round-tripped through JSON as it is across the bus, so the object under test is
+ *      this kernel's real execution, not the envelope-routing layer `receivePaths.integration.test.ts`
+ *      already covers.
  *   3. `dataSource/perception`'s `orchestrateRoomDescriptionStreams` -> `handleObjectRenderPertains`
  *      -> `resolveHostedNodeWmlData` fan-in for `look box` (the same entry point
  *      `orchestrate.objectStream.test.ts` proves for all three containment kinds via
  *      kernel-*constructed* fixtures) --- here reading back whatever the real kernel commit in step
  *      2 actually wrote to `internalCache.Positions`, not a hand-built `testLudicGraph`.
  *
- * The write side (`orchestrateObjectMove`) is given a bare `{ publish: jest.fn() }` stand-in for
- * `messageBus` and a no-op `streamEvent`, matching `orchestrateObjectMove.test.ts`'s own harness ---
+ * The write side (`commitAttempt`) is given a bare `{ publish: jest.fn() }` stand-in for
+ * `messageBus` and a no-op `streamEvent`, matching `commitAttempt.test.ts`'s own harness ---
  * the object-move narration/fact-streaming those two args drive (`Object Moved`, "Alice picks up
  * ball", catalog-bump fan-out) is proven elsewhere (Phase 2's
- * `objectMovedCatalogBump.integration.test.ts`, `orchestrateObjectMove.test.ts`) and is not the
+ * `objectMovedCatalogBump.integration.test.ts`, `commitAttempt.test.ts`) and is not the
  * subject of this test, which is real ludicGraph commit + real render. The read side
  * (`orchestrateRoomDescriptionStreams`) uses the process's real singleton `messageBus`, matching
  * `guestCharacterLookPayoff.integration.test.ts`'s convention for delivering the final
@@ -61,8 +61,10 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
-import { isParseCommandObjectRehostResult } from './actions/baseClasses'
-import { orchestrateObjectMove } from './positions/manipulation/membership/orchestrateObjectMove'
+import { isParseCommandObjectContainmentResult } from './actions/baseClasses'
+import { CommandAttempt } from './actions/commandAttempt'
+import type { CommandAttemptData } from './actions/commandAttempt'
+import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { testLudicGraph } from './positions/ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from './positions/ludicGraph'
 import { orchestrateRoomDescriptionStreams } from './perception/orchestrate'
@@ -145,7 +147,7 @@ const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>)
     })
 )
 
-describe('object rehost In payoff (integration)', () => {
+describe('object containment In payoff (integration)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         let timestamp = 1_000_000_000_000
@@ -226,12 +228,12 @@ describe('object rehost In payoff (integration)', () => {
             }
         )
 
-        expect(isParseCommandObjectRehostResult(parseResult)).toBe(true)
-        if (!isParseCommandObjectRehostResult(parseResult)) {
+        expect(isParseCommandObjectContainmentResult(parseResult)).toBe(true)
+        if (!isParseCommandObjectContainmentResult(parseResult)) {
             throw new Error('unreachable: asserted above')
         }
         expect(parseResult).toEqual({
-            type: 'ObjectRehost',
+            type: 'ObjectContainment',
             subjectId: BALL_ID,
             targetId: BOX_ID,
             hostId: ROOM_ID,
@@ -240,18 +242,19 @@ describe('object rehost In payoff (integration)', () => {
             attempt: expect.anything(),
         })
 
-        // Step B: real mutation-kernel commit. `orchestrateObjectMove` itself runs unmocked; only
-        // its `messageBus`/`streamEvent` dependencies are bare stand-ins (see file header).
+        // Step B: real mutation-kernel commit. `commitAttempt` itself runs unmocked; only its
+        // `messageBus`/`streamEvent` dependencies are bare stand-ins (see file header).
         const writeMessageBus = { publish: jest.fn() }
         const streamEvent = jest.fn().mockResolvedValue(undefined)
 
-        await orchestrateObjectMove({
-            objectIds: [parseResult.subjectId],
-            fromHostId: ROOM_ID,
-            toHostId: parseResult.targetId,
-            roomId: parseResult.hostId,
+        // The bus crossing, as in production: plain data out, class rebuilt on the positions side.
+        const published = JSON.parse(JSON.stringify(parseResult.attempt)) as CommandAttemptData
+        // The adjacency read's query leaf is not modelled here (as in `ropeLashedTakePayoff`): the
+        // character and both objects sit directly in the room.
+        jest.spyOn(internalCache.Positions, 'getMembershipContainers').mockResolvedValue([ROOM_ID] as any)
+        await commitAttempt({
+            attempt: CommandAttempt.fromJSON(published),
             characterId: CHARACTER_ID,
-            containment: parseResult.containment,
             messageBus: writeMessageBus as any,
             streamEvent,
         })

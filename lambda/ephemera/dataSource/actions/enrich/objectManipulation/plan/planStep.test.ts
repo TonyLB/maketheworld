@@ -1,6 +1,7 @@
 import {
     actingCharacterRef,
     currentHostRef,
+    derivedReferentKey,
     objectSpanRef,
     type Assertion,
     type Change,
@@ -56,7 +57,6 @@ describe('Change literal shapes', () => {
             primitive: 'establishRelation',
             subject: objectSpanRef('cord'),
             target: objectSpanRef('crate'),
-            host: currentHostRef(actingCharacterRef),
             relationKind: 'Custom',
             relationLabel: 'tied around',
         }
@@ -69,10 +69,23 @@ describe('Change literal shapes', () => {
             primitive: 'dissolveRelation',
             subject: objectSpanRef('rope'),
             target: objectSpanRef('crate'),
-            host: currentHostRef(actingCharacterRef),
             relationKind: 'On',
         }
         expect(change.primitive).toBe('dissolveRelation')
+    })
+})
+
+describe('derivedReferentKey', () => {
+    it('keys actingCharacter structurally', () => {
+        expect(derivedReferentKey(actingCharacterRef)).toBe('actingCharacter')
+    })
+
+    it('keys currentHost(actingCharacter) by nesting', () => {
+        expect(derivedReferentKey(currentHostRef(actingCharacterRef))).toBe('currentHost(actingCharacter)')
+    })
+
+    it('keys currentHost(objectSpan) by its stableRefKey, even though no live producer nests one today', () => {
+        expect(derivedReferentKey(currentHostRef(objectSpanRef('rope', 'ropeRef')))).toBe('currentHost(span:ropeRef)')
     })
 })
 

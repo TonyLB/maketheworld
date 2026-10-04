@@ -177,7 +177,7 @@ export function extractRelationalEdgesFromStored(
  *
  * **The sites that use structure as identity change together or not at all** ---
  * `addRelationalEdge`, `removeRelationalEdge` and `applyRelationalPatch` in `index.ts`, and
- * `findMatchingEdge` in `evaluateRelationalLegality.ts`. All four compose this helper, so
+ * the met-edge filter in `membership/buildObjectMoveOp.ts`. All four compose this helper, so
  * wiring the rule here is what keeps them in step; chain-aware matching in one and structural
  * matching in another is how a remove deletes a leg it was not aimed at.
  */

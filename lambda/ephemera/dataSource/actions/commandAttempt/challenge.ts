@@ -6,10 +6,9 @@ import { verdictFromJSON, verdictToJSON } from './verdict'
  * Challenge family (slice 1.7, per 1.6's decision that challenges grow along the
  * member axis). Every member answers: its wording (`describe`), its detection source
  * (deterministic from the graph, or invisible to the fast path --- world-knowledge),
- * and what a *met* verdict propagates (a graph challenge carries its edge, which the
- * commit side dissolves on the attempt's behalf via `CommandAttempt.metPropagations()`;
- * a world-knowledge challenge has nothing to propagate). Which members a given
- * adjudicator may judge is that adjudicator's policy (`adjudicate.ts`), not a member
+ * and its verdict. A graph challenge carries the edge it judges, but propagates nothing:
+ * the change a met verdict permits is its action's own `desiredResult`. Which members a
+ * given adjudicator may judge is that adjudicator's policy (`adjudicate.ts`), not a member
  * question.
  */
 export interface Challenge {
@@ -17,8 +16,6 @@ export interface Challenge {
     readonly verdict: Verdict | undefined
     readonly detectionSource: 'graph' | 'worldKnowledge'
     describe(): string
-    /** What a `met` verdict on this challenge propagates forward to the commit side. `undefined` if nothing does. */
-    metPropagation(): { edge: HostRelationalEdge } | undefined
     /** Pure: returns a new challenge with this verdict recorded. */
     withVerdict(verdict: Verdict): Challenge
     toJSON(): ChallengeData
@@ -35,7 +32,7 @@ export type ChallengeData =
  * challenge at all" question, but not a generic sentence-synthesis rule --- row 6's full
  * sentence ("the rope is lashed to the post; that lashing must be undone.") has an
  * authored second clause no transform of `relationLabel` alone reliably reproduces. So
- * this member carries the edge (for met propagation and detection source) alongside the
+ * this member carries the edge (what Adjudicate judges) alongside the
  * wording as given, rather than synthesizing prose from `relationLabel`.
  */
 export class CustomEdgeChallenge implements Challenge {
@@ -68,10 +65,6 @@ export class CustomEdgeChallenge implements Challenge {
 
     describe(): string {
         return this.description
-    }
-
-    metPropagation(): { edge: HostRelationalEdge } | undefined {
-        return { edge: this.edge }
     }
 
     withVerdict(verdict: Verdict): Challenge {
@@ -118,10 +111,6 @@ export class UnderDeferChallenge implements Challenge {
         return this.description
     }
 
-    metPropagation(): { edge: HostRelationalEdge } | undefined {
-        return { edge: this.edge }
-    }
-
     withVerdict(verdict: Verdict): Challenge {
         return new UnderDeferChallenge(this.id, this.edge, this.description, verdict)
     }
@@ -129,8 +118,7 @@ export class UnderDeferChallenge implements Challenge {
 
 /**
  * A world-knowledge challenge (CA-6): invisible to deterministic code, so its wording is
- * always authored or LLM-produced free text, and a `met` verdict propagates nothing ---
- * there is no graph edge underneath it. Also the eventual home for lock state, stability,
+ * always authored or LLM-produced free text, with no graph edge underneath it. Also the eventual home for lock state, stability,
  * and strength (1.6), which share this shape until a concrete case demands otherwise.
  */
 export class WorldKnowledgeChallenge implements Challenge {
@@ -160,10 +148,6 @@ export class WorldKnowledgeChallenge implements Challenge {
 
     describe(): string {
         return this.description
-    }
-
-    metPropagation(): { edge: HostRelationalEdge } | undefined {
-        return undefined
     }
 
     withVerdict(verdict: Verdict): Challenge {

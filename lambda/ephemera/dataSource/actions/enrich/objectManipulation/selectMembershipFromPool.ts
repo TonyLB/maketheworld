@@ -3,15 +3,16 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import type { ManipulationVerbClass } from '../../baseClasses'
 import type { ObjectManipulationCatalogEntry, ObjectManipulationCatalogScope } from './catalogMerge'
 import { existencePresenceGuard } from './existencePresenceGuard'
-import type { GroundedMembershipCandidate } from './groundMembershipCandidates'
-import { proposeMembershipTuples } from './proposeMembershipTuples'
+import { proposeMembershipCandidates } from './proposeMembershipCandidates'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { SandboxState } from './sandboxState'
 import {
     selectIdentityPlanTuple,
+    transferredObjectIds,
+    type MembershipPlanCandidate,
     type SelectIdentityPlanTupleResult,
-} from './selectIdentityPlanTuple'
-import type { SpanCandidatePool, SpanResolutionConsultAlternative } from './spanResolution'
+} from './selectPlanCandidate'
+import type { ConsultAlternative, SpanCandidatePool } from './spanResolution'
 import { locusToCatalogScope } from './unaryCollapse'
 
 export type SelectMembershipFromPoolResult =
@@ -23,18 +24,18 @@ export type SelectMembershipFromPoolResult =
         operationKind: 'takeHold' | 'drop'
         catalogScope: ObjectManipulationCatalogScope
         /** The selected (identity, plan) tuple with its grounded attempt. */
-        candidate: GroundedMembershipCandidate
+        candidate: MembershipPlanCandidate
     }
     | {
         type: 'defer'
         objectId: EphemeraObjectId
         catalogScope: ObjectManipulationCatalogScope
         /** The selected (identity, plan) tuple with its grounded attempt. */
-        candidate: GroundedMembershipCandidate
+        candidate: MembershipPlanCandidate
     }
     | {
         type: 'consult'
-        alternatives: readonly SpanResolutionConsultAlternative[]
+        alternatives: readonly ConsultAlternative[]
     }
     | {
         type: 'abstain'
@@ -75,7 +76,7 @@ export function selectMembershipFromPool(
     }
 
     const pool = spanPools[0]!
-    const tuples = proposeMembershipTuples({ pool, verbClass })
+    const tuples = proposeMembershipCandidates({ pool, verbClass })
     const selection = selectIdentityPlanTuple({
         candidates: tuples,
         sandboxState,
@@ -137,7 +138,7 @@ function mapSelection(
     return {
         type: 'resolved',
         objectId: candidate.identity.objectId,
-        objectIds: selection.dryRun.objectIds ?? [candidate.identity.objectId],
+        objectIds: transferredObjectIds(selection.dryRun.plan) ?? [candidate.identity.objectId],
         operationKind: candidate.plan.operationKind,
         catalogScope,
         candidate,

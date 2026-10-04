@@ -2,13 +2,9 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import type { HostRelationalEdge } from '../types'
-import { isKernelMutationStep } from '../kernel/kernelStep'
-import { dryRunStepSequence } from '../kernel/dryRunStepSequence'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import type { CompiledPositionKernelPlan } from '../kernel/compile/compilePositionKernelOp'
 import { buildObjectMoveOp } from './buildObjectMoveOp'
-import { repairMechanicalDissolve } from './repairMechanicalDissolve'
 import { defaultGetGraph } from '../relational/findRelationalChainsForRemoval'
 import { hasPresenceAncestor } from '../../ludicGraph/presenceAncestry'
 
@@ -18,8 +14,6 @@ export type PlanObjectMoveTransferArgs = {
     toHostId: EphemeraMembershipHostId
     bundleId: string
     narration: { characterName: string; objectShortName: string }
-    /** Edges whose challenges the attempt recorded as met; see `BuildObjectMoveOpArgs.metEdges`. */
-    metEdges?: readonly HostRelationalEdge[]
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
     /** injectable for test seams only. */
@@ -31,19 +25,14 @@ export type PlanObjectMoveTransferResult =
     | { ok: false; errorCode: string }
 
 /**
- * Take/drop/give's `plan*`-tier stage (3d, 2026-09-08): the sole surviving caller of
- * `executeMembershipTransfer`'s retired `honorDefer` mode, replaced by a real dry run (3c's
- * `dryRunStepSequence`) instead of a hand-rolled `boundaryEdgeOutcomes` pre-check. Reads and
- * evaluates, never writes --- `orchestrateObjectMove` still owns the commit and present calls.
+ * Take/drop/give's `plan*`-tier stage: refuses a containment cycle, then builds and compiles the
+ * move's own plan --- the transfer, the mover's own containment-edge strip, and (with
+ * `containment`) the establish into the new host. Reads, never writes.
  *
- * `legal` -> the built plan is returned as-is. `repairable` -> handed to
- * `repairMechanicalDissolve`, take/drop's repair-authority policy ("may not silently move the
- * lamp"): a `mechanical` repair is folded into a rebuilt plan (no second dry run --- 3c's own doc
- * comment: the cross-snapshot recheck belongs to commit against locked graphs, not to a repeat dry
- * run against the same unchanged snapshot); anything else is refused, `ok: false`, carrying the
- * real reason code `honorDefer` used to discard. `stale` -> also refused, unchanged today --- see
- * `AGENT.contract.md`'s "Current limitations": no re-fetch-and-retry loop exists for a `stale`
- * verdict yet.
+ * It does not dry-run, and derives no boundary-edge dissolve. Those dissolves are the command
+ * attempt's own facilitating actions, committed as sibling fragments, so this fragment alone
+ * would always look illegal for an object with a boundary edge. `commitAttempt` dry-runs the
+ * whole attempt's combined sequence instead.
  */
 export const planObjectMoveTransfer = async (
     args: PlanObjectMoveTransferArgs
@@ -67,33 +56,9 @@ export const planObjectMoveTransfer = async (
         toHostId: args.toHostId,
         bundleId: args.bundleId,
         narration: args.narration,
-        ...(args.metEdges ? { metEdges: args.metEdges } : {}),
         ...(args.containment ? { containment: args.containment } : {}),
     }
 
     const plan = compilePositionKernelOp(buildObjectMoveOp(buildArgs))
-
-    const outcome = await dryRunStepSequence(
-        plan.steps.filter(isKernelMutationStep),
-        { getCurrentHost: () => args.fromHostId, getGraph }
-    )
-
-    if (outcome.verdict === 'legal') {
-        return { ok: true, plan, fromHostId: args.fromHostId }
-    }
-
-    if (outcome.verdict === 'repairable') {
-        const repaired = repairMechanicalDissolve(outcome.repair, outcome.authority)
-        if (!repaired.ok) {
-            return { ok: false, errorCode: outcome.reasonCode }
-        }
-        const repairedPlan = compilePositionKernelOp(buildObjectMoveOp({
-            ...buildArgs,
-            extraDissolvedEdges: [repaired.edge],
-        }))
-        return { ok: true, plan: repairedPlan, fromHostId: args.fromHostId }
-    }
-
-    // stale --- see AGENT.contract.md's "Current limitations"; no re-fetch loop exists yet.
-    return { ok: false, errorCode: outcome.reasonCode }
+    return { ok: true, plan, fromHostId: args.fromHostId }
 }

@@ -35,13 +35,19 @@ const describeUnderDeferChallenge = (): string =>
  * `UnderDeferChallenge` for an `Under` subject-move) for Adjudicate to judge. The action
  * states the result, not the method: untying and cutting a lashing leave the same graph.
  *
- * This is the actions pipeline's one classification of boundary edges: the dry run lowers
- * these actions rather than classifying again, and only the commit side re-classifies,
- * against a later snapshot.
+ * The actions are returned in execution order, facilitating dissolves first and the primary
+ * action last (BD-28), so a consumer can lower them in sequence without knowing which is which.
+ *
+ * This is the one classification of boundary edges, on both sides: the dry run lowers these
+ * actions rather than classifying again, and the commit side (`commitAttempt`) commits them as
+ * the only source of facilitating dissolves. Its later re-check only refuses a move whose live
+ * boundary edges these actions do not cover.
  *
  * Each dissolve's referents are grounded (`graphNode`s): Expansion finds the edge's far end
  * in the graph, and no phrase named it. `subject`/`target` follow the edge's own direction,
- * whichever end is the moved object, and `host` is the graph's host.
+ * whichever end is the moved object. The Change carries no `host`: the executor's
+ * `dissolveRelation` command-expansion rediscovers this exact edge by chain discovery
+ * (`findRelationalChain`), the same mechanism the ingress relational route uses.
  */
 export const attemptActionsFromBoundaryOutcomes = (
     primaryAction: AttemptAction,
@@ -59,7 +65,6 @@ export const attemptActionsFromBoundaryOutcomes = (
             // Safe: filtered to things above.
             subject: graphNodeRef(entry.edge.from as EphemeraThingId),
             target: graphNodeRef(entry.edge.to as EphemeraThingId),
-            host: graphNodeRef(graph.hostId),
             ...relationKindAndLabelOf(entry.edge),
         }
 
@@ -79,5 +84,5 @@ export const attemptActionsFromBoundaryOutcomes = (
         )
     })
 
-    return [primaryAction, ...boundaryActions]
+    return [...boundaryActions, primaryAction]
 }

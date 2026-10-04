@@ -4,7 +4,7 @@ import { challengeFromJSON, challengeToJSON } from './challenge'
 
 /**
  * Action family (slice 1.7, per 1.6's decision that actions grow along the member
- * axis --- kinds keep arriving: position today, later narration, state, intent-parking,
+ * axis --- kinds keep arriving: position and narration today, later state, intent-parking,
  * construction/deconstruction, effects along relations, divide/merge). Every member
  * answers the same three questions: describe your desired result, list your challenges,
  * give your outcome (the eventual kernel-vocabulary result, once something adjudicates).
@@ -20,7 +20,7 @@ export interface AttemptActionMember {
 }
 
 /**
- * The only member today. Plan's `PlanStep` already discriminates four
+ * One of two members today. Plan's `PlanStep` already discriminates four
  * primitive shapes (`transferMembership` / `establishRelation` / `dissolveRelation` /
  * `containedBy`), but all four are one *outcome class* --- position --- so they share
  * this one action member rather than four. `desiredResult` is the structural intent,
@@ -68,12 +68,61 @@ export class PositionAttemptAction implements AttemptActionMember {
     }
 }
 
-export type AttemptActionData = {
-    kind: 'position'
-    desiredResult?: PlanStep
-    desiredResultDescription?: string
-    challenges: ChallengeData[]
+/**
+ * The first member of the queued **narration** outcome class: describing a referent is not a
+ * world mutation, so it has no `PlanStep` shape and `desiredResult` is always
+ * `undefined` --- narration doesn't belong in `PlanStep`'s vocabulary at all, not just
+ * an unfilled field. `description` is the prose gloss, read by `describe()`, the same
+ * role `PositionAttemptAction.desiredResultDescription` plays. No describe-time
+ * challenge is detectable yet, so every instance today carries zero challenges.
+ */
+export class NarrateAttemptAction implements AttemptActionMember {
+    readonly desiredResult = undefined
+    readonly description?: string
+    private readonly _challenges: Challenge[]
+
+    constructor(challenges: Challenge[], description?: string) {
+        this._challenges = challenges
+        this.description = description
+    }
+
+    static fromJSON(data: Extract<AttemptActionData, { kind: 'narrate' }>): NarrateAttemptAction {
+        return new NarrateAttemptAction(data.challenges.map(challengeFromJSON), data.description)
+    }
+
+    toJSON(): AttemptActionData {
+        return {
+            kind: 'narrate',
+            ...(this.description !== undefined ? { description: this.description } : {}),
+            challenges: this._challenges.map(challengeToJSON),
+        }
+    }
+
+    describe(): string | undefined {
+        return this.description
+    }
+
+    challenges(): Challenge[] {
+        return this._challenges
+    }
+
+    withChallenges(challenges: Challenge[]): NarrateAttemptAction {
+        return new NarrateAttemptAction(challenges, this.description)
+    }
 }
+
+export type AttemptActionData =
+    | {
+        kind: 'position'
+        desiredResult?: PlanStep
+        desiredResultDescription?: string
+        challenges: ChallengeData[]
+    }
+    | {
+        kind: 'narrate'
+        description?: string
+        challenges: ChallengeData[]
+    }
 
 export type AttemptAction = AttemptActionMember
 
@@ -81,6 +130,8 @@ export const attemptActionFromJSON = (data: AttemptActionData): AttemptAction =>
     switch (data.kind) {
         case 'position':
             return PositionAttemptAction.fromJSON(data)
+        case 'narrate':
+            return NarrateAttemptAction.fromJSON(data)
     }
 }
 

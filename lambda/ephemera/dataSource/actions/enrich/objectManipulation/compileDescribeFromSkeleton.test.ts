@@ -28,6 +28,7 @@ describe('compileDescribeFromSkeleton', () => {
             type: 'LookComponent',
             componentId: rocketSkatesId,
             confidence: 0.9,
+            attempt: expect.anything(),
         })
     })
 
@@ -46,6 +47,7 @@ describe('compileDescribeFromSkeleton', () => {
             type: 'LookComponent',
             componentId: rocketSkatesId,
             confidence: 0.9,
+            attempt: expect.anything(),
         })
     })
 
@@ -64,6 +66,7 @@ describe('compileDescribeFromSkeleton', () => {
             type: 'LookComponent',
             componentId: rocketSkatesId,
             confidence: 0.9,
+            attempt: expect.anything(),
         })
     })
 
@@ -115,5 +118,49 @@ describe('compileDescribeFromSkeleton', () => {
         )
 
         expect(result.type).toBe('Error')
+    })
+
+    it('returns Consult, naming both candidates, when the span resolves to more than one object', async () => {
+        const secondRocketSkatesId = 'OBJECT#RocketSkates2' as EphemeraObjectId
+        const result = await compileDescribeFromSkeleton(
+            {
+                command: 'look rocket skates',
+                skeleton: lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'),
+                characterId,
+                roomObjectCatalog: [
+                    { objectId: rocketSkatesId, normalizedShortName: 'rocket skates' },
+                    { objectId: secondRocketSkatesId, normalizedShortName: 'rocket skates' },
+                ],
+            },
+            0.9
+        )
+
+        expect(result).toEqual({
+            type: 'Consult',
+            alternatives: [
+                { proposedCommand: 'look at the rocket skates', objectId: rocketSkatesId },
+                { proposedCommand: 'look at the rocket skates', objectId: secondRocketSkatesId },
+            ],
+            confidence: 0.9,
+        })
+    })
+
+    it('carries a NarrateAttemptAction on the published attempt', async () => {
+        const result = await compileDescribeFromSkeleton(
+            {
+                command: 'look rocket skates',
+                skeleton: lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'),
+                characterId,
+                roomObjectCatalog: [{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }],
+            },
+            0.9
+        )
+
+        if (result.type !== 'LookComponent') {
+            throw new Error(`Expected LookComponent, got ${result.type}`)
+        }
+        expect(result.attempt?.actions).toEqual([
+            expect.objectContaining({ kind: 'narrate', description: 'Look at the rocket skates' }),
+        ])
     })
 })
