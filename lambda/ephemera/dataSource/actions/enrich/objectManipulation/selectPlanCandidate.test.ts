@@ -336,11 +336,11 @@ describe('expandAndAdjudicateMembershipCandidate', () => {
 
         const actions = result.attempt.toJSON().actions
         expect(actions).toHaveLength(2)
-        expect(actions[0]?.challenges).toEqual([])
-        expect(actions[1]?.challenges).toEqual([
+        expect(actions[1]?.challenges).toEqual([])
+        expect(actions[0]?.challenges).toEqual([
             expect.objectContaining({ kind: 'customEdge', description: expect.stringContaining('is lashed to') }),
         ])
-        expect(actions[1]?.challenges[0]?.verdict).toEqual({ kind: 'met' })
+        expect(actions[0]?.challenges[0]?.verdict).toEqual({ kind: 'met' })
         expect(result.attempt.result.status).toBe('succeeded')
     })
 

@@ -79,7 +79,7 @@ describe('buildObjectMoveOp', () => {
         expect(takeHold.narration).toEqual(drop.narration)
     })
 
-    it('derives dissolvedEdges from fromGraph: a dissolve-classified boundary edge is included', () => {
+    it('derives no boundary-edge dissolve, of any class --- those are the command attempt\'s own facilitating actions', () => {
         const fromGraph = testLudicGraph(ROOM, {
             nodes: [
                 { tag: 'Object', universalKey: TRAY },
@@ -88,7 +88,7 @@ describe('buildObjectMoveOp', () => {
             ],
             edges: [
                 { tag: 'Relational', from: TRAY, to: TABLE, kind: 'Against' },
-                { tag: 'Relational', from: CHANDELIER, to: TABLE, kind: 'Under' },
+                { tag: 'Relational', from: TRAY, to: CHANDELIER, kind: 'Under' },
             ],
         })
         const op = buildObjectMoveOp({
@@ -99,7 +99,7 @@ describe('buildObjectMoveOp', () => {
             bundleId: 'BUNDLE#test',
         })
 
-        expect(op.dissolvedEdges).toEqual([{ from: TRAY, to: TABLE, kind: 'Against' }])
+        expect(op.dissolvedEdges).toEqual([])
     })
 
     it('strips the moved object\'s own containment edge into fromGraph\'s root, unconditionally --- not gated on any flag (3d, 2026-09-08: moved from executeMembershipTransfer\'s retired honorDefer mode)', () => {
@@ -116,83 +116,5 @@ describe('buildObjectMoveOp', () => {
         })
 
         expect(op.dissolvedEdges).toEqual([{ from: TRAY, to: TABLE, kind: 'On' }])
-    })
-
-    it('leaves a defer-classified boundary edge alone --- no authority to decide whether severing it is acceptable', () => {
-        const fromGraph = testLudicGraph(ROOM, {
-            nodes: [{ tag: 'Object', universalKey: TRAY }, { tag: 'Object', universalKey: CHANDELIER }],
-            edges: [{ tag: 'Relational', from: TRAY, to: CHANDELIER, kind: 'Under' }],
-        })
-        const op = buildObjectMoveOp({
-            entityId: TRAY,
-            fromGraph,
-            fromHostId: ROOM,
-            toHostId: CHARACTER,
-            bundleId: 'BUNDLE#test',
-        })
-
-        expect(op.dissolvedEdges).toEqual([])
-    })
-
-    describe('met edges (the attempt\'s verdicts, honored not judged)', () => {
-        const POST = 'OBJECT#Post' as EphemeraObjectId
-        const lashed = { from: TRAY, to: POST, kind: 'Custom' as const, relationLabel: 'is lashed to' }
-        const lashedGraph = testLudicGraph(ROOM, {
-            nodes: [{ tag: 'Object', universalKey: TRAY }, { tag: 'Object', universalKey: POST }],
-            edges: [{ tag: 'Relational', ...lashed }],
-        })
-
-        it('dissolves a defer-classified Custom edge that matches a met edge', () => {
-            const op = buildObjectMoveOp({
-                entityId: TRAY,
-                fromGraph: lashedGraph,
-                fromHostId: ROOM,
-                toHostId: CHARACTER,
-                bundleId: 'BUNDLE#test',
-                metEdges: [lashed],
-            })
-
-            expect(op.dissolvedEdges).toEqual([lashed])
-        })
-
-        it('ignores a met edge that is no longer in the graph, rather than dissolving a missing edge', () => {
-            const op = buildObjectMoveOp({
-                entityId: TRAY,
-                fromGraph: emptyFromGraph,
-                fromHostId: ROOM,
-                toHostId: CHARACTER,
-                bundleId: 'BUNDLE#test',
-                metEdges: [lashed],
-            })
-
-            expect(op.dissolvedEdges).toEqual([])
-        })
-
-        it('leaves a defer edge nobody judged in place, even when another edge was met', () => {
-            const op = buildObjectMoveOp({
-                entityId: TRAY,
-                fromGraph: lashedGraph,
-                fromHostId: ROOM,
-                toHostId: CHARACTER,
-                bundleId: 'BUNDLE#test',
-                metEdges: [{ ...lashed, relationLabel: 'is tied to' }],
-            })
-
-            expect(op.dissolvedEdges).toEqual([])
-        })
-    })
-
-    it('folds extraDissolvedEdges in alongside the structurally-derived set (the post-repair rebuild)', () => {
-        const repairedEdge = { from: TRAY, to: CHANDELIER, kind: 'Under' as const }
-        const op = buildObjectMoveOp({
-            entityId: TRAY,
-            fromGraph: emptyFromGraph,
-            fromHostId: ROOM,
-            toHostId: CHARACTER,
-            bundleId: 'BUNDLE#test',
-            extraDissolvedEdges: [repairedEdge],
-        })
-
-        expect(op.dissolvedEdges).toEqual([repairedEdge])
     })
 })

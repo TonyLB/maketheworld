@@ -377,7 +377,7 @@ describe('compileMembershipAtomic', () => {
         expect(result.operationKind).toBe('takeHold')
         expect(result.objectIds).toEqual([ropeId])
         expect(result.attempt?.actions).toHaveLength(2)
-        const dissolveAction = result.attempt?.actions[1]
+        const dissolveAction = result.attempt?.actions[0]
         expect(dissolveAction?.challenges).toHaveLength(1)
         expect(dissolveAction?.challenges[0]).toEqual(
             expect.objectContaining({
@@ -386,7 +386,7 @@ describe('compileMembershipAtomic', () => {
                 verdict: { kind: 'met' },
             })
         )
-        const primaryAction = result.attempt?.actions[0]
+        const primaryAction = result.attempt?.actions[1]
         if (primaryAction?.kind !== 'position') {
             throw new Error('Expected a position action')
         }
@@ -432,7 +432,7 @@ describe('compileMembershipAtomic', () => {
             return
         }
         expect(result.operationKind).toBe('drop')
-        const primaryAction = result.attempt?.actions[0]
+        const primaryAction = result.attempt?.actions[1]
         if (primaryAction?.kind !== 'position') {
             throw new Error('Expected a position action')
         }
@@ -444,6 +444,6 @@ describe('compileMembershipAtomic', () => {
         // Same identity, same locus graph: the boundary expansion is unchanged.
         expect(result.attempt?.actions).toHaveLength(2)
         expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
-        expect(result.attempt?.actions[1]?.challenges[0]).toEqual(expect.objectContaining({ kind: 'underDefer' }))
+        expect(result.attempt?.actions[0]?.challenges[0]).toEqual(expect.objectContaining({ kind: 'underDefer' }))
     })
 })

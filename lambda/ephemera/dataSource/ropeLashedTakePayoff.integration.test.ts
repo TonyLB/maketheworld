@@ -1,9 +1,11 @@
 /**
  * Payoff test for commandAttemptPhase slice 3 (corpus row 6): "get rope" when the rope is lashed
- * to a post by a `Custom` relation. Before slice 3 this failed silently: the dry run deferred to
- * the complexity LLM, and the commit side refused the undissolved `Custom` edge. Now Adjudicate
- * (actions-side, per candidate) records the lashing's challenge as met, the dry run lowers the
- * dissolve, and positions honors the met edge at commit. Terminates at the committed graphs.
+ * to a post by a `Custom` relation. Adjudicate (actions-side, per candidate) records the lashing's
+ * challenge as met, so the attempt carries the dissolve as its own action, ahead of the take, and
+ * positions commits exactly the attempt's actions: the dissolve once, then the transfer. Also the
+ * regression test for a take that committed a facilitating dissolve twice (once from the
+ * attempt's action, once derived by positions itself), which threw on the second. Terminates at
+ * the committed graphs.
  *
  * Real, in this order:
  *   1. `parseCommand` for "get rope", with no Bedrock call expected: the rope is in the room's
@@ -12,9 +14,11 @@
  *      `parseCommand.test.ts`.
  *   2. The published attempt crosses the bus as data (`JSON.parse(JSON.stringify(...))`) and is
  *      rebuilt with `CommandAttempt.fromJSON`, as `positions/index.ts`'s dispatch does.
- *   3. The real `orchestrateObjectMove` -> `planObjectMoveTransfer` -> `commitStepSequence`,
- *      against a mocked `ephemeraDB` leaf, following `objectContainmentInPayoff.integration.test.ts`'s
- *      harness (see its header for why a post-commit `getLudicGraph` sees the committed graph).
+ *   3. The real `commitAttempt` (the generic per-attempt commit `positions/index.ts` dispatches
+ *      to) -> `commitStepSequence`, against a mocked `ephemeraDB` leaf, following
+ *      `objectContainmentInPayoff.integration.test.ts`'s harness (see its header for why a
+ *      post-commit `getLudicGraph` sees the committed graph). Live hosts are read through a spy on
+ *      `getMembershipContainers`, as the adjacency read's own query leaf is not modelled here.
  */
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 const mockGetCurrentTimestamp = jest.fn()
@@ -34,7 +38,7 @@ import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
 import { CommandAttempt, type CommandAttemptData } from './actions/commandAttempt'
-import { orchestrateObjectMove } from './positions/manipulation/membership/orchestrateObjectMove'
+import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { testLudicGraph } from './positions/ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from './positions/ludicGraph'
 
@@ -47,6 +51,10 @@ const POST_ID = 'OBJECT#Post' as EphemeraObjectId
 const CHARACTER_ID = 'CHARACTER#Tester' as EphemeraCharacterId
 
 const lashedEdge = { from: ROPE_ID, to: POST_ID, kind: 'Custom' as const, relationLabel: 'is lashed to' }
+
+type EphemeraLudicGraphEdgeInput =
+    | typeof lashedEdge
+    | { from: EphemeraObjectId; to: EphemeraObjectId; kind: 'Against' }
 
 /** Same stand-in as `objectContainmentInPayoff.integration.test.ts`: runs the real reducer over the seeded graphs. */
 const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => (
@@ -71,18 +79,21 @@ const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>)
     })
 )
 
+/** The room, with the rope bound to the post by `edge`; the moved rope's own shard. */
+const seedGraphs = (edge: EphemeraLudicGraphEdgeInput): Record<string, EphemeraLudicGraph> => ({
+    [ROOM_ID]: testLudicGraph(ROOM_ID, {
+        nodes: [
+            { tag: 'Object', universalKey: ROPE_ID },
+            { tag: 'Object', universalKey: POST_ID },
+        ],
+        edges: [{ tag: 'Relational', ...edge }],
+    }),
+    [CHARACTER_ID]: testLudicGraph(CHARACTER_ID, { nodes: [] }),
+    [ROPE_ID]: testLudicGraph(ROPE_ID, { nodes: [{ tag: 'Object', universalKey: ROPE_ID }] }),
+})
+
 describe('lashed rope take payoff (integration)', () => {
-    const graphsByHost: Record<string, EphemeraLudicGraph> = {
-        [ROOM_ID]: testLudicGraph(ROOM_ID, {
-            nodes: [
-                { tag: 'Object', universalKey: ROPE_ID },
-                { tag: 'Object', universalKey: POST_ID },
-            ],
-            edges: [{ tag: 'Relational', ...lashedEdge }],
-        }),
-        [CHARACTER_ID]: testLudicGraph(CHARACTER_ID, { nodes: [] }),
-        [ROPE_ID]: testLudicGraph(ROPE_ID, { nodes: [{ tag: 'Object', universalKey: ROPE_ID }] }),
-    }
+    let graphsByHost: Record<string, EphemeraLudicGraph> = {}
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -100,10 +111,18 @@ describe('lashed rope take payoff (integration)', () => {
             }
             return undefined
         })
-        ephemeraDBMock.transactWrite.mockImplementation(makeTransactWriteMock(graphsByHost))
+        ephemeraDBMock.transactWrite.mockImplementation(async (items: any[]) => makeTransactWriteMock(graphsByHost)(items))
+        jest.spyOn(internalCache.Positions, 'getMembershipContainers').mockImplementation(async (id) => (
+            id === CHARACTER_ID || id === ROPE_ID || id === POST_ID ? [ROOM_ID] : []
+        ))
     })
 
-    it('"get rope" unties the lashing and commits the rope into the character\'s hands', async () => {
+    afterEach(() => {
+        jest.restoreAllMocks()
+    })
+
+    /** "get rope" end to end: parse (no Bedrock), the bus crossing, then the real commit. */
+    const getRope = async (): Promise<void> => {
         const invokeBedrockParseCommandImpl = jest.fn()
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const parseResult = await parseCommand(
@@ -142,22 +161,36 @@ describe('lashed rope take payoff (integration)', () => {
         const published = JSON.parse(JSON.stringify(parseResult.attempt)) as CommandAttemptData
         const attempt = CommandAttempt.fromJSON(published)
 
-        await orchestrateObjectMove({
-            objectIds: parseResult.objectIds,
-            fromHostId: ROOM_ID,
-            toHostId: CHARACTER_ID,
-            roomId: ROOM_ID,
-            characterId: CHARACTER_ID,
+        await commitAttempt({
             attempt,
+            characterId: CHARACTER_ID,
             messageBus: { publish: jest.fn() } as any,
             streamEvent: jest.fn().mockResolvedValue(undefined),
         })
+    }
 
+    const expectRopeHeldAndUnbound = async (): Promise<void> => {
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(1)
         const characterGraph = await internalCache.Positions.getLudicGraph(CHARACTER_ID)
         expect(characterGraph.nodeIds.has(ROPE_ID)).toBe(true)
         const roomGraph = await internalCache.Positions.getLudicGraph(ROOM_ID)
         expect(roomGraph.nodeIds.has(ROPE_ID)).toBe(false)
         expect(roomGraph.relationalEdges).toEqual([])
+    }
+
+    it('"get rope" unties the lashing and commits the rope into the character\'s hands', async () => {
+        graphsByHost = seedGraphs(lashedEdge)
+
+        await getRope()
+
+        await expectRopeHeldAndUnbound()
+    })
+
+    it('"get rope" leaning against the post: an unchallenged (dissolve-classified) edge is dissolved once, too', async () => {
+        graphsByHost = seedGraphs({ from: ROPE_ID, to: POST_ID, kind: 'Against' })
+
+        await getRope()
+
+        await expectRopeHeldAndUnbound()
     })
 })

@@ -257,7 +257,6 @@ describe('positions receive paths (integration)', () => {
                 words: 'take the entire coil of rope',
                 referents: [{ refKey: 'primaryObject', id: 'OBJECT#Rope', shortName: 'rope' }],
                 actions: [
-                    { kind: 'position', desiredResultDescription: 'Take: rope', challenges: [] },
                     {
                         kind: 'position',
                         desiredResultDescription: 'Dissolve: is lashed to',
@@ -271,6 +270,7 @@ describe('positions receive paths (integration)', () => {
                             },
                         ],
                     },
+                    { kind: 'position', desiredResultDescription: 'Take: rope', challenges: [] },
                 ],
             }
 
@@ -292,14 +292,14 @@ describe('positions receive paths (integration)', () => {
             const attempt = call?.[0].attempt as CommandAttempt
             expect(attempt.words).toBe('take the entire coil of rope')
             expect(attempt.actions()).toHaveLength(2)
-            expect(attempt.actions()[1]?.challenges()).toHaveLength(1)
-            expect(attempt.actions()[1]?.challenges()[0]?.describe()).toBe('Boundary relation to dissolve: is lashed to.')
+            expect(attempt.actions()[0]?.challenges()).toHaveLength(1)
+            expect(attempt.actions()[0]?.challenges()[0]?.describe()).toBe('Boundary relation to dissolve: is lashed to.')
+            expect(attempt.actions()[0]?.challenges()[0]?.toJSON()).toEqual(expect.objectContaining({
+                edge: { from: 'OBJECT#Rope', to: 'OBJECT#Post', kind: 'Custom', relationLabel: 'is lashed to' },
+            }))
             // Adjudicate ran actions-side; positions only reconstructs, so the met verdict arrives
-            // as published and its edge is what the commit side will honor.
+            // as published, and the result the commit side gates on has succeeded.
             expect(attempt.result.status).toBe('succeeded')
-            expect(attempt.metPropagations()).toEqual([
-                { from: 'OBJECT#Rope', to: 'OBJECT#Post', kind: 'Custom', relationLabel: 'is lashed to' },
-            ])
         })
     })
 

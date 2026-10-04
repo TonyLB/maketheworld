@@ -108,7 +108,9 @@ export const expandAndAdjudicateMembershipCandidate = (
     const { objectId, locus } = candidate.identity
     const sourceHostId = membershipSourceHostId(locus, roomId, actorCharacterId)
     const sourceGraph = sourceHostId !== undefined ? environment.expansion.getGraph(sourceHostId) : undefined
-    const primaryAction = candidate.attempt.actions()[0]!
+    // Last, per the attempt's execution order (`[...boundaryActions, primaryAction]`).
+    const actionsBefore = candidate.attempt.actions()
+    const primaryAction = actionsBefore[actionsBefore.length - 1]!
     const actions = sourceGraph !== undefined
         ? attemptActionsFromBoundaryOutcomes(primaryAction, new Set([objectId]), sourceGraph)
         : [primaryAction]
@@ -384,12 +386,12 @@ export const sandboxMembershipDryRun = (
         return { verdict: 'illegal', decidable: true, reason: objectManipulationErrorMessages.noMembershipHost }
     }
     const groundedPrimary = groundChange(candidate.desiredResult, assignment)
-    // actions()[0] is always the primary action (attemptActionsFromBoundaryOutcomes's own
-    // return shape: `[primaryAction, ...boundaryActions]`), so the rest are facilitating
-    // dissolves, already fully grounded (graphNode referents). Seeded first, BD-28's order;
-    // the newly-grounded primary seeds last.
+    // The attempt's actions are in execution order (attemptActionsFromBoundaryOutcomes's own
+    // return shape: `[...boundaryActions, primaryAction]`), so all but the last are
+    // facilitating dissolves, already fully grounded (graphNode referents). Seeded first,
+    // BD-28's order; the newly-grounded primary seeds last.
     const facilitatingSteps = candidate.attempt.actions()
-        .slice(1)
+        .slice(0, -1)
         .map((action) => action.desiredResult)
         .filter((step): step is PlanStep<GroundedReferent> => step !== undefined && isGroundedStep(step))
     const seed = seedFromGroundedSteps([...facilitatingSteps, groundedPrimary])

@@ -15,13 +15,12 @@ const CHARACTER_ID = 'CHARACTER#alpha' as EphemeraCharacterId
 const narration = { characterName: 'Alice', objectShortName: 'tray' }
 
 /**
- * Take/drop/give's `planObjectMoveTransfer` (3d, 2026-09-08): replaces
- * `executeMembershipTransfer`'s retired `honorDefer` mode. Every case here pins the single-hop,
- * defer-aware boundary check `buildObjectMoveOp` + `dryRunStepSequence` now perform, and the
- * `repairMechanicalDissolve` policy's refusal-on-anything-but-mechanical behavior. No commit
- * happens inside this function --- `getGraph` is the only I/O seam, so no `internalCache`/
- * `transactWrite` mocking is needed; `orchestrateObjectMove.test.ts` covers the commit+present
- * composition, and `commitStepSequence`/`applyStepSequenceCore`'s own suites cover commit mechanics.
+ * Take/drop/give's `planObjectMoveTransfer`: the containment-cycle refusal, and the move's own
+ * compiled plan (transfer, own containment strip, establish into a new host). It neither
+ * dry-runs nor derives a boundary-edge dissolve --- `commitAttempt.test.ts` covers the dry run
+ * over the whole attempt, and `commitStepSequence`/`applyStepSequenceCore`'s own suites cover
+ * commit mechanics. `getGraph` is the only I/O seam, so no `internalCache`/`transactWrite`
+ * mocking is needed.
  */
 describe('planObjectMoveTransfer', () => {
     describe('room -> character (take-hold)', () => {
@@ -47,17 +46,16 @@ describe('planObjectMoveTransfer', () => {
             expect(result.fromHostId).toBe(ROOM_ID)
         })
 
-        it('BD-28: a subject-move Against boundary edge is pre-resolved into an explicit dissolveRelation step (no repair round-trip needed)', async () => {
+        it('builds no boundary-edge dissolve and does not dry-run: those belong to the attempt and commitAttempt', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, {
                 nodes: [
                     { tag: 'Object', universalKey: TRAY_ID },
-                    { tag: 'Object', universalKey: CUP_ID },
                     { tag: 'Object', universalKey: TABLE_ID },
                     { tag: 'Object', universalKey: CHANDELIER_ID },
                 ],
                 edges: [
                     { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Against' },
-                    { tag: 'Relational', from: CUP_ID, to: CHANDELIER_ID, kind: 'Under' },
+                    { tag: 'Relational', from: TRAY_ID, to: CHANDELIER_ID, kind: 'Under' },
                 ],
             })
             const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
@@ -73,92 +71,8 @@ describe('planObjectMoveTransfer', () => {
             })
 
             expect(result.ok).toBe(true)
-            if (!result.ok) { throw new Error('expected a legal plan') }
-            const dissolveStep = result.plan.steps.find((step) => step.kind === 'dissolveRelation')
-            expect(dissolveStep).toEqual(expect.objectContaining({ subjectId: TRAY_ID, targetId: TABLE_ID }))
-            // cup-chandelier (Under, defer) is untouched --- cup was never in the transfer set,
-            // and this edge doesn't classify against the tray at all.
-            expect(result.plan.steps.some((step) => step.kind === 'dissolveRelation' && step.subjectId === CUP_ID)).toBe(false)
-        })
-
-        it('refuses (ok: false, real reason code) when the snapshot is stale (entity absent from the fetched fromGraph)', async () => {
-            // See AGENT.contract.md's "Current limitations": no re-fetch loop exists yet. A stale
-            // snapshot is refused today, exactly as it was before 3d (the old hand-rolled check
-            // couldn't detect this at all).
-            const staleRoomGraph = testLudicGraph(ROOM_ID, { nodes: [], edges: [] })
-            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            const getGraph = async (hostId: string): Promise<EphemeraLudicGraph> => (hostId === ROOM_ID ? staleRoomGraph : emptyCharacterGraph)
-
-            const result = await planObjectMoveTransfer({
-                entityId: TRAY_ID,
-                fromHostId: ROOM_ID,
-                toHostId: CHARACTER_ID,
-                bundleId: 'BUNDLE#test',
-                narration,
-                getGraph,
-            })
-
-            expect(result).toEqual({ ok: false, errorCode: 'staleTransferCandidate' })
-        })
-
-        it('refuses (ok: false, real reason code) when a boundary edge defers (Under, subject-move)', async () => {
-            const roomGraph = testLudicGraph(ROOM_ID, {
-                nodes: [
-                    { tag: 'Object', universalKey: TRAY_ID },
-                    { tag: 'Object', universalKey: CHANDELIER_ID },
-                ],
-                edges: [{ tag: 'Relational', from: TRAY_ID, to: CHANDELIER_ID, kind: 'Under' }],
-            })
-            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            const getGraph = async (hostId: string): Promise<EphemeraLudicGraph> => (hostId === ROOM_ID ? roomGraph : emptyCharacterGraph)
-
-            const result = await planObjectMoveTransfer({
-                entityId: TRAY_ID,
-                fromHostId: ROOM_ID,
-                toHostId: CHARACTER_ID,
-                bundleId: 'BUNDLE#test',
-                narration,
-                getGraph,
-            })
-
-            // `honorDefer` used to discard the reason code entirely (`{ ok: false }`) --- this is
-            // new coverage the retired mode never had.
-            expect(result).toEqual({ ok: false, errorCode: 'transferInteractionDefer' })
-        })
-
-        it('row 6: a Custom boundary edge the attempt recorded as met is dissolved, and the take is legal', async () => {
-            const POST_ID = 'OBJECT#Post' as EphemeraObjectId
-            const lashed = { from: TRAY_ID, to: POST_ID, kind: 'Custom' as const, relationLabel: 'is lashed to' }
-            const roomGraph = testLudicGraph(ROOM_ID, {
-                nodes: [
-                    { tag: 'Object', universalKey: TRAY_ID },
-                    { tag: 'Object', universalKey: POST_ID },
-                ],
-                edges: [{ tag: 'Relational', ...lashed }],
-            })
-            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            const getGraph = async (hostId: string): Promise<EphemeraLudicGraph> => (hostId === ROOM_ID ? roomGraph : emptyCharacterGraph)
-            const args = {
-                entityId: TRAY_ID,
-                fromHostId: ROOM_ID,
-                toHostId: CHARACTER_ID,
-                bundleId: 'BUNDLE#test',
-                narration,
-                getGraph,
-            }
-
-            expect(await planObjectMoveTransfer(args)).toEqual(expect.objectContaining({ ok: false }))
-
-            const result = await planObjectMoveTransfer({ ...args, metEdges: [lashed] })
-
-            expect(result.ok).toBe(true)
-            if (result.ok) {
-                expect(result.plan.steps).toContainEqual(expect.objectContaining({
-                    kind: 'dissolveRelation',
-                    subjectId: TRAY_ID,
-                    targetId: POST_ID,
-                }))
-            }
+            if (!result.ok) { throw new Error('expected a plan') }
+            expect(result.plan.steps.some((step) => step.kind === 'dissolveRelation')).toBe(false)
         })
     })
 
@@ -280,34 +194,6 @@ describe('planObjectMoveTransfer', () => {
             })
 
             expect(result).toEqual({ ok: false, errorCode: 'containmentCycle' })
-        })
-    })
-
-    describe('character -> room (drop)', () => {
-        it('BD-28: dropping the tray severs tray-table as an explicit dissolveRelation step', async () => {
-            const emptyRoomGraph = testLudicGraph(ROOM_ID, { nodes: [], edges: [] })
-            const characterGraph = testLudicGraph(CHARACTER_ID, {
-                nodes: [
-                    { tag: 'Object', universalKey: TRAY_ID },
-                    { tag: 'Object', universalKey: TABLE_ID },
-                ],
-                edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Against' }],
-            })
-            const getGraph = async (hostId: string): Promise<EphemeraLudicGraph> => (hostId === ROOM_ID ? emptyRoomGraph : characterGraph)
-
-            const result = await planObjectMoveTransfer({
-                entityId: TRAY_ID,
-                fromHostId: CHARACTER_ID,
-                toHostId: ROOM_ID,
-                bundleId: 'BUNDLE#test',
-                narration,
-                getGraph,
-            })
-
-            expect(result.ok).toBe(true)
-            if (!result.ok) { throw new Error('expected a legal plan') }
-            const dissolveStep = result.plan.steps.find((step) => step.kind === 'dissolveRelation')
-            expect(dissolveStep).toEqual(expect.objectContaining({ subjectId: TRAY_ID, targetId: TABLE_ID }))
         })
     })
 })

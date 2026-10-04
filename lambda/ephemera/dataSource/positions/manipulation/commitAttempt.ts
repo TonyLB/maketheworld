@@ -23,7 +23,8 @@ import { groundChange } from '../../actions/enrich/objectManipulation/synthesize
 import { commitAndPresentStepSequence } from './kernel/commitAndPresentStepSequence'
 import type { CompiledPositionKernelPlan } from './kernel/compile/compilePositionKernelOp'
 import type { RelationalEdgeFactSource } from './kernel/factsForStep'
-import type { KernelStep } from './kernel/kernelStep'
+import { isKernelMutationStep } from './kernel/kernelStep'
+import { dryRunStepSequence } from './kernel/dryRunStepSequence'
 import { planObjectMoveTransfer } from './membership/planObjectMoveTransfer'
 import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTransfer'
 import { resolveObjectMovePresentationLabels } from '../../perception/resolveObjectMovePresentationLabels'
@@ -77,7 +78,6 @@ const buildMembershipFragment = async (
     change: TransferMembershipChange<GroundedReferent>,
     liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>,
     args: CommitAttemptArgs,
-    attemptMetEdges: ReturnType<CommandAttempt['metPropagations']>,
     bundleId: string
 ): Promise<ActionFragment | undefined> => {
     const entityId = change.object.groundedId
@@ -114,7 +114,6 @@ const buildMembershipFragment = async (
         toHostId,
         bundleId,
         narration: { characterName, objectShortName },
-        metEdges: attemptMetEdges,
         // Containment (slice 3c): `planObjectMoveTransfer`/`buildObjectMoveOp`/
         // `compilePositionKernelOp` already thread this through to the establish step whose
         // `hostId` is always `toHostId` by construction --- no ancestry walk needed.
@@ -154,22 +153,32 @@ const buildRelationalFragment = async (
 }
 
 /**
- * The generic per-attempt commit path (AP-9, slice 3a): dispatches each action by its
- * `desiredResult`'s primitive, re-expanding it against live state (membership via
- * `planObjectMoveTransfer`, relational via `planRelationalEdgeTransfer`), concatenates every
- * action's resulting kernel steps into one sequence, and commits the whole attempt in one
- * `commitAndPresentStepSequence` call --- one `transactWrite`, not one per action. Today's
- * attempts hold exactly one action, so this is observably identical to the per-primitive
- * handlers it replaces; the concatenation is what slice 3c's containment attempt (two
- * actions, mixed kinds) needs to commit atomically.
+ * The generic per-attempt commit path (AP-9): dispatches each action by its `desiredResult`'s
+ * primitive, re-expanding it against live state (membership via `planObjectMoveTransfer`,
+ * relational via `planRelationalEdgeTransfer`), concatenates every action's resulting kernel
+ * steps into one sequence in the attempt's own action order, and commits the whole attempt in
+ * one `commitAndPresentStepSequence` call --- one `transactWrite`, not one per action. An action
+ * with no `desiredResult` (Describe's narration) contributes nothing.
  *
- * Containment (no `desiredResult` yet, AP-4) and Describe (not published through this event
- * at all) are out of this slice's scope --- an action with no `desiredResult`, or one whose
- * primitive this dispatch does not recognize, contributes nothing.
+ * Positions honors the attempt and does not judge it. It commits only an attempt whose result
+ * has succeeded: a challenge still pending (the complexity-LLM fallback can publish one) or
+ * refused is not a permission to dissolve its edge.
+ *
+ * The attempt's actions are the only source of a move's facilitating dissolves: a take of a
+ * lashed rope carries its own dissolve action, listed before the take, and membership's
+ * fragment adds only the mover's own containment strip. Before committing, the combined
+ * sequence is dry-run against a fresh snapshot. A boundary edge that no action covers ---
+ * the world changed since the actions-side dry run, or a containment move, whose producer
+ * expands no boundary actions --- comes back `repairable` with its own reason code, and the
+ * attempt is refused rather than repaired. `commitStepSequence` still re-checks under lock.
  */
 export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     const { attempt, characterId } = args
-    const attemptMetEdges = attempt.metPropagations()
+    const { result } = attempt
+    if (result.status !== 'succeeded') {
+        console.error(`[mtw.ephemera.positions] commitAttempt: attempt not committed: its result is ${result.status}`)
+        return
+    }
     // Minted once, up front --- a membership fragment's narrate steps bake this id in at
     // build time (`compilePositionKernelOp`), and the bundle must be declared under the
     // same id at commit time or its narration orphans (see this file's own note on
@@ -200,7 +209,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         }
         const change = groundChange(desiredResult, assignment)
         if (change.primitive === 'transferMembership') {
-            const fragment = await buildMembershipFragment(change, liveHosts, args, attemptMetEdges, bundleId)
+            const fragment = await buildMembershipFragment(change, liveHosts, args, bundleId)
             fragments.push(fragment ?? emptyFragment)
             continue
         }
@@ -233,6 +242,13 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         }
     }
 
+    const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => hostByReferencedId.get(id)
+    const dryRun = await dryRunStepSequence(steps.filter(isKernelMutationStep), { getCurrentHost })
+    if (dryRun.verdict !== 'legal') {
+        console.error(`[mtw.ephemera.positions] commitAttempt: attempt refused (${dryRun.verdict}: ${dryRun.reasonCode})`)
+        return
+    }
+
     await commitAndPresentStepSequence(
         { steps, slots },
         bundleId,
@@ -241,7 +257,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
             commit: {
                 messageBus: args.messageBus,
                 streamEvent: args.streamEvent,
-                getCurrentHost: (id) => hostByReferencedId.get(id),
+                getCurrentHost,
                 ...(relationalEdges.length > 0 ? { relationalEdges } : {}),
             },
             perceive: { streamEvent: noopActionsStreamEvent, messageBus: args.messageBus },

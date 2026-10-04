@@ -22,6 +22,10 @@ jest.mock('./relational/planRelationalEdgeTransfer', () => ({
     planRelationalEdgeTransfer: jest.fn(),
 }))
 
+jest.mock('./kernel/dryRunStepSequence', () => ({
+    dryRunStepSequence: jest.fn(),
+}))
+
 jest.mock('./kernel/commitAndPresentStepSequence', () => ({
     commitAndPresentStepSequence: jest.fn().mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() }),
 }))
@@ -33,6 +37,7 @@ import { groundMembershipCandidate } from '../../actions/enrich/objectManipulati
 import { planObjectMoveTransfer } from './membership/planObjectMoveTransfer'
 import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTransfer'
 import { commitAndPresentStepSequence } from './kernel/commitAndPresentStepSequence'
+import { dryRunStepSequence } from './kernel/dryRunStepSequence'
 
 const getMembershipContainersMock = internalCache.Positions.getMembershipContainers as jest.MockedFunction<
     typeof internalCache.Positions.getMembershipContainers
@@ -40,6 +45,7 @@ const getMembershipContainersMock = internalCache.Positions.getMembershipContain
 const planObjectMoveTransferMock = planObjectMoveTransfer as jest.MockedFunction<typeof planObjectMoveTransfer>
 const planRelationalEdgeTransferMock = planRelationalEdgeTransfer as jest.MockedFunction<typeof planRelationalEdgeTransfer>
 const commitAndPresentStepSequenceMock = commitAndPresentStepSequence as jest.MockedFunction<typeof commitAndPresentStepSequence>
+const dryRunStepSequenceMock = dryRunStepSequence as jest.MockedFunction<typeof dryRunStepSequence>
 
 const CHARACTER = 'CHARACTER#Alice' as EphemeraCharacterId
 const ROOM = 'ROOM#Cafe' as EphemeraRoomId
@@ -117,6 +123,7 @@ describe('commitAttempt', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         commitAndPresentStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
+        dryRunStepSequenceMock.mockResolvedValue({ verdict: 'legal', graphs: new Map(), captures: new Map() })
         mockLiveHosts(ROOM)
     })
 
@@ -341,5 +348,76 @@ describe('commitAttempt', () => {
 
         const [callArgs] = planObjectMoveTransferMock.mock.calls[0]!
         expect(callArgs).not.toHaveProperty('containment')
+    })
+
+    describe('a take with a facilitating boundary dissolve', () => {
+        const POST = 'OBJECT#Post' as EphemeraObjectId
+        const lashed = { from: BROOM, to: POST, kind: 'Custom' as const, relationLabel: 'is lashed to' }
+        const dissolveStep = { kind: 'dissolveRelation', subjectId: BROOM, targetId: POST, hostId: ROOM, relationKind: 'Custom', relationLabel: 'is lashed to' }
+        const transferStep = { kind: 'transferMembership', entityIds: new Set([BROOM]), fromHostIds: new Set([ROOM]), toHostId: CHARACTER }
+
+        /** The producer's shape: the dissolve action first, the take last, in execution order. */
+        const lashedTakeAttempt = (verdict: { kind: 'met' } | undefined): CommandAttempt => {
+            const take = membershipAttempt('takeHold').toJSON()
+            return CommandAttempt.fromJSON({
+                ...take,
+                actions: [
+                    {
+                        kind: 'position',
+                        desiredResult: {
+                            kind: 'change',
+                            primitive: 'dissolveRelation',
+                            subject: { referentType: 'graphNode', groundedId: BROOM },
+                            target: { referentType: 'graphNode', groundedId: POST },
+                            relationKind: 'Custom',
+                            relationLabel: 'is lashed to',
+                        } as never,
+                        desiredResultDescription: 'Dissolve: is lashed to',
+                        challenges: [{ kind: 'customEdge', id: 'c1', edge: lashed as never, description: 'd', ...(verdict ? { verdict } : {}) }],
+                    },
+                    ...take.actions,
+                ],
+            })
+        }
+
+        beforeEach(() => {
+            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [transferStep], slots: [] } as any, fromHostId: ROOM })
+            planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: [dissolveStep] as any })
+        })
+
+        it('commits the attempt\'s own dissolve once, before the transfer', async () => {
+            await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
+            const [plan] = commitAndPresentStepSequenceMock.mock.calls[0]!
+            expect(plan.steps).toEqual([dissolveStep, transferStep])
+        })
+
+        it('dry-runs the whole attempt\'s sequence, not one fragment', async () => {
+            await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(dryRunStepSequenceMock).toHaveBeenCalledWith([dissolveStep, transferStep], expect.anything())
+        })
+
+        it('does not commit an attempt whose challenge is still pending', async () => {
+            await commitAttempt({ attempt: lashedTakeAttempt(undefined), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(planObjectMoveTransferMock).not.toHaveBeenCalled()
+            expect(planRelationalEdgeTransferMock).not.toHaveBeenCalled()
+            expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+        })
+
+        it('refuses, rather than repairs, a boundary edge the attempt does not cover', async () => {
+            dryRunStepSequenceMock.mockResolvedValue({
+                verdict: 'repairable',
+                reasonCode: 'unresolvedDissolveEdge',
+                authority: 'mechanical',
+                repair: { kind: 'dissolveEdge', hostId: ROOM, edge: { from: BROOM, to: TABLE, kind: 'Against' } } as never,
+            })
+
+            await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+        })
     })
 })

@@ -125,6 +125,7 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | 2026-10-01 | `overbroad-inheritance` | AP-4 leaned the containment route out because it has no pool and no plan today, carrying BD-25's "joins when it gains a pool" as a blocker; user: nothing essential separates it --- that is current code, and this plan is where it gains one. |
 | 2026-10-01 | `proxy-read` | Called AGENT.edges.md:134 (legs share a `chainId`) and :172 / positions concepts:402 (legs share an `edgeId`) a contradiction, from `edgesMatch` ignoring `edgeId`; user: chains are children of edges, so every leg of a chain carries both ids --- the code was read as a proxy for the definition, and "orthogonal" as "alternative". |
 | 2026-10-01 | `stale-premise` | Said crossing dissolve was unbuilt (`buildCrossingLegs` returns `notYetImplemented`) and would "become natural" with a chain primitive; `expandSameHost` already dissolves crossings via `findRelationalChain` + `buildCrossingDissolveLegs` --- read a doc comment, not the dispatch. |
+| 2026-10-04 | `framing-inherited` | Proposed fixing AP-13's double-dissolve by skipping the attempt's explicit boundary action when its edge is in `metPropagations()`; user mirrored back that this privileges positions' pre-AP-9 internal derivation over the attempt's own actions --- and it was also incomplete (`dissolve`-classified edges carry no challenge, so never appear in `metPropagations()`). Chose the side the bug surfaced in, not the side the design names authoritative. |
 
 ## Patterns
 

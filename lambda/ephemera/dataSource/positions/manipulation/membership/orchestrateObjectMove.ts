@@ -97,7 +97,6 @@ export const orchestrateObjectMove = async (args: OrchestrateObjectMoveArgs): Pr
         toHostId: args.toHostId,
         bundleId,
         narration: { characterName, objectShortName },
-        metEdges: args.attempt?.metPropagations() ?? [],
         ...(args.containment ? { containment: args.containment } : {}),
     })
 

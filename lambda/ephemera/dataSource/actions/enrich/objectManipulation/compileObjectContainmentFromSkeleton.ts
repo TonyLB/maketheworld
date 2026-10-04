@@ -220,11 +220,13 @@ export async function compileObjectContainmentFromSkeleton(
         return { type: 'Abstain', confidence: intentConfidence, reason: proposed.reason }
     }
 
-    // No shard-crossing or boundary-edge concern for a containment move (the established
-    // edge's host is always `target`, by construction --- see this file's own notes and the
-    // task plan's AP-4 correction), so every candidate is trivially legal once it survives the
-    // producer's self-containment guard. `selectPlanTuple` still runs the same floor/margin/
-    // Consult machinery every route uses.
+    // No shard-crossing concern for the established edge (its host is always `target`, by
+    // construction --- see this file's own notes), so every candidate is trivially legal once
+    // it survives the producer's self-containment guard. `selectPlanTuple` still runs the same
+    // floor/margin/Consult machinery every route uses. Boundary edges are not expanded here:
+    // the subject's source host is read only at commit, so this attempt carries no
+    // facilitating dissolve, and `commitAttempt` refuses a move whose subject has a boundary
+    // edge in its source host (a rope lashed to a post can't be put on the table).
     const selection = selectPlanTuple({
         candidates: proposed.candidates,
         getConfidence: (candidate) => candidate.confidence,
