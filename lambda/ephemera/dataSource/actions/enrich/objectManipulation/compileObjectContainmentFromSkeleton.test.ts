@@ -3,7 +3,23 @@ import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts
 import { compileObjectContainmentFromSkeleton } from './compileObjectContainmentFromSkeleton'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ParseSkeleton } from './parse/parseToken'
-import { objectSpanRef } from './plan/planStep'
+import { planSkeleton } from './plan/planSkeleton'
+import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
+
+/** Room and host graphs for the shared dry run; the containment move needs the subject's room. */
+const containmentPositionsReads = () => ({
+    getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
+    getLudicGraph: jest.fn().mockImplementation(async (hostId: string) => testLudicGraph(hostId as EphemeraRoomId)),
+})
+
+/** Plan's attempt for a containment skeleton, as parseCommand hands it to the producer. */
+const planAttempt = (skeleton: ParseSkeleton, command: string) => {
+    const plan = planSkeleton(skeleton, command)
+    if (plan.type !== 'attempts') {
+        throw new Error(`planAttempt: Plan declined "${command}"`)
+    }
+    return plan.attempts[0]!
+}
 
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
@@ -29,8 +45,7 @@ describe('compileObjectContainmentFromSkeleton', () => {
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
+                attempt: planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray'),
                 containment: 'On',
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -38,7 +53,8 @@ describe('compileObjectContainmentFromSkeleton', () => {
                     { objectId: trayId, normalizedShortName: 'tray' },
                 ],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         expect(result).toEqual({
@@ -57,8 +73,7 @@ describe('compileObjectContainmentFromSkeleton', () => {
             {
                 command: 'put cup in tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'in', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
+                attempt: planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'in', 'tray', 'trayRef'), 'put cup in tray'),
                 containment: 'In',
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -66,7 +81,8 @@ describe('compileObjectContainmentFromSkeleton', () => {
                     { objectId: trayId, normalizedShortName: 'tray' },
                 ],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         expect(result).toEqual({
@@ -85,14 +101,14 @@ describe('compileObjectContainmentFromSkeleton', () => {
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
+                attempt: planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray'),
                 containment: 'On',
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: trayId, normalizedShortName: 'tray' }],
                 heldInventoryCatalog: [{ objectId: cupId, normalizedShortName: 'cup' }],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         expect(result).toEqual({
@@ -111,11 +127,11 @@ describe('compileObjectContainmentFromSkeleton', () => {
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
+                attempt: planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray'),
                 containment: 'On',
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noHostRoom })
@@ -126,12 +142,12 @@ describe('compileObjectContainmentFromSkeleton', () => {
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
+                attempt: planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray'),
                 containment: 'On',
                 hostRoomId: roomId,
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noCatalog })
@@ -143,8 +159,7 @@ describe('compileObjectContainmentFromSkeleton', () => {
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
+                attempt: planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray'),
                 containment: 'On',
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -153,7 +168,8 @@ describe('compileObjectContainmentFromSkeleton', () => {
                     { objectId: trayId, normalizedShortName: 'tray' },
                 ],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         expect(result).toEqual({
@@ -171,15 +187,15 @@ describe('compileObjectContainmentFromSkeleton', () => {
             {
                 command: 'put cup on cup',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'cup', 'cupRef2'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('cup', 'cupRef2'),
+                attempt: planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'cup', 'cupRef2'), 'put cup on cup'),
                 containment: 'On',
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
                 ],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         expect(result).toEqual({
@@ -194,8 +210,7 @@ describe('compileObjectContainmentFromSkeleton', () => {
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
+                attempt: planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray'),
                 containment: 'On',
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -203,7 +218,8 @@ describe('compileObjectContainmentFromSkeleton', () => {
                     { objectId: trayId, normalizedShortName: 'tray' },
                 ],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         if (result.type !== 'ObjectContainment') {

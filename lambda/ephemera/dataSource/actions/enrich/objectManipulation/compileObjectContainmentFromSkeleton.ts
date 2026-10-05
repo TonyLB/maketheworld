@@ -1,5 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type {
     ParseCommandAbstainResult,
@@ -10,31 +9,29 @@ import type {
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
-import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
 import type { IdentityStageDeps } from './identityStage'
-import { runIdentityStageOverSkeleton } from './identifySkeletonSpans'
+import { runIdentityStageOverReferenceKeys } from './identifySkeletonSpans'
+import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import type { ParseSkeleton } from './parse/parseToken'
-import { currentHostRef, type Referent } from './plan/planStep'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { selectPlanTuple } from './selectPlanCandidate'
-import { stampCandidateReferents } from './stampCandidateReferents'
-import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
-import { PositionAttemptAction } from '../../commandAttempt/action'
-import { CommandAttempt } from '../../commandAttempt'
+import { attemptDryRun, attemptSpanKeys, buildAttemptEnvironment, defaultPositionsReads, groundedObjectIdOf, proposeAttemptCandidates } from './attemptCandidates'
+import type { CommandAttempt } from '../../commandAttempt'
 
 export type CompileObjectContainmentFromSkeletonInput = {
     command: string
     skeleton: ParseSkeleton
-    subject: Referent
-    target: Referent
+    /** Plan's ungrounded attempt: its one position action is the containment `transferMembership` (ISS8203 slice 2). */
+    attempt: CommandAttempt
     containment: 'On' | 'In'
     hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
 }
 
-export type CompileObjectContainmentFromSkeletonDeps = IdentityStageDeps
+export type CompileObjectContainmentFromSkeletonDeps = IdentityStageDeps & {
+    positionsReadDeps?: ObjectManipulationPositionsReadDeps
+}
 
 export type CompileObjectContainmentFromSkeletonResult =
     | ParseCommandObjectContainmentResult
@@ -43,153 +40,15 @@ export type CompileObjectContainmentFromSkeletonResult =
     | ParseCommandErrorResult
 
 /**
- * One producer candidate (the shared selection stage's input), mirroring
- * `RelationalGroundedCandidate` (`compileRelationalFromSkeleton.ts`): a joint identity
- * assignment over subject/target, the attempt built from it, and enough to render Consult
- * wording --- before selection.
- */
-type ContainmentGroundedCandidate = {
-    candidateId: { subjectId: EphemeraObjectId; targetId: EphemeraObjectId }
-    confidence: number
-    attempt: CommandAttempt
-    subjectLabel: string
-    targetLabel: string
-}
-
-type ProposeContainmentCandidatesResult =
-    | { ok: true; candidates: ContainmentGroundedCandidate[] }
-    | { ok: false; reason: string }
-
-type KeyedPool = { ok: true; key: string; candidates: readonly ObjectSpanCandidate[] } | { ok: false; reason: string }
-
-const keyedPool = (
-    referent: Referent,
-    spanPools: ReadonlyMap<string, SpanCandidatePool>
-): KeyedPool => {
-    if (referent.referentType !== 'objectSpan' || referent.stableRefKey === undefined) {
-        const span = referent.referentType === 'objectSpan' ? referent.span : referent.referentType
-        return { ok: false, reason: `objectSpan referent for span "${span}" has no stableRefKey to ground against` }
-    }
-    const key = referent.stableRefKey
-    const pool = spanPools.get(key)
-    if (!pool) {
-        return { ok: false, reason: `No resolution supplied for stableRefKey "${key}"` }
-    }
-    const candidates = pool.shortlist ?? pool.candidates
-    if (candidates.length === 0) {
-        return { ok: false, reason: `No candidates found for span "${pool.span}"` }
-    }
-    // identityFromSpanCandidate (via enumerateIdentityAssignments) throws on a non-Object id.
-    return { ok: true, key, candidates: candidates.filter((candidate) => isEphemeraObjectId(candidate.id)) }
-}
-
-/**
- * The containment route's producer, modeled directly on
- * `proposeRelationalCandidates`: one identity pool per referent, enumerated into joint
- * assignments (`enumerateIdentityAssignments`, `min` confidence), with relational's
- * self-relation rule reused ("put cup on cup" is never a candidate). Unlike relational,
- * grounding is deliberately deferred here, not done eagerly: the step's `from` is a derived
- * referent (`currentHost(subject)`) with no live snapshot to resolve it against yet, and
- * the resolution to the partial-grounding fork is to defer *all* grounding of a step to
- * one place --- the dry run or, for containment, `commitAttempt`'s own generic resolution
- * against live state. So the attempt's `desiredResult` stays ungrounded here, carrying real
- * `stableRefKey`s on `object`/`to` so it can ground later purely from the attempt's own
- * referents (`buildCommandAttemptReferent` below uses the same keys).
- */
-const proposeContainmentCandidates = (
-    input: CompileObjectContainmentFromSkeletonInput,
-    spanPools: ReadonlyMap<string, SpanCandidatePool>,
-    catalog: readonly ObjectManipulationCatalogEntry[]
-): ProposeContainmentCandidatesResult => {
-    const subjectPool = keyedPool(input.subject, spanPools)
-    if (!subjectPool.ok) {
-        return { ok: false, reason: subjectPool.reason }
-    }
-    const targetPool = keyedPool(input.target, spanPools)
-    if (!targetPool.ok) {
-        return { ok: false, reason: targetPool.reason }
-    }
-
-    const subjectKey = subjectPool.key
-    const targetKey = targetPool.key
-    // A containment move joins two different things: an assignment that
-    // grounds subject and target to the same object is never a candidate.
-    const assignments = enumerateIdentityAssignments(new Map([
-        [subjectKey, subjectPool.candidates],
-        [targetKey, targetPool.candidates],
-    ])).filter(({ identities }) => identities.get(subjectKey)?.objectId !== identities.get(targetKey)?.objectId)
-    if (assignments.length === 0) {
-        return { ok: false, reason: 'No combination of two distinct grounded objects produced a well-typed containment move' }
-    }
-
-    const candidates = assignments.map(({ identities, confidence }) => {
-        const subjectId = identities.get(subjectKey)!.objectId
-        const targetId = identities.get(targetKey)!.objectId
-
-        const subjectEntry = catalog.find((entry) => entry.objectId === subjectId)
-        const targetEntry = catalog.find((entry) => entry.objectId === targetId)
-        const subjectName = subjectEntry?.normalizedShortName ?? subjectId
-        const targetName = targetEntry?.normalizedShortName ?? targetId
-
-        // `input.subject`/`input.target` are already validated `objectSpan` referents
-        // carrying `subjectKey`/`targetKey` (`keyedPool`'s guard above), so they're reused
-        // directly rather than reconstructed --- same referent the attempt's `stableRefKey`
-        // ties the prose to.
-        const desiredResult = stampCandidateReferents({
-            kind: 'change' as const,
-            primitive: 'transferMembership' as const,
-            object: input.subject,
-            from: currentHostRef(input.subject),
-            to: input.target,
-            containment: input.containment,
-        }, new Map([
-            [subjectKey, { id: subjectId, shortName: subjectName, gloss: subjectEntry?.gloss }],
-            [targetKey, { id: targetId, shortName: targetName, gloss: targetEntry?.gloss }],
-        ]))
-
-        const preposition = input.containment === 'On' ? 'on' : 'in'
-        const action = new PositionAttemptAction(
-            [],
-            desiredResult,
-            `Put ${subjectName} ${preposition} ${targetName}`
-        )
-        const attempt = CommandAttempt.create(input.command, [action])
-
-        return { candidateId: { subjectId, targetId }, confidence, attempt, subjectLabel: subjectName, targetLabel: targetName }
-    })
-    return { ok: true, candidates }
-}
-
-/**
- * Consult wording for containment: one line naming both referents, mirroring
- * `relationalConsultAlternative`'s shape. No `objectId` --- a containment alternative names
- * two referents, not one.
- */
-const containmentConsultAlternative = (
-    candidate: ContainmentGroundedCandidate,
-    containment: 'On' | 'In'
-): ConsultAlternative => {
-    const { subjectLabel, targetLabel } = candidate
-    const preposition = containment === 'On' ? 'on' : 'in'
-    return { label: `${subjectLabel} / ${targetLabel}`, proposedCommand: `put the ${subjectLabel} ${preposition} the ${targetLabel}` }
-}
-
-/**
  * Client wiring: `On`/`In` is a containment move carrying a containment argument, not a peer
- * relational edge, so it does not go through `compileRelationalFromSkeleton.ts`'s
- * Grounding/Expansion/Validation --- those solve peer-relation-specific problems (candidate
- * combinations aside, same-host boundary legality) that don't apply to a containment move.
- * `PartOf` never reaches this function (parseCommand.ts still hard-errors it before this
- * point, per ND-4 in AGENT.nestedObjectLook.planning.md).
+ * relational edge, so it does not go through `compileRelationalFromSkeleton.ts`'s peer-relation
+ * checks. It does share the producer, the per-command environment and the dry run (ISS8203
+ * slice 2, `attemptCandidates.ts`). `PartOf` never reaches this function (parseCommand.ts still
+ * hard-errors it before this point, per ND-4 in AGENT.nestedObjectLook.planning.md).
  *
- * The route produces a real candidate pool, replacing the former
- * hard-error-on-ambiguity (`resolveSingleObjectId`'s `ambiguousMatch`). It deliberately still
- * never resolves the subject's *current* host at parse time --- that's read fresh by the
- * positions-layer consumer (`getMembershipContainers`, via `commitAttempt`'s generic derived-
- * referent resolution) at execution time rather than baked in here, since parse and execution
- * are not the same moment (the object could move between them). There is no construction-time
- * legality check beyond the self-containment guard above (relational's precedent): cycle
- * detection (`hasPresenceAncestor`) and "already there" stay at commit, as today.
+ * The subject's current host is read from the environment, not from the command, since parse and
+ * execution are not the same moment. Boundary edges are not expanded in this slice (slice 3 adds
+ * them), so a move whose subject is lashed in its source host still fails at commit, as before.
  */
 export async function compileObjectContainmentFromSkeleton(
     input: CompileObjectContainmentFromSkeletonInput,
@@ -206,28 +65,38 @@ export async function compileObjectContainmentFromSkeleton(
         input.heldInventoryCatalog ?? []
     )
 
-    const identityResult = await runIdentityStageOverSkeleton(input.command, input.skeleton, catalog, deps)
+    const identityResult = await runIdentityStageOverReferenceKeys(
+        input.command,
+        input.skeleton,
+        attemptSpanKeys([input.attempt]),
+        catalog,
+        deps
+    )
     if (identityResult.type === 'error') {
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    const proposed = proposeContainmentCandidates(input, identityResult.spanPools, catalog)
+    const proposed = proposeAttemptCandidates({
+        command: input.command,
+        attempts: [input.attempt],
+        spanPools: identityResult.spanPools,
+        catalog,
+        noAssignmentReason: 'No combination of two distinct grounded objects produced a well-typed containment move',
+    })
     if (!proposed.ok) {
         return { type: 'Abstain', confidence: intentConfidence, reason: proposed.reason }
     }
+    const groundedCandidates = proposed.candidates
 
-    // No shard-crossing concern for the established edge (its host is always `target`, by
-    // construction --- see this file's own notes), so every candidate is trivially legal once
-    // it survives the producer's self-containment guard. `selectPlanTuple` still runs the same
-    // floor/margin/Consult machinery every route uses. Boundary edges are not expanded here:
-    // the subject's source host is read only at commit, so this attempt carries no
-    // facilitating dissolve, and `commitAttempt` refuses a move whose subject has a boundary
-    // edge in its source host (a rope lashed to a post can't be put on the table).
+    const positionsReads = deps.positionsReadDeps ?? defaultPositionsReads()
+    const roomGraph = await positionsReads.getLudicGraph(hostRoomId)
+    const env = await buildAttemptEnvironment(groundedCandidates, hostRoomId, roomGraph, positionsReads)
+
     const selection = selectPlanTuple({
-        candidates: proposed.candidates,
+        candidates: groundedCandidates,
         getConfidence: (candidate) => candidate.confidence,
-        dryRun: () => ({ verdict: 'legal', decidable: true }),
-        toConsultAlternative: (candidate) => containmentConsultAlternative(candidate, input.containment),
+        dryRun: (candidate) => attemptDryRun(candidate, env),
+        toConsultAlternative: (candidate) => candidate.alternative,
     })
 
     if (selection.verdict === 'consult') {
@@ -247,7 +116,6 @@ export async function compileObjectContainmentFromSkeleton(
     }
 
     if (selection.verdict === 'defer') {
-        // Cannot occur: the dry run above always reports `legal`, never `defer`.
         return {
             type: 'Abstain',
             confidence: intentConfidence,
@@ -256,11 +124,15 @@ export async function compileObjectContainmentFromSkeleton(
     }
 
     const { candidate } = selection
+    const step = candidate.attempt.actions()[0]!.desiredResult
+    if (step?.kind !== 'change' || step.primitive !== 'transferMembership') {
+        throw new Error('compileObjectContainmentFromSkeleton: the selected candidate is not a containment move')
+    }
 
     return {
         type: 'ObjectContainment',
-        subjectId: candidate.candidateId.subjectId,
-        targetId: candidate.candidateId.targetId,
+        subjectId: groundedObjectIdOf(step.object),
+        targetId: groundedObjectIdOf(step.to),
         hostId: hostRoomId,
         containment: input.containment,
         confidence: intentConfidence,

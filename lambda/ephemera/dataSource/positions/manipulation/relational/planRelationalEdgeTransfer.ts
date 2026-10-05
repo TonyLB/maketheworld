@@ -23,7 +23,7 @@ export type PlanRelationalEdgeTransferResult =
  * Relational's live-state replan --- mirrors `planObjectMoveTransfer`'s
  * shape for membership: takes the grounded edge and rebuilds its chain fresh, against
  * ancestry/graphs read now, rather than trusting the `steps` a stale dry-run snapshot
- * computed at parse time (`compileRelationalFromSkeleton.ts`'s `relationalDryRun`, which this
+ * computed at parse time (`attemptCandidates.ts`'s `attemptDryRun`, which this
  * mirrors closely --- same ancestry walk, same `runExecutor`/`lowerRelationalChain` call
  * shape, just without the selection-time candidate pool/consult machinery, since by the time
  * this runs an attempt has already been selected).

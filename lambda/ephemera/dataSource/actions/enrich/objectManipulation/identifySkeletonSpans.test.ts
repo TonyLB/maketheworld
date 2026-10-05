@@ -1,6 +1,6 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { runIdentityStageOverSkeleton } from './identifySkeletonSpans'
+import { runIdentityStageOverReferenceKeys, runIdentityStageOverSkeleton } from './identifySkeletonSpans'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import type { ParseSkeleton } from './parse/parseToken'
@@ -183,5 +183,31 @@ describe('runIdentityStageOverSkeleton', () => {
 
         expect(result.type).toBe('success')
         expect(embedSpan).toHaveBeenCalled()
+    })
+})
+
+describe('runIdentityStageOverReferenceKeys', () => {
+    const skeleton: ParseSkeleton = [
+        { type: 'text', text: 'put' },
+        { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+        { type: 'text', text: 'on' },
+        { type: 'objectSpan', span: 'anvil', stableRefKey: 'anvilRef' },
+    ]
+
+    it('resolves exactly the referenced keys, in skeleton order', async () => {
+        const embedSpan = jest.fn()
+        const result = await runIdentityStageOverReferenceKeys('put broom on anvil', skeleton, ['anvilRef', 'broomRef'], roomCatalog, { embedSpan })
+
+        expect(result.type).toBe('success')
+        if (result.type !== 'success') {
+            return
+        }
+        expect([...result.spanPools.keys()]).toEqual(['broomRef', 'anvilRef'])
+    })
+
+    it('throws when a referenced key is not an objectSpan token in the skeleton', async () => {
+        await expect(
+            runIdentityStageOverReferenceKeys('put broom on anvil', skeleton, ['missingRef'], roomCatalog, { embedSpan: jest.fn() })
+        ).rejects.toThrow('"missingRef" is not an objectSpan token')
     })
 })

@@ -1,8 +1,7 @@
 import type { EphemeraThingId } from '../enrich/objectManipulation/thing'
-import type { Referent } from '../enrich/objectManipulation/plan/planStep'
 import type { AttemptAction, AttemptActionData } from './action'
 import { attemptActionFromJSON, attemptActionToJSON } from './action'
-import { buildCommandAttemptReferent } from './referent'
+import { buildCommandAttemptReferent, objectSpansIn } from './referent'
 import type { Verdict } from './verdict'
 
 export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction, NarrateAttemptAction } from './action'
@@ -48,17 +47,6 @@ export type CommandAttemptData = {
 }
 
 const cloneReferent = (referent: CommandAttemptReferent): CommandAttemptReferent => ({ ...referent })
-
-/** Every object-span referent inside `referent`, including one nested under a `currentHost`. */
-const objectSpansIn = (referent: Referent): Extract<Referent, { referentType: 'objectSpan' }>[] => {
-    if (referent.referentType === 'objectSpan') {
-        return [referent]
-    }
-    if (referent.referentType === 'currentHost') {
-        return objectSpansIn(referent.referentTarget)
-    }
-    return []
-}
 
 /**
  * Derives the prose's referents section from the actions, in order of first appearance of

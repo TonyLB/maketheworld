@@ -43,3 +43,27 @@ export async function runIdentityStageOverSkeleton(
         ),
     }
 }
+
+/**
+ * Identify for the shared producer (ISS8203 slice 2): the referents an attempt names, keyed by
+ * stableRefKey, are the set Identify resolves. Spans come from the skeleton in its own order, so
+ * `embedSpan` sees the same calls in the same order as the per-route producers did. A key that no
+ * skeleton token carries is a construction bug, not a runtime outcome, so it throws.
+ */
+export async function runIdentityStageOverReferenceKeys(
+    command: string,
+    skeleton: ParseSkeleton,
+    referenceKeys: readonly string[],
+    catalog: readonly ObjectManipulationCatalogEntry[],
+    deps: IdentityStageDeps = {}
+): Promise<SkeletonIdentityStageResult> {
+    const keys = new Set(referenceKeys)
+    const skeletonKeys = new Set(skeleton.filter(isObjectSpanToken).map((token) => token.stableRefKey))
+    for (const key of keys) {
+        if (!skeletonKeys.has(key)) {
+            throw new Error(`runIdentityStageOverReferenceKeys: stableRefKey "${key}" is not an objectSpan token in the skeleton`)
+        }
+    }
+    const referenced: ParseSkeleton = skeleton.filter((token) => !isObjectSpanToken(token) || keys.has(token.stableRefKey))
+    return runIdentityStageOverSkeleton(command, referenced, catalog, deps)
+}

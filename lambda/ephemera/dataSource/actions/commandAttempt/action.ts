@@ -1,5 +1,6 @@
 import type { PlanStep, Referent } from '../enrich/objectManipulation/plan/planStep'
 import { stepReferents } from '../enrich/objectManipulation/plan/planStep'
+import { stampCandidateReferents, stampReferent, type SpanName } from '../enrich/objectManipulation/stampCandidateReferents'
 import type { Challenge, ChallengeData } from './challenge'
 import { challengeFromJSON, challengeToJSON } from './challenge'
 
@@ -19,6 +20,12 @@ export interface AttemptActionMember {
     challenges(): Challenge[]
     /** Pure: returns a new action of the same kind holding these challenges. */
     withChallenges(challenges: Challenge[]): AttemptActionMember
+    /**
+     * Pure: returns a new action of the same kind with each span key's identity written onto
+     * the referents this action names (PI-9). Identify and Enumerate read `referents()`;
+     * grounding is how an assignment reaches the action, and each kind owns that write.
+     */
+    grounded(names: ReadonlyMap<string, SpanName>): AttemptActionMember
     toJSON(): AttemptActionData
 }
 
@@ -72,6 +79,17 @@ export class PositionAttemptAction implements AttemptActionMember {
 
     withChallenges(challenges: Challenge[]): PositionAttemptAction {
         return new PositionAttemptAction(challenges, this.desiredResult, this.desiredResultDescription)
+    }
+
+    grounded(names: ReadonlyMap<string, SpanName>): PositionAttemptAction {
+        if (this.desiredResult === undefined) {
+            return this
+        }
+        return new PositionAttemptAction(
+            this._challenges,
+            stampCandidateReferents(this.desiredResult, names),
+            this.desiredResultDescription
+        )
     }
 }
 
@@ -130,6 +148,14 @@ export class NarrateAttemptAction implements AttemptActionMember {
 
     withChallenges(challenges: Challenge[]): NarrateAttemptAction {
         return new NarrateAttemptAction(challenges, this.description, this._referents)
+    }
+
+    grounded(names: ReadonlyMap<string, SpanName>): NarrateAttemptAction {
+        return new NarrateAttemptAction(
+            this._challenges,
+            this.description,
+            this._referents.map((referent) => stampReferent(referent, names))
+        )
     }
 }
 

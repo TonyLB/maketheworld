@@ -1,9 +1,6 @@
-import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import internalCache from '../../../../internalCache'
 import type {
     ParseCommandAbstainResult,
     ParseCommandConsultResult,
@@ -15,25 +12,15 @@ import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import type { IdentityStageDeps } from './identityStage'
-import { runIdentityStageOverSkeleton } from './identifySkeletonSpans'
-import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
+import { runIdentityStageOverReferenceKeys } from './identifySkeletonSpans'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import type { ParseSkeleton } from './parse/parseToken'
-import type { PeerRelationalEdgeKind } from './relationKind'
-import { stampCandidateReferents } from './stampCandidateReferents'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { selectPlanTuple } from './selectPlanCandidate'
-import type { DryRunOutcome } from './validatePlanDryRun'
-import { walkAncestryContainers } from './synthesize/findShardBoundary'
-import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
-import type { ExecutorRelationalChain, ExpansionEnvironment } from './synthesize/executorTypes'
+import { attemptDryRun, attemptSpanKeys, buildAttemptEnvironment, defaultPositionsReads, groundedObjectIdOf, proposeAttemptCandidates, type GroundedAttemptCandidate } from './attemptCandidates'
+import type { ExecutorOutputStep, ExecutorRelationalChain } from './synthesize/executorTypes'
 import { lowerRelationalChain } from './synthesize/buildCrossingLegs'
-import type { Change, EstablishRelationChange, DissolveRelationChange, GroundedId, GroundedReferent, Referent, ReferentAssignment } from './plan/planStep'
-import { groundChange } from './synthesize/groundChange'
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
-import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
-import { PositionAttemptAction } from '../../commandAttempt/action'
-import { CommandAttempt } from '../../commandAttempt'
+import type { CommandAttempt } from '../../commandAttempt'
 
 export type CompileRelationalFromSkeletonInput = {
     command: string
@@ -56,196 +43,17 @@ export type CompileRelationalFromSkeletonResult =
     | ParseCommandAbstainResult
     | ParseCommandErrorResult
 
-const defaultPositionsReadDeps = (): ObjectManipulationPositionsReadDeps => ({
-    getMembershipContainers: (objectId) => internalCache.Positions.getMembershipContainers(objectId),
-    getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
-})
-
-/**
- * The candidate's edge, as published: two Objects and a relation, with no host --- a host
- * belongs to each leg of its chain, and the published host comes from each
- * leg's own `hostId`. `relationKind`/`relationLabel` stay the narrow ingress-lane set
- * (`PeerRelationalEdgeKind`, `relationKind.ts`, BD-2's kind-narrowing clause); `proposeRelationalCandidates`
- * rejects a containment kind before building one.
- */
-type RelationalCandidateId = {
-    kind: 'establishRelation' | 'dissolveRelation'
-    subjectId: EphemeraObjectId
-    targetId: EphemeraObjectId
-} & RelationalKindAndLabel<PeerRelationalEdgeKind>
-
-/**
- * One producer candidate (the shared selection stage's input): a joint identity assignment
- * (one id per `stableRefKey` in `match.change`), the `Change` grounded against it by
- * substitution, and the attempt built from that grounded change --- before Expand,
- * before the dry run, before selection. Mirrors `MembershipPlanCandidate`
- * (`selectPlanCandidate.ts`), minus the generic `PlanCandidate` wiring (this route's
- * `confidence` already is what `selectPlanTuple`'s `getConfidence` reads).
- */
-type RelationalGroundedCandidate = {
-    candidateId: RelationalCandidateId
-    /** Grounded by substitution: `subject`/`target` carry `groundedId`. A relational
-     * `Change` has no `host`: where the relation lives is Expansion's question. */
-    change: EstablishRelationChange | DissolveRelationChange
-    confidence: number
-    attempt: CommandAttempt
-    /** Catalog display names, carried forward so `relationalConsultAlternative`
-     * can build its wording without re-querying the catalog. */
-    subjectLabel: string
-    targetLabel: string
-}
-
-type ProposeRelationalCandidatesResult =
-    | { ok: true; candidates: RelationalGroundedCandidate[] }
-    /** `abstain` reasons match what `groundChange`'s product used to report for the same
-     * inputs, so the published `Abstain` is unchanged. */
-    | { ok: false; outcome: 'abstain' | 'error'; reason: string }
-
-const groundedObjectId = (referent: Referent): EphemeraObjectId => {
-    const id = referent.groundedId
-    if (id === undefined || !isEphemeraObjectId(id)) {
-        // groundChange always grounds subject/target when the assignment covers both of
-        // match.change's stableRefKeys, which the producer below guarantees --- reaching
-        // here is a construction bug.
-        throw new Error('compileRelationalFromSkeleton: expected a grounded Object id on a relational candidate\'s subject/target referent')
-    }
-    return id
-}
-
-/**
- * The producer's half of the ground + expand split (mirrors
- * `proposeMembershipCandidates.ts`/`groundMembershipCandidate`): one identity pool per
- * `match.change`'s own `stableRefKey`s (subject, then target --- the step's field
- * order), filtered to Object candidates (`identityFromSpanCandidate` throws on anything
- * else), enumerated into joint assignments (`enumerateIdentityAssignments`, `min`
- * confidence), each grounded in one total pass (`groundChange` --- the assignment is
- * already complete, since a relational `Change` has no derived referents at all) and wrapped in
- * an attempt --- one primary action, no boundary challenges, since establishing or
- * dissolving a peer edge is not a membership transfer and this route detects no graph
- * challenge today (`AGENT.concepts.md`'s `CommandAttempt` section).
- */
-const proposeRelationalCandidates = (
-    change: Change,
-    spanPools: ReadonlyMap<string, SpanCandidatePool>,
-    words: string,
-    catalog: readonly ObjectManipulationCatalogEntry[]
-): ProposeRelationalCandidatesResult => {
-    if (change.primitive === 'transferMembership') {
-        // matchRelationalTemplate only ever emits establishRelation/dissolveRelation Changes.
-        return { ok: false, outcome: 'error', reason: objectManipulationErrorMessages.unimplementedAtomicOperation }
-    }
-
-    type KeyedPool = { ok: true; key: string; candidates: readonly ObjectSpanCandidate[] } | { ok: false; reason: string }
-    const keyedPool = (referent: Referent): KeyedPool => {
-        if (referent.referentType !== 'objectSpan' || referent.stableRefKey === undefined) {
-            const span = referent.referentType === 'objectSpan' ? referent.span : referent.referentType
-            return { ok: false, reason: `objectSpan referent for span "${span}" has no stableRefKey to ground against` }
-        }
-        const key = referent.stableRefKey
-        const pool = spanPools.get(key)
-        if (!pool) {
-            return { ok: false, reason: `No resolution supplied for stableRefKey "${key}"` }
-        }
-        const candidates = pool.shortlist ?? pool.candidates
-        if (candidates.length === 0) {
-            return { ok: false, reason: `No candidates found for span "${pool.span}"` }
-        }
-        // `identityFromSpanCandidate` throws on a non-Object id, so filter before enumerating.
-        return { ok: true, key, candidates: candidates.filter((candidate) => isEphemeraObjectId(candidate.id)) }
-    }
-    const subjectPool = keyedPool(change.subject)
-    if (!subjectPool.ok) {
-        return { ok: false, outcome: 'abstain', reason: subjectPool.reason }
-    }
-    const targetPool = keyedPool(change.target)
-    if (!targetPool.ok) {
-        return { ok: false, outcome: 'abstain', reason: targetPool.reason }
-    }
-
-    if (change.relationKind === 'In' || change.relationKind === 'PartOf' || change.relationKind === 'On') {
-        // isContainmentSpan routes hosting kinds to nestingDefer before a Change reaches here.
-        return { ok: false, outcome: 'abstain', reason: 'Containment relation kinds are not yet groundable as establishRelation/dissolveRelation steps' }
-    }
-    // Narrowed to `PeerRelationalEdgeKind` by the guard above. Substitution rewrites only
-    // referents, so every candidate shares this value.
-    const relationKindAndLabel = change.relationKind === 'Custom'
-        ? { relationKind: 'Custom' as const, relationLabel: change.relationLabel }
-        : { relationKind: change.relationKind }
-
-    // Subject first, then target: the step's field order, which keeps the old product's order.
-    const subjectKey = subjectPool.key
-    const targetKey = targetPool.key
-    // A relation joins two different things, for every kind: an assignment that
-    // grounds subject and target to the same object is never a candidate.
-    const assignments = enumerateIdentityAssignments(new Map([
-        [subjectKey, subjectPool.candidates],
-        [targetKey, targetPool.candidates],
-    ])).filter(({ identities }) => identities.get(subjectKey)?.objectId !== identities.get(targetKey)?.objectId)
-    if (assignments.length === 0) {
-        return { ok: false, outcome: 'abstain', reason: 'No combination of two distinct grounded objects produced a well-typed establishRelation/dissolveRelation step' }
-    }
-
-    const candidates = assignments.map(({ identities, confidence }) => {
-        const groundedIdByRefKey = new Map<string, GroundedId>(
-            [...identities].map(([key, identity]) => [key, identity.objectId])
-        )
-        const assignment: ReferentAssignment = { spans: groundedIdByRefKey, derived: new Map() }
-        const groundedChange = groundChange(change, assignment) as EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>
-        const subjectId = groundedObjectId(groundedChange.subject)
-        const targetId = groundedObjectId(groundedChange.target)
-        const subjectEntry = catalog.find((entry) => entry.objectId === subjectId)
-        const targetEntry = catalog.find((entry) => entry.objectId === targetId)
-        const subjectName = subjectEntry?.normalizedShortName ?? subjectId
-        const targetName = targetEntry?.normalizedShortName ?? targetId
-        const namedChange = stampCandidateReferents(groundedChange, new Map([
-            [subjectKey, { id: subjectId, shortName: subjectName, gloss: subjectEntry?.gloss }],
-            [targetKey, { id: targetId, shortName: targetName, gloss: targetEntry?.gloss }],
-        ]))
-
-        const candidateId: RelationalCandidateId = {
-            kind: groundedChange.primitive,
-            subjectId,
-            targetId,
-            ...relationKindAndLabel,
-        }
-
-        const verbDescription = groundedChange.primitive === 'establishRelation' ? 'Establish relation' : 'Dissolve relation'
-        const action = new PositionAttemptAction(
-            [],
-            namedChange,
-            `${verbDescription}: ${subjectName} / ${targetName}`
-        )
-        const attempt = CommandAttempt.create(words, [action])
-
-        return { candidateId, change: namedChange, confidence, attempt, subjectLabel: subjectName, targetLabel: targetName }
-    })
-    return { ok: true, candidates }
-}
-
 /**
  * The native relational pipeline (see AGENT.md, relational branch, and
- * ../../AGENT.concepts.md's Parse/Plan/Synthesize decomposition) --- Plan match
- * (matchRelationalTemplate) -> Identify (runIdentityStageOverSkeleton) -> the
- * producer (proposeRelationalCandidates: joint assignments, grounding by
- * substitution, the attempt built per candidate) -> Expansion (expandSameHost, BD-16,
- * reached through a per-candidate `sameHost` seed) --- replaced the retired frame-extract +
- * selectRelationalFromPools flow on the live relational route. A candidate whose Expansion
- * finds a chain is legal; the kernel rechecks every leg at commit.
+ * ../../AGENT.concepts.md's Parse/Plan/Synthesize decomposition): Plan's attempt -> Identify
+ * (runIdentityStageOverReferenceKeys) -> the shared producer (`attemptCandidates.ts`: joint
+ * assignments, grounding and description) -> the per-command environment -> the shared dry run
+ * (the executor's Expansion finds the chain, which the kernel rechecks at commit) -> selection.
+ * This function keeps the route's entry checks and maps the selected candidate onto its result arm.
  *
- * Deliberately has no fallback to that legacy flow: a noMatch/nestingDefer
- * skeleton, or a command Grounding or Expansion can't make sense of, abstains or
- * errors outright rather than retrying through frame-extract.
- *
- * Each candidate's grounded `Change` still carries Plan's `host: currentHost(actingCharacter)`
- * (BD-6's default), and nothing reads it: each candidate seeds the executor with a
- * grounded `sameHost` instruction built from its subject/target ids, so Expansion
- * (`expandSameHost`/`findShardBoundary`/`buildCrossingLegs`) derives the real host from
- * ancestry. A same-host pair resolves to a zero-hop common ancestor
- * and a single portless leg; a genuinely violated peer relation either becomes crossing
- * legs across a real boundary or declines (`defer`) --- the old `transferMembership`
- * repair outcome was retired entirely, 2026-09-01, so there is no longer a
- * relocate-then-relate path. `defer` has no Consult/LLM-fallback path on this route yet
- * (unlike membership) and is dropped, same as any other decline.
+ * A candidate whose Expansion finds no chain, or whose chain leads with a hosting kind, is
+ * illegal. `defer` has no Consult/LLM-fallback path on this route (unlike membership), so it
+ * abstains.
  */
 export async function compileRelationalFromSkeleton(
     input: CompileRelationalFromSkeletonInput,
@@ -269,8 +77,8 @@ export async function compileRelationalFromSkeleton(
     }
     const hostRoomId = input.hostRoomId
 
-    const positionsReadDeps = deps.positionsReadDeps ?? defaultPositionsReadDeps()
-    const roomGraph = await positionsReadDeps.getLudicGraph(hostRoomId)
+    const positionsReads = deps.positionsReadDeps ?? defaultPositionsReads()
+    const roomGraph = await positionsReads.getLudicGraph(hostRoomId)
     if (!roomGraph) {
         return {
             type: 'Error',
@@ -283,158 +91,45 @@ export async function compileRelationalFromSkeleton(
         input.heldInventoryCatalog ?? []
     )
 
-    const identityResult = await runIdentityStageOverSkeleton(input.command, input.skeleton, catalog, deps)
+    const identityResult = await runIdentityStageOverReferenceKeys(
+        input.command,
+        input.skeleton,
+        attemptSpanKeys([input.attempt]),
+        catalog,
+        deps
+    )
     if (identityResult.type === 'error') {
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    const proposed = proposeRelationalCandidates(change, identityResult.spanPools, input.command, catalog)
+    if (change.relationKind === 'In' || change.relationKind === 'PartOf' || change.relationKind === 'On') {
+        // isContainmentSpan routes hosting kinds to the containment producer before a Change reaches here.
+        return {
+            type: 'Abstain',
+            confidence: intentConfidence,
+            reason: 'Containment relation kinds are not yet groundable as establishRelation/dissolveRelation steps',
+        }
+    }
+
+    const proposed = proposeAttemptCandidates({
+        command: input.command,
+        attempts: [input.attempt],
+        spanPools: identityResult.spanPools,
+        catalog,
+        noAssignmentReason: 'No combination of two distinct grounded objects produced a well-typed establishRelation/dissolveRelation step',
+    })
     if (!proposed.ok) {
-        return proposed.outcome === 'error'
-            ? { type: 'Error', errorMessage: proposed.reason }
-            : { type: 'Abstain', confidence: intentConfidence, reason: proposed.reason }
+        return { type: 'Abstain', confidence: intentConfidence, reason: proposed.reason }
     }
     const groundedCandidates = proposed.candidates
 
-    // eager, depth-capped (5) async pre-fetch of each distinct candidate's full
-    // containment ancestry, not just its one direct container --- `findShardBoundary`'s walk
-    // (called synchronously, inside `runExecutor` below) needs to reach *past* intermediate
-    // hosts to find a common ancestor further up, and a shallow one-hop fetch dead-ends it at
-    // `notFound` even when a real crossing exists. `walkAncestryContainers` mirrors
-    // `findShardBoundary.ts`'s own `walkAncestry` traversal shape, async-ified against the real
-    // gateway; running one walk per distinct id concurrently is safe with no extra memoization
-    // on top --- `PositionsCacheHandler` (`packages/mtw-gateways`) already dedupes concurrent/
-    // repeat calls for the same id within this one invocation.
-    const distinctObjectIds = new Set<EphemeraObjectId>()
-    for (const candidate of groundedCandidates) {
-        distinctObjectIds.add(candidate.candidateId.subjectId)
-        distinctObjectIds.add(candidate.candidateId.targetId)
-    }
-
-    const getMembershipContainersForWalk = (
-        id: EphemeraPositionAdjacencyContainedId
-    ): Promise<EphemeraMembershipHostId[]> =>
-        // This route's candidates, and everything their ancestry walk can reach, are Objects
-        // until a Room/Area terminates the branch (`isPositionAdjacencyContainedId` already
-        // gates those out of the walk before this is called) --- `getMembershipContainers`
-        // is Object-typed to match, same narrowing `getMembershipContainersForExpansion` below
-        // already relied on before this slice.
-        positionsReadDeps.getMembershipContainers(id as EphemeraObjectId)
-
-    const containersByHostId = new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>()
-    const ancestryMaps = await Promise.all(
-        [...distinctObjectIds].map((objectId) => walkAncestryContainers(objectId, getMembershipContainersForWalk))
-    )
-    ancestryMaps.forEach((ancestryMap) => ancestryMap.forEach((containers, hostId) => {
-        containersByHostId.set(hostId, containers)
-    }))
-
-    const hostByObjectId = new Map<EphemeraObjectId, EphemeraMembershipHostId>()
-    for (const objectId of distinctObjectIds) {
-        const containers = containersByHostId.get(objectId)
-        if (containers?.length === 1) {
-            hostByObjectId.set(objectId, containers[0])
-        }
-    }
-    const getCurrentHostForExpansion = (objectId: EphemeraObjectId): EphemeraMembershipHostId | undefined =>
-        hostByObjectId.get(objectId)
-    const getMembershipContainersForExpansion = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] =>
-        containersByHostId.get(id) ?? []
-
-    const hostGraphMap = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[hostRoomId, roomGraph]])
-    for (const hostId of hostByObjectId.values()) {
-        if (!hostGraphMap.has(hostId)) {
-            hostGraphMap.set(hostId, await positionsReadDeps.getLudicGraph(hostId))
-        }
-    }
-    const getGraph = (hostId: EphemeraMembershipHostId): EphemeraLudicGraph | undefined => hostGraphMap.get(hostId)
-
-    /**
-     * Per-candidate dry run, mirroring `sandboxMembershipDryRun`'s role for
-     * `selectPlanTuple`: seeds the executor from the grounded edge and reports a
-     * `DryRunOutcome` instead of pushing a survivor onto a local list. The three checks
-     * that used to drop a candidate silently (non-`legal` Expansion, no chain found, a
-     * hosting-kind leading edge) now report `illegal`/`defer` so `selectPlanTuple` can
-     * rank, Consult or abstain across every candidate at once, rather than stopping at
-     * the first survivor.
-     */
-    const relationalDryRun = (candidate: RelationalGroundedCandidate): DryRunOutcome => {
-        const env: ExpansionEnvironment = {
-            getGraph,
-            getCurrentHost: getCurrentHostForExpansion,
-            getMembershipContainers: getMembershipContainersForExpansion,
-        }
-        // The grounded edge itself seeds directly: command-expansion dispatches on
-        // its `primitive` and finds its chain (`findShardBoundary` for establish,
-        // `findRelationalChain` for dissolve), the same mechanism every relational edge now uses.
-        const seed = seedFromGroundedSteps([candidate.change as EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>])
-        const outcome = runExecutor(seed, env)
-
-        if (outcome.verdict === 'defer') {
-            return { verdict: 'defer', decidable: outcome.decidable, reason: outcome.reason }
-        }
-        if (outcome.verdict === 'error') {
-            return { verdict: 'illegal', decidable: true, reason: outcome.reason }
-        }
-
-        // The one edge seeded retires as its one chain.
-        const chain = outcome.steps.find((step): step is ExecutorRelationalChain => step.kind === 'relationalChain')
-        if (chain === undefined) {
-            return { verdict: 'illegal', decidable: true, reason: 'No relational chain found for this candidate' }
-        }
-
-        // HostRelationalEdgeKind was widened (ephemeraMeta.ts) to admit containment ('In'/
-        // 'PartOf'), but this ingress-facing route's relationKind stays the narrow set
-        // (BD-2's kind-narrowing clause, relationKind.ts) --- same illegal-candidate idiom
-        // as the no-chain case above. Read off the chain, not `candidate`: `candidate` is
-        // already narrowly typed (`PeerRelationalEdgeKind`, relationKind.ts) and cannot
-        // literally hold a hosting kind, but the chain's edges carry the wide
-        // `HostRelationalEdgeKind`, and `buildCrossingLegs` mints every edge of a chain from
-        // the same kind and label, so checking the first suffices. Unreachable today: no
-        // ingress path can produce a containment candidate (isContainmentSpan routes to
-        // nestingDefer before this point). **`On` joined this guard 2026-08-22** (Channel D,
-        // CD2, reduced scope): it is a hosting kind too now, deferred at ingress the same way,
-        // and equally unreachable here. **`Present` joined 2026-08-22** (presence plan PR-4)
-        // and **left 2026-09-17+ (presenceNodes Slice 3, PN-14):** it was never a
-        // WML-authorable kind, and is now not a `HostRelationalEdgeKind` member at all, so the
-        // comparison would be dead code rather than a defensive check --- the type itself now
-        // does what this guard used to do for that one kind.
-        const firstEdge = chain.steps.find((step) => step.type === 'edge')
-        if (firstEdge === undefined || firstEdge.type !== 'edge') {
-            return { verdict: 'illegal', decidable: true, reason: 'No edge found in this candidate\'s chain' }
-        }
-        if (firstEdge.edge.kind === 'In' || firstEdge.edge.kind === 'PartOf' || firstEdge.edge.kind === 'On') {
-            return { verdict: 'illegal', decidable: true, reason: 'Hosting-kind relation is not supported on the ingress relational route' }
-        }
-
-        // A candidate whose Expansion found a chain is legal: there is no construction-time
-        // Validation on this route. The kernel rechecks every leg against
-        // locked live state at commit.
-        return { verdict: 'legal', decidable: true, plan: { steps: outcome.steps } }
-    }
-
-    /**
-     * A "one-line template... from operation kind, relation and the two labels": one
-     * formula for every enum relation kind (the kind's own name as the preposition) plus
-     * `Custom`'s free-text label, and a single dissolve phrasing. No `objectId` --- a
-     * relational alternative names two referents, not one, and `ConsultAlternative.objectId`
-     * is already optional.
-     */
-    const relationalConsultAlternative = (candidate: RelationalGroundedCandidate): ConsultAlternative => {
-        const { candidateId, subjectLabel, targetLabel } = candidate
-        const label = `${subjectLabel} / ${targetLabel}`
-        if (candidateId.kind === 'dissolveRelation') {
-            return { label, proposedCommand: `separate the ${subjectLabel} from the ${targetLabel}` }
-        }
-        const preposition = candidateId.relationKind === 'Custom' ? candidateId.relationLabel : candidateId.relationKind.toLowerCase()
-        return { label, proposedCommand: `put the ${subjectLabel} ${preposition} the ${targetLabel}` }
-    }
+    const env = await buildAttemptEnvironment(groundedCandidates, hostRoomId, roomGraph, positionsReads)
 
     const selection = selectPlanTuple({
         candidates: groundedCandidates,
         getConfidence: (candidate) => candidate.confidence,
-        dryRun: relationalDryRun,
-        toConsultAlternative: relationalConsultAlternative,
+        dryRun: (candidate) => attemptDryRun(candidate, env),
+        toConsultAlternative: (candidate) => candidate.alternative,
     })
 
     if (selection.verdict === 'consult') {
@@ -454,8 +149,8 @@ export async function compileRelationalFromSkeleton(
     }
 
     if (selection.verdict === 'defer') {
-        // This route has no complexity LLM to hand a `defer` candidate to (unlike
-        // membership) --- it abstains instead of re-grounding, same family as today.
+        // This route has no complexity LLM to hand a `defer` candidate to (unlike membership) ---
+        // it abstains instead of re-grounding, same family as today.
         return {
             type: 'Abstain',
             confidence: intentConfidence,
@@ -463,22 +158,37 @@ export async function compileRelationalFromSkeleton(
         }
     }
 
-    const { candidate, dryRun } = selection
-    // Guaranteed present: `relationalDryRun` only reports `legal` once it has found one.
-    const chain = dryRun.plan!.steps.find((step): step is ExecutorRelationalChain => step.kind === 'relationalChain')!
+    return relationalResult(selection.candidate, selection.dryRun.plan!.steps, intentConfidence)
+}
 
-    // sourced from the grounded candidate's own id, not a step --- always plain
-    // Object-to-Object, unlike a crossing's own leg endpoints.
+/**
+ * Maps the selected candidate onto the EstablishRelation arm. Read off the grounded step, not the
+ * candidate's own id, so it is always plain Object-to-Object (unlike a crossing's leg endpoints).
+ * The chain is lowered once, for the chosen candidate only.
+ */
+const relationalResult = (
+    candidate: GroundedAttemptCandidate,
+    steps: readonly ExecutorOutputStep[],
+    intentConfidence: number
+): ParseCommandEstablishRelationResult => {
+    const step = candidate.attempt.actions()[0]!.desiredResult
+    if (step?.kind !== 'change' || (step.primitive !== 'establishRelation' && step.primitive !== 'dissolveRelation')) {
+        throw new Error('compileRelationalFromSkeleton: the selected candidate is not a relation step')
+    }
+    if (step.relationKind === 'In' || step.relationKind === 'PartOf' || step.relationKind === 'On') {
+        // Abstained before the producer runs (see compileRelationalFromSkeleton's entry checks).
+        throw new Error('compileRelationalFromSkeleton: a containment kind reached the relational result')
+    }
+    const chain = steps.find((entry): entry is ExecutorRelationalChain => entry.kind === 'relationalChain')!
     return {
         type: 'EstablishRelation',
-        operationKind: candidate.candidateId.kind,
-        subjectId: candidate.candidateId.subjectId,
-        targetId: candidate.candidateId.targetId,
-        ...(candidate.candidateId.relationKind === 'Custom'
-            ? { relationKind: 'Custom' as const, relationLabel: candidate.candidateId.relationLabel }
-            : { relationKind: candidate.candidateId.relationKind }),
+        operationKind: step.primitive,
+        subjectId: groundedObjectIdOf(step.subject) as EphemeraObjectId,
+        targetId: groundedObjectIdOf(step.target) as EphemeraObjectId,
+        ...(step.relationKind === 'Custom'
+            ? { relationKind: 'Custom' as const, relationLabel: step.relationLabel }
+            : { relationKind: step.relationKind }),
         confidence: intentConfidence,
-        // Lowered once, for the chosen candidate only.
         steps: lowerRelationalChain(chain.steps, chain.operationKind),
         attempt: candidate.attempt.toJSON(),
     }

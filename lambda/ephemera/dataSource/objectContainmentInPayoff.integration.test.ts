@@ -225,6 +225,14 @@ describe('object containment In payoff (integration)', () => {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationParseImpl,
+                // Parse's dry run reads the subject's current host (ISS8203 slice 2). Both objects sit
+                // in the room, and the graph read goes through the same mocked store the commit uses.
+                objectManipulationPositionsReadDeps: {
+                    getMembershipContainers: jest.fn().mockImplementation(async (id: string) => (
+                        id === BALL_ID || id === BOX_ID ? [ROOM_ID] : []
+                    )),
+                    getLudicGraph: (hostId: string) => internalCache.Positions.getLudicGraph(hostId as any),
+                },
             }
         )
 

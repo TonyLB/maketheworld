@@ -1548,6 +1548,7 @@ describe('parseCommand LLM path', () => {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationParseImpl,
+                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
             }
         )
 
@@ -1591,6 +1592,7 @@ describe('parseCommand LLM path', () => {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationParseImpl,
+                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
             }
         )
 

@@ -106,15 +106,17 @@ async function parseCommandCore(
                 {
                     command: input.command,
                     skeleton: parseResult.tokens,
-                    subject: primaryStep.object,
-                    target: primaryStep.to,
+                    attempt: primary,
                     containment: primaryStep.containment,
                     hostRoomId: input.hostRoomId,
                     roomObjectCatalog: input.roomObjectCatalog,
                     heldInventoryCatalog: input.heldInventoryCatalog,
                 },
                 intentResult.confidence,
-                { embedSpan: deps.embedSpan }
+                {
+                    embedSpan: deps.embedSpan,
+                    positionsReadDeps: deps.objectManipulationPositionsReadDeps,
+                }
             )
             return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
         }
