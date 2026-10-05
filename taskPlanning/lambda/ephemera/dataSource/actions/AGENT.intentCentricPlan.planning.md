@@ -1,6 +1,6 @@
 # Intent-centric Plan: Plan emits ungrounded attempts, not a family
 
-**Status:** Planned 2026-10-04, not started. Next: slice 0 (characterization fixture), then slice 1. Every decision row is decided.
+**Status:** Slice 0 done 2026-10-05 (characterization fixture, 21 rows green). Next: slice 1. Every decision row is decided.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md). Ladder position: [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md), iteration 11.
 
@@ -61,7 +61,7 @@ Plan still never reads world state. Only its output type changes.
 
 | Slice | What | Behaviour change | Status |
 | --- | --- | --- | --- |
-| 0 | Characterization fixture at the published attempt | None | Not started |
+| 0 | Characterization fixture at the published attempt | None | Done 2026-10-05 |
 | 1 | Plan emits ungrounded attempts; `classifySkeletonFamily` retired | None | Not started |
 | 2 | One generic producer for the skeleton routes (relational, containment, describe) | None | Not started |
 | 3 | Membership joins; membership's gates become preconditions of transfer | **Yes:** containment gains boundary expansion; takes/drops with a pending `Under` or exit-edge challenge abstain | Not started |
@@ -72,9 +72,10 @@ Plan still never reads world state. Only its output type changes.
 
 Pending work is `[ ]`, completed is `[X]`. Mark each nested line `[X]` as it is done, as well as its parent.
 
-- [ ] **Slice 0: characterization fixture.** One table-driven test through `parseCommand`, asserting each command's result `type` and its published `CommandAttemptData` (actions in order, each action's `desiredResult` and description, referents). It stays green, unchanged, through slices 1 and 2. Slice 3 changes exactly the containment-with-boundary-edge rows and the two complexity-LLM take rows, and slice 4 the not-in-a-room rows, on purpose.
-   - [ ] Rows: `take X` / `get X` / `drop X` (fast path and Parse path); `take X` when X is lashed (`Custom` edge: dissolve plus take); `take X` when X touches an exit, and when X is under something (`Under` subject-move), both reaching the complexity LLM today, with its invocation stubbed; `put X against Y`; `tie X to Y` (`Custom`); `take X off Y` (dissolve); `put X on Y` / `put X in Y` (containment), including one whose X sits inside another object (a `withinObject` locus; see PI-3); `put X partof Y` (still an Error); `look X`; a two-candidate span that reaches Consult on each route; and a take, a relational command and a containment command issued with no room (the not-in-a-room check PI-6 unifies).
-   - [ ] Check [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) first, and extend it rather than adding a parallel file if it already drives these commands.
+- [X] **Slice 0: characterization fixture.** One table-driven test through `parseCommand`, asserting each command's result `type` and its published `CommandAttemptData` (actions in order, each action's `desiredResult` and description, referents). It stays green, unchanged, through slices 1 and 2. Slice 3 changes exactly the containment-with-boundary-edge rows and the two complexity-LLM take rows, and slice 4 the not-in-a-room rows, on purpose.
+   - [X] Rows: `take X` / `get X` / `drop X` (fast path and Parse path); `take X` when X is lashed (`Custom` edge: dissolve plus take); `take X` when X touches an exit, and when X is under something (`Under` subject-move), both reaching the complexity LLM today, with its invocation stubbed; `put X against Y`; `tie X to Y` (`Custom`); `take X off Y` (dissolve); `put X on Y` / `put X in Y` (containment), including one whose X sits inside another object (a `withinObject` locus; see PI-3); `put X partof Y` (still an Error); `look X`; a two-candidate span that reaches Consult on each route; and a take, a relational command and a containment command issued with no room (the not-in-a-room check PI-6 unifies).
+   - [X] Check [`parseCommand.test.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.test.ts) first, and extend it rather than adding a parallel file if it already drives these commands.
+   - [X] Pinned 2026-10-05 as a `describe('characterization fixture: published attempt (ISS8203 slice 0)')` block of 21 rows, each snapshotting the whole `parseCommand` result and the LLM stub call counts (file snapshots in `__snapshots__/parseCommand.test.ts.snap`, since inline snapshots would not write here). Reading the captures against the rows above found three places where the row's description is not what the code does, so the snapshot pins the code, not the row: `take X off Y` is a two-candidate Consult, not a dissolve; `put X partof Y` is a Custom `EstablishRelation` labelled `partof`, not an Error (no player phrase maps to `PartOf`, see `relationKind.ts`); and `tie X to Y` labels its relation `to`. The complexity-LLM rows stub a `relationalPlacement` answer and pin today's `relational placement is not implemented yet` Error. Slice 3 changes that, not the stub. Both the Consult and the `partof` results depend on `embedSpan` being stubbed as unavailable, which the rows record in their call counts.
 - [ ] **Slice 1: Plan emits ungrounded attempts.** Behaviour-preserving.
    - [ ] PI-1 and PI-8 are decided: span referents carry what grounding learns, and `planSkeleton` returns the union of every template's attempts.
    - [ ] Per PI-1: one shared stamp function writes each assignment's `groundedId`, `shortName` and `gloss` onto every span referent with that key, and every producer calls it. Containment and membership stop leaving their steps unstamped. `sandboxMembershipDryRun` reads ids from its own step rather than rebuilding them from `attempt.referents()`. `CommandAttempt` stops storing a referents list: `renderProse` and `toJSON` build it from the steps, so the published `CommandAttemptData` and the slice 0 fixture are unchanged. Correct `CommandAttemptReferent`'s doc comment, which claims nothing deterministic reads the list.

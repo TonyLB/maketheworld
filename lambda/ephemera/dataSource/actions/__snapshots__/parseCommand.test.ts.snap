@@ -1,0 +1,1001 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the coin in the jar 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "containment": "In",
+            "from": Object {
+              "referentTarget": Object {
+                "referentType": "objectSpan",
+                "span": "coin",
+                "stableRefKey": "coinRef",
+              },
+              "referentType": "currentHost",
+            },
+            "kind": "change",
+            "object": Object {
+              "referentType": "objectSpan",
+              "span": "coin",
+              "stableRefKey": "coinRef",
+            },
+            "primitive": "transferMembership",
+            "to": Object {
+              "referentType": "objectSpan",
+              "span": "jar",
+              "stableRefKey": "jarRef",
+            },
+          },
+          "desiredResultDescription": "Put coin in jar",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Coin",
+          "refKey": "coinRef",
+          "shortName": "coin",
+        },
+        Object {
+          "id": "OBJECT#Jar",
+          "refKey": "jarRef",
+          "shortName": "jar",
+        },
+      ],
+      "words": "put the coin in the jar",
+    },
+    "confidence": 0.9,
+    "containment": "In",
+    "hostId": "ROOM#Bridge",
+    "subjectId": "OBJECT#Coin",
+    "targetId": "OBJECT#Jar",
+    "type": "ObjectContainment",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the coin in the table when the coin sits inside the jar (withinObject locus, PI-3) 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "containment": "In",
+            "from": Object {
+              "referentTarget": Object {
+                "referentType": "objectSpan",
+                "span": "coin",
+                "stableRefKey": "coinRef",
+              },
+              "referentType": "currentHost",
+            },
+            "kind": "change",
+            "object": Object {
+              "referentType": "objectSpan",
+              "span": "coin",
+              "stableRefKey": "coinRef",
+            },
+            "primitive": "transferMembership",
+            "to": Object {
+              "referentType": "objectSpan",
+              "span": "table",
+              "stableRefKey": "tableRef",
+            },
+          },
+          "desiredResultDescription": "Put coin in table",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Coin",
+          "refKey": "coinRef",
+          "shortName": "coin",
+        },
+        Object {
+          "id": "OBJECT#Table",
+          "refKey": "tableRef",
+          "shortName": "table",
+        },
+      ],
+      "words": "put the coin in the table",
+    },
+    "confidence": 0.9,
+    "containment": "In",
+    "hostId": "ROOM#Bridge",
+    "subjectId": "OBJECT#Coin",
+    "targetId": "OBJECT#Table",
+    "type": "ObjectContainment",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the coin on the table 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "containment": "On",
+            "from": Object {
+              "referentTarget": Object {
+                "referentType": "objectSpan",
+                "span": "coin",
+                "stableRefKey": "coinRef",
+              },
+              "referentType": "currentHost",
+            },
+            "kind": "change",
+            "object": Object {
+              "referentType": "objectSpan",
+              "span": "coin",
+              "stableRefKey": "coinRef",
+            },
+            "primitive": "transferMembership",
+            "to": Object {
+              "referentType": "objectSpan",
+              "span": "table",
+              "stableRefKey": "tableRef",
+            },
+          },
+          "desiredResultDescription": "Put coin on table",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Coin",
+          "refKey": "coinRef",
+          "shortName": "coin",
+        },
+        Object {
+          "id": "OBJECT#Table",
+          "refKey": "tableRef",
+          "shortName": "table",
+        },
+      ],
+      "words": "put the coin on the table",
+    },
+    "confidence": 0.9,
+    "containment": "On",
+    "hostId": "ROOM#Bridge",
+    "subjectId": "OBJECT#Coin",
+    "targetId": "OBJECT#Table",
+    "type": "ObjectContainment",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the rope on the table when the rope is lashed to the post (boundary edge; slice 3 changes this) 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "containment": "On",
+            "from": Object {
+              "referentTarget": Object {
+                "referentType": "objectSpan",
+                "span": "rope",
+                "stableRefKey": "ropeRef",
+              },
+              "referentType": "currentHost",
+            },
+            "kind": "change",
+            "object": Object {
+              "referentType": "objectSpan",
+              "span": "rope",
+              "stableRefKey": "ropeRef",
+            },
+            "primitive": "transferMembership",
+            "to": Object {
+              "referentType": "objectSpan",
+              "span": "table",
+              "stableRefKey": "tableRef",
+            },
+          },
+          "desiredResultDescription": "Put rope on table",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Rope",
+          "refKey": "ropeRef",
+          "shortName": "rope",
+        },
+        Object {
+          "id": "OBJECT#Table",
+          "refKey": "tableRef",
+          "shortName": "table",
+        },
+      ],
+      "words": "put the rope on the table",
+    },
+    "confidence": 0.9,
+    "containment": "On",
+    "hostId": "ROOM#Bridge",
+    "subjectId": "OBJECT#Rope",
+    "targetId": "OBJECT#Table",
+    "type": "ObjectContainment",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) drop broom 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "from": Object {
+              "referentType": "actingCharacter",
+            },
+            "kind": "change",
+            "object": Object {
+              "referentType": "objectSpan",
+              "span": "broom",
+              "stableRefKey": "primaryObject",
+            },
+            "primitive": "transferMembership",
+            "to": Object {
+              "referentTarget": Object {
+                "referentType": "actingCharacter",
+              },
+              "referentType": "currentHost",
+            },
+          },
+          "desiredResultDescription": "Drop: broom",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Broom",
+          "refKey": "primaryObject",
+          "shortName": "broom",
+        },
+      ],
+      "words": "drop broom",
+    },
+    "confidence": 1,
+    "objectIds": Array [
+      "OBJECT#Broom",
+    ],
+    "operationKind": "drop",
+    "type": "ObjectManipulation",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) get broom 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "from": Object {
+              "referentTarget": Object {
+                "referentType": "objectSpan",
+                "span": "broom",
+                "stableRefKey": "primaryObject",
+              },
+              "referentType": "currentHost",
+            },
+            "kind": "change",
+            "object": Object {
+              "referentType": "objectSpan",
+              "span": "broom",
+              "stableRefKey": "primaryObject",
+            },
+            "primitive": "transferMembership",
+            "to": Object {
+              "referentType": "actingCharacter",
+            },
+          },
+          "desiredResultDescription": "Take: broom",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Broom",
+          "refKey": "primaryObject",
+          "shortName": "broom",
+        },
+      ],
+      "words": "get broom",
+    },
+    "confidence": 1,
+    "objectIds": Array [
+      "OBJECT#Broom",
+    ],
+    "operationKind": "takeHold",
+    "type": "ObjectManipulation",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) get the broom through Parse, when the span is not in the room labels 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "from": Object {
+              "referentTarget": Object {
+                "referentType": "objectSpan",
+                "span": "broom",
+                "stableRefKey": "primaryObject",
+              },
+              "referentType": "currentHost",
+            },
+            "kind": "change",
+            "object": Object {
+              "referentType": "objectSpan",
+              "span": "broom",
+              "stableRefKey": "primaryObject",
+            },
+            "primitive": "transferMembership",
+            "to": Object {
+              "referentType": "actingCharacter",
+            },
+          },
+          "desiredResultDescription": "Take: broom",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Broom",
+          "refKey": "primaryObject",
+          "shortName": "broom",
+        },
+      ],
+      "words": "get the broom",
+    },
+    "confidence": 0.9,
+    "objectIds": Array [
+      "OBJECT#Broom",
+    ],
+    "operationKind": "takeHold",
+    "type": "ObjectManipulation",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take broom 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "from": Object {
+              "referentTarget": Object {
+                "referentType": "objectSpan",
+                "span": "broom",
+                "stableRefKey": "primaryObject",
+              },
+              "referentType": "currentHost",
+            },
+            "kind": "change",
+            "object": Object {
+              "referentType": "objectSpan",
+              "span": "broom",
+              "stableRefKey": "primaryObject",
+            },
+            "primitive": "transferMembership",
+            "to": Object {
+              "referentType": "actingCharacter",
+            },
+          },
+          "desiredResultDescription": "Take: broom",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Broom",
+          "refKey": "primaryObject",
+          "shortName": "broom",
+        },
+      ],
+      "words": "take broom",
+    },
+    "confidence": 1,
+    "objectIds": Array [
+      "OBJECT#Broom",
+    ],
+    "operationKind": "takeHold",
+    "type": "ObjectManipulation",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take broom when the broom touches an exit (complexity LLM answers complex) 1`] = `
+Object {
+  "result": Object {
+    "errorMessage": "ObjectManipulation enrich: relational placement is not implemented yet",
+    "type": "Error",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
+    "complexity": 1,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take rope when the rope is lashed to the post (Custom edge: dissolve, then take) 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [
+            Object {
+              "description": "Boundary relation to dissolve: is lashed to.",
+              "edge": Object {
+                "from": "OBJECT#Rope",
+                "kind": "Custom",
+                "relationLabel": "is lashed to",
+                "to": "OBJECT#Post",
+              },
+              "id": "boundaryChallenge-1",
+              "kind": "customEdge",
+              "verdict": Object {
+                "kind": "met",
+              },
+            },
+          ],
+          "desiredResult": Object {
+            "kind": "change",
+            "primitive": "dissolveRelation",
+            "relationKind": "Custom",
+            "relationLabel": "is lashed to",
+            "subject": Object {
+              "groundedId": "OBJECT#Rope",
+              "referentType": "graphNode",
+            },
+            "target": Object {
+              "groundedId": "OBJECT#Post",
+              "referentType": "graphNode",
+            },
+          },
+          "desiredResultDescription": "Dissolve: is lashed to",
+          "kind": "position",
+        },
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "from": Object {
+              "referentTarget": Object {
+                "referentType": "objectSpan",
+                "span": "rope",
+                "stableRefKey": "primaryObject",
+              },
+              "referentType": "currentHost",
+            },
+            "kind": "change",
+            "object": Object {
+              "referentType": "objectSpan",
+              "span": "rope",
+              "stableRefKey": "primaryObject",
+            },
+            "primitive": "transferMembership",
+            "to": Object {
+              "referentType": "actingCharacter",
+            },
+          },
+          "desiredResultDescription": "Take: rope",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Rope",
+          "refKey": "primaryObject",
+          "shortName": "rope",
+        },
+      ],
+      "words": "take rope",
+    },
+    "confidence": 1,
+    "objectIds": Array [
+      "OBJECT#Rope",
+    ],
+    "operationKind": "takeHold",
+    "type": "ObjectManipulation",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take rope when the rope is under the post (complexity LLM answers complex) 1`] = `
+Object {
+  "result": Object {
+    "errorMessage": "ObjectManipulation enrich: relational placement is not implemented yet",
+    "type": "Error",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
+    "complexity": 1,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) look and no-room look rocket skates 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "description": "Look at the rocket skates",
+          "kind": "narrate",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#RocketSkates",
+          "refKey": "rocketSkatesRef",
+          "shortName": "rocket skates",
+        },
+      ],
+      "words": "look rocket skates",
+    },
+    "componentId": "OBJECT#RocketSkates",
+    "confidence": 0.9,
+    "type": "LookComponent",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) look and no-room put the broom under the table with no room 1`] = `
+Object {
+  "result": Object {
+    "errorMessage": "ObjectManipulation resolution failed: you are not in a room",
+    "type": "Error",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) look and no-room put the coin in the jar with no room 1`] = `
+Object {
+  "result": Object {
+    "errorMessage": "ObjectManipulation resolution failed: you are not in a room",
+    "type": "Error",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) look and no-room take broom with no room 1`] = `
+Object {
+  "result": Object {
+    "errorMessage": "ObjectManipulation resolution failed: object has no membership host",
+    "type": "Error",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) look and no-room take broom with two broom candidates (Consult on the fast path) 1`] = `
+Object {
+  "result": Object {
+    "alternatives": Array [
+      Object {
+        "objectId": "OBJECT#Broom",
+        "proposedCommand": "take the broom",
+      },
+      Object {
+        "objectId": "OBJECT#Mop",
+        "proposedCommand": "take the broom",
+      },
+    ],
+    "confidence": 1,
+    "type": "Consult",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands (Parse path) put the broom against the table 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "kind": "change",
+            "primitive": "establishRelation",
+            "relationKind": "Against",
+            "subject": Object {
+              "groundedId": "OBJECT#Broom",
+              "referentType": "objectSpan",
+              "span": "broom",
+              "stableRefKey": "broomRef",
+            },
+            "target": Object {
+              "groundedId": "OBJECT#Table",
+              "referentType": "objectSpan",
+              "span": "table",
+              "stableRefKey": "tableRef",
+            },
+          },
+          "desiredResultDescription": "Establish relation: broom / table",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Broom",
+          "refKey": "broomRef",
+          "shortName": "broom",
+        },
+        Object {
+          "id": "OBJECT#Table",
+          "refKey": "tableRef",
+          "shortName": "table",
+        },
+      ],
+      "words": "put the broom against the table",
+    },
+    "confidence": 0.9,
+    "operationKind": "establishRelation",
+    "relationKind": "Against",
+    "steps": Array [
+      Object {
+        "hostId": "ROOM#Bridge",
+        "kind": "establishRelation",
+        "relationKind": "Against",
+        "subjectId": "OBJECT#Broom",
+        "targetId": "OBJECT#Table",
+      },
+    ],
+    "subjectId": "OBJECT#Broom",
+    "targetId": "OBJECT#Table",
+    "type": "EstablishRelation",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands (Parse path) put the broom partof the table (today a Custom relation labelled partof, not an Error) 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "kind": "change",
+            "primitive": "establishRelation",
+            "relationKind": "Custom",
+            "relationLabel": "partof",
+            "subject": Object {
+              "groundedId": "OBJECT#Broom",
+              "referentType": "objectSpan",
+              "span": "broom",
+              "stableRefKey": "broomRef",
+            },
+            "target": Object {
+              "groundedId": "OBJECT#Table",
+              "referentType": "objectSpan",
+              "span": "table",
+              "stableRefKey": "tableRef",
+            },
+          },
+          "desiredResultDescription": "Establish relation: broom / table",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Broom",
+          "refKey": "broomRef",
+          "shortName": "broom",
+        },
+        Object {
+          "id": "OBJECT#Table",
+          "refKey": "tableRef",
+          "shortName": "table",
+        },
+      ],
+      "words": "put the broom partof the table",
+    },
+    "confidence": 0.9,
+    "operationKind": "establishRelation",
+    "relationKind": "Custom",
+    "relationLabel": "partof",
+    "steps": Array [
+      Object {
+        "hostId": "ROOM#Bridge",
+        "kind": "establishRelation",
+        "relationKind": "Custom",
+        "relationLabel": "partof",
+        "subjectId": "OBJECT#Broom",
+        "targetId": "OBJECT#Table",
+      },
+    ],
+    "subjectId": "OBJECT#Broom",
+    "targetId": "OBJECT#Table",
+    "type": "EstablishRelation",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands (Parse path) put the broom under the table with two table candidates (Consult) 1`] = `
+Object {
+  "result": Object {
+    "alternatives": Array [
+      Object {
+        "objectId": undefined,
+        "proposedCommand": "put the broom under the table",
+      },
+      Object {
+        "objectId": undefined,
+        "proposedCommand": "put the broom under the table",
+      },
+    ],
+    "confidence": 0.9,
+    "type": "Consult",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands (Parse path) take the rope off the post (today a two-candidate Consult, not a dissolve) 1`] = `
+Object {
+  "result": Object {
+    "alternatives": Array [
+      Object {
+        "objectId": "OBJECT#Rope",
+        "proposedCommand": "take the rope",
+      },
+      Object {
+        "objectId": "OBJECT#Post",
+        "proposedCommand": "take the post",
+      },
+    ],
+    "confidence": 1,
+    "type": "Consult",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
+    "complexity": 0,
+    "embedSpan": 1,
+    "enrich": 0,
+    "parse": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands (Parse path) tie the rope to the post (Custom) 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "kind": "change",
+            "primitive": "establishRelation",
+            "relationKind": "Custom",
+            "relationLabel": "to",
+            "subject": Object {
+              "groundedId": "OBJECT#Rope",
+              "referentType": "objectSpan",
+              "span": "rope",
+              "stableRefKey": "ropeRef",
+            },
+            "target": Object {
+              "groundedId": "OBJECT#Post",
+              "referentType": "objectSpan",
+              "span": "post",
+              "stableRefKey": "postRef",
+            },
+          },
+          "desiredResultDescription": "Establish relation: rope / post",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Rope",
+          "refKey": "ropeRef",
+          "shortName": "rope",
+        },
+        Object {
+          "id": "OBJECT#Post",
+          "refKey": "postRef",
+          "shortName": "post",
+        },
+      ],
+      "words": "tie the rope to the post",
+    },
+    "confidence": 0.9,
+    "operationKind": "establishRelation",
+    "relationKind": "Custom",
+    "relationLabel": "to",
+    "steps": Array [
+      Object {
+        "hostId": "ROOM#Bridge",
+        "kind": "establishRelation",
+        "relationKind": "Custom",
+        "relationLabel": "to",
+        "subjectId": "OBJECT#Rope",
+        "targetId": "OBJECT#Post",
+      },
+    ],
+    "subjectId": "OBJECT#Rope",
+    "targetId": "OBJECT#Post",
+    "type": "EstablishRelation",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "complexity": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+    "parse": 1,
+  },
+}
+`;

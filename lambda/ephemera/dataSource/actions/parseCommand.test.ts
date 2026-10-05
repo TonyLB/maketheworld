@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { testLudicGraph } from '../positions/ludicGraph/testFixtures'
+import { testLudicGraph, testLudicGraphFromEnvelope } from '../positions/ludicGraph/testFixtures'
+import type { EphemeraLudicGraph } from '../positions/ludicGraph'
 
 import {
     embeddingAtCosineSimilarity,
@@ -1848,5 +1849,291 @@ describe('parseCommand LLM path', () => {
 
         expect(result).toEqual({ type: 'Unimplemented', confidence: 0.8 })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * Characterization fixture (ISS8203 slice 0): each row pins the whole `parseCommand` result,
+ * including the published `CommandAttemptData` (actions in order, desired results, referents),
+ * and how often each LLM stub was reached. Snapshots are exact, so slices 1-2 must leave them
+ * unchanged; slice 3 changes the containment-with-boundary-edge and complexity-LLM take rows on
+ * purpose, and slice 4 the not-in-a-room rows.
+ */
+describe('characterization fixture: published attempt (ISS8203 slice 0)', () => {
+    const CHARACTER = 'CHARACTER#123' as EphemeraCharacterId
+    const ROOM = 'ROOM#Bridge' as EphemeraRoomId
+    const BROOM = 'OBJECT#Broom' as EphemeraObjectId
+    const MOP = 'OBJECT#Mop' as EphemeraObjectId
+    const ROPE = 'OBJECT#Rope' as EphemeraObjectId
+    const POST = 'OBJECT#Post' as EphemeraObjectId
+    const TABLE = 'OBJECT#Table' as EphemeraObjectId
+    const TABLE2 = 'OBJECT#Table2' as EphemeraObjectId
+    const COIN = 'OBJECT#Coin' as EphemeraObjectId
+    const JAR = 'OBJECT#Jar' as EphemeraObjectId
+    const SKATES = 'OBJECT#RocketSkates' as EphemeraObjectId
+
+    type ParseInput = Parameters<typeof parseCommand>[0]
+    type CaseOptions = {
+        parseTokens?: Array<Record<string, string>>
+        graphs?: Record<string, EphemeraLudicGraph>
+        containers?: Record<string, string[]>
+        /** The complexity LLM's answer; absent, the stub reports the LLM as unavailable. */
+        complexityBody?: string
+    }
+
+    const text = (value: string) => ({ type: 'text', text: value })
+    const span = (value: string) => ({ type: 'objectSpan', span: value })
+    const roomWith = (nodes: EphemeraObjectId[], edges: Array<Record<string, unknown>> = []) => testLudicGraph(ROOM, {
+        nodes: nodes.map((universalKey) => ({ tag: 'Object' as const, universalKey })),
+        edges: edges as any,
+    })
+    const catalogOf = (ids: Array<[EphemeraObjectId, string]>) => ids.map(([objectId, normalizedShortName]) => ({ objectId, normalizedShortName }))
+
+    /**
+     * Runs `parseCommand` with every LLM and positions dependency stubbed. Reports how many
+     * times each LLM stub was reached, so a row that quietly calls Bedrock shows up in its snapshot.
+     */
+    const run = async (
+        input: Partial<ParseInput> & Pick<ParseInput, 'command'>,
+        { parseTokens, graphs = {}, containers = {}, complexityBody }: CaseOptions = {}
+    ) => {
+        const stubs = {
+            classify: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
+            parse: jest.fn().mockResolvedValue({ success: true, body: JSON.stringify({ tokens: parseTokens ?? [] }) }),
+            enrich: jest.fn(),
+            acme: jest.fn(),
+            complexity: jest.fn().mockResolvedValue(complexityBody
+                ? { success: true, body: complexityBody }
+                : { success: false, errorMessage: 'complexity LLM stubbed as unavailable' }),
+            embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: "embedding stubbed as unavailable" }),
+        }
+        const result = await parseCommand(
+            {
+                characterId: CHARACTER,
+                hostRoomId: ROOM,
+                roomObjectLabels: [],
+                roomObjectCatalog: [],
+                ...input,
+            } as ParseInput,
+            {
+                invokeBedrockParseCommandImpl: stubs.classify,
+                invokeBedrockObjectManipulationParseImpl: stubs.parse,
+                invokeBedrockObjectManipulationEnrichImpl: stubs.enrich,
+                invokeBedrockAcmeOrderEnrichImpl: stubs.acme,
+                invokeBedrockObjectManipulationComplexityImpl: stubs.complexity,
+                embedSpan: stubs.embedSpan,
+                objectManipulationPositionsReadDeps: {
+                    getMembershipContainers: jest.fn().mockImplementation(async (id: string) => (
+                        containers[id] ?? (id === CHARACTER ? [] : [ROOM])
+                    )),
+                    getLudicGraph: jest.fn().mockImplementation(async (hostId: string) => (
+                        graphs[hostId] ?? testLudicGraph(hostId as EphemeraRoomId)
+                    )),
+                },
+            }
+        )
+        return {
+            result,
+            stubCalls: Object.fromEntries(Object.entries(stubs).map(([name, stub]) => [name, stub.mock.calls.length])),
+        }
+    }
+
+    describe('deterministic take / get / drop (fast path)', () => {
+        it('take broom', async () => {
+            expect(await run({ command: 'take broom', roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }, { graphs: { [ROOM]: roomWith([BROOM]) } })).toMatchSnapshot()
+        })
+
+        it('get broom', async () => {
+            expect(await run({ command: 'get broom', roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }, { graphs: { [ROOM]: roomWith([BROOM]) } })).toMatchSnapshot()
+        })
+
+        it('drop broom', async () => {
+            expect(await run({
+                command: 'drop broom',
+                roomObjectCatalog: [],
+                heldInventoryCatalog: catalogOf([[BROOM, 'broom']]),
+            }, {
+                containers: { [BROOM]: [CHARACTER] },
+                graphs: { [CHARACTER]: testLudicGraph(CHARACTER, { nodes: [{ tag: 'Object', universalKey: BROOM }] }) },
+            })).toMatchSnapshot()
+        })
+
+        it('get the broom through Parse, when the span is not in the room labels', async () => {
+            expect(await run(
+                { command: 'get the broom', roomObjectCatalog: catalogOf([[BROOM, 'broom']]) },
+                {
+                    parseTokens: [text('get'), span('broom')],
+                    graphs: { [ROOM]: roomWith([BROOM]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('take rope when the rope is lashed to the post (Custom edge: dissolve, then take)', async () => {
+            expect(await run(
+                { command: 'take rope', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                {
+                    graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('take broom when the broom touches an exit (complexity LLM answers complex)', async () => {
+            expect(await run(
+                { command: 'take broom', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
+                {
+                    complexityBody: '{"disposition":"complex","complexityClass":"relationalPlacement"}',
+                    graphs: {
+                        [ROOM]: testLudicGraphFromEnvelope(ROOM, {
+                            nodes: [{ tag: 'Object', universalKey: BROOM }, { tag: 'Object', universalKey: TABLE }],
+                            edges: [{ kind: 'Navigation', uuid: 'edge-1', from: BROOM, to: TABLE, payload: {} }],
+                        } as any),
+                    },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('take rope when the rope is under the post (complexity LLM answers complex)', async () => {
+            expect(await run(
+                { command: 'take rope', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                {
+                    complexityBody: '{"disposition":"complex","complexityClass":"relationalPlacement"}',
+                    graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Under' }]) },
+                }
+            )).toMatchSnapshot()
+        })
+    })
+
+    describe('relational commands (Parse path)', () => {
+        it('put the broom against the table', async () => {
+            expect(await run(
+                { command: 'put the broom against the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
+                {
+                    parseTokens: [text('put'), span('broom'), text('against'), span('table')],
+                    graphs: { [ROOM]: roomWith([BROOM, TABLE]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('tie the rope to the post (Custom)', async () => {
+            expect(await run(
+                { command: 'tie the rope to the post', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                {
+                    parseTokens: [text('tie'), span('rope'), text('to'), span('post')],
+                    graphs: { [ROOM]: roomWith([ROPE, POST]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('take the rope off the post (today a two-candidate Consult, not a dissolve)', async () => {
+            expect(await run(
+                { command: 'take the rope off the post', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                {
+                    parseTokens: [text('take'), span('rope'), text('off'), span('post')],
+                    graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('put the broom under the table with two table candidates (Consult)', async () => {
+            expect(await run(
+                { command: 'put the broom under the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table'], [TABLE2, 'table']]) },
+                {
+                    parseTokens: [text('put'), span('broom'), text('under'), span('table')],
+                    graphs: { [ROOM]: roomWith([BROOM, TABLE, TABLE2]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('put the broom partof the table (today a Custom relation labelled partof, not an Error)', async () => {
+            expect(await run(
+                { command: 'put the broom partof the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
+                {
+                    parseTokens: [text('put'), span('broom'), text('partof'), span('table')],
+                    graphs: { [ROOM]: roomWith([BROOM, TABLE]) },
+                }
+            )).toMatchSnapshot()
+        })
+    })
+
+    describe('containment commands (Parse path)', () => {
+        it('put the coin on the table', async () => {
+            expect(await run(
+                { command: 'put the coin on the table', roomObjectLabels: ['coin', 'table'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
+                {
+                    parseTokens: [text('put'), span('coin'), text('on'), span('table')],
+                    graphs: { [ROOM]: roomWith([COIN, TABLE]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('put the coin in the jar', async () => {
+            expect(await run(
+                { command: 'put the coin in the jar', roomObjectLabels: ['coin', 'jar'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [JAR, 'jar']]) },
+                {
+                    parseTokens: [text('put'), span('coin'), text('in'), span('jar')],
+                    graphs: { [ROOM]: roomWith([COIN, JAR]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('put the coin in the table when the coin sits inside the jar (withinObject locus, PI-3)', async () => {
+            expect(await run(
+                { command: 'put the coin in the table', roomObjectLabels: ['coin', 'table'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
+                {
+                    parseTokens: [text('put'), span('coin'), text('in'), span('table')],
+                    containers: { [COIN]: [JAR] },
+                    graphs: {
+                        [ROOM]: roomWith([JAR, TABLE]),
+                        [JAR]: testLudicGraph(JAR, { nodes: [{ tag: 'Object', universalKey: COIN }] }),
+                    },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('put the rope on the table when the rope is lashed to the post (boundary edge; slice 3 changes this)', async () => {
+            expect(await run(
+                { command: 'put the rope on the table', roomObjectLabels: ['rope', 'post', 'table'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post'], [TABLE, 'table']]) },
+                {
+                    parseTokens: [text('put'), span('rope'), text('on'), span('table')],
+                    graphs: { [ROOM]: roomWith([ROPE, POST, TABLE], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
+                }
+            )).toMatchSnapshot()
+        })
+    })
+
+    describe('look and no-room', () => {
+        it('look rocket skates', async () => {
+            expect(await run(
+                { command: 'look rocket skates', roomObjectCatalog: catalogOf([[SKATES, 'rocket skates']]) },
+                { parseTokens: [text('look'), span('rocket skates')] }
+            )).toMatchSnapshot()
+        })
+
+        it('take broom with two broom candidates (Consult on the fast path)', async () => {
+            expect(await run(
+                { command: 'take the broom', roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [MOP, 'broom']]) },
+                { graphs: { [ROOM]: roomWith([BROOM, MOP]) } }
+            )).toMatchSnapshot()
+        })
+
+        it('take broom with no room', async () => {
+            expect(await run(
+                { command: 'take broom', characterId: undefined, hostRoomId: undefined, roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }
+            )).toMatchSnapshot()
+        })
+
+        it('put the broom under the table with no room', async () => {
+            expect(await run(
+                { command: 'put the broom under the table', hostRoomId: undefined, roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
+                { parseTokens: [text('put'), span('broom'), text('under'), span('table')] }
+            )).toMatchSnapshot()
+        })
+
+        it('put the coin in the jar with no room', async () => {
+            expect(await run(
+                { command: 'put the coin in the jar', hostRoomId: undefined, roomObjectLabels: ['coin', 'jar'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [JAR, 'jar']]) },
+                { parseTokens: [text('put'), span('coin'), text('in'), span('jar')] }
+            )).toMatchSnapshot()
+        })
     })
 })
