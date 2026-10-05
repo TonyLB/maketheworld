@@ -4,10 +4,10 @@ import { discriminateIntent } from './discriminateIntent'
 export { navigationIntentErrorMessages } from './discriminateIntent/exitResolution'
 export { objectManipulationErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
 import { compileDescribeFromSkeleton } from './enrich/objectManipulation/compileDescribeFromSkeleton'
-import { compileObjectContainmentFromSkeleton } from './enrich/objectManipulation/compileObjectContainmentFromSkeleton'
+import { compileTransferFromSkeleton } from './enrich/objectManipulation/compileTransferFromSkeleton'
 import { enrichObjectManipulation } from './enrich/objectManipulation'
-import { objectSpansFromSkeleton } from './enrich/objectManipulation/parse/objectSpansFromSkeleton'
 import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
+import { stampStableRefKeys } from './enrich/objectManipulation/parse/stampStableRefKeys'
 import { planSkeleton } from './enrich/objectManipulation/plan/planSkeleton'
 import { matchNonObjectManipulationTemplate } from './deterministicTemplate'
 import { matchNavigationParaphrase } from './plan/matchNavigationParaphrase'
@@ -27,16 +27,27 @@ async function parseCommandCore(
     const intentResult = await discriminateIntent(input, deps)
 
     if (intentResult.type === 'ObjectMembershipIntent') {
-        // Only reachable via deterministicIntentChecks's take/get/drop fast path
-        // (iteration 7, Sub-iteration 1) -- classify's LLM no longer emits this type,
-        // since it no longer decides command family. rawObjectSpans is always the
-        // deterministic path's self-built span.
-        const result = await enrichObjectManipulation(
+        // Only reachable via deterministicIntentChecks's take/get/drop fast path (iteration 7,
+        // Sub-iteration 1). ISS8203 slice 3 (PI-7): the fast path synthesizes its skeleton, the
+        // leading verb and its one object span, stamps it, and enters Plan like a parsed skeleton.
+        const verb = input.command.trim().split(/\s+/)[0]!
+        const skeleton = stampStableRefKeys([
+            { type: 'text', text: verb },
+            { type: 'objectSpan', span: intentResult.rawObjectSpans[0]! },
+        ])
+        const plan = planSkeleton(skeleton, input.command)
+        if (plan.type === 'declined') {
+            return { result: { type: 'Error', errorMessage: plan.errorMessage }, enrichReasoningMarkdown: '', enrichRawBody: undefined }
+        }
+        const [primary] = plan.attempts
+        if (primary === undefined) {
+            return { result: { type: 'Unimplemented', confidence: intentResult.confidence }, enrichReasoningMarkdown: '', enrichRawBody: undefined }
+        }
+        const result = await compileTransferFromSkeleton(
             {
-                enrichRoute: 'membership',
                 command: input.command,
-                rawObjectSpans: intentResult.rawObjectSpans,
-                verbClass: intentResult.verbClass,
+                skeleton,
+                attempt: primary,
                 characterId: input.characterId,
                 hostRoomId: input.hostRoomId,
                 roomObjectCatalog: input.roomObjectCatalog,
@@ -44,10 +55,8 @@ async function parseCommandCore(
             },
             intentResult.confidence,
             {
-                invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
-                positionsReadDeps: deps.objectManipulationPositionsReadDeps,
                 embedSpan: deps.embedSpan,
+                positionsReadDeps: deps.objectManipulationPositionsReadDeps,
             }
         )
         return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
@@ -101,13 +110,13 @@ async function parseCommandCore(
         const [primary] = plan.attempts
         const primaryStep = primary?.actions()[0]?.desiredResult
 
-        if (primaryStep?.kind === 'change' && primaryStep.primitive === 'transferMembership' && primaryStep.containment !== undefined) {
-            const result = await compileObjectContainmentFromSkeleton(
+        if (primaryStep?.kind === 'change' && primaryStep.primitive === 'transferMembership') {
+            const result = await compileTransferFromSkeleton(
                 {
                     command: input.command,
                     skeleton: parseResult.tokens,
-                    attempt: primary,
-                    containment: primaryStep.containment,
+                    attempt: primary!,
+                    characterId: input.characterId,
                     hostRoomId: input.hostRoomId,
                     roomObjectCatalog: input.roomObjectCatalog,
                     heldInventoryCatalog: input.heldInventoryCatalog,
@@ -139,29 +148,6 @@ async function parseCommandCore(
                 },
                 intentResult.confidence,
                 {
-                    positionsReadDeps: deps.objectManipulationPositionsReadDeps,
-                    embedSpan: deps.embedSpan,
-                }
-            )
-            return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
-        }
-
-        if (primary && primaryStep?.kind === 'change' && primaryStep.primitive === 'transferMembership') {
-            const result = await enrichObjectManipulation(
-                {
-                    enrichRoute: 'membership',
-                    command: input.command,
-                    rawObjectSpans: objectSpansFromSkeleton(parseResult.tokens),
-                    verbClass: primaryStep.to.referentType === 'actingCharacter' ? 'acquire' : 'release',
-                    characterId: input.characterId,
-                    hostRoomId: input.hostRoomId,
-                    roomObjectCatalog: input.roomObjectCatalog,
-                    heldInventoryCatalog: input.heldInventoryCatalog,
-                },
-                intentResult.confidence,
-                {
-                    invokeBedrockObjectManipulationEnrichImpl: deps.invokeBedrockObjectManipulationEnrichImpl,
-                    invokeBedrockObjectManipulationComplexityImpl: deps.invokeBedrockObjectManipulationComplexityImpl,
                     positionsReadDeps: deps.objectManipulationPositionsReadDeps,
                     embedSpan: deps.embedSpan,
                 }

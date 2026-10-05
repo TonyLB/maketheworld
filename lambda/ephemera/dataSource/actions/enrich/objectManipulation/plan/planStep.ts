@@ -49,7 +49,7 @@ export type TransferMembershipChange<R extends Referent = Referent> = {
     /**
      * A containment move: the transfer also establishes an `On`/`In` edge whose
      * host is always `to` by construction, not discovered by ancestry walk --- containment's
-     * producer (`compileObjectContainmentFromSkeleton.ts`) sets this; `PartOf` never reaches
+     * producer (`compileTransferFromSkeleton.ts`) sets this; `PartOf` never reaches
      * here (ND-4, `parseCommand.ts` hard-errors it earlier).
      */
     containment?: 'On' | 'In'
@@ -121,7 +121,7 @@ export const withGroundedId = <R extends Referent>(referent: R, groundedId: Grou
 /**
  * A structural key for a referent with no `stableRefKey` of its own: `'actingCharacter'`, `` `currentHost(actingCharacter)` ``,
  * `` `currentHost(span:<key>)` ``. Total over `Referent` so a `currentHost` nested on any kind stays
- * nameable: membership nests both live (a take's `from` is `currentHost(span:primaryObject)`, a
+ * nameable: membership nests both live (a take's `from` is `currentHost(span:<key>)`, a
  * drop's `to` is `currentHost(actingCharacter)`).
  */
 export type DerivedReferentKey = string

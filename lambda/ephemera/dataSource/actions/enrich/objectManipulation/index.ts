@@ -3,9 +3,7 @@ import type {
     ParseCommandConsultResult,
     ParseCommandErrorResult,
     ParseCommandEstablishRelationResult,
-    ParseCommandObjectManipulationResult,
 } from '../../baseClasses'
-import { compileMembershipAtomic, type CompileMembershipAtomicDeps } from './compileMembershipAtomic'
 import {
     compileRelationalFromSkeleton,
     type CompileRelationalFromSkeletonDeps,
@@ -16,13 +14,12 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 export type EnrichObjectManipulationInput = ManipulationFrameBuildInput
 
 export type EnrichObjectManipulationResult =
-    | ParseCommandObjectManipulationResult
     | ParseCommandEstablishRelationResult
     | ParseCommandConsultResult
     | ParseCommandAbstainResult
     | ParseCommandErrorResult
 
-export type EnrichObjectManipulationDeps = CompileMembershipAtomicDeps & CompileRelationalFromSkeletonDeps
+export type EnrichObjectManipulationDeps = CompileRelationalFromSkeletonDeps
 
 export async function enrichObjectManipulation(
     input: EnrichObjectManipulationInput,
@@ -52,24 +49,9 @@ export async function enrichObjectManipulation(
         )
     }
 
-    if (input.verbClass === undefined) {
-        return {
-            type: 'Error',
-            errorMessage: 'Membership manipulation enrich requires verbClass from classify',
-        }
+    // Membership (take, drop, containment) routes through compileTransferFromSkeleton (ISS8203 slice 3).
+    return {
+        type: 'Error',
+        errorMessage: objectManipulationErrorMessages.relationalNoTemplateMatch,
     }
-
-    return compileMembershipAtomic(
-        {
-            command: input.command,
-            rawObjectSpans: input.rawObjectSpans,
-            verbClass: input.verbClass,
-            characterId: input.characterId,
-            hostRoomId: input.hostRoomId,
-            roomObjectCatalog: input.roomObjectCatalog,
-            heldInventoryCatalog: input.heldInventoryCatalog,
-        },
-        intentConfidence,
-        deps
-    )
 }

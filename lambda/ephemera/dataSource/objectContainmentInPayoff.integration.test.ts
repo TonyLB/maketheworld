@@ -205,7 +205,6 @@ describe('object containment In payoff (integration)', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"ball"},{"type":"text","text":"in"},{"type":"objectSpan","span":"box"}]}',
@@ -223,7 +222,6 @@ describe('object containment In payoff (integration)', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationParseImpl,
                 // Parse's dry run reads the subject's current host (ISS8203 slice 2). Both objects sit
                 // in the room, and the graph read goes through the same mocked store the commit uses.

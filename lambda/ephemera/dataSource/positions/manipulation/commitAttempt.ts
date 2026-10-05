@@ -161,15 +161,15 @@ const buildRelationalFragment = async (
  * with no `desiredResult` (Describe's narration) contributes nothing.
  *
  * Positions honors the attempt and does not judge it. It commits only an attempt whose result
- * has succeeded: a challenge still pending (the complexity-LLM fallback can publish one) or
+ * has succeeded: a challenge still pending (a pending exit-contact or Under challenge can remain) or
  * refused is not a permission to dissolve its edge.
  *
  * The attempt's actions are the only source of a move's facilitating dissolves: a take of a
  * lashed rope carries its own dissolve action, listed before the take, and membership's
  * fragment adds only the mover's own containment strip. Before committing, the combined
  * sequence is dry-run against a fresh snapshot. A boundary edge that no action covers ---
- * the world changed since the actions-side dry run, or a containment move, whose producer
- * expands no boundary actions --- comes back `repairable` with its own reason code, and the
+ * the world changed since the actions-side dry run, or a transfer whose expansion missed an edge ---
+ * comes back `repairable` with its own reason code, and the
  * attempt is refused rather than repaired. `commitStepSequence` still re-checks under lock.
  */
 export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {

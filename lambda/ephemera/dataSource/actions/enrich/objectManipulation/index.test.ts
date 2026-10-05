@@ -75,158 +75,7 @@ const planned = (skeleton: ParseSkeleton) => {
 }
 
 describe('enrichObjectManipulation', () => {
-    it('returns grounded takeHold without Bedrock on zero-hop eligible path', async () => {
-        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
-        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getLudicGraph = hostAwareGetLudicGraph()
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'membership',
-                command: 'pick up the broom',
-                rawObjectSpans: ['broom'],
-                verbClass: 'acquire',
-                characterId,
-                hostRoomId: roomId,
-                roomObjectCatalog: catalog,
-            },
-            0.92,
-            {
-                invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
-                positionsReadDeps: { getMembershipContainers, getLudicGraph },
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'ObjectManipulation',
-            operationKind: 'takeHold',
-            objectIds: [broomId],
-            confidence: 0.92,
-            attempt: expect.anything(),
-        })
-        expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
-    })
-
-    it('returns grounded drop without Bedrock on zero-hop eligible path', async () => {
-        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
-        const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
-        const getLudicGraph = hostAwareGetLudicGraph()
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'membership',
-                command: 'drop the broom',
-                rawObjectSpans: ['broom'],
-                verbClass: 'release',
-                characterId,
-                hostRoomId: roomId,
-                heldInventoryCatalog: catalog,
-            },
-            0.91,
-            {
-                invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
-                positionsReadDeps: { getMembershipContainers, getLudicGraph },
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'ObjectManipulation',
-            operationKind: 'drop',
-            objectIds: [broomId],
-            confidence: 0.91,
-            attempt: expect.anything(),
-        })
-        expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
-    })
-
-    it('returns Error for a multi-span membership command end-to-end (BD-20: arity check now lives in compileMembershipAtomic)', async () => {
-        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'membership',
-                command: 'pick up the broom and the anvil',
-                rawObjectSpans: ['broom', 'anvil'],
-                verbClass: 'acquire',
-                roomObjectCatalog: catalog,
-            },
-            0.8,
-            { invokeBedrockObjectManipulationEnrichImpl }
-        )
-
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.complexMultiObject,
-        })
-        expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-    })
-
-    it('blocks takeHold when object is multi-present', async () => {
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
-        const getMembershipContainers = jest.fn().mockResolvedValue([roomId, 'ROOM#Hall'])
-        const getLudicGraph = hostAwareGetLudicGraph()
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'membership',
-                command: 'pick up the broom',
-                rawObjectSpans: ['broom'],
-                verbClass: 'acquire',
-                characterId,
-                hostRoomId: roomId,
-                roomObjectCatalog: catalog,
-            },
-            0.9,
-            {
-                invokeBedrockObjectManipulationComplexityImpl,
-                positionsReadDeps: { getMembershipContainers, getLudicGraph },
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.complexMultiPresent,
-        })
-        // multiPresent is decided post-selection (containers count) --- the selector's own
-        // room/character graph pre-fetch (Slice 4b) still runs beforehand, so getLudicGraph
-        // is no longer expected to stay uncalled here.
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
-    })
-
-    it('blocks takeHold when object has no membership host', async () => {
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
-        const getMembershipContainers = jest.fn().mockResolvedValue([])
-        const getLudicGraph = jest.fn()
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'membership',
-                command: 'pick up the broom',
-                rawObjectSpans: ['broom'],
-                verbClass: 'acquire',
-                roomObjectCatalog: catalog,
-            },
-            0.9,
-            {
-                invokeBedrockObjectManipulationComplexityImpl,
-                positionsReadDeps: { getMembershipContainers, getLudicGraph },
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.noMembershipHost,
-        })
-    })
-
     it('routes relational commands through the native skeleton pipeline (Step 2b step 6)', async () => {
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
 
         const result = await enrichObjectManipulation(
             {
@@ -241,7 +90,6 @@ describe('enrichObjectManipulation', () => {
             },
             0.9,
             {
-                invokeBedrockObjectManipulationComplexityImpl,
                 positionsReadDeps: relationalPositionsReadDeps(),
             }
         )
@@ -262,7 +110,6 @@ describe('enrichObjectManipulation', () => {
             }],
             attempt: expect.anything(),
         })
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
     it('grounds a held-item relation onto the character-inventory host (BD-16 sameHost, both items already share that host --- resolves as a portless crossing leg)', async () => {
@@ -478,7 +325,6 @@ describe('enrichObjectManipulation', () => {
     })
 
     it('abstains on a containment attempt on the relational route (containment is parseCommand\'s route)', async () => {
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
 
         const result = await enrichObjectManipulation(
             {
@@ -490,9 +336,7 @@ describe('enrichObjectManipulation', () => {
                 roomObjectCatalog: [{ objectId: 'OBJECT#Coin' as EphemeraObjectId, normalizedShortName: 'coin' }],
             },
             0.9,
-            {
-                invokeBedrockObjectManipulationComplexityImpl,
-            }
+            {}
         )
 
         expect(result).toEqual({
@@ -500,7 +344,6 @@ describe('enrichObjectManipulation', () => {
             confidence: 0.9,
             reason: objectManipulationErrorMessages.relationalNoTemplateMatch,
         })
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
     it('returns a defensive Error when the relational route is called without a parseSkeleton', async () => {
@@ -517,161 +360,6 @@ describe('enrichObjectManipulation', () => {
             type: 'Error',
             errorMessage: objectManipulationErrorMessages.relationalNoTemplateMatch,
         })
-    })
-
-    it('invokes complexity LLM when exit edges touch object', async () => {
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"disposition":"complex","complexityClass":"relationalPlacement"}',
-        })
-        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getLudicGraph = hostAwareGetLudicGraph({ [roomId]: graphWithTouchingEdge })
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'membership',
-                command: 'pick up the broom',
-                rawObjectSpans: ['broom'],
-                verbClass: 'acquire',
-                characterId,
-                hostRoomId: roomId,
-                roomObjectCatalog: catalog,
-            },
-            0.9,
-            {
-                invokeBedrockObjectManipulationComplexityImpl,
-                positionsReadDeps: { getMembershipContainers, getLudicGraph },
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.complexRelational,
-        })
-        expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
-    })
-
-    it('finalizes atomic drop from complexity LLM when exit edges touch object', async () => {
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"disposition":"atomic","operationKind":"drop"}',
-        })
-        const getMembershipContainers = jest.fn().mockResolvedValue([characterId])
-        const getLudicGraph = hostAwareGetLudicGraph({ [characterId]: characterGraphWithTouchingEdge })
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'membership',
-                command: 'drop the broom',
-                rawObjectSpans: ['broom'],
-                verbClass: 'release',
-                characterId,
-                hostRoomId: roomId,
-                heldInventoryCatalog: catalog,
-            },
-            0.85,
-            {
-                invokeBedrockObjectManipulationComplexityImpl,
-                positionsReadDeps: { getMembershipContainers, getLudicGraph },
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'ObjectManipulation',
-            operationKind: 'drop',
-            objectIds: [broomId],
-            confidence: 0.85,
-            attempt: expect.anything(),
-        })
-        expect(invokeBedrockObjectManipulationComplexityImpl).toHaveBeenCalled()
-    })
-
-    it('returns parse failure Error when complexity body is invalid', async () => {
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: 'not json',
-        })
-        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getLudicGraph = hostAwareGetLudicGraph({ [roomId]: graphWithTouchingEdge })
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'membership',
-                command: 'pick up the broom',
-                rawObjectSpans: ['broom'],
-                verbClass: 'acquire',
-                characterId,
-                hostRoomId: roomId,
-                roomObjectCatalog: catalog,
-            },
-            0.85,
-            {
-                invokeBedrockObjectManipulationComplexityImpl,
-                positionsReadDeps: { getMembershipContainers, getLudicGraph },
-            }
-        )
-
-        expect(result.type).toBe('Error')
-        if (result.type === 'Error') {
-            expect(result.errorMessage).toBe(objectManipulationErrorMessages.enrichParseFailed)
-        }
-    })
-
-    it('resolves paraphrase via pool without identity LLM', async () => {
-        const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
-            {
-                id: 'test-paraphrase',
-                bucket: 'positive-paraphrase',
-                span: 'sweeping tool',
-                catalog: ['broom'],
-            },
-            {
-                kind: 'resolve-index',
-                targetIndex: 0,
-                targetSimilarity: 0.95,
-                otherSimilarity: 0.5,
-            }
-        )
-        const paraphraseCatalog = candidates.map((candidate) => ({
-            objectId: broomId,
-            normalizedShortName: candidate.normalizedShortName,
-            embedding: candidate.embedding,
-        }))
-        const embedSpan = jest.fn().mockResolvedValue({
-            success: true,
-            embedding: spanEmbedding,
-        })
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
-        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getLudicGraph = hostAwareGetLudicGraph()
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'membership',
-                command: 'pick up the sweeping tool',
-                rawObjectSpans: ['sweeping tool'],
-                verbClass: 'acquire',
-                characterId,
-                hostRoomId: roomId,
-                roomObjectCatalog: paraphraseCatalog,
-            },
-            0.88,
-            {
-                embedSpan,
-                invokeBedrockObjectManipulationComplexityImpl,
-                positionsReadDeps: { getMembershipContainers, getLudicGraph },
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'ObjectManipulation',
-            operationKind: 'takeHold',
-            objectIds: [broomId],
-            confidence: 0.88,
-            attempt: expect.anything(),
-        })
-        expect(embedSpan).toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
     it('routes relational enrichRoute with a non-enum preposition to a Custom relation via the native pipeline', async () => {
@@ -724,36 +412,4 @@ describe('enrichObjectManipulation', () => {
         })
     })
 
-    it('membership enrichRoute never touches the relational parseSkeleton field, even when command contains a preposition word', async () => {
-        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
-        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getLudicGraph = hostAwareGetLudicGraph()
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'membership',
-                command: 'take broom',
-                rawObjectSpans: ['broom'],
-                verbClass: 'acquire',
-                characterId,
-                hostRoomId: roomId,
-                roomObjectCatalog: catalog,
-            },
-            0.92,
-            {
-                invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
-                positionsReadDeps: { getMembershipContainers, getLudicGraph },
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'ObjectManipulation',
-            operationKind: 'takeHold',
-            objectIds: [broomId],
-            confidence: 0.92,
-            attempt: expect.anything(),
-        })
-    })
 })

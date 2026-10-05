@@ -9,7 +9,8 @@ import { isEphemeraThingId, type EphemeraThingId } from '../enrich/objectManipul
 import type { AttemptAction } from './action'
 import { PositionAttemptAction } from './action'
 import type { Challenge } from './challenge'
-import { CustomEdgeChallenge, UnderDeferChallenge } from './challenge'
+import { CustomEdgeChallenge, ExitEdgeChallenge, UnderDeferChallenge } from './challenge'
+import { objectTouchesExitEdgeOnGraph } from '../enrich/objectManipulation/membershipObservation'
 
 let challengeIdCounter = 0
 const mintChallengeId = (): string => {
@@ -19,6 +20,9 @@ const mintChallengeId = (): string => {
 
 const describeCustomEdgeChallenge = (edge: Extract<HostRelationalEdge, { kind: 'Custom' }>): string =>
     `Boundary relation to dissolve: ${edge.relationLabel}.`
+
+const describeExitEdgeChallenge = (): string =>
+    'Exit contact: the moved object touches an exit, which has no graph rule for moving it.'
 
 const describeUnderDeferChallenge = (): string =>
     // Under-defer wording waits on choosing between its readings (clearance or pinned), which
@@ -85,4 +89,25 @@ export const attemptActionsFromBoundaryOutcomes = (
     })
 
     return [...boundaryActions, primaryAction]
+}
+
+/**
+ * Expansion for any `transferMembership` (ISS8203 slice 3), whichever template produced it. A
+ * transfer whose moved object touches an exit gets an {@link ExitEdgeChallenge} on the primary
+ * action, which stays pending (the take or drop abstains); then the boundary dissolves are added
+ * as {@link attemptActionsFromBoundaryOutcomes} does. `graph` is the object's source host.
+ */
+export const attemptActionsFromTransfer = (
+    primaryAction: AttemptAction,
+    objectId: EphemeraObjectId,
+    graph: EphemeraLudicGraph
+): AttemptAction[] => {
+    const exitChallenged = objectTouchesExitEdgeOnGraph(graph, objectId)
+    const primary = exitChallenged
+        ? primaryAction.withChallenges([
+            ...primaryAction.challenges(),
+            new ExitEdgeChallenge(mintChallengeId(), describeExitEdgeChallenge()),
+        ])
+        : primaryAction
+    return attemptActionsFromBoundaryOutcomes(primary, new Set([objectId]), graph)
 }

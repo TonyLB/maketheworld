@@ -2,46 +2,12 @@ import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts
 import type { StandardLudicNavigationEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../../../positions/ludicGraph/testFixtures'
-import {
-    observeMembershipForObject,
-    objectTouchesExitEdgeOnGraph,
-} from './membershipObservation'
+import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const vaseId = 'OBJECT#Vase' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
-
-describe('observeMembershipForObject', () => {
-    it('returns containers only when more than one host', async () => {
-        const getMembershipContainers = jest.fn().mockResolvedValue([roomId, 'CHARACTER#Alfred'])
-        const getLudicGraph = jest.fn()
-
-        const result = await observeMembershipForObject(broomId, {
-            getMembershipContainers,
-            getLudicGraph,
-        })
-
-        expect(result).toEqual({ containers: [roomId, 'CHARACTER#Alfred'] })
-        expect(getLudicGraph).not.toHaveBeenCalled()
-    })
-
-    it('fetches ludicGraph for sole host', async () => {
-        const graph = testLudicGraph(roomId, {
-            nodes: [{ tag: 'Object', universalKey: broomId }],
-        })
-        const getMembershipContainers = jest.fn().mockResolvedValue([roomId])
-        const getLudicGraph = jest.fn().mockResolvedValue(graph)
-
-        const result = await observeMembershipForObject(broomId, {
-            getMembershipContainers,
-            getLudicGraph,
-        })
-
-        expect(result).toEqual({ containers: [roomId], ludicGraph: graph })
-        expect(getLudicGraph).toHaveBeenCalledWith(roomId)
-    })
-})
 
 describe('objectTouchesExitEdgeOnGraph', () => {
     it('returns false when graph has no edges', () => {

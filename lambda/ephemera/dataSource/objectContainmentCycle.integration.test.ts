@@ -11,7 +11,7 @@
  * `transactWrite` mock writes each committed graph back into its store, so a second move sees the
  * first one's result at commit time as well as at plan time.
  *
- * Parse is skipped: `compileObjectContainmentFromSkeleton` resolves ids and nothing else, so it cannot
+ * Parse is skipped: `compileTransferFromSkeleton` resolves ids and nothing else, so it cannot
  * refuse a cycle either way. The attempt is built by hand, as `commitAttempt.test.ts`'s
  * `containmentAttempt` does, with the subject's source host read live at commit (`currentHost`).
  *

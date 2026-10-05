@@ -10,23 +10,6 @@ export type ObjectManipulationPositionsReadDeps = {
     getLudicGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 }
 
-export type MembershipObservation = {
-    containers: EphemeraMembershipHostId[]
-    ludicGraph?: EphemeraLudicGraph
-}
-
-export async function observeMembershipForObject(
-    objectId: EphemeraObjectId,
-    deps: ObjectManipulationPositionsReadDeps
-): Promise<MembershipObservation> {
-    const containers = await deps.getMembershipContainers(objectId)
-    if (containers.length === 1) {
-        const ludicGraph = await deps.getLudicGraph(containers[0])
-        return { containers, ludicGraph }
-    }
-    return { containers }
-}
-
 export function objectTouchesExitEdgeOnGraph(
     graph: EphemeraLudicGraph,
     objectId: EphemeraObjectId

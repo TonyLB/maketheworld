@@ -23,7 +23,8 @@ Current implementation:
 - [`acmeOrder/interpretAndFinalize.ts`](./acmeOrder/interpretAndFinalize.ts) - interprets enrich output and finalizes **`ParseCommandAcmeOrderResult`**.
 - [`acmeOrder/acmeOrderThinkingPersistence.ts`](./acmeOrder/acmeOrderThinkingPersistence.ts) - bootstrap / emit / finalize helpers for segment **`acmeOrderEnrich`** (`mtw.ephemera.actions` **`Thinking Result`** publisher).
 - [`acmeOrder/index.ts`](./acmeOrder/index.ts) - orchestrates thinking lifecycle when **`EnrichAcmeOrderDeps.messageBus`** is set (see **Thinking** below).
-- [`objectManipulation/index.ts`](./objectManipulation/index.ts) - routes by **`enrichRoute`** from classify intent type; membership path: cardinality gate then **`compileMembershipAtomic`**; relational path: **`compileRelationalFromSkeleton`** (native Parse-skeleton pipeline, iteration 3).
+- [`objectManipulation/compileTransferFromSkeleton.ts`](./objectManipulation/compileTransferFromSkeleton.ts) - take, drop and containment (`transferMembership`): one route, one shared producer and dry run; the transfer's preconditions and boundary expansion are its own (ISS8203 slice 3).
+- [`objectManipulation/index.ts`](./objectManipulation/index.ts) - routes by **`enrichRoute`** from classify intent type; take, drop and containment (`transferMembership`) go to **`compileTransferFromSkeleton`** (ISS8203 slice 3); relational path: **`compileRelationalFromSkeleton`** (native Parse-skeleton pipeline, iteration 3).
 - [`objectManipulation/relationalRoute.ts`](./objectManipulation/relationalRoute.ts) - preposition detection helper (unit-tested; **not** primary enrich router after B2.5).
 - [`objectManipulation/parse/`](./objectManipulation/parse/) - **Parse** hop (iteration 3): `runParseStage` emits a `ParseSkeleton` (`parseToken.ts`), `stampStableRefKeys.ts` stamps per-occurrence `stableRefKey`s, `objectSpansFromSkeleton.ts` projects to a flat span list for the membership adapter. Replaced the retired classify-`objectSpans` + frame-extract split.
 - [`objectManipulation/plan/matchRelationalTemplate.ts`](./objectManipulation/plan/matchRelationalTemplate.ts) - deterministic Plan-stage matcher: `ParseSkeleton` -> role-tagged `Referent`s + **`operationKind`**/`relationKind` from closed `V NP prep NP` templates.
@@ -33,19 +34,15 @@ Current implementation:
 - [`objectManipulation/identifySkeletonSpans.ts`](./objectManipulation/identifySkeletonSpans.ts) - runs the shared `identityStage` resolver over the skeleton's `objectSpan` tokens (room + held catalog, BD-15/16 slice 4b), rekeyed onto `stableRefKey`.
 - [`objectManipulation/relationKind.ts`](./objectManipulation/relationKind.ts) - **`HostRelationalEdgeKind`**, **`NormalizedRelation`**, **`NormalizeRelationOutcome`** types (BD-2 / BD-3).
 - [`objectManipulation/normalizeRelationSpan.ts`](./objectManipulation/normalizeRelationSpan.ts) - deterministic **`relationSpan`** -> enum | **`Custom`** + label | nesting defer (B2).
-- [`objectManipulation/compileMembershipAtomic.ts`](./objectManipulation/compileMembershipAtomic.ts) - membership-atomic orchestrator: merged identity, pre-gates, agreement gate, complexity LLM defer.
 - `objectManipulation/verbMembershipAgreement.ts` - **`verbClass`** vs **`operationKind`** agreement gate and confidence cap helper.
 - [`objectManipulation/catalogMerge.ts`](./objectManipulation/catalogMerge.ts) - merge room + held catalogs with **`catalogScope`** tagging.
 - [`objectManipulation/identityStage.ts`](./objectManipulation/identityStage.ts) - per-span deterministic resolve + optional identity LLM.
 - [`objectManipulation/interpretIdentity.ts`](./objectManipulation/interpretIdentity.ts) - identity LLM JSON parse (`objectId` allowed).
 - [`objectManipulation/unaryCollapse.ts`](./objectManipulation/unaryCollapse.ts) - single-target collapse; held-only -> **`unimplementedVerb`** Error.
 - [`objectManipulation/buildPrompt.ts`](./objectManipulation/buildPrompt.ts) - identity vs complexity prompt builders; membership context on complexity stage only.
-- [`objectManipulation/interpretAndFinalize.ts`](./objectManipulation/interpretAndFinalize.ts) - complexity-stage JSON validation and **`finalizeComplexityFromEnrich`**.
 - [`objectManipulation/resolveObjectSpan.ts`](./objectManipulation/resolveObjectSpan.ts) - deterministic catalog grounding (**D5** / **D7**).
 - [`objectManipulation/cardinalityGate.ts`](./objectManipulation/cardinalityGate.ts) - deterministic **`multiObject`** short-circuit when **`rawObjectSpans.length > 1`** (membership path only).
-- [`objectManipulation/membershipObservation.ts`](./objectManipulation/membershipObservation.ts) - **`getMembershipContainers`** + sole-host **`getLudicGraph`**; edge-touch predicate.
 - [`objectManipulation/membershipFrame.ts`](./objectManipulation/membershipFrame.ts) - **`MembershipManipulationFrame`** type and builder (classify **`verbClass`** + enrich context; **`compileMembershipAtomic`** input).
-- [`objectManipulation/complexityPreGates.ts`](./objectManipulation/complexityPreGates.ts) - complexity pre-gate evaluator (rules 0--3).
 - [`objectManipulation/complexityClasses.ts`](./objectManipulation/complexityClasses.ts) - shared **`complexityClass`** guards and terminal Error copy (**`multiPresent`**, etc.).
 
 ### Object manipulation enrich sequence

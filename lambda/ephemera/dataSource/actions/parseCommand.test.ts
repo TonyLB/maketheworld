@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../positions/ludicGraph/testFixtures'
+import { CommandAttempt, type CommandAttemptData } from './commandAttempt'
 import type { EphemeraLudicGraph } from '../positions/ludicGraph'
 
 import {
@@ -1029,7 +1030,6 @@ describe('parseCommand LLM path', () => {
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
         const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const embedSpan = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -1049,7 +1049,6 @@ describe('parseCommand LLM path', () => {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockAcmeOrderEnrichImpl,
                 invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationParseImpl,
                 embedSpan,
                 objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
@@ -1065,7 +1064,6 @@ describe('parseCommand LLM path', () => {
         })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
         expect(embedSpan).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
     })
@@ -1077,7 +1075,6 @@ describe('parseCommand LLM path', () => {
             const spanEmbedding = makeEmbeddingFromAxis(0)
             const invokeBedrockParseCommandImpl = jest.fn()
             const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-            const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
             const embedSpan = jest.fn().mockResolvedValue({
                 success: true,
                 embedding: spanEmbedding,
@@ -1106,7 +1103,6 @@ describe('parseCommand LLM path', () => {
                     ...depsCoyoteUnderCap,
                     invokeBedrockParseCommandImpl,
                     invokeBedrockObjectManipulationEnrichImpl,
-                    invokeBedrockObjectManipulationComplexityImpl,
                     embedSpan,
                     objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
                 }
@@ -1123,7 +1119,6 @@ describe('parseCommand LLM path', () => {
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
             expect(embedSpan).toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
         })
 
         it('returns Consult for ambiguous exact membership pool (duplicate broom labels)', async () => {
@@ -1131,7 +1126,6 @@ describe('parseCommand LLM path', () => {
             const mopId = 'OBJECT#Mop' as EphemeraObjectId
             const invokeBedrockParseCommandImpl = jest.fn()
             const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-            const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
             const embedSpan = jest.fn()
 
             const result = await parseCommand(
@@ -1149,7 +1143,6 @@ describe('parseCommand LLM path', () => {
                     ...depsCoyoteUnderCap,
                     invokeBedrockParseCommandImpl,
                     invokeBedrockObjectManipulationEnrichImpl,
-                    invokeBedrockObjectManipulationComplexityImpl,
                     embedSpan,
                     objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
                 }
@@ -1166,7 +1159,6 @@ describe('parseCommand LLM path', () => {
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
             expect(embedSpan).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
         })
 
         it('returns DissolveRelation for relational dissolve via the native skeleton pipeline (Step 2b step 6)', async () => {
@@ -1176,7 +1168,6 @@ describe('parseCommand LLM path', () => {
                 success: true,
                 body: '{"type":"Command","confidence":0.86}',
             })
-            const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
             const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"tokens":[{"type":"text","text":"remove"},{"type":"objectSpan","span":"rope"},{"type":"text","text":"off"},{"type":"objectSpan","span":"crate"}]}',
@@ -1201,7 +1192,6 @@ describe('parseCommand LLM path', () => {
                 },
                 {
                     invokeBedrockParseCommandImpl,
-                    invokeBedrockObjectManipulationComplexityImpl,
                     invokeBedrockObjectManipulationParseImpl,
                     objectManipulationPositionsReadDeps: {
                         getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
@@ -1243,7 +1233,6 @@ describe('parseCommand LLM path', () => {
                 attempt: expect.anything(),
             })
             expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
         })
     })
 
@@ -1343,7 +1332,6 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"broom"},{"type":"text","text":"under"},{"type":"objectSpan","span":"table"}]}',
@@ -1362,7 +1350,6 @@ describe('parseCommand LLM path', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationParseImpl,
                 objectManipulationPositionsReadDeps: relationalPositionsReadDepsForTests([broomId, tableId]),
             }
@@ -1385,7 +1372,6 @@ describe('parseCommand LLM path', () => {
             attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
     it('returns LookComponent for object-directed look via the native skeleton pipeline (Phase 4)', async () => {
@@ -1430,7 +1416,6 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"broom"},{"type":"text","text":"under"},{"type":"objectSpan","span":"bench"}]}',
@@ -1449,7 +1434,6 @@ describe('parseCommand LLM path', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationParseImpl,
                 objectManipulationPositionsReadDeps: relationalPositionsReadDepsForTests([broomId, benchId]),
             }
@@ -1472,7 +1456,6 @@ describe('parseCommand LLM path', () => {
             attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
     it('returns Consult for relational route with an ambiguous exact target pool (two tables)', async () => {
@@ -1483,7 +1466,6 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"broom"},{"type":"text","text":"under"},{"type":"objectSpan","span":"table"}]}',
@@ -1503,7 +1485,6 @@ describe('parseCommand LLM path', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationParseImpl,
                 objectManipulationPositionsReadDeps: relationalPositionsReadDepsForTests([broomId, table1Id, table2Id]),
             }
@@ -1518,7 +1499,6 @@ describe('parseCommand LLM path', () => {
             ],
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
     it('returns ObjectContainment for in relational route via the native skeleton pipeline', async () => {
@@ -1528,7 +1508,6 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"coin"},{"type":"text","text":"in"},{"type":"objectSpan","span":"jar"}]}',
@@ -1546,7 +1525,6 @@ describe('parseCommand LLM path', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationParseImpl,
                 objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
             }
@@ -1562,7 +1540,6 @@ describe('parseCommand LLM path', () => {
             attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
     it('returns ObjectContainment for "on" relational route via the native skeleton pipeline', async () => {
@@ -1572,7 +1549,6 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"tray"}]}',
@@ -1590,7 +1566,6 @@ describe('parseCommand LLM path', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
                 invokeBedrockObjectManipulationParseImpl,
                 objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
             }
@@ -1606,7 +1581,6 @@ describe('parseCommand LLM path', () => {
             attempt: expect.anything(),
         })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
 
     it('returns noHostRoom Error for "on" relational route when the acting character has no room', async () => {
@@ -1645,7 +1619,6 @@ describe('parseCommand LLM path', () => {
             const broomId = 'OBJECT#Broom'
             const invokeBedrockParseCommandImpl = jest.fn()
             const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-            const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
             const invokeBedrockObjectManipulationParseImpl = jest.fn()
             const embedSpan = jest.fn()
 
@@ -1661,7 +1634,6 @@ describe('parseCommand LLM path', () => {
                     ...depsCoyoteUnderCap,
                     invokeBedrockParseCommandImpl,
                     invokeBedrockObjectManipulationEnrichImpl,
-                    invokeBedrockObjectManipulationComplexityImpl,
                     invokeBedrockObjectManipulationParseImpl,
                     embedSpan,
                     objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
@@ -1677,7 +1649,6 @@ describe('parseCommand LLM path', () => {
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
             expect(embedSpan).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
         })
@@ -1879,8 +1850,6 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         parseTokens?: Array<Record<string, string>>
         graphs?: Record<string, EphemeraLudicGraph>
         containers?: Record<string, string[]>
-        /** The complexity LLM's answer; absent, the stub reports the LLM as unavailable. */
-        complexityBody?: string
     }
 
     const text = (value: string) => ({ type: 'text', text: value })
@@ -1897,16 +1866,13 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
      */
     const run = async (
         input: Partial<ParseInput> & Pick<ParseInput, 'command'>,
-        { parseTokens, graphs = {}, containers = {}, complexityBody }: CaseOptions = {}
+        { parseTokens, graphs = {}, containers = {} }: CaseOptions = {}
     ) => {
         const stubs = {
             classify: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
             parse: jest.fn().mockResolvedValue({ success: true, body: JSON.stringify({ tokens: parseTokens ?? [] }) }),
             enrich: jest.fn(),
             acme: jest.fn(),
-            complexity: jest.fn().mockResolvedValue(complexityBody
-                ? { success: true, body: complexityBody }
-                : { success: false, errorMessage: 'complexity LLM stubbed as unavailable' }),
             embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: "embedding stubbed as unavailable" }),
         }
         const result = await parseCommand(
@@ -1922,7 +1888,6 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                 invokeBedrockObjectManipulationParseImpl: stubs.parse,
                 invokeBedrockObjectManipulationEnrichImpl: stubs.enrich,
                 invokeBedrockAcmeOrderEnrichImpl: stubs.acme,
-                invokeBedrockObjectManipulationComplexityImpl: stubs.complexity,
                 embedSpan: stubs.embedSpan,
                 objectManipulationPositionsReadDeps: {
                     getMembershipContainers: jest.fn().mockImplementation(async (id: string) => (
@@ -1979,11 +1944,10 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('take broom when the broom touches an exit (complexity LLM answers complex)', async () => {
+        it('take broom when the broom touches an exit (abstains: no adjudicator judges exit contact or Under yet)', async () => {
             expect(await run(
                 { command: 'take broom', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
-                    complexityBody: '{"disposition":"complex","complexityClass":"relationalPlacement"}',
                     graphs: {
                         [ROOM]: testLudicGraphFromEnvelope(ROOM, {
                             nodes: [{ tag: 'Object', universalKey: BROOM }, { tag: 'Object', universalKey: TABLE }],
@@ -1994,11 +1958,10 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('take rope when the rope is under the post (complexity LLM answers complex)', async () => {
+        it('take rope when the rope is under the post (abstains: no adjudicator judges Under yet)', async () => {
             expect(await run(
                 { command: 'take rope', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
-                    complexityBody: '{"disposition":"complex","complexityClass":"relationalPlacement"}',
                     graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Under' }]) },
                 }
             )).toMatchSnapshot()
@@ -2092,7 +2055,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('put the rope on the table when the rope is lashed to the post (boundary edge; slice 3 changes this)', async () => {
+        it('put the rope on the table when the rope is lashed to the post (boundary edge: slice 3 expands it)', async () => {
             expect(await run(
                 { command: 'put the rope on the table', roomObjectLabels: ['rope', 'post', 'table'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post'], [TABLE, 'table']]) },
                 {
@@ -2100,6 +2063,26 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                     graphs: { [ROOM]: roomWith([ROPE, POST, TABLE], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
                 }
             )).toMatchSnapshot()
+        })
+    })
+
+    describe('payoff: a lashed object moves (ISS8203 slice 3)', () => {
+        it('put the rope on the table when the rope is lashed to the post: the published attempt dissolves the lashing, met, before the containment transfer', async () => {
+            const result = await run(
+                { command: 'put the rope on the table', roomObjectLabels: ['rope', 'post', 'table'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post'], [TABLE, 'table']]) },
+                {
+                    parseTokens: [text('put'), span('rope'), text('on'), span('table')],
+                    graphs: { [ROOM]: roomWith([ROPE, POST, TABLE], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
+                }
+            )
+            expect(result.result.type).toBe('ObjectContainment')
+            // Round trip through the published JSON, as the hand-off does, before reading the attempt.
+            const attempt = CommandAttempt.fromJSON((result.result as { attempt: CommandAttemptData }).attempt)
+            expect(attempt.result).toEqual({ status: 'succeeded', outcome: expect.any(String) })
+            const [dissolve, transfer] = attempt.actions()
+            expect(dissolve!.desiredResult).toMatchObject({ kind: 'change', primitive: 'dissolveRelation', relationKind: 'Custom', relationLabel: 'is lashed to' })
+            expect(dissolve!.challenges().map((challenge) => challenge.toJSON())).toEqual([expect.objectContaining({ kind: 'customEdge', verdict: { kind: 'met' } })])
+            expect(transfer!.desiredResult).toMatchObject({ kind: 'change', primitive: 'transferMembership', containment: 'On' })
         })
     })
 

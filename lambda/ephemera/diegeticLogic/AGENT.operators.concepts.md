@@ -31,7 +31,7 @@ Affordance refresh on membership placement change reuses the existing **`Object 
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: acquire`** (no **`operationKind`** at classify) |
-| Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; atomic path yields **`operationKind: takeHold`** |
+| Enrich | **`compileTransferFromSkeleton`** (ISS8203 slice 3): merged identity -> shared producer -> transfer preconditions -> selection (no complexity LLM); atomic path yields **`operationKind: takeHold`** |
 | Egress | **`Object Take Hold`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) -> [`planObjectMoveTransfer`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) |
 | Fact | **`Object Moved`**: `froms: [ROOM#...]`, `to: CHARACTER#...` |
@@ -66,7 +66,7 @@ Implementation: [`compilePositionKernelOp.ts`](../dataSource/positions/manipulat
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: release`**; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
-| Enrich | **`compileMembershipAtomic`**: merged identity -> membership observation -> complexity pre-gates (optional LLM) -> agreement gate; in-room-only + release language -> **`notCarryingObject`**; atomic path yields **`operationKind: drop`** |
+| Enrich | **`compileTransferFromSkeleton`** (ISS8203 slice 3): merged identity -> shared producer -> transfer preconditions -> selection (no complexity LLM); in-room-only + release language -> **`notCarryingObject`**; atomic path yields **`operationKind: drop`** |
 | Egress | **`Object Drop`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) --- the same entry point as `takeHold`, host pair reversed |
 | Fact | **`Object Moved`**: `froms: [CHARACTER#...]`, `to: ROOM#...` |
@@ -162,7 +162,7 @@ These finalize to terminal parse **`Error`** --- no stream, no positions ingress
 - **`multiPresent`**: one named object appears on more than one membership host (ambiguous which copy to move).
 - **`complexRelational`**: non-trivial existing in-host relational topology on subject/target blocks a deterministic plan (BD-10 defer bucket; Phase D plan LLM candidate).
 - **`nestingRelational`**: containment language (`in`, `inside`, `into`) --- future **nested container** operator, not **`establishRelation`** v1.
-- **`relationalPlacement`**: membership-path complexity LLM defer only (exit-edge-implied relational move on **`ObjectMembershipIntent`**); supported relational commands route via **`ObjectRelateIntent`**, not this error class.
+- **`relationalPlacement`**: no live producer after ISS8203 slice 3 (the membership path's complexity LLM is retired; an exit-edge take abstains); supported relational commands route via **`ObjectRelateIntent`**, not this error class.
 - Held object + surface relation without explicit drop language (Phase C BD-8 composition: auto-**`drop`** then **`establishRelation`** in one atomic apply).
 
 ---

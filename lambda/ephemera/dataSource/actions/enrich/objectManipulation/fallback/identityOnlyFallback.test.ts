@@ -3,12 +3,10 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import type { InvokeBedrockObjectManipulationEnrichResult } from '../../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
-import { buildSandboxState } from '../sandboxState'
 import { testLudicGraph } from '../../../../positions/ludicGraph/testFixtures'
 import {
     invokeIdentityOnlyFallback,
     proposeIdentityOnlyFallbackTuples,
-    selectIdentityOnlyFallbackTuple,
     type IdentityOnlyFallbackInput,
 } from './identityOnlyFallback'
 
@@ -113,35 +111,4 @@ describe('identityOnlyFallback', () => {
         })
     })
 
-    describe('selectIdentityOnlyFallbackTuple', () => {
-        it('surfaces the empty-candidates error when the fallback declines', async () => {
-            const result = await selectIdentityOnlyFallbackTuple(baseInput, {}, {
-                invokeBedrockObjectManipulationIdentityOnlyFallbackImpl: errorInvoke,
-            })
-            expect(result).toEqual({
-                verdict: 'error',
-                reason: objectManipulationErrorMessages.noCatalog,
-            })
-        })
-
-        it('resolves a real LLM-proposed candidate through the shared sandbox dry run', async () => {
-            const roomGraph = testLudicGraph(roomId, {
-                nodes: [{ tag: 'Object' as const, universalKey: bagId }],
-            })
-            const characterGraph = testLudicGraph(characterId, { nodes: [] })
-            const sandboxState = buildSandboxState([roomGraph, characterGraph])
-            const body = JSON.stringify({ candidates: [{ objectId: bagId, confidence: 0.95 }] })
-
-            const result = await selectIdentityOnlyFallbackTuple(
-                baseInput,
-                { sandboxState, roomId, actorCharacterId: characterId },
-                { invokeBedrockObjectManipulationIdentityOnlyFallbackImpl: successInvoke(body) }
-            )
-
-            expect(result.verdict).toBe('resolved')
-            if (result.verdict === 'resolved') {
-                expect(result.candidate.identity.objectId).toBe(bagId)
-            }
-        })
-    })
 })

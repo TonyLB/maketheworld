@@ -16,7 +16,7 @@ const defaultGetGraph = (hostId: EphemeraMembershipHostId): Promise<EphemeraLudi
  * logic --- `computeStepSequenceFootprint` and `applyStepSequenceCore` are both already pure, this
  * function only composes them behind one seam instead of leaving every caller that wants a
  * pre-commit read to re-derive the footprint-then-fetch-then-evaluate sequence by hand (the enrich
- * tier's `sandboxMembershipDryRun` still does, for a different question --- Plan-stage legality,
+ * tier's `attemptDryRun` checks transfer preconditions, for a different question --- Plan-stage legality,
  * out of this function's scope). Wired in as a live caller by `planObjectMoveTransfer` (3d,
  * 2026-09-08), replacing `executeMembershipTransfer`'s retired `honorDefer` block, which used to
  * hand-roll exactly this. `plan*`-tier under Phase 3's tier rule: reads and evaluates, never writes.

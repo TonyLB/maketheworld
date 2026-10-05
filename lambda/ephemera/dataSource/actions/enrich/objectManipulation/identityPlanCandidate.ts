@@ -47,18 +47,6 @@ export function membershipOperationKindFromVerbClass(
     return verbClass === 'release' ? 'drop' : 'takeHold'
 }
 
-export function membershipOperationKindFromLocus(
-    locus: SpanCandidateLocus
-): 'takeHold' | 'drop' | undefined {
-    if (locus.kind === 'room') {
-        return 'takeHold'
-    }
-    if (locus.kind === 'heldByActor') {
-        return 'drop'
-    }
-    return undefined
-}
-
 /**
  * `IdentityPlanIdentity.objectId` is membership/relational-plan-facing (Object-only
  * mutation machinery, deliberately not widened by CPG-5's Phase 2) even though

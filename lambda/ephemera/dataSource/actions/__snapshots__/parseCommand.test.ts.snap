@@ -64,7 +64,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
@@ -136,7 +135,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
@@ -208,7 +206,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
@@ -216,11 +213,45 @@ Object {
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the rope on the table when the rope is lashed to the post (boundary edge; slice 3 changes this) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the rope on the table when the rope is lashed to the post (boundary edge: slice 3 expands it) 1`] = `
 Object {
   "result": Object {
     "attempt": Object {
       "actions": Array [
+        Object {
+          "challenges": Array [
+            Object {
+              "description": "Boundary relation to dissolve: is lashed to.",
+              "edge": Object {
+                "from": "OBJECT#Rope",
+                "kind": "Custom",
+                "relationLabel": "is lashed to",
+                "to": "OBJECT#Post",
+              },
+              "id": "boundaryChallenge-6",
+              "kind": "customEdge",
+              "verdict": Object {
+                "kind": "met",
+              },
+            },
+          ],
+          "desiredResult": Object {
+            "kind": "change",
+            "primitive": "dissolveRelation",
+            "relationKind": "Custom",
+            "relationLabel": "is lashed to",
+            "subject": Object {
+              "groundedId": "OBJECT#Rope",
+              "referentType": "graphNode",
+            },
+            "target": Object {
+              "groundedId": "OBJECT#Post",
+              "referentType": "graphNode",
+            },
+          },
+          "desiredResultDescription": "Dissolve: is lashed to",
+          "kind": "position",
+        },
         Object {
           "challenges": Array [],
           "desiredResult": Object {
@@ -280,7 +311,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
@@ -305,7 +335,7 @@ Object {
               "referentType": "objectSpan",
               "shortName": "broom",
               "span": "broom",
-              "stableRefKey": "primaryObject",
+              "stableRefKey": "broomRef",
             },
             "primitive": "transferMembership",
             "to": Object {
@@ -322,7 +352,7 @@ Object {
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
-          "refKey": "primaryObject",
+          "refKey": "broomRef",
           "shortName": "broom",
         },
       ],
@@ -338,7 +368,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 0,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 0,
@@ -360,7 +389,7 @@ Object {
                 "referentType": "objectSpan",
                 "shortName": "broom",
                 "span": "broom",
-                "stableRefKey": "primaryObject",
+                "stableRefKey": "broomRef",
               },
               "referentType": "currentHost",
             },
@@ -370,7 +399,7 @@ Object {
               "referentType": "objectSpan",
               "shortName": "broom",
               "span": "broom",
-              "stableRefKey": "primaryObject",
+              "stableRefKey": "broomRef",
             },
             "primitive": "transferMembership",
             "to": Object {
@@ -384,7 +413,7 @@ Object {
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
-          "refKey": "primaryObject",
+          "refKey": "broomRef",
           "shortName": "broom",
         },
       ],
@@ -400,7 +429,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 0,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 0,
@@ -422,7 +450,7 @@ Object {
                 "referentType": "objectSpan",
                 "shortName": "broom",
                 "span": "broom",
-                "stableRefKey": "primaryObject",
+                "stableRefKey": "broomRef",
               },
               "referentType": "currentHost",
             },
@@ -432,7 +460,7 @@ Object {
               "referentType": "objectSpan",
               "shortName": "broom",
               "span": "broom",
-              "stableRefKey": "primaryObject",
+              "stableRefKey": "broomRef",
             },
             "primitive": "transferMembership",
             "to": Object {
@@ -446,7 +474,7 @@ Object {
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
-          "refKey": "primaryObject",
+          "refKey": "broomRef",
           "shortName": "broom",
         },
       ],
@@ -462,7 +490,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
@@ -484,7 +511,7 @@ Object {
                 "referentType": "objectSpan",
                 "shortName": "broom",
                 "span": "broom",
-                "stableRefKey": "primaryObject",
+                "stableRefKey": "broomRef",
               },
               "referentType": "currentHost",
             },
@@ -494,7 +521,7 @@ Object {
               "referentType": "objectSpan",
               "shortName": "broom",
               "span": "broom",
-              "stableRefKey": "primaryObject",
+              "stableRefKey": "broomRef",
             },
             "primitive": "transferMembership",
             "to": Object {
@@ -508,7 +535,7 @@ Object {
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
-          "refKey": "primaryObject",
+          "refKey": "broomRef",
           "shortName": "broom",
         },
       ],
@@ -524,7 +551,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 0,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 0,
@@ -532,16 +558,16 @@ Object {
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take broom when the broom touches an exit (complexity LLM answers complex) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take broom when the broom touches an exit (abstains: no adjudicator judges exit contact or Under yet) 1`] = `
 Object {
   "result": Object {
-    "errorMessage": "ObjectManipulation enrich: relational placement is not implemented yet",
-    "type": "Error",
+    "confidence": 1,
+    "reason": "Exit contact: the moved object touches an exit, which has no graph rule for moving it.",
+    "type": "Abstain",
   },
   "stubCalls": Object {
     "acme": 0,
     "classify": 0,
-    "complexity": 1,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 0,
@@ -597,7 +623,7 @@ Object {
                 "referentType": "objectSpan",
                 "shortName": "rope",
                 "span": "rope",
-                "stableRefKey": "primaryObject",
+                "stableRefKey": "ropeRef",
               },
               "referentType": "currentHost",
             },
@@ -607,7 +633,7 @@ Object {
               "referentType": "objectSpan",
               "shortName": "rope",
               "span": "rope",
-              "stableRefKey": "primaryObject",
+              "stableRefKey": "ropeRef",
             },
             "primitive": "transferMembership",
             "to": Object {
@@ -621,7 +647,7 @@ Object {
       "referents": Array [
         Object {
           "id": "OBJECT#Rope",
-          "refKey": "primaryObject",
+          "refKey": "ropeRef",
           "shortName": "rope",
         },
       ],
@@ -637,7 +663,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 0,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 0,
@@ -645,16 +670,16 @@ Object {
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take rope when the rope is under the post (complexity LLM answers complex) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take rope when the rope is under the post (abstains: no adjudicator judges Under yet) 1`] = `
 Object {
   "result": Object {
-    "errorMessage": "ObjectManipulation enrich: relational placement is not implemented yet",
-    "type": "Error",
+    "confidence": 1,
+    "reason": "Boundary relation to dissolve: the subject is Under something that must move first.",
+    "type": "Abstain",
   },
   "stubCalls": Object {
     "acme": 0,
     "classify": 0,
-    "complexity": 1,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 0,
@@ -698,7 +723,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
@@ -715,7 +739,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
@@ -732,7 +755,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
@@ -749,7 +771,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 0,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 0,
@@ -776,7 +797,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 0,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 0,
@@ -847,7 +867,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
@@ -921,7 +940,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
@@ -948,7 +966,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
@@ -975,7 +992,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 0,
-    "complexity": 0,
     "embedSpan": 1,
     "enrich": 0,
     "parse": 0,
@@ -1049,7 +1065,6 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 1,
-    "complexity": 0,
     "embedSpan": 0,
     "enrich": 0,
     "parse": 1,
