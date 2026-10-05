@@ -943,7 +943,7 @@ describe('parseCommand LLM path', () => {
             expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
         })
 
-        it('resolves an AcmeOrder paraphrase after Parse, once classifySkeletonFamily rules out membership/relational', async () => {
+        it('resolves an AcmeOrder paraphrase after Parse, once planSkeleton rules out membership/relational', async () => {
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"type":"Command","confidence":0.9}',
@@ -1015,10 +1015,10 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('routes get the broom through classify + Parse + classifySkeletonFamily to membership enrich when the catalog gate blocks the deterministic get fast path', async () => {
+    it('routes get the broom through classify + Parse + planSkeleton to membership enrich when the catalog gate blocks the deterministic get fast path', async () => {
         // "get" only bypasses classify when the object's normalized span is already in
         // roomObjectLabels (deterministicChecks.ts); leaving it out here forces classify + Parse,
-        // exercising CPG-3's classifySkeletonFamily dispatch from a literal leading "get" token
+        // exercising CPG-3's planSkeleton dispatch from a literal leading "get" token
         // (Parse preserves the player's own words, per buildParsePrompt.ts, so this is a realistic
         // non-deterministic route into membership --- unlike a "pick up"/"grab" paraphrase, which
         // Parse would never rewrite into a bare take/get/drop token).
@@ -1186,7 +1186,7 @@ describe('parseCommand LLM path', () => {
                 {
                     // Deliberately not starting with "take"/"get"/"drop" --- those hijack to the
                     // deterministic membership fast path (deterministicChecks.ts) before classify
-                    // ever runs. classifySkeletonFamily checks matchRelationalTemplate before the
+                    // ever runs. planSkeleton checks matchRelationalTemplate before the
                     // bare-verb membership check, so this 4-token skeleton (remove/rope/off/crate)
                     // still resolves to the relational route even though classify itself no longer
                     // decides membership vs. relational (iteration 7, Sub-iteration 1).
@@ -1247,7 +1247,7 @@ describe('parseCommand LLM path', () => {
         })
     })
 
-    it('returns Unimplemented for a release paraphrase whose skeleton leading token is not the bare "drop" verb (accepted regression, iteration 7 sub-iteration 1: unlike acquire\'s "get", literal "drop X" always hits the deterministic fast path, so there is no realistic non-deterministic route into a recognized release skeleton --- classifySkeletonFamily only recognizes a literal leading "drop")', async () => {
+    it('returns Unimplemented for a release paraphrase whose skeleton leading token is not the bare "drop" verb (accepted regression, iteration 7 sub-iteration 1: unlike acquire\'s "get", literal "drop X" always hits the deterministic fast path, so there is no realistic non-deterministic route into a recognized release skeleton --- planSkeleton only recognizes a literal leading "drop")', async () => {
         const broomId = 'OBJECT#Broom'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,

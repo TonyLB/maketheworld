@@ -1,4 +1,5 @@
-import type { PlanStep } from '../enrich/objectManipulation/plan/planStep'
+import type { PlanStep, Referent } from '../enrich/objectManipulation/plan/planStep'
+import { stepReferents } from '../enrich/objectManipulation/plan/planStep'
 import type { Challenge, ChallengeData } from './challenge'
 import { challengeFromJSON, challengeToJSON } from './challenge'
 
@@ -12,6 +13,8 @@ import { challengeFromJSON, challengeToJSON } from './challenge'
 export interface AttemptActionMember {
     /** The structural intent, in Plan's step vocabulary: what deterministic code lowers. */
     readonly desiredResult?: PlanStep
+    /** Every referent the action names: a position's step slots, or a narration's subject. */
+    referents(): Referent[]
     describe(): string | undefined
     challenges(): Challenge[]
     /** Pure: returns a new action of the same kind holding these challenges. */
@@ -55,6 +58,10 @@ export class PositionAttemptAction implements AttemptActionMember {
         }
     }
 
+    referents(): Referent[] {
+        return this.desiredResult === undefined ? [] : stepReferents(this.desiredResult)
+    }
+
     describe(): string | undefined {
         return this.desiredResultDescription
     }
@@ -80,22 +87,37 @@ export class NarrateAttemptAction implements AttemptActionMember {
     readonly desiredResult = undefined
     readonly description?: string
     private readonly _challenges: Challenge[]
+    private readonly _referents: Referent[]
 
-    constructor(challenges: Challenge[], description?: string) {
+    /**
+     * `referents` is what the narration names (a look's one object span). It is the only place
+     * a narration's referent lives: with no desired result there are no steps to derive it from.
+     */
+    constructor(challenges: Challenge[], description?: string, referents: Referent[] = []) {
         this._challenges = challenges
         this.description = description
+        this._referents = referents
     }
 
     static fromJSON(data: Extract<AttemptActionData, { kind: 'narrate' }>): NarrateAttemptAction {
-        return new NarrateAttemptAction(data.challenges.map(challengeFromJSON), data.description)
+        return new NarrateAttemptAction(
+            data.challenges.map(challengeFromJSON),
+            data.description,
+            data.referents
+        )
     }
 
     toJSON(): AttemptActionData {
         return {
             kind: 'narrate',
             ...(this.description !== undefined ? { description: this.description } : {}),
+            referents: this._referents,
             challenges: this._challenges.map(challengeToJSON),
         }
+    }
+
+    referents(): Referent[] {
+        return this._referents
     }
 
     describe(): string | undefined {
@@ -107,7 +129,7 @@ export class NarrateAttemptAction implements AttemptActionMember {
     }
 
     withChallenges(challenges: Challenge[]): NarrateAttemptAction {
-        return new NarrateAttemptAction(challenges, this.description)
+        return new NarrateAttemptAction(challenges, this.description, this._referents)
     }
 }
 
@@ -121,6 +143,7 @@ export type AttemptActionData =
     | {
         kind: 'narrate'
         description?: string
+        referents: Referent[]
         challenges: ChallengeData[]
     }
 

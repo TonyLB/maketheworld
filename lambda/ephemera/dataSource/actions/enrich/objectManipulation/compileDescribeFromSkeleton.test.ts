@@ -3,6 +3,8 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import { compileDescribeFromSkeleton } from './compileDescribeFromSkeleton'
 import type { ParseSkeleton } from './parse/parseToken'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { planSkeleton } from './plan/planSkeleton'
+import { CommandAttempt } from '../../commandAttempt'
 
 const rocketSkatesId = 'OBJECT#RocketSkates' as EphemeraObjectId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
@@ -12,12 +14,22 @@ const lookSkeleton = (verb: string, span: string, stableRefKey: string): ParseSk
     { type: 'objectSpan', span, stableRefKey },
 ]
 
+/** Plan's primary attempt for a skeleton: the input the producers take (ISS8203 slice 1). */
+const planned = (skeleton: ParseSkeleton) => {
+    const plan = planSkeleton(skeleton, 'test command')
+    if (plan.type !== 'attempts' || plan.attempts.length === 0) {
+        throw new Error('planSkeleton produced no attempt for this skeleton')
+    }
+    return plan.attempts[0]
+}
+
 describe('compileDescribeFromSkeleton', () => {
     it('returns LookComponent for a matched closed-template command with grounded catalog', async () => {
         const result = await compileDescribeFromSkeleton(
             {
                 command: 'look rocket skates',
                 skeleton: lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'),
+                attempt: planned(lookSkeleton('look', 'rocket skates', 'rocketSkatesRef')),
                 characterId,
                 roomObjectCatalog: [{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }],
             },
@@ -37,6 +49,7 @@ describe('compileDescribeFromSkeleton', () => {
             {
                 command: 'examine rocket skates',
                 skeleton: lookSkeleton('examine', 'rocket skates', 'rocketSkatesRef'),
+                attempt: planned(lookSkeleton('examine', 'rocket skates', 'rocketSkatesRef')),
                 characterId,
                 roomObjectCatalog: [{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }],
             },
@@ -56,6 +69,7 @@ describe('compileDescribeFromSkeleton', () => {
             {
                 command: 'look lantern',
                 skeleton: lookSkeleton('look', 'lantern', 'lanternRef'),
+                attempt: planned(lookSkeleton('look', 'lantern', 'lanternRef')),
                 characterId,
                 heldInventoryCatalog: [{ objectId: rocketSkatesId, normalizedShortName: 'lantern' }],
             },
@@ -79,6 +93,7 @@ describe('compileDescribeFromSkeleton', () => {
                     { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
                     { type: 'text', text: 'carefully' },
                 ],
+                attempt: CommandAttempt.create('balance broom carefully', []),
                 characterId,
             },
             0.9
@@ -96,6 +111,7 @@ describe('compileDescribeFromSkeleton', () => {
             {
                 command: 'look rocket skates',
                 skeleton: lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'),
+                attempt: planned(lookSkeleton('look', 'rocket skates', 'rocketSkatesRef')),
                 roomObjectCatalog: [{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }],
             },
             0.9
@@ -112,6 +128,7 @@ describe('compileDescribeFromSkeleton', () => {
             {
                 command: 'look sword',
                 skeleton: lookSkeleton('look', 'sword', 'swordRef'),
+                attempt: planned(lookSkeleton('look', 'sword', 'swordRef')),
                 characterId,
             },
             0.9
@@ -126,6 +143,7 @@ describe('compileDescribeFromSkeleton', () => {
             {
                 command: 'look rocket skates',
                 skeleton: lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'),
+                attempt: planned(lookSkeleton('look', 'rocket skates', 'rocketSkatesRef')),
                 characterId,
                 roomObjectCatalog: [
                     { objectId: rocketSkatesId, normalizedShortName: 'rocket skates' },
@@ -150,6 +168,7 @@ describe('compileDescribeFromSkeleton', () => {
             {
                 command: 'look rocket skates',
                 skeleton: lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'),
+                attempt: planned(lookSkeleton('look', 'rocket skates', 'rocketSkatesRef')),
                 characterId,
                 roomObjectCatalog: [{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }],
             },

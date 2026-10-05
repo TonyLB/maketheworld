@@ -1,11 +1,12 @@
 import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
-import type { Referent } from './planStep'
 import { objectSpanRef } from './planStep'
+import { CommandAttempt } from '../../../commandAttempt'
+import { NarrateAttemptAction } from '../../../commandAttempt/action'
 
 const LOOK_VERBS = new Set(['look', 'l', 'examine', 'x'])
 
 export type LookTemplateMatchResult =
-    | { type: 'matched'; referent: Referent }
+    | { type: 'matched'; attempt: CommandAttempt }
     | { type: 'noMatch' }
 
 function isTextToken(token: ParseToken): token is TextToken {
@@ -20,7 +21,7 @@ function isTextToken(token: ParseToken): token is TextToken {
  * once classify has already routed a command through Parse; this function does no
  * family/route detection itself.
  */
-export function matchLookTemplate(skeleton: ParseSkeleton): LookTemplateMatchResult {
+export function matchLookTemplate(skeleton: ParseSkeleton, command: string): LookTemplateMatchResult {
     if (skeleton.length !== 2) {
         return { type: 'noMatch' }
     }
@@ -34,6 +35,7 @@ export function matchLookTemplate(skeleton: ParseSkeleton): LookTemplateMatchRes
         return { type: 'noMatch' }
     }
 
+    // Narration has no desired result, so the referent rides on the narration action itself.
     const referent = objectSpanRef(objectToken.span, objectToken.stableRefKey)
-    return { type: 'matched', referent }
+    return { type: 'matched', attempt: CommandAttempt.create(command, [new NarrateAttemptAction([], undefined, [referent])]) }
 }

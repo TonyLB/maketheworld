@@ -21,6 +21,7 @@ import { groundChange } from './synthesize/groundChange'
 import { buildReferentAssignment, type DerivedReferentResolver } from './synthesize/buildReferentAssignment'
 import {
     isGroundedStep,
+    type GroundedId,
     type GroundedReferent,
     type PlanStep,
     type TransferMembershipChange,
@@ -116,7 +117,7 @@ export const expandAndAdjudicateMembershipCandidate = (
 
     return {
         ...candidate,
-        attempt: adjudicateAttempt(CommandAttempt.create(candidate.attempt.words, candidate.attempt.referents(), actions)),
+        attempt: adjudicateAttempt(CommandAttempt.create(candidate.attempt.words, actions)),
     }
 }
 
@@ -375,9 +376,17 @@ export const sandboxMembershipDryRun = (
         return { verdict: 'illegal', decidable: true, reason: result.reason }
     }
 
+    // The object's id is on the step itself (the producer stamps it), so the span half is read
+    // from the step rather than rebuilt from the attempt's referents (ISS8203 slice 1).
+    const { object } = candidate.desiredResult
+    const stepSpans = new Map<string, GroundedId>(
+        object.referentType === 'objectSpan' && object.stableRefKey !== undefined && object.groundedId !== undefined
+            ? [[object.stableRefKey, object.groundedId]]
+            : []
+    )
     const assignment = buildReferentAssignment(
         candidate.desiredResult,
-        new Map(candidate.attempt.referents().map(({ refKey, id }) => [refKey, id])),
+        stepSpans,
         dryRunReferentResolver(objectId, sourceHostId, roomId, actorCharacterId)
     )
     if (assignment === undefined) {

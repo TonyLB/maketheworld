@@ -77,18 +77,15 @@ const transactWriteMock = jest.fn(async (items: any[]): Promise<void> => {
 const move = (subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => commitAttempt({
     attempt: CommandAttempt.fromJSON({
         words: 'put the subject in the target',
-        referents: [
-            { refKey: 'subject', id: subjectId, shortName: subjectId },
-            { refKey: 'target', id: targetId, shortName: targetId },
-        ],
+        referents: [],
         actions: [{
             kind: 'position',
             desiredResult: {
                 kind: 'change',
                 primitive: 'transferMembership',
-                object: { referentType: 'objectSpan', span: 'subject', stableRefKey: 'subject' },
-                from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'subject', stableRefKey: 'subject' } },
-                to: { referentType: 'objectSpan', span: 'target', stableRefKey: 'target' },
+                object: { referentType: 'objectSpan', span: 'subject', stableRefKey: 'subject', groundedId: subjectId, shortName: subjectId },
+                from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'subject', stableRefKey: 'subject', groundedId: subjectId, shortName: subjectId } },
+                to: { referentType: 'objectSpan', span: 'target', stableRefKey: 'target', groundedId: targetId, shortName: targetId },
                 containment: 'In',
             } as never,
             challenges: [],

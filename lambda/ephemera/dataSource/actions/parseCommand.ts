@@ -8,8 +8,7 @@ import { compileObjectContainmentFromSkeleton } from './enrich/objectManipulatio
 import { enrichObjectManipulation } from './enrich/objectManipulation'
 import { objectSpansFromSkeleton } from './enrich/objectManipulation/parse/objectSpansFromSkeleton'
 import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
-import { classifySkeletonFamily } from './enrich/objectManipulation/plan/classifySkeletonFamily'
-import { objectManipulationErrorMessages as relationalErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
+import { planSkeleton } from './enrich/objectManipulation/plan/planSkeleton'
 import { matchNonObjectManipulationTemplate } from './deterministicTemplate'
 import { matchNavigationParaphrase } from './plan/matchNavigationParaphrase'
 import { matchAcmeOrderFamily } from './plan/matchAcmeOrderFamily'
@@ -59,7 +58,7 @@ async function parseCommandCore(
         // Plan-stage dispatch now covers every command family, not just object
         // manipulation. Zero-referent paraphrases (LookRoom/Help/Home/AwaitRoadRunner)
         // and Navigation paraphrases resolve deterministically before Parse ever runs
-        // (zero Bedrock cost); AcmeOrder resolves after Parse, once classifySkeletonFamily
+        // (zero Bedrock cost); AcmeOrder resolves after Parse, once planSkeleton
         // has ruled out membership/relational. See AGENT.classifyPlanGeneralization.planning.md,
         // Sub-iteration 2.
         const nonObjectManipulationMatch = matchNonObjectManipulationTemplate(input.command)
@@ -88,34 +87,39 @@ async function parseCommandCore(
             }
         }
 
-        const family = classifySkeletonFamily(parseResult.tokens)
-
-        if (family.type === 'relationalDefer') {
-            if (family.kind === 'On' || family.kind === 'In') {
-                const result = await compileObjectContainmentFromSkeleton(
-                    {
-                        command: input.command,
-                        skeleton: parseResult.tokens,
-                        subject: family.subject,
-                        target: family.target,
-                        containment: family.kind,
-                        hostRoomId: input.hostRoomId,
-                        roomObjectCatalog: input.roomObjectCatalog,
-                        heldInventoryCatalog: input.heldInventoryCatalog,
-                    },
-                    intentResult.confidence,
-                    { embedSpan: deps.embedSpan }
-                )
-                return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
-            }
+        const plan = planSkeleton(parseResult.tokens, input.command)
+        if (plan.type === 'declined') {
             return {
-                result: { type: 'Error', errorMessage: relationalErrorMessages.nestingRelational },
+                result: { type: 'Error', errorMessage: plan.errorMessage },
                 enrichReasoningMarkdown: '',
                 enrichRawBody: undefined,
             }
         }
 
-        if (family.type === 'relational') {
+        // Dispatch on the primary attempt's desired result (or, for narration, its absence),
+        // never on a family tag. Slices 2-3 remove this transitional dispatch.
+        const [primary] = plan.attempts
+        const primaryStep = primary?.actions()[0]?.desiredResult
+
+        if (primaryStep?.kind === 'change' && primaryStep.primitive === 'transferMembership' && primaryStep.containment !== undefined) {
+            const result = await compileObjectContainmentFromSkeleton(
+                {
+                    command: input.command,
+                    skeleton: parseResult.tokens,
+                    subject: primaryStep.object,
+                    target: primaryStep.to,
+                    containment: primaryStep.containment,
+                    hostRoomId: input.hostRoomId,
+                    roomObjectCatalog: input.roomObjectCatalog,
+                    heldInventoryCatalog: input.heldInventoryCatalog,
+                },
+                intentResult.confidence,
+                { embedSpan: deps.embedSpan }
+            )
+            return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
+        }
+
+        if (primary && primaryStep?.kind === 'change' && (primaryStep.primitive === 'establishRelation' || primaryStep.primitive === 'dissolveRelation')) {
             const result = await enrichObjectManipulation(
                 {
                     enrichRoute: 'relational',
@@ -125,6 +129,7 @@ async function parseCommandCore(
                     // ManipulationFrameBuildInput's shared required field.
                     rawObjectSpans: [],
                     parseSkeleton: parseResult.tokens,
+                    attempt: primary,
                     characterId: input.characterId,
                     hostRoomId: input.hostRoomId,
                     roomObjectCatalog: input.roomObjectCatalog,
@@ -139,13 +144,13 @@ async function parseCommandCore(
             return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
         }
 
-        if (family.type === 'membership') {
+        if (primary && primaryStep?.kind === 'change' && primaryStep.primitive === 'transferMembership') {
             const result = await enrichObjectManipulation(
                 {
                     enrichRoute: 'membership',
                     command: input.command,
                     rawObjectSpans: objectSpansFromSkeleton(parseResult.tokens),
-                    verbClass: family.verbClass,
+                    verbClass: primaryStep.to.referentType === 'actingCharacter' ? 'acquire' : 'release',
                     characterId: input.characterId,
                     hostRoomId: input.hostRoomId,
                     roomObjectCatalog: input.roomObjectCatalog,
@@ -162,11 +167,12 @@ async function parseCommandCore(
             return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
         }
 
-        if (family.type === 'look') {
+        if (primary && primaryStep === undefined) {
             const result = await compileDescribeFromSkeleton(
                 {
                     command: input.command,
                     skeleton: parseResult.tokens,
+                    attempt: primary,
                     characterId: input.characterId,
                     roomObjectCatalog: input.roomObjectCatalog,
                     heldInventoryCatalog: input.heldInventoryCatalog,

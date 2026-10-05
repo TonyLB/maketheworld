@@ -4,6 +4,8 @@ import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 import { compileRelationalFromSkeleton } from './compileRelationalFromSkeleton'
 import type { ParseSkeleton } from './parse/parseToken'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { planSkeleton } from './plan/planSkeleton'
+import { CommandAttempt } from '../../commandAttempt'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
@@ -27,6 +29,15 @@ const relationalSkeleton = (
     { type: 'objectSpan', span: targetSpan, stableRefKey: targetKey },
 ]
 
+/** Plan's primary attempt for a skeleton: the input the producers take (ISS8203 slice 1). */
+const planned = (skeleton: ParseSkeleton) => {
+    const plan = planSkeleton(skeleton, 'test command')
+    if (plan.type !== 'attempts' || plan.attempts.length === 0) {
+        throw new Error('planSkeleton produced no attempt for this skeleton')
+    }
+    return plan.attempts[0]
+}
+
 describe('compileRelationalFromSkeleton', () => {
     it('returns EstablishRelation for a matched closed-template command with grounded catalog', async () => {
         const getLudicGraph = jest.fn().mockResolvedValue(
@@ -42,6 +53,7 @@ describe('compileRelationalFromSkeleton', () => {
             {
                 command: 'put broom under table',
                 skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
+                attempt: planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -94,6 +106,7 @@ describe('compileRelationalFromSkeleton', () => {
             {
                 command: 'put bench under bench',
                 skeleton: relationalSkeleton('put', 'bench', 'benchRef1', 'under', 'bench', 'benchRef2'),
+                attempt: planned(relationalSkeleton('put', 'bench', 'benchRef1', 'under', 'bench', 'benchRef2')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -120,11 +133,14 @@ describe('compileRelationalFromSkeleton', () => {
         }
     })
 
-    it('returns nestingRelational Error for containment prepositions', async () => {
+    it('abstains on a containment attempt: the containment move is parseCommand\'s route, not this producer\'s', async () => {
+        // The nestingRelational Error for PartOf and the containment dispatch are planSkeleton's
+        // and parseCommand's now (planSkeleton.test.ts); this producer only takes peer relations.
         const result = await compileRelationalFromSkeleton(
             {
                 command: 'put coin in jar',
                 skeleton: relationalSkeleton('put', 'coin', 'coinRef', 'in', 'jar', 'jarRef'),
+                attempt: planned(relationalSkeleton('put', 'coin', 'coinRef', 'in', 'jar', 'jarRef')),
                 characterId,
                 hostRoomId: roomId,
             },
@@ -132,8 +148,9 @@ describe('compileRelationalFromSkeleton', () => {
         )
 
         expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.nestingRelational,
+            type: 'Abstain',
+            confidence: 0.9,
+            reason: objectManipulationErrorMessages.relationalNoTemplateMatch,
         })
     })
 
@@ -147,6 +164,7 @@ describe('compileRelationalFromSkeleton', () => {
                     { type: 'text', text: 'carefully on' },
                     { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
                 ],
+                attempt: CommandAttempt.create('balance broom carefully on table', []),
                 characterId,
                 hostRoomId: roomId,
             },
@@ -165,6 +183,7 @@ describe('compileRelationalFromSkeleton', () => {
             {
                 command: 'put broom under table',
                 skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
+                attempt: planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef')),
                 characterId,
             },
             0.9
@@ -181,6 +200,7 @@ describe('compileRelationalFromSkeleton', () => {
             {
                 command: 'put broom under table',
                 skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
+                attempt: planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef')),
                 hostRoomId: roomId,
             },
             0.9
@@ -203,6 +223,7 @@ describe('compileRelationalFromSkeleton', () => {
             {
                 command: 'put lamp under lamp',
                 skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'under', 'lamp', 'lampRef2'),
+                attempt: planned(relationalSkeleton('put', 'lamp', 'lampRef1', 'under', 'lamp', 'lampRef2')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
@@ -226,6 +247,7 @@ describe('compileRelationalFromSkeleton', () => {
             {
                 command: 'put lamp around lamp',
                 skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'around', 'lamp', 'lampRef2'),
+                attempt: planned(relationalSkeleton('put', 'lamp', 'lampRef1', 'around', 'lamp', 'lampRef2')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
@@ -252,6 +274,7 @@ describe('compileRelationalFromSkeleton', () => {
             {
                 command: 'put sword under table',
                 skeleton: relationalSkeleton('put', 'sword', 'swordRef', 'under', 'table', 'tableRef'),
+                attempt: planned(relationalSkeleton('put', 'sword', 'swordRef', 'under', 'table', 'tableRef')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: tableId, normalizedShortName: 'table' }],
@@ -295,6 +318,7 @@ describe('compileRelationalFromSkeleton', () => {
             {
                 command: 'wrap charm around necklace',
                 skeleton: relationalSkeleton('put', 'charm', 'charmRef', 'around', 'necklace', 'necklaceRef'),
+                attempt: planned(relationalSkeleton('put', 'charm', 'charmRef', 'around', 'necklace', 'necklaceRef')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: charmId, normalizedShortName: 'charm' }],
@@ -336,6 +360,7 @@ describe('compileRelationalFromSkeleton', () => {
             {
                 command: 'tie string to cup',
                 skeleton: relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'),
+                attempt: planned(relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [

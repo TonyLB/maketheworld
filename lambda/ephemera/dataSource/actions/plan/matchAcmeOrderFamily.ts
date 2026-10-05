@@ -15,7 +15,7 @@ const ORDER_VERBS = ['order', 'buy', 'purchase']
 
 /**
  * Plan-stage AcmeOrder matcher (Sub-iteration 2, iteration 7, 2026-07-20;
- * resolves CPG-4). Runs post-Parse, once `classifySkeletonFamily` has already
+ * resolves CPG-4). Runs post-Parse, once `planSkeleton` has already
  * ruled out membership/relational for this skeleton -- unlike the other five
  * families' matchers, this one isn't a `DeterministicTemplate` entry: its
  * terminal step is `enrichAcmeOrder`'s own LLM call (trope/catalog affinity

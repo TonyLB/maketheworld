@@ -86,12 +86,16 @@ describe('groundMembershipCandidate', () => {
         confidence: 0.8,
     })
 
-    it('builds one un-expanded attempt per tuple, its primary action wrapping the wholly ungrounded desired result (grounding defers to the dry run)', () => {
+    it('builds one un-expanded attempt per tuple, its primary action wrapping the desired result stamped with the candidate\'s identity (the dry run still resolves the derived host)', () => {
         const context = { words: 'take the rope', span: 'rope', catalog }
         const grounded = groundMembershipCandidate(candidate(ropeId, { kind: 'room' }, 'takeHold'), context)
 
         const planned = planMembershipDesiredResult('takeHold', 'rope')
-        expect(grounded.desiredResult).toEqual(planned)
+        expect(grounded.desiredResult).toEqual({
+            ...planned,
+            object: { ...planned.object, groundedId: ropeId, shortName: 'rope', gloss: 'a coil of hemp rope' },
+            from: { referentType: 'currentHost', referentTarget: { ...planned.object, groundedId: ropeId, shortName: 'rope', gloss: 'a coil of hemp rope' } },
+        })
         expect(grounded.attempt.toJSON().actions).toEqual([
             expect.objectContaining({ desiredResult: grounded.desiredResult }),
         ])

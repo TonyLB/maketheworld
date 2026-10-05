@@ -8,6 +8,7 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import {
     buildCandidatesFromIdentityCase,
 } from './embeddingMatch/testing/mockVectors'
+import { planSkeleton } from './plan/planSkeleton'
 
 const relationalSkeleton = (
     verb: string,
@@ -63,6 +64,15 @@ const hostAwareGetLudicGraph = (overrides: Record<string, unknown> = {}) =>
     jest.fn().mockImplementation(async (hostId: string) => (
         overrides[hostId] ?? (hostId === characterId ? emptyCharacterGraph : emptyRoomGraph)
     ))
+
+/** Plan's primary attempt for a skeleton: the input the producers take (ISS8203 slice 1). */
+const planned = (skeleton: ParseSkeleton) => {
+    const plan = planSkeleton(skeleton, 'test command')
+    if (plan.type !== 'attempts' || plan.attempts.length === 0) {
+        throw new Error('planSkeleton produced no attempt for this skeleton')
+    }
+    return plan.attempts[0]
+}
 
 describe('enrichObjectManipulation', () => {
     it('returns grounded takeHold without Bedrock on zero-hop eligible path', async () => {
@@ -224,6 +234,7 @@ describe('enrichObjectManipulation', () => {
                 command: 'put the broom under the table',
                 rawObjectSpans: ['broom'],
                 parseSkeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
+                attempt: planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: relationalCatalog,
@@ -271,6 +282,7 @@ describe('enrichObjectManipulation', () => {
                 command: 'wrap the string around the top',
                 rawObjectSpans: ['string'],
                 parseSkeleton: relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'),
+                attempt: planned(relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef')),
                 characterId,
                 hostRoomId: roomId,
                 heldInventoryCatalog: [
@@ -322,6 +334,7 @@ describe('enrichObjectManipulation', () => {
                 command: 'lean rope against anvil',
                 rawObjectSpans: ['rope'],
                 parseSkeleton: relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'),
+                attempt: planned(relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: anvilCatalog,
@@ -363,6 +376,7 @@ describe('enrichObjectManipulation', () => {
                 command: 'tie cord around crate',
                 rawObjectSpans: ['cord'],
                 parseSkeleton: relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'),
+                attempt: planned(relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -414,6 +428,7 @@ describe('enrichObjectManipulation', () => {
                 command: 'take rope off crate',
                 rawObjectSpans: ['rope'],
                 parseSkeleton: relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'),
+                attempt: planned(relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -462,7 +477,7 @@ describe('enrichObjectManipulation', () => {
         })
     })
 
-    it('returns nesting Error for a containment preposition in the skeleton', async () => {
+    it('abstains on a containment attempt on the relational route (containment is parseCommand\'s route)', async () => {
         const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
 
         const result = await enrichObjectManipulation(
@@ -471,6 +486,7 @@ describe('enrichObjectManipulation', () => {
                 command: 'put the coin in the jar',
                 rawObjectSpans: ['coin'],
                 parseSkeleton: relationalSkeleton('put', 'coin', 'coinRef', 'in', 'jar', 'jarRef'),
+                attempt: planned(relationalSkeleton('put', 'coin', 'coinRef', 'in', 'jar', 'jarRef')),
                 roomObjectCatalog: [{ objectId: 'OBJECT#Coin' as EphemeraObjectId, normalizedShortName: 'coin' }],
             },
             0.9,
@@ -480,8 +496,9 @@ describe('enrichObjectManipulation', () => {
         )
 
         expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.nestingRelational,
+            type: 'Abstain',
+            confidence: 0.9,
+            reason: objectManipulationErrorMessages.relationalNoTemplateMatch,
         })
         expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
     })
@@ -667,6 +684,7 @@ describe('enrichObjectManipulation', () => {
                 command: 'lean the ladder leaning against the wall',
                 rawObjectSpans: ['ladder'],
                 parseSkeleton: relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'),
+                attempt: planned(relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef')),
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [

@@ -21,7 +21,15 @@ export type GroundedId = EphemeraThingId | EphemeraMembershipHostId
  * pass -- Step 2b's native Plan matcher, not yet built, is what will construct
  * these from Parse's skeleton with a real key. Don't invent placeholder values.
  */
-export type ObjectSpanReferent = { referentType: 'objectSpan'; span: string; stableRefKey?: string; groundedId?: GroundedId }
+export type ObjectSpanReferent = {
+    referentType: 'objectSpan'
+    span: string
+    stableRefKey?: string
+    groundedId?: GroundedId
+    /** Names the thing for the attempt's prose once known (stamped by key, `stampCandidateReferents.ts`). */
+    shortName?: string
+    gloss?: string
+}
 export type ActingCharacterReferent = { referentType: 'actingCharacter'; groundedId?: GroundedId }
 export type CurrentHostReferent = { referentType: 'currentHost'; referentTarget: Referent; groundedId?: GroundedId }
 /**

@@ -34,13 +34,14 @@ export async function enrichObjectManipulation(
         // parseCommand.ts's ObjectRelateIntent branch, which never calls this
         // route without one (no frame-extract fallback -- see AGENT.md,
         // relational branch). Defensive only, not reachable today.
-        if (input.parseSkeleton === undefined) {
+        if (input.parseSkeleton === undefined || input.attempt === undefined) {
             return { type: 'Error', errorMessage: objectManipulationErrorMessages.relationalNoTemplateMatch }
         }
         return compileRelationalFromSkeleton(
             {
                 command: input.command,
                 skeleton: input.parseSkeleton,
+                attempt: input.attempt,
                 characterId: input.characterId,
                 hostRoomId: input.hostRoomId,
                 roomObjectCatalog: input.roomObjectCatalog,

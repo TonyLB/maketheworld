@@ -29,7 +29,7 @@ export function matchDeterministicTemplate(command: string): DeterministicTempla
  * Sub-iteration 2 (iteration 7, 2026-07-20) live-path entry point: the
  * bare-word/paraphrase subset only, deliberately excluding
  * relationalTemplateRegistry. Object-manipulation's relational dispatch
- * already runs its own live path (classifySkeletonFamily / matchRelationalTemplate
+ * already runs its own live path (planSkeleton / matchRelationalTemplate
  * over a Parse-produced skeleton) -- wiring the relational DeterministicTemplate
  * entries in *addition* would mean two different mechanisms could both decide
  * `ObjectRelateIntent`, and consuming a relational match here would require

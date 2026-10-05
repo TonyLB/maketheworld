@@ -15,17 +15,19 @@ import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
 import type { IdentityStageDeps } from './identityStage'
 import { runIdentityStageOverSkeleton } from './identifySkeletonSpans'
 import type { ParseSkeleton } from './parse/parseToken'
-import { matchLookTemplate } from './plan/matchLookTemplate'
+import type { Referent } from './plan/planStep'
+import { stampReferent } from './stampCandidateReferents'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { selectPlanTuple } from './selectPlanCandidate'
 import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
-import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
 import { NarrateAttemptAction } from '../../commandAttempt/action'
 import { CommandAttempt } from '../../commandAttempt'
 
 export type CompileDescribeFromSkeletonInput = {
     command: string
     skeleton: ParseSkeleton
+    /** Plan's ungrounded attempt: its narration action names the referent (ISS8203 slice 1). */
+    attempt: CommandAttempt
     characterId?: EphemeraCharacterId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
@@ -66,6 +68,7 @@ type ProposeDescribeCandidatesResult =
  */
 const proposeDescribeCandidates = (
     command: string,
+    spanRef: Referent,
     stableRefKey: string,
     spanPools: ReadonlyMap<string, SpanCandidatePool>,
     catalog: readonly ObjectManipulationCatalogEntry[]
@@ -90,12 +93,12 @@ const proposeDescribeCandidates = (
         const entry = catalog.find((entry) => entry.objectId === candidateId)
         const label = entry?.normalizedShortName ?? candidateId
 
-        const action = new NarrateAttemptAction([], `Look at the ${label}`)
-        const attempt = CommandAttempt.create(
-            command,
-            [buildCommandAttemptReferent(stableRefKey, candidateId, label, entry?.gloss)],
-            [action]
+        const referent = stampReferent(
+            spanRef,
+            new Map([[stableRefKey, { id: candidateId, shortName: label, gloss: entry?.gloss }]])
         )
+        const action = new NarrateAttemptAction([], `Look at the ${label}`, [referent])
+        const attempt = CommandAttempt.create(command, [action])
 
         return { candidateId, confidence, attempt, label }
     })
@@ -128,8 +131,8 @@ export async function compileDescribeFromSkeleton(
     intentConfidence: number,
     deps: CompileDescribeFromSkeletonDeps = {}
 ): Promise<CompileDescribeFromSkeletonResult> {
-    const match = matchLookTemplate(input.skeleton)
-    if (match.type === 'noMatch') {
+    const [spanRef] = input.attempt.actions()[0]?.referents() ?? []
+    if (spanRef === undefined) {
         return {
             type: 'Abstain',
             confidence: intentConfidence,
@@ -154,15 +157,15 @@ export async function compileDescribeFromSkeleton(
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    if (match.referent.referentType !== 'objectSpan' || match.referent.stableRefKey === undefined) {
+    if (spanRef.referentType !== 'objectSpan' || spanRef.stableRefKey === undefined) {
         return {
             type: 'Abstain',
             confidence: intentConfidence,
-            reason: `${match.referent.referentType} referent has no stableRefKey to resolve against`,
+            reason: `${spanRef.referentType} referent has no stableRefKey to resolve against`,
         }
     }
 
-    const proposed = proposeDescribeCandidates(input.command, match.referent.stableRefKey, identityResult.spanPools, catalog)
+    const proposed = proposeDescribeCandidates(input.command, spanRef, spanRef.stableRefKey, identityResult.spanPools, catalog)
     if (!proposed.ok) {
         return { type: 'Abstain', confidence: intentConfidence, reason: proposed.reason }
     }

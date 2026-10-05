@@ -1,6 +1,5 @@
 import { CommandAttempt } from '../../commandAttempt'
 import { PositionAttemptAction } from '../../commandAttempt/action'
-import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
 import type { ManipulationVerbClass } from '../../baseClasses'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
@@ -16,6 +15,7 @@ import {
 } from './plan/planStep'
 import type { MembershipPlanCandidate } from './selectPlanCandidate'
 import type { ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
+import { stampCandidateReferents } from './stampCandidateReferents'
 
 /**
  * `refKey` is synthesized, not carried from a Parse-stamped `stableRefKey`: this route
@@ -76,11 +76,12 @@ export const groundMembershipCandidate = (
     const { objectId } = candidate.identity
     const { operationKind } = candidate.plan
 
-    const plannedResult: TransferMembershipChange = planMembershipDesiredResult(operationKind, span)
-
     const catalogEntry = catalog.find((entry) => entry.objectId === objectId)
     const shortName = catalogEntry?.normalizedShortName ?? span
-    const referent = buildCommandAttemptReferent(primaryObjectRefKey, objectId, shortName, catalogEntry?.gloss)
+    const plannedResult: TransferMembershipChange = stampCandidateReferents(
+        planMembershipDesiredResult(operationKind, span),
+        new Map([[primaryObjectRefKey, { id: objectId, shortName, gloss: catalogEntry?.gloss }]])
+    )
     const primaryAction = new PositionAttemptAction(
         [],
         plannedResult,
@@ -93,7 +94,7 @@ export const groundMembershipCandidate = (
         identities: new Map([[primaryObjectRefKey, candidate.identity]]),
         confidence: candidate.confidence,
         desiredResult: plannedResult,
-        attempt: CommandAttempt.create(words, [referent], [primaryAction]),
+        attempt: CommandAttempt.create(words, [primaryAction]),
     }
 }
 

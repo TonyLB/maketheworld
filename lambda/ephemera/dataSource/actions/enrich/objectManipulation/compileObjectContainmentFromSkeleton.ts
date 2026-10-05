@@ -18,8 +18,8 @@ import type { ParseSkeleton } from './parse/parseToken'
 import { currentHostRef, type Referent } from './plan/planStep'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { selectPlanTuple } from './selectPlanCandidate'
+import { stampCandidateReferents } from './stampCandidateReferents'
 import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
-import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
 import { PositionAttemptAction } from '../../commandAttempt/action'
 import { CommandAttempt } from '../../commandAttempt'
 
@@ -135,14 +135,17 @@ const proposeContainmentCandidates = (
         // carrying `subjectKey`/`targetKey` (`keyedPool`'s guard above), so they're reused
         // directly rather than reconstructed --- same referent the attempt's `stableRefKey`
         // ties the prose to.
-        const desiredResult = {
+        const desiredResult = stampCandidateReferents({
             kind: 'change' as const,
             primitive: 'transferMembership' as const,
             object: input.subject,
             from: currentHostRef(input.subject),
             to: input.target,
             containment: input.containment,
-        }
+        }, new Map([
+            [subjectKey, { id: subjectId, shortName: subjectName, gloss: subjectEntry?.gloss }],
+            [targetKey, { id: targetId, shortName: targetName, gloss: targetEntry?.gloss }],
+        ]))
 
         const preposition = input.containment === 'On' ? 'on' : 'in'
         const action = new PositionAttemptAction(
@@ -150,14 +153,7 @@ const proposeContainmentCandidates = (
             desiredResult,
             `Put ${subjectName} ${preposition} ${targetName}`
         )
-        const attempt = CommandAttempt.create(
-            input.command,
-            [
-                buildCommandAttemptReferent(subjectKey, subjectId, subjectName, subjectEntry?.gloss),
-                buildCommandAttemptReferent(targetKey, targetId, targetName, targetEntry?.gloss),
-            ],
-            [action]
-        )
+        const attempt = CommandAttempt.create(input.command, [action])
 
         return { candidateId: { subjectId, targetId }, confidence, attempt, subjectLabel: subjectName, targetLabel: targetName }
     })

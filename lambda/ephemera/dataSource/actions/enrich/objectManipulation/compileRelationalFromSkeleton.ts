@@ -20,7 +20,7 @@ import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import type { ParseSkeleton } from './parse/parseToken'
 import type { PeerRelationalEdgeKind } from './relationKind'
-import { matchRelationalTemplate } from './plan/matchRelationalTemplate'
+import { stampCandidateReferents } from './stampCandidateReferents'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { selectPlanTuple } from './selectPlanCandidate'
 import type { DryRunOutcome } from './validatePlanDryRun'
@@ -32,13 +32,14 @@ import type { Change, EstablishRelationChange, DissolveRelationChange, GroundedI
 import { groundChange } from './synthesize/groundChange'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
-import { buildCommandAttemptReferent } from '../../commandAttempt/referent'
 import { PositionAttemptAction } from '../../commandAttempt/action'
 import { CommandAttempt } from '../../commandAttempt'
 
 export type CompileRelationalFromSkeletonInput = {
     command: string
     skeleton: ParseSkeleton
+    /** Plan's ungrounded attempt: its one position action's step is the relation (ISS8203 slice 1). */
+    attempt: CommandAttempt
     characterId?: EphemeraCharacterId
     hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
@@ -192,6 +193,14 @@ const proposeRelationalCandidates = (
         const groundedChange = groundChange(change, assignment) as EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>
         const subjectId = groundedObjectId(groundedChange.subject)
         const targetId = groundedObjectId(groundedChange.target)
+        const subjectEntry = catalog.find((entry) => entry.objectId === subjectId)
+        const targetEntry = catalog.find((entry) => entry.objectId === targetId)
+        const subjectName = subjectEntry?.normalizedShortName ?? subjectId
+        const targetName = targetEntry?.normalizedShortName ?? targetId
+        const namedChange = stampCandidateReferents(groundedChange, new Map([
+            [subjectKey, { id: subjectId, shortName: subjectName, gloss: subjectEntry?.gloss }],
+            [targetKey, { id: targetId, shortName: targetName, gloss: targetEntry?.gloss }],
+        ]))
 
         const candidateId: RelationalCandidateId = {
             kind: groundedChange.primitive,
@@ -200,26 +209,15 @@ const proposeRelationalCandidates = (
             ...relationKindAndLabel,
         }
 
-        const subjectEntry = catalog.find((entry) => entry.objectId === subjectId)
-        const targetEntry = catalog.find((entry) => entry.objectId === targetId)
-        const subjectName = subjectEntry?.normalizedShortName ?? subjectId
-        const targetName = targetEntry?.normalizedShortName ?? targetId
         const verbDescription = groundedChange.primitive === 'establishRelation' ? 'Establish relation' : 'Dissolve relation'
         const action = new PositionAttemptAction(
             [],
-            groundedChange,
+            namedChange,
             `${verbDescription}: ${subjectName} / ${targetName}`
         )
-        const attempt = CommandAttempt.create(
-            words,
-            [
-                buildCommandAttemptReferent(subjectKey, subjectId, subjectName, subjectEntry?.gloss),
-                buildCommandAttemptReferent(targetKey, targetId, targetName, targetEntry?.gloss),
-            ],
-            [action]
-        )
+        const attempt = CommandAttempt.create(words, [action])
 
-        return { candidateId, change: groundedChange, confidence, attempt, subjectLabel: subjectName, targetLabel: targetName }
+        return { candidateId, change: namedChange, confidence, attempt, subjectLabel: subjectName, targetLabel: targetName }
     })
     return { ok: true, candidates }
 }
@@ -254,14 +252,8 @@ export async function compileRelationalFromSkeleton(
     intentConfidence: number,
     deps: CompileRelationalFromSkeletonDeps = {}
 ): Promise<CompileRelationalFromSkeletonResult> {
-    const match = matchRelationalTemplate(input.skeleton)
-    if (match.type === 'nestingDefer') {
-        return {
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.nestingRelational,
-        }
-    }
-    if (match.type === 'noMatch') {
+    const change = input.attempt.actions()[0]?.desiredResult
+    if (change?.kind !== 'change' || (change.primitive !== 'establishRelation' && change.primitive !== 'dissolveRelation')) {
         return {
             type: 'Abstain',
             confidence: intentConfidence,
@@ -296,7 +288,7 @@ export async function compileRelationalFromSkeleton(
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    const proposed = proposeRelationalCandidates(match.change, identityResult.spanPools, input.command, catalog)
+    const proposed = proposeRelationalCandidates(change, identityResult.spanPools, input.command, catalog)
     if (!proposed.ok) {
         return proposed.outcome === 'error'
             ? { type: 'Error', errorMessage: proposed.reason }

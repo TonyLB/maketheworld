@@ -9,6 +9,8 @@ import type { CommandAttemptReferent } from './index'
  * `Referent` (CA-1); `shortName` comes from Identify's resolved
  * `ObjectSpanCandidate.label`; `gloss` comes from the `ludicCache` node, present only
  * where authored or improvised (`EphemeraLudicCacheNode.gloss?: string`'s convention).
+ * Used only to derive the prose's referents section from the actions' span referents
+ * (`index.ts`'s `referentsFromActions`); nothing stores or reads this record as data.
  */
 export const buildCommandAttemptReferent = (
     refKey: string,
