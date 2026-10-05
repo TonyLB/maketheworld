@@ -1,5 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalsEqual, isHostingRelationKind, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../positions/ludicGraph'
 import { boundaryEdgeOutcomes } from '../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
@@ -58,7 +58,13 @@ export const attemptActionsFromBoundaryOutcomes = (
     transferSet: ReadonlySet<EphemeraObjectId>,
     graph: EphemeraLudicGraph
 ): AttemptAction[] => {
-    const outcomes = boundaryEdgeOutcomes(transferSet, graph)
+    // A mover's own containment edge into the host it is leaving (the cup `On` the table, read
+    // from the table's shard) is removed by the move itself, as `buildObjectMoveOp` does at
+    // commit, so it is not a boundary edge and never reaches the hosting-kind classifier.
+    const outcomes = boundaryEdgeOutcomes(transferSet, graph, (edge) =>
+        isHostingRelationKind(edge.kind)
+        && ephemeraLudicTerminalsEqual(edge.to, graph.rootId)
+        && [...transferSet].some((objectId) => ephemeraLudicTerminalsEqual(edge.from, objectId)))
         // A port-qualified endpoint has no producer on a boundary edge yet (ludicGraph/AGENT.md's
         // BD-36 paragraph), so only edges between things are expanded.
         .filter((entry) => isEphemeraThingId(entry.edge.from) && isEphemeraThingId(entry.edge.to))

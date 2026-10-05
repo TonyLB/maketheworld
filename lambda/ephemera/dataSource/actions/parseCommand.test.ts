@@ -2086,6 +2086,28 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         })
     })
 
+    describe('a hosted object moves (its own hosting edge is not a boundary edge)', () => {
+        it('take the coin when the coin sits on the table: the coin\'s own On edge in the table\'s shard does not throw', async () => {
+            const { result } = await run(
+                { command: 'take coin', roomObjectLabels: ['coin', 'table'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
+                {
+                    containers: { [COIN]: [TABLE] },
+                    graphs: {
+                        [ROOM]: roomWith([TABLE]),
+                        [TABLE]: testLudicGraph(TABLE as unknown as EphemeraRoomId, {
+                            nodes: [{ tag: 'Object', universalKey: COIN }],
+                            edges: [{ tag: 'Relational', from: COIN, to: TABLE, kind: 'On' }] as any,
+                        }),
+                    },
+                }
+            )
+            expect(result).toMatchObject({ type: 'ObjectManipulation', operationKind: 'takeHold', objectIds: [COIN] })
+            const attempt = CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt)
+            // No facilitating dissolve: the move itself removes the coin's hosting edge at commit.
+            expect(attempt.actions()).toHaveLength(1)
+        })
+    })
+
     describe('look and no-room', () => {
         it('look rocket skates', async () => {
             expect(await run(
