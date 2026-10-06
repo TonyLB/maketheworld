@@ -3,7 +3,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 jest.mock('../../../internalCache', () => ({
     __esModule: true,
     default: {
-        Positions: { getMembershipContainers: jest.fn() },
+        Positions: { getMembershipContainers: jest.fn(), getLudicGraph: jest.fn() },
     },
 }))
 
@@ -129,6 +129,7 @@ describe('commitAttempt', () => {
         commitAndPresentStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
         dryRunStepSequenceMock.mockResolvedValue({ verdict: 'legal', graphs: new Map(), captures: new Map() })
         mockLiveHosts(ROOM)
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue({ relationalEdges: [] })
     })
 
     it('grounds a published (ungrounded) take against live state and dispatches it through planObjectMoveTransfer', async () => {
@@ -265,6 +266,21 @@ describe('commitAttempt', () => {
         await commitAttempt({ attempt: relationalAttempt('establishRelation'), characterId: CHARACTER, messageBus, streamEvent })
 
         expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+    })
+
+    it('refuses the attempt when the exact establish edge is already on its host', async () => {
+        const establishStep = { kind: 'establishRelation', subjectId: BROOM, targetId: TABLE, hostId: ROOM, relationKind: 'Custom', relationLabel: 'is tied to' }
+        planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: [establishStep] as any })
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValueOnce({
+            relationalEdges: [{ from: BROOM, to: TABLE, kind: 'Custom', relationLabel: 'is tied to' }],
+        })
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+        await commitAttempt({ attempt: relationalAttempt('establishRelation'), characterId: CHARACTER, messageBus, streamEvent })
+
+        expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('is already present'))
+        errorSpy.mockRestore()
     })
 
     it('concatenates a membership and a relational action into one commit', async () => {
@@ -449,6 +465,34 @@ describe('commitAttempt', () => {
             await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
 
             expect(dryRunStepSequenceMock).toHaveBeenCalledWith([dissolveStep, transferStep], expect.anything())
+        })
+
+        it('refuses the whole attempt when its take has no single live host: the lashing survives', async () => {
+            mockLiveHosts(undefined)
+
+            await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+        })
+
+        it('refuses the whole attempt when its take is already held, with the held message', async () => {
+            mockLiveHosts(CHARACTER)
+            const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+            await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+            expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`is already on ${CHARACTER}`))
+            errorSpy.mockRestore()
+        })
+
+        it('refuses the whole attempt when its dissolve cannot be built, even with the take legal', async () => {
+            planRelationalEdgeTransferMock.mockResolvedValue({ ok: false, errorCode: 'noChain', errorMessage: 'no chain' })
+
+            await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(planObjectMoveTransferMock).not.toHaveBeenCalled()
+            expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
         })
 
         it('does not commit an attempt whose challenge is still pending', async () => {
