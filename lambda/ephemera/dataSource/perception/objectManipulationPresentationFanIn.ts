@@ -51,7 +51,7 @@ export type ObjectRelationalFactLeg = ObjectRelationalFactLegCore & RelationalKi
  * positionally-captured roster (`positions/manipulation/commitAttempt.ts`). The
  * relational half --- reposition within a host --- is a deliberate deferral, not a boundary; it is
  * the third member of the same move family and belongs on the same compiler. Tracked in
- * `taskPlanning/lambda/ephemera/AGENT.relationalNarration.planning.md`.
+ * `taskPlanning/lambda/ephemera/AGENT.attemptNarration.planning.md` (slice 2).
  */
 export type ObjectManipulationPresentationLeg =
     | ObjectRelationalIntentLeg
