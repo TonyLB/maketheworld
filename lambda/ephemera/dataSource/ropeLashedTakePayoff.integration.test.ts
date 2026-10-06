@@ -124,7 +124,6 @@ describe('lashed rope take payoff (integration)', () => {
     /** "get rope" end to end: parse (no Bedrock), the bus crossing, then the real commit. */
     const getRope = async (): Promise<void> => {
         const invokeBedrockParseCommandImpl = jest.fn()
-        const invokeBedrockObjectManipulationComplexityImpl = jest.fn()
         const parseResult = await parseCommand(
             {
                 command: 'get rope',
@@ -138,7 +137,6 @@ describe('lashed rope take payoff (integration)', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationComplexityImpl,
                 objectManipulationPositionsReadDeps: {
                     getMembershipContainers: jest.fn().mockResolvedValue([ROOM_ID]),
                     getLudicGraph: jest.fn().mockImplementation(async (hostId: string) => graphsByHost[hostId]),
@@ -147,13 +145,8 @@ describe('lashed rope take payoff (integration)', () => {
         )
 
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationComplexityImpl).not.toHaveBeenCalled()
-        expect(parseResult).toEqual(expect.objectContaining({
-            type: 'ObjectManipulation',
-            operationKind: 'takeHold',
-            objectIds: [ROPE_ID],
-        }))
-        if (parseResult.type !== 'ObjectManipulation' || !parseResult.attempt) {
+        expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
+        if (parseResult.type !== 'CommandAttempt') {
             throw new Error('unreachable: asserted above')
         }
 

@@ -7,7 +7,7 @@
  * see **`Where enforcement runs`** in [`AGENT.md`](./AGENT.md) (**Acme catalog lines and `stableKey`**).
  */
 import { v4 as uuidv4 } from 'uuid'
-import { isEphemeraCharacterId, isEphemeraObjectId, type EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, isEphemeraObjectId, type EphemeraCharacterId, type EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 import EphemeraDataSource from '../abstract'
@@ -49,9 +49,7 @@ import {
     isParseCommandLookComponentResult,
     isParseCommandMultipleCommandsResult,
     isParseCommandNavigationResult,
-    isParseCommandObjectManipulationResult,
-    isParseCommandEstablishRelationResult,
-    isParseCommandObjectContainmentResult,
+    isParseCommandCommandAttemptResult,
     isParseCommandPredictHypothesisResult,
     isParseCommandPromptInjectionAttemptResult,
     isParseCommandUnimplementedResult,
@@ -300,6 +298,18 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
  * relational and containment exits. No-op when `attempt` is undefined (a degenerate
  * fixture, never the live path --- every producer builds an attempt unconditionally).
  */
+/**
+ * The object a look attempt names, or undefined if the attempt is not a look (any action that is
+ * not narration makes it a world change). A look names one object, its first referent.
+ */
+const lookedAtObjectIdOf = (attempt: CommandAttemptData): EphemeraObjectId | undefined => {
+    if (attempt.actions.length === 0 || attempt.actions.some((action) => action.kind !== 'narrate')) {
+        return undefined
+    }
+    const id = attempt.referents[0]?.id
+    return isEphemeraObjectId(id) ? id : undefined
+}
+
 const publishLudicNetworkChangeRequested = async (
     streamEvent: StreamEventFn,
     characterId: EphemeraCharacterId,
@@ -539,39 +549,11 @@ const publishStreamEventsForIntent = async (
             })
         }
     }
-    else if (isParseCommandObjectManipulationResult(parseResult)) {
+    else if (isParseCommandCommandAttemptResult(parseResult)) {
+        // One exit for every command attempt (ISS8203 slice 4). The not-in-a-room check is
+        // the same for every route, looks included.
         const { fromRoomId } = roomExitContext
         if (!fromRoomId) {
-            const noRoomMessage = parseResult.operationKind === 'drop'
-                ? 'You are not in a room, so you cannot drop that.'
-                : 'You are not in a room, so you cannot pick that up.'
-            messageBus.publish({
-                type: 'PublishMessage',
-                targets: [characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message: [noRoomMessage],
-            })
-        }
-        else {
-            // Membership publishes only the generalized hand-off now ---
-            // `Object Drop`/`Object Take Hold` retired. `publishLudicNetworkChangeRequested`
-            // no-ops (and logs nothing) if `parseResult.attempt` is somehow undefined, which
-            // never happens on the live path (both producers build an attempt unconditionally).
-            await publishLudicNetworkChangeRequested(streamEvent, characterId, parseResult.attempt, parseResult.confidence)
-        }
-    }
-    else if (isParseCommandEstablishRelationResult(parseResult)) {
-        // `hostId` here only guards the not-a-room OOC message below (derived from the final
-        // step's host --- the common-ancestor chain step, or the sole step for a portless
-        // candidate); the generalized hand-off carries the attempt, not `steps`, so
-        // this has no other reader. `transferMembership` is the one `MutationKernelStep` kind
-        // without a `hostId` field --- this route's `steps` never contains one (only
-        // establish/dissolve/port steps), but the filter keeps that narrowing explicit.
-        const stepsWithHostId = parseResult.steps.filter(
-            (step): step is Exclude<typeof step, { kind: 'transferMembership' }> => step.kind !== 'transferMembership'
-        )
-        const hostId = stepsWithHostId[stepsWithHostId.length - 1]?.hostId
-        if (!hostId) {
             messageBus.publish({
                 type: 'PublishMessage',
                 targets: [characterId],
@@ -580,19 +562,29 @@ const publishStreamEventsForIntent = async (
             })
         }
         else {
-            // Relational publishes only the generalized hand-off now ---
-            // `Object Establish Relation`/`Object Dissolve Relation` retired. `hostId` and
-            // `stepsWithHostId` (above) no longer have a reader here; they stay computed above
-            // only for the not-a-room OOC message guard.
-            await publishLudicNetworkChangeRequested(streamEvent, characterId, parseResult.attempt, parseResult.confidence)
+            // An attempt made only of narration is a look: it runs in-process, the same way a UI
+            // look does. Everything else is a world change and goes to the ludic network.
+            const lookedAtObjectId = lookedAtObjectIdOf(parseResult.attempt)
+            if (lookedAtObjectId !== undefined) {
+                await commitAndPresentStepSequence(
+                    { steps: [{ kind: 'describe', referentId: lookedAtObjectId, referentKind: 'object' }], slots: [] },
+                    // No bundle to declare (zero slots), so this id is never read.
+                    'BUNDLE#none',
+                    characterId,
+                    {
+                        commit: {
+                            messageBus,
+                            streamEvent: async () => {},
+                            getCurrentHost: () => undefined,
+                        },
+                        perceive: { streamEvent, messageBus },
+                    }
+                )
+            }
+            else {
+                await publishLudicNetworkChangeRequested(streamEvent, characterId, parseResult.attempt, parseResult.confidence)
+            }
         }
-    }
-    else if (isParseCommandObjectContainmentResult(parseResult)) {
-        // Containment publishes only the generalized hand-off now ---
-        // `Object Containment` retired, folded into `Ludic Network Change Requested`, same as
-        // membership/relational. Its attempt's `transferMembership` action now
-        // carries a `containment` flag `commitAttempt` threads through.
-        await publishLudicNetworkChangeRequested(streamEvent, characterId, parseResult.attempt, parseResult.confidence)
     }
 }
 

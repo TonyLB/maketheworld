@@ -1,9 +1,12 @@
-import { identityFromSpanCandidate } from './identityPlanCandidate'
-import type { PlanCandidate } from './selectPlanCandidate'
+import { identityFromSpanCandidate, type IdentityPlanIdentity } from './identityPlanCandidate'
 import type { ObjectSpanCandidate } from './spanResolution'
 
 /** One joint assignment: an identity per `stableRefKey`, with its `min` confidence. */
-export type IdentityAssignment = Pick<PlanCandidate, 'identities' | 'confidence'>
+/** One joint identity assignment: one id per `stableRefKey`, with its confidence (by `min`). */
+export type IdentityAssignment = {
+    identities: ReadonlyMap<string, IdentityPlanIdentity>
+    confidence: number
+}
 
 /**
  * Forms the product in "plans × identity candidates": every joint assignment over the

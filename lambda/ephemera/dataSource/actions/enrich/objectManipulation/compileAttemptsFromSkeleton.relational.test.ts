@@ -1,9 +1,11 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
-import { compileRelationalFromSkeleton } from './compileRelationalFromSkeleton'
+import { compileAttemptsFromSkeleton } from './compileAttemptsFromSkeleton'
 import type { ParseSkeleton } from './parse/parseToken'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { planSkeleton } from './plan/planSkeleton'
+import { CommandAttempt } from '../../commandAttempt'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
@@ -27,7 +29,22 @@ const relationalSkeleton = (
     { type: 'objectSpan', span: targetSpan, stableRefKey: targetKey },
 ]
 
-describe('compileRelationalFromSkeleton', () => {
+/** Plan's primary attempt for a skeleton: the input the producers take (ISS8203 slice 1). */
+const planned = (skeleton: ParseSkeleton) => {
+    const plan = planSkeleton(skeleton, 'test command')
+    if (plan.type !== 'attempts' || plan.attempts.length === 0) {
+        throw new Error('planSkeleton produced no attempt for this skeleton')
+    }
+    return plan.attempts[0]
+}
+
+/** The attempt's relation step: Plan's relational template puts it in the one position action. */
+const relationStepOf = (result: { type: string; attempt?: unknown }): any => {
+    const actions = (result.attempt as { actions: { desiredResult?: unknown }[] }).actions
+    return actions[0]?.desiredResult
+}
+
+describe('compileAttemptsFromSkeleton (relational)', () => {
     it('returns EstablishRelation for a matched closed-template command with grounded catalog', async () => {
         const getLudicGraph = jest.fn().mockResolvedValue(
             testLudicGraph(roomId, {
@@ -38,10 +55,11 @@ describe('compileRelationalFromSkeleton', () => {
             })
         )
 
-        const result = await compileRelationalFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put broom under table',
                 skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
+                attempts: [planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -54,21 +72,8 @@ describe('compileRelationalFromSkeleton', () => {
         )
 
         expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: broomId,
-            targetId: tableId,
-            relationKind: 'Under',
+            type: 'CommandAttempt',
             confidence: 0.9,
-            // no flat `hostId` any more --- a portless/same-host candidate carries
-            // exactly one step, and that step carries its own `hostId`.
-            steps: [{
-                kind: 'establishRelation',
-                subjectId: broomId,
-                targetId: tableId,
-                relationKind: 'Under',
-                hostId: roomId,
-            }],
             attempt: expect.objectContaining({
                 words: 'put broom under table',
                 // Parse's own stableRefKey, not a synthesized `${id}/subject` key.
@@ -77,6 +82,12 @@ describe('compileRelationalFromSkeleton', () => {
                     { refKey: 'tableRef', id: tableId, shortName: 'table' },
                 ],
             }),
+        })
+        expect(relationStepOf(result)).toMatchObject({
+            primitive: 'establishRelation',
+            relationKind: 'Under',
+            subject: { groundedId: broomId },
+            target: { groundedId: tableId },
         })
     })
 
@@ -90,10 +101,11 @@ describe('compileRelationalFromSkeleton', () => {
             })
         )
 
-        const result = await compileRelationalFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put bench under bench',
                 skeleton: relationalSkeleton('put', 'bench', 'benchRef1', 'under', 'bench', 'benchRef2'),
+                attempts: [planned(relationalSkeleton('put', 'bench', 'benchRef1', 'under', 'bench', 'benchRef2'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -120,51 +132,12 @@ describe('compileRelationalFromSkeleton', () => {
         }
     })
 
-    it('returns nestingRelational Error for containment prepositions', async () => {
-        const result = await compileRelationalFromSkeleton(
-            {
-                command: 'put coin in jar',
-                skeleton: relationalSkeleton('put', 'coin', 'coinRef', 'in', 'jar', 'jarRef'),
-                characterId,
-                hostRoomId: roomId,
-            },
-            0.9
-        )
-
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.nestingRelational,
-        })
-    })
-
-    it('abstains when the skeleton does not match the closed relational template', async () => {
-        const result = await compileRelationalFromSkeleton(
-            {
-                command: 'balance broom carefully on table',
-                skeleton: [
-                    { type: 'text', text: 'balance' },
-                    { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
-                    { type: 'text', text: 'carefully on' },
-                    { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
-                ],
-                characterId,
-                hostRoomId: roomId,
-            },
-            0.9
-        )
-
-        expect(result).toEqual({
-            type: 'Abstain',
-            confidence: 0.9,
-            reason: objectManipulationErrorMessages.relationalNoTemplateMatch,
-        })
-    })
-
     it('returns noHostRoom Error when hostRoomId is absent', async () => {
-        const result = await compileRelationalFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put broom under table',
                 skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
+                attempts: [planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'))],
                 characterId,
             },
             0.9
@@ -177,10 +150,11 @@ describe('compileRelationalFromSkeleton', () => {
     })
 
     it('returns noHostRoom Error when characterId is absent', async () => {
-        const result = await compileRelationalFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put broom under table',
                 skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
+                attempts: [planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'))],
                 hostRoomId: roomId,
             },
             0.9
@@ -199,10 +173,11 @@ describe('compileRelationalFromSkeleton', () => {
             })
         )
 
-        const result = await compileRelationalFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put lamp under lamp',
                 skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'under', 'lamp', 'lampRef2'),
+                attempts: [planned(relationalSkeleton('put', 'lamp', 'lampRef1', 'under', 'lamp', 'lampRef2'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
@@ -222,10 +197,11 @@ describe('compileRelationalFromSkeleton', () => {
             })
         )
 
-        const result = await compileRelationalFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put lamp around lamp',
                 skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'around', 'lamp', 'lampRef2'),
+                attempts: [planned(relationalSkeleton('put', 'lamp', 'lampRef1', 'around', 'lamp', 'lampRef2'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
@@ -248,10 +224,11 @@ describe('compileRelationalFromSkeleton', () => {
             })
         )
 
-        const result = await compileRelationalFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put sword under table',
                 skeleton: relationalSkeleton('put', 'sword', 'swordRef', 'under', 'table', 'tableRef'),
+                attempts: [planned(relationalSkeleton('put', 'sword', 'swordRef', 'under', 'table', 'tableRef'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: tableId, normalizedShortName: 'table' }],
@@ -291,10 +268,11 @@ describe('compileRelationalFromSkeleton', () => {
             return []
         })
 
-        const result = await compileRelationalFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'wrap charm around necklace',
                 skeleton: relationalSkeleton('put', 'charm', 'charmRef', 'around', 'necklace', 'necklaceRef'),
+                attempts: [planned(relationalSkeleton('put', 'charm', 'charmRef', 'around', 'necklace', 'necklaceRef'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: charmId, normalizedShortName: 'charm' }],
@@ -332,10 +310,11 @@ describe('compileRelationalFromSkeleton', () => {
             return [roomId]
         })
 
-        const result = await compileRelationalFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'tie string to cup',
                 skeleton: relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'),
+                attempts: [planned(relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -348,45 +327,16 @@ describe('compileRelationalFromSkeleton', () => {
         )
 
         expect(getMembershipContainers).toHaveBeenCalledWith(tableId)
-        expect(result.type).toBe('EstablishRelation')
-        if (result.type !== 'EstablishRelation') {
-            return
-        }
-        expect(result.subjectId).toBe(stringId)
-        expect(result.targetId).toBe(cupId)
-        expect(result.operationKind).toBe('establishRelation')
-        expect(result.relationKind).toBe('Custom')
-        expect(result.relationKind === 'Custom' && result.relationLabel).toBe('to')
+        expect(result.type).toBe('CommandAttempt')
+        expect(relationStepOf(result)).toMatchObject({
+            primitive: 'establishRelation',
+            relationKind: 'Custom',
+            relationLabel: 'to',
+            subject: { groundedId: stringId },
+            target: { groundedId: cupId },
+        })
+        // The crossing's port and legs are lowered from the chain by commit, and their order is
+        // covered by `synthesize/buildCrossingLegs.test.ts`; the attempt carries only the relation.
 
-        // Order asserted explicitly, not just membership --- the chain is lowered in its
-        // own order, each port ahead of the leg that references it.
-        expect(result.steps).toHaveLength(3)
-        const [portStep, tableLeg, roomLeg] = result.steps
-
-        expect(portStep.kind).toBe('addCrossingPort')
-        if (portStep.kind !== 'addCrossingPort') {
-            return
-        }
-        expect(portStep.hostId).toBe(tableId)
-        expect(portStep.port.fromHostId).toBe(roomId)
-        expect(portStep.port.kind).toBe('Custom')
-        expect(portStep.port.kind === 'Custom' && portStep.port.exteriorRelationLabel).toBe('to')
-        const portAddress = { owner: tableId, port: portStep.port.portId }
-
-        expect(tableLeg.kind).toBe('establishRelation')
-        if (tableLeg.kind !== 'establishRelation') {
-            return
-        }
-        expect(tableLeg.hostId).toBe(tableId)
-        expect(tableLeg.subjectId).toEqual(portAddress)
-        expect(tableLeg.targetId).toBe(cupId)
-
-        expect(roomLeg.kind).toBe('establishRelation')
-        if (roomLeg.kind !== 'establishRelation') {
-            return
-        }
-        expect(roomLeg.hostId).toBe(roomId)
-        expect(roomLeg.subjectId).toBe(stringId)
-        expect(roomLeg.targetId).toEqual(portAddress)
     })
 })

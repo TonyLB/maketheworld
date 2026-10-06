@@ -21,8 +21,8 @@ const matchesPhrase = (normalizedSpan: string, phrase: string): boolean => (
     normalizedSpan === phrase || new RegExp(`\\b${phrase}\\b`).test(normalizedSpan)
 )
 
-/** which containment kind a nesting-defer span names, if any --- `On` for the on-phrases, `In` for the containment phrases. */
-function nestingDeferKind(normalizedSpan: string): 'On' | 'In' | undefined {
+/** which containment kind a nesting-preposition span names, if any --- `On` for the on-phrases, `In` for the containment phrases. */
+function nestingPrepositionKind(normalizedSpan: string): 'On' | 'In' | undefined {
     if (ON_DEFER_PHRASES.some((phrase) => matchesPhrase(normalizedSpan, phrase))) {
         return 'On'
     }
@@ -56,9 +56,9 @@ export function normalizeRelationSpan(relationSpan: string): NormalizeRelationOu
         }
     }
 
-    const deferKind = nestingDeferKind(normalizedSpan)
-    if (deferKind) {
-        return { type: 'nestingDefer', kind: deferKind }
+    const prepositionKind = nestingPrepositionKind(normalizedSpan)
+    if (prepositionKind) {
+        return { type: 'nestingPreposition', kind: prepositionKind }
     }
 
     const enumKind = matchEnumKind(normalizedSpan)

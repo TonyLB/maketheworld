@@ -1,8 +1,5 @@
-import type {
-    IdentityPlanIdentity,
-    MembershipPlanStub,
-    RelationalPlanStub,
-} from '../identityPlanCandidate'
+import type { CommandAttempt } from '../../../commandAttempt'
+import type { IdentityPlanIdentity } from '../identityPlanCandidate'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import {
     selectPlanTuple,
@@ -21,7 +18,7 @@ import type { DryRunOutcome } from '../validatePlanDryRun'
  */
 export type JointFallbackCandidate = {
     identity: IdentityPlanIdentity
-    plan: RelationalPlanStub | MembershipPlanStub
+    plan: CommandAttempt
     confidence: number
 }
 

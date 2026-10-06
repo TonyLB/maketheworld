@@ -14,7 +14,7 @@ export const locusToCatalogScope = (locus: SpanCandidateLocus): ObjectManipulati
 )
 
 /**
- * FT-2.1 bridge helper. Membership compile uses {@link selectMembershipFromPool} (FT-2.2).
+ * FT-2.1 bridge helper. Membership now routes through the shared attempt producer (ISS8203 slice 3).
  * Retained for tests and any non-membership callers of single-span bridge collapse.
  */
 export function collapseUnarySpanPools(spanPools: readonly SpanCandidatePool[]): UnaryCollapseResult {

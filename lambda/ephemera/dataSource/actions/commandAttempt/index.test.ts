@@ -3,6 +3,8 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { CommandAttempt, type CommandAttemptData } from './index'
 import type { AttemptActionData } from './action'
 import type { ChallengeData } from './challenge'
+import type { Referent } from '../enrich/objectManipulation/plan/planStep'
+import { PositionAttemptAction } from './action'
 import { MetVerdict, ImpossibleVerdict, type Verdict } from './verdict'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
 
@@ -20,19 +22,34 @@ const positionAction = (challenges: ChallengeData[], desiredResultDescription?: 
     ...(desiredResultDescription !== undefined ? { desiredResultDescription } : {}),
 })
 
+/** A span referent as Grounding leaves it: keyed, identified, and named for the prose. */
+const span = (refKey: string, id: EphemeraObjectId, shortName: string, gloss?: string): Referent => ({
+    referentType: 'objectSpan',
+    span: shortName,
+    stableRefKey: refKey,
+    groundedId: id,
+    shortName,
+    ...(gloss !== undefined ? { gloss } : {}),
+})
+
+/** A narration carrying the referents its prose names (the look route's shape). */
+const narrateAction = (referents: Referent[], challenges: ChallengeData[], description?: string): AttemptActionData => ({
+    kind: 'narrate',
+    challenges,
+    referents,
+    ...(description !== undefined ? { description } : {}),
+})
+
 describe('CommandAttempt', () => {
     describe('row 2 --- get gigantic boulder', () => {
         const data: CommandAttemptData = {
             words: 'get gigantic boulder',
-            referents: [
-                {
-                    refKey: 'boulderRef',
-                    id: boulderId,
-                    shortName: 'a gigantic boulder',
-                    gloss: 'granite, easily as tall as a person, half-sunk in the dirt',
-                },
-            ],
-            actions: [positionAction([], "the boulder is in the character's possession")],
+            referents: [],
+            actions: [narrateAction(
+                [span('boulderRef', boulderId, 'a gigantic boulder', 'granite, easily as tall as a person, half-sunk in the dirt')],
+                [],
+                "the boulder is in the character's possession"
+            )],
         }
 
         it('renders the six-section prose', () => {
@@ -67,11 +84,12 @@ describe('CommandAttempt', () => {
     describe('row 3 --- place fork to the left of plate', () => {
         const data: CommandAttemptData = {
             words: 'place fork to the left of plate',
-            referents: [
-                { refKey: 'forkRef', id: forkId, shortName: 'a fork' },
-                { refKey: 'plateRef', id: plateId, shortName: 'a plate' },
-            ],
-            actions: [positionAction([], 'the fork is to the left of the plate')],
+            referents: [],
+            actions: [narrateAction(
+                [span('forkRef', forkId, 'a fork'), span('plateRef', plateId, 'a plate')],
+                [],
+                'the fork is to the left of the plate'
+            )],
         }
 
         it('renders referents with no gloss and succeeds with no challenge', () => {
@@ -97,26 +115,16 @@ describe('CommandAttempt', () => {
     })
 
     describe('row 5 --- put motorcycle on shoebox', () => {
-        const referents: CommandAttemptData['referents'] = [
-            {
-                refKey: 'motorcycleRef',
-                id: motorcycleId,
-                shortName: 'a motorcycle',
-                gloss: 'steel and rubber, about seven feet long, several hundred pounds',
-            },
-            {
-                refKey: 'shoeboxRef',
-                id: shoeboxId,
-                shortName: 'a shoebox',
-                gloss: 'cardboard, about a foot long, empty',
-            },
+        const referents: Referent[] = [
+            span('motorcycleRef', motorcycleId, 'a motorcycle', 'steel and rubber, about seven feet long, several hundred pounds'),
+            span('shoeboxRef', shoeboxId, 'a shoebox', 'cardboard, about a foot long, empty'),
         ]
 
         it("today's code detects no challenge and succeeds --- the bug CA-6 exists to fix", () => {
             const attempt = CommandAttempt.fromJSON({
                 words: 'put motorcycle on shoebox',
-                referents,
-                actions: [positionAction([], 'the motorcycle is on the shoebox')],
+                referents: [],
+                actions: [narrateAction(referents, [], 'the motorcycle is on the shoebox')],
             })
             expect(attempt.result).toEqual({
                 status: 'succeeded',
@@ -132,8 +140,8 @@ describe('CommandAttempt', () => {
             }
             const pending = CommandAttempt.fromJSON({
                 words: 'put motorcycle on shoebox',
-                referents,
-                actions: [positionAction([weightChallenge], 'the motorcycle is on the shoebox')],
+                referents: [],
+                actions: [narrateAction(referents, [weightChallenge], 'the motorcycle is on the shoebox')],
             })
             expect(pending.result).toEqual({ status: 'pending' })
 
@@ -165,12 +173,13 @@ describe('CommandAttempt', () => {
 
         const data: CommandAttemptData = {
             words: 'get rope',
-            referents: [
-                { refKey: 'ropeRef', id: ropeId, shortName: 'a coil of rope' },
-            ],
+            referents: [],
             actions: [
-                positionAction(
-                    [
+                {
+                    kind: 'narrate',
+                    referents: [span('ropeRef', ropeId, 'a coil of rope')],
+                    description: 'the rope is untied',
+                    challenges: [
                         {
                             kind: 'customEdge',
                             id: 'ropeLashing',
@@ -178,8 +187,7 @@ describe('CommandAttempt', () => {
                             description: 'the rope is lashed to the post; that lashing must be undone.',
                         },
                     ],
-                    'the rope is untied'
-                ),
+                },
                 positionAction([], 'taken'),
             ],
         }
@@ -228,9 +236,13 @@ describe('CommandAttempt', () => {
             }
             const attempt = CommandAttempt.fromJSON({
                 words: 'get rope',
-                referents: [{ refKey: 'ropeRef', id: ropeId, shortName: 'a coil of rope' }],
+                referents: [],
                 actions: [
-                    positionAction([{ kind: 'worldKnowledge', id: 'knot', description: 'the knot is tight' }], 'taken'),
+                    narrateAction(
+                        [span('ropeRef', ropeId, 'a coil of rope')],
+                        [{ kind: 'worldKnowledge', id: 'knot', description: 'the knot is tight' }],
+                        'taken'
+                    ),
                 ],
             }).recordVerdict('knot', stalledVerdict)
             expect(() => attempt.result).toThrow(/neither proceeds nor refuses/)
@@ -241,9 +253,10 @@ describe('CommandAttempt', () => {
         it('round-trips through toJSON/fromJSON', () => {
             const original = CommandAttempt.fromJSON({
                 words: 'get rope',
-                referents: [{ refKey: 'ropeRef', id: ropeId, shortName: 'a coil of rope' }],
+                referents: [],
                 actions: [
-                    positionAction(
+                    narrateAction(
+                        [span('ropeRef', ropeId, 'a coil of rope')],
                         [{ kind: 'worldKnowledge', id: 'taken', description: 'none', verdict: { kind: 'met' } }],
                         'taken'
                     ),
@@ -256,17 +269,11 @@ describe('CommandAttempt', () => {
     })
 
     describe('NarrateAttemptAction', () => {
-        const narrateAction = (description?: string): AttemptActionData => ({
-            kind: 'narrate',
-            challenges: [],
-            ...(description !== undefined ? { description } : {}),
-        })
-
-        it('round-trips through toJSON/fromJSON, with no challenges and no desiredResult', () => {
+        it('round-trips through toJSON/fromJSON, with its referents, no challenges and no desiredResult', () => {
             const data: CommandAttemptData = {
                 words: 'look at the cup',
                 referents: [{ refKey: 'cupRef', id: forkId, shortName: 'a cup' }],
-                actions: [narrateAction('Look at the cup')],
+                actions: [narrateAction([span('cupRef', forkId, 'a cup')], [], 'Look at the cup')],
             }
             const attempt = CommandAttempt.fromJSON(data)
             expect(attempt.toJSON()).toEqual(data)
@@ -275,10 +282,43 @@ describe('CommandAttempt', () => {
         it('succeeds immediately, since it detects no challenge, with its description as the outcome', () => {
             const attempt = CommandAttempt.fromJSON({
                 words: 'look at the cup',
-                referents: [{ refKey: 'cupRef', id: forkId, shortName: 'a cup' }],
-                actions: [narrateAction('Look at the cup')],
+                referents: [],
+                actions: [narrateAction([span('cupRef', forkId, 'a cup')], [], 'Look at the cup')],
             })
             expect(attempt.result).toEqual({ status: 'succeeded', outcome: 'Look at the cup' })
+        })
+    })
+
+    describe('referents are derived from the actions', () => {
+        it('lists each keyed, named span once, in order of first appearance, and nothing ungrounded', () => {
+            const attempt = CommandAttempt.fromJSON({
+                words: 'put cup on cup',
+                referents: [],
+                actions: [{
+                    kind: 'position',
+                    desiredResult: {
+                        kind: 'change',
+                        primitive: 'transferMembership',
+                        object: span('subject', forkId, 'a cup'),
+                        from: { referentType: 'currentHost', referentTarget: span('subject', forkId, 'a cup') },
+                        to: { referentType: 'objectSpan', span: 'plate', stableRefKey: 'target' },
+                        containment: 'On',
+                    } as never,
+                    challenges: [],
+                }],
+            })
+            expect(attempt.referents()).toEqual([{ refKey: 'subject', id: forkId, shortName: 'a cup' }])
+        })
+
+        it('does not list a span that Grounding has not yet named', () => {
+            const attempt = CommandAttempt.create('put cup on plate', [new PositionAttemptAction([], {
+                kind: 'change',
+                primitive: 'transferMembership',
+                object: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'subject' },
+                from: { referentType: 'actingCharacter' },
+                to: { referentType: 'objectSpan', span: 'plate', stableRefKey: 'target' },
+            })])
+            expect(attempt.referents()).toEqual([])
         })
     })
 })

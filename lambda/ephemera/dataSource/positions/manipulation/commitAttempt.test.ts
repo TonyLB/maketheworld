@@ -33,7 +33,9 @@ jest.mock('./kernel/commitAndPresentStepSequence', () => ({
 import internalCache from '../../../internalCache'
 import { commitAttempt } from './commitAttempt'
 import { CommandAttempt } from '../../actions/commandAttempt'
-import { groundMembershipCandidate } from '../../actions/enrich/objectManipulation/proposeMembershipCandidates'
+import { planMembershipDesiredResult } from '../../actions/enrich/objectManipulation/plan/matchMembershipTemplate'
+import { stampCandidateReferents } from '../../actions/enrich/objectManipulation/stampCandidateReferents'
+import { PositionAttemptAction } from '../../actions/commandAttempt/action'
 import { planObjectMoveTransfer } from './membership/planObjectMoveTransfer'
 import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTransfer'
 import { commitAndPresentStepSequence } from './kernel/commitAndPresentStepSequence'
@@ -53,19 +55,21 @@ const BROOM = 'OBJECT#Broom' as EphemeraObjectId
 const TABLE = 'OBJECT#Table' as EphemeraObjectId
 
 /**
- * Built by the real producer and round-tripped through JSON, so the fixture is exactly what
- * actions publishes: the step wholly ungrounded, the object's id only on the attempt's referents.
+ * Built the way Plan and the shared producer build it, then round-tripped through JSON, so the
+ * fixture is exactly what actions publishes: the step grounded by key, the object's id on the
+ * attempt's referents.
  */
-const membershipAttempt = (operation: 'takeHold' | 'drop' = 'takeHold'): CommandAttempt => CommandAttempt.fromJSON(
-    groundMembershipCandidate(
-        {
-            identity: { objectId: BROOM, label: 'broom', locus: { kind: operation === 'takeHold' ? 'room' : 'heldByActor' } as never, jointRelevance: 1, sourceTags: [] },
-            plan: { kind: 'transferMembership', operationKind: operation },
-            confidence: 1,
-        },
-        { words: 'pick up the broom', span: 'broom', catalog: [] }
-    ).attempt.toJSON()
-)
+const membershipAttempt = (operation: 'takeHold' | 'drop' = 'takeHold'): CommandAttempt => {
+    const step = stampCandidateReferents(
+        planMembershipDesiredResult(operation, 'broom', 'primaryObject'),
+        new Map([['primaryObject', { id: BROOM, shortName: 'broom' }]])
+    )
+    return CommandAttempt.fromJSON(
+        CommandAttempt.create('pick up the broom', [
+            new PositionAttemptAction([], step, `${operation === 'takeHold' ? 'Take' : 'Drop'}: broom`),
+        ]).toJSON()
+    )
+}
 
 /** Character is in ROOM; the broom is wherever `broomHost` says. */
 const mockLiveHosts = (broomHost: EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId | undefined) => {
@@ -91,9 +95,9 @@ const containmentAttempt = (containment: 'On' | 'In' = 'On'): CommandAttempt => 
         desiredResult: {
             kind: 'change',
             primitive: 'transferMembership',
-            object: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'subject' },
-            from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'subject' } },
-            to: { referentType: 'objectSpan', span: 'tray', stableRefKey: 'target' },
+            object: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'subject', groundedId: BROOM, shortName: 'cup' },
+            from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'subject', groundedId: BROOM, shortName: 'cup' } },
+            to: { referentType: 'objectSpan', span: 'tray', stableRefKey: 'target', groundedId: TABLE, shortName: 'tray' },
             containment,
         } as never,
         challenges: [],
@@ -282,9 +286,9 @@ describe('commitAttempt', () => {
                     desiredResult: {
                         kind: 'change',
                         primitive: 'transferMembership',
-                        object: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject' },
-                        from: { referentType: 'currentHost', referentTarget: { referentType: 'actingCharacter' } },
-                        to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'target' },
+                        object: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom' },
+                        from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom' } },
+                        to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'target', groundedId: TABLE, shortName: 'table' },
                     } as never,
                     challenges: [],
                 },
@@ -307,6 +311,54 @@ describe('commitAttempt', () => {
         expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
         const [plan] = commitAndPresentStepSequenceMock.mock.calls[0]
         expect(plan.steps).toEqual([membershipStep, relationalStep])
+    })
+
+    it('commits a lashed object\'s met dissolve before its containment transfer, in one commit (ISS8203 slice 3 payoff)', async () => {
+        const dissolveStep = { kind: 'dissolveRelation', subjectId: BROOM, targetId: TABLE, hostId: ROOM, relationKind: 'Custom', relationLabel: 'is lashed to' }
+        const transferStep = { kind: 'transferMembership', entityIds: new Set([BROOM]), fromHostIds: new Set([ROOM]), toHostId: TABLE }
+        planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: [dissolveStep] as any })
+        planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [transferStep], slots: [] } as any, fromHostId: ROOM })
+
+        // The published attempt, as parseCommand's round trip hands it over: the met dissolve first.
+        const published = CommandAttempt.fromJSON({
+            words: 'put the broom on the table',
+            referents: [
+                { refKey: 'subject', id: BROOM, shortName: 'broom' },
+                { refKey: 'target', id: TABLE, shortName: 'table' },
+            ],
+            actions: [
+                {
+                    kind: 'position',
+                    desiredResult: {
+                        kind: 'change',
+                        primitive: 'dissolveRelation',
+                        subject: { referentType: 'graphNode', groundedId: BROOM },
+                        target: { referentType: 'graphNode', groundedId: TABLE },
+                        relationKind: 'Custom',
+                        relationLabel: 'is lashed to',
+                    } as never,
+                    challenges: [{ kind: 'customEdge', id: 'c1', description: 'lashed', edge: { from: BROOM, to: TABLE, kind: 'Custom', relationLabel: 'is lashed to' }, verdict: { kind: 'met' } }],
+                },
+                {
+                    kind: 'position',
+                    desiredResult: {
+                        kind: 'change',
+                        primitive: 'transferMembership',
+                        object: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom' },
+                        from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom' } },
+                        to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'target', groundedId: TABLE, shortName: 'table' },
+                        containment: 'On',
+                    } as never,
+                    challenges: [],
+                },
+            ],
+        } as never)
+
+        await commitAttempt({ attempt: published, characterId: CHARACTER, messageBus, streamEvent })
+
+        expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
+        const [plan] = commitAndPresentStepSequenceMock.mock.calls[0]
+        expect(plan.steps).toEqual([dissolveStep, transferStep])
     })
 
     it('is a no-op for an action with no desiredResult', async () => {

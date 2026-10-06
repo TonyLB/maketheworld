@@ -7,7 +7,11 @@ This file records **contracts** only. Mental models: [`AGENT.concepts.md`](./AGE
 ## Grounding
 
 - **Grounding is total.** It **must** be handed a complete `ReferentAssignment`. A referent with no `groundedId` and no entry in the namespace it needs **must** throw, as a construction bug; callers **must not** branch on it as a runtime outcome. (A derived referent the world cannot resolve is the assignment builder's to report, before Grounding runs.)
-- **The producer owns the joint candidate space.** The product across a `Change`'s referents **must** be formed before Grounding, and a relation joining an object to itself **must** be dropped there. Grounding and Validation never see one.
+- **Enumerate owns the joint candidate space.** The product across an attempt's referents **must** be formed before Grounding, and a relation joining an object to itself **must** be dropped there. Grounding and Validation never see one.
+
+## Plan
+
+- **Plan's output is a set of ungrounded attempts, and every fallback emits that same type.** Plan never reads world state: its attempts carry no ids. Every fallback (identity-only, plan-only and joint) takes or proposes attempts, not families, so one producer handles them all.
 
 ## Validation
 
@@ -19,3 +23,5 @@ This file records **contracts** only. Mental models: [`AGENT.concepts.md`](./AGE
 - **One impossible challenge refuses the whole attempt**, regardless of any other challenge's state.
 - **A challenge propagates nothing.** What a met verdict permits is its own action's desired result; no verdict may widen another action.
 - **Adjudicate runs actions-side, per candidate, before the dry run.** Verdicts **must** ride the published attempt. Positions honors them at commit and never judges --- that half of the rule is [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md)'s (the `attempt` paragraph under the `mtw.ephemera.actions` ingress).
+- **Every `transferMembership` carries its own preconditions and boundary expansion, whatever template produced it.** A transfer's moved object must sit in exactly one host, its `from` must be that host, and `from` must differ from `to`; a failed precondition is illegal, never a defer. Expansion adds the boundary dissolves and the exit-contact challenge from the object's source host, for take, drop and containment alike (ISS8203 slice 3).
+- **Defer has one meaning: a challenge left pending.** A route may not add a defer reason of its own (a complexity LLM, an exit-edge flag). The deferred adjudication tier is the only place a pending challenge is judged, and until it has a judge the candidate abstains.

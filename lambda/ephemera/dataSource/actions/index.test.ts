@@ -1697,15 +1697,13 @@ describe('ephemeraActionsDataSource', () => {
         })
     })
 
-    describe('ParseCommandObjectManipulationResult', () => {
+    describe('ParseCommandCommandAttemptResult (take, drop)', () => {
         const from = 'ROOM#from' as EphemeraRoomId
 
         it('emits Ludic Network Change Requested when takeHold is grounded', async () => {
             const attempt = { words: 'pick up the broom', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'ObjectManipulation',
-                operationKind: 'takeHold',
-                objectIds: ['OBJECT#Broom'],
+                type: 'CommandAttempt',
                 confidence: 0.9,
                 attempt,
             })
@@ -1753,9 +1751,7 @@ describe('ephemeraActionsDataSource', () => {
         it('emits Ludic Network Change Requested when drop is grounded', async () => {
             const attempt = { words: 'drop the broom', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'ObjectManipulation',
-                operationKind: 'drop',
-                objectIds: ['OBJECT#Broom'],
+                type: 'CommandAttempt',
                 confidence: 0.9,
                 attempt,
             })
@@ -1801,10 +1797,10 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('emits correlated ReturnValue when requestId is present', async () => {
+            const attempt = { words: 'pick up the broom', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'ObjectManipulation',
-                operationKind: 'takeHold',
-                objectIds: ['OBJECT#Broom'],
+                type: 'CommandAttempt',
+                attempt,
                 confidence: 0.9,
             })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
@@ -1842,10 +1838,10 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when character has no current room', async () => {
+            const attempt = { words: 'pick up the broom', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'ObjectManipulation',
-                operationKind: 'takeHold',
-                objectIds: ['OBJECT#Broom'],
+                type: 'CommandAttempt',
+                attempt,
                 confidence: 0.9,
             })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
@@ -1876,16 +1872,16 @@ describe('ephemeraActionsDataSource', () => {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
-                message: ['You are not in a room, so you cannot pick that up.'],
+                message: ['You are not in a room, so you cannot do that.'],
             })
             expect(streamEvent).not.toHaveBeenCalled()
         })
 
         it('publishes WorldOOCMessage when drop is grounded but character has no room', async () => {
+            const attempt = { words: 'pick up the broom', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'ObjectManipulation',
-                operationKind: 'drop',
-                objectIds: ['OBJECT#Broom'],
+                type: 'CommandAttempt',
+                attempt,
                 confidence: 0.9,
             })
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
@@ -1916,7 +1912,7 @@ describe('ephemeraActionsDataSource', () => {
                 type: 'PublishMessage',
                 targets: ['CHARACTER#123'],
                 displayProtocol: 'WorldOOCMessage',
-                message: ['You are not in a room, so you cannot drop that.'],
+                message: ['You are not in a room, so you cannot do that.'],
             })
             expect(streamEvent).not.toHaveBeenCalled()
         })
@@ -2100,29 +2096,19 @@ describe('ephemeraActionsDataSource', () => {
         })
     })
 
-    describe('ParseCommandEstablishRelationResult', () => {
+    describe('ParseCommandCommandAttemptResult (relational)', () => {
         const hostRoom = 'ROOM#from' as EphemeraRoomId
 
         it('emits Ludic Network Change Requested when establishRelation is grounded', async () => {
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
             const attempt = { words: 'put the broom on the table', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'EstablishRelation',
-                operationKind: 'establishRelation',
-                subjectId: 'OBJECT#Broom',
-                targetId: 'OBJECT#Table',
-                relationKind: 'Under',
+                type: 'CommandAttempt',
+                attempt,
                 confidence: 0.9,
                 // no flat `hostId` any more --- the consumer reads the final step's
                 // own carried `hostId` instead. A portless candidate carries exactly
                 // one step.
-                steps: [{
-                    kind: 'establishRelation',
-                    subjectId: 'OBJECT#Broom',
-                    targetId: 'OBJECT#Table',
-                    relationKind: 'Under',
-                    hostId: hostRoom,
-                }],
-                attempt,
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2161,24 +2147,12 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('emits Ludic Network Change Requested with Custom relationLabel', async () => {
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
             const attempt = { words: 'tie the rope around the crate', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'EstablishRelation',
-                operationKind: 'establishRelation',
-                subjectId: 'OBJECT#Rope',
-                targetId: 'OBJECT#Crate',
-                relationKind: 'Custom',
-                relationLabel: 'tied around',
-                confidence: 0.85,
-                steps: [{
-                    kind: 'establishRelation',
-                    subjectId: 'OBJECT#Rope',
-                    targetId: 'OBJECT#Crate',
-                    relationKind: 'Custom',
-                    relationLabel: 'tied around',
-                    hostId: hostRoom,
-                }],
+                type: 'CommandAttempt',
                 attempt,
+                confidence: 0.85,
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2212,6 +2186,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('emits Ludic Network Change Requested carrying the attempt for a genuine crossing', async () => {
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
             const tableId = 'OBJECT#Table' as EphemeraObjectId
             const portStep = {
                 kind: 'addCrossingPort' as const,
@@ -2238,15 +2213,9 @@ describe('ephemeraActionsDataSource', () => {
             ]
             const attempt = { words: 'tie string to cup', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'EstablishRelation',
-                operationKind: 'establishRelation',
-                subjectId: 'OBJECT#String',
-                targetId: 'OBJECT#Cup',
-                relationKind: 'Custom',
-                relationLabel: 'tied to',
-                confidence: 0.9,
-                steps: [portStep, ...legSteps],
+                type: 'CommandAttempt',
                 attempt,
+                confidence: 0.9,
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2280,24 +2249,12 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('emits Ludic Network Change Requested when dissolveRelation is grounded', async () => {
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
             const attempt = { words: 'take the rope off the crate', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'EstablishRelation',
-                operationKind: 'dissolveRelation',
-                subjectId: 'OBJECT#Rope',
-                targetId: 'OBJECT#Crate',
-                relationKind: 'Custom',
-                relationLabel: 'tied around',
-                confidence: 0.9,
-                steps: [{
-                    kind: 'dissolveRelation',
-                    subjectId: 'OBJECT#Rope',
-                    targetId: 'OBJECT#Crate',
-                    relationKind: 'Custom',
-                    relationLabel: 'tied around',
-                    hostId: hostRoom,
-                }],
+                type: 'CommandAttempt',
                 attempt,
+                confidence: 0.9,
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2331,16 +2288,12 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when establishRelation has no host room', async () => {
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: null, toRoomIds: [], exits: [] })
+            const attempt = { words: 'put the broom on the table', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'EstablishRelation',
-                operationKind: 'establishRelation',
-                subjectId: 'OBJECT#Broom',
-                targetId: 'OBJECT#Table',
-                relationKind: 'Under',
+                type: 'CommandAttempt',
+                attempt,
                 confidence: 0.9,
-                // No steps at all --- no host to be in a room with, same as the old
-                // `hostId: null` sentinel this replaces.
-                steps: [],
             })
 
             const streamEvent = jest.fn(async () => {})
@@ -2371,13 +2324,10 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('emits Ludic Network Change Requested when an On containment move is grounded', async () => {
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
             const attempt = { words: 'put the cup on the tray', referents: [], actions: [] }
             mockedParseCommand.mockResolvedValue({
-                type: 'ObjectContainment',
-                subjectId: 'OBJECT#Cup',
-                targetId: 'OBJECT#Tray',
-                hostId: hostRoom,
-                containment: 'On',
+                type: 'CommandAttempt',
                 confidence: 0.9,
                 attempt,
             })
@@ -2410,6 +2360,47 @@ describe('ephemeraActionsDataSource', () => {
                     confidence: 0.9,
                 },
             })
+        })
+    })
+
+    describe('ParseCommandCommandAttemptResult (a look)', () => {
+        const lookAttempt = {
+            words: 'look rocket skates',
+            referents: [{ refKey: 'skatesRef', id: 'OBJECT#Skates' as const, shortName: 'rocket skates' }],
+            actions: [{ kind: 'narrate' as const, description: 'Look at the rocket skates', referents: [], challenges: [] }],
+        }
+
+        it('publishes the not-in-a-room message when a look has no room', async () => {
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: null, toRoomIds: [], exits: [] })
+            mockedParseCommand.mockResolvedValue({ type: 'CommandAttempt', attempt: lookAttempt, confidence: 0.9 })
+
+            const streamEvent = jest.fn(async () => {})
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'look rocket skates',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['You are not in a room, so you cannot do that.'],
+            })
+            expect(streamEvent).not.toHaveBeenCalledWith(expect.objectContaining({
+                header: { type: 'Ludic Network Change Requested' },
+            }))
         })
     })
 

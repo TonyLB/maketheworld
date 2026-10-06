@@ -1,3 +1,5 @@
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+
 import type { CommandAttempt, CommandAttemptData, CommandAttemptReferent } from './index'
 import type { AttemptActionData } from './action'
 import type { ChallengeData } from './challenge'
@@ -7,8 +9,8 @@ import { MetVerdict } from './verdict'
 
 /**
  * Adjudicate, the Coyote evaluator: a phase of the actions pipeline, run per candidate by
- * the shared stage's `expandAndAdjudicateMembershipCandidate`
- * (`enrich/objectManipulation/selectPlanCandidate.ts`) before the dry run validates the
+ * the shared stage's `expandAndAdjudicateCandidates`
+ * (`enrich/objectManipulation/attemptCandidates.ts`) before the dry run validates the
  * attempt. Its verdicts ride the published attempt; positions honors them at commit and
  * never judges.
  *
@@ -31,6 +33,24 @@ export const adjudicateAttempt = (attempt: CommandAttempt): CommandAttempt =>
         .flatMap((action) => action.challenges())
         .filter((challenge) => challenge instanceof CustomEdgeChallenge && challenge.verdict === undefined)
         .reduce((judged, challenge) => judged.recordVerdict(challenge.id, new MetVerdict()), attempt)
+
+/** What the deferred tier may read: the room the prose renderer takes. */
+export type DeferredAdjudicationContext = {
+    roomId?: EphemeraRoomId
+}
+
+/**
+ * The deferred adjudication tier (ISS8203 slice 3). It runs once, from Selection, on the top
+ * deferred candidate, and it judges only the challenges the per-candidate tier leaves pending
+ * (the `Under` subject-move, the exit contact). The candidate is returned as it went in unless
+ * this tier judged something, and a candidate that comes back unchanged abstains. The naive
+ * implementation judges nothing; the relational-complexity LLM adjudicator replaces it behind
+ * this contract (ladder layer 1's unowned remainder). Synchronous until that LLM lands.
+ */
+export const adjudicateDeferred = <T extends { attempt: CommandAttempt }>(
+    candidate: T,
+    _context: DeferredAdjudicationContext
+): T => candidate
 
 const isVerdictData = (value: unknown): value is VerdictData => {
     if (!value || typeof value !== 'object') {
@@ -57,7 +77,7 @@ const isChallengeData = (value: unknown): value is ChallengeData => {
     if (v.verdict !== undefined && !isVerdictData(v.verdict)) {
         return false
     }
-    if (v.kind === 'worldKnowledge') {
+    if (v.kind === 'worldKnowledge' || v.kind === 'exitEdge') {
         return true
     }
     if (v.kind === 'customEdge' || v.kind === 'underDefer') {

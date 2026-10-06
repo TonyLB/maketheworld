@@ -13,4 +13,4 @@ export type NormalizedRelation =
  */
 export type NormalizeRelationOutcome =
     | { type: 'success'; relation: NormalizedRelation }
-    | { type: 'nestingDefer'; kind: 'On' | 'In' | 'PartOf' }
+    | { type: 'nestingPreposition'; kind: 'On' | 'In' | 'PartOf' }

@@ -112,7 +112,7 @@ const walkAncestry = (
 /**
  * async counterpart to `walkAncestry`, used to eagerly pre-fetch each endpoint's full
  * containment ancestry (not just one hop) before the executor's own synchronous
- * `ExpansionEnvironment` is built (`compileRelationalFromSkeleton.ts`). Same frontier-expansion /
+ * `ExpansionEnvironment` is built (`compileAttemptsFromSkeleton.ts`). Same frontier-expansion /
  * visited-set shape as `walkAncestry` above -- kept as a near-duplicate on purpose so the two stay
  * easy to compare -- but calls the real async `getMembershipContainers` gateway and returns a flat
  * `containerId -> its own direct containers` map instead of `{depth, reachedVia}`: the caller only

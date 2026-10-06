@@ -1,12 +1,10 @@
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
+import type { CommandAttempt } from '../../../commandAttempt'
 import { invokeBedrockObjectManipulationEnrich } from '../../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
 import { identityPlanCandidateFromSpan, type IdentityPlanCandidate } from '../identityPlanCandidate'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
-import { selectIdentityPlanTuple, type SelectIdentityPlanTupleResult } from '../selectPlanCandidate'
-import type { SandboxState } from '../sandboxState'
 import type { ObjectSpanCandidate } from '../spanResolution'
 import { buildIdentityOnlyFallbackPrompt } from './buildIdentityOnlyFallbackPrompt'
 import { interpretIdentityOnlyFallbackBody } from './interpretIdentityOnlyFallback'
@@ -24,7 +22,7 @@ export type IdentityOnlyFallbackInput = {
     command: string
     rawObjectSpan: string
     catalog: readonly ObjectManipulationCatalogEntry[]
-    operationKind: 'takeHold' | 'drop'
+    attempt: CommandAttempt
 }
 
 export type IdentityOnlyFallbackDeps = {
@@ -72,7 +70,7 @@ export async function invokeIdentityOnlyFallback(
             sourceTags: ['llm'],
             locus: entry.catalogScope === 'room' ? { kind: 'room' } : { kind: 'heldByActor' },
         }
-        candidates.push(identityPlanCandidateFromSpan(spanCandidate, input.operationKind))
+        candidates.push(identityPlanCandidateFromSpan(spanCandidate, input.attempt))
     }
 
     return { type: 'success', candidates }
@@ -84,28 +82,4 @@ export async function proposeIdentityOnlyFallbackTuples(
 ): Promise<readonly IdentityPlanCandidate[]> {
     const result = await invokeIdentityOnlyFallback(input, deps)
     return result.type === 'success' ? result.candidates : []
-}
-
-export type IdentityOnlyFallbackDryRunContext = {
-    sandboxState?: SandboxState
-    roomId?: EphemeraRoomId
-    actorCharacterId?: EphemeraCharacterId
-}
-
-export async function selectIdentityOnlyFallbackTuple(
-    input: IdentityOnlyFallbackInput,
-    dryRunContext: IdentityOnlyFallbackDryRunContext = {},
-    deps: IdentityOnlyFallbackDeps = {}
-): Promise<SelectIdentityPlanTupleResult> {
-    const { sandboxState = new Map(), roomId, actorCharacterId } = dryRunContext
-    const candidates = await proposeIdentityOnlyFallbackTuples(input, deps)
-    return selectIdentityPlanTuple({
-        candidates,
-        sandboxState,
-        roomId,
-        actorCharacterId,
-        commandSpan: input.rawObjectSpan,
-        words: input.command,
-        catalog: input.catalog,
-    })
 }

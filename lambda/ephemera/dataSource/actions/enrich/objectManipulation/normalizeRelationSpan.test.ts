@@ -41,11 +41,11 @@ describe('normalizeRelationSpan', () => {
     })
 
     it.each(['in', 'inside', 'into'] as const)('defers containment span %s as kind In', (relationSpan) => {
-        expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingDefer', kind: 'In' })
+        expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingPreposition', kind: 'In' })
     })
 
     it.each(['on', 'onto', 'ON', 'on top of'] as const)('defers hosting span %s as kind On', (relationSpan) => {
-        expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingDefer', kind: 'On' })
+        expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingPreposition', kind: 'On' })
     })
 
     it('preserves trimmed player phrase for Custom labels', () => {

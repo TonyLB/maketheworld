@@ -1,5 +1,15 @@
 import type { ParseSkeleton } from '../parse/parseToken'
 import { matchRelationalTemplate } from './matchRelationalTemplate'
+import type { Change } from './planStep'
+import type { RelationalTemplateMatchResult } from './matchRelationalTemplate'
+
+/** The attempt's step, so the expectations below read the plan's shape, not the attempt's. */
+const summarize = (result: RelationalTemplateMatchResult) => {
+    if (result.type !== 'matched') {
+        return result
+    }
+    return { type: 'matched' as const, change: result.attempt.actions()[0].desiredResult as Change }
+}
 
 describe('matchRelationalTemplate', () => {
     it('matches an establishRelation template with an enum relation ("put broom under table")', () => {
@@ -10,7 +20,7 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({
+        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({
             type: 'matched',
             change: {
                 kind: 'change',
@@ -22,7 +32,7 @@ describe('matchRelationalTemplate', () => {
         })
     })
 
-    it('returns nestingDefer for "on" too, same as containment (Channel D CD2: On joins In/PartOf) ("put broom on table")', () => {
+    it('plans "on" as the containment transfer, same as In (Channel D CD2: On joins In/PartOf) ("put broom on table")', () => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'put' },
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
@@ -30,12 +40,16 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({
-            type: 'nestingDefer',
-            kind: 'On',
-            operationKind: 'establishRelation',
-            subject: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
-            target: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({
+            type: 'matched',
+            change: {
+                kind: 'change',
+                primitive: 'transferMembership',
+                object: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+                from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' } },
+                to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+                containment: 'On',
+            },
         })
     })
 
@@ -47,7 +61,7 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'crate', stableRefKey: 'crateRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({
+        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({
             type: 'matched',
             change: {
                 kind: 'change',
@@ -68,13 +82,13 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'wall', stableRefKey: 'wallRef' },
         ]
 
-        const result = matchRelationalTemplate(skeleton)
+        const result = summarize(matchRelationalTemplate(skeleton, 'test command'))
         expect(result.type).toBe('matched')
         if (result.type !== 'matched' || result.change.primitive === 'transferMembership') return
         expect(result.change.relationKind).toBe('Against')
     })
 
-    it('returns nestingDefer for containment language ("put coin in jar")', () => {
+    it('plans containment language ("put coin in jar") as the containment transfer', () => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'put' },
             { type: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
@@ -82,12 +96,16 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'jar', stableRefKey: 'jarRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({
-            type: 'nestingDefer',
-            kind: 'In',
-            operationKind: 'establishRelation',
-            subject: { referentType: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
-            target: { referentType: 'objectSpan', span: 'jar', stableRefKey: 'jarRef' },
+        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({
+            type: 'matched',
+            change: {
+                kind: 'change',
+                primitive: 'transferMembership',
+                object: { referentType: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
+                from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' } },
+                to: { referentType: 'objectSpan', span: 'jar', stableRefKey: 'jarRef' },
+                containment: 'In',
+            },
         })
     })
 
@@ -99,7 +117,7 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({
+        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({
             type: 'matched',
             change: {
                 kind: 'change',
@@ -120,7 +138,7 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({ type: 'noMatch' })
+        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
     })
 
     it('returns noMatch for a 2-token (membership-shaped) skeleton', () => {
@@ -129,7 +147,7 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({ type: 'noMatch' })
+        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
     })
 
     it('returns noMatch for a 6-token skeleton (a modifier-bearing shape, out of scope for this slice)', () => {
@@ -142,7 +160,7 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'bag', stableRefKey: 'bagRef' },
         ]
 
-        expect(matchRelationalTemplate(skeleton)).toEqual({ type: 'noMatch' })
+        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
     })
 
     it('builds two distinct Referents by stableRefKey even when span text is identical ("put bench under bench")', () => {
@@ -153,7 +171,7 @@ describe('matchRelationalTemplate', () => {
             { type: 'objectSpan', span: 'bench', stableRefKey: 'benchRef2' },
         ]
 
-        const result = matchRelationalTemplate(skeleton)
+        const result = summarize(matchRelationalTemplate(skeleton, 'test command'))
         expect(result.type).toBe('matched')
         if (result.type !== 'matched' || result.change.primitive === 'transferMembership') return
         expect(result.change.subject).toEqual({ referentType: 'objectSpan', span: 'bench', stableRefKey: 'benchRef1' })

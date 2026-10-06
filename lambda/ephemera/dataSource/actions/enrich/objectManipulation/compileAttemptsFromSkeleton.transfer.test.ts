@@ -1,9 +1,31 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { compileObjectContainmentFromSkeleton } from './compileObjectContainmentFromSkeleton'
+import { compileAttemptsFromSkeleton } from './compileAttemptsFromSkeleton'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ParseSkeleton } from './parse/parseToken'
-import { objectSpanRef } from './plan/planStep'
+import { planSkeleton } from './plan/planSkeleton'
+
+/** The attempt's last action's desired result: the transfer, which Plan's templates put last. */
+const transferStepOf = (result: { type: string; attempt?: unknown }): any => {
+    const actions = (result.attempt as { actions: { desiredResult?: unknown }[] }).actions
+    return actions[actions.length - 1]?.desiredResult
+}
+import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
+
+/** Room and host graphs for the shared dry run; the containment move needs the subject's room. */
+const containmentPositionsReads = () => ({
+    getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
+    getLudicGraph: jest.fn().mockImplementation(async (hostId: string) => testLudicGraph(hostId as EphemeraRoomId)),
+})
+
+/** Plan's attempt for a containment skeleton, as parseCommand hands it to the producer. */
+const planAttempt = (skeleton: ParseSkeleton, command: string) => {
+    const plan = planSkeleton(skeleton, command)
+    if (plan.type !== 'attempts') {
+        throw new Error(`planAttempt: Plan declined "${command}"`)
+    }
+    return plan.attempts[0]!
+}
 
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
@@ -23,115 +45,89 @@ const containmentSkeleton = (
     { type: 'objectSpan', span: targetSpan, stableRefKey: targetKey },
 ]
 
-describe('compileObjectContainmentFromSkeleton', () => {
+describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
     it('returns ObjectContainment when subject and target each resolve to exactly one object', async () => {
-        const result = await compileObjectContainmentFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
-                containment: 'On',
+                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
                     { objectId: trayId, normalizedShortName: 'tray' },
                 ],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
-        expect(result).toEqual({
-            type: 'ObjectContainment',
-            subjectId: cupId,
-            targetId: trayId,
-            hostId: roomId,
-            containment: 'On',
-            confidence: 0.9,
-            attempt: expect.anything(),
-        })
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(transferStepOf(result)).toMatchObject({ containment: 'On', object: { groundedId: cupId }, to: { groundedId: trayId } })
     })
 
     it('returns ObjectContainment with containment In when the caller forwards the In kind', async () => {
-        const result = await compileObjectContainmentFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup in tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'in', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
-                containment: 'In',
+                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'in', 'tray', 'trayRef'), 'put cup in tray')],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
                     { objectId: trayId, normalizedShortName: 'tray' },
                 ],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
-        expect(result).toEqual({
-            type: 'ObjectContainment',
-            subjectId: cupId,
-            targetId: trayId,
-            hostId: roomId,
-            containment: 'In',
-            confidence: 0.9,
-            attempt: expect.anything(),
-        })
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(transferStepOf(result)).toMatchObject({ containment: 'In', object: { groundedId: cupId }, to: { groundedId: trayId } })
     })
 
     it('resolves the subject from held inventory when it is not in the room catalog', async () => {
-        const result = await compileObjectContainmentFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
-                containment: 'On',
+                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: trayId, normalizedShortName: 'tray' }],
                 heldInventoryCatalog: [{ objectId: cupId, normalizedShortName: 'cup' }],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
-        expect(result).toEqual({
-            type: 'ObjectContainment',
-            subjectId: cupId,
-            targetId: trayId,
-            hostId: roomId,
-            containment: 'On',
-            confidence: 0.9,
-            attempt: expect.anything(),
-        })
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(transferStepOf(result)).toMatchObject({ containment: 'On', object: { groundedId: cupId }, to: { groundedId: trayId } })
     })
 
     it('errors with noHostRoom when no hostRoomId is supplied', async () => {
-        const result = await compileObjectContainmentFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
-                containment: 'On',
+                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noHostRoom })
     })
 
     it('errors with noCatalog when neither catalog is supplied', async () => {
-        const result = await compileObjectContainmentFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
-                containment: 'On',
+                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
                 hostRoomId: roomId,
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noCatalog })
@@ -139,13 +135,11 @@ describe('compileObjectContainmentFromSkeleton', () => {
 
     it('returns Consult, naming both candidates, when the subject span resolves to more than one object', async () => {
         const secondCupId = 'OBJECT#Cup2' as EphemeraObjectId
-        const result = await compileObjectContainmentFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
-                containment: 'On',
+                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
@@ -153,7 +147,8 @@ describe('compileObjectContainmentFromSkeleton', () => {
                     { objectId: trayId, normalizedShortName: 'tray' },
                 ],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         expect(result).toEqual({
@@ -167,19 +162,18 @@ describe('compileObjectContainmentFromSkeleton', () => {
     })
 
     it('abstains when subject and target resolve to the same object', async () => {
-        const result = await compileObjectContainmentFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on cup',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'cup', 'cupRef2'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('cup', 'cupRef2'),
-                containment: 'On',
+                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'cup', 'cupRef2'), 'put cup on cup')],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
                 ],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
         expect(result).toEqual({
@@ -190,33 +184,31 @@ describe('compileObjectContainmentFromSkeleton', () => {
     })
 
     it('builds a real, ungrounded transferMembership desiredResult carrying the containment flag', async () => {
-        const result = await compileObjectContainmentFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
                 skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                subject: objectSpanRef('cup', 'cupRef'),
-                target: objectSpanRef('tray', 'trayRef'),
-                containment: 'On',
+                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
                     { objectId: trayId, normalizedShortName: 'tray' },
                 ],
             },
-            0.9
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
         )
 
-        if (result.type !== 'ObjectContainment') {
-            throw new Error(`expected ObjectContainment, got ${result.type}`)
+        if (result.type !== 'CommandAttempt') {
+            throw new Error(`expected CommandAttempt, got ${result.type}`)
         }
-        const desiredResult = (result.attempt.actions[0] as any)?.desiredResult
+        const desiredResult = transferStepOf(result)
         expect(desiredResult).toMatchObject({
             kind: 'change',
             primitive: 'transferMembership',
             object: { referentType: 'objectSpan', stableRefKey: 'cupRef' },
             from: { referentType: 'currentHost' },
             to: { referentType: 'objectSpan', stableRefKey: 'trayRef' },
-            containment: 'On',
         })
     })
 })

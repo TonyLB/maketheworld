@@ -1,9 +1,4 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-
-import { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
-import { objectTouchesExitEdgeOnGraph } from './membershipObservation'
 
 export type ParseObjectManipulationEnrichPromptParts = {
     invariantPrefix: string
@@ -25,34 +20,6 @@ Respond with a single JSON object only (no markdown fences, no commentary).
 ## Forbidden fields
 
 objectSpan, disposition, operationKind, complexityClass, targetId, host routing ids, graph deltas.
-`
-
-const COMPLEXITY_INVARIANT_PREFIX = `You assess whether a grounded object manipulation is atomic or complex.
-
-The object id is already resolved. Do not re-resolve identity or supply objectSpan.
-
-Respond with a single JSON object only (no markdown fences, no commentary).
-
-## disposition: atomic (v1 implemented: takeHold, drop)
-
-Simple pick-up of the grounded object despite relational edges on its host:
-{ "disposition": "atomic", "operationKind": "takeHold" }
-
-Simple drop / release of a held object to the room despite relational edges on its host:
-{ "disposition": "atomic", "operationKind": "drop" }
-
-## disposition: complex (terminal stub only)
-
-Relational placement (put X on Y, tie A to B):
-{ "disposition": "complex", "complexityClass": "relationalPlacement", "summary": "<optional>" }
-
-## Rules
-
-- disposition is required: exactly "atomic" or "complex".
-- When disposition is atomic, operationKind is required (v1: "takeHold" for pick-up, "drop" for release to room).
-- When disposition is complex, complexityClass is required; operationKind is forbidden.
-- Forbidden: objectId, objectSpan, targetId, host routing ids, graph deltas.
-- Prefer complex relationalPlacement when exit edges imply relational manipulation.
 `
 
 export function buildObjectManipulationIdentityPrompt(
@@ -78,58 +45,4 @@ export function buildObjectManipulationIdentityPrompt(
         invariantPrefix: IDENTITY_INVARIANT_PREFIX,
         dynamicSuffix,
     }
-}
-
-function summarizeTouchingEdges(graph: EphemeraLudicGraph, objectId: EphemeraObjectId): string[] {
-    const envelope = graph.toPlayEnvelope()
-    const edges = envelope.edges ?? []
-    const summaries: string[] = []
-    for (let i = 0; i < edges.length; i++) {
-        if (objectTouchesExitEdgeOnGraph(
-            EphemeraLudicGraph.fromPlayEnvelope(graph.hostId, { nodes: envelope.nodes, edges: [edges[i]] }),
-            objectId
-        )) {
-            summaries.push(`edge[${i}]`)
-        }
-    }
-    return summaries
-}
-
-export function buildObjectManipulationComplexityPrompt(
-    command: string,
-    options: {
-        objectId: EphemeraObjectId
-        containers: readonly EphemeraMembershipHostId[]
-        ludicGraph?: EphemeraLudicGraph
-    }
-): ParseObjectManipulationEnrichPromptParts {
-    const touchingEdges = options.ludicGraph !== undefined
-        ? summarizeTouchingEdges(options.ludicGraph, options.objectId)
-        : []
-    const dynamicSuffix = [
-        `Player command: ${command.trim()}`,
-        `Grounded objectId: ${options.objectId}`,
-        `Membership containers: ${JSON.stringify([...options.containers])}`,
-        `Exit edges touching object: ${JSON.stringify(touchingEdges)}`,
-        'Respond with JSON only.',
-    ].join('\n')
-
-    return {
-        invariantPrefix: COMPLEXITY_INVARIANT_PREFIX,
-        dynamicSuffix,
-    }
-}
-
-/** @deprecated Use buildObjectManipulationComplexityPrompt or buildObjectManipulationIdentityPrompt */
-export function buildParseObjectManipulationEnrichPrompt(
-    command: string,
-    options: {
-        rawObjectSpans: readonly string[]
-        catalog: readonly { normalizedShortName: string }[]
-    }
-): ParseObjectManipulationEnrichPromptParts {
-    return buildObjectManipulationComplexityPrompt(command, {
-        objectId: 'OBJECT#Unknown' as EphemeraObjectId,
-        containers: [],
-    })
 }

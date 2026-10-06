@@ -1,3 +1,4 @@
+import type { CommandAttempt } from '../../../commandAttempt'
 import type { ParseObjectManipulationEnrichPromptParts } from '../buildPrompt'
 import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
 
@@ -21,12 +22,16 @@ Respond with a single JSON object only (no markdown fences, no commentary).
 operationKind, disposition, complexityClass, targetId, host routing ids, graph deltas.
 `
 
+const describeAttempt = (attempt: CommandAttempt): string => JSON.stringify(
+    attempt.actions().flatMap((action) => (action.desiredResult ? [action.desiredResult] : [])),
+)
+
 export function buildIdentityOnlyFallbackPrompt(
     command: string,
     options: {
         rawObjectSpan: string
         catalog: readonly ObjectManipulationCatalogEntry[]
-        operationKind: 'takeHold' | 'drop'
+        attempt: CommandAttempt
     }
 ): ParseObjectManipulationEnrichPromptParts {
     const catalogRows = options.catalog.map(({ objectId, normalizedShortName, catalogScope }) => ({
@@ -38,7 +43,7 @@ export function buildIdentityOnlyFallbackPrompt(
         `Player command: ${command.trim()}`,
         `Object span to ground: ${JSON.stringify(options.rawObjectSpan)}`,
         `Object catalog: ${JSON.stringify(catalogRows)}`,
-        `Already-resolved operationKind: ${options.operationKind}`,
+        `Already-resolved operation: ${describeAttempt(options.attempt)}`,
         'Respond with JSON only.',
     ].join('\n')
 

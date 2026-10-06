@@ -108,7 +108,7 @@ describe('room exit ambiguousMatch regression (topology slice -> discriminateInt
         // ambiguity via resolveExitLabelToTargetId and falls through (returns null) rather than
         // guessing -- unchanged. What changed: classify no longer emits NavigationIntent for
         // classify to re-resolve into a specific ambiguousMatch Error, so an ambiguous exact exit
-        // name now reaches Command -> Parse -> classifySkeletonFamily, which finds neither a
+        // name now reaches Command -> Parse -> planSkeleton, which finds neither a
         // membership nor relational shape and terminalizes as Unimplemented.
         expect(result.type).not.toBe('Navigation')
     })

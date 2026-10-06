@@ -85,10 +85,19 @@ export type BoundaryEdgeOutcome = {
  */
 export function boundaryEdgeOutcomes(
     transferSet: ReadonlySet<EphemeraObjectId>,
-    graph: EphemeraLudicGraph
+    graph: EphemeraLudicGraph,
+    /**
+     * Edges the move itself removes, so they are not boundary edges: the mover's own containment
+     * edge into the host it is leaving, which the move op dissolves. A predicate, not a list:
+     * `relationalEdges` builds fresh edge objects on every read, so identity never matches.
+     */
+    isRemovedByMove: (edge: HostRelationalEdge) => boolean = () => false
 ): BoundaryEdgeOutcome[] {
     const results: BoundaryEdgeOutcome[] = []
     for (const edge of graph.relationalEdges) {
+        if (isRemovedByMove(edge)) {
+            continue
+        }
         // `edge.from`/`.to` are widened to `EphemeraLudicTerminalPrimitive`, but `transferSet` is
         // Object-only: the caller's transfer set is Object | Character and filters back down to
         // Object before calling in here (applyTransferSet.ts). See `ludicGraph/AGENT.md`'s

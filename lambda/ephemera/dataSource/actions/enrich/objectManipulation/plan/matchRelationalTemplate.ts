@@ -1,22 +1,20 @@
 import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
 import { normalizeRelationSpan } from '../normalizeRelationSpan'
-import type { Change, Referent } from './planStep'
-import { objectSpanRef } from './planStep'
+import { CommandAttempt } from '../../../commandAttempt'
+import { PositionAttemptAction } from '../../../commandAttempt/action'
+import { currentHostRef, objectSpanRef } from './planStep'
 
 const ESTABLISH_VERBS = new Set(['put', 'place', 'lean', 'tie'])
 const DISSOLVE_VERBS = new Set(['take', 'remove'])
 
 export type RelationalTemplateMatchResult =
-    | { type: 'matched'; change: Change }
+    /** An ungrounded attempt: one position action whose step is the peer relation, or the containment move for `On`/`In`. */
+    | { type: 'matched'; attempt: CommandAttempt }
     /**
-     * Third outcome alongside `matched`/`noMatch`: the skeleton fit the 4-token template and the
-     * preposition names a hosting kind (`On`/`In`/`PartOf`), which AB-54 models as shard
-     * placement, not a relational edge -- so there's no `Change` to build. `operationKind`/
-     * `subject`/`target` are already resolved by this point and carry forward for whichever
-     * lane the caller routes `kind` to (`On` to the move lane, `In`/`PartOf` to
-     * `objectManipulationErrorMessages.nestingRelational` until they're built).
+     * The preposition names a kind this template cannot plan (`PartOf`, which no player phrase
+     * reaches today, see `relationKind.ts`). The caller answers with `nestingRelational`.
      */
-    | { type: 'nestingDefer'; kind: 'On' | 'In' | 'PartOf'; operationKind: 'establishRelation' | 'dissolveRelation'; subject: Referent; target: Referent }
+    | { type: 'declined' }
     | { type: 'noMatch' }
 
 function isTextToken(token: ParseToken): token is TextToken {
@@ -40,7 +38,7 @@ function classifyVerb(text: string): 'establishRelation' | 'dissolveRelation' | 
  * routed a command as ObjectRelateIntent; this function does no family/route
  * detection itself.
  */
-export function matchRelationalTemplate(skeleton: ParseSkeleton): RelationalTemplateMatchResult {
+export function matchRelationalTemplate(skeleton: ParseSkeleton, command: string): RelationalTemplateMatchResult {
     if (skeleton.length !== 4) {
         return { type: 'noMatch' }
     }
@@ -63,14 +61,31 @@ export function matchRelationalTemplate(skeleton: ParseSkeleton): RelationalTemp
     const target = objectSpanRef(targetToken.span, targetToken.stableRefKey)
 
     const normalized = normalizeRelationSpan(prepToken.text)
-    if (normalized.type === 'nestingDefer') {
-        return { type: 'nestingDefer', kind: normalized.kind, operationKind, subject, target }
+    if (normalized.type === 'nestingPreposition') {
+        if (normalized.kind === 'PartOf') {
+            return { type: 'declined' }
+        }
+        // A containment move is a whole-object transfer, the same step every containment producer
+        // builds. The verb is not consulted, as before this slice (`dissolve` + `in` also lands here).
+        return {
+            type: 'matched',
+            attempt: CommandAttempt.create(command, [
+                new PositionAttemptAction([], {
+                    kind: 'change',
+                    primitive: 'transferMembership',
+                    object: subject,
+                    from: currentHostRef(subject),
+                    to: target,
+                    containment: normalized.kind,
+                }),
+            ]),
+        }
     }
 
     const { relation } = normalized
 
-    const change: Change = {
-        kind: 'change',
+    const change = {
+        kind: 'change' as const,
         primitive: operationKind,
         subject,
         target,
@@ -79,5 +94,5 @@ export function matchRelationalTemplate(skeleton: ParseSkeleton): RelationalTemp
             : { relationKind: relation.kind }),
     }
 
-    return { type: 'matched', change }
+    return { type: 'matched', attempt: CommandAttempt.create(command, [new PositionAttemptAction([], change)]) }
 }

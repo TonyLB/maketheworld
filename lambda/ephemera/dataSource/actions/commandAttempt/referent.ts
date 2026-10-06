@@ -1,4 +1,5 @@
 import type { EphemeraThingId } from '../enrich/objectManipulation/thing'
+import type { Referent } from '../enrich/objectManipulation/plan/planStep'
 import type { CommandAttemptReferent } from './index'
 
 /**
@@ -9,6 +10,8 @@ import type { CommandAttemptReferent } from './index'
  * `Referent` (CA-1); `shortName` comes from Identify's resolved
  * `ObjectSpanCandidate.label`; `gloss` comes from the `ludicCache` node, present only
  * where authored or improvised (`EphemeraLudicCacheNode.gloss?: string`'s convention).
+ * Used only to derive the prose's referents section from the actions' span referents
+ * (`index.ts`'s `referentsFromActions`); nothing stores or reads this record as data.
  */
 export const buildCommandAttemptReferent = (
     refKey: string,
@@ -21,3 +24,14 @@ export const buildCommandAttemptReferent = (
     shortName,
     ...(gloss !== undefined ? { gloss } : {}),
 })
+
+/** Every object-span referent inside `referent`, including one nested under a `currentHost`. */
+export const objectSpansIn = (referent: Referent): Extract<Referent, { referentType: 'objectSpan' }>[] => {
+    if (referent.referentType === 'objectSpan') {
+        return [referent]
+    }
+    if (referent.referentType === 'currentHost') {
+        return objectSpansIn(referent.referentTarget)
+    }
+    return []
+}

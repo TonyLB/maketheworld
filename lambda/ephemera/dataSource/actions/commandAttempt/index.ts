@@ -1,21 +1,21 @@
 import type { EphemeraThingId } from '../enrich/objectManipulation/thing'
 import type { AttemptAction, AttemptActionData } from './action'
 import { attemptActionFromJSON, attemptActionToJSON } from './action'
+import { buildCommandAttemptReferent, objectSpansIn } from './referent'
 import type { Verdict } from './verdict'
 
 export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction, NarrateAttemptAction } from './action'
 export type { Challenge, ChallengeData } from './challenge'
-export { CustomEdgeChallenge, UnderDeferChallenge, WorldKnowledgeChallenge } from './challenge'
+export { CustomEdgeChallenge, ExitEdgeChallenge, UnderDeferChallenge, WorldKnowledgeChallenge } from './challenge'
 export type { Verdict, VerdictData } from './verdict'
 export { MetVerdict, ImpossibleVerdict } from './verdict'
 
 /**
  * Prose data for one phrase the player used (section 2 of CA-1's format): the phrase's
- * `refKey`, the id it grounded to, and how to describe that thing. It is not how an
- * action's steps name the thing --- those hold `plan/planStep.ts`'s `Referent`, which
- * carries its own `groundedId` once known --- and nothing deterministic reads it.
- * Referents are not a member family (1.6): every kind answers the same questions as
- * data, differing only in where the data is looked up, so this stays a plain type.
+ * `refKey`, the id it grounded to, and how to describe that thing. Never stored: it is
+ * derived from the actions' referents (`CommandAttempt.referents()`), so a name and id live
+ * only on the referents that carry them. Referents are not a member family (1.6): every kind
+ * answers the same questions as data, so this stays a plain type.
  */
 export type CommandAttemptReferent = {
     refKey: string
@@ -49,6 +49,31 @@ export type CommandAttemptData = {
 const cloneReferent = (referent: CommandAttemptReferent): CommandAttemptReferent => ({ ...referent })
 
 /**
+ * Derives the prose's referents section from the actions, in order of first appearance of
+ * each `stableRefKey`. A span contributes once it is both keyed and grounded with a name;
+ * an ungrounded span (a plan that has not been through Grounding) has no prose entry yet.
+ */
+const referentsFromActions = (actions: readonly AttemptAction[]): CommandAttemptReferent[] => {
+    const seen = new Map<string, CommandAttemptReferent>()
+    for (const action of actions) {
+        for (const referent of action.referents()) {
+            for (const span of objectSpansIn(referent)) {
+                if (span.stableRefKey === undefined || span.groundedId === undefined || span.shortName === undefined || seen.has(span.stableRefKey)) {
+                    continue
+                }
+                seen.set(span.stableRefKey, buildCommandAttemptReferent(
+                    span.stableRefKey,
+                    span.groundedId as EphemeraThingId,
+                    span.shortName,
+                    span.gloss
+                ))
+            }
+        }
+    }
+    return [...seen.values()]
+}
+
+/**
  * A player's attempted command: an ordered list of actions, each an optional desired
  * result plus the challenges that make it non-trivial (see
  * `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.commandAttemptPhase.planning.md`).
@@ -60,38 +85,33 @@ const cloneReferent = (referent: CommandAttemptReferent): CommandAttemptReferent
 export class CommandAttempt {
     readonly words: string
 
-    private readonly _referents: CommandAttemptReferent[]
     private readonly _actions: AttemptAction[]
 
-    private constructor(words: string, referents: CommandAttemptReferent[], actions: AttemptAction[]) {
+    private constructor(words: string, actions: AttemptAction[]) {
         this.words = words
-        this._referents = referents
         this._actions = actions
     }
 
-    /** Domain constructor: an attempt built in-pipeline from its referents and actions. */
-    static create(words: string, referents: readonly CommandAttemptReferent[], actions: readonly AttemptAction[]): CommandAttempt {
-        return new CommandAttempt(words, referents.map(cloneReferent), [...actions])
+    /** Domain constructor: an attempt built in-pipeline from its actions. */
+    static create(words: string, actions: readonly AttemptAction[]): CommandAttempt {
+        return new CommandAttempt(words, [...actions])
     }
 
+    /** `data.referents` is ignored: it is derived from the actions, and is only published. */
     static fromJSON(data: CommandAttemptData): CommandAttempt {
-        return new CommandAttempt(
-            data.words,
-            data.referents.map(cloneReferent),
-            data.actions.map(attemptActionFromJSON)
-        )
+        return new CommandAttempt(data.words, data.actions.map(attemptActionFromJSON))
     }
 
     toJSON(): CommandAttemptData {
         return {
             words: this.words,
-            referents: this._referents.map(cloneReferent),
+            referents: this.referents(),
             actions: this._actions.map(attemptActionToJSON),
         }
     }
 
     referents(): CommandAttemptReferent[] {
-        return this._referents.map(cloneReferent)
+        return referentsFromActions(this._actions).map(cloneReferent)
     }
 
     actions(): AttemptAction[] {
@@ -120,7 +140,7 @@ export class CommandAttempt {
         if (!found) {
             throw new Error(`CommandAttempt.recordVerdict: no challenge with id '${challengeId}'`)
         }
-        return new CommandAttempt(this.words, this._referents.map(cloneReferent), actions)
+        return new CommandAttempt(this.words, actions)
     }
 
     /**
@@ -164,7 +184,7 @@ export class CommandAttempt {
         lines.push(`Player's words: ${this.words}`)
         lines.push('')
         lines.push('Referents:')
-        for (const referent of this._referents) {
+        for (const referent of this.referents()) {
             const gloss = referent.gloss !== undefined ? `, gloss: ${referent.gloss}` : ''
             lines.push(`- ${referent.refKey} -> ${referent.id}, ${referent.shortName}${gloss}`)
         }

@@ -25,6 +25,7 @@ export type ChallengeData =
     | { kind: 'customEdge'; id: string; edge: HostRelationalEdge; description: string; verdict?: VerdictData }
     | { kind: 'underDefer'; id: string; edge: HostRelationalEdge; description: string; verdict?: VerdictData }
     | { kind: 'worldKnowledge'; id: string; description: string; verdict?: VerdictData }
+    | { kind: 'exitEdge'; id: string; description: string; verdict?: VerdictData }
 
 /**
  * A `Custom` boundary edge deferring to adjudication. CA-1 (slice 0, rows 3/6) confirmed
@@ -156,6 +157,46 @@ export class WorldKnowledgeChallenge implements Challenge {
     }
 }
 
+/**
+ * A transfer whose moved object touches an exit (ISS8203 slice 3). Graph-detected, like a
+ * boundary edge, but the edge is a navigation edge, not a relation to dissolve: nothing in the
+ * graph says how an exit contact should be undone, so no adjudicator judges it today and it
+ * stays pending (the take or drop abstains until the deferred adjudication tier lands).
+ */
+export class ExitEdgeChallenge implements Challenge {
+    readonly id: string
+    readonly description: string
+    readonly verdict: Verdict | undefined
+    readonly detectionSource = 'graph' as const
+
+    constructor(id: string, description: string, verdict?: Verdict) {
+        this.id = id
+        this.description = description
+        this.verdict = verdict
+    }
+
+    static fromJSON(data: Extract<ChallengeData, { kind: 'exitEdge' }>): ExitEdgeChallenge {
+        return new ExitEdgeChallenge(data.id, data.description, data.verdict && verdictFromJSON(data.verdict))
+    }
+
+    toJSON(): ChallengeData {
+        return {
+            kind: 'exitEdge',
+            id: this.id,
+            description: this.description,
+            ...(this.verdict !== undefined ? { verdict: verdictToJSON(this.verdict) } : {}),
+        }
+    }
+
+    describe(): string {
+        return this.description
+    }
+
+    withVerdict(verdict: Verdict): Challenge {
+        return new ExitEdgeChallenge(this.id, this.description, verdict)
+    }
+}
+
 export const challengeFromJSON = (data: ChallengeData): Challenge => {
     switch (data.kind) {
         case 'customEdge':
@@ -164,6 +205,8 @@ export const challengeFromJSON = (data: ChallengeData): Challenge => {
             return UnderDeferChallenge.fromJSON(data)
         case 'worldKnowledge':
             return WorldKnowledgeChallenge.fromJSON(data)
+        case 'exitEdge':
+            return ExitEdgeChallenge.fromJSON(data)
     }
 }
 

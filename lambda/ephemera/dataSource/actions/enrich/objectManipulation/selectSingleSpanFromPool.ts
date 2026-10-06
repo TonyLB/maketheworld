@@ -26,8 +26,8 @@ const assertObjectCandidate = (candidate: ObjectSpanCandidate): EphemeraObjectId
 
 /**
  * FT-2.1 bridge: single-span FT-5 auto-resolve on joint relevance floor + margin.
- * Membership superseded by FT-2.2 {@link selectMembershipFromPool}.
- * Relational superseded by FT-3.3's native skeleton pipeline (see compileRelationalFromSkeleton.ts).
+ * Membership superseded by FT-2.2 and then by the shared attempt producer (ISS8203 slice 3).
+ * Relational superseded by FT-3.3's native skeleton pipeline (see compileAttemptsFromSkeleton.ts).
  * Retained for harness / unit history. Declines map to error, not Consult.
  */
 export function selectSingleSpanFromPool(pool: SpanCandidatePool): SpanResolutionOutcome {
