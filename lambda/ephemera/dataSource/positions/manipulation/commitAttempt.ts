@@ -119,7 +119,7 @@ const buildMembershipFragment = async (
         fromHostId,
         toHostId,
         bundleId,
-        narration: { characterName, objectShortName },
+        narration: { actorName: characterName, labels: { [entityId]: objectShortName } },
         // Containment: `planObjectMoveTransfer`/`buildObjectMoveOp`/
         // `compilePositionKernelOp` already thread this through to the establish step whose
         // `hostId` is always `toHostId` by construction --- no ancestry walk needed.

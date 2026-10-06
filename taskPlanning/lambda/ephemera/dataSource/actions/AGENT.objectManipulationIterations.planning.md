@@ -56,7 +56,7 @@ Object manipulation parse (take / drop / relate) is being built as a sequence of
 | Deterministic failure | Where | Fallback |
 | --- | --- | --- |
 | No family template matched at all | [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts)'s terminal `Unimplemented` (after Acme) | plan-only, or joint if the spans don't resolve |
-| Relational command, no template | `relationalNoTemplateMatch`; `PartOf` still hard-errors as `nestingRelational` | plan-only / joint |
+| Relational command, no template | `relationalNoTemplateMatch`; `PartOf` still hard-errors as `nestingRelational`. After [`AGENT.retireDeterministicRelationParsing.planning.md`](AGENT.retireDeterministicRelationParsing.planning.md) there is no relational template at all: every peer-relation command lands in the row above (`Unimplemented`), and the `PartOf` error goes | plan-only / joint |
 | Referent unresolved: no match, ambiguous, Consult, Abstain | identity stage and pool selectors | identity-only (built, unwired, membership-only) |
 | Synthesis `defer` | `classifyInteractionUnderTransfer` (`Custom`; `Under` subject-move); `complexityClasses.ts` (`multiObject`, `multiPresent`, `unimplementedVerb`) | synthesis fallback (BD-10's `defer` leg) |
 

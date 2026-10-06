@@ -16,17 +16,16 @@ import {
     buildMembershipLeaveSuffix,
 } from '../../../perception/publishMembershipPresentation'
 import { isDescribeStep, isNarrateStep, type KernelStep, type NarrationSpecification } from './kernelStep'
+import { fillNarrationTemplate } from './narrationTemplate'
 import type { MutationKernelCaptures } from './types'
 
 /**
  * The presentation kernel's copy-generator: the *only* consumer of a narration step's `narration`
- * field, and the one place a `NarrationSpecification` is dispatched on. Kept deliberately thin ---
- * the expectation was that a second family would arrive as a `case` delegating to a per-family
- * module rather than a block of copy logic inlined here. The `objectMove` case is inline because
- * it is five lines; the per-family module is what to reach for when a family's copy logic
- * stops fitting in a glance, not a rule to apply pre-emptively. See `kernelStep.ts`'s
- * `NarrationSpecification` doc for the conditions under which this dispatcher should give way to
- * polymorphism instead.
+ * field, and the one place a `NarrationSpecification` is dispatched on. Kept deliberately thin:
+ * the membership family's copy is inline (it is a suffix lookup), and template copy (object moves
+ * today, authored narration later) is filled by `narrationTemplate.ts`, which owns the parts and
+ * the fill. See `kernelStep.ts`'s `NarrationSpecification` doc for the conditions under which this
+ * dispatcher should give way to polymorphism instead.
  *
  * Takes only the spec today. A family needing to reason over the commit's captured rosters (rather
  * than just be delivered to them) is a signature change --- add `captures` as a second argument ---
@@ -41,15 +40,8 @@ const buildNarrationCopy = (narration: NarrationSpecification): string => {
                 : buildMembershipArriveSuffix(narration.copyKind)
             return `${name}${suffix}`
         }
-        case 'objectMove': {
-            const name = narration.characterName || 'Someone'
-            const verbPhrase = narration.verb === 'takeHold'
-                ? 'picks up'
-                : narration.verb === 'drop'
-                ? 'drops'
-                : 'gives'
-            return `${name} ${verbPhrase} ${narration.objectShortName}`
-        }
+        case 'template':
+            return fillNarrationTemplate(narration)
     }
 }
 

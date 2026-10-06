@@ -12,7 +12,7 @@ const CHANDELIER_ID = 'OBJECT#Chandelier' as EphemeraObjectId
 const ROOM_ID = 'ROOM#TownSquare' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#alpha' as EphemeraCharacterId
 
-const narration = { characterName: 'Alice', objectShortName: 'tray' }
+const narration = { actorName: 'Alice', labels: { [TRAY_ID]: 'tray' } }
 
 /**
  * Take/drop/give's `planObjectMoveTransfer`: the containment-cycle refusal, and the move's own
