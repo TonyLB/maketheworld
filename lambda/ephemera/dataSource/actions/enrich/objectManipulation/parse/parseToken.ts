@@ -1,7 +1,7 @@
 //
 // Parse's tokenized command skeleton (BD-21): an ordered sequence of referent spans and
 // leftover text runs, deliberately with no grammatical (verb/preposition) classification --
-// Plan owns keyword/pattern matching over the text runs (see matchRelationalTemplate.ts);
+// Plan owns keyword/pattern matching over the text runs (see the templates under plan/);
 // tagging verb/preposition at Parse's layer was rejected as an untested classification with
 // no schema precedent (full rationale in git history).
 //

@@ -9,6 +9,7 @@ import {
     buildCandidatesFromIdentityCase,
 } from './embeddingMatch/testing/mockVectors'
 import { planSkeleton } from './plan/planSkeleton'
+import { peerRelationFixture } from './peerRelationFixture'
 
 const relationalSkeleton = (
     verb: string,
@@ -81,13 +82,13 @@ const relationStepOf = (result: { type: string; attempt?: unknown }): any => {
 }
 
 describe('compileAttemptsFromSkeleton', () => {
-    it('routes relational commands through the native skeleton pipeline (Step 2b step 6)', async () => {
+    it('grounds a peer relation from its Plan attempt (Step 2b step 6; the attempt is a fixture, see peerRelationFixture)', async () => {
 
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put the broom under the table',
                 skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
-                attempts: [planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'))],
+                attempts: [peerRelationFixture('put the broom under the table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Under' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: relationalCatalog,
@@ -122,7 +123,7 @@ describe('compileAttemptsFromSkeleton', () => {
             {
                 command: 'wrap the string around the top',
                 skeleton: relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'),
-                attempts: [planned(relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'))],
+                attempts: [peerRelationFixture('wrap the string around the top', relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })],
                 characterId,
                 hostRoomId: roomId,
                 heldInventoryCatalog: [
@@ -162,7 +163,7 @@ describe('compileAttemptsFromSkeleton', () => {
             {
                 command: 'lean rope against anvil',
                 skeleton: relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'),
-                attempts: [planned(relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'))],
+                attempts: [peerRelationFixture('lean rope against anvil', relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'), { primitive: 'establishRelation', relationKind: 'Against' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: anvilCatalog,
@@ -185,7 +186,7 @@ describe('compileAttemptsFromSkeleton', () => {
         })
     })
 
-    it('grounds establish fixture tie cord around crate via the native skeleton pipeline ("tie" joined ESTABLISH_VERBS)', async () => {
+    it('grounds establish fixture tie cord around crate via the native skeleton pipeline ("tie" is an establish verb)', async () => {
         const cordId = 'OBJECT#Cord' as EphemeraObjectId
         const crateId = 'OBJECT#Crate' as EphemeraObjectId
 
@@ -193,7 +194,7 @@ describe('compileAttemptsFromSkeleton', () => {
             {
                 command: 'tie cord around crate',
                 skeleton: relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'),
-                attempts: [planned(relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'))],
+                attempts: [peerRelationFixture('tie cord around crate', relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -233,7 +234,7 @@ describe('compileAttemptsFromSkeleton', () => {
             {
                 command: 'take rope off crate',
                 skeleton: relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'),
-                attempts: [planned(relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'))],
+                attempts: [peerRelationFixture('take rope off crate', relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'), { primitive: 'dissolveRelation', relationKind: 'Custom', relationLabel: 'off' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -272,7 +273,7 @@ describe('compileAttemptsFromSkeleton', () => {
         })
     })
 
-    it('routes relational with a non-enum preposition to a Custom relation via the native pipeline', async () => {
+    it('grounds a Custom peer relation from its Plan attempt (the attempt is a fixture, see peerRelationFixture)', async () => {
         const ladderId = 'OBJECT#Ladder' as EphemeraObjectId
         const wallId = 'OBJECT#Wall' as EphemeraObjectId
 
@@ -280,7 +281,7 @@ describe('compileAttemptsFromSkeleton', () => {
             {
                 command: 'lean the ladder leaning against the wall',
                 skeleton: relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'),
-                attempts: [planned(relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'))],
+                attempts: [peerRelationFixture('lean the ladder leaning against the wall', relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'), { primitive: 'establishRelation', relationKind: 'Against' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -347,7 +348,7 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
             {
                 command: 'look broom',
                 skeleton: lookSkeleton,
-                attempts: [planned(relationSkeletonForPool), planned(lookSkeleton)],
+                attempts: [peerRelationFixture('look broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Under' }), planned(lookSkeleton)],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: relationalCatalog,
@@ -369,7 +370,7 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
             {
                 command: 'take broom',
                 skeleton: takeSkeleton,
-                attempts: [planned(takeSkeleton), planned(relationSkeletonForPool)],
+                attempts: [planned(takeSkeleton), peerRelationFixture('take broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Under' })],
                 characterId,
                 roomObjectCatalog: relationalCatalog,
             },

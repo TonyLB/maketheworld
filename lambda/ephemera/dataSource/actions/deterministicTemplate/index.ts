@@ -1,5 +1,4 @@
 import { awaitRoadRunnerTemplate, helpTemplate, homeTemplate, lookTemplate, predictTemplate } from './bareWordTemplates'
-import { relationalTemplateRegistry } from './relationalTemplates'
 import type { DeterministicTemplate, DeterministicTemplateMatch } from './deterministicTemplate'
 
 /**
@@ -12,7 +11,6 @@ export const deterministicTemplateRegistry: DeterministicTemplate[] = [
     homeTemplate,
     predictTemplate,
     awaitRoadRunnerTemplate,
-    ...relationalTemplateRegistry,
 ]
 
 export function matchDeterministicTemplate(command: string): DeterministicTemplateMatch {
@@ -27,19 +25,11 @@ export function matchDeterministicTemplate(command: string): DeterministicTempla
 
 /**
  * Sub-iteration 2 (iteration 7, 2026-07-20) live-path entry point: the
- * bare-word/paraphrase subset only, deliberately excluding
- * relationalTemplateRegistry. Object-manipulation's relational dispatch
- * already runs its own live path (planSkeleton / matchRelationalTemplate
- * over a Parse-produced skeleton) -- wiring the relational DeterministicTemplate
- * entries in *addition* would mean two different mechanisms could both decide
- * `ObjectRelateIntent`, and consuming a relational match here would require
- * threading its synthesized skeleton into the same downstream enrich pipeline
- * runParseStage's output goes into (CPG-6's zero-Bedrock optimization) -- a
- * distinct, nontrivial change with its own test surface, not required to close
- * the Sub-iteration 1 Command regression this registry exists to close. Left
- * for a future slice; excluding the relational entries here by construction
- * (a separate registry, not a runtime type filter) keeps that scope boundary
- * visible in code, not just in comments. See
+ * bare-word/paraphrase subset only. There is no relational entry in this registry: peer relations
+ * have no deterministic parse (the relational templates retired in AGENT.retireDeterministicRelationParsing,
+ * slice 2), and object-manipulation's dispatch runs its own live path (planSkeleton over a
+ * Parse-produced skeleton). Keeping this as a separate registry, not a runtime type filter, keeps
+ * the scope boundary visible in code. See
  * taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md,
  * CPG-1/CPG-6.
  *

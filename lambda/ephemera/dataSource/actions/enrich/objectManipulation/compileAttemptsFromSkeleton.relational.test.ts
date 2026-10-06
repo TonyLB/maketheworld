@@ -6,6 +6,7 @@ import type { ParseSkeleton } from './parse/parseToken'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { planSkeleton } from './plan/planSkeleton'
 import { CommandAttempt } from '../../commandAttempt'
+import { peerRelationFixture } from './peerRelationFixture'
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
@@ -59,7 +60,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             {
                 command: 'put broom under table',
                 skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
-                attempts: [planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'))],
+                attempts: [peerRelationFixture('put broom under table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Under' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -105,7 +106,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             {
                 command: 'put bench under bench',
                 skeleton: relationalSkeleton('put', 'bench', 'benchRef1', 'under', 'bench', 'benchRef2'),
-                attempts: [planned(relationalSkeleton('put', 'bench', 'benchRef1', 'under', 'bench', 'benchRef2'))],
+                attempts: [peerRelationFixture('put bench under bench', relationalSkeleton('put', 'bench', 'benchRef1', 'under', 'bench', 'benchRef2'), { primitive: 'establishRelation', relationKind: 'Under' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -137,7 +138,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             {
                 command: 'put broom under table',
                 skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
-                attempts: [planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'))],
+                attempts: [peerRelationFixture('put broom under table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Under' })],
                 characterId,
             },
             0.9
@@ -154,7 +155,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             {
                 command: 'put broom under table',
                 skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
-                attempts: [planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'))],
+                attempts: [peerRelationFixture('put broom under table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Under' })],
                 hostRoomId: roomId,
             },
             0.9
@@ -177,7 +178,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             {
                 command: 'put lamp under lamp',
                 skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'under', 'lamp', 'lampRef2'),
-                attempts: [planned(relationalSkeleton('put', 'lamp', 'lampRef1', 'under', 'lamp', 'lampRef2'))],
+                attempts: [peerRelationFixture('put lamp under lamp', relationalSkeleton('put', 'lamp', 'lampRef1', 'under', 'lamp', 'lampRef2'), { primitive: 'establishRelation', relationKind: 'Under' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
@@ -201,7 +202,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             {
                 command: 'put lamp around lamp',
                 skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'around', 'lamp', 'lampRef2'),
-                attempts: [planned(relationalSkeleton('put', 'lamp', 'lampRef1', 'around', 'lamp', 'lampRef2'))],
+                attempts: [peerRelationFixture('put lamp around lamp', relationalSkeleton('put', 'lamp', 'lampRef1', 'around', 'lamp', 'lampRef2'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
@@ -228,7 +229,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             {
                 command: 'put sword under table',
                 skeleton: relationalSkeleton('put', 'sword', 'swordRef', 'under', 'table', 'tableRef'),
-                attempts: [planned(relationalSkeleton('put', 'sword', 'swordRef', 'under', 'table', 'tableRef'))],
+                attempts: [peerRelationFixture('put sword under table', relationalSkeleton('put', 'sword', 'swordRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Under' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: tableId, normalizedShortName: 'table' }],
@@ -272,7 +273,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             {
                 command: 'wrap charm around necklace',
                 skeleton: relationalSkeleton('put', 'charm', 'charmRef', 'around', 'necklace', 'necklaceRef'),
-                attempts: [planned(relationalSkeleton('put', 'charm', 'charmRef', 'around', 'necklace', 'necklaceRef'))],
+                attempts: [peerRelationFixture('wrap charm around necklace', relationalSkeleton('put', 'charm', 'charmRef', 'around', 'necklace', 'necklaceRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: charmId, normalizedShortName: 'charm' }],
@@ -314,7 +315,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             {
                 command: 'tie string to cup',
                 skeleton: relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'),
-                attempts: [planned(relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'))],
+                attempts: [peerRelationFixture('tie string to cup', relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'to' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [

@@ -26,7 +26,6 @@ export const objectManipulationErrorMessages = {
     parseParseFailed: 'Object manipulation parse response was not valid',
     planOnlyFallbackNotYetImplemented: 'ObjectManipulation enrich: the plan-only LLM fallback is not implemented yet',
     jointFallbackNotYetImplemented: 'ObjectManipulation enrich: the joint identity/plan LLM fallback is not implemented yet',
-    relationalNoTemplateMatch: 'ObjectManipulation enrich: relational command did not match a recognized pattern',
     lookNoTemplateMatch: 'ObjectManipulation enrich: look command did not match a recognized pattern',
     noActingCharacter: 'ObjectManipulation resolution failed: no acting character',
 } as const

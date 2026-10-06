@@ -15,19 +15,6 @@ const attemptsOf = (skeleton: ParseSkeleton) => {
 }
 
 describe('planSkeleton', () => {
-    it('plans a peer relation as one establishRelation step, with no referents yet', () => {
-        const [primary] = attemptsOf(relationalSkeleton('put', 'broom', 'against', 'table'))
-        const [action] = primary.actions()
-        expect(action.desiredResult).toEqual({
-            kind: 'change',
-            primitive: 'establishRelation',
-            subject: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
-            target: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
-            relationKind: 'Against',
-        })
-        expect(primary.referents()).toEqual([])
-    })
-
     it('plans containment ahead of membership: "take the coin in the box" is a membership take, not a containment move', () => {
         const attempts = attemptsOf([
             { type: 'text', text: 'take' },
@@ -46,15 +33,6 @@ describe('planSkeleton', () => {
 
     it('plans nothing for "tie the rope in the box": no template claims it, so the zero-attempt branch answers', () => {
         expect(attemptsOf(relationalSkeleton('tie', 'rope', 'in', 'box'))).toEqual([])
-    })
-
-    it('plans "partof" as a Custom relation: no player phrase reaches PartOf (relationKind.ts), so the declined path is typed only', () => {
-        const [primary] = attemptsOf(relationalSkeleton('put', 'coin', 'partof', 'jar'))
-        expect(primary.actions()[0].desiredResult).toMatchObject({
-            primitive: 'establishRelation',
-            relationKind: 'Custom',
-            relationLabel: 'partof',
-        })
     })
 
     it('plans a leading take as membership acquire, a leading drop as release', () => {
@@ -79,10 +57,23 @@ describe('planSkeleton', () => {
         })
     })
 
-    it('keeps the relational attempt primary for take X off Y, ahead of the membership attempt', () => {
+    it('plans take X off Y as membership acquire of X: the tail is ignored, and no relational attempt exists', () => {
         const attempts = attemptsOf(relationalSkeleton('take', 'rope', 'off', 'crate'))
-        expect(attempts.length).toBeGreaterThan(0)
-        expect(attempts[0].actions()[0].desiredResult).toMatchObject({ primitive: 'dissolveRelation' })
+        expect(attempts).toHaveLength(1)
+        expect(attempts[0].actions()[0].desiredResult).toMatchObject({
+            primitive: 'transferMembership',
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
+            from: { referentType: 'currentHost' },
+            to: { referentType: 'actingCharacter' },
+        })
+    })
+
+    it.each([
+        ['tie the rope to the pole', relationalSkeleton('tie', 'rope', 'to', 'pole')],
+        ['lean the lamp against the wall', relationalSkeleton('lean', 'lamp', 'against', 'wall')],
+        ['put the lamp under the table', relationalSkeleton('put', 'lamp', 'under', 'table')],
+    ])('plans nothing for peer relation "%s": the zero-attempt branch answers Unimplemented', (_command, skeleton) => {
+        expect(attemptsOf(skeleton)).toEqual([])
     })
 
     it('plans a look as one narration whose action names the referent', () => {

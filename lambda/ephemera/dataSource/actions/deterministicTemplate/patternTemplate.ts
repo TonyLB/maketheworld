@@ -60,8 +60,7 @@ export function matchPatternAgainstString(pattern: PatternElement[], command: st
 
 /**
  * Positional walk of the pattern against an already-tokenized skeleton. Length
- * mismatch is an immediate `noMatch` (mirrors matchRelationalTemplate.ts's
- * `skeleton.length !== 4` gate).
+ * mismatch is an immediate `noMatch`.
  */
 export function matchPatternAgainstTokens(pattern: PatternElement[], skeleton: ParseSkeleton): PatternMatchResult {
     if (pattern.length !== skeleton.length) {
@@ -129,8 +128,8 @@ export function assembleIntent(templateIntent: Partial<ParseCommandResult>, capt
  * this codebase's existing principle that tokens identify the actual occurrence,
  * not a canonical form (stampStableRefKeys.ts). Called unconditionally on every
  * matchString hit -- a no-op passthrough while no pattern has an objectSpan
- * element (true of every template in this slice), real stamping once Step 2's
- * relational templates land. Captures are guaranteed parallel to pattern by both
+ * element (true of every template in this slice), real stamping once a template with an
+ * objectSpan element lands. Captures are guaranteed parallel to pattern by both
  * engines above, so index lookup (not a search) is safe.
  */
 export function synthesizeSkeletonFromPattern(pattern: PatternElement[], captures: PatternCapture[]): ParseSkeleton {

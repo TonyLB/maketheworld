@@ -1,6 +1,6 @@
 # Retire deterministic relation parsing
 
-**Status:** Slice 1 shipped (working tree, not yet committed). RD-1 and RD-2 decided. Next: slice 2 (delete the relational templates); RD-2's pin lands there. Runs before [`AGENT.attemptNarration.planning.md`](../../AGENT.attemptNarration.planning.md)'s slice 2, which is scoped against what this plan leaves.
+**Status:** Slices 1 and 2 shipped (slice 1 committed 5b872e02f; slice 2 in the working tree, not yet committed). Next: slice 3 (retire `Under` / `Against`). Runs before [`AGENT.attemptNarration.planning.md`](../../AGENT.attemptNarration.planning.md)'s slice 2, which is scoped against what this plan leaves.
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md). It is an implementation plan: the direction was settled in conversation (2026-10-06), and what is left are forks inside slices.
 
@@ -52,7 +52,7 @@ npm run test -- --watchAll=false \
 | Slice | Subject | Status |
 | --- | --- | --- |
 | 1 | Containment gets its own template | Done |
-| 2 | Delete the relational templates (Plan stage and intent-level registry) | Not started |
+| 2 | Delete the relational templates (Plan stage and intent-level registry) | Done |
 | 3 | Retire `Under` / `Against` | Not started |
 | 4 | Durable docs; retire this plan | Not started |
 
@@ -67,11 +67,17 @@ Use `[ ]` for pending and `[X]` for complete; mark nested lines `[X]` as each su
   - [X] Relational template answers `noMatch` for containment prepositions (via `matchContainmentPreposition`). Without this, `take X in Y` and `tie X in Y` would gain a peer attempt once the phrases left `normalizeRelationSpan`.
   - [X] Existing containment tests in `matchRelationalTemplate.test.ts` and `planSkeleton.test.ts` move over and pass with the same expectations. `objectContainmentInPayoff.integration.test.ts` stays green.
   - [X] Drop the `declined` / `PartOf` path: `normalizeRelationSpan` never returns `PartOf`, so it is unreachable today. `nestingRelational` had a reader in `actions/index.ts`'s switch; removed with it. `parseCommand.ts`'s two `declined` branches are gone too.
-- [ ] **Slice 2. Delete the relational templates.**
-  - [ ] Delete `plan/matchRelationalTemplate.ts` and its test, and the peer half of `normalizeRelationSpan` (the `Under`/`Against` phrase map and the `Custom`-from-preposition fallback). Delete `normalizeRelationSpan` entirely if slice 1 left it nothing. `objectManipulationErrorMessages.relationalNoTemplateMatch` (in `resolveObjectSpan.ts`) has no reader today; delete it here too.
-  - [ ] Delete the intent-level registry `deterministicTemplate/relationalTemplates.ts` and its test; drop it from `deterministicTemplateRegistry` and fix the count in `index.test.ts`. It has zero production call sites (CPG-6 in [`AGENT.classifyPlanGeneralization.planning.md`](AGENT.classifyPlanGeneralization.planning.md) was the plan to wire it, and retires with it).
-  - [ ] Pin the dark path: `tie the rope to the pole`, `lean the lamp against the wall` and `put the lamp under the table` each reach `parseCommand`'s zero-attempt branch and answer `Unimplemented`, not an error and not a containment move.
-  - [ ] Pin the routing change: `take the rope off the crate` now plans as a membership take (today the relational attempt is primary; `planSkeleton.test.ts`'s "keeps the relational attempt primary" case is rewritten, not deleted). Update `matchMembershipTemplate`'s doc comment, which says `take X off Y` is relational.
+- [X] **Slice 2. Delete the relational templates.**
+  - [X] Delete `plan/matchRelationalTemplate.ts` and its test, and the peer half of `normalizeRelationSpan` (the `Under`/`Against` phrase map and the `Custom`-from-preposition fallback). Delete `normalizeRelationSpan` entirely if slice 1 left it nothing. `objectManipulationErrorMessages.relationalNoTemplateMatch` (in `resolveObjectSpan.ts`) has no reader today; delete it here too.
+    - [X] Also deleted: `normalizeRelationSpan.test.ts` and `NormalizedRelation` in `relationKind.ts` (both orphaned by the template's removal).
+  - [X] Delete the intent-level registry `deterministicTemplate/relationalTemplates.ts` and its test; drop it from `deterministicTemplateRegistry` (15 entries become 5) and fix the count in `index.test.ts`. It has zero production call sites (CPG-6 in [`AGENT.classifyPlanGeneralization.planning.md`](AGENT.classifyPlanGeneralization.planning.md) was the plan to wire it, and retires with it).
+  - [X] Pin the dark path: `tie the rope to the pole`, `lean the lamp against the wall` and `put the lamp under the table` each reach `parseCommand`'s zero-attempt branch and answer `Unimplemented`, not an error and not a containment move. Pinned at both levels: `planSkeleton.test.ts` (zero attempts) and `parseCommand.test.ts` (`Unimplemented`).
+  - [X] Pin the routing change: `take the rope off the crate` now plans as a membership take (`planSkeleton.test.ts`'s "keeps the relational attempt primary" case is rewritten to the membership take). Update `matchMembershipTemplate`'s doc comment, which said `take X off Y` is relational.
+  - [X] Test surface beyond the lines above (found when the suites ran; the plan did not list them):
+    - [X] `planSkeleton.test.ts`: "peer relation as one establishRelation step" and the `partof` case deleted (both pinned the template's output).
+    - [X] `parseCommand.test.ts`: "remove X off Y" dissolve and "put X under Y" establish tests become `Unimplemented` pins; the `under` duplicate and the two-table relational Consult are deleted (no route left to Consult from). Five characterization snapshots (`relational commands (Parse path)` and one no-room case) renamed to `(no peer parse: Unimplemented)` and regenerated.
+    - [X] `compileAttemptsFromSkeleton.relational.test.ts` and `.entry.test.ts`: the producer tests (grounding, self-relation, shard crossing, sameHost) keep their assertions, but their input attempt comes from `enrich/objectManipulation/peerRelationFixture.ts`, a test-only stand-in for the unbuilt LLM fallback. Two tests titled as routing tests are retitled as producer tests.
+    - [X] Comment sweep: `patternTemplate.ts`, `parseToken.ts`, `matchLookTemplate.ts`, `relationKind.ts`, `resolveObjectSpan.ts` no longer name the deleted symbols.
   - [X] Decide RD-2 (`take X out of Y` / `take X off Y` as an explicit containment dissolve): no; membership handles it.
 - [ ] **Slice 3. Retire `Under` / `Against`.**
   - [ ] `mtw-interfaces`: remove `CLOSED_RELATION_KINDS`, `ClosedRelationKind`, `isClosedRelationKind`, and `Under`/`Against` from `HostRelationalEdgeKind`. Fix `ephemeraMeta.test.ts` cases that enumerate them (port-address and kind-acceptance tables).
@@ -86,9 +92,7 @@ Use `[ ]` for pending and `[X]` for complete; mark nested lines `[X]` as each su
 
 Plan-only: decisions made in order to implement upcoming slices. When one ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
 
-| ID | Decision | Blocks | Status |
-| --- | --- | --- | --- |
-| RD-2 | **Is `take X out of Y` / `take X off Y` a containment template?** **Decided (2026-10-06): no.** It is not a template shape. After slice 2 the membership template claims both by leading verb and ignores the `out of Y` / `off Y` tail, which is the right outcome when X is in or on Y. The tail's eventual use is narrowing *which* X the player means, by extending object spans to read it; that is reference resolution, not a deterministic template, and is out of scope here. The slice 2 pin covers the routing. | 2 | Decided; remove when slice 2 ships |
+None open. RD-1 (containment verbs) shipped in slice 1; RD-2 (`take X off Y` is not a containment template) shipped in slice 2, and its rule moves to durable docs in slice 4.
 
 ## Plans that point here
 
