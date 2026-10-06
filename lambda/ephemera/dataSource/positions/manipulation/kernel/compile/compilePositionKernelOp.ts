@@ -5,6 +5,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { KernelStep, MutationKernelCaptureStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
 import type { MessageOrchestrationSlotSpec } from '../../../../messageOrchestration/localApiEvents'
+import { defaultTransferMembershipParts } from '../narrationTemplate'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 import { presenceBindingStepsForMove } from './presenceBindingStepsForMove'
@@ -150,14 +151,14 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
                         : narration.arriveCopyKind,
                     ...(narration.exitName !== undefined ? { exitName: narration.exitName } : {}),
                 }
-            case 'objectMove':
+            case 'template':
                 // No `direction`: the one non-empty side of the bracket carries the whole sentence,
                 // and which side that is is already answered by the verb.
                 return {
-                    kind: 'objectMove',
-                    verb: objectMoveVerb(op.froms, op.to),
-                    characterName: narration.characterName,
-                    objectShortName: narration.objectShortName,
+                    kind: 'template',
+                    parts: defaultTransferMembershipParts(objectMoveVerb(op.froms, op.to), op.moved),
+                    actorName: narration.actorName,
+                    labels: narration.labels,
                 }
         }
     }

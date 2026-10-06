@@ -150,7 +150,7 @@ export type KernelStep = MutationKernelStep | ExecutorDescribeStep | Presentatio
  * structural form of the same boundary `kind: 'narrate'` draws at the walk-dispatch level (see
  * `PresentationKernelNarrateStep` below). Discriminated on narration *family*, deliberately not on
  * `direction`: `direction` is a membership-narration concept (leave/arrive between ludicGraph
- * hosts), not a universal property of narration; `ObjectMoveNarrationSpec` shares no field with
+ * hosts), not a universal property of narration; `TemplateNarrationSpec` shares no field with
  * `MembershipNarrationSpec`, carrying item/actor vocabulary instead, so a `direction`-discriminated
  * union would have had to split both families down an axis only one of them has.
  *
@@ -192,27 +192,43 @@ export type MembershipNarrationSpec = {
 }
 
 /**
- * Object take/drop/give narration --- the second `NarrationSpecification` family, sharing no field
- * with `MembershipNarrationSpec` (see that type's own doc comment for why the union discriminates on
- * family rather than on `direction`).
+ * A narration template: the carrier for object take/drop/give copy, and the arm any authored
+ * narration will also use. Sharing no field with `MembershipNarrationSpec` (see that type's own doc
+ * comment for why the union discriminates on family rather than on `direction`).
+ *
+ * `parts` is a flat sequence of literal text, the actor slot, and references to entities by id,
+ * never a token string, so authored text can carry any characters without escaping. Nothing here
+ * names a role an entity plays (no `object`, `subject`, `target`): a part refers to an entity, and
+ * `labels` supplies each referenced entity's display label at flush. That is what lets a relational
+ * default or an authored template use this same arm without a new field or family.
+ *
+ * `actorName` is separate from `labels` because the actor is the narration's own slot (later the
+ * key for role variants), not an entity the template happens to mention.
  *
  * **No `direction`, deliberately.** The compiler emits both bracket sides for an object move exactly
  * as it does for a character move (never special-case the character-hosted side), but a
  * character's inventory graph has no roster, so exactly one of the two narrate steps ever has an
- * audience. Which side that is, is already answered by `verb`, so the same spec renders correctly on
- * both and the empty side simply publishes to nobody.
+ * audience. The same template renders correctly on both sides, and the empty side simply publishes
+ * to nobody.
  *
- * `verb` is derived by the compiler from which side of the move was the room, never declared by the
- * caller --- see `objectMoveVerb` in `compilePositionKernelOp.ts`.
+ * The default parts are chosen by the compiler from which side of the move was the room (see
+ * `objectMoveVerb` in `compilePositionKernelOp.ts`), never declared by the caller; see
+ * `narrationTemplate.ts` for the defaults and the fill.
  */
-export type ObjectMoveNarrationSpec = {
-    kind: 'objectMove'
-    verb: 'takeHold' | 'drop' | 'give'
-    characterName: string
-    objectShortName: string
+export type NarrationPart =
+    | { text: string }
+    | { slot: 'actor' }
+    | { ref: string }
+
+export type TemplateNarrationSpec = {
+    kind: 'template'
+    parts: NarrationPart[]
+    actorName: string
+    /** Display label per entity id, for every `ref` part. */
+    labels: Record<string, string>
 }
 
-export type NarrationSpecification = MembershipNarrationSpec | ObjectMoveNarrationSpec
+export type NarrationSpecification = MembershipNarrationSpec | TemplateNarrationSpec
 
 /**
  * Positional narration (rules: `dataSource/positions/AGENT.contract.md`, "Narration and

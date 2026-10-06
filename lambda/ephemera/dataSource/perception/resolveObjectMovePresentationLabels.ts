@@ -71,8 +71,8 @@ const shortNameFromMergedAggregate = async (
 }
 
 /**
- * Resolve display labels for an object move's transcript copy --- the `characterName` /
- * `objectShortName` ingredients an `ObjectMoveNarrationInput` carries (D11 / D4). Does not require
+ * Resolve display labels for an object move's transcript copy --- the actor name and the moved
+ * object's label that `commitAttempt` hands a `TemplateNarrationInput` (D11 / D4). Does not require
  * the object to remain in the room position graph after apply, which is what lets it serve a take
  * (object gone from the room) and a drop alike.
  *

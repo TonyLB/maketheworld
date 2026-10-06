@@ -1,7 +1,8 @@
 import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { presentStepSequence } from './presentStepSequence'
-import type { KernelStep, ObjectMoveNarrationSpec } from './kernelStep'
+import type { KernelStep } from './kernelStep'
+import { defaultTransferMembershipParts } from './narrationTemplate'
 
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -271,16 +272,15 @@ describe('presentStepSequence', () => {
         )
 
         const objectStep = (
-            narration: Partial<ObjectMoveNarrationSpec> = {},
+            { verb = 'takeHold', characterName = 'Alice' }: { verb?: 'takeHold' | 'drop' | 'give', characterName?: string } = {},
             captureId = 'capture:from:ROOM#Cafe'
         ): KernelStep => ({
             kind: 'narrate',
             narration: {
-                kind: 'objectMove',
-                verb: 'takeHold',
-                characterName: 'Alice',
-                objectShortName: 'broom',
-                ...narration,
+                kind: 'template',
+                parts: defaultTransferMembershipParts(verb, 'OBJECT#broom'),
+                actorName: characterName,
+                labels: { 'OBJECT#broom': 'broom' },
             },
             captureId,
             bundleId: 'BUNDLE#test',

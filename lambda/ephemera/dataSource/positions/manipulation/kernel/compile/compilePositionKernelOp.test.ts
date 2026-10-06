@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import { compilePositionKernelOp } from './compilePositionKernelOp'
 import { isNarrateStep } from '../kernelStep'
-import type { MembershipNarrationSpec, ObjectMoveNarrationSpec, PresentationKernelNarrateStep } from '../kernelStep'
+import type { MembershipNarrationSpec, PresentationKernelNarrateStep, TemplateNarrationSpec } from '../kernelStep'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 import { NAVIGATE_HEADER_SLOT_ID } from '../../../navigate/navigateBundleSlotIds'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
@@ -165,26 +165,43 @@ describe('compilePositionKernelOp --- object moves', () => {
         headerSlot: null,
         dissolvedEdges: [],
         narration: {
-            kind: 'objectMove',
-            characterName: 'Tess',
-            objectShortName: 'tray',
+            kind: 'template',
+            actorName: 'Tess',
+            labels: { [TRAY]: 'tray' },
         },
         ...overrides,
     })
 
-    const objectNarration = (step: PresentationKernelNarrateStep): ObjectMoveNarrationSpec => {
-        if (step.narration.kind !== 'objectMove') {
-            throw new Error(`Expected an objectMove narration, got ${step.narration.kind}`)
+    const objectTemplate = (step: PresentationKernelNarrateStep): TemplateNarrationSpec => {
+        if (step.narration.kind !== 'template') {
+            throw new Error(`Expected a template narration, got ${step.narration.kind}`)
         }
         return step.narration
     }
 
+    // The literal words between the slots, so the assertions read the verb the template carries.
+    const templateVerbText = (step: PresentationKernelNarrateStep): string => (
+        objectTemplate(step).parts
+            .map((part) => ('text' in part ? part.text : ''))
+            .join('')
+    )
+
+    it('refers to the moved entity by id and carries the caller\'s labels, naming no role', () => {
+        const step = compilePositionKernelOp(objectOp()).steps.filter(isNarrateStep)[0]
+        expect(objectTemplate(step)).toEqual({
+            kind: 'template',
+            parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: TRAY }],
+            actorName: 'Tess',
+            labels: { [TRAY]: 'tray' },
+        })
+    })
+
     it('derives takeHold when the move leaves a room, and drop when it arrives at one', () => {
         const takeHold = compilePositionKernelOp(objectOp())
-        expect(objectNarration(takeHold.steps.filter(isNarrateStep)[0]).verb).toEqual('takeHold')
+        expect(templateVerbText(takeHold.steps.filter(isNarrateStep)[0])).toEqual(' picks up ')
 
         const drop = compilePositionKernelOp(objectOp({ froms: [CHARACTER_ID], to: FROM_ROOM }))
-        expect(objectNarration(drop.steps.filter(isNarrateStep)[0]).verb).toEqual('drop')
+        expect(templateVerbText(drop.steps.filter(isNarrateStep)[0])).toEqual(' drops ')
     })
 
     it('derives give when neither side is a room --- no new discriminant needed', () => {
@@ -192,7 +209,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             froms: [CHARACTER_ID],
             to: 'CHARACTER#Other' as EphemeraCharacterId,
         }))
-        expect(objectNarration(give.steps.filter(isNarrateStep)[0]).verb).toEqual('give')
+        expect(templateVerbText(give.steps.filter(isNarrateStep)[0])).toEqual(' gives ')
     })
 
     it('emits both bracket sides for a character host rather than suppressing the empty one', () => {

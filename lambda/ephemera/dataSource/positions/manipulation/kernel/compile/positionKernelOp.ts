@@ -18,21 +18,22 @@ export type MembershipMoveNarrationInput = {
 }
 
 /**
- * Object take/drop/give narration's ingredients (Phase 4).
+ * Template narration's fill values: the actor's name and a display label per entity id. The
+ * compiler supplies the template itself (today the `transferMembership` default, referring to
+ * `moved` by id), so the caller hands over labels, not copy and not a role-named field per entity.
  *
- * Note the absence of a verb. The verb is a property of the *delta* --- "which side of
+ * Note the absence of a verb. The default's verb is a property of the *delta* --- "which side of
  * the move was the room" --- so `compilePositionKernelOp` derives it from `(froms, to)` host kinds
- * rather than the caller declaring it. That is what lets `give` (room on neither side) fall out
- * without a new discriminant, and it is why the retired `inferOperationFromFact` could be deleted
- * rather than ported: the compiler holds the verb forwards instead of reasoning back to it.
+ * rather than the caller declaring it. That is a bridge until narration units are authored where
+ * actions are created, not where narration copy is meant to come from.
  *
  * No carried-object count: a moved object's hosted contents live in its own shard and travel
  * with it, so the move names one entity and narration names that one object.
  */
-export type ObjectMoveNarrationInput = {
-    kind: 'objectMove'
-    characterName: string
-    objectShortName: string
+export type TemplateNarrationInput = {
+    kind: 'template'
+    actorName: string
+    labels: Record<string, string>
 }
 
 /**
@@ -85,7 +86,7 @@ export type PositionKernelMoveOp = {
      */
     containment?: 'On' | 'In' | 'PartOf'
     /** Present only when this move should narrate world lines --- see doc comment above. */
-    narration?: MembershipMoveNarrationInput | ObjectMoveNarrationInput
+    narration?: MembershipMoveNarrationInput | TemplateNarrationInput
 }
 
 export type PositionKernelOp = PositionKernelMoveOp

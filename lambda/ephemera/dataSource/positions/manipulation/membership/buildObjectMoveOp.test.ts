@@ -27,20 +27,20 @@ describe('buildObjectMoveOp', () => {
         expect(op.headerSlot).toBeNull()
     })
 
-    it('builds narration ingredients naming only the moved object', () => {
+    it('builds template narration labelling only the moved object', () => {
         const op = buildObjectMoveOp({
             entityId: TRAY,
             fromGraph: emptyFromGraph,
             fromHostId: ROOM,
             toHostId: CHARACTER,
             bundleId: 'BUNDLE#test',
-            narration: { characterName: 'Alice', objectShortName: 'tray' },
+            narration: { actorName: 'Alice', labels: { [TRAY]: 'tray' } },
         })
 
         expect(op.narration).toEqual({
-            kind: 'objectMove',
-            characterName: 'Alice',
-            objectShortName: 'tray',
+            kind: 'template',
+            actorName: 'Alice',
+            labels: { [TRAY]: 'tray' },
         })
     })
 
@@ -63,7 +63,7 @@ describe('buildObjectMoveOp', () => {
             fromHostId: ROOM,
             toHostId: CHARACTER,
             bundleId: 'BUNDLE#test',
-            narration: { characterName: 'Alice', objectShortName: 'tray' },
+            narration: { actorName: 'Alice', labels: { [TRAY]: 'tray' } },
         })
         const drop = buildObjectMoveOp({
             entityId: TRAY,
@@ -71,7 +71,7 @@ describe('buildObjectMoveOp', () => {
             fromHostId: CHARACTER,
             toHostId: ROOM,
             bundleId: 'BUNDLE#test',
-            narration: { characterName: 'Alice', objectShortName: 'tray' },
+            narration: { actorName: 'Alice', labels: { [TRAY]: 'tray' } },
         })
 
         // Identical narration for opposite directions is the point: this builder never knew the

@@ -4,7 +4,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { HostRelationalEdge } from '../types'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { findOwnRootContainmentEdge } from './findOwnRootContainmentEdge'
-import type { ObjectMoveNarrationInput, PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
+import type { PositionKernelMoveOp, TemplateNarrationInput } from '../kernel/compile/positionKernelOp'
 
 export type BuildObjectMoveOpArgs = {
     /** The moved object --- the whole moved set: anything it hosts lives in its own shard and travels with it. */
@@ -23,7 +23,7 @@ export type BuildObjectMoveOpArgs = {
     toHostId: EphemeraMembershipHostId
     bundleId: string
     /** Omitted for the pre-commit mutation-only compile; supplied post-commit to narrate. */
-    narration?: Omit<ObjectMoveNarrationInput, 'kind'>
+    narration?: Omit<TemplateNarrationInput, 'kind'>
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
 }
@@ -47,7 +47,7 @@ export type BuildObjectMoveOpArgs = {
  * so the ingredients are all in hand before the commit and one compiled plan serves both halves; a
  * second compile would be two chances to disagree in exchange for nothing.
  *
- * No carried-object count; see `positionKernelOp.ts`'s `ObjectMoveNarrationInput` doc comment.
+ * No carried-object count; see `positionKernelOp.ts`'s `TemplateNarrationInput` doc comment.
  *
  * `dissolvedEdges` is derived here from `fromGraph`, not handed in pre-computed by the caller: it
  * holds only the mover's own containment edge. See `fromGraph`'s own doc comment above for why
@@ -69,9 +69,9 @@ export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMo
         ...(args.narration
             ? {
                 narration: {
-                    kind: 'objectMove' as const,
-                    characterName: args.narration.characterName,
-                    objectShortName: args.narration.objectShortName,
+                    kind: 'template' as const,
+                    actorName: args.narration.actorName,
+                    labels: args.narration.labels,
                 },
             }
             : {}),
