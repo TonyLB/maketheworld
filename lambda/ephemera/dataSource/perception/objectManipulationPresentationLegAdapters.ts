@@ -11,7 +11,7 @@
  *
  * Re-pointed from `Object Establish Relation`/`Object Dissolve Relation`: those
  * events carried a flat, narration-only `hostId` --- known buggy for a genuine crossing
- * (`AGENT.relationalNarration.planning.md`). The generalized hand-off carries no host at all
+ * (`AGENT.attemptNarration.planning.md`). The generalized hand-off carries no host at all
  * (a relation's host lives on its chain's legs, not its edge), so this reads the
  * subject's current host fresh, the same way `planRelationalEdgeTransfer.ts` does --- not a
  * regression, since the old flat field was already wrong for a crossing.
