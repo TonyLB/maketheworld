@@ -32,25 +32,26 @@ describe('matchRelationalTemplate', () => {
         })
     })
 
-    it('plans "on" as the containment transfer, same as In (Channel D CD2: On joins In/PartOf) ("put broom on table")', () => {
+    it.each(['in', 'on', 'onto', 'on top of', 'inside'])('returns noMatch for a containment preposition ("%s"), which the containment template claims', (prep) => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'put' },
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
-            { type: 'text', text: 'on' },
+            { type: 'text', text: prep },
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
 
-        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({
-            type: 'matched',
-            change: {
-                kind: 'change',
-                primitive: 'transferMembership',
-                object: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
-                from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' } },
-                to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
-                containment: 'On',
-            },
-        })
+        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
+    })
+
+    it('returns noMatch for take X in Y, so membership alone plans it (no Custom "in" dissolve)', () => {
+        const skeleton: ParseSkeleton = [
+            { type: 'text', text: 'take' },
+            { type: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
+            { type: 'text', text: 'in' },
+            { type: 'objectSpan', span: 'box', stableRefKey: 'boxRef' },
+        ]
+
+        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
     })
 
     it('matches a dissolveRelation template, falling to Custom for a non-enum, non-containment prep ("take rope off crate")', () => {
@@ -86,27 +87,6 @@ describe('matchRelationalTemplate', () => {
         expect(result.type).toBe('matched')
         if (result.type !== 'matched' || result.change.primitive === 'transferMembership') return
         expect(result.change.relationKind).toBe('Against')
-    })
-
-    it('plans containment language ("put coin in jar") as the containment transfer', () => {
-        const skeleton: ParseSkeleton = [
-            { type: 'text', text: 'put' },
-            { type: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
-            { type: 'text', text: 'in' },
-            { type: 'objectSpan', span: 'jar', stableRefKey: 'jarRef' },
-        ]
-
-        expect(summarize(matchRelationalTemplate(skeleton, 'test command'))).toEqual({
-            type: 'matched',
-            change: {
-                kind: 'change',
-                primitive: 'transferMembership',
-                object: { referentType: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
-                from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' } },
-                to: { referentType: 'objectSpan', span: 'jar', stableRefKey: 'jarRef' },
-                containment: 'In',
-            },
-        })
     })
 
     it('matches an establishRelation Custom template ("tie rope to cup")', () => {

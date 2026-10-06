@@ -143,8 +143,6 @@ const parseErrorMessageForPlayer = (errorMessage?: string): string => {
             return 'You are already holding that.'
         case objectManipulationErrorMessages.noHostRoom:
             return 'You are not in a room, so you cannot do that.'
-        case objectManipulationErrorMessages.nestingRelational:
-            return 'Putting something inside another object is not supported yet.'
         case objectManipulationErrorMessages.complexRelational:
         case objectManipulationErrorMessages.complexMultiObject:
         case objectManipulationErrorMessages.complexUnimplementedVerb:

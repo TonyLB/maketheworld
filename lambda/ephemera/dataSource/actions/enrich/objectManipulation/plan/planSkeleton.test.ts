@@ -11,11 +11,7 @@ const relationalSkeleton = (verb: string, subjectSpan: string, prep: string, tar
 ]
 
 const attemptsOf = (skeleton: ParseSkeleton) => {
-    const result = planSkeleton(skeleton, COMMAND)
-    if (result.type !== 'attempts') {
-        throw new Error(`expected attempts, got ${result.errorMessage}`)
-    }
-    return result.attempts
+    return planSkeleton(skeleton, COMMAND).attempts
 }
 
 describe('planSkeleton', () => {
@@ -32,16 +28,24 @@ describe('planSkeleton', () => {
         expect(primary.referents()).toEqual([])
     })
 
-    it('plans put-in and put-on as the containment transfer, flagged with its containment', () => {
-        const [primary] = attemptsOf(relationalSkeleton('put', 'coin', 'in', 'jar'))
-        expect(primary.actions()[0].desiredResult).toEqual({
-            kind: 'change',
+    it('plans containment ahead of membership: "take the coin in the box" is a membership take, not a containment move', () => {
+        const attempts = attemptsOf([
+            { type: 'text', text: 'take' },
+            { type: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
+            { type: 'text', text: 'in' },
+            { type: 'objectSpan', span: 'box', stableRefKey: 'boxRef' },
+        ])
+        expect(attempts).toHaveLength(1)
+        expect(attempts[0].actions()[0].desiredResult).toMatchObject({
             primitive: 'transferMembership',
-            object: { referentType: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
-            from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' } },
-            to: { referentType: 'objectSpan', span: 'jar', stableRefKey: 'jarRef' },
-            containment: 'In',
+            from: { referentType: 'currentHost' },
+            to: { referentType: 'actingCharacter' },
         })
+        expect(attempts[0].actions()[0].desiredResult).not.toHaveProperty('containment')
+    })
+
+    it('plans nothing for "tie the rope in the box": no template claims it, so the zero-attempt branch answers', () => {
+        expect(attemptsOf(relationalSkeleton('tie', 'rope', 'in', 'box'))).toEqual([])
     })
 
     it('plans "partof" as a Custom relation: no player phrase reaches PartOf (relationKind.ts), so the declined path is typed only', () => {

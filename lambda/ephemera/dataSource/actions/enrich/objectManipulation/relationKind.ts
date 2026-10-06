@@ -5,12 +5,3 @@ export type NormalizedRelation =
     | { type: 'enum'; kind: Exclude<PeerRelationalEdgeKind, 'Custom'> }
     | { type: 'custom'; kind: 'Custom'; relationLabel: string }
 
-/**
- * `kind` names which containment phrase matched (`'On'` for `on`/`onto`/`on top of`,
- * `'In'` for `in`/`inside`/`into`) --- `normalizeRelationSpan.ts` already distinguishes the two
- * phrase sets; this carries that distinction forward instead of collapsing both into one opaque
- * defer. `'PartOf'` has no phrase mapped to it yet and stays unreachable, matching today's state.
- */
-export type NormalizeRelationOutcome =
-    | { type: 'success'; relation: NormalizedRelation }
-    | { type: 'nestingPreposition'; kind: 'On' | 'In' | 'PartOf' }

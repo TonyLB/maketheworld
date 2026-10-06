@@ -1,6 +1,6 @@
 # Attempt narration: narration copy from the command attempt, audience from the kernel
 
-**Status:** In progress, opened 2026-10-06. Slices 0-1 done (all-or-nothing commit; template carrier, with today's verb-from-delta copy as a bridge). Next: re-scope slice 2 (see its line). This plan resolves [CA-4](dataSource/actions/AGENT.commandAttemptPhase.planning.md#open-decisions-implementation--plan-only) and absorbs the deleted `AGENT.relationalNarration.planning.md` (see [What was absorbed](#what-was-absorbed-from-relationalnarration)).
+**Status:** In progress, opened 2026-10-06. Slices 0-1 done (all-or-nothing commit; template carrier, with today's verb-from-delta copy as a bridge). Next: [`AGENT.retireDeterministicRelationParsing.planning.md`](dataSource/actions/AGENT.retireDeterministicRelationParsing.planning.md) runs first (2026-10-06); then re-scope slice 2 against what it leaves (see slice 2's line). This plan resolves [CA-4](dataSource/actions/AGENT.commandAttemptPhase.planning.md#open-decisions-implementation--plan-only) and absorbs the deleted `AGENT.relationalNarration.planning.md` (see [What was absorbed](#what-was-absorbed-from-relationalnarration)).
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../AGENT.md). It is an implementation plan, not the design variant: the representation was settled in conversation (2026-10-06), the evidence corpus already exists (see [Getting Started](#getting-started)), and what is left are forks inside slices.
 

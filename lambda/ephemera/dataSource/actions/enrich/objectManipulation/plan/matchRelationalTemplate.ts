@@ -2,19 +2,15 @@ import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
 import { normalizeRelationSpan } from '../normalizeRelationSpan'
 import { CommandAttempt } from '../../../commandAttempt'
 import { PositionAttemptAction } from '../../../commandAttempt/action'
-import { currentHostRef, objectSpanRef } from './planStep'
+import { objectSpanRef } from './planStep'
+import { matchContainmentPreposition } from './matchContainmentTemplate'
 
 const ESTABLISH_VERBS = new Set(['put', 'place', 'lean', 'tie'])
 const DISSOLVE_VERBS = new Set(['take', 'remove'])
 
 export type RelationalTemplateMatchResult =
-    /** An ungrounded attempt: one position action whose step is the peer relation, or the containment move for `On`/`In`. */
+    /** An ungrounded attempt: one position action whose step is the peer relation. */
     | { type: 'matched'; attempt: CommandAttempt }
-    /**
-     * The preposition names a kind this template cannot plan (`PartOf`, which no player phrase
-     * reaches today, see `relationKind.ts`). The caller answers with `nestingRelational`.
-     */
-    | { type: 'declined' }
     | { type: 'noMatch' }
 
 function isTextToken(token: ParseToken): token is TextToken {
@@ -57,32 +53,16 @@ export function matchRelationalTemplate(skeleton: ParseSkeleton, command: string
         return { type: 'noMatch' }
     }
 
+    // Containment prepositions belong to the containment template. Answering `noMatch` here keeps
+    // `take X in Y` and `tie X in Y` from also planning a peer relation.
+    if (matchContainmentPreposition(prepToken.text)) {
+        return { type: 'noMatch' }
+    }
+
     const subject = objectSpanRef(subjectToken.span, subjectToken.stableRefKey)
     const target = objectSpanRef(targetToken.span, targetToken.stableRefKey)
 
-    const normalized = normalizeRelationSpan(prepToken.text)
-    if (normalized.type === 'nestingPreposition') {
-        if (normalized.kind === 'PartOf') {
-            return { type: 'declined' }
-        }
-        // A containment move is a whole-object transfer, the same step every containment producer
-        // builds. The verb is not consulted, as before this slice (`dissolve` + `in` also lands here).
-        return {
-            type: 'matched',
-            attempt: CommandAttempt.create(command, [
-                new PositionAttemptAction([], {
-                    kind: 'change',
-                    primitive: 'transferMembership',
-                    object: subject,
-                    from: currentHostRef(subject),
-                    to: target,
-                    containment: normalized.kind,
-                }),
-            ]),
-        }
-    }
-
-    const { relation } = normalized
+    const relation = normalizeRelationSpan(prepToken.text)
 
     const change = {
         kind: 'change' as const,

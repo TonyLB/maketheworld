@@ -1,6 +1,6 @@
 # Retire deterministic relation parsing
 
-**Status:** Not started, opened 2026-10-06. Next: slice 1 (split the containment template out of the relational one).
+**Status:** Slice 1 shipped (working tree, not yet committed). RD-1 and RD-2 decided. Next: slice 2 (delete the relational templates); RD-2's pin lands there. Runs before [`AGENT.attemptNarration.planning.md`](../../AGENT.attemptNarration.planning.md)'s slice 2, which is scoped against what this plan leaves.
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md). It is an implementation plan: the direction was settled in conversation (2026-10-06), and what is left are forks inside slices.
 
@@ -51,7 +51,7 @@ npm run test -- --watchAll=false \
 
 | Slice | Subject | Status |
 | --- | --- | --- |
-| 1 | Containment gets its own template | Not started |
+| 1 | Containment gets its own template | Done |
 | 2 | Delete the relational templates (Plan stage and intent-level registry) | Not started |
 | 3 | Retire `Under` / `Against` | Not started |
 | 4 | Durable docs; retire this plan | Not started |
@@ -60,17 +60,19 @@ npm run test -- --watchAll=false \
 
 Use `[ ]` for pending and `[X]` for complete; mark nested lines `[X]` as each sub-step finishes.
 
-- [ ] **Slice 1. Containment gets its own template.** A new `plan/matchContainmentTemplate.ts`: `VERB OBJECTSPAN PREP OBJECTSPAN`, where PREP is only in/into/inside or on/onto/on top of, building the same `transferMembership` + `containment` step the relational template builds today. `planSkeleton` calls it in the relational template's place, ahead of look and membership.
-  - [ ] Decide RD-1 (which verbs).
-  - [ ] The containment phrase lists move out of `normalizeRelationSpan` into this template (or a containment-only helper), so nothing peer-shaped is left for them to share.
-  - [ ] Existing containment tests in `matchRelationalTemplate.test.ts` and `planSkeleton.test.ts` move over and pass with the same expectations. `objectContainmentInPayoff.integration.test.ts` stays green.
-  - [ ] Drop the `declined` / `PartOf` path: `normalizeRelationSpan` never returns `PartOf`, so it is unreachable today. (`objectManipulationErrorMessages.nestingRelational` goes with it if nothing else reads it.)
+- [X] **Slice 1. Containment gets its own template.** A new `plan/matchContainmentTemplate.ts`: `VERB OBJECTSPAN PREP OBJECTSPAN`, where VERB is only `put` / `place` (RD-1) and PREP is only in/into/inside or on/onto/on top of, building the same `transferMembership` + `containment` step the relational template builds today. `planSkeleton` calls it in the relational template's place, ahead of look and membership.
+  - [X] Decide RD-1 (which verbs): `put` / `place`.
+  - [X] Pin the narrowing: `take the coin in the box` plans as a membership take, and `tie the rope in the box` reaches the zero-attempt branch; neither plans a containment move.
+  - [X] The containment phrase lists move out of `normalizeRelationSpan` into this template (or a containment-only helper), so nothing peer-shaped is left for them to share.
+  - [X] Relational template answers `noMatch` for containment prepositions (via `matchContainmentPreposition`). Without this, `take X in Y` and `tie X in Y` would gain a peer attempt once the phrases left `normalizeRelationSpan`.
+  - [X] Existing containment tests in `matchRelationalTemplate.test.ts` and `planSkeleton.test.ts` move over and pass with the same expectations. `objectContainmentInPayoff.integration.test.ts` stays green.
+  - [X] Drop the `declined` / `PartOf` path: `normalizeRelationSpan` never returns `PartOf`, so it is unreachable today. `nestingRelational` had a reader in `actions/index.ts`'s switch; removed with it. `parseCommand.ts`'s two `declined` branches are gone too.
 - [ ] **Slice 2. Delete the relational templates.**
   - [ ] Delete `plan/matchRelationalTemplate.ts` and its test, and the peer half of `normalizeRelationSpan` (the `Under`/`Against` phrase map and the `Custom`-from-preposition fallback). Delete `normalizeRelationSpan` entirely if slice 1 left it nothing. `objectManipulationErrorMessages.relationalNoTemplateMatch` (in `resolveObjectSpan.ts`) has no reader today; delete it here too.
   - [ ] Delete the intent-level registry `deterministicTemplate/relationalTemplates.ts` and its test; drop it from `deterministicTemplateRegistry` and fix the count in `index.test.ts`. It has zero production call sites (CPG-6 in [`AGENT.classifyPlanGeneralization.planning.md`](AGENT.classifyPlanGeneralization.planning.md) was the plan to wire it, and retires with it).
   - [ ] Pin the dark path: `tie the rope to the pole`, `lean the lamp against the wall` and `put the lamp under the table` each reach `parseCommand`'s zero-attempt branch and answer `Unimplemented`, not an error and not a containment move.
   - [ ] Pin the routing change: `take the rope off the crate` now plans as a membership take (today the relational attempt is primary; `planSkeleton.test.ts`'s "keeps the relational attempt primary" case is rewritten, not deleted). Update `matchMembershipTemplate`'s doc comment, which says `take X off Y` is relational.
-  - [ ] Decide RD-2 (`take X out of Y` / `take X off Y` as an explicit containment dissolve).
+  - [X] Decide RD-2 (`take X out of Y` / `take X off Y` as an explicit containment dissolve): no; membership handles it.
 - [ ] **Slice 3. Retire `Under` / `Against`.**
   - [ ] `mtw-interfaces`: remove `CLOSED_RELATION_KINDS`, `ClosedRelationKind`, `isClosedRelationKind`, and `Under`/`Against` from `HostRelationalEdgeKind`. Fix `ephemeraMeta.test.ts` cases that enumerate them (port-address and kind-acceptance tables).
   - [ ] `mtw-wml`: `LUDIC_EDGE_PEER_KINDS` becomes `['Custom']`; fix `ludicGraph.test.ts` fixtures; correct the `ludicEdge.ts` doc comment that lists the peer kinds.
@@ -86,8 +88,7 @@ Plan-only: decisions made in order to implement upcoming slices. When one ships,
 
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
-| RD-1 | **Which verbs the containment template accepts.** Today the verb must be in the relational establish or dissolve list but is otherwise not consulted, so `take the coin in the box` and `tie the rope in the box` both plan a containment move. Recommend `put` / `place` only: the containment template matches *placing into or onto*, and anything else is open language for the fallback. Widening later (`drop X in Y`, `stuff X into Y`) is a one-line change, so start narrow. | 1 | Open |
-| RD-2 | **Is `take X out of Y` / `take X off Y` a containment template?** After slice 2 the membership template claims both by leading verb (the `out of Y` / `off Y` tail is ignored), which is the right outcome when X is in or on Y. The tail only matters to disambiguate two Xs, which is BD-24's location-modifier work ([`AGENT.deterministicFastPathImprovements.planning.md`](AGENT.deterministicFastPathImprovements.planning.md)), not this plan. Recommend no: membership handles it, and the pin in slice 2 covers it. | 2 | Open (recommend no) |
+| RD-2 | **Is `take X out of Y` / `take X off Y` a containment template?** **Decided (2026-10-06): no.** It is not a template shape. After slice 2 the membership template claims both by leading verb and ignores the `out of Y` / `off Y` tail, which is the right outcome when X is in or on Y. The tail's eventual use is narrowing *which* X the player means, by extending object spans to read it; that is reference resolution, not a deterministic template, and is out of scope here. The slice 2 pin covers the routing. | 2 | Decided; remove when slice 2 ships |
 
 ## Plans that point here
 

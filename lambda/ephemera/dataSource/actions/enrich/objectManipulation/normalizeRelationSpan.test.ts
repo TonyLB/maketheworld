@@ -7,8 +7,8 @@ describe('normalizeRelationSpan', () => {
         ['underneath', 'Under'],
     ] as const)('maps %s to enum %s', (relationSpan, kind) => {
         expect(normalizeRelationSpan(relationSpan)).toEqual({
-            type: 'success',
-            relation: { type: 'enum', kind },
+            type: 'enum',
+            kind,
         })
     })
 
@@ -18,8 +18,8 @@ describe('normalizeRelationSpan', () => {
         ['lean against', 'Against'],
     ] as const)('maps %s to enum %s', (relationSpan, kind) => {
         expect(normalizeRelationSpan(relationSpan)).toEqual({
-            type: 'success',
-            relation: { type: 'enum', kind },
+            type: 'enum',
+            kind,
         })
     })
 
@@ -31,31 +31,17 @@ describe('normalizeRelationSpan', () => {
         'beside',
     ] as const)('maps %s to Custom with trimmed label', (relationSpan) => {
         expect(normalizeRelationSpan(relationSpan)).toEqual({
-            type: 'success',
-            relation: {
-                type: 'custom',
-                kind: 'Custom',
-                relationLabel: relationSpan,
-            },
+            type: 'custom',
+            kind: 'Custom',
+            relationLabel: relationSpan,
         })
-    })
-
-    it.each(['in', 'inside', 'into'] as const)('defers containment span %s as kind In', (relationSpan) => {
-        expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingPreposition', kind: 'In' })
-    })
-
-    it.each(['on', 'onto', 'ON', 'on top of'] as const)('defers hosting span %s as kind On', (relationSpan) => {
-        expect(normalizeRelationSpan(relationSpan)).toEqual({ type: 'nestingPreposition', kind: 'On' })
     })
 
     it('preserves trimmed player phrase for Custom labels', () => {
         expect(normalizeRelationSpan('  tied to  ')).toEqual({
-            type: 'success',
-            relation: {
-                type: 'custom',
-                kind: 'Custom',
-                relationLabel: 'tied to',
-            },
+            type: 'custom',
+            kind: 'Custom',
+            relationLabel: 'tied to',
         })
     })
 })
