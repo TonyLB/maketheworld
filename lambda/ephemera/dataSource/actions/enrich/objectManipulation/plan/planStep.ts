@@ -16,10 +16,8 @@ export type GroundedId = EphemeraThingId | EphemeraMembershipHostId
  * adds the id without discarding the rest, so a grounded `objectSpan` keeps the
  * `stableRefKey` tie the attempt's prose reads.
  *
- * stableRefKey is optional here: the only current constructor call sites
- * (compileUngroundedPlan.ts, fed by the legacy frame types) have no real key to
- * pass -- Step 2b's native Plan matcher, not yet built, is what will construct
- * these from Parse's skeleton with a real key. Don't invent placeholder values.
+ * stableRefKey is optional here, for a referent with no skeleton key to pass. The Plan
+ * templates pass the key from Parse's skeleton. Don't invent placeholder values.
  */
 export type ObjectSpanReferent = {
     referentType: 'objectSpan'

@@ -317,7 +317,7 @@ export type RelationalOperationKind = 'establishRelation' | 'dissolveRelation'
 
 /**
  * Every command attempt that reached a route (take, drop, containment, relational, describe), as
- * one result (ISS8203 slice 4, PI-6). The attempt carries everything the hand-off needs: its
+ * one result (ISS8203 slice 4). The attempt carries everything the hand-off needs: its
  * actions and their referents. The route's per-kind fields (operation kind, object ids, relation
  * kind, host) are read only by the route's own tests, so they are not on the arm.
  */

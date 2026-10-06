@@ -26,7 +26,7 @@ async function parseCommandCore(
 
     if (intentResult.type === 'ObjectMembershipIntent') {
         // Only reachable via deterministicIntentChecks's take/get/drop fast path (iteration 7,
-        // Sub-iteration 1). ISS8203 slice 3 (PI-7): the fast path synthesizes its skeleton, the
+        // Sub-iteration 1). ISS8203 slice 3: the fast path synthesizes its skeleton, the
         // leading verb and its one object span, stamps it, and enters Plan like a parsed skeleton.
         const verb = input.command.trim().split(/\s+/)[0]!
         const skeleton = stampStableRefKeys([

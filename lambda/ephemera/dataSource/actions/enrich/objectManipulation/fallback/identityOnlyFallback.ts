@@ -1,5 +1,6 @@
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
+import type { CommandAttempt } from '../../../commandAttempt'
 import { invokeBedrockObjectManipulationEnrich } from '../../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
 import { identityPlanCandidateFromSpan, type IdentityPlanCandidate } from '../identityPlanCandidate'
@@ -21,7 +22,7 @@ export type IdentityOnlyFallbackInput = {
     command: string
     rawObjectSpan: string
     catalog: readonly ObjectManipulationCatalogEntry[]
-    operationKind: 'takeHold' | 'drop'
+    attempt: CommandAttempt
 }
 
 export type IdentityOnlyFallbackDeps = {
@@ -69,7 +70,7 @@ export async function invokeIdentityOnlyFallback(
             sourceTags: ['llm'],
             locus: entry.catalogScope === 'room' ? { kind: 'room' } : { kind: 'heldByActor' },
         }
-        candidates.push(identityPlanCandidateFromSpan(spanCandidate, input.operationKind))
+        candidates.push(identityPlanCandidateFromSpan(spanCandidate, input.attempt))
     }
 
     return { type: 'success', candidates }

@@ -101,7 +101,7 @@ export const groundedObjectIdOf = (referent: Referent): EphemeraObjectId => {
 }
 
 /**
- * Describes one grounded action: its prose description and its Consult wording (PI-2's describer,
+ * Describes one grounded action: its prose description and its Consult wording (the per-kind describer,
  * one per desired-result kind). Keeps today's strings exactly, so the published attempt is unchanged.
  * A transfer with no containment is a membership move (take or drop), described as before.
  */
@@ -239,7 +239,7 @@ const candidateObjectIds = (candidates: readonly GroundedAttemptCandidate[]): Ep
 }
 
 /**
- * The per-command environment (PI-3): the room graph, plus each candidate object's host graph
+ * The per-command environment: the room graph, plus each candidate object's host graph
  * found by an eager, depth-capped ancestry walk. Built once for the whole pool. A
  * `findShardBoundary` walk reaches past intermediate hosts, so one-hop lookups would dead-end.
  */
@@ -290,7 +290,7 @@ export type DryRunFrame = {
 }
 
 /**
- * The shared dry run (PI-3): grounds each position step in full (derived referents such as
+ * The shared dry run: grounds each position step in full (derived referents such as
  * containment's `currentHost(subject)` resolve against the environment), seeds the executor with
  * every grounded step and runs it. Narration has no steps, so it is `legal` with nothing to run
  * (a look has no preconditions and no mutation).

@@ -1,6 +1,8 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { IdentityPlanIdentity, MembershipPlanStub } from '../identityPlanCandidate'
+import type { ParseSkeleton } from '../parse/parseToken'
+import { planSkeleton } from '../plan/planSkeleton'
+import type { IdentityPlanIdentity } from '../identityPlanCandidate'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import {
     invokePlanOnlyFallback,
@@ -36,7 +38,15 @@ describe('planOnlyFallback (stub)', () => {
             jointRelevance: 0.8,
             sourceTags: [],
         }
-        const plan: MembershipPlanStub = { kind: 'transferMembership', operationKind: 'takeHold' }
+        const skeleton: ParseSkeleton = [
+            { type: 'text', text: 'take' },
+            { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+        ]
+        const planResult = planSkeleton(skeleton, 'take broom')
+        if (planResult.type !== 'attempts') {
+            throw new Error(`expected attempts, got ${planResult.errorMessage}`)
+        }
+        const [plan] = planResult.attempts
         const candidate = planOnlyFallbackCandidate(identity, plan, 0.4)
         expect(candidate.confidence).toBeCloseTo(0.6)
     })

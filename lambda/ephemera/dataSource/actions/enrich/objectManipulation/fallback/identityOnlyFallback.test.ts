@@ -2,6 +2,8 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import type { InvokeBedrockObjectManipulationEnrichResult } from '../../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
+import type { ParseSkeleton } from '../parse/parseToken'
+import { planSkeleton } from '../plan/planSkeleton'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import { testLudicGraph } from '../../../../positions/ludicGraph/testFixtures'
 import {
@@ -22,11 +24,23 @@ const catalog: ObjectManipulationCatalogEntry[] = [
     { objectId: satchelId, normalizedShortName: 'satchel', catalogScope: 'held' },
 ]
 
+const takeAttempt = (() => {
+    const skeleton: ParseSkeleton = [
+        { type: 'text', text: 'take' },
+        { type: 'objectSpan', span: 'the bag', stableRefKey: 'bagRef' },
+    ]
+    const result = planSkeleton(skeleton, 'take the bag')
+    if (result.type !== 'attempts') {
+        throw new Error(`expected attempts, got ${result.errorMessage}`)
+    }
+    return result.attempts[0]
+})()
+
 const baseInput: IdentityOnlyFallbackInput = {
     command: 'take the bag',
     rawObjectSpan: 'the bag',
     catalog,
-    operationKind: 'takeHold',
+    attempt: takeAttempt,
 }
 
 const successInvoke = (body: string) => async (): Promise<InvokeBedrockObjectManipulationEnrichResult> => ({
@@ -63,7 +77,7 @@ describe('identityOnlyFallback', () => {
                             jointRelevance: 0.9,
                             sourceTags: ['llm'],
                         },
-                        plan: { kind: 'transferMembership', operationKind: 'takeHold' },
+                        plan: takeAttempt,
                         confidence: 0.9,
                     },
                     {
@@ -74,7 +88,7 @@ describe('identityOnlyFallback', () => {
                             jointRelevance: 0.4,
                             sourceTags: ['llm'],
                         },
-                        plan: { kind: 'transferMembership', operationKind: 'takeHold' },
+                        plan: takeAttempt,
                         confidence: 0.4,
                     },
                 ],

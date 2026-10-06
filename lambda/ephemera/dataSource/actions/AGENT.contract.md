@@ -7,7 +7,11 @@ This file records **contracts** only. Mental models: [`AGENT.concepts.md`](./AGE
 ## Grounding
 
 - **Grounding is total.** It **must** be handed a complete `ReferentAssignment`. A referent with no `groundedId` and no entry in the namespace it needs **must** throw, as a construction bug; callers **must not** branch on it as a runtime outcome. (A derived referent the world cannot resolve is the assignment builder's to report, before Grounding runs.)
-- **The producer owns the joint candidate space.** The product across a `Change`'s referents **must** be formed before Grounding, and a relation joining an object to itself **must** be dropped there. Grounding and Validation never see one.
+- **Enumerate owns the joint candidate space.** The product across an attempt's referents **must** be formed before Grounding, and a relation joining an object to itself **must** be dropped there. Grounding and Validation never see one.
+
+## Plan
+
+- **Plan's output is a set of ungrounded attempts, and every fallback emits that same type.** Plan never reads world state: its attempts carry no ids. Every fallback (identity-only, plan-only and joint) takes or proposes attempts, not families, so one producer handles them all.
 
 ## Validation
 

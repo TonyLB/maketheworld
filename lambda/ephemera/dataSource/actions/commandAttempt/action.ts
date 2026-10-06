@@ -22,7 +22,7 @@ export interface AttemptActionMember {
     withChallenges(challenges: Challenge[]): AttemptActionMember
     /**
      * Pure: returns a new action of the same kind with each span key's identity written onto
-     * the referents this action names (PI-9). Identify and Enumerate read `referents()`;
+     * the referents this action names. Identify and Enumerate read `referents()`;
      * grounding is how an assignment reaches the action, and each kind owns that write.
      */
     grounded(names: ReadonlyMap<string, SpanName>): AttemptActionMember

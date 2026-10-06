@@ -61,7 +61,7 @@ export function matchRelationalTemplate(skeleton: ParseSkeleton, command: string
     const target = objectSpanRef(targetToken.span, targetToken.stableRefKey)
 
     const normalized = normalizeRelationSpan(prepToken.text)
-    if (normalized.type === 'nestingDefer') {
+    if (normalized.type === 'nestingPreposition') {
         if (normalized.kind === 'PartOf') {
             return { type: 'declined' }
         }

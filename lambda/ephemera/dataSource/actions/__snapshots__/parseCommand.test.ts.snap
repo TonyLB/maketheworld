@@ -67,7 +67,7 @@ Object {
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the coin in the table when the coin sits inside the jar (withinObject locus, PI-3) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the coin in the table when the coin sits inside the jar (withinObject locus) 1`] = `
 Object {
   "result": Object {
     "attempt": Object {

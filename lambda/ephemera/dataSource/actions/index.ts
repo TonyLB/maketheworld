@@ -550,7 +550,7 @@ const publishStreamEventsForIntent = async (
         }
     }
     else if (isParseCommandCommandAttemptResult(parseResult)) {
-        // One exit for every command attempt (ISS8203 slice 4, PI-6). The not-in-a-room check is
+        // One exit for every command attempt (ISS8203 slice 4). The not-in-a-room check is
         // the same for every route, looks included.
         const { fromRoomId } = roomExitContext
         if (!fromRoomId) {

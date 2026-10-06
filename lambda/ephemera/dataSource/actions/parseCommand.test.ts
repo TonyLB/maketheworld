@@ -2007,7 +2007,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('put the coin in the table when the coin sits inside the jar (withinObject locus, PI-3)', async () => {
+        it('put the coin in the table when the coin sits inside the jar (withinObject locus)', async () => {
             expect(await run(
                 { command: 'put the coin in the table', roomObjectLabels: ['coin', 'table'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
                 {

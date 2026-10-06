@@ -1,30 +1,12 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { ManipulationVerbClass, RelationalOperationKind } from '../../baseClasses'
-import type { NormalizedRelation } from './relationKind'
+import type { CommandAttempt } from '../../commandAttempt'
 import type {
     ObjectSpanCandidate,
     SpanCandidateLocus,
     SpanRelevanceSourceTag,
 } from './spanResolution'
-
-/**
- * Closed-registry membership plan stub (FT-2.2). Full Plan IR lands in Phase C.
- */
-export type MembershipPlanStub = {
-    kind: 'transferMembership'
-    operationKind: 'takeHold' | 'drop'
-}
-
-/**
- * Closed-registry relational plan stub (FT-3.3). Full Plan IR lands in Phase C.
- */
-export type RelationalPlanStub = {
-    kind: RelationalOperationKind
-    operationKind: RelationalOperationKind
-    relation: NormalizedRelation
-}
 
 export type IdentityPlanIdentity = {
     objectId: EphemeraObjectId
@@ -36,15 +18,10 @@ export type IdentityPlanIdentity = {
 
 export type IdentityPlanCandidate = {
     identity: IdentityPlanIdentity
-    plan: MembershipPlanStub
+    /** The fixed plan this candidate's identity grounds into (Plan's attempt, shared by every candidate). */
+    plan: CommandAttempt
     /** Absolute confidence in [0, 1] (FT-1 joint relevance; no within-set rescale). */
     confidence: number
-}
-
-export function membershipOperationKindFromVerbClass(
-    verbClass: ManipulationVerbClass
-): 'takeHold' | 'drop' {
-    return verbClass === 'release' ? 'drop' : 'takeHold'
 }
 
 /**
@@ -71,14 +48,11 @@ export function identityFromSpanCandidate(
 
 export function identityPlanCandidateFromSpan(
     candidate: ObjectSpanCandidate,
-    operationKind: 'takeHold' | 'drop'
+    plan: CommandAttempt
 ): IdentityPlanCandidate {
     return {
         identity: identityFromSpanCandidate(candidate),
-        plan: {
-            kind: 'transferMembership',
-            operationKind,
-        },
+        plan,
         confidence: candidate.jointRelevance,
     }
 }

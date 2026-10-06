@@ -69,8 +69,8 @@ function makeCustomTemplate(verbOptions: string[]): DeterministicTemplate {
  * shape, not an ambiguous one: the current relation model (Under/Against/
  * Custom, a ludicGraph edge) has no representation for object-containment
  * at all. Any string that structurally matches this shape always defers --
- * normalizeRelationSpan.ts already treats this exact phrase set as
- * nestingDefer for the post-Parse path. **`On` joined this treatment
+ * normalizeRelationSpan.ts already classifies this exact phrase set as
+ * a containment preposition for the post-Parse path. **`On` joined this treatment
  * 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting
  * kind, same as `In`/`PartOf`, so it shares the "recognized-but-unsupported"
  * shape rather than resolving to an enum.

@@ -1,9 +1,6 @@
+import type { CommandAttempt } from '../../../commandAttempt'
 import { combineConfidenceNaive } from '../confidenceCombine'
-import type {
-    IdentityPlanIdentity,
-    MembershipPlanStub,
-    RelationalPlanStub,
-} from '../identityPlanCandidate'
+import type { IdentityPlanIdentity } from '../identityPlanCandidate'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import {
     selectPlanTuple,
@@ -25,7 +22,7 @@ import type { DryRunOutcome } from '../validatePlanDryRun'
  */
 export type PlanOnlyFallbackCandidate = {
     identity: IdentityPlanIdentity
-    plan: RelationalPlanStub | MembershipPlanStub
+    plan: CommandAttempt
     llmPlanConfidence: number
     /** combineConfidenceNaive(identity.jointRelevance, llmPlanConfidence) --- placeholder, see BD-19 (3). */
     confidence: number
@@ -33,7 +30,7 @@ export type PlanOnlyFallbackCandidate = {
 
 export function planOnlyFallbackCandidate(
     identity: IdentityPlanIdentity,
-    plan: RelationalPlanStub | MembershipPlanStub,
+    plan: CommandAttempt,
     llmPlanConfidence: number
 ): PlanOnlyFallbackCandidate {
     return {
