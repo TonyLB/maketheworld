@@ -31,7 +31,7 @@ Affordance refresh on membership placement change reuses the existing **`Object 
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: acquire`** (no **`operationKind`** at classify) |
-| Enrich | **`compileTransferFromSkeleton`** (ISS8203 slice 3): merged identity -> shared producer -> transfer preconditions -> selection (no complexity LLM); atomic path yields **`operationKind: takeHold`** |
+| Enrich | **`compileAttemptsFromSkeleton`** (ISS8203 slice 3): merged identity -> shared producer -> transfer preconditions -> selection (no complexity LLM); atomic path yields **`operationKind: takeHold`** |
 | Egress | **`Object Take Hold`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) -> [`planObjectMoveTransfer`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) |
 | Fact | **`Object Moved`**: `froms: [ROOM#...]`, `to: CHARACTER#...` |
@@ -66,7 +66,7 @@ Implementation: [`compilePositionKernelOp.ts`](../dataSource/positions/manipulat
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: release`**; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
-| Enrich | **`compileTransferFromSkeleton`** (ISS8203 slice 3): merged identity -> shared producer -> transfer preconditions -> selection (no complexity LLM); in-room-only + release language -> **`notCarryingObject`**; atomic path yields **`operationKind: drop`** |
+| Enrich | **`compileAttemptsFromSkeleton`** (ISS8203 slice 3): merged identity -> shared producer -> transfer preconditions -> selection (no complexity LLM); in-room-only + release language -> **`notCarryingObject`**; atomic path yields **`operationKind: drop`** |
 | Egress | **`Object Drop`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) --- the same entry point as `takeHold`, host pair reversed |
 | Fact | **`Object Moved`**: `froms: [CHARACTER#...]`, `to: ROOM#...` |
@@ -103,7 +103,7 @@ Copy is **deterministic template** (no copy-generating LLM hop), assembled by th
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
-| Enrich | Parse skeleton -> **`matchRelationalTemplate`** (**`operationKind: establishRelation`**) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileRelationalFromSkeleton`** |
+| Enrich | Parse skeleton -> **`matchRelationalTemplate`** (**`operationKind: establishRelation`**) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
 | Egress | **`Object Establish Relation`** stream (`characterId`, `subjectId`, `targetId`, `roomId`, `relationKind`, optional `relationLabel`) |
 | Apply | [`applyObjectRelationalChange`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectEstablishRelation`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) -> **`applyHostRelationalPatch`** (`op: 'add'`) |
 | Fact | **`Object Relation Changed`**: `operation: 'establish'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |
@@ -138,7 +138,7 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
-| Enrich | Parse skeleton -> **`matchRelationalTemplate`** (**`operationKind: dissolveRelation`**) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileRelationalFromSkeleton`** |
+| Enrich | Parse skeleton -> **`matchRelationalTemplate`** (**`operationKind: dissolveRelation`**) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
 | Egress | **`Object Dissolve Relation`** stream (same payload shape as establish) |
 | Apply | [`executeEstablishEdgeChain`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) (shared with establish) -> `commitStepSequence` (`op: 'remove'`) |
 | Fact | **`Object Relation Changed`**: `operation: 'dissolve'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |

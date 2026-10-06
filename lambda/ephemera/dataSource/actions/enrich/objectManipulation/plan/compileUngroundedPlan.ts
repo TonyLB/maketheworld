@@ -62,7 +62,7 @@ export function compileMembershipUngroundedPlan(
  * step here, unconditionally. **That was dropped, 2026-09-01**, along with
  * `SameHostAssertion`/`Assertion`'s `sameHost` member entirely
  * (`planStep.ts`): this function has no live caller (the live
- * ingress route, `compileRelationalFromSkeleton.ts`, never reaches this
+ * ingress route, `compileAttemptsFromSkeleton.ts`, never reaches this
  * scaffold), so there was nothing left to keep the ungrounded shape in
  * sync for.
  */

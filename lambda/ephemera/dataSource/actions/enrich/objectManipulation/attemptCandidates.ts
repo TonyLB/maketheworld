@@ -26,10 +26,10 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { DryRunOutcome } from './validatePlanDryRun'
 
 /**
- * The shared producer for the attempt routes (ISS8203 slices 2-3): relational, transfer (take,
- * drop and containment) and describe. Each route's Plan attempt goes through one Identify, one
- * Enumerate, one Ground and describe pass, then one Expansion and Adjudicate, one dry run and one
- * selection. The route keeps only its own entry checks and its result arm (slice 4 collapses those).
+ * The shared producer for Plan's attempts (ISS8203 slices 2-4): relational, transfer (take, drop
+ * and containment) and describe. Every attempt goes through one Identify, one Enumerate, one Ground
+ * and describe pass, then one Expansion and Adjudicate, one dry run and one selection.
+ * `compileAttemptsFromSkeleton.ts` is its one entry.
  */
 
 export type AttemptPositionsReads = Pick<ObjectManipulationPositionsReadDeps, 'getLudicGraph' | 'getMembershipContainers'>
@@ -189,17 +189,18 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
     }
 
     // A step's distinct span keys must bind distinct objects: "put cup on cup" is never a candidate,
-    // and that rule is the same for every route (it is the case stableRefKey exists for).
-    const actions = input.attempts.flatMap((attempt) => attempt.actions())
-    const assignments = enumerateIdentityAssignments(pools).filter(({ identities }) => actions.every((action) => {
+    // and that rule is the same for every route (it is the case stableRefKey exists for). Assignments
+    // are joint across attempts, so a key two attempts share binds one object in both.
+    const assignments = enumerateIdentityAssignments(pools).filter(({ identities }) => input.attempts.every((attempt) => attempt.actions().every((action) => {
         const objectIds = actionSpanKeys(action).map((key) => identities.get(key)?.objectId)
         return new Set(objectIds).size === objectIds.length
-    }))
+    })))
     if (assignments.length === 0) {
         return { ok: false, reason: input.noAssignmentReason }
     }
 
-    const candidates = assignments.map(({ identities, confidence }): GroundedAttemptCandidate => {
+    // One candidate per attempt per assignment: each is built from its own attempt's actions only.
+    const candidates = assignments.flatMap(({ identities, confidence }) => {
         const names = new Map<string, SpanName>()
         for (const [key, identity] of identities) {
             const entry = input.catalog.find((catalogEntry) => catalogEntry.objectId === identity.objectId)
@@ -209,13 +210,15 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
                 gloss: entry?.gloss,
             })
         }
-        const described = actions.map((action) => describeGroundedAction(action.grounded(names)))
-        const primary = described[described.length - 1]!
-        return {
-            attempt: CommandAttempt.create(input.command, described.map((entry) => entry.action)),
-            confidence,
-            alternative: primary.alternative,
-        }
+        return input.attempts.map((attempt): GroundedAttemptCandidate => {
+            const described = attempt.actions().map((action) => describeGroundedAction(action.grounded(names)))
+            const primary = described[described.length - 1]!
+            return {
+                attempt: CommandAttempt.create(input.command, described.map((entry) => entry.action)),
+                confidence,
+                alternative: primary.alternative,
+            }
+        })
     })
     return { ok: true, candidates }
 }

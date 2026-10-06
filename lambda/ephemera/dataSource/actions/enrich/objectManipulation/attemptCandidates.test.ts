@@ -87,6 +87,37 @@ describe('proposeAttemptCandidates', () => {
         expect(result).toEqual({ ok: false, reason: 'no pairing' })
     })
 
+    it('builds each candidate from its own attempt, so two attempts sharing a span key never pool their actions', () => {
+        // No real skeleton yields two attempts today (the templates are disjoint), so the pair is hand-built.
+        const putOnTray = attemptFor(relationSkeleton, 'put cup on tray')
+        const takeCup = attemptFor([
+            { type: 'text', text: 'take' },
+            { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+        ], 'take cup')
+
+        const result = proposeAttemptCandidates({
+            command: 'put cup on tray',
+            attempts: [putOnTray, takeCup],
+            spanPools: new Map([['cupRef', pool('cup', cupId)], ['trayRef', pool('tray', trayId)]]),
+            catalog,
+            noAssignmentReason: 'none',
+        })
+
+        expect(result.ok).toBe(true)
+        if (!result.ok) {
+            return
+        }
+        // One assignment (cupRef and trayRef each have one candidate), one candidate per attempt.
+        expect(result.candidates.map((candidate) => candidate.attempt.actions().map((action) => action.describe()))).toEqual([
+            ['Put cup on tray'],
+            ['Take: cup'],
+        ])
+        expect(result.candidates.map((candidate) => candidate.alternative)).toEqual([
+            { label: 'cup / tray', proposedCommand: 'put the cup on the tray' },
+            { objectId: cupId, label: 'cup', proposedCommand: 'take the cup' },
+        ])
+    })
+
     it('abstains with the keyed-pool wording when a referent has no pool', () => {
         const result = proposeAttemptCandidates({
             command: 'put cup on tray',

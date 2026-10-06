@@ -3,9 +3,7 @@ import { isParseCommandLookRoomResult } from './baseClasses'
 import { discriminateIntent } from './discriminateIntent'
 export { navigationIntentErrorMessages } from './discriminateIntent/exitResolution'
 export { objectManipulationErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
-import { compileDescribeFromSkeleton } from './enrich/objectManipulation/compileDescribeFromSkeleton'
-import { compileTransferFromSkeleton } from './enrich/objectManipulation/compileTransferFromSkeleton'
-import { enrichObjectManipulation } from './enrich/objectManipulation'
+import { compileAttemptsFromSkeleton } from './enrich/objectManipulation/compileAttemptsFromSkeleton'
 import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
 import { stampStableRefKeys } from './enrich/objectManipulation/parse/stampStableRefKeys'
 import { planSkeleton } from './enrich/objectManipulation/plan/planSkeleton'
@@ -39,15 +37,14 @@ async function parseCommandCore(
         if (plan.type === 'declined') {
             return { result: { type: 'Error', errorMessage: plan.errorMessage }, enrichReasoningMarkdown: '', enrichRawBody: undefined }
         }
-        const [primary] = plan.attempts
-        if (primary === undefined) {
+        if (plan.attempts.length === 0) {
             return { result: { type: 'Unimplemented', confidence: intentResult.confidence }, enrichReasoningMarkdown: '', enrichRawBody: undefined }
         }
-        const result = await compileTransferFromSkeleton(
+        const result = await compileAttemptsFromSkeleton(
             {
                 command: input.command,
                 skeleton,
-                attempt: primary,
+                attempts: plan.attempts,
                 characterId: input.characterId,
                 hostRoomId: input.hostRoomId,
                 roomObjectCatalog: input.roomObjectCatalog,
@@ -105,17 +102,13 @@ async function parseCommandCore(
             }
         }
 
-        // Dispatch on the primary attempt's desired result (or, for narration, its absence),
-        // never on a family tag. Slices 2-3 remove this transitional dispatch.
-        const [primary] = plan.attempts
-        const primaryStep = primary?.actions()[0]?.desiredResult
-
-        if (primaryStep?.kind === 'change' && primaryStep.primitive === 'transferMembership') {
-            const result = await compileTransferFromSkeleton(
+        // Plan's attempts all go to one producer. Zero attempts is the non-object families' case (Acme, then Unimplemented).
+        if (plan.attempts.length > 0) {
+            const result = await compileAttemptsFromSkeleton(
                 {
                     command: input.command,
                     skeleton: parseResult.tokens,
-                    attempt: primary!,
+                    attempts: plan.attempts,
                     characterId: input.characterId,
                     hostRoomId: input.hostRoomId,
                     roomObjectCatalog: input.roomObjectCatalog,
@@ -126,47 +119,6 @@ async function parseCommandCore(
                     embedSpan: deps.embedSpan,
                     positionsReadDeps: deps.objectManipulationPositionsReadDeps,
                 }
-            )
-            return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
-        }
-
-        if (primary && primaryStep?.kind === 'change' && (primaryStep.primitive === 'establishRelation' || primaryStep.primitive === 'dissolveRelation')) {
-            const result = await enrichObjectManipulation(
-                {
-                    enrichRoute: 'relational',
-                    command: input.command,
-                    // Vestigial: the relational route resolves spans entirely from parseSkeleton
-                    // (see enrich/objectManipulation/index.ts); this only satisfies
-                    // ManipulationFrameBuildInput's shared required field.
-                    rawObjectSpans: [],
-                    parseSkeleton: parseResult.tokens,
-                    attempt: primary,
-                    characterId: input.characterId,
-                    hostRoomId: input.hostRoomId,
-                    roomObjectCatalog: input.roomObjectCatalog,
-                    heldInventoryCatalog: input.heldInventoryCatalog,
-                },
-                intentResult.confidence,
-                {
-                    positionsReadDeps: deps.objectManipulationPositionsReadDeps,
-                    embedSpan: deps.embedSpan,
-                }
-            )
-            return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
-        }
-
-        if (primary && primaryStep === undefined) {
-            const result = await compileDescribeFromSkeleton(
-                {
-                    command: input.command,
-                    skeleton: parseResult.tokens,
-                    attempt: primary,
-                    characterId: input.characterId,
-                    roomObjectCatalog: input.roomObjectCatalog,
-                    heldInventoryCatalog: input.heldInventoryCatalog,
-                },
-                intentResult.confidence,
-                { embedSpan: deps.embedSpan }
             )
             return { result, enrichReasoningMarkdown: '', enrichRawBody: undefined }
         }

@@ -49,7 +49,7 @@ export type TransferMembershipChange<R extends Referent = Referent> = {
     /**
      * A containment move: the transfer also establishes an `On`/`In` edge whose
      * host is always `to` by construction, not discovered by ancestry walk --- containment's
-     * producer (`compileTransferFromSkeleton.ts`) sets this; `PartOf` never reaches
+     * producer (`compileAttemptsFromSkeleton.ts`) sets this; `PartOf` never reaches
      * here (ND-4, `parseCommand.ts` hard-errors it earlier).
      */
     containment?: 'On' | 'In'

@@ -86,7 +86,7 @@ Host-bound **`EphemeraLudicGraph`** class --- membership + relational simulation
 ludicGraph/  <-- shared primitive
   ^-- manipulation/kernel/ (applyStepSequenceCore simulation; graphFromMeta + toStored at the Dynamo boundary)
   ^-- manipulation/relational/ (edge helpers, edgesMatch)
-  ^-- actions/enrich/objectManipulation/compileRelationalFromSkeleton (read-only)
+  ^-- actions/enrich/objectManipulation/compileAttemptsFromSkeleton (read-only)
   ^-- actions/enrich/objectManipulation/synthesize/ (selection-time dry run; shares interactionUnderTransfer's classifier with the commit path)
 ```
 

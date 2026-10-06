@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import type { StandardLudicNavigationEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../../../positions/ludicGraph/testFixtures'
-import { enrichObjectManipulation } from './index'
+import { compileAttemptsFromSkeleton } from './compileAttemptsFromSkeleton'
 import type { ParseSkeleton } from './parse/parseToken'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import {
@@ -80,16 +80,14 @@ const relationStepOf = (result: { type: string; attempt?: unknown }): any => {
     return actions[0]?.desiredResult
 }
 
-describe('enrichObjectManipulation', () => {
+describe('compileAttemptsFromSkeleton', () => {
     it('routes relational commands through the native skeleton pipeline (Step 2b step 6)', async () => {
 
-        const result = await enrichObjectManipulation(
+        const result = await compileAttemptsFromSkeleton(
             {
-                enrichRoute: 'relational',
                 command: 'put the broom under the table',
-                rawObjectSpans: ['broom'],
-                parseSkeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
-                attempt: planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef')),
+                skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
+                attempts: [planned(relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: relationalCatalog,
@@ -120,13 +118,11 @@ describe('enrichObjectManipulation', () => {
         })
         const getLudicGraph = hostAwareGetLudicGraph({ [characterId]: heldGraph })
 
-        const result = await enrichObjectManipulation(
+        const result = await compileAttemptsFromSkeleton(
             {
-                enrichRoute: 'relational',
                 command: 'wrap the string around the top',
-                rawObjectSpans: ['string'],
-                parseSkeleton: relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'),
-                attempt: planned(relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef')),
+                skeleton: relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'),
+                attempts: [planned(relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'))],
                 characterId,
                 hostRoomId: roomId,
                 heldInventoryCatalog: [
@@ -162,13 +158,11 @@ describe('enrichObjectManipulation', () => {
             ],
         })
 
-        const result = await enrichObjectManipulation(
+        const result = await compileAttemptsFromSkeleton(
             {
-                enrichRoute: 'relational',
                 command: 'lean rope against anvil',
-                rawObjectSpans: ['rope'],
-                parseSkeleton: relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'),
-                attempt: planned(relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef')),
+                skeleton: relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'),
+                attempts: [planned(relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: anvilCatalog,
@@ -195,13 +189,11 @@ describe('enrichObjectManipulation', () => {
         const cordId = 'OBJECT#Cord' as EphemeraObjectId
         const crateId = 'OBJECT#Crate' as EphemeraObjectId
 
-        const result = await enrichObjectManipulation(
+        const result = await compileAttemptsFromSkeleton(
             {
-                enrichRoute: 'relational',
                 command: 'tie cord around crate',
-                rawObjectSpans: ['cord'],
-                parseSkeleton: relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'),
-                attempt: planned(relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef')),
+                skeleton: relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'),
+                attempts: [planned(relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -237,13 +229,11 @@ describe('enrichObjectManipulation', () => {
         const ropeId = 'OBJECT#Rope' as EphemeraObjectId
         const crateId = 'OBJECT#Crate' as EphemeraObjectId
 
-        const result = await enrichObjectManipulation(
+        const result = await compileAttemptsFromSkeleton(
             {
-                enrichRoute: 'relational',
                 command: 'take rope off crate',
-                rawObjectSpans: ['rope'],
-                parseSkeleton: relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'),
-                attempt: planned(relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef')),
+                skeleton: relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'),
+                attempts: [planned(relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -282,55 +272,15 @@ describe('enrichObjectManipulation', () => {
         })
     })
 
-    it('abstains on a containment attempt on the relational route (containment is parseCommand\'s route)', async () => {
-
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'relational',
-                command: 'put the coin in the jar',
-                rawObjectSpans: ['coin'],
-                parseSkeleton: relationalSkeleton('put', 'coin', 'coinRef', 'in', 'jar', 'jarRef'),
-                attempt: planned(relationalSkeleton('put', 'coin', 'coinRef', 'in', 'jar', 'jarRef')),
-                roomObjectCatalog: [{ objectId: 'OBJECT#Coin' as EphemeraObjectId, normalizedShortName: 'coin' }],
-            },
-            0.9,
-            {}
-        )
-
-        expect(result).toEqual({
-            type: 'Abstain',
-            confidence: 0.9,
-            reason: objectManipulationErrorMessages.relationalNoTemplateMatch,
-        })
-    })
-
-    it('returns a defensive Error when the relational route is called without a parseSkeleton', async () => {
-        const result = await enrichObjectManipulation(
-            {
-                enrichRoute: 'relational',
-                command: 'put the coin in the jar',
-                rawObjectSpans: ['coin'],
-            },
-            0.9
-        )
-
-        expect(result).toEqual({
-            type: 'Error',
-            errorMessage: objectManipulationErrorMessages.relationalNoTemplateMatch,
-        })
-    })
-
-    it('routes relational enrichRoute with a non-enum preposition to a Custom relation via the native pipeline', async () => {
+    it('routes relational with a non-enum preposition to a Custom relation via the native pipeline', async () => {
         const ladderId = 'OBJECT#Ladder' as EphemeraObjectId
         const wallId = 'OBJECT#Wall' as EphemeraObjectId
 
-        const result = await enrichObjectManipulation(
+        const result = await compileAttemptsFromSkeleton(
             {
-                enrichRoute: 'relational',
                 command: 'lean the ladder leaning against the wall',
-                rawObjectSpans: ['ladder'],
-                parseSkeleton: relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'),
-                attempt: planned(relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef')),
+                skeleton: relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'),
+                attempts: [planned(relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'))],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -361,4 +311,71 @@ describe('enrichObjectManipulation', () => {
         })
     })
 
+})
+
+describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => {
+    const lookSkeleton: ParseSkeleton = [
+        { type: 'text', text: 'look' },
+        { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+    ]
+    const takeSkeleton: ParseSkeleton = [
+        { type: 'text', text: 'take' },
+        { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+    ]
+    const relationSkeletonForPool = relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef')
+
+    it('a look survives a take that has no room, so the pool answers the look', async () => {
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command: 'look broom',
+                skeleton: lookSkeleton,
+                attempts: [planned(takeSkeleton), planned(lookSkeleton)],
+                characterId,
+                roomObjectCatalog: catalog,
+            },
+            0.9
+        )
+
+        expect(result.type).toBe('CommandAttempt')
+        if (result.type === 'CommandAttempt') {
+            expect(result.attempt.actions).toHaveLength(1)
+        }
+    })
+
+    it('a relation with no room graph is refused alone, and the look still answers', async () => {
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command: 'look broom',
+                skeleton: lookSkeleton,
+                attempts: [planned(relationSkeletonForPool), planned(lookSkeleton)],
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: relationalCatalog,
+            },
+            0.9,
+            {
+                positionsReadDeps: {
+                    getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
+                    getLudicGraph: jest.fn().mockResolvedValue(undefined),
+                },
+            }
+        )
+
+        expect(result.type).toBe('CommandAttempt')
+    })
+
+    it('when nothing survives, the first refusal in Plan\'s order is returned', async () => {
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command: 'take broom',
+                skeleton: takeSkeleton,
+                attempts: [planned(takeSkeleton), planned(relationSkeletonForPool)],
+                characterId,
+                roomObjectCatalog: relationalCatalog,
+            },
+            0.9
+        )
+
+        expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noMembershipHost })
+    })
 })
