@@ -2,7 +2,7 @@ import type {
     ParseCommandAbstainResult,
     ParseCommandConsultResult,
     ParseCommandErrorResult,
-    ParseCommandEstablishRelationResult,
+    ParseCommandCommandAttemptResult,
 } from '../../baseClasses'
 import {
     compileRelationalFromSkeleton,
@@ -14,7 +14,7 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 export type EnrichObjectManipulationInput = ManipulationFrameBuildInput
 
 export type EnrichObjectManipulationResult =
-    | ParseCommandEstablishRelationResult
+    | ParseCommandCommandAttemptResult
     | ParseCommandConsultResult
     | ParseCommandAbstainResult
     | ParseCommandErrorResult

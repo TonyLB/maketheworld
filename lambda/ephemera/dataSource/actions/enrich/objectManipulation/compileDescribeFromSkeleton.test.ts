@@ -6,6 +6,9 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { planSkeleton } from './plan/planSkeleton'
 import { CommandAttempt } from '../../commandAttempt'
 
+/** The object the look names: the attempt's first referent. */
+const lookedAtId = (result: { type: string; attempt?: unknown }): unknown => (result.attempt as { referents: { id: unknown }[] }).referents[0]?.id
+
 const rocketSkatesId = 'OBJECT#RocketSkates' as EphemeraObjectId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
@@ -36,12 +39,8 @@ describe('compileDescribeFromSkeleton', () => {
             0.9
         )
 
-        expect(result).toEqual({
-            type: 'LookComponent',
-            componentId: rocketSkatesId,
-            confidence: 0.9,
-            attempt: expect.anything(),
-        })
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(lookedAtId(result)).toBe(rocketSkatesId)
     })
 
     it('matches "examine" the same way as "look"', async () => {
@@ -56,12 +55,8 @@ describe('compileDescribeFromSkeleton', () => {
             0.9
         )
 
-        expect(result).toEqual({
-            type: 'LookComponent',
-            componentId: rocketSkatesId,
-            confidence: 0.9,
-            attempt: expect.anything(),
-        })
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(lookedAtId(result)).toBe(rocketSkatesId)
     })
 
     it('resolves from the held-inventory catalog as well as the room catalog', async () => {
@@ -76,12 +71,8 @@ describe('compileDescribeFromSkeleton', () => {
             0.9
         )
 
-        expect(result).toEqual({
-            type: 'LookComponent',
-            componentId: rocketSkatesId,
-            confidence: 0.9,
-            attempt: expect.anything(),
-        })
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(lookedAtId(result)).toBe(rocketSkatesId)
     })
 
     it('abstains when the skeleton does not match the closed look template', async () => {
@@ -175,10 +166,10 @@ describe('compileDescribeFromSkeleton', () => {
             0.9
         )
 
-        if (result.type !== 'LookComponent') {
-            throw new Error(`Expected LookComponent, got ${result.type}`)
+        if (result.type !== 'CommandAttempt') {
+            throw new Error(`Expected CommandAttempt, got ${result.type}`)
         }
-        expect(result.attempt?.actions).toEqual([
+        expect(result.attempt.actions).toEqual([
             expect.objectContaining({ kind: 'narrate', description: 'Look at the rocket skates' }),
         ])
     })

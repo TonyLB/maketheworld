@@ -31,6 +31,15 @@ import {
     parseCommand,
 } from './parseCommand'
 
+/** The route's change step: the attempt's first action that changes the world (relation or transfer). */
+const primaryStepOf = (result: unknown): any => {
+    const actions = ((result as { attempt: unknown }).attempt as { actions: { desiredResult?: { kind: string } }[] }).actions
+    return actions.map((action) => action.desiredResult).find((step) => step?.kind === 'change')
+}
+
+/** The object a look attempt names: its first referent. */
+const lookedAtId = (result: unknown): unknown => ((result as { attempt: unknown }).attempt as { referents: { id: unknown }[] }).referents[0]?.id
+
 /** Slice 4b: both room and character graphs are now fetched before selection runs; respond by hostId. */
 const hostAwareGetLudicGraph = (overrides: Record<string, unknown> = {}) =>
     jest.fn().mockImplementation(async (hostId: string) => (
@@ -1056,12 +1065,11 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({
-            type: 'ObjectManipulation',
-            operationKind: 'takeHold',
-            objectIds: [broomId],
+            type: 'CommandAttempt',
             confidence: 0.94,
             attempt: expect.anything(),
         })
+        expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: broomId }, to: { referentType: 'actingCharacter' } })
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
         expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
         expect(embedSpan).not.toHaveBeenCalled()
@@ -1215,23 +1223,11 @@ describe('parseCommand LLM path', () => {
             )
 
             expect(result).toEqual({
-                type: 'EstablishRelation',
-                operationKind: 'dissolveRelation',
-                subjectId: ropeId,
-                targetId: crateId,
-                relationKind: 'Custom',
-                relationLabel: 'off',
+                type: 'CommandAttempt',
                 confidence: 0.86,
-                steps: [{
-                    kind: 'dissolveRelation',
-                    subjectId: ropeId,
-                    targetId: crateId,
-                    relationKind: 'Custom',
-                    relationLabel: 'off',
-                    hostId: 'ROOM#Bridge',
-                }],
                 attempt: expect.anything(),
             })
+            expect(primaryStepOf(result)).toMatchObject({ primitive: 'dissolveRelation', subject: { groundedId: ropeId }, target: { groundedId: crateId }, relationKind: 'Custom', relationLabel: 'off' })
             expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         })
     })
@@ -1356,21 +1352,11 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: broomId,
-            targetId: tableId,
-            relationKind: 'Under',
+            type: 'CommandAttempt',
             confidence: 0.9,
-            steps: [{
-                kind: 'establishRelation',
-                subjectId: broomId,
-                targetId: tableId,
-                relationKind: 'Under',
-                hostId: 'ROOM#Bridge',
-            }],
             attempt: expect.anything(),
         })
+        expect(primaryStepOf(result)).toMatchObject({ primitive: 'establishRelation', subject: { groundedId: broomId }, target: { groundedId: tableId }, relationKind: 'Under' })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
     })
 
@@ -1401,11 +1387,11 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({
-            type: 'LookComponent',
-            componentId: rocketSkatesId,
+            type: 'CommandAttempt',
             confidence: 0.9,
             attempt: expect.anything(),
         })
+        expect(lookedAtId(result)).toBe(rocketSkatesId)
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
     })
 
@@ -1440,21 +1426,11 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: broomId,
-            targetId: benchId,
-            relationKind: 'Under',
+            type: 'CommandAttempt',
             confidence: 0.9,
-            steps: [{
-                kind: 'establishRelation',
-                subjectId: broomId,
-                targetId: benchId,
-                relationKind: 'Under',
-                hostId: 'ROOM#Bridge',
-            }],
             attempt: expect.anything(),
         })
+        expect(primaryStepOf(result)).toMatchObject({ primitive: 'establishRelation', subject: { groundedId: broomId }, target: { groundedId: benchId }, relationKind: 'Under' })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
     })
 
@@ -1531,14 +1507,11 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({
-            type: 'ObjectContainment',
-            subjectId: coinId,
-            targetId: jarId,
-            hostId: 'ROOM#Bridge',
-            containment: 'In',
+            type: 'CommandAttempt',
             confidence: 0.9,
             attempt: expect.anything(),
         })
+        expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: coinId }, to: { groundedId: jarId }, containment: 'In' })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
     })
 
@@ -1572,14 +1545,11 @@ describe('parseCommand LLM path', () => {
         )
 
         expect(result).toEqual({
-            type: 'ObjectContainment',
-            subjectId: cupId,
-            targetId: trayId,
-            hostId: 'ROOM#Bridge',
-            containment: 'On',
+            type: 'CommandAttempt',
             confidence: 0.9,
             attempt: expect.anything(),
         })
+        expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: cupId }, to: { groundedId: trayId }, containment: 'On' })
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
     })
 
@@ -1641,12 +1611,11 @@ describe('parseCommand LLM path', () => {
             )
 
             expect(result).toEqual({
-                type: 'ObjectManipulation',
-                operationKind: 'takeHold',
-                objectIds: [broomId],
+                type: 'CommandAttempt',
                 confidence: 1,
                 attempt: expect.anything(),
             })
+            expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: broomId }, to: { referentType: 'actingCharacter' } })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
             expect(embedSpan).not.toHaveBeenCalled()
@@ -1675,12 +1644,11 @@ describe('parseCommand LLM path', () => {
             )
 
             expect(result).toEqual({
-                type: 'ObjectManipulation',
-                operationKind: 'takeHold',
-                objectIds: [broomId],
+                type: 'CommandAttempt',
                 confidence: 1,
                 attempt: expect.anything(),
             })
+            expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: broomId }, to: { referentType: 'actingCharacter' } })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
         })
@@ -1739,12 +1707,11 @@ describe('parseCommand LLM path', () => {
             )
 
             expect(result).toEqual({
-                type: 'ObjectManipulation',
-                operationKind: 'drop',
-                objectIds: [broomId],
+                type: 'CommandAttempt',
                 confidence: 1,
                 attempt: expect.anything(),
             })
+            expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: broomId }, from: { referentType: 'actingCharacter' } })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
@@ -1767,12 +1734,11 @@ describe('parseCommand LLM path', () => {
             )
 
             expect(result).toEqual({
-                type: 'ObjectManipulation',
-                operationKind: 'takeHold',
-                objectIds: [broomId],
+                type: 'CommandAttempt',
                 confidence: 1,
                 attempt: expect.anything(),
             })
+            expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: broomId }, to: { referentType: 'actingCharacter' } })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
@@ -2075,7 +2041,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                     graphs: { [ROOM]: roomWith([ROPE, POST, TABLE], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
                 }
             )
-            expect(result.result.type).toBe('ObjectContainment')
+            expect(result.result.type).toBe('CommandAttempt')
             // Round trip through the published JSON, as the hand-off does, before reading the attempt.
             const attempt = CommandAttempt.fromJSON((result.result as { attempt: CommandAttemptData }).attempt)
             expect(attempt.result).toEqual({ status: 'succeeded', outcome: expect.any(String) })
@@ -2101,7 +2067,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                     },
                 }
             )
-            expect(result).toMatchObject({ type: 'ObjectManipulation', operationKind: 'takeHold', objectIds: [COIN] })
+            expect(result).toMatchObject({ type: 'CommandAttempt' })
+            expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: COIN }, to: { referentType: 'actingCharacter' } })
             const attempt = CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt)
             // No facilitating dissolve: the move itself removes the coin's hosting edge at commit.
             expect(attempt.actions()).toHaveLength(1)

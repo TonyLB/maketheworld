@@ -74,6 +74,12 @@ const planned = (skeleton: ParseSkeleton) => {
     return plan.attempts[0]
 }
 
+/** The attempt's relation step: Plan's relational template puts it in the one position action. */
+const relationStepOf = (result: { type: string; attempt?: unknown }): any => {
+    const actions = (result.attempt as { actions: { desiredResult?: unknown }[] }).actions
+    return actions[0]?.desiredResult
+}
+
 describe('enrichObjectManipulation', () => {
     it('routes relational commands through the native skeleton pipeline (Step 2b step 6)', async () => {
 
@@ -94,21 +100,12 @@ describe('enrichObjectManipulation', () => {
             }
         )
 
-        expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: broomId,
-            targetId: tableId,
+        expect(result).toMatchObject({ type: 'CommandAttempt' })
+        expect(relationStepOf(result)).toMatchObject({
+            primitive: 'establishRelation',
             relationKind: 'Under',
-            confidence: 0.9,
-            steps: [{
-                kind: 'establishRelation',
-                subjectId: broomId,
-                targetId: tableId,
-                relationKind: 'Under',
-                hostId: roomId,
-            }],
-            attempt: expect.anything(),
+            subject: { groundedId: broomId },
+            target: { groundedId: tableId },
         })
     })
 
@@ -143,23 +140,13 @@ describe('enrichObjectManipulation', () => {
             }
         )
 
-        expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: stringId,
-            targetId: topId,
+        expect(result).toMatchObject({ type: 'CommandAttempt' })
+        expect(relationStepOf(result)).toMatchObject({
+            primitive: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'around',
-            confidence: 0.9,
-            steps: [{
-                kind: 'establishRelation',
-                subjectId: stringId,
-                targetId: topId,
-                relationKind: 'Custom',
-                relationLabel: 'around',
-                hostId: characterId,
-            }],
-            attempt: expect.anything(),
+            subject: { groundedId: stringId },
+            target: { groundedId: topId },
         })
     })
 
@@ -195,21 +182,12 @@ describe('enrichObjectManipulation', () => {
             }
         )
 
-        expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: 'OBJECT#Rope',
-            targetId: 'OBJECT#Anvil',
+        expect(result).toMatchObject({ type: 'CommandAttempt' })
+        expect(relationStepOf(result)).toMatchObject({
+            primitive: 'establishRelation',
             relationKind: 'Against',
-            confidence: 0.88,
-            steps: [{
-                kind: 'establishRelation',
-                subjectId: 'OBJECT#Rope',
-                targetId: 'OBJECT#Anvil',
-                relationKind: 'Against',
-                hostId: roomId,
-            }],
-            attempt: expect.anything(),
+            subject: { groundedId: 'OBJECT#Rope' },
+            target: { groundedId: 'OBJECT#Anvil' },
         })
     })
 
@@ -245,23 +223,13 @@ describe('enrichObjectManipulation', () => {
             }
         )
 
-        expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: cordId,
-            targetId: crateId,
+        expect(result).toMatchObject({ type: 'CommandAttempt' })
+        expect(relationStepOf(result)).toMatchObject({
+            primitive: 'establishRelation',
             relationKind: 'Custom',
             relationLabel: 'around',
-            confidence: 0.87,
-            steps: [{
-                kind: 'establishRelation',
-                subjectId: cordId,
-                targetId: crateId,
-                relationKind: 'Custom',
-                relationLabel: 'around',
-                hostId: roomId,
-            }],
-            attempt: expect.anything(),
+            subject: { groundedId: cordId },
+            target: { groundedId: crateId },
         })
     })
 
@@ -304,23 +272,13 @@ describe('enrichObjectManipulation', () => {
             }
         )
 
-        expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'dissolveRelation',
-            subjectId: ropeId,
-            targetId: crateId,
+        expect(result).toMatchObject({ type: 'CommandAttempt' })
+        expect(relationStepOf(result)).toMatchObject({
+            primitive: 'dissolveRelation',
             relationKind: 'Custom',
             relationLabel: 'off',
-            confidence: 0.86,
-            steps: [{
-                kind: 'dissolveRelation',
-                subjectId: ropeId,
-                targetId: crateId,
-                relationKind: 'Custom',
-                relationLabel: 'off',
-                hostId: roomId,
-            }],
-            attempt: expect.anything(),
+            subject: { groundedId: ropeId },
+            target: { groundedId: crateId },
         })
     })
 
@@ -394,21 +352,12 @@ describe('enrichObjectManipulation', () => {
             }
         )
 
-        expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: ladderId,
-            targetId: wallId,
+        expect(result).toMatchObject({ type: 'CommandAttempt' })
+        expect(relationStepOf(result)).toMatchObject({
+            primitive: 'establishRelation',
             relationKind: 'Against',
-            confidence: 0.9,
-            steps: [{
-                kind: 'establishRelation',
-                subjectId: ladderId,
-                targetId: wallId,
-                relationKind: 'Against',
-                hostId: roomId,
-            }],
-            attempt: expect.anything(),
+            subject: { groundedId: ladderId },
+            target: { groundedId: wallId },
         })
     })
 

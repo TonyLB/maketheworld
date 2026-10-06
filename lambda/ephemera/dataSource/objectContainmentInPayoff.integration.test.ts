@@ -61,7 +61,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
-import { isParseCommandObjectContainmentResult } from './actions/baseClasses'
+import { isParseCommandCommandAttemptResult } from './actions/baseClasses'
 import { CommandAttempt } from './actions/commandAttempt'
 import type { CommandAttemptData } from './actions/commandAttempt'
 import { commitAttempt } from './positions/manipulation/commitAttempt'
@@ -234,18 +234,17 @@ describe('object containment In payoff (integration)', () => {
             }
         )
 
-        expect(isParseCommandObjectContainmentResult(parseResult)).toBe(true)
-        if (!isParseCommandObjectContainmentResult(parseResult)) {
+        expect(isParseCommandCommandAttemptResult(parseResult)).toBe(true)
+        if (!isParseCommandCommandAttemptResult(parseResult)) {
             throw new Error('unreachable: asserted above')
         }
-        expect(parseResult).toEqual({
-            type: 'ObjectContainment',
-            subjectId: BALL_ID,
-            targetId: BOX_ID,
-            hostId: ROOM_ID,
+        // The containment move is the attempt's transfer step: the ball into the box, kind In.
+        const transfer = CommandAttempt.fromJSON(parseResult.attempt).actions().map((action) => action.desiredResult).find((step) => step?.kind === 'change')
+        expect(transfer).toMatchObject({
+            primitive: 'transferMembership',
             containment: 'In',
-            confidence: 0.9,
-            attempt: expect.anything(),
+            object: { groundedId: BALL_ID },
+            to: { groundedId: BOX_ID },
         })
 
         // Step B: real mutation-kernel commit. `commitAttempt` itself runs unmocked; only its

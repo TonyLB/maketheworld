@@ -4,7 +4,7 @@ import type {
     ParseCommandAbstainResult,
     ParseCommandConsultResult,
     ParseCommandErrorResult,
-    ParseCommandLookComponentResult,
+    ParseCommandCommandAttemptResult,
 } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 import type { CommandAttempt } from '../../commandAttempt'
@@ -15,7 +15,7 @@ import { runIdentityStageOverReferenceKeys } from './identifySkeletonSpans'
 import type { ParseSkeleton } from './parse/parseToken'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { selectPlanTuple } from './selectPlanCandidate'
-import { attemptDryRun, attemptSpanKeys, groundedObjectIdOf, proposeAttemptCandidates } from './attemptCandidates'
+import { attemptDryRun, attemptSpanKeys, proposeAttemptCandidates } from './attemptCandidates'
 
 export type CompileDescribeFromSkeletonInput = {
     command: string
@@ -30,7 +30,7 @@ export type CompileDescribeFromSkeletonInput = {
 export type CompileDescribeFromSkeletonDeps = IdentityStageDeps
 
 export type CompileDescribeFromSkeletonResult =
-    | ParseCommandLookComponentResult
+    | ParseCommandCommandAttemptResult
     | ParseCommandConsultResult
     | ParseCommandAbstainResult
     | ParseCommandErrorResult
@@ -131,13 +131,10 @@ export async function compileDescribeFromSkeleton(
         }
     }
 
-    const { candidate } = selection
-    const [groundedSpan] = candidate.attempt.actions()[0]!.referents()
-
+    // The grounded look rides on the attempt's narration; the in-process exit reads it from there.
     return {
-        type: 'LookComponent',
-        componentId: groundedObjectIdOf(groundedSpan!),
+        type: 'CommandAttempt',
+        attempt: selection.candidate.attempt.toJSON(),
         confidence: intentConfidence,
-        attempt: candidate.attempt.toJSON(),
     }
 }

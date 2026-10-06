@@ -4,6 +4,12 @@ import { compileTransferFromSkeleton } from './compileTransferFromSkeleton'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ParseSkeleton } from './parse/parseToken'
 import { planSkeleton } from './plan/planSkeleton'
+
+/** The attempt's last action's desired result: the transfer, which Plan's templates put last. */
+const transferStepOf = (result: { type: string; attempt?: unknown }): any => {
+    const actions = (result.attempt as { actions: { desiredResult?: unknown }[] }).actions
+    return actions[actions.length - 1]?.desiredResult
+}
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 
 /** Room and host graphs for the shared dry run; the containment move needs the subject's room. */
@@ -56,15 +62,8 @@ describe('compileTransferFromSkeleton', () => {
             { positionsReadDeps: containmentPositionsReads() }
         )
 
-        expect(result).toEqual({
-            type: 'ObjectContainment',
-            containment: 'On',
-            subjectId: cupId,
-            targetId: trayId,
-            hostId: roomId,
-            confidence: 0.9,
-            attempt: expect.anything(),
-        })
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(transferStepOf(result)).toMatchObject({ containment: 'On', object: { groundedId: cupId }, to: { groundedId: trayId } })
     })
 
     it('returns ObjectContainment with containment In when the caller forwards the In kind', async () => {
@@ -83,15 +82,8 @@ describe('compileTransferFromSkeleton', () => {
             { positionsReadDeps: containmentPositionsReads() }
         )
 
-        expect(result).toEqual({
-            type: 'ObjectContainment',
-            containment: 'In',
-            subjectId: cupId,
-            targetId: trayId,
-            hostId: roomId,
-            confidence: 0.9,
-            attempt: expect.anything(),
-        })
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(transferStepOf(result)).toMatchObject({ containment: 'In', object: { groundedId: cupId }, to: { groundedId: trayId } })
     })
 
     it('resolves the subject from held inventory when it is not in the room catalog', async () => {
@@ -108,15 +100,8 @@ describe('compileTransferFromSkeleton', () => {
             { positionsReadDeps: containmentPositionsReads() }
         )
 
-        expect(result).toEqual({
-            type: 'ObjectContainment',
-            containment: 'On',
-            subjectId: cupId,
-            targetId: trayId,
-            hostId: roomId,
-            confidence: 0.9,
-            attempt: expect.anything(),
-        })
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(transferStepOf(result)).toMatchObject({ containment: 'On', object: { groundedId: cupId }, to: { groundedId: trayId } })
     })
 
     it('errors with noHostRoom when no hostRoomId is supplied', async () => {
@@ -214,10 +199,10 @@ describe('compileTransferFromSkeleton', () => {
             { positionsReadDeps: containmentPositionsReads() }
         )
 
-        if (result.type !== 'ObjectContainment') {
-            throw new Error(`expected ObjectContainment, got ${result.type}`)
+        if (result.type !== 'CommandAttempt') {
+            throw new Error(`expected CommandAttempt, got ${result.type}`)
         }
-        const desiredResult = (result.attempt.actions[0] as any)?.desiredResult
+        const desiredResult = transferStepOf(result)
         expect(desiredResult).toMatchObject({
             kind: 'change',
             primitive: 'transferMembership',

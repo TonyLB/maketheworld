@@ -38,6 +38,12 @@ const planned = (skeleton: ParseSkeleton) => {
     return plan.attempts[0]
 }
 
+/** The attempt's relation step: Plan's relational template puts it in the one position action. */
+const relationStepOf = (result: { type: string; attempt?: unknown }): any => {
+    const actions = (result.attempt as { actions: { desiredResult?: unknown }[] }).actions
+    return actions[0]?.desiredResult
+}
+
 describe('compileRelationalFromSkeleton', () => {
     it('returns EstablishRelation for a matched closed-template command with grounded catalog', async () => {
         const getLudicGraph = jest.fn().mockResolvedValue(
@@ -66,21 +72,8 @@ describe('compileRelationalFromSkeleton', () => {
         )
 
         expect(result).toEqual({
-            type: 'EstablishRelation',
-            operationKind: 'establishRelation',
-            subjectId: broomId,
-            targetId: tableId,
-            relationKind: 'Under',
+            type: 'CommandAttempt',
             confidence: 0.9,
-            // no flat `hostId` any more --- a portless/same-host candidate carries
-            // exactly one step, and that step carries its own `hostId`.
-            steps: [{
-                kind: 'establishRelation',
-                subjectId: broomId,
-                targetId: tableId,
-                relationKind: 'Under',
-                hostId: roomId,
-            }],
             attempt: expect.objectContaining({
                 words: 'put broom under table',
                 // Parse's own stableRefKey, not a synthesized `${id}/subject` key.
@@ -89,6 +82,12 @@ describe('compileRelationalFromSkeleton', () => {
                     { refKey: 'tableRef', id: tableId, shortName: 'table' },
                 ],
             }),
+        })
+        expect(relationStepOf(result)).toMatchObject({
+            primitive: 'establishRelation',
+            relationKind: 'Under',
+            subject: { groundedId: broomId },
+            target: { groundedId: tableId },
         })
     })
 
@@ -373,45 +372,16 @@ describe('compileRelationalFromSkeleton', () => {
         )
 
         expect(getMembershipContainers).toHaveBeenCalledWith(tableId)
-        expect(result.type).toBe('EstablishRelation')
-        if (result.type !== 'EstablishRelation') {
-            return
-        }
-        expect(result.subjectId).toBe(stringId)
-        expect(result.targetId).toBe(cupId)
-        expect(result.operationKind).toBe('establishRelation')
-        expect(result.relationKind).toBe('Custom')
-        expect(result.relationKind === 'Custom' && result.relationLabel).toBe('to')
+        expect(result.type).toBe('CommandAttempt')
+        expect(relationStepOf(result)).toMatchObject({
+            primitive: 'establishRelation',
+            relationKind: 'Custom',
+            relationLabel: 'to',
+            subject: { groundedId: stringId },
+            target: { groundedId: cupId },
+        })
+        // The crossing's port and legs are lowered from the chain by commit, and their order is
+        // covered by `synthesize/buildCrossingLegs.test.ts`; the attempt carries only the relation.
 
-        // Order asserted explicitly, not just membership --- the chain is lowered in its
-        // own order, each port ahead of the leg that references it.
-        expect(result.steps).toHaveLength(3)
-        const [portStep, tableLeg, roomLeg] = result.steps
-
-        expect(portStep.kind).toBe('addCrossingPort')
-        if (portStep.kind !== 'addCrossingPort') {
-            return
-        }
-        expect(portStep.hostId).toBe(tableId)
-        expect(portStep.port.fromHostId).toBe(roomId)
-        expect(portStep.port.kind).toBe('Custom')
-        expect(portStep.port.kind === 'Custom' && portStep.port.exteriorRelationLabel).toBe('to')
-        const portAddress = { owner: tableId, port: portStep.port.portId }
-
-        expect(tableLeg.kind).toBe('establishRelation')
-        if (tableLeg.kind !== 'establishRelation') {
-            return
-        }
-        expect(tableLeg.hostId).toBe(tableId)
-        expect(tableLeg.subjectId).toEqual(portAddress)
-        expect(tableLeg.targetId).toBe(cupId)
-
-        expect(roomLeg.kind).toBe('establishRelation')
-        if (roomLeg.kind !== 'establishRelation') {
-            return
-        }
-        expect(roomLeg.hostId).toBe(roomId)
-        expect(roomLeg.subjectId).toBe(stringId)
-        expect(roomLeg.targetId).toEqual(portAddress)
     })
 })

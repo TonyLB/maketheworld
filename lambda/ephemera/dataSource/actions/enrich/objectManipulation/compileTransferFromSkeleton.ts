@@ -5,8 +5,7 @@ import type {
     ParseCommandAbstainResult,
     ParseCommandConsultResult,
     ParseCommandErrorResult,
-    ParseCommandObjectContainmentResult,
-    ParseCommandObjectManipulationResult,
+    ParseCommandCommandAttemptResult,
 } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 import type { CommandAttempt } from '../../commandAttempt'
@@ -48,8 +47,7 @@ export type CompileTransferFromSkeletonDeps = IdentityStageDeps & {
 }
 
 export type CompileTransferFromSkeletonResult =
-    | ParseCommandObjectManipulationResult
-    | ParseCommandObjectContainmentResult
+    | ParseCommandCommandAttemptResult
     | ParseCommandConsultResult
     | ParseCommandAbstainResult
     | ParseCommandErrorResult
@@ -183,23 +181,9 @@ export async function compileTransferFromSkeleton(
         throw new Error('compileTransferFromSkeleton: the selected transfer moves a non-Object')
     }
 
-    if (isMembership) {
-        return {
-            type: 'ObjectManipulation',
-            operationKind: step.to.referentType === 'actingCharacter' ? 'takeHold' : 'drop',
-            objectIds: [objectId],
-            confidence: intentConfidence,
-            attempt: candidate.attempt.toJSON(),
-        }
-    }
-
     return {
-        type: 'ObjectContainment',
-        subjectId: objectId,
-        targetId: groundedObjectIdOf(step.to),
-        hostId: hostRoomId,
-        containment: step.containment!,
-        confidence: intentConfidence,
+        type: 'CommandAttempt',
         attempt: candidate.attempt.toJSON(),
+        confidence: intentConfidence,
     }
 }

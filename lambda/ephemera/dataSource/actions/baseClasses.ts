@@ -55,7 +55,7 @@ export type CollectCoyoteOccupiedStableKeysDeps = {
 export type ParseCommandConfidence = number
 
 /**
- * Membership language direction from classify (PA-1). Not {@link ParseCommandObjectManipulationResult.operationKind}.
+ * Membership language direction from classify (PA-1). Not a route's operation kind (none is on the result arm).
  */
 export type ManipulationVerbClass = 'acquire' | 'release'
 
@@ -170,19 +170,13 @@ export type ParseCommandLookRoomResult = {
 }
 
 /**
- * Trusted component look (UI click, link API) with explicit EphemeraId, or a grounded
- * object-directed look ("look/examine <object>") from the Plan-stage `matchLookTemplate`
- * matcher (iteration 9, Phase 4) --- the latter is the one producer of this type that
- * *is* reachable from Bedrock parse; the doc comment below only describes the other three.
- * `attempt` is populated only by the object-directed producer (`compileDescribeFromSkeleton`):
- * the other three producers build no
- * `CommandAttempt` and have nothing to put there.
+ * Trusted component look (UI click, link API) with explicit EphemeraId. UI-triggered only:
+ * an object-directed look from parse is a {@link ParseCommandCommandAttemptResult} (ISS8203 slice 4).
  */
 export type ParseCommandLookComponentResult = {
     type: 'LookComponent'
     componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId | EphemeraCharacterId
     confidence: ParseCommandConfidence
-    attempt?: CommandAttemptData
 }
 
 /** Trusted UI speech (Say / Narrate / OOC). Not produced by Bedrock parse. */
@@ -291,7 +285,7 @@ export type ParseCommandMultipleCommandsResult = {
  * Intent discrimination only: player intent is membership host transfer (which ludicGraph hosts the object).
  * `verbClass` is membership **language** direction from classify (`acquire` | `release` only).
  * `operationKind` is forbidden at classify and owned by enrich/compiler (membership pre-gates + agreement gate).
- * Terminal outcomes are {@link ParseCommandObjectManipulationResult} or {@link ParseCommandErrorResult}.
+ * Terminal outcomes are {@link ParseCommandCommandAttemptResult} or {@link ParseCommandErrorResult}.
  */
 export type ParseCommandObjectMembershipIntentResult = {
     type: 'ObjectMembershipIntent'
@@ -318,87 +312,19 @@ export type ParseCommandObjectRelateIntentResult = {
     confidence: ParseCommandConfidence
 }
 
-/**
- * Grounded atomic object manipulation after enrich + resolve (v1: `takeHold`, `drop`).
- * `objectIds` is the moved object --- one entry. Anything it hosts lives in its own shard
- * and travels with it, so nothing widens this set. Always non-empty.
- */
-export type ParseCommandObjectManipulationResult = {
-    type: 'ObjectManipulation'
-    operationKind: 'takeHold' | 'drop'
-    objectIds: EphemeraObjectId[]
-    confidence: ParseCommandConfidence
-    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join. */
-    attempt?: CommandAttemptData
-}
-
 /** Relational operator direction from frame extract (BD-12). */
 export type RelationalOperationKind = 'establishRelation' | 'dissolveRelation'
 
 /**
- * Grounded relational manipulation after enrich + compiler (BD-1).
- *
- * `hostId` was Room/Character-single-host through BD-15/16; that was dropped once
- * a candidate can be a genuine cross-shard crossing, wired live,
- * since a single flat host has no principled value to hold --- each leg of `steps` already
- * carries its own `hostId`. The ingress lane's step-shape clause (endpoints/host stay
- * ingress-narrow because "downstream can always fill in the rest") is retired by the
- * same finding that forced a per-leg `hostId`: that reconstruction is not
- * safely re-derivable downstream in general (multi-hosted endpoints, port-to-port
- * ambiguity), so it is carried from Expansion instead, not recomputed. The ingress lane's
- * *kind*-narrowing clause (`On`/`In`/`PartOf`/`Present` excluded below) is unaffected
- * --- see `AGENT.abstractionLayers.planning.md`'s Channel D (CD4) for the corrected
- * reading.
+ * Every command attempt that reached a route (take, drop, containment, relational, describe), as
+ * one result (ISS8203 slice 4, PI-6). The attempt carries everything the hand-off needs: its
+ * actions and their referents. The route's per-kind fields (operation kind, object ids, relation
+ * kind, host) are read only by the route's own tests, so they are not on the arm.
  */
-export type ParseCommandEstablishRelationResult = {
-    type: 'EstablishRelation'
-    operationKind: RelationalOperationKind
-    subjectId: EphemeraObjectId
-    targetId: EphemeraObjectId
-    /** Deliberately narrow --- ingress lane (BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
-    confidence: ParseCommandConfidence
-    /**
-     * Expansion-derived mutation-kernel step chain --- everything
-     * `runExecutor` produced for the chosen candidate, worklist and side-channel
-     * steps alike, in production order (port steps precede the legs that reference
-     * them, per `buildCrossingLegs.ts`). A portless/same-host candidate carries
-     * exactly one `establishRelation`/`dissolveRelation` entry; a genuine crossing
-     * carries one `addCrossingPort` plus a hop leg per side, at any depth,
-     * and the final chain step at the common
-     * ancestor. Each step carries its own `hostId` --- there is no single
-     * host for the result as a whole once a crossing is involved.
-     */
-    steps: readonly MutationKernelStep[]
-    /** CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join. */
-    attempt?: CommandAttemptData
-} & RelationalKindAndLabel<'Under' | 'Against' | 'Custom'>
-
-/**
- * Grounded rehost after enrich + resolve: `On` is a rehost carrying a containment
- * argument, not a relation with a side effect --- `subjectId` moves into `targetId`'s own
- * shard. Deliberately separate from `ParseCommandEstablishRelationResult`, which narrowed
- * `On` out on 2026-08-22: there is no `Change`/edge here for that type's
- * `RelationalKindAndLabel` to describe. `hostId` is the acting character's room (narration
- * context only, matching the object-move `roomId`) --- not `subjectId`'s current
- * host, which the positions-layer consumer resolves fresh via `getMembershipContainers`
- * rather than trusting a value baked in at parse time. `containment` is typed as the full
- * AB-54 hosting-kind union; `On` and `In` both construct this type today (nestedObjectLook
- * Phase 4), `PartOf` still hard-errors before reaching it (ND-4: no player phrase for it, by
- * design).
- */
-export type ParseCommandObjectContainmentResult = {
-    type: 'ObjectContainment'
-    subjectId: EphemeraObjectId
-    targetId: EphemeraObjectId
-    hostId: EphemeraRoomId
-    containment: 'On' | 'In' | 'PartOf'
-    confidence: ParseCommandConfidence
-    /**
-     * CommandAttemptPhase slice 2: the player's attempt, built at the Identify+Plan join.
-     * Required since slice 3c: the generalized hand-off (`publishLudicNetworkChangeRequested`)
-     * no-ops silently without one, so an optional field here would hide a construction bug.
-     */
+export type ParseCommandCommandAttemptResult = {
+    type: 'CommandAttempt'
     attempt: CommandAttemptData
+    confidence: ParseCommandConfidence
 }
 
 /**
@@ -431,9 +357,7 @@ export type ParseCommandResult =
     | ParseCommandCharacterSpokeResult
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
-    | ParseCommandObjectManipulationResult
-    | ParseCommandEstablishRelationResult
-    | ParseCommandObjectContainmentResult
+    | ParseCommandCommandAttemptResult
     | ParseCommandObjectMembershipIntentResult
     | ParseCommandObjectRelateIntentResult
     | ParseCommandCommandIntentResult
@@ -719,49 +643,10 @@ export function isParseCommandMultipleCommandsResult(
     return isParseConfidence(result.confidence)
 }
 
-export function isParseCommandObjectManipulationResult(
+export function isParseCommandCommandAttemptResult(
     result: ParseCommandResult
-): result is ParseCommandObjectManipulationResult {
-    if (result.type !== 'ObjectManipulation') {
-        return false
-    }
-    return (
-        (result.operationKind === 'takeHold' || result.operationKind === 'drop')
-        && isParseConfidence(result.confidence)
-    )
-}
-
-const RELATIONAL_OPERATION_KINDS = new Set<RelationalOperationKind>(['establishRelation', 'dissolveRelation'])
-/** Deliberately narrow --- ingress lane (BD-2): `In`/`PartOf` must not parse into `establishRelation`. **`On` joined them 2026-08-22** (Channel D, CD2, reduced scope): AB-54 makes `On` a hosting kind too, and it no longer parses here either -- narrowed out of this type, not just out of the phrase maps, since nothing can construct this type with `'On'` any more. */
-const HOST_RELATIONAL_EDGE_KINDS = new Set<string>(['Under', 'Against', 'Custom'])
-
-export function isParseCommandEstablishRelationResult(
-    result: ParseCommandResult
-): result is ParseCommandEstablishRelationResult {
-    if (result.type !== 'EstablishRelation') {
-        return false
-    }
-    if (!RELATIONAL_OPERATION_KINDS.has(result.operationKind)) {
-        return false
-    }
-    if (!HOST_RELATIONAL_EDGE_KINDS.has(result.relationKind)) {
-        return false
-    }
-    if (result.relationKind === 'Custom' && typeof result.relationLabel !== 'string') {
-        return false
-    }
-    return isParseConfidence(result.confidence)
-}
-
-const HOSTING_KINDS = new Set<string>(['On', 'In', 'PartOf'])
-
-export function isParseCommandObjectContainmentResult(
-    result: ParseCommandResult
-): result is ParseCommandObjectContainmentResult {
-    if (result.type !== 'ObjectContainment') {
-        return false
-    }
-    if (!HOSTING_KINDS.has(result.containment)) {
+): result is ParseCommandCommandAttemptResult {
+    if (result.type !== 'CommandAttempt') {
         return false
     }
     return isParseConfidence(result.confidence)

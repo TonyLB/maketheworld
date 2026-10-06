@@ -5,7 +5,7 @@ import type {
     ParseCommandAbstainResult,
     ParseCommandConsultResult,
     ParseCommandErrorResult,
-    ParseCommandEstablishRelationResult,
+    ParseCommandCommandAttemptResult,
 } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
 import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
@@ -38,7 +38,7 @@ export type CompileRelationalFromSkeletonDeps = IdentityStageDeps & {
 }
 
 export type CompileRelationalFromSkeletonResult =
-    | ParseCommandEstablishRelationResult
+    | ParseCommandCommandAttemptResult
     | ParseCommandConsultResult
     | ParseCommandAbstainResult
     | ParseCommandErrorResult
@@ -158,19 +158,17 @@ export async function compileRelationalFromSkeleton(
         }
     }
 
-    return relationalResult(selection.candidate, selection.dryRun.plan!.steps, intentConfidence)
+    return relationalResult(selection.candidate, intentConfidence)
 }
 
 /**
- * Maps the selected candidate onto the EstablishRelation arm. Read off the grounded step, not the
- * candidate's own id, so it is always plain Object-to-Object (unlike a crossing's leg endpoints).
- * The chain is lowered once, for the chosen candidate only.
+ * Maps the selected candidate onto the attempt arm (ISS8203 slice 4). The attempt carries the
+ * grounded relation; the kernel steps are no longer on the result (commit lowers the attempt).
  */
 const relationalResult = (
     candidate: GroundedAttemptCandidate,
-    steps: readonly ExecutorOutputStep[],
     intentConfidence: number
-): ParseCommandEstablishRelationResult => {
+): ParseCommandCommandAttemptResult => {
     const step = candidate.attempt.actions()[0]!.desiredResult
     if (step?.kind !== 'change' || (step.primitive !== 'establishRelation' && step.primitive !== 'dissolveRelation')) {
         throw new Error('compileRelationalFromSkeleton: the selected candidate is not a relation step')
@@ -179,17 +177,9 @@ const relationalResult = (
         // Abstained before the producer runs (see compileRelationalFromSkeleton's entry checks).
         throw new Error('compileRelationalFromSkeleton: a containment kind reached the relational result')
     }
-    const chain = steps.find((entry): entry is ExecutorRelationalChain => entry.kind === 'relationalChain')!
     return {
-        type: 'EstablishRelation',
-        operationKind: step.primitive,
-        subjectId: groundedObjectIdOf(step.subject) as EphemeraObjectId,
-        targetId: groundedObjectIdOf(step.target) as EphemeraObjectId,
-        ...(step.relationKind === 'Custom'
-            ? { relationKind: 'Custom' as const, relationLabel: step.relationLabel }
-            : { relationKind: step.relationKind }),
-        confidence: intentConfidence,
-        steps: lowerRelationalChain(chain.steps, chain.operationKind),
+        type: 'CommandAttempt',
         attempt: candidate.attempt.toJSON(),
+        confidence: intentConfidence,
     }
 }

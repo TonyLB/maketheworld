@@ -145,12 +145,8 @@ describe('lashed rope take payoff (integration)', () => {
         )
 
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-        expect(parseResult).toEqual(expect.objectContaining({
-            type: 'ObjectManipulation',
-            operationKind: 'takeHold',
-            objectIds: [ROPE_ID],
-        }))
-        if (parseResult.type !== 'ObjectManipulation' || !parseResult.attempt) {
+        expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
+        if (parseResult.type !== 'CommandAttempt') {
             throw new Error('unreachable: asserted above')
         }
 
