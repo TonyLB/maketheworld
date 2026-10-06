@@ -114,7 +114,7 @@ const relationalAttempt = (primitive: 'establishRelation' | 'dissolveRelation' =
             primitive,
             subject: { referentType: 'objectSpan', span: 'subject', groundedId: BROOM },
             target: { referentType: 'objectSpan', span: 'target', groundedId: TABLE },
-            relationKind: 'Under',
+            relationKind: 'Custom', relationLabel: 'under',
         } as never,
         challenges: [],
     }],
@@ -242,7 +242,7 @@ describe('commitAttempt', () => {
     })
 
     it('dispatches a relational action through planRelationalEdgeTransfer, with its edge for the one fact', async () => {
-        const steps = [{ kind: 'establishRelation', subjectId: BROOM, targetId: TABLE, hostId: ROOM, relationKind: 'Under' }]
+        const steps = [{ kind: 'establishRelation', subjectId: BROOM, targetId: TABLE, hostId: ROOM, relationKind: 'Custom', relationLabel: 'under' }]
         planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: steps as any })
 
         await commitAttempt({ attempt: relationalAttempt('establishRelation'), characterId: CHARACTER, messageBus, streamEvent })
@@ -254,7 +254,7 @@ describe('commitAttempt', () => {
             CHARACTER,
             expect.objectContaining({
                 commit: expect.objectContaining({
-                    relationalEdges: [{ subjectId: BROOM, targetId: TABLE, operation: 'establish', relationKind: 'Under' }],
+                    relationalEdges: [{ subjectId: BROOM, targetId: TABLE, operation: 'establish', relationKind: 'Custom', relationLabel: 'under' }],
                 }),
             })
         )
@@ -508,7 +508,7 @@ describe('commitAttempt', () => {
                 verdict: 'repairable',
                 reasonCode: 'unresolvedDissolveEdge',
                 authority: 'mechanical',
-                repair: { kind: 'dissolveEdge', hostId: ROOM, edge: { from: BROOM, to: TABLE, kind: 'Against' } } as never,
+                repair: { kind: 'dissolveEdge', hostId: ROOM, edge: { from: BROOM, to: TABLE, kind: 'Custom', relationLabel: 'against' } } as never,
             })
 
             await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })

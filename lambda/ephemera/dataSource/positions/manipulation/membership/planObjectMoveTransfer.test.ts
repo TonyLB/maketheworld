@@ -54,8 +54,8 @@ describe('planObjectMoveTransfer', () => {
                     { tag: 'Object', universalKey: CHANDELIER_ID },
                 ],
                 edges: [
-                    { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Against' },
-                    { tag: 'Relational', from: TRAY_ID, to: CHANDELIER_ID, kind: 'Under' },
+                    { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'against' },
+                    { tag: 'Relational', from: TRAY_ID, to: CHANDELIER_ID, kind: 'Custom', relationLabel: 'under' },
                 ],
             })
             const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })

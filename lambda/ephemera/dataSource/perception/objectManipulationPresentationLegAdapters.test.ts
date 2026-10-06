@@ -22,8 +22,7 @@ const ANCHOR_TIME = 1_700_000_000_000
 const relationalAttempt = (
     primitive: 'establishRelation' | 'dissolveRelation',
     subjectId: string,
-    targetId: string,
-    relationKind: string = 'Under'
+    targetId: string
 ): CommandAttemptData => ({
     words: 'test command',
     referents: [],
@@ -34,7 +33,8 @@ const relationalAttempt = (
             primitive,
             subject: { referentType: 'objectSpan', span: 'subject', groundedId: subjectId },
             target: { referentType: 'objectSpan', span: 'target', groundedId: targetId },
-            relationKind,
+            relationKind: 'Custom',
+            relationLabel: 'under',
         } as Extract<CommandAttemptData['actions'][number], { kind: 'position' }>['desiredResult'],
         challenges: [],
     }],
@@ -147,7 +147,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                 subjectId: GLASS,
                 targetId: TRAY,
                 roomId: ROOM,
-                relationKind: 'Under',
+                relationKind: 'Custom', relationLabel: 'under',
             }])
         })
 
@@ -166,7 +166,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                 subjectId: GLASS,
                 targetId: TRAY,
                 roomId: ROOM,
-                relationKind: 'Under',
+                relationKind: 'Custom', relationLabel: 'under',
             }])
         })
 

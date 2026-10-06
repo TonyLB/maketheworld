@@ -169,7 +169,7 @@ describe('collapseCrossingPorts', () => {
         })
         const childGraph = testLudicGraph(boxId, {
             nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: pebble }],
-            edges: [childLeg('port_1', pebble, 'Under')],
+            edges: [childLeg('port_1', pebble, 'PartOf')],
             ports: [crossingPort('port_1')],
         })
 
@@ -222,7 +222,7 @@ describe('collapseSameHostStubs', () => {
                 presenceNode('port_2', enumeratedCover(charB, objD)),
             ],
             edges: [
-                { tag: 'Relational', from: objC, to: objD, kind: 'Under' },
+                { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under' },
             ],
         })
 
@@ -239,20 +239,20 @@ describe('collapseSameHostStubs', () => {
         expect(bucketB.ports).toHaveLength(1)
 
         expect(collapseSameHostStubs(bucketA, bucketB)).toEqual([
-            { tag: 'Relational', from: objC, to: objD, kind: 'Under', supportedBy: [] },
+            { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under', supportedBy: [] },
         ])
     })
 
     it('does not collapse two stub ports that only coincidentally share an id if their legs disagree', () => {
         const bucketA = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
-            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Under' }],
-            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Under' }],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Custom', relationLabel: 'under' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Custom', exteriorRelationLabel: 'under' }],
         })
         const bucketB = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objD }],
-            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'STUB-1' }, to: objD, kind: 'Against' }],
-            ports: [{ portId: 'STUB-1', fromHostId: objC, kind: 'Against' }],
+            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'STUB-1' }, to: objD, kind: 'Custom', relationLabel: 'against' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objC, kind: 'Custom', exteriorRelationLabel: 'against' }],
         })
 
         expect(() => collapseSameHostStubs(bucketA, bucketB)).toThrow(/disagree/)
@@ -261,8 +261,8 @@ describe('collapseSameHostStubs', () => {
     it('skips a stub port present in only one bucket', () => {
         const bucketA = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
-            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Under' }],
-            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Under' }],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Custom', relationLabel: 'under' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Custom', exteriorRelationLabel: 'under' }],
         })
         const bucketB = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objE2 }],
@@ -349,25 +349,25 @@ describe('mergeSameHostBucket', () => {
     it('still consumes a minted stub matched on both sides', () => {
         const bucketA = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
-            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Under' }],
-            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Under' }],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Custom', relationLabel: 'under' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Custom', exteriorRelationLabel: 'under' }],
         })
         const bucketB = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objD }],
-            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'STUB-1' }, to: objD, kind: 'Under' }],
-            ports: [{ portId: 'STUB-1', fromHostId: objC, kind: 'Under' }],
+            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'STUB-1' }, to: objD, kind: 'Custom', relationLabel: 'under' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objC, kind: 'Custom', exteriorRelationLabel: 'under' }],
         })
 
         const merged = mergeSameHostBucket(bucketA, bucketB)
-        expect(merged.relationalEdges).toEqual([{ from: objC, to: objD, kind: 'Under' }])
+        expect(merged.relationalEdges).toEqual([{ from: objC, to: objD, kind: 'Custom', relationLabel: 'under' }])
         expect(merged.ports).toEqual([])
     })
 })
 
 describe('foldSameHostBuckets', () => {
-    // Three presence buckets on one host. `objC -[Under]-> objD` straddles the adjacent pair
+    // Three presence buckets on one host. `objC -[Custom: under]-> objD` straddles the adjacent pair
     // (bucket 1/bucket 2), same as `collapseSameHostStubs`'s own test above. `objE
-    // -[Against]-> objF` straddles bucket 1 and bucket 3 with bucket 2 contributing nothing to
+    // -[Custom: against]-> objF` straddles bucket 1 and bucket 3 with bucket 2 contributing nothing to
     // it at all --- the case that forces a real walk to carry bucket 1's unmatched stub *through*
     // bucket 2 (which cannot resolve it) rather than only comparing each bucket to its immediate
     // predecessor.
@@ -386,14 +386,14 @@ describe('foldSameHostBuckets', () => {
             presenceNode('port_3', enumeratedCover(charC, objF)),
         ],
         edges: [
-            { tag: 'Relational', from: objC, to: objD, kind: 'Under' },
-            { tag: 'Relational', from: objE, to: objF, kind: 'Against' },
+            { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under' },
+            { tag: 'Relational', from: objE, to: objF, kind: 'Custom', relationLabel: 'against' },
         ],
     })
 
     const expectedEdges = [
-        { tag: 'Relational', from: objC, to: objD, kind: 'Under', supportedBy: [] },
-        { tag: 'Relational', from: objE, to: objF, kind: 'Against', supportedBy: [] },
+        { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under', supportedBy: [] },
+        { tag: 'Relational', from: objE, to: objF, kind: 'Custom', relationLabel: 'against', supportedBy: [] },
     ]
 
     it('reconstructs both interior edges via the existing pairwise primitive, cutting every bucket up front (two-pass baseline, using only shipped code)', () => {
@@ -505,7 +505,7 @@ describe('foldSameHostBuckets', () => {
 // `In` OBJECT#B *and* `PartOf` OBJECT#C -- a genuine diamond, but stated as two independently
 // authored graphs (B's own, C's own), neither of which mints a port for D at all.
 //
-// LC10/LC11 add a peer edge, `OBJECT#D -Against-> OBJECT#E` (E is `PartOf` OBJECT#C only), and
+// LC10/LC11 add a peer edge, `OBJECT#D -Custom: against-> OBJECT#E` (E is `PartOf` OBJECT#C only), and
 // the corpus's own text notes the world edge has two *routes* that were never disambiguated:
 // stated wholly inside OBJECT#C's own graph (both D and E are its members, interior, no port)
 // or stated at ROOM#A's level as a boundary-crossing edge between B's and C's exterior ports
@@ -560,31 +560,31 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
         nodes: roomNodes,
         edges: [
             ...roomHostingEdges,
-            { tag: 'Relational', from: { owner: objB, port: 'p_b' }, to: { owner: objC, port: 'p_c' }, kind: 'Against' },
+            { tag: 'Relational', from: { owner: objB, port: 'p_b' }, to: { owner: objC, port: 'p_c' }, kind: 'Custom', relationLabel: 'against' },
         ],
     })
     const bGraphWithPort = testLudicGraph(objB, {
         nodes: [{ tag: 'Object', universalKey: objB }, { tag: 'Object', universalKey: objD }],
         edges: [
             { tag: 'Relational', from: objD, to: objB, kind: 'In' },
-            { tag: 'Relational', from: { owner: objB, port: 'p_b' }, to: objD, kind: 'Against' },
+            { tag: 'Relational', from: { owner: objB, port: 'p_b' }, to: objD, kind: 'Custom', relationLabel: 'against' },
         ],
-        ports: [{ portId: 'p_b', fromHostId: objB, kind: 'Against' }],
+        ports: [{ portId: 'p_b', fromHostId: objB, kind: 'Custom', exteriorRelationLabel: 'against' }],
     })
     const cGraphWithPort = testLudicGraph(objC, {
         nodes: [{ tag: 'Object', universalKey: objC }, { tag: 'Object', universalKey: objD }, { tag: 'Object', universalKey: objE }],
         edges: [
             { tag: 'Relational', from: objD, to: objC, kind: 'PartOf' },
             { tag: 'Relational', from: objE, to: objC, kind: 'PartOf' },
-            { tag: 'Relational', from: { owner: objC, port: 'p_c' }, to: objE, kind: 'Against' },
+            { tag: 'Relational', from: { owner: objC, port: 'p_c' }, to: objE, kind: 'Custom', relationLabel: 'against' },
         ],
-        ports: [{ portId: 'p_c', fromHostId: objC, kind: 'Against' }],
+        ports: [{ portId: 'p_c', fromHostId: objC, kind: 'Custom', exteriorRelationLabel: 'against' }],
     })
 
     it('resolves the bare port-to-port edge via two ordinary sequential merges, the second fed the first\'s result as its parent graph --- no single merge ever joins both ends at once (LC10 first/second job)', () => {
         const afterB = collapseCrossingPorts(roomGraphWithAgainst, bGraphWithPort, 'binding_B')
         expect(afterB).toHaveLength(1)
-        expect(afterB[0]).toMatchObject({ from: objD, to: { owner: objC, port: 'p_c' }, kind: 'Against' })
+        expect(afterB[0]).toMatchObject({ from: objD, to: { owner: objC, port: 'p_c' }, kind: 'Custom', relationLabel: 'against' })
         // The bare port-to-port edge is representable as a partial occurrence (P8 clause 3(b)):
         // one real terminal, one still port-qualified, and it type-checks as an ordinary cache
         // edge in its own right, confirming it isn't rejected by the shipped type.
@@ -598,21 +598,21 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
         const afterC = collapseCrossingPorts(parentAfterB, cGraphWithPort, 'binding_C')
 
         expect(afterC).toEqual([
-            { tag: 'Relational', from: objD, to: objE, kind: 'Against', supportedBy: [[{ presenceBucketIds: ['PRESENCE#binding_C'], port: 'p_c' }]] },
+            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', supportedBy: [[{ presenceBucketIds: ['PRESENCE#binding_C'], port: 'p_c' }]] },
         ])
 
         // The order variant: merge C first against the same unmodified parent, then thread that
         // result forward for B. Same final edge either way.
         const afterCFirst = collapseCrossingPorts(roomGraphWithAgainst, cGraphWithPort, 'binding_C')
         expect(afterCFirst).toHaveLength(1)
-        expect(afterCFirst[0]).toMatchObject({ from: { owner: objB, port: 'p_b' }, to: objE, kind: 'Against' })
+        expect(afterCFirst[0]).toMatchObject({ from: { owner: objB, port: 'p_b' }, to: objE, kind: 'Custom', relationLabel: 'against' })
 
         const { supportedBy: _droppedC, ...rewrittenAfterC } = afterCFirst[0]
         const parentAfterC = testLudicGraph(roomId, { nodes: roomNodes, edges: [rewrittenAfterC] })
         const afterBSecond = collapseCrossingPorts(parentAfterC, bGraphWithPort, 'binding_B')
 
         expect(afterBSecond).toEqual([
-            { tag: 'Relational', from: objD, to: objE, kind: 'Against', supportedBy: [[{ presenceBucketIds: ['PRESENCE#binding_B'], port: 'p_b' }]] },
+            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', supportedBy: [[{ presenceBucketIds: ['PRESENCE#binding_B'], port: 'p_b' }]] },
         ])
     })
 

@@ -64,7 +64,7 @@ describe('ludicGraphPortMismatchSweep', () => {
             { diagnosticRunId: 'run-lgpm', nowMs: 1_700_000_000_000 },
             {
                 listCandidateRows: async () => [
-                    objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }]),
+                    objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'under' }]),
                     roomRow([{ kind: 'On' }]),
                 ],
                 emitFinding,
@@ -106,7 +106,7 @@ describe('ludicGraphPortMismatchSweep', () => {
         const result = await ludicGraphPortMismatchSweep(
             {},
             {
-                listCandidateRows: async () => [objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }])],
+                listCandidateRows: async () => [objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'under' }])],
                 emitFinding,
             }
         )
@@ -136,7 +136,7 @@ describe('ludicGraphPortMismatchSweep', () => {
             {},
             {
                 listCandidateRows: async () => [
-                    { ...objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' }]), EphemeraId: 'BOGUS#not-a-host' },
+                    { ...objectRow([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'under' }]), EphemeraId: 'BOGUS#not-a-host' },
                     roomRow([{ kind: 'On' }]),
                 ],
                 emitFinding,
@@ -153,10 +153,10 @@ describe('ludicGraphPortMismatchSweep', () => {
             {
                 listCandidateRows: async () => [
                     objectRow([
-                        { portId: 'zzz999', fromHostId: ROOM_ID, kind: 'Against' },
-                        { portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Under' },
+                        { portId: 'zzz999', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'against' },
+                        { portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'under' },
                     ]),
-                    roomRow([{ kind: 'On' }, { kind: 'Under', portId: 'zzz999' }]),
+                    roomRow([{ kind: 'On' }, { kind: 'Custom', relationLabel: 'under', portId: 'zzz999' }]),
                 ],
                 emitFinding,
             }

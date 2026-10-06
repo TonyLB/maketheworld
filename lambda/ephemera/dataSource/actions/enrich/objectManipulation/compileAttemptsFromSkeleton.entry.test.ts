@@ -88,7 +88,7 @@ describe('compileAttemptsFromSkeleton', () => {
             {
                 command: 'put the broom under the table',
                 skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
-                attempts: [peerRelationFixture('put the broom under the table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Under' })],
+                attempts: [peerRelationFixture('put the broom under the table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: relationalCatalog,
@@ -102,7 +102,7 @@ describe('compileAttemptsFromSkeleton', () => {
         expect(result).toMatchObject({ type: 'CommandAttempt' })
         expect(relationStepOf(result)).toMatchObject({
             primitive: 'establishRelation',
-            relationKind: 'Under',
+            relationKind: 'Custom', relationLabel: 'under',
             subject: { groundedId: broomId },
             target: { groundedId: tableId },
         })
@@ -163,7 +163,7 @@ describe('compileAttemptsFromSkeleton', () => {
             {
                 command: 'lean rope against anvil',
                 skeleton: relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'),
-                attempts: [peerRelationFixture('lean rope against anvil', relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'), { primitive: 'establishRelation', relationKind: 'Against' })],
+                attempts: [peerRelationFixture('lean rope against anvil', relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'against' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: anvilCatalog,
@@ -180,7 +180,7 @@ describe('compileAttemptsFromSkeleton', () => {
         expect(result).toMatchObject({ type: 'CommandAttempt' })
         expect(relationStepOf(result)).toMatchObject({
             primitive: 'establishRelation',
-            relationKind: 'Against',
+            relationKind: 'Custom', relationLabel: 'against',
             subject: { groundedId: 'OBJECT#Rope' },
             target: { groundedId: 'OBJECT#Anvil' },
         })
@@ -281,7 +281,7 @@ describe('compileAttemptsFromSkeleton', () => {
             {
                 command: 'lean the ladder leaning against the wall',
                 skeleton: relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'),
-                attempts: [peerRelationFixture('lean the ladder leaning against the wall', relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'), { primitive: 'establishRelation', relationKind: 'Against' })],
+                attempts: [peerRelationFixture('lean the ladder leaning against the wall', relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'against' })],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -306,7 +306,7 @@ describe('compileAttemptsFromSkeleton', () => {
         expect(result).toMatchObject({ type: 'CommandAttempt' })
         expect(relationStepOf(result)).toMatchObject({
             primitive: 'establishRelation',
-            relationKind: 'Against',
+            relationKind: 'Custom', relationLabel: 'against',
             subject: { groundedId: ladderId },
             target: { groundedId: wallId },
         })
@@ -348,7 +348,7 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
             {
                 command: 'look broom',
                 skeleton: lookSkeleton,
-                attempts: [peerRelationFixture('look broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Under' }), planned(lookSkeleton)],
+                attempts: [peerRelationFixture('look broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' }), planned(lookSkeleton)],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: relationalCatalog,
@@ -370,7 +370,7 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
             {
                 command: 'take broom',
                 skeleton: takeSkeleton,
-                attempts: [planned(takeSkeleton), peerRelationFixture('take broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Under' })],
+                attempts: [planned(takeSkeleton), peerRelationFixture('take broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })],
                 characterId,
                 roomObjectCatalog: relationalCatalog,
             },

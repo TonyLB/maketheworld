@@ -89,7 +89,7 @@ describe('executeMembershipTransfer', () => {
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
             ],
-            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Against' }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'against' }],
         })
         const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
         const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [] });
@@ -192,7 +192,7 @@ describe('executeMembershipTransfer', () => {
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
             ],
-            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Against' }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'against' }],
         })
         const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
         const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [] });

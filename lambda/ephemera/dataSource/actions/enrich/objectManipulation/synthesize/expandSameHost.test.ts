@@ -34,13 +34,13 @@ describe('expandSameHost', () => {
         }
 
         const result = expandAndLower(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
+            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'under', operationKind: 'establishRelation' },
             { getMembershipContainers }
         )
 
         expect(result).toEqual({
             verdict: 'crossed',
-            steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Under' }],
+            steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'under' }],
         })
     })
 
@@ -57,72 +57,6 @@ describe('expandSameHost', () => {
         expect(result.verdict).toBe('error')
         if (result.verdict !== 'error') return
         expect(result.reason).toEqual(expect.stringContaining('On'))
-    })
-
-    it('an Under relation crosses the shard boundary, minting a port with no relationLabel', () => {
-        const getMembershipContainers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
-            if (id === NECKLACE_ID) return [ROOM_ID]
-            if (id === CHARM_ID) return [TABLE_ID]
-            if (id === TABLE_ID) return [ROOM_ID]
-            return []
-        }
-
-        const result = expandAndLower(
-            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Under', operationKind: 'establishRelation' },
-            { getMembershipContainers }
-        )
-
-        expect(result.verdict).toBe('crossed')
-        if (result.verdict !== 'crossed') return
-        const [addPortStep, interiorLeg, exteriorLeg] = result.steps
-        expect(addPortStep).toMatchObject({ kind: 'addCrossingPort', hostId: TABLE_ID, port: { fromHostId: ROOM_ID, kind: 'Under' } })
-        if (addPortStep.kind !== 'addCrossingPort') return
-        // The label is what `Custom` exists to make a place for --- an enum kind carries none,
-        // on the port or on either leg.
-        expect(addPortStep.port).not.toHaveProperty('exteriorRelationLabel')
-        expect(interiorLeg).toMatchObject({ kind: 'establishRelation', targetId: CHARM_ID, relationKind: 'Under' })
-        expect(interiorLeg).not.toHaveProperty('relationLabel')
-        expect(exteriorLeg).toMatchObject({ kind: 'establishRelation', subjectId: NECKLACE_ID, relationKind: 'Under' })
-        expect(exteriorLeg).not.toHaveProperty('relationLabel')
-    })
-
-    it('an Against relation crosses the same way --- the gate is on peer-ness, not on one kind', () => {
-        const getMembershipContainers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
-            if (id === NECKLACE_ID) return [ROOM_ID]
-            if (id === CHARM_ID) return [TABLE_ID]
-            if (id === TABLE_ID) return [ROOM_ID]
-            return []
-        }
-
-        const result = expandAndLower(
-            { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Against', operationKind: 'establishRelation' },
-            { getMembershipContainers }
-        )
-
-        expect(result.verdict).toBe('crossed')
-        if (result.verdict !== 'crossed') return
-        expect(result.steps[0]).toMatchObject({ kind: 'addCrossingPort', port: { kind: 'Against' } })
-    })
-
-    it('an Under relation with no reachable boundary defers, and not in Custom\'s words', () => {
-        const underResult = expandAndLower(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
-            { getMembershipContainers: () => [] }
-        )
-        const customResult = expandAndLower(
-            { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
-            { getMembershipContainers: () => [] }
-        )
-
-        expect(underResult.verdict).toBe('defer')
-        if (underResult.verdict !== 'defer') return
-        expect(customResult.verdict).toBe('defer')
-        if (customResult.verdict !== 'defer') return
-        // Both decline, for different reasons, and the wording has to say which: Custom's defer
-        // routes to an LLM validator (BD-10), while this one means the crossing shape is
-        // unsupported --- a question no LLM can answer. Sharing wording would misroute it.
-        expect(underResult.reason).not.toEqual(customResult.reason)
-        expect(underResult.reason).toEqual(expect.stringContaining('Under'))
     })
 
     it('defers on a Custom relation kind when no shared boundary is reachable', () => {
@@ -183,8 +117,7 @@ describe('expandSameHost', () => {
         // The label used to be missing from every live seed, and this shape fell through to the
         // BD-10 defer as though an LLM could resolve it. It cannot: a Custom relation *is* its
         // label, so with none there is no relation to reason about. The two must stay
-        // distinguishable in wording, for the same reason `Under`/`Against`'s pair of defers must be ---
-        // the reason string is what routes the follow-up.
+        // distinguishable in wording: the reason string is what routes the follow-up.
         const unlabelled = expandAndLower(
             { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', operationKind: 'establishRelation' },
             { getMembershipContainers: () => [] }
@@ -219,16 +152,16 @@ describe('expandSameHost', () => {
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
                 .addObject(TRAY_ID)
                 .addObject(TABLE_ID)
-                .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Under' })
+                .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'under' })
 
             const result = expandAndLower(
-                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
+                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'under', operationKind: 'dissolveRelation' },
                 { getMembershipContainers: () => [], getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined), getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined) }
             )
 
             expect(result).toEqual({
                 verdict: 'crossed',
-                steps: [{ kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Under' }],
+                steps: [{ kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'under' }],
             })
         })
 
@@ -276,18 +209,17 @@ describe('expandSameHost', () => {
             })
         })
 
-        it('defers, with dissolve-specific wording, when no matching chain is found', () => {
+        it('defers to the LLM validator (BD-10) when no matching chain is found to dissolve', () => {
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID).addObject(TABLE_ID)
 
             const result = expandAndLower(
-                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
+                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'under', operationKind: 'dissolveRelation' },
                 { getMembershipContainers: () => [], getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined), getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined) }
             )
 
             expect(result.verdict).toBe('defer')
             if (result.verdict !== 'defer') return
-            expect(result.reason).toEqual(expect.stringContaining('Under'))
-            expect(result.reason).toEqual(expect.stringContaining('dissolve'))
+            expect(result.reason).toEqual(expect.stringContaining('BD-10'))
         })
 
         it('defers rather than picking, when findRelationalChain finds more than one qualifying chain', () => {
@@ -296,31 +228,16 @@ describe('expandSameHost', () => {
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
                 .addObject(TRAY_ID)
                 .addObject(TABLE_ID)
-                .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Under' })
-                .addRelationalEdge({ from: TABLE_ID, to: TRAY_ID, kind: 'Under' })
+                .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'under' })
+                .addRelationalEdge({ from: TABLE_ID, to: TRAY_ID, kind: 'Custom', relationLabel: 'under' })
 
             const result = expandAndLower(
-                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
+                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'under', operationKind: 'dissolveRelation' },
                 { getMembershipContainers: () => [], getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined), getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined) }
             )
 
             expect(result.verdict).toBe('defer')
         })
 
-        it('establish and dissolve produce different defer wording for the same unreachable case', () => {
-            const establishResult = expandAndLower(
-                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'establishRelation' },
-                { getMembershipContainers: () => [] }
-            )
-            const dissolveResult = expandAndLower(
-                { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Under', operationKind: 'dissolveRelation' },
-                { getMembershipContainers: () => [], getGraph: () => undefined, getCurrentHost: () => undefined }
-            )
-
-            expect(establishResult.verdict).toBe('defer')
-            expect(dissolveResult.verdict).toBe('defer')
-            if (establishResult.verdict !== 'defer' || dissolveResult.verdict !== 'defer') return
-            expect(establishResult.reason).not.toEqual(dissolveResult.reason)
-        })
     })
 })

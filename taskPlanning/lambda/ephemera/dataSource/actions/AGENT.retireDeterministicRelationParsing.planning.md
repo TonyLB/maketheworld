@@ -53,8 +53,9 @@ npm run test -- --watchAll=false \
 | --- | --- | --- |
 | 1 | Containment gets its own template | Done |
 | 2 | Delete the relational templates (Plan stage and intent-level registry) | Done |
-| 3 | Retire `Under` / `Against` | Not started |
+| 3 | Retire `Under` / `Against` | In progress (suites green; closes on commit) |
 | 4 | Durable docs; retire this plan | Not started |
+| 5 | Decide the orphaned `dissolve` outcome (keep with a reserved producer, or delete) | Done (kept reserved, 2026-10-06) |
 
 ## Recommended order
 
@@ -79,20 +80,35 @@ Use `[ ]` for pending and `[X]` for complete; mark nested lines `[X]` as each su
     - [X] `compileAttemptsFromSkeleton.relational.test.ts` and `.entry.test.ts`: the producer tests (grounding, self-relation, shard crossing, sameHost) keep their assertions, but their input attempt comes from `enrich/objectManipulation/peerRelationFixture.ts`, a test-only stand-in for the unbuilt LLM fallback. Two tests titled as routing tests are retitled as producer tests.
     - [X] Comment sweep: `patternTemplate.ts`, `parseToken.ts`, `matchLookTemplate.ts`, `relationKind.ts`, `resolveObjectSpan.ts` no longer name the deleted symbols.
   - [X] Decide RD-2 (`take X out of Y` / `take X off Y` as an explicit containment dissolve): no; membership handles it.
-- [ ] **Slice 3. Retire `Under` / `Against`.**
-  - [ ] `mtw-interfaces`: remove `CLOSED_RELATION_KINDS`, `ClosedRelationKind`, `isClosedRelationKind`, and `Under`/`Against` from `HostRelationalEdgeKind`. Fix `ephemeraMeta.test.ts` cases that enumerate them (port-address and kind-acceptance tables).
-  - [ ] `mtw-wml`: `LUDIC_EDGE_PEER_KINDS` becomes `['Custom']`; fix `ludicGraph.test.ts` fixtures; correct the `ludicEdge.ts` doc comment that lists the peer kinds.
-  - [ ] `lambda/ephemera`: `classifyInteractionUnderTransfer` loses `CLOSED_RELATION_BEHAVIOR` (every peer edge is `Custom` -> `defer`); `expandSameHost.ts`'s `isPeerKind`; `relationKind.ts`'s `PeerRelationalEdgeKind`; `CLOSED_RELATION_NARRATION` in `perception/publishObjectManipulationPresentation.ts`, unless attemptNarration's slice 2 has already deleted that file.
-  - [ ] Build `mtw-interfaces` and `mtw-wml` before running ephemera's suite against them; one-off `tsc` over the touched package test files.
+- [ ] **Slice 3. Retire `Under` / `Against`.** Code, tests and durable contract/implementation docs done in the working tree; not committed.
+  - [X] `mtw-interfaces`: `CLOSED_RELATION_KINDS`, `ClosedRelationKind`, `isClosedRelationKind` removed; `Under`/`Against` out of `HostRelationalEdgeKind`; `ephemeraMeta.test.ts` updated.
+  - [X] `mtw-wml`: `LUDIC_EDGE_PEER_KINDS` is `['Custom']`; `ludicGraph.test.ts` and the `ludicEdge.ts` comment updated.
+  - [X] Classifier: `CLOSED_RELATION_BEHAVIOR` deleted; every peer edge defers (RD-3).
+  - [X] sameHost: the peer branch is `Custom`-only; `relationKind.ts` deleted (no importers). `publishedEvents.ts`, `baseClasses.ts` and `publishObjectManipulationPresentation.ts` no longer read the closed kinds.
+  - [X] `UnderDeferChallenge` removed rather than renamed (RD-4, revised): with every defer `Custom`, it had no producer.
+  - [X] Fixtures ported to `Custom` with a label (edges `relationLabel`, ports `exteriorRelationLabel`) across ephemera, diagnostics and mtw-gateways. Tests that only pinned the `Under`/`Against` distinction were deleted; repair-descriptor tests now pin the `classifyCustomRelation` repair.
+  - [X] Durable docs: `positions/AGENT.contract.md` kind table and enum; the "Shelved: retiring Against and Under" section in `positions/AGENT.implementation.md` deleted (executed).
+  - [X] RD-5 (option a): peer subject-moves are met; the take-under-post characterization snapshot is regenerated and retitled.
+  - [ ] Bookkeeping: Progress row and Recommended order close once RD-5 is decided and the slice is committed by the user.
+  - [ ] Slice 4 picks up the remaining docs the grep found (see Slice 4 list and the `ludicNetwork`, `ludicGraph`, `perception`, `actions/AGENT.concepts.md` hits).
 - [ ] **Slice 4. Durable docs; retire this plan.**
   - [ ] Correct the docs that describe the relational template as live: `actions/AGENT.implementation.md` (relational playbook, Plan section), `enrich/objectManipulation/AGENT.md`, `enrich/AGENT.md`, `llm/AGENT.contract.md` and `llm/AGENT.concepts.md` (relational `operationKind` "owned by Plan's deterministic template"), `diegeticLogic/AGENT.operators.concepts.md` (establish/dissolve tables). State the rule durably where Plan is described: peer relations have no deterministic parse; they come only from the LLM fallback.
   - [ ] Remove this plan's forwarding notes from the plans that point here (below), and grep inbound links before deleting this file.
+
+- [X] **Slice 5. Decide the orphaned `dissolve` outcome.** Decided (a): keep it reserved, no producer.
+  - [X] Decide between (a) keep `dissolve` as a reserved class with no producer, documented as the no-judgment case for a future LLM tier, and (b) delete it with its repair kinds (`unresolvedDissolveEdge`, `dissolveRelationalEdge`) and tests.
+  - [X] Whichever is chosen, correct `commandAttemptPhase.planning.md` (line ~21, the plank/`Against` example, and the `Under`/`Custom` defer list): RD-3 changed those facts.
+  - [ ] If (b): remove the classifier outcome, the mechanical dissolve repair, and their tests; grep `unresolvedDissolveEdge` and `dissolveRelationalEdge` across lambda and packages.
+  - [X] If (a): add a test-free comment at the classifier naming the producer it is waiting for, and no more.
 
 ## Open decisions (implementation --- plan only)
 
 Plan-only: decisions made in order to implement upcoming slices. When one ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
 
-None open. RD-1 (containment verbs) shipped in slice 1; RD-2 (`take X off Y` is not a containment template) shipped in slice 2, and its rule moves to durable docs in slice 4.
+- **RD-3 (confirmed 2026-10-06, consequence revised):** every peer edge a move severs defers, so `Against`'s subject-move dissolve and `Under`'s target-move dissolve are gone. The planned "abstains" consequence is not what happens: the adjudicator already meets every unjudged `Custom` challenge, so these moves proceed. The rope-lashed integration test still passes for this reason.
+- **RD-4 (confirmed 2026-10-06, revised):** `UnderDeferChallenge` is removed, not renamed; it had no producer once every defer is `Custom`.
+- **RD-5 (decided 2026-10-06, option a):** a peer subject-move is met by the adjudicator, whether it means clearance or pinned. The graph cannot tell them apart and `Custom` has no finer kind, so the rule is manner, not physics: the rope under the post and the rope lashed to it come out the same way. The take-under-post snapshot is regenerated under that rule.
+- **Orphaned `dissolve` outcome (Slice 5, decided (a) 2026-10-06):** `InteractionUnderTransfer`'s `dissolve` has no producer after RD-3. Its design (`commandAttemptPhase.planning.md` line ~21) still expects a no-challenge class, so deletion is not obviously right. Decide in Slice 5.
 
 ## Plans that point here
 

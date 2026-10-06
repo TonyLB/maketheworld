@@ -87,8 +87,8 @@ describe('buildObjectMoveOp', () => {
                 { tag: 'Object', universalKey: CHANDELIER },
             ],
             edges: [
-                { tag: 'Relational', from: TRAY, to: TABLE, kind: 'Against' },
-                { tag: 'Relational', from: TRAY, to: CHANDELIER, kind: 'Under' },
+                { tag: 'Relational', from: TRAY, to: TABLE, kind: 'Custom', relationLabel: 'against' },
+                { tag: 'Relational', from: TRAY, to: CHANDELIER, kind: 'Custom', relationLabel: 'under' },
             ],
         })
         const op = buildObjectMoveOp({

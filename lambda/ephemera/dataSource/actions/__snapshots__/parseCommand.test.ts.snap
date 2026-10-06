@@ -526,7 +526,7 @@ Object {
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take broom when the broom touches an exit (abstains: no adjudicator judges exit contact or Under yet) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take broom when the broom touches an exit (abstains: no adjudicator judges exit contact yet) 1`] = `
 Object {
   "result": Object {
     "confidence": 1,
@@ -634,12 +634,86 @@ Object {
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take rope when the rope is under the post (abstains: no adjudicator judges Under yet) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take rope when the rope is under the post (a peer subject-move is met: the rope comes out) 1`] = `
 Object {
   "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [
+            Object {
+              "description": "Boundary relation to dissolve: under.",
+              "edge": Object {
+                "from": "OBJECT#Rope",
+                "kind": "Custom",
+                "relationLabel": "under",
+                "to": "OBJECT#Post",
+              },
+              "id": "boundaryChallenge-3",
+              "kind": "customEdge",
+              "verdict": Object {
+                "kind": "met",
+              },
+            },
+          ],
+          "desiredResult": Object {
+            "kind": "change",
+            "primitive": "dissolveRelation",
+            "relationKind": "Custom",
+            "relationLabel": "under",
+            "subject": Object {
+              "groundedId": "OBJECT#Rope",
+              "referentType": "graphNode",
+            },
+            "target": Object {
+              "groundedId": "OBJECT#Post",
+              "referentType": "graphNode",
+            },
+          },
+          "desiredResultDescription": "Dissolve: under",
+          "kind": "position",
+        },
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "from": Object {
+              "referentTarget": Object {
+                "groundedId": "OBJECT#Rope",
+                "referentType": "objectSpan",
+                "shortName": "rope",
+                "span": "rope",
+                "stableRefKey": "ropeRef",
+              },
+              "referentType": "currentHost",
+            },
+            "kind": "change",
+            "object": Object {
+              "groundedId": "OBJECT#Rope",
+              "referentType": "objectSpan",
+              "shortName": "rope",
+              "span": "rope",
+              "stableRefKey": "ropeRef",
+            },
+            "primitive": "transferMembership",
+            "to": Object {
+              "referentType": "actingCharacter",
+            },
+          },
+          "desiredResultDescription": "Take: rope",
+          "kind": "position",
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Rope",
+          "refKey": "ropeRef",
+          "shortName": "rope",
+        },
+      ],
+      "words": "take rope",
+    },
     "confidence": 1,
-    "reason": "Boundary relation to dissolve: the subject is Under something that must move first.",
-    "type": "Abstain",
+    "type": "CommandAttempt",
   },
   "stubCalls": Object {
     "acme": 0,

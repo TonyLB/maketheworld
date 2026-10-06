@@ -51,7 +51,7 @@ describe('applyTransferSet', () => {
         expect(outcome.destGraph.relationalEdges).toEqual([{ from: glassId, to: trayId, kind: 'On' }])
     })
 
-    it('illegal (unresolvedDissolveEdge): the tray-table dissolve edge was NOT pre-removed', () => {
+    it('repairable/classifyCustomRelation: a Custom edge on a moved subject, not pre-removed, is a decision not a severing', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
@@ -60,7 +60,7 @@ describe('applyTransferSet', () => {
             ],
             edges: [
                 { tag: 'Relational', from: glassId, to: trayId, kind: 'On' },
-                { tag: 'Relational', from: trayId, to: tableId, kind: 'Against' },
+                { tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'against' },
             ],
         })
         const destGraph = testLudicGraph(characterId, { nodes: [] })
@@ -73,10 +73,10 @@ describe('applyTransferSet', () => {
         // would add, and the edge to aim it at rides along.
         expect(outcome).toEqual({
             verdict: 'repairable',
-            reasonCode: 'unresolvedDissolveEdge',
-            repairKind: 'dissolveRelationalEdge',
-            authority: 'mechanical',
-            edge: { from: trayId, to: tableId, kind: 'Against' },
+            reasonCode: 'undecidableInteractionEdge',
+            repairKind: 'classifyCustomRelation',
+            authority: 'worldChanging',
+            edge: { from: trayId, to: tableId, kind: 'Custom', relationLabel: 'against' },
         })
     })
 
@@ -85,29 +85,6 @@ describe('applyTransferSet', () => {
     // when `boundaryEdgeOutcomes` found a `carry` outcome, and `carry` was unreachable from any
     // relation kind even then -- `On` (its only producer) had already joined `In`/`PartOf`'s
     // hosting-kind throw. CD3 (2026-09-06) formally retired the branch that checked for it.
-
-    it('repairable/worldChanging: an Under boundary edge on the subject moving requires interaction assessment', () => {
-        const sourceGraph = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Object', universalKey: trayId },
-                { tag: 'Object', universalKey: tableId },
-            ],
-            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Under' }],
-        })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
-
-        const outcome = applyTransferSet(sourceGraph, destGraph, new Set([trayId]))
-
-        // `worldChanging`, not `mechanical`: severing this edge moves the table's tray, which the
-        // player did not ask for. The distinction is recorded here and acted on by repair policy.
-        expect(outcome).toEqual({
-            verdict: 'repairable',
-            reasonCode: 'transferInteractionDefer',
-            repairKind: 'dissolveRelationalEdge',
-            authority: 'worldChanging',
-            edge: { from: trayId, to: tableId, kind: 'Under' },
-        })
-    })
 
     it('repairable/classifyCustomRelation: a Custom boundary edge names the decision it needs, not a severing', () => {
         const sourceGraph = testLudicGraph(roomId, {

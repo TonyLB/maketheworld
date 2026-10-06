@@ -46,7 +46,7 @@ describe('runExecutor', () => {
                     primitive: 'establishRelation',
                     subject: graphNodeRef(SAUCER_ID),
                     target: graphNodeRef(CUP_ID),
-                    relationKind: 'Under',
+                    relationKind: 'Custom', relationLabel: 'under',
                 },
             },
         ]
@@ -58,7 +58,7 @@ describe('runExecutor', () => {
             steps: [{
                 kind: 'relationalChain',
                 operationKind: 'establishRelation',
-                steps: [{ type: 'edge', hostId: ROOM_ID, edge: { from: SAUCER_ID, to: CUP_ID, kind: 'Under' } }],
+                steps: [{ type: 'edge', hostId: ROOM_ID, edge: { from: SAUCER_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'under' } }],
             }],
         })
     })

@@ -1817,7 +1817,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('take broom when the broom touches an exit (abstains: no adjudicator judges exit contact or Under yet)', async () => {
+        it('take broom when the broom touches an exit (abstains: no adjudicator judges exit contact yet)', async () => {
             expect(await run(
                 { command: 'take broom', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
@@ -1831,11 +1831,11 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('take rope when the rope is under the post (abstains: no adjudicator judges Under yet)', async () => {
+        it('take rope when the rope is under the post (a peer subject-move is met: the rope comes out)', async () => {
             expect(await run(
                 { command: 'take rope', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
-                    graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Under' }]) },
+                    graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'under' }]) },
                 }
             )).toMatchSnapshot()
         })

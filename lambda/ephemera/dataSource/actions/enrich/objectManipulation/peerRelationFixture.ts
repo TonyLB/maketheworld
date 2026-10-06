@@ -12,9 +12,7 @@ import { objectSpanRef, type Change } from './plan/planStep'
 export const peerRelationFixture = (
     command: string,
     skeleton: ParseSkeleton,
-    relation: { primitive: 'establishRelation' | 'dissolveRelation' } & (
-        { relationKind: 'Under' | 'Against' } | { relationKind: 'Custom'; relationLabel: string }
-    )
+    relation: { primitive: 'establishRelation' | 'dissolveRelation'; relationKind: 'Custom'; relationLabel: string }
 ): CommandAttempt => {
     const [, subject, , target] = skeleton
     if (subject?.type !== 'objectSpan' || target?.type !== 'objectSpan') {

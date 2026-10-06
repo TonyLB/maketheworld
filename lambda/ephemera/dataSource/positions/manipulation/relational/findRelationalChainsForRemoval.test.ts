@@ -82,7 +82,7 @@ describe('fetchRelationalReachability', () => {
 
 describe('findRelationalChainsTouching', () => {
     it('finds a portless edge touching a removal-set member', () => {
-        const edge = { from: BROOM_ID, to: HOOK_ID, kind: 'Under' as const }
+        const edge = { from: BROOM_ID, to: HOOK_ID, kind: 'Custom' as const, relationLabel: 'under' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(BROOM_ID).addObject(HOOK_ID).addRelationalEdge(edge)
 
         const chains = findRelationalChainsTouching(new Set([BROOM_ID]), new Map([[ROOM_ID, roomGraph]]))
@@ -113,7 +113,7 @@ describe('findRelationalChainsTouching', () => {
     })
 
     it('ignores an edge that touches no removal-set member', () => {
-        const edge = { from: BROOM_ID, to: HOOK_ID, kind: 'Under' as const }
+        const edge = { from: BROOM_ID, to: HOOK_ID, kind: 'Custom' as const, relationLabel: 'under' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(BROOM_ID).addObject(HOOK_ID).addRelationalEdge(edge)
 
         const chains = findRelationalChainsTouching(new Set([STRING_ID]), new Map([[ROOM_ID, roomGraph]]))

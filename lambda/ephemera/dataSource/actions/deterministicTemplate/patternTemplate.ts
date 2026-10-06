@@ -185,7 +185,7 @@ export function makePatternTemplate(
  * Sibling factory to makePatternTemplate: same two generic engines, but a
  * structural match means "recognized shape, known-unsupported" rather than
  * "matched" -- e.g. containment language ("in"/"into") for a relational
- * command, which the current relation model (On/Under/Against/Custom, a
+ * command, which the current relation model (On/In/PartOf/Custom, a
  * ludicGraph edge) has no representation for at all. Always defers on
  * structural match; never produces `matched` or reads/assembles intent.
  */

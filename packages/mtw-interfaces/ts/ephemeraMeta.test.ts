@@ -334,7 +334,7 @@ describe('ephemeraLudicTerminalsEqual / ephemeraLudicTerminalRefersTo', () => {
     // ("Illegal nested EphemeraId"); the port-id-domain predicate must simply return false.
     it('does not throw on a stub port id embedding component ids', () => {
         const primitive = 'PRESENCE#presence-1' as const
-        const address = { owner: 'ROOM#A' as const, port: 'STUB-["OBJECT#C","OBJECT#D","Under",""]' }
+        const address = { owner: 'ROOM#A' as const, port: 'STUB-["OBJECT#C","OBJECT#D","On",""]' }
         expect(() => ephemeraLudicTerminalsEqual(primitive, address)).not.toThrow()
         expect(ephemeraLudicTerminalsEqual(primitive, address)).toBe(false)
     })
@@ -728,7 +728,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     // `{ kind: 'On', relationLabel: 'balanced across' }` was a legal stored edge. It is now
     // unrepresentable in `EphemeraLudicRelationalEdgeData`, and a guard that accepted it would
     // be lying about the value it narrows. These four cases pin both directions of the rule.
-    it.each(['On', 'In', 'PartOf', 'Under', 'Against', 'Present'] as const)(
+    it.each(['On', 'In', 'PartOf', 'Present'] as const)(
         'rejects a %s relational edge carrying a relationLabel',
         (kind) => {
             expect(isEphemeraLudicGraphFieldPayload({
@@ -1038,7 +1038,7 @@ describe('isEphemeraLudicGraphPort', () => {
     // yet construct. Narrowing it would mint the second partition the reuse exists to avoid.
     // `'Present'` dropped from this list at presenceNodes Slice 7a: it is no longer in the domain
     // this guard accepts at all, see the rejection test below.
-    it.each(['On', 'Under', 'Against', 'In', 'PartOf'])('accepts a %s port with no label', (kind) => {
+    it.each(['On', 'In', 'PartOf'])('accepts a %s port with no label', (kind) => {
         expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind })).toBe(true)
     })
 

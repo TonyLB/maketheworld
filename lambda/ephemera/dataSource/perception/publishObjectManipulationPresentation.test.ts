@@ -42,10 +42,6 @@ const basePlan = (
 describe('publishObjectRelationalPresentation', () => {
     it('builds establish-relation copy per relation kind', () => {
         expect(buildEstablishRelationWorldMessage(basePlan())).toBe('Alice puts glass on tray')
-        expect(buildEstablishRelationWorldMessage(basePlan({}, { relationKind: 'Under' })))
-            .toBe('Alice puts glass under tray')
-        expect(buildEstablishRelationWorldMessage(basePlan({}, { relationKind: 'Against' })))
-            .toBe('Alice leans glass against tray')
         expect(buildEstablishRelationWorldMessage(basePlan({}, { relationKind: 'Custom', relationLabel: 'balances' })))
             .toBe('Alice balances glass tray')
     })

@@ -9,7 +9,7 @@ import { isEphemeraThingId, type EphemeraThingId } from '../enrich/objectManipul
 import type { AttemptAction } from './action'
 import { PositionAttemptAction } from './action'
 import type { Challenge } from './challenge'
-import { CustomEdgeChallenge, ExitEdgeChallenge, UnderDeferChallenge } from './challenge'
+import { CustomEdgeChallenge, ExitEdgeChallenge } from './challenge'
 import { objectTouchesExitEdgeOnGraph } from '../enrich/objectManipulation/membershipObservation'
 
 let challengeIdCounter = 0
@@ -24,19 +24,12 @@ const describeCustomEdgeChallenge = (edge: Extract<HostRelationalEdge, { kind: '
 const describeExitEdgeChallenge = (): string =>
     'Exit contact: the moved object touches an exit, which has no graph rule for moving it.'
 
-const describeUnderDeferChallenge = (): string =>
-    // Under-defer wording waits on choosing between its readings (clearance or pinned), which
-    // needs world knowledge; see the objectManipulationIterations plan's "What the table does
-    // not capture".
-    'Boundary relation to dissolve: the subject is Under something that must move first.'
-
 /**
  * Expansion: the facilitating actions a whole-object transfer needs. Its precondition is
  * that the moved object is connected to nothing outside itself, so each boundary edge the
  * relation-under-transfer table classifies adds one prior action whose desired result is
  * "this relation no longer holds". A `dissolve` cell gives an action with no challenge. A
- * `defer` cell gives one carrying a graph challenge (`CustomEdgeChallenge`, or
- * `UnderDeferChallenge` for an `Under` subject-move) for Adjudicate to judge. The action
+ * `defer` cell gives one carrying a graph challenge (`CustomEdgeChallenge`) for Adjudicate to judge. The action
  * states the result, not the method: untying and cutting a lashing leave the same graph.
  *
  * The actions are returned in execution order, facilitating dissolves first and the primary
@@ -80,11 +73,11 @@ export const attemptActionsFromBoundaryOutcomes = (
 
         let challenges: Challenge[] = []
         if (entry.outcome === 'defer') {
-            if (entry.edge.kind === 'Custom') {
-                challenges = [new CustomEdgeChallenge(mintChallengeId(), entry.edge, describeCustomEdgeChallenge(entry.edge))]
-            } else {
-                challenges = [new UnderDeferChallenge(mintChallengeId(), entry.edge, describeUnderDeferChallenge())]
+            // The classifier defers only `Custom` (the one peer kind); anything else is an invariant break.
+            if (entry.edge.kind !== 'Custom') {
+                throw new Error(`attemptActionsFromBoundaryOutcomes: a '${entry.edge.kind}' boundary edge deferred, but only 'Custom' defers`)
             }
+            challenges = [new CustomEdgeChallenge(mintChallengeId(), entry.edge, describeCustomEdgeChallenge(entry.edge))]
         }
 
         return new PositionAttemptAction(

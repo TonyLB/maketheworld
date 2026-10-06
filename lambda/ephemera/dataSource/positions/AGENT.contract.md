@@ -304,13 +304,11 @@ v1 **`HostRelationalEdgeKind`** on stored forward-graph edges **must** be one of
 | Kind | Player language (examples) | Persist |
 | --- | --- | --- |
 | **`On`** | on, onto | **`kind: 'On'`** only |
-| **`Under`** | under, beneath | **`kind: 'Under'`** only |
-| **`Against`** | against, leaning against | **`kind: 'Against'`** only |
-| **`Custom`** | tied to, wrapped around, long-tail phrases | **`kind: 'Custom'`** + **`relationLabel`** (see below) |
+| **`Custom`** | under, against, tied to, wrapped around, long-tail phrases | **`kind: 'Custom'`** + **`relationLabel`** (see below) |
 
 **Excluded from this operator (BD-2):** **`In`**, **`inside`**, and other containment language --- **must not** persist as **`establishRelation`** v1; actions routes to future **nested container** operator with player-facing defer copy (not positions ingress).
 
-Source of truth for `Under`/`Against`: `CLOSED_RELATION_KINDS` (`ephemeraMeta.ts`) --- `ClosedRelationKind` derives from it, and `interactionUnderTransfer.ts`'s per-kind move behavior is keyed off that derived type rather than re-spelling the pair.
+There is no deterministic parse of a peer relation: `Custom` is produced only by the LLM Plan fallback, and the relation's words live in `relationLabel`. The closed `Under`/`Against` kinds are retired (ISS8216 slice 3); a move that severs any peer edge defers to the adjudicator.
 
 Parse/enrich owns normalization from **`relationSpan`** -> **`kind`** (+ optional label); positions **must** trust ingress **`kind`** / **`relationLabel`** at apply (same pattern as trusted **`objectId`** on **`Object Take Hold`**). Implementation: [`normalizeRelationSpan`](../actions/enrich/objectManipulation/normalizeRelationSpan.ts) + [`relationKind`](../actions/enrich/objectManipulation/relationKind.ts) types in actions enrich (B2 shipped). Pre-ingress, actions reads host graphs via read-only **`EphemeraLudicGraph`** from [`ludicGraph/`](ludicGraph/) to find each candidate's chain; there is no construction-time legality check, and the kernel rechecks every leg at commit; stored edge wire shape is **`EphemeraLudicRelationalEdgeData`** (`tag: 'Relational'` on host **`ludicGraph.edges`**); gateway read projection passes through stored relational edges ([`packages/mtw-gateways/ts/ephemera/positions/project.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/project.ts)).
 
@@ -322,7 +320,7 @@ Relational mutations **must** persist on a **fixed host** --- the host's own **`
 
 ```typescript
 type HostRelationalEdgeKind =
-    | 'On' | 'In' | 'PartOf' | 'Under' | 'Against' | 'Custom' | 'Present'
+    | 'On' | 'In' | 'PartOf' | 'Custom' | 'Present'
 
 /** The kind/label pairing, shared by every type that carries one. */
 type RelationalEdgeKindAndLabel<K extends string = HostRelationalEdgeKind> =

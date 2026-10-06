@@ -192,16 +192,6 @@ Objects lane callers use **`executeMembershipTransfer`** ([`manipulation/members
 
 ---
 
-## Shelved: retiring the closed kinds `Against` and `Under`
-
-Not owned by any plan yet; a lean, not a decision. The user leans toward removing `Against` and `Under` as more complication than performance gain. Nothing is `mechanical` once they are gone, and no repair path needs them. What it would reach:
-
-- The classifier's closed-kind table in [`interactionUnderTransfer.ts`](ludicGraph/expandValidate/interactionUnderTransfer.ts) (`dissolve` class; `Under` when its target moves).
-- The no-challenge boundary actions in [`expandBoundaryChallenges.ts`](../actions/commandAttempt/expandBoundaryChallenges.ts).
-- The relational ingress's closed-kind fast path.
-
-Refusing an uncovered boundary edge at commit (`commitAttempt` dry-runs the attempt's whole sequence) already covers both kinds without special cases, so removing them does not need a new commit rule.
-
 ## Registration
 
 - Side-effect import: [`../../app.ts`](../../app.ts) --- `import './dataSource/positions'`.

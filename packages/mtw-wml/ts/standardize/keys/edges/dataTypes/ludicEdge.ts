@@ -13,7 +13,7 @@ import { ExitEdgePayloadData, isExitEdgePayloadData } from "./exitEdge"
 
 export const LUDIC_EDGE_TOPOLOGY_KINDS = ['Navigation', 'Bearing'] as const
 export const LUDIC_EDGE_MEMBERSHIP_KINDS = ['In', 'On', 'PartOf'] as const
-export const LUDIC_EDGE_PEER_KINDS = ['Under', 'Against', 'Custom'] as const
+export const LUDIC_EDGE_PEER_KINDS = ['Custom'] as const
 
 export type LudicEdgeTopologyKind = typeof LUDIC_EDGE_TOPOLOGY_KINDS[number]
 export type LudicEdgeMembershipKind = typeof LUDIC_EDGE_MEMBERSHIP_KINDS[number]
