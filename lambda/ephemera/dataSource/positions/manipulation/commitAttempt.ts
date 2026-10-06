@@ -28,6 +28,9 @@ import { dryRunStepSequence } from './kernel/dryRunStepSequence'
 import { planObjectMoveTransfer } from './membership/planObjectMoveTransfer'
 import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTransfer'
 import { resolveObjectMovePresentationLabels } from '../../perception/resolveObjectMovePresentationLabels'
+import { edgesMatch, type HostRelationalEdge } from '../ludicGraph'
+import type { MutationKernelStep } from './kernel/kernelStep'
+import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 /** An attempt's commit never includes a `describe` step of its own --- same noop as navigate's/object-move's. */
 const noopActionsStreamEvent: StreamEventFunction<ActionsPublishedPayload> = async () => {}
@@ -44,8 +47,6 @@ type ActionFragment = {
     slots: CompiledPositionKernelPlan['slots']
     relationalEdge?: RelationalEdgeFactSource
 }
-
-const emptyFragment: ActionFragment = { steps: [], slots: [] }
 
 /**
  * Positions' snapshot for grounding's derived half, read once per attempt after the hand-off:
@@ -86,19 +87,24 @@ const buildMembershipFragment = async (
     if (!isEphemeraObjectId(entityId)) {
         return undefined
     }
+    // Already held (a take of something picked up since the dry run, or a drop of something
+    // already put down): refused, with its own message, not silently skipped.
+    if (liveHosts.get(entityId) === toHostId) {
+        console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${entityId} is already on ${toHostId}`)
+        return undefined
+    }
     if (liveHosts.get(entityId) !== fromHostId) {
-        console.error(`[mtw.ephemera.positions] commitAttempt: membership action dropped: ${entityId} is no longer on ${fromHostId}`)
+        console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${entityId} is no longer on ${fromHostId}`)
         return undefined
     }
     if (fromHostId === toHostId) {
-        // A take of something already held (picked up since the dry run): nothing to move.
-        console.error(`[mtw.ephemera.positions] commitAttempt: membership action dropped: ${entityId} is already on ${toHostId}`)
+        console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${entityId} is grounded as moving from ${fromHostId} to itself`)
         return undefined
     }
 
     const roomId = liveHosts.get(args.characterId)
     if (roomId === undefined || !isEphemeraRoomId(roomId)) {
-        console.error(`[mtw.ephemera.positions] commitAttempt: membership action dropped: ${args.characterId} is not in exactly one room`)
+        console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${args.characterId} is not in exactly one room`)
         return undefined
     }
 
@@ -128,6 +134,21 @@ const buildMembershipFragment = async (
     return { steps: planResult.plan.steps, slots: planResult.plan.slots }
 }
 
+/** True when an establish step's exact edge is already on its carried host (the same match the graph's own `add` patch uses). */
+const isEdgeAlreadyPresent = async (steps: MutationKernelStep[]): Promise<boolean> => {
+    for (const step of steps) {
+        if (step.kind !== 'establishRelation') {
+            continue
+        }
+        const graph = await internalCache.Positions.getLudicGraph(step.hostId)
+        const observed = { from: step.subjectId, to: step.targetId, ...edgeKindAndLabelFrom(step) } as HostRelationalEdge
+        if (graph.relationalEdges.some((edge) => edgesMatch(edge, observed))) {
+            return true
+        }
+    }
+    return false
+}
+
 const buildRelationalFragment = async (
     change: EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>
 ): Promise<ActionFragment | undefined> => {
@@ -139,6 +160,13 @@ const buildRelationalFragment = async (
     const subjectId = change.subject.groundedId
     const targetId = change.target.groundedId
     if (!isEphemeraObjectId(subjectId) || !isEphemeraObjectId(targetId)) {
+        return undefined
+    }
+    // A duplicate establish (the exact edge already on its host) is refused, not skipped: the
+    // graph patch would be idempotent, but the attempt would still narrate a relation that
+    // did not newly form.
+    if (change.primitive === 'establishRelation' && await isEdgeAlreadyPresent(planResult.steps)) {
+        console.error(`[mtw.ephemera.positions] commitAttempt: relational action refused: ${subjectId} ${change.relationKind} ${targetId} is already present`)
         return undefined
     }
     const relationalEdge: RelationalEdgeFactSource = {
@@ -159,6 +187,10 @@ const buildRelationalFragment = async (
  * steps into one sequence in the attempt's own action order, and commits the whole attempt in
  * one `commitAndPresentStepSequence` call --- one `transactWrite`, not one per action. An action
  * with no `desiredResult` (Describe's narration) contributes nothing.
+ *
+ * All-or-nothing: an action that cannot be built against live state (drift, a take already held,
+ * zero or several containers, a planner refusal) refuses the whole attempt with its own log line,
+ * and nothing is written, including the siblings that could have been built.
  *
  * Positions honors the attempt and does not judge it. It commits only an attempt whose result
  * has succeeded: a challenge still pending (a pending exit-contact or Under challenge can remain) or
@@ -195,6 +227,9 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         currentHost: (id) => liveHosts.get(id),
     }
 
+    // All-or-nothing: one action that cannot be built refuses the whole attempt, so nothing is
+    // written for its siblings either (`[dissolve lashing, take rope]` must not untie the rope
+    // when the take is refused).
     const fragments: ActionFragment[] = []
     for (const action of attempt.actions()) {
         const desiredResult = action.desiredResult
@@ -203,18 +238,18 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         }
         const assignment = buildReferentAssignment(desiredResult, spans, resolver)
         if (assignment === undefined) {
-            console.error(`[mtw.ephemera.positions] commitAttempt: ${desiredResult.primitive} action dropped: a derived referent is not resolvable against live state`)
-            fragments.push(emptyFragment)
-            continue
+            console.error(`[mtw.ephemera.positions] commitAttempt: attempt refused: ${desiredResult.primitive} action has a derived referent not resolvable against live state`)
+            return
         }
         const change = groundChange(desiredResult, assignment)
-        if (change.primitive === 'transferMembership') {
-            const fragment = await buildMembershipFragment(change, liveHosts, args, bundleId)
-            fragments.push(fragment ?? emptyFragment)
-            continue
+        const fragment = change.primitive === 'transferMembership'
+            ? await buildMembershipFragment(change, liveHosts, args, bundleId)
+            : await buildRelationalFragment(change)
+        if (fragment === undefined) {
+            console.error(`[mtw.ephemera.positions] commitAttempt: attempt refused: ${change.primitive} action could not be built`)
+            return
         }
-        const fragment = await buildRelationalFragment(change)
-        fragments.push(fragment ?? emptyFragment)
+        fragments.push(fragment)
     }
 
     const steps = fragments.flatMap((fragment) => fragment.steps)
