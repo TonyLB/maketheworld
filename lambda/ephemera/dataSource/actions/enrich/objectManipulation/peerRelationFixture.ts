@@ -1,6 +1,6 @@
 import type { ParseSkeleton } from './parse/parseToken'
 import { CommandAttempt } from '../../commandAttempt'
-import { PositionAttemptAction } from '../../commandAttempt/action'
+import { mintActionId, PositionAttemptAction } from '../../commandAttempt/action'
 import { objectSpanRef, type Change } from './plan/planStep'
 
 /**
@@ -24,5 +24,5 @@ export const peerRelationFixture = (
         target: objectSpanRef(target.span, target.stableRefKey),
         ...relation,
     } as Change
-    return CommandAttempt.create(command, [new PositionAttemptAction([], change)])
+    return CommandAttempt.create(command, [new PositionAttemptAction(mintActionId(), [], change)])
 }

@@ -28,6 +28,7 @@ const relationalAttempt = (
     referents: [],
     actions: [{
         kind: 'position',
+        id: 'action-1',
         desiredResult: {
             kind: 'change',
             primitive,
@@ -252,6 +253,7 @@ describe('objectManipulationPresentationLegAdapters', () => {
                         referents: [],
                         actions: [{
                             kind: 'position',
+                            id: 'action-2',
                             desiredResult: {
                                 kind: 'change',
                                 primitive: 'transferMembership',

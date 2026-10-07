@@ -68,6 +68,30 @@ describe('proposeAttemptCandidates', () => {
         ])
     })
 
+    it('keeps the Plan action\'s id on every identity candidate grounded from it', () => {
+        const otherCupId = 'OBJECT#OtherCup' as EphemeraObjectId
+        const attempt = attemptFor(relationSkeleton, 'put cup on tray')
+        const twoCups: SpanCandidatePool = {
+            span: 'cup',
+            candidates: [cupId, otherCupId].map((id) => ({ id, label: 'cup', jointRelevance: 1, sourceTags: ['exact' as const], locus: { kind: 'room' as const } })),
+        }
+        const result = proposeAttemptCandidates({
+            command: 'put cup on tray',
+            attempts: [attempt],
+            spanPools: new Map([['cupRef', twoCups], ['trayRef', pool('tray', trayId)]]),
+            catalog: [...catalog, { objectId: otherCupId, normalizedShortName: 'cup', catalogScope: 'room' }],
+            noAssignmentReason: 'none',
+        })
+
+        expect(result.ok).toBe(true)
+        if (!result.ok) {
+            return
+        }
+        expect(result.candidates).toHaveLength(2)
+        const [planAction] = attempt.actions()
+        expect(result.candidates.map((candidate) => candidate.attempt.actions()[0]?.id)).toEqual([planAction.id, planAction.id])
+    })
+
     it('never binds two distinct span keys of one step to the same object', () => {
         const sameObject = attemptFor([
             { type: 'text', text: 'put' },

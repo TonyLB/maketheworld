@@ -1,7 +1,7 @@
 import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
 import { objectSpanRef } from './planStep'
 import { CommandAttempt } from '../../../commandAttempt'
-import { NarrateAttemptAction } from '../../../commandAttempt/action'
+import { mintActionId, NarrateAttemptAction } from '../../../commandAttempt/action'
 
 const LOOK_VERBS = new Set(['look', 'l', 'examine', 'x'])
 
@@ -37,5 +37,5 @@ export function matchLookTemplate(skeleton: ParseSkeleton, command: string): Loo
 
     // Narration has no desired result, so the referent rides on the narration action itself.
     const referent = objectSpanRef(objectToken.span, objectToken.stableRefKey)
-    return { type: 'matched', attempt: CommandAttempt.create(command, [new NarrateAttemptAction([], undefined, [referent])]) }
+    return { type: 'matched', attempt: CommandAttempt.create(command, [new NarrateAttemptAction(mintActionId(), [], undefined, [referent])]) }
 }

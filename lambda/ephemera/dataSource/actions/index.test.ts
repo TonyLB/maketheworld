@@ -2367,7 +2367,7 @@ describe('ephemeraActionsDataSource', () => {
         const lookAttempt = {
             words: 'look rocket skates',
             referents: [{ refKey: 'skatesRef', id: 'OBJECT#Skates' as const, shortName: 'rocket skates' }],
-            actions: [{ kind: 'narrate' as const, description: 'Look at the rocket skates', referents: [], challenges: [] }],
+            actions: [{ kind: 'narrate' as const, id: 'action-1', description: 'Look at the rocket skates', referents: [], challenges: [] }],
         }
 
         it('publishes the not-in-a-room message when a look has no room', async () => {

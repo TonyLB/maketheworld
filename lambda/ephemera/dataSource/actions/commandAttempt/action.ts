@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import type { PlanStep, Referent } from '../enrich/objectManipulation/plan/planStep'
 import { stepReferents } from '../enrich/objectManipulation/plan/planStep'
 import { stampCandidateReferents, stampReferent, type SpanName } from '../enrich/objectManipulation/stampCandidateReferents'
@@ -12,6 +13,13 @@ import { challengeFromJSON, challengeToJSON } from './challenge'
  * give your outcome (the eventual kernel-vocabulary result, once something adjudicates).
  */
 export interface AttemptActionMember {
+    /**
+     * Minted where the action is created (Plan's templates, Expansion) and kept by every copy
+     * (`grounded()`, `withChallenges()`, the JSON round trip), so what addresses an action
+     * (a narration unit's covers) survives Expansion prepending actions after Plan. Candidates
+     * grounded from one Plan attempt share their Plan actions' ids.
+     */
+    readonly id: string
     /** The structural intent, in Plan's step vocabulary: what deterministic code lowers. */
     readonly desiredResult?: PlanStep
     /** Every referent the action names: a position's step slots, or a narration's subject. */
@@ -38,11 +46,13 @@ export interface AttemptActionMember {
  * its prose gloss, read by `describe()`.
  */
 export class PositionAttemptAction implements AttemptActionMember {
+    readonly id: string
     readonly desiredResult?: PlanStep
     readonly desiredResultDescription?: string
     private readonly _challenges: Challenge[]
 
-    constructor(challenges: Challenge[], desiredResult?: PlanStep, desiredResultDescription?: string) {
+    constructor(id: string, challenges: Challenge[], desiredResult?: PlanStep, desiredResultDescription?: string) {
+        this.id = id
         this._challenges = challenges
         this.desiredResult = desiredResult
         this.desiredResultDescription = desiredResultDescription
@@ -50,6 +60,7 @@ export class PositionAttemptAction implements AttemptActionMember {
 
     static fromJSON(data: Extract<AttemptActionData, { kind: 'position' }>): PositionAttemptAction {
         return new PositionAttemptAction(
+            data.id,
             data.challenges.map(challengeFromJSON),
             data.desiredResult,
             data.desiredResultDescription
@@ -59,6 +70,7 @@ export class PositionAttemptAction implements AttemptActionMember {
     toJSON(): AttemptActionData {
         return {
             kind: 'position',
+            id: this.id,
             ...(this.desiredResult !== undefined ? { desiredResult: this.desiredResult } : {}),
             ...(this.desiredResultDescription !== undefined ? { desiredResultDescription: this.desiredResultDescription } : {}),
             challenges: this._challenges.map(challengeToJSON),
@@ -78,7 +90,7 @@ export class PositionAttemptAction implements AttemptActionMember {
     }
 
     withChallenges(challenges: Challenge[]): PositionAttemptAction {
-        return new PositionAttemptAction(challenges, this.desiredResult, this.desiredResultDescription)
+        return new PositionAttemptAction(this.id, challenges, this.desiredResult, this.desiredResultDescription)
     }
 
     grounded(names: ReadonlyMap<string, SpanName>): PositionAttemptAction {
@@ -86,6 +98,7 @@ export class PositionAttemptAction implements AttemptActionMember {
             return this
         }
         return new PositionAttemptAction(
+            this.id,
             this._challenges,
             stampCandidateReferents(this.desiredResult, names),
             this.desiredResultDescription
@@ -102,6 +115,7 @@ export class PositionAttemptAction implements AttemptActionMember {
  * challenge is detectable yet, so every instance today carries zero challenges.
  */
 export class NarrateAttemptAction implements AttemptActionMember {
+    readonly id: string
     readonly desiredResult = undefined
     readonly description?: string
     private readonly _challenges: Challenge[]
@@ -111,7 +125,8 @@ export class NarrateAttemptAction implements AttemptActionMember {
      * `referents` is what the narration names (a look's one object span). It is the only place
      * a narration's referent lives: with no desired result there are no steps to derive it from.
      */
-    constructor(challenges: Challenge[], description?: string, referents: Referent[] = []) {
+    constructor(id: string, challenges: Challenge[], description?: string, referents: Referent[] = []) {
+        this.id = id
         this._challenges = challenges
         this.description = description
         this._referents = referents
@@ -119,6 +134,7 @@ export class NarrateAttemptAction implements AttemptActionMember {
 
     static fromJSON(data: Extract<AttemptActionData, { kind: 'narrate' }>): NarrateAttemptAction {
         return new NarrateAttemptAction(
+            data.id,
             data.challenges.map(challengeFromJSON),
             data.description,
             data.referents
@@ -128,6 +144,7 @@ export class NarrateAttemptAction implements AttemptActionMember {
     toJSON(): AttemptActionData {
         return {
             kind: 'narrate',
+            id: this.id,
             ...(this.description !== undefined ? { description: this.description } : {}),
             referents: this._referents,
             challenges: this._challenges.map(challengeToJSON),
@@ -147,11 +164,12 @@ export class NarrateAttemptAction implements AttemptActionMember {
     }
 
     withChallenges(challenges: Challenge[]): NarrateAttemptAction {
-        return new NarrateAttemptAction(challenges, this.description, this._referents)
+        return new NarrateAttemptAction(this.id, challenges, this.description, this._referents)
     }
 
     grounded(names: ReadonlyMap<string, SpanName>): NarrateAttemptAction {
         return new NarrateAttemptAction(
+            this.id,
             this._challenges,
             this.description,
             this._referents.map((referent) => stampReferent(referent, names))
@@ -162,18 +180,23 @@ export class NarrateAttemptAction implements AttemptActionMember {
 export type AttemptActionData =
     | {
         kind: 'position'
+        id: string
         desiredResult?: PlanStep
         desiredResultDescription?: string
         challenges: ChallengeData[]
     }
     | {
         kind: 'narrate'
+        id: string
         description?: string
         referents: Referent[]
         challenges: ChallengeData[]
     }
 
 export type AttemptAction = AttemptActionMember
+
+/** A fresh action id, for whatever creates an action. Copies keep their source's id. */
+export const mintActionId = (): string => uuidv4()
 
 export const attemptActionFromJSON = (data: AttemptActionData): AttemptAction => {
     switch (data.kind) {

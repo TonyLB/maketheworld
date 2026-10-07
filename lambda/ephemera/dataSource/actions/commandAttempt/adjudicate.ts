@@ -95,6 +95,9 @@ const isAttemptActionData = (value: unknown): value is AttemptActionData => {
     if (v.kind !== 'position') {
         return false
     }
+    if (typeof v.id !== 'string') {
+        return false
+    }
     if (v.desiredResultDescription !== undefined && typeof v.desiredResultDescription !== 'string') {
         return false
     }

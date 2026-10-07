@@ -114,7 +114,7 @@ const describeGroundedAction = (action: AttemptAction): { action: AttemptAction;
         const label = labelOf(referent)
         const description = `Look at the ${label}`
         return {
-            action: new NarrateAttemptAction(action.challenges(), description, action.referents()),
+            action: new NarrateAttemptAction(action.id, action.challenges(), description, action.referents()),
             alternative: { objectId: groundedObjectIdOf(referent), label, proposedCommand: `look at the ${label}` },
         }
     }
@@ -130,14 +130,14 @@ const describeGroundedAction = (action: AttemptAction): { action: AttemptAction;
         if (step.containment === undefined) {
             const verb = step.to.referentType === 'actingCharacter' ? 'take' : 'drop'
             return {
-                action: new PositionAttemptAction(action.challenges(), step, `${verb === 'take' ? 'Take' : 'Drop'}: ${subject}`),
+                action: new PositionAttemptAction(action.id, action.challenges(), step, `${verb === 'take' ? 'Take' : 'Drop'}: ${subject}`),
                 alternative: { objectId: groundedObjectIdOf(step.object), label: subject, proposedCommand: `${verb} the ${subject}` },
             }
         }
         const target = labelOf(step.to)
         const preposition = step.containment === 'On' ? 'on' : 'in'
         return {
-            action: new PositionAttemptAction(action.challenges(), step, `Put ${subject} ${preposition} ${target}`),
+            action: new PositionAttemptAction(action.id, action.challenges(), step, `Put ${subject} ${preposition} ${target}`),
             alternative: { label: `${subject} / ${target}`, proposedCommand: `put the ${subject} ${preposition} the ${target}` },
         }
     }
@@ -147,13 +147,13 @@ const describeGroundedAction = (action: AttemptAction): { action: AttemptAction;
         const label = `${subject} / ${target}`
         if (step.primitive === 'dissolveRelation') {
             return {
-                action: new PositionAttemptAction(action.challenges(), step, `Dissolve relation: ${label}`),
+                action: new PositionAttemptAction(action.id, action.challenges(), step, `Dissolve relation: ${label}`),
                 alternative: { label, proposedCommand: `separate the ${subject} from the ${target}` },
             }
         }
         const preposition = step.relationKind === 'Custom' ? step.relationLabel : step.relationKind.toLowerCase()
         return {
-            action: new PositionAttemptAction(action.challenges(), step, `Establish relation: ${label}`),
+            action: new PositionAttemptAction(action.id, action.challenges(), step, `Establish relation: ${label}`),
             alternative: { label, proposedCommand: `put the ${subject} ${preposition} the ${target}` },
         }
     }

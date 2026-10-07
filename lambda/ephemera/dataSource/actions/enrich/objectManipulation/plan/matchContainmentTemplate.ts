@@ -1,7 +1,7 @@
 import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
 import { normalizeExitName } from '../../../roomExitTargetsForCharacter'
 import { CommandAttempt } from '../../../commandAttempt'
-import { PositionAttemptAction } from '../../../commandAttempt/action'
+import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/action'
 import { currentHostRef, objectSpanRef } from './planStep'
 
 /** The containment verbs (RD-1): placing into or onto. Anything else is open language for the fallback. */
@@ -75,7 +75,7 @@ export function matchContainmentTemplate(skeleton: ParseSkeleton, command: strin
     return {
         type: 'matched',
         attempt: CommandAttempt.create(command, [
-            new PositionAttemptAction([], {
+            new PositionAttemptAction(mintActionId(), [], {
                 kind: 'change',
                 primitive: 'transferMembership',
                 object: subject,
