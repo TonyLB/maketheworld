@@ -24,6 +24,7 @@ import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTer
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from '../ludicGraph'
@@ -100,31 +101,22 @@ const outerTerminal = (
  * one than the shared source field list already implies.
  *
  * **One presence binding has two addresses, and they must hash alike (presenceNodes Slice 5 item 3,
- * closed by PN-24).** An edge may terminate at the binding's bare `PRESENCE#{uuid}` node id, or at
- * its exterior address `{ owner, port: 'PRESENCE#{uuid}' }`; two cache entries can therefore hold
- * the same edge in two forms, and a merge that does not equate them duplicates it. **Normalize
- * DOWN, to the bare id** --- PN-5's id is globally unique, so the exterior form's `owner` carries
- * no information the id does not. The `owner`-qualified branch below is never reached for presence,
- * so no `ROOM#A#PRESENCE#uuid` composite key arises. **Dropping `owner` is scoped to presence and
- * must stay that way:** a crossing port's id is unique within its host only, so `{ROOM#A, STUB-xyz}`
- * and `{ROOM#B, STUB-xyz}` are different terminals and both parts are load-bearing.
- *
- * This became expressible only once `.port` carried its own tag (PN-24). While the id was bare it
- * was shape-indistinguishable from a crossing-port id, and a *unary* key function has no second
- * value to confirm against --- so the dedup gap sat open, documented, through Slice 5.
- *
- * **`edgeId` added to the key (Slice 3f, ISS8149):** the second of `legsAgree`'s two gaps ---
- * two collapsed edges differing only in `edgeId` used to group into one record, first-arrived
- * label surviving. **Exported (Slice 3a):** the cache-assembly fold groups collapsed edges from
- * many `collapseCrossingPorts`/`foldSameHostBuckets` calls by this same identity, and that is the
- * same operation this function already performs within one call --- not the "different call site"
- * `stubPortIdFromEdge` is, which mints rather than groups.
+ * closed by PN-24, reversed by PNR-2/Slice 3).** An edge may terminate at the binding's bare
+ * `PRESENCE#{uuid}` node id, or at its exterior address `{ owner, port: 'PRESENCE#{uuid}' }`; two
+ * cache entries can therefore hold the same edge in two forms, and a merge that does not equate
+ * them duplicates it. **Normalize UP, to the exterior form**, as of Slice 3: `liftPresenceTerminal`
+ * rewrites every bare presence terminal to `{ owner, port }` at the point each cache edge is minted
+ * (`foldSameHostBuckets`, `collapseCrossingPorts`), so by the time an edge reaches this function
+ * both addresses have already collapsed to one shape, and there is no second, bare form left for
+ * this key function to re-normalize --- every port-address terminal, presence or crossing alike,
+ * keys as `owner#port`. (PN-24's reasoning still explains why the two forms must hash alike; it no
+ * longer explains which form survives. PNR-2's reason: once a binding's lookup in the cache is a
+ * *path* --- the owner's node, then that binding on it --- the bare id alone cannot resolve it, so
+ * `owner` stopped being redundant information.)
  */
 export const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string => {
     const terminalKey = (terminal: EphemeraLudicTerminalId): string =>
-        typeof terminal === 'string' ? terminal
-            : isPresenceTaggedPortId(terminal.port) ? terminal.port
-                : `${terminal.owner}#${terminal.port}`
+        typeof terminal === 'string' ? terminal : `${terminal.owner}#${terminal.port}`
     return JSON.stringify([
         terminalKey(edge.from),
         terminalKey(edge.to),
@@ -134,6 +126,19 @@ export const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string =
         edge.edgeId ?? '',
     ])
 }
+
+/**
+ * Rewrites a bare presence-tagged terminal (`PRESENCE#{uuid}`, legal within the owning graph's own
+ * interior storage) to the cache's exterior form `{ owner, port }` --- PNR-2(a), presenceNodes
+ * Slice 3. Nesting made a binding's lookup in the cache a path (the owner's node, then that binding
+ * on it), so a cache edge ending at a binding must name the owner alongside the port id; a bare
+ * terminal has nowhere to carry it. Any other terminal (an ordinary component id, or an
+ * already-qualified port address) passes through unchanged --- this only ever widens a bare
+ * presence id, never a crossing-port address, whose `owner` is already load-bearing and distinct
+ * per host.
+ */
+const liftPresenceTerminal = (terminal: EphemeraLudicTerminalId, owner: EphemeraMembershipHostId): EphemeraLudicTerminalId =>
+    typeof terminal === 'string' && isPresenceTaggedPortId(terminal) ? { owner, port: terminal } : terminal
 
 /**
  * Collapse of crossing relation ports.
@@ -202,7 +207,11 @@ export const collapseCrossingPorts = (
             )
         }
 
-        const childOuter = outerTerminal(childLeg, portTerminal)
+        // A bare presence terminal here (the child's own edge landing on one of the child's own
+        // bindings) is legal within childGraph's own interior storage, but the collapsed edge is
+        // cache-bound, where lookup is a path --- lift it to the exterior form, owner childGraph's
+        // own hostId (PNR-2(a)).
+        const childOuter = liftPresenceTerminal(outerTerminal(childLeg, portTerminal), childGraph.hostId)
         const rewrite = (terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalId =>
             ephemeraLudicTerminalsEqual(terminal, portTerminal) ? childOuter : terminal
 
@@ -212,7 +221,10 @@ export const collapseCrossingPorts = (
             to: rewrite(parentLeg.to),
         }
 
-        const hop: EphemeraLudicCacheSupportHop = { presenceBucketIds: [presenceBucketId], port: port.portId }
+        // `host` names the host whose crossing port this hop travels through (PNR-2(b)) --- the
+        // port id alone is unique only within its own host, so `{ host, port }` is the hop's real
+        // key and exactly the crossing port's own exterior address.
+        const hop: EphemeraLudicCacheSupportHop = { host: childGraph.hostId, presenceBucketIds: [presenceBucketId], port: port.portId }
         return [...acc, { ...toStoredRelationalEdge(collapsed), supportedBy: [[hop]] }]
     }, [])
 
@@ -497,9 +509,17 @@ export const foldSameHostBuckets = (
     const touchesRemainingPort = (edge: HostRelationalEdge): boolean =>
         remainingPortIds.some((portId) => hasPortTerminal({ owner: folded.hostId, port: portId })(edge))
 
+    // A resolved leg landing bare on one of `graph`'s own presence nodes is legal within `graph`'s
+    // own interior storage (the graph names the owner implicitly), but this is the cache-bound
+    // emission point --- lift it to the exterior form, owner `graph.hostId` (PNR-2(a)).
     const resolvedLegs = folded.relationalEdges
         .filter((edge) => !touchesRemainingPort(edge))
-        .map((edge) => ({ ...toStoredRelationalEdge(edge), supportedBy: [] as EphemeraLudicCacheEdge['supportedBy'] }))
+        .map((edge) => ({
+            ...toStoredRelationalEdge(edge),
+            from: liftPresenceTerminal(edge.from, graph.hostId),
+            to: liftPresenceTerminal(edge.to, graph.hostId),
+            supportedBy: [] as EphemeraLudicCacheEdge['supportedBy'],
+        }))
 
     const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
     resolvedLegs.forEach((edge) => {

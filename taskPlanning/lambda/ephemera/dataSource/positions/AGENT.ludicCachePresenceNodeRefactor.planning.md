@@ -1,6 +1,6 @@
 # ludicCache presence nodes: nest each binding on its owner
 
-**Status:** Open, 2026-10-07; Slices 0--2 shipped 2026-10-07, Slice 3 next. Found while stamping presence on referents ([`AGENT.attemptNarration.planning.md`](../../../AGENT.attemptNarration.planning.md#recommended-order), slice 3), whose sub-step "Owner on cache presence nodes" pointed here and closed when [Slice 2](#recommended-order) shipped. [PNR-1 and PNR-2](#open-decisions-implementation--plan-only) decided 2026-10-07. Slice 0 (a cover-entry bug found while planning Slice 1) added and shipped 2026-10-07; [PNR-3](#open-decisions-implementation--plan-only) decided the same day.
+**Status:** Open, 2026-10-07; Slices 0--3 shipped 2026-10-07, Slice 4 (docs, retire) next. Found while stamping presence on referents ([`AGENT.attemptNarration.planning.md`](../../../AGENT.attemptNarration.planning.md#recommended-order), slice 3), whose sub-step "Owner on cache presence nodes" pointed here and closed when [Slice 2](#recommended-order) shipped. [PNR-1 and PNR-2](#open-decisions-implementation--plan-only) decided 2026-10-07. Slice 0 (a cover-entry bug found while planning Slice 1) added and shipped 2026-10-07; [PNR-3](#open-decisions-implementation--plan-only) decided the same day.
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../AGENT.md). It is an implementation plan.
 
@@ -52,10 +52,10 @@ Pending work uses `[ ]`, completed work `[X]`; mark nested lines `[X]` as each f
   - [X] Remove the known-gap paragraphs: `catalogHandles.ts` header, and the Grounding bullet in `AGENT.attemptNarration.planning.md`.
   - [X] Tests: a whole bound into two rooms gets both bindings on its handle; end to end, a span naming that whole is stamped with both (`groundedPresence` on the `objectSpan`). The end-to-end case (`parseCommand.test.ts`, "take the table when it is bound into two rooms") builds its catalog with `getRoomObjectCatalogForCharacter` over the fixture graphs, not by hand. Anything with a binding of its own now carries it instead of the seed room, so two existing expectations moved (the box in `catalogHandles.test.ts`, the table in `roomObjectCatalogForCharacter.test.ts`).
   - [X] Tick the attemptNarration sub-step.
-- [ ] **Slice 3. Owner on references to a binding** (PNR-2).
-  - [ ] Edges ending at a binding: lift bare `PRESENCE#` terminals to the exterior form at fold (`foldSameHostBuckets`: owner `graph.hostId`; `collapseCrossingPorts`: a child-side outer terminal gets `childGraph.hostId`). `collapsedEdgeIdentityKey`'s presence branch goes (every terminal keys as `owner#port`); the guard rejects a bare `PRESENCE#` terminal on a cache edge.
-  - [ ] `EphemeraLudicCacheSupportHop` gains `host`, minted in `collapseCrossingPorts` as `childGraph.hostId`; rewrite the type comment (host *beside* binding, not instead of it).
-  - [ ] Tests: dedup of the two address forms still holds under the new normal form; a hop names its host.
+- [X] **Slice 3. Owner on references to a binding** (PNR-2).
+  - [X] Edges ending at a binding: lift bare `PRESENCE#` terminals to the exterior form at fold (`foldSameHostBuckets`: owner `graph.hostId`; `collapseCrossingPorts`: a child-side outer terminal gets `childGraph.hostId`). `collapsedEdgeIdentityKey`'s presence branch goes (every terminal keys as `owner#port`); the guard rejects a bare `PRESENCE#` terminal on a cache edge.
+  - [X] `EphemeraLudicCacheSupportHop` gains `host`, minted in `collapseCrossingPorts` as `childGraph.hostId`; rewrite the type comment (host *beside* binding, not instead of it).
+  - [X] Tests: dedup of the two address forms still holds under the new normal form; a hop names its host.
 - [ ] **Slice 4. Durable docs; retire this plan.** `positions/AGENT.contract.md` "Presence nodes" (cache shape: top-level `nodes` are components, each with a required `presenceNodes` list of its own bindings, PNR-1; guard checks: a cover entry resolves by path, and an absent host node or an absent named binding on it FAILS, which is sound because a cover member is never a character (Room-only hosting) and the walk reaches every other member; exterior addressing; a cache cover entry names the member's own binding, and its `presence` is absent when the fold could not find that binding, PNR-3; a catalog handle's `presence` is every binding whose cover holds the thing plus each of its own bindings, deduped, in cache order, and the seed room only when there are none), `AGENT.ludicNetwork.md` section 5's "Presence in the cache" paragraph, `positions/AGENT.implementation.md`'s `ludicCache/` notes. Grep `](` for links into this file, then delete it.
 
 ## Open decisions (implementation --- plan only)
@@ -87,7 +87,7 @@ Smoke test after any fold change (rebuild plan Slice 4's lesson): pick up an obj
 | 0 --- cover entries name member's binding | Done |
 | 1 --- nest bindings | Done |
 | 2 --- host's own bindings (payoff) | Done |
-| 3 --- owner on references | Not started |
+| 3 --- owner on references | Done |
 | 4 --- docs, retire | Not started |
 
 ## Lifecycle

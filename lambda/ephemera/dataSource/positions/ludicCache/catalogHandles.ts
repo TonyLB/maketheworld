@@ -45,22 +45,20 @@ export type LudicCacheObjectHandle = {
 
 /** Each host's buckets: its own bindings and every binding in the cache whose cover holds it, deduped, in cache order (which the fold keeps byte-identical). */
 const bucketsByMember = (cache: EphemeraLudicCacheData): Map<string, EphemeraPresenceNodeId[]> => {
-    const buckets = new Map<string, EphemeraPresenceNodeId[]>()
-    const addBucket = (host: string, binding: EphemeraPresenceNodeId) => {
+    const addBucket = (buckets: Map<string, EphemeraPresenceNodeId[]>, host: string, binding: EphemeraPresenceNodeId) => {
         const held = buckets.get(host) ?? []
-        if (!held.includes(binding)) {
-            buckets.set(host, [...held, binding])
-        }
+        return held.includes(binding) ? buckets : new Map(buckets).set(host, [...held, binding])
     }
-    for (const node of cache.nodes) {
-        for (const binding of node.presenceNodes) {
-            addBucket(node.universalKey, binding.universalKey)
-            for (const member of binding.cover.members) {
-                addBucket(member.host, binding.universalKey)
-            }
-        }
-    }
-    return buckets
+    return cache.nodes.reduce(
+        (byNode, node) => node.presenceNodes.reduce(
+            (byBinding, binding) => [node.universalKey, ...binding.cover.members.map(({ host }) => host)].reduce(
+                (byHost, host) => addBucket(byHost, host, binding.universalKey),
+                byBinding
+            ),
+            byNode
+        ),
+        new Map<string, EphemeraPresenceNodeId[]>()
+    )
 }
 
 export const ludicCacheObjectHandles = async (

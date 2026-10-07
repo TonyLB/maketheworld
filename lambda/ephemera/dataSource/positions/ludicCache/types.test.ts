@@ -215,7 +215,7 @@ describe('isEphemeraLudicCacheEdge', () => {
             to: 'OBJECT#ropeEnd',
             kind: 'Custom',
             relationLabel: 'TiedTo',
-            supportedBy: [[{ presenceBucketIds: ['PRESENCE#other'], port: 'port_1' }]],
+            supportedBy: [[{ host: 'OBJECT#box', presenceBucketIds: ['PRESENCE#other'], port: 'port_1' }]],
         })).toBe(true)
     })
 
@@ -227,10 +227,10 @@ describe('isEphemeraLudicCacheEdge', () => {
             kind: 'Custom',
             relationLabel: 'TiedTo',
             supportedBy: [
-                [{ presenceBucketIds: ['PRESENCE#other'], port: 'port_1' }],
+                [{ host: 'OBJECT#box', presenceBucketIds: ['PRESENCE#other'], port: 'port_1' }],
                 [
-                    { presenceBucketIds: ['PRESENCE#alternate', 'PRESENCE#alternate2'], port: 'port_2' },
-                    { presenceBucketIds: ['PRESENCE#other'], port: 'port_3' },
+                    { host: 'OBJECT#box', presenceBucketIds: ['PRESENCE#alternate', 'PRESENCE#alternate2'], port: 'port_2' },
+                    { host: 'OBJECT#crate', presenceBucketIds: ['PRESENCE#other'], port: 'port_3' },
                 ],
             ],
         })).toBe(true)
@@ -251,7 +251,7 @@ describe('isEphemeraLudicCacheEdge', () => {
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'On',
-            supportedBy: [[{ presenceBucketIds: ['not-an-id'], port: 'port_1' }]],
+            supportedBy: [[{ host: 'OBJECT#box', presenceBucketIds: ['not-an-id'], port: 'port_1' }]],
         })).toBe(false)
     })
 
@@ -402,7 +402,20 @@ describe('isEphemeraLudicCacheData', () => {
     // The opposite verdict, and PN-12's instruction is to write it as an explicit test rather
     // than as an absence of one: an edge to an unmaterialized presence node is the *binding
     // exists and was not pulled* signal (PR-15), not corruption, and must PASS.
+    // Slice 3 (PNR-2(a)): a bare `PRESENCE#` terminal is illegal in the cache now --- even an
+    // absent binding's reference must carry its owner, the exterior form `{ owner, port }`.
     it('accepts an edge terminating at an absent presence node', () => {
+        expect(isEphemeraLudicCacheData({
+            hostId: 'ROOM#Test',
+            nodes: [validNode],
+            edges: [{
+                ...validEdge,
+                to: { owner: 'OBJECT#helmet', port: 'PRESENCE#not-pulled' },
+            }],
+        })).toBe(true)
+    })
+
+    it('rejects an edge terminating at a bare presence terminal', () => {
         expect(isEphemeraLudicCacheData({
             hostId: 'ROOM#Test',
             nodes: [validNode],
@@ -410,6 +423,6 @@ describe('isEphemeraLudicCacheData', () => {
                 ...validEdge,
                 to: 'PRESENCE#not-pulled',
             }],
-        })).toBe(true)
+        })).toBe(false)
     })
 })

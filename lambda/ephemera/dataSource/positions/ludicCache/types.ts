@@ -3,11 +3,13 @@ import type {
     EphemeraLudicGraphComponentNode,
     EphemeraLudicGraphStructureNode,
     EphemeraLudicRelationalEdgeData,
+    EphemeraLudicTerminalId,
     EphemeraPresenceCoverEntry,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
     isEphemeraLudicGraphComponentNode,
     isEphemeraLudicRelationalEdgeData,
+    isPresenceTaggedPortId,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -87,13 +89,22 @@ export type EphemeraLudicCacheCoverEntry = Omit<EphemeraPresenceCoverEntry, 'pre
 
 /**
  * One hop of one route through `supportedBy` --- the crossing port this hop travels through
- * (`port`, "the hop's key for consolidation"), and the set of presence bindings that could
+ * (`host` + `port`, "the hop's key for consolidation"), and the set of presence bindings that could
  * independently justify having traveled it (`presenceBucketIds`, OR within the hop: any one of
- * them is enough). Identified by their own `PRESENCE#` id rather than by the host they bind,
- * since a host may carry more than one binding (PN-22's *one or more* quantifier) and the hop's
- * justification is binding-grained, not host-grained.
+ * them is enough). Bindings are identified by their own `PRESENCE#` id rather than by the host
+ * they bind, since a host may carry more than one binding (PN-22's *one or more* quantifier) and
+ * the hop's justification is binding-grained, not host-grained.
+ *
+ * **`host` (PNR-2(b), presenceNodes Slice 3): the host whose crossing port this hop travels
+ * through, named BESIDE `presenceBucketIds`, not instead of it** --- the two are different facts
+ * (which crossing vs. which binding justifies it) that happen to share one hop. Minted in
+ * `collapseCrossingPorts` as `childGraph.hostId`: the hop's `port` comes from `childGraph.ports`
+ * and its binding from `childGraph.presenceNodes`, so one host covers both per hop. `{ host, port
+ * }` is exactly that crossing port's own exterior address, closing an ambiguity `port` alone could
+ * not: a crossing port's id is unique only within its own host.
  */
 export type EphemeraLudicCacheSupportHop = {
+    host: EphemeraMembershipHostId;
     presenceBucketIds: EphemeraPresenceNodeId[];
     port: string;
 }
@@ -190,7 +201,8 @@ const isEphemeraLudicCacheSupportHop = (value: unknown): value is EphemeraLudicC
         return false
     }
     const hop = value as EphemeraLudicCacheSupportHop
-    return typeof hop.port === 'string'
+    return typeof hop.host === 'string' && isEphemeraMembershipHostId(hop.host)
+        && typeof hop.port === 'string'
         && Array.isArray(hop.presenceBucketIds)
         && hop.presenceBucketIds.every((id) => typeof id === 'string' && isEphemeraPresenceNodeId(id))
 }
@@ -198,11 +210,23 @@ const isEphemeraLudicCacheSupportHop = (value: unknown): value is EphemeraLudicC
 const isEphemeraLudicCacheSupport = (value: unknown): value is EphemeraLudicCacheSupport =>
     Array.isArray(value) && value.every((hop) => isEphemeraLudicCacheSupportHop(hop))
 
+// A bare presence-tagged terminal is illegal on a cache edge (PNR-2(a), Slice 3): nesting made a
+// binding's lookup in the cache a path --- the owner's node, then that binding on it --- so every
+// reference to a binding must carry the owner alongside the port id. `foldSameHostBuckets` and
+// `collapseCrossingPorts` lift every such terminal at mint time; a bare one reaching this guard is
+// corruption, not an unpulled-binding case (that case is an owner-qualified terminal whose binding
+// is simply absent from `nodes`, which the referential-integrity pass below already permits).
+const isNotBarePresenceTerminal = (terminal: EphemeraLudicTerminalId): boolean =>
+    !(typeof terminal === 'string' && isPresenceTaggedPortId(terminal))
+
 export const isEphemeraLudicCacheEdge = (value: unknown): value is EphemeraLudicCacheEdge => {
     if (!isEphemeraLudicRelationalEdgeData(value)) {
         return false
     }
     const edge = value as EphemeraLudicCacheEdge
+    if (!isNotBarePresenceTerminal(edge.from) || !isNotBarePresenceTerminal(edge.to)) {
+        return false
+    }
     if (!Array.isArray(edge.supportedBy) || !edge.supportedBy.every(isEphemeraLudicCacheSupport)) {
         return false
     }

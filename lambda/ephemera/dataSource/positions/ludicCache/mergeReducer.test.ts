@@ -85,7 +85,7 @@ describe('collapseCrossingPorts', () => {
                 from: boulder,
                 to: pebble,
                 kind: 'On',
-                supportedBy: [[{ presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }]],
+                supportedBy: [[{ host: boxId, presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }]],
             },
         ])
     })
@@ -105,8 +105,8 @@ describe('collapseCrossingPorts', () => {
         expect(result).toHaveLength(1)
         expect(result[0]).toMatchObject({ from: boulder, to: pebble, kind: 'On' })
         expect(result[0].supportedBy).toEqual(expect.arrayContaining([
-            [{ presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }],
-            [{ presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_2' }],
+            [{ host: boxId, presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }],
+            [{ host: boxId, presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_2' }],
         ]))
         expect(result[0].supportedBy).toHaveLength(2)
     })
@@ -135,17 +135,19 @@ describe('collapseCrossingPorts', () => {
         const result = collapseCrossingPorts(parentGraph, childGraph, 'binding_1')
         expect(result).toHaveLength(2)
         expect(result.map((edge) => edge.supportedBy)).toEqual(expect.arrayContaining([
-            [[{ presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }]],
-            [[{ presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_2' }]],
+            [[{ host: boxId, presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }]],
+            [[{ host: boxId, presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_2' }]],
         ]))
     })
 
-    // The payoff for tagging the exterior address (PN-24), and the case Slice 5 could not close.
-    // One presence binding has two addresses --- its bare node id, and the exterior
+    // The payoff for tagging the exterior address (PN-24), reversed by PNR-2 (Slice 3). One
+    // presence binding has two addresses --- its bare node id, and the exterior
     // `{ owner, port: 'PRESENCE#...' }` form --- so two legs reaching the SAME binding by different
     // addresses must land on one cache record with two routes, not two records asserting one edge
-    // twice. `collapsedEdgeIdentityKey` normalizes DOWN to the bare id, which is why the surviving
-    // record's `to` is the primitive form.
+    // twice. `collapsedEdgeIdentityKey` now normalizes UP to the exterior form (nesting made a
+    // binding's cache lookup a path, so the owner must travel with the port id), which is why the
+    // surviving record's `to` is the owner-qualified form, not the bare id --- `liftPresenceTerminal`
+    // widens the bare leg (`childLeg('port_1', binding)`) to match the already-qualified one.
     it('dedups two legs reaching one presence binding by its two different addresses', () => {
         const binding = 'PRESENCE#b1' as EphemeraPresenceNodeId
         const parentGraph = testLudicGraph(roomId, {
@@ -163,7 +165,7 @@ describe('collapseCrossingPorts', () => {
 
         const result = collapseCrossingPorts(parentGraph, childGraph, 'binding_1')
         expect(result).toHaveLength(1)
-        expect(result[0]).toMatchObject({ from: boulder, to: binding, kind: 'On' })
+        expect(result[0]).toMatchObject({ from: boulder, to: { owner: boxId, port: binding }, kind: 'On' })
         expect(result[0].supportedBy).toHaveLength(2)
     })
 
@@ -433,6 +435,29 @@ describe('foldSameHostBuckets', () => {
         expect(shuffled.edges).toEqual(expect.arrayContaining(expectedEdges))
     })
 
+    // PR-15 (`presenceSubGraph.ts`): "any edge may land on a presence binding", including one
+    // interior to the binding's own host's graph, where the terminal is bare (the graph names the
+    // owner implicitly). PNR-2(a)/Slice 3: the cache-bound emission point must still lift it to
+    // the exterior form, since lookup in the cache is a path naming the owner explicitly.
+    it('lifts a same-host edge landing bare on the host\'s own presence node to the exterior form (PNR-2(a))', () => {
+        const bareGraph = testLudicGraph(boxId, {
+            nodes: [
+                { tag: 'Object', universalKey: boxId },
+                { tag: 'Object', universalKey: pebble },
+                presenceNode('port_1', enumeratedCover(pebble)),
+            ],
+            edges: [
+                { tag: 'Relational', from: pebble, to: 'PRESENCE#port_1' as EphemeraPresenceNodeId, kind: 'On' },
+            ],
+        })
+
+        const result = foldSameHostBuckets(bareGraph, ['port_1'], noMemberBindings)
+
+        expect(result.edges).toEqual([
+            { tag: 'Relational', from: pebble, to: { owner: boxId, port: 'PRESENCE#port_1' }, kind: 'On', supportedBy: [] },
+        ])
+    })
+
     it('mints one consolidated cache binding per binding folded, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
         const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'], noMemberBindings)
 
@@ -603,7 +628,7 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
         const afterC = collapseCrossingPorts(parentAfterB, cGraphWithPort, 'binding_C')
 
         expect(afterC).toEqual([
-            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', supportedBy: [[{ presenceBucketIds: ['PRESENCE#binding_C'], port: 'p_c' }]] },
+            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', supportedBy: [[{ host: objC, presenceBucketIds: ['PRESENCE#binding_C'], port: 'p_c' }]] },
         ])
 
         // The order variant: merge C first against the same unmodified parent, then thread that
@@ -617,7 +642,7 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
         const afterBSecond = collapseCrossingPorts(parentAfterC, bGraphWithPort, 'binding_B')
 
         expect(afterBSecond).toEqual([
-            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', supportedBy: [[{ presenceBucketIds: ['PRESENCE#binding_B'], port: 'p_b' }]] },
+            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', supportedBy: [[{ host: objB, presenceBucketIds: ['PRESENCE#binding_B'], port: 'p_b' }]] },
         ])
     })
 
