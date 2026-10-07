@@ -45,7 +45,6 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 
 | Date | Tag | Observation |
 | --- | --- | --- |
-| 2026-08-22 | `vocab-drift` | Read *"the two edges joined by a port need not carry the same **kind**"* (2026-08-06) as a claim about today's `HostRelationalEdgeKind`; that word predates the closed 7-value enum and its separate `relationLabel`, and at today's grain both edges are `Custom` --- built a whole corpus finding falsifying LP6's agreement obligation on the misreading |
 | 2026-08-23 | `other` | Recommended deferring LD-18's mismatch sweep until a `ports` producer exists, and **cited LP4i as the precedent while it argues the reverse** --- LP4i built its detector *before* the shape change specifically because *"the sweep finds X and nothing else"* is provable exactly once. User reversed the ordering. **Not a `Source-unread` hit:** the bullet had been read in full this session and quoted from correctly elsewhere in the same turn --- it was used backwards, which is a different failure and the reason the pattern's *"read the whole cell"* actuator would not have caught it |
 | 2026-08-24 | `overbroad-inheritance` | Wrote that presence *earned* its two companion files, as the precedent for not opening a corpus early; its corpus was created the day that plan opened --- the table distinguishing the two rows had been read in full this session and was compressed, not unread |
 | 2026-08-24 | `other` | Wrote *the* node-side answer to a question and built a row's dependency order on it without checking whether a second existed; there are two precedents and they answer differently, surfaced by one turn of posing the row's question of nodes |
@@ -125,6 +124,7 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | 2026-10-07 | `overbroad-inheritance` | Keyed AN-8's shared captures on (unit, room, phase) "since each unit's before/after is its own point"; the justification is about points, not units; user: two units over the same action share a capture (Tess / You drop the cup). Rekeyed on (room, point). |
 | 2026-10-07 | `other` | Rekeyed captures on (room, point) with the point named by action id; user: captures are steps in the kernel sequence, so position is the array's, not the id's. Ids are just unique; position matters only at insertion. |
 | 2026-10-07 | `framing-inherited` | Presented AN-3 as open with its pre-2026-10-06 candidate list (which hop writes copy); the plan's own "whoever creates the action authors it" rule already answered it as Plan (template fast path, LLM fallback); user asked why that option was missing. |
+| 2026-10-07 | `other` | Argued `put the coins hurriedly into the pouch` would carry manner on the fast path because `matchContainmentPreposition`'s word-boundary regex tolerates "hurriedly into"; user: deterministic templates don't recognize manner. Leniency of a match is not a route; manner is open language and moves with the LLM Plan fallback. |
 
 ## Patterns
 
