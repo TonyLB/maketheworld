@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import { compilePositionKernelOp } from './compilePositionKernelOp'
 import { isNarrateStep } from '../kernelStep'
-import type { MembershipNarrationSpec, PresentationKernelNarrateStep, TemplateNarrationSpec } from '../kernelStep'
+import type { MembershipNarrationSpec, PresentationKernelNarrateStep } from '../kernelStep'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 import { NAVIGATE_HEADER_SLOT_ID } from '../../../navigate/navigateBundleSlotIds'
 import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
@@ -149,9 +149,11 @@ describe('compilePositionKernelOp', () => {
 
 /**
  * Phase 4: take/drop/give compile through this same `Move` case --- no sibling `Take`/`Drop` op, no
- * structural branch, only a second narration family. These cases pin the two things that could
- * quietly regress back into a special case: that both bracket sides are emitted even when one host
- * is a character with no roster, and that the verb comes from the delta rather than from a caller.
+ * structural branch. **Slice 3 of `AGENT.attemptNarration.planning.md` moved the `template`
+ * family's narrate steps out of this compiler** (to `commitAttempt.ts`'s post-commit bridge-unit
+ * sweep), so this compiler now only builds the `template` family's *captures* --- the verb
+ * derivation and template-content assertions that used to live here moved with the narrate
+ * steps; see `commitAttempt.test.ts` for the observable (published-message) regression pin.
  */
 describe('compilePositionKernelOp --- object moves', () => {
     const TRAY = 'OBJECT#Tray' as EphemeraObjectId
@@ -172,59 +174,18 @@ describe('compilePositionKernelOp --- object moves', () => {
         ...overrides,
     })
 
-    const objectTemplate = (step: PresentationKernelNarrateStep): TemplateNarrationSpec => {
-        if (step.narration.kind !== 'template') {
-            throw new Error(`Expected a template narration, got ${step.narration.kind}`)
-        }
-        return step.narration
-    }
-
-    // The literal words between the slots, so the assertions read the verb the template carries.
-    const templateVerbText = (step: PresentationKernelNarrateStep): string => (
-        objectTemplate(step).parts
-            .map((part) => ('text' in part ? part.text : ''))
-            .join('')
-    )
-
-    it('refers to the moved entity by id and carries the caller\'s labels, naming no role', () => {
-        const step = compilePositionKernelOp(objectOp()).steps.filter(isNarrateStep)[0]
-        expect(objectTemplate(step)).toEqual({
-            kind: 'template',
-            parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: TRAY }],
-            actorName: 'Tess',
-            labels: { [TRAY]: 'tray' },
-        })
-    })
-
-    it('derives takeHold when the move leaves a room, and drop when it arrives at one', () => {
-        const takeHold = compilePositionKernelOp(objectOp())
-        expect(templateVerbText(takeHold.steps.filter(isNarrateStep)[0])).toEqual(' picks up ')
-
-        const drop = compilePositionKernelOp(objectOp({ froms: [CHARACTER_ID], to: FROM_ROOM }))
-        expect(templateVerbText(drop.steps.filter(isNarrateStep)[0])).toEqual(' drops ')
-    })
-
-    it('derives give when neither side is a room --- no new discriminant needed', () => {
-        const give = compilePositionKernelOp(objectOp({
-            froms: [CHARACTER_ID],
-            to: 'CHARACTER#Other' as EphemeraCharacterId,
-        }))
-        expect(templateVerbText(give.steps.filter(isNarrateStep)[0])).toEqual(' gives ')
-    })
-
-    it('emits both bracket sides for a character host rather than suppressing the empty one', () => {
+    it('builds captures for both bracket sides, but no narrate steps or slots, for the template family', () => {
         const plan = compilePositionKernelOp(objectOp())
 
-        // The character-inventory side's capture snapshots an empty roster and its narrate step
-        // publishes to nobody. That is the correct output of a uniform rule, and suppressing
-        // it here is how the host-changelog frame gets lost at the next caller.
+        // The character-inventory side's capture still snapshots an empty roster --- captures
+        // stay built for both sides regardless of narration family, since a later audience
+        // (the bridge unit) still needs a roster to read. No narrate step/slot exists any more
+        // for this family: delivery is `commitAttempt.ts`'s job now.
         expect(plan.steps.map((step) => step.kind)).toEqual([
-            'capture', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding', 'capture', 'narrate', 'narrate',
+            'capture', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding', 'capture',
         ])
-        expect(plan.slots.map((slot) => slot.slotId)).toEqual([
-            moveLeaveSlotId(FROM_ROOM),
-            MOVE_ARRIVE_SLOT_ID,
-        ])
+        expect(plan.steps.filter(isNarrateStep)).toHaveLength(0)
+        expect(plan.slots).toEqual([])
     })
 
     it('renders severed boundary edges as dissolveRelation steps ahead of the transfer (BD-28)', () => {

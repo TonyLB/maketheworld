@@ -219,6 +219,7 @@ describe('positions receive paths (integration)', () => {
                 words: 'pick up the broom',
                 referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
                 actions: [{ kind: 'position', id: 'action-1', desiredResultDescription: 'Take: broom', challenges: [] }],
+                narrationUnits: [],
             }
 
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Ludic Network Change Requested', {
@@ -263,6 +264,7 @@ describe('positions receive paths (integration)', () => {
                     },
                     { kind: 'position', id: 'action-3', desiredResultDescription: 'Take: rope', challenges: [] },
                 ],
+                narrationUnits: [],
             }
 
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Ludic Network Change Requested', {

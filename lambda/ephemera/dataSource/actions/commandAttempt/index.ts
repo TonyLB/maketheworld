@@ -2,11 +2,13 @@ import type { EphemeraThingId } from '../enrich/objectManipulation/thing'
 import type { AttemptAction, AttemptActionData } from './action'
 import { attemptActionFromJSON, attemptActionToJSON } from './action'
 import { buildCommandAttemptReferent, objectSpansIn } from './referent'
+import type { NarrationUnit } from './narrationUnit'
 import type { Verdict } from './verdict'
 
 export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction, NarrateAttemptAction } from './action'
 export type { Challenge, ChallengeData } from './challenge'
 export { CustomEdgeChallenge, ExitEdgeChallenge, WorldKnowledgeChallenge } from './challenge'
+export type { NarrationAudience, NarrationUnit, NarrationWitnessVariant } from './narrationUnit'
 export type { Verdict, VerdictData } from './verdict'
 export { MetVerdict, ImpossibleVerdict } from './verdict'
 
@@ -44,6 +46,7 @@ export type CommandAttemptData = {
     words: string
     referents: CommandAttemptReferent[]
     actions: AttemptActionData[]
+    narrationUnits: NarrationUnit[]
 }
 
 const cloneReferent = (referent: CommandAttemptReferent): CommandAttemptReferent => ({ ...referent })
@@ -87,19 +90,27 @@ export class CommandAttempt {
 
     private readonly _actions: AttemptAction[]
 
-    private constructor(words: string, actions: AttemptAction[]) {
+    private readonly _narrationUnits: NarrationUnit[]
+
+    private constructor(words: string, actions: AttemptAction[], narrationUnits: NarrationUnit[]) {
         this.words = words
         this._actions = actions
+        this._narrationUnits = narrationUnits
     }
 
-    /** Domain constructor: an attempt built in-pipeline from its actions. */
-    static create(words: string, actions: readonly AttemptAction[]): CommandAttempt {
-        return new CommandAttempt(words, [...actions])
+    /**
+     * Domain constructor: an attempt built in-pipeline from its actions. `narrationUnits`
+     * defaults to none --- until an author exists (Plan's templates, Expansion), nothing
+     * produces one, and every object-membership action narrates via `commitAttempt`'s bridge
+     * unit instead (`AGENT.attemptNarration.planning.md`, slice 3).
+     */
+    static create(words: string, actions: readonly AttemptAction[], narrationUnits: readonly NarrationUnit[] = []): CommandAttempt {
+        return new CommandAttempt(words, [...actions], [...narrationUnits])
     }
 
     /** `data.referents` is ignored: it is derived from the actions, and is only published. */
     static fromJSON(data: CommandAttemptData): CommandAttempt {
-        return new CommandAttempt(data.words, data.actions.map(attemptActionFromJSON))
+        return new CommandAttempt(data.words, data.actions.map(attemptActionFromJSON), [...data.narrationUnits])
     }
 
     toJSON(): CommandAttemptData {
@@ -107,6 +118,7 @@ export class CommandAttempt {
             words: this.words,
             referents: this.referents(),
             actions: this._actions.map(attemptActionToJSON),
+            narrationUnits: [...this._narrationUnits],
         }
     }
 
@@ -116,6 +128,11 @@ export class CommandAttempt {
 
     actions(): AttemptAction[] {
         return this._actions
+    }
+
+    /** The narration units this attempt's author(s) declared --- never the bridge units `commitAttempt` synthesizes for an uncovered object-membership action; those exist only at delivery time. */
+    narrationUnits(): NarrationUnit[] {
+        return this._narrationUnits
     }
 
     /**
@@ -140,7 +157,7 @@ export class CommandAttempt {
         if (!found) {
             throw new Error(`CommandAttempt.recordVerdict: no challenge with id '${challengeId}'`)
         }
-        return new CommandAttempt(this.words, actions)
+        return new CommandAttempt(this.words, actions, this._narrationUnits)
     }
 
     /**

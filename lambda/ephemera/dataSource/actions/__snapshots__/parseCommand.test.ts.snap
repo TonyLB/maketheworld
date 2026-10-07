@@ -41,6 +41,7 @@ Object {
           "kind": "position",
         },
       ],
+      "narrationUnits": Array [],
       "referents": Array [
         Object {
           "id": "OBJECT#Coin",
@@ -109,6 +110,7 @@ Object {
           "kind": "position",
         },
       ],
+      "narrationUnits": Array [],
       "referents": Array [
         Object {
           "id": "OBJECT#Coin",
@@ -177,6 +179,7 @@ Object {
           "kind": "position",
         },
       ],
+      "narrationUnits": Array [],
       "referents": Array [
         Object {
           "id": "OBJECT#Coin",
@@ -286,6 +289,7 @@ Object {
           "kind": "position",
         },
       ],
+      "narrationUnits": Array [],
       "referents": Array [
         Object {
           "id": "OBJECT#Rope",
@@ -345,6 +349,7 @@ Object {
           "kind": "position",
         },
       ],
+      "narrationUnits": Array [],
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
@@ -403,6 +408,7 @@ Object {
           "kind": "position",
         },
       ],
+      "narrationUnits": Array [],
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
@@ -461,6 +467,7 @@ Object {
           "kind": "position",
         },
       ],
+      "narrationUnits": Array [],
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
@@ -519,6 +526,7 @@ Object {
           "kind": "position",
         },
       ],
+      "narrationUnits": Array [],
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
@@ -635,6 +643,7 @@ Object {
           "kind": "position",
         },
       ],
+      "narrationUnits": Array [],
       "referents": Array [
         Object {
           "id": "OBJECT#Rope",
@@ -734,6 +743,7 @@ Object {
           "kind": "position",
         },
       ],
+      "narrationUnits": Array [],
       "referents": Array [
         Object {
           "id": "OBJECT#Rope",
@@ -777,6 +787,7 @@ Object {
           ],
         },
       ],
+      "narrationUnits": Array [],
       "referents": Array [
         Object {
           "id": "OBJECT#RocketSkates",

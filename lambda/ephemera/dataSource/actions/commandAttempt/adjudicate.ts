@@ -2,6 +2,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { CommandAttempt, CommandAttemptData, CommandAttemptReferent } from './index'
 import type { AttemptActionData } from './action'
+import type { NarrationUnit } from './narrationUnit'
 import type { ChallengeData } from './challenge'
 import { CustomEdgeChallenge } from './challenge'
 import type { VerdictData } from './verdict'
@@ -115,6 +116,46 @@ const isCommandAttemptReferent = (value: unknown): value is CommandAttemptRefere
     return v.gloss === undefined || typeof v.gloss === 'string'
 }
 
+const isTemplateNarrationSpecData = (value: unknown): boolean => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    return v.kind === 'template'
+        && Array.isArray(v.parts)
+        && typeof v.actorName === 'string'
+        && typeof v.labels === 'object' && v.labels !== null
+}
+
+const isNarrationAudienceData = (value: unknown): boolean => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    return Array.isArray(v.refs) && v.refs.every((ref) => typeof ref === 'string')
+        && (v.phase === 'before' || v.phase === 'after')
+}
+
+const isNarrationUnitData = (value: unknown): value is NarrationUnit => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    if (!Array.isArray(v.covers) || !v.covers.every((id) => typeof id === 'string')) {
+        return false
+    }
+    if (!Array.isArray(v.variants)) {
+        return false
+    }
+    return v.variants.every((variant) => {
+        if (!variant || typeof variant !== 'object') {
+            return false
+        }
+        const vv = variant as Record<string, unknown>
+        return isNarrationAudienceData(vv.audience) && isTemplateNarrationSpecData(vv.template)
+    })
+}
+
 /** Minimal structural guard for `CommandAttempt` at the published-payload bus boundary. */
 export const isCommandAttemptData = (value: unknown): value is CommandAttemptData => {
     if (!value || typeof value !== 'object') {
@@ -127,5 +168,8 @@ export const isCommandAttemptData = (value: unknown): value is CommandAttemptDat
     if (!Array.isArray(v.referents) || !v.referents.every(isCommandAttemptReferent)) {
         return false
     }
-    return Array.isArray(v.actions) && v.actions.every(isAttemptActionData)
+    if (!Array.isArray(v.actions) || !v.actions.every(isAttemptActionData)) {
+        return false
+    }
+    return Array.isArray(v.narrationUnits) && v.narrationUnits.every(isNarrationUnitData)
 }

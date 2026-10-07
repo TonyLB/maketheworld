@@ -91,6 +91,7 @@ const move = (subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => commit
             } as never,
             challenges: [],
         }],
+        narrationUnits: [],
     }),
     characterId: CHARACTER_ID,
     messageBus: { publish: jest.fn() } as any,

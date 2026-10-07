@@ -7,6 +7,7 @@ describe('adjudicateAttempt', () => {
             words: 'take the broom',
             referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
             actions: [{ kind: 'position', id: 'action-1', desiredResultDescription: 'Take: broom', challenges: [] }],
+            narrationUnits: [],
         })
 
         const result = adjudicateAttempt(attempt).result
@@ -26,6 +27,7 @@ describe('adjudicateAttempt', () => {
                 challenges: [challenge as never],
             },
         ],
+        narrationUnits: [],
     })
 
     const lashedChallenge = {
@@ -61,6 +63,7 @@ describe('isCommandAttemptData', () => {
             words: 'take the broom',
             referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
             actions: [{ kind: 'position', id: 'action-4', challenges: [] }],
+            narrationUnits: [],
         })).toBe(true)
     })
 

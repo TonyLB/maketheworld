@@ -1082,6 +1082,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                             },
                             challenges: [],
                         }],
+                        narrationUnits: [],
                     },
                 },
                 TAKE_HOLD_CHARACTER
@@ -1141,6 +1142,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                             },
                             challenges: [],
                         }],
+                        narrationUnits: [],
                     },
                 },
                 TAKE_HOLD_CHARACTER
