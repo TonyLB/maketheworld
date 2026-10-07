@@ -146,8 +146,8 @@ describe('getRoomObjectCatalogForCharacter', () => {
         })
 
         expect(result.entries).toEqual([
-            { objectId: tableId, normalizedShortName: 'table', presence: [tableBinding] },
-            { objectId: cupId, normalizedShortName: 'cup', presence: [tableBinding] },
+            { objectId: tableId, normalizedShortName: 'table', presence: [{ host: tableId, presence: tableBinding }] },
+            { objectId: cupId, normalizedShortName: 'cup', presence: [{ host: tableId, presence: tableBinding }] },
         ])
     })
 })

@@ -34,9 +34,6 @@ import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTrans
 import { defaultTransferMembershipParts } from './kernel/narrationTemplate'
 import { deliverNarrationUnits } from './deliverNarrationUnits'
 import { resolveNarrationLabels } from '../../perception/resolveNarrationLabels'
-import { edgesMatch, type HostRelationalEdge } from '../ludicGraph'
-import type { MutationKernelStep } from './kernel/kernelStep'
-import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { roomsForHost, roomsForReferent } from '../ludicGraph/presenceRooms'
 import type { EphemeraLudicGraph } from '../ludicGraph'
 import type { NarrationAudience } from '../../actions/commandAttempt/narrationUnit'
@@ -173,21 +170,6 @@ const buildMembershipFragment = async (
     }
 }
 
-/** True when an establish step's exact edge is already on its carried host (the same match the graph's own `add` patch uses). */
-const isEdgeAlreadyPresent = async (steps: MutationKernelStep[]): Promise<boolean> => {
-    for (const step of steps) {
-        if (step.kind !== 'establishRelation') {
-            continue
-        }
-        const graph = await internalCache.Positions.getLudicGraph(step.hostId)
-        const observed = { from: step.subjectId, to: step.targetId, ...edgeKindAndLabelFrom(step) } as HostRelationalEdge
-        if (graph.relationalEdges.some((edge) => edgesMatch(edge, observed))) {
-            return true
-        }
-    }
-    return false
-}
-
 const buildRelationalFragment = async (
     change: EstablishRelationChange<GroundedReferent> | DissolveRelationChange<GroundedReferent>
 ): Promise<ActionFragment | undefined> => {
@@ -199,13 +181,6 @@ const buildRelationalFragment = async (
     const subjectId = change.subject.groundedId
     const targetId = change.target.groundedId
     if (!isEphemeraObjectId(subjectId) || !isEphemeraObjectId(targetId)) {
-        return undefined
-    }
-    // A duplicate establish (the exact edge already on its host) is refused, not skipped: the
-    // graph patch would be idempotent, but the attempt would still narrate a relation that
-    // did not newly form.
-    if (change.primitive === 'establishRelation' && await isEdgeAlreadyPresent(planResult.steps)) {
-        console.error(`[mtw.ephemera.positions] commitAttempt: relational action refused: ${subjectId} ${change.relationKind} ${targetId} is already present`)
         return undefined
     }
     const relationalEdge: RelationalEdgeFactSource = {

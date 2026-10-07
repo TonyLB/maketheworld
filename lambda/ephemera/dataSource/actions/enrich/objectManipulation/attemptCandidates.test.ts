@@ -111,7 +111,7 @@ describe('proposeAttemptCandidates', () => {
             spanPools: new Map([['cupRef', twoCups], ['trayRef', pool('tray', trayId)]]),
             catalog: [
                 { objectId: cupId, normalizedShortName: 'cup', catalogScope: 'room', presence: [roomId] },
-                { objectId: otherCupId, normalizedShortName: 'cup', catalogScope: 'room', presence: [shelfBinding] },
+                { objectId: otherCupId, normalizedShortName: 'cup', catalogScope: 'room', presence: [{ host: 'OBJECT#Shelf' as EphemeraObjectId, presence: shelfBinding }] },
                 { objectId: trayId, normalizedShortName: 'tray', catalogScope: 'room' },
             ],
             noAssignmentReason: 'none',
@@ -124,7 +124,7 @@ describe('proposeAttemptCandidates', () => {
         const cupSpans = result.candidates.map((candidate) => candidate.attempt.actions()[0]?.referents()[0])
         expect(cupSpans).toEqual(expect.arrayContaining([
             expect.objectContaining({ groundedId: cupId, groundedPresence: [roomId] }),
-            expect.objectContaining({ groundedId: otherCupId, groundedPresence: [shelfBinding] }),
+            expect.objectContaining({ groundedId: otherCupId, groundedPresence: [{ host: 'OBJECT#Shelf' as EphemeraObjectId, presence: shelfBinding }] }),
         ]))
         const traySpan = result.candidates[0]?.attempt.actions()[0]?.referents()[2]
         expect(traySpan).toEqual(expect.objectContaining({ groundedId: trayId }))

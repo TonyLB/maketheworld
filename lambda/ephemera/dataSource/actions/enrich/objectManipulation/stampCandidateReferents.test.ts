@@ -5,9 +5,12 @@ import { stampCandidateReferents, type SpanName } from './stampCandidateReferent
 
 const ROPE = 'OBJECT#Rope' as EphemeraObjectId
 const POST = 'OBJECT#Post' as EphemeraObjectId
+const BOX = 'OBJECT#Box' as EphemeraObjectId
 const BOX_BINDING = 'PRESENCE#box-in-room' as EphemeraPresenceNodeId
+/** The rope is seen through the box's binding, which lives on the box's graph. */
+const BOX_PRESENCE = { host: BOX, presence: BOX_BINDING }
 const names = new Map<string, SpanName>([
-    ['subjectRef', { id: ROPE, shortName: 'rope', gloss: 'hemp', presence: [BOX_BINDING] }],
+    ['subjectRef', { id: ROPE, shortName: 'rope', gloss: 'hemp', presence: [BOX_PRESENCE] }],
     ['targetRef', { id: POST, shortName: 'post' }],
 ])
 
@@ -24,10 +27,10 @@ describe('stampCandidateReferents', () => {
         expect(stampCandidateReferents(step, names)).toEqual({
             kind: 'change',
             primitive: 'transferMembership',
-            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp', groundedPresence: [BOX_BINDING] },
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp', groundedPresence: [BOX_PRESENCE] },
             from: {
                 referentType: 'currentHost',
-                referentTarget: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp', groundedPresence: [BOX_BINDING] },
+                referentTarget: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp', groundedPresence: [BOX_PRESENCE] },
             },
             to: { referentType: 'objectSpan', span: 'post', stableRefKey: 'targetRef', groundedId: POST, shortName: 'post' },
         })

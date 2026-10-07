@@ -76,6 +76,43 @@ describe('findRelationalChain', () => {
         })
     })
 
+    it('starts from the target\'s host when only the target\'s is known, still reporting the chain subject -> target', () => {
+        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const roomLeg = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
+        const tableLeg = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addObject(TABLE_ID).addRelationalEdge(roomLeg)
+        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID).addPort(port).addRelationalEdge(tableLeg)
+
+        // Only the cup (the target) has a known host: the string is a far end no phrase named.
+        const env = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, { [CUP_ID]: TABLE_ID })
+
+        const result = findRelationalChain(
+            { subjectId: STRING_ID, targetId: CUP_ID, relationKind: 'Custom', relationLabel: 'to' },
+            env
+        )
+
+        expect(result).toEqual({
+            verdict: 'found',
+            steps: [
+                { type: 'edge', hostId: ROOM_ID, edge: roomLeg },
+                { type: 'port', hostId: TABLE_ID, port },
+                { type: 'edge', hostId: TABLE_ID, edge: tableLeg },
+            ],
+        })
+    })
+
+    it('declines (notFound) when neither end\'s host is known', () => {
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
+            .addObject(STRING_ID)
+            .addObject(CUP_ID)
+            .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
+
+        expect(findRelationalChain(
+            { subjectId: STRING_ID, targetId: CUP_ID, relationKind: 'Custom', relationLabel: 'to' },
+            envFrom({ [ROOM_ID]: roomGraph }, {})
+        )).toEqual({ verdict: 'notFound' })
+    })
+
     it('declines (notFound) when no edge touching the subject matches the relation at all', () => {
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addObject(CUP_ID)
         const env = envFrom({ [ROOM_ID]: roomGraph }, { [STRING_ID]: ROOM_ID })

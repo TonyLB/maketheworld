@@ -111,6 +111,21 @@ export const expandSameHost = (
     // instead. `Present` is the port mechanism's own kind and is never an assertion's subject.
     if (relationKind === 'Custom') {
         if (operationKind === 'establishRelation') {
+            // A relation that already holds is refused, not re-established: a same-host edge's
+            // graph patch would be idempotent, but the attempt would still narrate a relation
+            // that did not newly form; and a crossing's legs carry freshly minted port ids, so a
+            // second one would commit a parallel chain (which a later dissolve would find twice).
+            // Asked of the existing chain, so a crossing is caught the same way as a same-host edge.
+            const existing = findRelationalChain(
+                { subjectId, targetId: objectId, relationKind, relationLabel },
+                { getGraph: env.getGraph, getCurrentHost: env.getCurrentHost }
+            )
+            if (existing.verdict !== 'notFound') {
+                return {
+                    verdict: 'error',
+                    reason: `${subjectId} ${relationLabel} ${objectId} is already present`,
+                }
+            }
             // a violated peer relation is not a misplacement to be repaired --- it may
             // legitimately cross a shard boundary via a port pair (BD-16's third outcome, this
             // union's own doc comment).

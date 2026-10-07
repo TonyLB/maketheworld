@@ -6,7 +6,9 @@ import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
 import { presencesHolding } from '../../positions/ludicGraph/presenceSubGraph'
 import type { DissolveRelationChange, GroundedReferent } from '../enrich/objectManipulation/plan/planStep'
 import { derivedReferentKey, graphNodeRef } from '../enrich/objectManipulation/plan/planStep'
-import { isEphemeraThingId, type EphemeraThingId } from '../enrich/objectManipulation/thing'
+import { isEphemeraThingId } from '../enrich/objectManipulation/thing'
+import type { ExpansionEnvironment } from '../enrich/objectManipulation/synthesize/executorTypes'
+import { findRelationalChainFromLeg } from '../enrich/objectManipulation/synthesize/findRelationalChain'
 import type { AttemptAction } from './action'
 import { mintActionId, PositionAttemptAction } from './action'
 import type { Challenge } from './challenge'
@@ -71,19 +73,28 @@ const dissolveNarrationUnit = (
  * the only source of facilitating dissolves. Its later re-check only refuses a move whose live
  * boundary edges these actions do not cover.
  *
- * Each dissolve's referents are grounded (`graphNode`s): Expansion finds the edge's far end
- * in the graph, and no phrase named it. `subject`/`target` follow the edge's own direction,
- * whichever end is the moved object. Expansion grounds them, so it also learns where each is
- * seen: every bucket of `graph` holding that end (`presencesHolding`), each end on its own, since
- * an `Enumerated` split can put the two ends of one edge in different buckets (a wire in one
- * room's half of a breadboard, connected to a spot in the other's). The Change carries no `host`: the executor's
- * `dissolveRelation` command-expansion rediscovers this exact edge by chain discovery
- * (`findRelationalChain`), the same mechanism the ingress relational route uses.
+ * Each dissolve's referents are grounded (`graphNode`s): Expansion finds the relation's far end
+ * in the graph, and no phrase named it. A boundary edge's far end may be a crossing port (the
+ * relation reaches another shard), so the two ends are the relation's true endpoints, walked
+ * through any ports by `findRelationalChainFromLeg`. `subject`/`target` follow the relation's
+ * own direction, whichever end is the moved object. Expansion grounds them, so it also learns
+ * where each is seen: every bucket holding that end (`presencesHolding`) **in the shard whose
+ * graph holds that end's own leg**, each end on its own. For an edge inside `graph` that is
+ * `graph` for both, and an `Enumerated` split can still put the two ends in different buckets (a
+ * wire in one room's half of a breadboard, connected to a spot in the other's); for a crossing,
+ * the far end's shard can lead to a different room entirely. The Change carries no `host`: the
+ * executor's `dissolveRelation` command-expansion rediscovers this exact relation by chain
+ * discovery (`findRelationalChain`), the same mechanism the ingress relational route uses.
+ *
+ * A relation whose chain cannot be walked (a shard `getGraph` does not have) or whose far end is
+ * not a thing (a presence binding, PR-15) gets no dissolve: the move's commit-time recheck then
+ * refuses it as uncovered, rather than Expansion guessing an end it cannot name.
  */
 export const attemptActionsFromBoundaryOutcomes = (
     primaryAction: AttemptAction,
     transferSet: ReadonlySet<EphemeraObjectId>,
-    graph: EphemeraLudicGraph
+    graph: EphemeraLudicGraph,
+    getGraph: ExpansionEnvironment['getGraph']
 ): ExpandedAttemptActions => {
     // A mover's own containment edge into the host it is leaving (the cup `On` the table, read
     // from the table's shard) is removed by the move itself, as `buildObjectMoveOp` does at
@@ -92,16 +103,24 @@ export const attemptActionsFromBoundaryOutcomes = (
         isHostingRelationKind(edge.kind)
         && ephemeraLudicTerminalsEqual(edge.to, graph.rootId)
         && [...transferSet].some((objectId) => ephemeraLudicTerminalsEqual(edge.from, objectId)))
-        // A port-qualified endpoint has no producer on a boundary edge yet (ludicGraph/AGENT.md's
-        // BD-36 paragraph), so only edges between things are expanded. A crossing's far end, once
-        // expanded, takes its presence from the shard holding its own leg, not from `graph`.
-        .filter((entry) => isEphemeraThingId(entry.edge.from) && isEphemeraThingId(entry.edge.to))
-    const boundary = outcomes.map((entry): { action: AttemptAction; narrationUnit: NarrationUnit } => {
-        // Safe: filtered to things above.
-        const subjectId = entry.edge.from as EphemeraThingId
-        const targetId = entry.edge.to as EphemeraThingId
-        const subject = graphNodeRef(subjectId, presencesHolding(graph, subjectId))
-        const target = graphNodeRef(targetId, presencesHolding(graph, targetId))
+    const boundary = outcomes.flatMap((entry): { action: AttemptAction; narrationUnit: NarrationUnit }[] => {
+        const chain = findRelationalChainFromLeg({ hostId: graph.hostId, edge: entry.edge }, { getGraph })
+        if (chain.verdict !== 'found') {
+            return []
+        }
+        const [subjectId, targetId] = chain.endpoints
+        if (!isEphemeraThingId(subjectId) || !isEphemeraThingId(targetId)) {
+            return []
+        }
+        // Each end is seen from the shard holding its own leg: the chain's edge step touching it.
+        const presenceOf = (endId: typeof subjectId) => {
+            const leg = chain.steps.find((step) => step.type === 'edge'
+                && (ephemeraLudicTerminalsEqual(step.edge.from, endId) || ephemeraLudicTerminalsEqual(step.edge.to, endId)))
+            const legGraph = leg === undefined ? undefined : leg.hostId === graph.hostId ? graph : getGraph(leg.hostId)
+            return legGraph === undefined ? undefined : presencesHolding(legGraph, endId)
+        }
+        const subject = graphNodeRef(subjectId, presenceOf(subjectId))
+        const target = graphNodeRef(targetId, presenceOf(targetId))
         const desiredResult: DissolveRelationChange<GroundedReferent> = {
             kind: 'change',
             primitive: 'dissolveRelation',
@@ -128,7 +147,7 @@ export const attemptActionsFromBoundaryOutcomes = (
         // A boundary edge has exactly one end in the transfer set.
         const subjectMoves = [...transferSet].some((objectId) => ephemeraLudicTerminalsEqual(subjectId, objectId))
         const [moved, other] = subjectMoves ? [subject, target] : [target, subject]
-        return { action, narrationUnit: dissolveNarrationUnit(action.id, derivedReferentKey(moved), derivedReferentKey(other)) }
+        return [{ action, narrationUnit: dissolveNarrationUnit(action.id, derivedReferentKey(moved), derivedReferentKey(other)) }]
     })
 
     return {
@@ -141,12 +160,14 @@ export const attemptActionsFromBoundaryOutcomes = (
  * Expansion for any `transferMembership` (ISS8203 slice 3), whichever template produced it. A
  * transfer whose moved object touches an exit gets an {@link ExitEdgeChallenge} on the primary
  * action, which stays pending (the take or drop abstains); then the boundary dissolves are added
- * as {@link attemptActionsFromBoundaryOutcomes} does. `graph` is the object's source host.
+ * as {@link attemptActionsFromBoundaryOutcomes} does. `graph` is the object's source host;
+ * `getGraph` reaches the shards a crossing relation continues into.
  */
 export const attemptActionsFromTransfer = (
     primaryAction: AttemptAction,
     objectId: EphemeraObjectId,
-    graph: EphemeraLudicGraph
+    graph: EphemeraLudicGraph,
+    getGraph: ExpansionEnvironment['getGraph']
 ): ExpandedAttemptActions => {
     const exitChallenged = objectTouchesExitEdgeOnGraph(graph, objectId)
     const primary = exitChallenged
@@ -155,5 +176,5 @@ export const attemptActionsFromTransfer = (
             new ExitEdgeChallenge(mintChallengeId(), describeExitEdgeChallenge()),
         ])
         : primaryAction
-    return attemptActionsFromBoundaryOutcomes(primary, new Set([objectId]), graph)
+    return attemptActionsFromBoundaryOutcomes(primary, new Set([objectId]), graph, getGraph)
 }

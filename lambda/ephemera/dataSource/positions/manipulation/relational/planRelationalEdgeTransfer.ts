@@ -9,6 +9,7 @@ import { walkAncestryContainers } from '../../../actions/enrich/objectManipulati
 import { runExecutor, seedFromGroundedSteps } from '../../../actions/enrich/objectManipulation/synthesize/executor'
 import type { ExecutorRelationalChain, ExpansionEnvironment } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import { lowerRelationalChain } from '../../../actions/enrich/objectManipulation/synthesize/buildCrossingLegs'
+import { fetchRelationalReachability } from './findRelationalChainsForRemoval'
 import type {
     DissolveRelationChange,
     EstablishRelationChange,
@@ -72,6 +73,19 @@ export const planRelationalEdgeTransfer = async (
     for (const hostId of hostByObjectId.values()) {
         if (!hostGraphMap.has(hostId)) {
             hostGraphMap.set(hostId, await internalCache.Positions.getLudicGraph(hostId))
+        }
+    }
+    // A dissolve walks the existing chain, which can cross through shards neither end sits in
+    // directly (a two-sided crossing's middle leg sits in their common ancestor): fetch every
+    // shard a relation touching either end can reach, as the dry run's environment does.
+    const reachable = await fetchRelationalReachability(
+        new Set([subjectId, targetId]),
+        (id) => internalCache.Positions.getMembershipContainers(id),
+        async (hostId) => hostGraphMap.get(hostId) ?? internalCache.Positions.getLudicGraph(hostId)
+    )
+    for (const [hostId, graph] of reachable) {
+        if (!hostGraphMap.has(hostId)) {
+            hostGraphMap.set(hostId, graph)
         }
     }
 

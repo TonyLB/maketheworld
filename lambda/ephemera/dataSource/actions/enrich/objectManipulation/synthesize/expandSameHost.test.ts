@@ -147,6 +147,68 @@ describe('expandSameHost', () => {
         expect(result.reason).toEqual(expect.stringContaining('relationLabel'))
     })
 
+    // A duplicate establish is refused, not re-built: the graph patch would be idempotent for
+    // a same-host edge, but the attempt would still narrate a relation that did not newly form;
+    // and a crossing's legs carry freshly minted port ids, so a second one would commit a
+    // parallel chain (and a later dissolve would find two).
+    describe('establishRelation when the relation already holds', () => {
+        const containers = (id: EphemeraPositionAdjacencyContainedId): EphemeraMembershipHostId[] => {
+            if (id === NECKLACE_ID || id === TABLE_ID) return [ROOM_ID]
+            if (id === CHARM_ID) return [TABLE_ID]
+            return []
+        }
+        const crossingShards = () => {
+            const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+            return {
+                [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
+                    .addObject(NECKLACE_ID)
+                    .addObject(TABLE_ID)
+                    .addRelationalEdge({ from: NECKLACE_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' }),
+                [TABLE_ID]: EphemeraLudicGraph.empty(TABLE_ID)
+                    .addObject(CHARM_ID)
+                    .addPort(port)
+                    .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CHARM_ID, kind: 'Custom', relationLabel: 'to' }),
+            } as Record<string, EphemeraLudicGraph>
+        }
+        const envOver = (graphs: Record<string, EphemeraLudicGraph>) => ({
+            getMembershipContainers: containers,
+            getGraph: (hostId: EphemeraMembershipHostId) => graphs[hostId],
+            getCurrentHost: (id: EphemeraObjectId) => containers(id)[0],
+        })
+
+        it('errors on a same-host duplicate', () => {
+            const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
+                .addObject(NECKLACE_ID)
+                .addObject(TABLE_ID)
+                .addRelationalEdge({ from: NECKLACE_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'under' })
+
+            const result = expandSameHost(
+                { subjectId: NECKLACE_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'under', operationKind: 'establishRelation' },
+                envOver({ [ROOM_ID]: roomGraph })
+            )
+
+            expect(result).toEqual({ verdict: 'error', reason: expect.stringContaining('is already present') })
+        })
+
+        it('errors on a duplicate crossing', () => {
+            const result = expandSameHost(
+                { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'establishRelation' },
+                envOver(crossingShards())
+            )
+
+            expect(result).toEqual({ verdict: 'error', reason: expect.stringContaining('is already present') })
+        })
+
+        it('still builds a crossing under a different label', () => {
+            const result = expandAndLower(
+                { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', relationLabel: 'around', operationKind: 'establishRelation' },
+                envOver(crossingShards())
+            )
+
+            expect(result.verdict).toBe('crossed')
+        })
+    })
+
     describe('dissolveRelation', () => {
         it('a portless dissolve (both endpoints already share a host) resolves to the same single dissolveRelation step as before --- no regression from routing away from findShardBoundary', () => {
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)

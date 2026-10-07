@@ -293,21 +293,6 @@ describe('commitAttempt', () => {
         expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
     })
 
-    it('refuses the attempt when the exact establish edge is already on its host', async () => {
-        const establishStep = { kind: 'establishRelation', subjectId: BROOM, targetId: TABLE, hostId: ROOM, relationKind: 'Custom', relationLabel: 'is tied to' }
-        planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: [establishStep] as any })
-        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValueOnce({
-            relationalEdges: [{ from: BROOM, to: TABLE, kind: 'Custom', relationLabel: 'is tied to' }],
-        })
-        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-
-        await commitAttempt({ attempt: relationalAttempt('establishRelation'), characterId: CHARACTER, messageBus, streamEvent })
-
-        expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
-        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('is already present'))
-        errorSpy.mockRestore()
-    })
-
     it('concatenates a membership and a relational action into one commit', async () => {
         mockLiveHosts(ROOM)
         const membershipStep = { kind: 'transferMembership', entityIds: new Set([BROOM]), fromHostIds: new Set([ROOM]), toHostId: TABLE }
@@ -567,7 +552,10 @@ describe('commitAttempt', () => {
                 parts: [{ slot: 'actor' as const }, { text: ' frees ' }, { ref: `graphNode:${BROOM}` }, { text: ' from ' }, { ref: `graphNode:${POST}` }],
             }],
         }
-        const lashedTakeAttempt = (verdict: { kind: 'met' } | undefined): CommandAttempt => {
+        const lashedTakeAttempt = (
+            verdict: { kind: 'met' } | undefined,
+            presence: { subject: unknown[]; target: unknown[] } = { subject: [ROOM], target: [OTHER_ROOM] }
+        ): CommandAttempt => {
             const take = membershipAttempt('takeHold').toJSON()
             return CommandAttempt.fromJSON({
                 ...take,
@@ -579,8 +567,8 @@ describe('commitAttempt', () => {
                         desiredResult: {
                             kind: 'change',
                             primitive: 'dissolveRelation',
-                            subject: { referentType: 'graphNode', groundedId: BROOM, groundedPresence: [ROOM] },
-                            target: { referentType: 'graphNode', groundedId: POST, groundedPresence: [OTHER_ROOM] },
+                            subject: { referentType: 'graphNode', groundedId: BROOM, groundedPresence: presence.subject },
+                            target: { referentType: 'graphNode', groundedId: POST, groundedPresence: presence.target },
                             relationKind: 'Custom',
                             relationLabel: 'is lashed to',
                         } as never,
@@ -630,6 +618,24 @@ describe('commitAttempt', () => {
             ]))
             expect(dissolveCaptureIds).toHaveLength(2)
             expect(dissolveCaptureIds.every((id) => dissolveCaptures.some((step: any) => step.captureId === id))).toBe(true)
+        })
+
+        it('resolves an end stamped with its host\'s binding through that host\'s graph, not the end\'s own', async () => {
+            // A lashing on a table bound into the room: Expansion stamps both ends with the table's
+            // binding (`presencesHolding(tableGraph, end)`), which lives on the table's graph.
+            const TABLE_BINDING = 'PRESENCE#table-binding'
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) => ({
+                relationalEdges: [],
+                presenceNodes: hostId === TABLE
+                    ? [{ tag: 'Presence', universalKey: TABLE_BINDING, fromHostId: ROOM, cover: { tag: 'Full' } }]
+                    : [],
+            }))
+            const stamp = [{ host: TABLE, presence: TABLE_BINDING }]
+            await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }, { subject: stamp, target: stamp }), characterId: CHARACTER, messageBus, streamEvent })
+
+            const [plan] = commitAndPresentStepSequenceMock.mock.calls[0]!
+            const dissolveIndex = plan.steps.findIndex((step) => step.kind === 'dissolveRelation')
+            expect(plan.steps.slice(0, dissolveIndex)).toEqual([{ kind: 'capture', hostId: ROOM, captureId: expect.any(String) }])
         })
 
         it('dry-runs the whole attempt\'s sequence, not one fragment', async () => {

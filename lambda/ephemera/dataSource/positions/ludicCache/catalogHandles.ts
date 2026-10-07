@@ -26,38 +26,42 @@
  * to build handles. The logged line (`logLudicCacheRebuild`) carries only counts --- never
  * `cache.nodes`/`edges` --- so it does not reopen the P6-clause-3 boundary this file exists to hold.
  */
-import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
 import { logLudicCacheRebuild } from './ludicCacheInstrumentation'
 import type { EphemeraLudicCacheData } from './types'
+import type { GroundedPresence, GroundedPresenceBinding } from '../../actions/enrich/objectManipulation/plan/planStep'
 
 export type LudicCacheObjectHandle = {
     objectId: EphemeraObjectId
     shortName: string
     /** Reasoning gloss, present only where authored or improvised (see `AGENT.concepts.md`'s `CommandAttempt` section). Still a flat scalar, not a widening past the handle boundary this file's own header comment states. */
     gloss?: string
-    /** Every presence bucket this object is seen in, or the seed room (see the header). */
-    presence?: (EphemeraPresenceNodeId | EphemeraRoomId)[]
+    /** Every presence bucket this object is seen in, each named with the host that owns it, or the seed room (see the header). */
+    presence?: GroundedPresence[]
 }
 
-/** Each host's buckets: its own bindings and every binding in the cache whose cover holds it, deduped, in cache order (which the fold keeps byte-identical). */
-const bucketsByMember = (cache: EphemeraLudicCacheData): Map<string, EphemeraPresenceNodeId[]> => {
-    const addBucket = (buckets: Map<string, EphemeraPresenceNodeId[]>, host: string, binding: EphemeraPresenceNodeId) => {
+/**
+ * Each host's buckets: its own bindings and every binding in the cache whose cover holds it, deduped, in cache order (which the fold keeps byte-identical).
+ * Each bucket names its owner (the node whose binding it is), since the binding lives on the owner's graph, not the member's.
+ */
+const bucketsByMember = (cache: EphemeraLudicCacheData): Map<string, GroundedPresenceBinding[]> => {
+    const addBucket = (buckets: Map<string, GroundedPresenceBinding[]>, host: string, bucket: GroundedPresenceBinding) => {
         const held = buckets.get(host) ?? []
-        return held.includes(binding) ? buckets : new Map(buckets).set(host, [...held, binding])
+        return held.some(({ presence }) => presence === bucket.presence) ? buckets : new Map(buckets).set(host, [...held, bucket])
     }
     return cache.nodes.reduce(
         (byNode, node) => node.presenceNodes.reduce(
             (byBinding, binding) => [node.universalKey, ...binding.cover.members.map(({ host }) => host)].reduce(
-                (byHost, host) => addBucket(byHost, host, binding.universalKey),
+                (byHost, host) => addBucket(byHost, host, { host: node.universalKey as EphemeraMembershipHostId, presence: binding.universalKey }),
                 byBinding
             ),
             byNode
         ),
-        new Map<string, EphemeraPresenceNodeId[]>()
+        new Map<string, GroundedPresenceBinding[]>()
     )
 }
 
@@ -80,7 +84,7 @@ export const ludicCacheObjectHandles = async (
         if (node.shortName === undefined) {
             continue
         }
-        const presence = buckets.get(node.universalKey) ?? (seedRoom !== undefined ? [seedRoom] : undefined)
+        const presence: GroundedPresence[] | undefined = buckets.get(node.universalKey) ?? (seedRoom !== undefined ? [seedRoom] : undefined)
         handles.push({
             objectId: node.universalKey,
             shortName: node.shortName,
