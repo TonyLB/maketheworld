@@ -11,24 +11,54 @@
  * walk reaches, matching `collectNestedObjectIds`'s old scope exactly. Filtering the pool to the
  * caller's own presence bucket (AB-9's read-path half) is open debt, not built here.
  *
+ * **Each handle names every bucket it is seen in** (`presence`): each cache `Presence` node whose
+ * cover holds the object, walked or not --- the caller's perspective decides *which* thing a phrase
+ * means, not who can see it change, so a bucket bound into a room the walk never reached counts.
+ * The seed room when no bucket covers it (the object sits in the room's own graph; a room has no
+ * binding). Still flat scalars, and still not a filter: this records where each thing is seen and
+ * drops nothing. **Known gap:** a host is the root of its own graph, so it is in each of its own
+ * buckets, but the cache's presence nodes leave the root out of `cover` and do not record which
+ * graph they live on --- so a whole bound into several rooms is stamped with only the room it
+ * was walked from.
+ *
  * **Slice 5 (PC-3): this is also the instrumentation boundary.** `buildLudicCache` and
  * `enumerateLudicCacheShards` stay pure, so wall time is timed here, around the one call this
  * handler already makes, and `objectCount` is a byproduct of the loop this handler already runs
  * to build handles. The logged line (`logLudicCacheRebuild`) carries only counts --- never
  * `cache.nodes`/`edges` --- so it does not reopen the P6-clause-3 boundary this file exists to hold.
  */
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
 import { logLudicCacheRebuild } from './ludicCacheInstrumentation'
+import type { EphemeraLudicCacheData } from './types'
 
 export type LudicCacheObjectHandle = {
     objectId: EphemeraObjectId
     shortName: string
     /** Reasoning gloss, present only where authored or improvised (see `AGENT.concepts.md`'s `CommandAttempt` section). Still a flat scalar, not a widening past the handle boundary this file's own header comment states. */
     gloss?: string
+    /** Every presence bucket this object is seen in, or the seed room (see the header). */
+    presence?: (EphemeraPresenceNodeId | EphemeraRoomId)[]
+}
+
+/** Each covered host's buckets: every cache `Presence` node whose cover holds it, in cache order (which the fold keeps byte-identical). */
+const bucketsByMember = (cache: EphemeraLudicCacheData): Map<string, EphemeraPresenceNodeId[]> => {
+    const buckets = new Map<string, EphemeraPresenceNodeId[]>()
+    for (const node of cache.nodes) {
+        if (node.tag !== 'Presence') {
+            continue
+        }
+        for (const member of node.cover.members) {
+            const held = buckets.get(member.host) ?? []
+            if (!held.includes(node.universalKey)) {
+                buckets.set(member.host, [...held, node.universalKey])
+            }
+        }
+    }
+    return buckets
 }
 
 export const ludicCacheObjectHandles = async (
@@ -39,6 +69,8 @@ export const ludicCacheObjectHandles = async (
     const startedAt = Date.now()
     const { cache, stats } = await buildLudicCache(seedHostId, assetStack, deps)
     const handles: LudicCacheObjectHandle[] = []
+    const buckets = bucketsByMember(cache)
+    const seedRoom = isEphemeraRoomId(seedHostId) ? seedHostId : undefined
     let objectCount = 0
     for (const node of cache.nodes) {
         if (node.tag === 'Presence' || !isEphemeraObjectId(node.universalKey)) {
@@ -48,10 +80,12 @@ export const ludicCacheObjectHandles = async (
         if (node.shortName === undefined) {
             continue
         }
+        const presence = buckets.get(node.universalKey) ?? (seedRoom !== undefined ? [seedRoom] : undefined)
         handles.push({
             objectId: node.universalKey,
             shortName: node.shortName,
             ...(node.gloss !== undefined ? { gloss: node.gloss } : {}),
+            ...(presence !== undefined ? { presence } : {}),
         })
     }
     logLudicCacheRebuild({

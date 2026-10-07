@@ -1,7 +1,7 @@
-import type { Change, GroundedId, PlanStep, Referent } from './plan/planStep'
+import type { Change, GroundedId, GroundedPresence, PlanStep, Referent } from './plan/planStep'
 
-/** What one identity candidate says about a span key: its id, plus the names prose reads. */
-export type SpanName = { id: GroundedId; shortName: string; gloss?: string }
+/** What one identity candidate says about a span key: its id, the names prose reads, and where it was seen. */
+export type SpanName = { id: GroundedId; shortName: string; gloss?: string; presence?: GroundedPresence[] }
 
 export const stampReferent = <R extends Referent>(referent: R, names: ReadonlyMap<string, SpanName>): R => {
     if (referent.referentType === 'objectSpan') {
@@ -14,6 +14,7 @@ export const stampReferent = <R extends Referent>(referent: R, names: ReadonlyMa
             groundedId: name.id,
             shortName: name.shortName,
             ...(name.gloss !== undefined ? { gloss: name.gloss } : {}),
+            ...(name.presence !== undefined ? { groundedPresence: name.presence } : {}),
         }
     }
     if (referent.referentType === 'currentHost') {
@@ -24,7 +25,7 @@ export const stampReferent = <R extends Referent>(referent: R, names: ReadonlyMa
 
 /**
  * Stamps one candidate's span identities onto a step: every span referent with a key in
- * `names` gets its `groundedId`, `shortName` and `gloss`, including the span nested inside a
+ * `names` gets its `groundedId`, `shortName`, `gloss` and `groundedPresence`, including the span nested inside a
  * `currentHost`. Derived referents (`actingCharacter`, `currentHost(actingCharacter)`) are
  * left alone --- they are resolved per snapshot, not per candidate. Pure: returns a new step.
  */

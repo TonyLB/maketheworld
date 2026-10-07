@@ -1,9 +1,9 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { CommandAttempt, type CommandAttemptData } from './index'
 import type { AttemptActionData } from './action'
 import type { ChallengeData } from './challenge'
-import type { Referent } from '../enrich/objectManipulation/plan/planStep'
+import type { PlanStep, Referent } from '../enrich/objectManipulation/plan/planStep'
 import { PositionAttemptAction } from './action'
 import { MetVerdict, ImpossibleVerdict, type Verdict } from './verdict'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
@@ -284,6 +284,31 @@ describe('CommandAttempt', () => {
             expect(attempt.actions().map((action) => action.id)).toEqual(['narrate-1', 'position-1'])
             expect(attempt.actions().map((action) => action.grounded(new Map()).id)).toEqual(['narrate-1', 'position-1'])
             expect(CommandAttempt.fromJSON(attempt.toJSON()).actions().map((action) => action.id)).toEqual(['narrate-1', 'position-1'])
+        })
+    })
+
+    describe('referent presence', () => {
+        it('keeps each referent\'s groundedPresence through recordVerdict, withChallenges, grounded() and the JSON round trip', () => {
+            const boxBinding = 'PRESENCE#box-in-room' as EphemeraPresenceNodeId
+            const roomId = 'ROOM#Kitchen' as EphemeraRoomId
+            const desiredResult: PlanStep = {
+                kind: 'change',
+                primitive: 'dissolveRelation',
+                subject: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ropeId, groundedPresence: [boxBinding] },
+                target: { referentType: 'graphNode', groundedId: forkId, groundedPresence: [roomId] },
+                relationKind: 'Custom',
+                relationLabel: 'is lashed to',
+            }
+            const attempt = CommandAttempt.fromJSON({
+                words: 'get rope',
+                referents: [],
+                actions: [{ kind: 'position', id: 'position-1', challenges: [{ kind: 'worldKnowledge', id: 'knot', description: 'none' }], desiredResult }],
+            }).recordVerdict('knot', new MetVerdict())
+            const [action] = attempt.actions()
+            expect(action?.desiredResult).toEqual(desiredResult)
+            expect(action?.withChallenges([]).desiredResult).toEqual(desiredResult)
+            expect(action?.grounded(new Map()).desiredResult).toEqual(desiredResult)
+            expect(CommandAttempt.fromJSON(attempt.toJSON()).actions()[0]?.desiredResult).toEqual(desiredResult)
         })
     })
 

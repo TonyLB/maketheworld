@@ -3,6 +3,7 @@ import { ephemeraLudicTerminalsEqual, isHostingRelationKind, relationKindAndLabe
 import type { EphemeraLudicGraph } from '../../positions/ludicGraph'
 import { boundaryEdgeOutcomes } from '../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
+import { presencesHolding } from '../../positions/ludicGraph/presenceSubGraph'
 import type { DissolveRelationChange, GroundedReferent } from '../enrich/objectManipulation/plan/planStep'
 import { graphNodeRef } from '../enrich/objectManipulation/plan/planStep'
 import { isEphemeraThingId, type EphemeraThingId } from '../enrich/objectManipulation/thing'
@@ -42,7 +43,10 @@ const describeExitEdgeChallenge = (): string =>
  *
  * Each dissolve's referents are grounded (`graphNode`s): Expansion finds the edge's far end
  * in the graph, and no phrase named it. `subject`/`target` follow the edge's own direction,
- * whichever end is the moved object. The Change carries no `host`: the executor's
+ * whichever end is the moved object. Expansion grounds them, so it also learns where each is
+ * seen: every bucket of `graph` holding that end (`presencesHolding`), each end on its own, since
+ * an `Enumerated` split can put the two ends of one edge in different buckets (a wire in one
+ * room's half of a breadboard, connected to a spot in the other's). The Change carries no `host`: the executor's
  * `dissolveRelation` command-expansion rediscovers this exact edge by chain discovery
  * (`findRelationalChain`), the same mechanism the ingress relational route uses.
  */
@@ -59,15 +63,18 @@ export const attemptActionsFromBoundaryOutcomes = (
         && ephemeraLudicTerminalsEqual(edge.to, graph.rootId)
         && [...transferSet].some((objectId) => ephemeraLudicTerminalsEqual(edge.from, objectId)))
         // A port-qualified endpoint has no producer on a boundary edge yet (ludicGraph/AGENT.md's
-        // BD-36 paragraph), so only edges between things are expanded.
+        // BD-36 paragraph), so only edges between things are expanded. A crossing's far end, once
+        // expanded, takes its presence from the shard holding its own leg, not from `graph`.
         .filter((entry) => isEphemeraThingId(entry.edge.from) && isEphemeraThingId(entry.edge.to))
     const boundaryActions = outcomes.map((entry): AttemptAction => {
+        // Safe: filtered to things above.
+        const subjectId = entry.edge.from as EphemeraThingId
+        const targetId = entry.edge.to as EphemeraThingId
         const desiredResult: DissolveRelationChange<GroundedReferent> = {
             kind: 'change',
             primitive: 'dissolveRelation',
-            // Safe: filtered to things above.
-            subject: graphNodeRef(entry.edge.from as EphemeraThingId),
-            target: graphNodeRef(entry.edge.to as EphemeraThingId),
+            subject: graphNodeRef(subjectId, presencesHolding(graph, subjectId)),
+            target: graphNodeRef(targetId, presencesHolding(graph, targetId)),
             ...relationKindAndLabelOf(entry.edge),
         }
 

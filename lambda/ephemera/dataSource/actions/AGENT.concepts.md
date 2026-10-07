@@ -53,14 +53,14 @@ The jobs compose into one shape on every route:
 
 **Not the same axis as "candidate":** Identify's output (a span resolved, ranked, or pooled to ids, as a span candidate pool) is orthogonal to grounded-vs-ungrounded. A candidate can be uncertain (multiple ranked ids) while still being grounded in the sense that matters here (each candidate *is* a real id with real graph position). A referent is ungrounded while it carries no `groundedId`; fanning out one step per candidate is what gives each copy its id.
 
-**Referent language:** steps need to express referents like "wherever the object with span `X` is currently located" or "the actor's current host," not just literal ids. `Referent` has four kinds, deliberately not exhaustive-in-advance (grow the union as concrete cases demand, not by pre-designing a general type language). Every kind also carries `groundedId?`:
+**Referent language:** steps need to express referents like "wherever the object with span `X` is currently located" or "the actor's current host," not just literal ids. `Referent` has four kinds, deliberately not exhaustive-in-advance (grow the union as concrete cases demand, not by pre-designing a general type language). Every kind also carries `groundedId?`. `objectSpan` and `graphNode` also carry **`groundedPresence?`**: every place the thing is seen, each a presence bucket that holds it, or the room itself when it sits in the room's own graph. It is learned alongside `groundedId`, by whoever learns the id (Grounding reads it off the `ludicCache`; Expansion reads the ends of a boundary edge it dissolves off the host graph), and it is what a narration audience walks up from to reach every room that can see the thing change. The actor's perspective picks which thing a phrase means, not who sees it. Absent means not learned, never "in the room":
 
 | Kind | Shape | Meaning |
 | --- | --- | --- |
 | `objectSpan` | `{ referentType: 'objectSpan', span: string, stableRefKey?: string }` | The object referred to by this parsed `objectSpan`. |
 | `actingCharacter` | `{ referentType: 'actingCharacter' }` | The character issuing the command --- contextual, not span-derived. |
 | `currentHost` | `{ referentType: 'currentHost', referentTarget: Referent }` | The membership host of whatever the nested `Referent` resolves to. Recursively typed over `Referent` (not restricted to `objectSpan`) so it composes: `currentHost(actingCharacter)` expresses "the room the actor is currently in" without a dedicated kind. |
-| `graphNode` | `{ referentType: 'graphNode', groundedId }` | Born grounded: a thing known only by its id in a graph, which no phrase named --- e.g. the post at the far end of a boundary edge Expansion must dissolve. |
+| `graphNode` | `{ referentType: 'graphNode', groundedId, groundedPresence? }` | Born grounded: a thing known only by its id in a graph, which no phrase named --- e.g. the post at the far end of a boundary edge Expansion must dissolve. |
 
 Explicitly out of scope for `Referent` itself: plurality (several objects named by one span) and multi-host co-location (the `multiPresent` complexity class's territory).
 

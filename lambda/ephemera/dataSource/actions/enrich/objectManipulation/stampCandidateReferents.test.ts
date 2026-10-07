@@ -1,17 +1,18 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { Change } from './plan/planStep'
 import { stampCandidateReferents, type SpanName } from './stampCandidateReferents'
 
 const ROPE = 'OBJECT#Rope' as EphemeraObjectId
 const POST = 'OBJECT#Post' as EphemeraObjectId
+const BOX_BINDING = 'PRESENCE#box-in-room' as EphemeraPresenceNodeId
 const names = new Map<string, SpanName>([
-    ['subjectRef', { id: ROPE, shortName: 'rope', gloss: 'hemp' }],
+    ['subjectRef', { id: ROPE, shortName: 'rope', gloss: 'hemp', presence: [BOX_BINDING] }],
     ['targetRef', { id: POST, shortName: 'post' }],
 ])
 
 describe('stampCandidateReferents', () => {
-    it('stamps id, shortName and gloss onto every span referent with a matching key, nested under currentHost too', () => {
+    it('stamps id, shortName, gloss and presence onto every span referent with a matching key, nested under currentHost too', () => {
         const step: Change = {
             kind: 'change',
             primitive: 'transferMembership',
@@ -23,10 +24,10 @@ describe('stampCandidateReferents', () => {
         expect(stampCandidateReferents(step, names)).toEqual({
             kind: 'change',
             primitive: 'transferMembership',
-            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp' },
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp', groundedPresence: [BOX_BINDING] },
             from: {
                 referentType: 'currentHost',
-                referentTarget: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp' },
+                referentTarget: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp', groundedPresence: [BOX_BINDING] },
             },
             to: { referentType: 'objectSpan', span: 'post', stableRefKey: 'targetRef', groundedId: POST, shortName: 'post' },
         })

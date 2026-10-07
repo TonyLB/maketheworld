@@ -27,8 +27,9 @@
 import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraLudicTerminalOwner } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
+import type { EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { PresenceKey, stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from './index'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
 
@@ -377,4 +378,26 @@ export const subGraphFromNodes = (
         edges: edges.map(toStoredRelationalEdge),
         ports: [...referencedCrossingPorts, ...ports],
     })
+}
+
+const presenceUuidFromKey = stripTypedKey('PRESENCE')
+
+/**
+ * Every bucket of `graph` that holds `nodeId` --- where a referent's `groundedPresence` says it
+ * was seen: each binding whose cover holds it (the root is in all of them), in `presenceNodes`
+ * order. An `Enumerated` split gives the ends of a straddling edge different buckets. A room has
+ * no binding, so a node in a room's graph is seen in the room itself. `undefined` when neither
+ * applies (a host whose binding was never minted): not learned.
+ */
+export const presencesHolding = (
+    graph: EphemeraLudicGraph,
+    nodeId: EphemeraLudicTerminalPrimitive
+): (EphemeraPresenceNodeId | EphemeraRoomId)[] | undefined => {
+    if (graph.presenceNodes.length === 0) {
+        return isEphemeraRoomId(graph.hostId) ? [graph.hostId] : undefined
+    }
+    const holding = graph.presenceNodes
+        .filter((presenceNode) => nodesFromPresenceBinding(graph, presenceUuidFromKey(presenceNode.universalKey)).has(nodeId))
+        .map((presenceNode) => presenceNode.universalKey)
+    return holding.length > 0 ? holding : undefined
 }

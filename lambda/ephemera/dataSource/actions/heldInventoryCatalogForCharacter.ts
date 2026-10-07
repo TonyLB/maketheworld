@@ -3,6 +3,7 @@ import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import internalCache from '../../internalCache'
 import type { EphemeraLudicGraph } from '../positions/ludicGraph'
+import { presencesHolding } from '../positions/ludicGraph/presenceSubGraph'
 import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
 import { normalizeExitName } from './roomExitTargetsForCharacter'
 import { resolveComponentShortName } from '../objects/objectShortName'
@@ -28,6 +29,9 @@ const defaultDeps = (): HeldInventoryCatalogDeps => ({
 
 /**
  * Merged-layer held inventory catalog for object-manipulation identity stage (O5).
+ *
+ * A held thing is seen in the character's own buckets, so each entry's `presence` is every
+ * binding of the character's graph that holds it (`presencesHolding`).
  */
 export async function getHeldInventoryCatalogForCharacter(
     characterId: EphemeraCharacterId,
@@ -51,7 +55,8 @@ export async function getHeldInventoryCatalogForCharacter(
             if (normalizedShortName.length === 0) {
                 return undefined
             }
-            return { objectId, normalizedShortName }
+            const presence = presencesHolding(ludicGraph, objectId)
+            return { objectId, normalizedShortName, ...(presence !== undefined ? { presence } : {}) }
         }))
     ).filter((entry): entry is RoomInPlayObjectCatalogEntry => entry !== undefined)
 

@@ -1,4 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
@@ -62,6 +63,24 @@ describe('getHeldInventoryCatalogForCharacter', () => {
         expect(result.entries).toEqual([
             { objectId: broomId, normalizedShortName: 'broom' },
             { objectId: anvilId, normalizedShortName: 'heavy anvil' },
+        ])
+    })
+
+    it('names the character\'s own binding as each held thing\'s presence', async () => {
+        const characterBinding = PresenceKey('character-in-room')
+        const result = await getHeldInventoryCatalogForCharacter(characterId, {
+            ...catalogPerspectiveDeps,
+            getLudicGraph: async () => testLudicGraph(characterId, {
+                nodes: [
+                    { tag: 'Object', universalKey: broomId },
+                    { tag: 'Presence', universalKey: characterBinding, fromHostId: 'ROOM#Kitchen', cover: { tag: 'Full' } },
+                ],
+            }),
+            getComponentAggregate: namedComponentAggregate({ [broomId]: 'Broom' }),
+        })
+
+        expect(result.entries).toEqual([
+            { objectId: broomId, normalizedShortName: 'broom', presence: [characterBinding] },
         ])
     })
 
