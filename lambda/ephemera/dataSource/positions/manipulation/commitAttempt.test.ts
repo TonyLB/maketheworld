@@ -84,6 +84,9 @@ const membershipAttempt = (operation: 'takeHold' | 'drop' = 'takeHold'): Command
     )
 }
 
+/** Strips the `capture` steps AN-7 stage 2 now splices around a bridge-covered action, so tests that predate audience resolution can keep asserting the core mutation steps' order without pinning exactly how many rooms a narration unit's audience resolved to. */
+const withoutCaptureSteps = (steps: readonly { kind: string }[]) => steps.filter((step) => step.kind !== 'capture')
+
 /** Character is in ROOM; the broom is wherever `broomHost` says. */
 const mockLiveHosts = (broomHost: EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId | undefined) => {
     getMembershipContainersMock.mockImplementation(async (id) => {
@@ -146,7 +149,8 @@ describe('commitAttempt', () => {
         commitAndPresentStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
         dryRunStepSequenceMock.mockResolvedValue({ verdict: 'legal', graphs: new Map(), captures: new Map() })
         mockLiveHosts(ROOM)
-        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue({ relationalEdges: [] })
+        /** No presence bindings by default: audience resolution (AN-7 stage 2) falls to a dead end, not a thrown error, for a host with no narration-unit test coverage of its own. */
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue({ relationalEdges: [], presenceNodes: [] })
     })
 
     it('grounds a published (ungrounded) take against live state and dispatches it through planObjectMoveTransfer', async () => {
@@ -163,8 +167,11 @@ describe('commitAttempt', () => {
             fromHostId: ROOM,
             toHostId: CHARACTER,
         }))
+        const [committedPlan] = commitAndPresentStepSequenceMock.mock.calls[0]!
+        expect(withoutCaptureSteps(committedPlan.steps)).toEqual(plan.steps)
+        expect(committedPlan.slots).toEqual([])
         expect(commitAndPresentStepSequenceMock).toHaveBeenCalledWith(
-            expect.objectContaining({ steps: plan.steps, slots: [] }),
+            expect.anything(),
             expect.any(String),
             CHARACTER,
             expect.objectContaining({
@@ -346,7 +353,7 @@ describe('commitAttempt', () => {
 
         expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
         const [plan] = commitAndPresentStepSequenceMock.mock.calls[0]
-        expect(plan.steps).toEqual([membershipStep, relationalStep])
+        expect(withoutCaptureSteps(plan.steps)).toEqual([membershipStep, relationalStep])
     })
 
     it('commits a lashed object\'s met dissolve before its containment transfer, in one commit (ISS8203 slice 3 payoff)', async () => {
@@ -397,7 +404,7 @@ describe('commitAttempt', () => {
 
         expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
         const [plan] = commitAndPresentStepSequenceMock.mock.calls[0]
-        expect(plan.steps).toEqual([dissolveStep, transferStep])
+        expect(withoutCaptureSteps(plan.steps)).toEqual([dissolveStep, transferStep])
     })
 
     it('is a no-op for an action with no desiredResult', async () => {
@@ -443,10 +450,18 @@ describe('commitAttempt', () => {
     })
 
     describe('narration units (AGENT.attemptNarration.planning.md, slice 3)', () => {
-        it('synthesizes a bridge unit covering the uncovered take, with before/after variants resolving to the move\'s own captures', async () => {
+        it('synthesizes a bridge unit covering the uncovered take, with before/after variants resolving to the room, not the raw hosts (AN-7 stage 2)', async () => {
             mockLiveHosts(ROOM)
-            const plan = { steps: [{ kind: 'transferMembership', entityIds: new Set([BROOM]), fromHostIds: new Set([ROOM]), toHostId: CHARACTER }], slots: [] }
-            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
+            // The character's own graph carries a presence binding into ROOM --- the fixture
+            // AN-7 stage 2's walk needs to resolve the 'after' side from a bare CHARACTER host
+            // up to the room everyone else actually witnesses the take in.
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) => (
+                hostId === CHARACTER
+                    ? { relationalEdges: [], presenceNodes: [{ tag: 'Presence', universalKey: 'PRESENCE#alice-binding', fromHostId: ROOM, cover: { tag: 'Full' } }] }
+                    : { relationalEdges: [], presenceNodes: [] }
+            ))
+            const takePlan = { steps: [{ kind: 'transferMembership', entityIds: new Set([BROOM]), fromHostIds: new Set([ROOM]), toHostId: CHARACTER }], slots: [] }
+            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: takePlan as any, fromHostId: ROOM })
 
             await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
 
@@ -465,10 +480,22 @@ describe('commitAttempt', () => {
                     },
                 ],
             }])
-            const [, commitBundleId] = commitAndPresentStepSequenceMock.mock.calls[0]!
+            const [committedPlan, commitBundleId] = commitAndPresentStepSequenceMock.mock.calls[0]!
             expect(sweepArgs.bundleId).toBe(commitBundleId)
-            expect(sweepArgs.resolveCaptureId(sweepArgs.units[0]!, { refs: [BROOM], phase: 'before' })).toBe(`capture:from:${ROOM}`)
-            expect(sweepArgs.resolveCaptureId(sweepArgs.units[0]!, { refs: [BROOM], phase: 'after' })).toBe('capture:to')
+
+            const [beforeVariant, afterVariant] = sweepArgs.units[0]!.variants
+            const beforeCaptureIds = sweepArgs.resolveCaptureId(sweepArgs.units[0]!, beforeVariant!.audience)
+            const afterCaptureIds = sweepArgs.resolveCaptureId(sweepArgs.units[0]!, afterVariant!.audience)
+            expect(beforeCaptureIds).toHaveLength(1)
+            expect(afterCaptureIds).toHaveLength(1)
+            // Distinct minted ids (the two-moves `capture:to` collision AN-8 fixes), both resolving
+            // to ROOM --- not to CHARACTER, which the old `capture:to`-on-raw-host wiring captured.
+            expect(beforeCaptureIds).not.toEqual(afterCaptureIds)
+            const captureSteps = [...committedPlan.steps].filter((step: any) => step.kind === 'capture')
+            expect(captureSteps).toEqual([
+                { kind: 'capture', hostId: ROOM, captureId: beforeCaptureIds[0] },
+                { kind: 'capture', hostId: ROOM, captureId: afterCaptureIds[0] },
+            ])
         })
 
         it('calls deliverNarrationUnits with no units for a purely relational attempt --- there is no relational bridge', async () => {
@@ -522,13 +549,15 @@ describe('commitAttempt', () => {
 
             expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
             const [plan] = commitAndPresentStepSequenceMock.mock.calls[0]!
-            expect(plan.steps).toEqual([dissolveStep, transferStep])
+            expect(withoutCaptureSteps(plan.steps)).toEqual([dissolveStep, transferStep])
         })
 
         it('dry-runs the whole attempt\'s sequence, not one fragment', async () => {
             await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
 
-            expect(dryRunStepSequenceMock).toHaveBeenCalledWith([dissolveStep, transferStep], expect.anything())
+            expect(dryRunStepSequenceMock).toHaveBeenCalledTimes(1)
+            const [dryRunSteps] = dryRunStepSequenceMock.mock.calls[0]!
+            expect(withoutCaptureSteps(dryRunSteps)).toEqual([dissolveStep, transferStep])
         })
 
         it('refuses the whole attempt when its take has no single live host: the lashing survives', async () => {
