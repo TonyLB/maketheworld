@@ -205,15 +205,15 @@ The result is [`EphemeraLudicCacheData`](ludicCache/types.ts):
 ```text
 {
   hostId: ROOM#Lab,
-  nodes:  [ component nodes + shortName (+ embedding),
-            presence nodes with cover: Enumerated only, plus consolidated: boolean ],
-  edges:  [ relational edges + supportedBy: [ [ {port, presenceBucketIds}, … ], … ] ]
+  nodes:  [ component nodes + shortName (+ embedding), each carrying its own
+            presenceNodes: [ cover: Enumerated only, plus consolidated: boolean, … ] ],
+  edges:  [ relational edges + supportedBy: [ [ {host, port, presenceBucketIds}, … ], … ] ]
 }
 ```
 
 `supportedBy` records **which crossings and bindings justify each composed edge** --- OR over routes, AND over the hops in a route --- so a reader can tell that `Rope -TiedTo-> Cup` came through the box's port and depends on the cup's binding there. That is the evidence-of-crossing the encapsulation rule requires the cache to keep. A same-host edge's `supportedBy` is `[]`: it depends on no crossing.
 
-Presence in the cache: a folded presence node carries `consolidated: true` and an **enumerated** cover (`Full` is illegal there --- "every node of the host" has no referent in a merge). If a host consolidates one of its bindings it consolidates all of them. A cover entry naming a node absent from the cache is corruption; an edge landing on a presence node absent from the cache is legal (the binding exists and was not pulled in).
+Presence in the cache: each binding **nests on its owner's cache node** rather than sitting in a separate top-level list --- the cache mirrors the graph side, where the container already names the owner. A folded presence node carries `consolidated: true` and an **enumerated** cover (`Full` is illegal there --- "every node of the host" has no referent in a merge). If a host consolidates one of its bindings it consolidates all of them. A cover entry resolves to a binding **by path**: the member host's own cache node, then the named binding on it; an absent host node, or a named binding not found there, is corruption. An edge or `supportedBy` hop referencing a binding always names its owner alongside the port/binding id, so a bare `PRESENCE#` terminal is itself corruption; an owner-qualified reference to a binding absent from the cache is legal (the binding exists and was not pulled in).
 
 **Status.** The cache is a **Prototype** with a named rollback trigger: *a bucket cannot be stated from the hosted thing's own graph plus its bindings.* The pairwise pieces (cut, compose, fold presence nodes, integrity guard) are shipped under [`ludicCache/`](ludicCache/); the **whole-cache rebuild seeded at a host, its first consumer, and persistence are in flight** under [`AGENT.ludicCacheRebuild.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCacheRebuild.planning.md). Nothing reads the cache in production yet.
 

@@ -20,15 +20,16 @@
  * Built under a since-deleted implementation plan (AGENT.ludicCacheReducer.planning.md);
  * its findings live on in PR-8 and PR-12 above.
  */
-import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId, EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from '../ludicGraph'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
-import type { EphemeraLudicCacheEdge, EphemeraLudicCacheNode, EphemeraLudicCacheSupportHop } from './types'
+import type { EphemeraLudicCacheCoverEntry, EphemeraLudicCacheEdge, EphemeraLudicCachePresenceNode, EphemeraLudicCacheSupportHop } from './types'
 
 /**
  * A crossing port **minted by a cut**, as distinct from one **authored on the whole** --- the
@@ -100,31 +101,22 @@ const outerTerminal = (
  * one than the shared source field list already implies.
  *
  * **One presence binding has two addresses, and they must hash alike (presenceNodes Slice 5 item 3,
- * closed by PN-24).** An edge may terminate at the binding's bare `PRESENCE#{uuid}` node id, or at
- * its exterior address `{ owner, port: 'PRESENCE#{uuid}' }`; two cache entries can therefore hold
- * the same edge in two forms, and a merge that does not equate them duplicates it. **Normalize
- * DOWN, to the bare id** --- PN-5's id is globally unique, so the exterior form's `owner` carries
- * no information the id does not. The `owner`-qualified branch below is never reached for presence,
- * so no `ROOM#A#PRESENCE#uuid` composite key arises. **Dropping `owner` is scoped to presence and
- * must stay that way:** a crossing port's id is unique within its host only, so `{ROOM#A, STUB-xyz}`
- * and `{ROOM#B, STUB-xyz}` are different terminals and both parts are load-bearing.
- *
- * This became expressible only once `.port` carried its own tag (PN-24). While the id was bare it
- * was shape-indistinguishable from a crossing-port id, and a *unary* key function has no second
- * value to confirm against --- so the dedup gap sat open, documented, through Slice 5.
- *
- * **`edgeId` added to the key (Slice 3f, ISS8149):** the second of `legsAgree`'s two gaps ---
- * two collapsed edges differing only in `edgeId` used to group into one record, first-arrived
- * label surviving. **Exported (Slice 3a):** the cache-assembly fold groups collapsed edges from
- * many `collapseCrossingPorts`/`foldSameHostBuckets` calls by this same identity, and that is the
- * same operation this function already performs within one call --- not the "different call site"
- * `stubPortIdFromEdge` is, which mints rather than groups.
+ * closed by PN-24, reversed by PNR-2/Slice 3).** An edge may terminate at the binding's bare
+ * `PRESENCE#{uuid}` node id, or at its exterior address `{ owner, port: 'PRESENCE#{uuid}' }`; two
+ * cache entries can therefore hold the same edge in two forms, and a merge that does not equate
+ * them duplicates it. **Normalize UP, to the exterior form**, as of Slice 3: `liftPresenceTerminal`
+ * rewrites every bare presence terminal to `{ owner, port }` at the point each cache edge is minted
+ * (`foldSameHostBuckets`, `collapseCrossingPorts`), so by the time an edge reaches this function
+ * both addresses have already collapsed to one shape, and there is no second, bare form left for
+ * this key function to re-normalize --- every port-address terminal, presence or crossing alike,
+ * keys as `owner#port`. (PN-24's reasoning still explains why the two forms must hash alike; it no
+ * longer explains which form survives. PNR-2's reason: once a binding's lookup in the cache is a
+ * *path* --- the owner's node, then that binding on it --- the bare id alone cannot resolve it, so
+ * `owner` stopped being redundant information.)
  */
 export const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string => {
     const terminalKey = (terminal: EphemeraLudicTerminalId): string =>
-        typeof terminal === 'string' ? terminal
-            : isPresenceTaggedPortId(terminal.port) ? terminal.port
-                : `${terminal.owner}#${terminal.port}`
+        typeof terminal === 'string' ? terminal : `${terminal.owner}#${terminal.port}`
     return JSON.stringify([
         terminalKey(edge.from),
         terminalKey(edge.to),
@@ -134,6 +126,19 @@ export const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string =
         edge.edgeId ?? '',
     ])
 }
+
+/**
+ * Rewrites a bare presence-tagged terminal (`PRESENCE#{uuid}`, legal within the owning graph's own
+ * interior storage) to the cache's exterior form `{ owner, port }` --- PNR-2(a), presenceNodes
+ * Slice 3. Nesting made a binding's lookup in the cache a path (the owner's node, then that binding
+ * on it), so a cache edge ending at a binding must name the owner alongside the port id; a bare
+ * terminal has nowhere to carry it. Any other terminal (an ordinary component id, or an
+ * already-qualified port address) passes through unchanged --- this only ever widens a bare
+ * presence id, never a crossing-port address, whose `owner` is already load-bearing and distinct
+ * per host.
+ */
+const liftPresenceTerminal = (terminal: EphemeraLudicTerminalId, owner: EphemeraMembershipHostId): EphemeraLudicTerminalId =>
+    typeof terminal === 'string' && isPresenceTaggedPortId(terminal) ? { owner, port: terminal } : terminal
 
 /**
  * Collapse of crossing relation ports.
@@ -202,7 +207,11 @@ export const collapseCrossingPorts = (
             )
         }
 
-        const childOuter = outerTerminal(childLeg, portTerminal)
+        // A bare presence terminal here (the child's own edge landing on one of the child's own
+        // bindings) is legal within childGraph's own interior storage, but the collapsed edge is
+        // cache-bound, where lookup is a path --- lift it to the exterior form, owner childGraph's
+        // own hostId (PNR-2(a)).
+        const childOuter = liftPresenceTerminal(outerTerminal(childLeg, portTerminal), childGraph.hostId)
         const rewrite = (terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalId =>
             ephemeraLudicTerminalsEqual(terminal, portTerminal) ? childOuter : terminal
 
@@ -212,7 +221,10 @@ export const collapseCrossingPorts = (
             to: rewrite(parentLeg.to),
         }
 
-        const hop: EphemeraLudicCacheSupportHop = { presenceBucketIds: [presenceBucketId], port: port.portId }
+        // `host` names the host whose crossing port this hop travels through (PNR-2(b)) --- the
+        // port id alone is unique only within its own host, so `{ host, port }` is the hop's real
+        // key and exactly the crossing port's own exterior address.
+        const hop: EphemeraLudicCacheSupportHop = { host: childGraph.hostId, presenceBucketIds: [presenceBucketId], port: port.portId }
         return [...acc, { ...toStoredRelationalEdge(collapsed), supportedBy: [[hop]] }]
     }, [])
 
@@ -376,18 +388,22 @@ export const mergeSameHostBucket = (
 }
 
 /**
- * The structure-arm `EphemeraLudicCacheNode` for each binding folded, one per `presenceUuid`
+ * The `EphemeraLudicCachePresenceNode` for each binding folded, one per `presenceUuid`
  * (presenceNodes Slice 4, item 3). `consolidated: true` because a binding only reaches this
  * function by being named in `presenceUuids` --- the set of buckets being pulled --- so every
  * node this produces is by construction one that WAS pulled; `EphemeraLudicCacheData` simply
  * never gets an entry for one that wasn't (PN-15's own "the marker is the node, never which
  * field carries it").
  *
- * `cover` is built directly off `nodesFromPresenceBinding`'s already-resolved set, root and the
- * binding's own id (PN-6 clause (c)) filtered out --- whatever remains is exactly this binding's
- * component membership, `'Full'` already expanded to a concrete list by that function regardless
- * of which arm the graph-side node carries (PN-19's cache-side legality: `'Full'` has no referent
- * once merged, so this is where it is made unrepresentable by construction). A binding named in
+ * `cover` entries name each covered member's OWN binding into this host, never the covering
+ * binding (`EphemeraLudicCacheCoverEntry`). A graph-side `'Enumerated'` cover already says so,
+ * and its entries are copied (root filtered out; the parent side is authoritative, so no
+ * cross-check against the member's graph). A graph-side `'Full'` cover is expanded here (PN-19's
+ * cache-side legality: `'Full'` has no referent once merged, so this is where it is made
+ * unrepresentable by construction): its members are `nodesFromPresenceBinding`'s set, root and
+ * the binding's own id (PN-6 clause (c)) filtered out, and each gets one entry per binding
+ * `memberBindings` finds for it --- or one entry with `presence` absent when it finds none
+ * (PNR-3: still covered, only which binding is unknown). A binding named in
  * `presenceUuids` with no matching graph node (the same degenerate case
  * `nodesFromPresenceBinding` falls back on) mints nothing --- there is no real node to consolidate.
  *
@@ -411,21 +427,35 @@ const assertZeroOrAllPresenceBindings = (graph: EphemeraLudicGraph, presenceUuid
     }
 }
 
+/**
+ * A covered member's own bindings into the host being folded (those whose `fromHostId` is that
+ * host), read from the member's own graph; `[]` when the member's graph was not read or holds
+ * none. `buildLudicCache` builds it from the graphs its walk already fetched.
+ */
+export type MemberBindingsLookup = (member: EphemeraLudicCacheCoverEntry['host']) => EphemeraPresenceNodeId[]
+
 const presenceCacheNodesFromFold = (
     graph: EphemeraLudicGraph,
-    presenceUuids: string[]
-): EphemeraLudicCacheNode[] => {
+    presenceUuids: string[],
+    memberBindings: MemberBindingsLookup
+): EphemeraLudicCachePresenceNode[] => {
     assertZeroOrAllPresenceBindings(graph, presenceUuids)
     const root = ephemeraLudicTerminalOwner(graph.rootId)
-    return presenceUuids.reduce<EphemeraLudicCacheNode[]>((acc, presenceUuid) => {
+    return presenceUuids.reduce<EphemeraLudicCachePresenceNode[]>((acc, presenceUuid) => {
         const universalKey = PresenceKey(presenceUuid)
         const presenceNode = graph.presenceNodes.find((node) => node.universalKey === universalKey)
         if (!presenceNode) {
             return acc
         }
-        const members: EphemeraPresenceCoverEntry[] = [...nodesFromPresenceBinding(graph, presenceUuid)]
-            .filter((id) => id !== root && id !== universalKey)
-            .map((host) => ({ host: host as EphemeraPresenceCoverEntry['host'], presence: universalKey }))
+        const members: EphemeraLudicCacheCoverEntry[] = presenceNode.cover.tag === 'Enumerated'
+            ? presenceNode.cover.members.filter((entry) => entry.host !== root)
+            : [...nodesFromPresenceBinding(graph, presenceUuid)]
+                .filter((id) => id !== root && id !== universalKey)
+                .flatMap((id) => {
+                    const host = id as EphemeraLudicCacheCoverEntry['host']
+                    const bindings = memberBindings(host)
+                    return bindings.length ? bindings.map((presence) => ({ host, presence })) : [{ host }]
+                })
         return [...acc, {
             tag: 'Presence' as const,
             universalKey,
@@ -450,15 +480,17 @@ const presenceCacheNodesFromFold = (
  * `presenceUuids`) and is correctly not emitted, the same "incomplete data, not an error" stance
  * `collapseCrossingPorts` already takes.
  *
- * `nodes` (presenceNodes Slice 4, item 3): the structure-arm cache node for every binding folded,
- * via `presenceCacheNodesFromFold` above --- a separate pass over `presenceUuids` rather than a
+ * `presenceNodes` (presenceNodes Slice 4, item 3): the cache binding for every binding folded,
+ * via `presenceCacheNodesFromFold` above. All are `graph.hostId`'s own bindings, so the caller
+ * nests them on that host's cache node. Computed in a separate pass over `presenceUuids` rather than as a
  * side-effect of the accumulator, since a binding's own cover is a fact about `graph` alone and
  * needs no merge state to compute.
  */
 export const foldSameHostBuckets = (
     graph: EphemeraLudicGraph,
-    presenceUuids: string[]
-): { nodes: EphemeraLudicCacheNode[]; edges: EphemeraLudicCacheEdge[] } => {
+    presenceUuids: string[],
+    memberBindings: MemberBindingsLookup
+): { presenceNodes: EphemeraLudicCachePresenceNode[]; edges: EphemeraLudicCacheEdge[] } => {
     const seed = EphemeraLudicGraph.fromFieldPayload(graph.hostId, { rootId: graph.rootId, nodes: [], edges: [], ports: [] })
 
     const folded = presenceUuids.reduce<EphemeraLudicGraph>((accumulated, presenceUuid) => {
@@ -477,9 +509,17 @@ export const foldSameHostBuckets = (
     const touchesRemainingPort = (edge: HostRelationalEdge): boolean =>
         remainingPortIds.some((portId) => hasPortTerminal({ owner: folded.hostId, port: portId })(edge))
 
+    // A resolved leg landing bare on one of `graph`'s own presence nodes is legal within `graph`'s
+    // own interior storage (the graph names the owner implicitly), but this is the cache-bound
+    // emission point --- lift it to the exterior form, owner `graph.hostId` (PNR-2(a)).
     const resolvedLegs = folded.relationalEdges
         .filter((edge) => !touchesRemainingPort(edge))
-        .map((edge) => ({ ...toStoredRelationalEdge(edge), supportedBy: [] as EphemeraLudicCacheEdge['supportedBy'] }))
+        .map((edge) => ({
+            ...toStoredRelationalEdge(edge),
+            from: liftPresenceTerminal(edge.from, graph.hostId),
+            to: liftPresenceTerminal(edge.to, graph.hostId),
+            supportedBy: [] as EphemeraLudicCacheEdge['supportedBy'],
+        }))
 
     const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
     resolvedLegs.forEach((edge) => {
@@ -487,5 +527,5 @@ export const foldSameHostBuckets = (
         const existing = byIdentity.get(key)
         byIdentity.set(key, existing ? { ...existing, supportedBy: [...existing.supportedBy, ...edge.supportedBy] } : edge)
     })
-    return { nodes: presenceCacheNodesFromFold(graph, presenceUuids), edges: [...byIdentity.values()] }
+    return { presenceNodes: presenceCacheNodesFromFold(graph, presenceUuids, memberBindings), edges: [...byIdentity.values()] }
 }

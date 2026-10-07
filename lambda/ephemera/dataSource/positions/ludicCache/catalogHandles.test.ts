@@ -160,16 +160,48 @@ describe('ludicCacheObjectHandles', () => {
         const presenceOf = (handles: { objectId: string, presence?: unknown }[], objectId: string) =>
             handles.find((handle) => handle.objectId === objectId)?.presence
 
-        it('names the room for a thing in the room\'s own graph, and the box\'s binding for a thing inside it', async () => {
+        // A host is the root of its own graph, so it is in each of its own buckets even though
+        // `cover` leaves the root out: the box's handle names its own binding, not the room.
+        it('names the box\'s own binding for the box, and that binding for a thing inside it', async () => {
             const handles = await ludicCacheObjectHandles(roomA, [], {
                 ...graphsAsDeps(boxInRoom([{ key: boxBinding, from: roomA }])),
                 ...names,
             })
 
             expect(handles).toEqual(expect.arrayContaining([
-                { objectId: boxId, shortName: 'Box', presence: [roomA] },
+                { objectId: boxId, shortName: 'Box', presence: [boxBinding] },
                 { objectId: pebble, shortName: 'Pebble', presence: [boxBinding] },
             ]))
+        })
+
+        // The payoff: a whole bound into several rooms ("kick the table") is seen in every one.
+        it('names every one of a whole\'s own bindings, including one into a room the walk never reached', async () => {
+            const handles = await ludicCacheObjectHandles(roomA, [], {
+                ...graphsAsDeps(boxInRoom([{ key: boxOtherBinding, from: roomB }, { key: boxBinding, from: roomA }])),
+                ...names,
+            })
+
+            expect(presenceOf(handles, boxId)).toEqual([boxOtherBinding, boxBinding])
+        })
+
+        it('names both the covering bucket and a contained thing\'s own binding, once each', async () => {
+            const pebbleInBox = PresenceKey('pebble-in-box')
+            const graphs = boxInRoom([{
+                key: boxBinding,
+                from: roomA,
+                cover: { tag: 'Enumerated', members: [{ host: pebble, presence: pebbleInBox }] },
+            }])
+            graphs.set(pebble, testLudicGraph(pebble, {
+                nodes: [
+                    { tag: 'Object', universalKey: pebble },
+                    { tag: 'Presence', universalKey: pebbleInBox, fromHostId: boxId, cover: { tag: 'Full' } },
+                ],
+            }))
+
+            const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(graphs), ...names })
+
+            expect(presenceOf(handles, pebble)).toEqual(expect.arrayContaining([boxBinding, pebbleInBox]))
+            expect(presenceOf(handles, pebble)).toHaveLength(2)
         })
 
         // Perspective picks which thing a phrase means, not who can see it change: a box bound into

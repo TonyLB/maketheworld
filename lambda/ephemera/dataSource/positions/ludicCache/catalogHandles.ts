@@ -11,15 +11,14 @@
  * walk reaches, matching `collectNestedObjectIds`'s old scope exactly. Filtering the pool to the
  * caller's own presence bucket (AB-9's read-path half) is open debt, not built here.
  *
- * **Each handle names every bucket it is seen in** (`presence`): each cache `Presence` node whose
- * cover holds the object, walked or not --- the caller's perspective decides *which* thing a phrase
- * means, not who can see it change, so a bucket bound into a room the walk never reached counts.
- * The seed room when no bucket covers it (the object sits in the room's own graph; a room has no
- * binding). Still flat scalars, and still not a filter: this records where each thing is seen and
- * drops nothing. **Known gap:** a host is the root of its own graph, so it is in each of its own
- * buckets, but the cache's presence nodes leave the root out of `cover` and do not record which
- * graph they live on --- so a whole bound into several rooms is stamped with only the room it
- * was walked from.
+ * **Each handle names every bucket it is seen in** (`presence`): each binding in the cache whose
+ * cover holds the object, plus each of the object's own bindings (a host is the root of its own
+ * graph, so it is in each of its own buckets, though `cover` leaves the root out) --- walked or
+ * not. The caller's perspective decides *which* thing a phrase means, not who can see it change,
+ * so a bucket bound into a room the walk never reached counts, and a whole bound into several
+ * rooms names every one. The seed room when it is in no bucket (the object sits in the room's own
+ * graph and has no binding of its own; a room has no binding). Still flat scalars, and still not
+ * a filter: this records where each thing is seen and drops nothing.
  *
  * **Slice 5 (PC-3): this is also the instrumentation boundary.** `buildLudicCache` and
  * `enumerateLudicCacheShards` stay pure, so wall time is timed here, around the one call this
@@ -44,21 +43,22 @@ export type LudicCacheObjectHandle = {
     presence?: (EphemeraPresenceNodeId | EphemeraRoomId)[]
 }
 
-/** Each covered host's buckets: every cache `Presence` node whose cover holds it, in cache order (which the fold keeps byte-identical). */
+/** Each host's buckets: its own bindings and every binding in the cache whose cover holds it, deduped, in cache order (which the fold keeps byte-identical). */
 const bucketsByMember = (cache: EphemeraLudicCacheData): Map<string, EphemeraPresenceNodeId[]> => {
-    const buckets = new Map<string, EphemeraPresenceNodeId[]>()
-    for (const node of cache.nodes) {
-        if (node.tag !== 'Presence') {
-            continue
-        }
-        for (const member of node.cover.members) {
-            const held = buckets.get(member.host) ?? []
-            if (!held.includes(node.universalKey)) {
-                buckets.set(member.host, [...held, node.universalKey])
-            }
-        }
+    const addBucket = (buckets: Map<string, EphemeraPresenceNodeId[]>, host: string, binding: EphemeraPresenceNodeId) => {
+        const held = buckets.get(host) ?? []
+        return held.includes(binding) ? buckets : new Map(buckets).set(host, [...held, binding])
     }
-    return buckets
+    return cache.nodes.reduce(
+        (byNode, node) => node.presenceNodes.reduce(
+            (byBinding, binding) => [node.universalKey, ...binding.cover.members.map(({ host }) => host)].reduce(
+                (byHost, host) => addBucket(byHost, host, binding.universalKey),
+                byBinding
+            ),
+            byNode
+        ),
+        new Map<string, EphemeraPresenceNodeId[]>()
+    )
 }
 
 export const ludicCacheObjectHandles = async (
@@ -73,7 +73,7 @@ export const ludicCacheObjectHandles = async (
     const seedRoom = isEphemeraRoomId(seedHostId) ? seedHostId : undefined
     let objectCount = 0
     for (const node of cache.nodes) {
-        if (node.tag === 'Presence' || !isEphemeraObjectId(node.universalKey)) {
+        if (!isEphemeraObjectId(node.universalKey)) {
             continue
         }
         objectCount += 1

@@ -3,12 +3,13 @@ import type {
     EphemeraLudicGraphComponentNode,
     EphemeraLudicGraphStructureNode,
     EphemeraLudicRelationalEdgeData,
-    EphemeraPresenceCover,
+    EphemeraLudicTerminalId,
+    EphemeraPresenceCoverEntry,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
     isEphemeraLudicGraphComponentNode,
-    isEphemeraLudicGraphStructureNode,
     isEphemeraLudicRelationalEdgeData,
+    isPresenceTaggedPortId,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -33,7 +34,12 @@ import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 //
 
 /**
- * Cache node: an EphemeraLudicGraphNode superset.
+ * Cache node: a component node of one walked host, carrying that host's own bindings.
+ *
+ * `presenceNodes` mirrors `EphemeraLudicGraph.presenceNodes`: in a graph the container names the
+ * owner, and here the node does, so a binding without an owner is unrepresentable. Required, `[]`
+ * when the host has none: every cache node is a walked host whose graph was read, so `[]` is a
+ * true "none", not "unread".
  *
  * **`homeShards` removed 2026-09-10** (the bucket-membership fact it carried is already on the
  * graph's own presence ports; see `AGENT.presence.planning.md`'s PR-8). It used to
@@ -42,39 +48,63 @@ import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
  * carries through regardless of bucket --- a node-level field duplicated a fact the graph already
  * states. No producer or consumer of this type existed at removal time.
  */
-export type EphemeraLudicCacheNode =
-    | (EphemeraLudicGraphComponentNode & {
-        /** `undefined` means unresolved --- no equality-with-id inference (see `catalogHandles.ts`). */
-        shortName?: string;
-        /** `undefined` means unresolved or absent --- `Gloss` is optional on every kind, so no sentinel is needed. */
-        gloss?: string;
-        /** Iteration 1: attached by a separate attachEmbeddings pass, not by the rebuild (CC1c). */
-        embedding?: SemanticEmbedding;
-    })
-    /**
-     * A presence node's cache extras (presenceNodes Slice 3, PN-19 decided (b)): `cover` is
-     * narrowed to the `'Enumerated'` arm only --- `'Full'` ("every node of the host") has no
-     * referent in a multi-host merge (loss (A)), so this makes it unrepresentable in the cache
-     * *by construction* rather than by a runtime guard someone could forget. `consolidated`
-     * stays a separate boolean beside `cover` (PN-15) rather than folding into it --- two facts,
-     * not three. **Populated as of presenceNodes Slice 4** by `mergeReducer.ts`'s
-     * `foldSameHostBuckets` (via its `presenceCacheNodesFromFold` helper), which mints one such
-     * node per binding folded, `consolidated: true`, `cover` built from `nodesFromPresenceBinding`.
-     */
-    | (Omit<EphemeraLudicGraphStructureNode, 'cover'> & {
-        cover: Extract<EphemeraPresenceCover, { tag: 'Enumerated' }>;
-        consolidated: boolean;
-    })
+export type EphemeraLudicCacheNode = EphemeraLudicGraphComponentNode & {
+    /** `undefined` means unresolved --- no equality-with-id inference (see `catalogHandles.ts`). */
+    shortName?: string;
+    /** `undefined` means unresolved or absent --- `Gloss` is optional on every kind, so no sentinel is needed. */
+    gloss?: string;
+    /** Iteration 1: attached by a separate attachEmbeddings pass, not by the rebuild (CC1c). */
+    embedding?: SemanticEmbedding;
+    presenceNodes: EphemeraLudicCachePresenceNode[];
+}
+
+/**
+ * One of a host's own bindings, nested on that host's `EphemeraLudicCacheNode`
+ * (presenceNodes Slice 3, PN-19 decided (b)): `cover` is
+ * narrowed to the `'Enumerated'` arm only --- `'Full'` ("every node of the host") has no
+ * referent in a multi-host merge (loss (A)), so this makes it unrepresentable in the cache
+ * *by construction* rather than by a runtime guard someone could forget. `consolidated`
+ * stays a separate boolean beside `cover` (PN-15) rather than folding into it --- two facts,
+ * not three. Minted by `mergeReducer.ts`'s `foldSameHostBuckets` (via its
+ * `presenceCacheNodesFromFold` helper), one per binding folded, `consolidated: true`. Each cover
+ * entry names the member's own binding into this binding's host (`EphemeraLudicCacheCoverEntry`).
+ */
+export type EphemeraLudicCachePresenceNode = Omit<EphemeraLudicGraphStructureNode, 'cover'> & {
+    cover: { tag: 'Enumerated'; members: EphemeraLudicCacheCoverEntry[] };
+    consolidated: boolean;
+}
+
+/**
+ * A cache cover entry: `host` is covered, and `presence` names which of `host`'s own bindings
+ * (into the covering binding's host) is meant. The graph-side `EphemeraPresenceCoverEntry`
+ * requires `presence`; here it is optional because the cache expands a graph-side `'Full'` cover,
+ * which has no entries, into an `'Enumerated'` list, and must look each member's binding up in
+ * the member's own graph. That lookup can come back empty --- e.g. a thing placed without a move,
+ * which never had a binding minted --- and the member is still covered, so the entry stays
+ * with `presence` absent. Entries copied from a graph-side `'Enumerated'` cover always carry it.
+ */
+export type EphemeraLudicCacheCoverEntry = Omit<EphemeraPresenceCoverEntry, 'presence'> & {
+    presence?: EphemeraPresenceNodeId;
+}
 
 /**
  * One hop of one route through `supportedBy` --- the crossing port this hop travels through
- * (`port`, "the hop's key for consolidation"), and the set of presence bindings that could
+ * (`host` + `port`, "the hop's key for consolidation"), and the set of presence bindings that could
  * independently justify having traveled it (`presenceBucketIds`, OR within the hop: any one of
- * them is enough). Identified by their own `PRESENCE#` id rather than by the host they bind,
- * since a host may carry more than one binding (PN-22's *one or more* quantifier) and the hop's
- * justification is binding-grained, not host-grained.
+ * them is enough). Bindings are identified by their own `PRESENCE#` id rather than by the host
+ * they bind, since a host may carry more than one binding (PN-22's *one or more* quantifier) and
+ * the hop's justification is binding-grained, not host-grained.
+ *
+ * **`host` (PNR-2(b), presenceNodes Slice 3): the host whose crossing port this hop travels
+ * through, named BESIDE `presenceBucketIds`, not instead of it** --- the two are different facts
+ * (which crossing vs. which binding justifies it) that happen to share one hop. Minted in
+ * `collapseCrossingPorts` as `childGraph.hostId`: the hop's `port` comes from `childGraph.ports`
+ * and its binding from `childGraph.presenceNodes`, so one host covers both per hop. `{ host, port
+ * }` is exactly that crossing port's own exterior address, closing an ambiguity `port` alone could
+ * not: a crossing port's id is unique only within its own host.
  */
 export type EphemeraLudicCacheSupportHop = {
+    host: EphemeraMembershipHostId;
     presenceBucketIds: EphemeraPresenceNodeId[];
     port: string;
 }
@@ -120,20 +150,40 @@ export type EphemeraLudicCacheData = {
     edges: EphemeraLudicCacheEdge[];
 }
 
-export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudicCacheNode => {
-    if (isEphemeraLudicGraphStructureNode(value)) {
-        // Delegates the shared shape (tag/universalKey/fromHostId/cover) to the graph guard,
-        // then narrows: 'Full' cover is illegal in the cache (PN-19), and `consolidated` is a
-        // cache-only field the graph-side guard knows nothing about.
-        if (value.cover.tag !== 'Enumerated') {
-            return false
-        }
-        return typeof (value as unknown as { consolidated: unknown }).consolidated === 'boolean'
+const isEphemeraLudicCacheCoverEntry = (value: unknown): value is EphemeraLudicCacheCoverEntry => {
+    if (!value || typeof value !== 'object') {
+        return false
     }
+    const entry = value as { host?: unknown; presence?: unknown }
+    return typeof entry.host === 'string' && isEphemeraMembershipHostId(entry.host)
+        && (entry.presence === undefined || (typeof entry.presence === 'string' && isEphemeraPresenceNodeId(entry.presence)))
+}
+
+// Checked here rather than through the graph-side structure guard, whose cover check requires
+// `presence` on every entry (see `EphemeraLudicCacheCoverEntry`). 'Full' cover is illegal in the
+// cache (PN-19), and `consolidated` is cache-only.
+export const isEphemeraLudicCachePresenceNode = (value: unknown): value is EphemeraLudicCachePresenceNode => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const node = value as { tag?: unknown; universalKey?: unknown; fromHostId?: unknown; cover?: { tag?: unknown; members?: unknown }; consolidated?: unknown }
+    return node.tag === 'Presence'
+        && typeof node.universalKey === 'string' && isEphemeraPresenceNodeId(node.universalKey)
+        && typeof node.fromHostId === 'string' && isEphemeraMembershipHostId(node.fromHostId)
+        && !!node.cover && node.cover.tag === 'Enumerated'
+        && Array.isArray(node.cover.members)
+        && node.cover.members.every((entry: unknown) => isEphemeraLudicCacheCoverEntry(entry))
+        && typeof node.consolidated === 'boolean'
+}
+
+export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudicCacheNode => {
     if (!isEphemeraLudicGraphComponentNode(value)) {
         return false
     }
-    const node = value as EphemeraLudicCacheNode & EphemeraLudicGraphComponentNode
+    const node = value as EphemeraLudicCacheNode
+    if (!Array.isArray(node.presenceNodes) || !node.presenceNodes.every((binding) => isEphemeraLudicCachePresenceNode(binding))) {
+        return false
+    }
     if (node.shortName !== undefined && typeof node.shortName !== 'string') {
         return false
     }
@@ -151,7 +201,8 @@ const isEphemeraLudicCacheSupportHop = (value: unknown): value is EphemeraLudicC
         return false
     }
     const hop = value as EphemeraLudicCacheSupportHop
-    return typeof hop.port === 'string'
+    return typeof hop.host === 'string' && isEphemeraMembershipHostId(hop.host)
+        && typeof hop.port === 'string'
         && Array.isArray(hop.presenceBucketIds)
         && hop.presenceBucketIds.every((id) => typeof id === 'string' && isEphemeraPresenceNodeId(id))
 }
@@ -159,11 +210,23 @@ const isEphemeraLudicCacheSupportHop = (value: unknown): value is EphemeraLudicC
 const isEphemeraLudicCacheSupport = (value: unknown): value is EphemeraLudicCacheSupport =>
     Array.isArray(value) && value.every((hop) => isEphemeraLudicCacheSupportHop(hop))
 
+// A bare presence-tagged terminal is illegal on a cache edge (PNR-2(a), Slice 3): nesting made a
+// binding's lookup in the cache a path --- the owner's node, then that binding on it --- so every
+// reference to a binding must carry the owner alongside the port id. `foldSameHostBuckets` and
+// `collapseCrossingPorts` lift every such terminal at mint time; a bare one reaching this guard is
+// corruption, not an unpulled-binding case (that case is an owner-qualified terminal whose binding
+// is simply absent from `nodes`, which the referential-integrity pass below already permits).
+const isNotBarePresenceTerminal = (terminal: EphemeraLudicTerminalId): boolean =>
+    !(typeof terminal === 'string' && isPresenceTaggedPortId(terminal))
+
 export const isEphemeraLudicCacheEdge = (value: unknown): value is EphemeraLudicCacheEdge => {
     if (!isEphemeraLudicRelationalEdgeData(value)) {
         return false
     }
     const edge = value as EphemeraLudicCacheEdge
+    if (!isNotBarePresenceTerminal(edge.from) || !isNotBarePresenceTerminal(edge.to)) {
+        return false
+    }
     if (!Array.isArray(edge.supportedBy) || !edge.supportedBy.every(isEphemeraLudicCacheSupport)) {
         return false
     }
@@ -184,19 +247,27 @@ export const isEphemeraLudicCacheData = (value: unknown): value is EphemeraLudic
     if (!Array.isArray(cache.edges) || !cache.edges.every((entry) => isEphemeraLudicCacheEdge(entry))) {
         return false
     }
-    // Referential integrity (rebuild 3d, presenceNodes Slice 6/PN-12): a cover entry naming a
-    // component node absent from this cache's own `nodes` is internal inconsistency and FAILS.
-    // An edge terminating at an absent presence node is a different, legal shape (the binding
-    // exists and was not pulled into this cache, PR-15) and is deliberately NOT checked here ---
-    // see PN-12's decomposition. `cover.members[].presence` is a cross-shard pointer into the
-    // covered component's own graph and is not checked against local `nodes` either.
-    const nodeIds = new Set(cache.nodes.map((node) => node.universalKey))
+    // Referential integrity (rebuild 3d, presenceNodes Slice 6/PN-12): a cover entry resolves by
+    // path --- the host's node, then that binding on it --- and an entry whose host has no node,
+    // or whose named binding is not on that node, is internal inconsistency and FAILS. A cover
+    // member is never a character (a character's membership host is a Room only, AGENT.contract.md),
+    // and the walk reaches every other member, so an absent host cannot be a legitimate omission.
+    // An entry with `presence` absent (the fold could not find that binding) checks the host step
+    // only. An edge terminating at an absent presence node is a different, legal shape (the
+    // binding exists and was not pulled into this cache, PR-15) and is deliberately NOT checked
+    // here --- see PN-12's decomposition.
+    const bindingsByOwner = new Map(cache.nodes.map((node) => [
+        node.universalKey as string,
+        new Set<string>(node.presenceNodes.map((binding) => binding.universalKey)),
+    ]))
     for (const node of cache.nodes) {
-        if (node.tag !== 'Presence') {
-            continue
-        }
-        if (node.cover.members.some((member) => !nodeIds.has(member.host))) {
-            return false
+        for (const binding of node.presenceNodes) {
+            for (const member of binding.cover.members) {
+                const memberBindings = bindingsByOwner.get(member.host)
+                if (!memberBindings || (member.presence !== undefined && !memberBindings.has(member.presence))) {
+                    return false
+                }
+            }
         }
     }
     return true
