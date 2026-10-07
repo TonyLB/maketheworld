@@ -2,6 +2,7 @@ import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/asse
 import {
     EphemeraCharacterId,
     EphemeraObjectId,
+    EphemeraPresenceNodeId,
     EphemeraRoomId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -22,6 +23,8 @@ export type RoomInPlayObjectCatalogEntry = {
     embedding?: SemanticEmbedding
     /** From the `ludicCache` node's reasoning gloss (`AGENT.concepts.md`'s `CommandAttempt` section); present only where authored or improvised. */
     gloss?: string
+    /** Where the actor saw it: its presence bucket, or the room it sits in directly (`GroundedPresence`). */
+    presence?: EphemeraPresenceNodeId | EphemeraRoomId
 }
 
 export type RoomObjectCatalogForCharacter = {
@@ -92,12 +95,17 @@ export async function getRoomObjectCatalogForCharacter(
     })
 
     const entries = handles
-        .map(({ objectId, shortName, gloss }): RoomInPlayObjectCatalogEntry | undefined => {
+        .map(({ objectId, shortName, gloss, presence }): RoomInPlayObjectCatalogEntry | undefined => {
             const normalizedShortName = normalizeExitName(shortName)
             if (normalizedShortName.length === 0) {
                 return undefined
             }
-            return { objectId, normalizedShortName, ...(gloss !== undefined ? { gloss } : {}) }
+            return {
+                objectId,
+                normalizedShortName,
+                ...(gloss !== undefined ? { gloss } : {}),
+                ...(presence !== undefined ? { presence } : {}),
+            }
         })
         .filter((entry): entry is RoomInPlayObjectCatalogEntry => entry !== undefined)
 

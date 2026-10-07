@@ -1,5 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
@@ -76,8 +77,8 @@ describe('getRoomObjectCatalogForCharacter', () => {
 
         expect(result.roomId).toBe(roomId)
         expect(result.entries).toEqual([
-            { objectId: broomId, normalizedShortName: 'broom' },
-            { objectId: anvilId, normalizedShortName: 'heavy anvil' },
+            { objectId: broomId, normalizedShortName: 'broom', presence: roomId },
+            { objectId: anvilId, normalizedShortName: 'heavy anvil', presence: roomId },
         ])
         expect(roomObjectLabelsFromCatalog(result.entries)).toEqual(['broom', 'heavy anvil'])
     })
@@ -101,7 +102,7 @@ describe('getRoomObjectCatalogForCharacter', () => {
         })
 
         expect(result.entries).toEqual([
-            { objectId: authoredId, normalizedShortName: 'brass candlestick' },
+            { objectId: authoredId, normalizedShortName: 'brass candlestick', presence: roomId },
         ])
     })
 
@@ -119,9 +120,10 @@ describe('getRoomObjectCatalogForCharacter', () => {
         expect(result.entries).toEqual([])
     })
 
-    it('names an object nested inside a hosted object from the room', async () => {
+    it('names an object nested inside a hosted object from the room, and the bucket each was seen in', async () => {
         const tableId = 'OBJECT#Table' as EphemeraObjectId
         const cupId = 'OBJECT#Cup' as EphemeraObjectId
+        const tableBinding = PresenceKey('table-in-kitchen')
 
         const result = await getRoomObjectCatalogForCharacter(characterId, {
             ...catalogPerspectiveDeps,
@@ -131,7 +133,10 @@ describe('getRoomObjectCatalogForCharacter', () => {
                     nodes: [{ tag: 'Object', universalKey: tableId }],
                 }),
                 [tableId]: testLudicGraph(tableId, {
-                    nodes: [{ tag: 'Object', universalKey: cupId }],
+                    nodes: [
+                        { tag: 'Object', universalKey: cupId },
+                        { tag: 'Presence', universalKey: tableBinding, fromHostId: roomId, cover: { tag: 'Full' } },
+                    ],
                 }),
             }),
             getComponentAggregate: namedComponentAggregate({
@@ -141,8 +146,8 @@ describe('getRoomObjectCatalogForCharacter', () => {
         })
 
         expect(result.entries).toEqual([
-            { objectId: tableId, normalizedShortName: 'table' },
-            { objectId: cupId, normalizedShortName: 'cup' },
+            { objectId: tableId, normalizedShortName: 'table', presence: roomId },
+            { objectId: cupId, normalizedShortName: 'cup', presence: tableBinding },
         ])
     })
 })

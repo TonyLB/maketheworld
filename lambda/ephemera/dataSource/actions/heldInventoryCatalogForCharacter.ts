@@ -28,6 +28,9 @@ const defaultDeps = (): HeldInventoryCatalogDeps => ({
 
 /**
  * Merged-layer held inventory catalog for object-manipulation identity stage (O5).
+ *
+ * A held thing is seen in the character's own bucket, so each entry's `presence` is the
+ * character's binding when it has exactly one; otherwise it is left unlearned.
  */
 export async function getHeldInventoryCatalogForCharacter(
     characterId: EphemeraCharacterId,
@@ -40,6 +43,7 @@ export async function getHeldInventoryCatalogForCharacter(
         return { entries: [] }
     }
 
+    const presence = ludicGraph.presenceNodes.length === 1 ? ludicGraph.presenceNodes[0]!.universalKey : undefined
     const assetStack = await deps.getCharacterAssets(characterId)
     const entries = (
         await Promise.all(objectIds.map(async (objectId): Promise<RoomInPlayObjectCatalogEntry | undefined> => {
@@ -51,7 +55,7 @@ export async function getHeldInventoryCatalogForCharacter(
             if (normalizedShortName.length === 0) {
                 return undefined
             }
-            return { objectId, normalizedShortName }
+            return { objectId, normalizedShortName, ...(presence !== undefined ? { presence } : {}) }
         }))
     ).filter((entry): entry is RoomInPlayObjectCatalogEntry => entry !== undefined)
 

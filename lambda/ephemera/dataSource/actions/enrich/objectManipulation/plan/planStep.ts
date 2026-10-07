@@ -1,3 +1,4 @@
+import type { EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
@@ -8,6 +9,15 @@ import type { EphemeraThingId } from '../thing'
  * carry (below).
  */
 export type GroundedId = EphemeraThingId | EphemeraMembershipHostId
+
+/**
+ * Where a referent was seen: the presence bucket (the binding of the host whose graph holds
+ * the thing) it was matched through, or the room itself when the thing sits in the room's own
+ * graph (a room has no binding). It is the first step of an audience walk up to rooms, and is
+ * learned only upstream (Grounding, from the `ludicCache`; Expansion, from the edge it walked),
+ * since the perspective is lost after. Optional: absent means not learned, never "in the room".
+ */
+export type GroundedPresence = EphemeraPresenceNodeId | EphemeraRoomId
 
 /**
  * A referent is grounded or ungrounded by what is known about it, not by where it
@@ -24,6 +34,7 @@ export type ObjectSpanReferent = {
     span: string
     stableRefKey?: string
     groundedId?: GroundedId
+    groundedPresence?: GroundedPresence
     /** Names the thing for the attempt's prose once known (stamped by key, `stampCandidateReferents.ts`). */
     shortName?: string
     gloss?: string
@@ -34,7 +45,7 @@ export type CurrentHostReferent = { referentType: 'currentHost'; referentTarget:
  * Born grounded: a thing known only by its id in a graph, which no phrase named ---
  * e.g. the post at the far end of a boundary edge that Expansion must dissolve.
  */
-export type GraphNodeReferent = { referentType: 'graphNode'; groundedId: GroundedId }
+export type GraphNodeReferent = { referentType: 'graphNode'; groundedId: GroundedId; groundedPresence?: GroundedPresence }
 export type Referent = ObjectSpanReferent | ActingCharacterReferent | CurrentHostReferent | GraphNodeReferent
 export type GroundedReferent = Referent & { groundedId: GroundedId }
 
@@ -105,9 +116,10 @@ export const currentHostRef = (referentTarget: Referent): Referent => ({
     referentTarget,
 })
 
-export const graphNodeRef = (groundedId: GroundedId): GraphNodeReferent => ({
+export const graphNodeRef = (groundedId: GroundedId, groundedPresence?: GroundedPresence): GraphNodeReferent => ({
     referentType: 'graphNode',
     groundedId,
+    ...(groundedPresence !== undefined ? { groundedPresence } : {}),
 })
 
 /** Adds a known id to a referent, keeping everything already known about it. */

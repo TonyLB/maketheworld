@@ -208,6 +208,7 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
                 id: identity.objectId,
                 shortName: entry?.normalizedShortName ?? identity.objectId,
                 gloss: entry?.gloss,
+                presence: entry?.presence,
             })
         }
         return input.attempts.map((attempt): GroundedAttemptCandidate => {

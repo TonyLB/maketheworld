@@ -1,5 +1,6 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
@@ -10,6 +11,7 @@ import { ludicCacheObjectHandles } from './catalogHandles'
 const makeObjectComponent = (shortName: string) => new StandardObject({ tag: 'Object', shortName })
 
 const roomA = 'ROOM#A' as EphemeraRoomId
+const roomB = 'ROOM#B' as EphemeraRoomId
 const boxId = 'OBJECT#Box' as EphemeraObjectId
 const pebble = 'OBJECT#Pebble' as EphemeraObjectId
 const namedId = 'OBJECT#Named' as EphemeraObjectId
@@ -58,7 +60,7 @@ describe('ludicCacheObjectHandles', () => {
             ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
         })
 
-        expect(handles).toEqual([{ objectId: namedId, shortName: 'Named Thing' }])
+        expect(handles).toEqual([{ objectId: namedId, shortName: 'Named Thing', presence: roomA }])
     })
 
     it('excludes an object whose shortName never resolved', async () => {
@@ -130,5 +132,52 @@ describe('ludicCacheObjectHandles', () => {
         expect(typeof (fields as { wallTimeMs: unknown }).wallTimeMs).toBe('number')
 
         spy.mockRestore()
+    })
+
+    // AN-7 stage 1: each handle names the bucket the walk saw it in, so Grounding can stamp it.
+    describe('presence', () => {
+        const boxBinding = PresenceKey('box-in-a')
+        const boxOtherBinding = PresenceKey('box-in-b')
+        const boxInRoom = (bindings: { key: typeof boxBinding, from: EphemeraMembershipHostId }[]) => new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, testLudicGraph(roomA, {
+                nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: boxId }],
+            })],
+            [boxId, testLudicGraph(boxId, {
+                nodes: [
+                    { tag: 'Object', universalKey: boxId },
+                    { tag: 'Object', universalKey: pebble },
+                    ...bindings.map(({ key, from }) => ({ tag: 'Presence' as const, universalKey: key, fromHostId: from, cover: { tag: 'Full' as const } })),
+                ],
+            })],
+            [pebble, testLudicGraph(pebble, { nodes: [{ tag: 'Object', universalKey: pebble }] })],
+        ])
+        const names = namedShortNameDeps({ [boxId]: 'Box', [pebble]: 'Pebble' })
+
+        it('names the room for a thing in the room\'s own graph, and the box\'s binding for a thing inside it', async () => {
+            const handles = await ludicCacheObjectHandles(roomA, [], {
+                ...graphsAsDeps(boxInRoom([{ key: boxBinding, from: roomA }])),
+                ...names,
+            })
+
+            expect(handles).toEqual(expect.arrayContaining([
+                { objectId: boxId, shortName: 'Box', presence: roomA },
+                { objectId: pebble, shortName: 'Pebble', presence: boxBinding },
+            ]))
+        })
+
+        it('skips a binding into a host the walk never reached', async () => {
+            const handles = await ludicCacheObjectHandles(roomA, [], {
+                ...graphsAsDeps(boxInRoom([{ key: boxOtherBinding, from: roomB }, { key: boxBinding, from: roomA }])),
+                ...names,
+            })
+
+            expect(handles.find(({ objectId }) => objectId === pebble)?.presence).toBe(boxBinding)
+        })
+
+        it('falls back to the seed room when the containing host has no binding', async () => {
+            const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(boxInRoom([])), ...names })
+
+            expect(handles.find(({ objectId }) => objectId === pebble)?.presence).toBe(roomA)
+        })
     })
 })

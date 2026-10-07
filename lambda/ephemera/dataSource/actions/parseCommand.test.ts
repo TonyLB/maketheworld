@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../positions/ludicGraph/testFixtures'
 import { CommandAttempt, type CommandAttemptData } from './commandAttempt'
@@ -1996,6 +1996,45 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             const attempt = CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt)
             // No facilitating dissolve: the move itself removes the coin's hosting edge at commit.
             expect(attempt.actions()).toHaveLength(1)
+        })
+
+        it('take the coin when it is lashed to the post on the table: the take and both ends of the dissolve carry the table\'s bucket', async () => {
+            const tableBinding = 'PRESENCE#table-in-room' as EphemeraPresenceNodeId
+            const { result } = await run(
+                {
+                    command: 'take coin',
+                    roomObjectLabels: ['coin', 'post', 'table'],
+                    roomObjectCatalog: [
+                        { objectId: COIN, normalizedShortName: 'coin', presence: tableBinding },
+                        { objectId: POST, normalizedShortName: 'post', presence: tableBinding },
+                        { objectId: TABLE, normalizedShortName: 'table', presence: ROOM },
+                    ],
+                },
+                {
+                    containers: { [COIN]: [TABLE], [POST]: [TABLE] },
+                    graphs: {
+                        [ROOM]: roomWith([TABLE]),
+                        [TABLE]: testLudicGraph(TABLE as unknown as EphemeraRoomId, {
+                            nodes: [{ tag: 'Object', universalKey: COIN }, { tag: 'Object', universalKey: POST }],
+                            edges: [
+                                { tag: 'Relational', from: COIN, to: TABLE, kind: 'On' },
+                                { tag: 'Relational', from: POST, to: TABLE, kind: 'On' },
+                                { tag: 'Relational', from: COIN, to: POST, kind: 'Custom', relationLabel: 'is lashed to' },
+                            ] as any,
+                        }),
+                    },
+                }
+            )
+            expect(result).toMatchObject({ type: 'CommandAttempt' })
+            // Round trip through the published JSON, as the hand-off does.
+            const attempt = CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt)
+            const [dissolve, take] = attempt.actions()
+            expect(take!.desiredResult).toMatchObject({ object: { groundedId: COIN, groundedPresence: tableBinding } })
+            expect(dissolve!.desiredResult).toMatchObject({
+                primitive: 'dissolveRelation',
+                subject: { groundedId: COIN, groundedPresence: tableBinding },
+                target: { groundedId: POST, groundedPresence: tableBinding },
+            })
         })
     })
 

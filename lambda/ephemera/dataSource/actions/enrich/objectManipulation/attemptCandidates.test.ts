@@ -1,4 +1,4 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { attemptSpanKeys, proposeAttemptCandidates } from './attemptCandidates'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
@@ -90,6 +90,41 @@ describe('proposeAttemptCandidates', () => {
         expect(result.candidates).toHaveLength(2)
         const [planAction] = attempt.actions()
         expect(result.candidates.map((candidate) => candidate.attempt.actions()[0]?.id)).toEqual([planAction.id, planAction.id])
+    })
+
+    it('stamps each identity candidate\'s span with the presence its own catalog entry was seen in', () => {
+        const otherCupId = 'OBJECT#OtherCup' as EphemeraObjectId
+        const roomId = 'ROOM#Kitchen' as EphemeraRoomId
+        const shelfBinding = 'PRESENCE#shelf-in-kitchen' as EphemeraPresenceNodeId
+        const attempt = attemptFor(relationSkeleton, 'put cup on tray')
+        const twoCups: SpanCandidatePool = {
+            span: 'cup',
+            candidates: [cupId, otherCupId].map((id) => ({ id, label: 'cup', jointRelevance: 1, sourceTags: ['exact' as const], locus: { kind: 'room' as const } })),
+        }
+        const result = proposeAttemptCandidates({
+            command: 'put cup on tray',
+            attempts: [attempt],
+            spanPools: new Map([['cupRef', twoCups], ['trayRef', pool('tray', trayId)]]),
+            catalog: [
+                { objectId: cupId, normalizedShortName: 'cup', catalogScope: 'room', presence: roomId },
+                { objectId: otherCupId, normalizedShortName: 'cup', catalogScope: 'room', presence: shelfBinding },
+                { objectId: trayId, normalizedShortName: 'tray', catalogScope: 'room' },
+            ],
+            noAssignmentReason: 'none',
+        })
+
+        expect(result.ok).toBe(true)
+        if (!result.ok) {
+            return
+        }
+        const cupSpans = result.candidates.map((candidate) => candidate.attempt.actions()[0]?.referents()[0])
+        expect(cupSpans).toEqual(expect.arrayContaining([
+            expect.objectContaining({ groundedId: cupId, groundedPresence: roomId }),
+            expect.objectContaining({ groundedId: otherCupId, groundedPresence: shelfBinding }),
+        ]))
+        const traySpan = result.candidates[0]?.attempt.actions()[0]?.referents()[2]
+        expect(traySpan).toEqual(expect.objectContaining({ groundedId: trayId }))
+        expect(traySpan).not.toHaveProperty('groundedPresence')
     })
 
     it('never binds two distinct span keys of one step to the same object', () => {

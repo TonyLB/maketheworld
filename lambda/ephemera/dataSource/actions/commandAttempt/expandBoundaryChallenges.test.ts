@@ -1,8 +1,8 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../../positions/ludicGraph/testFixtures'
 import { attemptActionsFromBoundaryOutcomes, attemptActionsFromTransfer } from './expandBoundaryChallenges'
 import { PositionAttemptAction } from './action'
-import { graphNodeRef } from '../enrich/objectManipulation/plan/planStep'
+import { graphNodeRef, type GroundedPresence, type TransferMembershipChange } from '../enrich/objectManipulation/plan/planStep'
 
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const ropeId = 'OBJECT#Rope' as EphemeraObjectId
@@ -121,5 +121,46 @@ describe('attemptActionsFromTransfer', () => {
 
         expect(primary?.challenges().map((challenge) => challenge.toJSON().kind)).toEqual(['exitEdge'])
         expect(primary?.id).toBe('primary')
+    })
+
+    describe('presence on the dissolves\' referents', () => {
+        const characterId = 'CHARACTER#Tess' as EphemeraCharacterId
+        const lashedGraph = () => testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [{ tag: 'Relational', from: postId, to: ropeId, kind: 'Custom', relationLabel: 'is lashed to' }],
+        })
+        const takeRope = (groundedPresence?: GroundedPresence) => {
+            const desiredResult: TransferMembershipChange = {
+                kind: 'change',
+                primitive: 'transferMembership',
+                object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'objectRef', groundedId: ropeId, ...(groundedPresence !== undefined ? { groundedPresence } : {}) },
+                from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'objectRef' }, groundedId: roomId },
+                to: { referentType: 'actingCharacter', groundedId: characterId },
+            }
+            return new PositionAttemptAction('primary', [], desiredResult, 'Take: rope')
+        }
+
+        it('gives both ends the moved object\'s presence, since the edge was read from its host\'s graph', () => {
+            const boxBinding = 'PRESENCE#box-in-bridge' as EphemeraPresenceNodeId
+
+            const [dissolve] = attemptActionsFromTransfer(takeRope(boxBinding), ropeId, lashedGraph())
+
+            expect(dissolve?.desiredResult).toEqual(expect.objectContaining({
+                subject: graphNodeRef(postId, boxBinding),
+                target: graphNodeRef(ropeId, boxBinding),
+            }))
+        })
+
+        it('leaves both ends unlearned when the moved object\'s presence is', () => {
+            const [dissolve] = attemptActionsFromTransfer(takeRope(), ropeId, lashedGraph())
+
+            expect(dissolve?.desiredResult).toEqual(expect.objectContaining({
+                subject: { referentType: 'graphNode', groundedId: postId },
+                target: { referentType: 'graphNode', groundedId: ropeId },
+            }))
+        })
     })
 })
