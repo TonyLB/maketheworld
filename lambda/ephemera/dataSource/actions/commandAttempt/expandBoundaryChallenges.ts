@@ -7,7 +7,7 @@ import type { DissolveRelationChange, GroundedReferent } from '../enrich/objectM
 import { graphNodeRef } from '../enrich/objectManipulation/plan/planStep'
 import { isEphemeraThingId, type EphemeraThingId } from '../enrich/objectManipulation/thing'
 import type { AttemptAction } from './action'
-import { PositionAttemptAction } from './action'
+import { mintActionId, PositionAttemptAction } from './action'
 import type { Challenge } from './challenge'
 import { CustomEdgeChallenge, ExitEdgeChallenge } from './challenge'
 import { objectTouchesExitEdgeOnGraph } from '../enrich/objectManipulation/membershipObservation'
@@ -81,6 +81,7 @@ export const attemptActionsFromBoundaryOutcomes = (
         }
 
         return new PositionAttemptAction(
+            mintActionId(),
             challenges,
             desiredResult,
             entry.edge.kind === 'Custom' ? `Dissolve: ${entry.edge.relationLabel}` : `Dissolve: ${entry.edge.kind}`

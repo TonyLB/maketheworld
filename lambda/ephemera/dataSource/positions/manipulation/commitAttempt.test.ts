@@ -66,7 +66,7 @@ const membershipAttempt = (operation: 'takeHold' | 'drop' = 'takeHold'): Command
     )
     return CommandAttempt.fromJSON(
         CommandAttempt.create('pick up the broom', [
-            new PositionAttemptAction([], step, `${operation === 'takeHold' ? 'Take' : 'Drop'}: broom`),
+            new PositionAttemptAction('action-1', [], step, `${operation === 'takeHold' ? 'Take' : 'Drop'}: broom`),
         ]).toJSON()
     )
 }
@@ -92,6 +92,7 @@ const containmentAttempt = (containment: 'On' | 'In' = 'On'): CommandAttempt => 
     ],
     actions: [{
         kind: 'position',
+        id: 'action-2',
         desiredResult: {
             kind: 'change',
             primitive: 'transferMembership',
@@ -109,6 +110,7 @@ const relationalAttempt = (primitive: 'establishRelation' | 'dissolveRelation' =
     referents: [],
     actions: [{
         kind: 'position',
+        id: 'action-3',
         desiredResult: {
             kind: 'change',
             primitive,
@@ -299,6 +301,7 @@ describe('commitAttempt', () => {
             actions: [
                 {
                     kind: 'position',
+                    id: 'action-4',
                     desiredResult: {
                         kind: 'change',
                         primitive: 'transferMembership',
@@ -310,6 +313,7 @@ describe('commitAttempt', () => {
                 },
                 {
                     kind: 'position',
+                    id: 'action-5',
                     desiredResult: {
                         kind: 'change',
                         primitive: 'establishRelation',
@@ -345,6 +349,7 @@ describe('commitAttempt', () => {
             actions: [
                 {
                     kind: 'position',
+                    id: 'action-6',
                     desiredResult: {
                         kind: 'change',
                         primitive: 'dissolveRelation',
@@ -357,6 +362,7 @@ describe('commitAttempt', () => {
                 },
                 {
                     kind: 'position',
+                    id: 'action-7',
                     desiredResult: {
                         kind: 'change',
                         primitive: 'transferMembership',
@@ -381,7 +387,7 @@ describe('commitAttempt', () => {
         const attempt = CommandAttempt.fromJSON({
             words: 'look at the cup',
             referents: [],
-            actions: [{ kind: 'position', desiredResultDescription: 'Describe: cup', challenges: [] }],
+            actions: [{ kind: 'position', id: 'action-8', desiredResultDescription: 'Describe: cup', challenges: [] }],
         })
 
         await commitAttempt({ attempt, characterId: CHARACTER, messageBus, streamEvent })
@@ -432,6 +438,7 @@ describe('commitAttempt', () => {
                 actions: [
                     {
                         kind: 'position',
+                        id: 'action-9',
                         desiredResult: {
                             kind: 'change',
                             primitive: 'dissolveRelation',

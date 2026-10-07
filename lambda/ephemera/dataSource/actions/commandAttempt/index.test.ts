@@ -18,6 +18,7 @@ const postId = 'OBJECT#Post1' as EphemeraObjectId
 
 const positionAction = (challenges: ChallengeData[], desiredResultDescription?: string): AttemptActionData => ({
     kind: 'position',
+    id: 'action-1',
     challenges,
     ...(desiredResultDescription !== undefined ? { desiredResultDescription } : {}),
 })
@@ -35,6 +36,7 @@ const span = (refKey: string, id: EphemeraObjectId, shortName: string, gloss?: s
 /** A narration carrying the referents its prose names (the look route's shape). */
 const narrateAction = (referents: Referent[], challenges: ChallengeData[], description?: string): AttemptActionData => ({
     kind: 'narrate',
+    id: 'action-2',
     challenges,
     referents,
     ...(description !== undefined ? { description } : {}),
@@ -177,6 +179,7 @@ describe('CommandAttempt', () => {
             actions: [
                 {
                     kind: 'narrate',
+                    id: 'action-3',
                     referents: [span('ropeRef', ropeId, 'a coil of rope')],
                     description: 'the rope is untied',
                     challenges: [
@@ -268,6 +271,22 @@ describe('CommandAttempt', () => {
         })
     })
 
+    describe('action ids', () => {
+        it('keeps each action\'s id through recordVerdict, grounded() and the JSON round trip', () => {
+            const attempt = CommandAttempt.fromJSON({
+                words: 'get rope',
+                referents: [],
+                actions: [
+                    { ...narrateAction([span('ropeRef', ropeId, 'a coil of rope')], []), id: 'narrate-1' },
+                    { ...positionAction([{ kind: 'worldKnowledge', id: 'knot', description: 'none' }], 'taken'), id: 'position-1' },
+                ],
+            }).recordVerdict('knot', new MetVerdict())
+            expect(attempt.actions().map((action) => action.id)).toEqual(['narrate-1', 'position-1'])
+            expect(attempt.actions().map((action) => action.grounded(new Map()).id)).toEqual(['narrate-1', 'position-1'])
+            expect(CommandAttempt.fromJSON(attempt.toJSON()).actions().map((action) => action.id)).toEqual(['narrate-1', 'position-1'])
+        })
+    })
+
     describe('NarrateAttemptAction', () => {
         it('round-trips through toJSON/fromJSON, with its referents, no challenges and no desiredResult', () => {
             const data: CommandAttemptData = {
@@ -296,6 +315,7 @@ describe('CommandAttempt', () => {
                 referents: [],
                 actions: [{
                     kind: 'position',
+                    id: 'action-4',
                     desiredResult: {
                         kind: 'change',
                         primitive: 'transferMembership',
@@ -311,7 +331,7 @@ describe('CommandAttempt', () => {
         })
 
         it('does not list a span that Grounding has not yet named', () => {
-            const attempt = CommandAttempt.create('put cup on plate', [new PositionAttemptAction([], {
+            const attempt = CommandAttempt.create('put cup on plate', [new PositionAttemptAction('action-5', [], {
                 kind: 'change',
                 primitive: 'transferMembership',
                 object: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'subject' },

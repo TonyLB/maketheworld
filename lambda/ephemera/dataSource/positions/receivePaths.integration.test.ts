@@ -218,7 +218,7 @@ describe('positions receive paths (integration)', () => {
             const attemptData: CommandAttemptData = {
                 words: 'pick up the broom',
                 referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
-                actions: [{ kind: 'position', desiredResultDescription: 'Take: broom', challenges: [] }],
+                actions: [{ kind: 'position', id: 'action-1', desiredResultDescription: 'Take: broom', challenges: [] }],
             }
 
             publishPositionsStreamingEvent('mtw.ephemera.actions', 'Ludic Network Change Requested', {
@@ -249,6 +249,7 @@ describe('positions receive paths (integration)', () => {
                 actions: [
                     {
                         kind: 'position',
+                        id: 'action-2',
                         desiredResultDescription: 'Dissolve: is lashed to',
                         challenges: [
                             {
@@ -260,7 +261,7 @@ describe('positions receive paths (integration)', () => {
                             },
                         ],
                     },
-                    { kind: 'position', desiredResultDescription: 'Take: rope', challenges: [] },
+                    { kind: 'position', id: 'action-3', desiredResultDescription: 'Take: rope', challenges: [] },
                 ],
             }
 

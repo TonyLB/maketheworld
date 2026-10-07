@@ -1072,6 +1072,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                         referents: [],
                         actions: [{
                             kind: 'position',
+                            id: 'action-1',
                             desiredResult: {
                                 kind: 'change',
                                 primitive: 'establishRelation',
@@ -1130,6 +1131,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                         referents: [],
                         actions: [{
                             kind: 'position',
+                            id: 'action-2',
                             desiredResult: {
                                 kind: 'change',
                                 primitive: 'dissolveRelation',

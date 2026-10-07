@@ -1,7 +1,7 @@
 import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
 import type { ManipulationVerbClass } from '../../../baseClasses'
 import { CommandAttempt } from '../../../commandAttempt'
-import { PositionAttemptAction } from '../../../commandAttempt/action'
+import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/action'
 import {
     actingCharacterRef,
     currentHostRef,
@@ -63,7 +63,7 @@ export function matchMembershipTemplate(skeleton: ParseSkeleton, command: string
         type: 'matched',
         verbClass,
         attempt: CommandAttempt.create(command, [
-            new PositionAttemptAction([], planMembershipDesiredResult(operationKind, span, refKey)),
+            new PositionAttemptAction(mintActionId(), [], planMembershipDesiredResult(operationKind, span, refKey)),
         ]),
     }
 }

@@ -6,7 +6,7 @@ describe('adjudicateAttempt', () => {
         const attempt = CommandAttempt.fromJSON({
             words: 'take the broom',
             referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
-            actions: [{ kind: 'position', desiredResultDescription: 'Take: broom', challenges: [] }],
+            actions: [{ kind: 'position', id: 'action-1', desiredResultDescription: 'Take: broom', challenges: [] }],
         })
 
         const result = adjudicateAttempt(attempt).result
@@ -18,9 +18,10 @@ describe('adjudicateAttempt', () => {
         words: 'take the rope',
         referents: [{ refKey: 'primaryObject', id: 'OBJECT#Rope', shortName: 'rope' }],
         actions: [
-            { kind: 'position', desiredResultDescription: 'Take: rope', challenges: [] },
+            { kind: 'position', id: 'action-2', desiredResultDescription: 'Take: rope', challenges: [] },
             {
                 kind: 'position',
+                id: 'action-3',
                 desiredResultDescription: 'Dissolve: is lashed to',
                 challenges: [challenge as never],
             },
@@ -59,7 +60,7 @@ describe('isCommandAttemptData', () => {
         expect(isCommandAttemptData({
             words: 'take the broom',
             referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
-            actions: [{ kind: 'position', challenges: [] }],
+            actions: [{ kind: 'position', id: 'action-4', challenges: [] }],
         })).toBe(true)
     })
 
@@ -70,7 +71,12 @@ describe('isCommandAttemptData', () => {
         expect(isCommandAttemptData({
             words: 'take the broom',
             referents: [],
-            actions: [{ kind: 'position', challenges: [{ kind: 'customEdge', id: 'x', description: 'd' }] }],
+            actions: [{ kind: 'position', id: 'action-5', challenges: [{ kind: 'customEdge', id: 'x', description: 'd' }] }],
+        })).toBe(false)
+        expect(isCommandAttemptData({
+            words: 'take the broom',
+            referents: [],
+            actions: [{ kind: 'position', challenges: [] }],
         })).toBe(false)
     })
 })

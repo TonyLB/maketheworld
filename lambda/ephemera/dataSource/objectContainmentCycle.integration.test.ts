@@ -80,6 +80,7 @@ const move = (subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => commit
         referents: [],
         actions: [{
             kind: 'position',
+            id: 'action-1',
             desiredResult: {
                 kind: 'change',
                 primitive: 'transferMembership',
