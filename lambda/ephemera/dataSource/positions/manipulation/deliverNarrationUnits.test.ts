@@ -59,7 +59,7 @@ describe('deliverNarrationUnits', () => {
             captures,
             bundleId: 'BUNDLE#test',
             messageBus,
-            resolveCaptureId: (_unit, audience) => (audience.phase === 'before' ? 'capture:from:ROOM#Departure' : 'capture:to'),
+            resolveCaptureId: (_unit, audience) => (audience.phase === 'before' ? ['capture:from:ROOM#Departure'] : ['capture:to']),
         })
 
         expect(sendMessageBundleDeclaredMock).toHaveBeenCalledTimes(1)
@@ -74,13 +74,44 @@ describe('deliverNarrationUnits', () => {
         expect(reported[1]!.message).toMatchObject({ type: 'PublishMessage', displayProtocol: 'WorldMessage', targets: [BOB], message: ['Alice picks up broom'] })
     })
 
+    it('unions several capture ids into one deduplicated roster for a multi-room audience (AN-8)', () => {
+        const messageBus = { publish: jest.fn() } as any
+        const captures = new Map([
+            ['capture:room-1', [ALICE]],
+            ['capture:room-2', [ALICE, BOB]],
+        ])
+
+        deliverNarrationUnits({
+            units: [unit('OBJECT#Broom')],
+            captures,
+            bundleId: 'BUNDLE#test',
+            messageBus,
+            resolveCaptureId: (_unit, audience) => (audience.phase === 'before' ? ['capture:room-1', 'capture:room-2'] : []),
+        })
+
+        const reported = sendMessageSlotReportedMock.mock.calls.map(([, , content]) => content)
+        expect(reported[0]!.message).toMatchObject({ targets: [ALICE, BOB] })
+        expect(reported[1]!.message).toMatchObject({ targets: [] })
+    })
+
     it('throws the no-live-roster-fallback invariant when a resolved captureId has no entry', () => {
         expect(() => deliverNarrationUnits({
             units: [unit('OBJECT#Broom')],
             captures: new Map(),
             bundleId: 'BUNDLE#test',
             messageBus: { publish: jest.fn() } as any,
-            resolveCaptureId: () => 'capture:missing',
+            resolveCaptureId: () => ['capture:missing'],
+        })).toThrow(/produced no capture for/)
+    })
+
+    it('throws when one of several resolved captureIds has no entry', () => {
+        const captures = new Map([['capture:known', [ALICE]]])
+        expect(() => deliverNarrationUnits({
+            units: [unit('OBJECT#Broom')],
+            captures,
+            bundleId: 'BUNDLE#test',
+            messageBus: { publish: jest.fn() } as any,
+            resolveCaptureId: () => ['capture:known', 'capture:missing'],
         })).toThrow(/produced no capture for/)
     })
 })

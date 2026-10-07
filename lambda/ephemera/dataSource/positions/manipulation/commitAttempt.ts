@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -16,16 +16,17 @@ import type {
     DissolveRelationChange,
     EstablishRelationChange,
     GroundedId,
+    GroundedPresence,
     GroundedReferent,
     TransferMembershipChange,
 } from '../../actions/enrich/objectManipulation/plan/planStep'
 import { buildReferentAssignment, type DerivedReferentResolver } from '../../actions/enrich/objectManipulation/synthesize/buildReferentAssignment'
 import { groundChange } from '../../actions/enrich/objectManipulation/synthesize/groundChange'
 import { commitAndPresentStepSequence } from './kernel/commitAndPresentStepSequence'
-import { CAPTURE_ID_TO, captureIdForFrom, objectMoveVerb, type CompiledPositionKernelPlan } from './kernel/compile/compilePositionKernelOp'
+import { objectMoveVerb, type CompiledPositionKernelPlan } from './kernel/compile/compilePositionKernelOp'
 import type { RelationalEdgeFactSource } from './kernel/factsForStep'
 import { isKernelMutationStep } from './kernel/kernelStep'
-import type { TemplateNarrationSpec } from './kernel/kernelStep'
+import type { MutationKernelCaptureStep, TemplateNarrationSpec } from './kernel/kernelStep'
 import { dryRunStepSequence } from './kernel/dryRunStepSequence'
 import { planObjectMoveTransfer } from './membership/planObjectMoveTransfer'
 import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTransfer'
@@ -35,6 +36,9 @@ import { resolveObjectMovePresentationLabels } from '../../perception/resolveObj
 import { edgesMatch, type HostRelationalEdge } from '../ludicGraph'
 import type { MutationKernelStep } from './kernel/kernelStep'
 import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { roomsForHost, roomsForReferent } from '../ludicGraph/presenceRooms'
+import type { EphemeraLudicGraph } from '../ludicGraph'
+import type { NarrationAudience } from '../../actions/commandAttempt/narrationUnit'
 
 /** An attempt's commit never includes a `describe` step of its own --- same noop as navigate's/object-move's. */
 const noopActionsStreamEvent: StreamEventFunction<ActionsPublishedPayload> = async () => {}
@@ -276,6 +280,154 @@ const orderNarrationUnitsForDelivery = (
     return delivered
 }
 
+type ReferentGrounding = { groundedId: EphemeraMembershipHostId; groundedPresence?: GroundedPresence[] }
+
+/**
+ * A ref's grounding, for the presence -> room walk (AN-7 stage 2): a `stableRefKey` resolves
+ * through the attempt's own referents (Grounding's stamp, stage 1); anything else is already a
+ * grounded id with no known presence beyond its current binding (a bridge unit's ref is the moved
+ * entity's own id, not a stableRefKey).
+ */
+const referentGroundingByStableRefKey = (attempt: CommandAttempt): ReadonlyMap<string, ReferentGrounding> => {
+    const byStableRefKey = new Map<string, ReferentGrounding>()
+    for (const action of attempt.actions()) {
+        for (const referent of action.referents()) {
+            if (referent.referentType !== 'objectSpan' || referent.stableRefKey === undefined || referent.groundedId === undefined) {
+                continue
+            }
+            if (!byStableRefKey.has(referent.stableRefKey)) {
+                byStableRefKey.set(referent.stableRefKey, { groundedId: referent.groundedId, groundedPresence: referent.groundedPresence })
+            }
+        }
+    }
+    return byStableRefKey
+}
+
+const groundingForRef = (ref: string, byStableRefKey: ReadonlyMap<string, ReferentGrounding>): ReferentGrounding =>
+    byStableRefKey.get(ref) ?? { groundedId: ref as EphemeraMembershipHostId }
+
+/**
+ * `after` resolves a unit's moved entity (any `transferMembership` change among its covered
+ * actions) from its destination host directly, since a move's binding does not exist at compile
+ * time (AN-7 stage 2) --- not from potentially stale `groundedPresence`.
+ */
+const movedHostsForUnit = (
+    unit: NarrationUnit,
+    membershipBridges: readonly MembershipBridgeInfo[]
+): ReadonlyMap<EphemeraMembershipHostId, { fromHostId: EphemeraMembershipHostId; toHostId: EphemeraMembershipHostId }> => {
+    const covered = new Set(unit.covers)
+    const map = new Map<EphemeraMembershipHostId, { fromHostId: EphemeraMembershipHostId; toHostId: EphemeraMembershipHostId }>()
+    for (const bridge of membershipBridges) {
+        if (covered.has(bridge.actionId)) {
+            map.set(bridge.entityId, { fromHostId: bridge.fromHostId, toHostId: bridge.toHostId })
+        }
+    }
+    return map
+}
+
+/** One witness variant's audience, resolved to the deduplicated union of every room its refs reach (AN-8). */
+const resolveAudienceRooms = async (
+    audience: NarrationAudience,
+    context: {
+        characterId: EphemeraCharacterId
+        liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>
+        byStableRefKey: ReadonlyMap<string, ReferentGrounding>
+        movedHosts: ReadonlyMap<EphemeraMembershipHostId, { fromHostId: EphemeraMembershipHostId; toHostId: EphemeraMembershipHostId }>
+        getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
+    }
+): Promise<Set<EphemeraRoomId>> => {
+    const perRef = await Promise.all(audience.refs.map(async (ref) => {
+        // A character has exactly one presence: its own current room, already known from the
+        // adjacency snapshot (`readLiveHosts`) --- no walk needed (AN-7).
+        if (ref === 'actor') {
+            const room = context.liveHosts.get(context.characterId)
+            return room !== undefined && isEphemeraRoomId(room) ? new Set([room]) : new Set<EphemeraRoomId>()
+        }
+        const grounding = groundingForRef(ref, context.byStableRefKey)
+        if (audience.phase === 'after') {
+            const moved = context.movedHosts.get(grounding.groundedId)
+            if (moved) {
+                return roomsForHost(moved.toHostId, context.getGraph)
+            }
+        }
+        if (grounding.groundedPresence === undefined || grounding.groundedPresence.length === 0) {
+            // No stamped bucket to walk (AN-7 (iii)'s default): a thing that has never itself
+            // moved through this compiler has no presence binding of its own even though it
+            // sits plainly in some room's node list, so the walk starts from its already-known
+            // current container (`liveHosts`), not from the thing's own (empty) graph.
+            const currentHost = context.liveHosts.get(grounding.groundedId) ?? grounding.groundedId
+            return roomsForHost(currentHost, context.getGraph)
+        }
+        return roomsForReferent(grounding.groundedId, grounding.groundedPresence, context.getGraph)
+    }))
+    const rooms = new Set<EphemeraRoomId>()
+    for (const set of perRef) {
+        for (const room of set) {
+            rooms.add(room)
+        }
+    }
+    return rooms
+}
+
+type NarrationCaptureAssembly = {
+    /** Minted `capture` steps to splice ahead of each fragment index's own steps. */
+    beforeByFragmentIndex: MutationKernelCaptureStep[][]
+    /** Minted `capture` steps to splice behind each fragment index's own steps. */
+    afterByFragmentIndex: MutationKernelCaptureStep[][]
+    /** What `deliverNarrationUnits`'s `resolveCaptureId` reads back, keyed by audience identity. */
+    captureIdsByAudience: ReadonlyMap<NarrationAudience, string[]>
+}
+
+/**
+ * Audience resolution at compile (AN-7 stage 2): for each unit to be delivered, resolves each
+ * witness variant's audience to its room set, mints one fresh capture id per room (the actual fix
+ * for the two-moves `capture:to` collision AN-8 names), and records where those `capture` steps
+ * belong in the committed step sequence --- ahead of the unit's first covered action's fragment for
+ * `before`, behind its last covered action's fragment for `after` (a capture's position is its
+ * place in the step array; its id is just unique). The kernel's `capture` step shape is unchanged.
+ */
+const buildNarrationCaptureSteps = async (
+    unitsToDeliver: readonly NarrationUnit[],
+    membershipBridges: readonly MembershipBridgeInfo[],
+    fragmentIndexByActionId: ReadonlyMap<string, number>,
+    fragmentCount: number,
+    context: {
+        characterId: EphemeraCharacterId
+        liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>
+        byStableRefKey: ReadonlyMap<string, ReferentGrounding>
+        getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
+    }
+): Promise<NarrationCaptureAssembly> => {
+    const beforeByFragmentIndex: MutationKernelCaptureStep[][] = Array.from({ length: fragmentCount }, () => [])
+    const afterByFragmentIndex: MutationKernelCaptureStep[][] = Array.from({ length: fragmentCount }, () => [])
+    const captureIdsByAudience = new Map<NarrationAudience, string[]>()
+
+    for (const unit of unitsToDeliver) {
+        const coveredIndices = unit.covers
+            .map((id) => fragmentIndexByActionId.get(id))
+            .filter((index): index is number => index !== undefined)
+        if (coveredIndices.length === 0) {
+            continue
+        }
+        const minIndex = Math.min(...coveredIndices)
+        const maxIndex = Math.max(...coveredIndices)
+        const movedHosts = movedHostsForUnit(unit, membershipBridges)
+
+        for (const variant of unit.variants) {
+            const rooms = await resolveAudienceRooms(variant.audience, { ...context, movedHosts })
+            const target = variant.audience.phase === 'before' ? beforeByFragmentIndex : afterByFragmentIndex
+            const fragmentIndex = variant.audience.phase === 'before' ? minIndex : maxIndex
+            const captureIds = [...rooms].map((room) => {
+                const captureId = `capture:${uuidv4()}`
+                target[fragmentIndex]!.push({ kind: 'capture', hostId: room, captureId })
+                return captureId
+            })
+            captureIdsByAudience.set(variant.audience, captureIds)
+        }
+    }
+    return { beforeByFragmentIndex, afterByFragmentIndex, captureIdsByAudience }
+}
+
 /**
  * The generic per-attempt commit path: dispatches each action by its `desiredResult`'s
  * primitive, re-expanding it against live state (membership via `planObjectMoveTransfer`,
@@ -327,6 +479,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     // written for its siblings either (`[dissolve lashing, take rope]` must not untie the rope
     // when the take is refused).
     const fragments: ActionFragment[] = []
+    const fragmentActionIds: string[] = []
     for (const action of attempt.actions()) {
         const desiredResult = action.desiredResult
         if (desiredResult === undefined || desiredResult.kind !== 'change') {
@@ -346,15 +499,39 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
             return
         }
         fragments.push(fragment)
+        fragmentActionIds.push(action.id)
     }
 
-    const steps = fragments.flatMap((fragment) => fragment.steps)
-    if (steps.length === 0) {
+    if (fragments.length === 0) {
         return
     }
-    const slots = fragments.flatMap((fragment) => fragment.slots)
     const relationalEdges = fragments.flatMap((fragment) => (fragment.relationalEdge ? [fragment.relationalEdge] : []))
     const membershipBridges = fragments.flatMap((fragment) => (fragment.membershipBridge ? [fragment.membershipBridge] : []))
+
+    // Audience resolution at compile (AN-7 stage 2): resolved before the dry run, so the minted
+    // `capture` steps ride inside the same sequence that is dry-run and committed (a capture
+    // step is read/lock-only, never part of the transactWrite --- positions/AGENT.contract.md).
+    const unitsToDeliver = orderNarrationUnitsForDelivery(attempt, membershipBridges)
+    const fragmentIndexByActionId = new Map(fragmentActionIds.map((id, index) => [id, index] as const))
+    const { beforeByFragmentIndex, afterByFragmentIndex, captureIdsByAudience } = await buildNarrationCaptureSteps(
+        unitsToDeliver,
+        membershipBridges,
+        fragmentIndexByActionId,
+        fragments.length,
+        {
+            characterId,
+            liveHosts,
+            byStableRefKey: referentGroundingByStableRefKey(attempt),
+            getGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
+        }
+    )
+
+    const steps = fragments.flatMap((fragment, index) => [
+        ...beforeByFragmentIndex[index]!,
+        ...fragment.steps,
+        ...afterByFragmentIndex[index]!,
+    ])
+    const slots = fragments.flatMap((fragment) => fragment.slots)
 
     // Mirrors `executeEstablishEdgeChain`'s own resolver: every relational
     // step already carries its own `hostId`, so no live lookup is needed to answer
@@ -401,27 +578,17 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     }
 
     // The attempt's only narration delivery path (AN-4): an authored unit (none exist yet) and
-    // every uncovered membership action's bridge unit, in the attempt's own action order.
-    const unitsToDeliver = orderNarrationUnitsForDelivery(attempt, membershipBridges)
+    // every uncovered membership action's bridge unit, in the attempt's own action order. Audience
+    // resolution (AN-7 stage 2) already happened above, before the commit; this reads it back by
+    // the same audience objects.
     if (unitsToDeliver.length === 0) {
         return
     }
-    const hostsByActionId = new Map(
-        membershipBridges.map((bridge) => [bridge.actionId, { fromHostId: bridge.fromHostId, toHostId: bridge.toHostId }] as const)
-    )
     deliverNarrationUnits({
         units: unitsToDeliver,
         captures: commitResult.captures,
         bundleId,
         messageBus: args.messageBus,
-        resolveCaptureId: (unit, audience) => {
-            const hosts = hostsByActionId.get(unit.covers[0]!)
-            if (hosts === undefined) {
-                throw new Error(
-                    `commitAttempt: narration unit covering '${unit.covers[0]}' has no bridge host mapping --- audience resolution for authored narration units is not built yet (AN-7 stage 2)`
-                )
-            }
-            return audience.phase === 'before' ? captureIdForFrom(hosts.fromHostId) : CAPTURE_ID_TO
-        },
+        resolveCaptureId: (_unit, audience) => captureIdsByAudience.get(audience) ?? [],
     })
 }

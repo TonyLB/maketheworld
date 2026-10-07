@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 
+import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+
 import type { MessageBus } from '../../../messageBus/baseClasses'
 import { sendMessageBundleDeclared, sendMessageSlotReported } from '../../messageOrchestration/subscribedEvents'
 import type { NarrationAudience, NarrationUnit } from '../../actions/commandAttempt/narrationUnit'
@@ -15,12 +17,12 @@ export type DeliverNarrationUnitsArgs = {
     bundleId: string
     messageBus: MessageBus
     /**
-     * Resolves one variant's declared audience to a capture id. Bridge-specific for now
-     * (`commitAttempt.ts` closes over the host ids it already knows); the general referent ->
-     * presence -> room resolver (AN-7 stage 2) replaces this callback, not this function, once it
-     * lands.
+     * Resolves one variant's declared audience to the capture ids whose rosters make up its roster.
+     * Plural (AN-8): an audience's roster is the deduplicated union of every room its refs resolve
+     * to, and `applyStepSequenceCore` overwrites a capture id's roster rather than appending to it,
+     * so a multi-room audience needs one capture id per room, not one shared id.
      */
-    resolveCaptureId: (unit: NarrationUnit, audience: NarrationAudience) => string
+    resolveCaptureId: (unit: NarrationUnit, audience: NarrationAudience) => string[]
 }
 
 /**
@@ -35,7 +37,7 @@ export type DeliverNarrationUnitsArgs = {
 export const deliverNarrationUnits = (args: DeliverNarrationUnitsArgs): void => {
     const entries = args.units.flatMap((unit) => unit.variants.map((variant) => ({
         slotId: `narrate:${uuidv4()}`,
-        captureId: args.resolveCaptureId(unit, variant.audience),
+        captureIds: args.resolveCaptureId(unit, variant.audience),
         template: variant.template,
     })))
 
@@ -48,21 +50,26 @@ export const deliverNarrationUnits = (args: DeliverNarrationUnitsArgs): void => 
         slots: entries.map(({ slotId }) => ({ slotId, expectedPublishType: 'WorldMessage' as const })),
     })
 
-    for (const { slotId, captureId, template } of entries) {
-        /** Same hard-error invariant `presentStepSequence` enforces: no live-roster fallback. */
-        if (!args.captures.has(captureId)) {
-            throw new Error(
-                `deliverNarrationUnits: a narration unit's audience resolved to captureId '${captureId}', which the commit produced no capture for`
-            )
+    for (const { slotId, captureIds, template } of entries) {
+        const targets = new Set<EphemeraCharacterId>()
+        for (const captureId of captureIds) {
+            /** Same hard-error invariant `presentStepSequence` enforces: no live-roster fallback. */
+            if (!args.captures.has(captureId)) {
+                throw new Error(
+                    `deliverNarrationUnits: a narration unit's audience resolved to captureId '${captureId}', which the commit produced no capture for`
+                )
+            }
+            for (const target of args.captures.get(captureId) ?? []) {
+                targets.add(target)
+            }
         }
-        const audience = args.captures.get(captureId) ?? []
 
         sendMessageSlotReported(args.messageBus, args.bundleId, {
             bundleId: args.bundleId,
             slotId,
             message: {
                 type: 'PublishMessage',
-                targets: [...audience],
+                targets: [...targets],
                 displayProtocol: 'WorldMessage',
                 message: [fillNarrationTemplate(template)],
                 createdTime: 0,
