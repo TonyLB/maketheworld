@@ -1701,7 +1701,7 @@ describe('ephemeraActionsDataSource', () => {
         const from = 'ROOM#from' as EphemeraRoomId
 
         it('emits Ludic Network Change Requested when takeHold is grounded', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [] }
+            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 confidence: 0.9,
@@ -1749,7 +1749,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('emits Ludic Network Change Requested when drop is grounded', async () => {
-            const attempt = { words: 'drop the broom', referents: [], actions: [] }
+            const attempt = { words: 'drop the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 confidence: 0.9,
@@ -1797,7 +1797,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('emits correlated ReturnValue when requestId is present', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [] }
+            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -1838,7 +1838,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when character has no current room', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [] }
+            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -1878,7 +1878,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when drop is grounded but character has no room', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [] }
+            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2101,7 +2101,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested when establishRelation is grounded', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'put the broom on the table', referents: [], actions: [] }
+            const attempt = { words: 'put the broom on the table', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2148,7 +2148,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested with Custom relationLabel', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'tie the rope around the crate', referents: [], actions: [] }
+            const attempt = { words: 'tie the rope around the crate', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2211,7 +2211,7 @@ describe('ephemeraActionsDataSource', () => {
                     hostId: tableId,
                 },
             ]
-            const attempt = { words: 'tie string to cup', referents: [], actions: [] }
+            const attempt = { words: 'tie string to cup', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2250,7 +2250,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested when dissolveRelation is grounded', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'take the rope off the crate', referents: [], actions: [] }
+            const attempt = { words: 'take the rope off the crate', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2289,7 +2289,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('publishes WorldOOCMessage when establishRelation has no host room', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: null, toRoomIds: [], exits: [] })
-            const attempt = { words: 'put the broom on the table', referents: [], actions: [] }
+            const attempt = { words: 'put the broom on the table', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2325,7 +2325,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested when an On containment move is grounded', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'put the cup on the tray', referents: [], actions: [] }
+            const attempt = { words: 'put the cup on the tray', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 confidence: 0.9,
@@ -2368,6 +2368,7 @@ describe('ephemeraActionsDataSource', () => {
             words: 'look rocket skates',
             referents: [{ refKey: 'skatesRef', id: 'OBJECT#Skates' as const, shortName: 'rocket skates' }],
             actions: [{ kind: 'narrate' as const, id: 'action-1', description: 'Look at the rocket skates', referents: [], challenges: [] }],
+            narrationUnits: [],
         }
 
         it('publishes the not-in-a-room message when a look has no room', async () => {

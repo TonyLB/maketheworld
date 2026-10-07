@@ -30,6 +30,17 @@ jest.mock('./kernel/commitAndPresentStepSequence', () => ({
     commitAndPresentStepSequence: jest.fn().mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() }),
 }))
 
+/**
+ * Delivery itself (resolving a unit's audience to a live roster and publishing) is this
+ * module's own concern, tested directly in `deliverNarrationUnits.test.ts`. This file mocks it
+ * away so its existing, heavily-mocked-compile-chain tests (which never populate `captures`)
+ * don't trip the no-live-roster-fallback invariant --- `commitAttempt`'s own narration-unit
+ * tests below assert on what this mock is called with instead.
+ */
+jest.mock('./deliverNarrationUnits', () => ({
+    deliverNarrationUnits: jest.fn(),
+}))
+
 import internalCache from '../../../internalCache'
 import { commitAttempt } from './commitAttempt'
 import { CommandAttempt } from '../../actions/commandAttempt'
@@ -40,6 +51,7 @@ import { planObjectMoveTransfer } from './membership/planObjectMoveTransfer'
 import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTransfer'
 import { commitAndPresentStepSequence } from './kernel/commitAndPresentStepSequence'
 import { dryRunStepSequence } from './kernel/dryRunStepSequence'
+import { deliverNarrationUnits } from './deliverNarrationUnits'
 
 const getMembershipContainersMock = internalCache.Positions.getMembershipContainers as jest.MockedFunction<
     typeof internalCache.Positions.getMembershipContainers
@@ -48,6 +60,7 @@ const planObjectMoveTransferMock = planObjectMoveTransfer as jest.MockedFunction
 const planRelationalEdgeTransferMock = planRelationalEdgeTransfer as jest.MockedFunction<typeof planRelationalEdgeTransfer>
 const commitAndPresentStepSequenceMock = commitAndPresentStepSequence as jest.MockedFunction<typeof commitAndPresentStepSequence>
 const dryRunStepSequenceMock = dryRunStepSequence as jest.MockedFunction<typeof dryRunStepSequence>
+const deliverNarrationUnitsMock = deliverNarrationUnits as jest.MockedFunction<typeof deliverNarrationUnits>
 
 const CHARACTER = 'CHARACTER#Alice' as EphemeraCharacterId
 const ROOM = 'ROOM#Cafe' as EphemeraRoomId
@@ -103,6 +116,7 @@ const containmentAttempt = (containment: 'On' | 'In' = 'On'): CommandAttempt => 
         } as never,
         challenges: [],
     }],
+    narrationUnits: [],
 })
 
 const relationalAttempt = (primitive: 'establishRelation' | 'dissolveRelation' = 'establishRelation'): CommandAttempt => CommandAttempt.fromJSON({
@@ -120,6 +134,7 @@ const relationalAttempt = (primitive: 'establishRelation' | 'dissolveRelation' =
         } as never,
         challenges: [],
     }],
+    narrationUnits: [],
 })
 
 describe('commitAttempt', () => {
@@ -324,6 +339,7 @@ describe('commitAttempt', () => {
                     challenges: [],
                 },
             ],
+            narrationUnits: [],
         })
 
         await commitAttempt({ attempt: mixedAttempt, characterId: CHARACTER, messageBus, streamEvent })
@@ -374,6 +390,7 @@ describe('commitAttempt', () => {
                     challenges: [],
                 },
             ],
+            narrationUnits: [],
         } as never)
 
         await commitAttempt({ attempt: published, characterId: CHARACTER, messageBus, streamEvent })
@@ -388,6 +405,7 @@ describe('commitAttempt', () => {
             words: 'look at the cup',
             referents: [],
             actions: [{ kind: 'position', id: 'action-8', desiredResultDescription: 'Describe: cup', challenges: [] }],
+            narrationUnits: [],
         })
 
         await commitAttempt({ attempt, characterId: CHARACTER, messageBus, streamEvent })
@@ -422,6 +440,45 @@ describe('commitAttempt', () => {
 
         const [callArgs] = planObjectMoveTransferMock.mock.calls[0]!
         expect(callArgs).not.toHaveProperty('containment')
+    })
+
+    describe('narration units (AGENT.attemptNarration.planning.md, slice 3)', () => {
+        it('synthesizes a bridge unit covering the uncovered take, with before/after variants resolving to the move\'s own captures', async () => {
+            mockLiveHosts(ROOM)
+            const plan = { steps: [{ kind: 'transferMembership', entityIds: new Set([BROOM]), fromHostIds: new Set([ROOM]), toHostId: CHARACTER }], slots: [] }
+            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
+
+            await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(deliverNarrationUnitsMock).toHaveBeenCalledTimes(1)
+            const [sweepArgs] = deliverNarrationUnitsMock.mock.calls[0]!
+            expect(sweepArgs.units).toEqual([{
+                covers: ['action-1'],
+                variants: [
+                    {
+                        audience: { refs: [BROOM], phase: 'before' },
+                        template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: BROOM }], actorName: 'Alice', labels: { [BROOM]: 'broom' } },
+                    },
+                    {
+                        audience: { refs: [BROOM], phase: 'after' },
+                        template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: BROOM }], actorName: 'Alice', labels: { [BROOM]: 'broom' } },
+                    },
+                ],
+            }])
+            const [, commitBundleId] = commitAndPresentStepSequenceMock.mock.calls[0]!
+            expect(sweepArgs.bundleId).toBe(commitBundleId)
+            expect(sweepArgs.resolveCaptureId(sweepArgs.units[0]!, { refs: [BROOM], phase: 'before' })).toBe(`capture:from:${ROOM}`)
+            expect(sweepArgs.resolveCaptureId(sweepArgs.units[0]!, { refs: [BROOM], phase: 'after' })).toBe('capture:to')
+        })
+
+        it('calls deliverNarrationUnits with no units for a purely relational attempt --- there is no relational bridge', async () => {
+            const steps = [{ kind: 'establishRelation', subjectId: BROOM, targetId: TABLE, hostId: ROOM, relationKind: 'Custom', relationLabel: 'under' }]
+            planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: steps as any })
+
+            await commitAttempt({ attempt: relationalAttempt('establishRelation'), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(deliverNarrationUnitsMock).not.toHaveBeenCalled()
+        })
     })
 
     describe('a take with a facilitating boundary dissolve', () => {

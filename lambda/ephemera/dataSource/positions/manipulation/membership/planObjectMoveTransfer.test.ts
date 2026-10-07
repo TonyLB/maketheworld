@@ -40,8 +40,10 @@ describe('planObjectMoveTransfer', () => {
 
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a legal plan') }
+            // Captures are still built for the `template` family; narrate steps are not (slice 3
+            // moved them to `commitAttempt.ts`'s post-commit bridge-unit sweep).
             expect(result.plan.steps.map((step) => step.kind)).toEqual([
-                'capture', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding', 'capture', 'narrate', 'narrate',
+                'capture', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding', 'capture',
             ])
             expect(result.fromHostId).toBe(ROOM_ID)
         })

@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -11,6 +11,7 @@ import type { MessageBus } from '../../../messageBus/baseClasses'
 import type { ActionsPublishedPayload } from '../../actions/publishedEvents'
 import type { PositionsPublishedPayload } from '../publishedEvents'
 import type { CommandAttempt } from '../../actions/commandAttempt'
+import type { NarrationUnit } from '../../actions/commandAttempt/narrationUnit'
 import type {
     DissolveRelationChange,
     EstablishRelationChange,
@@ -21,12 +22,15 @@ import type {
 import { buildReferentAssignment, type DerivedReferentResolver } from '../../actions/enrich/objectManipulation/synthesize/buildReferentAssignment'
 import { groundChange } from '../../actions/enrich/objectManipulation/synthesize/groundChange'
 import { commitAndPresentStepSequence } from './kernel/commitAndPresentStepSequence'
-import type { CompiledPositionKernelPlan } from './kernel/compile/compilePositionKernelOp'
+import { CAPTURE_ID_TO, captureIdForFrom, objectMoveVerb, type CompiledPositionKernelPlan } from './kernel/compile/compilePositionKernelOp'
 import type { RelationalEdgeFactSource } from './kernel/factsForStep'
 import { isKernelMutationStep } from './kernel/kernelStep'
+import type { TemplateNarrationSpec } from './kernel/kernelStep'
 import { dryRunStepSequence } from './kernel/dryRunStepSequence'
 import { planObjectMoveTransfer } from './membership/planObjectMoveTransfer'
 import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTransfer'
+import { defaultTransferMembershipParts } from './kernel/narrationTemplate'
+import { deliverNarrationUnits } from './deliverNarrationUnits'
 import { resolveObjectMovePresentationLabels } from '../../perception/resolveObjectMovePresentationLabels'
 import { edgesMatch, type HostRelationalEdge } from '../ludicGraph'
 import type { MutationKernelStep } from './kernel/kernelStep'
@@ -42,10 +46,28 @@ export type CommitAttemptArgs = {
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
 }
 
+/**
+ * What `buildMembershipFragment` already knows and the bridge-unit sweep needs again: the
+ * action it narrates, the entity it moved, and the two hosts whose captures (already compiled
+ * by `compilePositionKernelOp`, unaffected by narrate steps leaving it) the bridge's audiences
+ * resolve to. `AGENT.attemptNarration.planning.md`, slice 3's "Narration units on
+ * `CommandAttempt`" --- bridge resolution is special-cased on these known hosts, not the general
+ * referent -> presence -> room resolver (AN-7 stage 2, not built yet).
+ */
+type MembershipBridgeInfo = {
+    actionId: string
+    entityId: EphemeraObjectId
+    fromHostId: EphemeraMembershipHostId
+    toHostId: EphemeraMembershipHostId
+    actorName: string
+    objectLabel: string
+}
+
 type ActionFragment = {
     steps: CompiledPositionKernelPlan['steps']
     slots: CompiledPositionKernelPlan['slots']
     relationalEdge?: RelationalEdgeFactSource
+    membershipBridge?: MembershipBridgeInfo
 }
 
 /**
@@ -76,6 +98,7 @@ const readLiveHosts = async (
  * from a table moves between two non-Room hosts.
  */
 const buildMembershipFragment = async (
+    actionId: string,
     change: TransferMembershipChange<GroundedReferent>,
     liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>,
     args: CommitAttemptArgs,
@@ -131,7 +154,18 @@ const buildMembershipFragment = async (
         return undefined
     }
 
-    return { steps: planResult.plan.steps, slots: planResult.plan.slots }
+    return {
+        steps: planResult.plan.steps,
+        slots: planResult.plan.slots,
+        membershipBridge: {
+            actionId,
+            entityId,
+            fromHostId,
+            toHostId,
+            actorName: characterName,
+            objectLabel: objectShortName,
+        },
+    }
 }
 
 /** True when an establish step's exact edge is already on its carried host (the same match the graph's own `add` patch uses). */
@@ -178,6 +212,68 @@ const buildRelationalFragment = async (
             : { relationKind: change.relationKind }),
     }
     return { steps: planResult.steps, slots: [], relationalEdge }
+}
+
+/**
+ * The object family's bridge unit (`AGENT.attemptNarration.planning.md`, slice 3): the old
+ * take/drop/give copy, represented as a `NarrationUnit` rather than baked into compiled narrate
+ * steps. Deleted once an author covers object moves (slice 4) --- this function, not a floor,
+ * grows no new verbs. Both variants share one template, same as the compiler used to render it
+ * on both bracket sides: there is no `direction` to the sentence, only to which side has anyone
+ * to hear it.
+ */
+const buildMembershipBridgeUnit = (bridge: MembershipBridgeInfo): NarrationUnit => {
+    const template: TemplateNarrationSpec = {
+        kind: 'template',
+        parts: defaultTransferMembershipParts(objectMoveVerb([bridge.fromHostId], bridge.toHostId), bridge.entityId),
+        actorName: bridge.actorName,
+        labels: { [bridge.entityId]: bridge.objectLabel },
+    }
+    return {
+        covers: [bridge.actionId],
+        variants: [
+            { audience: { refs: [bridge.entityId], phase: 'before' }, template },
+            { audience: { refs: [bridge.entityId], phase: 'after' }, template },
+        ],
+    }
+}
+
+/**
+ * Unit delivery order is the attempt's own action order (AN-4): walks the attempt's actions once,
+ * and for each, delivers whichever unit covers it --- an author's unit (none exist yet) the first
+ * time any of its covered actions is reached, else a membership action's own bridge unit. An
+ * action neither covers (an uncovered relational action) narrates nothing: there is no relational
+ * bridge.
+ */
+const orderNarrationUnitsForDelivery = (
+    attempt: CommandAttempt,
+    membershipBridges: readonly MembershipBridgeInfo[]
+): NarrationUnit[] => {
+    const unitForActionId = new Map<string, NarrationUnit>()
+    for (const unit of attempt.narrationUnits()) {
+        for (const id of unit.covers) {
+            unitForActionId.set(id, unit)
+        }
+    }
+    const bridgeByActionId = new Map(membershipBridges.map((bridge) => [bridge.actionId, bridge] as const))
+
+    const delivered: NarrationUnit[] = []
+    const alreadyDelivered = new Set<NarrationUnit>()
+    for (const action of attempt.actions()) {
+        const authored = unitForActionId.get(action.id)
+        if (authored) {
+            if (!alreadyDelivered.has(authored)) {
+                alreadyDelivered.add(authored)
+                delivered.push(authored)
+            }
+            continue
+        }
+        const bridge = bridgeByActionId.get(action.id)
+        if (bridge) {
+            delivered.push(buildMembershipBridgeUnit(bridge))
+        }
+    }
+    return delivered
 }
 
 /**
@@ -243,7 +339,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         }
         const change = groundChange(desiredResult, assignment)
         const fragment = change.primitive === 'transferMembership'
-            ? await buildMembershipFragment(change, liveHosts, args, bundleId)
+            ? await buildMembershipFragment(action.id, change, liveHosts, args, bundleId)
             : await buildRelationalFragment(change)
         if (fragment === undefined) {
             console.error(`[mtw.ephemera.positions] commitAttempt: attempt refused: ${change.primitive} action could not be built`)
@@ -258,6 +354,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     }
     const slots = fragments.flatMap((fragment) => fragment.slots)
     const relationalEdges = fragments.flatMap((fragment) => (fragment.relationalEdge ? [fragment.relationalEdge] : []))
+    const membershipBridges = fragments.flatMap((fragment) => (fragment.membershipBridge ? [fragment.membershipBridge] : []))
 
     // Mirrors `executeEstablishEdgeChain`'s own resolver: every relational
     // step already carries its own `hostId`, so no live lookup is needed to answer
@@ -284,7 +381,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         return
     }
 
-    await commitAndPresentStepSequence(
+    const commitResult = await commitAndPresentStepSequence(
         { steps, slots },
         bundleId,
         characterId,
@@ -298,4 +395,33 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
             perceive: { streamEvent: noopActionsStreamEvent, messageBus: args.messageBus },
         }
     )
+
+    if (!commitResult.ok) {
+        return
+    }
+
+    // The attempt's only narration delivery path (AN-4): an authored unit (none exist yet) and
+    // every uncovered membership action's bridge unit, in the attempt's own action order.
+    const unitsToDeliver = orderNarrationUnitsForDelivery(attempt, membershipBridges)
+    if (unitsToDeliver.length === 0) {
+        return
+    }
+    const hostsByActionId = new Map(
+        membershipBridges.map((bridge) => [bridge.actionId, { fromHostId: bridge.fromHostId, toHostId: bridge.toHostId }] as const)
+    )
+    deliverNarrationUnits({
+        units: unitsToDeliver,
+        captures: commitResult.captures,
+        bundleId,
+        messageBus: args.messageBus,
+        resolveCaptureId: (unit, audience) => {
+            const hosts = hostsByActionId.get(unit.covers[0]!)
+            if (hosts === undefined) {
+                throw new Error(
+                    `commitAttempt: narration unit covering '${unit.covers[0]}' has no bridge host mapping --- audience resolution for authored narration units is not built yet (AN-7 stage 2)`
+                )
+            }
+            return audience.phase === 'before' ? captureIdForFrom(hosts.fromHostId) : CAPTURE_ID_TO
+        },
+    })
 }

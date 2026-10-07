@@ -52,6 +52,7 @@ describe('CommandAttempt', () => {
                 [],
                 "the boulder is in the character's possession"
             )],
+            narrationUnits: [],
         }
 
         it('renders the six-section prose', () => {
@@ -92,6 +93,7 @@ describe('CommandAttempt', () => {
                 [],
                 'the fork is to the left of the plate'
             )],
+            narrationUnits: [],
         }
 
         it('renders referents with no gloss and succeeds with no challenge', () => {
@@ -127,6 +129,7 @@ describe('CommandAttempt', () => {
                 words: 'put motorcycle on shoebox',
                 referents: [],
                 actions: [narrateAction(referents, [], 'the motorcycle is on the shoebox')],
+                narrationUnits: [],
             })
             expect(attempt.result).toEqual({
                 status: 'succeeded',
@@ -144,6 +147,7 @@ describe('CommandAttempt', () => {
                 words: 'put motorcycle on shoebox',
                 referents: [],
                 actions: [narrateAction(referents, [weightChallenge], 'the motorcycle is on the shoebox')],
+                narrationUnits: [],
             })
             expect(pending.result).toEqual({ status: 'pending' })
 
@@ -193,6 +197,7 @@ describe('CommandAttempt', () => {
                 },
                 positionAction([], 'taken'),
             ],
+            narrationUnits: [],
         }
 
         it('is pending before adjudication, with the dissolve challenge phrased off the relation label', () => {
@@ -247,8 +252,51 @@ describe('CommandAttempt', () => {
                         'taken'
                     ),
                 ],
+                narrationUnits: [],
             }).recordVerdict('knot', stalledVerdict)
             expect(() => attempt.result).toThrow(/neither proceeds nor refuses/)
+        })
+    })
+
+    describe('narration units', () => {
+        it('round-trips through toJSON/fromJSON, distinct from the actions that carry no narration unit of their own', () => {
+            const data: CommandAttemptData = {
+                words: 'take the rope',
+                referents: [],
+                actions: [{ ...positionAction([], 'taken'), id: 'action-10' }],
+                narrationUnits: [{
+                    covers: ['action-10'],
+                    variants: [
+                        {
+                            audience: { refs: [ropeId], phase: 'before' },
+                            template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: ropeId }], actorName: 'Tess', labels: { [ropeId]: 'rope' } },
+                        },
+                    ],
+                }],
+            }
+            const attempt = CommandAttempt.fromJSON(data)
+            expect(attempt.narrationUnits()).toEqual(data.narrationUnits)
+            expect(attempt.toJSON()).toEqual(data)
+
+            const roundTripped = CommandAttempt.fromJSON(attempt.toJSON())
+            expect(roundTripped.narrationUnits()).toEqual(data.narrationUnits)
+        })
+
+        it('carries narrationUnits through recordVerdict', () => {
+            const data: CommandAttemptData = {
+                words: 'take the rope',
+                referents: [],
+                actions: [{ ...positionAction([{ kind: 'worldKnowledge', id: 'knot', description: 'none' }], 'taken'), id: 'action-11' }],
+                narrationUnits: [{
+                    covers: ['action-11'],
+                    variants: [{
+                        audience: { refs: [ropeId], phase: 'before' },
+                        template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: ropeId }], actorName: 'Tess', labels: { [ropeId]: 'rope' } },
+                    }],
+                }],
+            }
+            const attempt = CommandAttempt.fromJSON(data).recordVerdict('knot', new MetVerdict())
+            expect(attempt.narrationUnits()).toEqual(data.narrationUnits)
         })
     })
 
@@ -264,6 +312,7 @@ describe('CommandAttempt', () => {
                         'taken'
                     ),
                 ],
+                narrationUnits: [],
             })
             const roundTripped = CommandAttempt.fromJSON(original.toJSON())
             expect(roundTripped.toJSON()).toEqual(original.toJSON())
@@ -280,6 +329,7 @@ describe('CommandAttempt', () => {
                     { ...narrateAction([span('ropeRef', ropeId, 'a coil of rope')], []), id: 'narrate-1' },
                     { ...positionAction([{ kind: 'worldKnowledge', id: 'knot', description: 'none' }], 'taken'), id: 'position-1' },
                 ],
+                narrationUnits: [],
             }).recordVerdict('knot', new MetVerdict())
             expect(attempt.actions().map((action) => action.id)).toEqual(['narrate-1', 'position-1'])
             expect(attempt.actions().map((action) => action.grounded(new Map()).id)).toEqual(['narrate-1', 'position-1'])
@@ -303,6 +353,7 @@ describe('CommandAttempt', () => {
                 words: 'get rope',
                 referents: [],
                 actions: [{ kind: 'position', id: 'position-1', challenges: [{ kind: 'worldKnowledge', id: 'knot', description: 'none' }], desiredResult }],
+                narrationUnits: [],
             }).recordVerdict('knot', new MetVerdict())
             const [action] = attempt.actions()
             expect(action?.desiredResult).toEqual(desiredResult)
@@ -318,6 +369,7 @@ describe('CommandAttempt', () => {
                 words: 'look at the cup',
                 referents: [{ refKey: 'cupRef', id: forkId, shortName: 'a cup' }],
                 actions: [narrateAction([span('cupRef', forkId, 'a cup')], [], 'Look at the cup')],
+                narrationUnits: [],
             }
             const attempt = CommandAttempt.fromJSON(data)
             expect(attempt.toJSON()).toEqual(data)
@@ -328,6 +380,7 @@ describe('CommandAttempt', () => {
                 words: 'look at the cup',
                 referents: [],
                 actions: [narrateAction([span('cupRef', forkId, 'a cup')], [], 'Look at the cup')],
+                narrationUnits: [],
             })
             expect(attempt.result).toEqual({ status: 'succeeded', outcome: 'Look at the cup' })
         })
@@ -351,6 +404,7 @@ describe('CommandAttempt', () => {
                     } as never,
                     challenges: [],
                 }],
+                narrationUnits: [],
             })
             expect(attempt.referents()).toEqual([{ refKey: 'subject', id: forkId, shortName: 'a cup' }])
         })

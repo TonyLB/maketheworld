@@ -273,7 +273,7 @@ describe('isLudicNetworkChangeRequestedPublishedPayload', () => {
     const minimal = {
         type: 'Ludic Network Change Requested' as const,
         characterId: 'CHARACTER#test',
-        attempt: { words: 'pick up the broom', referents: [], actions: [] },
+        attempt: { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] },
     }
 
     it('accepts a valid payload', () => {

@@ -39,6 +39,7 @@ const relationalAttempt = (
         } as Extract<CommandAttemptData['actions'][number], { kind: 'position' }>['desiredResult'],
         challenges: [],
     }],
+    narrationUnits: [],
 })
 
 const envelope = (
