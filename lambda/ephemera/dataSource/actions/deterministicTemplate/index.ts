@@ -26,10 +26,9 @@ export function matchDeterministicTemplate(command: string): DeterministicTempla
 /**
  * Sub-iteration 2 (iteration 7, 2026-07-20) live-path entry point: the
  * bare-word/paraphrase subset only. There is no relational entry in this registry: peer relations
- * have no deterministic parse (the relational templates retired in AGENT.retireDeterministicRelationParsing,
- * slice 2), and object-manipulation's dispatch runs its own live path (planSkeleton over a
- * Parse-produced skeleton). Keeping this as a separate registry, not a runtime type filter, keeps
- * the scope boundary visible in code. See
+ * have no deterministic parse (they come only from the LLM Plan fallback), and object-manipulation's
+ * dispatch runs its own live path (planSkeleton over a Parse-produced skeleton). Keeping this as a
+ * separate registry, not a runtime type filter, keeps the scope boundary visible in code. See
  * taskPlanning/lambda/ephemera/dataSource/actions/AGENT.classifyPlanGeneralization.planning.md,
  * CPG-1/CPG-6.
  *

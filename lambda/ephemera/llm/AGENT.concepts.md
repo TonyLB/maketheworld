@@ -34,7 +34,7 @@ Ephemera pipelines split work into two complementary lanes. The **root anti-patt
 | Lane | Owns | Examples |
 | --- | --- | --- |
 | **Semantic reasoning** (LLM) | Understanding, judgment, ambiguity resolution that cannot close over closed-world inputs | Player language; operator intent; narrative contradiction; interaction-complexity assessment when closed legality cannot decide |
-| **Deterministic computation** (code) | Graph/catalog truth, legality when rules close, validation, aggregation, context packaging | Membership pre-gates; catalog resolve; `normalizeRelationSpan`; Coyote combine/cluster before plan-select |
+| **Deterministic computation** (code) | Graph/catalog truth, legality when rules close, validation, aggregation, context packaging | Membership pre-gates; catalog resolve; Coyote combine/cluster before plan-select |
 
 Semantic reasoning **includes** player-intent parsing but is **not limited to it**. Assessing whether a proposed `ludicGraph` change is narratively contradictory, or whether existing relational topology requires interaction reasoning (BD-10 defer), belongs in the semantic-reasoning lane when deterministic rules cannot close the case.
 
@@ -90,7 +90,7 @@ A deterministic short-circuit **at the owning stage** is allowed when closed-wor
 - **Fault-tolerant:** fast path emits the **same provisional artifact shape** the owner uses in that mode (e.g. ranked shortlist + confidence, or high-confidence single pick with validation still allowed). Exact shapes are feature-owned; document them per hop.
 
 - **OK (membership):** `get bag` in [`discriminateIntent/deterministicChecks.ts`](../dataSource/actions/discriminateIntent/deterministicChecks.ts) --- classify still owns `verbClass` / `objectSpans`; Bedrock is skipped because `get`/`take`/`drop` + noun is a closed template (with label gate for `get` vs AcmeOrder).
-- **OK (relational):** relational `operationKind` in [`plan/matchRelationalTemplate.ts`](../dataSource/actions/enrich/objectManipulation/plan/matchRelationalTemplate.ts) --- the **Plan** stage owns it and concludes `establishRelation` / `dissolveRelation` from a closed verb set (positive-match-required, abstain on miss). Same shape as the membership fast path: the owning stage skipping Bedrock on a frozen-template match, not a downstream stage claiming the field. BD-19's plan-only / joint LLM fallback (iteration 2) will be Plan's *other* realization for template misses --- same owner, not a new one.
+- **OK (relational):** relational `operationKind` belongs to the **Plan** stage. No deterministic template concludes it today; BD-19's plan-only / joint LLM fallback (iteration 2, not yet built) is the one realization, and it is the same owner, not a new one. The compiler never concludes it.
 - **Violation:** the compiler inventing `operationKind` from phrase-buckets to fill a gap Plan left --- no owner, wrong stage. (The distinction from the relational OK case: closed enumerated set + positive-match-required + abstain-on-miss, at the owning stage --- not "unrecognized verb defaults to establish" in a downstream compiler.)
 
 ---
@@ -269,7 +269,7 @@ Feature docs **should declare both** for each pipeline or hop:
 | --- | --- | --- | --- |
 | Classify | LLM chooses intent topology | Wrong intent -> wrong branch or terminal Error | Correctable via later validation or player feedback (future) |
 | Identity grounding | Hybrid: exact resolve, embed rank, LLM adjudication | One `objectId` or Error | Shortlist + confidence; validation/retry ([`embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md)) |
-| Plan (relational) | Plan owns relational `operationKind`; deterministic closed-verb template (`matchRelationalTemplate`), LLM fallback for misses (BD-19, future) | Compiler trusts Plan's determination; legality Error on conflict | Template miss -> abstain today; plan-only/joint LLM fallback the second realization (iteration 2) |
+| Plan (relational) | Plan owns relational `operationKind`; LLM fallback is the only realization (BD-19, not yet built) | Compiler trusts Plan's determination; legality Error on conflict | Peer relation command answers `Unimplemented` until the fallback lands |
 | Legality check | Code owns graph truth | Hard Error | Defer, surface uncertainty, or apply only after trusted compile |
 | Context packaging | Code packages catalog slice | Same | Same |
 

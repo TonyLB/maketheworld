@@ -39,7 +39,7 @@ Later atomics reuse the **same classify intent families** (`ObjectMembershipInte
 ```text
 Parse Requested
   -> ObjectRelateIntent (classify; movementObjectLabels)
-  -> enrich objectManipulation (frame extract -> normalizeRelationSpan -> compileRelational)
+  -> enrich objectManipulation (Parse skeleton -> Plan (LLM fallback; no deterministic peer template) -> compileAttemptsFromSkeleton)
   -> streamEvent intent (Object Establish Relation)
   -> positions apply (host-local edge add via applyHostRelationalPatch)
   -> streamEvent fact (Object Relation Changed; operation establish)

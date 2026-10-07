@@ -125,7 +125,7 @@ At ephemeraWire, room **`ExitFacetList`** is synthesized from merged Area edges 
 | --- | --- | --- |
 | **Topology** | `Navigation`, `Bearing` | Relates **places** (Area scale): `from`/`to`, per-direction labels. `Navigation` is today's `<Exit>`; `Bearing` is a non-traversable spatial fact ("north of" without a door). |
 | **Membership** | `In`, `On`, `PartOf` | Puts the subordinate node in the superior's own graph --- a cup `On` a tray is a node in the **tray's** `ludicGraph`, and the tray is a node in the room's. |
-| **Peer** | `Under`, `Against`, `Custom` (+ `relationLabel` on `Custom`) | Leaves both endpoints in one graph and hosts nothing. |
+| **Peer** | `Custom` (+ `relationLabel`) | Leaves both endpoints in one graph and hosts nothing. |
 
 **`Navigation` is the only kind with a WML surface tag and an author path.** `StandardLudicNavigationEdge` **wraps `StandardExitEdge` internally** and translates only the outer discriminant (`tag: 'Exit'` stored -> `kind: 'Navigation'`); it reuses `StandardExitEdge`'s Replace/Remove-editable endpoints, `uuid` identity, and `<Exit>` schema parsing verbatim --- nothing about v1's Exit behavior below changed. `ExitEdgeList`/`StandardExitEdge` are **untouched and unwidened**; `LudicEdgeList` is a sibling type, not a modification of them.
 
@@ -163,7 +163,7 @@ Play-time **Relational** edges ([`EphemeraLudicRelationalEdgeData`](../../../../
 | Class | Kinds | Meaning |
 | --- | --- | --- |
 | **Hosting** | `On`, `In`, `PartOf` | Puts the subordinate node in the superior's own graph --- a cup `On` a tray is a node in the **tray's** `ludicGraph`, and the tray is a node in the room's |
-| **Peer** | `Under`, `Against`, `Custom` | Leaves both endpoints in one graph and hosts nothing |
+| **Peer** | `Custom` | Leaves both endpoints in one graph and hosts nothing |
 
 WML's own `LudicEdgeList` above adds a **third** class, **Topology** (`Navigation`/`Bearing`), that `HostRelationalEdgeKind` does not have --- Area-scale place relations have no play-time relational-edge analogue; they're the layer `<Exit>` already modelled before this alignment.
 

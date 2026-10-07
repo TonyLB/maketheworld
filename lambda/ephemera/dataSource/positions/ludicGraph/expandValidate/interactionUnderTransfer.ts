@@ -6,9 +6,8 @@ import type { EphemeraLudicGraph, HostRelationalEdge } from '../index'
 
 export type TransferEndpointRole = 'subject' | 'target'
 
-// `dissolve` has no producer since ISS8216 slice 3 (every peer edge defers). It is kept as the
-// no-judgment class the design reserves for a future LLM tier; see Slice 5 of
-// taskPlanning/.../AGENT.retireDeterministicRelationParsing.planning.md.
+// `dissolve` has no producer (every peer edge defers). It is kept as the no-judgment class reserved
+// for a future LLM tier.
 export type InteractionUnderTransferOutcome = 'dissolve' | 'defer'
 
 /**
@@ -20,7 +19,7 @@ export type InteractionUnderTransferOutcome = 'dissolve' | 'defer'
  * Every peer relation is `Custom`, and it defers whichever end moves: whether a severed peer edge
  * matters (clearance under a table, a rope still lashed) is an interaction judgment for the
  * adjudicator, not a fixed rule. The closed `Under`/`Against` kinds, which dissolved on some
- * moves, are retired (ISS8216 slice 3).
+ * moves, no longer exist.
  */
 export function classifyInteractionUnderTransfer(
     relationKind: HostRelationalEdgeKind,

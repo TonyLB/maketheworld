@@ -58,7 +58,7 @@ Three things to hold onto:
 
 1. **The host is a node in its own graph, as the root.** `OBJECT#Box`'s graph has a node `OBJECT#Box` and `rootId: 'OBJECT#Box'`. The root is an ordinary node --- it can be a relation endpoint --- and it is the same object that appears as an ordinary *member* node in `ROOM#Lab`'s graph. *Whole* and *part* are roles relative to a level, not kinds of thing.
 2. **Membership is the node list.** `OBJECT#Cup` is in the box because `OBJECT#Cup` is a node in `OBJECT#Box`'s graph --- not because of any edge. A reverse index (the **adjacency** rows, `(EphemeraId: OBJECT#Cup, DataCategory: POSITION#OBJECT#Box)`) exists **iff** that node does, and answers "what hosts is X in?" without scanning graphs.
-3. **Edges say *how* a member relates, never *whether* it is there.** Relation kinds split in two. **Hosting kinds** --- `On`, `In`, `PartOf` --- describe a member's relation to the host it lives in (the subordinate is in *its host's* graph). **Peer kinds** --- `Under`, `Against`, `Custom` (with a free-text `relationLabel`) --- relate two members of one graph and host nothing. A member with no hosting edge stated is `In` its host by default. Edge direction reads as English about the subject: `OBJECT#Spring -PartOf-> OBJECT#Contraption`, `OBJECT#Cup -In-> OBJECT#Box`.
+3. **Edges say *how* a member relates, never *whether* it is there.** Relation kinds split in two. **Hosting kinds** --- `On`, `In`, `PartOf` --- describe a member's relation to the host it lives in (the subordinate is in *its host's* graph). **Peer kind** --- `Custom` (with a free-text `relationLabel`) --- relate two members of one graph and host nothing. A member with no hosting edge stated is `In` its host by default. Edge direction reads as English about the subject: `OBJECT#Spring -PartOf-> OBJECT#Contraption`, `OBJECT#Cup -In-> OBJECT#Box`.
 
 So the example's Lab and Box graphs are:
 
@@ -245,7 +245,7 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 | **Root** | The host's own node in its own graph; recorded, never derived | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Whole / part** | Roles, not kinds: a thing is a whole of its interior and a part of its containers, at once | same |
 | **Membership** | X is in H iff X is a node in H's graph; mirrored by an adjacency row | [Graph apply](AGENT.contract.md#graph-apply-end-state) |
-| **Hosting kind / peer kind** | `On`/`In`/`PartOf` put the subject in its host's graph; `Under`/`Against`/`Custom` relate two members | [Relation kind enum](AGENT.contract.md#relation-kind-enum-bd-2) |
+| **Hosting kind / peer kind** | `On`/`In`/`PartOf` put the subject in its host's graph; `Custom` relates two members | [Relation kind enum](AGENT.contract.md#relation-kind-enum-bd-2) |
 | **Terminal** | An edge endpoint: bare component id, or a port address `{ owner, port }` | [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) |
 | **Port** | A single-use boundary slot a host publishes; either a crossing port or a presence binding | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Crossing port** | The record in `ports` where a relation passes through the boundary; interior-side, two scopes of field | [Port records](AGENT.contract.md#port-records-field-scope-and-the-conflict-rule) |
