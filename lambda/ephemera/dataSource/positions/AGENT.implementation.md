@@ -119,9 +119,10 @@ Type contract for the `ludicCache` prototype (CC0b, [`taskPlanning/.../AGENT.abs
 
 | File | Role |
 | --- | --- |
-| [`ludicCache/types.ts`](ludicCache/types.ts) | **`EphemeraLudicCacheData`**, **`EphemeraLudicCacheNode`** (component arm + `'Presence'` structure arm carrying `cover`/`consolidated`), **`EphemeraLudicCacheEdge`**, **`EphemeraLudicCacheCrossing`** + type guards, including the presence cover-integrity checks in `isEphemeraLudicCacheData` |
+| [`ludicCache/types.ts`](ludicCache/types.ts) | **`EphemeraLudicCacheData`**, **`EphemeraLudicCacheNode`** (component node, carrying its own bindings as a required `presenceNodes: EphemeraLudicCachePresenceNode[]` list --- `cover`/`consolidated` live on each binding, not on a separate top-level arm), **`EphemeraLudicCacheCoverEntry`** (cache-local, `presence` optional --- unresolved when the fold could not find the member's own binding), **`EphemeraLudicCacheEdge`**, **`EphemeraLudicCacheSupportHop`** (`host` + `port` + `presenceBucketIds`) + type guards, including the path-resolving cover-integrity check in `isEphemeraLudicCacheData` |
 | [`ludicCache/types.test.ts`](ludicCache/types.test.ts) | Unit tests |
-| [`ludicCache/mergeReducer.ts`](ludicCache/mergeReducer.ts) | `foldSameHostBuckets`/`presenceCacheNodesFromFold` --- the merge-time fold that mints presence structure nodes into the cache |
+| [`ludicCache/mergeReducer.ts`](ludicCache/mergeReducer.ts) | `foldSameHostBuckets`/`presenceCacheNodesFromFold` --- the merge-time fold that attaches presence bindings onto their owner's cache node; `collapseCrossingPorts` lifts every reference to a binding to the owner-qualified exterior form (`{ owner, port }` on an edge, `host` on a `supportedBy` hop) --- a bare `PRESENCE#` terminal never reaches the cache |
+| [`ludicCache/catalogHandles.ts`](ludicCache/catalogHandles.ts) | `ludicCacheObjectHandles`/`bucketsByMember` --- the first real consumer; reads each node's nested `presenceNodes` to compute a handle's `presence` (every bucket whose cover holds the thing, plus the thing's own bindings, deduped, cache order, seed room fallback) |
 
 ### `navigate/` (shared execution + post-persist orchestration)
 
