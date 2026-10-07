@@ -38,9 +38,10 @@ const boxId = 'OBJECT#Box' as EphemeraObjectId
 const boulder = 'OBJECT#Boulder' as EphemeraObjectId
 const pebble = 'OBJECT#Pebble' as EphemeraObjectId
 
-const enumeratedCover = (...hosts: EphemeraMembershipHostId[]): EphemeraPresenceCover => ({
+/** Each entry is a covered member and the uuid of that member's OWN binding into the cover's host. */
+const enumeratedCover = (...entries: [EphemeraMembershipHostId, string][]): EphemeraPresenceCover => ({
     tag: 'Enumerated',
-    members: hosts.map((host) => ({ host, presence: `PRESENCE#${host}-binding` as EphemeraPresenceNodeId })),
+    members: entries.map(([host, uuid]) => ({ host, presence: PresenceKey(uuid) as EphemeraPresenceNodeId })),
 })
 
 /** A presence binding minted on ITS OWN graph (`presenceBindingStepsForMove.ts`'s convention):
@@ -75,14 +76,14 @@ describe('buildLudicCache', () => {
             nodes: [
                 { tag: 'Object', universalKey: objX },
                 { tag: 'Object', universalKey: objZ },
-                presenceNode('x_to_room', roomA, enumeratedCover(objZ)),
+                presenceNode('x_to_room', roomA, enumeratedCover([objZ, 'z_at_x'])),
             ],
         })
         const yGraph = testLudicGraph(objY, {
             nodes: [
                 { tag: 'Object', universalKey: objY },
                 { tag: 'Object', universalKey: objZ },
-                presenceNode('y_to_room', roomA, enumeratedCover(objZ)),
+                presenceNode('y_to_room', roomA, enumeratedCover([objZ, 'z_at_y'])),
             ],
         })
         const zGraph = testLudicGraph(objZ, {
@@ -90,13 +91,17 @@ describe('buildLudicCache', () => {
                 { tag: 'Object', universalKey: objZ },
                 { tag: 'Object', universalKey: pebble1 },
                 { tag: 'Object', universalKey: pebble2 },
-                presenceNode('z_at_x', objX, enumeratedCover(pebble1)),
-                presenceNode('z_at_y', objY, enumeratedCover(pebble2)),
+                presenceNode('z_at_x', objX, enumeratedCover([pebble1, 'p1_at_z'])),
+                presenceNode('z_at_y', objY, enumeratedCover([pebble2, 'p2_at_z'])),
             ],
             edges: [{ tag: 'Relational', from: pebble1, to: pebble2, kind: 'Custom', relationLabel: 'under' }],
         })
-        const pebble1Graph = testLudicGraph(pebble1, { nodes: [{ tag: 'Object', universalKey: pebble1 }] })
-        const pebble2Graph = testLudicGraph(pebble2, { nodes: [{ tag: 'Object', universalKey: pebble2 }] })
+        const pebble1Graph = testLudicGraph(pebble1, {
+            nodes: [{ tag: 'Object', universalKey: pebble1 }, presenceNode('p1_at_z', objZ, enumeratedCover())],
+        })
+        const pebble2Graph = testLudicGraph(pebble2, {
+            nodes: [{ tag: 'Object', universalKey: pebble2 }, presenceNode('p2_at_z', objZ, enumeratedCover())],
+        })
 
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
             [roomA, roomGraph], [objX, xGraph], [objY, yGraph], [objZ, zGraph],
@@ -133,24 +138,25 @@ describe('buildLudicCache', () => {
         ]))
 
         // Presence cache nodes: X's and Y's own bindings to ROOM (each bringing objZ along), and
-        // Z's own two bindings (each bringing one pebble along) --- four bindings total, none of
-        // them a same-host straddle in themselves.
+        // Z's own two bindings (each bringing one pebble along) --- none of them a same-host
+        // straddle in themselves. Each cover entry names the MEMBER's own binding into the
+        // covering binding's host (objZ is in X through z_at_x), never the covering binding.
         expect(cache.nodes).toEqual(expect.arrayContaining([
             {
                 tag: 'Presence', universalKey: 'PRESENCE#x_to_room', fromHostId: roomA, consolidated: true,
-                cover: { tag: 'Enumerated', members: [{ host: objZ, presence: 'PRESENCE#x_to_room' }] },
+                cover: { tag: 'Enumerated', members: [{ host: objZ, presence: 'PRESENCE#z_at_x' }] },
             },
             {
                 tag: 'Presence', universalKey: 'PRESENCE#y_to_room', fromHostId: roomA, consolidated: true,
-                cover: { tag: 'Enumerated', members: [{ host: objZ, presence: 'PRESENCE#y_to_room' }] },
+                cover: { tag: 'Enumerated', members: [{ host: objZ, presence: 'PRESENCE#z_at_y' }] },
             },
             {
                 tag: 'Presence', universalKey: 'PRESENCE#z_at_x', fromHostId: objX, consolidated: true,
-                cover: { tag: 'Enumerated', members: [{ host: pebble1, presence: 'PRESENCE#z_at_x' }] },
+                cover: { tag: 'Enumerated', members: [{ host: pebble1, presence: 'PRESENCE#p1_at_z' }] },
             },
             {
                 tag: 'Presence', universalKey: 'PRESENCE#z_at_y', fromHostId: objY, consolidated: true,
-                cover: { tag: 'Enumerated', members: [{ host: pebble2, presence: 'PRESENCE#z_at_y' }] },
+                cover: { tag: 'Enumerated', members: [{ host: pebble2, presence: 'PRESENCE#p2_at_z' }] },
             },
         ]))
 
@@ -160,6 +166,56 @@ describe('buildLudicCache', () => {
         expect(cache.edges).toEqual([
             { tag: 'Relational', from: pebble1, to: pebble2, kind: 'Custom', relationLabel: 'under', supportedBy: [] },
         ])
+    })
+
+    // A graph-side 'Full' cover (what every move writes) has no entries; the fold expands it and
+    // looks each member's own binding up in the member's graph. A member bound in twice gets an
+    // entry per binding; a member whose graph the walk never reads (a character inside an object)
+    // stays covered with `presence` absent (PNR-3).
+    it('expands a Full cover to each member\'s own bindings into the host', async () => {
+        const charC = 'CHARACTER#C' as EphemeraCharacterId
+        const roomGraph = testLudicGraph(roomA, {
+            nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: objX }],
+        })
+        const xGraph = testLudicGraph(objX, {
+            nodes: [
+                { tag: 'Object', universalKey: objX },
+                { tag: 'Object', universalKey: objZ },
+                { tag: 'Character', universalKey: charC },
+                presenceNode('x_to_room', roomA, { tag: 'Full' }),
+            ],
+        })
+        const zGraph = testLudicGraph(objZ, {
+            nodes: [
+                { tag: 'Object', universalKey: objZ },
+                presenceNode('z_at_x_1', objX, { tag: 'Full' }),
+                presenceNode('z_at_x_2', objX, { tag: 'Full' }),
+            ],
+        })
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[roomA, roomGraph], [objX, xGraph], [objZ, zGraph]])
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
+            const graph = graphs.get(hostId)
+            if (!graph) {
+                throw new Error(`No fixture graph for ${hostId}`)
+            }
+            return graph
+        }
+
+        const { cache } = await buildLudicCache(roomA, [testAssetUUID], { getLudicGraph, ...noShortNameDeps() })
+
+        const xBinding = cache.nodes.find((node) => node.universalKey === 'PRESENCE#x_to_room')
+        expect(xBinding).toEqual({
+            tag: 'Presence', universalKey: 'PRESENCE#x_to_room', fromHostId: roomA, consolidated: true,
+            cover: {
+                tag: 'Enumerated',
+                members: expect.arrayContaining([
+                    { host: objZ, presence: 'PRESENCE#z_at_x_1' },
+                    { host: objZ, presence: 'PRESENCE#z_at_x_2' },
+                    { host: charC },
+                ]),
+            },
+        })
+        expect(xBinding?.tag === 'Presence' && xBinding.cover.members).toHaveLength(3)
     })
 
     // 3b: the one-way-walk failure this exists to rule out --- a crossing port whose matching leg

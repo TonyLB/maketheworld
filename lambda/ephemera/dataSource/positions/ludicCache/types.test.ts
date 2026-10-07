@@ -107,6 +107,38 @@ describe('isEphemeraLudicCacheNode', () => {
             consolidated: false,
         })).toBe(false)
     })
+
+    // A cache cover entry's `presence` is optional (PNR-3): a member expanded from a graph-side
+    // 'Full' cover whose own binding the fold could not find is still covered.
+    it('accepts cover entries with and without the member\'s own binding', () => {
+        expect(isEphemeraLudicCacheNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+            cover: { tag: 'Enumerated', members: [{ host: 'OBJECT#Z', presence: 'PRESENCE#z_in_x' }, { host: 'CHARACTER#C' }] },
+            consolidated: true,
+        })).toBe(true)
+    })
+
+    it('rejects a cover entry whose presence is not a presence id', () => {
+        expect(isEphemeraLudicCacheNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+            cover: { tag: 'Enumerated', members: [{ host: 'OBJECT#Z', presence: 'OBJECT#Z' }] },
+            consolidated: true,
+        })).toBe(false)
+    })
+
+    it('rejects a cover entry whose host is not a membership host', () => {
+        expect(isEphemeraLudicCacheNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+            cover: { tag: 'Enumerated', members: [{ host: 'PRESENCE#z_in_x' }] },
+            consolidated: true,
+        })).toBe(false)
+    })
 })
 
 describe('isEphemeraLudicCacheEdge', () => {

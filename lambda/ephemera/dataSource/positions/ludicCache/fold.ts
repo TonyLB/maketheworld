@@ -119,7 +119,12 @@ export const buildLudicCache = async (
         // proper subset), satisfying `foldSameHostBuckets`'s clause-3 zero-or-all assertion for
         // an exhaustive rebuild.
         const presenceUuids = graph.presenceNodes.map((presenceNode) => presenceUuidFromKey(presenceNode.universalKey))
-        const { nodes: presenceNodes, edges: sameHostEdges } = foldSameHostBuckets(graph, presenceUuids)
+        // Each covered member's own bindings into this host, read from the member's graph when
+        // the walk fetched it (a character's shard is not walked unless it is the seed).
+        const memberBindings = (member: string) => (graphs.get(member as EphemeraMembershipHostId)?.presenceNodes ?? [])
+            .filter((presenceNode) => presenceNode.fromHostId === hostId)
+            .map((presenceNode) => presenceNode.universalKey)
+        const { nodes: presenceNodes, edges: sameHostEdges } = foldSameHostBuckets(graph, presenceUuids, memberBindings)
         nodes.push(...presenceNodes)
         addEdges(byIdentity, sameHostEdges)
 

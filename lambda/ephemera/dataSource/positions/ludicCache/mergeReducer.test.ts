@@ -27,12 +27,17 @@ const objE = 'OBJECT#E' as EphemeraObjectId
 const objF = 'OBJECT#F' as EphemeraObjectId
 const objE2 = 'OBJECT#E2' as EphemeraObjectId
 
-/** A dummy `presence` disambiguator per member --- these fixtures don't exercise a covered
- * component's own multiple bindings (PN-22), so any well-formed `PRESENCE#` id suffices. */
+/** The member's own binding into the cover's host, named after the member: a cover entry names
+ * which of the MEMBER's bindings is meant, never the covering binding. */
+const ownBinding = (host: EphemeraLudicGraphComponentNode['universalKey']) => `PRESENCE#${host}-binding` as EphemeraPresenceNodeId
+
 const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey'][]): EphemeraPresenceCover => ({
     tag: 'Enumerated',
-    members: hosts.map((host) => ({ host, presence: `PRESENCE#${host}-binding` as EphemeraPresenceNodeId })),
+    members: hosts.map((host) => ({ host, presence: ownBinding(host) })),
 })
+
+/** These fixtures' covers are all Enumerated, whose entries the fold copies; the lookup a Full cover needs is never consulted. */
+const noMemberBindings = () => []
 
 /** The presence node minted for the binding named `portId` (presenceNodes Slice 3; no port record as of Slice 7a). */
 const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLudicGraphStructureNode => ({
@@ -412,15 +417,15 @@ describe('foldSameHostBuckets', () => {
     })
 
     it('reconstructs the same two edges via a single accumulating fold walk, cutting one bucket at a time', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
+        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'], noMemberBindings)
 
         expect(result.edges).toHaveLength(2)
         expect(result.edges).toEqual(expect.arrayContaining(expectedEdges))
     })
 
     it('does not depend on the order buckets are visited in --- a still-open stub is carried in the walk\'s own state, not compared only to the immediately preceding bucket', () => {
-        const forward = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
-        const shuffled = foldSameHostBuckets(graph, ['port_3', 'port_1', 'port_2'])
+        const forward = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'], noMemberBindings)
+        const shuffled = foldSameHostBuckets(graph, ['port_3', 'port_1', 'port_2'], noMemberBindings)
 
         expect(forward.edges).toHaveLength(2)
         expect(shuffled.edges).toHaveLength(2)
@@ -428,8 +433,8 @@ describe('foldSameHostBuckets', () => {
         expect(shuffled.edges).toEqual(expect.arrayContaining(expectedEdges))
     })
 
-    it('mints one consolidated structure-arm cache node per binding folded, with an Enumerated cover matching the graph-side binding (item 3, PN-7/PN-15/PN-19)', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
+    it('mints one consolidated structure-arm cache node per binding folded, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
+        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'], noMemberBindings)
 
         expect(result.nodes).toHaveLength(3)
         expect(result.nodes).toEqual(expect.arrayContaining([
@@ -441,9 +446,9 @@ describe('foldSameHostBuckets', () => {
                 cover: {
                     tag: 'Enumerated',
                     members: expect.arrayContaining([
-                        { host: charA, presence: 'PRESENCE#port_1' },
-                        { host: objC, presence: 'PRESENCE#port_1' },
-                        { host: objE, presence: 'PRESENCE#port_1' },
+                        { host: charA, presence: ownBinding(charA) },
+                        { host: objC, presence: ownBinding(objC) },
+                        { host: objE, presence: ownBinding(objE) },
                     ]),
                 },
             },
@@ -455,8 +460,8 @@ describe('foldSameHostBuckets', () => {
                 cover: {
                     tag: 'Enumerated',
                     members: expect.arrayContaining([
-                        { host: charB, presence: 'PRESENCE#port_2' },
-                        { host: objD, presence: 'PRESENCE#port_2' },
+                        { host: charB, presence: ownBinding(charB) },
+                        { host: objD, presence: ownBinding(objD) },
                     ]),
                 },
             },
@@ -468,8 +473,8 @@ describe('foldSameHostBuckets', () => {
                 cover: {
                     tag: 'Enumerated',
                     members: expect.arrayContaining([
-                        { host: charC, presence: 'PRESENCE#port_3' },
-                        { host: objF, presence: 'PRESENCE#port_3' },
+                        { host: charC, presence: ownBinding(charC) },
+                        { host: objF, presence: ownBinding(objF) },
                     ]),
                 },
             },
@@ -477,7 +482,7 @@ describe('foldSameHostBuckets', () => {
     })
 
     it('mints nothing for a presenceUuid with no matching graph node (degenerate: no node minted, or a stale/legacy binding), given every real binding is otherwise consolidated', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3', 'nonexistent'])
+        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3', 'nonexistent'], noMemberBindings)
 
         expect(result.nodes).toHaveLength(3)
         expect(result.nodes.map((node) => node.universalKey).sort()).toEqual([
@@ -486,12 +491,12 @@ describe('foldSameHostBuckets', () => {
     })
 
     it("throws when presenceUuids consolidates a proper subset of the host's real presence bindings (clause 3: zero or all, never some)", () => {
-        expect(() => foldSameHostBuckets(graph, ['port_1'])).toThrow(/zero or all/)
+        expect(() => foldSameHostBuckets(graph, ['port_1'], noMemberBindings)).toThrow(/zero or all/)
     })
 
     it('does not throw when presenceUuids is empty (unexamined) or names every real binding (fully consolidated)', () => {
-        expect(() => foldSameHostBuckets(graph, [])).not.toThrow()
-        expect(() => foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])).not.toThrow()
+        expect(() => foldSameHostBuckets(graph, [], noMemberBindings)).not.toThrow()
+        expect(() => foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'], noMemberBindings)).not.toThrow()
     })
 })
 
