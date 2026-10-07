@@ -7,11 +7,12 @@ jest.mock('../../../internalCache', () => ({
     },
 }))
 
-jest.mock('../../perception/resolveObjectMovePresentationLabels', () => ({
-    resolveObjectMovePresentationLabels: jest.fn().mockResolvedValue({
+/** Names each requested object or character by its id's lower-cased tail (`OBJECT#Broom` -> `broom`). */
+jest.mock('../../perception/resolveNarrationLabels', () => ({
+    resolveNarrationLabels: jest.fn(async ({ ids }: { ids: string[] }) => ({
         characterName: 'Alice',
-        objectShortName: 'broom',
-    }),
+        names: Object.fromEntries(ids.map((id) => [id, id.split('#')[1]!.toLowerCase()])),
+    })),
 }))
 
 jest.mock('./membership/planObjectMoveTransfer', () => ({
@@ -470,16 +471,13 @@ describe('commitAttempt', () => {
             expect(sweepArgs.units).toEqual([{
                 covers: ['action-1'],
                 variants: [
-                    {
-                        audience: { refs: [BROOM], phase: 'before' },
-                        template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: BROOM }], actorName: 'Alice', labels: { [BROOM]: 'broom' } },
-                    },
-                    {
-                        audience: { refs: [BROOM], phase: 'after' },
-                        template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: BROOM }], actorName: 'Alice', labels: { [BROOM]: 'broom' } },
-                    },
+                    { audience: { refs: [BROOM], phase: 'before' }, parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: BROOM }] },
+                    { audience: { refs: [BROOM], phase: 'after' }, parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: BROOM }] },
                 ],
             }])
+            // Labels are the attempt's, resolved once and filled at delivery, not baked into the unit.
+            expect(sweepArgs.actorName).toBe('Alice')
+            expect(sweepArgs.labels).toEqual({ [BROOM]: 'broom' })
             const [committedPlan, commitBundleId] = commitAndPresentStepSequenceMock.mock.calls[0]!
             expect(sweepArgs.bundleId).toBe(commitBundleId)
 
@@ -496,6 +494,51 @@ describe('commitAttempt', () => {
                 { kind: 'capture', hostId: ROOM, captureId: beforeCaptureIds[0] },
                 { kind: 'capture', hostId: ROOM, captureId: afterCaptureIds[0] },
             ])
+        })
+
+        it('delivers an authored unit in place of its covered action\'s bridge, while an uncovered move in the same attempt keeps its bridge, in action order', async () => {
+            const MOP = 'OBJECT#Mop' as EphemeraObjectId
+            const takeOf = (id: string, objectId: EphemeraObjectId, key: string) => new PositionAttemptAction(id, [], stampCandidateReferents(
+                planMembershipDesiredResult('takeHold', key, key),
+                new Map([[key, { id: objectId, shortName: key }]])
+            ), `Take: ${key}`)
+            const authored = {
+                covers: ['take-broom'],
+                variants: [{ audience: { refs: ['broom'], phase: 'before' as const }, parts: [{ slot: 'actor' as const }, { text: ' snatches ' }, { ref: 'broom' }] }],
+            }
+            const attempt = CommandAttempt.fromJSON(CommandAttempt.create('take the mop and the broom', [
+                takeOf('take-mop', MOP, 'mop'),
+                takeOf('take-broom', BROOM, 'broom'),
+            ], [authored]).toJSON())
+            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [], slots: [] } as any, fromHostId: ROOM })
+
+            await commitAttempt({ attempt, characterId: CHARACTER, messageBus, streamEvent })
+
+            const [sweepArgs] = deliverNarrationUnitsMock.mock.calls[0]!
+            expect(sweepArgs.units.map(({ covers }) => covers)).toEqual([['take-mop'], ['take-broom']])
+            expect(sweepArgs.units[1]).toEqual(authored)
+            // An authored ref is a stableRefKey; its label is its grounded object's name.
+            expect(sweepArgs.labels).toEqual({ [MOP]: 'mop', broom: 'broom' })
+        })
+
+        it('labels every ref of a delivered unit: a character by its name, a kind the resolver does not name by the fallback', async () => {
+            // A recipient is a character (slice 4's "gives the broom to Bob"); a Feature is named by nothing yet.
+            const BOB = 'CHARACTER#Bob'
+            const NICHE = 'FEATURE#Niche'
+            const take = membershipAttempt('takeHold')
+            const authored = {
+                covers: ['action-1'],
+                variants: [{
+                    audience: { refs: ['actor'], phase: 'before' as const },
+                    parts: [{ slot: 'actor' as const }, { text: ' hands ' }, { ref: BOB }, { text: ' the ' }, { ref: 'primaryObject' }, { text: ' by ' }, { ref: NICHE }],
+                }],
+            }
+            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [], slots: [] } as any, fromHostId: ROOM })
+
+            await commitAttempt({ attempt: CommandAttempt.create(take.words, take.actions(), [authored]), characterId: CHARACTER, messageBus, streamEvent })
+
+            const [sweepArgs] = deliverNarrationUnitsMock.mock.calls[0]!
+            expect(sweepArgs.labels).toEqual({ [BOB]: 'bob', primaryObject: 'broom', [NICHE]: 'something' })
         })
 
         it('calls deliverNarrationUnits with no units for a purely relational attempt --- there is no relational bridge', async () => {
@@ -515,10 +558,20 @@ describe('commitAttempt', () => {
         const transferStep = { kind: 'transferMembership', entityIds: new Set([BROOM]), fromHostIds: new Set([ROOM]), toHostId: CHARACTER }
 
         /** The producer's shape: the dissolve action first, the take last, in execution order. */
+        const OTHER_ROOM = 'ROOM#Kitchen' as EphemeraRoomId
+        /** Expansion's own unit for the dissolve, as `attemptActionsFromBoundaryOutcomes` authors it. */
+        const dissolveUnit = {
+            covers: ['action-9'],
+            variants: [{
+                audience: { refs: [`graphNode:${BROOM}`, `graphNode:${POST}`], phase: 'before' as const },
+                parts: [{ slot: 'actor' as const }, { text: ' frees ' }, { ref: `graphNode:${BROOM}` }, { text: ' from ' }, { ref: `graphNode:${POST}` }],
+            }],
+        }
         const lashedTakeAttempt = (verdict: { kind: 'met' } | undefined): CommandAttempt => {
             const take = membershipAttempt('takeHold').toJSON()
             return CommandAttempt.fromJSON({
                 ...take,
+                narrationUnits: [dissolveUnit],
                 actions: [
                     {
                         kind: 'position',
@@ -526,8 +579,8 @@ describe('commitAttempt', () => {
                         desiredResult: {
                             kind: 'change',
                             primitive: 'dissolveRelation',
-                            subject: { referentType: 'graphNode', groundedId: BROOM },
-                            target: { referentType: 'graphNode', groundedId: POST },
+                            subject: { referentType: 'graphNode', groundedId: BROOM, groundedPresence: [ROOM] },
+                            target: { referentType: 'graphNode', groundedId: POST, groundedPresence: [OTHER_ROOM] },
                             relationKind: 'Custom',
                             relationLabel: 'is lashed to',
                         } as never,
@@ -550,6 +603,33 @@ describe('commitAttempt', () => {
             expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
             const [plan] = commitAndPresentStepSequenceMock.mock.calls[0]!
             expect(withoutCaptureSteps(plan.steps)).toEqual([dissolveStep, transferStep])
+        })
+
+        it('delivers Expansion\'s dissolve line before the take\'s bridge line (RN-2), filled from the attempt\'s labels', async () => {
+            await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(deliverNarrationUnitsMock).toHaveBeenCalledTimes(1)
+            const [sweepArgs] = deliverNarrationUnitsMock.mock.calls[0]!
+            expect(sweepArgs.units.map(({ covers }) => covers)).toEqual([['action-9'], ['action-1']])
+            expect(sweepArgs.units[0]).toEqual(dissolveUnit)
+            expect(sweepArgs.labels).toEqual({ [`graphNode:${BROOM}`]: 'broom', [`graphNode:${POST}`]: 'post', [BROOM]: 'broom' })
+        })
+
+        it('resolves the dissolve\'s one audience through each end\'s stamped presence, captured ahead of the dissolve', async () => {
+            await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
+
+            const [sweepArgs] = deliverNarrationUnitsMock.mock.calls[0]!
+            const dissolveCaptureIds = sweepArgs.resolveCaptureId(sweepArgs.units[0]!, sweepArgs.units[0]!.variants[0]!.audience)
+            const [plan] = commitAndPresentStepSequenceMock.mock.calls[0]!
+            const dissolveIndex = plan.steps.findIndex((step) => step.kind === 'dissolveRelation')
+            const dissolveCaptures = plan.steps.slice(0, dissolveIndex)
+            // The post's stamped room, not the live host every unstamped ref would fall back to.
+            expect(dissolveCaptures).toEqual(expect.arrayContaining([
+                { kind: 'capture', hostId: ROOM, captureId: expect.any(String) },
+                { kind: 'capture', hostId: OTHER_ROOM, captureId: expect.any(String) },
+            ]))
+            expect(dissolveCaptureIds).toHaveLength(2)
+            expect(dissolveCaptureIds.every((id) => dissolveCaptures.some((step: any) => step.captureId === id))).toBe(true)
         })
 
         it('dry-runs the whole attempt\'s sequence, not one fragment', async () => {
@@ -575,6 +655,8 @@ describe('commitAttempt', () => {
             await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
 
             expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+            // AN-6: a covered action always happened, so a refused attempt delivers no unit at all.
+            expect(deliverNarrationUnitsMock).not.toHaveBeenCalled()
             expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`is already on ${CHARACTER}`))
             errorSpy.mockRestore()
         })
@@ -586,6 +668,7 @@ describe('commitAttempt', () => {
 
             expect(planObjectMoveTransferMock).not.toHaveBeenCalled()
             expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+            expect(deliverNarrationUnitsMock).not.toHaveBeenCalled()
         })
 
         it('does not commit an attempt whose challenge is still pending', async () => {
@@ -607,6 +690,7 @@ describe('commitAttempt', () => {
             await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
 
             expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+            expect(deliverNarrationUnitsMock).not.toHaveBeenCalled()
         })
     })
 })

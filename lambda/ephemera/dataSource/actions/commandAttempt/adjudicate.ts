@@ -116,15 +116,12 @@ const isCommandAttemptReferent = (value: unknown): value is CommandAttemptRefere
     return v.gloss === undefined || typeof v.gloss === 'string'
 }
 
-const isTemplateNarrationSpecData = (value: unknown): boolean => {
+const isNarrationPartData = (value: unknown): boolean => {
     if (!value || typeof value !== 'object') {
         return false
     }
     const v = value as Record<string, unknown>
-    return v.kind === 'template'
-        && Array.isArray(v.parts)
-        && typeof v.actorName === 'string'
-        && typeof v.labels === 'object' && v.labels !== null
+    return typeof v.text === 'string' || v.slot === 'actor' || typeof v.ref === 'string'
 }
 
 const isNarrationAudienceData = (value: unknown): boolean => {
@@ -152,7 +149,7 @@ const isNarrationUnitData = (value: unknown): value is NarrationUnit => {
             return false
         }
         const vv = variant as Record<string, unknown>
-        return isNarrationAudienceData(vv.audience) && isTemplateNarrationSpecData(vv.template)
+        return isNarrationAudienceData(vv.audience) && Array.isArray(vv.parts) && vv.parts.every(isNarrationPartData)
     })
 }
 

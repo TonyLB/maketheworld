@@ -49,7 +49,7 @@ Per [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md) **Withhold**: v1 
 | How the character holds / carries it | **Do not** elaborate beyond "picks up" |
 | Unstated object attributes | **Do not** invent in transcript |
 
-Copy is **deterministic template** (no copy-generating LLM hop), assembled by the positions **presentation kernel** at flush from ingredients the compiler put on the narrate step. Labels resolve via [`resolveObjectMovePresentationLabels.ts`](../dataSource/perception/resolveObjectMovePresentationLabels.ts); fallbacks **`Someone`** / **`something`** when names are unavailable. The verb is **not** declared by this operator --- it is derived from which side of the move was the room.
+Copy is **deterministic template** (no copy-generating LLM hop): a positions-side bridge narration unit `commitAttempt` synthesizes for the take, filled at delivery (until Plan authors the take's own unit). Labels resolve via [`resolveNarrationLabels.ts`](../dataSource/perception/resolveNarrationLabels.ts); fallbacks **`Someone`** / **`something`** when names are unavailable. The verb is **not** declared by this operator --- it is derived from which side of the move was the room.
 
 Implementation: [`compilePositionKernelOp.ts`](../dataSource/positions/manipulation/kernel/compile/compilePositionKernelOp.ts) (verb + steps), [`presentStepSequence.ts`](../dataSource/positions/manipulation/kernel/presentStepSequence.ts) (copy + audience), [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) (routing). Rules: [`positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#narration-and-presentation).
 
@@ -86,7 +86,7 @@ Per [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md) **Withhold**: v1 
 | How the object falls or comes to rest | **Do not** elaborate beyond "drops" |
 | Unstated object attributes | **Do not** invent in transcript |
 
-Copy is **deterministic template** (no copy-generating LLM hop), assembled by the positions **presentation kernel**. Labels resolve via [`resolveObjectMovePresentationLabels.ts`](../dataSource/perception/resolveObjectMovePresentationLabels.ts) --- shared with `takeHold`, and it does not require the object to remain in the room graph post-apply; fallbacks **`Someone`** / **`something`** when names are unavailable.
+Copy is **deterministic template** (no copy-generating LLM hop): the same positions-side bridge narration unit, filled at delivery. Labels resolve via [`resolveNarrationLabels.ts`](../dataSource/perception/resolveNarrationLabels.ts) --- shared with `takeHold`, and it does not require the object to remain in the room graph post-apply; fallbacks **`Someone`** / **`something`** when names are unavailable.
 
 `drop` and `takeHold` stay **two intents** because the player's meaning and the pre-apply legality errors genuinely differ, but they are **one world-effect** and share one execution and narration path --- the direction is expressed solely by which host is `fromHostId`. Implementation and rules: as for `takeHold` above.
 
@@ -121,9 +121,9 @@ Per [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md) **Withhold**: v1 
 | How the relation physically holds (friction, balance, tension) | **Do not** elaborate beyond template verb |
 | Unstated object attributes | **Do not** invent in transcript |
 
-Copy is **deterministic template** at fan-in emit (no copy-generating LLM hop). Labels resolve at emit time via [`resolveRelationalPresentationLabels.ts`](../dataSource/perception/resolveRelationalPresentationLabels.ts); fallbacks **`Someone`** / **`something`**.
+Copy comes from whatever created the action, as a narration unit on the attempt (no positions-side verb table): Expansion's fixed template for a facilitating dissolve ("frees the rope from the post", worded from the moved end); the LLM Plan fallback, when it lands, for a player-initiated relation. Labels resolve once per attempt via [`resolveNarrationLabels.ts`](../dataSource/perception/resolveNarrationLabels.ts); fallbacks **`Someone`** / **`something`**.
 
-Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.ts`](../dataSource/perception/objectManipulationPresentationFanIn.ts), [`publishObjectManipulationPresentation.ts`](../dataSource/perception/publishObjectManipulationPresentation.ts).
+Implementation: [`expandBoundaryChallenges.ts`](../dataSource/actions/commandAttempt/expandBoundaryChallenges.ts) (Expansion's units), [`deliverNarrationUnits.ts`](../dataSource/positions/manipulation/deliverNarrationUnits.ts) (delivery).
 
 ---
 

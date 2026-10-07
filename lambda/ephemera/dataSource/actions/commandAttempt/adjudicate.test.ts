@@ -82,4 +82,23 @@ describe('isCommandAttemptData', () => {
             actions: [{ kind: 'position', challenges: [] }],
         })).toBe(false)
     })
+
+    it('accepts a narration unit carrying unfilled parts, and rejects one carrying a filled template instead', () => {
+        const withVariant = (variant: object) => ({
+            words: 'take the rope',
+            referents: [],
+            actions: [{ kind: 'position', id: 'action-6', challenges: [] }],
+            narrationUnits: [{ covers: ['action-6'], variants: [variant] }],
+        })
+        const audience = { refs: ['graphNode:OBJECT#Rope'], phase: 'before' }
+        expect(isCommandAttemptData(withVariant({
+            audience,
+            parts: [{ slot: 'actor' }, { text: ' frees ' }, { ref: 'graphNode:OBJECT#Rope' }],
+        }))).toBe(true)
+        expect(isCommandAttemptData(withVariant({
+            audience,
+            template: { kind: 'template', parts: [{ slot: 'actor' }], actorName: 'Tess', labels: {} },
+        }))).toBe(false)
+        expect(isCommandAttemptData(withVariant({ audience, parts: [{ slot: 'recipient' }] }))).toBe(false)
+    })
 })

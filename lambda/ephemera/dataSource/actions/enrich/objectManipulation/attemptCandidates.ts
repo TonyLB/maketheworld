@@ -215,7 +215,7 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
             const described = attempt.actions().map((action) => describeGroundedAction(action.grounded(names)))
             const primary = described[described.length - 1]!
             return {
-                attempt: CommandAttempt.create(input.command, described.map((entry) => entry.action)),
+                attempt: CommandAttempt.create(input.command, described.map((entry) => entry.action), attempt.narrationUnits()),
                 confidence,
                 alternative: primary.alternative,
             }
@@ -438,7 +438,11 @@ export const expandAndAdjudicateCandidates = (
     const expanded = attemptActionsFromTransfer(primary, objectId, graph)
     return {
         ...candidate,
-        attempt: adjudicateAttempt(CommandAttempt.create(candidate.attempt.words, expanded)),
+        attempt: adjudicateAttempt(CommandAttempt.create(
+            candidate.attempt.words,
+            expanded.actions,
+            [...candidate.attempt.narrationUnits(), ...expanded.narrationUnits]
+        )),
     }
 })
 

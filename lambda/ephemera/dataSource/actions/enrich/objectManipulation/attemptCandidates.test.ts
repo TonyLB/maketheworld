@@ -1,11 +1,15 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { attemptSpanKeys, proposeAttemptCandidates } from './attemptCandidates'
+import { attemptSpanKeys, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { planSkeleton } from './plan/planSkeleton'
 import type { ParseSkeleton } from './parse/parseToken'
 import type { SpanCandidatePool } from './spanResolution'
-import type { CommandAttempt } from '../../commandAttempt'
+import { CommandAttempt } from '../../commandAttempt'
+import type { NarrationUnit } from '../../commandAttempt'
+import { PositionAttemptAction } from '../../commandAttempt/action'
+import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
+import { actingCharacterRef, currentHostRef } from './plan/planStep'
 
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
@@ -217,4 +221,65 @@ describe('describe-only (look) grounding', () => {
         ])
     })
 
+})
+
+describe('narration units through candidate building and Expansion', () => {
+    const authoredUnit = (actionId: string): NarrationUnit => ({
+        covers: [actionId],
+        variants: [{ audience: { refs: ['cupRef'], phase: 'before' }, parts: [{ slot: 'actor' }, { text: ' moves ' }, { ref: 'cupRef' }] }],
+    })
+
+    it('keeps the Plan attempt\'s own narration units on every grounded candidate', () => {
+        const planned = attemptFor(relationSkeleton, 'put cup on tray')
+        const unit = authoredUnit(planned.actions()[0]!.id)
+        const result = proposeAttemptCandidates({
+            command: 'put cup on tray',
+            attempts: [CommandAttempt.create(planned.words, planned.actions(), [unit])],
+            spanPools: new Map([['cupRef', pool('cup', cupId)], ['trayRef', pool('tray', trayId)]]),
+            catalog,
+            noAssignmentReason: 'none',
+        })
+
+        expect(result.ok).toBe(true)
+        if (!result.ok) {
+            return
+        }
+        expect(result.candidates[0]?.attempt.narrationUnits()).toEqual([unit])
+    })
+
+    it('adds Expansion\'s dissolve units beside the attempt\'s own, rather than replacing them', () => {
+        const roomId = 'ROOM#Bridge' as EphemeraRoomId
+        const ropeId = 'OBJECT#Rope' as EphemeraObjectId
+        const postId = 'OBJECT#Post' as EphemeraObjectId
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [{ tag: 'Relational', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' }],
+        })
+        const take = new PositionAttemptAction('take', [], {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ropeId },
+            from: currentHostRef({ referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' }),
+            to: actingCharacterRef,
+        }, 'Take: rope')
+        const unit = authoredUnit('take')
+
+        const [expanded] = expandAndAdjudicateCandidates(
+            [{ attempt: CommandAttempt.create('take rope', [take], [unit]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'take the rope' } }],
+            {
+                getGraph: (hostId) => (hostId === roomId ? graph : undefined),
+                getCurrentHost: (id) => (id === ropeId ? roomId : undefined),
+                getMembershipContainers: () => [],
+            }
+        )
+
+        const [dissolve] = expanded!.attempt.actions()
+        expect(expanded!.attempt.narrationUnits()).toEqual([
+            unit,
+            expect.objectContaining({ covers: [dissolve!.id] }),
+        ])
+    })
 })

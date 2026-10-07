@@ -269,7 +269,7 @@ describe('CommandAttempt', () => {
                     variants: [
                         {
                             audience: { refs: [ropeId], phase: 'before' },
-                            template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: ropeId }], actorName: 'Tess', labels: { [ropeId]: 'rope' } },
+                            parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: ropeId }],
                         },
                     ],
                 }],
@@ -291,7 +291,7 @@ describe('CommandAttempt', () => {
                     covers: ['action-11'],
                     variants: [{
                         audience: { refs: [ropeId], phase: 'before' },
-                        template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: ropeId }], actorName: 'Tess', labels: { [ropeId]: 'rope' } },
+                        parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: ropeId }],
                     }],
                 }],
             }

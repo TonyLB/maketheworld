@@ -20,19 +20,20 @@ import type {
     GroundedReferent,
     TransferMembershipChange,
 } from '../../actions/enrich/objectManipulation/plan/planStep'
+import { derivedReferentKey } from '../../actions/enrich/objectManipulation/plan/planStep'
 import { buildReferentAssignment, type DerivedReferentResolver } from '../../actions/enrich/objectManipulation/synthesize/buildReferentAssignment'
 import { groundChange } from '../../actions/enrich/objectManipulation/synthesize/groundChange'
 import { commitAndPresentStepSequence } from './kernel/commitAndPresentStepSequence'
 import { objectMoveVerb, type CompiledPositionKernelPlan } from './kernel/compile/compilePositionKernelOp'
 import type { RelationalEdgeFactSource } from './kernel/factsForStep'
 import { isKernelMutationStep } from './kernel/kernelStep'
-import type { MutationKernelCaptureStep, TemplateNarrationSpec } from './kernel/kernelStep'
+import type { MutationKernelCaptureStep } from './kernel/kernelStep'
 import { dryRunStepSequence } from './kernel/dryRunStepSequence'
 import { planObjectMoveTransfer } from './membership/planObjectMoveTransfer'
 import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTransfer'
 import { defaultTransferMembershipParts } from './kernel/narrationTemplate'
 import { deliverNarrationUnits } from './deliverNarrationUnits'
-import { resolveObjectMovePresentationLabels } from '../../perception/resolveObjectMovePresentationLabels'
+import { resolveNarrationLabels } from '../../perception/resolveNarrationLabels'
 import { edgesMatch, type HostRelationalEdge } from '../ludicGraph'
 import type { MutationKernelStep } from './kernel/kernelStep'
 import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -52,20 +53,29 @@ export type CommitAttemptArgs = {
 
 /**
  * What `buildMembershipFragment` already knows and the bridge-unit sweep needs again: the
- * action it narrates, the entity it moved, and the two hosts whose captures (already compiled
- * by `compilePositionKernelOp`, unaffected by narrate steps leaving it) the bridge's audiences
- * resolve to. `AGENT.attemptNarration.planning.md`, slice 3's "Narration units on
- * `CommandAttempt`" --- bridge resolution is special-cased on these known hosts, not the general
- * referent -> presence -> room resolver (AN-7 stage 2, not built yet).
+ * action it narrates, the entity it moved (the bridge's one ref, and the key its *after* audience
+ * resolves from the destination), and the two hosts whose delta picks the bridge's verb.
  */
 type MembershipBridgeInfo = {
     actionId: string
     entityId: EphemeraObjectId
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
-    actorName: string
-    objectLabel: string
 }
+
+/** The attempt's resolved display names: one actor name, and a name per object or character a unit or a bridge refers to. */
+type AttemptNarrationLabels = {
+    actorName: string
+    names: Readonly<Record<string, string>>
+}
+
+/**
+ * A ref's label: its grounded thing's resolved name. A kind the resolver does not name (a Feature
+ * end of a relation) falls back to `'something'`, as an unresolvable object does, so every ref of a
+ * delivered unit has a label and `fillNarrationTemplate`'s missing-label throw stays an invariant.
+ */
+const labelForGroundedId = (labels: AttemptNarrationLabels, groundedId: string): string =>
+    labels.names[groundedId] ?? 'something'
 
 type ActionFragment = {
     steps: CompiledPositionKernelPlan['steps']
@@ -95,18 +105,17 @@ const readLiveHosts = async (
  * Membership's half of `commitAttempt`'s per-action dispatch, given a step `commitAttempt`
  * has already grounded: checks the object's live host still matches the grounded `from` (a
  * drift/race no-op, as are zero or multiple current containers --- not repaired here),
- * resolves presentation labels, and builds (not commits) the plan via the existing
- * `planObjectMoveTransfer`.
- *
- * `roomId` for presentation is the acting character's live room, not either endpoint: a take
- * from a table moves between two non-Room hosts.
+ * and builds (not commits) the plan via the existing `planObjectMoveTransfer`. Labels are the
+ * attempt's own, resolved once (`resolveNarrationLabels`); the op's `narration` input now only
+ * gates the compiler's capture steps for the object family, since its copy is the sweep's.
  */
 const buildMembershipFragment = async (
     actionId: string,
     change: TransferMembershipChange<GroundedReferent>,
     liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>,
     args: CommitAttemptArgs,
-    bundleId: string
+    bundleId: string,
+    labels: AttemptNarrationLabels
 ): Promise<ActionFragment | undefined> => {
     const entityId = change.object.groundedId
     const fromHostId = change.from.groundedId as EphemeraMembershipHostId
@@ -135,18 +144,12 @@ const buildMembershipFragment = async (
         return undefined
     }
 
-    const { characterName, objectShortName } = await resolveObjectMovePresentationLabels({
-        characterId: args.characterId,
-        objectId: entityId,
-        roomId,
-    })
-
     const planResult = await planObjectMoveTransfer({
         entityId,
         fromHostId,
         toHostId,
         bundleId,
-        narration: { actorName: characterName, labels: { [entityId]: objectShortName } },
+        narration: { actorName: labels.actorName, labels: { [entityId]: labelForGroundedId(labels, entityId) } },
         // Containment: `planObjectMoveTransfer`/`buildObjectMoveOp`/
         // `compilePositionKernelOp` already thread this through to the establish step whose
         // `hostId` is always `toHostId` by construction --- no ancestry walk needed.
@@ -166,8 +169,6 @@ const buildMembershipFragment = async (
             entityId,
             fromHostId,
             toHostId,
-            actorName: characterName,
-            objectLabel: objectShortName,
         },
     }
 }
@@ -227,24 +228,19 @@ const buildRelationalFragment = async (
  * to hear it.
  */
 const buildMembershipBridgeUnit = (bridge: MembershipBridgeInfo): NarrationUnit => {
-    const template: TemplateNarrationSpec = {
-        kind: 'template',
-        parts: defaultTransferMembershipParts(objectMoveVerb([bridge.fromHostId], bridge.toHostId), bridge.entityId),
-        actorName: bridge.actorName,
-        labels: { [bridge.entityId]: bridge.objectLabel },
-    }
+    const parts = defaultTransferMembershipParts(objectMoveVerb([bridge.fromHostId], bridge.toHostId), bridge.entityId)
     return {
         covers: [bridge.actionId],
         variants: [
-            { audience: { refs: [bridge.entityId], phase: 'before' }, template },
-            { audience: { refs: [bridge.entityId], phase: 'after' }, template },
+            { audience: { refs: [bridge.entityId], phase: 'before' }, parts },
+            { audience: { refs: [bridge.entityId], phase: 'after' }, parts },
         ],
     }
 }
 
 /**
  * Unit delivery order is the attempt's own action order (AN-4): walks the attempt's actions once,
- * and for each, delivers whichever unit covers it --- an author's unit (none exist yet) the first
+ * and for each, delivers whichever unit covers it --- an author's unit (Expansion's) the first
  * time any of its covered actions is reached, else a membership action's own bridge unit. An
  * action neither covers (an uncovered relational action) narrates nothing: there is no relational
  * bridge.
@@ -283,28 +279,35 @@ const orderNarrationUnitsForDelivery = (
 type ReferentGrounding = { groundedId: EphemeraMembershipHostId; groundedPresence?: GroundedPresence[] }
 
 /**
- * A ref's grounding, for the presence -> room walk (AN-7 stage 2): a `stableRefKey` resolves
- * through the attempt's own referents (Grounding's stamp, stage 1); anything else is already a
- * grounded id with no known presence beyond its current binding (a bridge unit's ref is the moved
- * entity's own id, not a stableRefKey).
+ * A ref's grounding, for the presence -> room walk (AN-7 stage 2) and for its label: a ref names
+ * one of the attempt's own referents --- an `objectSpan` by its `stableRefKey` (Grounding's stamp,
+ * stage 1), a born-grounded `graphNode` by its `derivedReferentKey` (Expansion's stamp). Anything
+ * else is already a grounded id with no known presence beyond its current binding (a bridge unit's
+ * ref is the moved entity's own id).
  */
-const referentGroundingByStableRefKey = (attempt: CommandAttempt): ReadonlyMap<string, ReferentGrounding> => {
-    const byStableRefKey = new Map<string, ReferentGrounding>()
+const referentGroundingByRef = (attempt: CommandAttempt): ReadonlyMap<string, ReferentGrounding> => {
+    const byRef = new Map<string, ReferentGrounding>()
     for (const action of attempt.actions()) {
         for (const referent of action.referents()) {
-            if (referent.referentType !== 'objectSpan' || referent.stableRefKey === undefined || referent.groundedId === undefined) {
+            if (referent.referentType !== 'objectSpan' && referent.referentType !== 'graphNode') {
                 continue
             }
-            if (!byStableRefKey.has(referent.stableRefKey)) {
-                byStableRefKey.set(referent.stableRefKey, { groundedId: referent.groundedId, groundedPresence: referent.groundedPresence })
+            const ref = referent.referentType === 'objectSpan' ? referent.stableRefKey : derivedReferentKey(referent)
+            if (ref === undefined || referent.groundedId === undefined || byRef.has(ref)) {
+                continue
             }
+            byRef.set(ref, { groundedId: referent.groundedId, groundedPresence: referent.groundedPresence })
         }
     }
-    return byStableRefKey
+    return byRef
 }
 
-const groundingForRef = (ref: string, byStableRefKey: ReadonlyMap<string, ReferentGrounding>): ReferentGrounding =>
-    byStableRefKey.get(ref) ?? { groundedId: ref as EphemeraMembershipHostId }
+const groundingForRef = (ref: string, byRef: ReadonlyMap<string, ReferentGrounding>): ReferentGrounding =>
+    byRef.get(ref) ?? { groundedId: ref as EphemeraMembershipHostId }
+
+/** Every `ref` part across a set of units. */
+const refsInUnits = (units: readonly NarrationUnit[]): string[] =>
+    units.flatMap((unit) => unit.variants.flatMap((variant) => variant.parts.flatMap((part) => ('ref' in part ? [part.ref] : []))))
 
 /**
  * `after` resolves a unit's moved entity (any `transferMembership` change among its covered
@@ -331,7 +334,7 @@ const resolveAudienceRooms = async (
     context: {
         characterId: EphemeraCharacterId
         liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>
-        byStableRefKey: ReadonlyMap<string, ReferentGrounding>
+        byRef: ReadonlyMap<string, ReferentGrounding>
         movedHosts: ReadonlyMap<EphemeraMembershipHostId, { fromHostId: EphemeraMembershipHostId; toHostId: EphemeraMembershipHostId }>
         getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
     }
@@ -343,7 +346,7 @@ const resolveAudienceRooms = async (
             const room = context.liveHosts.get(context.characterId)
             return room !== undefined && isEphemeraRoomId(room) ? new Set([room]) : new Set<EphemeraRoomId>()
         }
-        const grounding = groundingForRef(ref, context.byStableRefKey)
+        const grounding = groundingForRef(ref, context.byRef)
         if (audience.phase === 'after') {
             const moved = context.movedHosts.get(grounding.groundedId)
             if (moved) {
@@ -394,7 +397,7 @@ const buildNarrationCaptureSteps = async (
     context: {
         characterId: EphemeraCharacterId
         liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>
-        byStableRefKey: ReadonlyMap<string, ReferentGrounding>
+        byRef: ReadonlyMap<string, ReferentGrounding>
         getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
     }
 ): Promise<NarrationCaptureAssembly> => {
@@ -459,10 +462,8 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         console.error(`[mtw.ephemera.positions] commitAttempt: attempt not committed: its result is ${result.status}`)
         return
     }
-    // Minted once, up front --- a membership fragment's narrate steps bake this id in at
-    // build time (`compilePositionKernelOp`), and the bundle must be declared under the
-    // same id at commit time or its narration orphans (see this file's own note on
-    // `commitAndPresentStepSequence`'s call below).
+    // Minted once, up front --- membership fragments are built with it (`planObjectMoveTransfer`),
+    // and the post-commit sweep declares the attempt's narration bundle under the same id.
     const bundleId = uuidv4()
 
     // The span half travels on the attempt's referents; the derived half is rebuilt
@@ -478,8 +479,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     // All-or-nothing: one action that cannot be built refuses the whole attempt, so nothing is
     // written for its siblings either (`[dissolve lashing, take rope]` must not untie the rope
     // when the take is refused).
-    const fragments: ActionFragment[] = []
-    const fragmentActionIds: string[] = []
+    const grounded: { actionId: string; change: ReturnType<typeof groundChange> }[] = []
     for (const action of attempt.actions()) {
         const desiredResult = action.desiredResult
         if (desiredResult === undefined || desiredResult.kind !== 'change') {
@@ -490,21 +490,41 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
             console.error(`[mtw.ephemera.positions] commitAttempt: attempt refused: ${desiredResult.primitive} action has a derived referent not resolvable against live state`)
             return
         }
-        const change = groundChange(desiredResult, assignment)
+        grounded.push({ actionId: action.id, change: groundChange(desiredResult, assignment) })
+    }
+    if (grounded.length === 0) {
+        return
+    }
+
+    // Display names, resolved once per attempt (not per action): every thing an authored unit
+    // refers to, plus every moved object (a bridge unit's one ref). Named against the acting
+    // character's room perspective: a take from a table moves between two non-Room hosts.
+    const byRef = referentGroundingByRef(attempt)
+    const actorRoom = liveHosts.get(characterId)
+    const resolvedLabels = await resolveNarrationLabels({
+        characterId,
+        ids: [
+            ...refsInUnits(attempt.narrationUnits()).map((ref) => groundingForRef(ref, byRef).groundedId),
+            ...grounded.flatMap(({ change }) => (change.primitive === 'transferMembership' ? [change.object.groundedId] : [])),
+        ].filter((id): id is EphemeraObjectId | EphemeraCharacterId => isEphemeraObjectId(id) || isEphemeraCharacterId(id)),
+        roomId: actorRoom !== undefined && isEphemeraRoomId(actorRoom) ? actorRoom : undefined,
+    })
+    const labels: AttemptNarrationLabels = { actorName: resolvedLabels.characterName, names: resolvedLabels.names }
+
+    const fragments: ActionFragment[] = []
+    const fragmentActionIds: string[] = []
+    for (const { actionId, change } of grounded) {
         const fragment = change.primitive === 'transferMembership'
-            ? await buildMembershipFragment(action.id, change, liveHosts, args, bundleId)
+            ? await buildMembershipFragment(actionId, change, liveHosts, args, bundleId, labels)
             : await buildRelationalFragment(change)
         if (fragment === undefined) {
             console.error(`[mtw.ephemera.positions] commitAttempt: attempt refused: ${change.primitive} action could not be built`)
             return
         }
         fragments.push(fragment)
-        fragmentActionIds.push(action.id)
+        fragmentActionIds.push(actionId)
     }
 
-    if (fragments.length === 0) {
-        return
-    }
     const relationalEdges = fragments.flatMap((fragment) => (fragment.relationalEdge ? [fragment.relationalEdge] : []))
     const membershipBridges = fragments.flatMap((fragment) => (fragment.membershipBridge ? [fragment.membershipBridge] : []))
 
@@ -521,7 +541,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         {
             characterId,
             liveHosts,
-            byStableRefKey: referentGroundingByStableRefKey(attempt),
+            byRef,
             getGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
         }
     )
@@ -577,10 +597,10 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         return
     }
 
-    // The attempt's only narration delivery path (AN-4): an authored unit (none exist yet) and
-    // every uncovered membership action's bridge unit, in the attempt's own action order. Audience
-    // resolution (AN-7 stage 2) already happened above, before the commit; this reads it back by
-    // the same audience objects.
+    // The attempt's only narration delivery path (AN-4): every authored unit (Expansion's dissolves)
+    // and every uncovered membership action's bridge unit, in the attempt's own action order.
+    // Audience resolution (AN-7 stage 2) already happened above, before the commit; this reads it
+    // back by the same audience objects. Each ref's label is its grounded object's short name.
     if (unitsToDeliver.length === 0) {
         return
     }
@@ -589,6 +609,8 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         captures: commitResult.captures,
         bundleId,
         messageBus: args.messageBus,
+        actorName: labels.actorName,
+        labels: Object.fromEntries(refsInUnits(unitsToDeliver).map((ref) => [ref, labelForGroundedId(labels, groundingForRef(ref, byRef).groundedId)] as const)),
         resolveCaptureId: (_unit, audience) => captureIdsByAudience.get(audience) ?? [],
     })
 }

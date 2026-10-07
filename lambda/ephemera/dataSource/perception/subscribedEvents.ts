@@ -23,19 +23,6 @@ import {
     AFFORDANCE_CACHE_DATA_SOURCE_KEY,
     type AffordancesPertainPayload,
 } from '../affordanceCache/publishedEvents'
-import type { LudicNetworkChangeRequestedPublishedPayload } from '../actions/publishedEvents'
-import type { ObjectRelationChangedPublishedPayload } from '../positions/publishedEvents'
-import {
-    isPerceptionActionsLudicNetworkChangeRequestedEnvelope,
-    isPerceptionPositionsObjectRelationChangedEnvelope,
-    toObjectManipulationPresentationLeg,
-} from './objectManipulationPresentationLegAdapters'
-
-export {
-    isPerceptionActionsLudicNetworkChangeRequestedEnvelope,
-    isPerceptionPositionsObjectRelationChangedEnvelope,
-    toObjectManipulationPresentationLeg,
-} from './objectManipulationPresentationLegAdapters'
 
 export type PerceptionThreadRegisteredIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Perception Thread Registered' }
@@ -67,8 +54,6 @@ export type PerceptionSubscribedContent =
     | RenderCacheRenderPertainsPayload
     | PerceptionFanInOrchestrationPayload
     | AffordancesPertainPayload
-    | LudicNetworkChangeRequestedPublishedPayload
-    | ObjectRelationChangedPublishedPayload
 
 export const isPerceptionRenderPertainsStreamEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
@@ -98,13 +83,11 @@ export const isPerceptionSubscribedEnvelope = (
         || isPerceptionRenderPertainsStreamEnvelope(envelope)
         || isPerceptionRoomDescriptionOrchestrationStreamEnvelope(envelope)
         || isPerceptionAffordancesPertainStreamEnvelope(envelope)
-        // Object Take Hold / Object Drop / Object Moved were dropped in Phase 4: object moves
-        // narrate through the mutation kernel now, so perception has no reason to see them. Same
-        // shape as Phase 3's removal of the Character Navigate/Home/Connected/Disconnected/Moved
-        // subscriptions when membership narration migrated. `Ludic Network Change Requested`
-        // replaces `Object Establish Relation`/`Object Dissolve Relation`.
-        || isPerceptionActionsLudicNetworkChangeRequestedEnvelope(envelope)
-        || isPerceptionPositionsObjectRelationChangedEnvelope(envelope)
+        // No position-change subscriptions: object moves and relational dissolves narrate through
+        // the attempt's narration units, delivered by positions' post-commit sweep
+        // (`deliverNarrationUnits.ts`), and character moves through the mutation kernel, so
+        // perception has no reason to see `Ludic Network Change Requested` or
+        // `Object Relation Changed`.
 )
 
 type PublishBus = Pick<MessageBus, 'publish'>

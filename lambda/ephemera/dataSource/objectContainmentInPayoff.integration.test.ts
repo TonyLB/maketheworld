@@ -159,7 +159,7 @@ describe('object containment In payoff (integration)', () => {
         ephemeraDBMock.getItems.mockResolvedValue([] as any)
 
         // The ball's own resolvable shortName --- used both by the render-side stub component
-        // (this test's actual assertion) and, incidentally, by `resolveObjectMovePresentationLabels`'s
+        // (this test's actual assertion) and, incidentally, by `resolveNarrationLabels`'s
         // fallback during the move's own narration (not asserted on here).
         internalCache.ImprovisationComponentData.set(BALL_ID, IMPROVISATION_ASSET_ID, new StandardObject({
             tag: 'Object',
@@ -169,7 +169,7 @@ describe('object containment In payoff (integration)', () => {
 
         // Initial world state: ball and box both sitting directly in the room; box and ball each
         // host nothing of their own yet. `ephemeraDB.getItem` serves this for every pre-commit read
-        // (the dry run in `planObjectMoveTransfer`, and `resolveObjectMovePresentationLabels`'s own
+        // (the dry run in `planObjectMoveTransfer`, and `resolveNarrationLabels`'s own
         // degrade-gracefully reads, which return `undefined` here and fall back harmlessly).
         const initialGraphsByHost: Record<string, EphemeraLudicGraph> = {
             [ROOM_ID]: testLudicGraph(ROOM_ID, {

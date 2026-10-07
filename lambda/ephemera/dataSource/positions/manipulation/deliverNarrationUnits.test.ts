@@ -20,11 +20,11 @@ const unit = (ref: string): NarrationUnit => ({
     variants: [
         {
             audience: { refs: [ref], phase: 'before' },
-            template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref }], actorName: 'Alice', labels: { [ref]: 'broom' } },
+            parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref }],
         },
         {
             audience: { refs: [ref], phase: 'after' },
-            template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref }], actorName: 'Alice', labels: { [ref]: 'broom' } },
+            parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref }],
         },
     ],
 })
@@ -39,6 +39,8 @@ describe('deliverNarrationUnits', () => {
             units: [],
             captures: new Map(),
             bundleId: 'BUNDLE#test',
+            actorName: 'Alice',
+            labels: { 'OBJECT#Broom': 'broom' },
             messageBus: {} as any,
             resolveCaptureId: () => { throw new Error('should not be called') },
         })
@@ -58,6 +60,8 @@ describe('deliverNarrationUnits', () => {
             units: [unit('OBJECT#Broom')],
             captures,
             bundleId: 'BUNDLE#test',
+            actorName: 'Alice',
+            labels: { 'OBJECT#Broom': 'broom' },
             messageBus,
             resolveCaptureId: (_unit, audience) => (audience.phase === 'before' ? ['capture:from:ROOM#Departure'] : ['capture:to']),
         })
@@ -85,6 +89,8 @@ describe('deliverNarrationUnits', () => {
             units: [unit('OBJECT#Broom')],
             captures,
             bundleId: 'BUNDLE#test',
+            actorName: 'Alice',
+            labels: { 'OBJECT#Broom': 'broom' },
             messageBus,
             resolveCaptureId: (_unit, audience) => (audience.phase === 'before' ? ['capture:room-1', 'capture:room-2'] : []),
         })
@@ -99,6 +105,8 @@ describe('deliverNarrationUnits', () => {
             units: [unit('OBJECT#Broom')],
             captures: new Map(),
             bundleId: 'BUNDLE#test',
+            actorName: 'Alice',
+            labels: { 'OBJECT#Broom': 'broom' },
             messageBus: { publish: jest.fn() } as any,
             resolveCaptureId: () => ['capture:missing'],
         })).toThrow(/produced no capture for/)
@@ -110,8 +118,44 @@ describe('deliverNarrationUnits', () => {
             units: [unit('OBJECT#Broom')],
             captures,
             bundleId: 'BUNDLE#test',
+            actorName: 'Alice',
+            labels: { 'OBJECT#Broom': 'broom' },
             messageBus: { publish: jest.fn() } as any,
             resolveCaptureId: () => ['capture:known', 'capture:missing'],
         })).toThrow(/produced no capture for/)
+    })
+
+    it('fills every variant from the caller\'s actor name and per-ref labels, not from the unit', () => {
+        const captures = new Map([['capture:room', [ALICE]]])
+        deliverNarrationUnits({
+            units: [{
+                covers: ['action-1'],
+                variants: [{
+                    audience: { refs: ['graphNode:OBJECT#Rope', 'graphNode:OBJECT#Post'], phase: 'before' },
+                    parts: [{ slot: 'actor' }, { text: ' frees ' }, { ref: 'graphNode:OBJECT#Rope' }, { text: ' from ' }, { ref: 'graphNode:OBJECT#Post' }],
+                }],
+            }],
+            captures,
+            bundleId: 'BUNDLE#test',
+            actorName: 'Tess',
+            labels: { 'graphNode:OBJECT#Rope': 'rope', 'graphNode:OBJECT#Post': 'post' },
+            messageBus: { publish: jest.fn() } as any,
+            resolveCaptureId: () => ['capture:room'],
+        })
+
+        const reported = sendMessageSlotReportedMock.mock.calls.map(([, , content]) => content)
+        expect(reported[0]!.message).toMatchObject({ targets: [ALICE], message: ['Tess frees rope from post'] })
+    })
+
+    it('throws when a variant refers to a ref the caller supplied no label for', () => {
+        expect(() => deliverNarrationUnits({
+            units: [unit('OBJECT#Broom')],
+            captures: new Map([['capture:room', [ALICE]]]),
+            bundleId: 'BUNDLE#test',
+            actorName: 'Alice',
+            labels: {},
+            messageBus: { publish: jest.fn() } as any,
+            resolveCaptureId: () => ['capture:room'],
+        })).toThrow(/has no label/)
     })
 })

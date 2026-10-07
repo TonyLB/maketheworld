@@ -5,7 +5,8 @@
  * positions commits exactly the attempt's actions: the dissolve once, then the transfer. Also the
  * regression test for a take that committed a facilitating dissolve twice (once from the
  * attempt's action, once derived by positions itself), which threw on the second. Terminates at
- * the committed graphs.
+ * the committed graphs, and at the narration the commit delivers: Expansion's own dissolve line,
+ * then the take's (RN-2, `AGENT.attemptNarration.planning.md`).
  *
  * Real, in this order:
  *   1. `parseCommand` for "get rope", with no Bedrock call expected: the rope is in the room's
@@ -32,7 +33,9 @@ jest.mock('../publishMessage', () => ({
 }))
 
 import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
@@ -112,6 +115,10 @@ describe('lashed rope take payoff (integration)', () => {
             return undefined
         })
         ephemeraDBMock.transactWrite.mockImplementation(async (items: any[]) => makeTransactWriteMock(graphsByHost)(items))
+        // Resolvable short names, so the delivered lines read as words rather than fallbacks.
+        for (const [objectId, shortName] of [[ROPE_ID, 'rope'], [POST_ID, 'post']] as const) {
+            internalCache.ImprovisationComponentData.set(objectId, IMPROVISATION_ASSET_ID, new StandardObject({ tag: 'Object', universalKey: objectId, shortName }))
+        }
         jest.spyOn(internalCache.Positions, 'getMembershipContainers').mockImplementation(async (id) => (
             id === CHARACTER_ID || id === ROPE_ID || id === POST_ID ? [ROOM_ID] : []
         ))
@@ -121,8 +128,8 @@ describe('lashed rope take payoff (integration)', () => {
         jest.restoreAllMocks()
     })
 
-    /** "get rope" end to end: parse (no Bedrock), the bus crossing, then the real commit. */
-    const getRope = async (): Promise<void> => {
+    /** "get rope" end to end: parse (no Bedrock), the bus crossing, then the real commit. Returns the commit's bus. */
+    const getRope = async (): Promise<jest.Mock> => {
         const invokeBedrockParseCommandImpl = jest.fn()
         const parseResult = await parseCommand(
             {
@@ -154,12 +161,23 @@ describe('lashed rope take payoff (integration)', () => {
         const published = JSON.parse(JSON.stringify(parseResult.attempt)) as CommandAttemptData
         const attempt = CommandAttempt.fromJSON(published)
 
+        const publish = jest.fn()
         await commitAttempt({
             attempt,
             characterId: CHARACTER_ID,
-            messageBus: { publish: jest.fn() } as any,
+            messageBus: { publish } as any,
             streamEvent: jest.fn().mockResolvedValue(undefined),
         })
+        return publish
+    }
+
+    /** Every narration line the post-commit sweep reported, in delivery order. */
+    const deliveredLines = async (publish: jest.Mock): Promise<string[]> => {
+        const reports = publish.mock.calls
+            .map((call: any[]) => call[0])
+            .filter((message: any) => message?.type === 'StreamingEvent' && message?.header?.type === 'Message Slot Reported')
+        const contents = await Promise.all(reports.map((report: any) => report.getContent()))
+        return contents.map((content: any) => content.message.message.join(''))
     }
 
     const expectRopeHeldAndUnbound = async (): Promise<void> => {
@@ -174,9 +192,14 @@ describe('lashed rope take payoff (integration)', () => {
     it('"get rope" unties the lashing and commits the rope into the character\'s hands', async () => {
         graphsByHost = seedGraphs(lashedEdge)
 
-        await getRope()
+        const publish = await getRope()
 
         await expectRopeHeldAndUnbound()
+        // RN-2: Expansion's line for the dissolve is delivered before the take's (whose two
+        // witness variants, before and after, each deliver the take's line).
+        const lines = await deliveredLines(publish)
+        expect(lines[0]).toMatch(/ frees rope from post$/)
+        expect(lines.slice(1)).toEqual([expect.stringMatching(/ picks up rope$/), expect.stringMatching(/ picks up rope$/)])
     })
 
     it('"get rope" leaning against the post: an unchallenged (dissolve-classified) edge is dissolved once, too', async () => {

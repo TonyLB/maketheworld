@@ -21,7 +21,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction('action-1', [], undefined, 'Take: rope')
 
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph).actions
 
         expect(actions).toHaveLength(2)
         expect(actions[0]?.desiredResult).toEqual(expect.objectContaining({
@@ -41,7 +41,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction('action-2', [], undefined, 'Take: rope')
 
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph).actions
 
         expect(actions).toHaveLength(2)
         const dissolveAction = actions[0]
@@ -64,7 +64,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction('action-3', [], undefined, 'Take: rope')
 
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph).actions
 
         expect((actions[0]?.toJSON() as any).desiredResult).toEqual({
             kind: 'change',
@@ -90,7 +90,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
 
-        const ids = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph).map((action) => action.id)
+        const ids = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph).actions.map((action) => action.id)
 
         expect(ids).toHaveLength(3)
         expect(ids[2]).toBe('primary')
@@ -103,9 +103,75 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction('action-4', [], undefined, 'Take: rope')
 
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph).actions
 
         expect(actions).toEqual([primaryAction])
+    })
+})
+
+describe('attemptActionsFromBoundaryOutcomes: the narration units Expansion authors', () => {
+    const lashedGraph = (from: EphemeraObjectId, to: EphemeraObjectId) => testLudicGraph(roomId, {
+        nodes: [
+            { tag: 'Object' as const, universalKey: ropeId },
+            { tag: 'Object' as const, universalKey: postId },
+        ],
+        edges: [{ tag: 'Relational', from, to, kind: 'Custom', relationLabel: 'is lashed to' }],
+    })
+    const freesRopeFromPost = [
+        { slot: 'actor' },
+        { text: ' frees ' },
+        { ref: `graphNode:${ropeId}` },
+        { text: ' from ' },
+        { ref: `graphNode:${postId}` },
+    ]
+
+    it('authors one unit per dissolve, covering it, worded from the moved end, with one audience over both ends before the dissolve', () => {
+        const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
+
+        const { actions, narrationUnits } = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), lashedGraph(ropeId, postId))
+
+        expect(narrationUnits).toEqual([{
+            covers: [actions[0]!.id],
+            variants: [{
+                audience: { refs: [`graphNode:${ropeId}`, `graphNode:${postId}`], phase: 'before' },
+                parts: freesRopeFromPost,
+            }],
+        }])
+    })
+
+    it('words the line from the moved end even when the moved object is the edge\'s target', () => {
+        const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
+
+        const { narrationUnits } = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), lashedGraph(postId, ropeId))
+
+        expect(narrationUnits[0]?.variants[0]?.parts).toEqual(freesRopeFromPost)
+        expect(narrationUnits[0]?.variants[0]?.audience.refs).toEqual([`graphNode:${ropeId}`, `graphNode:${postId}`])
+    })
+
+    it('authors one unit per dissolve when several boundary edges are expanded, in action order', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+                { tag: 'Object' as const, universalKey: anvilId },
+            ],
+            edges: [
+                { tag: 'Relational', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' },
+                { tag: 'Relational', from: ropeId, to: anvilId, kind: 'Custom', relationLabel: 'is tied to' },
+            ],
+        })
+        const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
+
+        const { actions, narrationUnits } = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
+
+        expect(narrationUnits.map(({ covers }) => covers)).toEqual([[actions[0]!.id], [actions[1]!.id]])
+    })
+
+    it('authors nothing when there is nothing to dissolve (the primary action is not Expansion\'s)', () => {
+        const graph = testLudicGraph(roomId, { nodes: [{ tag: 'Object' as const, universalKey: ropeId }] })
+        const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
+
+        expect(attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph).narrationUnits).toEqual([])
     })
 })
 
@@ -117,7 +183,7 @@ describe('attemptActionsFromTransfer', () => {
         })
         const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
 
-        const [primary] = attemptActionsFromTransfer(primaryAction, ropeId, graph)
+        const [primary] = attemptActionsFromTransfer(primaryAction, ropeId, graph).actions
 
         expect(primary?.challenges().map((challenge) => challenge.toJSON().kind)).toEqual(['exitEdge'])
         expect(primary?.id).toBe('primary')
@@ -148,7 +214,7 @@ describe('attemptActionsFromTransfer', () => {
         const takeWire = new PositionAttemptAction('primary', [], undefined, 'Take: wire')
 
         it('gives both ends every bucket of the host that holds them', () => {
-            const [dissolve] = attemptActionsFromTransfer(takeWire, wireId, boardGraph([{ key: westHalf }, { key: eastHalf }]))
+            const [dissolve] = attemptActionsFromTransfer(takeWire, wireId, boardGraph([{ key: westHalf }, { key: eastHalf }])).actions
 
             expect(dissolve?.desiredResult).toEqual(expect.objectContaining({
                 subject: graphNodeRef(wireId, [westHalf, eastHalf]),
@@ -162,7 +228,7 @@ describe('attemptActionsFromTransfer', () => {
             const [dissolve] = attemptActionsFromTransfer(takeWire, wireId, boardGraph([
                 { key: westHalf, members: [wireId] },
                 { key: eastHalf, members: [spotId] },
-            ]))
+            ])).actions
 
             expect(dissolve?.desiredResult).toEqual(expect.objectContaining({
                 subject: graphNodeRef(wireId, [westHalf]),
@@ -171,7 +237,7 @@ describe('attemptActionsFromTransfer', () => {
         })
 
         it('leaves both ends unlearned when the host is not a room and has no binding', () => {
-            const [dissolve] = attemptActionsFromTransfer(takeWire, wireId, boardGraph([]))
+            const [dissolve] = attemptActionsFromTransfer(takeWire, wireId, boardGraph([])).actions
 
             expect(dissolve?.desiredResult).toEqual(expect.objectContaining({
                 subject: { referentType: 'graphNode', groundedId: wireId },
