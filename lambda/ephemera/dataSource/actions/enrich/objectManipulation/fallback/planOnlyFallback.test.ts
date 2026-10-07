@@ -43,9 +43,6 @@ describe('planOnlyFallback (stub)', () => {
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
         ]
         const planResult = planSkeleton(skeleton, 'take broom')
-        if (planResult.type !== 'attempts') {
-            throw new Error(`expected attempts, got ${planResult.errorMessage}`)
-        }
         const [plan] = planResult.attempts
         const candidate = planOnlyFallbackCandidate(identity, plan, 0.4)
         expect(candidate.confidence).toBeCloseTo(0.6)

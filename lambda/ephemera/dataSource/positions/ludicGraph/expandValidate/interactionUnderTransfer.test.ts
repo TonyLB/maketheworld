@@ -13,10 +13,6 @@ const roomId = 'ROOM#Bridge' as EphemeraRoomId
 
 describe('classifyInteractionUnderTransfer', () => {
     it.each([
-        ['Under', 'subject', 'defer'],
-        ['Under', 'target', 'dissolve'],
-        ['Against', 'subject', 'dissolve'],
-        ['Against', 'target', 'dissolve'],
         ['Custom', 'subject', 'defer'],
         ['Custom', 'target', 'defer'],
     ] as const)('%s / %s -> %s', (relationKind, movedRole, expected) => {
@@ -43,21 +39,21 @@ describe('classifyInteractionUnderTransfer', () => {
 
 describe('boundaryEdgeOutcomes', () => {
     it('reports only the true external edge for a resolved transfer set (peer kinds only -- On/In/PartOf throw)', () => {
-        const glassAgainstBook: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: glassId, to: bookId, kind: 'Against' }
+        const glassLeaningOnBook: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: glassId, to: bookId, kind: 'Custom', relationLabel: 'leaning on' }
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: bookId },
                 { tag: 'Object', universalKey: glassId },
             ],
-            edges: [glassAgainstBook],
+            edges: [glassLeaningOnBook],
         })
         const outcomes = boundaryEdgeOutcomes(new Set([bookId]), graph)
 
         expect(outcomes).toHaveLength(1)
         expect(outcomes[0]).toEqual({
-            edge: { from: glassId, to: bookId, kind: 'Against' },
+            edge: { from: glassId, to: bookId, kind: 'Custom', relationLabel: 'leaning on' },
             movedRole: 'target',
-            outcome: 'dissolve',
+            outcome: 'defer',
         })
     })
 })

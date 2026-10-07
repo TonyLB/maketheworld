@@ -30,9 +30,6 @@ const takeAttempt = (() => {
         { type: 'objectSpan', span: 'the bag', stableRefKey: 'bagRef' },
     ]
     const result = planSkeleton(skeleton, 'take the bag')
-    if (result.type !== 'attempts') {
-        throw new Error(`expected attempts, got ${result.errorMessage}`)
-    }
     return result.attempts[0]
 })()
 

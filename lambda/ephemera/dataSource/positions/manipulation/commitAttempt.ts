@@ -193,7 +193,7 @@ const buildRelationalFragment = async (
  * and nothing is written, including the siblings that could have been built.
  *
  * Positions honors the attempt and does not judge it. It commits only an attempt whose result
- * has succeeded: a challenge still pending (a pending exit-contact or Under challenge can remain) or
+ * has succeeded: a challenge still pending (a pending exit-contact or peer-move challenge can remain) or
  * refused is not a permission to dissolve its edge.
  *
  * The attempt's actions are the only source of a move's facilitating dissolves: a take of a

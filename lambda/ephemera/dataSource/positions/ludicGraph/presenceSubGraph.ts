@@ -176,7 +176,7 @@ type EndpointStatus = 'qualified' | 'disqualified' | 'neutral'
  *
  * **`Present`-kind edges are excluded before any of that classification runs (LR-6, revised).**
  * They are bucket-membership metadata --- `nodesFromPresenceBinding` has already fully consumed
- * them to produce `nodes` --- not a spatial relationship between two members the way `Under`/`Custom`/
+ * them to produce `nodes` --- not a spatial relationship between two members the way `Custom`/
  * `PartOf` are, so they are never interior content, never dropped, and never straddle-minted; they
  * simply do not participate. (LR-6 originally rested on a second, mechanical argument too: under
  * the owner-based classification a `Present` edge into another bucket was *guaranteed* to look

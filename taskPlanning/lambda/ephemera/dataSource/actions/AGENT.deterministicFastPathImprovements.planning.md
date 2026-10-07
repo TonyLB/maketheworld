@@ -26,7 +26,7 @@ Extend deterministic Plan-stage template matching beyond flat, whole-command tem
 Use `[ ]` for pending and `[X]` for complete.
 
 - [ ] **Do not begin implementation design until a concrete case demands it** --- per BD-14's own "expand as concrete cases demand" discipline (the same principle that kept `Assertion`'s union to one member until a second was actually needed). This row exists to hold that discipline visibly, not as a placeholder for "someone forgot to schedule this."
-- [ ] When a concrete case does demand it: extend iteration 3's shipped native Plan matcher (`plan/matchRelationalTemplate.ts`) with the `ObjectPhrase` compositional structure per BD-24, rather than building a parallel matcher. **(2026-10-06):** that matcher is being deleted by [`AGENT.retireDeterministicRelationParsing.planning.md`](AGENT.retireDeterministicRelationParsing.planning.md); the deterministic templates left to extend are containment (`plan/matchContainmentTemplate.ts`, its slice 1) and membership.
+- [ ] When a concrete case does demand it: extend the Plan-stage deterministic templates with the `ObjectPhrase` compositional structure per BD-24, rather than building a parallel matcher. The deterministic templates left to extend are containment (`plan/matchContainmentTemplate.ts`) and membership; the relational matcher was deleted (2026-10-06).
 - [ ] Wire the resulting location-disambiguating role into real `Assertion` emission, closing BD-14's gap for real.
 
 ## Verification

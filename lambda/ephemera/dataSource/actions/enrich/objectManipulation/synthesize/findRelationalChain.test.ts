@@ -92,7 +92,7 @@ describe('findRelationalChain', () => {
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(STRING_ID)
             .addObject(CUP_ID)
-            .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Under' })
+            .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'under' })
 
         const env = envFrom({ [ROOM_ID]: roomGraph }, { [STRING_ID]: ROOM_ID })
 
@@ -108,7 +108,7 @@ describe('findRelationalChain', () => {
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(STRING_ID)
             .addObject(CUP_ID)
-            .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Under' })
+            .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'under' })
             .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
 
         const env = envFrom({ [ROOM_ID]: roomGraph }, { [STRING_ID]: ROOM_ID })

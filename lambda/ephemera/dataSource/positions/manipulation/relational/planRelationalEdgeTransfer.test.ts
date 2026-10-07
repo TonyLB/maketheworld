@@ -32,7 +32,7 @@ const establish = (subjectId: string, targetId: string): EstablishRelationChange
     primitive: 'establishRelation',
     subject: { referentType: 'objectSpan', span: 'subject', groundedId: subjectId as never },
     target: { referentType: 'objectSpan', span: 'target', groundedId: targetId as never },
-    relationKind: 'Under',
+    relationKind: 'Custom', relationLabel: 'under',
 })
 
 describe('planRelationalEdgeTransfer', () => {
@@ -63,7 +63,7 @@ describe('planRelationalEdgeTransfer', () => {
                 subjectId: BROOM,
                 targetId: TABLE,
                 hostId: ROOM,
-                relationKind: 'Under',
+                relationKind: 'Custom', relationLabel: 'under',
             }],
         })
     })

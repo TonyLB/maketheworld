@@ -41,17 +41,6 @@ describe('adjudicateAttempt', () => {
         expect(judged.result).toEqual({ status: 'succeeded', outcome: 'Take: rope and Dissolve: is lashed to' })
     })
 
-    it('leaves an Under subject-move challenge pending: clearance and pinned are different facilitating actions', () => {
-        const judged = adjudicateAttempt(ropeAttempt({
-            kind: 'underDefer',
-            id: 'challenge-1',
-            edge: { from: 'OBJECT#Rope', to: 'OBJECT#Boulder', kind: 'Under' },
-            description: 'Boundary relation to dissolve: the subject is Under something that must move first.',
-        }))
-
-        expect(judged.result).toEqual({ status: 'pending' })
-    })
-
     it('leaves a world-knowledge challenge pending', () => {
         const judged = adjudicateAttempt(ropeAttempt({ kind: 'worldKnowledge', id: 'challenge-1', description: 'The rope is very heavy.' }))
 

@@ -821,13 +821,13 @@ describe('EphemeraLudicGraph', () => {
                 const graph = graphWithThreeObjects()
                     .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' })
                     .addRelationalEdge({ from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning', edgeId: 'edge-2' })
-                    .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'Under' })
+                    .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'Custom', relationLabel: 'under' })
 
                 const next = graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })
 
                 expect(next.toStored().edges).toStrictEqual([
                     { tag: 'Relational', edgeId: 'edge-2', from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning' },
-                    { tag: 'Relational', from: OBJECT_B, to: OBJECT_C, kind: 'Under' },
+                    { tag: 'Relational', from: OBJECT_B, to: OBJECT_C, kind: 'Custom', relationLabel: 'under' },
                 ])
             })
 
@@ -967,15 +967,15 @@ describe('EphemeraLudicGraph', () => {
                 const graph = graphWithThreeObjects()
                     .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' })
                     .addRelationalEdge({ from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning', chainId: 'chain-2' })
-                    .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'Under', edgeId: 'edge-1', chainId: 'chain-2' })
-                    .addRelationalEdge({ from: OBJECT_C, to: OBJECT_A, kind: 'Against', edgeId: 'edge-2' })
+                    .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'Custom', relationLabel: 'under', edgeId: 'edge-1', chainId: 'chain-2' })
+                    .addRelationalEdge({ from: OBJECT_C, to: OBJECT_A, kind: 'Custom', relationLabel: 'against', edgeId: 'edge-2' })
 
                 const next = graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' })
 
                 expect(next.toStored().edges).toStrictEqual([
                     { tag: 'Relational', chainId: 'chain-2', from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning' },
-                    { tag: 'Relational', edgeId: 'edge-1', chainId: 'chain-2', from: OBJECT_B, to: OBJECT_C, kind: 'Under' },
-                    { tag: 'Relational', edgeId: 'edge-2', from: OBJECT_C, to: OBJECT_A, kind: 'Against' },
+                    { tag: 'Relational', edgeId: 'edge-1', chainId: 'chain-2', from: OBJECT_B, to: OBJECT_C, kind: 'Custom', relationLabel: 'under' },
+                    { tag: 'Relational', edgeId: 'edge-2', from: OBJECT_C, to: OBJECT_A, kind: 'Custom', relationLabel: 'against' },
                 ])
             })
 

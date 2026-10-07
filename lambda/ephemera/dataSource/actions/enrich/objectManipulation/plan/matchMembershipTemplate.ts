@@ -36,8 +36,9 @@ function isTextToken(token: ParseToken): token is TextToken {
 
 /**
  * Matches a membership command by its leading verb: `take`/`get` acquire, `drop` releases.
- * Runs after the relational and look templates, which claim the same leading verbs at their
- * own token counts (`take X off Y` is relational). The span is the first object span, or empty
+ * Runs after the containment and look templates. A trailing tail (`take X off Y`, `take X out of Y`)
+ * is ignored here: membership claims the leading verb, and the tail only narrows which X is meant.
+ * The span is the first object span, or empty
  * when the command has none; the producer still reads every object span from the skeleton.
  */
 export function matchMembershipTemplate(skeleton: ParseSkeleton, command: string): MembershipTemplateMatchResult {

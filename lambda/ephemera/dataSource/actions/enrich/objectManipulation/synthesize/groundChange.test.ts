@@ -33,7 +33,7 @@ describe('groundChange', () => {
             primitive: 'establishRelation',
             subject: withGroundedId(objectSpanRef('tray', 'trayRef'), TRAY_ID),
             target: graphNodeRef(TABLE_ID),
-            relationKind: 'Under',
+            relationKind: 'Custom', relationLabel: 'under',
         }
         const assignment: ReferentAssignment = { spans: new Map(), derived: new Map() }
 
@@ -42,7 +42,7 @@ describe('groundChange', () => {
             primitive: 'establishRelation',
             subject: { referentType: 'objectSpan', span: 'tray', stableRefKey: 'trayRef', groundedId: TRAY_ID },
             target: { referentType: 'graphNode', groundedId: TABLE_ID },
-            relationKind: 'Under',
+            relationKind: 'Custom', relationLabel: 'under',
         })
     })
 

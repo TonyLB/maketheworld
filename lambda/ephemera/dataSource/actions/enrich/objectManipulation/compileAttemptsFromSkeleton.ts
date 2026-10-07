@@ -161,7 +161,7 @@ const noAssignmentReasonFor = (kind: AttemptKind): string => {
  * when nothing survives: the first one, in Plan's order. Once the pool has a survivor, the result is
  * the pool's, and its refusal wording and style come from the first surviving attempt.
  *
- * A take or drop has no complexity fallback: a defer (a pending `Under` or exit challenge) is an
+ * A take or drop has no complexity fallback: a defer (a pending peer-move or exit challenge) is an
  * Abstain until the deferred adjudication tier judges it. A relation whose Expansion finds no chain
  * is illegal, and it abstains on defer (no LLM fallback on that route).
  */

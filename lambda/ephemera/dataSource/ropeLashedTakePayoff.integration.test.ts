@@ -54,7 +54,7 @@ const lashedEdge = { from: ROPE_ID, to: POST_ID, kind: 'Custom' as const, relati
 
 type EphemeraLudicGraphEdgeInput =
     | typeof lashedEdge
-    | { from: EphemeraObjectId; to: EphemeraObjectId; kind: 'Against' }
+    | { from: EphemeraObjectId; to: EphemeraObjectId; kind: 'Custom', relationLabel: 'against' }
 
 /** Same stand-in as `objectContainmentInPayoff.integration.test.ts`: runs the real reducer over the seeded graphs. */
 const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => (
@@ -180,7 +180,7 @@ describe('lashed rope take payoff (integration)', () => {
     })
 
     it('"get rope" leaning against the post: an unchallenged (dissolve-classified) edge is dissolved once, too', async () => {
-        graphsByHost = seedGraphs({ from: ROPE_ID, to: POST_ID, kind: 'Against' })
+        graphsByHost = seedGraphs({ from: ROPE_ID, to: POST_ID, kind: 'Custom', relationLabel: 'against' })
 
         await getRope()
 

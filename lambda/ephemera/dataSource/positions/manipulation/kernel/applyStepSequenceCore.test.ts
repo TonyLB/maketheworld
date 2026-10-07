@@ -212,13 +212,13 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
-    it('unresolvedDissolveEdge propagation: a sequence that omits a needed dissolveRelation before its transferMembership', () => {
+    it('undecidableInteractionEdge propagation: a sequence that moves a subject past a Custom edge it does not classify', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
             ],
-            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Against' }],
+            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'against' }],
         })
         const destGraph = testLudicGraph(characterId, { nodes: [] })
         // Bug-injection: no paired dissolveRelation step for the tray-table edge.
@@ -227,14 +227,14 @@ describe('applyStepSequenceCore', () => {
         ]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
             verdict: 'repairable',
-            reasonCode: 'unresolvedDissolveEdge',
-            authority: 'mechanical',
+            reasonCode: 'undecidableInteractionEdge',
+            authority: 'worldChanging',
             // The repair is carried as a value, and names the *source* host --- this is the fact a
             // re-proposing caller needs and could not previously get from a reason code alone.
             repair: {
-                kind: 'dissolveRelationalEdge',
+                kind: 'classifyCustomRelation',
                 hostId: roomId,
-                edge: { from: trayId, to: tableId, kind: 'Against' },
+                edge: { from: trayId, to: tableId, kind: 'Custom', relationLabel: 'against' },
             },
         })
     })
@@ -571,7 +571,7 @@ describe('applyStepSequenceCore', () => {
         it('addCrossingPort adds a fresh port without disturbing an existing one (crossing ports are not at-most-one)', () => {
             const tableGraph = testLudicGraph(tableId, {
                 nodes: [],
-                ports: [{ portId: 'existing', fromHostId: roomId, kind: 'Under' }],
+                ports: [{ portId: 'existing', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' }],
             })
             const steps: MutationKernelStep[] = [
                 {
@@ -586,7 +586,7 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(tableId)!.ports).toEqual([
-                { portId: 'existing', fromHostId: roomId, kind: 'Under' },
+                { portId: 'existing', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' },
                 { portId: 'new', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' },
             ])
         })
@@ -595,7 +595,7 @@ describe('applyStepSequenceCore', () => {
             const tableGraph = testLudicGraph(tableId, {
                 nodes: [],
                 ports: [
-                    { portId: 'keep', fromHostId: roomId, kind: 'Under' },
+                    { portId: 'keep', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' },
                     { portId: 'gone', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' },
                 ],
             })
@@ -605,7 +605,7 @@ describe('applyStepSequenceCore', () => {
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(tableId)!.ports).toEqual([{ portId: 'keep', fromHostId: roomId, kind: 'Under' }])
+            expect(outcome.graphs.get(tableId)!.ports).toEqual([{ portId: 'keep', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' }])
         })
 
         it('addCrossingPort against a host absent from the footprint is illegal (hostNotInFootprint)', () => {

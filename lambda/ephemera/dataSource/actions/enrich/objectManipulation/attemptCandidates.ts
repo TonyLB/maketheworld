@@ -314,7 +314,7 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
         return { verdict: 'illegal', decidable: true, reason: result.reason }
     }
     if (result.status === 'pending') {
-        // The pending challenge's own wording: an `Under` move and an exit contact need different adjudication.
+        // The pending challenge's own wording: a peer move and an exit contact need different adjudication.
         const pending = candidate.attempt.actions().flatMap((action) => action.challenges()).find((challenge) => challenge.verdict === undefined)
         return { verdict: 'defer', decidable: true, reason: pending?.describe() ?? 'A challenge on this move is pending adjudication' }
     }

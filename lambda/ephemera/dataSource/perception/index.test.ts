@@ -1068,7 +1068,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                     type: 'Ludic Network Change Requested',
                     characterId: TAKE_HOLD_CHARACTER,
                     attempt: {
-                        words: 'put the broom under the table',
+                        words: 'balance the broom on the table',
                         referents: [],
                         actions: [{
                             kind: 'position',
@@ -1077,7 +1077,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                                 primitive: 'establishRelation',
                                 subject: { referentType: 'objectSpan', span: 'subject', groundedId: TAKE_HOLD_OBJECT },
                                 target: { referentType: 'objectSpan', span: 'target', groundedId: 'OBJECT#Table' },
-                                relationKind: 'Under',
+                                relationKind: 'Custom', relationLabel: 'balances',
                             },
                             challenges: [],
                         }],
@@ -1093,7 +1093,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                     subjectId: TAKE_HOLD_OBJECT,
                     targetId: 'OBJECT#Table',
                     hostId: TAKE_HOLD_ROOM,
-                    relationKind: 'Under',
+                    relationKind: 'Custom', relationLabel: 'balances',
                     operation: 'establish',
                     beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
                 },
@@ -1109,7 +1109,7 @@ describe('mtw.ephemera.perception DataSource', () => {
             expect(worldPublishes[0][0]).toMatchObject({
                 targets: [TAKE_HOLD_ROOM],
                 displayProtocol: 'WorldMessage',
-                message: ['Alice puts broom under table'],
+                message: ['Alice balances broom table'],
                 createdTime: TAKE_HOLD_ANCHOR_TIME,
             })
             publishSpy.mockRestore()
@@ -1135,7 +1135,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                                 primitive: 'dissolveRelation',
                                 subject: { referentType: 'objectSpan', span: 'subject', groundedId: TAKE_HOLD_OBJECT },
                                 target: { referentType: 'objectSpan', span: 'target', groundedId: 'OBJECT#Table' },
-                                relationKind: 'Under',
+                                relationKind: 'Custom', relationLabel: 'balances',
                             },
                             challenges: [],
                         }],
@@ -1151,7 +1151,7 @@ describe('mtw.ephemera.perception DataSource', () => {
                     subjectId: TAKE_HOLD_OBJECT,
                     targetId: 'OBJECT#Table',
                     hostId: TAKE_HOLD_ROOM,
-                    relationKind: 'Under',
+                    relationKind: 'Custom', relationLabel: 'balances',
                     operation: 'dissolve',
                     beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
                 },

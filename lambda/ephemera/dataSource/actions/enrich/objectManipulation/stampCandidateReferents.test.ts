@@ -50,7 +50,7 @@ describe('stampCandidateReferents', () => {
             primitive: 'establishRelation',
             subject: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef' },
             target: { referentType: 'objectSpan', span: 'post', stableRefKey: 'targetRef' },
-            relationKind: 'Under',
+            relationKind: 'Custom', relationLabel: 'under',
         }
 
         stampCandidateReferents(step, names)

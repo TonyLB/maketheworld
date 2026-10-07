@@ -96,20 +96,20 @@ Copy is **deterministic template** (no copy-generating LLM hop), assembled by th
 
 **Player fiction:** The character places or arranges one in-room object relative to another on the **room host graph** without changing membership host --- e.g. putting a broom on a table or leaning a ladder against a wall.
 
-**Graph delta:** Add directed edge on **`Meta::Room.ludicGraph`**: `from` = subject, `to` = target, `kind` (`On` | `Under` | `Against` | `Custom`), optional **`relationLabel`** when `kind === 'Custom'` (BD-3). No adjacency dual-write for relational edges.
+**Graph delta:** Add directed edge on **`Meta::Room.ludicGraph`**: `from` = subject, `to` = target, `kind` (`On` | `Custom`), optional **`relationLabel`** when `kind === 'Custom'` (BD-3). No adjacency dual-write for relational edges.
 
 **Lane split:**
 
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
-| Enrich | Parse skeleton -> **`matchRelationalTemplate`** (**`operationKind: establishRelation`**) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
+| Enrich | Parse skeleton -> Plan's LLM fallback (**`operationKind: establishRelation`**, not yet built) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
 | Egress | **`Object Establish Relation`** stream (`characterId`, `subjectId`, `targetId`, `roomId`, `relationKind`, optional `relationLabel`) |
 | Apply | [`applyObjectRelationalChange`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectEstablishRelation`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) -> **`applyHostRelationalPatch`** (`op: 'add'`) |
 | Fact | **`Object Relation Changed`**: `operation: 'establish'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |
-| Transcript | Fan-in -> enum templates (`puts ... on`, `under`, `leans ... against`) or **`Custom`** label line |
+| Transcript | Fan-in -> enum template (`puts ... on`) or **`Custom`** label line |
 
-**Pre-flight legality:** Actions-owned before egress: both subject and target nodes on host graph; idempotent duplicate edge -> allow/no-op; conflicting or non-trivial existing relational topology on subject/target -> **Error** stub (BD-10 defer bucket until Phase D plan LLM). Containment **`in`** / **`inside`** / **`into`** -> **`nestingRelational`** Error (future nesting operator, not **`establishRelation`**). Positions re-validates at apply.
+**Pre-flight legality:** Actions-owned before egress: both subject and target nodes on host graph; idempotent duplicate edge -> allow/no-op; conflicting or non-trivial existing relational topology on subject/target -> **Error** stub (BD-10 defer bucket until Phase D plan LLM). Containment **`in`** / **`inside`** / **`into`** is a transfer (**`transferMembership`**, not **`establishRelation`**). Positions re-validates at apply.
 
 ### Transcript obligations (unknowns --- withhold)
 
@@ -138,7 +138,7 @@ Implementation: [`../dataSource/perception/objectManipulationPresentationFanIn.t
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
-| Enrich | Parse skeleton -> **`matchRelationalTemplate`** (**`operationKind: dissolveRelation`**) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
+| Enrich | Parse skeleton -> Plan's LLM fallback (**`operationKind: dissolveRelation`**, not yet built) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
 | Egress | **`Object Dissolve Relation`** stream (same payload shape as establish) |
 | Apply | [`executeEstablishEdgeChain`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) (shared with establish) -> `commitStepSequence` (`op: 'remove'`) |
 | Fact | **`Object Relation Changed`**: `operation: 'dissolve'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |
@@ -161,7 +161,6 @@ These finalize to terminal parse **`Error`** --- no stream, no positions ingress
 - **`multiObject`**: the command names or resolves more than one object target (e.g. "pick up the broom and the anvil").
 - **`multiPresent`**: one named object appears on more than one membership host (ambiguous which copy to move).
 - **`complexRelational`**: non-trivial existing in-host relational topology on subject/target blocks a deterministic plan (BD-10 defer bucket; Phase D plan LLM candidate).
-- **`nestingRelational`**: containment language (`in`, `inside`, `into`) --- future **nested container** operator, not **`establishRelation`** v1.
 - **`relationalPlacement`**: no live producer after ISS8203 slice 3 (the membership path's complexity LLM is retired; an exit-edge take abstains); supported relational commands route via **`ObjectRelateIntent`**, not this error class.
 - Held object + surface relation without explicit drop language (Phase C BD-8 composition: auto-**`drop`** then **`establishRelation`** in one atomic apply).
 

@@ -43,7 +43,7 @@ describe('classifyLudicGraphPortMismatch', () => {
     // port is never compared against an exterior edge at all, so using one here would assert
     // agreement that the code never checks. Its cases are the presence block at the bottom.
     describe('agreement', () => {
-        it.each(['On', 'Under', 'Against', 'In', 'PartOf'] as const)(
+        it.each(['On', 'In', 'PartOf'] as const)(
             'reports no mismatch when a label-free port agrees with the referring edge (%s)',
             (kind) => {
                 expect(classifyLudicGraphPortMismatch({
@@ -83,7 +83,7 @@ describe('classifyLudicGraphPortMismatch', () => {
         it('reports a kind mismatch and corrects toward the exterior edge', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'Under' }),
+                port: port({ kind: 'In' }),
                 referrerLudicGraph: referrerGraph([{ kind: 'On' }]),
             })).toEqual({ mismatch: true, correction: { kind: 'On' } })
         })
@@ -121,7 +121,7 @@ describe('classifyLudicGraphPortMismatch', () => {
         it('matches a crossing edge whichever terminal holds the port address', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'Under' }),
+                port: port({ kind: 'In' }),
                 referrerLudicGraph: {
                     ...referrerGraph([]),
                     edges: [{ tag: 'Relational' as const, from: { owner: HOST_ID, port: PORT_ID }, to: REFERRER_ID, kind: 'On' as const }],
@@ -133,7 +133,7 @@ describe('classifyLudicGraphPortMismatch', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
                 port: port({ kind: 'On' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'On' }, { kind: 'Under' }]),
+                referrerLudicGraph: referrerGraph([{ kind: 'On' }, { kind: 'Custom', relationLabel: 'tied to' }]),
             })).toEqual({ mismatch: true })
         })
     })

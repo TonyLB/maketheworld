@@ -74,7 +74,7 @@ describe('buildReferentAssignment', () => {
             primitive: 'establishRelation',
             subject: withGroundedId(objectSpanRef('tray', 'trayRef'), TRAY_ID),
             target: graphNodeRef(TABLE_ID),
-            relationKind: 'Under',
+            relationKind: 'Custom', relationLabel: 'under',
         }
 
         expect(buildReferentAssignment(change, new Map(), resolver({}))?.derived).toEqual(new Map())

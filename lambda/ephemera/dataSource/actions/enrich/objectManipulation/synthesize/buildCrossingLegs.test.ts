@@ -230,22 +230,6 @@ describe('buildCrossingLegs', () => {
         })
     })
 
-    it('a non-Custom relation kind carries no relationLabel on the port or the legs', () => {
-        const result = buildAndLower({
-            subjectId: STRING_ID,
-            targetId: CUP_ID,
-            commonAncestor: ROOM_ID,
-            subjectPath: [ROOM_ID],
-            targetPath: [TABLE_ID, ROOM_ID],
-            relationKind: 'Under',
-        })
-
-        const [addPortStep] = result
-        expect(addPortStep).toMatchObject({ kind: 'addCrossingPort', port: { kind: 'Under' } })
-        if (addPortStep.kind !== 'addCrossingPort') return
-        expect(addPortStep.port).not.toHaveProperty('exteriorRelationLabel')
-    })
-
     it("both sides have an extra hop at once --- a middle leg with two port-address endpoints, the shape this row exists to unblock (tree: B contains C and E; C contains D; E contains F; tie D to F)", () => {
         const result = buildAndLower({
             subjectId: D_ID,
@@ -379,16 +363,6 @@ describe('lowerRelationalChain, dissolve', () => {
         expect(lowerRelationalChain(steps, 'dissolveRelation')).toEqual([
             { kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
         ])
-    })
-
-    it('a non-Custom relation kind carries no relationLabel on the emitted step', () => {
-        const steps: RelationalChainStep[] = [
-            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: CUP_ID, kind: 'Under' } },
-        ]
-
-        const [dissolveStep] = lowerRelationalChain(steps, 'dissolveRelation')
-        expect(dissolveStep).toEqual({ kind: 'dissolveRelation', subjectId: STRING_ID, targetId: CUP_ID, hostId: ROOM_ID, relationKind: 'Under' })
-        expect(dissolveStep).not.toHaveProperty('relationLabel')
     })
 
     it('a two-hop chain on one side --- deeper than buildCrossingLegs itself can mint --- maps through with no cap', () => {

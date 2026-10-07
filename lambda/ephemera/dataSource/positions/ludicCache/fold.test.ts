@@ -10,7 +10,7 @@
  * inside two different containing objects at once carries two presence bindings on its OWN
  * graph (one per parent, minted by `presenceBindingStepsForMove` onto the mover's own item), and
  * an edge inside *that child's own interior* can straddle those two bindings. `objZ` below is
- * that child --- present inside both `objX` and `objY`, with an interior `pebble1 -Under->
+ * that child --- present inside both `objX` and `objY`, with an interior `pebble1 -Custom: under->
  * pebble2` edge split across its two bindings' covers.
  */
 import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -93,7 +93,7 @@ describe('buildLudicCache', () => {
                 presenceNode('z_at_x', objX, enumeratedCover(pebble1)),
                 presenceNode('z_at_y', objY, enumeratedCover(pebble2)),
             ],
-            edges: [{ tag: 'Relational', from: pebble1, to: pebble2, kind: 'Under' }],
+            edges: [{ tag: 'Relational', from: pebble1, to: pebble2, kind: 'Custom', relationLabel: 'under' }],
         })
         const pebble1Graph = testLudicGraph(pebble1, { nodes: [{ tag: 'Object', universalKey: pebble1 }] })
         const pebble2Graph = testLudicGraph(pebble2, { nodes: [{ tag: 'Object', universalKey: pebble2 }] })
@@ -158,7 +158,7 @@ describe('buildLudicCache', () => {
         // reassembled by foldSameHostBuckets --- this is what would come back stubbed on both
         // sides if the same-host fold were skipped or misapplied.
         expect(cache.edges).toEqual([
-            { tag: 'Relational', from: pebble1, to: pebble2, kind: 'Under', supportedBy: [] },
+            { tag: 'Relational', from: pebble1, to: pebble2, kind: 'Custom', relationLabel: 'under', supportedBy: [] },
         ])
     })
 

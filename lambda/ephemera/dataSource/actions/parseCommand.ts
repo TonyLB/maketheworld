@@ -34,9 +34,6 @@ async function parseCommandCore(
             { type: 'objectSpan', span: intentResult.rawObjectSpans[0]! },
         ])
         const plan = planSkeleton(skeleton, input.command)
-        if (plan.type === 'declined') {
-            return { result: { type: 'Error', errorMessage: plan.errorMessage }, enrichReasoningMarkdown: '', enrichRawBody: undefined }
-        }
         if (plan.attempts.length === 0) {
             return { result: { type: 'Unimplemented', confidence: intentResult.confidence }, enrichReasoningMarkdown: '', enrichRawBody: undefined }
         }
@@ -94,13 +91,6 @@ async function parseCommandCore(
         }
 
         const plan = planSkeleton(parseResult.tokens, input.command)
-        if (plan.type === 'declined') {
-            return {
-                result: { type: 'Error', errorMessage: plan.errorMessage },
-                enrichReasoningMarkdown: '',
-                enrichRawBody: undefined,
-            }
-        }
 
         // Plan's attempts all go to one producer. Zero attempts is the non-object families' case (Acme, then Unimplemented).
         if (plan.attempts.length > 0) {

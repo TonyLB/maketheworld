@@ -206,13 +206,11 @@ describe("StandardLudicGraph", () => {
                     { kind: 'In' as const, from: 'OBJECT#cup' as const, to: 'OBJECT#box' as const },
                     { kind: 'On' as const, from: 'OBJECT#cup' as const, to: 'OBJECT#tray' as const },
                     { kind: 'PartOf' as const, from: 'OBJECT#spring' as const, to: 'OBJECT#contraption' as const },
-                    { kind: 'Under' as const, from: 'OBJECT#a' as const, to: 'OBJECT#b' as const },
-                    { kind: 'Against' as const, from: 'OBJECT#a' as const, to: 'OBJECT#b' as const },
                     { kind: 'Custom' as const, from: 'OBJECT#a' as const, to: 'OBJECT#b' as const, relationLabel: 'spliced to' },
                 ],
             }
             const graph = StandardLudicGraph.fromJSON(data)
-            expect(graph.edges.length).toBe(8)
+            expect(graph.edges.length).toBe(6)
             expect(graph.toJSON()).toEqual(data)
         })
 
@@ -265,7 +263,8 @@ describe("StandardLudicGraph", () => {
             const graph = StandardLudicGraph.fromJSON({
                 edges: [
                     {
-                        kind: 'Under' as const,
+                        kind: 'Custom' as const,
+                        relationLabel: 'leaning on',
                         from: { owner: { tag: 'Room' as const, key: 'lab', universalKey: 'ROOM#lab' as const }, port: '8f3a' },
                         to: 'OBJECT#cup',
                     },

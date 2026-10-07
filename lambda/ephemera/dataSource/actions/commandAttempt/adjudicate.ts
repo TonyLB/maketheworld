@@ -21,9 +21,10 @@ import { MetVerdict } from './verdict'
  * should answer:
  * - a `Custom` edge's facilitating dissolve is always right: untying or cutting the lashing
  *   leaves the same graph, so the choice is manner;
- * - an `Under` subject-move could mean clearance (pull the rope out) or pinned (the boulder
- *   must move first), which are different facilitating actions the graph cannot tell apart.
- *   Judging it would pick a reading, so it stays pending (and the command still defers);
+ * - a peer subject-move (a `Custom` edge the moved object is attached to) is met, whether it
+ *   means clearance (pull the rope out) or pinned (the boulder must move first). The graph cannot
+ *   tell those apart and `Custom` has no finer kind to split on, so the rule is manner, not
+ *   physics: the lashed rope and the rope under the post come out the same way (RD-5, 2026-10-06);
  * - a world-knowledge challenge is not a graph question at all (CA-6).
  *
  * There is no genre source, just as there is no phase source: Coyote is the only genre.
@@ -42,7 +43,7 @@ export type DeferredAdjudicationContext = {
 /**
  * The deferred adjudication tier (ISS8203 slice 3). It runs once, from Selection, on the top
  * deferred candidate, and it judges only the challenges the per-candidate tier leaves pending
- * (the `Under` subject-move, the exit contact). The candidate is returned as it went in unless
+ * (the exit contact; peer subject-moves are met by the per-candidate tier). The candidate is returned as it went in unless
  * this tier judged something, and a candidate that comes back unchanged abstains. The naive
  * implementation judges nothing; the relational-complexity LLM adjudicator replaces it behind
  * this contract (ladder layer 1's unowned remainder). Synchronous until that LLM lands.
@@ -80,7 +81,7 @@ const isChallengeData = (value: unknown): value is ChallengeData => {
     if (v.kind === 'worldKnowledge' || v.kind === 'exitEdge') {
         return true
     }
-    if (v.kind === 'customEdge' || v.kind === 'underDefer') {
+    if (v.kind === 'customEdge') {
         return typeof v.edge === 'object' && v.edge !== null
     }
     return false

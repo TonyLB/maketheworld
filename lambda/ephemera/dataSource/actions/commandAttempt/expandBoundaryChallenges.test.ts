@@ -10,23 +10,6 @@ const anvilId = 'OBJECT#Anvil' as EphemeraObjectId
 const postId = 'OBJECT#Post' as EphemeraObjectId
 
 describe('attemptActionsFromBoundaryOutcomes', () => {
-    it('adds one challenge-free action for a dissolve-classified boundary edge', () => {
-        const graph = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Object' as const, universalKey: ropeId },
-                { tag: 'Object' as const, universalKey: anvilId },
-            ],
-            edges: [{ tag: 'Relational', from: ropeId, to: anvilId, kind: 'Against' }],
-        })
-        const primaryAction = new PositionAttemptAction([], undefined, 'Take: rope')
-
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph)
-
-        expect(actions).toHaveLength(2)
-        expect(actions[1]).toBe(primaryAction)
-        expect(actions[0]?.challenges()).toHaveLength(0)
-    })
-
     it('expands a boundary edge to a non-Object (Character) endpoint too', () => {
         const companionId = 'CHARACTER#Companion' as EphemeraCharacterId
         const graph = testLudicGraph(roomId, {
@@ -34,7 +17,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
                 { tag: 'Object' as const, universalKey: ropeId },
                 { tag: 'Character' as const, universalKey: companionId },
             ],
-            edges: [{ tag: 'Relational', from: ropeId, to: companionId, kind: 'Against' }],
+            edges: [{ tag: 'Relational', from: ropeId, to: companionId, kind: 'Custom', relationLabel: 'against' }],
         })
         const primaryAction = new PositionAttemptAction([], undefined, 'Take: rope')
 

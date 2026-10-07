@@ -6,7 +6,7 @@ import type { Verdict } from './verdict'
 
 export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction, NarrateAttemptAction } from './action'
 export type { Challenge, ChallengeData } from './challenge'
-export { CustomEdgeChallenge, ExitEdgeChallenge, UnderDeferChallenge, WorldKnowledgeChallenge } from './challenge'
+export { CustomEdgeChallenge, ExitEdgeChallenge, WorldKnowledgeChallenge } from './challenge'
 export type { Verdict, VerdictData } from './verdict'
 export { MetVerdict, ImpossibleVerdict } from './verdict'
 

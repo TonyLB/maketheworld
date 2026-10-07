@@ -20,7 +20,7 @@ describe('matchDeterministicTemplate', () => {
     })
 
     it('is deterministic across repeated calls (first-match-wins registry order)', () => {
-        expect(deterministicTemplateRegistry.length).toBe(15)
+        expect(deterministicTemplateRegistry.length).toBe(5)
         expect(matchDeterministicTemplate('look')).toEqual(matchDeterministicTemplate('look'))
     })
 })
@@ -32,7 +32,7 @@ describe('matchNonObjectManipulationTemplate', () => {
         expect(matchNonObjectManipulationTemplate('wait for the bird')).toMatchObject({ intent: { type: 'AwaitRoadRunner' } })
     })
 
-    it('excludes look, predict, and relational entries by construction', () => {
+    it('excludes look and predict by construction, and no peer-relation shape reaches it', () => {
         expect(nonObjectManipulationTemplateRegistry.length).toBe(3)
         // "look"/"l" are always intercepted upstream by deterministicChecks.ts's pre-classify
         // fast path, so this registry never needs to recognize them; look also carries no

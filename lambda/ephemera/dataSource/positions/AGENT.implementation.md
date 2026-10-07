@@ -72,6 +72,8 @@ The **intent payload** column is the only per-operator row that genuinely varies
 
 Host-bound **`EphemeraLudicGraph`** class --- membership + relational simulation; sole in-memory primitive for kernel, transact reducers, and read-only actions observation. Spec: [`ludicGraph/AGENT.md`](ludicGraph/AGENT.md).
 
+**Boundary classifier.** [`expandValidate/interactionUnderTransfer.ts`](ludicGraph/expandValidate/interactionUnderTransfer.ts) answers what a move does to each relational edge it severs. Every peer edge defers, so its `dissolve` outcome has no producer. It is kept as the no-judgment class reserved for a future LLM tier, and a producer should not be added without that tier.
+
 **Host serde.** `fromCharacterMeta` / `fromObjectMeta` / `fromFeatureMeta` / `fromAreaMeta` are thin, host-named wrappers over one shared `fromPlainHostMeta` body (direct `ludicGraph` field read, trivial empty default). `fromRoomMeta` is the one irregular case --- it layers the `seedFromActiveCharacters` absent-value fallback on top of the same decode. Rule: [Host storage: one shared serde, one documented exception](AGENT.contract.md#host-storage-one-shared-serde-one-documented-exception).
 
 | File | Role |
@@ -191,16 +193,6 @@ Objects lane callers use **`executeMembershipTransfer`** ([`manipulation/members
 | [`navigate/presentCharacterMove.test.ts`](navigate/presentCharacterMove.test.ts) | Post-persist bundle declare + header slot registration (no `MapUpdate`), plus the disconnect-shaped (`to: null`) cases merged in 3f |
 
 ---
-
-## Shelved: retiring the closed kinds `Against` and `Under`
-
-Not owned by any plan yet; a lean, not a decision. The user leans toward removing `Against` and `Under` as more complication than performance gain. Nothing is `mechanical` once they are gone, and no repair path needs them. What it would reach:
-
-- The classifier's closed-kind table in [`interactionUnderTransfer.ts`](ludicGraph/expandValidate/interactionUnderTransfer.ts) (`dissolve` class; `Under` when its target moves).
-- The no-challenge boundary actions in [`expandBoundaryChallenges.ts`](../actions/commandAttempt/expandBoundaryChallenges.ts).
-- The relational ingress's closed-kind fast path.
-
-Refusing an uncovered boundary edge at commit (`commitAttempt` dry-runs the attempt's whole sequence) already covers both kinds without special cases, so removing them does not need a new commit rule.
 
 ## Registration
 

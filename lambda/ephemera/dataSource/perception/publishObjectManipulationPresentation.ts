@@ -1,5 +1,5 @@
-import type { HostingRelationKind, ClosedRelationKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isHostingRelationKind, isClosedRelationKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { HostingRelationKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isHostingRelationKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { ObjectRelationalEmissionPlan } from './objectManipulationPresentationFanIn'
 
@@ -20,14 +20,6 @@ const CONTAINMENT_NARRATION: Partial<Record<HostingRelationKind, { verb: string;
     On: { verb: 'puts', preposition: 'on' },
 }
 
-/** Both closed kinds have established narration copy, so this table is exhaustive --- mirroring
- * `interactionUnderTransfer.ts`'s `CLOSED_RELATION_BEHAVIOR`, a compile error forces an entry
- * here if `CLOSED_RELATION_KINDS` ever grows. */
-const CLOSED_RELATION_NARRATION: Record<ClosedRelationKind, { verb: string; preposition: string }> = {
-    Under: { verb: 'puts', preposition: 'under' },
-    Against: { verb: 'leans', preposition: 'against' },
-}
-
 export const buildEstablishRelationWorldMessage = (plan: ObjectRelationalEmissionPlan): string => {
     const { characterName, subjectShortName, targetShortName } = plan
     if (isHostingRelationKind(plan.relationKind)) {
@@ -35,9 +27,6 @@ export const buildEstablishRelationWorldMessage = (plan: ObjectRelationalEmissio
         if (narration) {
             return `${characterName} ${narration.verb} ${subjectShortName} ${narration.preposition} ${targetShortName}`
         }
-    } else if (isClosedRelationKind(plan.relationKind)) {
-        const narration = CLOSED_RELATION_NARRATION[plan.relationKind]
-        return `${characterName} ${narration.verb} ${subjectShortName} ${narration.preposition} ${targetShortName}`
     }
     // Only `Custom` carries a label, so the fallback verb is reached explicitly rather than via
     // `relationLabel ?? 'positions'` --- which used to imply the other kinds might supply one.

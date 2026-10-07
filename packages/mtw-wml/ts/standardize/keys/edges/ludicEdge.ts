@@ -233,7 +233,7 @@ const terminalLookup = (terminal: LudicEdgeTerminal, mappings: LookupMappings): 
 }
 
 /**
- * Membership (`In`/`On`/`PartOf`), Peer (`Under`/`Against`/`Custom`), and Bearing (Topology,
+ * Membership (`In`/`On`/`PartOf`), Peer (`Custom`, the only peer kind; its label says which relation), and Bearing (Topology,
  * non-traversable). No WML surface tag, no author path this slice. Identity and list membership
  * follow the same add/remove-by-`ref`-sign convention every other list in this layer uses --
  * there is no author-provided uuid for these kinds yet, so structural sameKey (kind + endpoints

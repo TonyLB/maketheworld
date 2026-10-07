@@ -1169,7 +1169,7 @@ describe('parseCommand LLM path', () => {
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
         })
 
-        it('returns DissolveRelation for relational dissolve via the native skeleton pipeline (Step 2b step 6)', async () => {
+        it('returns Unimplemented for "remove X off Y": peer relations have no deterministic parse, and the LLM Plan fallback is not built yet (slice 2)', async () => {
             const ropeId = 'OBJECT#Rope' as EphemeraObjectId
             const crateId = 'OBJECT#Crate' as EphemeraObjectId
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
@@ -1185,10 +1185,8 @@ describe('parseCommand LLM path', () => {
                 {
                     // Deliberately not starting with "take"/"get"/"drop" --- those hijack to the
                     // deterministic membership fast path (deterministicChecks.ts) before classify
-                    // ever runs. planSkeleton checks matchRelationalTemplate before the
-                    // bare-verb membership check, so this 4-token skeleton (remove/rope/off/crate)
-                    // still resolves to the relational route even though classify itself no longer
-                    // decides membership vs. relational (iteration 7, Sub-iteration 1).
+                    // ever runs. "remove" is not a membership verb, so this 4-token skeleton
+                    // (remove/rope/off/crate) is claimed by no Plan template and answers Unimplemented.
                     command: 'remove the rope off the crate',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
@@ -1222,12 +1220,7 @@ describe('parseCommand LLM path', () => {
                 }
             )
 
-            expect(result).toEqual({
-                type: 'CommandAttempt',
-                confidence: 0.86,
-                attempt: expect.anything(),
-            })
-            expect(primaryStepOf(result)).toMatchObject({ primitive: 'dissolveRelation', subject: { groundedId: ropeId }, target: { groundedId: crateId }, relationKind: 'Custom', relationLabel: 'off' })
+            expect(result).toEqual({ type: 'Unimplemented', confidence: 0.86 })
             expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         })
     })
@@ -1321,7 +1314,7 @@ describe('parseCommand LLM path', () => {
         })
     })
 
-    it('returns EstablishRelation for relational route via the native skeleton pipeline (Step 2b step 6)', async () => {
+    it('returns Unimplemented for "put X under Y": peer relations have no deterministic parse, and the LLM Plan fallback is not built yet (slice 2)', async () => {
         const broomId = 'OBJECT#Broom'
         const tableId = 'OBJECT#Table'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
@@ -1351,13 +1344,7 @@ describe('parseCommand LLM path', () => {
             }
         )
 
-        expect(result).toEqual({
-            type: 'CommandAttempt',
-            confidence: 0.9,
-            attempt: expect.anything(),
-        })
-        expect(primaryStepOf(result)).toMatchObject({ primitive: 'establishRelation', subject: { groundedId: broomId }, target: { groundedId: tableId }, relationKind: 'Under' })
-        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
+        expect(result).toEqual({ type: 'Unimplemented', confidence: 0.9 })
     })
 
     it('returns LookComponent for object-directed look via the native skeleton pipeline (Phase 4)', async () => {
@@ -1395,87 +1382,7 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
     })
 
-    it('returns EstablishRelation for under relational route via the native skeleton pipeline', async () => {
-        const broomId = 'OBJECT#Broom'
-        const benchId = 'OBJECT#Bench'
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"Command","confidence":0.9}',
-        })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"broom"},{"type":"text","text":"under"},{"type":"objectSpan","span":"bench"}]}',
-        })
 
-        const result = await parseCommand(
-            {
-                command: 'put the broom under the bench',
-                characterId: 'CHARACTER#123',
-                hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
-                roomObjectLabels: ['broom'],
-                roomObjectCatalog: [
-                    { objectId: broomId, normalizedShortName: 'broom' },
-                    { objectId: benchId, normalizedShortName: 'bench' },
-                ],
-            },
-            {
-                invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
-                objectManipulationPositionsReadDeps: relationalPositionsReadDepsForTests([broomId, benchId]),
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'CommandAttempt',
-            confidence: 0.9,
-            attempt: expect.anything(),
-        })
-        expect(primaryStepOf(result)).toMatchObject({ primitive: 'establishRelation', subject: { groundedId: broomId }, target: { groundedId: benchId }, relationKind: 'Under' })
-        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
-    })
-
-    it('returns Consult for relational route with an ambiguous exact target pool (two tables)', async () => {
-        const broomId = 'OBJECT#Broom'
-        const table1Id = 'OBJECT#Table1'
-        const table2Id = 'OBJECT#Table2'
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"Command","confidence":0.9}',
-        })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"broom"},{"type":"text","text":"under"},{"type":"objectSpan","span":"table"}]}',
-        })
-
-        const result = await parseCommand(
-            {
-                command: 'put the broom under the table',
-                characterId: 'CHARACTER#123',
-                hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
-                roomObjectLabels: ['broom', 'table'],
-                roomObjectCatalog: [
-                    { objectId: broomId, normalizedShortName: 'broom' },
-                    { objectId: table1Id, normalizedShortName: 'table' },
-                    { objectId: table2Id, normalizedShortName: 'table' },
-                ],
-            },
-            {
-                invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
-                objectManipulationPositionsReadDeps: relationalPositionsReadDepsForTests([broomId, table1Id, table2Id]),
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'Consult',
-            confidence: 0.9,
-            alternatives: [
-                { proposedCommand: 'put the broom under the table' },
-                { proposedCommand: 'put the broom under the table' },
-            ],
-        })
-        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
-    })
 
     it('returns ObjectContainment for in relational route via the native skeleton pipeline', async () => {
         const coinId = 'OBJECT#Coin'
@@ -1910,7 +1817,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('take broom when the broom touches an exit (abstains: no adjudicator judges exit contact or Under yet)', async () => {
+        it('take broom when the broom touches an exit (abstains: no adjudicator judges exit contact yet)', async () => {
             expect(await run(
                 { command: 'take broom', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
@@ -1924,18 +1831,18 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('take rope when the rope is under the post (abstains: no adjudicator judges Under yet)', async () => {
+        it('take rope when the rope is under the post (a peer subject-move is met: the rope comes out)', async () => {
             expect(await run(
                 { command: 'take rope', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
-                    graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Under' }]) },
+                    graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'under' }]) },
                 }
             )).toMatchSnapshot()
         })
     })
 
     describe('relational commands (Parse path)', () => {
-        it('put the broom against the table', async () => {
+        it('put the broom against the table (no peer parse: Unimplemented)', async () => {
             expect(await run(
                 { command: 'put the broom against the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
@@ -1945,7 +1852,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('tie the rope to the post (Custom)', async () => {
+        it('tie the rope to the post (no peer parse: Unimplemented)', async () => {
             expect(await run(
                 { command: 'tie the rope to the post', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
@@ -1965,7 +1872,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('put the broom under the table with two table candidates (Consult)', async () => {
+        it('put the broom under the table with two table candidates (no peer parse: Unimplemented)', async () => {
             expect(await run(
                 { command: 'put the broom under the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table'], [TABLE2, 'table']]) },
                 {
@@ -1975,7 +1882,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('put the broom partof the table (today a Custom relation labelled partof, not an Error)', async () => {
+        it('put the broom partof the table (no peer parse: Unimplemented)', async () => {
             expect(await run(
                 { command: 'put the broom partof the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
@@ -2096,7 +2003,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('put the broom under the table with no room', async () => {
+        it('put the broom under the table with no room (no peer parse: Unimplemented)', async () => {
             expect(await run(
                 { command: 'put the broom under the table', hostRoomId: undefined, roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 { parseTokens: [text('put'), span('broom'), text('under'), span('table')] }

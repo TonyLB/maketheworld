@@ -24,7 +24,7 @@ describe('repairAdministrativeChainDissolve', () => {
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
             ],
-            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Under' }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'under' }],
         })
         const getMembershipContainers = async (): Promise<EphemeraRoomId[]> => [FROM_ROOM]
         const getGraph = async (): Promise<EphemeraLudicGraph> => roomGraph

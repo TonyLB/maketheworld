@@ -105,19 +105,15 @@ export const expandSameHost = (
         }
     }
 
-    // Peer kinds only (AB-54). A hosting kind puts the subordinate node *inside* the superior's
-    // own shard, so there is no boundary between them to cross and a minted crossing port would
-    // be a false record of one --- they fall to the error below instead. `Present` is the port
-    // mechanism's own kind and is never an assertion's subject.
-    const isPeerKind = relationKind === 'Under' || relationKind === 'Against' || relationKind === 'Custom'
-
-    if (isPeerKind) {
+    // The peer kind (AB-54; `Custom` is the only one). A hosting kind puts the subordinate node
+    // *inside* the superior's own shard, so there is no boundary between them to cross and a
+    // minted crossing port would be a false record of one --- they fall to the error below
+    // instead. `Present` is the port mechanism's own kind and is never an assertion's subject.
+    if (relationKind === 'Custom') {
         if (operationKind === 'establishRelation') {
             // a violated peer relation is not a misplacement to be repaired --- it may
             // legitimately cross a shard boundary via a port pair (BD-16's third outcome, this
-            // union's own doc comment). This was widened from `Custom`-only:
-            // `buildCrossingLegs` was already general over kinds (it mints a bare-`kind` port for
-            // the enum relations), and the gate was the only thing holding `Under`/`Against` back.
+            // union's own doc comment).
             const boundary = findShardBoundary({ subjectId, targetId: objectId }, env.getMembershipContainers)
             if (boundary.verdict === 'crossed') {
                 const chain = buildCrossingLegs({
@@ -126,13 +122,10 @@ export const expandSameHost = (
                     commonAncestor: boundary.commonAncestor,
                     subjectPath: boundary.subjectPath,
                     targetPath: boundary.targetPath,
-                    // Narrowed once, so both arms of `RelationalKindAndLabel`'s discriminated
-                    // union spread cleanly --- `relationLabel` is checked non-undefined by the
-                    // malformed-input guard at the top of the function, which is why
-                    // the cast is safe.
-                    ...(relationKind === 'Custom'
-                        ? { relationKind: 'Custom' as const, relationLabel: relationLabel as string }
-                        : { relationKind }),
+                    // `relationLabel` is checked non-undefined by the malformed-input guard at the
+                    // top of the function, which is why the cast is safe.
+                    relationKind: 'Custom',
+                    relationLabel: relationLabel as string,
                 })
                 return { verdict: 'crossed', chain }
             }
@@ -161,24 +154,6 @@ export const expandSameHost = (
             verdict: 'defer',
             decidable: false,
             reason: 'Custom relation sameHost violation requires LLM validation (BD-10)',
-        }
-    }
-
-    if (isPeerKind) {
-        // Distinct from the Custom defer above, deliberately: nothing here is semantically
-        // uncertain. For establish, the relation is well understood and the endpoints are in
-        // different shards; what is missing is a crossing this slice's leg producer can express
-        // (no common ancestor, an ambiguous one, or a shape past its one-extra-hop-per-side
-        // scope). For dissolve, either no matching chain exists or `findRelationalChain` found
-        // more than one and declined to pick. An LLM has nothing to add to either, so
-        // borrowing BD-10's wording would misroute the follow-up.
-        const reason = operationKind === 'establishRelation'
-            ? `No crossing could be built for the ${relationKind} relation between ${subjectId} and ${objectId} --- they share no host, and their shard boundary is unreachable or has a shape buildCrossingLegs does not yet support`
-            : `No existing ${relationKind} relation chain found to dissolve between ${subjectId} and ${objectId} --- either none exists, or more than one qualifying chain was found and findRelationalChain declined to pick`
-        return {
-            verdict: 'defer',
-            decidable: false,
-            reason,
         }
     }
 

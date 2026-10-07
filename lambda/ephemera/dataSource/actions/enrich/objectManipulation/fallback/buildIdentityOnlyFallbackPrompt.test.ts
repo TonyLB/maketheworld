@@ -14,9 +14,6 @@ describe('buildIdentityOnlyFallbackPrompt', () => {
             [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'the bag', stableRefKey: 'bagRef' }],
             'take the bag'
         )
-        if (result.type !== 'attempts') {
-            throw new Error(`expected attempts, got ${result.errorMessage}`)
-        }
         return result.attempts[0]
     }
 

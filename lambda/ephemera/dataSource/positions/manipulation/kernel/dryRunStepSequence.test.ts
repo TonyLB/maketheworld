@@ -68,13 +68,13 @@ describe('dryRunStepSequence', () => {
         expect(outcome).toEqual({ verdict: 'stale', reasonCode: 'staleTransferCandidate' })
     })
 
-    it('repairable: an unresolved Against boundary edge propagates the full repair descriptor', async () => {
+    it('repairable: an undecidable Custom boundary edge propagates the full repair descriptor', async () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
             ],
-            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Against' }],
+            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'against' }],
         })
         const destGraph = testLudicGraph(characterId, { nodes: [] })
         const graphs = graphFixture([roomId, sourceGraph], [characterId, destGraph])
@@ -90,12 +90,12 @@ describe('dryRunStepSequence', () => {
 
         expect(outcome).toEqual({
             verdict: 'repairable',
-            reasonCode: 'unresolvedDissolveEdge',
-            authority: 'mechanical',
+            reasonCode: 'undecidableInteractionEdge',
+            authority: 'worldChanging',
             repair: {
-                kind: 'dissolveRelationalEdge',
+                kind: 'classifyCustomRelation',
                 hostId: roomId,
-                edge: { from: trayId, to: tableId, kind: 'Against' },
+                edge: { from: trayId, to: tableId, kind: 'Custom', relationLabel: 'against' },
             },
         })
     })

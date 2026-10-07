@@ -288,7 +288,7 @@ export const isEphemeraLudicPortAddress = (value: unknown): value is EphemeraLud
  * EphemeraId domain and THROWS (`Illegal nested EphemeraId`) on any value containing more than one
  * `#`. Port ids are not EphemeraIds --- `EphemeraCrossingPort.portId` is deliberately an opaque
  * `string` --- and a minted stub id embeds component ids, e.g.
- * `STUB-["OBJECT#C","OBJECT#D","Under",""]`, so an EphemeraId guard is a category error here that
+ * `STUB-["OBJECT#C","OBJECT#D","On",""]`, so an EphemeraId guard is a category error here that
  * throws on ordinary same-host traffic. This predicate is total over the port-id domain. */
 export const isPresenceTaggedPortId = (portId: string): portId is EphemeraPresenceNodeId =>
     portId.startsWith('PRESENCE#')
@@ -432,20 +432,8 @@ export type EphemeraLudicGraphStructureNode = {
 export type EphemeraLudicGraphNode = EphemeraLudicGraphComponentNode | EphemeraLudicGraphStructureNode
 
 /**
- * The closed, deterministic-physics relation kinds (2026-09-06): a fast-path exists for
- * these because their move behavior is fully known without an LLM step. Source of truth for
- * `HostRelationalEdgeKind`'s peer-kind literals below, and for
- * `interactionUnderTransfer.ts`'s per-kind move-behavior table --- both derive from this array
- * rather than re-spelling the pair independently.
- */
-export const CLOSED_RELATION_KINDS = ['Under', 'Against'] as const
-export type ClosedRelationKind = typeof CLOSED_RELATION_KINDS[number]
-export const isClosedRelationKind = (value: string): value is ClosedRelationKind =>
-    (CLOSED_RELATION_KINDS as readonly string[]).includes(value)
-
-/**
  * AB-54's hosting kinds --- the subordinate node lives in its host's own shard, so these are
- * never given deterministic move/interaction behavior the way `CLOSED_RELATION_KINDS` is: their
+ * never given deterministic move/interaction behavior (the retired closed peer kinds had it): their
  * containment mechanism, not a lookup table, decides what happens (2026-09-06 conversation ---
  * "the hosting/containment relations can continue to be hard-coded"). This pairing exists only
  * so consumers that need to ask "is this kind hosting?" (narration dispatch, for one) share one
@@ -458,7 +446,7 @@ export const isHostingRelationKind = (value: string): value is HostingRelationKi
 
 export type HostRelationalEdgeKind =
     | HostingRelationKind                       // hosting kinds (AB-54); In/PartOf non-exclusive (premise 9)
-    | ClosedRelationKind | 'Custom'              // peer kinds (AB-54)
+    | 'Custom'                                  // peer kind (AB-54): the only one; a label says which relation
 // `'Present'` retired from this union at presenceNodes Slice 3 (PN-14, decided 2026-09-16: removal
 // here with the edge sense, not deferred to Slice 7 with the port sense). No `Present`-kind edge
 // was ever constructed by any writer -- the migration moves bucket membership onto `cover`
@@ -568,7 +556,7 @@ export type EphemeraLudicRelationalEdgeData =
     | (EphemeraLudicRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
     | (EphemeraLudicRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', ...CLOSED_RELATION_KINDS, 'Custom', 'In', 'PartOf'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Custom', 'In', 'PartOf'])
 
 export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {

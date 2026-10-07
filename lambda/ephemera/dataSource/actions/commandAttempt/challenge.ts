@@ -23,7 +23,6 @@ export interface Challenge {
 
 export type ChallengeData =
     | { kind: 'customEdge'; id: string; edge: HostRelationalEdge; description: string; verdict?: VerdictData }
-    | { kind: 'underDefer'; id: string; edge: HostRelationalEdge; description: string; verdict?: VerdictData }
     | { kind: 'worldKnowledge'; id: string; description: string; verdict?: VerdictData }
     | { kind: 'exitEdge'; id: string; description: string; verdict?: VerdictData }
 
@@ -70,51 +69,6 @@ export class CustomEdgeChallenge implements Challenge {
 
     withVerdict(verdict: Verdict): Challenge {
         return new CustomEdgeChallenge(this.id, this.edge, this.description, verdict)
-    }
-}
-
-/**
- * An `Under` subject-move defer. Structurally identical to `CustomEdgeChallenge` today
- * (edge + authored wording), kept as its own member so divergent behavior has a home.
- * The open question is not wording: the graph cannot tell a rope under a table
- * (clearance) from one under a boulder (pinned), which need different facilitating
- * actions, so no adjudicator can be certain the expanded action satisfies the precondition
- * and this challenge stays pending. Wording follows once a reading is chosen.
- */
-export class UnderDeferChallenge implements Challenge {
-    readonly id: string
-    readonly edge: HostRelationalEdge
-    readonly description: string
-    readonly verdict: Verdict | undefined
-    readonly detectionSource = 'graph' as const
-
-    constructor(id: string, edge: HostRelationalEdge, description: string, verdict?: Verdict) {
-        this.id = id
-        this.edge = edge
-        this.description = description
-        this.verdict = verdict
-    }
-
-    static fromJSON(data: Extract<ChallengeData, { kind: 'underDefer' }>): UnderDeferChallenge {
-        return new UnderDeferChallenge(data.id, data.edge, data.description, data.verdict && verdictFromJSON(data.verdict))
-    }
-
-    toJSON(): ChallengeData {
-        return {
-            kind: 'underDefer',
-            id: this.id,
-            edge: this.edge,
-            description: this.description,
-            ...(this.verdict !== undefined ? { verdict: verdictToJSON(this.verdict) } : {}),
-        }
-    }
-
-    describe(): string {
-        return this.description
-    }
-
-    withVerdict(verdict: Verdict): Challenge {
-        return new UnderDeferChallenge(this.id, this.edge, this.description, verdict)
     }
 }
 
@@ -201,8 +155,6 @@ export const challengeFromJSON = (data: ChallengeData): Challenge => {
     switch (data.kind) {
         case 'customEdge':
             return CustomEdgeChallenge.fromJSON(data)
-        case 'underDefer':
-            return UnderDeferChallenge.fromJSON(data)
         case 'worldKnowledge':
             return WorldKnowledgeChallenge.fromJSON(data)
         case 'exitEdge':

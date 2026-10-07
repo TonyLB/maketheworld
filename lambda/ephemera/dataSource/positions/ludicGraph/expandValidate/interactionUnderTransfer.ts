@@ -1,12 +1,13 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { ClosedRelationKind, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isClosedRelationKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph, HostRelationalEdge } from '../index'
 
 export type TransferEndpointRole = 'subject' | 'target'
 
+// `dissolve` has no producer (every peer edge defers). It is kept as the no-judgment class reserved
+// for a future LLM tier.
 export type InteractionUnderTransferOutcome = 'dissolve' | 'defer'
 
 /**
@@ -15,28 +16,15 @@ export type InteractionUnderTransferOutcome = 'dissolve' | 'defer'
  * the move --- a hosted thing lives in its host's own shard and travels with it, so hosting kinds
  * never reach this table (see the throw below).
  *
- * The closed-kind pair (`Under`/`Against`) is a lookup into `CLOSED_RELATION_BEHAVIOR` below,
- * not case arms: `ephemeraMeta.ts`'s `CLOSED_RELATION_KINDS` array is the
- * source of truth for which kinds get the deterministic fast-path, and this table is the local
- * behavior TypeScript forces an update to if that array ever grows. `Under`'s subject-move
- * ambiguity is spatial clearance, not "what happens to some other object," so it stays `defer`.
+ * Every peer relation is `Custom`, and it defers whichever end moves: whether a severed peer edge
+ * matters (clearance under a table, a rope still lashed) is an interaction judgment for the
+ * adjudicator, not a fixed rule. The closed `Under`/`Against` kinds, which dissolved on some
+ * moves, no longer exist.
  */
-const CLOSED_RELATION_BEHAVIOR: Record<ClosedRelationKind, {
-    onSubjectMove: InteractionUnderTransferOutcome
-    onTargetMove: InteractionUnderTransferOutcome
-}> = {
-    Under: { onSubjectMove: 'defer', onTargetMove: 'dissolve' },
-    Against: { onSubjectMove: 'dissolve', onTargetMove: 'dissolve' },
-}
-
 export function classifyInteractionUnderTransfer(
     relationKind: HostRelationalEdgeKind,
-    movedRole: TransferEndpointRole
+    _movedRole: TransferEndpointRole
 ): InteractionUnderTransferOutcome {
-    if (isClosedRelationKind(relationKind)) {
-        const behavior = CLOSED_RELATION_BEHAVIOR[relationKind]
-        return movedRole === 'subject' ? behavior.onSubjectMove : behavior.onTargetMove
-    }
     switch (relationKind) {
         case 'Custom':
             return 'defer'
@@ -61,8 +49,7 @@ export function classifyInteractionUnderTransfer(
             // graphs ever land, a containment edge can appear here and this becomes a real
             // decision again. Note that even then the answer is likely to be moving the
             // contained thing with its shard rather than classifying it -- AB-5's
-            // mint/move/dissolve covers that without traversal. Until then, that open question survives only for the
-            // 'Against' reconciliation, which is a peer kind and never lands in this branch.
+            // mint/move/dissolve covers that without traversal.
             throw new Error(`classifyInteractionUnderTransfer: '${relationKind}' has no producer on an exterior graph in iteration 1 (AB-53/AB-54); reaching here means a producer built a graph the constructor does not author`)
         // `case 'Present':` deleted at presenceNodes Slice 3 (PN-14): `'Present'` retired from
         // `HostRelationalEdgeKind` with the edge sense, so this switch has no type left to match

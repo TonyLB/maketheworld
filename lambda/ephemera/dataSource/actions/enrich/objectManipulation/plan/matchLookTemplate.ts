@@ -16,7 +16,7 @@ function isTextToken(token: ParseToken): token is TextToken {
 /**
  * Matches an object-directed look command's ParseSkeleton against the one closed
  * template shape this slice recognizes: TEXT(verb) OBJECTSPAN --- exactly 2 tokens.
- * No preposition/relation phrase (unlike matchRelationalTemplate) --- a describe
+ * No preposition/relation phrase (unlike the containment template) --- a describe
  * referent is singular with no relation to another referent. Only ever meaningful
  * once classify has already routed a command through Parse; this function does no
  * family/route detection itself.

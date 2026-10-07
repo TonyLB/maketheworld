@@ -51,8 +51,8 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                     { tag: 'Relational', kind: 'In', from: boxId, to: tableId },
                     { tag: 'Relational', kind: 'On', from: featureId, to: tableId },
                     { tag: 'Relational', kind: 'PartOf', from: featureId, to: areaId, edgeId: 'route1', chainId: 'chain1' },
-                    { tag: 'Relational', kind: 'Under', from: charId, to: areaId },
-                    { tag: 'Relational', kind: 'Against', from: roomId, to: featureId },
+                    { tag: 'Relational', kind: 'Custom', relationLabel: 'under', from: charId, to: areaId },
+                    { tag: 'Relational', kind: 'Custom', relationLabel: 'against', from: roomId, to: featureId },
                     { tag: 'Relational', kind: 'Custom', from: boxId, to: charId, relationLabel: 'Beside' },
                     // Port-qualified terminal (LG-11): an interior edge landing on this graph's
                     // own boundary port -- `owner: tableId` is `graph.hostId` itself, exactly the
