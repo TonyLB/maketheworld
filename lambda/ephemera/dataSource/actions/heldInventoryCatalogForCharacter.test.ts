@@ -80,7 +80,7 @@ describe('getHeldInventoryCatalogForCharacter', () => {
         })
 
         expect(result.entries).toEqual([
-            { objectId: broomId, normalizedShortName: 'broom', presence: [characterBinding] },
+            { objectId: broomId, normalizedShortName: 'broom', presence: [{ host: characterId, presence: characterBinding }] },
         ])
     })
 

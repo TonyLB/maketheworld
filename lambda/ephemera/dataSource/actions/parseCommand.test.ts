@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, Eph
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../positions/ludicGraph/testFixtures'
 import { CommandAttempt, type CommandAttemptData } from './commandAttempt'
-import type { EphemeraLudicGraph } from '../positions/ludicGraph'
+import { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import { getRoomObjectCatalogForCharacter, roomObjectLabelsFromCatalog } from './roomObjectCatalogForCharacter'
@@ -1979,6 +1979,61 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         })
     })
 
+    describe('the relation\'s far end is not the subject, or is in another shard', () => {
+        const STRING = 'OBJECT#String' as EphemeraObjectId
+        const CUP = 'OBJECT#Cup' as EphemeraObjectId
+        const takeOf = async (command: string, catalog: Array<[EphemeraObjectId, string]>, options: CaseOptions) => {
+            const { result } = await run({ command, roomObjectLabels: catalog.map(([, label]) => label), roomObjectCatalog: catalogOf(catalog) }, options)
+            expect(result).toMatchObject({ type: 'CommandAttempt' })
+            return CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt)
+        }
+
+        it('take the post the rope is lashed to: the lashing is found from the post\'s end, so it dissolves before the take', async () => {
+            const attempt = await takeOf('take post', [[ROPE, 'rope'], [POST, 'post']], {
+                graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
+            })
+            expect(attempt.result).toEqual({ status: 'succeeded', outcome: expect.any(String) })
+            const [dissolve, take] = attempt.actions()
+            expect(dissolve!.desiredResult).toMatchObject({ primitive: 'dissolveRelation', subject: { groundedId: ROPE }, target: { groundedId: POST } })
+            expect(take!.desiredResult).toMatchObject({ primitive: 'transferMembership', object: { groundedId: POST } })
+        })
+
+        // A crossing: the string sits in the room, the cup on the table, and the tie crosses the
+        // table's shard boundary through a port (the room holds `string -> port`, the table holds
+        // the port and `port -> cup`).
+        const portAddress = { owner: TABLE, port: 'port-1' }
+        const crossingShards = () => ({
+            [ROOM]: roomWith([STRING, TABLE], [{ tag: 'Relational', from: STRING, to: portAddress, kind: 'Custom', relationLabel: 'is tied to' }]),
+            [TABLE]: EphemeraLudicGraph.empty(TABLE)
+                .addObject(CUP)
+                .addPort({ portId: 'port-1', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
+                .addRelationalEdge({ from: CUP, to: TABLE, kind: 'On' })
+                .addRelationalEdge({ from: portAddress, to: CUP, kind: 'Custom', relationLabel: 'is tied to' }),
+        })
+
+        it('take the cup tied across the table to the string: the tie dissolves between its two true ends, before the take', async () => {
+            const attempt = await takeOf('take cup', [[CUP, 'cup'], [STRING, 'string'], [TABLE, 'table']], {
+                graphs: crossingShards(),
+                containers: { [CUP]: [TABLE], [TABLE]: [ROOM], [STRING]: [ROOM] },
+            })
+            expect(attempt.result).toEqual({ status: 'succeeded', outcome: expect.any(String) })
+            const [dissolve, take] = attempt.actions()
+            expect(dissolve!.desiredResult).toMatchObject({ primitive: 'dissolveRelation', subject: { groundedId: STRING }, target: { groundedId: CUP } })
+            expect(take!.desiredResult).toMatchObject({ primitive: 'transferMembership', object: { groundedId: CUP } })
+        })
+
+        it('take the string tied across the table to the cup: the far shard is reached, so the tie dissolves before the take', async () => {
+            const attempt = await takeOf('take string', [[CUP, 'cup'], [STRING, 'string'], [TABLE, 'table']], {
+                graphs: crossingShards(),
+                containers: { [CUP]: [TABLE], [TABLE]: [ROOM], [STRING]: [ROOM] },
+            })
+            expect(attempt.result).toEqual({ status: 'succeeded', outcome: expect.any(String) })
+            const [dissolve, take] = attempt.actions()
+            expect(dissolve!.desiredResult).toMatchObject({ primitive: 'dissolveRelation', subject: { groundedId: STRING }, target: { groundedId: CUP } })
+            expect(take!.desiredResult).toMatchObject({ primitive: 'transferMembership', object: { groundedId: STRING } })
+        })
+    })
+
     describe('a hosted object moves (its own hosting edge is not a boundary edge)', () => {
         it('take the coin when the coin sits on the table: the coin\'s own On edge in the table\'s shard does not throw', async () => {
             const { result } = await run(
@@ -2003,14 +2058,16 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take the coin when it is lashed to the post on the table: Grounding stamps the take and Expansion stamps both ends of the dissolve with the table\'s bucket', async () => {
             const tableBinding = 'PRESENCE#table-in-room' as EphemeraPresenceNodeId
+            /** Coin, post and table are all seen through the table's binding, which lives on the table's graph. */
+            const onTable = { host: TABLE, presence: tableBinding }
             const { result } = await run(
                 {
                     command: 'take coin',
                     roomObjectLabels: ['coin', 'post', 'table'],
                     roomObjectCatalog: [
-                        { objectId: COIN, normalizedShortName: 'coin', presence: [tableBinding] },
-                        { objectId: POST, normalizedShortName: 'post', presence: [tableBinding] },
-                        { objectId: TABLE, normalizedShortName: 'table', presence: [tableBinding] },
+                        { objectId: COIN, normalizedShortName: 'coin', presence: [onTable] },
+                        { objectId: POST, normalizedShortName: 'post', presence: [onTable] },
+                        { objectId: TABLE, normalizedShortName: 'table', presence: [onTable] },
                     ],
                 },
                 {
@@ -2036,11 +2093,11 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             // Round trip through the published JSON, as the hand-off does.
             const attempt = CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt)
             const [dissolve, take] = attempt.actions()
-            expect(take!.desiredResult).toMatchObject({ object: { groundedId: COIN, groundedPresence: [tableBinding] } })
+            expect(take!.desiredResult).toMatchObject({ object: { groundedId: COIN, groundedPresence: [onTable] } })
             expect(dissolve!.desiredResult).toMatchObject({
                 primitive: 'dissolveRelation',
-                subject: { groundedId: COIN, groundedPresence: [tableBinding] },
-                target: { groundedId: POST, groundedPresence: [tableBinding] },
+                subject: { groundedId: COIN, groundedPresence: [onTable] },
+                target: { groundedId: POST, groundedPresence: [onTable] },
             })
         })
 
@@ -2076,7 +2133,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                         : []
                 )) as any,
             })
-            expect(entries).toEqual([{ objectId: TABLE, normalizedShortName: 'table', presence: [tableHere, tableThere] }])
+            expect(entries).toEqual([{ objectId: TABLE, normalizedShortName: 'table', presence: [{ host: TABLE, presence: tableHere }, { host: TABLE, presence: tableThere }] }])
 
             const { result } = await run(
                 { command: 'take table', roomObjectLabels: roomObjectLabelsFromCatalog(entries), roomObjectCatalog: entries },
@@ -2085,7 +2142,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             expect(result).toMatchObject({ type: 'CommandAttempt' })
             const attempt = CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt)
             expect(primaryStepOf({ attempt: attempt.toJSON() })).toMatchObject({
-                object: { groundedId: TABLE, groundedPresence: [tableHere, tableThere] },
+                object: { groundedId: TABLE, groundedPresence: [{ host: TABLE, presence: tableHere }, { host: TABLE, presence: tableThere }] },
             })
         })
     })

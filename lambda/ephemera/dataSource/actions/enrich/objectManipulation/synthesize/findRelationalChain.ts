@@ -203,14 +203,12 @@ export const findRelationalChainFromLeg = (
 }
 
 /**
- * rewritten on top of `findRelationalChainFromLeg` -- finds the candidate first edges
- * directly touching `subjectId` (matching `relationKind`/`relationLabel`), resolves each one's
- * full chain via the leg-seeded walker, and keeps only those whose far endpoint is `targetId`.
- * Preserves the original contract exactly (same input/output shape); `expandSameHost.ts` needs no
- * changes. This also fixes a real, previously-latent directional bug for any candidate that
- * happens to require walking from the interior side of a crossing first (see
- * `resolveEndpoint`'s own doc comment) -- not exercised by any existing caller, which has only
- * ever supplied an exterior-first `subjectId`, but a genuine correctness improvement regardless.
+ * Built on `findRelationalChainFromLeg`: finds the candidate first edges directly touching one
+ * end (matching `relationKind`/`relationLabel`), resolves each one's full chain via the
+ * leg-seeded walker, and keeps only those whose far endpoint is the other end. The walk starts
+ * from `subjectId`'s host when it is known, else from `targetId`'s: a caller may know only one
+ * end's host (Expansion's dissolve of a relation whose moved end is its target, where the
+ * subject is a `graphNode` no phrase named). Either way, `steps` run subject -> target.
  */
 export const findRelationalChain = (
     input: {
@@ -225,7 +223,10 @@ export const findRelationalChain = (
     const { subjectId, targetId, relationKind, relationLabel } = input
     const { getGraph, getCurrentHost } = env
 
-    const startHostId = getCurrentHost(subjectId)
+    const subjectHostId = getCurrentHost(subjectId)
+    const [startId, farId, startHostId] = subjectHostId !== undefined
+        ? [subjectId, targetId, subjectHostId] as const
+        : [targetId, subjectId, getCurrentHost(targetId)] as const
     if (startHostId === undefined) {
         return { verdict: 'notFound' }
     }
@@ -237,7 +238,7 @@ export const findRelationalChain = (
     const candidateEdges = graph.relationalEdges.filter(
         (edge) =>
             edgeMatchesRelation(edge, relationKind, relationLabel)
-            && (ephemeraLudicTerminalsEqual(edge.from, subjectId) || ephemeraLudicTerminalsEqual(edge.to, subjectId))
+            && (ephemeraLudicTerminalsEqual(edge.from, startId) || ephemeraLudicTerminalsEqual(edge.to, startId))
     )
 
     const found: RelationalChainStep[][] = []
@@ -246,9 +247,11 @@ export const findRelationalChain = (
         if (result.verdict !== 'found') {
             continue
         }
-        const subjectIsFromSide = result.endpoints[0] === subjectId
-        const farEndpoint = subjectIsFromSide ? result.endpoints[1] : result.endpoints[0]
-        if (farEndpoint === targetId) {
+        const startIsFromSide = result.endpoints[0] === startId
+        const farEndpoint = startIsFromSide ? result.endpoints[1] : result.endpoints[0]
+        if (farEndpoint === farId) {
+            // `steps` run endpoints[0] -> endpoints[1]; report them subject -> target.
+            const subjectIsFromSide = result.endpoints[0] === subjectId
             found.push(subjectIsFromSide ? result.steps : [...result.steps].reverse())
         }
     }

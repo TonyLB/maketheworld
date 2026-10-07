@@ -51,8 +51,9 @@ export const roomsForHost = async (
 
 /**
  * Locates one presence binding on its owner's own graph (a binding is minted onto the mover's own
- * graph, per `presenceBindingStepsForMove.ts`, so `ownerHostId` is always the referent's own
- * `groundedId`), then continues the walk from that binding's `fromHostId`.
+ * graph, per `presenceBindingStepsForMove.ts`), then continues the walk from that binding's
+ * `fromHostId`. The owner is the bucket's own `host`, not the referent: a thing is usually seen
+ * through a binding of the host whose graph holds it.
  */
 export const roomsForPresenceNode = async (
     ownerHostId: EphemeraMembershipHostId,
@@ -83,9 +84,9 @@ export const roomsForReferent = async (
         return roomsForHost(groundedId, getGraph)
     }
     const perEntry = await Promise.all(entries.map((entry) => (
-        isEphemeraRoomId(entry)
+        typeof entry === 'string'
             ? Promise.resolve(new Set([entry]))
-            : roomsForPresenceNode(groundedId, entry, getGraph)
+            : roomsForPresenceNode(entry.host, entry.presence, getGraph)
     )))
     const rooms = new Set<EphemeraRoomId>()
     for (const set of perEntry) {

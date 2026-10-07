@@ -16,6 +16,10 @@ export type DeliverNarrationUnitsArgs = {
     /** The attempt's own bundle id, so a bridge and an authored unit's lines interleave in one declared bundle (AN-4). */
     bundleId: string
     messageBus: MessageBus
+    /** The acting character's display name, for every variant's actor slot. */
+    actorName: string
+    /** Display label per ref, for every variant's `ref` parts --- resolved once per attempt by the caller. */
+    labels: Record<string, string>
     /**
      * Resolves one variant's declared audience to the capture ids whose rosters make up its roster.
      * Plural (AN-8): an audience's roster is the deduplicated union of every room its refs resolve
@@ -28,8 +32,8 @@ export type DeliverNarrationUnitsArgs = {
 /**
  * The attempt's only narration delivery path (`AGENT.attemptNarration.planning.md`, slice 3, AN-4):
  * walks the attempt's narration units in order, and within each unit, its witness variants, filling
- * and publishing one `WorldMessage` per variant. Declares its own messageOrchestration bundle slots
- * (one per variant, in delivery order) so `CreatedTime`/`MessageId` ordering falls out for free,
+ * each variant's parts from the caller's `actorName` and `labels` and publishing one `WorldMessage`
+ * per variant. Declares its own messageOrchestration bundle slots (one per variant, in delivery order) so `CreatedTime`/`MessageId` ordering falls out for free,
  * reusing the attempt's own `bundleId` the same way `commitAttempt.ts` already does for the plan it
  * commits. Runs only after a successful commit (`captures` only exists then); this function takes
  * no verdict of its own.
@@ -38,7 +42,7 @@ export const deliverNarrationUnits = (args: DeliverNarrationUnitsArgs): void => 
     const entries = args.units.flatMap((unit) => unit.variants.map((variant) => ({
         slotId: `narrate:${uuidv4()}`,
         captureIds: args.resolveCaptureId(unit, variant.audience),
-        template: variant.template,
+        template: { kind: 'template' as const, parts: variant.parts, actorName: args.actorName, labels: args.labels },
     })))
 
     if (entries.length === 0) {

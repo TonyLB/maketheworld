@@ -20,6 +20,7 @@ import { groundChange } from './synthesize/groundChange'
 import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
 import type { ExecutorRelationalChain, ExpansionEnvironment } from './synthesize/executorTypes'
 import { walkAncestryContainers } from './synthesize/findShardBoundary'
+import { fetchRelationalReachability } from '../../../positions/manipulation/relational/findRelationalChainsForRemoval'
 import type { SpanName } from './stampCandidateReferents'
 import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
@@ -215,7 +216,7 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
             const described = attempt.actions().map((action) => describeGroundedAction(action.grounded(names)))
             const primary = described[described.length - 1]!
             return {
-                attempt: CommandAttempt.create(input.command, described.map((entry) => entry.action)),
+                attempt: CommandAttempt.create(input.command, described.map((entry) => entry.action), attempt.narrationUnits()),
                 confidence,
                 alternative: primary.alternative,
             }
@@ -243,6 +244,9 @@ const candidateObjectIds = (candidates: readonly GroundedAttemptCandidate[]): Ep
  * The per-command environment: the room graph, plus each candidate object's host graph
  * found by an eager, depth-capped ancestry walk. Built once for the whole pool. A
  * `findShardBoundary` walk reaches past intermediate hosts, so one-hop lookups would dead-end.
+ * Also every shard a relation touching a candidate can cross into (`fetchRelationalReachability`,
+ * the same walk chain-aware removal uses): Expansion and the dry run follow a crossing to its far
+ * end, which may sit in a shard no ancestry walk reaches.
  */
 export const buildAttemptEnvironment = async (
     candidates: readonly GroundedAttemptCandidate[],
@@ -274,6 +278,16 @@ export const buildAttemptEnvironment = async (
     for (const hostId of hostByObjectId.values()) {
         if (!hostGraphMap.has(hostId)) {
             hostGraphMap.set(hostId, await reads.getLudicGraph(hostId))
+        }
+    }
+    const reachable = await fetchRelationalReachability(
+        new Set(objectIds),
+        (id) => reads.getMembershipContainers(id as EphemeraObjectId),
+        async (hostId) => hostGraphMap.get(hostId) ?? reads.getLudicGraph(hostId)
+    )
+    for (const [hostId, graph] of reachable) {
+        if (hostGraphMap.get(hostId) === undefined) {
+            hostGraphMap.set(hostId, graph)
         }
     }
 
@@ -435,10 +449,14 @@ export const expandAndAdjudicateCandidates = (
     if (graph === undefined) {
         return candidate
     }
-    const expanded = attemptActionsFromTransfer(primary, objectId, graph)
+    const expanded = attemptActionsFromTransfer(primary, objectId, graph, env.getGraph)
     return {
         ...candidate,
-        attempt: adjudicateAttempt(CommandAttempt.create(candidate.attempt.words, expanded)),
+        attempt: adjudicateAttempt(CommandAttempt.create(
+            candidate.attempt.words,
+            expanded.actions,
+            [...candidate.attempt.narrationUnits(), ...expanded.narrationUnits]
+        )),
     }
 })
 

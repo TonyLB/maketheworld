@@ -294,7 +294,7 @@ Manipulation truth (`ludicGraph`, adjacency) vs presentation compose (hydrated r
 | [`../../internalCache/affordanceRoomDeliverable.ts`](../../internalCache/affordanceRoomDeliverable.ts) | Affordance WML compose --- roster via **`getRoomCharacterList`** |
 | [`../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/`](../../../../packages/mtw-gateways/ts/ephemera/affordanceCache/) | Exits projection (gateway + `internalCache`) |
 | [`../perception/publishMembershipPresentation.ts`](../perception/publishMembershipPresentation.ts) | Two pure leave/arrive **suffix builders**, reused verbatim by `presentStepSequence`. No publish path of its own --- the fan-in that owned one is gone |
-| [`../perception/resolveObjectMovePresentationLabels.ts`](../perception/resolveObjectMovePresentationLabels.ts) | Perspective-aware `characterName` / `objectShortName` for object-move narration ingredients, with an improvisation fallback |
+| [`../perception/resolveNarrationLabels.ts`](../perception/resolveNarrationLabels.ts) | Perspective-aware actor name and a name per object or character an attempt's narration units refer to, resolved once per attempt by `commitAttempt`, with `Someone` / `something` fallbacks |
 
 ---
 

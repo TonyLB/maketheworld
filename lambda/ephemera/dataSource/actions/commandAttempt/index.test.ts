@@ -269,7 +269,7 @@ describe('CommandAttempt', () => {
                     variants: [
                         {
                             audience: { refs: [ropeId], phase: 'before' },
-                            template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: ropeId }], actorName: 'Tess', labels: { [ropeId]: 'rope' } },
+                            parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: ropeId }],
                         },
                     ],
                 }],
@@ -291,7 +291,7 @@ describe('CommandAttempt', () => {
                     covers: ['action-11'],
                     variants: [{
                         audience: { refs: [ropeId], phase: 'before' },
-                        template: { kind: 'template', parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: ropeId }], actorName: 'Tess', labels: { [ropeId]: 'rope' } },
+                        parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: ropeId }],
                     }],
                 }],
             }
@@ -344,7 +344,7 @@ describe('CommandAttempt', () => {
             const desiredResult: PlanStep = {
                 kind: 'change',
                 primitive: 'dissolveRelation',
-                subject: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ropeId, groundedPresence: [boxBinding] },
+                subject: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ropeId, groundedPresence: [{ host: 'OBJECT#Box' as EphemeraObjectId, presence: boxBinding }] },
                 target: { referentType: 'graphNode', groundedId: forkId, groundedPresence: [roomId] },
                 relationKind: 'Custom',
                 relationLabel: 'is lashed to',

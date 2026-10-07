@@ -79,16 +79,18 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId]))
     })
 
-    it('a leg with two port-address endpoints (no primitive anchor) throws', () => {
+    // A two-sided crossing's middle leg: both ends are ports, so no endpoint names a host to
+    // resolve, but the leg itself is stored on (and written to) its own host.
+    it('a leg with two port-address endpoints (no primitive anchor) locks its own host', () => {
         const step: MutationKernelStep = {
-            kind: 'establishRelation',
+            kind: 'dissolveRelation',
             subjectId: { owner: trayId, port: 'crossing-1' },
             targetId: { owner: glassId, port: 'crossing-2' },
             hostId: roomId,
             relationKind: 'Custom',
             relationLabel: 'to',
         }
-        expect(() => computeStepSequenceFootprint([step], () => undefined)).toThrow()
+        expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId]))
     })
 
     it('a capture step contributes its hostId even when no mutation step in the sequence touches that host', () => {

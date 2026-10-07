@@ -53,8 +53,8 @@ export const computeStepSequenceFootprint = (
         // a crossing leg's port-address endpoint (EphemeraLudicPortAddress) names no host
         // of its own to resolve or lock here --- whatever host stores that port record is locked
         // by the step that writes it (addCrossingPort/removeCrossingPort), not by this leg. Only
-        // the primitive endpoint(s) need resolving; at least one must resolve, or there is nothing
-        // for this step to lock at all.
+        // the primitive endpoint(s) need resolving. A leg with none (a two-sided crossing's middle
+        // leg, port to port) locks the host it is stored on, its own `hostId`.
         const subjectIsPrimitive = isEphemeraLudicTerminalPrimitive(step.subjectId)
         const targetIsPrimitive = isEphemeraLudicTerminalPrimitive(step.targetId)
         const subjectHost = subjectIsPrimitive ? getCurrentHost(step.subjectId as EphemeraLudicTerminalPrimitive) : undefined
@@ -66,7 +66,8 @@ export const computeStepSequenceFootprint = (
             throw new Error(`computeStepSequenceFootprint: cannot resolve current host for ${step.targetId}`)
         }
         if (subjectHost === undefined && targetHost === undefined) {
-            throw new Error('computeStepSequenceFootprint: relational step has no primitive endpoint to resolve a host from')
+            hosts.add(step.hostId)
+            continue
         }
         if (subjectHost !== undefined) {
             hosts.add(subjectHost)

@@ -11,6 +11,14 @@ import type { EphemeraThingId } from '../thing'
 export type GroundedId = EphemeraThingId | EphemeraMembershipHostId
 
 /**
+ * A presence bucket, named by its owner: `presence` is one of `host`'s own bindings, and lives on
+ * `host`'s graph. The owner is whichever host's graph holds the thing (the referent itself only
+ * when it is seen through its own binding), so a bare `PRESENCE#` id would leave the walk
+ * guessing which graph to read.
+ */
+export type GroundedPresenceBinding = { host: EphemeraMembershipHostId; presence: EphemeraPresenceNodeId }
+
+/**
  * One place a referent is seen: a presence bucket (a binding of the host whose graph holds the
  * thing), or the room itself when the thing sits in the room's own graph (a room has no
  * binding). A referent's `groundedPresence` lists every one, so an audience walks up from all of
@@ -18,7 +26,7 @@ export type GroundedId = EphemeraThingId | EphemeraMembershipHostId
  * learns it (Grounding, from the `ludicCache`; Expansion, from the graph it read). Optional:
  * absent means not learned, never "in the room".
  */
-export type GroundedPresence = EphemeraPresenceNodeId | EphemeraRoomId
+export type GroundedPresence = EphemeraRoomId | GroundedPresenceBinding
 
 /**
  * A referent is grounded or ungrounded by what is known about it, not by where it

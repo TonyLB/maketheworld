@@ -16,7 +16,6 @@ import messageBus from '../../messageBus'
 import * as schemaModule from '@tonylb/mtw-wml/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
-import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import {
     affordancePassThroughFixtureRouting,
     makePassThroughGenerationDeferredPayload,
@@ -32,41 +31,12 @@ import { EPHEMERA_OBJECTS_DATA_SOURCE_KEY } from '../objects/events'
 import { AFFORDANCE_CACHE_DATA_SOURCE_KEY } from '../affordanceCache/publishedEvents'
 import { createAffordanceCacheRow } from '@tonylb/mtw-gateways/ts/ephemera/affordanceCache'
 import { roomHeaderGeneratingPlaceholderWml } from './roomHeaderPlaceholderWml'
-import { EPHEMERA_ACTIONS_DATA_SOURCE_KEY } from '../actions/publishedEvents'
-import { EPHEMERA_POSITIONS_DATA_SOURCE_KEY } from '../positions/publishedEvents'
 import { sendPerceptionThreadRegistered } from './subscribedEvents'
 import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
 import { registerIngressSlot } from '../messageOrchestration'
 import { ephemeraPerceptionDataSource } from './index'
 import * as orchestrateModule from './orchestrate'
 import * as roomHeaderBroadcastModule from './kickRoomHeaderBroadcast'
-
-const TAKE_HOLD_CHARACTER = 'CHARACTER#Alice' as const
-const TAKE_HOLD_OBJECT = 'OBJECT#Broom' as const
-const TAKE_HOLD_ROOM = 'ROOM#Cafe' as const
-const TAKE_HOLD_ANCHOR_TIME = 1_700_000_000_100
-
-function publishObjectManipulationStreamingEvent(
-    dataSourceKey: string,
-    type: string,
-    content: object,
-    streamKey: string
-): void {
-    const ts = Date.now()
-    messageBus.publish({
-        type: 'StreamingEvent',
-        dataSourceKey,
-        streamKey,
-        timestamp: ts,
-        header: {
-            dataSourceKey,
-            streamKey,
-            timestamp: ts,
-            type,
-        },
-        getContent: () => Promise.resolve(content),
-    })
-}
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const originalMessageBusPublish = messageBus.publish.bind(messageBus)
@@ -1031,148 +1001,5 @@ describe('mtw.ephemera.perception DataSource', () => {
         expect(affordancePublishes).toHaveLength(0)
 
         publishSpy.mockRestore()
-    })
-
-    describe('object manipulation presentation fan-in receiveEvents routing', () => {
-        beforeEach(() => {
-            jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
-                Name: 'Alice',
-                assets: ['ASSET#Test'],
-            } as any)
-            jest.spyOn(internalCache.ComponentAggregate, 'get').mockImplementation(async (perspectives: any[]) => {
-                const key = perspectives[0]?.universalKey
-                if (key === 'OBJECT#Table') {
-                    return [{ merged: new StandardObject({ tag: 'Object', shortName: 'table' }) }] as any
-                }
-                return [{ merged: new StandardObject({ tag: 'Object', shortName: 'broom' }) }] as any
-            })
-            jest.spyOn(internalCache.ImprovisationComponentData, 'get').mockResolvedValue({} as any)
-            jest.spyOn(roomHeaderBroadcastModule, 'resolveCharacterRoomPerspectiveForRoom').mockResolvedValue({
-                perspective: { assetStack: ['ASSET#Test'] },
-            } as any)
-        })
-
-        // Take/drop routing cases were removed in Phase 4 --- those events no longer reach this
-        // data source at all (see `subscribedEvents.test.ts`, which pins the non-subscription).
-        // What survives here is the relational family's end-to-end fan-in routing, now through
-        // `Ludic Network Change Requested` rather than the retired
-        // `Object Establish Relation`/`Object Dissolve Relation` events.
-        it('intent + fact batch publishes single establish-relation WorldMessage', async () => {
-            const publishSpy = spyPublish()
-            jest.spyOn(internalCache.Positions, 'getMembershipContainers').mockResolvedValue([TAKE_HOLD_ROOM])
-
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
-                'Ludic Network Change Requested',
-                {
-                    type: 'Ludic Network Change Requested',
-                    characterId: TAKE_HOLD_CHARACTER,
-                    attempt: {
-                        words: 'balance the broom on the table',
-                        referents: [],
-                        actions: [{
-                            kind: 'position',
-                            id: 'action-1',
-                            desiredResult: {
-                                kind: 'change',
-                                primitive: 'establishRelation',
-                                subject: { referentType: 'objectSpan', span: 'subject', groundedId: TAKE_HOLD_OBJECT },
-                                target: { referentType: 'objectSpan', span: 'target', groundedId: 'OBJECT#Table' },
-                                relationKind: 'Custom', relationLabel: 'balances',
-                            },
-                            challenges: [],
-                        }],
-                        narrationUnits: [],
-                    },
-                },
-                TAKE_HOLD_CHARACTER
-            )
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
-                'Object Relation Changed',
-                {
-                    type: 'Object Relation Changed',
-                    subjectId: TAKE_HOLD_OBJECT,
-                    targetId: 'OBJECT#Table',
-                    hostId: TAKE_HOLD_ROOM,
-                    relationKind: 'Custom', relationLabel: 'balances',
-                    operation: 'establish',
-                    beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
-                },
-                TAKE_HOLD_OBJECT
-            )
-            await messageBus.flushAndSettle()
-
-            const worldPublishes = publishSpy.mock.calls.filter((c) => {
-                const m = c[0] as { type?: string; displayProtocol?: string }
-                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
-            })
-            expect(worldPublishes).toHaveLength(1)
-            expect(worldPublishes[0][0]).toMatchObject({
-                targets: [TAKE_HOLD_ROOM],
-                displayProtocol: 'WorldMessage',
-                message: ['Alice balances broom table'],
-                createdTime: TAKE_HOLD_ANCHOR_TIME,
-            })
-            publishSpy.mockRestore()
-        })
-
-        it('intent + fact batch publishes single dissolve-relation WorldMessage', async () => {
-            const publishSpy = spyPublish()
-            jest.spyOn(internalCache.Positions, 'getMembershipContainers').mockResolvedValue([TAKE_HOLD_ROOM])
-
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_ACTIONS_DATA_SOURCE_KEY,
-                'Ludic Network Change Requested',
-                {
-                    type: 'Ludic Network Change Requested',
-                    characterId: TAKE_HOLD_CHARACTER,
-                    attempt: {
-                        words: 'take the broom off the table',
-                        referents: [],
-                        actions: [{
-                            kind: 'position',
-                            id: 'action-2',
-                            desiredResult: {
-                                kind: 'change',
-                                primitive: 'dissolveRelation',
-                                subject: { referentType: 'objectSpan', span: 'subject', groundedId: TAKE_HOLD_OBJECT },
-                                target: { referentType: 'objectSpan', span: 'target', groundedId: 'OBJECT#Table' },
-                                relationKind: 'Custom', relationLabel: 'balances',
-                            },
-                            challenges: [],
-                        }],
-                        narrationUnits: [],
-                    },
-                },
-                TAKE_HOLD_CHARACTER
-            )
-            publishObjectManipulationStreamingEvent(
-                EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
-                'Object Relation Changed',
-                {
-                    type: 'Object Relation Changed',
-                    subjectId: TAKE_HOLD_OBJECT,
-                    targetId: 'OBJECT#Table',
-                    hostId: TAKE_HOLD_ROOM,
-                    relationKind: 'Custom', relationLabel: 'balances',
-                    operation: 'dissolve',
-                    beatAnchorTime: TAKE_HOLD_ANCHOR_TIME,
-                },
-                TAKE_HOLD_OBJECT
-            )
-            await messageBus.flushAndSettle()
-
-            const worldPublishes = publishSpy.mock.calls.filter((c) => {
-                const m = c[0] as { type?: string; displayProtocol?: string }
-                return m?.type === 'PublishMessage' && m?.displayProtocol === 'WorldMessage'
-            })
-            expect(worldPublishes).toHaveLength(1)
-            expect(worldPublishes[0][0]).toMatchObject({
-                message: ['Alice takes broom off table'],
-                createdTime: TAKE_HOLD_ANCHOR_TIME,
-            })
-            publishSpy.mockRestore()
-        })
     })
 })

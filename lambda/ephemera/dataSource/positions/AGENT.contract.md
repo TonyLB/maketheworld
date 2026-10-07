@@ -373,7 +373,7 @@ type HostRelationalPatch = {
 ### `Object Relation Changed` fact
 
 - Payload: `{ type: 'Object Relation Changed', subjectId, targetId, hostId, relationKind, relationLabel?, operation: 'establish' | 'dissolve', beatAnchorTime }`.
-- Streamed from coordinator on successful persist when **`changed: true`**; perception fan-in wires actions intent + **`Object Relation Changed`** fact -> **`WorldMessage`** ([`../perception/objectManipulationPresentationFanIn.ts`](../perception/objectManipulationPresentationFanIn.ts)).
+- Streamed from coordinator on successful persist when **`changed: true`**; no consumer narrates from it any more (an attempt's relational lines are its narration units, delivered by `commitAttempt`'s post-commit sweep, [`manipulation/deliverNarrationUnits.ts`](manipulation/deliverNarrationUnits.ts)).
 - Post-persist bundle detail: [Host-local relational-changed bundle](#host-local-relational-changed-bundle-establishrelation--dissolverelation).
 
 **Must not** route relational patch through **`executeMembershipTransfer`**.

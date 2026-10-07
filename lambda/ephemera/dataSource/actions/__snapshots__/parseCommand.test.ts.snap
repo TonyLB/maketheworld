@@ -289,7 +289,41 @@ Object {
           "kind": "position",
         },
       ],
-      "narrationUnits": Array [],
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 1>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "graphNode:OBJECT#Rope",
+                  "graphNode:OBJECT#Post",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " frees ",
+                },
+                Object {
+                  "ref": "graphNode:OBJECT#Rope",
+                },
+                Object {
+                  "text": " from ",
+                },
+                Object {
+                  "ref": "graphNode:OBJECT#Post",
+                },
+              ],
+            },
+          ],
+        },
+      ],
       "referents": Array [
         Object {
           "id": "OBJECT#Rope",
@@ -643,7 +677,41 @@ Object {
           "kind": "position",
         },
       ],
-      "narrationUnits": Array [],
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 1>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "graphNode:OBJECT#Rope",
+                  "graphNode:OBJECT#Post",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " frees ",
+                },
+                Object {
+                  "ref": "graphNode:OBJECT#Rope",
+                },
+                Object {
+                  "text": " from ",
+                },
+                Object {
+                  "ref": "graphNode:OBJECT#Post",
+                },
+              ],
+            },
+          ],
+        },
+      ],
       "referents": Array [
         Object {
           "id": "OBJECT#Rope",
@@ -743,7 +811,41 @@ Object {
           "kind": "position",
         },
       ],
-      "narrationUnits": Array [],
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 1>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "graphNode:OBJECT#Rope",
+                  "graphNode:OBJECT#Post",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " frees ",
+                },
+                Object {
+                  "ref": "graphNode:OBJECT#Rope",
+                },
+                Object {
+                  "text": " from ",
+                },
+                Object {
+                  "ref": "graphNode:OBJECT#Post",
+                },
+              ],
+            },
+          ],
+        },
+      ],
       "referents": Array [
         Object {
           "id": "OBJECT#Rope",

@@ -105,6 +105,16 @@ describe('roomsForReferent', () => {
             [cup]: [{ tag: 'Presence', universalKey: presenceId, fromHostId: box, cover: { tag: 'Full' } }],
             [box]: [presenceAt(roomA)],
         })
-        await expect(roomsForReferent(cup, [presenceId, roomB], getGraph)).resolves.toEqual(new Set([roomA, roomB]))
+        await expect(roomsForReferent(cup, [{ host: cup, presence: presenceId }, roomB], getGraph)).resolves.toEqual(new Set([roomA, roomB]))
+    })
+
+    it('reads a bucket from the graph of the host that owns it, not the referent\'s own', async () => {
+        // The cup is seen through the box's binding (it sits in the box's graph): that binding
+        // lives on the box's graph, and the cup's own graph has none.
+        const boxBinding = PresenceKey('box-room-binding') as EphemeraPresenceNodeId
+        const getGraph = graphsFrom({
+            [box]: [{ tag: 'Presence', universalKey: boxBinding, fromHostId: roomA, cover: { tag: 'Full' } }],
+        })
+        await expect(roomsForReferent(cup, [{ host: box, presence: boxBinding }], getGraph)).resolves.toEqual(new Set([roomA]))
     })
 })

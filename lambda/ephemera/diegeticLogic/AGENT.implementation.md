@@ -55,7 +55,7 @@ Parse Requested
 | --- | --- | --- |
 | **actions** | [Adding an atomic position-manipulation operator](../dataSource/actions/AGENT.implementation.md#adding-an-atomic-position-manipulation-operator) (membership); [Adding a host-local relational operator](../dataSource/actions/AGENT.implementation.md#adding-a-host-local-relational-operator) (relational) | [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/), [`publishedEvents.ts`](../dataSource/actions/publishedEvents.ts) |
 | **positions** | [Adding a cross-host manipulation apply coordinator](../dataSource/positions/AGENT.implementation.md#adding-a-cross-host-manipulation-apply-coordinator) (membership); [`manipulation/relational/`](../dataSource/positions/manipulation/relational/) (relational) | [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) (both `takeHold` and `drop` --- one entry point taking a host pair), [`executeObjectEstablishRelation.ts`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) (`executeEstablishEdgeChain`, shared by establish and dissolve alike) |
-| **perception** | [Adding manipulation transcript operators](../dataSource/perception/AGENT.md#adding-manipulation-transcript-operators) | [`objectManipulationPresentationFanIn.ts`](../dataSource/perception/objectManipulationPresentationFanIn.ts) |
+| **perception** | [Adding manipulation transcript operators](../dataSource/perception/AGENT.md#adding-manipulation-transcript-operators) (says: no narration here any more) | [`resolveNarrationLabels.ts`](../dataSource/perception/resolveNarrationLabels.ts) (labels only) |
 | **diegeticLogic** | [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md) | **`takeHold`**, **`drop`**, **`establishRelation`**, **`dissolveRelation`** fiction + unknowns withhold |
 
 Normative contracts: [`../dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md) (**`Object Moved`**, **`Object Take Hold`**, **`Object Drop`**, **`Object Establish Relation`**, **`Object Dissolve Relation`**, **`Object Relation Changed`** ingress).
@@ -80,6 +80,6 @@ Enrich: [`roomObjectCatalogForCharacter.ts`](../dataSource/actions/roomObjectCat
 
 Apply: [`planObjectMoveTransfer.ts`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) (both move directions, via [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts); replaced `executeObjectMove.ts` in `fb9573c8f`), [`applyObjectRelationalChange.ts`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts), [`buildObjectMovedFact.ts`](../dataSource/positions/manipulation/membership/buildObjectMovedFact.ts).
 
-Transcript: [`objectManipulationPresentationLegAdapters.ts`](../dataSource/perception/objectManipulationPresentationLegAdapters.ts), [`publishObjectManipulationPresentation.ts`](../dataSource/perception/publishObjectManipulationPresentation.ts).
+Transcript: the attempt's narration units, delivered by [`deliverNarrationUnits.ts`](../dataSource/positions/manipulation/deliverNarrationUnits.ts) from `commitAttempt`; labels via [`resolveNarrationLabels.ts`](../dataSource/perception/resolveNarrationLabels.ts).
 
 Cross-area links: [`AGENT.navigation.md`](AGENT.navigation.md).

@@ -157,6 +157,8 @@ describe('ludicCacheObjectHandles', () => {
             [stone, testLudicGraph(stone, { nodes: [{ tag: 'Object', universalKey: stone }] })],
         ])
         const names = namedShortNameDeps({ [boxId]: 'Box', [pebble]: 'Pebble', [stone]: 'Stone' })
+        // A bucket names the host that owns it: the box's binding lives on the box's graph, even when the pebble is the one seen through it.
+        const ofBox = (presence: typeof boxBinding) => ({ host: boxId, presence })
         const presenceOf = (handles: { objectId: string, presence?: unknown }[], objectId: string) =>
             handles.find((handle) => handle.objectId === objectId)?.presence
 
@@ -169,8 +171,8 @@ describe('ludicCacheObjectHandles', () => {
             })
 
             expect(handles).toEqual(expect.arrayContaining([
-                { objectId: boxId, shortName: 'Box', presence: [boxBinding] },
-                { objectId: pebble, shortName: 'Pebble', presence: [boxBinding] },
+                { objectId: boxId, shortName: 'Box', presence: [ofBox(boxBinding)] },
+                { objectId: pebble, shortName: 'Pebble', presence: [ofBox(boxBinding)] },
             ]))
         })
 
@@ -181,7 +183,7 @@ describe('ludicCacheObjectHandles', () => {
                 ...names,
             })
 
-            expect(presenceOf(handles, boxId)).toEqual([boxOtherBinding, boxBinding])
+            expect(presenceOf(handles, boxId)).toEqual([ofBox(boxOtherBinding), ofBox(boxBinding)])
         })
 
         it('names both the covering bucket and a contained thing\'s own binding, once each', async () => {
@@ -200,7 +202,7 @@ describe('ludicCacheObjectHandles', () => {
 
             const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(graphs), ...names })
 
-            expect(presenceOf(handles, pebble)).toEqual(expect.arrayContaining([boxBinding, pebbleInBox]))
+            expect(presenceOf(handles, pebble)).toEqual(expect.arrayContaining([ofBox(boxBinding), { host: pebble, presence: pebbleInBox }]))
             expect(presenceOf(handles, pebble)).toHaveLength(2)
         })
 
@@ -212,7 +214,7 @@ describe('ludicCacheObjectHandles', () => {
                 ...names,
             })
 
-            expect(presenceOf(handles, pebble)).toEqual([boxOtherBinding, boxBinding])
+            expect(presenceOf(handles, pebble)).toEqual([ofBox(boxOtherBinding), ofBox(boxBinding)])
         })
 
         // A straddling whole partitions its contents: each half's things are in that half's bucket only.
@@ -225,8 +227,8 @@ describe('ludicCacheObjectHandles', () => {
                 ...names,
             })
 
-            expect(presenceOf(handles, pebble)).toEqual([boxBinding])
-            expect(presenceOf(handles, stone)).toEqual([boxOtherBinding])
+            expect(presenceOf(handles, pebble)).toEqual([ofBox(boxBinding)])
+            expect(presenceOf(handles, stone)).toEqual([ofBox(boxOtherBinding)])
         })
 
         it('falls back to the seed room when the containing host has no binding', async () => {

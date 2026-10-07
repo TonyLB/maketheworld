@@ -131,7 +131,9 @@ describe('perception subscribedEvents', () => {
         expect(isPerceptionSubscribedEnvelope(rejected as any)).toBe(false)
     })
 
-    it('isPerceptionSubscribedEnvelope matches relational object manipulation ingress', () => {
+    it('does not subscribe to relational object manipulation events', () => {
+        // The relational fan-in is retired: an attempt's relational narration is a narration unit
+        // delivered by positions' post-commit sweep, so perception no longer joins intent and fact.
         const ludicNetworkChangeRequested = {
             header: {
                 dataSourceKey: 'mtw.ephemera.actions',
@@ -150,8 +152,8 @@ describe('perception subscribedEvents', () => {
             },
             getContent: () => Promise.resolve({}),
         }
-        expect(isPerceptionSubscribedEnvelope(ludicNetworkChangeRequested as any)).toBe(true)
-        expect(isPerceptionSubscribedEnvelope(relationChanged as any)).toBe(true)
+        expect(isPerceptionSubscribedEnvelope(ludicNetworkChangeRequested as any)).toBe(false)
+        expect(isPerceptionSubscribedEnvelope(relationChanged as any)).toBe(false)
     })
 
     it('does not subscribe to the retired object-move events', () => {

@@ -2,7 +2,6 @@ import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/asse
 import {
     EphemeraCharacterId,
     EphemeraObjectId,
-    EphemeraPresenceNodeId,
     EphemeraRoomId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -15,6 +14,7 @@ import type { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { ludicCacheObjectHandles } from '../positions/ludicCache/catalogHandles'
 import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
 import { normalizeExitName } from './roomExitTargetsForCharacter'
+import type { GroundedPresence } from './enrich/objectManipulation/plan/planStep'
 
 export type RoomInPlayObjectCatalogEntry = {
     objectId: EphemeraObjectId
@@ -24,7 +24,7 @@ export type RoomInPlayObjectCatalogEntry = {
     /** From the `ludicCache` node's reasoning gloss (`AGENT.concepts.md`'s `CommandAttempt` section); present only where authored or improvised. */
     gloss?: string
     /** Every place it is seen: its presence buckets, or the room it sits in directly (`GroundedPresence`). */
-    presence?: (EphemeraPresenceNodeId | EphemeraRoomId)[]
+    presence?: GroundedPresence[]
 }
 
 export type RoomObjectCatalogForCharacter = {
