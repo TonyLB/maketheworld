@@ -7,7 +7,7 @@ const ROPE = 'OBJECT#Rope' as EphemeraObjectId
 const POST = 'OBJECT#Post' as EphemeraObjectId
 const BOX_BINDING = 'PRESENCE#box-in-room' as EphemeraPresenceNodeId
 const names = new Map<string, SpanName>([
-    ['subjectRef', { id: ROPE, shortName: 'rope', gloss: 'hemp', presence: BOX_BINDING }],
+    ['subjectRef', { id: ROPE, shortName: 'rope', gloss: 'hemp', presence: [BOX_BINDING] }],
     ['targetRef', { id: POST, shortName: 'post' }],
 ])
 
@@ -24,10 +24,10 @@ describe('stampCandidateReferents', () => {
         expect(stampCandidateReferents(step, names)).toEqual({
             kind: 'change',
             primitive: 'transferMembership',
-            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp', groundedPresence: BOX_BINDING },
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp', groundedPresence: [BOX_BINDING] },
             from: {
                 referentType: 'currentHost',
-                referentTarget: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp', groundedPresence: BOX_BINDING },
+                referentTarget: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', groundedId: ROPE, shortName: 'rope', gloss: 'hemp', groundedPresence: [BOX_BINDING] },
             },
             to: { referentType: 'objectSpan', span: 'post', stableRefKey: 'targetRef', groundedId: POST, shortName: 'post' },
         })

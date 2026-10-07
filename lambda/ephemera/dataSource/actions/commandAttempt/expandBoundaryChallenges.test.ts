@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, Eph
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../../positions/ludicGraph/testFixtures'
 import { attemptActionsFromBoundaryOutcomes, attemptActionsFromTransfer } from './expandBoundaryChallenges'
 import { PositionAttemptAction } from './action'
-import { graphNodeRef, type GroundedPresence, type TransferMembershipChange } from '../enrich/objectManipulation/plan/planStep'
+import { graphNodeRef } from '../enrich/objectManipulation/plan/planStep'
 
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const ropeId = 'OBJECT#Rope' as EphemeraObjectId
@@ -26,8 +26,8 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         expect(actions).toHaveLength(2)
         expect(actions[0]?.desiredResult).toEqual(expect.objectContaining({
             primitive: 'dissolveRelation',
-            subject: graphNodeRef(ropeId),
-            target: graphNodeRef(companionId),
+            subject: graphNodeRef(ropeId, [roomId]),
+            target: graphNodeRef(companionId, [roomId]),
         }))
     })
 
@@ -69,8 +69,8 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         expect((actions[0]?.toJSON() as any).desiredResult).toEqual({
             kind: 'change',
             primitive: 'dissolveRelation',
-            subject: graphNodeRef(postId),
-            target: graphNodeRef(ropeId),
+            subject: graphNodeRef(postId, [roomId]),
+            target: graphNodeRef(ropeId, [roomId]),
             relationKind: 'Custom',
             relationLabel: 'is lashed to',
         })
@@ -124,42 +124,58 @@ describe('attemptActionsFromTransfer', () => {
     })
 
     describe('presence on the dissolves\' referents', () => {
-        const characterId = 'CHARACTER#Tess' as EphemeraCharacterId
-        const lashedGraph = () => testLudicGraph(roomId, {
+        const boardId = 'OBJECT#Breadboard' as EphemeraObjectId
+        const wireId = 'OBJECT#Wire' as EphemeraObjectId
+        const spotId = 'OBJECT#Spot' as EphemeraObjectId
+        const westHalf = 'PRESENCE#board-in-west' as EphemeraPresenceNodeId
+        const eastHalf = 'PRESENCE#board-in-east' as EphemeraPresenceNodeId
+        const boardGraph = (bindings: { key: EphemeraPresenceNodeId, members?: EphemeraObjectId[] }[]) => testLudicGraph(boardId, {
             nodes: [
-                { tag: 'Object' as const, universalKey: ropeId },
-                { tag: 'Object' as const, universalKey: postId },
+                { tag: 'Object' as const, universalKey: boardId },
+                { tag: 'Object' as const, universalKey: wireId },
+                { tag: 'Object' as const, universalKey: spotId },
+                ...bindings.map(({ key, members }) => ({
+                    tag: 'Presence' as const,
+                    universalKey: key,
+                    fromHostId: roomId,
+                    cover: members === undefined
+                        ? { tag: 'Full' as const }
+                        : { tag: 'Enumerated' as const, members: members.map((host) => ({ host, presence: `PRESENCE#${host}-on-board` as EphemeraPresenceNodeId })) },
+                })),
             ],
-            edges: [{ tag: 'Relational', from: postId, to: ropeId, kind: 'Custom', relationLabel: 'is lashed to' }],
+            edges: [{ tag: 'Relational', from: wireId, to: spotId, kind: 'Custom', relationLabel: 'is plugged into' }],
         })
-        const takeRope = (groundedPresence?: GroundedPresence) => {
-            const desiredResult: TransferMembershipChange = {
-                kind: 'change',
-                primitive: 'transferMembership',
-                object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'objectRef', groundedId: ropeId, ...(groundedPresence !== undefined ? { groundedPresence } : {}) },
-                from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'objectRef' }, groundedId: roomId },
-                to: { referentType: 'actingCharacter', groundedId: characterId },
-            }
-            return new PositionAttemptAction('primary', [], desiredResult, 'Take: rope')
-        }
+        const takeWire = new PositionAttemptAction('primary', [], undefined, 'Take: wire')
 
-        it('gives both ends the moved object\'s presence, since the edge was read from its host\'s graph', () => {
-            const boxBinding = 'PRESENCE#box-in-bridge' as EphemeraPresenceNodeId
-
-            const [dissolve] = attemptActionsFromTransfer(takeRope(boxBinding), ropeId, lashedGraph())
+        it('gives both ends every bucket of the host that holds them', () => {
+            const [dissolve] = attemptActionsFromTransfer(takeWire, wireId, boardGraph([{ key: westHalf }, { key: eastHalf }]))
 
             expect(dissolve?.desiredResult).toEqual(expect.objectContaining({
-                subject: graphNodeRef(postId, boxBinding),
-                target: graphNodeRef(ropeId, boxBinding),
+                subject: graphNodeRef(wireId, [westHalf, eastHalf]),
+                target: graphNodeRef(spotId, [westHalf, eastHalf]),
             }))
         })
 
-        it('leaves both ends unlearned when the moved object\'s presence is', () => {
-            const [dissolve] = attemptActionsFromTransfer(takeRope(), ropeId, lashedGraph())
+        // A straddling whole partitions its contents: the wire is in the west half, the spot it is
+        // plugged into is in the east half, so unplugging it reaches both halves' rooms.
+        it('gives each end its own bucket when an Enumerated split puts them in different ones', () => {
+            const [dissolve] = attemptActionsFromTransfer(takeWire, wireId, boardGraph([
+                { key: westHalf, members: [wireId] },
+                { key: eastHalf, members: [spotId] },
+            ]))
 
             expect(dissolve?.desiredResult).toEqual(expect.objectContaining({
-                subject: { referentType: 'graphNode', groundedId: postId },
-                target: { referentType: 'graphNode', groundedId: ropeId },
+                subject: graphNodeRef(wireId, [westHalf]),
+                target: graphNodeRef(spotId, [eastHalf]),
+            }))
+        })
+
+        it('leaves both ends unlearned when the host is not a room and has no binding', () => {
+            const [dissolve] = attemptActionsFromTransfer(takeWire, wireId, boardGraph([]))
+
+            expect(dissolve?.desiredResult).toEqual(expect.objectContaining({
+                subject: { referentType: 'graphNode', groundedId: wireId },
+                target: { referentType: 'graphNode', groundedId: spotId },
             }))
         })
     })

@@ -23,8 +23,8 @@ export type RoomInPlayObjectCatalogEntry = {
     embedding?: SemanticEmbedding
     /** From the `ludicCache` node's reasoning gloss (`AGENT.concepts.md`'s `CommandAttempt` section); present only where authored or improvised. */
     gloss?: string
-    /** Where the actor saw it: its presence bucket, or the room it sits in directly (`GroundedPresence`). */
-    presence?: EphemeraPresenceNodeId | EphemeraRoomId
+    /** Every place it is seen: its presence buckets, or the room it sits in directly (`GroundedPresence`). */
+    presence?: (EphemeraPresenceNodeId | EphemeraRoomId)[]
 }
 
 export type RoomObjectCatalogForCharacter = {

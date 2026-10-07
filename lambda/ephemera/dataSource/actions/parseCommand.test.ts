@@ -1998,16 +1998,16 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             expect(attempt.actions()).toHaveLength(1)
         })
 
-        it('take the coin when it is lashed to the post on the table: the take and both ends of the dissolve carry the table\'s bucket', async () => {
+        it('take the coin when it is lashed to the post on the table: Grounding stamps the take and Expansion stamps both ends of the dissolve with the table\'s bucket', async () => {
             const tableBinding = 'PRESENCE#table-in-room' as EphemeraPresenceNodeId
             const { result } = await run(
                 {
                     command: 'take coin',
                     roomObjectLabels: ['coin', 'post', 'table'],
                     roomObjectCatalog: [
-                        { objectId: COIN, normalizedShortName: 'coin', presence: tableBinding },
-                        { objectId: POST, normalizedShortName: 'post', presence: tableBinding },
-                        { objectId: TABLE, normalizedShortName: 'table', presence: ROOM },
+                        { objectId: COIN, normalizedShortName: 'coin', presence: [tableBinding] },
+                        { objectId: POST, normalizedShortName: 'post', presence: [tableBinding] },
+                        { objectId: TABLE, normalizedShortName: 'table', presence: [ROOM] },
                     ],
                 },
                 {
@@ -2015,7 +2015,11 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                     graphs: {
                         [ROOM]: roomWith([TABLE]),
                         [TABLE]: testLudicGraph(TABLE as unknown as EphemeraRoomId, {
-                            nodes: [{ tag: 'Object', universalKey: COIN }, { tag: 'Object', universalKey: POST }],
+                            nodes: [
+                                { tag: 'Object', universalKey: COIN },
+                                { tag: 'Object', universalKey: POST },
+                                { tag: 'Presence', universalKey: tableBinding, fromHostId: ROOM, cover: { tag: 'Full' } },
+                            ],
                             edges: [
                                 { tag: 'Relational', from: COIN, to: TABLE, kind: 'On' },
                                 { tag: 'Relational', from: POST, to: TABLE, kind: 'On' },
@@ -2029,11 +2033,11 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             // Round trip through the published JSON, as the hand-off does.
             const attempt = CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt)
             const [dissolve, take] = attempt.actions()
-            expect(take!.desiredResult).toMatchObject({ object: { groundedId: COIN, groundedPresence: tableBinding } })
+            expect(take!.desiredResult).toMatchObject({ object: { groundedId: COIN, groundedPresence: [tableBinding] } })
             expect(dissolve!.desiredResult).toMatchObject({
                 primitive: 'dissolveRelation',
-                subject: { groundedId: COIN, groundedPresence: tableBinding },
-                target: { groundedId: POST, groundedPresence: tableBinding },
+                subject: { groundedId: COIN, groundedPresence: [tableBinding] },
+                target: { groundedId: POST, groundedPresence: [tableBinding] },
             })
         })
     })

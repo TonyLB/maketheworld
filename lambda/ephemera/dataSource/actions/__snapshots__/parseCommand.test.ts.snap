@@ -233,10 +233,16 @@ Object {
             "relationLabel": "is lashed to",
             "subject": Object {
               "groundedId": "OBJECT#Rope",
+              "groundedPresence": Array [
+                "ROOM#Bridge",
+              ],
               "referentType": "graphNode",
             },
             "target": Object {
               "groundedId": "OBJECT#Post",
+              "groundedPresence": Array [
+                "ROOM#Bridge",
+              ],
               "referentType": "graphNode",
             },
           },
@@ -581,10 +587,16 @@ Object {
             "relationLabel": "is lashed to",
             "subject": Object {
               "groundedId": "OBJECT#Rope",
+              "groundedPresence": Array [
+                "ROOM#Bridge",
+              ],
               "referentType": "graphNode",
             },
             "target": Object {
               "groundedId": "OBJECT#Post",
+              "groundedPresence": Array [
+                "ROOM#Bridge",
+              ],
               "referentType": "graphNode",
             },
           },
@@ -674,10 +686,16 @@ Object {
             "relationLabel": "under",
             "subject": Object {
               "groundedId": "OBJECT#Rope",
+              "groundedPresence": Array [
+                "ROOM#Bridge",
+              ],
               "referentType": "graphNode",
             },
             "target": Object {
               "groundedId": "OBJECT#Post",
+              "groundedPresence": Array [
+                "ROOM#Bridge",
+              ],
               "referentType": "graphNode",
             },
           },

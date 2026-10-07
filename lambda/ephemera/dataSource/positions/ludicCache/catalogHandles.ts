@@ -11,10 +11,15 @@
  * walk reaches, matching `collectNestedObjectIds`'s old scope exactly. Filtering the pool to the
  * caller's own presence bucket (AB-9's read-path half) is open debt, not built here.
  *
- * **Each handle names the bucket it was seen in** (`presence`): the cache `Presence` node whose
- * cover holds the object and whose binding the walk came down through, or the seed room when no
- * walked bucket covers it (the object sits in the room's own graph; a room has no binding). Still
- * a flat scalar, and still not a filter: this records where each thing was seen, it drops nothing.
+ * **Each handle names every bucket it is seen in** (`presence`): each cache `Presence` node whose
+ * cover holds the object, walked or not --- the caller's perspective decides *which* thing a phrase
+ * means, not who can see it change, so a bucket bound into a room the walk never reached counts.
+ * The seed room when no bucket covers it (the object sits in the room's own graph; a room has no
+ * binding). Still flat scalars, and still not a filter: this records where each thing is seen and
+ * drops nothing. **Known gap:** a host is the root of its own graph, so it is in each of its own
+ * buckets, but the cache's presence nodes leave the root out of `cover` and do not record which
+ * graph they live on --- so a whole bound into several rooms is stamped with only the room it
+ * was walked from.
  *
  * **Slice 5 (PC-3): this is also the instrumentation boundary.** `buildLudicCache` and
  * `enumerateLudicCacheShards` stay pure, so wall time is timed here, around the one call this
@@ -35,31 +40,21 @@ export type LudicCacheObjectHandle = {
     shortName: string
     /** Reasoning gloss, present only where authored or improvised (see `AGENT.concepts.md`'s `CommandAttempt` section). Still a flat scalar, not a widening past the handle boundary this file's own header comment states. */
     gloss?: string
-    /** The presence bucket this object was seen in, or the seed room (see the header). */
-    presence?: EphemeraPresenceNodeId | EphemeraRoomId
+    /** Every presence bucket this object is seen in, or the seed room (see the header). */
+    presence?: (EphemeraPresenceNodeId | EphemeraRoomId)[]
 }
 
-/**
- * Each covered host's bucket: the first cache `Presence` node (in cache order, which the fold
- * keeps byte-identical) whose cover holds it and whose `fromHostId` the walk reached. A binding
- * into a host outside the walk (a multi-room whole's binding into another room) is not how the
- * caller saw it, so it does not qualify.
- */
-const bucketsByMember = (cache: EphemeraLudicCacheData): Map<string, EphemeraPresenceNodeId> => {
-    const walked = new Set<string>([cache.hostId])
+/** Each covered host's buckets: every cache `Presence` node whose cover holds it, in cache order (which the fold keeps byte-identical). */
+const bucketsByMember = (cache: EphemeraLudicCacheData): Map<string, EphemeraPresenceNodeId[]> => {
+    const buckets = new Map<string, EphemeraPresenceNodeId[]>()
     for (const node of cache.nodes) {
         if (node.tag !== 'Presence') {
-            walked.add(node.universalKey)
-        }
-    }
-    const buckets = new Map<string, EphemeraPresenceNodeId>()
-    for (const node of cache.nodes) {
-        if (node.tag !== 'Presence' || !walked.has(node.fromHostId)) {
             continue
         }
         for (const member of node.cover.members) {
-            if (!buckets.has(member.host)) {
-                buckets.set(member.host, node.universalKey)
+            const held = buckets.get(member.host) ?? []
+            if (!held.includes(node.universalKey)) {
+                buckets.set(member.host, [...held, node.universalKey])
             }
         }
     }
@@ -85,7 +80,7 @@ export const ludicCacheObjectHandles = async (
         if (node.shortName === undefined) {
             continue
         }
-        const presence = buckets.get(node.universalKey) ?? seedRoom
+        const presence = buckets.get(node.universalKey) ?? (seedRoom !== undefined ? [seedRoom] : undefined)
         handles.push({
             objectId: node.universalKey,
             shortName: node.shortName,

@@ -294,8 +294,8 @@ describe('CommandAttempt', () => {
             const desiredResult: PlanStep = {
                 kind: 'change',
                 primitive: 'dissolveRelation',
-                subject: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ropeId, groundedPresence: boxBinding },
-                target: { referentType: 'graphNode', groundedId: forkId, groundedPresence: roomId },
+                subject: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ropeId, groundedPresence: [boxBinding] },
+                target: { referentType: 'graphNode', groundedId: forkId, groundedPresence: [roomId] },
                 relationKind: 'Custom',
                 relationLabel: 'is lashed to',
             }

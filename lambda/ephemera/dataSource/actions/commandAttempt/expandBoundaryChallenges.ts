@@ -3,7 +3,8 @@ import { ephemeraLudicTerminalsEqual, isHostingRelationKind, relationKindAndLabe
 import type { EphemeraLudicGraph } from '../../positions/ludicGraph'
 import { boundaryEdgeOutcomes } from '../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
-import type { DissolveRelationChange, GroundedPresence, GroundedReferent } from '../enrich/objectManipulation/plan/planStep'
+import { presencesHolding } from '../../positions/ludicGraph/presenceSubGraph'
+import type { DissolveRelationChange, GroundedReferent } from '../enrich/objectManipulation/plan/planStep'
 import { graphNodeRef } from '../enrich/objectManipulation/plan/planStep'
 import { isEphemeraThingId, type EphemeraThingId } from '../enrich/objectManipulation/thing'
 import type { AttemptAction } from './action'
@@ -42,18 +43,17 @@ const describeExitEdgeChallenge = (): string =>
  *
  * Each dissolve's referents are grounded (`graphNode`s): Expansion finds the edge's far end
  * in the graph, and no phrase named it. `subject`/`target` follow the edge's own direction,
- * whichever end is the moved object. Both carry the moved object's `groundedPresence`
- * (`subjectPresence`), when known: the edge is read from the moved object's source-host graph, so
- * both ends were seen in the same bucket. (An `Enumerated` cover straddling the two ends could
- * differ; no writer mints one yet.) The Change carries no `host`: the executor's
+ * whichever end is the moved object. Expansion grounds them, so it also learns where each is
+ * seen: every bucket of `graph` holding that end (`presencesHolding`), each end on its own, since
+ * an `Enumerated` split can put the two ends of one edge in different buckets (a wire in one
+ * room's half of a breadboard, connected to a spot in the other's). The Change carries no `host`: the executor's
  * `dissolveRelation` command-expansion rediscovers this exact edge by chain discovery
  * (`findRelationalChain`), the same mechanism the ingress relational route uses.
  */
 export const attemptActionsFromBoundaryOutcomes = (
     primaryAction: AttemptAction,
     transferSet: ReadonlySet<EphemeraObjectId>,
-    graph: EphemeraLudicGraph,
-    subjectPresence?: GroundedPresence
+    graph: EphemeraLudicGraph
 ): AttemptAction[] => {
     // A mover's own containment edge into the host it is leaving (the cup `On` the table, read
     // from the table's shard) is removed by the move itself, as `buildObjectMoveOp` does at
@@ -64,15 +64,17 @@ export const attemptActionsFromBoundaryOutcomes = (
         && [...transferSet].some((objectId) => ephemeraLudicTerminalsEqual(edge.from, objectId)))
         // A port-qualified endpoint has no producer on a boundary edge yet (ludicGraph/AGENT.md's
         // BD-36 paragraph), so only edges between things are expanded. A crossing's far end, once
-        // expanded, takes its presence from the shard holding its own leg, not from the subject.
+        // expanded, takes its presence from the shard holding its own leg, not from `graph`.
         .filter((entry) => isEphemeraThingId(entry.edge.from) && isEphemeraThingId(entry.edge.to))
     const boundaryActions = outcomes.map((entry): AttemptAction => {
+        // Safe: filtered to things above.
+        const subjectId = entry.edge.from as EphemeraThingId
+        const targetId = entry.edge.to as EphemeraThingId
         const desiredResult: DissolveRelationChange<GroundedReferent> = {
             kind: 'change',
             primitive: 'dissolveRelation',
-            // Safe: filtered to things above.
-            subject: graphNodeRef(entry.edge.from as EphemeraThingId, subjectPresence),
-            target: graphNodeRef(entry.edge.to as EphemeraThingId, subjectPresence),
+            subject: graphNodeRef(subjectId, presencesHolding(graph, subjectId)),
+            target: graphNodeRef(targetId, presencesHolding(graph, targetId)),
             ...relationKindAndLabelOf(entry.edge),
         }
 
@@ -100,8 +102,7 @@ export const attemptActionsFromBoundaryOutcomes = (
  * Expansion for any `transferMembership` (ISS8203 slice 3), whichever template produced it. A
  * transfer whose moved object touches an exit gets an {@link ExitEdgeChallenge} on the primary
  * action, which stays pending (the take or drop abstains); then the boundary dissolves are added
- * as {@link attemptActionsFromBoundaryOutcomes} does. `graph` is the object's source host; the
- * dissolves' referents take the primary's object referent's `groundedPresence`.
+ * as {@link attemptActionsFromBoundaryOutcomes} does. `graph` is the object's source host.
  */
 export const attemptActionsFromTransfer = (
     primaryAction: AttemptAction,
@@ -115,9 +116,5 @@ export const attemptActionsFromTransfer = (
             new ExitEdgeChallenge(mintChallengeId(), describeExitEdgeChallenge()),
         ])
         : primaryAction
-    const step = primaryAction.desiredResult
-    const subjectPresence = step?.kind === 'change' && step.primitive === 'transferMembership' && step.object.referentType === 'objectSpan'
-        ? step.object.groundedPresence
-        : undefined
-    return attemptActionsFromBoundaryOutcomes(primary, new Set([objectId]), graph, subjectPresence)
+    return attemptActionsFromBoundaryOutcomes(primary, new Set([objectId]), graph)
 }
