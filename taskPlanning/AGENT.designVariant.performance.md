@@ -45,8 +45,6 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 
 | Date | Tag | Observation |
 | --- | --- | --- |
-| 2026-08-30 | `other` | Answered *are we ready to graduate* by leading with what was still unlicensed, when graduation had already happened two turns earlier and the code had shipped on it |
-| 2026-08-22 | `bulk` | LP6's retired original scope and its later-added PR-4 dependency, read together as one gated obligation, hid a real cross-plan design cycle rather than exposing it |
 | 2026-08-22 | `other` | Wrote a comment saying `On` "no longer parses here" while leaving `'On'` in the same type's literal union four places; user caught the self-contradiction, `tsc` then found four more downstream breaks the narrowing produced |
 | 2026-08-22 | `stale-premise` | LD-14 (ludic-graph ports) sat at "None yet, owed upstream to PQ-9" while PQ-9's own row records it graduated to a decision the same day LD-14 opened; user recalled the decision correctly, the row never noticed |
 | 2026-08-22 | `overbroad-inheritance` | Implemented LP7 (ludic-graph ports) without checking its own section header's "Stage 2 --- gated on P7" line; the gate's stated rationale (port record built blind to its only consumer) is LP6's, not LP7's (a mechanical edge-terminal type widening with no port-record dependency) --- caught while doing LP9 bookkeeping, not before starting the work |
@@ -126,6 +124,7 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | 2026-10-01 | `proxy-read` | Called AGENT.edges.md:134 (legs share a `chainId`) and :172 / positions concepts:402 (legs share an `edgeId`) a contradiction, from `edgesMatch` ignoring `edgeId`; user: chains are children of edges, so every leg of a chain carries both ids --- the code was read as a proxy for the definition, and "orthogonal" as "alternative". |
 | 2026-10-01 | `stale-premise` | Said crossing dissolve was unbuilt (`buildCrossingLegs` returns `notYetImplemented`) and would "become natural" with a chain primitive; `expandSameHost` already dissolves crossings via `findRelationalChain` + `buildCrossingDissolveLegs` --- read a doc comment, not the dispatch. |
 | 2026-10-04 | `framing-inherited` | Proposed fixing AP-13's double-dissolve by skipping the attempt's explicit boundary action when its edge is in `metPropagations()`; user mirrored back that this privileges positions' pre-AP-9 internal derivation over the attempt's own actions --- and it was also incomplete (`dissolve`-classified edges carry no challenge, so never appear in `metPropagations()`). Chose the side the bug surfaced in, not the side the design names authoritative. |
+| 2026-10-07 | `source-unread` | PNR-3 and Slice 0's `Full`-cover test cited "a character inside an object" as a coverage case; positions/AGENT.contract.md ("A character's membership host is a `ROOM`") makes it illegal, and I nearly opened a guard fork on it |
 
 ## Patterns
 

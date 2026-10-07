@@ -58,7 +58,7 @@ import { EphemeraLudicGraph, nodeFromId } from '../ludicGraph'
 import { resolveComponentCacheFields } from '../../objects/objectShortName'
 import { enumerateLudicCacheShards, type EnumerateLudicCacheShardsDeps } from './enumerateShards'
 import { collapseCrossingPorts, collapsedEdgeIdentityKey, foldSameHostBuckets } from './mergeReducer'
-import type { EphemeraLudicCacheData, EphemeraLudicCacheEdge, EphemeraLudicCacheNode } from './types'
+import type { EphemeraLudicCacheData, EphemeraLudicCacheEdge, EphemeraLudicCacheNode, EphemeraLudicCachePresenceNode } from './types'
 
 const presenceUuidFromKey = stripTypedKey('PRESENCE')
 
@@ -86,7 +86,7 @@ const componentCacheNode = async (
 ): Promise<EphemeraLudicCacheNode> => {
     const node = nodeFromId(hostId)
     const { shortName, gloss } = await resolveComponentCacheFields(hostId, assetStack, deps)
-    return { ...node, shortName, gloss } as EphemeraLudicCacheNode
+    return { ...node, shortName, gloss, presenceNodes: [] } as EphemeraLudicCacheNode
 }
 
 export type BuildLudicCacheStats = {
@@ -110,6 +110,7 @@ export const buildLudicCache = async (
 
     // Pass 2: the purely synchronous fold/collapse computation, iterated in hostIds order.
     const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
+    const bindingsByOwner = new Map<EphemeraMembershipHostId, EphemeraLudicCachePresenceNode[]>()
 
     for (const hostId of hostIds) {
         const graph = graphs.get(hostId) as EphemeraLudicGraph
@@ -119,13 +120,13 @@ export const buildLudicCache = async (
         // proper subset), satisfying `foldSameHostBuckets`'s clause-3 zero-or-all assertion for
         // an exhaustive rebuild.
         const presenceUuids = graph.presenceNodes.map((presenceNode) => presenceUuidFromKey(presenceNode.universalKey))
-        // Each covered member's own bindings into this host, read from the member's graph when
-        // the walk fetched it (a character's shard is not walked unless it is the seed).
+        // Each covered member's own bindings into this host, read from the member's graph; none
+        // when the member was placed without a move and never had a binding minted.
         const memberBindings = (member: string) => (graphs.get(member as EphemeraMembershipHostId)?.presenceNodes ?? [])
             .filter((presenceNode) => presenceNode.fromHostId === hostId)
             .map((presenceNode) => presenceNode.universalKey)
-        const { nodes: presenceNodes, edges: sameHostEdges } = foldSameHostBuckets(graph, presenceUuids, memberBindings)
-        nodes.push(...presenceNodes)
+        const { presenceNodes, edges: sameHostEdges } = foldSameHostBuckets(graph, presenceUuids, memberBindings)
+        bindingsByOwner.set(hostId, presenceNodes)
         addEdges(byIdentity, sameHostEdges)
 
         // Mechanism 2: the parent/child crossing-port boundary between this host and every
@@ -148,8 +149,17 @@ export const buildLudicCache = async (
         }
     }
 
+    // Each host's own bindings nest on its component node. Pass 1 built one node per hostId, so
+    // an owner without one is a bug in this function, not a data shape.
+    const ownerIds = new Set<string>(nodes.map((node) => node.universalKey))
+    const unowned = [...bindingsByOwner.keys()].filter((hostId) => !ownerIds.has(hostId))
+    if (unowned.length) {
+        throw new Error(`buildLudicCache: no component node for binding owner(s) ${unowned.join(', ')}`)
+    }
+    const nestedNodes = nodes.map((node) => ({ ...node, presenceNodes: bindingsByOwner.get(node.universalKey as EphemeraMembershipHostId) ?? [] }))
+
     return {
-        cache: { hostId: seedHostId, nodes, edges: [...byIdentity.values()] },
+        cache: { hostId: seedHostId, nodes: nestedNodes, edges: [...byIdentity.values()] },
         stats: { shardFetchCount, maxDepth },
     }
 }

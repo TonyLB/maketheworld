@@ -433,11 +433,11 @@ describe('foldSameHostBuckets', () => {
         expect(shuffled.edges).toEqual(expect.arrayContaining(expectedEdges))
     })
 
-    it('mints one consolidated structure-arm cache node per binding folded, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
+    it('mints one consolidated cache binding per binding folded, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
         const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'], noMemberBindings)
 
-        expect(result.nodes).toHaveLength(3)
-        expect(result.nodes).toEqual(expect.arrayContaining([
+        expect(result.presenceNodes).toHaveLength(3)
+        expect(result.presenceNodes).toEqual(expect.arrayContaining([
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_1',
@@ -484,8 +484,8 @@ describe('foldSameHostBuckets', () => {
     it('mints nothing for a presenceUuid with no matching graph node (degenerate: no node minted, or a stale/legacy binding), given every real binding is otherwise consolidated', () => {
         const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3', 'nonexistent'], noMemberBindings)
 
-        expect(result.nodes).toHaveLength(3)
-        expect(result.nodes.map((node) => node.universalKey).sort()).toEqual([
+        expect(result.presenceNodes).toHaveLength(3)
+        expect(result.presenceNodes.map((node) => node.universalKey).sort()).toEqual([
             'PRESENCE#port_1', 'PRESENCE#port_2', 'PRESENCE#port_3',
         ])
     })

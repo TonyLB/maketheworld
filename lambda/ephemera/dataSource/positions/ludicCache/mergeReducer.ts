@@ -28,7 +28,7 @@ import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from '../ludicGraph'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
-import type { EphemeraLudicCacheCoverEntry, EphemeraLudicCacheEdge, EphemeraLudicCacheNode, EphemeraLudicCacheSupportHop } from './types'
+import type { EphemeraLudicCacheCoverEntry, EphemeraLudicCacheEdge, EphemeraLudicCachePresenceNode, EphemeraLudicCacheSupportHop } from './types'
 
 /**
  * A crossing port **minted by a cut**, as distinct from one **authored on the whole** --- the
@@ -376,7 +376,7 @@ export const mergeSameHostBucket = (
 }
 
 /**
- * The structure-arm `EphemeraLudicCacheNode` for each binding folded, one per `presenceUuid`
+ * The `EphemeraLudicCachePresenceNode` for each binding folded, one per `presenceUuid`
  * (presenceNodes Slice 4, item 3). `consolidated: true` because a binding only reaches this
  * function by being named in `presenceUuids` --- the set of buckets being pulled --- so every
  * node this produces is by construction one that WAS pulled; `EphemeraLudicCacheData` simply
@@ -426,10 +426,10 @@ const presenceCacheNodesFromFold = (
     graph: EphemeraLudicGraph,
     presenceUuids: string[],
     memberBindings: MemberBindingsLookup
-): EphemeraLudicCacheNode[] => {
+): EphemeraLudicCachePresenceNode[] => {
     assertZeroOrAllPresenceBindings(graph, presenceUuids)
     const root = ephemeraLudicTerminalOwner(graph.rootId)
-    return presenceUuids.reduce<EphemeraLudicCacheNode[]>((acc, presenceUuid) => {
+    return presenceUuids.reduce<EphemeraLudicCachePresenceNode[]>((acc, presenceUuid) => {
         const universalKey = PresenceKey(presenceUuid)
         const presenceNode = graph.presenceNodes.find((node) => node.universalKey === universalKey)
         if (!presenceNode) {
@@ -468,8 +468,9 @@ const presenceCacheNodesFromFold = (
  * `presenceUuids`) and is correctly not emitted, the same "incomplete data, not an error" stance
  * `collapseCrossingPorts` already takes.
  *
- * `nodes` (presenceNodes Slice 4, item 3): the structure-arm cache node for every binding folded,
- * via `presenceCacheNodesFromFold` above --- a separate pass over `presenceUuids` rather than a
+ * `presenceNodes` (presenceNodes Slice 4, item 3): the cache binding for every binding folded,
+ * via `presenceCacheNodesFromFold` above. All are `graph.hostId`'s own bindings, so the caller
+ * nests them on that host's cache node. Computed in a separate pass over `presenceUuids` rather than as a
  * side-effect of the accumulator, since a binding's own cover is a fact about `graph` alone and
  * needs no merge state to compute.
  */
@@ -477,7 +478,7 @@ export const foldSameHostBuckets = (
     graph: EphemeraLudicGraph,
     presenceUuids: string[],
     memberBindings: MemberBindingsLookup
-): { nodes: EphemeraLudicCacheNode[]; edges: EphemeraLudicCacheEdge[] } => {
+): { presenceNodes: EphemeraLudicCachePresenceNode[]; edges: EphemeraLudicCacheEdge[] } => {
     const seed = EphemeraLudicGraph.fromFieldPayload(graph.hostId, { rootId: graph.rootId, nodes: [], edges: [], ports: [] })
 
     const folded = presenceUuids.reduce<EphemeraLudicGraph>((accumulated, presenceUuid) => {
@@ -506,5 +507,5 @@ export const foldSameHostBuckets = (
         const existing = byIdentity.get(key)
         byIdentity.set(key, existing ? { ...existing, supportedBy: [...existing.supportedBy, ...edge.supportedBy] } : edge)
     })
-    return { nodes: presenceCacheNodesFromFold(graph, presenceUuids, memberBindings), edges: [...byIdentity.values()] }
+    return { presenceNodes: presenceCacheNodesFromFold(graph, presenceUuids, memberBindings), edges: [...byIdentity.values()] }
 }

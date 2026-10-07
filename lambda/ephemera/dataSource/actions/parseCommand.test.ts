@@ -3,6 +3,9 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, Eph
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../positions/ludicGraph/testFixtures'
 import { CommandAttempt, type CommandAttemptData } from './commandAttempt'
 import type { EphemeraLudicGraph } from '../positions/ludicGraph'
+import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
+import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
+import { getRoomObjectCatalogForCharacter, roomObjectLabelsFromCatalog } from './roomObjectCatalogForCharacter'
 
 import {
     embeddingAtCosineSimilarity,
@@ -2007,7 +2010,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                     roomObjectCatalog: [
                         { objectId: COIN, normalizedShortName: 'coin', presence: [tableBinding] },
                         { objectId: POST, normalizedShortName: 'post', presence: [tableBinding] },
-                        { objectId: TABLE, normalizedShortName: 'table', presence: [ROOM] },
+                        { objectId: TABLE, normalizedShortName: 'table', presence: [tableBinding] },
                     ],
                 },
                 {
@@ -2038,6 +2041,51 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                 primitive: 'dissolveRelation',
                 subject: { groundedId: COIN, groundedPresence: [tableBinding] },
                 target: { groundedId: POST, groundedPresence: [tableBinding] },
+            })
+        })
+
+        // End to end from the cache: the catalog is built by `getRoomObjectCatalogForCharacter` over
+        // the same fixture graphs, not written by hand. A whole bound into two rooms is in each of
+        // its own buckets, so a span naming it is stamped with both bindings.
+        it('take the table when it is bound into two rooms: Grounding stamps the table with both of its own bindings', async () => {
+            const OTHER_ROOM = 'ROOM#Galley' as EphemeraRoomId
+            const tableHere = 'PRESENCE#table-in-bridge' as EphemeraPresenceNodeId
+            const tableThere = 'PRESENCE#table-in-galley' as EphemeraPresenceNodeId
+            const graphs: Record<string, EphemeraLudicGraph> = {
+                [ROOM]: roomWith([TABLE]),
+                [TABLE]: testLudicGraph(TABLE as unknown as EphemeraRoomId, {
+                    nodes: [
+                        { tag: 'Object', universalKey: TABLE },
+                        { tag: 'Presence', universalKey: tableHere, fromHostId: ROOM, cover: { tag: 'Full' } },
+                        { tag: 'Presence', universalKey: tableThere, fromHostId: OTHER_ROOM, cover: { tag: 'Full' } },
+                    ],
+                }),
+            }
+            const { entries } = await getRoomObjectCatalogForCharacter(CHARACTER, {
+                getMembershipContainers: async () => [ROOM],
+                getLudicGraph: async (hostId) => graphs[hostId] ?? testLudicGraph(hostId as EphemeraRoomId),
+                getCharacterAssets: async () => ['ASSET#Test'],
+                resolvePerspective: async () => ({ assetStack: ['ASSET#Test'] }),
+                getComponentAggregate: (async ([perspective]: { universalKey: string, mergeParticipationOrder: readonly `ASSET#${string}`[] }[]) => (
+                    perspective.universalKey === TABLE
+                        ? [mergedComponentResult({
+                            universalKey: TABLE,
+                            merged: new StandardObject({ tag: 'Object', shortName: 'table' }),
+                            mergeParticipationOrderApplied: perspective.mergeParticipationOrder,
+                        })]
+                        : []
+                )) as any,
+            })
+            expect(entries).toEqual([{ objectId: TABLE, normalizedShortName: 'table', presence: [tableHere, tableThere] }])
+
+            const { result } = await run(
+                { command: 'take table', roomObjectLabels: roomObjectLabelsFromCatalog(entries), roomObjectCatalog: entries },
+                { graphs }
+            )
+            expect(result).toMatchObject({ type: 'CommandAttempt' })
+            const attempt = CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt)
+            expect(primaryStepOf({ attempt: attempt.toJSON() })).toMatchObject({
+                object: { groundedId: TABLE, groundedPresence: [tableHere, tableThere] },
             })
         })
     })
