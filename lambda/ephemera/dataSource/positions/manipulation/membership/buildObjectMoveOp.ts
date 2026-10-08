@@ -4,7 +4,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { HostRelationalEdge } from '../types'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { findOwnRootContainmentEdge } from './findOwnRootContainmentEdge'
-import type { PositionKernelMoveOp, TemplateNarrationInput } from '../kernel/compile/positionKernelOp'
+import type { PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
 
 export type BuildObjectMoveOpArgs = {
     /** The moved object --- the whole moved set: anything it hosts lives in its own shard and travels with it. */
@@ -22,8 +22,6 @@ export type BuildObjectMoveOpArgs = {
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
     bundleId: string
-    /** Omitted for the pre-commit mutation-only compile; supplied post-commit to narrate. */
-    narration?: Omit<TemplateNarrationInput, 'kind'>
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
 }
@@ -35,19 +33,20 @@ export type BuildObjectMoveOpArgs = {
  * are room-shaped; merging the two would put two disjoint bodies under one name, against the same
  * discriminate-on-family doctrine `NarrationSpecification` follows.
  *
- * There is deliberately no verb, direction, or acting-character argument. The verb is a
- * property of the delta --- which side of the move was the room --- so `compilePositionKernelOp`
- * derives it, which is what let `inferOperationFromFact` be deleted rather than ported and what makes
- * a future `give` (room on neither side) expressible with no new discriminant.
+ * There is deliberately no narration, verb, direction, or acting-character argument. An object
+ * move's lines are its attempt's narration units, authored by whoever created the action and
+ * delivered by `commitAttempt.ts` over audiences it resolves and captures itself; the op compiles
+ * to mutation steps only. Nothing derives a verb from the move, so a future `give` (room on
+ * neither side) needs no new discriminant.
  *
  * Called **once** per move, unlike `buildCharacterMoveOp`. Navigate builds its op twice --- bare
  * pre-commit, narrating post-commit --- only because its header slot needs an async perspective-key
- * lookup that cannot happen inside the mutation path, and the two calls agree because
- * `compilePositionKernelOp` mints capture ids purely from `froms`/`to`. An object move has no header,
- * so the ingredients are all in hand before the commit and one compiled plan serves both halves; a
- * second compile would be two chances to disagree in exchange for nothing.
+ * lookup that cannot happen inside the mutation path. An object move has no header and no
+ * narration, so one compiled plan serves both halves; a second compile would be two chances to
+ * disagree in exchange for nothing.
  *
- * No carried-object count; see `positionKernelOp.ts`'s `TemplateNarrationInput` doc comment.
+ * No carried-object count: a moved object's hosted contents live in its own shard and travel with
+ * it, so the move names one entity.
  *
  * `dissolvedEdges` is derived here from `fromGraph`, not handed in pre-computed by the caller: it
  * holds only the mover's own containment edge. See `fromGraph`'s own doc comment above for why
@@ -66,14 +65,5 @@ export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMo
         headerSlot: null,
         dissolvedEdges,
         ...(args.containment ? { containment: args.containment } : {}),
-        ...(args.narration
-            ? {
-                narration: {
-                    kind: 'template' as const,
-                    actorName: args.narration.actorName,
-                    labels: args.narration.labels,
-                },
-            }
-            : {}),
     }
 }

@@ -18,21 +18,6 @@ export type MembershipMoveNarrationInput = {
 }
 
 /**
- * Template narration's fill values: the actor's name and a display label per entity id. Inert
- * today: the compiler reads only this input's presence, to build the move's captures. The copy
- * comes from the attempt's authored narration units, which `commitAttempt.ts` delivers after
- * commit; positions derives no copy and no verb from the move.
- *
- * No carried-object count: a moved object's hosted contents live in its own shard and travel
- * with it, so the move names one entity and narration names that one object.
- */
-export type TemplateNarrationInput = {
-    kind: 'template'
-    actorName: string
-    labels: Record<string, string>
-}
-
-/**
  * The abstract-op vocabulary the compiler
  * (`compilePositionKernelOp.ts`) expands into `KernelStep[]`. Shaped at the level the instruction
  * planner sees the world --- `moved` generalizes over object/character exactly as
@@ -46,14 +31,15 @@ export type TemplateNarrationInput = {
  * `moved` is a bare entity id: the whole moved set is that one entity, since anything it hosts
  * lives in its own shard and travels with it.
  *
- * `narration` is deliberately optional, not a field every `Move` carries: object-lifecycle moves
- * (spawn/destroy/place/remove) narrate nothing today, and populating narration fields they'd never
+ * `narration` is deliberately optional, not a field every `Move` carries: object moves never
+ * carry it (lifecycle moves narrate nothing, and take/drop/give narrate through their attempt's
+ * narration units, which `commitAttempt.ts` delivers), and populating narration fields they'd never
  * use would misstate that. Presence/absence of `narration` is what lets the compiler --- not the
  * op's shape --- decide whether and how a given move narrates. Narration carries
  * *ingredients*, not a pre-built message string --- copy assembly happens at flush time in
  * `presentStepSequence`'s narration branch, alongside the captured audience, so a later slice can let
  * copy react to what the mutation actually did rather than only what was intended at compile time.
- * It is a union discriminated on narration *family*, matching `NarrationSpecification`'s own axis.
+ * It keeps its `kind` discriminant, matching `NarrationSpecification`'s family axis.
  */
 export type PositionKernelMoveOp = {
     kind: 'move'
@@ -82,7 +68,7 @@ export type PositionKernelMoveOp = {
      */
     containment?: 'On' | 'In' | 'PartOf'
     /** Present only when this move should narrate world lines --- see doc comment above. */
-    narration?: MembershipMoveNarrationInput | TemplateNarrationInput
+    narration?: MembershipMoveNarrationInput
 }
 
 export type PositionKernelOp = PositionKernelMoveOp

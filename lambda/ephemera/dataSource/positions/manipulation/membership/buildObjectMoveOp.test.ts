@@ -27,24 +27,7 @@ describe('buildObjectMoveOp', () => {
         expect(op.headerSlot).toBeNull()
     })
 
-    it('builds template narration labelling only the moved object', () => {
-        const op = buildObjectMoveOp({
-            entityId: TRAY,
-            fromGraph: emptyFromGraph,
-            fromHostId: ROOM,
-            toHostId: CHARACTER,
-            bundleId: 'BUNDLE#test',
-            narration: { actorName: 'Alice', labels: { [TRAY]: 'tray' } },
-        })
-
-        expect(op.narration).toEqual({
-            kind: 'template',
-            actorName: 'Alice',
-            labels: { [TRAY]: 'tray' },
-        })
-    })
-
-    it('omits narration entirely when no ingredients are supplied (object-lifecycle move)', () => {
+    it('carries no narration: an object move\'s lines are its attempt\'s narration units', () => {
         const op = buildObjectMoveOp({
             entityId: TRAY,
             fromGraph: emptyFromGraph,
@@ -54,29 +37,6 @@ describe('buildObjectMoveOp', () => {
         })
 
         expect(op.narration).toBeUndefined()
-    })
-
-    it('declares no verb or direction --- the compiler derives it from the host pair', () => {
-        const takeHold = buildObjectMoveOp({
-            entityId: TRAY,
-            fromGraph: emptyFromGraph,
-            fromHostId: ROOM,
-            toHostId: CHARACTER,
-            bundleId: 'BUNDLE#test',
-            narration: { actorName: 'Alice', labels: { [TRAY]: 'tray' } },
-        })
-        const drop = buildObjectMoveOp({
-            entityId: TRAY,
-            fromGraph: testLudicGraph(CHARACTER, { nodes: [{ tag: 'Object', universalKey: TRAY }], edges: [] }),
-            fromHostId: CHARACTER,
-            toHostId: ROOM,
-            bundleId: 'BUNDLE#test',
-            narration: { actorName: 'Alice', labels: { [TRAY]: 'tray' } },
-        })
-
-        // Identical narration for opposite directions is the point: this builder never knew the
-        // verb, which is why `inferOperationFromFact` could be deleted rather than relocated here.
-        expect(takeHold.narration).toEqual(drop.narration)
     })
 
     it('derives no boundary-edge dissolve, of any class --- those are the command attempt\'s own facilitating actions', () => {

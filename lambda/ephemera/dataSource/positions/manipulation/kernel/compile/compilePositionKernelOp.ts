@@ -38,29 +38,19 @@ const CAPTURE_ID_TO = 'capture:to'
  * severed relation's fact precedes the moved fact. Expansion classified them; this
  * function only sequences them.
  *
- * When `op.narration` is present, capture-from/capture-to steps are always built from the same
- * `(froms, to)` pair, so a later audience (an authored narration unit) has a roster to read. **Narrate steps and slots are built here only for the
- * `membershipMove` family** (navigate/home/connect/disconnect) --- `[leave, header, arrive]`
- * ordering is decided only for that narration. The `template` family (object take/drop/give)
- * narrates through `commitAttempt.ts`'s post-commit sweep instead, over captures `commitAttempt`
- * mints itself; the `template` captures this compiler still emits are unread (known debt in
- * `manipulation/AGENT.implementation.md`). Narration belongs to whatever creates the action, and
- * nothing here creates one. Capture/mutation
- * ordering inside `steps` is the one place order matters for walk correctness; narrate step
- * position among them is cosmetic, since delivery order comes from `slots`, not `steps` (the
- * messageOrchestration bundle assigns `CreatedTime` in declared order at flush, fully decoupled
+ * When `op.narration` is present (character moves only), capture-from/capture-to steps are built
+ * from the same `(froms, to)` pair, and each narrate step reads its own side's capture.
+ * Capture/mutation ordering inside `steps` is the one place order matters for walk correctness;
+ * narrate step position among them is cosmetic, since delivery order comes from `slots`, not `steps`
+ * (the messageOrchestration bundle assigns `CreatedTime` in declared order at flush, fully decoupled
  * from execution order).
  *
- * **Both bracket sides are always emitted, including a character-hosted one.** A character's
- * inventory graph has no roster, so its capture snapshots an empty set and its narrate step publishes
- * to nobody, and the messageOrchestration fan-in's documented tolerance of unresolved slots makes
- * that cost nothing. That empty side is the *correct output of a uniform rule*, not an oversight ---
- * an earlier design suppressed it with an object-specific branch, which is precisely how this frame
- * (a room's changelog, not a mover's itinerary) gets lost at the first new caller.
- *
- * When `op.narration` is absent (object-lifecycle moves --- spawn/destroy/place/remove --- and the
- * pre-commit mutation-only compile every narrating route also does), only mutation steps are emitted
- * and `slots` carries the header only (if any).
+ * When `op.narration` is absent, only mutation steps are emitted and `slots` carries the header
+ * only (if any). That covers every object move: lifecycle moves (spawn/destroy/place/remove) narrate
+ * nothing, and take/drop/give narrate through their attempt's narration units, whose audiences
+ * `commitAttempt.ts` resolves and captures itself. It also covers the pre-commit mutation-only
+ * compile navigate does. Narration belongs to whatever creates the action, and nothing here
+ * creates one.
  */
 export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPositionKernelPlan => {
     const transferStep: MutationKernelTransferStep = {
@@ -148,17 +138,15 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
         ? [{ kind: 'capture', hostId: op.to, captureId: CAPTURE_ID_TO }]
         : []
 
-    const narrateLeaveSteps: KernelStep[] = narration.kind === 'membershipMove'
-        ? op.froms.map((hostId) => ({
-            kind: 'narrate',
-            narration: narrationSpec(narration, 'leave', hostId),
-            captureId: captureIdForFrom(hostId),
-            bundleId: op.bundleId,
-            slotId: moveLeaveSlotId(hostId),
-        }))
-        : []
+    const narrateLeaveSteps: KernelStep[] = op.froms.map((hostId) => ({
+        kind: 'narrate',
+        narration: narrationSpec(narration, 'leave', hostId),
+        captureId: captureIdForFrom(hostId),
+        bundleId: op.bundleId,
+        slotId: moveLeaveSlotId(hostId),
+    }))
 
-    const narrateArriveStep: KernelStep[] = narration.kind === 'membershipMove' && op.to
+    const narrateArriveStep: KernelStep[] = op.to
         ? [{
             kind: 'narrate',
             narration: narrationSpec(narration, 'arrive', op.to),
@@ -168,16 +156,14 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
         }]
         : []
 
-    const slots: MessageOrchestrationSlotSpec[] = narration.kind === 'membershipMove'
-        ? [
-            ...op.froms.map((hostId) => ({
-                slotId: moveLeaveSlotId(hostId),
-                expectedPublishType: 'WorldMessage' as const,
-            })),
-            ...headerSlotList,
-            ...(op.to ? [{ slotId: MOVE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' as const }] : []),
-        ]
-        : headerSlotList
+    const slots: MessageOrchestrationSlotSpec[] = [
+        ...op.froms.map((hostId) => ({
+            slotId: moveLeaveSlotId(hostId),
+            expectedPublishType: 'WorldMessage' as const,
+        })),
+        ...headerSlotList,
+        ...(op.to ? [{ slotId: MOVE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' as const }] : []),
+    ]
 
     return {
         steps: [
