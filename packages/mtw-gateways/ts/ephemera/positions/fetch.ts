@@ -19,11 +19,6 @@ export type EphemeraPositionsReadDB = {
     }): Promise<Item[]>
 }
 
-type CharacterMetaRoomProjection = {
-    EphemeraId: EphemeraCharacterId;
-    RoomId?: EphemeraRoomId;
-}
-
 export async function getRoomActiveCharactersFromDynamo(
     db: EphemeraPositionsReadDB,
     roomId: EphemeraRoomId
@@ -87,30 +82,6 @@ export const getAreaLudicGraphFromDynamo = (
     areaId: EphemeraAreaId
 ): Promise<EphemeraLudicGraphFieldPayload | undefined> =>
     getHostLudicGraphFromDynamo(db, areaId, 'Meta::Area')
-
-export async function getCharacterRoomIdFromDynamo(
-    db: EphemeraPositionsReadDB,
-    characterId: EphemeraCharacterId
-): Promise<EphemeraRoomId | null> {
-    const row = await db.getItem<CharacterMetaRoomProjection>({
-        Key: {
-            EphemeraId: characterId,
-            DataCategory: 'Meta::Character',
-        },
-        ProjectionFields: ['RoomId'],
-    })
-    const roomId = row?.RoomId
-    if (typeof roomId === 'string' && roomId.length > 0) {
-        if (isEphemeraRoomId(roomId)) {
-            return roomId
-        }
-        const normalized = `ROOM#${roomId}` as EphemeraRoomId
-        if (isEphemeraRoomId(normalized)) {
-            return normalized
-        }
-    }
-    return null
-}
 
 export const isPositionsComponentId = (
     componentId: string

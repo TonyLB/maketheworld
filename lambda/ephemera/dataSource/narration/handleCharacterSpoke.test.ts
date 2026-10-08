@@ -46,7 +46,6 @@ describe('handleCharacterSpoke', () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#123',
             Name: 'TestCharacter',
-            RoomId: 'ROOM#legacy' as EphemeraRoomId,
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#HOME',
             assets: ['Personal'],
@@ -74,7 +73,6 @@ describe('handleCharacterSpoke', () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#123',
             Name: 'TestCharacter',
-            RoomId: 'ROOM#456' as EphemeraRoomId,
             RoomStack: [],
             HomeId: 'ROOM#HOME',
             assets: [],
@@ -101,7 +99,6 @@ describe('handleCharacterSpoke', () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#123',
             Name: 'TestCharacter',
-            RoomId: 'ROOM#456' as EphemeraRoomId,
             RoomStack: [],
             HomeId: 'ROOM#HOME',
             assets: [],

@@ -7,8 +7,8 @@ import internalCache from '../internalCache'
 import type { MessageBus } from '../messageBus/baseClasses'
 import { sendDeleteCacheRecords } from '../dataSource/apiEphemera'
 import { queryAllRenderCacheDataCategoriesForComponent } from '../dataSource/renderCache/queryAllRenderCacheDataCategoriesForComponent'
-import { DEFAULT_ROOM_STACK } from '../dataSource/positions/manipulation/membership/trimEvictionLadder'
-import type { RoomStackItem } from '../dataSource/positions/manipulation/membership/types'
+import { DEFAULT_ROOM_STACK } from '../dataSource/characters/roomStack/trimEvictionLadder'
+import type { RoomStackItem } from '../dataSource/characters/roomStack/types'
 import { guestCoyoteSituations } from './guestSituations'
 
 // Recreated function from deleted cacheAsset module
@@ -31,6 +31,10 @@ const pushCharacterEphemera = async (character: {
         updateKeys: [...updateKeys],
         updateReducer: (draft) => {
             updateKeys.forEach((key) => {
+                // The ladder is mtw.ephemera.characters' state: seed it, never reset it on reconnect.
+                if (key === 'RoomStack' && (draft.RoomStack as RoomStackItem[] | undefined)?.length) {
+                    return
+                }
                 draft[key] = character[key]
             })
         },

@@ -4,7 +4,6 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import internalCache from '../../../internalCache'
 import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import { orchestrateCharacterRoomMembership } from '../manipulation/membership/orchestrateCharacterRoomMembership'
-import { persistRoomStackNavigate } from '../manipulation/membership/persistRoomStackNavigate'
 import type { PositionsPublishedPayload } from '../publishedEvents'
 import type { MembershipApplyResult, IntentKind } from '../manipulation/membership/types'
 import type { MessageBus } from '../../../messageBus/baseClasses'
@@ -34,8 +33,6 @@ export type OrchestrateCharacterMoveArgs = {
     characterMeta?: CharacterMetaItem;
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
-    getRoomAssets?: (roomId: EphemeraRoomId) => Promise<string[] | undefined>;
-    getCanonAssets?: () => Promise<string[] | undefined>;
 }
 
 /**
@@ -52,15 +49,6 @@ export type OrchestrateCharacterMoveArgs = {
  * function's `resolveHeaderSlot` into `planCharacterMoveTransfer`, which builds the compiled plan and
  * carries it through commit; `presentCharacterMove` presents that same plan rather than rebuilding it.
  *
- * **Carve-out, stated rather than left to be rediscovered:** when there is a destination room, the
- * eviction-ladder write (`persistRoomStackNavigate`) runs in `Promise.all` *with* presentation, not
- * serially before or after it --- it needs `beatAnchorTime` from the commit result, so it cannot start
- * earlier, and there is no reason to make presentation wait on it. This is why navigate/home/connect
- * do not route through the kernel's generic `commitAndPresentStepSequence` composer even though
- * the object-move route does: that composer is strictly serial (commit, then present), and cannot
- * express a write running *alongside* presentation. Do not "simplify" this by folding the ladder write
- * into the composer or by serializing it behind narration.
- *
  * The object-move route (`commitAttempt`) is a sibling, not absorbed here --- 3g's correction: it commits or does not
  * depending on entity kind, which is the disjoint-bodies case ruled out for a shared name.
  *
@@ -76,8 +64,6 @@ export const orchestrateCharacterMove = async ({
     characterMeta: suppliedCharacterMeta,
     messageBus,
     streamEvent,
-    getRoomAssets,
-    getCanonAssets,
 }: OrchestrateCharacterMoveArgs): Promise<MembershipApplyResult> => {
     const bundleId = suppliedBundleId ?? uuidv4()
 
@@ -109,49 +95,15 @@ export const orchestrateCharacterMove = async ({
         return result
     }
 
-    if (result.to !== null) {
-        const to = result.to
-        const getRoomAssetsFn = getRoomAssets ?? ((roomId: EphemeraRoomId) => internalCache.RoomAssets.get(roomId))
-        const getCanonAssetsFn = getCanonAssets ?? (() => internalCache.Global.get('assets'))
-
-        const [roomAssets = [], canonAssets = []] = await Promise.all([
-            getRoomAssetsFn(to),
-            getCanonAssetsFn(),
-        ])
-
-        await Promise.all([
-            persistRoomStackNavigate({
-                characterId,
-                targetRoomId: to,
-                beatAnchorTime: result.beatAnchorTime as number,
-                characterAssets: characterMeta?.assets || [],
-                roomAssets,
-                canonAssets,
-            }).catch((error) => {
-                const message = error instanceof Error ? error.message : String(error)
-                console.error(`[mtw.ephemera.positions] persistRoomStackNavigate failed: ${message}`)
-            }),
-            presentCharacterMove({
-                characterId,
-                characterMeta,
-                to,
-                bundleId,
-                plan: result.plan,
-                captures: result.captures,
-                messageBus,
-            }),
-        ])
-    } else {
-        await presentCharacterMove({
-            characterId,
-            characterMeta,
-            to: null,
-            bundleId,
-            plan: result.plan,
-            captures: result.captures,
-            messageBus,
-        })
-    }
+    await presentCharacterMove({
+        characterId,
+        characterMeta,
+        to: result.to,
+        bundleId,
+        plan: result.plan,
+        captures: result.captures,
+        messageBus,
+    })
 
     return result
 }

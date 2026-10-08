@@ -33,7 +33,7 @@ import internalCache from '../internalCache'
 import { sendDeleteCacheRecords } from '../dataSource/apiEphemera'
 import { queryAllRenderCacheDataCategoriesForComponent } from '../dataSource/renderCache/queryAllRenderCacheDataCategoriesForComponent'
 import { confirmGuestCharacter } from './index'
-import { DEFAULT_ROOM_STACK } from '../dataSource/positions/manipulation/membership/trimEvictionLadder'
+import { DEFAULT_ROOM_STACK } from '../dataSource/characters/roomStack/trimEvictionLadder'
 
 const ephemeraDBMock = ephemeraDB as jest.Mocked<typeof ephemeraDB>
 const internalCacheMock = internalCache as unknown as { ImprovisationComponentData: { get: jest.Mock; set: jest.Mock } }
@@ -74,6 +74,28 @@ describe('confirmGuestCharacter', () => {
         expect(draft.RoomStack).toEqual(DEFAULT_ROOM_STACK)
         expect((draft.RoomStack as typeof DEFAULT_ROOM_STACK)[0]).not.toHaveProperty('timeWritten')
         expect(draft.RoomId).toBeUndefined()
+    })
+
+    it('keeps an existing non-default ladder on reconnect while still writing the other fields', async () => {
+        ephemeraDBMock.getItem.mockResolvedValue({
+            guestId: 'guest-1',
+            guestName: 'Guest One',
+        })
+        ephemeraDBMock.optimisticUpdate.mockResolvedValue(undefined)
+
+        await confirmGuestCharacter('player-one', messageBus)
+
+        const updateReducer = ephemeraDBMock.optimisticUpdate.mock.calls[0]?.[0]?.updateReducer
+        const existingLadder = [
+            { asset: 'primitives', RoomId: 'VORTEX', timeWritten: 1000 },
+            { asset: 'overlay', RoomId: 'Dockside', timeWritten: 2000 },
+        ]
+        const draft: Record<string, unknown> = { RoomStack: existingLadder, Name: 'Stale' }
+        updateReducer!(draft)
+        expect(draft.RoomStack).toEqual(existingLadder)
+        expect(draft.Name).toBe('Guest One')
+        expect(draft.assets).toEqual([])
+        expect(draft.player).toBe('player-one')
     })
 
     it('does not write a guest situation facet or invalidate caches when coyoteGameEnabled is false', async () => {

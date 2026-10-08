@@ -79,7 +79,6 @@ describe('InternalCache', () => {
                 return {
                     EphemeraId: 'CHARACTER#123',
                     Name: 'Tess',
-                    RoomId: 'ROOM#1234',
                     RoomStack: [],
                     HomeId: 'ROOM#Home',
                     assets: [],
@@ -89,7 +88,6 @@ describe('InternalCache', () => {
             return {
                 EphemeraId: 'CHARACTER#456',
                 Name: 'Marco',
-                RoomId: 'ROOM#1234',
                 RoomStack: [],
                 HomeId: 'ROOM#Home',
                 assets: [],

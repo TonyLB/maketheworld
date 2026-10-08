@@ -1,5 +1,6 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../../internalCache'
 import { orchestrateCharacterMove } from '../../navigate/orchestrateCharacterMove'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
@@ -7,7 +8,8 @@ import type { PositionsPublishedPayload } from '../../publishedEvents'
 import {
     trimPersistCharacterRoomStack,
     type TrimPersistCharacterRoomStackDependencies,
-} from './trimPersistCharacterRoomStack'
+} from '../../../characters/roomStack/trimPersistCharacterRoomStack'
+import { shortAssetId } from '../../../characters/roomStack/membershipRoomStack'
 
 export type RepairCharacterLegalPlacementArgs = {
     characterId: EphemeraCharacterId;
@@ -24,8 +26,11 @@ export type RepairCharacterLegalPlacementResult = {
 }
 
 /**
- * Legal placement on asset visibility loss: trim ladder, compare resolved room to
- * authoritative membership, apply membership when in play and endpoint differs.
+ * Legal placement on asset visibility loss: trim ladder, then relocate only when the
+ * character's *current* room is no longer accessible (CH-1) --- not merely when the
+ * trimmed ladder's top frame differs from current membership, which can lag a beat
+ * behind the async ladder-maintenance subscriber. The ladder is used only to pick the
+ * destination; whether to move at all is decided from current membership's own asset.
  */
 export const repairCharacterLegalPlacement = async ({
     characterId,
@@ -57,7 +62,11 @@ export const repairCharacterLegalPlacement = async ({
     }
 
     const currentRoom = containers[0]
-    const shouldRelocate = forceMove || targetRoomId !== currentRoom
+    const currentRoomAssets = (!forceMove && isEphemeraRoomId(currentRoom))
+        ? ((await internalCache.RoomAssets.get(currentRoom)) ?? []).map(shortAssetId)
+        : []
+    const currentRoomStillAccessible = currentRoomAssets.some((asset) => accessibleAssets.includes(asset))
+    const shouldRelocate = forceMove || !currentRoomStillAccessible
 
     if (shouldRelocate) {
         const result = await orchestrateCharacterMove({

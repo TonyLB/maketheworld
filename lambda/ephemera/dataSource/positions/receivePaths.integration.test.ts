@@ -95,7 +95,6 @@ describe('positions receive paths (integration)', () => {
             characterMeta: {
                 EphemeraId: CHARACTER_ID,
                 Name: 'Alpha',
-                RoomId: ROOM_A,
                 RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
                 HomeId: 'ROOM#VORTEX',
                 assets: [],
@@ -109,7 +108,6 @@ describe('positions receive paths (integration)', () => {
         characterMetaGetMock.mockResolvedValue({
             EphemeraId: CHARACTER_ID,
             Name: 'Alpha',
-            RoomId: ROOM_A,
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             assets: [],

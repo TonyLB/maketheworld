@@ -1,5 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isCharacterMovedPublishedPayload, isObjectMovedPublishedPayload, isObjectRelationChangedPublishedPayload, sendCharacterMovedPublish, sendObjectMovedPublish, streamEventFromMessageBus } from './publishedEvents'
+import { isCharacterMovedPublishedPayload, isEphemeraPositionsCharacterMovedEnvelope, isEphemeraPositionsOutboundEnvelope, isObjectMovedPublishedPayload, isObjectRelationChangedPublishedPayload, sendCharacterMovedPublish, sendObjectMovedPublish, streamEventFromMessageBus } from './publishedEvents'
 
 describe('isCharacterMovedPublishedPayload', () => {
     const minimal = {
@@ -241,5 +241,22 @@ describe('sendObjectMovedPublish', () => {
                 type: 'Object Moved',
             }),
         }))
+    })
+})
+
+describe('isEphemeraPositionsCharacterMovedEnvelope', () => {
+    const envelopeFor = (dataSourceKey: string, type: string) => ({
+        header: { dataSourceKey, streamKey: 'CHARACTER#test', timestamp: 1, type },
+        getContent: async () => ({}),
+    })
+
+    it('accepts positions Character Moved', () => {
+        expect(isEphemeraPositionsCharacterMovedEnvelope(envelopeFor('mtw.ephemera.positions', 'Character Moved'))).toBe(true)
+        expect(isEphemeraPositionsOutboundEnvelope(envelopeFor('mtw.ephemera.positions', 'Character Moved'))).toBe(true)
+    })
+
+    it('rejects other positions facts and other DataSources', () => {
+        expect(isEphemeraPositionsCharacterMovedEnvelope(envelopeFor('mtw.ephemera.positions', 'Object Moved'))).toBe(false)
+        expect(isEphemeraPositionsCharacterMovedEnvelope(envelopeFor('mtw.ephemera.actions', 'Character Moved'))).toBe(false)
     })
 })

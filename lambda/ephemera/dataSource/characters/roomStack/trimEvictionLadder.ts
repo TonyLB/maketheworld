@@ -1,3 +1,5 @@
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 import type { RoomStackItem } from './types'
 
 /** Omitted timeWritten = legacy 0 (RS-4); first navigate persist stamps frames. */
@@ -25,3 +27,15 @@ export const roomStacksEqual = (left: RoomStackItem[], right: RoomStackItem[]): 
         frame.asset === right[index]?.asset
         && frame.RoomId === right[index]?.RoomId
     ))
+
+/**
+ * Legal room from a trimmed eviction ladder (top surviving frame).
+ * Shared with connect placement; does not persist ladder trims.
+ */
+export const resolveLegalRoomIdFromRoomStack = (
+    roomStack: RoomStackItem[] | undefined,
+    accessibleAssets: string[]
+): EphemeraRoomId => {
+    const trimmed = trimRoomStackToAccessibleAssets(roomStack, accessibleAssets)
+    return RoomKey(roomStackTopRoomShortId(trimmed) ?? 'VORTEX')
+}

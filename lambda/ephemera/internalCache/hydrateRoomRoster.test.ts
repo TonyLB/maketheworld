@@ -27,7 +27,6 @@ describe('hydrateRoomRosterFromCharacterIds', () => {
                 return {
                     EphemeraId: CHARACTER_A,
                     Name: 'Alpha',
-                    RoomId: 'ROOM#TownSquare',
                     RoomStack: [],
                     HomeId: 'ROOM#Home',
                     assets: [],
@@ -38,7 +37,6 @@ describe('hydrateRoomRosterFromCharacterIds', () => {
             return {
                 EphemeraId: CHARACTER_B,
                 Name: 'Beta',
-                RoomId: 'ROOM#TownSquare',
                 RoomStack: [],
                 HomeId: 'ROOM#Home',
                 assets: [],
@@ -89,7 +87,6 @@ describe('hydrateRoomRosterFromCharacterIds', () => {
             return {
                 EphemeraId: CHARACTER_A,
                 Name: 'Alpha',
-                RoomId: 'ROOM#TownSquare',
                 RoomStack: [],
                 HomeId: 'ROOM#Home',
                 assets: [],
@@ -112,7 +109,6 @@ describe('hydrateRoomRosterFromCharacterIds', () => {
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: CHARACTER_A,
             Name: 'Alpha',
-            RoomId: 'ROOM#TownSquare',
             RoomStack: [],
             HomeId: 'ROOM#Home',
             assets: [],
@@ -151,7 +147,6 @@ describe('getRoomCharacterList', () => {
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: CHARACTER_A,
             Name: 'Alpha',
-            RoomId: TOWN_SQUARE,
             RoomStack: [],
             HomeId: 'ROOM#Home',
             assets: [],
@@ -188,7 +183,6 @@ describe('getRoomCharacterList', () => {
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: CHARACTER_A,
             Name: 'Alpha',
-            RoomId: TOWN_SQUARE,
             RoomStack: [],
             HomeId: 'ROOM#Home',
             assets: [],

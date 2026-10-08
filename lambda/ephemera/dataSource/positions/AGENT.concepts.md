@@ -23,7 +23,7 @@ This file records **mental models and vocabulary** for `mtw.ephemera.positions` 
 | **Positions lane** | `mtw.ephemera.positions` --- ephemera authority for **play-time** position truth and the mutations that maintain it |
 | **Character presence** | At play time, which **room** a character occupies and who shares that room --- distinct from Area **authored** participation or exit topology |
 | **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster): a **Character node** in that room's `ludicGraph`, with a reverse **adjacency** row. Roster display hydrates at read time |
-| **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access. See [Eviction ladder](#eviction-ladder) |
+| **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access. Owned by `mtw.ephemera.characters` --- see [Eviction ladder](../characters/AGENT.md#eviction-ladder) |
 | **Room asset stack** | Which assets **participate in composing** a room's WML at render time (participation order on `Meta::Room`). Answers a **render merge** question --- not where the character **is**, and not the eviction ladder |
 | **`EphemeraLudicGraph`** | The host-bound, immutable in-memory model of one ludic graph; the sole ephemera primitive for simulating membership and relational change |
 
@@ -381,42 +381,7 @@ Narration specifications are the worked case: one dispatcher, a stable member co
 
 ### Eviction ladder
 
-When the world is built from **layered assets** (canon plus temporary or personal overlays), a character can occupy rooms that exist only while certain assets remain accessible. `Meta::Character.RoomStack` answers one question under that constraint:
-
-**Where can this character legally be placed in play, given their current asset access?**
-
-**Shape:** an ordered stack of frames `{ asset, room }` from root outward. The outermost frame aligns with **current** presence at the deepest active asset layer; inner frames are **fallback presences** still valid when outer layers are stripped away.
-
-**Purpose:** not a travel diary. The stack is maintained in **trim-ready shape** so resolution is always: filter to accessible assets, read the top frame, move when the endpoint must change.
-
-#### Three roles (one storage shape)
-
-| Role | Question | Typical ingress |
-| --- | --- | --- |
-| **Resolve legal placement** | After trim, what room is legal? | Connect (place **from nowhere**); asset visibility loss (move **from a room they can no longer occupy**) |
-| **Maintain stack on intentional moves** | While placing at the target room, keep frames aligned for future resolution | Navigate (extend / rewrite-tail / fork, in the same transaction as membership) |
-| **Bookkeeping-only trim** | Did asset access change without changing the legal room? | Asset trim when the top frame still matches current membership (no `Character Moved`) |
-
-**Resolution triggers** share the same mechanics (trim, top frame, move when the endpoint changes) and differ in **starting membership state**:
-
-| Trigger | Starting state | Outcome when legal room differs |
-| --- | --- | --- |
-| **Connect** | Out of play --- purged from graph and adjacency; ladder **retained** on disconnect | Place at resolved room (`froms: []` -> `to`) |
-| **Asset visibility** | In play at a room that may be invalid after asset loss | Relocate to resolved room (`froms: [illegal...]` -> `to`) |
-
-**Disconnect asymmetry:** disconnect **purges** play membership (graph nodes, adjacency) but **preserves** `RoomStack`. That stack is the retained answer to "where can they legally go when they return?" --- connect resolves from it without reconstructing history.
-
-**Navigate maintenance** (compare the destination's **asset chain** to the current ladder):
-
-| Operation | When | Effect on ladder |
-| --- | --- | --- |
-| **Extend rung** | Destination chain **continues** the current chain (adds a further asset layer) | Push a new outer frame |
-| **Rewrite tail rung** | Same chain prefix and same deepest asset; different room (lateral move within the layer) | Replace the outer frame's room only |
-| **Fork** | Destination chain **diverges** from the current branch (sibling asset at some depth) | Truncate the abandoned branch; set the new tail frame |
-
-Example (asset visibility): while a limited-time event overlay is active, middle rungs look like inert bookkeeping. When the event assets deactivate, trim removes the overlay rungs in one pass and lands the character on the last still-valid inner presence (suburbs in canon, not a vanished circus tent).
-
-**Relationship to room membership:** membership is **where the character is now** (roster, `Character Moved`). The ladder is **how a legal endpoint is computed** when membership is missing (connect) or points at an inaccessible layer (asset loss). A trim that fixes only the ladder is not a membership change; a resolution that changes the endpoint is a real move.
+`mtw.ephemera.characters` owns `Meta::Character.RoomStack` and its maintenance; the concept lives in [`characters/AGENT.md`](../characters/AGENT.md#eviction-ladder). Positions only consumes the ladder to resolve legal placement (connect, asset-visibility loss); see [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage) for the read/routing-side rules that remain here.
 
 ### Plan-evaluate loop
 
