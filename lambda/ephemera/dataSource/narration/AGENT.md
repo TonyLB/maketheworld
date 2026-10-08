@@ -24,7 +24,7 @@ Trusted UI speech ingress: [`../routeTrustedUiAction.ts`](../routeTrustedUiActio
 On **`Character Spoke`**:
 
 1. Load **`CharacterMeta`** for **`characterId`**.
-2. If **`RoomId`** present: **`PublishMessage`** to room with **`displayProtocol`**, **`message`**, **`characterId`**, **`name`**, **`color`**.
+2. Resolve the room via **`resolveCharacterRoomId`** (play membership, else the trimmed eviction ladder): **`PublishMessage`** to room with **`displayProtocol`**, **`message`**, **`characterId`**, **`name`**, **`color`**.
 
 **ReturnValue** is owned by **`actions`** ingress (`publishReturnValueForRequest` when **`requestId`** is present on **`Action Assessed`**). Narration is depiction-only.
 

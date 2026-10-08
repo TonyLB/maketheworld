@@ -144,4 +144,20 @@ describe('mergeRoomStack', () => {
         expect(afterStaleC).toEqual(afterD)
         expect(afterStaleC[2]).toEqual(frame('draftOne', 'RoomD', T_D))
     })
+
+    it('is a fixed point at an equal timestamp: re-merging its own output changes nothing', () => {
+        const current = [
+            frame('primitives', 'VORTEX', T1),
+            frame('TownCenter', 'TownSquare', T1),
+        ]
+        const proposed = [
+            frame('primitives', 'VORTEX'),
+            frame('TownCenter', 'TownSquare'),
+            frame('draftOne', 'RoomD'),
+        ]
+
+        const once = mergeRoomStack(current, proposed, T2)
+        const twice = mergeRoomStack(once, proposed, T2)
+        expect(twice).toEqual(once)
+    })
 })

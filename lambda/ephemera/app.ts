@@ -58,6 +58,7 @@ import './dataSource/thinking/scheduling'  // mtw.ephemera.thinking.scheduling (
 import './dataSource/objects'  // mtw.ephemera.objects DataSource (before state: shared Meta::Room ordering)
 import './dataSource/state'  // mtw.ephemera.state DataSource (see lambda/ephemera/dataSource/state/AGENT.planning.perceptionVertical.md)
 import './dataSource/positions'  // mtw.ephemera.positions DataSource (positions in play; first ingress: mtw.connections.characters)
+import './dataSource/characters'  // mtw.ephemera.characters DataSource (eviction ladder via positions Character Moved)
 import './dataSource/players'  // mtw.ephemera.players DataSource (Player Connected -> confirmGuestCharacter)
 
 // Event deserializers for incoming EventBridge events

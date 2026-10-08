@@ -172,11 +172,20 @@ export const isPositionsPublishedPayload = (
     || isObjectMovedPublishedPayload(value)
     || isObjectRelationChangedPublishedPayload(value)
 
+export type EphemeraPositionsCharacterMovedHeader =
+    StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Character Moved' }
+
 export type EphemeraPositionsObjectMovedHeader =
     StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Object Moved' }
 
 export type EphemeraPositionsObjectRelationChangedHeader =
     StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Object Relation Changed' }
+
+const isEphemeraPositionsCharacterMovedHeader: HeaderGuard<EphemeraPositionsCharacterMovedHeader> = (
+    h
+): h is EphemeraPositionsCharacterMovedHeader => (
+    h.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY && h.type === 'Character Moved'
+)
 
 const isEphemeraPositionsObjectMovedHeader: HeaderGuard<EphemeraPositionsObjectMovedHeader> = (
     h
@@ -189,6 +198,11 @@ const isEphemeraPositionsObjectRelationChangedHeader: HeaderGuard<EphemeraPositi
 ): h is EphemeraPositionsObjectRelationChangedHeader => (
     h.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY && h.type === 'Object Relation Changed'
 )
+
+export const isEphemeraPositionsCharacterMovedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    CharacterMovedPublishedPayload,
+    EphemeraPositionsCharacterMovedHeader
+>(isEphemeraPositionsCharacterMovedHeader)
 
 export const isEphemeraPositionsObjectMovedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ObjectMovedPublishedPayload,
@@ -205,8 +219,7 @@ export const isEphemeraPositionsOutboundEnvelope = (
 ): envelope is StreamingEventEnvelope<PositionsPublishedPayload> => (
     isEphemeraPositionsObjectMovedEnvelope(envelope)
     || isEphemeraPositionsObjectRelationChangedEnvelope(envelope)
-    || (envelope.header.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY
-        && envelope.header.type === 'Character Moved')
+    || isEphemeraPositionsCharacterMovedEnvelope(envelope)
 )
 
 type PublishBus = Pick<MessageBus, 'publish'>

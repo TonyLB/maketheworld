@@ -7,7 +7,7 @@ import type { PositionsPublishedPayload } from '../../publishedEvents'
 import {
     trimPersistCharacterRoomStack,
     type TrimPersistCharacterRoomStackDependencies,
-} from './trimPersistCharacterRoomStack'
+} from '../../../characters/roomStack/trimPersistCharacterRoomStack'
 
 export type RepairCharacterLegalPlacementArgs = {
     characterId: EphemeraCharacterId;

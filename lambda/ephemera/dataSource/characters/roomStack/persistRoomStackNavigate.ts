@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import internalCache from '../../../../internalCache'
-import type { CharacterMetaItem } from '../../../../internalCache/characterMeta'
+import internalCache from '../../../internalCache'
+import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import { mergeRoomStack } from './mergeRoomStack'
 import { buildProposedRoomStackForNavigate } from './membershipRoomStack'
 import { normalizeRoomStack } from './trimEvictionLadder'
@@ -62,6 +62,6 @@ export const persistRoomStackNavigate = async (
     }
     catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        console.error(`[mtw.ephemera.positions] persistRoomStackNavigate failed: ${message}`)
+        console.error(`[mtw.ephemera.characters] persistRoomStackNavigate failed: ${message}`)
     }
 }

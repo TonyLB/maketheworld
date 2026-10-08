@@ -33,7 +33,7 @@ export const handler = async (event) => {
                         EphemeraId: `CHARACTER#${retrievedGuestId}`,
                         DataCategory: 'Meta::Character'
                     },
-                    updateKeys: ['assets', 'Color', 'Name', 'player', 'pronouns', 'RoomId', 'Description'],
+                    updateKeys: ['assets', 'Color', 'Name', 'player', 'pronouns', 'Description'],
                     updateReducer: (draft) => {
                         draft.assets = event.Assets.map(({ AssetId }) => (AssetId))
                         draft.Color = 'pink'
@@ -42,9 +42,6 @@ export const handler = async (event) => {
                         draft.pronouns = 'they/them'
                         if (coyoteGameEnabled) {
                             draft.Description = 'A scraggly coyote with a hungry and cunning look in his eye.'
-                        }
-                        if (!draft.RoomId) {
-                            draft.RoomId = 'VORTEX'
                         }
                     }
                 })

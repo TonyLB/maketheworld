@@ -113,7 +113,6 @@ describe('EphemeraUpdateMessage', () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#ABC',
             Name: 'Tess',
-            RoomId: 'ROOM#legacy-stale',
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             assets: [],

@@ -3,32 +3,15 @@ import {
     EphemeraRoomId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../../../internalCache'
 import type { CharacterMetaItem } from '../../../../internalCache/characterMeta'
-import type { RoomStackItem } from './types'
-import {
-    roomStackTopRoomShortId,
-    trimRoomStackToAccessibleAssets,
-} from './trimEvictionLadder'
+import { resolveLegalRoomIdFromRoomStack } from '../../../characters/roomStack/trimEvictionLadder'
 
 export type ResolveCharacterRoomIdDependencies = {
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
     getCharacterMeta?: (characterId: EphemeraCharacterId) => Promise<CharacterMetaItem>;
     getCanonAssets?: () => Promise<string[] | undefined>;
-}
-
-/**
- * Legal room from a trimmed eviction ladder (top surviving frame).
- * Shared with connect placement; does not persist ladder trims.
- */
-export const resolveLegalRoomIdFromRoomStack = (
-    roomStack: RoomStackItem[] | undefined,
-    accessibleAssets: string[]
-): EphemeraRoomId => {
-    const trimmed = trimRoomStackToAccessibleAssets(roomStack, accessibleAssets)
-    return RoomKey(roomStackTopRoomShortId(trimmed) ?? 'VORTEX')
 }
 
 /**

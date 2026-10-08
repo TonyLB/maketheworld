@@ -31,7 +31,6 @@ describe('fetchPlayerEphemera', () => {
         }] as any)
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#ABC',
-            RoomId: 'ROOM#XYZ',
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             Name: 'Testy',
             fileURL: 'test.png',

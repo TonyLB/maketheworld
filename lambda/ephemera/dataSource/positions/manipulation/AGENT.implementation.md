@@ -312,7 +312,7 @@ commitStepSequence          one transactWrite; re-validates live on locked graph
 | --- | --- |
 | [`syncMembershipAdjacency.ts`](membership/syncMembershipAdjacency.ts) | Adjacency-only sync when the graph is correct but the reverse index lags (generic over character/object ids) |
 
-**RoomStack (eviction ladder)** is **not** a kernel input. Navigate ladder persist runs in the parallel tail after [`orchestrateCharacterRoomMembership`](membership/orchestrateCharacterRoomMembership.ts) --- see [`persistRoomStackNavigate.ts`](membership/persistRoomStackNavigate.ts), both invoked from [`orchestrateCharacterMove.ts`](../navigate/orchestrateCharacterMove.ts)'s `Promise.all` (3g). Merge/trim detail: [`../AGENT.implementation.md` --- Eviction ladder](../AGENT.implementation.md#eviction-ladder-roomstack-storage); normative rules: [`../AGENT.contract.md` --- Eviction ladder](../AGENT.contract.md#eviction-ladder-roomstack-storage).
+**RoomStack (eviction ladder)** is **not** a kernel input. Navigate ladder persist runs in the parallel tail after [`orchestrateCharacterRoomMembership`](membership/orchestrateCharacterRoomMembership.ts) --- see [`persistRoomStackNavigate.ts`](../../characters/roomStack/persistRoomStackNavigate.ts), both invoked from [`orchestrateCharacterMove.ts`](../navigate/orchestrateCharacterMove.ts)'s `Promise.all` (3g). Merge/trim detail: [`../AGENT.implementation.md` --- Eviction ladder](../AGENT.implementation.md#eviction-ladder-roomstack-storage); normative rules: [`../AGENT.contract.md` --- Eviction ladder](../AGENT.contract.md#eviction-ladder-roomstack-storage).
 
 ---
 

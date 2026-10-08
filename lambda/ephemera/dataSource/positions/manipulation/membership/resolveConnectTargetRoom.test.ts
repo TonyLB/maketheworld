@@ -17,7 +17,7 @@ jest.mock('../../../../internalCache', () => ({
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../../internalCache'
 import { resolveConnectTargetRoom } from './resolveConnectTargetRoom'
-import type { RoomStackItem } from './types'
+import type { RoomStackItem } from '../../../characters/roomStack/types'
 
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)

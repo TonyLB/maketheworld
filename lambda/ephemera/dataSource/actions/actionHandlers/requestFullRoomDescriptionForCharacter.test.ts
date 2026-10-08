@@ -31,7 +31,6 @@ describe('prepareFullRoomDescriptionRenderForCharacter', () => {
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
             EphemeraId: 'CHARACTER#Test',
             Name: 'Test Character',
-            RoomId: 'ROOM#Test',
             RoomStack: [],
             HomeId: 'ROOM#Test',
             assets: ['ASSET#Base'],

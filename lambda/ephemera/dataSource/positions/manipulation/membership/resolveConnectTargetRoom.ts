@@ -1,10 +1,10 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CharacterMetaItem } from '../../../../internalCache/characterMeta'
-import type { RoomStackItem } from './types'
+import type { RoomStackItem } from '../../../characters/roomStack/types'
 import {
     trimPersistCharacterRoomStack,
     type TrimPersistCharacterRoomStackDependencies,
-} from './trimPersistCharacterRoomStack'
+} from '../../../characters/roomStack/trimPersistCharacterRoomStack'
 
 export type ResolveConnectTargetRoomDependencies = TrimPersistCharacterRoomStackDependencies
 

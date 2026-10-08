@@ -3,13 +3,6 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { RoomCharacterListItem } from '../../../../internalCache/baseClasses'
 import type { MessageOrchestrationSlotSpec } from '../../../messageOrchestration/localApiEvents'
 
-export type RoomStackItem = {
-    asset: string;
-    RoomId: string;
-    /** Epoch ms: navigate beatAnchorTime on frames this write applied. Omitted/0 = legacy. */
-    timeWritten?: number;
-}
-
 export type MembershipApplyArgs = {
     characterId: EphemeraCharacterId;
     /** null = out of play (disconnect). */

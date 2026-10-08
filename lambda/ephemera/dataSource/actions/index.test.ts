@@ -943,7 +943,6 @@ describe('ephemeraActionsDataSource', () => {
             internalCacheMock.CharacterMeta.get.mockResolvedValue({
                 EphemeraId: 'CHARACTER#123',
                 Name: 'TestCharacter',
-                RoomId: room,
                 RoomStack: [],
                 HomeId: room,
                 assets: [],
@@ -1045,7 +1044,6 @@ describe('ephemeraActionsDataSource', () => {
             internalCacheMock.CharacterMeta.get.mockResolvedValue({
                 EphemeraId: 'CHARACTER#123',
                 Name: 'TestCharacter',
-                RoomId: room,
                 RoomStack: [],
                 HomeId: room,
                 assets: [],

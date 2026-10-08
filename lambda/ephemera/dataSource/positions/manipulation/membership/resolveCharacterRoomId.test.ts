@@ -1,5 +1,5 @@
 import internalCache from '../../../../internalCache'
-import { resolveCharacterRoomId, resolveLegalRoomIdFromRoomStack } from './resolveCharacterRoomId'
+import { resolveCharacterRoomId } from './resolveCharacterRoomId'
 
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
@@ -19,22 +19,6 @@ jest.mock('../../../../internalCache', () => ({
 // @ts-ignore
 const internalCacheMock = jest.mocked(internalCache, true)
 
-describe('resolveLegalRoomIdFromRoomStack', () => {
-    it('returns top frame of trimmed ladder', () => {
-        expect(resolveLegalRoomIdFromRoomStack(
-            [
-                { asset: 'primitives', RoomId: 'VORTEX' },
-                { asset: 'TownCenter', RoomId: 'TownSquare' },
-            ],
-            ['primitives', 'TownCenter']
-        )).toBe('ROOM#TownSquare')
-    })
-
-    it('defaults to VORTEX when stack normalizes empty', () => {
-        expect(resolveLegalRoomIdFromRoomStack(undefined, [])).toBe('ROOM#VORTEX')
-    })
-})
-
 describe('resolveCharacterRoomId', () => {
     beforeEach(() => {
         jest.clearAllMocks()
@@ -45,7 +29,6 @@ describe('resolveCharacterRoomId', () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#Test',
             Name: 'Test',
-            RoomId: 'ROOM#VORTEX',
             RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }],
             HomeId: 'ROOM#VORTEX',
             assets: [],
@@ -61,7 +44,6 @@ describe('resolveCharacterRoomId', () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#Test',
             Name: 'Test',
-            RoomId: 'ROOM#VORTEX',
             RoomStack: [
                 { asset: 'primitives', RoomId: 'VORTEX' },
                 { asset: 'TownCenter', RoomId: 'Straightaway' },

@@ -26,7 +26,6 @@ describe('resolveHomeTargetForCharacter', () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#Test',
             Name: 'Test',
-            RoomId: 'ROOM#current',
             RoomStack: [],
             HomeId: 'ROOM#home',
             assets: [],
@@ -52,7 +51,6 @@ describe('resolveHomeTargetForCharacter', () => {
         internalCacheMock.CharacterMeta.get.mockResolvedValue({
             EphemeraId: 'CHARACTER#Test',
             Name: 'Test',
-            RoomId: 'ROOM#home',
             RoomStack: [],
             HomeId: 'ROOM#home',
             assets: [],
