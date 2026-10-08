@@ -42,7 +42,7 @@ function isTextToken(token: ParseToken): token is TextToken {
  * The span is the first object span, or empty
  * when the command has none; the producer still reads every object span from the skeleton.
  *
- * The template created the action, so it authors its narration unit (AN-3): one line per verb class
+ * The template created the action, so it authors its narration unit: one line per verb class
  * (`take` and `get` both read "picks up"), to everyone who can see the actor or the object, before
  * the move.
  */

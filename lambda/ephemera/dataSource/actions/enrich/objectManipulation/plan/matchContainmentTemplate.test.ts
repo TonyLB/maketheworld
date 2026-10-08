@@ -95,7 +95,7 @@ describe('matchContainmentTemplate', () => {
     })
 })
 
-describe('matchContainmentTemplate narration (AN-3: the template authors its unit)', () => {
+describe('matchContainmentTemplate narration (the template authors its unit)', () => {
     const unitOf = (verb: string, prep: string) => {
         const result = matchContainmentTemplate(containmentSkeleton(verb, 'coin', prep, 'jar'), 'test command')
         if (result.type !== 'matched') {

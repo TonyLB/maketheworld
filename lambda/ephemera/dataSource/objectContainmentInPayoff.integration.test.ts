@@ -24,9 +24,8 @@
  *
  * The write side (`commitAttempt`) is given a bare `{ publish: jest.fn() }` stand-in for
  * `messageBus` and a no-op `streamEvent`, matching `commitAttempt.test.ts`'s own harness. The one
- * thing read back from it is the move's narration line, which is attempt narration's slice 4
- * payoff (`AGENT.attemptNarration.planning.md`): the containment template's authored "puts ball in
- * box", not the retired bridge's verb-from-delta copy. Fact streaming and catalog bumps are proven
+ * thing read back from it is the move's narration line: the containment template's authored "puts
+ * ball in box", not copy derived from the move's delta. Fact streaming and catalog bumps are proven
  * elsewhere (`objectMovedCatalogBump.integration.test.ts`, `commitAttempt.test.ts`). The read side
  * (`orchestrateRoomDescriptionStreams`) uses the process's real singleton `messageBus`, matching
  * `guestCharacterLookPayoff.integration.test.ts`'s convention for delivering the final
@@ -269,8 +268,8 @@ describe('object containment In payoff (integration)', () => {
         // The real commit happened (not refused as illegal/stale).
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(1)
 
-        // The payoff (`AGENT.attemptNarration.planning.md`, slice 4): the published line is the
-        // containment template's own (AN-3), the player's verb and preposition, delivered to the
+        // The narration payoff: the published line is the containment template's own (whoever
+        // creates an action authors its line), the player's verb and preposition, delivered to the
         // actor's room. The retired verb-from-delta bridge read this move (room -> box) as
         // "picks up ball", so this assertion fails unless the authored unit replaced it.
         const reports = writeMessageBus.publish.mock.calls

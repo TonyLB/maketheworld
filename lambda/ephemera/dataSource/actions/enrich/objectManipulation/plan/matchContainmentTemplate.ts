@@ -64,7 +64,7 @@ function isTextToken(token: ParseToken): token is TextToken {
  * containment kind, the same step every containment producer builds. Verbs outside RD-1 (`take`,
  * `tie`, ...) answer `noMatch`, so `take X in Y` plans as a membership take.
  *
- * The template created the action, so it authors its narration unit (AN-3): the player's verb and
+ * The template created the action, so it authors its narration unit: the player's verb and
  * the matched phrase, one line to everyone who can see the actor or either object, before the move.
  */
 export function matchContainmentTemplate(skeleton: ParseSkeleton, command: string): ContainmentTemplateMatchResult {

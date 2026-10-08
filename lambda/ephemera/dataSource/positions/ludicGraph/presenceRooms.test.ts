@@ -41,7 +41,7 @@ describe('roomsForHost', () => {
         await expect(roomsForHost(cup, getGraph)).resolves.toEqual(new Set([roomA]))
     })
 
-    it('fans out over every parent, reaching several rooms (AN-7(iv)/AN-8)', async () => {
+    it('fans out over every parent, reaching several rooms', async () => {
         const getGraph = graphsFrom({
             [ball]: [presenceAt(box, 'ball-box'), presenceAt(shelf, 'ball-shelf')],
             [box]: [presenceAt(roomA)],
@@ -89,7 +89,7 @@ describe('roomsForReferent', () => {
         expect(getGraph).not.toHaveBeenCalled()
     })
 
-    it('defaults to every room groundedId currently reaches when groundedPresence is absent (AN-7 (iii))', async () => {
+    it('defaults to every room groundedId currently reaches when groundedPresence is absent', async () => {
         const getGraph = graphsFrom({ [cup]: [presenceAt(roomA)] })
         await expect(roomsForReferent(cup, undefined, getGraph)).resolves.toEqual(new Set([roomA]))
     })

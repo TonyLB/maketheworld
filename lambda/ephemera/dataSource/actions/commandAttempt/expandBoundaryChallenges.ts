@@ -36,10 +36,9 @@ export type ExpandedAttemptActions = {
 
 /**
  * Expansion's own narration for a facilitating dissolve: Expansion created the action, so it
- * authors the line (`AGENT.attemptNarration.planning.md`, AN-3). An author, not a bridge: slice 4
- * does not delete it. Worded from which end is moving (the end in the transfer set), never from
+ * authors the line. Worded from which end is moving (the end in the transfer set), never from
  * the edge's direction, so a lashing reads the same whichever way it was stored. One audience over
- * both ends, before the dissolve (AN-8): everyone who could see either end sees the line once,
+ * both ends, before the dissolve: everyone who could see either end sees the line once,
  * even in a room both ends share.
  */
 const dissolveNarrationUnit = (
@@ -66,7 +65,7 @@ const dissolveNarrationUnit = (
  * action last (BD-28), so a consumer can lower them in sequence without knowing which is which.
  * Each dissolve comes with the narration unit Expansion authors for it, naming its ends by
  * `derivedReferentKey` (they have no `stableRefKey`). Delivery follows action order, so a dissolve's
- * line is delivered before the primary action's (RN-2).
+ * line is delivered before the primary action's.
  *
  * This is the one classification of boundary edges, on both sides: the dry run lowers these
  * actions rather than classifying again, and the commit side (`commitAttempt`) commits them as

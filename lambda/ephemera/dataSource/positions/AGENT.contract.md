@@ -87,7 +87,7 @@ Module paths: [`manipulation/membership/planObjectMoveTransfer.ts`](manipulation
 
 Mental model: [**Positional vs. terminal binding**](AGENT.concepts.md#positional-vs-terminal-binding) and [**Abstract op and compiled step**](AGENT.concepts.md#abstract-op-and-compiled-step-two-levels). Code map: [`manipulation/AGENT.implementation.md` --- Presentation kernel](manipulation/AGENT.implementation.md#presentation-kernel).
 
-Every narration a position change produces --- character leave/arrive (navigate, home, connect, disconnect, ghost-purge) and object take/drop/give --- is **compiled**, not hand-built. This section states the rules that hold across all of them. Per-route bundles are in the route sections below.
+Narration a position change produces reaches the player by one of two paths, never hand-built at a call site. Character leave/arrive (navigate, home, connect, disconnect, ghost-purge) is **compiled** into narrate steps. A command attempt's lines (object take/drop/give, containment, relational dissolves) are its **narration units**, delivered by `commitAttempt`'s post-commit sweep ([An attempt narrates through its narration units](#an-attempt-narrates-through-its-narration-units)). The binding-time and capture rules below hold for both. Per-route bundles are in the route sections below.
 
 ### Binding time: world state early, transport state late
 
@@ -101,7 +101,7 @@ Every narration a position change produces --- character leave/arrive (navigate,
 **Consequence, and the rule that actually bites: a narrate step carries no room target at all.** `captureId` is its sole audience input.
 
 - A `PresentationKernelNarrateStep` **must not** carry a bare `ROOM#` in `targets`, and **must not** union one with a captured audience. A `ROOM#` re-expands against the **live** roster at flush, so pairing the two lets the terminally-bound reading win wherever they disagree --- which is the same defect class as the retired `[room, characterId]` tack-on, entering from the other end.
-- An unresolvable `captureId` **must throw**. It **must not** degrade to a room target or to an empty audience. Capture ids are minted only by [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts), so a miss means the plan is internally inconsistent, and either quiet recovery hides that behind a silently-wrong or silently-absent delivery.
+- An unresolvable `captureId` **must throw**. It **must not** degrade to a room target or to an empty audience. Capture ids are minted only by [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts) and by [`commitAttempt`](manipulation/commitAttempt.ts)'s audience resolution, each beside the capture step it emits, so a miss means the plan is internally inconsistent, and either quiet recovery hides that behind a silently-wrong or silently-absent delivery.
 
 **Beat-time and flush-time capture differ only under concurrent third-party membership change**, and beat time is the correct answer there: the audience for "Tess left" is who was standing in the room at that beat, not who wandered in while an LLM was still generating a header.
 
@@ -117,29 +117,43 @@ A **`MutationKernelCaptureStep`** carries **`hostId`** + **`captureId`** and **n
 
 **Captures are compiled only when the op narrates.** A non-narrating move (object spawn/destroy/place/remove, and the navigate pre-commit mutation-only compile) produces no capture steps and therefore locks no extra hosts. Do not "fix" a missing capture by defaulting `captures` to an empty map at a call site.
 
-### An object move's verb is a property of the delta
+### Positions derives no narration copy
 
-take / drop / give is derived from **which side of the move was the room**, inside [`compilePositionKernelOp`](manipulation/kernel/compile/compilePositionKernelOp.ts): `to` is a room -> `drop`; a `from` is a room -> `takeHold`; neither -> `give`.
+An attempt's lines come only from the narration units its actions' creators authored (Plan's templates, Expansion; the authorship rules are [`../actions/AGENT.contract.md`](../actions/AGENT.contract.md#command-attempt)'s). Positions fills labels and delivers; it **must not** synthesize a line for an action, and **must not** derive a verb from a move's delta or infer one backwards from a published fact. An action no narration unit covers narrates nothing. The delta cannot carry the act: `coins: Table -> Pouch` has a room on neither side, a relation's state maps to many acts (tie / lash / knot), and manner has no source in it at all.
 
-- **No call site may pass a verb**, and no code may infer one backwards from a published fact. The retired `inferOperationFromFact` did exactly that, and `give` falls out of the forward rule with no new discriminant.
+### An object move's moved set
+
 - The moved set **must** travel as `moved: EphemeraObjectId | EphemeraCharacterId` --- a bare entity id, for both objects and characters. The id is the whole moved set: anything the entity hosts lives in its own shard and travels with it, so no step widens the set and narration counts no carried objects.
 - Severed boundary edges **must not** enter the moved set. The command attempt's Expansion classifies them ([`boundaryEdgeOutcomes`](ludicGraph/expandValidate/interactionUnderTransfer.ts)) into facilitating dissolve actions listed ahead of the move, and `commitAttempt` commits them in that order, ahead of the transfer. `op.dissolvedEdges` carries only the mover's own containment edge, which the compiler renders into a `dissolveRelation` step ahead of the transfer. **Expansion classifies; the attempt and the compiler sequence.**
 
 ### Narration is presented only for a committed mutation
 
-The presentation kernel's narrate branch **must** run on [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts)'s **`ok: true`** result and never otherwise. A failed or illegal commit narrates nothing.
+The presentation kernel's narrate branch and the attempt's narration sweep **must** run on [`commitStepSequence`](manipulation/kernel/commitStepSequence.ts)'s **`ok: true`** result and never otherwise. A failed, refused or illegal commit narrates nothing.
 
-This is enforced at the type level --- `captures` exists only on the success branch, and `presentStepSequence` throws on an unresolvable `captureId` --- but that guard reads as incidental shape unless stated, and "surface a failed move to the player somehow" is a live product question whose eventual answer must not be allowed to erode it.
+This is enforced at the type level --- `captures` exists only on the success branch, and both `presentStepSequence` and `deliverNarrationUnits` throw on an unresolvable `captureId` --- but that guard reads as incidental shape unless stated, and "surface a failed move to the player somehow" is a live product question whose eventual answer must not be allowed to erode it.
 
 **Not a contract clause:** *when* the messageOrchestration bundle is declared relative to the commit. Declaring after a successful commit is a consistency preference across the orchestrators, not a correctness requirement --- the fan-in is explicitly tolerant of unresolved slots (see [`../messageOrchestration/AGENT.md`](../messageOrchestration/AGENT.md), "Publish behavior"). Do not write it up as normative.
 
 ### Call sites emit ops; only the compiler names steps
 
-No call site outside [`manipulation/kernel/compile/`](manipulation/kernel/compile/) may construct a `{ kind: 'narrate', ... }` or `{ kind: 'capture', ... }` step literal. Call sites supply an op and its narration **ingredients** (`characterName`, copy-kind selectors, `objectShortName`, `exitName`); the compiler decides shape, ordering, capture ids, and slots, and [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) assembles the message string at flush.
+No call site outside [`manipulation/kernel/compile/`](manipulation/kernel/compile/) may construct a `{ kind: 'narrate', ... }` step literal, and none outside it may construct a `{ kind: 'capture', ... }` step literal **except** [`commitAttempt`](manipulation/commitAttempt.ts)'s audience resolution, which turns an attempt's declared audiences into captures (next section). The intent of both halves is the same: no ad-hoc audience construction. Call sites supply an op and its narration **ingredients** (`characterName`, copy-kind selectors, `exitName`); the compiler decides shape, ordering, capture ids, and slots, and [`presentStepSequence`](manipulation/kernel/presentStepSequence.ts) assembles the message string at flush.
 
 Builders: [`manipulation/membership/buildCharacterMoveOp.ts`](manipulation/membership/buildCharacterMoveOp.ts) (character routes) and [`manipulation/membership/buildObjectMoveOp.ts`](manipulation/membership/buildObjectMoveOp.ts) (object routes) --- **siblings, not one widened module**. They share no copy-selection logic, and `NarrationSpecification` is a union on narration *family* for the same reason.
 
-**Object take/drop/give is a documented exception to "the compiler assembles the message," not to this clause itself** (`AGENT.attemptNarration.planning.md`, slice 3, 2026-10-07). `compilePositionKernelOp` still builds the `template` family's capture steps exactly as before --- the gate above ("Captures are compiled only when the op narrates") is unchanged --- but no longer builds narrate steps or slots for it: `commitAttempt.ts`'s post-commit sweep ([`deliverNarrationUnits.ts`](manipulation/deliverNarrationUnits.ts)) delivers that family's lines instead, reading the same compiled captures by id. The sweep never constructs a `{ kind: 'narrate', ... }`/`{ kind: 'capture', ... }` step literal --- it calls `sendMessageSlotReported` directly --- so it does not violate "only the compiler names steps"; it is a second, narrower delivery path that exists because narration for this family no longer comes from a compiled step at all, since the attempt itself now carries its own `NarrationUnit`s (`actions/commandAttempt/narrationUnit.ts`) rather than narration being a property of a compiled step --- see `AGENT.attemptNarration.planning.md` for the design; durable vocabulary (narration unit, covers) lands in `actions/AGENT.concepts.md` when that plan's docs slice closes. `membershipMove` (navigate/home/connect/disconnect) is untouched: its narrate steps, slots, and bundle still come from the compiler exactly as this section describes.
+### An attempt narrates through its narration units
+
+A command attempt carries its own lines as narration units (vocabulary: [`../actions/AGENT.concepts.md` --- `CommandAttempt`](../actions/AGENT.concepts.md#commandattempt)). Positions compiles no narrate step and declares no compiled slot for an attempt; [`commitAttempt`](manipulation/commitAttempt.ts) resolves each unit's audiences before the commit and [`deliverNarrationUnits`](manipulation/deliverNarrationUnits.ts) delivers them after it. Navigate's compiled narrate steps and bundle are unaffected: their header slot genuinely resolves in another component, which an attempt's lines never do.
+
+- **Delivered only on `ok: true`**, per the clause above. A refused attempt delivers no unit at all.
+- **Delivery order is unit order, walked in the attempt's own action order.** Each unit's lines are bundle slots in that order. So a facilitating dissolve's line is delivered before the move's, since Expansion lists the dissolve first; each severed relation narrates its own line ("George takes the glass off the tray." / "George picks up the tray.").
+- **An audience is declared by referent, `(refs, phase)`, and resolved to rooms by `commitAttempt` before the dry run.** A ref resolves through the referent's stamped `groundedPresence`, walked up presence bindings to every room it reaches; `'actor'` resolves from the actor's live host; a moved entity's *after* resolves from the move's destination. One `capture` step per resolved room is spliced ahead of the unit's first covered action (*before*) or behind its last (*after*), inside the sequence that is dry-run and committed, so captures are in the footprint.
+- **Capture ids are minted unique**, never a fixed string: two moves in one attempt must not share a capture. An audience's roster is the **deduplicated union** of its captures' rosters. An unresolvable capture id **must throw**, with no live-roster fallback.
+- **Overlapping audiences each deliver.** A character reached by two of a unit's audiences gets each line; an author who wants one line to the union declares one audience over several refs.
+- **A referent's audience is every room it is seen in**, including a non-present whole bound into several rooms. Perspective narrowed *which* thing a phrase meant, not who can see it change.
+- **No per-unit validity check runs.** All-or-nothing commit, plus refusing an action whose result already holds, means every covered action happened.
+- **A narration unit never spans attempts.**
+
+**Known gap (accepted):** audience resolution reads ancestor graphs outside the commit footprint, so a container moved between resolution and commit gives a stale audience. Same class as the "no world-legality re-check under lock" entry in [Current limitations](#current-limitations); locking the ancestor chain was judged not worth it.
 
 ---
 
@@ -270,7 +284,7 @@ The post-persist bundle is the kernel's, per entity in the transfer set:
 
 An attempt whose result has not succeeded (a challenge still pending or refused), a boundary edge the attempt does not dissolve, or a stale/failed commit **must** return `{ ok: false }` without committing (no persist, no bundle, **no narration**). It currently yields no player feedback; surfacing failure is an open product question, not a licence to narrate an uncommitted move.
 
-**Narration** is owned by [`commitAttempt`](manipulation/commitAttempt.ts), which derives the acting character and room from the host pair, resolves labels **before** calling `planObjectMoveTransfer` (so the compiled plan carries capture steps), then commits and, on `ok: true`, declares the bundle and presents narration. Verb derivation and the moved-set shape are in [Narration and presentation](#narration-and-presentation). Playbook: [`manipulation/AGENT.implementation.md` --- Apply modes](manipulation/AGENT.implementation.md#apply-modes).
+**Narration** is owned by [`commitAttempt`](manipulation/commitAttempt.ts): it resolves the attempt's narration-unit audiences to capture steps and its labels before the commit, then, on `ok: true`, delivers the units. The rules, and the moved-set shape, are in [Narration and presentation](#narration-and-presentation). Playbook: [`manipulation/AGENT.implementation.md` --- Apply modes](manipulation/AGENT.implementation.md#apply-modes).
 
 ### Host-local relational-changed bundle (`establishRelation` / `dissolveRelation`)
 

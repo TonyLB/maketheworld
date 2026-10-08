@@ -50,7 +50,7 @@ export type CommitAttemptArgs = {
 /**
  * What `buildMembershipFragment` already knows and audience resolution needs again: the action
  * that moved the entity, and its two hosts, so a covering unit's *after* audience resolves the
- * moved entity from its destination (AN-7 stage 2).
+ * moved entity from its destination.
  */
 type MembershipMoveInfo = {
     actionId: string
@@ -194,7 +194,7 @@ const buildRelationalFragment = async (
 }
 
 /**
- * Unit delivery order is the attempt's own action order (AN-4): walks the attempt's actions once,
+ * Unit delivery order is the attempt's own action order: walks the attempt's actions once,
  * and delivers each unit the first time any of its covered actions is reached. Narration comes
  * from whatever created the action (Plan's templates, Expansion), never from positions: an action
  * no unit covers narrates nothing.
@@ -220,9 +220,9 @@ const orderNarrationUnitsForDelivery = (attempt: CommandAttempt): NarrationUnit[
 type ReferentGrounding = { groundedId: EphemeraMembershipHostId; groundedPresence?: GroundedPresence[] }
 
 /**
- * A ref's grounding, for the presence -> room walk (AN-7 stage 2) and for its label: a ref names
- * one of the attempt's own referents --- an `objectSpan` by its `stableRefKey` (Grounding's stamp,
- * stage 1), a born-grounded `graphNode` by its `derivedReferentKey` (Expansion's stamp). Anything
+ * A ref's grounding, for the presence -> room walk and for its label: a ref names
+ * one of the attempt's own referents --- an `objectSpan` by its `stableRefKey` (Grounding's stamp),
+ * a born-grounded `graphNode` by its `derivedReferentKey` (Expansion's stamp). Anything
  * else is taken as already a grounded id, with no known presence beyond its current binding.
  */
 const referentGroundingByRef = (attempt: CommandAttempt): ReadonlyMap<string, ReferentGrounding> => {
@@ -252,7 +252,7 @@ const refsInUnits = (units: readonly NarrationUnit[]): string[] =>
 /**
  * `after` resolves a unit's moved entity (any `transferMembership` change among its covered
  * actions) from its destination host directly, since a move's binding does not exist at compile
- * time (AN-7 stage 2) --- not from potentially stale `groundedPresence`.
+ * time --- not from potentially stale `groundedPresence`.
  */
 const movedHostsForUnit = (
     unit: NarrationUnit,
@@ -268,7 +268,7 @@ const movedHostsForUnit = (
     return map
 }
 
-/** One witness variant's audience, resolved to the deduplicated union of every room its refs reach (AN-8). */
+/** One witness variant's audience, resolved to the deduplicated union of every room its refs reach. */
 const resolveAudienceRooms = async (
     audience: NarrationAudience,
     context: {
@@ -281,7 +281,7 @@ const resolveAudienceRooms = async (
 ): Promise<Set<EphemeraRoomId>> => {
     const perRef = await Promise.all(audience.refs.map(async (ref) => {
         // A character has exactly one presence: its own current room, already known from the
-        // adjacency snapshot (`readLiveHosts`) --- no walk needed (AN-7).
+        // adjacency snapshot (`readLiveHosts`) --- no walk needed (a character has exactly one presence).
         if (ref === 'actor') {
             const room = context.liveHosts.get(context.characterId)
             return room !== undefined && isEphemeraRoomId(room) ? new Set([room]) : new Set<EphemeraRoomId>()
@@ -294,7 +294,7 @@ const resolveAudienceRooms = async (
             }
         }
         if (grounding.groundedPresence === undefined || grounding.groundedPresence.length === 0) {
-            // No stamped bucket to walk (AN-7 (iii)'s default): a thing that has never itself
+            // No stamped bucket to walk (default: every room the thing is seen in): a thing that has never itself
             // moved through this compiler has no presence binding of its own even though it
             // sits plainly in some room's node list, so the walk starts from its already-known
             // current container (`liveHosts`), not from the thing's own (empty) graph.
@@ -322,9 +322,9 @@ type NarrationCaptureAssembly = {
 }
 
 /**
- * Audience resolution at compile (AN-7 stage 2): for each unit to be delivered, resolves each
+ * Audience resolution at compile: for each unit to be delivered, resolves each
  * witness variant's audience to its room set, mints one fresh capture id per room (the actual fix
- * for the two-moves `capture:to` collision AN-8 names), and records where those `capture` steps
+ * for two moves in one attempt sharing a fixed `capture:to`), and records where those `capture` steps
  * belong in the committed step sequence --- ahead of the unit's first covered action's fragment for
  * `before`, behind its last covered action's fragment for `after` (a capture's position is its
  * place in the step array; its id is just unique). The kernel's `capture` step shape is unchanged.
@@ -467,7 +467,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     const relationalEdges = fragments.flatMap((fragment) => (fragment.relationalEdge ? [fragment.relationalEdge] : []))
     const membershipMoves = fragments.flatMap((fragment) => (fragment.membershipMove ? [fragment.membershipMove] : []))
 
-    // Audience resolution at compile (AN-7 stage 2): resolved before the dry run, so the minted
+    // Audience resolution at compile: resolved before the dry run, so the minted
     // `capture` steps ride inside the same sequence that is dry-run and committed (a capture
     // step is read/lock-only, never part of the transactWrite --- positions/AGENT.contract.md).
     const unitsToDeliver = orderNarrationUnitsForDelivery(attempt)
@@ -536,9 +536,9 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         return
     }
 
-    // The attempt's only narration delivery path (AN-4): every unit its authors wrote (Plan's
+    // The attempt's only narration delivery path: every unit its authors wrote (Plan's
     // templates, Expansion's dissolves), in the attempt's own action order.
-    // Audience resolution (AN-7 stage 2) already happened above, before the commit; this reads it
+    // Audience resolution already happened above, before the commit; this reads it
     // back by the same audience objects. Each ref's label is its grounded object's short name.
     if (unitsToDeliver.length === 0) {
         return

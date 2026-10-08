@@ -245,6 +245,15 @@ Concepts (the three jobs, producers vs. the shared stage, `CommandAttempt`): [`A
 
 **`CommandAttempt` per route.** [`commandAttempt/`](commandAttempt/) holds `action.ts` (`AttemptActionMember`; `PositionAttemptAction`, `NarrateAttemptAction`), `challenge.ts` (`CustomEdgeChallenge`, `ExitEdgeChallenge`, `WorldKnowledgeChallenge`), `verdict.ts` (`MetVerdict`, `ImpossibleVerdict`), `referent.ts` (`buildCommandAttemptReferent`, used to derive the referents section) and the container in `index.ts` (`recordVerdict(challengeId, verdict)`, `renderProse`, derived `result`).
 
+**Narration units.** The value is [`commandAttempt/narrationUnit.ts`](commandAttempt/narrationUnit.ts) (`NarrationUnit`, `NarrationWitnessVariant`, `NarrationAudience`), carried as the attempt's third field: `CommandAttempt.create(words, actions, narrationUnits = [])`, `narrationUnits()`, `toJSON`/`fromJSON`, kept by `recordVerdict`; the bus guard (`isCommandAttemptData`, `commandAttempt/adjudicate.ts`) checks its shape. Authors:
+
+- [`plan/matchMembershipTemplate.ts`](enrich/objectManipulation/plan/matchMembershipTemplate.ts): one line per verb class ("picks up" / "drops"), audience `['actor', ref]`, *before*.
+- [`plan/matchContainmentTemplate.ts`](enrich/objectManipulation/plan/matchContainmentTemplate.ts): `PLACING_VERB_FORMS` (`put` -> `puts`, `place` -> `places`) plus the matched phrase from `matchContainmentPhrase`, audience over the actor and both objects, *before*.
+- [`commandAttempt/expandBoundaryChallenges.ts`](commandAttempt/expandBoundaryChallenges.ts): one "frees X from Y" unit per dissolve; a dissolve end, a `graphNode` with no `stableRefKey`, is named by its `derivedReferentKey`.
+- The look template authors none.
+
+Units survive Grounding in `proposeAttemptCandidates` and Expansion in `expandAndAdjudicateCandidates` (both in [`attemptCandidates.ts`](enrich/objectManipulation/attemptCandidates.ts)). Delivery is positions' (`commitAttempt` -> `deliverNarrationUnits`); labels come from [`../perception/resolveNarrationLabels.ts`](../perception/resolveNarrationLabels.ts) as bare short names, so lines read "puts ball in box": articles are not supplied.
+
 **Naming debt (deliberate).** `NarrateAttemptAction` is the step-less action a look uses. Its name says narration (consequence prose), but a look is a describe and writes no world state. Renaming it to a describe-only name is deferred: the class is referenced across the attempt pipeline, so the rename is mechanical churn with no behavioural effect, and it is not worth doing alone.
 - **Membership:** one attempt per joint assignment, from Plan's membership template; the shared stage expands and adjudicates it, and a take or drop with an exit contact carries an exit-contact challenge.
 - **Relational:** one attempt per joint assignment, before its per-candidate dry run. Never runs boundary-edge classification: establishing or dissolving a peer edge is not a membership transfer.
@@ -315,6 +324,14 @@ Not owned by any plan; deferred 2026-10-06.
 
 - **A compound command is one attempt, not several.** `take the coins and put them in the pouch` is one intent, so one `CommandAttempt` with several Plan-sourced actions, committed all-or-nothing, and narrated by one narration unit covering both. Intent discrimination rejects it today ([`multipleCommandsPlayerMessage.ts`](multipleCommandsPlayerMessage.ts)). **Lifting that rejection needs sequential grounding**: a later action's derived referents (`currentHost(coins)`) must resolve against the state earlier actions leave, but the actions-side dry run builds one environment per command (`buildAttemptEnvironment`) and positions' [`commitAttempt`](../positions/manipulation/commitAttempt.ts) reads live hosts once per attempt, so both would resolve the second action's `from` to the table. A compound that mixes families ("take the coins and go north") spans routes only because navigation is not an attempt; the fix is navigation onto attempts, not a cross-route join.
 - **Cooperation (two characters acting together) is the one case that truly spans attempts**: two commands, two commits. Deferred as a UI problem first. Narration units reference actions by minted id, so they do not preclude it, but delivering one line over two commits would need a join that substitutes default lines for whatever did commit; `messageOrchestration` bundles skip unresolved slots instead.
+
+## Shelved: narration-unit extensions
+
+Not owned by any plan; each waits for its named trigger.
+
+- **Role variants (second-person copy).** "You pick up the rope" for the actor, later "Tess gives you the coins" for a recipient. Shape already chosen: a variant keyed by **role** rather than audience, delivered once to that character wherever they are, and that character removed from every witness capture of the unit. Roles stay off the capture because a capture says who was *there* and a role says how someone *relates to the event*. A missing role variant means the character gets their capture's witness line, which is today's behaviour. No producer of `!CHARACTER#` or `GLOBAL` targets exists.
+- **One merged line for a dissolve and its move** ("picks up the tray, leaving the cup behind"). Today each severed relation narrates its own line, before the move's. Merging needs no new mechanism: it is one unit covering both actions. Revisit when several relations sever at once and the separate lines read as noise.
+- **Failure narration** (a witness line for an attempt that did not commit) needs a `failed` verdict first, and an amendment to positions' narrate-on-commit clause; whoever builds that verdict owns the question. Then a unit gains a per-attempt outcome condition (a success variant and a failure variant), not before.
 
 ---
 

@@ -99,10 +99,9 @@ export class CommandAttempt {
     }
 
     /**
-     * Domain constructor: an attempt built in-pipeline from its actions. `narrationUnits`
-     * defaults to none --- until an author exists (Plan's templates, Expansion), nothing
-     * produces one, and every object-membership action narrates via `commitAttempt`'s bridge
-     * unit instead (`AGENT.attemptNarration.planning.md`, slice 3).
+     * Domain constructor: an attempt built in-pipeline from its actions. `narrationUnits` are
+     * the lines the actions' author (Plan's templates, Expansion) declares; it defaults to none,
+     * and an action no unit covers narrates nothing.
      */
     static create(words: string, actions: readonly AttemptAction[], narrationUnits: readonly NarrationUnit[] = []): CommandAttempt {
         return new CommandAttempt(words, [...actions], [...narrationUnits])
@@ -130,7 +129,7 @@ export class CommandAttempt {
         return this._actions
     }
 
-    /** The narration units this attempt's author(s) declared --- never the bridge units `commitAttempt` synthesizes for an uncovered object-membership action; those exist only at delivery time. */
+    /** The narration units this attempt's author(s) declared. `commitAttempt` delivers exactly these; it synthesizes none. */
     narrationUnits(): NarrationUnit[] {
         return this._narrationUnits
     }

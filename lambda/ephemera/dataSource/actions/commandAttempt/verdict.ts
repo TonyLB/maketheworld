@@ -17,7 +17,7 @@ export interface Verdict {
     proceeds(): boolean
     /** Does this verdict, alone, refuse the whole attempt regardless of any other challenge? */
     refuses(): boolean
-    /** Detail for a future narration path (CA-4) --- e.g. a manner or a failure reason. Not consumed yet. */
+    /** Detail for narration --- e.g. a manner or a failure reason. Not consumed yet: no narration unit reads a verdict. */
     narrationDetail(): string | undefined
     /** Text for the attempt's result section when this verdict is the one that decides the outcome. */
     resultText(): string

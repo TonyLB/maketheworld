@@ -1,5 +1,6 @@
 /**
- * Payoff test for `AGENT.attemptNarration.planning.md`'s slice 3 Crossing sub-step: a thing tied
+ * Payoff test for narrating a crossing (`positions/AGENT.contract.md`, An attempt narrates through
+ * its narration units): a thing tied
  * across a shard boundary (a relation whose legs sit in two graphs, joined by a crossing port)
  * can be taken, and the tie's dissolve narrates to the rooms whose rosters it touches. Expansion
  * follows the relation through the port to its true far end and stamps that end from the shard
@@ -195,11 +196,11 @@ describe('crossing take payoff (integration)', () => {
         expect(tableGraph.ports).toEqual([])
         expect((await internalCache.Positions.getLudicGraph(ROOM_ID)).relationalEdges).toEqual([])
 
-        // RN-2: the untying is delivered before the take, and reaches the room (through the
+        // Action order: the untying is delivered before the take, and reaches the room (through the
         // table's binding, the bucket the cup is seen in).
         const lines = await delivered(publish)
         expect(lines[0]).toEqual({ line: expect.stringMatching(/ frees cup from string$/), targets: [CHARACTER_ID] })
-        // The take's line is Plan's (AN-3), delivered once: a take from a table reads "picks up",
+        // The take's line is the one Plan's template authored, delivered once: a take from a table reads "picks up",
         // where the retired verb-from-delta bridge read "gives" (no room on either side).
         expect(lines.slice(1)).toEqual([{ line: expect.stringMatching(/ picks up cup$/), targets: [CHARACTER_ID] }])
     })

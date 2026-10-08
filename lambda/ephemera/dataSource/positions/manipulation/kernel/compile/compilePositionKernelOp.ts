@@ -39,14 +39,13 @@ const CAPTURE_ID_TO = 'capture:to'
  * function only sequences them.
  *
  * When `op.narration` is present, capture-from/capture-to steps are always built from the same
- * `(froms, to)` pair, so a later audience (a bridge unit, or an authored narration unit once one
- * exists) has a roster to read. **Narrate steps and slots are built here only for the
+ * `(froms, to)` pair, so a later audience (an authored narration unit) has a roster to read. **Narrate steps and slots are built here only for the
  * `membershipMove` family** (navigate/home/connect/disconnect) --- `[leave, header, arrive]`
  * ordering is decided only for that narration. The `template` family (object take/drop/give)
- * narrates through `commitAttempt.ts`'s post-commit sweep instead
- * (`AGENT.attemptNarration.planning.md`, slice 3): the captures this compiler mints are the join
- * key, but the copy and its delivery are the sweep's job, not this compiler's, since narration
- * now belongs to whatever creates the action, and nothing here creates one. Capture/mutation
+ * narrates through `commitAttempt.ts`'s post-commit sweep instead, over captures `commitAttempt`
+ * mints itself; the `template` captures this compiler still emits are unread (known debt in
+ * `manipulation/AGENT.implementation.md`). Narration belongs to whatever creates the action, and
+ * nothing here creates one. Capture/mutation
  * ordering inside `steps` is the one place order matters for walk correctness; narrate step
  * position among them is cosmetic, since delivery order comes from `slots`, not `steps` (the
  * messageOrchestration bundle assigns `CreatedTime` in declared order at flush, fully decoupled

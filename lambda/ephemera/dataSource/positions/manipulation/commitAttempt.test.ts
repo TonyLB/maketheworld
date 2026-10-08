@@ -85,7 +85,7 @@ const membershipAttempt = (operation: 'takeHold' | 'drop' = 'takeHold'): Command
     )
 }
 
-/** Strips the `capture` steps AN-7 stage 2 now splices around a narrated action, so tests that predate audience resolution can keep asserting the core mutation steps' order without pinning exactly how many rooms a narration unit's audience resolved to. */
+/** Strips the `capture` steps audience resolution now splices around a narrated action, so tests that predate audience resolution can keep asserting the core mutation steps' order without pinning exactly how many rooms a narration unit's audience resolved to. */
 const withoutCaptureSteps = (steps: readonly { kind: string }[]) => steps.filter((step) => step.kind !== 'capture')
 
 /** Character is in ROOM; the broom is wherever `broomHost` says. */
@@ -150,7 +150,7 @@ describe('commitAttempt', () => {
         commitAndPresentStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
         dryRunStepSequenceMock.mockResolvedValue({ verdict: 'legal', graphs: new Map(), captures: new Map() })
         mockLiveHosts(ROOM)
-        /** No presence bindings by default: audience resolution (AN-7 stage 2) falls to a dead end, not a thrown error, for a host with no narration-unit test coverage of its own. */
+        /** No presence bindings by default: audience resolution falls to a dead end, not a thrown error, for a host with no narration-unit test coverage of its own. */
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue({ relationalEdges: [], presenceNodes: [] })
     })
 
@@ -435,7 +435,7 @@ describe('commitAttempt', () => {
         expect(callArgs).not.toHaveProperty('containment')
     })
 
-    describe('narration units (AGENT.attemptNarration.planning.md, slice 3)', () => {
+    describe('narration units', () => {
         /** Plan's own unit for a take, as `matchMembershipTemplate` authors it, plus an *after* variant to exercise that phase. */
         const takeUnit = {
             covers: ['action-1'],
@@ -445,10 +445,10 @@ describe('commitAttempt', () => {
             ],
         }
 
-        it('delivers an authored take\'s unit, its before and after audiences resolving to the room, not the raw hosts (AN-7 stage 2)', async () => {
+        it('delivers an authored take\'s unit, its before and after audiences resolving to the room, not the raw hosts', async () => {
             mockLiveHosts(ROOM)
             // The character's own graph carries a presence binding into ROOM --- the fixture
-            // AN-7 stage 2's walk needs to resolve the 'after' side (the moved broom's destination,
+            // Audience resolution's walk needs to resolve the 'after' side (the moved broom's destination,
             // the bare CHARACTER host) up to the room everyone else actually witnesses the take in.
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) => (
                 hostId === CHARACTER
@@ -475,7 +475,7 @@ describe('commitAttempt', () => {
             const afterCaptureIds = sweepArgs.resolveCaptureId(sweepArgs.units[0]!, afterVariant!.audience)
             expect(beforeCaptureIds).toHaveLength(1)
             expect(afterCaptureIds).toHaveLength(1)
-            // Distinct minted ids (the two-moves `capture:to` collision AN-8 fixes), both resolving
+            // Distinct minted ids (two moves must not share a fixed `capture:to`), both resolving
             // to ROOM --- not to CHARACTER, which the old `capture:to`-on-raw-host wiring captured.
             expect(beforeCaptureIds).not.toEqual(afterCaptureIds)
             const captureSteps = [...committedPlan.steps].filter((step: any) => step.kind === 'capture')
@@ -521,7 +521,7 @@ describe('commitAttempt', () => {
         })
 
         it('labels every ref of a delivered unit: a character by its name, a kind the resolver does not name by the fallback', async () => {
-            // A recipient is a character (slice 4's "gives the broom to Bob"); a Feature is named by nothing yet.
+            // A recipient is a character (a future "gives the broom to Bob"); a Feature is named by nothing yet.
             const BOB = 'CHARACTER#Bob'
             const NICHE = 'FEATURE#Niche'
             const take = membershipAttempt('takeHold')
@@ -612,7 +612,7 @@ describe('commitAttempt', () => {
             expect(withoutCaptureSteps(plan.steps)).toEqual([dissolveStep, transferStep])
         })
 
-        it('delivers Expansion\'s dissolve line before Plan\'s take line (RN-2), filled from the attempt\'s labels', async () => {
+        it('delivers Expansion\'s dissolve line before Plan\'s take line (action order), filled from the attempt\'s labels', async () => {
             await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
 
             expect(deliverNarrationUnitsMock).toHaveBeenCalledTimes(1)
@@ -680,7 +680,7 @@ describe('commitAttempt', () => {
             await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
 
             expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
-            // AN-6: a covered action always happened, so a refused attempt delivers no unit at all.
+            // A covered action always happened, so a refused attempt delivers no unit at all.
             expect(deliverNarrationUnitsMock).not.toHaveBeenCalled()
             expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`is already on ${CHARACTER}`))
             errorSpy.mockRestore()
