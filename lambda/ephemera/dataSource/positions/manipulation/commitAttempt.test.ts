@@ -85,7 +85,7 @@ const membershipAttempt = (operation: 'takeHold' | 'drop' = 'takeHold'): Command
     )
 }
 
-/** Strips the `capture` steps AN-7 stage 2 now splices around a bridge-covered action, so tests that predate audience resolution can keep asserting the core mutation steps' order without pinning exactly how many rooms a narration unit's audience resolved to. */
+/** Strips the `capture` steps audience resolution now splices around a narrated action, so tests that predate audience resolution can keep asserting the core mutation steps' order without pinning exactly how many rooms a narration unit's audience resolved to. */
 const withoutCaptureSteps = (steps: readonly { kind: string }[]) => steps.filter((step) => step.kind !== 'capture')
 
 /** Character is in ROOM; the broom is wherever `broomHost` says. */
@@ -150,7 +150,7 @@ describe('commitAttempt', () => {
         commitAndPresentStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
         dryRunStepSequenceMock.mockResolvedValue({ verdict: 'legal', graphs: new Map(), captures: new Map() })
         mockLiveHosts(ROOM)
-        /** No presence bindings by default: audience resolution (AN-7 stage 2) falls to a dead end, not a thrown error, for a host with no narration-unit test coverage of its own. */
+        /** No presence bindings by default: audience resolution falls to a dead end, not a thrown error, for a host with no narration-unit test coverage of its own. */
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue({ relationalEdges: [], presenceNodes: [] })
     })
 
@@ -435,12 +435,21 @@ describe('commitAttempt', () => {
         expect(callArgs).not.toHaveProperty('containment')
     })
 
-    describe('narration units (AGENT.attemptNarration.planning.md, slice 3)', () => {
-        it('synthesizes a bridge unit covering the uncovered take, with before/after variants resolving to the room, not the raw hosts (AN-7 stage 2)', async () => {
+    describe('narration units', () => {
+        /** Plan's own unit for a take, as `matchMembershipTemplate` authors it, plus an *after* variant to exercise that phase. */
+        const takeUnit = {
+            covers: ['action-1'],
+            variants: [
+                { audience: { refs: ['actor', 'primaryObject'], phase: 'before' as const }, parts: [{ slot: 'actor' as const }, { text: ' picks up ' }, { ref: 'primaryObject' }] },
+                { audience: { refs: ['primaryObject'], phase: 'after' as const }, parts: [{ slot: 'actor' as const }, { text: ' picks up ' }, { ref: 'primaryObject' }] },
+            ],
+        }
+
+        it('delivers an authored take\'s unit, its before and after audiences resolving to the room, not the raw hosts', async () => {
             mockLiveHosts(ROOM)
             // The character's own graph carries a presence binding into ROOM --- the fixture
-            // AN-7 stage 2's walk needs to resolve the 'after' side from a bare CHARACTER host
-            // up to the room everyone else actually witnesses the take in.
+            // Audience resolution's walk needs to resolve the 'after' side (the moved broom's destination,
+            // the bare CHARACTER host) up to the room everyone else actually witnesses the take in.
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) => (
                 hostId === CHARACTER
                     ? { relationalEdges: [], presenceNodes: [{ tag: 'Presence', universalKey: 'PRESENCE#alice-binding', fromHostId: ROOM, cover: { tag: 'Full' } }] }
@@ -448,21 +457,16 @@ describe('commitAttempt', () => {
             ))
             const takePlan = { steps: [{ kind: 'transferMembership', entityIds: new Set([BROOM]), fromHostIds: new Set([ROOM]), toHostId: CHARACTER }], slots: [] }
             planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: takePlan as any, fromHostId: ROOM })
+            const take = membershipAttempt('takeHold')
 
-            await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
+            await commitAttempt({ attempt: CommandAttempt.create(take.words, take.actions(), [takeUnit]), characterId: CHARACTER, messageBus, streamEvent })
 
             expect(deliverNarrationUnitsMock).toHaveBeenCalledTimes(1)
             const [sweepArgs] = deliverNarrationUnitsMock.mock.calls[0]!
-            expect(sweepArgs.units).toEqual([{
-                covers: ['action-1'],
-                variants: [
-                    { audience: { refs: [BROOM], phase: 'before' }, parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: BROOM }] },
-                    { audience: { refs: [BROOM], phase: 'after' }, parts: [{ slot: 'actor' }, { text: ' picks up ' }, { ref: BROOM }] },
-                ],
-            }])
+            expect(sweepArgs.units).toEqual([takeUnit])
             // Labels are the attempt's, resolved once and filled at delivery, not baked into the unit.
             expect(sweepArgs.actorName).toBe('Alice')
-            expect(sweepArgs.labels).toEqual({ [BROOM]: 'broom' })
+            expect(sweepArgs.labels).toEqual({ primaryObject: 'broom' })
             const [committedPlan, commitBundleId] = commitAndPresentStepSequenceMock.mock.calls[0]!
             expect(sweepArgs.bundleId).toBe(commitBundleId)
 
@@ -471,7 +475,7 @@ describe('commitAttempt', () => {
             const afterCaptureIds = sweepArgs.resolveCaptureId(sweepArgs.units[0]!, afterVariant!.audience)
             expect(beforeCaptureIds).toHaveLength(1)
             expect(afterCaptureIds).toHaveLength(1)
-            // Distinct minted ids (the two-moves `capture:to` collision AN-8 fixes), both resolving
+            // Distinct minted ids (two moves must not share a fixed `capture:to`), both resolving
             // to ROOM --- not to CHARACTER, which the old `capture:to`-on-raw-host wiring captured.
             expect(beforeCaptureIds).not.toEqual(afterCaptureIds)
             const captureSteps = [...committedPlan.steps].filter((step: any) => step.kind === 'capture')
@@ -481,33 +485,43 @@ describe('commitAttempt', () => {
             ])
         })
 
-        it('delivers an authored unit in place of its covered action\'s bridge, while an uncovered move in the same attempt keeps its bridge, in action order', async () => {
+        it('narrates nothing for a membership action no unit covers: positions derives no copy', async () => {
+            mockLiveHosts(ROOM)
+            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [], slots: [] } as any, fromHostId: ROOM })
+
+            await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
+            expect(deliverNarrationUnitsMock).not.toHaveBeenCalled()
+        })
+
+        it('delivers authored units in action order, and nothing for an uncovered move in the same attempt', async () => {
             const MOP = 'OBJECT#Mop' as EphemeraObjectId
             const takeOf = (id: string, objectId: EphemeraObjectId, key: string) => new PositionAttemptAction(id, [], stampCandidateReferents(
                 planMembershipDesiredResult('takeHold', key, key),
                 new Map([[key, { id: objectId, shortName: key }]])
             ), `Take: ${key}`)
-            const authored = {
-                covers: ['take-broom'],
-                variants: [{ audience: { refs: ['broom'], phase: 'before' as const }, parts: [{ slot: 'actor' as const }, { text: ' snatches ' }, { ref: 'broom' }] }],
-            }
-            const attempt = CommandAttempt.fromJSON(CommandAttempt.create('take the mop and the broom', [
+            const unitFor = (actionId: string, key: string) => ({
+                covers: [actionId],
+                variants: [{ audience: { refs: [key], phase: 'before' as const }, parts: [{ slot: 'actor' as const }, { text: ' snatches ' }, { ref: key }] }],
+            })
+            const attempt = CommandAttempt.fromJSON(CommandAttempt.create('take the mop, the bucket and the broom', [
                 takeOf('take-mop', MOP, 'mop'),
+                takeOf('take-bucket', 'OBJECT#Bucket' as EphemeraObjectId, 'bucket'),
                 takeOf('take-broom', BROOM, 'broom'),
-            ], [authored]).toJSON())
+            ], [unitFor('take-broom', 'broom'), unitFor('take-mop', 'mop')]).toJSON())
             planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [], slots: [] } as any, fromHostId: ROOM })
 
             await commitAttempt({ attempt, characterId: CHARACTER, messageBus, streamEvent })
 
             const [sweepArgs] = deliverNarrationUnitsMock.mock.calls[0]!
             expect(sweepArgs.units.map(({ covers }) => covers)).toEqual([['take-mop'], ['take-broom']])
-            expect(sweepArgs.units[1]).toEqual(authored)
             // An authored ref is a stableRefKey; its label is its grounded object's name.
-            expect(sweepArgs.labels).toEqual({ [MOP]: 'mop', broom: 'broom' })
+            expect(sweepArgs.labels).toEqual({ mop: 'mop', broom: 'broom' })
         })
 
         it('labels every ref of a delivered unit: a character by its name, a kind the resolver does not name by the fallback', async () => {
-            // A recipient is a character (slice 4's "gives the broom to Bob"); a Feature is named by nothing yet.
+            // A recipient is a character (a future "gives the broom to Bob"); a Feature is named by nothing yet.
             const BOB = 'CHARACTER#Bob'
             const NICHE = 'FEATURE#Niche'
             const take = membershipAttempt('takeHold')
@@ -526,7 +540,7 @@ describe('commitAttempt', () => {
             expect(sweepArgs.labels).toEqual({ [BOB]: 'bob', primaryObject: 'broom', [NICHE]: 'something' })
         })
 
-        it('calls deliverNarrationUnits with no units for a purely relational attempt --- there is no relational bridge', async () => {
+        it('calls deliverNarrationUnits with no units for a purely relational attempt --- no unit covers it', async () => {
             const steps = [{ kind: 'establishRelation', subjectId: BROOM, targetId: TABLE, hostId: ROOM, relationKind: 'Custom', relationLabel: 'under' }]
             planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: steps as any })
 
@@ -544,6 +558,11 @@ describe('commitAttempt', () => {
 
         /** The producer's shape: the dissolve action first, the take last, in execution order. */
         const OTHER_ROOM = 'ROOM#Kitchen' as EphemeraRoomId
+        /** Plan's own unit for the take, as `matchMembershipTemplate` authors it. */
+        const takeUnit = {
+            covers: ['action-1'],
+            variants: [{ audience: { refs: ['actor', 'primaryObject'], phase: 'before' as const }, parts: [{ slot: 'actor' as const }, { text: ' picks up ' }, { ref: 'primaryObject' }] }],
+        }
         /** Expansion's own unit for the dissolve, as `attemptActionsFromBoundaryOutcomes` authors it. */
         const dissolveUnit = {
             covers: ['action-9'],
@@ -559,7 +578,7 @@ describe('commitAttempt', () => {
             const take = membershipAttempt('takeHold').toJSON()
             return CommandAttempt.fromJSON({
                 ...take,
-                narrationUnits: [dissolveUnit],
+                narrationUnits: [dissolveUnit, takeUnit],
                 actions: [
                     {
                         kind: 'position',
@@ -593,14 +612,14 @@ describe('commitAttempt', () => {
             expect(withoutCaptureSteps(plan.steps)).toEqual([dissolveStep, transferStep])
         })
 
-        it('delivers Expansion\'s dissolve line before the take\'s bridge line (RN-2), filled from the attempt\'s labels', async () => {
+        it('delivers Expansion\'s dissolve line before Plan\'s take line (action order), filled from the attempt\'s labels', async () => {
             await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
 
             expect(deliverNarrationUnitsMock).toHaveBeenCalledTimes(1)
             const [sweepArgs] = deliverNarrationUnitsMock.mock.calls[0]!
             expect(sweepArgs.units.map(({ covers }) => covers)).toEqual([['action-9'], ['action-1']])
-            expect(sweepArgs.units[0]).toEqual(dissolveUnit)
-            expect(sweepArgs.labels).toEqual({ [`graphNode:${BROOM}`]: 'broom', [`graphNode:${POST}`]: 'post', [BROOM]: 'broom' })
+            expect(sweepArgs.units).toEqual([dissolveUnit, takeUnit])
+            expect(sweepArgs.labels).toEqual({ [`graphNode:${BROOM}`]: 'broom', [`graphNode:${POST}`]: 'post', primaryObject: 'broom' })
         })
 
         it('resolves the dissolve\'s one audience through each end\'s stamped presence, captured ahead of the dissolve', async () => {
@@ -661,7 +680,7 @@ describe('commitAttempt', () => {
             await commitAttempt({ attempt: lashedTakeAttempt({ kind: 'met' }), characterId: CHARACTER, messageBus, streamEvent })
 
             expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
-            // AN-6: a covered action always happened, so a refused attempt delivers no unit at all.
+            // A covered action always happened, so a refused attempt delivers no unit at all.
             expect(deliverNarrationUnitsMock).not.toHaveBeenCalled()
             expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining(`is already on ${CHARACTER}`))
             errorSpy.mockRestore()

@@ -149,11 +149,9 @@ describe('compilePositionKernelOp', () => {
 
 /**
  * Phase 4: take/drop/give compile through this same `Move` case --- no sibling `Take`/`Drop` op, no
- * structural branch. **Slice 3 of `AGENT.attemptNarration.planning.md` moved the `template`
- * family's narrate steps out of this compiler** (to `commitAttempt.ts`'s post-commit bridge-unit
- * sweep), so this compiler now only builds the `template` family's *captures* --- the verb
- * derivation and template-content assertions that used to live here moved with the narrate
- * steps; see `commitAttempt.test.ts` for the observable (published-message) regression pin.
+ * structural branch. **This compiler builds no `template`-family narrate steps**: an object move's
+ * lines are its attempt's authored narration units, delivered by `commitAttempt.ts`'s post-commit
+ * sweep, so this compiler builds only the family's (now unread) *captures*; see `commitAttempt.test.ts` for the observable (published-message) regression pin.
  */
 describe('compilePositionKernelOp --- object moves', () => {
     const TRAY = 'OBJECT#Tray' as EphemeraObjectId
@@ -179,7 +177,7 @@ describe('compilePositionKernelOp --- object moves', () => {
 
         // The character-inventory side's capture still snapshots an empty roster --- captures
         // stay built for both sides regardless of narration family, since a later audience
-        // (the bridge unit) still needs a roster to read. No narrate step/slot exists any more
+        // (an authored narration unit) still needs a roster to read. No narrate step/slot exists any more
         // for this family: delivery is `commitAttempt.ts`'s job now.
         expect(plan.steps.map((step) => step.kind)).toEqual([
             'capture', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding', 'capture',

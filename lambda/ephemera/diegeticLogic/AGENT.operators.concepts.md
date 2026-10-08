@@ -49,9 +49,9 @@ Per [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md) **Withhold**: v1 
 | How the character holds / carries it | **Do not** elaborate beyond "picks up" |
 | Unstated object attributes | **Do not** invent in transcript |
 
-Copy is **deterministic template** (no copy-generating LLM hop): a positions-side bridge narration unit `commitAttempt` synthesizes for the take, filled at delivery (until Plan authors the take's own unit). Labels resolve via [`resolveNarrationLabels.ts`](../dataSource/perception/resolveNarrationLabels.ts); fallbacks **`Someone`** / **`something`** when names are unavailable. The verb is **not** declared by this operator --- it is derived from which side of the move was the room.
+Copy is **deterministic template** (no copy-generating LLM hop): the narration unit Plan's membership template authors over the take ("picks up", by verb class, whatever verb the player used), filled at delivery. Positions synthesizes no line of its own. Labels resolve via [`resolveNarrationLabels.ts`](../dataSource/perception/resolveNarrationLabels.ts); fallbacks **`Someone`** / **`something`** when names are unavailable.
 
-Implementation: [`compilePositionKernelOp.ts`](../dataSource/positions/manipulation/kernel/compile/compilePositionKernelOp.ts) (verb + steps), [`presentStepSequence.ts`](../dataSource/positions/manipulation/kernel/presentStepSequence.ts) (copy + audience), [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) (routing). Rules: [`positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#narration-and-presentation).
+Implementation: [`matchMembershipTemplate.ts`](../dataSource/actions/enrich/objectManipulation/plan/matchMembershipTemplate.ts) (copy + declared audience), [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) (audience resolution, commit), [`deliverNarrationUnits.ts`](../dataSource/positions/manipulation/deliverNarrationUnits.ts) (delivery). Rules: [`positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#narration-and-presentation).
 
 ---
 
@@ -86,7 +86,7 @@ Per [`AGENT.unknowns.concepts.md`](AGENT.unknowns.concepts.md) **Withhold**: v1 
 | How the object falls or comes to rest | **Do not** elaborate beyond "drops" |
 | Unstated object attributes | **Do not** invent in transcript |
 
-Copy is **deterministic template** (no copy-generating LLM hop): the same positions-side bridge narration unit, filled at delivery. Labels resolve via [`resolveNarrationLabels.ts`](../dataSource/perception/resolveNarrationLabels.ts) --- shared with `takeHold`, and it does not require the object to remain in the room graph post-apply; fallbacks **`Someone`** / **`something`** when names are unavailable.
+Copy is **deterministic template** (no copy-generating LLM hop): the narration unit the same template authors for a drop ("drops"), filled at delivery. Labels resolve via [`resolveNarrationLabels.ts`](../dataSource/perception/resolveNarrationLabels.ts) --- shared with `takeHold`, and it does not require the object to remain in the room graph post-apply; fallbacks **`Someone`** / **`something`** when names are unavailable.
 
 `drop` and `takeHold` stay **two intents** because the player's meaning and the pre-apply legality errors genuinely differ, but they are **one world-effect** and share one execution and narration path --- the direction is expressed solely by which host is `fromHostId`. Implementation and rules: as for `takeHold` above.
 

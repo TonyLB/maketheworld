@@ -192,8 +192,8 @@ export type MembershipNarrationSpec = {
 }
 
 /**
- * A narration template: the carrier for object take/drop/give copy, and the arm any authored
- * narration will also use. Sharing no field with `MembershipNarrationSpec` (see that type's own doc
+ * A narration template: the carrier for authored narration (an attempt's narration units, filled at
+ * delivery). Sharing no field with `MembershipNarrationSpec` (see that type's own doc
  * comment for why the union discriminates on family rather than on `direction`).
  *
  * `parts` is a flat sequence of literal text, the actor slot, and references to entities by id,
@@ -211,9 +211,8 @@ export type MembershipNarrationSpec = {
  * audience. The same template renders correctly on both sides, and the empty side simply publishes
  * to nobody.
  *
- * The default parts are chosen by the compiler from which side of the move was the room (see
- * `objectMoveVerb` in `compilePositionKernelOp.ts`), never declared by the caller; see
- * `narrationTemplate.ts` for the defaults and the fill.
+ * Parts come from whatever created the action (Plan's templates, Expansion), never from the
+ * delta; see `narrationTemplate.ts` for the fill.
  */
 export type NarrationPart =
     | { text: string }

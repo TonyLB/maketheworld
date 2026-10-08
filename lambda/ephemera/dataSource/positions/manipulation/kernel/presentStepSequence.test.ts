@@ -2,7 +2,6 @@ import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, Ephem
 
 import { presentStepSequence } from './presentStepSequence'
 import type { KernelStep } from './kernelStep'
-import { defaultTransferMembershipParts } from './narrationTemplate'
 
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -272,13 +271,13 @@ describe('presentStepSequence', () => {
         )
 
         const objectStep = (
-            { verb = 'takeHold', characterName = 'Alice' }: { verb?: 'takeHold' | 'drop' | 'give', characterName?: string } = {},
+            { verbText = ' picks up ', characterName = 'Alice' }: { verbText?: string, characterName?: string } = {},
             captureId = 'capture:from:ROOM#Cafe'
         ): KernelStep => ({
             kind: 'narrate',
             narration: {
                 kind: 'template',
-                parts: defaultTransferMembershipParts(verb, 'OBJECT#broom'),
+                parts: [{ slot: 'actor' }, { text: verbText }, { ref: 'OBJECT#broom' }],
                 actorName: characterName,
                 labels: { 'OBJECT#broom': 'broom' },
             },
@@ -305,7 +304,7 @@ describe('presentStepSequence', () => {
 
             jest.clearAllMocks()
             await presentStepSequence(
-                [objectStep({ verb: 'drop' })],
+                [objectStep({ verbText: ' drops ' })],
                 CHARACTER_ID,
                 { streamEvent, messageBus },
                 new Map([['capture:from:ROOM#Cafe', [OTHER_CHARACTER_ID]]])

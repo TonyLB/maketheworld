@@ -9,11 +9,11 @@ import { fillNarrationTemplate } from './kernel/narrationTemplate'
 import type { MutationKernelCaptures } from './kernel/types'
 
 export type DeliverNarrationUnitsArgs = {
-    /** In delivery order (AN-4): the attempt's authored units interleaved with any bridge units, in the attempt's own action order. */
+    /** In delivery order: the attempt's authored units, in the attempt's own action order. */
     units: readonly NarrationUnit[]
     /** The commit's own captured rosters --- the same map `presentStepSequence` reads narrate steps against. */
     captures: MutationKernelCaptures
-    /** The attempt's own bundle id, so a bridge and an authored unit's lines interleave in one declared bundle (AN-4). */
+    /** The attempt's own bundle id, so every unit's lines interleave in one declared bundle. */
     bundleId: string
     messageBus: MessageBus
     /** The acting character's display name, for every variant's actor slot. */
@@ -22,7 +22,7 @@ export type DeliverNarrationUnitsArgs = {
     labels: Record<string, string>
     /**
      * Resolves one variant's declared audience to the capture ids whose rosters make up its roster.
-     * Plural (AN-8): an audience's roster is the deduplicated union of every room its refs resolve
+     * Plural: an audience's roster is the deduplicated union of every room its refs resolve
      * to, and `applyStepSequenceCore` overwrites a capture id's roster rather than appending to it,
      * so a multi-room audience needs one capture id per room, not one shared id.
      */
@@ -30,7 +30,8 @@ export type DeliverNarrationUnitsArgs = {
 }
 
 /**
- * The attempt's only narration delivery path (`AGENT.attemptNarration.planning.md`, slice 3, AN-4):
+ * The attempt's only narration delivery path (`positions/AGENT.contract.md`, An attempt narrates
+ * through its narration units):
  * walks the attempt's narration units in order, and within each unit, its witness variants, filling
  * each variant's parts from the caller's `actorName` and `labels` and publishing one `WorldMessage`
  * per variant. Declares its own messageOrchestration bundle slots (one per variant, in delivery order) so `CreatedTime`/`MessageId` ordering falls out for free,

@@ -244,7 +244,7 @@ Two consequences worth stating as vocabulary:
 
 `Object Take Hold` and `Object Drop` are two intents: different utterances, different Plan-stage legality errors ("you're not carrying that" vs. "you're already holding that"). They are **one** world-effect --- move an object between two membership hosts --- and so one execution path, distinguished only by which host is which.
 
-The corollary is that a **verb is a property of the delta**, not a declared input: take / drop / give is read off which side of the move was the room. This is why `give` needs no new module, no new event shape at execute time, and no new discriminant.
+The corollary is that **execution carries no verb**: the move is a host pair, so `give` needs no new module, no new event shape at execute time, and no new discriminant. The act's wording is not read back off the delta either --- it belongs to whatever created the action, which alone knows which act the player meant.
 
 ### Naming: `Kernel` alone names nothing
 

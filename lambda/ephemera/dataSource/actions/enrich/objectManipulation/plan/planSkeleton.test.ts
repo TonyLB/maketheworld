@@ -57,6 +57,34 @@ describe('planSkeleton', () => {
         })
     })
 
+    it('authors one unit per membership attempt: take and get read "picks up", drop reads "drops", before, over the actor and the object', () => {
+        const unitFor = (verb: string) => {
+            const [attempt] = attemptsOf([
+                { type: 'text', text: verb },
+                { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+            ])
+            return { actionId: attempt.actions()[0].id, units: attempt.narrationUnits() }
+        }
+        for (const [verb, text] of [['take', ' picks up '], ['get', ' picks up '], ['drop', ' drops ']] as const) {
+            const { actionId, units } = unitFor(verb)
+            expect(units).toEqual([{
+                covers: [actionId],
+                variants: [{
+                    audience: { refs: ['actor', 'broomRef'], phase: 'before' },
+                    parts: [{ slot: 'actor' }, { text }, { ref: 'broomRef' }],
+                }],
+            }])
+        }
+    })
+
+    it('authors nothing for a look: describe is not narrated here', () => {
+        const [look] = attemptsOf([
+            { type: 'text', text: 'look' },
+            { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+        ])
+        expect(look.narrationUnits()).toEqual([])
+    })
+
     it('plans take X off Y as membership acquire of X: the tail is ignored, and no relational attempt exists', () => {
         const attempts = attemptsOf(relationalSkeleton('take', 'rope', 'off', 'crate'))
         expect(attempts).toHaveLength(1)

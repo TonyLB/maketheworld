@@ -18,14 +18,10 @@ export type MembershipMoveNarrationInput = {
 }
 
 /**
- * Template narration's fill values: the actor's name and a display label per entity id. The
- * compiler supplies the template itself (today the `transferMembership` default, referring to
- * `moved` by id), so the caller hands over labels, not copy and not a role-named field per entity.
- *
- * Note the absence of a verb. The default's verb is a property of the *delta* --- "which side of
- * the move was the room" --- so `compilePositionKernelOp` derives it from `(froms, to)` host kinds
- * rather than the caller declaring it. That is a bridge until narration units are authored where
- * actions are created, not where narration copy is meant to come from.
+ * Template narration's fill values: the actor's name and a display label per entity id. Inert
+ * today: the compiler reads only this input's presence, to build the move's captures. The copy
+ * comes from the attempt's authored narration units, which `commitAttempt.ts` delivers after
+ * commit; positions derives no copy and no verb from the move.
  *
  * No carried-object count: a moved object's hosted contents live in its own shard and travel
  * with it, so the move names one entity and narration names that one object.

@@ -95,6 +95,38 @@ describe('matchContainmentTemplate', () => {
     })
 })
 
+describe('matchContainmentTemplate narration (the template authors its unit)', () => {
+    const unitOf = (verb: string, prep: string) => {
+        const result = matchContainmentTemplate(containmentSkeleton(verb, 'coin', prep, 'jar'), 'test command')
+        if (result.type !== 'matched') {
+            throw new Error('expected a match')
+        }
+        return { attempt: result.attempt, units: result.attempt.narrationUnits() }
+    }
+
+    it('authors one unit covering its action: the player\'s verb and the matched phrase, one audience over the actor and both objects, before', () => {
+        const { attempt, units } = unitOf('put', 'into')
+        expect(units).toEqual([{
+            covers: [attempt.actions()[0].id],
+            variants: [{
+                audience: { refs: ['actor', 'coinRef', 'jarRef'], phase: 'before' },
+                parts: [{ slot: 'actor' }, { text: ' puts ' }, { ref: 'coinRef' }, { text: ' into ' }, { ref: 'jarRef' }],
+            }],
+        }])
+    })
+
+    it('conjugates place, and keeps a multi-word phrase', () => {
+        const [{ variants: [{ parts }] }] = unitOf('place', 'on top of').units
+        expect(parts).toEqual([{ slot: 'actor' }, { text: ' places ' }, { ref: 'coinRef' }, { text: ' on top of ' }, { ref: 'jarRef' }])
+    })
+
+    it('narrates only the matched phrase, never the raw text run: a stray word does not reach the line', () => {
+        const [{ variants: [{ parts }] }] = unitOf('put', 'hurriedly into').units
+        expect(parts).toContainEqual({ text: ' into ' })
+        expect(JSON.stringify(parts)).not.toContain('hurriedly')
+    })
+})
+
 describe('matchContainmentPreposition', () => {
     it.each(['in', 'inside', 'into'] as const)('names %s as kind In', (prep) => {
         expect(matchContainmentPreposition(prep)).toBe('In')

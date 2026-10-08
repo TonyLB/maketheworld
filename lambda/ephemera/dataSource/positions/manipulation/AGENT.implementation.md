@@ -94,7 +94,7 @@ Call sites do not hand-build step lists. They emit an **abstract op** and [`comp
 | File | Role |
 | --- | --- |
 | [`kernel/compile/positionKernelOp.ts`](kernel/compile/positionKernelOp.ts) | `PositionKernelMoveOp`: `moved` (a bare entity id), `froms`, `to`, `bundleId`, `headerSlot`, optional `dissolvedEdges`, optional `narration` (`membershipMove` ingredients, or `template` fill values: `actorName` + a label per entity id) |
-| [`kernel/compile/compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) | op -> `CompiledPositionKernelPlan { steps, slots }`. Owns bracket shape, capture-id generation, verb derivation, dissolve sequencing, and slot ordering |
+| [`kernel/compile/compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) | op -> `CompiledPositionKernelPlan { steps, slots }`. Owns bracket shape, capture-id generation, dissolve sequencing, and slot ordering. Builds no object-family copy |
 | [`kernel/compile/moveBundleSlotIds.ts`](kernel/compile/moveBundleSlotIds.ts) | `moveLeaveSlotId(hostId)` / `MOVE_ARRIVE_SLOT_ID` --- **host**-typed, so a character endpoint needs no cast |
 | [`kernel/compile/presenceBindingStepsForMove.ts`](kernel/compile/presenceBindingStepsForMove.ts) | `(movedId, froms, to)` -> the `removePresenceBinding` / `addPresenceBinding` pair for one move, on the mover's own root. **Renamed from `presencePortStepsForMove` in `42b1683e5`** (presenceNodes Slice 7a, PN-23) --- the step no longer carries a port record; `applyStepSequenceCore.ts` mints the presence NODE directly. **Removes fire unconditionally over `froms`; the add is gated on `to`**, so a departure to no host clears its stale binding rather than leaving one standing. **`compilePositionKernelOp` is its only caller** --- extracted so that every membership-transfer route populates presence bindings through one emitter, not per-caller. **Single-level by construction:** it addresses the mover's own host id and never descends into composition |
 
@@ -103,6 +103,8 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 - **Capture ids are a pure function of `froms`/`to`**, never of narration content. That is what lets navigate compile the same op twice (pre- and post-commit) and have the two agree.
 - **Captures are emitted only when `op.narration` is present.** A non-narrating object-lifecycle move compiles to `[dissolve*, transfer]` and locks no extra hosts.
 - **Both bracket sides are emitted uniformly**, including the character-hosted side of an object move whose capture is structurally empty. The empty side is the *correct output of a uniform rule*, not a case to special-case away --- and the messageOrchestration fan-in's tolerance of unresolved slots is what makes it cost nothing.
+
+**Known debt: an object move's compiled captures are unread.** `planObjectMoveTransfer` still requires narration labels and `buildObjectMoveOp` turns them into a `template` narration input (`TemplateNarrationInput`), so the compiler still emits both bracket-side captures for every object move; but an attempt's audiences are resolved and captured by `commitAttempt`, and nothing reads these. They cost extra reads and locks on the move's own hosts, which the transfer locks anyway. Removing the input and its capture branch is open cleanup with no trigger; navigate's captures are unaffected.
 
 `op.headerSlot` is caller-supplied and appears in `slots` unconditionally. The compiler does **not** branch on host kind to suppress a header: object routes pass `null`, so suppression is true by construction, and a host-kind branch would put the decision in the one place that cannot know whether a header applies.
 
@@ -198,11 +200,11 @@ Character-kind emission is folded into `factsForStep` rather than layered on aft
 **Narrate branch (positionally bound).** A `PresentationKernelNarrateStep` splits cleanly into two halves:
 
 - **Delivery** (flat fields): `captureId` resolves the audience, `bundleId`/`slotId` route the report to a messageOrchestration slot. There is **no `roomId`** --- see the binding-time contract clause for why adding one back would be a regression.
-- **Copy** (nested under `narration: NarrationSpecification`): not a built string. Object moves carry a **template**: `parts` (literal text, the actor slot, and `ref`s to entities by id), `actorName`, and `labels` keyed by entity id. No part names a role (object, subject, target), so relational and authored copy use the same arm. The compiler supplies today's per-verb copy, referring to `moved` by id; that copy is a bridge (old family structure, new format) until narration units are authored where actions are created, and is not a floor to extend; membership still carries family ingredients. `presentStepSequence` assembles the message at flush (`narrationTemplate.ts` owns the object-template fill, including the `'Someone'` fallback).
+- **Copy** (nested under `narration: NarrationSpecification`): not a built string. The `template` arm is `parts` (literal text, the actor slot, and `ref`s to entities by id), `actorName`, and `labels` keyed by entity id; no part names a role (object, subject, target). Nothing compiles a `template` narrate step any more: an attempt's lines are its narration units, delivered by `deliverNarrationUnits` (see [`../AGENT.contract.md` --- An attempt narrates through its narration units](../AGENT.contract.md#an-attempt-narrates-through-its-narration-units)), so the arm is reachable only from hand-built steps in tests, and `narrationTemplate.ts`'s fill is shared with the sweep. Membership still carries family ingredients, and `presentStepSequence` assembles its message at flush.
 
 `NarrationSpecification` is a discriminated union on narration **family** (`membershipMove`, `template`), deliberately not on direction --- direction is a member field within the membership family, because no walk consumer ever needs to tell a leave from an arrive, whereas a second *family* shares none of the first's fields. Copy generation is one `switch` in one function; the recorded trigger for escalating to per-family modules or polymorphism lives on the type's own doc comment in [`kernel/kernelStep.ts`](kernel/kernelStep.ts).
 
-An unresolvable `captureId` **throws**. Capture ids are minted only by the compiler, so a miss is an internal inconsistency, and degrading to a room target or an empty audience would hide it behind a silently-wrong or silently-absent delivery.
+An unresolvable `captureId` **throws**. Capture ids are minted only by the compiler and by `commitAttempt`'s audience resolution, so a miss is an internal inconsistency, and degrading to a room target or an empty audience would hide it behind a silently-wrong or silently-absent delivery.
 
 ---
 
@@ -245,7 +247,7 @@ Object-move routes (object take-hold / drop / give / containment)
     -> commitAttempt.ts concatenates in action order -> dryRunStepSequence over the whole attempt
        (fresh snapshot); any non-legal verdict refuses with its reason code --- a boundary edge no
        action covers comes back repairable, and is refused, not repaired
-    -> commitStepSequence (mutation steps) -> presentStepSequence (narrate steps, on ok: true)
+    -> commitStepSequence (mutation steps) -> deliverNarrationUnits (the attempt's narration units, on ok: true)
 
 Relational establish/dissolve routes (2026-10-02)
   Ingress carries the whole selected attempt (Ludic Network Change Requested), not pre-built steps
@@ -334,9 +336,9 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | Transfer planning lives in `executeMembershipTransfer` (inline diff) or `planObjectMoveTransfer` (build + dry-run + repair-or-refuse), never in the kernel | [`membership/executeMembershipTransfer.ts`](membership/executeMembershipTransfer.ts), [`membership/planObjectMoveTransfer.ts`](membership/planObjectMoveTransfer.ts) |
 | A capture step carries no write payload and cannot reach the write set | [`kernelStep.ts`](kernel/kernelStep.ts) (shape), [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
 | Captures are recorded by assignment, never append, so a reducer retry cannot duplicate them | [`commitStepSequence.ts`](kernel/commitStepSequence.ts) |
-| Narrate and capture *steps* are constructed only inside `kernel/compile/` | [`compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) |
+| Narrate *steps* are constructed only inside `kernel/compile/`; capture steps there or in `commitAttempt`'s audience resolution | [`compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts), [`commitAttempt.ts`](commitAttempt.ts) |
 | Narration is presented only on a successful commit --- `captures` exists only on the `ok: true` branch | [`kernel/types.ts`](kernel/types.ts) |
-| An object move's verb is derived from the host pair; no call site passes one | [`compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) |
+| Positions synthesizes no narration line; an action no narration unit covers narrates nothing | [`commitAttempt.ts`](commitAttempt.ts) |
 
 ### Anti-patterns
 
@@ -345,7 +347,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 - Route-specific kernel wrappers over `commitStepSequence` (this recreates, one layer up, exactly the organization the unified kernel exists to retire).
 - Kernel prior-read via `getMembershipContainers`.
 - Parse-local persist forks for atomic object manipulation --- egress must route through a positions coordinator.
-- Hand-rolling a `{ kind: 'narrate' }` or `{ kind: 'capture' }` step at a call site instead of emitting an op. (The `build*MoveOp` modules legitimately construct `kind: 'membershipMove'` / `kind: 'template'` **narration-input** objects --- those are the op's *ingredients* (or labels), which is exactly what call sites are supposed to supply. It is the *steps* they must not spell out.)
+- Hand-rolling a `{ kind: 'narrate' }` or `{ kind: 'capture' }` step at a call site instead of emitting an op (or, for an attempt, declaring a narration unit's audience). (The `build*MoveOp` modules legitimately construct `kind: 'membershipMove'` / `kind: 'template'` **narration-input** objects --- those are the op's *ingredients* (or labels), which is exactly what call sites are supposed to supply. It is the *steps* they must not spell out.)
 - Threading capture hosts into the footprint by hand, or reintroducing capture as a side-table. This fails late and selectively: navigate happens to work because its move already locks both rooms.
 - "Fixing" a missing capture by defaulting `captures` to an empty map, or by making an unresolvable `captureId` fall back to a room target.
 - Suppressing the structurally-empty bracket side of an object move. The empty side is the correct output of a uniform rule; two tests exist specifically to make deleting it expensive.
@@ -359,7 +361,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | Path | Role |
 | --- | --- |
 | [`kernel/kernelStep.ts`](kernel/kernelStep.ts) | Step vocabulary (mutation, capture, describe, narrate); `NarrationSpecification` (`membershipMove` \| `template`) + `TemplateNarrationSpec` / `NarrationPart` + its escalation-trigger doc comment; `fromExecutorStep` adapter; `isKernelMutationStep` / `isDescribeStep` / `isNarrateStep` filters |
-| [`kernel/narrationTemplate.ts`](kernel/narrationTemplate.ts) | Per-verb default parts for a `transferMembership` step (`defaultTransferMembershipParts(verb, movedId)`) and the flush-time fill (`fillNarrationTemplate`: `'Someone'` actor fallback; a `ref` with no label throws) |
+| [`kernel/narrationTemplate.ts`](kernel/narrationTemplate.ts) | The flush-time template fill (`fillNarrationTemplate`, shared by `presentStepSequence` and `deliverNarrationUnits`: `'Someone'` actor fallback; a `ref` with no label throws) |
 | [`kernel/types.ts`](kernel/types.ts) | `StepSequenceFootprint`, `MutationKernelApplyOutcome`, `MutationKernelCommitResult`, `MutationKernelCaptures` |
 | [`kernel/commitStepSequence.ts`](kernel/commitStepSequence.ts) | The commit entrypoint: footprint lock, `MultiKeyUpdate` transact, adjacency items, cache seed, fact stream, `RoomUpdate` publish |
 | [`kernel/applyStepSequenceCore.ts`](kernel/applyStepSequenceCore.ts) | Pure apply core shared by dry-run and commit |

@@ -41,7 +41,42 @@ Object {
           "kind": "position",
         },
       ],
-      "narrationUnits": Array [],
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 1>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "coinRef",
+                  "jarRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " puts ",
+                },
+                Object {
+                  "ref": "coinRef",
+                },
+                Object {
+                  "text": " in ",
+                },
+                Object {
+                  "ref": "jarRef",
+                },
+              ],
+            },
+          ],
+        },
+      ],
       "referents": Array [
         Object {
           "id": "OBJECT#Coin",
@@ -110,7 +145,42 @@ Object {
           "kind": "position",
         },
       ],
-      "narrationUnits": Array [],
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 1>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "coinRef",
+                  "tableRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " puts ",
+                },
+                Object {
+                  "ref": "coinRef",
+                },
+                Object {
+                  "text": " in ",
+                },
+                Object {
+                  "ref": "tableRef",
+                },
+              ],
+            },
+          ],
+        },
+      ],
       "referents": Array [
         Object {
           "id": "OBJECT#Coin",
@@ -179,7 +249,42 @@ Object {
           "kind": "position",
         },
       ],
-      "narrationUnits": Array [],
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 1>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "coinRef",
+                  "tableRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " puts ",
+                },
+                Object {
+                  "ref": "coinRef",
+                },
+                Object {
+                  "text": " on ",
+                },
+                Object {
+                  "ref": "tableRef",
+                },
+              ],
+            },
+          ],
+        },
+      ],
       "referents": Array [
         Object {
           "id": "OBJECT#Coin",
@@ -292,6 +397,40 @@ Object {
       "narrationUnits": Array [
         Object {
           "covers": Array [
+            "<minted id 2>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "ropeRef",
+                  "tableRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " puts ",
+                },
+                Object {
+                  "ref": "ropeRef",
+                },
+                Object {
+                  "text": " on ",
+                },
+                Object {
+                  "ref": "tableRef",
+                },
+              ],
+            },
+          ],
+        },
+        Object {
+          "covers": Array [
             "<minted id 1>",
           ],
           "variants": Array [
@@ -383,7 +522,35 @@ Object {
           "kind": "position",
         },
       ],
-      "narrationUnits": Array [],
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 1>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "broomRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " drops ",
+                },
+                Object {
+                  "ref": "broomRef",
+                },
+              ],
+            },
+          ],
+        },
+      ],
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
@@ -442,7 +609,35 @@ Object {
           "kind": "position",
         },
       ],
-      "narrationUnits": Array [],
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 1>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "broomRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " picks up ",
+                },
+                Object {
+                  "ref": "broomRef",
+                },
+              ],
+            },
+          ],
+        },
+      ],
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
@@ -501,7 +696,35 @@ Object {
           "kind": "position",
         },
       ],
-      "narrationUnits": Array [],
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 1>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "broomRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " picks up ",
+                },
+                Object {
+                  "ref": "broomRef",
+                },
+              ],
+            },
+          ],
+        },
+      ],
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
@@ -560,7 +783,35 @@ Object {
           "kind": "position",
         },
       ],
-      "narrationUnits": Array [],
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 1>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "broomRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " picks up ",
+                },
+                Object {
+                  "ref": "broomRef",
+                },
+              ],
+            },
+          ],
+        },
+      ],
       "referents": Array [
         Object {
           "id": "OBJECT#Broom",
@@ -678,6 +929,33 @@ Object {
         },
       ],
       "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 2>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "ropeRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " picks up ",
+                },
+                Object {
+                  "ref": "ropeRef",
+                },
+              ],
+            },
+          ],
+        },
         Object {
           "covers": Array [
             "<minted id 1>",
@@ -812,6 +1090,33 @@ Object {
         },
       ],
       "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 2>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "ropeRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " picks up ",
+                },
+                Object {
+                  "ref": "ropeRef",
+                },
+              ],
+            },
+          ],
+        },
         Object {
           "covers": Array [
             "<minted id 1>",

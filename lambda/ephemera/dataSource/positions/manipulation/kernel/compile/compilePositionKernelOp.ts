@@ -1,4 +1,3 @@
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -15,39 +14,9 @@ export type CompiledPositionKernelPlan = {
     slots: readonly MessageOrchestrationSlotSpec[]
 }
 
-/**
- * Exported for `commitAttempt.ts`'s bridge-unit sweep (`AGENT.attemptNarration.planning.md`,
- * slice 3): a bridge unit's audience resolves to the *same* capture id this compiler already
- * mints for the object move's leave/arrive captures, since narrate steps no longer carry that
- * join for the `template` family --- see this file's own narration note below.
- */
-export const captureIdForFrom = (hostId: string): string => `capture:from:${hostId}`
-export const CAPTURE_ID_TO = 'capture:to'
-
-/**
- * The verb is a property of the *delta*, read off which side of the move was the room --- not
- * an intent the caller declares and not a host-*kind* inference reasoning backwards from a published
- * fact (which is what the retired `inferOperationFromFact` did). Stated this way `give` needs no new
- * discriminant: it is simply the case where neither side is a room.
- *
- * Character moves never reach here --- they are room-to-room and carry a `membershipMove` narration.
- *
- * Exported for `commitAttempt.ts`: the object family's bridge unit (slice 3) builds its
- * `TemplateNarrationSpec` the same way this compiler used to, now at commit time rather than
- * compile time, since the compiler itself no longer builds that template's parts.
- */
-export const objectMoveVerb = (
-    froms: readonly EphemeraMembershipHostId[],
-    to: EphemeraMembershipHostId | null
-): 'takeHold' | 'drop' | 'give' => {
-    if (to !== null && isEphemeraRoomId(to)) {
-        return 'drop'
-    }
-    if (froms.some((hostId) => isEphemeraRoomId(hostId))) {
-        return 'takeHold'
-    }
-    return 'give'
-}
+/** The capture ids this compiler mints for a move's leave/arrive captures. */
+const captureIdForFrom = (hostId: string): string => `capture:from:${hostId}`
+const CAPTURE_ID_TO = 'capture:to'
 
 /**
  * The one place that knows "a move brackets leave-then-arrive." Callers ---
@@ -70,14 +39,13 @@ export const objectMoveVerb = (
  * function only sequences them.
  *
  * When `op.narration` is present, capture-from/capture-to steps are always built from the same
- * `(froms, to)` pair, so a later audience (a bridge unit, or an authored narration unit once one
- * exists) has a roster to read. **Narrate steps and slots are built here only for the
+ * `(froms, to)` pair, so a later audience (an authored narration unit) has a roster to read. **Narrate steps and slots are built here only for the
  * `membershipMove` family** (navigate/home/connect/disconnect) --- `[leave, header, arrive]`
  * ordering is decided only for that narration. The `template` family (object take/drop/give)
- * narrates through `commitAttempt.ts`'s post-commit sweep instead
- * (`AGENT.attemptNarration.planning.md`, slice 3): the captures this compiler mints are the join
- * key, but the copy and its delivery are the sweep's job, not this compiler's, since narration
- * now belongs to whatever creates the action, and nothing here creates one. Capture/mutation
+ * narrates through `commitAttempt.ts`'s post-commit sweep instead, over captures `commitAttempt`
+ * mints itself; the `template` captures this compiler still emits are unread (known debt in
+ * `manipulation/AGENT.implementation.md`). Narration belongs to whatever creates the action, and
+ * nothing here creates one. Capture/mutation
  * ordering inside `steps` is the one place order matters for walk correctness; narrate step
  * position among them is cosmetic, since delivery order comes from `slots`, not `steps` (the
  * messageOrchestration bundle assigns `CreatedTime` in declared order at flush, fully decoupled

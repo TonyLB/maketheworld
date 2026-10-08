@@ -6,14 +6,16 @@ import type { EphemeraLudicGraph } from './index'
 import type { GroundedPresence } from '../../actions/enrich/objectManipulation/plan/planStep'
 
 /**
- * Every room reachable upward from `startId` through presence bindings (AN-7 stage 2).
+ * Every room reachable upward from `startId` through presence bindings: a narration unit's audience
+ * resolution.
  *
  * Generalizes `hasPresenceAncestor`'s BFS from a yes/no reachability test to a terminal-collecting
  * walk: a frontier host that is itself a Room is a terminal (rooms carry no presence bindings of
  * their own); any other frontier host advances through its own `graph.presenceNodes[].fromHostId`,
  * exactly as `hasPresenceAncestor` does, fanning out blindly over every presence node rather than
  * checking that a parent's `cover` admits the specific binding it arrived from (no code does
- * cover-matching today, and AN-7(iv)/AN-8 already accept over-inclusion as harmless).
+ * cover-matching today, and an audience reaching an extra room is harmless: overlapping audiences
+ * already each deliver).
  *
  * A host with no presence binding and no Room id is a dead end, not a room: it contributes nothing,
  * the same false-negative-never-false-positive acceptance `hasPresenceAncestor` documents for a
@@ -69,10 +71,10 @@ export const roomsForPresenceNode = async (
 }
 
 /**
- * Resolves one referent's audience rooms (AN-7, stage 2): a room-valued `groundedPresence` entry is
- * its own answer; an absent or empty `groundedPresence` (AN-7 (iii)'s default, same as (ii)'s
- * non-present-whole case) falls through to every room `groundedId` currently reaches; otherwise each
- * entry is resolved and the results deduplicated into one room set (AN-8's union, scoped to one ref).
+ * Resolves one referent's audience rooms: a room-valued `groundedPresence` entry is its own answer;
+ * an absent or empty `groundedPresence` falls through to every room `groundedId` currently reaches
+ * (a referent's audience is every room it is seen in, as for a non-present whole); otherwise each
+ * entry is resolved and the results deduplicated into one room set.
  */
 export const roomsForReferent = async (
     groundedId: EphemeraMembershipHostId,

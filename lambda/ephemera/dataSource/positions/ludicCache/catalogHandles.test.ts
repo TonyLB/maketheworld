@@ -135,7 +135,7 @@ describe('ludicCacheObjectHandles', () => {
         spy.mockRestore()
     })
 
-    // AN-7 stage 1: each handle names the bucket the walk saw it in, so Grounding can stamp it.
+    // Each handle names the bucket the walk saw it in, so Grounding can stamp it.
     describe('presence', () => {
         const boxBinding = PresenceKey('box-in-a')
         const boxOtherBinding = PresenceKey('box-in-b')

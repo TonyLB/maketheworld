@@ -23,11 +23,10 @@
  *      2 actually wrote to `internalCache.Positions`, not a hand-built `testLudicGraph`.
  *
  * The write side (`commitAttempt`) is given a bare `{ publish: jest.fn() }` stand-in for
- * `messageBus` and a no-op `streamEvent`, matching `commitAttempt.test.ts`'s own harness ---
- * the object-move narration/fact-streaming those two args drive (`Object Moved`, "Alice picks up
- * ball", catalog-bump fan-out) is proven elsewhere (Phase 2's
- * `objectMovedCatalogBump.integration.test.ts`, `commitAttempt.test.ts`) and is not the
- * subject of this test, which is real ludicGraph commit + real render. The read side
+ * `messageBus` and a no-op `streamEvent`, matching `commitAttempt.test.ts`'s own harness. The one
+ * thing read back from it is the move's narration line: the containment template's authored "puts
+ * ball in box", not copy derived from the move's delta. Fact streaming and catalog bumps are proven
+ * elsewhere (`objectMovedCatalogBump.integration.test.ts`, `commitAttempt.test.ts`). The read side
  * (`orchestrateRoomDescriptionStreams`) uses the process's real singleton `messageBus`, matching
  * `guestCharacterLookPayoff.integration.test.ts`'s convention for delivering the final
  * `PerceptionMessage`.
@@ -158,16 +157,18 @@ describe('object containment In payoff (integration)', () => {
         assetDBMock.query.mockResolvedValue([] as any)
         ephemeraDBMock.getItems.mockResolvedValue([] as any)
 
-        // The ball's own resolvable shortName --- used both by the render-side stub component
-        // (this test's actual assertion) and, incidentally, by `resolveNarrationLabels`'s
-        // fallback during the move's own narration (not asserted on here).
-        internalCache.ImprovisationComponentData.set(BALL_ID, IMPROVISATION_ASSET_ID, new StandardObject({
-            tag: 'Object',
-            universalKey: BALL_ID,
-            shortName: 'ball',
-        }))
+        // The ball's and box's resolvable shortNames --- used by the render-side stub component
+        // (the ball's) and by `resolveNarrationLabels` for the move's own narration line.
+        for (const [objectId, shortName] of [[BALL_ID, 'ball'], [BOX_ID, 'box']] as const) {
+            internalCache.ImprovisationComponentData.set(objectId, IMPROVISATION_ASSET_ID, new StandardObject({
+                tag: 'Object',
+                universalKey: objectId,
+                shortName,
+            }))
+        }
 
-        // Initial world state: ball and box both sitting directly in the room; box and ball each
+        // Initial world state: the actor, ball and box all directly in the room (the actor so the
+        // narration capture has a roster to read); box and ball each
         // host nothing of their own yet. `ephemeraDB.getItem` serves this for every pre-commit read
         // (the dry run in `planObjectMoveTransfer`, and `resolveNarrationLabels`'s own
         // degrade-gracefully reads, which return `undefined` here and fall back harmlessly).
@@ -178,7 +179,7 @@ describe('object containment In payoff (integration)', () => {
                     { tag: 'Object', universalKey: BOX_ID },
                 ],
                 edges: [],
-            }),
+            }).addCharacter(CHARACTER_ID),
             // The box's own graph must list itself as a node (its own root) --- a real Dynamo
             // read normalizes this in automatically (`normalizeStoredLudicGraph`), but this
             // fixture is handed straight to the transactWrite mock's draft, bypassing that
@@ -266,6 +267,18 @@ describe('object containment In payoff (integration)', () => {
 
         // The real commit happened (not refused as illegal/stale).
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(1)
+
+        // The narration payoff: the published line is the containment template's own (whoever
+        // creates an action authors its line), the player's verb and preposition, delivered to the
+        // actor's room. The retired verb-from-delta bridge read this move (room -> box) as
+        // "picks up ball", so this assertion fails unless the authored unit replaced it.
+        const reports = writeMessageBus.publish.mock.calls
+            .map((call: any[]) => call[0])
+            .filter((message: any) => message?.type === 'StreamingEvent' && message?.header?.type === 'Message Slot Reported')
+        const contents = await Promise.all(reports.map((report: any) => report.getContent()))
+        expect(contents.map((content: any) => ({ line: content.message.message.join(''), targets: content.message.targets }))).toEqual([
+            { line: expect.stringMatching(/ puts ball in box$/), targets: [CHARACTER_ID] },
+        ])
 
         // Crux check: the committed graph is visible to a fresh real `getLudicGraph` read with no
         // invalidate/refetch step --- `commitStepSequence`'s `seedGraphMemos` already wrote it

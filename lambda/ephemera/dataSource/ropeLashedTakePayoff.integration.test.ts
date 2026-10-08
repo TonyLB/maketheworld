@@ -6,7 +6,8 @@
  * regression test for a take that committed a facilitating dissolve twice (once from the
  * attempt's action, once derived by positions itself), which threw on the second. Terminates at
  * the committed graphs, and at the narration the commit delivers: Expansion's own dissolve line,
- * then the take's (RN-2, `AGENT.attemptNarration.planning.md`).
+ * then the take's, in action order (`positions/AGENT.contract.md`, An attempt narrates through its
+ * narration units).
  *
  * Real, in this order:
  *   1. `parseCommand` for "get rope", with no Bedrock call expected: the rope is in the room's
@@ -195,11 +196,10 @@ describe('lashed rope take payoff (integration)', () => {
         const publish = await getRope()
 
         await expectRopeHeldAndUnbound()
-        // RN-2: Expansion's line for the dissolve is delivered before the take's (whose two
-        // witness variants, before and after, each deliver the take's line).
+        // Action order, with mixed authors: Expansion's line for the dissolve is delivered before Plan's
+        // line for the take, which is delivered once.
         const lines = await deliveredLines(publish)
-        expect(lines[0]).toMatch(/ frees rope from post$/)
-        expect(lines.slice(1)).toEqual([expect.stringMatching(/ picks up rope$/), expect.stringMatching(/ picks up rope$/)])
+        expect(lines).toEqual([expect.stringMatching(/ frees rope from post$/), expect.stringMatching(/ picks up rope$/)])
     })
 
     it('"get rope" leaning against the post: an unchallenged (dissolve-classified) edge is dissolved once, too', async () => {

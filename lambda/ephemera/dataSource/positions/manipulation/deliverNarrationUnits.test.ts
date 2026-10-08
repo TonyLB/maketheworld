@@ -78,7 +78,7 @@ describe('deliverNarrationUnits', () => {
         expect(reported[1]!.message).toMatchObject({ type: 'PublishMessage', displayProtocol: 'WorldMessage', targets: [BOB], message: ['Alice picks up broom'] })
     })
 
-    it('unions several capture ids into one deduplicated roster for a multi-room audience (AN-8)', () => {
+    it('unions several capture ids into one deduplicated roster for a multi-room audience', () => {
         const messageBus = { publish: jest.fn() } as any
         const captures = new Map([
             ['capture:room-1', [ALICE]],

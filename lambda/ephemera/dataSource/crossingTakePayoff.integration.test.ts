@@ -1,5 +1,6 @@
 /**
- * Payoff test for `AGENT.attemptNarration.planning.md`'s slice 3 Crossing sub-step: a thing tied
+ * Payoff test for narrating a crossing (`positions/AGENT.contract.md`, An attempt narrates through
+ * its narration units): a thing tied
  * across a shard boundary (a relation whose legs sit in two graphs, joined by a crossing port)
  * can be taken, and the tie's dissolve narrates to the rooms whose rosters it touches. Expansion
  * follows the relation through the port to its true far end and stamps that end from the shard
@@ -195,14 +196,13 @@ describe('crossing take payoff (integration)', () => {
         expect(tableGraph.ports).toEqual([])
         expect((await internalCache.Positions.getLudicGraph(ROOM_ID)).relationalEdges).toEqual([])
 
-        // RN-2: the untying is delivered before the take, and reaches the room (through the
+        // Action order: the untying is delivered before the take, and reaches the room (through the
         // table's binding, the bucket the cup is seen in).
         const lines = await delivered(publish)
         expect(lines[0]).toEqual({ line: expect.stringMatching(/ frees cup from string$/), targets: [CHARACTER_ID] })
-        // The take's two lines are the bridge's verb-from-delta copy, which reads a take from a
-        // table as "gives" (the bridge's known leak, retired when Plan authors, slice 4): pinned
-        // only as the take's, not by verb.
-        expect(lines.slice(1).map(({ line }) => line)).toEqual([expect.stringMatching(/ cup$/), expect.stringMatching(/ cup$/)])
+        // The take's line is the one Plan's template authored, delivered once: a take from a table reads "picks up",
+        // where the retired verb-from-delta bridge read "gives" (no room on either side).
+        expect(lines.slice(1)).toEqual([{ line: expect.stringMatching(/ picks up cup$/), targets: [CHARACTER_ID] }])
     })
 
     it('"get string" tied through a wall to a hook seen from two rooms: the untying reaches both rooms, the take only the actor\'s', async () => {
@@ -249,9 +249,6 @@ describe('crossing take payoff (integration)', () => {
 
         const lines = await delivered(publish)
         expect(lines[0]).toEqual({ line: expect.stringMatching(/ frees string from hook$/), targets: [CHARACTER_ID, ONLOOKER_ID].sort() })
-        expect(lines.slice(1)).toEqual([
-            { line: expect.stringMatching(/ picks up string$/), targets: [CHARACTER_ID] },
-            { line: expect.stringMatching(/ picks up string$/), targets: [] },
-        ])
+        expect(lines.slice(1)).toEqual([{ line: expect.stringMatching(/ picks up string$/), targets: [CHARACTER_ID] }])
     })
 })
