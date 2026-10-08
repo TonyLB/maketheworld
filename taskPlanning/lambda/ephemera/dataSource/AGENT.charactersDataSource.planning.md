@@ -1,6 +1,6 @@
 # Characters data source: `mtw.ephemera.characters`, with the eviction ladder as first tenant
 
-**Status:** not started. **Next:** Slice 0 (the `Meta::Character` field-ownership inventory).
+**Status:** Slice 0 done. **Next:** Slice 1 (scaffold `mtw.ephemera.characters` and move the ladder).
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../AGENT.md). It is an **implementation plan**, not a design-stage one.
 
@@ -45,11 +45,44 @@ Give character play state an owning DataSource, the way [`mtw.ephemera.objects`]
 | `positions/manipulation/membership/resolveCharacterRoomId.ts`, `resolveConnectTargetRoom.ts`, `repairCharacterLegalPlacement.ts` | Read-side resolution: trim, top frame, move | Stay in positions |
 | `positions/navigate/orchestrateCharacterMove.ts` | Inline ladder write in `Promise.all` | Write removed; docblock carve-out removed |
 | `internalCache/characterMeta.ts` | Reads `RoomStack`; imports `DEFAULT_ROOM_STACK` **from positions** | Imports from characters (fixes a cache-depends-on-positions inversion) |
-| `guestCharacter/index.ts` | Writes initial `RoomStack` on guest creation | Imports from characters; whether the write itself moves is a Slice 0 finding |
+| `guestCharacter/index.ts` | Writes `RoomStack` on every guest confirm (`Player Connected`) | Imports from characters; the write stays, but sets `RoomStack` only when absent (Slice 0 finding 1) |
 
 `affordanceOrchestration/fanOutAffordanceRefreshForRoom.ts` and `renderOrchestration/fanOutStateChangedToPassiveRenders.ts` match a `RoomStack` grep but use the **room asset stack** (`resolveRoomAssetStackForRoom`), which is a different thing. Leave them alone.
 
-**Known `Meta::Character` writers outside the ladder** (seed for Slice 0, not complete): [`lambda/updateEphemera/app.ts`](../../../../lambda/updateEphemera/app.ts) (separate lambda: `assets`, `Color`, `Name`, `player`, `pronouns`, `RoomId`, `Description`); [`guestCharacter/index.ts`](../../../../lambda/ephemera/guestCharacter/index.ts) (`Name`, `Pronouns`, `Color`, `assets`, `RoomStack`, `player`); positions' [`ludicGraph/index.ts`](../../../../lambda/ephemera/dataSource/positions/ludicGraph/index.ts) (`ludicGraph`, which stays with positions, like object placement).
+**Known `Meta::Character` writers outside the ladder:** [`lambda/updateEphemera/app.ts`](../../../../lambda/updateEphemera/app.ts) (separate lambda, invoked by the Heal step function: `assets`, `Color`, `Name`, `player`, `pronouns`, `RoomId`, `Description`); [`guestCharacter/index.ts`](../../../../lambda/ephemera/guestCharacter/index.ts) `confirmGuestCharacter`, run by the [`mtw.ephemera.players`](../../../../lambda/ephemera/dataSource/players/index.ts) DataSource on every `Player Connected` (`Name`, `Pronouns`, `Color`, `assets`, `RoomStack`, `player`); positions' [`ludicGraph/index.ts`](../../../../lambda/ephemera/dataSource/positions/ludicGraph/index.ts) and objects' [`persistClearStoredLudicGraphs.ts`](../../../../lambda/ephemera/dataSource/objects/persistClearStoredLudicGraphs.ts) (`ludicGraph`, which stays with positions, like object placement). The full map is below.
+
+### `Meta::Character` field ownership (Slice 0, verified 2026-10-08)
+
+**Scope rule (was CH-2):** characters owns `RoomStack` only. Every other field gets an owner (or "unclaimed") here, but moving it waits for something that needs it.
+
+This table covers the **ephemeraDB** row only. Two other tables use the same `DataCategory` for separate rows: **connectionDB** `Meta::Character.sessions` (written by `connections/registerCharacter` and `connections/disconnect`; read by the `characterSessions` caches in ephemera and subscriptions and by `connections/dataSource/charactersDataSource.ts`), owned by the connections lambda; and **assetDB** player-library character rows (`assets/player/heal.ts`, `assets/internalCache/playerLibrary.ts`, `diagnostics/playerMisalignmentSweep`), owned by assets. The dynamic `` `Meta::${tag}` `` writes in `assets/` (`cacheAsset`, `decacheAsset`) all target assetDB.
+
+Most ephemera readers go through [`internalCache.CharacterMeta`](../../../../lambda/ephemera/internalCache/characterMeta.ts), which projects `Name`, `RoomId`, `RoomStack`, `Color`, `fileURL`, `HomeId`, `assets`, `Pronouns` and `player`. The Readers column lists the consumers of each field, not the cache.
+
+| Field | Writers | Readers | Proposed owner | Notes |
+| --- | --- | --- | --- | --- |
+| `RoomStack` | positions `persistRoomStackNavigate`, `trimPersistCharacterRoomStack`; `confirmGuestCharacter` (`DEFAULT_ROOM_STACK`) | positions `resolveCharacterRoomId`, `resolveConnectTargetRoom`, `repairCharacterLegalPlacement`, `trimPersistCharacterRoomStack` | **characters** | Guest confirm resets it on every connect (finding 1) |
+| `ludicGraph` | positions `ludicGraph/index.ts` (via `hostDataCategory`); objects `persistClearStoredLudicGraphs` | positions (via `mtw-gateways` `getHostLudicGraphFromDynamo`); diagnostics `ludicGraphPortMismatchSweep`, `ludicGraphStaleStructureSweep`, `orphanedImprovisedObjectSweep` | **positions** | The only field typed in `mtw-interfaces` (`EphemeraMetaCharacter`) |
+| `assets` | `confirmGuestCharacter` (`[]`); `updateEphemera` (player's asset list) | perspective resolution across render, perception, actions and affordance fan-out; positions ladder trim and repair | unclaimed | The two writers disagree for a guest (finding 2) |
+| `Name` | `confirmGuestCharacter`; `updateEphemera` | `fetchEphemera`, `ephemeraUpdate`, `hydrateRoomRoster`, narration `handleCharacterSpoke`, perception `orchestrate`; `chaos/addGhostSession` (direct) | unclaimed | Body field |
+| `Color` | `confirmGuestCharacter`; `updateEphemera` | `fetchEphemera`, `ephemeraUpdate`, `hydrateRoomRoster`, `handleCharacterSpoke`; `chaos/addGhostSession` | unclaimed | Body field |
+| `Pronouns` | `confirmGuestCharacter` | none found beyond the cache projection | unclaimed | `updateEphemera` writes `pronouns` instead (finding 3) |
+| `player` | `confirmGuestCharacter`; `updateEphemera` | none found beyond the cache projection | unclaimed | |
+| `fileURL` | **none found** | `publishMessage`, `fetchEphemera`, `ephemeraUpdate`, `hydrateRoomRoster`; `chaos/addGhostSession` | unclaimed | Finding 4 |
+| `HomeId` | **none found** | actions `resolveHomeTargetForCharacter`; positions `orchestrateCharacterRoomMembership` (`CharacterInPlay` fallback when `to` is null) | unclaimed | Cache defaults it to `ROOM#VORTEX` (finding 4) |
+| `Description` | `updateEphemera` (Coyote only) | none found | unclaimed | Finding 3 |
+| `RoomId` | `updateEphemera` (`'VORTEX'` when absent) | `chaos/addGhostSession` (as truth); `mtw-gateways` `getCharacterRoomIdFromDynamo` (exported, no caller); the cache projects and derives it, with no consumer found | legacy --- retire (Slice 1) | Finding 5 |
+
+**Searches run** (from repo root, excluding `build/`, `dist/`, `node_modules/`): `rg -t ts "Meta::Character" lambda packages`; `rg -t ts "CharacterMeta\.get\(" lambda/ephemera -A3` plus the injected `characterMetaGet` / `getCharacterMeta` deps; `rg -t ts "HomeId|fileURL" lambda packages`; `` rg -t ts "`Meta::\$\{" lambda/assets ``; per-field `updateKeys` / `ProjectionFields` / `draft.<field> =` at each hit.
+
+**Findings** (not this plan's work unless noted):
+
+1. **Guest ladder reset (this plan, Slice 1).** `confirmGuestCharacter` overwrites `RoomStack` with `DEFAULT_ROOM_STACK` on every `Player Connected`, so a guest's ladder never survives a reconnect. That defeats the payoff test's reconnect for guests. Once characters owns the field, the guest-confirm write should set `RoomStack` only when it is absent.
+2. **Guest `assets` clobber.** `confirmGuestCharacter` writes `assets: []` on every connect; `updateEphemera` (Heal) writes the player's asset list. Whichever ran last wins. This belongs with the body-field owner, and is recorded in the characters `AGENT.md` at Slice 3.
+3. **`pronouns` / `Description`.** `updateEphemera` writes `pronouns` (lowercase), which no reader projects, and `Description`, which nothing reads.
+4. **Readers with no writer.** No writer was found for `fileURL` or `HomeId` on the ephemeraDB row, so readers always see `undefined` / `ROOM#VORTEX`. Before giving either field an owner, the owner should decide whether it is sourced from the asset-side character row or retired.
+5. **Legacy `RoomId` is still read and written (this plan, Slice 1).** [Positions concepts](../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md) and [`positions/AGENT.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.md) say it is "neither written nor read as truth". That stance is the authority, and the code that breaks it is the defect. `updateEphemera` writes it. `chaos/addGhostSession` reads it, and its only use is to write legacy `Meta::Room.activeCharacters`, a second stale projection. The ghost's connectionDB session rows are what roster hydration actually reads (`hydrateRoomRoster` -> `CharacterSessions`). The cache's projection and derivation and `getCharacterRoomIdFromDynamo` keep the field alive with no consumer. All four are repaired in Slice 1.
+6. **`updateEphemera` writes body fields from a separate lambda.** It is the cross-lambda body writer named in **Out of scope**.
 
 ## Open decisions (implementation --- plan only)
 
@@ -57,20 +90,27 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
-| **CH-1** | **Asset-loss relocation trigger.** [`repairCharacterLegalPlacement`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/repairCharacterLegalPlacement.ts) relocates when the trimmed ladder's top frame differs from current membership. That comparison assumes the ladder is current; once it is maintained by a subscriber, a lagging ladder would trigger a false move back to the previous room. **Recommended:** relocate when the **current room's** asset is no longer accessible (which is what asset loss means), and use the ladder only to choose the destination. The function has no live caller (its asset-visibility ingress is future work), so the change is cheap now. | Slice 2 | Open |
-| **CH-2** | **Field scope of this plan.** **Recommended:** characters owns `RoomStack` only. Slice 0's table records an owner (or "unclaimed") for every other field, but moving them waits for something that needs it. | Slice 0 close | Open |
+| **CH-1** | **Asset-loss relocation trigger.** [`repairCharacterLegalPlacement`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/repairCharacterLegalPlacement.ts) relocates when the trimmed ladder's top frame differs from current membership. That comparison assumes the ladder is current; once it is maintained by a subscriber, a lagging ladder would trigger a false move back to the previous room. Relocate when the **current room's** asset is no longer accessible (which is what asset loss means), and use the ladder only to choose the destination. The function has no live caller (its asset-visibility ingress is future work), so the change is cheap now. | Slice 2 | Settled |
 
 ## Recommended order
 
 Pending work uses `[ ]` and completed work uses `[X]`; mark each nested line `[X]` as it is done.
 
-- [ ] **Slice 0 --- `Meta::Character` field-ownership inventory.**
-  - [ ] Grep every reader and writer of `Meta::Character` across `lambda/` and `packages/` (not just ephemera; known hits include `connections`, `diagnostics`, `assets`, `subscriptions`, `chaos`, `updateEphemera`). Search by key string and by `CharacterMeta` / `CharacterMetaItem` use.
-  - [ ] Build a table in this plan: field -> writers -> readers -> proposed owner (`characters`, `positions`, or unclaimed). Model it on the objects four-way split table.
-  - [ ] Record findings that are not this plan's work, with a home: notably the legacy `RoomId` field (the positions contract says nothing reads it; `updateEphemera` still writes it, `CharacterMetaItem` still carries it, and `mtw-gateways`' [`getCharacterRoomIdFromDynamo`](../../../../packages/mtw-gateways/ts/ephemera/positions/fetch.ts) still reads it --- exported, with no caller), and `updateEphemera` writing body fields from another lambda.
-  - [ ] Settle CH-2.
+- [X] **Slice 0 --- `Meta::Character` field-ownership inventory.**
+  - [X] Grep every reader and writer of `Meta::Character` across `lambda/` and `packages/` (not just ephemera; known hits include `connections`, `diagnostics`, `assets`, `subscriptions`, `chaos`, `updateEphemera`). Search by key string and by `CharacterMeta` / `CharacterMetaItem` use.
+  - [X] Build a table in this plan: field -> writers -> readers -> proposed owner (`characters`, `positions`, or unclaimed). Model it on the objects four-way split table. See [`Meta::Character` field ownership](#metacharacter-field-ownership-slice-0-verified-2026-10-08).
+  - [X] Record findings that are not this plan's work, with a home: notably the legacy `RoomId` field (positions concepts says it is neither written nor read as truth; in fact `updateEphemera` writes it, `chaos/addGhostSession` reads it, `CharacterMetaItem` still carries it, and `mtw-gateways`' [`getCharacterRoomIdFromDynamo`](../../../../packages/mtw-gateways/ts/ephemera/positions/fetch.ts) still reads it --- exported, with no caller), and `updateEphemera` writing body fields from another lambda.
+  - [X] Settle CH-2 (row removed; its rule is the inventory's scope rule).
 - [ ] **Slice 1 --- scaffold `mtw.ephemera.characters` and move the ladder.**
   - [ ] New `lambda/ephemera/dataSource/characters/` from the narration template: `index.ts` (`busOnly`, `replayable: false`), `subscribedEvents.ts` (guard for positions' `Character Moved`), `publishedEvents.ts`, `AGENT.md`.
+    - [ ] `AGENT.md` carries the scope rule and the field-ownership table from Slice 0 (its durable home), modeled on objects' four-way split.
+  - [ ] `confirmGuestCharacter` writes `RoomStack` only when absent, with a test that a guest reconnect keeps a non-default ladder (Slice 0 finding 1).
+  - [ ] Retire legacy `Meta::Character.RoomId` (Slice 0 finding 5; positions' "neither written nor read" stance is the authority):
+    - [ ] [`updateEphemera/app.ts`](../../../../lambda/updateEphemera/app.ts): drop `RoomId` from `updateKeys` and the reducer.
+    - [ ] [`chaos/addGhostSession`](../../../../lambda/chaos/addGhostSession/index.ts): drop the `RoomId` read and the `Meta::Room.activeCharacters` write it guards. The connectionDB session rows stay.
+    - [ ] [`internalCache/characterMeta.ts`](../../../../lambda/ephemera/internalCache/characterMeta.ts): drop `RoomId` from `CharacterMetaItem`, the fetch type, the projection, the default and the derivation; update `internalCache/index.test.ts` fixtures.
+    - [ ] `mtw-gateways`: delete `getCharacterRoomIdFromDynamo` and its export (no caller).
+    - [ ] Grep check: `rg -t ts "RoomId" lambda/updateEphemera/app.ts lambda/chaos/addGhostSession lambda/ephemera/internalCache/characterMeta.ts` finds nothing, and `getCharacterRoomIdFromDynamo` has no hits.
   - [ ] Register in [`app.ts`](../../../../lambda/ephemera/app.ts) and add the row to [`dataSource/AGENT.md`](../../../../lambda/ephemera/dataSource/AGENT.md)'s DataSource table.
   - [ ] Move the ladder modules listed under Grounding facts into `characters/` (subfolder name is a free choice). Update every importer, including `internalCache/characterMeta.ts` and `guestCharacter/index.ts`.
   - [ ] Subscriber: on `Character Moved` with `to !== null`, call `persistRoomStackNavigate` with the fact's `beatAnchorTime`; read character, room and canon assets from cache. Keep the failure-tolerance rule (log, never throw).
@@ -80,10 +120,10 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark each nested line `[X
   - [ ] Implement CH-1 in `repairCharacterLegalPlacement`, with tests for: current room still accessible -> no move even when the ladder's top differs; current room inaccessible -> move to the trimmed top frame.
   - [ ] Payoff integration test (`*.integration.test.ts`, real bus): navigate into an overlay room -> disconnect -> connect places the character there; remove overlay access -> connect places them at the canon frame.
 - [ ] **Slice 3 --- graduate docs and close.**
-  - [ ] Positions [contract](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#eviction-ladder-roomstack-storage): keep the read-side rules (trim, top frame, move when the endpoint changes; disconnect purges membership and keeps the ladder; no `Character Moved` for ladder-only change). Move the maintenance rules (navigate merge, trim persist, failure tolerance) to the characters docs. Remove the "navigate ladder timing" rule that names the `Promise.all`.
+  - [ ] Positions [contract](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#eviction-ladder-roomstack-storage): keep the read-side rules (trim, top frame, move when the endpoint changes; disconnect purges membership and keeps the ladder; no `Character Moved` for ladder-only change). Move the maintenance rules (navigate merge, trim persist, failure tolerance) to the characters docs. Remove the "navigate ladder timing" rule that names the `Promise.all`, and the "Pending move" bullet that links to this plan.
   - [ ] Move the "Eviction ladder" concept entry to the characters docs; leave positions' graph-roles table pointing to it.
   - [ ] Update [`positions/AGENT.implementation.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md) (Eviction ladder section) and [`positions/manipulation/AGENT.implementation.md`](../../../../lambda/ephemera/dataSource/positions/manipulation/AGENT.implementation.md) (the "RoomStack is not a kernel input" paragraph).
-  - [ ] Record the out-of-scope follow-ups where they will be found: character-move convergence onto `commitAndPresentStepSequence` in `positions/manipulation/AGENT.implementation.md`; Slice 0's unclaimed fields and the `RoomId` finding in the characters `AGENT.md`.
+  - [ ] Record the out-of-scope follow-ups where they will be found: character-move convergence onto `commitAndPresentStepSequence` in `positions/manipulation/AGENT.implementation.md`; Slice 0's unclaimed fields and findings 2, 3, 4 and 6 in the characters `AGENT.md`.
   - [ ] Grep inbound links to every moved section and file before deleting this plan.
 
 ## Verification
@@ -104,7 +144,7 @@ grep -n "dataSource/positions" internalCache/characterMeta.ts guestCharacter/ind
 
 | Slice | Status |
 | --- | --- |
-| 0 --- ownership inventory | Not started |
+| 0 --- ownership inventory | Done |
 | 1 --- scaffold and move | Not started |
 | 2 --- read-side safety, payoff test | Not started |
 | 3 --- docs and close | Not started |
