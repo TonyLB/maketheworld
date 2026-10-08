@@ -1,6 +1,6 @@
 # Characters data source: `mtw.ephemera.characters`, with the eviction ladder as first tenant
 
-**Status:** Slices 0--1 done. **Next:** Slice 2 (read-side safety and the payoff test).
+**Status:** Slices 0--2 done. **Next:** Slice 3 (graduate docs and close).
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../AGENT.md). It is an **implementation plan**, not a design-stage one.
 
@@ -60,9 +60,7 @@ The scope rule, the field-ownership table and the open findings (2, 3, 4, 6) now
 
 Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
 
-| ID | Decision | Blocks | Status |
-| --- | --- | --- | --- |
-| **CH-1** | **Asset-loss relocation trigger.** [`repairCharacterLegalPlacement`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/repairCharacterLegalPlacement.ts) relocates when the trimmed ladder's top frame differs from current membership. That comparison assumes the ladder is current; once it is maintained by a subscriber, a lagging ladder would trigger a false move back to the previous room. Relocate when the **current room's** asset is no longer accessible (which is what asset loss means), and use the ladder only to choose the destination. The function has no live caller (its asset-visibility ingress is future work), so the change is cheap now. | Slice 2 | Settled |
+None currently open. **CH-1** (asset-loss relocation trigger) shipped in Slice 2; recorded in [`positions/AGENT.contract.md` --- Eviction ladder](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#eviction-ladder-roomstack-storage).
 
 ## Recommended order
 
@@ -88,9 +86,9 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark each nested line `[X
   - [X] Subscriber: on `Character Moved` with `to !== null`, call `persistRoomStackNavigate` with the fact's `beatAnchorTime`; read character, room and canon assets from cache. Keep the failure-tolerance rule (log, never throw).
   - [X] Remove the ladder write from `orchestrateCharacterMove`'s `Promise.all` and delete the docblock carve-out that existed only because of it.
   - [X] Tests: move the ladder unit tests with their modules; add subscriber tests (navigate fact -> write; `to: null` -> no write; persist failure -> logged, no throw); add a duplicate-delivery test (same fact twice -> same stack), which also checks `mergeRoomStack` is idempotent at an equal timestamp.
-- [ ] **Slice 2 --- read-side safety and the payoff test.**
-  - [ ] Implement CH-1 in `repairCharacterLegalPlacement`, with tests for: current room still accessible -> no move even when the ladder's top differs; current room inaccessible -> move to the trimmed top frame.
-  - [ ] Payoff integration test (`*.integration.test.ts`, real bus): navigate into an overlay room -> disconnect -> connect places the character there; remove overlay access -> connect places them at the canon frame.
+- [X] **Slice 2 --- read-side safety and the payoff test.**
+  - [X] Implement CH-1 in `repairCharacterLegalPlacement`, with tests for: current room still accessible -> no move even when the ladder's top differs; current room inaccessible -> move to the trimmed top frame.
+  - [X] Payoff integration test (`*.integration.test.ts`, real bus): navigate into an overlay room -> disconnect -> connect places the character there; remove overlay access -> connect places them at the canon frame. Done as [`characterLadderConnectPayoff.integration.test.ts`](../../../../lambda/ephemera/dataSource/characterLadderConnectPayoff.integration.test.ts).
 - [ ] **Slice 3 --- graduate docs and close.**
   - [ ] Positions [contract](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#eviction-ladder-roomstack-storage): keep the read-side rules (trim, top frame, move when the endpoint changes; disconnect purges membership and keeps the ladder; no `Character Moved` for ladder-only change). Move the maintenance rules (navigate merge, trim persist, failure tolerance) to the characters docs. Remove the "navigate ladder timing" rule that names the `Promise.all`, and the "Pending move" bullet that links to this plan.
   - [ ] Move the "Eviction ladder" concept entry to the characters docs; leave positions' graph-roles table pointing to it.
@@ -118,5 +116,5 @@ grep -n "dataSource/positions" internalCache/characterMeta.ts guestCharacter/ind
 | --- | --- |
 | 0 --- ownership inventory | Done |
 | 1 --- scaffold and move | Done |
-| 2 --- read-side safety, payoff test | Not started |
+| 2 --- read-side safety, payoff test | Done |
 | 3 --- docs and close | Not started |

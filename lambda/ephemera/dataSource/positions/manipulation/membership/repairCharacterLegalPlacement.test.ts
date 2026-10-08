@@ -12,6 +12,7 @@ jest.mock('../../../../internalCache', () => ({
         CharacterMeta: { get: jest.fn(), set: jest.fn() },
         Global: { get: jest.fn() },
         Positions: { getMembershipContainers: jest.fn() },
+        RoomAssets: { get: jest.fn() },
     },
 }))
 
@@ -91,6 +92,7 @@ describe('repairCharacterLegalPlacement', () => {
     it('trims ladder and relocates in-play character when top frame changes', async () => {
         setupTrimPersist([])
         internalCacheMock.Positions.getMembershipContainers.mockResolvedValue(['ROOM#Oubliette'])
+        internalCacheMock.RoomAssets.get.mockResolvedValue(['ASSET#draftTwo'])
 
         const result = await repairCharacterLegalPlacement({
             characterId: CHARACTER_ID,
@@ -114,6 +116,7 @@ describe('repairCharacterLegalPlacement', () => {
     it('trims ladder without relocating when top frame matches membership', async () => {
         setupTrimPersist(['draftTwo'])
         internalCacheMock.Positions.getMembershipContainers.mockResolvedValue(['ROOM#Oubliette'])
+        internalCacheMock.RoomAssets.get.mockResolvedValue(['ASSET#draftTwo'])
 
         const result = await repairCharacterLegalPlacement({
             characterId: CHARACTER_ID,
@@ -124,6 +127,45 @@ describe('repairCharacterLegalPlacement', () => {
         expect(optimisticUpdateMock).toHaveBeenCalled()
         expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
         expect(result).toEqual({ trimmed: true, relocated: false })
+    })
+
+    it('does not relocate when the current room is still accessible even though the trimmed ladder top differs (CH-1)', async () => {
+        // Current room (ROOM#Market) is reachable through a new asset the ladder hasn't
+        // caught up to yet --- a lagging ladder must not trigger a false "relocate back".
+        setupTrimPersist(['marketAsset'])
+        internalCacheMock.Positions.getMembershipContainers.mockResolvedValue(['ROOM#Market'])
+        internalCacheMock.RoomAssets.get.mockResolvedValue(['ASSET#marketAsset'])
+
+        const result = await repairCharacterLegalPlacement({
+            characterId: CHARACTER_ID,
+            messageBus,
+            streamEvent,
+        })
+
+        expect(optimisticUpdateMock).toHaveBeenCalled()
+        expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
+        expect(result).toEqual({ trimmed: true, relocated: false })
+    })
+
+    it('relocates to the trimmed ladder top when the current room is no longer accessible (CH-1)', async () => {
+        setupTrimPersist(['draftTwo'])
+        internalCacheMock.Positions.getMembershipContainers.mockResolvedValue(['ROOM#Laboratory'])
+        internalCacheMock.RoomAssets.get.mockResolvedValue(['ASSET#draftOne'])
+
+        const result = await repairCharacterLegalPlacement({
+            characterId: CHARACTER_ID,
+            messageBus,
+            streamEvent,
+        })
+
+        expect(orchestrateCharacterMoveMock).toHaveBeenCalledWith({
+            characterId: CHARACTER_ID,
+            targetRoomId: 'ROOM#Oubliette',
+            intentKind: 'navigate',
+            messageBus,
+            streamEvent,
+        })
+        expect(result).toEqual({ trimmed: true, relocated: true })
     })
 
     it('calls orchestrateCharacterMove on forceMove when in play', async () => {
@@ -169,6 +211,7 @@ describe('repairCharacterLegalPlacement', () => {
     it('publishes Perception on forceRender when in play without relocate', async () => {
         setupTrimPersist(['draftTwo'])
         internalCacheMock.Positions.getMembershipContainers.mockResolvedValue(['ROOM#Oubliette'])
+        internalCacheMock.RoomAssets.get.mockResolvedValue(['ASSET#draftTwo'])
 
         await repairCharacterLegalPlacement({
             characterId: CHARACTER_ID,
