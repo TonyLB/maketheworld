@@ -17,6 +17,45 @@ Owns **character play state** on the ephemeraDB **`Meta::Character`** row, the w
 
 [`internalCache.CharacterMeta`](../../internalCache/characterMeta.ts) stays in `internalCache/` (as `ObjectEphemeraMeta` does for objects). Every reader is in ephemera; the row gets a gateway when another lambda first needs character play state.
 
+### Eviction ladder
+
+When the world is built from **layered assets** (canon plus temporary or personal overlays), a character can occupy rooms that exist only while certain assets remain accessible. `Meta::Character.RoomStack` answers one question under that constraint:
+
+**Where can this character legally be placed in play, given their current asset access?**
+
+**Shape:** an ordered stack of frames `{ asset, room }` from root outward. The outermost frame aligns with **current** presence at the deepest active asset layer; inner frames are **fallback presences** still valid when outer layers are stripped away.
+
+**Purpose:** not a travel diary. The stack is maintained in **trim-ready shape** so resolution is always: filter to accessible assets, read the top frame, move when the endpoint must change.
+
+#### Three roles (one storage shape)
+
+| Role | Question | Typical ingress |
+| --- | --- | --- |
+| **Resolve legal placement** | After trim, what room is legal? | Connect (place **from nowhere**); asset visibility loss (move **from a room they can no longer occupy**) |
+| **Maintain stack on intentional moves** | While placing at the target room, keep frames aligned for future resolution | Navigate (extend / rewrite-tail / fork, in the same transaction as membership) |
+| **Bookkeeping-only trim** | Did asset access change without changing the legal room? | Asset trim when the top frame still matches current membership (no `Character Moved`) |
+
+**Resolution triggers** share the same mechanics (trim, top frame, move when the endpoint changes) and differ in **starting membership state**:
+
+| Trigger | Starting state | Outcome when legal room differs |
+| --- | --- | --- |
+| **Connect** | Out of play --- purged from graph and adjacency; ladder **retained** on disconnect | Place at resolved room (`froms: []` -> `to`) |
+| **Asset visibility** | In play at a room that may be invalid after asset loss | Relocate to resolved room (`froms: [illegal...]` -> `to`) |
+
+**Disconnect asymmetry:** disconnect **purges** play membership (graph nodes, adjacency) but **preserves** `RoomStack`. That stack is the retained answer to "where can they legally go when they return?" --- connect resolves from it without reconstructing history.
+
+**Navigate maintenance** (compare the destination's **asset chain** to the current ladder):
+
+| Operation | When | Effect on ladder |
+| --- | --- | --- |
+| **Extend rung** | Destination chain **continues** the current chain (adds a further asset layer) | Push a new outer frame |
+| **Rewrite tail rung** | Same chain prefix and same deepest asset; different room (lateral move within the layer) | Replace the outer frame's room only |
+| **Fork** | Destination chain **diverges** from the current branch (sibling asset at some depth) | Truncate the abandoned branch; set the new tail frame |
+
+Example (asset visibility): while a limited-time event overlay is active, middle rungs look like inert bookkeeping. When the event assets deactivate, trim removes the overlay rungs in one pass and lands the character on the last still-valid inner presence (suburbs in canon, not a vanished circus tent).
+
+**Relationship to room membership:** membership is **where the character is now** (roster, `Character Moved`). The ladder is **how a legal endpoint is computed** when membership is missing (connect) or points at an inaccessible layer (asset loss). A trim that fixes only the ladder is not a membership change; a resolution that changes the endpoint is a real move.
+
 ## Ingress
 
 Subscribes to **`mtw.ephemera.positions`** **`Character Moved`** ([`../positions/publishedEvents.ts`](../positions/publishedEvents.ts)). Positions is bus-only, so delivery happens in-process on the same invocation's message bus. It covers both membership apply and the kernel's `commitStepSequence`. Envelope guard: [`subscribedEvents.ts`](subscribedEvents.ts). Handler: [`handleCharacterMoved.ts`](handleCharacterMoved.ts).
@@ -25,8 +64,9 @@ Subscribes to **`mtw.ephemera.positions`** **`Character Moved`** ([`../positions
 
 - **On `Character Moved` with `to !== null`:** read character, room and canon assets from cache, then call [`persistRoomStackNavigate`](roomStack/persistRoomStackNavigate.ts) at the fact's **`beatAnchorTime`**. A timestamp merge means a late or duplicate delivery cannot regress newer frames.
 - **`to: null`** (disconnect, ghost purge): no write. Disconnect keeps the ladder.
-- **Failure tolerance:** log, never throw. The move has already committed, and the ladder is only placement's fallback.
-- **Trim persist** ([`trimPersistCharacterRoomStack`](roomStack/trimPersistCharacterRoomStack.ts)) is exported for positions' connect and asset-loss placement, which call it directly.
+- **Navigate merge:** ladder persist **must** use per-frame `timeWritten` (epoch ms) stamped from **`beatAnchorTime`** at graph persist. A write at time `T` **must not** overwrite or truncate frames with `timeWritten > T`, and **must not** extend outer frames unless `T` exceeds all existing frame timestamps. Missing `timeWritten` **must** be treated as `0` (legacy rows). Merge logic: [`roomStack/mergeRoomStack.ts`](roomStack/mergeRoomStack.ts).
+- **Trim persist:** asset/connect trim ([`trimPersistCharacterRoomStack`](roomStack/trimPersistCharacterRoomStack.ts)) **must** filter inaccessible frames and **preserve** survivor `timeWritten` values. **Must not** use navigate merge semantics on trim paths. Exported for positions' connect and asset-loss placement, which call it directly.
+- **Failure tolerance:** ladder persist failure after retry exhaustion **must not** fail membership apply or navigate presentation orchestration; errors **must** be logged, never thrown. The move has already committed, and the ladder is only placement's fallback.
 - **Guest seed:** [`confirmGuestCharacter`](../../guestCharacter/index.ts) writes `DEFAULT_ROOM_STACK` only when `RoomStack` is absent, so a guest's ladder survives reconnect.
 
 ## `Meta::Character` field ownership

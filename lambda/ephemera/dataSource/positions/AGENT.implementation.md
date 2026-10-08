@@ -220,7 +220,7 @@ Objects lane callers use **`executeMembershipTransfer`** ([`manipulation/members
 
 ## Eviction ladder (`RoomStack` storage)
 
-Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder) --- character-local state for **legal placement** under asset access. Contract: [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage).
+Concept and write-side maintenance: [`characters/AGENT.md` --- Eviction ladder](../characters/AGENT.md#eviction-ladder). Contract (read/routing side only): [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage). This section covers only what positions itself does: resolve legal placement and route a relocation.
 
 | Concern | Location |
 | --- | --- |
@@ -228,20 +228,13 @@ Concept: [**Eviction ladder**](AGENT.concepts.md#eviction-ladder) --- character-
 | **Legal placement: connect (from nowhere)** | [`characters/roomStack/trimPersistCharacterRoomStack.ts`](../characters/roomStack/trimPersistCharacterRoomStack.ts) + [`membership/resolveConnectTargetRoom.ts`](manipulation/membership/resolveConnectTargetRoom.ts) -> [`orchestrateCharacterRoomMembership`](manipulation/membership/orchestrateCharacterRoomMembership.ts) |
 | **Legal placement: asset visibility (from illegal room)** | [`membership/repairCharacterLegalPlacement.ts`](manipulation/membership/repairCharacterLegalPlacement.ts) -> [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts) when in play (future asset-visibility ingress; **`CheckLocation`** bus retired) |
 | **Occupancy drift repair** | [`membership/repairRoomOccupancyDrift.ts`](manipulation/membership/repairRoomOccupancyDrift.ts) --- consumes **`Room Occupancy Drift Finding`**; ghost disconnect via `orchestrateCharacterMove`; adjacency-only via [`syncMembershipAdjacency.ts`](manipulation/membership/syncMembershipAdjacency.ts) |
-| **Ladder maintenance on navigate** | [`characters/roomStack/membershipRoomStack.ts`](../characters/roomStack/membershipRoomStack.ts) algorithm + [`characters/roomStack/persistRoomStackNavigate.ts`](../characters/roomStack/persistRoomStackNavigate.ts) async persist via [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts)'s parallel tail (not kernel transact) |
-| **Navigate ladder merge (timestamp races)** | [`characters/roomStack/mergeRoomStack.ts`](../characters/roomStack/mergeRoomStack.ts) --- consumed by `persistRoomStackNavigate` |
-| **Disconnect: purge membership, retain ladder** | Coordinator + kernel --- graph/adjacency only; no navigate ladder persist |
+| **Ladder maintenance on navigate** | Owned by `mtw.ephemera.characters`, triggered asynchronously off the **`Character Moved`** bus fact rather than from any positions call site --- see [`characters/AGENT.md`](../characters/AGENT.md#ladder-maintenance) and [`handleCharacterMoved.ts`](../characters/handleCharacterMoved.ts) |
+| **Disconnect: purge membership, retain ladder** | Coordinator + kernel --- graph/adjacency only; no ladder write on disconnect (`to: null`) |
 | **Default root frame** | [`characters/roomStack/trimEvictionLadder.ts`](../characters/roomStack/trimEvictionLadder.ts) `DEFAULT_ROOM_STACK` --- shared by guest character, `CharacterMeta` cache fallback, and `normalizeRoomStack` (omits `timeWritten` = legacy 0) |
 
 **Not the eviction ladder:** [`../state/resolveAssetStackForRoom.ts`](../state/resolveAssetStackForRoom.ts) `resolveRoomAssetStackForRoom` --- room **render participation** order for WML merge (see concepts **Room asset stack**).
 
-**Navigate algorithm:** `membershipRoomStack` compares destination **asset chain** (shallowest accessible room participant, skipping sibling overlays not on the current ladder) to the stored ladder --- **extend** / **rewrite tail** / **fork** per [`AGENT.concepts.md`](AGENT.concepts.md#eviction-ladder).
-
-**Navigate persist:** after successful graph persist, [`orchestrateCharacterMove`](navigate/orchestrateCharacterMove.ts) runs `Promise.all([persistRoomStackNavigate, presentCharacterMove])`. Ladder writes use standalone `optimisticUpdate` with `mergeRoomStack` at `beatAnchorTime`; failures log and resolve. **Trim persist:** filter-only `optimisticUpdate` on `draft.RoomStack`; no merge. Normative rules: [`AGENT.contract.md` --- Eviction ladder](AGENT.contract.md#eviction-ladder-roomstack-storage).
-
-### Navigate ladder persist locking
-
-Navigate ladder `optimisticUpdate` fetches prior `RoomStack` from Dynamo inside the reducer (not `CharacterMeta` cache --- apply invalidates cache before the parallel tail). `CharacterMeta` remains valid for presentation fields on the pre-apply snapshot passed to orchestrate.
+**`orchestrateCharacterMove` no longer touches the ladder at all.** Through Slice 0 of the characters-data-source work it ran `Promise.all([persistRoomStackNavigate, presentCharacterMove])` after graph persist; that write moved to an async bus subscriber (`handleCharacterMoved`, triggered by the **`Character Moved`** fact `orchestrateCharacterRoomMembership`'s commit already streams), so `orchestrateCharacterMove` today just awaits `orchestrateCharacterRoomMembership` then `presentCharacterMove` in sequence --- see [`navigate/orchestrateCharacterMove.ts`](navigate/orchestrateCharacterMove.ts). Trim persist (connect, asset-loss repair) is unaffected: positions still calls [`trimPersistCharacterRoomStack`](../characters/roomStack/trimPersistCharacterRoomStack.ts) directly, synchronously, because that write decides the destination room before the move itself.
 
 ### Tests (eviction ladder)
 
@@ -249,10 +242,11 @@ Navigate ladder `optimisticUpdate` fetches prior `RoomStack` from Dynamo inside 
 | --- | --- |
 | [`characters/roomStack/membershipRoomStack.test.ts`](../characters/roomStack/membershipRoomStack.test.ts) | Extend, rewrite-tail, fork, circus-style overlay trim (incl. `timeWritten` preservation), `buildProposedRoomStackForNavigate` |
 | [`characters/roomStack/mergeRoomStack.test.ts`](../characters/roomStack/mergeRoomStack.test.ts) | Timestamp merge: out-of-order navigate, fork truncate, stale resurrection block, legacy rows |
-| [`characters/roomStack/persistRoomStackNavigate.test.ts`](../characters/roomStack/persistRoomStackNavigate.test.ts) | Navigate ladder persist reducer + merge + failure tolerance |
+| [`characters/handleCharacterMoved.test.ts`](../characters/handleCharacterMoved.test.ts) | Subscriber: navigate fact -> write, `to: null` -> no write, persist failure -> logged not thrown, duplicate delivery idempotence |
 | [`characters/roomStack/trimPersistCharacterRoomStack.test.ts`](../characters/roomStack/trimPersistCharacterRoomStack.test.ts) | Trim persist: survivor `timeWritten`, filter-only reducer, draft-at-write-time |
 | [`membership/repairCharacterLegalPlacement.test.ts`](manipulation/membership/repairCharacterLegalPlacement.test.ts) | Asset visibility trim, relocate, trim-only, forceMove, out-of-play trim-only |
 | [`membership/resolveConnectTargetRoom.test.ts`](manipulation/membership/resolveConnectTargetRoom.test.ts) | Connect target resolution + trim-only persist |
+| [`characterLadderConnectPayoff.integration.test.ts`](../characterLadderConnectPayoff.integration.test.ts) | Payoff: navigate into overlay room -> disconnect -> connect places there; overlay access lost -> connect places at canon frame, through the real bus subscription |
 
 ---
 
