@@ -101,17 +101,15 @@ const readLiveHosts = async (
  * Membership's half of `commitAttempt`'s per-action dispatch, given a step `commitAttempt`
  * has already grounded: checks the object's live host still matches the grounded `from` (a
  * drift/race no-op, as are zero or multiple current containers --- not repaired here),
- * and builds (not commits) the plan via the existing `planObjectMoveTransfer`. Labels are the
- * attempt's own, resolved once (`resolveNarrationLabels`); the op's `narration` input now only
- * gates the compiler's capture steps for the object family, since its copy is the sweep's.
+ * and builds (not commits) the plan via the existing `planObjectMoveTransfer`. The plan carries
+ * mutation steps only: the action's lines are its narration units, delivered by the sweep.
  */
 const buildMembershipFragment = async (
     actionId: string,
     change: TransferMembershipChange<GroundedReferent>,
     liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>,
     args: CommitAttemptArgs,
-    bundleId: string,
-    labels: AttemptNarrationLabels
+    bundleId: string
 ): Promise<ActionFragment | undefined> => {
     const entityId = change.object.groundedId
     const fromHostId = change.from.groundedId as EphemeraMembershipHostId
@@ -145,7 +143,6 @@ const buildMembershipFragment = async (
         fromHostId,
         toHostId,
         bundleId,
-        narration: { actorName: labels.actorName, labels: { [entityId]: labelForGroundedId(labels, entityId) } },
         // Containment: `planObjectMoveTransfer`/`buildObjectMoveOp`/
         // `compilePositionKernelOp` already thread this through to the establish step whose
         // `hostId` is always `toHostId` by construction --- no ancestry walk needed.
@@ -454,7 +451,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     const fragmentActionIds: string[] = []
     for (const { actionId, change } of grounded) {
         const fragment = change.primitive === 'transferMembership'
-            ? await buildMembershipFragment(actionId, change, liveHosts, args, bundleId, labels)
+            ? await buildMembershipFragment(actionId, change, liveHosts, args, bundleId)
             : await buildRelationalFragment(change)
         if (fragment === undefined) {
             console.error(`[mtw.ephemera.positions] commitAttempt: attempt refused: ${change.primitive} action could not be built`)

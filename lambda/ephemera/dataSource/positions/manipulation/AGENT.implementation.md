@@ -93,18 +93,15 @@ Call sites do not hand-build step lists. They emit an **abstract op** and [`comp
 
 | File | Role |
 | --- | --- |
-| [`kernel/compile/positionKernelOp.ts`](kernel/compile/positionKernelOp.ts) | `PositionKernelMoveOp`: `moved` (a bare entity id), `froms`, `to`, `bundleId`, `headerSlot`, optional `dissolvedEdges`, optional `narration` (`membershipMove` ingredients, or `template` fill values: `actorName` + a label per entity id) |
+| [`kernel/compile/positionKernelOp.ts`](kernel/compile/positionKernelOp.ts) | `PositionKernelMoveOp`: `moved` (a bare entity id), `froms`, `to`, `bundleId`, `headerSlot`, optional `dissolvedEdges`, optional `narration` (`membershipMove` ingredients; character moves only --- an object move carries none) |
 | [`kernel/compile/compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) | op -> `CompiledPositionKernelPlan { steps, slots }`. Owns bracket shape, capture-id generation, dissolve sequencing, and slot ordering. Builds no object-family copy |
 | [`kernel/compile/moveBundleSlotIds.ts`](kernel/compile/moveBundleSlotIds.ts) | `moveLeaveSlotId(hostId)` / `MOVE_ARRIVE_SLOT_ID` --- **host**-typed, so a character endpoint needs no cast |
 | [`kernel/compile/presenceBindingStepsForMove.ts`](kernel/compile/presenceBindingStepsForMove.ts) | `(movedId, froms, to)` -> the `removePresenceBinding` / `addPresenceBinding` pair for one move, on the mover's own root. **Renamed from `presencePortStepsForMove` in `42b1683e5`** (presenceNodes Slice 7a, PN-23) --- the step no longer carries a port record; `applyStepSequenceCore.ts` mints the presence NODE directly. **Removes fire unconditionally over `froms`; the add is gated on `to`**, so a departure to no host clears its stale binding rather than leaving one standing. **`compilePositionKernelOp` is its only caller** --- extracted so that every membership-transfer route populates presence bindings through one emitter, not per-caller. **Single-level by construction:** it addresses the mover's own host id and never descends into composition |
 
-Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRelation, ...presencePortSteps, ...captureTo, ...narrateLeave, ...narrateArrive]`; the non-narrating branch emits the same spine without the capture and narrate steps. **`establishRelation` runs *after* the transfer deliberately** --- placed before it, `findHostOf(moved)` would resolve against the old host. Three properties of this function are load-bearing and each is pinned by a test:
+Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRelation, ...presencePortSteps, ...captureTo, ...narrateLeave, ...narrateArrive]`; the non-narrating branch (every object move) emits the same spine without the capture and narrate steps. **`establishRelation` runs *after* the transfer deliberately** --- placed before it, `findHostOf(moved)` would resolve against the old host. Two properties of this function are load-bearing and each is pinned by a test:
 
 - **Capture ids are a pure function of `froms`/`to`**, never of narration content. That is what lets navigate compile the same op twice (pre- and post-commit) and have the two agree.
-- **Captures are emitted only when `op.narration` is present.** A non-narrating object-lifecycle move compiles to `[dissolve*, transfer]` and locks no extra hosts.
-- **Both bracket sides are emitted uniformly**, including the character-hosted side of an object move whose capture is structurally empty. The empty side is the *correct output of a uniform rule*, not a case to special-case away --- and the messageOrchestration fan-in's tolerance of unresolved slots is what makes it cost nothing.
-
-**Known debt: an object move's compiled captures are unread.** `planObjectMoveTransfer` still requires narration labels and `buildObjectMoveOp` turns them into a `template` narration input (`TemplateNarrationInput`), so the compiler still emits both bracket-side captures for every object move; but an attempt's audiences are resolved and captured by `commitAttempt`, and nothing reads these. They cost extra reads and locks on the move's own hosts, which the transfer locks anyway. Removing the input and its capture branch is open cleanup with no trigger; navigate's captures are unaffected.
+- **Captures are emitted only when `op.narration` is present.** An object move (lifecycle or take/drop/give) carries no narration, so it compiles to `[dissolve*, transfer, establish*, presence pair]` and locks no extra hosts. Take/drop/give's audiences are captured by `commitAttempt`'s own uniquely-minted steps, never by this compiler's fixed `capture:from:<host>` / `capture:to` ids --- two object moves in one attempt would otherwise collide on `capture:to`.
 
 `op.headerSlot` is caller-supplied and appears in `slots` unconditionally. The compiler does **not** branch on host kind to suppress a header: object routes pass `null`, so suppression is true by construction, and a host-kind branch would put the decision in the one place that cannot know whether a header applies.
 
@@ -243,7 +240,7 @@ Object-move routes (object take-hold / drop / give / containment)
     -> each facilitating dissolve action (listed before the move) -> planRelationalEdgeTransfer
     -> the move action -> planObjectMoveTransfer: containment-cycle check, then buildObjectMoveOp
        (dissolvedEdges = the mover's own containment strip only; no boundary classify)
-       -> PositionKernelMoveOp -> compilePositionKernelOp
+       -> PositionKernelMoveOp (no narration) -> compilePositionKernelOp (mutation steps only)
     -> commitAttempt.ts concatenates in action order -> dryRunStepSequence over the whole attempt
        (fresh snapshot); any non-legal verdict refuses with its reason code --- a boundary edge no
        action covers comes back repairable, and is refused, not repaired
@@ -347,10 +344,9 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 - Route-specific kernel wrappers over `commitStepSequence` (this recreates, one layer up, exactly the organization the unified kernel exists to retire).
 - Kernel prior-read via `getMembershipContainers`.
 - Parse-local persist forks for atomic object manipulation --- egress must route through a positions coordinator.
-- Hand-rolling a `{ kind: 'narrate' }` or `{ kind: 'capture' }` step at a call site instead of emitting an op (or, for an attempt, declaring a narration unit's audience). (The `build*MoveOp` modules legitimately construct `kind: 'membershipMove'` / `kind: 'template'` **narration-input** objects --- those are the op's *ingredients* (or labels), which is exactly what call sites are supposed to supply. It is the *steps* they must not spell out.)
+- Hand-rolling a `{ kind: 'narrate' }` or `{ kind: 'capture' }` step at a call site instead of emitting an op (or, for an attempt, declaring a narration unit's audience). (`buildCharacterMoveOp` legitimately constructs `kind: 'membershipMove'` **narration-input** objects --- those are the op's *ingredients*, which is exactly what call sites are supposed to supply. It is the *steps* they must not spell out.)
 - Threading capture hosts into the footprint by hand, or reintroducing capture as a side-table. This fails late and selectively: navigate happens to work because its move already locks both rooms.
 - "Fixing" a missing capture by defaulting `captures` to an empty map, or by making an unresolvable `captureId` fall back to a room target.
-- Suppressing the structurally-empty bracket side of an object move. The empty side is the correct output of a uniform rule; two tests exist specifically to make deleting it expensive.
 
 ---
 

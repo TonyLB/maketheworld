@@ -12,7 +12,6 @@ const CHANDELIER_ID = 'OBJECT#Chandelier' as EphemeraObjectId
 const ROOM_ID = 'ROOM#TownSquare' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#alpha' as EphemeraCharacterId
 
-const narration = { actorName: 'Alice', labels: { [TRAY_ID]: 'tray' } }
 
 /**
  * Take/drop/give's `planObjectMoveTransfer`: the containment-cycle refusal, and the move's own
@@ -34,16 +33,14 @@ describe('planObjectMoveTransfer', () => {
                 fromHostId: ROOM_ID,
                 toHostId: CHARACTER_ID,
                 bundleId: 'BUNDLE#test',
-                narration,
                 getGraph,
             })
 
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a legal plan') }
-            // Captures are still built for the `template` family; narrate steps are not (slice 3
-            // moved them to `commitAttempt.ts`'s post-commit narration-unit sweep).
+            // Mutation steps only: the move's audiences are `commitAttempt.ts`'s to resolve and capture.
             expect(result.plan.steps.map((step) => step.kind)).toEqual([
-                'capture', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding', 'capture',
+                'transferMembership', 'removePresenceBinding', 'addPresenceBinding',
             ])
             expect(result.fromHostId).toBe(ROOM_ID)
         })
@@ -68,7 +65,6 @@ describe('planObjectMoveTransfer', () => {
                 fromHostId: ROOM_ID,
                 toHostId: CHARACTER_ID,
                 bundleId: 'BUNDLE#test',
-                narration,
                 getGraph,
             })
 
@@ -94,7 +90,6 @@ describe('planObjectMoveTransfer', () => {
                 fromHostId: CHARACTER_ID,
                 toHostId: TRAY_ID,
                 bundleId: 'BUNDLE#test',
-                narration,
                 containment: 'On',
                 getGraph,
             })
@@ -118,7 +113,6 @@ describe('planObjectMoveTransfer', () => {
                 fromHostId: TRAY_ID,
                 toHostId: TRAY2_ID,
                 bundleId: 'BUNDLE#test',
-                narration,
                 containment: 'On',
                 getGraph,
             })
@@ -144,7 +138,6 @@ describe('planObjectMoveTransfer', () => {
                 fromHostId: TRAY_ID,
                 toHostId: CHARACTER_ID,
                 bundleId: 'BUNDLE#test',
-                narration,
                 getGraph,
             })
 
@@ -173,7 +166,6 @@ describe('planObjectMoveTransfer', () => {
                 fromHostId: ROOM_ID,
                 toHostId: CUP_ID,
                 bundleId: 'BUNDLE#test',
-                narration,
                 containment: 'On',
                 getGraph,
             })
@@ -190,7 +182,6 @@ describe('planObjectMoveTransfer', () => {
                 fromHostId: ROOM_ID,
                 toHostId: TRAY_ID,
                 bundleId: 'BUNDLE#test',
-                narration,
                 containment: 'On',
                 getGraph,
             })

@@ -148,10 +148,11 @@ describe('compilePositionKernelOp', () => {
 })
 
 /**
- * Phase 4: take/drop/give compile through this same `Move` case --- no sibling `Take`/`Drop` op, no
- * structural branch. **This compiler builds no `template`-family narrate steps**: an object move's
- * lines are its attempt's authored narration units, delivered by `commitAttempt.ts`'s post-commit
- * sweep, so this compiler builds only the family's (now unread) *captures*; see `commitAttempt.test.ts` for the observable (published-message) regression pin.
+ * Take/drop/give compile through this same `Move` case --- no sibling `Take`/`Drop` op, no
+ * structural branch. An object move carries no narration: its lines are its attempt's authored
+ * narration units, whose audiences `commitAttempt.ts` resolves and captures itself, so this compiler
+ * builds no captures, narrate steps or slots for it; see `commitAttempt.test.ts` for the observable
+ * (published-message) regression pin.
  */
 describe('compilePositionKernelOp --- object moves', () => {
     const TRAY = 'OBJECT#Tray' as EphemeraObjectId
@@ -164,25 +165,15 @@ describe('compilePositionKernelOp --- object moves', () => {
         bundleId: 'BUNDLE#test',
         headerSlot: null,
         dissolvedEdges: [],
-        narration: {
-            kind: 'template',
-            actorName: 'Tess',
-            labels: { [TRAY]: 'tray' },
-        },
         ...overrides,
     })
 
-    it('builds captures for both bracket sides, but no narrate steps or slots, for the template family', () => {
+    it('compiles an object move to mutation steps only: no captures, narrate steps or slots', () => {
         const plan = compilePositionKernelOp(objectOp())
 
-        // The character-inventory side's capture still snapshots an empty roster --- captures
-        // stay built for both sides regardless of narration family, since a later audience
-        // (an authored narration unit) still needs a roster to read. No narrate step/slot exists any more
-        // for this family: delivery is `commitAttempt.ts`'s job now.
         expect(plan.steps.map((step) => step.kind)).toEqual([
-            'capture', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding', 'capture',
+            'transferMembership', 'removePresenceBinding', 'addPresenceBinding',
         ])
-        expect(plan.steps.filter(isNarrateStep)).toHaveLength(0)
         expect(plan.slots).toEqual([])
     })
 
@@ -217,9 +208,8 @@ describe('compilePositionKernelOp --- object moves', () => {
         })
     })
 
-    it('still emits dissolves for a non-narrating move, but no captures', () => {
+    it('emits the dissolves, transfer and presence pair, and nothing else', () => {
         const plan = compilePositionKernelOp(objectOp({
-            narration: undefined,
             dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
         }))
 

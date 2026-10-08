@@ -205,11 +205,9 @@ export type MembershipNarrationSpec = {
  * `actorName` is separate from `labels` because the actor is the narration's own slot (later the
  * key for role variants), not an entity the template happens to mention.
  *
- * **No `direction`, deliberately.** The compiler emits both bracket sides for an object move exactly
- * as it does for a character move (never special-case the character-hosted side), but a
- * character's inventory graph has no roster, so exactly one of the two narrate steps ever has an
- * audience. The same template renders correctly on both sides, and the empty side simply publishes
- * to nobody.
+ * **No `direction`, deliberately.** Which side of an action a line is heard from is its audience's
+ * phase (`before`/`after`), which chooses the capture the step reads; the copy itself is the same
+ * either way. An empty captured roster simply publishes to nobody.
  *
  * Parts come from whatever created the action (Plan's templates, Expansion), never from the
  * delta; see `narrationTemplate.ts` for the fill.

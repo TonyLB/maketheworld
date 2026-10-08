@@ -13,7 +13,6 @@ export type PlanObjectMoveTransferArgs = {
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
     bundleId: string
-    narration: { actorName: string; labels: Record<string, string> }
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
     /** injectable for test seams only. */
@@ -55,7 +54,6 @@ export const planObjectMoveTransfer = async (
         fromHostId: args.fromHostId,
         toHostId: args.toHostId,
         bundleId: args.bundleId,
-        narration: args.narration,
         ...(args.containment ? { containment: args.containment } : {}),
     }
 
