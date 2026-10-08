@@ -1,10 +1,8 @@
 # Positions --- concepts and vocabulary
 
-This file records **mental models and vocabulary** for `mtw.ephemera.positions` --- what positions **mean** in the game world, not how we migrate or wire code. Normative obligations for shipped behavior: [`AGENT.contract.md`](AGENT.contract.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
+This file records **mental models and vocabulary** for `mtw.ephemera.positions` --- what positions **mean** in the game world. Rules: [`AGENT.contract.md`](AGENT.contract.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md).
 
-**New to this area? Read [`AGENT.ludicNetwork.md`](AGENT.ludicNetwork.md) first.** The entries below preserve their reasoning and corrections in place, by design; that file states the current shape once, in present tense, so these entries read as commentary rather than as history to reassemble.
-
-Cross-area topology authoring (Area `ludicGraph`, Exit edges): [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md).
+**New to this area? Read [`AGENT.ludicNetwork.md`](AGENT.ludicNetwork.md) first.** It walks the ludic network once, with one running example. This file is the reference it points into.
 
 ---
 
@@ -12,22 +10,22 @@ Cross-area topology authoring (Area `ludicGraph`, Exit edges): [`packages/mtw-wm
 
 | Term | Meaning |
 | --- | --- |
-| **Ludic graph** | One host's shard of the world: `{ rootId, nodes, edges, ports }` --- the host's own node as **root**, its member **nodes** (components, plus presence nodes), typed **relational edges** between them, and the **crossing ports** through which the outside reaches in. Every host kind stores the same shape. Same node/edge pattern as Area `ludicGraph` in WML. Orientation: [`AGENT.ludicNetwork.md`](AGENT.ludicNetwork.md) |
+| **Ludic graph** | One host's shard of the world: `{ rootId, nodes, edges, ports }` --- the host's own node as **root**, its member **nodes** (components, plus presence nodes), typed **relational edges** between them, and the **crossing ports** through which the outside reaches in. Every host kind stores the same shape, the same node/edge pattern as Area `ludicGraph` in WML |
 | **Host** | A component that stores a `ludicGraph`: Room, Character, Object, Feature, Area. That a kind can host says nothing about where it sits in a containment ladder |
-| **Graph role** | Which question a graph instance answers and **who may mutate it** --- see [Graph roles](#graph-roles-shared-shape-different-authority). Same shape, different authority boundary. |
+| **Graph role** | Which question a graph instance answers and **who may mutate it** --- see [Graph roles](#graph-roles-shared-shape-different-authority). Same shape, different authority boundary |
 | **Scale** | Which host's graph a statement is made in. The same object is a member at its container's scale and a root at its own; truth may differ between scales and both be correct ([Wholes, parts, and ports](#wholes-parts-and-ports)) |
 | **Port / crossing port** | A single-use boundary slot a host publishes; a relation crossing the boundary is stored as **legs** in each graph meeting at a crossing port, addressed as `{ owner, port }`. See [Wholes, parts, and ports](#wholes-parts-and-ports) |
 | **Presence node / cover** | One node per way a hosted thing is present in a host (at least one per host), carrying `fromHostId` and a `cover` --- the subset of the thing's own nodes present there. See [Presence as a cover](#presence-as-a-cover) |
-| **`ludicCache`** | A derived, attention-scoped read structure folding several shards into one graph from one host's viewpoint; a hit returns a handle, never a subgraph. Prototype --- [`ludicCache/types.ts`](ludicCache/types.ts) |
-| **Authored graph** | Blueprint / asset truth merged at participation order (WML `StandardArea.ludicGraph`, future `StandardRoom.ludicGraph`). |
-| **Play graph** | Ephemera runtime mutations: who is in which room **now**, object placement in play, etc. |
-| **Projection** | A **read model** derived from a graph for one consumer (exits for nav, roster for affordance WML, etc.). Projections are filters, not the graph. |
-| **Positions lane** | `mtw.ephemera.positions` --- ephemera authority for **play-time** position truth and the mutations that maintain it. |
-| **Character presence** | At play time, which **room** a character occupies and who shares that room --- distinct from Area **authored** participation or exit topology. |
-| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster). Shipped: **Character node** in that room's **`ludicGraph`**; reverse via **adjacency index**. Roster display hydrates at read time. |
-| **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access --- trim inaccessible outer frames; surviving top frame is the proposed membership room. Kept in **trim-ready shape** on navigate so resolution is a straight-line pop, not a reconstruction. Stored as **`Meta::Character.RoomStack`** (rename to match vocabulary may follow). See [Eviction ladder (shipped)](#eviction-ladder). |
-| **Room asset stack** | Which assets **participate in composing** a room's WML at render time (participation order on **`Meta::Room`**). Answers a **render merge** question --- not where the character **is**, and not the eviction ladder. |
-| **`EphemeraLudicGraph`** | Host-bound in-memory play manipulation model (class in [`ludicGraph/`](ludicGraph/)); sole ephemera primitive for membership + relational simulation after read-boundary assembly. |
+| **`ludicCache`** | A derived, attention-scoped read structure folding several shards into one graph from one host's viewpoint; a hit returns a handle, never a subgraph. See [`ludicCache`](#ludiccache-the-attention-scoped-read-structure) |
+| **Authored graph** | Blueprint / asset truth merged at participation order (WML `StandardArea.ludicGraph`) |
+| **Play graph** | Ephemera runtime state: who is in which room **now**, object placement in play, relations between things |
+| **Projection** | A **read model** derived from a graph for one consumer (exits for nav, roster for affordance WML). Projections are filters, not the graph |
+| **Positions lane** | `mtw.ephemera.positions` --- ephemera authority for **play-time** position truth and the mutations that maintain it |
+| **Character presence** | At play time, which **room** a character occupies and who shares that room --- distinct from Area **authored** participation or exit topology |
+| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster): a **Character node** in that room's `ludicGraph`, with a reverse **adjacency** row. Roster display hydrates at read time |
+| **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access. See [Eviction ladder](#eviction-ladder) |
+| **Room asset stack** | Which assets **participate in composing** a room's WML at render time (participation order on `Meta::Room`). Answers a **render merge** question --- not where the character **is**, and not the eviction ladder |
+| **`EphemeraLudicGraph`** | The host-bound, immutable in-memory model of one ludic graph; the sole ephemera primitive for simulating membership and relational change |
 
 ---
 
@@ -38,11 +36,11 @@ The `{ nodes, edges }` pattern recurs across the system. **Graph** names a truth
 | Graph role | Question | Authoritative writer | Steady-state example |
 | --- | --- | --- | --- |
 | **Authored blueprint** | What did we **design**? | Assets / WML merge | Area `ludicGraph` (Exit edges, macro layout) |
-| **Play manipulation** | Where is everyone **now**? | `mtw.ephemera.positions` | `Meta::<Kind>.ludicGraph` (any membership host kind) + adjacency index; simulated via **`EphemeraLudicGraph`** |
+| **Play manipulation** | Where is everyone **now**? | `mtw.ephemera.positions` | `Meta::<Kind>.ludicGraph` (any host kind) + adjacency index |
 | **Materialized presentation** | What does this **consumer** see at this perspective? | Consumer-specific materialization (e.g. affordanceCache) | `Affordance::` row `topology.exits` |
 | **Ephemeral presentation** | What is the **wire-ready** view at read time? | Ephemera compose (cross-cache) | Hydrated roster in `AffordanceRoomDeliverable` |
 
-**Invariant:** membership truth does not define exits; exit truth does not imply roster membership. Consumers that need several views compose **separate projections** --- see [Three play-time questions](#three-play-time-questions) and [`internalCache/AGENT.md`](../../internalCache/AGENT.md) (exit vs membership presentation pipelines).
+**Invariant:** membership truth does not define exits; exit truth does not imply roster membership. Consumers that need several views compose **separate projections** --- see [Three play-time questions](#three-play-time-questions) and [`internalCache/AGENT.md`](../../internalCache/AGENT.md).
 
 ### Type boundary (storage vs gateway read envelope)
 
@@ -50,129 +48,269 @@ Five names, five roles --- same `{ nodes, edges }` shape, different **authority*
 
 | Type | Layer | Role |
 | --- | --- | --- |
-| **`EphemeraLudicGraphFieldPayload`** | Dynamo `Meta::*.ludicGraph` attribute | Stored attribute; Character + Object **identity** nodes; `hostId` omitted (row `EphemeraId` is authoritative) |
-| **`EphemeraLudicGraphData`** | `@tonylb/mtw-interfaces` | Manipulation JSON with **`hostId`**; `toJSON()` / read-boundary assemble shape |
-| **`EphemeraLudicGraph`** | [`lambda/ephemera/.../ludicGraph/`](ludicGraph/) | Host-bound manipulation **class**; immutable simulation API |
-| **`PlayLudicGraph`** | `@tonylb/mtw-gateways` | Topology-only **authored** projection (alias of `StandardLudicGraphData`); `toPlayEnvelope`'s output, **not** a read envelope |
-| **`StandardLudicGraph`** | `@tonylb/mtw-wml` | Authored blueprint (Exit-only v1; asset merge authority) |
+| **`EphemeraLudicGraphFieldPayload`** | Dynamo `Meta::*.ludicGraph` attribute | Stored attribute; `hostId` omitted (the row's `EphemeraId` is authoritative) |
+| **`EphemeraLudicGraphData`** | `@tonylb/mtw-interfaces` | Manipulation JSON, with `hostId` |
+| **`EphemeraLudicGraph`** | ephemera positions | Host-bound manipulation **class**; immutable simulation API |
+| **`PlayLudicGraph`** | `@tonylb/mtw-gateways` | Topology-only **authored** projection; **not** a read envelope |
+| **`StandardLudicGraph`** | `@tonylb/mtw-wml` | Authored blueprint (asset merge authority) |
 
-**Data flow:** Dynamo field + row PK -> `fromFieldPayload` -> **`EphemeraLudicGraph`** -> simulate -> `toStored()` persist. The cache path is the *same* pair: **`internalCache.Positions.getLudicGraph`** memoizes `EphemeraLudicGraphFieldPayload` and rehydrates via **`fromFieldPayload`**; **`set`** stores **`toStored()`**. Module detail: [`ludicGraph/AGENT.md`](ludicGraph/AGENT.md).
+**Live state travels only as the stored payload.** A stored attribute is hydrated into the manipulation class, simulated, and written back as a stored attribute; the cache memoizes that same stored payload. The authored projection cannot express runtime-minted structure --- ports, the root designation, non-character nodes --- so routing live state *through* it silently drops that structure. An authoring-shaped type on the operational read path is a defect, not a design.
 
-**Corrected 2026-09-03 --- the cache used to read through `fromPlayEnvelope`.** Routing live state through the authored shape dropped `ports` (and `rootId`, and Room/Feature/Area nodes) on every read *and* every `set`. Ports are runtime-minted with no authored counterpart, so this was unfixable within that type: crossing dissolution saw no ports anywhere and silently declined. **Only ever cache the stored payload here.** An authoring-shaped type on the operational read path is the defect, not the design.
+Roster **display** (`DisplayName`, `SessionIds`, ...) is hydrated at read time from character records, never stored on the graph: the graph holds topology ids only.
 
-Roster **display** (`DisplayName`, `SessionIds`, ...) hydrates at read time via ephemera **`getRoomCharacterList`** ([`../../internalCache/hydrateRoomRoster.ts`](../../internalCache/hydrateRoomRoster.ts)) --- topology ids from **`Positions.getLudicGraph`** -> **`graph.characterIds`**, display from **`CharacterMeta`** + **`CharacterSessions`**, not from stored `ludicGraph` nodes. Ephemera **`Positions.set(graph)`** seeds memo from coordinator **`postApplyGraphs`** after membership apply; roster is never cached on the graph envelope.
+#### WML convergence
 
-#### WML convergence (future)
-
-Relational edge **wire types** should stay aligned between **`EphemeraLudicRelationalEdgeData`** (stored play JSON) and future WML **`Relational`** tag members (BD-2/BD-3). **Authority** stays separate: WML **`StandardLudicGraph`** owns authored blueprint and seed/snapshot import; **`EphemeraLudicGraph`** owns live play mutation. Adapters (`toPlayEnvelope`, future `fromWML`) are the seam --- do not merge classes or Dynamo write paths. **The seam is opt-in, not a transit layer** (2026-09-03): a caller that wants the authored shape projects into it explicitly; nothing on the read or memo path may route live state *through* it, since the authored type cannot express runtime-minted structure (`ports`) and silently drops it. Future WML **`EdgeList`** consolidation is deferred until heterogeneous room/container edge lists ship in mtw-wml.
+Relational edge **wire types** stay aligned between the stored play edge (`EphemeraLudicRelationalEdgeData`) and WML's `Relational` tag members. **Authority** stays separate: WML `StandardLudicGraph` owns the authored blueprint and seed/snapshot import; `EphemeraLudicGraph` owns live play mutation. Adapters are the seam, and the seam is **opt-in, not a transit layer**: a caller that wants the authored shape projects into it explicitly, and nothing on the read or memo path routes live state through it. Classes and Dynamo write paths do not merge.
 
 **Cross-links:** gateway handler scope --- [`packages/mtw-gateways/ts/ephemera/positions/AGENT.md`](../../../../packages/mtw-gateways/ts/ephemera/positions/AGENT.md); authored exit topology --- [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md); compose paths --- [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md). Normative scope: [`AGENT.contract.md`](AGENT.contract.md#scope-of-authority-manipulation-vs-presentation).
 
 ---
 
-## Shipped mental model (aligned with play truth today)
+## World model
 
-**Order: world model first, then process.** Sections up to [Three play-time questions](#three-play-time-questions) describe what is stored and what it means; sections from [Manipulation layering](#manipulation-layering-membership-transfer) onward describe how it is mutated and presented. Read the first group before the second.
+What is stored and what it means. Read this before [Process](#process).
 
 ### Room play graph + adjacency reverse index
 
-**The stance:** the room play graph and its reverse adjacency index are the **sole authority** for play membership. The legacy projections --- **`Meta::Room.activeCharacters`** and **`Meta::Character.RoomId`** --- are neither written nor read as truth. Anything that needs "who is in this room" derives it from the graph; anything that needs "what room is this character in" reads adjacency. Nothing reconstructs membership from a stored projection, and nothing writes one back.
+**The stance:** the room play graph and its reverse adjacency index are the **sole authority** for play membership. The legacy projections --- `Meta::Room.activeCharacters` and `Meta::Character.RoomId` --- are neither written nor read as truth. Anything that needs "who is in this room" derives it from the graph; anything that needs "what room is this character in" reads adjacency. Nothing reconstructs membership from a stored projection, and nothing writes one back.
 
-This is why several rules downstream look redundant but are not: forward reads must return empty topology rather than fall back to `activeCharacters`, reverse reads must consult adjacency rather than a stored `RoomId`, and roster *display* fields must be hydrated at read time rather than persisted alongside membership. Each is the same stance applied at a different surface.
+This is why several contract rules look redundant but are not: forward reads return empty topology rather than fall back to `activeCharacters`, reverse reads consult adjacency rather than a stored `RoomId`, and roster *display* fields hydrate at read time rather than persist alongside membership. Each is the same stance applied at a different surface.
 
-At play time, room membership is stored as a **room play graph** plus a **reverse adjacency index**:
+- Each room hosts `Meta::Room.ludicGraph` --- character and object **nodes**, plus in-host **relational edges**. `HostRelationalEdgeKind` has four values: the hosting kinds `On`, `In`, `PartOf`, and the peer kind `Custom` (see *Hosting kind / peer kind* under [Wholes, parts, and ports](#wholes-parts-and-ports)). A presence binding is a node, never an edge kind ([Presence as a cover](#presence-as-a-cover)).
+- Each character and each placed object has **adjacency rows** (`CHARACTER#` / `OBJECT#` PK, `POSITION#<host>` SK) pointing at its host(s).
 
-- Each room hosts **`Meta::Room.ludicGraph`** --- character and object **nodes**, plus in-host **relational edges**. The shipped `HostRelationalEdgeKind` is **four values**: hosting kinds `On`, `In`, `PartOf`; peer kind `Custom`. ~~and the partitioning kind `Present`, which fronts a presence binding rather than connecting node to node~~ **--- `'Present'` retired from this union 2026-09-16 (presenceNodes Slice 3, PN-14): a presence binding is a graph node with its own `cover` field, never an edge kind** (the *Hosting kind / peer kind* and *Presence node* entries under [Wholes, parts, and ports](#wholes-parts-and-ports), and [Presence as a cover](#presence-as-a-cover)).
-- Each character has **adjacency rows** (`CHARACTER#` PK, `POSITION#ROOM#...` SK) pointing at host room(s).
-- Each object has **adjacency rows** (`OBJECT#` PK, `POSITION#ROOM#...` SK) pointing at host room(s) when placed (**I5**).
-- **Roster display** is hydrated at read time from **`CharacterMeta`** + **`CharacterSessions`** --- not stored on the room row.
+**Room is the worked example, not the only host.** The same forward-graph shape is stored on every host kind as `Meta::<Kind>.ludicGraph`, through one shared serde --- see [Host storage](AGENT.contract.md#host-storage-one-shared-serde-one-documented-exception). **This says nothing about which kinds are levels in a part-of ladder**: that a kind can host a graph is an inventory fact, not a structure claim (see the room-boundary warning under [Wholes, parts, and ports](#wholes-parts-and-ports)).
 
-**Room is the worked example here, not the only host.** The same forward-graph shape is stored on every membership host kind as **`Meta::<Kind>.ludicGraph`** (Room, Character, Object, Feature, Area), through one shared serde --- see [Host storage](AGENT.contract.md#host-storage-one-shared-serde-one-documented-exception). Room's `activeCharacters` reconstruction fallback is the one host-side irregularity. **This says nothing about which kinds are levels in a part-of ladder** --- that a kind can host a graph is an inventory fact, not a structure claim (see the [wholes/parts warning](#wholes-parts-and-ports)).
+A character appears in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency rows and repaired by an end-state move. Objects follow the same steady-state rule; multi-room object adjacency is drift.
 
-A character should appear in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency array and repaired by end-state apply. Objects follow the same steady-state rule (nodes only); multi-room object adjacency is drift repaired via [`repairObjectPlacementDrift`](manipulation/membership/repairObjectPlacementDrift.ts).
-
-**A separate, narrower two-lists question sits at the WML authoring layer, not this one.** `StandardRoom` in `packages/mtw-wml` carries its own authored `<Character>` reference list (`_characters`) independent of `ludicGraph.nodes`'s `CHARACTER#` entries --- WML's authoring surface has not been through the same graph-is-sole-authority pass this section describes for the play graph. `componentLudicGraphAlignment`'s Slice 5 (LG-2) retired the WML-layer's analogous `_objects` field in favor of deriving object membership from `ludicGraph` directly; whether `_characters` should follow the same path, or whether the authored/runtime asymmetry is intentional, is forwarded (not resolved) as a cross-reference near [`AGENT.presence.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.presence.planning.md)'s PR-6.
+**WML's authoring layer has a narrower two-lists question of its own.** `StandardRoom` derives object membership from its `ludicGraph`, but still carries an authored character reference list independent of the graph's `CHARACTER#` nodes. Whether that authored/runtime asymmetry is intentional is open.
 
 ### Object room placement (nodes only)
 
-Improvisational **`OBJECT#`** placement is **positions-owned** play manipulation:
+Improvisational `OBJECT#` placement is **positions-owned** play manipulation:
 
-- **Existence** (improvisation pair + **`Meta::Object`**) lives on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md)).
-- **Where** the object is in play: **`Object`** node on the delivery room **`ludicGraph`** + **`OBJECT#`** adjacency row (**I5**).
-- **Spawn + place:** existence on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md#improvisation-storage)); initial room placement via `executeMembershipTransfer` ([`manipulation/membership/executeMembershipTransfer.ts`](manipulation/membership/executeMembershipTransfer.ts)) from the objects two-step coordinator ([`spawnOneImprovisationObject`](../objects/spawnImprovisationObjectsBatch.ts)).
-- **Place / remove:** `executeMembershipTransfer` end-state apply; emits **`Object Moved`** on **`mtw.ephemera.positions`** (**I4**).
-- **In-host relational edges:** [`manipulation/relational/`](manipulation/relational/) coordinators build relational steps for the kernel; emits **`Object Relation Changed`**. Containment (`in` / inside) deferred to a future nesting operator.
-- Existence lane, Coyote snapshots, and affordance compose: see [`../objects/AGENT.md`](../objects/AGENT.md).
+- **Existence** (improvisation pair + `Meta::Object`) lives on the objects lane ([`../objects/AGENT.md`](../objects/AGENT.md#improvisation-storage)).
+- **Where** the object is in play: an `Object` node on its host's `ludicGraph`, plus an `OBJECT#` adjacency row.
+- **Spawn** creates existence on the objects lane, then places the object as a second, separate step. **Place, remove and drift repair** are administrative moves; each publishes `Object Moved`.
+- **In-host relations** are relational steps committed through the kernel; each publishes `Object Relation Changed`. Containment (`in`, `on`) is not a relational step but a move into the container's own graph ([Object-hosted graph](#object-hosted-graph)).
 
-### Character inventory graph (D16; object nodes only)
+### Character inventory graph
 
-Held-object inventory is **positions-owned** play manipulation on the character host:
+Held objects are **positions-owned** play manipulation on the character host: an optional `Meta::Character.ludicGraph` of the same shared shape, holding `Object` nodes, with a `POSITION#CHARACTER#...` adjacency row for each. A held object's membership host is the character, so a reverse read of the object may return a `CHARACTER#` host. An `In` on a character means possession.
 
-- **Storage:** optional **`Meta::Character.ludicGraph`** --- same **`EphemeraLudicGraphFieldPayload`** shape as room hosts; v1 **Object** nodes only.
-- **Reverse index:** **`OBJECT#`** PK + **`POSITION#CHARACTER#...`** SK when held by a character.
-- **Read:** **`internalCache.Positions.getLudicGraph(characterId)`** (forward); **`getMembershipContainers(objectId)`** may return **`CHARACTER#`** hosts.
-- **Persist primitives:** [`manipulation/kernel/`](manipulation/kernel/) --- character-host graph + adjacency transact items via `commitStepSequence`.
-- **Cross-host apply:** [`manipulation/membership/planObjectMoveTransfer.ts`](manipulation/membership/planObjectMoveTransfer.ts) (3d, 2026-09-08, replacing `executeMembershipTransfer`'s retired `honorDefer: true` mode) --- one atomic remove-from-host + add-to-host for **either** direction, taking a **host pair** rather than a verb or an acting character. Since 2026-09-07 it classifies the boundary directly (`boundaryEdgeOutcomes`/`classifyInteractionUnderTransfer`, folded into `buildObjectMoveOp`'s own compile-time derivation as of 3d) and commits through the kernel, with no Synthesize-executor detour --- **no** new `update*LudicGraphs` fork. `takeHold` is `(ROOM# -> CHARACTER#)`, `drop` is the reverse, and `give` would be `(CHARACTER# -> CHARACTER#)` with no new machinery. Note: `buildObjectMoveOp` deriving `dissolvedEdges` from a graph handed to it was a step toward "compiled from abstract operations, never hand-built per call site," made true by 3e (2026-09-08), which gave the diff a single upstream owner for every route --- see [Abstract op and compiled step](#abstract-op-and-compiled-step-two-levels) below. See [Intent vs. world-effect](#intent-vs-world-effect).
+Take, drop and give are one world-effect: a move of an object between a **host pair**, with no verb and no acting character at execute time --- `takeHold` is `(ROOM# -> CHARACTER#)`, `drop` the reverse, `give` `(CHARACTER# -> CHARACTER#)`. See [Intent vs. world-effect](#intent-vs-world-effect).
 
-### Object-hosted graph (MK2; storage only)
+### Object-hosted graph
 
-An **`Object`** can itself host a **`ludicGraph`**, the same shared plain shape as the character inventory graph above (MD-1(c)):
-
-- **Storage:** optional **`Meta::Object.ludicGraph`** --- identical **`EphemeraLudicGraphFieldPayload`** shape; empty when absent, no reconstruction source.
-- **Read:** **`internalCache.Positions.getLudicGraph(objectId)`** (forward), backed by **`getObjectLudicGraphFromDynamo`**.
-- **Persist primitives:** same **`manipulation/kernel/`** `commitStepSequence` path as Room/Character, dispatched via `hostDataCategory`/`graphFromMeta`'s `Meta::Object` branch.
-- **Wired since CD2h (2026-08-31) for `On`, and since nestedObjectLook (2026-09-22) for `In`:** `put cup on table` is exactly this --- [`executeMembershipTransfer.ts`](manipulation/membership/executeMembershipTransfer.ts)'s `containment` argument drives a transferMembership step targeting the table (an Object host) followed by `compilePositionKernelOp`'s `establishRelation(moved -> destination root, 'On')`, both against the same Object host. **Corrected 2026-09-03 (and corrected again the same day after the first correction repeated the same stale claim it was fixing):** this bullet previously said "not yet wired," which predates CD2h and is stale. ~~`In`/`PartOf` remain unwired --- CD2h deliberately scoped to `On` only.~~ **Corrected 2026-09-23:** `In` is wired too. `compilePositionKernelOp` forwards whichever hosting kind the op carries, and *put cup in box* reaches it through `ObjectContainment`. `PartOf` has no player phrase, by design. **`Object Moved`'s `froms`/`to` endpoints are not Room/Character-only either** --- `ObjectMovedPublishedPayload`'s type and its guard (`isObjectMovedPublishedPayload`, [`publishedEvents.ts`](publishedEvents.ts)) have always been the full `EphemeraMembershipHostId` union, validated against `isEphemeraMembershipHostId`/`isObjectMembershipEndpoint`, not a Room/Character-narrowed check; `put cup on table` is the first live producer that actually exercises an `OBJECT#` value there, confirmed by reading `factsForStep.ts` (derives the fact's `to` directly from the step's own `toHostId`, no host-kind filtering). See the corrected line in [`AGENT.contract.md`](AGENT.contract.md).
+An `Object` can itself host a `ludicGraph` of the same shared shape (`Meta::Object.ludicGraph`, empty when absent). `put cup on table` is a move of the cup into the table's graph plus the cup's own `On` edge to the table's root; `put cup in box` is the same with `In`. `PartOf` has no player phrase: parts come from authored structure or reasoning. `Object Moved`'s endpoints are any host kind, so an object placed on another object reads back an `OBJECT#` host.
 
 ### Three play-time questions
 
 Area **topology**, **room membership**, and the **eviction ladder** answer different questions (instances of [graph roles](#graph-roles-shared-shape-different-authority)):
 
-| Question | Domain | Play expression (today) |
+| Question | Domain | Play expression |
 | --- | --- | --- |
 | Which **exits** exist from this room at this perspective? | Area authored graph -> exit **projection** | Navigable affordances (`topology.exits`) |
 | Which **room** is this character in; who is on the roster? | Play-time **membership** | `ludicGraph` nodes, adjacency index; roster hydrated at read time |
-| **Where can this character legally be placed** given their asset access? | **Eviction ladder** (`RoomStack`) | Trim frames to accessible assets; top surviving frame -> proposed room; membership apply when endpoint differs (connect: from nowhere; asset loss: from illegal room) |
+| **Where can this character legally be placed** given their asset access? | **Eviction ladder** (`RoomStack`) | Trim frames to accessible assets; top surviving frame -> proposed room; a move when the endpoint differs (connect: from nowhere; asset loss: from an illegal room) |
 
-Exit topology does **not** imply roster membership. Membership does **not** define exits. The ladder is **not** roster membership --- it is **character-local evidence** for resolving a legal membership endpoint. Consumers that need several views compose **separate projections**.
+Exit topology does **not** imply roster membership. Membership does **not** define exits. The ladder is **not** roster membership --- it is **character-local evidence** for resolving a legal membership endpoint.
+
+### Fractal ludic graphs (container scale and edges)
+
+The same **node + edge** pattern recurs at every scale:
+
+```text
+Area.ludicGraph (authored)       Room.ludicGraph (play)          Object / Character ludicGraph (play)
+  rooms, macro edges        ->     characters, objects      ->     hosted things
+  Exit, bearing, ...               peer edges (Custom)             containment edges (On, In, PartOf)
+```
+
+**Area scale** relates rooms and region participants; Exit edges project to **navigable affordances**. Other edge kinds may express **non-traversable** spatial facts ("north of" without a door). **Container scale** is the character inventory graph and the object-hosted graph above. What a level *is* --- a whole with its own graph --- is stated in [Wholes, parts, and ports](#wholes-parts-and-ports), which is the shape object-scale work is built against.
+
+### Abstraction Fractal
+
+The organizing principle for composition above and below the human-convenience scale of objects: **the same relation at every level, with no privileged one.** Things are Objects at some scale, related by part-of, up and down. [Wholes, parts, and ports](#wholes-parts-and-ports) is the shape that realizes it.
+
+**There is no `AbstractionFractal` type, entity, or record.** The name is the principle, not a thing in the world or in the schema. The name reads like a noun while asserting that **there is nothing distinctive at any level to type** --- and minting the type would falsify the claim the name exists to make.
+
+**What the name commits to.** *Fractal* claims self-similarity across scale, carried by two properties: **composition is not a tree** (one part can have two wholes, neither containing the other) and **no level is privileged** (a chain can run four deep with every interior term being both a part of what contains it and a whole of what it contains).
+
+**Three departures from the metaphor:**
+
+| Departure | Nature |
+| --- | --- |
+| **A DAG, not a tree** | Permanent. One part, two wholes, neither containing the other, is a requirement --- so traversal is a DAG walk, not tree recursion |
+| **Finite depth, with a base case** | A real fractal recurses infinitely; this one bottoms out at leaf objects. The bottom is uniform: a plain lantern and a rope are present by the same mechanism --- a binding per host, with the lantern's cover simply every node it has |
+| **Earned below the room, aspirational above it** | The host-id type admits all five kinds, but **Room/Area containment is a structure of different provenance** (authored asset-stack merge, not play-time graph mutation), so the room is still a privileged level. **A wide host union is not an earned ladder** |
+
+**The third departure carries a visibility hazard.** Encapsulation makes the room/area seam **less visible without making it less real**, and a name asserting uniformity makes it harder still to see. **Do not read quiet as resolution at that seam.**
+
+**What would retire the name:** composition, functional-state aggregate, and multi-host extent turning out to be **three genuinely unlike things** rather than one substrate with distinct relation kinds above it. The name assumes one substrate; it is falsifiable on that.
+
+### Minted, not found
+
+An abstraction is a **cognitive tool, not an objective feature of the world.** The facts under it are objective --- this toy is red, the fork is to the left of the plate --- and the **grouping over them is minted**, because someone judged it useful. A nursery full of toys does not contain an *all red toys* abstraction until something mints one.
+
+**Found and minted, as a pair.** Recognition *finds* things: the rope is tied in a loop, and the player meant something by tying it. Those are **evidence**. The abstraction built on them is **minted** --- a graph write, with an identity, changing what can be referenced and acted on. Evidence **licenses** a mint; it does not constitute one. Same shape as [Intent vs. world-effect](#intent-vs-world-effect): the intent is read off the player, the effect is the system's own act.
+
+- **Convergence is an obligation, not an accident.** One abstraction reachable from a blocking path and from a background one has to produce the same component. Found things converge for free; minted ones have to be made to.
+- **No grouping is compelled.** Whether a whole is decomposed, and whether it is ever reabsorbed, are the modeller's choices. A rule that *compels* a grouping owes its own justification.
+
+**There is no `Abstraction` supertype.** As with [Abstraction Fractal](#abstraction-fractal), the name is the principle.
+
+**What licenses a mint is not modelled.** Composition licenses on parts, an arrangement on edges, a derived member set on a predicate --- and *useful right now* is not a licensing condition anywhere. Nothing here authorizes a recognition path to write.
+
+### Wholes, parts, and ports
+
+**Three shape claims**, and nothing else --- no record format, identifier scheme, or hosting model:
+
+1. **A host's members are nodes in its own graph, and a member may itself be a host.** Relations among them are edges in that graph. Any thing can therefore be *both* a graph (as a host) and a node in another graph (as a member) --- `EphemeraLudicGraph` is the recursive type, and "the same relation at every level" is a property of the data.
+2. **Boundary crossings are mediated by an explicit binding the interior owns** --- a **port** --- not by direct addressing of interior nodes from outside. **"Owns" is about the *binding*, not about every value recorded on it:** a port exists only because its interior minted it, but some of its fields describe the exterior relationship (which host it faces, above all), and those defer to the exterior reference where one exists. Reading an authority claim out of an ownership claim is the error to avoid.
+3. **Every `ludicGraph` has the same internal structure, whatever kind of host it belongs to.** Exactly **one** root node, **present in the graph's own node list** and so usable as an endpoint like any other node, with the graph designating which node it is (`rootId`, an input, never derived from edges; a host-bound graph is rooted at its own host). **A root node is not a privileged kind of node:** the same object is the root of its own graph and an ordinary member of its container's --- *whole and part are roles, not kinds*. There is no root-node type, and no rule gives roots different behaviour.
+
+**Clause 3 constrains graphs that exist and mints none.** It does **not** say which things are hosts, and it does **not** put Room, Area or Feature into the part-of ladder --- **a uniform graph interior is not a uniform containment ladder.**
+
+| Term | Means |
+| --- | --- |
+| **Whole** | **A way of referring to something while discussing its parts** --- not a type, not a category, and not a thing anything can be a member of. It denotes nothing that "host with a root node" does not already denote |
+| **Part** | A node in a host's graph joined to the root by a **`PartOf`** edge --- `niche -PartOf-> wall`, member to root. The counterpart term, used when discussing the thing that contains it |
+| **Contents** | A node joined to the root by an **`In`** edge (`crystalBall -In-> kitchen`). **`In` and `PartOf` are non-exclusive**: a box's lid is a part, its crystal ball is contents, and a thing may be **both**. **The distinction lives on the edge, never on the node** --- typing the node would contradict *whole and part are roles, not kinds* |
+| **Hosting kind / peer kind** | **The** partition of relation kinds. A **hosting kind** --- `On`, `In`, `PartOf` --- puts the subordinate node in **its host's own graph**: a cup on a tray is a node in the tray's `ludicGraph`, and the tray is a node in the room's. A **peer kind** --- `Custom` --- leaves both endpoints in the same graph and hosts nothing (moving a table does not carry the boots under it). `On` versus `In` differs in **apprehension** (*`On` admits nested things to referent search always, `In` sometimes*) --- an attention property of `ludicCache`, not a structural one. **Consequence:** nothing *travels* with a moved thing; what it hosts is in its own shard and moves with it. *Containment* names the phenomenon (a containment subgraph is a star, below); where a sentence means a specific pair of kinds, it names them rather than reaching for a collective noun |
+| *(both, of one object)* | **Whole and part are roles relative to a level, not kinds of object.** The same thing is a part of what contains it and a whole of what it contains, **simultaneously and at every level** --- a string is a part of a machine and a whole of its spans. A rule that gives parts and wholes different behaviour assigns two behaviours to one object. **Do not type either word**; a *room-or-whole* fork is the same mistake |
+| **Port** | A **single-use** boundary slot on a host, allocated by that host. **The supertype of a crossing port and a presence binding** (a node, addressed from outside in port form): a port address names one or the other, never a third thing |
+| **Crossing port** | The only kind of port record (`EphemeraLudicGraph.ports`). Its interior fan agrees on kind and label **with the single exterior edge crossing into it**. Two connections to the same host are two crossing ports |
+| **Egress / ingress** | A port's two ends --- the host it exits to, and its presence on that host's side. *Egress* is also used for a host's whole `ports` list, not one port's exit end --- a two-senses ambiguity |
+| **Coarsening** | Failed addressing resolves to the **last successfully addressed host** rather than dangling. `OBJECT#BAG#4d1f0ac` with no live port `4d1f0ac` reads as `OBJECT#BAG`: "tied to the bag's strap" degrades to "tied to the bag" |
+| **Scale-relative truth** | The model may give **different** answers at different levels with **both correct** --- the coarse one is not an approximation of the fine one. Answers must be *consistent*, never the same |
+
+**A port address is a structured value, `{ owner, port }`.** Its string notation uses a second `#` --- `OBJECT#ROPE#ab6129d` --- and the port id is a compact **opaque token**, not an ordinal and not a name (the address-form rules are in the [contract](AGENT.contract.md#port-records-field-scope-and-the-conflict-rule)). A port id is **not** a name for the interior node behind it (the part is an ordinary nominal id, and the port merely has an edge to it); **not** a reusable public interface; **not** a fan-out point (one interior edge, one exterior referrer); and **not** evidence about the interior, since **allocation is a property of the boundary**.
+
+**A port is a scale boundary: the legs crossing it are one relation, not two.** A relation whose endpoints land in different hosts is chopped into legs at each hop, and every leg shares one `edgeId` (the `edgeId`/`chainId` split is in [`AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)), so the legs cannot disagree: `OBJECT#STRING -[tied to]-> OBJECT#TABLE#7c2e91b` outside, `port 7c2e91b -[tied to]-> OBJECT#CUP` inside. One fact, relayed. A **different**, independently-authored relation may also terminate at the same port; it is a distinct `edgeId` and owes no label agreement with the crossing's legs.
+
+**Where a port record's halves live.** A port is stored **interior-side only** --- the host's own graph carries its egress list --- **but the record mixes facts of two scopes.** Its existence, id, lifecycle and kind are the interior's; which host it faces and how that relationship is labelled are the exterior's, held here as denormalized copies. So the interior is authoritative **within its own scope**, not across the board; the conflict rule is in the [contract](AGENT.contract.md#port-records-field-scope-and-the-conflict-rule). The exterior needs no port record of its own, because **a port-address reference already names both the host and the port**.
+
+**Why the shape is worth fixing before the details.** The payoff is **encapsulation, not traversal**: a host's ports are its published interface and what it hosts is the implementation, so **interior repartitioning stops being externally breaking** --- across levels and across time. A thing can decompose or reabsorb without any external reference knowing what scale it was at.
+
+**The room-boundary warning, which travels with this entry.** Encapsulation means external code cannot see what scale a thing is at, which is exactly what would let a real level asymmetry go unremarked. **The host-id type admits all five kinds, and the room boundary is still a seam of different provenance** --- authored asset-stack merge, not play-time graph mutation. The claims above are earned for object interiors and **aspirational for the ladder above the room**.
+
+**Not modelled, and not to be inferred from this entry:** the write side of scale change (`divide` / `merge`); **whether Room or Area belong in the part-of ladder at all** (Feature does: `FEATURE#Niche -PartOf-> FEATURE#Wall`, which does not generalize to Room or Area); and whether an *authored* port may carry a human-facing name.
+
+**Containment runs root-to-part, and that is a constructor discipline, not a structural claim.** Within one graph every containment edge is **incident to the root**, so the containment subgraph is a **star**; multi-level nesting is **nested graphs** --- shards inside shards --- not node-to-node containment edges. The type does not forbid a node-to-node containment edge and nothing asserts the star at runtime; if a use case for several levels in one graph arrives, **the discipline is dropped rather than defended.** That is cheap because moving a whole never traverses to discover what travels --- **mint the whole, move the whole, dissolve the whole** works on a multi-level graph unchanged. **Two things rest on the star and must be re-checked if it goes:** `PartOf` cycle detection (unrepresentable, hence unchecked) and any reader that assumes a containment edge's `to` is the root.
+
+**An unstated membership relation is `In`.** This qualifies the star rather than contradicting it: every containment *edge* is root-incident, and a *node* need not have one.
+
+1. **In `ludicGraph`:** a node that is a member of a host and has not been designated `PartOf` or `On` is `In` that host. The explicit edge states *how*; its absence does not withhold *that*. Character hosts are included (possession).
+2. **In `ludicCache`:** a node named in the `cover` of the presence node fronting root R, with no `On`/`PartOf` edge to R, is `In` R --- excluding the root (in every bucket by definition) and presence nodes (which *are* the index), counting only consolidated presence nodes, and yielding nothing for a bucket that was not pulled (silence, not a negative).
+
+**The arrow runs one way:** membership is total and given (`nodeIds` in `ludicGraph`, the presence node's `cover` in `ludicCache`); these clauses read the hosting relation's *kind* off that record when no edge states it, never membership off edges.
+
+**Edge direction: a relation kind is a predicate on its *subject*.** `from` is what the relation is asserted *about*, `to` is what it is asserted *against*: `glass -On-> tray` is "the glass is on the tray", `boots -Custom('under')-> table`, `rope -Custom('tied to')-> tree`. **Containment obeys the same rule** --- `crystalBall -In-> kitchen`, `niche -PartOf-> wall`, **member to root**. *Root-to-part* is right about **incidence** (every containment edge touches the root, which is what makes the subgraph a star and cycles unrepresentable), not about **direction**; reading it as direction produces `kitchen -PartOf-> crystalBall`, "the kitchen is part of the crystal ball".
+
+**What would re-open these claims.** Not a preference or a cheaper-looking alternative: **a corpus case a clause cannot represent**, or a demonstration that encapsulation fails where it was bought --- an interior repartitioning that still breaks external references. Either lifts a clause **by name**; none is eroded by exception.
+
+### Presence as a cover
+
+**Presence answers one question: is the thing, or some of it, here?** Each thing records its own presence bindings, one per way it is present in a host, the same way whatever role it plays; where its nodes are follows from those bindings' covers, never the reverse. A moonbase computer system with a terminal in the lab *is* present in the lab, through a binding whose cover holds the terminal. Whether it should *answer* "what is here" in the lab is a different question --- [apprehension](#ludiccache-the-attention-scoped-read-structure), an attention concern --- and presence does not answer it.
+
+**The formulation, in four claims:**
+
+1. **Presence is a cover of a whole's graph, indexed by the whole's *presence bindings*** --- the distinguishable ways it is present, **not** the set of hosts it is present in. For each binding, presence names a subset of the whole's nodes: the part of the whole that is *there*. **The index is finer than the host set**: one host may hold **two** bindings into the same whole, and those are **two buckets**. A grappling hook gun that is part of a contraption spanning two rooms has one host --- the contraption --- and two disjoint buckets, inherited from the contraption's two. Binding arity is **inherited** from the parent and the host set is not, so indexing by host discards exactly the distinctions that make the case work.
+2. **The cover ranges over *nodes only*.** Edges are not bucket members, so **an edge may span two buckets, and must be able to** --- a thread whose spans connect across rooms is how a route through those rooms stays recoverable.
+3. **Buckets may overlap**, and their **union is every node** --- *totality*. **The root is in every bucket** unconditionally: the root **is** the whole, so its membership is definitional.
+4. **Totality's domain is *hosted* wholes.** A whole with no hosts has an empty cover and is **outside** the invariant, not in violation of it. Disconnected characters are hostless wholes.
+
+**The cover is stored, one bucket per presence node.** A presence binding is a graph node carrying `fromHostId` (a shard locator) and its `cover` --- `Full`, or an enumerated list of `{ host, presence }` entries --- and that field **is** the bucket, authoritative rather than derived. The invariants above are what stored covers are **graded against**: checked, not recomputed (normative form: the contract's [presence-nodes section](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path)).
+
+**Aggregating every bucket reconstitutes every *node* --- not the graph.** Edges come from the graph, which is what is stored. **An aggregation built as a per-bucket edge union silently drops every edge that spans two buckets**, and those are required. The aggregate of the buckets is the node set; the graph is that node set plus its edges.
+
+**Totality is maintained by construction**, and that is a strength: a binding is minted by the same move that places the thing, and covers every node unless it enumerates, so **no fiction can produce a node in no bucket**. *By construction* is a claim about a **constructor discipline**, true exactly to the extent the discipline is complete --- so the check verifies **write paths**, never the world. The known shortfall is **nested** wholes: a whole straddling two hosts obliges partitioning its parts, and *their* parts, to the depth of the composition, and a constructor that stops at the top level leaves a well-formed outer cover over unaligned inner ones.
+
+**Three guards against reclassification.** A node found in no bucket is **never** grounds for deciding its tag does not bear presence, **never** grounds for deciding its whole is hostless, and **never** excused by the node also being a member of some **other** whole's graph (totality is stated per graph). Each would convert an observed violation into a retroactive domain exclusion --- and when the only remaining failure mode is a constructor bug, a checker that excuses failures is what hides constructor bugs. **Hostlessness is read from the whole's own presence nodes**, never inferred from a bucket computation that came back empty.
+
+**Why location resolution terminates.** Where a thing is, in room terms, is found by walking its bindings up through its hosts, each of which has bindings of its own. **The base case is the room:** rooms are never *members* of any graph, so the walk bottoms out. The rule is the same at every step, whether the thing at that step is being discussed as a whole or as a part. This holds only while the room boundary stays a seam of different provenance ([Wholes, parts, and ports](#wholes-parts-and-ports)); if rooms ever enter the part-of ladder, this argument needs rebuilding.
+
+| Term | Means |
+| --- | --- |
+| **Cover** | The whole family of buckets for one whole: stored, one bucket per presence node, as that node's `cover` field, and graded against totality, root-in-every-bucket, and nodes-only |
+| **Bucket** | The subset of a whole's nodes present at one **presence binding** --- the presence node's `cover`, resolved to a node set (`Full` means every node of the whole). **Keyed by the binding, not by the host**: the host is a property of a bucket, not its key. **Do not index a cover by host** --- it silently merges disjoint buckets rather than failing |
+| **Presence binding** | One distinguishable way a whole is present --- what the cover is indexed by. Realized as a presence node; *the index is finer than the host set* is the semantics, *a binding is a node* is the mechanism |
+| **Presence node** | A graph node (tag `'Presence'`), never a port record, carrying `cover` and `fromHostId`. It is addressable from outside its host as a `PRESENCE#`-tagged port-form terminal. An edge landing on a presence binding is a terminal, never a crossing, and denotes the part of the object present via that binding |
+| **Totality** | The invariant that the buckets' union is every node, over hosted wholes |
+| **Aggregation** | Recombining every bucket to recover the node set. **Overlap dedupes**; it is not an error |
+
+**Not modelled:** what sub-graph a bucket *induces*, and what becomes of an edge with one endpoint outside it (a **reduction** convention, not a cover question).
+
+**What would re-open this entry.** A corpus case the cover cannot express --- **not** a case violating totality, since by construction none exists. The live target is the **constructor**: a nested straddling whole whose inner covers no stated discipline can build.
+
+### `ludicCache`: the attention-scoped read structure
+
+**What it is.** `ludicGraph` is sharded one graph per host, and a question like *"which thing does the player mean by 'the cup'?"* asked in a room may need to see into the box on the table. `ludicCache` is **several shards folded into one graph from one host's point of view**, so that reference-location does not walk shards at request time. It is a **read structure**: derived from `ludicGraph` and the attention ledger, never written by a verb, droppable at any time.
+
+**Five commitments, each ruling something out:**
+
+1. **Scope: common ground.** The cache holds what the scene has established --- reference-location above all. It does **not** serve description (a lossy read-side rule over the graph, cached nowhere) or consequence-reasoning (which asks *what is true*; the cache does not hold truth).
+2. **Depth is attention-scoped, not exhaustive.** A box nobody has opened contributes one handle; its contents stay in the box's own shard. Once the box is looked into, its contents are promoted into the room's cache and the box's entry degrades to a pointer. **Unbounded size is the failure this prevents**, so a fold that drops nothing is rejected.
+3. **A hit returns a handle, never a subgraph.** Reference-location resolves a word to an **address**; acting on it means traversing `ludicGraph` from there. That is what makes folding across ports safe under [encapsulation](#wholes-parts-and-ports): the caller never receives a crossed-port structure.
+4. **Fast path, never the sole path.** A miss falls through to the graph walk, which may resolve, improvise, or refuse on narrative grounds. **A cache miss is never an answer of "no"**, so a cache error costs *slow*, never *wrong* --- which licenses lazy invalidation.
+5. **Derived, never authoritative.** Materialized from (`ludicGraph`, attention ledger); the ledger folds in under order-independent laws, so a partially ordered ledger produces the same cache.
+
+**How it is built.** Each host being folded in is **cut** into buckets along its presence nodes: an edge with one end outside the bucket is severed, and a transient **stub port** stands in for the missing end. Pieces are then **composed at crossing ports, never at nodes**: a leg ending at a port and the leg starting there collapse into one edge, because a port is not a referent and composing across it destroys nothing, while composing across a node would destroy something a player could name. Each composed edge records the crossings and bindings that justify it --- the evidence of crossing that encapsulation requires the cache to keep. Folded presence nodes are consolidated and carry an **enumerated** cover; `Full` cannot appear in the cache, because "every node of the host" has no referent in a merge.
+
+**Where it sits.** It reads the structure in [Wholes, parts, and ports](#wholes-parts-and-ports) and slices along the axis in [Presence as a cover](#presence-as-a-cover); it consumes both and changes neither.
+
+**Apprehension** --- whether a thing answers "what is here" at a host's scale --- belongs to the cache, not to the graph, and is not modelled. It cannot be read off structure: a rope and a moonbase computer system with parts scattered across a base have **identical presence topology** and need **different** room-scale answers --- you see a rope from any room it passes through, and from a terminal you see *a terminal*, not a computer system. So apprehension will have to be declared, and must not be folded into presence, which both things satisfy equally. The `On`/`In` difference in referent search is an apprehension property of the same kind.
+
+**What would re-open this entry.** Commitment 3 proving unholdable against a real consumer (a hit that must return structure), or a bucket that cannot be stated from the hosted thing's own graph plus its own bindings, which would mean presence is not binding-indexed and the fold's premise fails.
+
+### Authored vs play graphs
+
+- An **Area graph** may list a Character as an Area **participant** (authored scope) --- distinct from **runtime presence** in a room graph.
+- **Play mutations** (connect, navigate, pick up, place) update **play graphs**; **projections** feed perception, affordance WML, navigation, and LLM context.
+
+### Map Position facets (x/y)
+
+WML **Position** facets on maps are a **separate** authoring idiom ([`AGENT.facets.md`](../../../../packages/mtw-wml/ts/standardize/keys/facets/AGENT.facets.md)). The model draws no relationship between them and room graphs.
+
+---
+
+## Process
+
+How the world model is mutated and presented.
 
 ### Manipulation layering (membership transfer)
 
-Every graph mutation is expressed as an ordered **step sequence** and committed through one kernel entrypoint. Kernel API detail: [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering).
+Every graph mutation is an ordered **step sequence**, committed through one kernel entrypoint. Rules: [`AGENT.contract.md`](AGENT.contract.md#manipulation-persist-layering); tiers: [Manipulation tier discipline](AGENT.contract.md#manipulation-tier-discipline).
 
 ```text
-Per-operator ingress            verb-specific args, trusted ids (parse egress, navigate, repair, ...)
+Route ingress          verb-specific args, trusted ids (attempt, navigate, connect, repair, ...)
         |
         v
-Planning                        shared membership adapter (fixed room-host targets)
-        |                       or Synthesize executor, re-run at execute time (live grounding)
-        v
-Kernel step sequence            transferMembership | establishRelation | dissolveRelation
+Plan                   per-route: diff against live state, build an abstract op, compile it once
         |
         v
-commitStepSequence              lock footprint -> one transactWrite -> re-validate live -> stream facts
+Kernel step sequence   transfer | establish / dissolve relation | capture | presence binding
         |
         v
-Per-operator coordinators       verb-specific follow-on only (the kernel owns the common bundle)
+Commit                 lock footprint -> one transactWrite -> re-validate live -> stream facts
+        |
+        v
+Present                post-commit narration and transcript publishing
 ```
 
-**Invariant:** the kernel does **not** discover priors via **`getMembershipContainers`** --- planning always happens upstream.
+**Invariant:** the kernel does **not** discover prior hosts from the reverse index --- planning always happens upstream.
 
 | Term | Meaning |
 | --- | --- |
 | **Manipulation kernel** | Graph-grounded persist executor: accept an explicit step sequence, lock the affected hosts, re-validate against freshly-fetched graphs, transact, dual-write adjacency, stream facts |
-| **Step sequence** | The ordered instruction list the kernel executes. Order is meaningful and never resorted --- a `dissolveRelation` step mutates the graph before a following `transferMembership` step reads it |
-| **Host-local relational patch** | Add/remove **edges** on a fixed host `ludicGraph` without changing membership host. [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch) |
-| **Shared membership adapter** | Reusable **transfer planner** for routes with fixed room-host targets: membership observation + apply mode (`end-state` / `bounded`) -> projected `froms`/`to` |
-| **Per-operator coordinator** | Verb-specific ingress wrapper: plans (or runs the executor), then commits; owns only the follow-on effects specific to its verb |
-| **Membership host transfer** | Semantic move between eligible hosts (`ROOM#`, `CHARACTER#` in v1); projected to bus facts as `froms[]` / `to` |
-| **Apply mode: end-state** | Planner scrubs all prior room hosts, places at target |
-| **Apply mode: bounded** | Planner scrubs **only** the trusted-ingress hosts the entity actually occupies --- not an end-state multi-host scrub |
-| **Cross-snapshot recheck** | Re-deriving a plan against a later snapshot than the one that selected it (the executor at execute time; the reducer at commit time). A safety property, not duplicated work |
-| **Layered vocabulary** | **Kernel** docs: step sequences, graph-grounded persist. **Adapter** docs: transfer planning, apply modes. **Bus facts** docs: membership host transfer projection |
+| **Step sequence** | The ordered instruction list the kernel executes. Order is meaningful and never resorted --- a dissolve step mutates the graph before a following transfer step reads it |
+| **Host-local relational patch** | Add/remove **edges** on a fixed host's `ludicGraph` without changing membership host |
+| **Membership host transfer** | A move of one entity between hosts (any host kind); projected to bus facts as `froms[]` / `to` |
+| **Cross-snapshot recheck** | Re-deriving a plan against a later snapshot than the one that selected it (a dry run before commit; the reducer at commit). A safety property, not duplicated work |
 
 ### Two kernels: mutation and presentation
 
-There are exactly **two** kernels, and they filter the *same* `KernelStep[]`.
+There are exactly **two** kernels, and they filter the *same* step list.
 
 | Kernel | Filters | Runs |
 | --- | --- | --- |
@@ -181,370 +319,135 @@ There are exactly **two** kernels, and they filter the *same* `KernelStep[]`.
 
 The presentation kernel has **two branches**: **describe** (a rendered description of a thing) and **narrate** (a world line about something that happened). Both publish into the player's transcript; they differ in where their state comes from --- see [Positional vs. terminal binding](#positional-vs-terminal-binding).
 
-**"Perception" is the wrong word for this and "presentation" is the right one, on the codebase's own usage.** Every `*Presentation*` identifier in production is narration or transcript publishing. So the repo already draws the line:
-
-- **Perception** is the broad experience category --- *and the name of a data source* (`mtw.ephemera.perception`).
-- **Presentation** is specifically publishing something into the transcript. It is a **step-kind category**, parallel to mutation.
-
-Naming this kernel "perception" claimed a data source's territory and implied narration should route through it *terminally* --- the exact opposite of the binding rule below. **The repo has already made this mistake once** (the shipped describe branch was called "the perception kernel" before it was renamed `presentStepSequence`), which is why the distinction is recorded here rather than left to taste.
+**"Presentation", not "perception".** **Perception** is the broad experience category --- *and the name of a data source* (`mtw.ephemera.perception`). **Presentation** is specifically publishing something into the transcript: a **step-kind category**, parallel to mutation. Calling this kernel "perception" claims a data source's territory and implies narration should route through it *terminally* --- the opposite of the binding rule below.
 
 ### Positional vs. terminal binding
 
-The single most important distinction in narration, and the reason narration could not simply be appended to the existing kernel:
+The single most important distinction in narration:
 
-- A **narrate** step is **positionally bound**: it resolves its audience against graph state *at its own position in the walk*. A leave line must reflect the room the character was still standing in.
-- A **describe** step is **terminally bound**: it resolves against **final committed state**. A description must reflect the world as it ended up.
+- A **narrate** step is **positionally bound**: it resolves its audience against graph state *at its own position in the walk*. A leave line reflects the room the character was still standing in.
+- A **describe** step is **terminally bound**: it resolves against **final committed state**. A description reflects the world as it ended up.
 
-**This is not an ordering rule.** Both branches publish after the commit. It is about *where the state came from*: describe reads the post-commit graphs; narrate reads a roster **captured mid-walk** by a capture step. Restating it as "narration publishes earlier" loses the entire point.
-
-Collapsing the two back into one discipline, in either direction, reintroduces the bug the capture channel exists to remove. Normative form: [`AGENT.contract.md` --- Narration and presentation](AGENT.contract.md#narration-and-presentation).
+**This is not an ordering rule.** Both branches publish after the commit. It is about *where the state came from*: describe reads the post-commit graphs; narrate reads a roster **captured mid-walk** by a capture step. Restating it as "narration publishes earlier" loses the point, and collapsing the two into one discipline, in either direction, reintroduces the bug the capture channel exists to remove. Normative form: [Narration and presentation](AGENT.contract.md#narration-and-presentation).
 
 | Term | Meaning |
 | --- | --- |
-| **Capture** | A read-only walk step that snapshots one host's roster mid-transaction, under a `captureId`. Carries no write payload |
-| **Captured roster** | The plain `EphemeraCharacterId[]` a capture recorded. **Load-bearing** --- it *is* the narration audience, not a diagnostic |
-| **Beat** | The moment a mutation commits; `beatAnchorTime` stamps it. Capture happens at the beat, delivery happens at flush |
+| **Capture** | A read-only walk step that snapshots one host's roster mid-transaction, under a capture id. Carries no write payload |
+| **Captured roster** | The plain list of character ids a capture recorded. **Load-bearing** --- it *is* the narration audience, not a diagnostic |
+| **Beat** | The moment a mutation commits. Capture happens at the beat, delivery at flush |
 
 ### Presence and perspective are orthogonal
 
 **Presence** answers *who was where, when*. **Perspective** answers *whether the actor receives their own event, and in what wording*.
 
-Positional binding is a presence tool and answers nothing about perspective. All narration today is third person to one audience; there is no actor/observer copy split anywhere. Second-person copy ("you leave the tavern") is a target-vocabulary question --- an `ACTOR` / `!ACTOR` referent kind --- and is deliberately unbuilt.
-
-This is recorded because the retired `[room, characterId]` targeting idiom **looked** like a perspective mechanism and was not: it was a presence patch, needed at exactly one of its four sites (a departure room, where live roster expansion had already dropped the mover). Someone will otherwise try to solve perspective with the presence tool.
+Positional binding is a presence tool and answers nothing about perspective. All narration is third person to each audience; there is no actor/observer copy split. Second-person copy ("you leave the tavern") is a perspective question --- an actor / not-actor referent kind --- and is not modelled. A targeting idiom that adds the mover to a departure room's audience looks like a perspective mechanism and is not: it patches presence. Perspective is not solved with the presence tool.
 
 ### Abstract op and compiled step (two levels)
 
-Kernel plans are **compiled from abstract operations**, never hand-built per call site (true as a fact about the code since 3e, 2026-09-08 --- see that row's note below the diagram).
+Kernel plans are **compiled from abstract operations**, never hand-built at a call site.
 
 ```text
 Call site          "a Move happened: this entity, these froms, this to" (+ narration ingredients)
     |
     v
-Compiler           compilePositionKernelOp --- expands into [capture*, dissolve*, transfer, capture, narrate*] + slots
+Compiler           expands into [capture*, dissolve*, transfer, establish*, presence pair, capture, narrate*] + slots
     |
     v
-Kernel step list   one shared KernelStep[], filtered by each kernel
+Kernel step list   one shared step list, filtered by each kernel
 ```
 
-An **abstract op** names *what happened in the world*. A **compiler** expands it into the kernel-ready sequence. Only the compiler knows that a move brackets leave-then-arrive, so that invariant lives in **one function** instead of being re-derived at every call site.
+An **abstract op** names *what happened in the world*. A **compiler** expands it into the kernel-ready sequence. Only the compiler knows that a move brackets leave-then-arrive, so that invariant lives in **one place** instead of being re-derived at every call site; the compiled plan flows as a value from plan to commit to presentation, compiled once.
 
-**Shipped 2026-09-08 (3e).** Until then this section stated a target, not a fact: `executeMembershipTransfer` hand-built a bare `transferMembership` literal whenever no caller-supplied callback (`compileMutationSteps`) built one instead, and the four character routes that *did* supply the callback rebuilt and recompiled the op a second time, post-commit, for narration --- so "compiled once, flows as a value" was not yet true even where the compiler was used. 3e made the code match the claim as a **consequence** of removing the reason the callback existed (the diff was not known until inside `executeMembershipTransfer`; once each caller's plan-tier stage --- `planCharacterMoveTransfer.ts` for character routes, `planObjectMoveTransfer.ts` for take/drop/give --- computes the diff first and calls the compiler once, there is nothing left for a callback to defer), not by adding a rule forbidding hand-building. `executeMembershipTransfer` (now object-lifecycle-administrative-only: spawn/place/destroy/edit/drift-repair) also compiles its bare move through `compilePositionKernelOp` rather than hand-assembling the step literal, so the compiler is the single producer of step shape with no remaining exception.
-
-**Why this matters, concretely:** three call sites once copied the same defensive `[room, characterId]` patch and only one of them needed it --- precisely because nothing shared owned the decision. The compiler is the thing that owns it now.
-
-Two consequences worth stating as vocabulary:
-
-- **Narration carries ingredients, not prose.** An op supplies `characterName`, a copy-kind selector, `objectShortName`; the presentation kernel assembles the string. This leaves room for copy that reacts to what the mutation actually *did*, rather than only to what compile-time intent expected.
-- **The compiler holds shape forwards.** The pattern it replaces reasoned **backwards** from endpoint data to an event shape (what kind of move was this? which verb was that?). Holding the shape forward from a named op means the inference never has to be written --- and cannot be re-written later.
+- **Narration carries ingredients, not prose.** An op supplies a name, a copy-kind selector, an exit name; the presentation kernel assembles the string at flush. Copy can then react to what the mutation actually *did*, not only to what compile-time intent expected.
+- **The compiler holds shape forwards.** The alternative reasons **backwards** from endpoint data to an event shape (what kind of move was this? which verb was that?). Holding the shape forward from a named op means that inference is never written.
 
 ### Intent vs. world-effect
 
 **Intents stay distinct where the player's meaning differs; execution unifies where the world-effect is the same.**
 
-`Object Take Hold` and `Object Drop` are two intents: different utterances, different Plan-stage legality errors ("you're not carrying that" vs. "you're already holding that"). They are **one** world-effect --- move an object between two membership hosts --- and so one execution path, distinguished only by which host is which.
+Taking hold and dropping are two intents: different utterances, different Plan-stage legality errors ("you're not carrying that" vs. "you're already holding that"). They are **one** world-effect --- move an object between two hosts --- and so one execution path, distinguished only by which host is which.
 
-The corollary is that **execution carries no verb**: the move is a host pair, so `give` needs no new module, no new event shape at execute time, and no new discriminant. The act's wording is not read back off the delta either --- it belongs to whatever created the action, which alone knows which act the player meant.
-
-### Naming: `Kernel` alone names nothing
-
-With two kernels, a bare `Kernel` prefix identifies neither.
-
-| Name | Rule |
-| --- | --- |
-| `KernelStep` | **Stays unprefixed.** It is the *shared, cross-kernel* instruction vocabulary that each kernel filters down to the steps it owns. It belongs to no single kernel, so it takes no kernel's name |
-| `MutationKernel*` | Types the mutation kernel owns: `MutationKernelStep`, `MutationKernelCaptureStep`, `MutationKernelTransferStep`, `MutationKernelCaptures`, `MutationKernelCommitResult` |
-| `PresentationKernel*` | Types the presentation kernel owns: `PresentationKernelStep`, `PresentationKernelNarrateStep` |
-| `ExecutorDescribeStep` | **Not renamed.** It is owned by `executorTypes.ts` and reused verbatim; renaming would steal it from the executor |
-
-**State the reason for `KernelStep`, not just the exception** --- it reads as an inconsistency, and the next reader will "fix" it by prefixing it, destroying the one distinction the scheme gets right.
+**Execution carries no verb**: the move is a host pair, so `give` needs no new module, no new event shape, and no new discriminant. The act's wording is not read back off the delta either --- it belongs to whatever created the action, which alone knows which act the player meant.
 
 ### Representation choice: union vs class (escalation trigger)
 
-A closed union of plain data (a `kind`-discriminated type, dispatched by a `switch` in one function) and a class hierarchy invert the same cost: a union makes adding **operations** cheap and adding **types** expensive; a class hierarchy makes adding types cheap and adding operations expensive (the expression problem). Default to a union; escalate to a class hierarchy only when all three hold at once:
+A closed union of plain data (a `kind`-discriminated type, dispatched by one `switch`) and a class hierarchy invert the same cost: a union makes adding **operations** cheap and adding **types** expensive; a class hierarchy the reverse (the expression problem). Default to a union; escalate to a class hierarchy only when all three hold at once:
 
 1. multiple distinct operations switch over the union from **separate files** (not just one dispatcher), **and**
 2. the number of member types is churning faster than the number of operations, so "add a type" means hunting down every switch, **and**
-3. a per-type **module** can't already absorb the internal complexity --- a module named for the type (one builder function per file) gives the same locality a method would, without paying the switch cost; this condition is usually the one that settles it.
+3. a per-type **module** can't already absorb the internal complexity --- a module named for the type gives the same locality a method would, without paying the switch cost. This condition usually settles it.
 
-**Worked instance:** `NarrationSpecification` (`MembershipNarrationSpec | TemplateNarrationSpec`, [`manipulation/kernel/kernelStep.ts`](manipulation/kernel/kernelStep.ts)) stays a plain-data union dispatched by `presentStepSequence`'s `buildNarrationCopy`, not a class hierarchy: there is one dispatcher, member count is stable, and heavy per-family logic (if it arrives) reads as a module-locality need, not an operations-across-files need. It is also discriminated on narration **family**, not on `direction` --- `TemplateNarrationSpec` shares no field with `MembershipNarrationSpec`, so a `direction`-first split would have forced both families down an axis only one of them has. (A class instance would additionally fail here for an unrelated reason: these specs ride inside `KernelStep[]` through `toStrictEqual` structural comparison in tests, which plain data survives and class instances --- prototypes, non-enumerable getters --- do not. That is a test-shape cost, not the escalation trigger's own concern.)
+Narration specifications are the worked case: one dispatcher, a stable member count, and the union discriminated on narration **family** rather than direction, since the families share no field. Plain data also survives structural comparison in tests, which class instances do not --- a test-shape cost, separate from the trigger.
 
 ### Eviction ladder
 
-When the world is built from **layered assets** (canon plus temporary or personal overlays), a character can occupy rooms that exist only while certain assets remain accessible. **`Meta::Character.RoomStack`** answers one question under that constraint:
+When the world is built from **layered assets** (canon plus temporary or personal overlays), a character can occupy rooms that exist only while certain assets remain accessible. `Meta::Character.RoomStack` answers one question under that constraint:
 
 **Where can this character legally be placed in play, given their current asset access?**
 
-**Shape:** an ordered stack of frames `{ asset, room }` from root outward. Outermost frame aligns with **current** presence at the deepest active asset layer; inner frames are **fallback presences** still valid when outer layers are stripped away.
+**Shape:** an ordered stack of frames `{ asset, room }` from root outward. The outermost frame aligns with **current** presence at the deepest active asset layer; inner frames are **fallback presences** still valid when outer layers are stripped away.
 
-**Purpose:** not a travel diary or breadcrumb log. The stack is maintained in **trim-ready shape** so resolution is always: filter to accessible assets, read the top frame, apply membership when the endpoint must change.
+**Purpose:** not a travel diary. The stack is maintained in **trim-ready shape** so resolution is always: filter to accessible assets, read the top frame, move when the endpoint must change.
 
 #### Three roles (one storage shape)
 
 | Role | Question | Typical ingress |
 | --- | --- | --- |
 | **Resolve legal placement** | After trim, what room is legal? | Connect (place **from nowhere**); asset visibility loss (move **from a room they can no longer occupy**) |
-| **Maintain stack on intentional moves** | While placing at `targetRoomId`, keep frames aligned for future resolution | Navigate (extend / rewrite-tail / fork in same transact as membership) |
-| **Bookkeeping-only trim** | Did asset access change without changing the legal room? | Asset trim when top frame still matches current membership (no `Character Moved`) |
+| **Maintain stack on intentional moves** | While placing at the target room, keep frames aligned for future resolution | Navigate (extend / rewrite-tail / fork, in the same transaction as membership) |
+| **Bookkeeping-only trim** | Did asset access change without changing the legal room? | Asset trim when the top frame still matches current membership (no `Character Moved`) |
 
-**Resolution triggers** share the same mechanics (`trimRoomStackToAccessibleAssets`, top frame, membership apply when endpoint changes). They differ mainly in **starting membership state**:
+**Resolution triggers** share the same mechanics (trim, top frame, move when the endpoint changes) and differ in **starting membership state**:
 
 | Trigger | Starting state | Outcome when legal room differs |
 | --- | --- | --- |
-| **Connect** | Out of play --- purged from `ludicGraph` / adjacency; ladder **retained** on disconnect | Place at resolved room (`froms: []` -> `to`) |
+| **Connect** | Out of play --- purged from graph and adjacency; ladder **retained** on disconnect | Place at resolved room (`froms: []` -> `to`) |
 | **Asset visibility** | In play at a room that may be invalid after asset loss | Relocate to resolved room (`froms: [illegal...]` -> `to`) |
 
-**Disconnect asymmetry:** disconnect **purges** authoritative play membership (graph nodes, adjacency) but **preserves** `RoomStack`. That preserved stack is the retained answer to "where can they legally go when they return?" --- connect resolves from it without reconstructing history.
+**Disconnect asymmetry:** disconnect **purges** play membership (graph nodes, adjacency) but **preserves** `RoomStack`. That stack is the retained answer to "where can they legally go when they return?" --- connect resolves from it without reconstructing history.
 
-**Navigate maintenance** (conceptual operations --- compare destination **asset chain** to the current ladder):
+**Navigate maintenance** (compare the destination's **asset chain** to the current ladder):
 
 | Operation | When | Effect on ladder |
 | --- | --- | --- |
 | **Extend rung** | Destination chain **continues** the current chain (adds a further asset layer) | Push a new outer frame |
 | **Rewrite tail rung** | Same chain prefix and same deepest asset; different room (lateral move within the layer) | Replace the outer frame's room only |
-| **Fork** | Destination chain **diverges** from the current branch (sibling asset at some depth) | Truncate abandoned branch; set the new tail frame |
+| **Fork** | Destination chain **diverges** from the current branch (sibling asset at some depth) | Truncate the abandoned branch; set the new tail frame |
 
-Example (asset visibility): while a limited-time event overlay is active, middle rungs look like inert bookkeeping. When the event assets deactivate, trim removes the overlay rungs in one pass and lands the character on the last still-valid inner presence (for example suburbs in canon, not a vanished circus tent).
+Example (asset visibility): while a limited-time event overlay is active, middle rungs look like inert bookkeeping. When the event assets deactivate, trim removes the overlay rungs in one pass and lands the character on the last still-valid inner presence (suburbs in canon, not a vanished circus tent).
 
-**Relationship to room membership:** membership is **where the character is now** (roster, fan-in, `Character Moved`). The ladder is **how we compute a legal endpoint** when membership is missing (connect) or points at an inaccessible layer (asset loss). A trim that only fixes the ladder while the membership endpoint stays the same is not a membership change. A trim or connect resolution that changes the endpoint is a real move --- membership apply owns that placement.
-
-Code paths: [`AGENT.implementation.md`](AGENT.implementation.md#eviction-ladder-roomstack-storage). Normative rules: [`AGENT.contract.md`](AGENT.contract.md#eviction-ladder-roomstack-storage).
-
----
-
-## Target mental model (not yet enforced in contract or storage)
-
-Operator design for play-time relational mutations (including unknowns): [`../../diegeticLogic/AGENT.md`](../../diegeticLogic/AGENT.md).
-
-**Order: world model first, then process.** Sections up to [Map Position facets](#map-position-facets-xy) are structure; [Plan-evaluate loop](#plan-evaluate-loop) onward are process.
-
-### Fractal ludic graphs (container scale and edges)
-
-The same **node + edge** pattern recurs at finer granularity beyond room character nodes:
-
-```text
-Area.ludicGraph              Room.ludicGraph (shipped v1)      Container graph (future)
-  rooms, macro edges    ->    characters (nodes only)       ->  inventory / nested objects
-  Exit, bearing, ...        in-room edges (slice 5+)            In, On, ...
-```
-
-**Area scale (authored, largely shipped):** relates rooms and region participants; Exit edges project to **navigable affordances** via `projectRoomExits`. Other edge kinds may express **non-traversable** spatial facts (e.g. "north of" without a door).
-
-**Container scale (D16 shipped v1; Object storage MK2):** **`Meta::Character.ludicGraph`** hosts held **`OBJECT#`** inventory nodes; reverse via **`POSITION#CHARACTER#...`** adjacency. **`Meta::Object.ludicGraph`** storage ships as of MK2 (see [Object-hosted graph](#object-hosted-graph-mk2-storage-only) above) --- **an Object-hosted transfer has a live route since CD2h (corrected 2026-09-03; this line previously said storage only, which predates CD2h), for `On`**; `In`/`PartOf` remain unwired. Area hosts remain deferred until needed.
-
-**The container corner of this ladder is superseded by [Wholes, parts, and ports](#wholes-parts-and-ports) below** (2026-08-07). "Container graph (future)" named the level without saying what a level *is*; the next subsection does, and it is the shape any object-scale work should be built against.
-
-### Abstraction Fractal
-
-**Status: Target, and the name is locked (2026-08-07).** The organizing principle for composition above and below the human-convenience scale of objects: **the same relation at every level, with no privileged one.** Things are Objects at some scale, related by part-of, up and down. See [Wholes, parts, and ports](#wholes-parts-and-ports) for the shape that realizes it.
-
-**There is no `AbstractionFractal` type, entity, or record.** The name is the principle, not a thing in the world or in the schema. This is stated first because the name reads like a noun while asserting that **there is nothing distinctive at any level to type** --- and minting the type would falsify the claim the name exists to make. If you find yourself writing one, the design has gone wrong somewhere upstream.
-
-**What the name commits to, and what earns it.** *Fractal* is a claim, not a flourish: self-similarity across scale. Two properties carry it, and both are demonstrated rather than hoped for --- **composition is not a tree** (one part can have two wholes, neither containing the other) and **no level is privileged** (a chain can run four deep with every interior term being both a part of what contains it and a whole of what it contains).
-
-**Three departures from the metaphor, recorded here rather than left to the plan** --- a durable doc that adopts a metaphor without its limits is how the metaphor becomes the argument:
-
-| Departure | Nature |
-| --- | --- |
-| **A DAG, not a tree** | Permanent. One part, two wholes, neither containing the other, is a requirement rather than a preference --- so traversal is a DAG walk, not tree recursion |
-| **Finite depth, with a base case** | A real fractal recurses infinitely; this one bottoms out at leaf objects. **Whether the bottom is uniform --- whether a plain lantern uses the same presence mechanism as a rope --- is undecided**, and it is the base case the self-similarity claim rests on |
-| **Earned below the room, aspirational above it** | ~~`EphemeraMembershipHostId` is `Room \| Character`.~~ **Corrected 2026-08-19: the type is all five kinds** --- `Room \| Character \| Object \| Feature \| Area`, widened on 2026-08-16 --- so the *type-level* half of this departure is gone. **The departure itself is not:** the claims hold within object composition; **Room/Area containment is a structure of different provenance** (authored asset-stack merge, not play-time graph mutation), so the room is still a privileged level. **A wide host union is not an earned ladder**, and reading one from the other is the same inference the clause-3 warning below forbids |
-
-**The third departure carries a visibility hazard, not merely a cost.** Encapsulation already makes the room/area seam **less visible without making it less real**, and a name asserting uniformity makes it harder still to see. The failure mode is a reader concluding the ladder is uniform because nothing complained. **Do not read quiet as resolution at that seam.**
-
-**What would retire the name:** composition, functional-state aggregate, and multi-host extent turning out to be **three genuinely unlike things** rather than one substrate with distinct relation kinds above it. The name assumes one substrate; it is falsifiable on that, and current evidence runs the other way.
-
-### Minted, not found
-
-**Status: Target (2026-09-11).** An abstraction is a **cognitive tool, not an objective feature of the world.** The facts under it are objective --- this toy is red, the fork is to the left of the plate --- and the **grouping over them is minted**, because someone judged it useful. A nursery full of toys does not contain an *all red toys* abstraction until something mints one.
-
-**What is found and what is minted --- stated as a pair.** Recognition genuinely *finds* things: the rope is tied in a loop, and the player meant something by tying it. Those are **evidence**. The abstraction built on them is **minted** --- a graph write, with an identity, changing what can be referenced and acted on. Evidence **licenses** a mint; it does not constitute one. Same shape as [Intent vs. world-effect](#intent-vs-world-effect): the intent is read off the player, the effect is the system's own act.
-
-**Two consequences, which is why this is vocabulary and not commentary:**
-
-- **Convergence is an obligation, not an accident.** One abstraction reachable from a blocking path and from a background one **must** produce the same component. Found things converge for free; minted ones have to be made to.
-- **No grouping is compelled.** Whether a whole is decomposed, and whether it is ever reabsorbed, are the modeller's --- see [Wholes, parts, and ports](#wholes-parts-and-ports). A rule that *compels* a grouping owes its own justification.
-
-**There is no `Abstraction` supertype this names.** As with [Abstraction Fractal](#abstraction-fractal), the name is the principle. Minting a type to represent *an abstraction in general* would assert precisely the objectivity this denies.
-
-**What is not settled: what licenses a mint.** Composition licenses on parts, an Arrangement on edges, a derived member set on a predicate --- and *useful right now* is not a licensing condition anywhere yet. **Do not read this entry as authorizing a recognition path to write.**
-
-
-### Wholes, parts, and ports
-
-**Status: Target, and deliberately narrow.** **Three** **shape** claims, and nothing else. The first two were fixed as a **locked frame** on 2026-08-06 after the design work that produced them stopped moving, and the third on 2026-08-09; recorded here, ahead of implementation, because everything still being designed is being designed *inside* them, and a reader who does not know them will mis-read the code that eventually lands. No claim names a record format, an identifier scheme, or a hosting model.
-
-1. **A whole has its own graph, with a root node.** Parts are nodes in it; part relations are edges in it. A whole is therefore *both* a graph and a node in another graph --- `EphemeraLudicGraph` is the recursive type, and "the same relation at every level" is a property of the data rather than a claim about the model.
-2. **Boundary crossings are mediated by an explicit binding the interior owns** --- not by direct addressing of interior nodes from outside. That binding is a **port**. **"Owns" is about the *binding*, not about every value recorded on it, and the difference has been read away once.** This clause says a port exists only because its interior minted it and cannot be conjured from outside; it does **not** say the interior wins every disagreement between what a port records and what the exterior refers to. Some of a port's fields describe the exterior relationship rather than the interior --- which host it faces above all --- and those defer to the exterior reference where one exists to disagree with. **Reading an authority claim out of an ownership claim is the specific error to avoid here**, the same shape as the inventory-out-of-structure warning on clause 3.
-3. **Every `ludicGraph` has the same internal structure, whatever kind of host it belongs to.** Exactly **one** root node, **present in the graph's own node list** and therefore usable as an endpoint of relations like any other node, with the graph carrying a **designation of which node that is**. Object, Room, Character, Area --- and anything that later acquires a graph --- all look the same inside. **A root node is not a privileged kind of node:** the same object is the root of its own graph and an ordinary member of its container's, which is *whole and part are roles, not kinds* restated at the node level. Do not mint a root-node type, and do not write a rule that gives roots different behaviour. **The root-in-nodes half of this clause is shipped, not merely designed (2026-08-20).** Every host-bound construction path now includes the root's own node, and `isEphemeraLudicGraphFieldPayload` (`ephemeraMeta.ts`) rejects a stored payload whose root has no backing node, so a stale row fails loudly at the read boundary rather than producing a dangling root. Detection and idempotent repair for existing stale rows: [`ludicGraphStaleStructureSweep`](../../../diagnostics/ludicGraphStaleStructureSweep/) / [`healLudicGraphStructure.ts`](ludicGraph/healLudicGraphStructure.ts).
-
-**Clause 3 is conditional, and that is the whole of its scope: it constrains graphs that exist and mints none.** It does **not** say which things are hosts, and it does **not** put Room, Area or Feature into the part-of ladder --- **a uniform graph interior is not a uniform containment ladder.** Reading an inventory claim out of a structure claim is the specific error to avoid here; see the warning below on the room boundary, which clause 3 leaves exactly as it was.
-
-**Vocabulary this establishes:**
-
-| Term | Means |
-| --- | --- |
-| **Whole** | **A way of referring to something while discussing its parts --- not a type, not a category, and not a thing anything can be a member of.** *"The whole comprising these parts."* Any host, viewed from the inside. **It denotes nothing that "host with a root node" does not already denote**, and clause 3 makes that identity exact rather than approximate |
-| **Part** | A node in a host's graph other than the root, joined to the root by a **`PartOf`** containment edge --- **`niche -PartOf-> wall`**, member to root (see the direction rule below). **The counterpart term**, used when discussing the thing that contains it |
-| **Contents** | A node joined to the root by an **`In`** containment edge (**`crystalBall -In-> kitchen`**). **`In` and `PartOf` are two non-exclusive containment kinds** (settled 2026-08-09), so a box's lid is a part, its crystal ball is contents, and a thing may be **both** --- do not write the pair as a mutually-exclusive switch. **The distinction lives on the *edge*, never on the node:** the ball is not a different kind of object from the lid, and it is simultaneously a whole of its own interior. Typing the edge is what keeps this compatible with *whole and part are roles, not kinds*; typing the node would contradict it |
-| **Hosting kind / peer kind** | **Target, decided 2026-08-19 (AB-54); ~~not yet enforced anywhere in code~~ shipped for `On` (2026-08-31) and `In` (2026-09-22)** (corrected 2026-09-23). Both host by placing the subordinate in the host's own graph; `PartOf` has no producer yet. Relation kinds partition in two. A **hosting kind** --- `On`, `In`, `PartOf` --- puts the subordinate node in **its host's own graph**: a cup on a tray is a node in the tray's `ludicGraph`, and the tray is a node in the room's. A **peer kind** --- `Custom` --- leaves both endpoints in the same graph and hosts nothing. **`On` joining the hosting side is the whole of what is new**, and the reason is that `On` versus `In` was two entirely different representational structures for a difference that is really about **apprehension** (*`On` admits nested things to referent-search always, `In` sometimes*) --- an attention property, which belongs to `ludicCache`, not to the edge kind. **The partition is read off shipped behaviour rather than imposed on it:** `Custom` is already non-hosting (moving a table does not carry the boots under it). **Consequence worth stating because it is a deletion:** nothing *travels* with a moved thing, so carry-closure stops being a traversal and becomes a read of the shard. **This is *the* partition of relation kinds --- there is no second, narrower one.** The older term *containment kind* (`{In, PartOf}`, AB-48, 2026-08-09) named a subset of exactly this partition before `On` joined it, and retired as a named set once AB-54 merged the mechanism; the word *containment* stays, for the phenomenon (a containment subgraph is still a star, see below), but not as a collective noun standing in for `{In, PartOf}`. Where a comment or a doc genuinely means that pair, name the two kinds explicitly rather than reaching for a collective noun --- an unnamed pair can silently acquire a third member, which is exactly how this drift happened |
-| *(both, of one object)* | **Whole and part are roles relative to a level, not kinds of object.** The same thing is a part of what contains it and a whole of what it contains, **simultaneously and at every level** --- a string is a part of a machine and a whole of its spans. Any rule that gives parts and wholes different behaviour is therefore not a rule at all, since it assigns two behaviours to one object. **Do not type either word.** The failure mode is live rather than hypothetical: a *room-or-whole* fork was written into design work on 2026-08-09, two days after this claim was locked, treating a room as though it were not a whole |
-| **Port** | A **single-use** boundary slot on a whole, allocated by that whole. **The supertype of a crossing port (the row below) and a presence binding (a node, under [Presence as a cover](#presence-as-a-cover), addressed from outside in port form)** --- what a port address names is either a relational crossing or a presence binding, never a third thing, and *port* is the word for either one without saying which. Using the bare word for a sentence genuinely about both is a **choice, not an oversight** |
-| **Crossing port** | **Since 2026-09-17+ (presence-nodes migration, Slice 7a), the only kind of port there is** --- `EphemeraLudicGraph.ports` holds `EphemeraCrossingPort` alone. Its interior fan agrees on `kind` and label **with the single exterior edge crossing into it** --- fan-agreement, single-exterior-edge-mirrors-kind. Two connections to the same host are two crossing ports. ~~Contrasts with **Presence port** below, whose fan does not agree on a single label and is never a crossing~~ --- there is no presence port left to contrast with; see **Presence node** below |
-| **Egress / ingress** | A port's two ends --- the host it exits to, and its presence on that host's side. **`egress` is also used elsewhere (`ephemeraMeta.ts`) to name the whole `ports` list on a host, not one port's exit end** --- a pre-existing two-senses ambiguity, recorded here rather than fixed, so it is not mistaken for something this split introduced or resolved |
-| **Coarsening** | Failed addressing resolves to the **last successfully addressed host** rather than dangling. `OBJECT#BAG#4d1f0ac` with no live port `4d1f0ac` reads as `OBJECT#BAG`: "tied to the bag's strap" degrades to "tied to the bag" |
-| **Scale-relative truth** | The model may give **different** answers at different levels with **both correct** --- the coarse one is not an approximation of the fine one. The requirement is that answers be *consistent*, never that they be the same |
-
-**How a port address is written, and the three parts do not have the same standing.** **(i) The separator is a second `#`** --- `OBJECT#ROPE#ab6129d` --- chosen so that `isEphemeraTaggedId` **throws** on a nested form rather than silently affirming it. **Decided 2026-08-17, and scoped: it governs the serde/string form, not the domain type.** **(ii) The port id is a compact opaque token, not an ordinal and not a name.** **Provisional**, with a named rollback line --- do not build anything that depends on tokens being sequential, comparable, or meaningful, and do not cite existing code as evidence the choice was right. **(iii) At the domain level a port-qualified terminal is a *structured* value, not a string**, and **which form is actually stored is still open.** So read the notation below as a way of writing an address down, not as a claim about the persisted shape. **Corrected 2026-08-20** --- this section previously wrote port addresses as `OBJECT#ROPE:1`, with a colon and an ordinal, which contradicted (i) and (ii) in the one document a reader would most reasonably believe.
-
-**What a port id is not.** This is the load-bearing half, and it is recorded here rather than left to inference because the construct produced two misreadings of the same family within a day, both of which propagated before being caught. A port id is **not** a name for the interior node behind it (`OBJECT#ROPE#ab6129d` does not identify a part --- the part is an ordinary nominal id, and the port merely has an edge to it); **not** a reusable public interface; **not** a fan-out point (one interior edge, one exterior referrer); and **not** evidence about the interior at all, since **allocation is a property of the *boundary***.
-
-**A port is a scale boundary: the legs crossing it are one relation, not two.** A relation whose endpoints land in different hosts is chopped into legs at each hop, but the label does not change hop to hop --- every leg shares one `edgeId` (see the `edgeId`/`chainId` split in [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md)), so they cannot disagree: `OBJECT#STRING -[tied to]-> OBJECT#TABLE#7c2e91b` outside, `port 7c2e91b -[tied to]-> OBJECT#CUP` inside. One fact, relayed --- never a copy, and never a divergence (`buildCrossingLegs`). A **different**, independently-authored relation may also terminate at the same port --- that is a distinct `edgeId` and owes no label agreement with the crossing's own legs at all.
-
-**Why the shape is worth fixing before the details are settled.** The payoff is **encapsulation, not traversal**: a whole's ports are its published interface and its parts are the implementation, so **interior repartitioning stops being externally breaking**. That extends the invariance across *time* as well as across levels --- a thing can decompose or reabsorb without any external reference knowing what scale it was at.
-
-**One warning that must travel with this entry.** Encapsulation means external code cannot see what scale a thing is at, which is exactly what invariance requires and also exactly what would let a real level asymmetry go unremarked. **`EphemeraMembershipHostId` is all five kinds as of 2026-08-16 --- `Room | Character | Object | Feature | Area` --- and the room boundary is still a seam of different provenance** --- authored asset-stack merge, not play-time graph mutation. The claims above are earned for object interiors and **aspirational for the ladder above the room**. The failure mode is a future reader concluding the fractal is uniform because nothing complained.
-
-**What is *not* settled, and must not be inferred from this entry:** ~~port identity and reuse, numbered-versus-named and the separator character,~~ everything on the write side of scale change (`divide` / `merge`), and --- the one most likely to be read as included --- **whether Room or Area belong in the part-of ladder at all.** **Corrected 2026-09-11: the three struck items were decided while this list went on listing them, and the decisions are stated ten lines above in this same entry.** The separator is `#` (decided 2026-08-17); the id is a compact opaque token, **Provisional** with a rollback line (2026-08-13), which also dissolves *reuse* by construction --- there is no ordinal to recycle. **What genuinely survives from that clause is narrower and is kept here rather than dropped: whether an *authored* port may carry a human-facing name** (PQ-4's explicitly-undecided half; the proposed third path is an opaque id plus an optional label, on the `relationLabel`/`shortName` precedent). **Read the struck items as a warning about this list rather than about ports:** a summary of what is open is the part of an entry a reader trusts without checking, so it decays into a false claim faster than the prose it summarizes --- and here it contradicted its own section for nearly a month. (**Feature was settled 2026-08-15**, on the case `FEATURE#Wall -PartOf-> FEATURE#Niche`: a wall may host a niche as a part. Room and Area remain open, and Feature's answer does not generalise to them.)
-
-**Containment runs root-to-part, and that is a constructor discipline rather than a structural claim (AB-53, resolved 2026-08-19).** Within any one graph, every containment edge is **incident to the root** (running member -> root, per the direction rule below), so the containment subgraph is a **star**. Multi-level nesting is achieved by **nesting graphs** --- shards inside shards --- not by node-to-node containment edges inside a single graph. **Read this as *how the constructor builds graphs in iteration 1*, not as a property to reason from.** The type does not forbid a node-to-node containment edge and nothing asserts the star topology at runtime; if a use case for multiple levels in one graph arrives, **the discipline is dropped rather than defended.** **What makes that cheap, and why it is recorded here rather than left implicit:** the thing the restriction currently props up is carry-closure, and carry-closure already has a better-specified replacement in AB-5's **mint the whole, move the whole, dissolve the whole** --- which never traverses to discover what travels, and so works on a multi-level graph unchanged. **Two things currently rest on the star topology and must be re-checked if it goes:** `PartOf` cycle detection (unrepresentable today, hence unchecked) and any reader that assumes a containment edge's `to` is the root.
-
-**An unstated membership relation is `In` (PN-13, decided 2026-09-15 in `AGENT.presenceNodes.planning.md`, a presence-nodes migration plan closed and deleted 2026-09-18). This qualifies AB-53 above rather than contradicting it: AB-53 says every containment *edge* is root-incident; this says a *node* need not have one.** **Two clauses, kept separate because they key on different records:**
-
-1. **In `ludicGraph`: if a node is a member of a host and has not been designated `PartOf` or `On`, it is `In` that host.** The explicit edge states *how*; its absence does not withhold *that*. **`Character` hosts are included** --- `In` on a `Character` means possession/inventory, the ordinary sense, not that the object has been swallowed. This costs nothing to declare: `In` is never minted in production today (the deterministic parser defers containment language; the one containment producer hardcodes `On`; `PartOf` is authored-structure-only), and `ludicGraph` derives membership from `nodeIds`, never from edges, so nothing here changes what any reader computes.
-2. ~~In `ludicCache`: a node with a `Present` link from the presence node fronting root R, and no `On`/`PartOf` edge to R, is `In` R.~~ **--- corrected 2026-09-18, at the presence-nodes migration's graduation sweep: there is no `Present` link.** The migration's course correction (2026-09-16) replaced the `Present`-edge cover mechanism with a `cover` field on the presence node itself before this clause was ever built against edges; read: **a node named in the `cover` of the presence node fronting root R, and no `On`/`PartOf` edge to R, is `In` R.** The four conditions are unchanged in substance: the root is excluded (it is in every bucket without needing an entry to establish it); presence nodes are excluded (a presence node is not *in* anything, it **is** the index); it is scoped to `consolidated: true` presence nodes only (clause 2's `consolidated: false` preview authorizes nothing); and a node whose bucket was not pulled yields nothing from this rule --- silence, not a negative.
-
-**Do not read either clause as license for the merge to derive membership from edges --- the arrow runs the other way.** Membership is total and given (`nodeIds` in `ludicGraph`, the presence node's `cover` in `ludicCache`); what these clauses do is read the hosting relation's *kind* off that total record when no edge states it, never the reverse.
-
-**Edge direction: a relation kind is a predicate on its *subject*. Written down 2026-08-20, having been an unwritten convention every shipped kind already followed --- and its absence is exactly what let a defect through.** `from` is the thing the relation is asserted *about*, `to` is what it is asserted *against*: `glass -On-> tray` is "the glass is on the tray", `boots -Custom('under')-> table`, `rope -Custom('tied to')-> tree`. **Containment obeys the same rule:** `crystalBall -In-> kitchen`, `niche -PartOf-> wall` --- **member to root**, and it reads as English in the same direction as the other four.
-
-**The correction this replaced, recorded because the mistake is instructive rather than embarrassing.** AB-4 and premise 9 specified containment as *"root to part"* on 2026-08-09, and the first fixtures written against it (2026-08-19) spelled `ROOM#Kitchen -PartOf-> OBJECT#crystalBall` --- *"the kitchen is part of the crystal ball"* --- inverted against the kind's own name. **What *"root to part"* was actually right about is incidence, not direction:** every containment edge is incident to the root, which is what makes the containment subgraph a **star**, which is what makes cycles unrepresentable. **All of that survives the flip untouched**; only the arrow moved. **The general lesson, and it is the fourth instance of this exact pattern here:** a verdict written in one vocabulary was inherited into a later one --- except the vocabulary that shifted was a convention nobody had written down, so there was nothing to check it against. That is why it is written down now.
-
-**The root-designating field is `rootId`, shipped 2026-08-19.** Typed `EphemeraLudicTerminalId` on `EphemeraLudicGraphData` --- recorded as an input, never derived from the edges (a BFS traversal tree is order-dependent even though the induced edge set is not). A host-bound graph is always rooted at its own host (`rootId === hostId`). See [`ludicGraph/AGENT.md`](ludicGraph/AGENT.md).
-
-**Where a port record's two halves are stored --- settled 2026-08-06, corrected here 2026-08-15 because this entry still listed it as open and a reader believed it, and corrected a second time on 2026-08-23 for the same reason.** ~~The halves are **complementary, not duplicated**, and the **interior is authoritative**.~~ **Both clauses were too strong, and the second was being read far past what locked it.** A port is stored **interior-side only** --- the whole's own graph carries an **egress list** (port -> the host it exits to) as a top-level element --- **but the record mixes facts of two scopes.** The port's existence, its `portId`, its lifecycle and its `kind` are the **interior's**; which host it faces, and how that relationship is labelled, are **the exterior's**, held here as denormalized copies. So the halves are not complementary (they can contradict each other, and nothing structural prevents it), and the interior is authoritative **about things within its scope** rather than across the board. **The normative form of the rule --- *compare where comparison is possible; where an exterior reference exists it governs* --- is in [`AGENT.contract.md`](AGENT.contract.md#port-records-field-scope-and-the-conflict-rule)**, along with what enforces it; this entry states only the mental model. Clause 2 above carries the matching ownership-versus-authority warning. **What survives unchanged from 2026-08-15:** the *shape* claim that follows. The exterior needs no port record of its own, because **a port-address reference already names both the host and the port** --- `ROOM#A`'s edge to `OBJECT#BOX#ac123e6` says which port of which whole, so exterior port data would restate what the reader already holds. An ingress denormalization may live in `positionCache`; it is a cache, and it is not truth. Clause 3 makes graph *interiors* uniform and says nothing about the containment ladder above the room; that remains open, and the room-boundary warning below is a warning about exactly that. ~~**Also unsettled: what relation kind joins a root to its members.**~~ **Answered 2026-08-09 and recorded here 2026-08-15 --- `In` and `PartOf`, two non-exclusive containment kinds** (see the vocabulary table above). ~~**The gap is now an implementation gap rather than a design one:** `HostRelationalEdgeKind` is still `'On' | 'Under' | 'Against' | 'Custom'` in shipped code, so the model cannot yet say *in* about anything.~~ **Closed 2026-08-19:** `HostRelationalEdgeKind` now reads `'On' | 'Under' | 'Against' | 'Custom' | 'In' | 'PartOf'`, so the model can say *in* and *part of*, and clause 3's *usable as an endpoint* has something to be an endpoint of. **The widening is representation only and deliberately inert** --- no ingress path authors a containment edge (BD-2's exclusion is ingress-only), and the four ingress-lane copies of the union were left narrow on purpose. Tracked in [`AGENT.abstractionLayers.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md)'s Channel D, which owns re-enabling authoring on the actions lane. Those are live in [`AGENT.abstractionLayers.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md), whose "What is not locked" section is authoritative about which is which.
-
-**What would re-open these two claims.** Not a preference, not a cheaper-looking alternative, and not a rival proposal that also works: **a corpus case either clause cannot represent**, or a demonstration that the encapsulation claim fails where it was bought --- an interior repartitioning that still breaks external references. Either lifts the clause **by name**, in the plan's discussion record. It is not eroded by exception.
-
-### Presence as a cover
-
-**Status: semantics Target since first written; MECHANISM SHIPPED 2026-09-17+ (presence-nodes migration, graduated here 2026-09-18).** Recorded here ahead of implementation for the same reason as the entry above: rows in [`AGENT.presence.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.presence.planning.md) are phrased in this vocabulary and unreadable without it.
-
-**The claim immediately below --- that a cover is never serialised --- is REVERSED, and the reversal is the load-bearing fact of the shipped mechanism, not a quiet patch to it.** Read the two paragraphs after this one as **superseded**, kept for the reasoning they still get half right, not as current description. **What changed the answer:** a presence binding is now reified as its own graph **node** (`EphemeraLudicGraphStructureNode`), and once the index has a record of its own, storing its membership list on that record is no longer *a second encoding of what the edges already determine* --- there are no edges determining it. **The old argument's premise (`Present`-kind edges are the source of truth, and a stored cover would be a second, disagreeing copy of them) was falsified by the 2026-09-16 course correction, which deleted that edge mechanism outright**: no writer in this codebase ever minted a `Present` edge. With no edges to duplicate, "would you serialise it?" now answers **yes** --- the presence node's `cover` field (`{ tag: 'Full' }` or `{ tag: 'Enumerated'; members: EphemeraPresenceCoverEntry[] }`, each entry a `{ host, presence }` pair) **is** the stored bucket, and it is authoritative rather than derived. Falsifiability is not lost: clause 3's zero-or-all invariant and `isEphemeraLudicCacheData`'s cover-integrity checks (normative in [`AGENT.contract.md`](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path)) are exactly the by-construction/by-check discipline this entry always argued for, now applied to a stored record instead of a derived one.
-
-~~**Nothing here is ever serialised, and this is the first thing to know rather than a caveat at the end.** There is no `buckets` field, no `cover` record, and none should be minted. What is **stored** is nodes, edges, and presence bindings; buckets and the cover are *derived* from those --- or, for a whole with at most one binding, not even derived, since the single bucket **is** the node list. The cover is what the storage is graded against, not a parallel copy of it.~~
-
-~~**Why minting one would be actively wrong, not merely redundant.** A stored bucket set is a second encoding of what the edges and bindings already determine, so it can disagree with them --- and there is no tiebreak, because the derived answer is the definition.~~ **What survives of this reasoning: presence stays implicit only where PR-10's own test says so (at-most-one binding, and even that is now retired in favor of always-explicit, per clause 7/PN-18) --- never because storing a cover is categorically wrong.**
-
-**Read the two senses of *present* first, because everything below uses only one of them and fusing them is the documented failure.**
-
-| Sense | Question it answers | Status |
-| --- | --- | --- |
-| **Membership** | *Is the whole there at all?* | **Derived** --- from where its parts are. A whole is present in a host because some part of it is |
-| **Apprehensibility** | *Does the whole answer "what is here" at that host's scale?* | **Declared**, and **not derivable**. Working name: **apprehension scale**. Not specified here |
-
-**The evidence that they are two, and it is a corpus case rather than an intuition.** A rope and a moonbase computer system with parts scattered across a base have **identical presence topology** (the same bindings into the same rooms), and require **different** room-scale answers: you see a rope from any room it passes through, and from a terminal you see *a terminal*, not a computer system. No structural predicate separates them, so apprehensibility must be declared. **What that case does *not* show is that membership must be declared** --- the computer system genuinely *is* present in the lab in the membership sense. **Everything below is the membership sense.**
-
-**The formulation, in four claims.**
-
-1. **Presence is a cover of a whole's graph, indexed by the whole's *presence bindings*** --- the distinguishable ways it is present, **not** by the set of hosts it is present in. For each binding, presence names a subset of the whole's nodes: the part of the whole that is *there*. **The index is finer than the host set, and that is the claim**: one host may hold **two** bindings into the same whole, and those are **two buckets**, not one. **A grappling hook gun that is part of a contraption spanning two rooms has one host --- the contraption --- and two disjoint buckets, inherited from the contraption's two.** Collapsing them by host merges exactly the split that makes the case work. **Why it must be this way rather than merely may:** binding arity is **inherited** from the parent, and the host set is not, so host-indexing discards the inherited distinctions.
-2. **The cover ranges over *nodes only*.** Edges are not bucket members. **An edge may therefore span two buckets, and this is required rather than tolerated** --- a thread whose spans connect across rooms is how a route through those rooms stays recoverable, and eliminating cross-bucket edges would delete the structure that makes it work.
-3. **Buckets may overlap**, and their **union is every node** --- *totality*. **The root is in every bucket**, unconditionally, and is exempt not from coverage but from needing an edge to establish it: the root **is** the whole, so its membership is definitional rather than derived.
-4. **Totality's domain is *hosted* wholes.** A whole with no hosts has an empty cover and is **outside** the invariant rather than in violation of it. Hostless wholes are representable --- disconnected characters are one, and they persist today.
-
-**Aggregating the buckets from every binding reconstitutes every *node* of the graph.** That is the property the formulation exists to guarantee --- and it is a claim about **nodes only**, because that is all the cover ranges over.
-
-**Do not read that as *reconstitutes the graph*.** Edges are not bucket members, so aggregation neither recovers them nor needs to: **edges come from the graph, which is what is stored.** The failure this guards against is concrete rather than pedantic --- **an aggregation built as a per-bucket edge union silently drops every edge that spans two buckets**, and those are required by this design. A thread whose spans connect across rooms loses exactly the connections that make its route recoverable. **The aggregate of the buckets is the node set; the graph is that node set plus its edges.**
-
-**Totality is maintained *by construction*, and reading that as a weakness is a mistake worth pre-empting.** The host index is minted from where the parts are, so **no fiction can produce a node in no bucket** --- the falsifier hunt closed on being unable to write one, in any of its three forms. **An invariant kept invariant by construction is what a theorem is**, and making the bad state unrepresentable is the design win.
-
-**What the check is therefore aimed at.** *By construction* here is a claim about a **constructor discipline**, true exactly to the extent the discipline is complete --- unlike `a + b > a`, which holds on the axioms. So the check verifies **write paths**, never the world. The known shortfall is **nested** wholes: a whole that straddles two hosts obliges partitioning its parts, and *their* parts, to the depth of the composition. A constructor that stops at the top level leaves a well-formed outer cover over silently unaligned inner ones, and that is the shape of the test worth writing.
-
-**Three guards, and they are anti-reclassification rules rather than falsifiability rescues.** A node found in no bucket is **never** grounds for deciding its tag does not bear presence, **never** grounds for deciding its whole is hostless, and **never** excused by the node being a member of some **other** whole's graph as well. All three convert an observed violation into a retroactive domain exclusion. **The third is the most tempting, because its excuse is frequently true and always irrelevant:** a part may be a node in several graphs at once --- a spring inside a box that is also part of a contraption's mechanism is a node in both --- but **totality is stated per graph**, so being placed in the box says nothing about whether the contraption's cover is well formed. **Under a by-construction invariant these matter more, not less:** if the only remaining failure mode is a constructor bug, a checker that can excuse failures by reclassification is precisely what hides constructor bugs. **Hostlessness is read from the whole's own presence nodes --- stored records --- never inferred from a bucket computation that came back empty, which can launder a bug.**
-
-**Why the recursion terminates.** Membership derives a whole's hosts from its parts' locations, and those parts are wholes in turn --- so the definition needs a base case or it is a fixpoint anchored to nothing. **The base case is the room:** rooms are never *members* of any graph, so the descent bottoms out rather than continuing. **This is load-bearing, and it is inherited rather than owned** --- it holds only while the room boundary stays a seam of different provenance (see the warning in the entry above). If rooms ever enter the part-of ladder, this argument needs rebuilding, not patching.
-
-**Vocabulary this establishes:**
-
-| Term | Means |
-| --- | --- |
-| **Cover** | The whole family of buckets for one whole. **Stored, one bucket per presence node, as that node's `cover` field** --- `{ tag: 'Full' }` or `{ tag: 'Enumerated'; members }` --- and authoritative rather than derived. The invariants below (totality, root in every bucket, nodes only) are what the stored covers are **graded against**; they are checked, not recomputed. *Formerly* described as a semantics that would never be serialised, on the premise that `Present` edges determined it --- that premise was retired with the presence-nodes migration, and the reversal is explained at the top of this entry |
-| **Bucket** | The subset of a whole's nodes present at one **presence binding** --- the presence node's `cover`, resolved to a node set (`Full` means every node of the whole). **Keyed by the binding, not by the host** --- one host may hold two bindings into the same whole, and those are two buckets. The host is a **property** of a bucket, recoverable from it; it is not the key. **Do not index a cover by host**: it is the one error this vocabulary was rewritten to remove, and it silently merges disjoint buckets rather than failing |
-| **Presence binding** | One distinguishable way a whole is present --- what the cover is indexed by. **Mechanised as a presence node (shipped 2026-09-17+, presence-nodes migration)**, and the two are not the same claim: *the index is finer than the host set* is semantics, *a binding is realised as a node* is mechanism. It was realised as a **port** until this migration; the swap cost a rename, not a re-keying, because the semantics never depended on the mechanism |
-| **Totality** | The invariant that the buckets' union is every node, over hosted wholes |
-| **Aggregation** | Recombining every bucket to recover the whole graph. **Overlap dedupes**; it is not an error |
-| **Presence node** | ~~Presence port --- a port that carries presence, as opposed to a purely relational crossing (a cord threading into a flashlight locates nothing).~~ **Retired as a port sense 2026-09-17+ (presence-nodes migration, Slice 7a): a presence binding is a graph node (`EphemeraLudicGraphStructureNode`, tag `'Presence'`), never a port.** It carries `cover` (the bucket-membership statement --- see [Presence as a cover](#presence-as-a-cover)) and `fromHostId` (a shard locator, not the inverse of a parent's cover). It remains addressable from outside its host as a `PRESENCE#`-tagged port-form terminal, so exterior code never needed to change. **What survives from the retired port-sense entry, unaffected by the mechanism change:** an edge landing on a presence binding is a terminal, never a crossing, and denotes the part of the object present via that binding --- the binding is the referent itself, not a pointer resolved by walking (Settled, [2026-08-26](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.presence.planning.md#settled-register)). Normative rule: `AGENT.contract.md`'s [presence-nodes section](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path) |
-
-**What the mechanism question resolved to, and it is worth stating precisely because this entry spent a long time deliberately not answering it.** ~~The mechanism is not part of the claim. The candidate is a walk from each presence port over presence-bearing edges, and it is a candidate: ports, `Present` edges and reachability must stay swappable.~~ **The swap-out test this entry posed --- *would this survive the walk being abandoned?* --- has now actually been asked, because the walk WAS abandoned (2026-09-16 course correction): no reachability walk was ever built, and no `Present` edge was ever written by any production code.** Buckets, index-by-binding, totality and aggregation all survived it, exactly as predicted; what did not survive was *port* as the name of the binding's mechanism (now **node**) and *derived, never stored* as a categorical rule about the cover (now stored, on the node, by design --- see the reversal noted above). **Still genuinely unsettled, unaffected by any of this:** what sub-graph a bucket *induces* and what becomes of an edge with one endpoint outside it (a **reduction** convention, not a cover question); whether presence writes are transactional with the mutation kernel; and **apprehension scale itself**, which is named above only to keep it distinct from membership.
-
-**What would re-open this entry.** A corpus case the cover cannot express --- **not** a case that violates totality, since by construction none exists and looking for one is a category error. The live target is the **constructor**: a nested straddling whole whose inner covers cannot be built correctly by any discipline stated here. Alternatively, a demonstration that membership must be **declared** after all, which would collapse the two senses back into one and take the derivation argument with it.
-
-### `ludicCache`: the attention-scoped read structure
-
-**Status: Target semantics, Prototype code.** The purpose below is proposal P6 in [`AGENT.abstractionLayers.proposals.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.proposals.planning.md#proposal-p6-ludiccache-as-the-attention-scoped-reference-structure), restated here in present tense so it outlives that file. The pairwise mechanism is shipped under [`ludicCache/`](ludicCache/) as an elected Prototype with a named rollback trigger; the whole-cache rebuild, its first consumer and persistence are in flight under [`AGENT.ludicCacheRebuild.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCacheRebuild.planning.md). Nothing in production reads it yet, which is why nothing here is in `AGENT.contract.md`. Orientation: [`AGENT.ludicNetwork.md` --- The cache](AGENT.ludicNetwork.md#5-the-cache-stitching-shards-along-the-presence-axis).
-
-**What it is.** `ludicGraph` is sharded one graph per host, and a question like *"which thing does the player mean by 'the cup'?"* asked in a room may need to see into the box on the table. `ludicCache` is **several shards folded into one graph from one host's point of view**, so that reference-location does not walk shards at request time. It is a **read structure**: derived from `ludicGraph` and the attention ledger, never written by a verb, droppable at any time.
-
-**Five commitments, and each rules something out:**
-
-1. **Scope: common ground.** The cache holds what the scene has established --- reference-location above all. It does **not** serve description (a lossy read-side rule over the graph, cached nowhere) or consequence-reasoning (which asks *what is true*, and the cache does not hold truth). A proposed consumer that needs either is in the wrong structure.
-2. **Depth is attention-scoped, not exhaustive.** A box nobody has opened contributes one handle; its contents stay in the box's own shard. Once the box is looked into, its contents are promoted into the room's cache and the box's entry degrades to a pointer. **Unbounded size is the failure this clause exists to prevent**, which is why a fold that drops nothing is rejected.
-3. **A hit returns a handle, never a subgraph.** Reference-location resolves a word to an **address**; acting on it means traversing `ludicGraph` from there. This is what makes folding across ports safe under [Wholes, parts, and ports](#wholes-parts-and-ports)' encapsulation claim: the caller never receives a crossed-port structure, so nothing structural can be silently concluded from the cache.
-4. **Fast path, never the sole path.** A miss falls through to the graph walk, which may resolve, improvise, or refuse on narrative grounds. **A cache miss is never an answer of "no."** An error in the cache therefore costs *slow*, never *wrong* --- which is what licenses lazy invalidation.
-5. **Derived, never authoritative.** Materialised from (`ludicGraph`, attention ledger); the ledger folds in under order-independent laws, so a partially-ordered ledger produces the same cache.
-
-**How it is built, in one paragraph.** Each host being folded in is **cut** into buckets along its presence nodes ([`presenceSubGraph.ts`](ludicGraph/presenceSubGraph.ts)): an edge with one end outside the bucket is severed and a transient **stub port** stands in for the missing end. Pieces are then **composed at crossing ports, never at nodes** ([`mergeReducer.ts`](ludicCache/mergeReducer.ts)): a leg ending at a port and the leg starting there collapse into one edge, because a port is not a referent and composing across it destroys nothing, while composing across a node would destroy something a player could name. Each composed edge records the crossings and bindings that justify it (`supportedBy`, [`ludicCache/types.ts`](ludicCache/types.ts)) --- the evidence of crossing that the encapsulation claim requires the cache to keep. Folded presence nodes carry `consolidated: true` and an **enumerated** cover; `Full` is unrepresentable in the cache because "every node of the host" has no referent in a merge.
-
-**Where it sits relative to the rest of this file.** It reads the structure in [Wholes, parts, and ports](#wholes-parts-and-ports) and slices along the axis in [Presence as a cover](#presence-as-a-cover); it is a consumer of both and changes neither. Apprehension scale --- whether a thing *answers* "what is here" at a host's scale --- is named under Presence as a cover and is the cache's concern rather than the graph's, but is not yet modelled anywhere.
-
-**What would re-open this entry.** Clause 3 proving unholdable against a real consumer (a hit that must return structure), or the rollback trigger firing: a bucket that cannot be stated from the hosted thing's own graph plus its own bindings, which would mean presence is not binding-indexed and the fold's premise fails.
-
-### Authored vs play graphs
-
-- **Area graph** may list a Character as an Area **participant** (authored scope) --- distinct from **runtime presence** in a room graph.
-- **Play mutations** (connect, navigate, pick up, place) update **play graphs**; **projections** feed perception, affordance WML, nav, and LLM context.
-
-### Map Position facets (x/y)
-
-WML **Position** facets on maps are a **separate** authoring idiom today ([`packages/mtw-wml/ts/standardize/keys/facets/AGENT.facets.md`](../../../../packages/mtw-wml/ts/standardize/keys/facets/AGENT.facets.md)). Target relationship to room graphs (compile-time hint vs runtime edge) is **undecided**.
-
----
+**Relationship to room membership:** membership is **where the character is now** (roster, `Character Moved`). The ladder is **how a legal endpoint is computed** when membership is missing (connect) or points at an inaccessible layer (asset loss). A trim that fixes only the ladder is not a membership change; a resolution that changes the endpoint is a real move.
 
 ### Plan-evaluate loop
 
-**Status: Target, named 2026-09-08, not built.** Nothing here is normative --- no caller exists yet --- which is why it lives here and not in `AGENT.contract.md`.
+The **plan-evaluate loop** is planning whose termination condition is a sandbox evaluation of a proposed plan: **evaluate clean -> run the plan; evaluate irretrievably broken -> discard that candidate (perhaps one among several); evaluate repairable -> fold the repair into the next iteration, which proposes a plan that pre-cleans the defect, and re-evaluate.** Routes today run it to one iteration at most: a player attempt is dry-run once and a repairable verdict refuses it, and an administrative move pre-computes its repair and never re-evaluates.
 
-Planning is a loop whose termination condition is a sandbox evaluation of a proposed plan: **evaluate clean -> exit the loop, run the plan; evaluate irretrievably broken -> discard that candidate (perhaps one among several) as unexecutable; evaluate repairable -> fold the repair into the next iteration, which proposes a new plan that pre-cleans the defect, and re-evaluate.** This is not a new idea so much as a name for a shape already present twice, hand-unrolled to exactly one iteration: both of `executeMembershipTransfer`'s dissolve paths pre-compute a repair and emit a plan that already has it applied, then never re-evaluate.
+**Not the backtrack channel.** The backtrack channel re-enters an **earlier pipeline stage**, upstream of where a failure was detected; this loop iterates **within** one stage. Same fault-recovery pattern, two scopes, and neither blocks the other.
 
-**Relationship to BD-18, stated because the two are easy to conflate.** BD-18 (the backtrack channel) backtracks to an **earlier pipeline stage** --- it re-enters upstream of where a failure was detected. This loop iterates **within** one stage --- it re-proposes a plan without leaving the stage that builds plans. Same fault-recovery pattern, two different scopes, and neither blocks the other: a loop that never needs BD-18 (every repair is in-stage) can ship before BD-18 exists, and BD-18 does not have to know this loop is running inside one of the stages it might someday backtrack into.
+**Cheapness.** The evaluator is pure over a graph map fetched once, so the loop is one fetch plus N pure evaluations; only the final commit re-fetches under lock. [Footprint-widening](#footprint-widening-exception) is the one case that costs more.
 
-**Cheapness, worth stating because it is not obvious.** The evaluator is pure over a graph map already fetched once, so the loop is one fetch plus N pure evaluations --- only the final commit re-fetches under lock. See [Footprint-widening exception](#footprint-widening-exception) for the one case that costs more.
-
-**Two constraints any harness must satisfy, neither free:** (i) **termination** --- repairs must be monotone (a stated rule the repair policies obey, not an accident a later repair can break by adding something), and (ii) **tier** --- the harness is `plan*`-tier, calling an evaluator and a repair policy; it is not itself an `orchestrate*` function, which keeps the [tier discipline](AGENT.contract.md#manipulation-tier-discipline) intact.
+**Two constraints any harness must satisfy:** (i) **termination** --- repairs are monotone, as a stated rule the repair policies obey rather than an accident a later repair can break; and (ii) **tier** --- the harness is a plan-tier loop calling an evaluator and a repair policy, not an orchestrator, which keeps the [tier discipline](AGENT.contract.md#manipulation-tier-discipline) intact.
 
 ### Footprint-widening exception
 
-Most of the [plan-evaluate loop](#plan-evaluate-loop)'s cheapness comes from evaluating over a graph map already in hand. A repair that **widens the footprint** --- touches a host outside that map --- needs graphs the snapshot does not have, and must re-fetch under the same discipline [`fetchRelationalReachability`](manipulation/relational/findRelationalChainsForRemoval.ts) already establishes for exactly this shape of problem. This is named as an existing precedent to reuse, not a new mechanism the loop invents.
+The [plan-evaluate loop](#plan-evaluate-loop)'s cheapness comes from evaluating over a graph map already in hand. A repair that **widens the footprint** --- touches a host outside that map --- needs graphs the snapshot does not have, and re-fetches under the same discipline the relational reachability fetch already follows for this shape of problem. It is an existing precedent to reuse, not a new mechanism.
 
 ### Repair-authority axis
 
-**Status: mechanism shipped, axis unresolved --- do not read the field below as an answer to the open question.**
+A `repairable` verdict names which kind of repair it is: **mechanical** (invisible to the player --- a dissolve already classified as one the move entails, left unemitted) or **world-changing** (moving the lamp that was resting on the book).
 
-`MutationKernelApplyOutcome`'s `repairable` verdict carries an `authority: 'mechanical' | 'worldChanging'` field ([`manipulation/kernel/types.ts`](manipulation/kernel/types.ts)). That is the shipped mechanism: a repair can name which of the two it is.
+**Which repairs a route may authorize on its own is not modelled**, and neither is when a `repairable` verdict should escalate to a player-facing Consult instead of folding into the next loop iteration. Treating a world-changing repair as an ordinary in-loop repair silently widens what the player asked for; where that line falls is a world-model call about what an action *means*, so a repair policy is written as a deliberate answer to it. This axis is not a gate on the loop: a loop can carry only the repairs it can justify (mechanical ones), and each escalation is its own later feature. A departure with no destination asking whether it may refuse to leave is the same question applied to departures.
 
-**What is *not* settled, and is the load-bearing half of this entry:** which repairs a route may authorize on its own, and when a `repairable` verdict should instead escalate to a player-facing Consult rather than being folded into the next loop iteration. Severing a `Present` port is mechanically invisible; moving the lamp that was resting on the book is not, and treating the second as an ordinary in-loop repair means the system silently widens what the player asked for. Where that line falls is a world-model call about what an action *means*, and belongs to the user, not to a refactor --- it is recorded here as a named open question precisely so a repair policy is written as a deliberate answer to it rather than by accident. **This is not a gate on the loop above:** the loop can ship today with only the repairs it can justify now (mechanically-invisible cleanups), and each future escalation lands later as its own local feature --- a repair-policy entry plus whatever UI a Consult needs --- without disturbing the loop's structure.
+---
 
-A departure with no destination (`toHostId: null`) asking whether it may refuse to leave with nowhere to go is the same question applied to departures, not a separate one, and has no resolution of its own beyond this axis.
+## Maintaining this file
 
-## Graduation rule
+Present tense, current model only: no dates, no slice or plan-row provenance, no source paths, no status of unbuilt work, no strikethrough. Something the model does not cover is stated as a present-tense boundary ("not modelled"), and the open question itself lives in `taskPlanning/`. Rules go to [`AGENT.contract.md`](AGENT.contract.md); file and function names to [`AGENT.implementation.md`](AGENT.implementation.md); history to git.
 
-When a **target mental model** ships in code and tests, **move** its description from **Target mental model** to **Shipped mental model**. Add matching **must/must-not** obligations to [`AGENT.contract.md`](AGENT.contract.md) and paths to [`AGENT.implementation.md`](AGENT.implementation.md).
+**A refactor that changes no behaviour but seems to need an edit here is the signal that the text being edited belongs in another file** --- move it there instead of updating it in place. When a mental model changes, rewrite its entry and check the matching section of [`AGENT.ludicNetwork.md`](AGENT.ludicNetwork.md) in the same change; that file is the present-tense walkthrough of this one and goes stale the same way.
 
-**Restate on graduation.** The move is a rewrite, not a cut-and-paste. While an entry is Target, its corrections accumulate in place --- struck claims, dated reversals, retired vocabulary --- because the argument is still live and a reader needs to see what was tried. Once it is Shipped, that ledger stops being evidence and becomes a puzzle: a cold reader has to replay every correction in date order to find the current claim, and **summaries inside the entry (vocabulary tables, "what is not settled" lists, one-line status cells) are the parts that drift furthest**, because they are read without checking and edited last. So at graduation:
+## Navigation
 
-1. **Rewrite the entry's prose and tables in the present tense, stating only the shipped shape.** Retired terms are named once, in a *formerly* clause, not preserved in strikethrough at their original position.
-2. **Move the correction trail out**, to the plan that made the change or its discussion file; if that plan is being deleted, git history is the record and a one-line pointer to the commit is enough.
-3. **Check every table row against the paragraph above it.** A table row that still states the pre-graduation claim is a defect in this file, not a nuance.
-4. **Check the matching section of [`AGENT.ludicNetwork.md`](AGENT.ludicNetwork.md) in the same change** --- that file is the present-tense map of this one and goes stale the same way.
-
-An entry may graduate its *mechanism* while its *semantics* stay Target (Presence as a cover did). The rule then applies to the shipped part only, and the entry says which part that is.
+- Primer: [`AGENT.ludicNetwork.md`](AGENT.ludicNetwork.md). Rules: [`AGENT.contract.md`](AGENT.contract.md). Code map: [`AGENT.implementation.md`](AGENT.implementation.md), [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md), [`ludicGraph/AGENT.md`](ludicGraph/AGENT.md).
+- Cross-area topology authoring (Area `ludicGraph`, Exit edges): [`AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md). Operator design for play-time relational mutations: [`../../diegeticLogic/AGENT.md`](../../diegeticLogic/AGENT.md).
+- Open questions about this model: [`AGENT.abstractionLayers.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md) and [`AGENT.presence.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.presence.planning.md).

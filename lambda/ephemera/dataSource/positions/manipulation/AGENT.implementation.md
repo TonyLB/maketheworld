@@ -66,7 +66,7 @@ type PresentationKernelStep = ExecutorDescribeStep | PresentationKernelNarrateSt
 type KernelStep = MutationKernelStep | ExecutorDescribeStep | PresentationKernelNarrateStep
 ```
 
-**`KernelStep` is deliberately unprefixed** --- it is the shared, cross-kernel vocabulary that each kernel filters down to the steps it owns, so it belongs to no single kernel. Everything mutation-specific carries `MutationKernel`; everything presentation-specific carries `PresentationKernel`. `ExecutorDescribeStep` is **not** renamed: it is owned by `executorTypes.ts` and reused verbatim. Rationale: [`../AGENT.concepts.md` --- Naming](../AGENT.concepts.md#naming-kernel-alone-names-nothing).
+**`KernelStep` is deliberately unprefixed** --- it is the shared, cross-kernel vocabulary that each kernel filters down to the steps it owns, so it belongs to no single kernel. Everything mutation-specific carries `MutationKernel`; everything presentation-specific carries `PresentationKernel`. `ExecutorDescribeStep` is **not** renamed: it is owned by `executorTypes.ts` and reused verbatim. With two kernels, a bare `Kernel` prefix would identify neither. **State this reason wherever the exception comes up**: `KernelStep` reads as an inconsistency, and the next reader will "fix" it by prefixing it, destroying the one distinction the scheme gets right.
 
 Both steps transfer exactly one entity: anything it hosts lives in its own shard and travels with it. Two widenings distinguish `MutationKernelTransferStep` from the executor's object-only, singular-host `TransferMembershipStep`:
 
@@ -277,12 +277,12 @@ commitAttempt.ts            dispatches the relational action to planRelationalEd
 commitStepSequence          one transactWrite; re-validates live on locked graphs (as before)
 ```
 
-`applyObjectRelationalChange` is not dead code, though --- it still backs the boundary-sweep dissolve steps `executeMembershipTransfer`/`applyTransferSet` emit during an ordinary membership move (an entirely different call site, unrelated to the relational ingress above). Its own repair-transfer branch (`[dissolveRelation*, transferMembership, establishRelation]`) was retired outright, 2026-09-01 --- a relation whose endpoints are in different shards is a crossing to build as legs, not a misplacement to fix by moving an endpoint --- so today it only ever builds a single-step `[establishRelation]`/`[dissolveRelation]` sequence, at whichever call site still uses it.
+`applyObjectRelationalChange` has **no production caller** and is **parked, not dead**: it is kept for the LLM planning work to take up, so do not delete it as unreferenced. Its own repair-transfer branch (`[dissolveRelation*, transferMembership, establishRelation]`) was retired outright, 2026-09-01 --- a relation whose endpoints are in different shards is a crossing to build as legs, not a misplacement to fix by moving an endpoint --- so today it only ever builds a single-step `[establishRelation]`/`[dissolveRelation]` sequence, at whichever call site still uses it.
 
 | Item | Value |
 | --- | --- |
 | **Ingress (establish and dissolve)** | [`relational/planRelationalEdgeTransfer.ts`](relational/planRelationalEdgeTransfer.ts), called from [`../commitAttempt.ts`](../commitAttempt.ts), direct to `commitStepSequence` |
-| **Boundary-sweep coordinator (unrelated call site)** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) (used by `executeMembershipTransfer`/`applyTransferSet` during a membership move, not by the relational ingress above) |
+| **Parked relational coordinator** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) (no production caller; kept for the LLM planning work) |
 | **Edge helpers** | [`../ludicGraph/`](../ludicGraph/) (`HostRelationalEdge`, `edgesMatch`, relational mutators, `hostDataCategory`/`graphFromMeta` Room/Character dispatch) |
 | **Fact** | [`relational/buildObjectRelationalFact.ts`](relational/buildObjectRelationalFact.ts) -> [`relational/streamObjectRelationalFact.ts`](relational/streamObjectRelationalFact.ts) |
 | **Normative contract** | [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch) |
