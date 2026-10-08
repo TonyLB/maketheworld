@@ -245,7 +245,7 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 | **Root** | The host's own node in its own graph; recorded, never derived | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Whole / part** | Roles, not kinds: a thing is a whole of its interior and a part of its containers, at once | same |
 | **Membership** | X is in H iff X is a node in H's graph; mirrored by an adjacency row | [Graph apply](AGENT.contract.md#graph-apply-end-state) |
-| **Hosting kind / peer kind** | `On`/`In`/`PartOf` put the subject in its host's graph; `Custom` relates two members | [Relation kind enum](AGENT.contract.md#relation-kind-enum-bd-2) |
+| **Hosting kind / peer kind** | `On`/`In`/`PartOf` put the subject in its host's graph; `Custom` relates two members | [Relation kind enum](AGENT.contract.md#relation-kinds) |
 | **Terminal** | An edge endpoint: bare component id, or a port address `{ owner, port }` | [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) |
 | **Port** | A single-use boundary slot a host publishes; either a crossing port or a presence binding | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Crossing port** | The record in `ports` where a relation passes through the boundary; interior-side, two scopes of field | [Port records](AGENT.contract.md#port-records-field-scope-and-the-conflict-rule) |

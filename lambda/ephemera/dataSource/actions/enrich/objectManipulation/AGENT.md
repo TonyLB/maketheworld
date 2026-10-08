@@ -166,7 +166,7 @@ Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / *
 
 ### Interaction under transfer
 
-[`interactionUnderTransfer.ts`](../../../positions/ludicGraph/expandValidate/interactionUnderTransfer.ts) classifies every relational edge that crosses a move's boundary (one endpoint moves, the other stays), by relation kind. Every peer edge defers whichever end moves, so the adjudicator decides whether a severed edge matters (clearance under a table, a rope still lashed to a post; the manner rule in [`positions/AGENT.contract.md`](../../../positions/AGENT.contract.md#relation-kind-enum-bd-2)):
+[`interactionUnderTransfer.ts`](../../../positions/ludicGraph/expandValidate/interactionUnderTransfer.ts) classifies every relational edge that crosses a move's boundary (one endpoint moves, the other stays), by relation kind. Every peer edge defers whichever end moves, so the adjudicator decides whether a severed edge matters (clearance under a table, a rope still lashed to a post; the manner rule in [`positions/AGENT.contract.md`](../../../positions/AGENT.contract.md#relation-kinds)):
 
 | Relation kind | Subject moves | Target moves |
 | --- | --- | --- |
