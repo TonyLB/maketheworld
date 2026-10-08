@@ -135,6 +135,23 @@ export type RelationalEdgeFactSource = {
 } & RelationalKindAndLabel
 
 /**
+ * Whether a step's relational fact is the one a supplied edge already yields --- a one-leg chain,
+ * whose single leg names the edge's real pair. A step fact that matches no supplied edge (a move's
+ * own containment strip or containment establish, committed in the same attempt) is a fact in its
+ * own right.
+ */
+export const isFactOfRelationalEdge = (
+    fact: ObjectRelationChangedPublishedPayload,
+    edge: RelationalEdgeFactSource
+): boolean => (
+    fact.subjectId === edge.subjectId
+    && fact.targetId === edge.targetId
+    && fact.operation === edge.operation
+    && fact.relationKind === edge.relationKind
+    && (fact.relationKind !== 'Custom' || (edge.relationKind === 'Custom' && fact.relationLabel === edge.relationLabel))
+)
+
+/**
  * One edge's fact. The host is the subject's, re-derived from the graphs the same way
  * `factsForStep` does for a leg: the committed graphs, then the pre-apply snapshot (a dissolve
  * whose subject left the footprint).

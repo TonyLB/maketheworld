@@ -22,10 +22,9 @@ const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { hea
     if (isEphemeraRoomId(componentId)) {
         await kickRoomHeaderBroadcastForRoom({ roomId: componentId, messageBus })
     }
-    // Cache-time containment population, additive-only --- Room-in-Area and Feature-in-Room today.
-    // Duck-typed on `ludicGraph` rather than switched on `component.tag`, so a future host kind
-    // (e.g. Feature, once it gains its own `_ludicGraph`) starts participating with no change
-    // here. That scale-invariance is deliberate, and is contracted in
+    // Cache-time containment population, additive-only --- e.g. Room-in-Area, Feature-in-Room.
+    // Duck-typed on `ludicGraph` rather than switched on `component.tag`, so any host kind whose
+    // component authors nested nodes participates with no change here. That scale-invariance is deliberate, and is contracted in
     // `positions/AGENT.contract.md`'s `Component Updated` ingress section.
     const { component } = content
     if (isEphemeraMembershipHostId(componentId) && 'ludicGraph' in component) {

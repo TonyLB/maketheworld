@@ -451,6 +451,33 @@ describe('commitStepSequence', () => {
             ])
         })
 
+        it('a containment step no supplied edge covers still streams its own fact, in step order', async () => {
+            const { transactWrite } = makeTransactWriteMock(crossingGraphs())
+
+            const result = await commitStepSequence(
+                {
+                    steps: [
+                        { kind: 'establishRelation', subjectId: CUP_ID, targetId: TABLE_ID, hostId: TABLE_ID, relationKind: 'On' },
+                        ...crossingSteps,
+                    ],
+                },
+                {
+                    messageBus: messageBus as any,
+                    streamEvent,
+                    getCurrentHost: hostOf as any,
+                    transactWrite,
+                    relationalEdges: [{ subjectId: STRING_ID, targetId: CUP_ID, operation: 'establish', ...tie }],
+                }
+            )
+
+            expect(result.ok).toBe(true)
+            const updates = streamEvent.mock.calls.map(([payload]: any[]) => payload.update)
+            expect(updates).toEqual([
+                expect.objectContaining({ type: 'Object Relation Changed', subjectId: CUP_ID, targetId: TABLE_ID, relationKind: 'On' }),
+                expect.objectContaining({ type: 'Object Relation Changed', subjectId: STRING_ID, targetId: CUP_ID, ...tie }),
+            ])
+        })
+
         it('suppressRelationalFacts suppresses the edge\'s fact too', async () => {
             const { transactWrite } = makeTransactWriteMock(crossingGraphs())
 

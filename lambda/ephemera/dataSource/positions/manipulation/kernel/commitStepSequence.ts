@@ -16,7 +16,7 @@ import { streamMembershipFact } from '../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
-import { factForRelationalEdge, factsForStep } from './factsForStep'
+import { factForRelationalEdge, factsForStep, isFactOfRelationalEdge } from './factsForStep'
 import type { RelationalEdgeFactSource } from './factsForStep'
 import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelCaptures, MutationKernelCommitResult } from './types'
@@ -43,12 +43,13 @@ export type CommitStepSequenceDeps = {
      */
     characterNames?: ReadonlyMap<EphemeraCharacterId, string>
     /**
-     * The relational edges these steps realize, for a caller that commits whole edges. When
-     * supplied, `Object Relation Changed` comes from these, one fact per edge, and not from the
-     * relational steps: a crossing's legs all have a port endpoint and name no real pair, and
-     * a one-leg chain is the same edge either way. Gated by `suppressRelationalFacts` like any
-     * relational fact. Unset (a move's boundary dissolves, the administrative clears), each
-     * relational step with primitive endpoints yields its own fact, as before.
+     * The relational edges these steps realize, for a caller that commits whole edges. Each
+     * supplied edge yields one `Object Relation Changed`, streamed after every step fact, in place
+     * of its steps' own: a crossing's legs all have a port endpoint and name no real pair, and a
+     * one-leg chain's leg fact is skipped as the same edge. Every other relational step with
+     * primitive endpoints (a move's containment strip or containment establish, in the same
+     * attempt) still yields its own fact in step order. Gated by `suppressRelationalFacts` like
+     * any relational fact.
      */
     relationalEdges?: readonly RelationalEdgeFactSource[]
 }
@@ -220,10 +221,10 @@ export const commitStepSequence = async (
     }
 
     for (const step of steps) {
-        if (deps.relationalEdges !== undefined && (step.kind === 'establishRelation' || step.kind === 'dissolveRelation')) {
-            continue
-        }
         for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs, deps.characterNames)) {
+            if (fact.type === 'Object Relation Changed' && (deps.relationalEdges ?? []).some((edge) => isFactOfRelationalEdge(fact, edge))) {
+                continue
+            }
             if (fact.type === 'Object Moved') {
                 await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
             }
