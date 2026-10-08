@@ -14,7 +14,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         const steps = containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)
 
         expect(steps).toEqual([
-            { kind: 'transferMembership', entityIds: new Set([ROOM_ID]), fromHostIds: new Set(), toHostId: AREA_ID },
+            { kind: 'transferMembership', entityId: ROOM_ID, fromHostIds: new Set(), toHostId: AREA_ID },
             { kind: 'addPresenceBinding', hostId: ROOM_ID, fromHostId: AREA_ID, presenceUuid: expect.any(String) },
             { kind: 'establishRelation', subjectId: ROOM_ID, targetId: AREA_ID, hostId: AREA_ID, relationKind: 'PartOf' },
         ])

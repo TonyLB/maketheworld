@@ -55,7 +55,7 @@ export const containmentPopulationSteps = (
     if (!parentGraph.nodeIds.has(childId)) {
         const nodeStep: MutationKernelTransferStep = {
             kind: 'transferMembership',
-            entityIds: new Set([childId]),
+            entityId: childId,
             fromHostIds: new Set(),
             toHostId: parentId,
         }

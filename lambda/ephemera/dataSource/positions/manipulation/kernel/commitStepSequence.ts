@@ -16,7 +16,7 @@ import { streamMembershipFact } from '../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
-import { factForRelationalEdge, factsForStep } from './factsForStep'
+import { factForRelationalEdge, factsForStep, isFactOfRelationalEdge } from './factsForStep'
 import type { RelationalEdgeFactSource } from './factsForStep'
 import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelCaptures, MutationKernelCommitResult } from './types'
@@ -37,18 +37,19 @@ export type CommitStepSequenceDeps = {
     suppressRelationalFacts?: boolean
     /**
      * Character-route Migrate row: resolved character display names for any `transferMembership`
-     * step's character-kind `entityIds`, so `factsForStep` (synchronous) can build a fully-populated
+     * step whose `entityId` is a character, so `factsForStep` (synchronous) can build a fully-populated
      * `Character Moved` fact without fetching anything itself. Only `orchestrateCharacterRoomMembership.ts`
-     * populates this today; every other caller's steps carry no character entityIds, so it's a no-op.
+     * populates this today; every other caller's steps move no character, so it's a no-op.
      */
     characterNames?: ReadonlyMap<EphemeraCharacterId, string>
     /**
-     * The relational edges these steps realize, for a caller that commits whole edges. When
-     * supplied, `Object Relation Changed` comes from these, one fact per edge, and not from the
-     * relational steps: a crossing's legs all have a port endpoint and name no real pair, and
-     * a one-leg chain is the same edge either way. Gated by `suppressRelationalFacts` like any
-     * relational fact. Unset (a move's boundary dissolves, the administrative clears), each
-     * relational step with primitive endpoints yields its own fact, as before.
+     * The relational edges these steps realize, for a caller that commits whole edges. Each
+     * supplied edge yields one `Object Relation Changed`, streamed after every step fact, in place
+     * of its steps' own: a crossing's legs all have a port endpoint and name no real pair, and a
+     * one-leg chain's leg fact is skipped as the same edge. Every other relational step with
+     * primitive endpoints (a move's containment strip or containment establish, in the same
+     * attempt) still yields its own fact in step order. Gated by `suppressRelationalFacts` like
+     * any relational fact.
      */
     relationalEdges?: readonly RelationalEdgeFactSource[]
 }
@@ -162,21 +163,21 @@ export const commitStepSequence = async (
 
     // Adjacency rows (positionAdjacency#<hostId>) for every entity moved by a transferMembership
     // step, built as plain, unconditioned sibling items --- same convention as the two live
-    // kernels (transfer set and hosts are known before the reducer runs, so nothing depends on
+    // kernels (the moved entity and hosts are known before the reducer runs, so nothing depends on
     // the reducer's computed output; if the reducer throws, these never fire either). A `Delete`
-    // per (entityId, fromHostId) pair across every departure host; a `Put` per entityId only when
+    // per departure host; a `Put` only when
     // `toHostId` is non-null (a pure remove, e.g. destroy, has no arrival row to write).
     const adjacencyItems: CommitStepSequenceTransactItem[] = steps
         .filter((step): step is Extract<MutationKernelStep, { kind: 'transferMembership' }> => step.kind === 'transferMembership')
         .flatMap((step) =>
-            [...step.entityIds].flatMap((entityId) => [
+            [
                 ...[...step.fromHostIds].map((fromHostId) => ({
-                    Delete: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(fromHostId) },
+                    Delete: { EphemeraId: step.entityId, DataCategory: buildPositionAdjacencyDataCategory(fromHostId) },
                 })),
                 ...(step.toHostId !== null
-                    ? [{ Put: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(step.toHostId) } }]
+                    ? [{ Put: { EphemeraId: step.entityId, DataCategory: buildPositionAdjacencyDataCategory(step.toHostId) } }]
                     : []),
-            ])
+            ]
         )
 
     let persisted = false
@@ -213,19 +214,17 @@ export const commitStepSequence = async (
         if (step.kind !== 'transferMembership') {
             continue
         }
-        for (const entityId of step.entityIds) {
-            internalCache.Positions.setMembershipContainers({
-                componentId: entityId,
-                containers: step.toHostId !== null ? [step.toHostId] : [],
-            })
-        }
+        internalCache.Positions.setMembershipContainers({
+            componentId: step.entityId,
+            containers: step.toHostId !== null ? [step.toHostId] : [],
+        })
     }
 
     for (const step of steps) {
-        if (deps.relationalEdges !== undefined && (step.kind === 'establishRelation' || step.kind === 'dissolveRelation')) {
-            continue
-        }
         for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs, deps.characterNames)) {
+            if (fact.type === 'Object Relation Changed' && (deps.relationalEdges ?? []).some((edge) => isFactOfRelationalEdge(fact, edge))) {
+                continue
+            }
             if (fact.type === 'Object Moved') {
                 await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
             }

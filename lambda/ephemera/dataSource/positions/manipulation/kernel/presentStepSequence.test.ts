@@ -57,7 +57,7 @@ describe('presentStepSequence', () => {
 
     it('publishes one event per describe step, in order, ignoring mutation steps in the same shared list', async () => {
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([OBJECT_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
             { kind: 'describe', referentId: ROOM_ID, referentKind: 'room' },
             { kind: 'describe', referentId: FEATURE_ID, referentKind: 'feature' },
         ]
@@ -104,7 +104,7 @@ describe('presentStepSequence', () => {
 
     it('is a clean no-op when the shared list has no describe steps at all', async () => {
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([OBJECT_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
 
         await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus })

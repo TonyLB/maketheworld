@@ -18,7 +18,7 @@ import { boundaryEdgeOutcomes } from './interactionUnderTransfer'
  * same discard-and-re-derive-at-the-boundary fault the 2026-09-08 rename removed, reintroduced one
  * layer up. The kernel adds the `hostId` and nothing else.
  */
-export type ApplyTransferSetOutcome =
+export type ApplyTransferOutcome =
     | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph; destGraph: EphemeraLudicGraph }
     | {
         verdict: 'repairable'
@@ -29,37 +29,27 @@ export type ApplyTransferSetOutcome =
     }
 
 /**
- * BD-27c/BD-33/BD-35 Expand+Validate core for a membership transfer (BD-13): assumes any boundary
- * edge that should dissolve has already been severed by an explicit `dissolveRelation` step earlier
- * in the same kernel-apply loop --- it does not rely on `EphemeraLudicGraph.removeObject`'s
- * silent edge-stripping (retired 2026-07-23) to make dissolution happen. A `dissolve`-classified
- * boundary edge still present at this point is therefore reported as `repairable`
- * (`unresolvedDissolveEdge`, `authority: 'mechanical'`, carrying the edge), not silently resolved:
- * the repair is to emit the missing `dissolveRelation` step and re-propose.
+ * BD-27c/BD-33/BD-35 Expand+Validate core for a membership transfer (BD-13) of one entity: anything
+ * it hosts lives in its own shard and travels with it, so nothing here widens what moves. Assumes any
+ * boundary edge (a relational edge with the mover at one end) that should dissolve has already been
+ * severed by an explicit `dissolveRelation` step earlier in the same kernel-apply loop. A
+ * `dissolve`-classified boundary edge still present at this point is therefore reported as
+ * `repairable` (`unresolvedDissolveEdge`, `authority: 'mechanical'`, carrying the edge), not
+ * silently resolved: the repair is to emit the missing `dissolveRelation` step and re-propose.
  *
- * Never expands `transferSet` itself.
- *
- * Renamed from `applyTransferSetAsserted` (2026-07-23): originally a new sibling module rather than
- * a change to a pre-assert-and-throw `applyTransferSet.ts` in place, back when that older function's
- * two commit-time callers (`applyObjectSetTransfer.ts`, `applyObjectRelationalChangeWithTransfer.ts`)
- * still depended on `removeObject`'s silent-strip. Both callers, `removeObject`, and the older
- * `applyTransferSet.ts` are now deleted --- this is the only implementation, so it took back the
- * plain name; only [`applyStepSequenceCore.ts`](../../manipulation/kernel/applyStepSequenceCore.ts)
- * calls it.
+ * Only [`applyStepSequenceCore.ts`](../../manipulation/kernel/applyStepSequenceCore.ts) calls it.
  */
-export function applyTransferSet(
+export function applyTransfer(
     sourceGraph: EphemeraLudicGraph,
     destGraph: EphemeraLudicGraph,
     // Object | Character, and no wider --- transfer means *changes host*, and Room/Feature/Area
     // are hosts that never relocate.
-    transferSet: ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
-): ApplyTransferSetOutcome {
+    entityId: EphemeraObjectId | EphemeraCharacterId
+): ApplyTransferOutcome {
     // boundaryEdgeOutcomes stays Object-only (interactionUnderTransfer.ts):
     // no production path produces a character-endpoint relational edge yet, so a character can never
     // appear on either side of a boundary edge.
-    const objectTransferSet = new Set([...transferSet].filter(isEphemeraObjectId))
-    const boundaryOutcomes = boundaryEdgeOutcomes(objectTransferSet, sourceGraph)
-
+    const boundaryOutcomes = isEphemeraObjectId(entityId) ? boundaryEdgeOutcomes(entityId, sourceGraph) : []
     const deferOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'defer')
     if (deferOutcome !== undefined) {
         // Both deferring cases are repairable; they differ in *which* repair. A non-`Custom` edge
@@ -107,38 +97,7 @@ export function applyTransferSet(
         }
     }
 
-    // HostRelationalEdge.from/to were widened to the full terminal union (now including
-    // port-qualified terminals); no production path yet produces a character- or port-endpoint
-    // relational edge (see interactionUnderTransfer.ts), so the typeof guard below narrows
-    // correctly before isEphemeraObjectId, which is string-only.
-    const internalEdges = sourceGraph.relationalEdges.filter(
-        (edge) => typeof edge.from === 'string' && typeof edge.to === 'string'
-            && isEphemeraObjectId(edge.from) && isEphemeraObjectId(edge.to)
-            && transferSet.has(edge.from) && transferSet.has(edge.to)
-    )
-
-    // Internal edges are stripped from sourceGraph *before* the per-entity remove loop, since
-    // removeObject/removeCharacter throws if any relational edge --- including an internal one to a
-    // sibling not yet removed --- still references the entity being removed.
-    let nextSourceGraph = sourceGraph
-    for (const edge of internalEdges) {
-        nextSourceGraph = nextSourceGraph.removeRelationalEdge(edge)
-    }
-
-    let nextDestGraph = destGraph
-    for (const id of transferSet) {
-        if (isEphemeraObjectId(id)) {
-            nextSourceGraph = nextSourceGraph.removeObject(id)
-            nextDestGraph = nextDestGraph.addObject(id)
-        }
-        else {
-            nextSourceGraph = nextSourceGraph.removeCharacter(id)
-            nextDestGraph = nextDestGraph.addCharacter(id)
-        }
-    }
-    for (const edge of internalEdges) {
-        nextDestGraph = nextDestGraph.addRelationalEdge(edge)
-    }
-
-    return { verdict: 'legal', sourceGraph: nextSourceGraph, destGraph: nextDestGraph }
+    return isEphemeraObjectId(entityId)
+        ? { verdict: 'legal', sourceGraph: sourceGraph.removeObject(entityId), destGraph: destGraph.addObject(entityId) }
+        : { verdict: 'legal', sourceGraph: sourceGraph.removeCharacter(entityId), destGraph: destGraph.addCharacter(entityId) }
 }

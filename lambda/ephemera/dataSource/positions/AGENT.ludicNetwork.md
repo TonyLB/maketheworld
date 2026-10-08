@@ -178,7 +178,7 @@ The **formulation**, in the terms the design uses:
 
 **Addressing a binding from outside.** The Lab's edge `OBJECT#Hook -TiedTo-> OBJECT#Rope` names the rope as a whole. To say *the part of the rope that is here*, an edge lands on the binding: `OBJECT#Hook -TiedTo-> {owner: OBJECT#Rope, port: 'PRESENCE#p1'}`. That terminal **is** the referent (the Lab-side extent of the rope), not a pointer to be walked, and an edge landing there is a terminal, never a crossing.
 
-**Two senses of "present", and this is the membership sense.** Whether the rope *is* in the Lab (membership --- derived from where its parts are) is a different question from whether the rope *answers "what is here"* at room scale (apprehensibility --- declared, and not part of this structure). A moonbase computer with terminals in five rooms is present in all five; what you *see* from a terminal is a terminal.
+**Presence is not apprehension.** Whether the rope *is* in the Lab (presence --- recorded as the rope's own bindings, the same way for any thing) is a different question from whether the rope *answers "what is here"* at room scale (apprehension --- an attention concern of the cache, declared, and not part of this structure). A moonbase computer with terminals in five rooms is present in all five; what you *see* from a terminal is a terminal.
 
 **What is built and what is not.** The presence-node record, its single write path (one binding minted per rehost, removed on departure --- so the shipped emitters produce arity 1; inherited arity above one is representable but not yet written by anything), the cover field, the `PRESENCE#` addressing, and the cache's reading of it are all shipped. **No writer yet computes an enumerated cover** --- every binding is minted `{ tag: 'Full' }`, which is correct for every single-hosted thing and is the rope's *target* shape, not its current one. Descent (a part's own bindings following its whole's) is likewise unbuilt; no current caller needs it.
 
@@ -245,7 +245,7 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 | **Root** | The host's own node in its own graph; recorded, never derived | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Whole / part** | Roles, not kinds: a thing is a whole of its interior and a part of its containers, at once | same |
 | **Membership** | X is in H iff X is a node in H's graph; mirrored by an adjacency row | [Graph apply](AGENT.contract.md#graph-apply-end-state) |
-| **Hosting kind / peer kind** | `On`/`In`/`PartOf` put the subject in its host's graph; `Custom` relates two members | [Relation kind enum](AGENT.contract.md#relation-kind-enum-bd-2) |
+| **Hosting kind / peer kind** | `On`/`In`/`PartOf` put the subject in its host's graph; `Custom` relates two members | [Relation kind enum](AGENT.contract.md#relation-kinds) |
 | **Terminal** | An edge endpoint: bare component id, or a port address `{ owner, port }` | [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) |
 | **Port** | A single-use boundary slot a host publishes; either a crossing port or a presence binding | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Crossing port** | The record in `ports` where a relation passes through the boundary; interior-side, two scopes of field | [Port records](AGENT.contract.md#port-records-field-scope-and-the-conflict-rule) |
@@ -253,7 +253,7 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 | **Coarsening** | An unresolvable port address reads as its owner | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Presence node** | `{ tag: 'Presence', PRESENCE#…, fromHostId, cover }` in the hosted thing's graph; one per binding, and a host may hold more than one binding into the same thing | [Presence nodes](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path) |
 | **Binding / bucket / cover / totality** | One way of being present / its node subset / the family of buckets / their union is every node | [Presence as a cover](AGENT.concepts.md#presence-as-a-cover) |
-| **Apprehension scale** | Whether a thing answers "what is here" at a host's scale; declared, not derived, not yet modelled | same |
+| **Apprehension scale** | Whether a thing answers "what is here" at a host's scale; an attention concern of the cache, declared, not yet modelled | [`ludicCache` entry](AGENT.concepts.md#ludiccache-the-attention-scoped-read-structure) |
 | **`ludicCache`** | Derived, attention-scoped, cross-shard read structure; hits return handles | [`ludicCache` entry](AGENT.concepts.md#ludiccache-the-attention-scoped-read-structure), [`ludicCache/types.ts`](ludicCache/types.ts), [rebuild plan](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCacheRebuild.planning.md) |
 | **Stub port** | Transient crossing port minted by a cut, never persisted, id-prefixed `STUB-` | [`presenceSubGraph.ts`](ludicGraph/presenceSubGraph.ts) |
 | **`supportedBy`** | A cache edge's record of the crossings and bindings that justify it | [`ludicCache/types.ts`](ludicCache/types.ts) |
@@ -263,7 +263,7 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 ## Where to go next
 
 - **For the rules** that code must obey today: [`AGENT.contract.md`](AGENT.contract.md). Sections cited above are the ones that touch the network; the rest of that file is the mutation kernel, narration and the eviction ladder, which sit *on* this structure rather than *in* it.
-- **For the reasoning and the open edges** behind each idea, with its history preserved on purpose: [`AGENT.concepts.md`](AGENT.concepts.md) --- [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports), [Presence as a cover](AGENT.concepts.md#presence-as-a-cover), [Abstraction Fractal](AGENT.concepts.md#abstraction-fractal). Those entries are written as ledgers; read them *after* this file and they are commentary, before it and they are a puzzle.
+- **For the reasoning and the open edges** behind each idea: [`AGENT.concepts.md`](AGENT.concepts.md) --- [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports), [Presence as a cover](AGENT.concepts.md#presence-as-a-cover), [Abstraction Fractal](AGENT.concepts.md#abstraction-fractal).
 - **For the types**: [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), terminal and port block onward. The parsed shape is the stored shape.
 - **For the class and code map**: [`ludicGraph/AGENT.md`](ludicGraph/AGENT.md), [`AGENT.implementation.md`](AGENT.implementation.md).
 - **For how a proven shape crosses into WML**: section 6 above; the authoring/wire side of the same shape is [`packages/mtw-wml/ts/standardize/components/AGENT.implementation.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.implementation.md) and [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md).
@@ -273,9 +273,9 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 
 ## Maintaining this file
 
-This file exists because the durable docs and plans preserve their history in place --- struck claims, dated corrections, retired vocabulary --- which is right for them and wrong for a first read. So this file follows the opposite rule:
+This file exists because a reference organized by concept is the wrong shape for a first read, and plans preserve their history in place --- struck claims, dated corrections, retired vocabulary --- which is right for them and wrong for a first read. So this file follows these rules:
 
-- **Present tense, current shape only.** No dates, no strikethrough, no "corrected on". When a section here stops being true, **rewrite the paragraph**; the record of what it used to say belongs in the concepts entry or the plan that changed it, and in git.
+- **Present tense, current shape only.** No dates, no strikethrough, no "corrected on". When a section here stops being true, **rewrite the paragraph**; the record of what it used to say belongs in the plan that changed it, and in git.
 - **Say plainly what is unbuilt** ("no writer yet computes an enumerated cover"), so that a reader can tell target from shipped without a status legend.
 - **One running example.** New sections extend it rather than introducing a second world.
 - **Map, not authority.** If this file and a contract clause disagree, the contract is right and this file has a bug --- fix it here.

@@ -11,7 +11,8 @@ import type {
 } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 /**
  * The kernel-layer step vocabulary --- a deliberately narrow superset of the Synthesize executor's
- * `ExecutorParsePlanStep`. `entityIds` spans four id kinds: `EphemeraObjectId`/`EphemeraCharacterId`
+ * `ExecutorParsePlanStep`. A step transfers exactly one entity: anything it hosts lives in its own
+ * shard and travels with it. `entityId` spans four id kinds: `EphemeraObjectId`/`EphemeraCharacterId`
  * for a real player-driven transfer, plus `EphemeraRoomId`/`EphemeraFeatureId` for cache-time
  * containment authoring (Room-in-Area, Feature-in-Room, Feature-in-Feature); the executor's own
  * `TransferMembershipStep` stays object-only, since character movement never goes through
@@ -22,7 +23,7 @@ import type {
  * spawn, or a Room/Feature's cache-time parent assignment), and a pure remove (`toHostId` null ---
  * destroy/clear, a stray-room scrub with no consolidation target). A Room/Feature/Area id may only
  * ever appear in the pure-add shape: `applyStepSequenceCore.ts`'s "real transfer" branch
- * (`applyTransferSet`) is Object/Character-only, since Room/Feature/Area are hosts that never
+ * (`applyTransfer`) is Object/Character-only, since Room/Feature/Area are hosts that never
  * relocate; a Room/Feature id reaching that branch is a caller bug, rejected there rather than
  * silently mishandled. Relational steps are reused verbatim from the executor's types:
  * `subjectId`/`targetId` are `EphemeraLudicTerminalPrimitive`-typed, since no consumer on the
@@ -30,7 +31,7 @@ import type {
  */
 export type MutationKernelTransferStep = {
     kind: 'transferMembership'
-    entityIds: ReadonlySet<EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId>
+    entityId: EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId
     fromHostIds: ReadonlySet<EphemeraMembershipHostId>
     toHostId: EphemeraMembershipHostId | null
 }
@@ -297,7 +298,7 @@ export function fromExecutorStep(step: ExecutorParsePlanStep): KernelStep {
     return step.kind === 'transferMembership'
         ? {
             kind: 'transferMembership',
-            entityIds: step.objectIds,
+            entityId: step.objectId,
             fromHostIds: new Set([step.fromHostId]),
             toHostId: step.toHostId,
         }

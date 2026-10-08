@@ -1,6 +1,5 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { RoomCharacterListItem } from '../../../../internalCache/baseClasses'
 import type { MessageOrchestrationSlotSpec } from '../../../messageOrchestration/localApiEvents'
 
@@ -48,19 +47,6 @@ export type MembershipDiff<HostId extends EphemeraMembershipHostId = EphemeraMem
     changed: boolean;
 }
 
-export type MembershipGraphPersistSuccess = {
-    ok: true;
-    persisted: true;
-    diff: MembershipDiff<EphemeraRoomId>;
-    /** Post-mutation room topology per affected room; coordinator seeds Positions memo. */
-    postApplyRoomGraphs: Partial<Record<EphemeraRoomId, EphemeraLudicGraphFieldPayload>>;
-}
-
-export type UpdateLudicGraphsResult =
-    | MembershipGraphPersistSuccess
-    | { ok: true; persisted: false; diff: MembershipDiff<EphemeraRoomId> }
-    | MembershipApplyErrorResult
-
 export type MembershipApplySuccessResult = {
     ok: true;
     /** Set when changed; Model A / slice 1b fact anchor (F1-4). */
@@ -89,5 +75,3 @@ export type MembershipApplyResult = MembershipApplySuccessResult | MembershipApp
  */
 export type IntentKind = 'navigate' | 'home' | 'connect' | 'disconnect'
 
-/** `intentKind` as accepted by navigate's shared pre-commit planning machinery --- disconnect never reaches it (compiled as `intentKind: 'disconnect'` only for `planCharacterMoveTransfer`'s own vocabulary, not this one). */
-export type NavigateIntentKind = Exclude<IntentKind, 'disconnect'>

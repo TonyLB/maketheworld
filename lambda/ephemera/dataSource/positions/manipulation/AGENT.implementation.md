@@ -47,7 +47,7 @@ Per-operator coordinators       membership fact projection consumption, cache/bu
 ```typescript
 type MutationKernelTransferStep = {
     kind: 'transferMembership'
-    entityIds: ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
+    entityId: EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId
     fromHostIds: ReadonlySet<EphemeraMembershipHostId>
     toHostId: EphemeraMembershipHostId | null
 }
@@ -66,11 +66,11 @@ type PresentationKernelStep = ExecutorDescribeStep | PresentationKernelNarrateSt
 type KernelStep = MutationKernelStep | ExecutorDescribeStep | PresentationKernelNarrateStep
 ```
 
-**`KernelStep` is deliberately unprefixed** --- it is the shared, cross-kernel vocabulary that each kernel filters down to the steps it owns, so it belongs to no single kernel. Everything mutation-specific carries `MutationKernel`; everything presentation-specific carries `PresentationKernel`. `ExecutorDescribeStep` is **not** renamed: it is owned by `executorTypes.ts` and reused verbatim. Rationale: [`../AGENT.concepts.md` --- Naming](../AGENT.concepts.md#naming-kernel-alone-names-nothing).
+**`KernelStep` is deliberately unprefixed** --- it is the shared, cross-kernel vocabulary that each kernel filters down to the steps it owns, so it belongs to no single kernel. Everything mutation-specific carries `MutationKernel`; everything presentation-specific carries `PresentationKernel`. `ExecutorDescribeStep` is **not** renamed: it is owned by `executorTypes.ts` and reused verbatim. With two kernels, a bare `Kernel` prefix would identify neither. **State this reason wherever the exception comes up**: `KernelStep` reads as an inconsistency, and the next reader will "fix" it by prefixing it, destroying the one distinction the scheme gets right.
 
-Two widenings distinguish `MutationKernelTransferStep` from the executor's object-only, singular-host `TransferMembershipStep`:
+Both steps transfer exactly one entity: anything it hosts lives in its own shard and travels with it. Two widenings distinguish `MutationKernelTransferStep` from the executor's object-only, singular-host `TransferMembershipStep`:
 
-- **`entityIds` admits characters as well as objects**, since kernel membership transfer generalizes over entity kind. The executor's own step stays object-only --- character movement never passes through Grounding/Expansion/Validation at all.
+- **`entityId` admits characters as well as objects**, since kernel membership transfer generalizes over entity kind (and Rooms/Features, in the pure-add shape only, for cache-time containment authoring). The executor's own step stays object-only --- character movement never passes through Grounding/Expansion/Validation at all.
 - **`fromHostIds` is a set and `toHostId` is nullable**, mirroring `MembershipDiff`'s `{ froms, to }` shape. One step kind therefore covers three shapes:
 
 | Shape | Condition | Route |
@@ -140,7 +140,7 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 
 | Step shape | Behavior |
 | --- | --- |
-| **Real transfer** | Object subset routes through [`applyTransferSet`](../ludicGraph/expandValidate/applyTransferSet.ts) --- the full boundary-edge legality machinery, shared with the compiler's selection-time sandbox. Relational edges *internal* to the transfer set are re-materialized on the destination graph by `applyTransferSet` itself, derived live from the freshly-fetched source graph --- never precomputed and passed in. Character subset is a direct `removeCharacter`/`addCharacter` swap with no boundary sweep, since a character can never hold a relational edge |
+| **Real transfer** | Routes through [`applyTransfer`](../ludicGraph/expandValidate/applyTransfer.ts). An object gets the full boundary-edge legality machinery, shared with the compiler's selection-time sandbox, classified live from the freshly-fetched source graph. A character is a direct `removeCharacter`/`addCharacter` swap with no boundary sweep, since a character can never hold a relational edge. A Room/Feature id here throws: hosts never relocate |
 | **Pure remove** | Presence-check then `removeObject`/`removeCharacter` per departure host. **No** boundary sweep here --- the caller is responsible for having seeded explicit `dissolveRelation` steps for every edge the entity carried. A residual edge makes `removeObject` throw, by design |
 | **Pure add** | `addObject`/`addCharacter` on the destination only; a freshly spawned entity has no prior edges, so no assert is needed |
 | **Relational** | Derives the shared host live from the graph map, throws on endpoint host mismatch, else applies the patch |
@@ -277,12 +277,12 @@ commitAttempt.ts            dispatches the relational action to planRelationalEd
 commitStepSequence          one transactWrite; re-validates live on locked graphs (as before)
 ```
 
-`applyObjectRelationalChange` is not dead code, though --- it still backs the boundary-sweep dissolve steps `executeMembershipTransfer`/`applyTransferSet` emit during an ordinary membership move (an entirely different call site, unrelated to the relational ingress above). Its own repair-transfer branch (`[dissolveRelation*, transferMembership, establishRelation]`) was retired outright, 2026-09-01 --- a relation whose endpoints are in different shards is a crossing to build as legs, not a misplacement to fix by moving an endpoint --- so today it only ever builds a single-step `[establishRelation]`/`[dissolveRelation]` sequence, at whichever call site still uses it.
+`applyObjectRelationalChange` has **no production caller** and is **parked, not dead**: it is kept for the LLM planning work to take up, so do not delete it as unreferenced. Its own repair-transfer branch (`[dissolveRelation*, transferMembership, establishRelation]`) was retired outright, 2026-09-01 --- a relation whose endpoints are in different shards is a crossing to build as legs, not a misplacement to fix by moving an endpoint --- so today it only ever builds a single-step `[establishRelation]`/`[dissolveRelation]` sequence, at whichever call site still uses it.
 
 | Item | Value |
 | --- | --- |
 | **Ingress (establish and dissolve)** | [`relational/planRelationalEdgeTransfer.ts`](relational/planRelationalEdgeTransfer.ts), called from [`../commitAttempt.ts`](../commitAttempt.ts), direct to `commitStepSequence` |
-| **Boundary-sweep coordinator (unrelated call site)** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) (used by `executeMembershipTransfer`/`applyTransferSet` during a membership move, not by the relational ingress above) |
+| **Parked relational coordinator** | [`relational/applyObjectRelationalChange.ts`](relational/applyObjectRelationalChange.ts) (no production caller; kept for the LLM planning work) |
 | **Edge helpers** | [`../ludicGraph/`](../ludicGraph/) (`HostRelationalEdge`, `edgesMatch`, relational mutators, `hostDataCategory`/`graphFromMeta` Room/Character dispatch) |
 | **Fact** | [`relational/buildObjectRelationalFact.ts`](relational/buildObjectRelationalFact.ts) -> [`relational/streamObjectRelationalFact.ts`](relational/streamObjectRelationalFact.ts) |
 | **Normative contract** | [`../AGENT.contract.md` --- Host-local relational patch](../AGENT.contract.md#host-local-relational-patch) |

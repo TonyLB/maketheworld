@@ -492,7 +492,7 @@ export class EphemeraLudicGraph {
     /**
      * Kind-dispatching add/remove, added alongside the four typed methods above rather than
      * replacing them --- a caller that already knows its entity's kind (`addCharacter` in
-     * `seedFromActiveCharacters`, `addObject`/`removeObject` inside `applyTransferSet`) keeps
+     * `seedFromActiveCharacters`, `addObject`/`removeObject` inside `applyTransfer`) keeps
      * using the typed form directly, since each kind's method still carries its own distinct
      * behavior (`removeObject`'s extra play-only-edge stripping, in particular). This pair exists
      * for the one caller that doesn't and shouldn't have to know which kind it's holding:

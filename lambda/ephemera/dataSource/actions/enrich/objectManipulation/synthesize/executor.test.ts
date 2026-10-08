@@ -135,7 +135,7 @@ describe('runExecutor', () => {
         }
 
         const seed: WorklistInstruction[] = [
-            { id: 'transfer', step: { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID } },
+            { id: 'transfer', step: { kind: 'transferMembership', objectId: TRAY_ID, fromHostId: ROOM_ID, toHostId: CHARACTER_ID } },
         ]
 
         const result = runExecutor(seed, env)
@@ -143,7 +143,7 @@ describe('runExecutor', () => {
         expect(result).toEqual({
             verdict: 'legal',
             steps: [
-                { kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
+                { kind: 'transferMembership', objectId: TRAY_ID, fromHostId: ROOM_ID, toHostId: CHARACTER_ID },
             ],
         })
     })
@@ -178,7 +178,7 @@ describe('seedFromGroundedSteps', () => {
 
         expect(instruction?.step).toEqual({
             kind: 'transferMembership',
-            objectIds: new Set([TRAY_ID]),
+            objectId: TRAY_ID,
             fromHostId: ROOM_ID,
             toHostId: CHARACTER_ID,
         })
@@ -192,8 +192,8 @@ describe('seedFromGroundedSteps', () => {
             { kind: 'change', primitive: 'transferMembership', object: graphNodeRef(TRAY_ID), from: graphNodeRef(TABLE_ID), to: graphNodeRef(DOWNTOWN_ID) },
         ])
 
-        expect(toFeature?.step).toEqual({ kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: TABLE_ID, toHostId: NICHE_ID })
-        expect(toArea?.step).toEqual({ kind: 'transferMembership', objectIds: new Set([TRAY_ID]), fromHostId: TABLE_ID, toHostId: DOWNTOWN_ID })
+        expect(toFeature?.step).toEqual({ kind: 'transferMembership', objectId: TRAY_ID, fromHostId: TABLE_ID, toHostId: NICHE_ID })
+        expect(toArea?.step).toEqual({ kind: 'transferMembership', objectId: TRAY_ID, fromHostId: TABLE_ID, toHostId: DOWNTOWN_ID })
     })
 
     it('throws on an ill-typed grounded id', () => {

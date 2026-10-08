@@ -36,8 +36,8 @@ const findHostOf = (
  * move's steps --- `[dissolveRelation*, transferMembership]` --- stream their dissolve facts before
  * the moved fact.
  *
- * Character-kind fact emission (folded in for the character-route Migrate row, BD-36): the character
- * subset of a `transferMembership`'s `entityIds` produces a `Character Moved` fact here too, via
+ * Character-kind fact emission (folded in for the character-route Migrate row, BD-36): a
+ * `transferMembership` whose `entityId` is a character produces a `Character Moved` fact here too, via
  * `characterNames` (a caller-supplied lookup --- this function stays synchronous, so the name must
  * already be resolved, not fetched here). Folding this in (rather than layering it on top, in the
  * caller, after `commitStepSequence` returns) is what keeps `Character Moved` streaming before the
@@ -45,7 +45,7 @@ const findHostOf = (
  * `orchestrateCharacterRoomMembership.ts`'s test suite asserts this ordering, and only folding the fact in
  * here (rather than leaving it to run after the kernel call returns) can preserve it.
  *
- * One combined `Object Moved`/`Character Moved` fact per entity, with `froms: [...fromHostIds]`/
+ * One `Object Moved` or `Character Moved` fact per step, with `froms: [...fromHostIds]`/
  * `to: toHostId` --- matching `buildObjectMovedFact`/`buildCharacterMovedFact`'s existing multi-`froms`/
  * nullable-`to` diff shape --- rather than one fact per host, so the object-lifecycle routes'
  * (plural-`froms`, nullable-`to`) steps get the same single-fact-per-entity behavior as every other
@@ -86,22 +86,18 @@ export const factsForStep = (
     if (step.kind === 'transferMembership') {
         const froms = [...step.fromHostIds]
         const diff = { froms, to: step.toHostId, changed: true }
-        const objectFacts = [...step.entityIds]
-            .filter(isEphemeraObjectId)
-            .map((objectId) => buildObjectMovedFact({ objectId, diff, beatAnchorTime }))
-            .filter((fact): fact is ObjectMovedPublishedPayload => fact !== undefined)
-        const characterFacts = [...step.entityIds]
-            .filter(isEphemeraCharacterId)
-            .map((characterId) =>
-                buildCharacterMovedFact({
-                    characterId,
+        const entityId = step.entityId
+        const fact = isEphemeraObjectId(entityId)
+            ? buildObjectMovedFact({ objectId: entityId, diff, beatAnchorTime })
+            : isEphemeraCharacterId(entityId)
+                ? buildCharacterMovedFact({
+                    characterId: entityId,
                     diff,
                     beatAnchorTime,
-                    characterName: characterNames.get(characterId),
+                    characterName: characterNames.get(entityId),
                 })
-            )
-            .filter((fact): fact is CharacterMovedPublishedPayload => fact !== undefined)
-        return [...objectFacts, ...characterFacts]
+                : undefined
+        return fact === undefined ? [] : [fact]
     }
 
     // a crossing leg names a port, not the edge's real pair, so it yields no fact; the edge's
@@ -137,6 +133,23 @@ export type RelationalEdgeFactSource = {
     targetId: EphemeraObjectId
     operation: RelationalIngressOperation
 } & RelationalKindAndLabel
+
+/**
+ * Whether a step's relational fact is the one a supplied edge already yields --- a one-leg chain,
+ * whose single leg names the edge's real pair. A step fact that matches no supplied edge (a move's
+ * own containment strip or containment establish, committed in the same attempt) is a fact in its
+ * own right.
+ */
+export const isFactOfRelationalEdge = (
+    fact: ObjectRelationChangedPublishedPayload,
+    edge: RelationalEdgeFactSource
+): boolean => (
+    fact.subjectId === edge.subjectId
+    && fact.targetId === edge.targetId
+    && fact.operation === edge.operation
+    && fact.relationKind === edge.relationKind
+    && (fact.relationKind !== 'Custom' || (edge.relationKind === 'Custom' && fact.relationLabel === edge.relationLabel))
+)
 
 /**
  * One edge's fact. The host is the subject's, re-derived from the graphs the same way

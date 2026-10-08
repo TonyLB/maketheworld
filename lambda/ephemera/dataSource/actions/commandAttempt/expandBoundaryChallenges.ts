@@ -36,7 +36,7 @@ export type ExpandedAttemptActions = {
 
 /**
  * Expansion's own narration for a facilitating dissolve: Expansion created the action, so it
- * authors the line. Worded from which end is moving (the end in the transfer set), never from
+ * authors the line. Worded from which end is moving, never from
  * the edge's direction, so a lashing reads the same whichever way it was stored. One audience over
  * both ends, before the dissolve: everyone who could see either end sees the line once,
  * even in a room both ends share.
@@ -55,7 +55,7 @@ const dissolveNarrationUnit = (
 
 /**
  * Expansion: the facilitating actions a whole-object transfer needs. Its precondition is
- * that the moved object is connected to nothing outside itself, so each boundary edge the
+ * that the moved object is connected to nothing that stays behind, so each boundary edge the
  * relation-under-transfer table classifies adds one prior action whose desired result is
  * "this relation no longer holds". A `dissolve` cell gives an action with no challenge. A
  * `defer` cell gives one carrying a graph challenge (`CustomEdgeChallenge`) for Adjudicate to judge. The action
@@ -91,17 +91,17 @@ const dissolveNarrationUnit = (
  */
 export const attemptActionsFromBoundaryOutcomes = (
     primaryAction: AttemptAction,
-    transferSet: ReadonlySet<EphemeraObjectId>,
+    objectId: EphemeraObjectId,
     graph: EphemeraLudicGraph,
     getGraph: ExpansionEnvironment['getGraph']
 ): ExpandedAttemptActions => {
     // A mover's own containment edge into the host it is leaving (the cup `On` the table, read
     // from the table's shard) is removed by the move itself, as `buildObjectMoveOp` does at
     // commit, so it is not a boundary edge and never reaches the hosting-kind classifier.
-    const outcomes = boundaryEdgeOutcomes(transferSet, graph, (edge) =>
+    const outcomes = boundaryEdgeOutcomes(objectId, graph, (edge) =>
         isHostingRelationKind(edge.kind)
         && ephemeraLudicTerminalsEqual(edge.to, graph.rootId)
-        && [...transferSet].some((objectId) => ephemeraLudicTerminalsEqual(edge.from, objectId)))
+        && ephemeraLudicTerminalsEqual(edge.from, objectId))
     const boundary = outcomes.flatMap((entry): { action: AttemptAction; narrationUnit: NarrationUnit }[] => {
         const chain = findRelationalChainFromLeg({ hostId: graph.hostId, edge: entry.edge }, { getGraph })
         if (chain.verdict !== 'found') {
@@ -143,8 +143,8 @@ export const attemptActionsFromBoundaryOutcomes = (
             desiredResult,
             entry.edge.kind === 'Custom' ? `Dissolve: ${entry.edge.relationLabel}` : `Dissolve: ${entry.edge.kind}`
         )
-        // A boundary edge has exactly one end in the transfer set.
-        const subjectMoves = [...transferSet].some((objectId) => ephemeraLudicTerminalsEqual(subjectId, objectId))
+        // A boundary edge has the moved object at exactly one end.
+        const subjectMoves = ephemeraLudicTerminalsEqual(subjectId, objectId)
         const [moved, other] = subjectMoves ? [subject, target] : [target, subject]
         return [{ action, narrationUnit: dissolveNarrationUnit(action.id, derivedReferentKey(moved), derivedReferentKey(other)) }]
     })
@@ -175,5 +175,5 @@ export const attemptActionsFromTransfer = (
             new ExitEdgeChallenge(mintChallengeId(), describeExitEdgeChallenge()),
         ])
         : primaryAction
-    return attemptActionsFromBoundaryOutcomes(primary, new Set([objectId]), graph, getGraph)
+    return attemptActionsFromBoundaryOutcomes(primary, objectId, graph, getGraph)
 }
