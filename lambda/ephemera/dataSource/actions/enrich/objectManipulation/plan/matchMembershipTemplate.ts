@@ -2,6 +2,7 @@ import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
 import type { ManipulationVerbClass } from '../../../baseClasses'
 import { CommandAttempt } from '../../../commandAttempt'
 import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/action'
+import type { NarrationUnit } from '../../../commandAttempt/narrationUnit'
 import {
     actingCharacterRef,
     currentHostRef,
@@ -40,6 +41,10 @@ function isTextToken(token: ParseToken): token is TextToken {
  * is ignored here: membership claims the leading verb, and the tail only narrows which X is meant.
  * The span is the first object span, or empty
  * when the command has none; the producer still reads every object span from the skeleton.
+ *
+ * The template created the action, so it authors its narration unit (AN-3): one line per verb class
+ * (`take` and `get` both read "picks up"), to everyone who can see the actor or the object, before
+ * the move.
  */
 export function matchMembershipTemplate(skeleton: ParseSkeleton, command: string): MembershipTemplateMatchResult {
     const [firstToken] = skeleton
@@ -59,11 +64,19 @@ export function matchMembershipTemplate(skeleton: ParseSkeleton, command: string
     // The key Parse stamped on the span (its occurrence), so Identify and Grounding find it by key.
     const refKey = spanToken?.type === 'objectSpan' ? spanToken.stableRefKey : 'primaryObject'
     const operationKind = verbClass === 'acquire' ? 'takeHold' : 'drop'
+    const actionId = mintActionId()
+    const narrationUnit: NarrationUnit = {
+        covers: [actionId],
+        variants: [{
+            audience: { refs: ['actor', refKey], phase: 'before' },
+            parts: [{ slot: 'actor' }, { text: verbClass === 'acquire' ? ' picks up ' : ' drops ' }, { ref: refKey }],
+        }],
+    }
     return {
         type: 'matched',
         verbClass,
         attempt: CommandAttempt.create(command, [
-            new PositionAttemptAction(mintActionId(), [], planMembershipDesiredResult(operationKind, span, refKey)),
-        ]),
+            new PositionAttemptAction(actionId, [], planMembershipDesiredResult(operationKind, span, refKey)),
+        ], [narrationUnit]),
     }
 }

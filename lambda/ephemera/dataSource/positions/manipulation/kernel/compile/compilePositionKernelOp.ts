@@ -1,4 +1,3 @@
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -15,39 +14,9 @@ export type CompiledPositionKernelPlan = {
     slots: readonly MessageOrchestrationSlotSpec[]
 }
 
-/**
- * Exported for `commitAttempt.ts`'s bridge-unit sweep (`AGENT.attemptNarration.planning.md`,
- * slice 3): a bridge unit's audience resolves to the *same* capture id this compiler already
- * mints for the object move's leave/arrive captures, since narrate steps no longer carry that
- * join for the `template` family --- see this file's own narration note below.
- */
-export const captureIdForFrom = (hostId: string): string => `capture:from:${hostId}`
-export const CAPTURE_ID_TO = 'capture:to'
-
-/**
- * The verb is a property of the *delta*, read off which side of the move was the room --- not
- * an intent the caller declares and not a host-*kind* inference reasoning backwards from a published
- * fact (which is what the retired `inferOperationFromFact` did). Stated this way `give` needs no new
- * discriminant: it is simply the case where neither side is a room.
- *
- * Character moves never reach here --- they are room-to-room and carry a `membershipMove` narration.
- *
- * Exported for `commitAttempt.ts`: the object family's bridge unit (slice 3) builds its
- * `TemplateNarrationSpec` the same way this compiler used to, now at commit time rather than
- * compile time, since the compiler itself no longer builds that template's parts.
- */
-export const objectMoveVerb = (
-    froms: readonly EphemeraMembershipHostId[],
-    to: EphemeraMembershipHostId | null
-): 'takeHold' | 'drop' | 'give' => {
-    if (to !== null && isEphemeraRoomId(to)) {
-        return 'drop'
-    }
-    if (froms.some((hostId) => isEphemeraRoomId(hostId))) {
-        return 'takeHold'
-    }
-    return 'give'
-}
+/** The capture ids this compiler mints for a move's leave/arrive captures. */
+const captureIdForFrom = (hostId: string): string => `capture:from:${hostId}`
+const CAPTURE_ID_TO = 'capture:to'
 
 /**
  * The one place that knows "a move brackets leave-then-arrive." Callers ---

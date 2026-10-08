@@ -195,11 +195,10 @@ describe('lashed rope take payoff (integration)', () => {
         const publish = await getRope()
 
         await expectRopeHeldAndUnbound()
-        // RN-2: Expansion's line for the dissolve is delivered before the take's (whose two
-        // witness variants, before and after, each deliver the take's line).
+        // RN-2, with mixed authors: Expansion's line for the dissolve is delivered before Plan's
+        // line for the take, which is delivered once.
         const lines = await deliveredLines(publish)
-        expect(lines[0]).toMatch(/ frees rope from post$/)
-        expect(lines.slice(1)).toEqual([expect.stringMatching(/ picks up rope$/), expect.stringMatching(/ picks up rope$/)])
+        expect(lines).toEqual([expect.stringMatching(/ frees rope from post$/), expect.stringMatching(/ picks up rope$/)])
     })
 
     it('"get rope" leaning against the post: an unchallenged (dissolve-classified) edge is dissolved once, too', async () => {

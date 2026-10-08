@@ -1,35 +1,18 @@
-import { defaultTransferMembershipParts, fillNarrationTemplate } from './narrationTemplate'
+import { fillNarrationTemplate } from './narrationTemplate'
 import type { TemplateNarrationSpec } from './kernelStep'
 
 const BROOM = 'OBJECT#broom'
 
 describe('narrationTemplate', () => {
-    const templateFor = (
-        verb: 'takeHold' | 'drop' | 'give',
-        actorName = 'Alice'
-    ): TemplateNarrationSpec => ({
+    const dropTemplate: TemplateNarrationSpec = {
         kind: 'template',
-        parts: defaultTransferMembershipParts(verb, BROOM),
-        actorName,
+        parts: [{ slot: 'actor' }, { text: ' drops ' }, { ref: BROOM }],
+        actorName: 'Alice',
         labels: { [BROOM]: 'broom' },
-    })
+    }
 
-    it('builds take-hold, drop and give defaults around the actor and a ref to the moved entity', () => {
-        expect(defaultTransferMembershipParts('takeHold', BROOM)).toEqual([
-            { slot: 'actor' }, { text: ' picks up ' }, { ref: BROOM },
-        ])
-        expect(defaultTransferMembershipParts('drop', BROOM)).toEqual([
-            { slot: 'actor' }, { text: ' drops ' }, { ref: BROOM },
-        ])
-        expect(defaultTransferMembershipParts('give', BROOM)).toEqual([
-            { slot: 'actor' }, { text: ' gives ' }, { ref: BROOM },
-        ])
-    })
-
-    it('fills each default into its copy', () => {
-        expect(fillNarrationTemplate(templateFor('takeHold'))).toEqual('Alice picks up broom')
-        expect(fillNarrationTemplate(templateFor('drop'))).toEqual('Alice drops broom')
-        expect(fillNarrationTemplate(templateFor('give'))).toEqual('Alice gives broom')
+    it('fills the actor slot, literal text and a ref into its copy', () => {
+        expect(fillNarrationTemplate(dropTemplate)).toEqual('Alice drops broom')
     })
 
     it('falls back to Someone for an empty actor name, in any template', () => {
@@ -53,7 +36,7 @@ describe('narrationTemplate', () => {
     })
 
     it('throws on a ref with no label rather than rendering a hole', () => {
-        const missing: TemplateNarrationSpec = { ...templateFor('drop'), labels: {} }
+        const missing: TemplateNarrationSpec = { ...dropTemplate, labels: {} }
         expect(() => fillNarrationTemplate(missing)).toThrow(/OBJECT#broom/)
     })
 

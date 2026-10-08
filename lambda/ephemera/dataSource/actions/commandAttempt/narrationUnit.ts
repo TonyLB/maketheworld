@@ -33,10 +33,8 @@ export type NarrationWitnessVariant = {
 /**
  * Narration as its own value, not a field on an action (`AGENT.attemptNarration.planning.md`'s
  * Target shape). `covers` names the action ids this unit narrates. Whatever creates an action
- * authors its unit (Expansion's facilitating dissolves today; Plan's templates in slice 4). An
- * action no unit covers narrates nothing, except an object-membership action, which gets a
- * positions-side bridge unit synthesized at commit (`commitAttempt.ts`; deleted once Plan authors,
- * slice 4).
+ * authors its unit (Plan's fast-path templates, Expansion's facilitating dissolves). An action no
+ * unit covers narrates nothing: positions derives no copy of its own.
  */
 export type NarrationUnit = {
     covers: string[]

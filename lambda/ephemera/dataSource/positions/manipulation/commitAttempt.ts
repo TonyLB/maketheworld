@@ -24,14 +24,13 @@ import { derivedReferentKey } from '../../actions/enrich/objectManipulation/plan
 import { buildReferentAssignment, type DerivedReferentResolver } from '../../actions/enrich/objectManipulation/synthesize/buildReferentAssignment'
 import { groundChange } from '../../actions/enrich/objectManipulation/synthesize/groundChange'
 import { commitAndPresentStepSequence } from './kernel/commitAndPresentStepSequence'
-import { objectMoveVerb, type CompiledPositionKernelPlan } from './kernel/compile/compilePositionKernelOp'
+import type { CompiledPositionKernelPlan } from './kernel/compile/compilePositionKernelOp'
 import type { RelationalEdgeFactSource } from './kernel/factsForStep'
 import { isKernelMutationStep } from './kernel/kernelStep'
 import type { MutationKernelCaptureStep } from './kernel/kernelStep'
 import { dryRunStepSequence } from './kernel/dryRunStepSequence'
 import { planObjectMoveTransfer } from './membership/planObjectMoveTransfer'
 import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTransfer'
-import { defaultTransferMembershipParts } from './kernel/narrationTemplate'
 import { deliverNarrationUnits } from './deliverNarrationUnits'
 import { resolveNarrationLabels } from '../../perception/resolveNarrationLabels'
 import { roomsForHost, roomsForReferent } from '../ludicGraph/presenceRooms'
@@ -49,18 +48,18 @@ export type CommitAttemptArgs = {
 }
 
 /**
- * What `buildMembershipFragment` already knows and the bridge-unit sweep needs again: the
- * action it narrates, the entity it moved (the bridge's one ref, and the key its *after* audience
- * resolves from the destination), and the two hosts whose delta picks the bridge's verb.
+ * What `buildMembershipFragment` already knows and audience resolution needs again: the action
+ * that moved the entity, and its two hosts, so a covering unit's *after* audience resolves the
+ * moved entity from its destination (AN-7 stage 2).
  */
-type MembershipBridgeInfo = {
+type MembershipMoveInfo = {
     actionId: string
     entityId: EphemeraObjectId
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
 }
 
-/** The attempt's resolved display names: one actor name, and a name per object or character a unit or a bridge refers to. */
+/** The attempt's resolved display names: one actor name, and a name per object or character a unit refers to. */
 type AttemptNarrationLabels = {
     actorName: string
     names: Readonly<Record<string, string>>
@@ -78,7 +77,7 @@ type ActionFragment = {
     steps: CompiledPositionKernelPlan['steps']
     slots: CompiledPositionKernelPlan['slots']
     relationalEdge?: RelationalEdgeFactSource
-    membershipBridge?: MembershipBridgeInfo
+    membershipMove?: MembershipMoveInfo
 }
 
 /**
@@ -161,7 +160,7 @@ const buildMembershipFragment = async (
     return {
         steps: planResult.plan.steps,
         slots: planResult.plan.slots,
-        membershipBridge: {
+        membershipMove: {
             actionId,
             entityId,
             fromHostId,
@@ -195,57 +194,24 @@ const buildRelationalFragment = async (
 }
 
 /**
- * The object family's bridge unit (`AGENT.attemptNarration.planning.md`, slice 3): the old
- * take/drop/give copy, represented as a `NarrationUnit` rather than baked into compiled narrate
- * steps. Deleted once an author covers object moves (slice 4) --- this function, not a floor,
- * grows no new verbs. Both variants share one template, same as the compiler used to render it
- * on both bracket sides: there is no `direction` to the sentence, only to which side has anyone
- * to hear it.
- */
-const buildMembershipBridgeUnit = (bridge: MembershipBridgeInfo): NarrationUnit => {
-    const parts = defaultTransferMembershipParts(objectMoveVerb([bridge.fromHostId], bridge.toHostId), bridge.entityId)
-    return {
-        covers: [bridge.actionId],
-        variants: [
-            { audience: { refs: [bridge.entityId], phase: 'before' }, parts },
-            { audience: { refs: [bridge.entityId], phase: 'after' }, parts },
-        ],
-    }
-}
-
-/**
  * Unit delivery order is the attempt's own action order (AN-4): walks the attempt's actions once,
- * and for each, delivers whichever unit covers it --- an author's unit (Expansion's) the first
- * time any of its covered actions is reached, else a membership action's own bridge unit. An
- * action neither covers (an uncovered relational action) narrates nothing: there is no relational
- * bridge.
+ * and delivers each unit the first time any of its covered actions is reached. Narration comes
+ * from whatever created the action (Plan's templates, Expansion), never from positions: an action
+ * no unit covers narrates nothing.
  */
-const orderNarrationUnitsForDelivery = (
-    attempt: CommandAttempt,
-    membershipBridges: readonly MembershipBridgeInfo[]
-): NarrationUnit[] => {
+const orderNarrationUnitsForDelivery = (attempt: CommandAttempt): NarrationUnit[] => {
     const unitForActionId = new Map<string, NarrationUnit>()
     for (const unit of attempt.narrationUnits()) {
         for (const id of unit.covers) {
             unitForActionId.set(id, unit)
         }
     }
-    const bridgeByActionId = new Map(membershipBridges.map((bridge) => [bridge.actionId, bridge] as const))
 
     const delivered: NarrationUnit[] = []
-    const alreadyDelivered = new Set<NarrationUnit>()
     for (const action of attempt.actions()) {
-        const authored = unitForActionId.get(action.id)
-        if (authored) {
-            if (!alreadyDelivered.has(authored)) {
-                alreadyDelivered.add(authored)
-                delivered.push(authored)
-            }
-            continue
-        }
-        const bridge = bridgeByActionId.get(action.id)
-        if (bridge) {
-            delivered.push(buildMembershipBridgeUnit(bridge))
+        const unit = unitForActionId.get(action.id)
+        if (unit && !delivered.includes(unit)) {
+            delivered.push(unit)
         }
     }
     return delivered
@@ -257,8 +223,7 @@ type ReferentGrounding = { groundedId: EphemeraMembershipHostId; groundedPresenc
  * A ref's grounding, for the presence -> room walk (AN-7 stage 2) and for its label: a ref names
  * one of the attempt's own referents --- an `objectSpan` by its `stableRefKey` (Grounding's stamp,
  * stage 1), a born-grounded `graphNode` by its `derivedReferentKey` (Expansion's stamp). Anything
- * else is already a grounded id with no known presence beyond its current binding (a bridge unit's
- * ref is the moved entity's own id).
+ * else is taken as already a grounded id, with no known presence beyond its current binding.
  */
 const referentGroundingByRef = (attempt: CommandAttempt): ReadonlyMap<string, ReferentGrounding> => {
     const byRef = new Map<string, ReferentGrounding>()
@@ -291,13 +256,13 @@ const refsInUnits = (units: readonly NarrationUnit[]): string[] =>
  */
 const movedHostsForUnit = (
     unit: NarrationUnit,
-    membershipBridges: readonly MembershipBridgeInfo[]
+    membershipMoves: readonly MembershipMoveInfo[]
 ): ReadonlyMap<EphemeraMembershipHostId, { fromHostId: EphemeraMembershipHostId; toHostId: EphemeraMembershipHostId }> => {
     const covered = new Set(unit.covers)
     const map = new Map<EphemeraMembershipHostId, { fromHostId: EphemeraMembershipHostId; toHostId: EphemeraMembershipHostId }>()
-    for (const bridge of membershipBridges) {
-        if (covered.has(bridge.actionId)) {
-            map.set(bridge.entityId, { fromHostId: bridge.fromHostId, toHostId: bridge.toHostId })
+    for (const move of membershipMoves) {
+        if (covered.has(move.actionId)) {
+            map.set(move.entityId, { fromHostId: move.fromHostId, toHostId: move.toHostId })
         }
     }
     return map
@@ -366,7 +331,7 @@ type NarrationCaptureAssembly = {
  */
 const buildNarrationCaptureSteps = async (
     unitsToDeliver: readonly NarrationUnit[],
-    membershipBridges: readonly MembershipBridgeInfo[],
+    membershipMoves: readonly MembershipMoveInfo[],
     fragmentIndexByActionId: ReadonlyMap<string, number>,
     fragmentCount: number,
     context: {
@@ -389,7 +354,7 @@ const buildNarrationCaptureSteps = async (
         }
         const minIndex = Math.min(...coveredIndices)
         const maxIndex = Math.max(...coveredIndices)
-        const movedHosts = movedHostsForUnit(unit, membershipBridges)
+        const movedHosts = movedHostsForUnit(unit, membershipMoves)
 
         for (const variant of unit.variants) {
             const rooms = await resolveAudienceRooms(variant.audience, { ...context, movedHosts })
@@ -471,17 +436,16 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         return
     }
 
-    // Display names, resolved once per attempt (not per action): every thing an authored unit
-    // refers to, plus every moved object (a bridge unit's one ref). Named against the acting
-    // character's room perspective: a take from a table moves between two non-Room hosts.
+    // Display names, resolved once per attempt (not per action): every thing a unit refers to.
+    // Named against the acting character's room perspective: a take from a table moves between
+    // two non-Room hosts.
     const byRef = referentGroundingByRef(attempt)
     const actorRoom = liveHosts.get(characterId)
     const resolvedLabels = await resolveNarrationLabels({
         characterId,
-        ids: [
-            ...refsInUnits(attempt.narrationUnits()).map((ref) => groundingForRef(ref, byRef).groundedId),
-            ...grounded.flatMap(({ change }) => (change.primitive === 'transferMembership' ? [change.object.groundedId] : [])),
-        ].filter((id): id is EphemeraObjectId | EphemeraCharacterId => isEphemeraObjectId(id) || isEphemeraCharacterId(id)),
+        ids: refsInUnits(attempt.narrationUnits())
+            .map((ref) => groundingForRef(ref, byRef).groundedId)
+            .filter((id): id is EphemeraObjectId | EphemeraCharacterId => isEphemeraObjectId(id) || isEphemeraCharacterId(id)),
         roomId: actorRoom !== undefined && isEphemeraRoomId(actorRoom) ? actorRoom : undefined,
     })
     const labels: AttemptNarrationLabels = { actorName: resolvedLabels.characterName, names: resolvedLabels.names }
@@ -501,16 +465,16 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     }
 
     const relationalEdges = fragments.flatMap((fragment) => (fragment.relationalEdge ? [fragment.relationalEdge] : []))
-    const membershipBridges = fragments.flatMap((fragment) => (fragment.membershipBridge ? [fragment.membershipBridge] : []))
+    const membershipMoves = fragments.flatMap((fragment) => (fragment.membershipMove ? [fragment.membershipMove] : []))
 
     // Audience resolution at compile (AN-7 stage 2): resolved before the dry run, so the minted
     // `capture` steps ride inside the same sequence that is dry-run and committed (a capture
     // step is read/lock-only, never part of the transactWrite --- positions/AGENT.contract.md).
-    const unitsToDeliver = orderNarrationUnitsForDelivery(attempt, membershipBridges)
+    const unitsToDeliver = orderNarrationUnitsForDelivery(attempt)
     const fragmentIndexByActionId = new Map(fragmentActionIds.map((id, index) => [id, index] as const))
     const { beforeByFragmentIndex, afterByFragmentIndex, captureIdsByAudience } = await buildNarrationCaptureSteps(
         unitsToDeliver,
-        membershipBridges,
+        membershipMoves,
         fragmentIndexByActionId,
         fragments.length,
         {
@@ -572,8 +536,8 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         return
     }
 
-    // The attempt's only narration delivery path (AN-4): every authored unit (Expansion's dissolves)
-    // and every uncovered membership action's bridge unit, in the attempt's own action order.
+    // The attempt's only narration delivery path (AN-4): every unit its authors wrote (Plan's
+    // templates, Expansion's dissolves), in the attempt's own action order.
     // Audience resolution (AN-7 stage 2) already happened above, before the commit; this reads it
     // back by the same audience objects. Each ref's label is its grounded object's short name.
     if (unitsToDeliver.length === 0) {
