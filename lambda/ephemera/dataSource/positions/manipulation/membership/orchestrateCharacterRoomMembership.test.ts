@@ -111,7 +111,7 @@ describe('orchestrateCharacterRoomMembership', () => {
             {
                 steps: [
                     { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
-                    { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
+                    { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
                     { kind: 'removePresenceBinding', hostId: CHARACTER_ID, fromHostId: FROM_ROOM },
                     { kind: 'addPresenceBinding', hostId: CHARACTER_ID, fromHostId: TO_ROOM, presenceUuid: expect.any(String) },
                     { kind: 'capture', hostId: TO_ROOM, captureId: 'capture:to' },
@@ -182,7 +182,7 @@ describe('orchestrateCharacterRoomMembership', () => {
                     { kind: 'capture', hostId: ROOM_C, captureId: 'capture:from:ROOM#TestThree' },
                     {
                         kind: 'transferMembership',
-                        entityIds: new Set([CHARACTER_ID]),
+                        entityId: CHARACTER_ID,
                         fromHostIds: new Set([FROM_ROOM, ROOM_C]),
                         toHostId: TO_ROOM,
                     },

@@ -65,24 +65,22 @@ describe('commitStepSequence', () => {
         jest.clearAllMocks()
     })
 
-    it('happy path: BD-13 carry+transfer sequence commits, ludicGraph written back, facts stream in output order', async () => {
+    it('happy path: dissolve+transfer sequence commits, ludicGraph written back, facts stream in output order', async () => {
         const roomGraph = testLudicGraph(ROOM_ID, {
             nodes: [
                 { tag: 'Object', universalKey: TRAY_ID },
-                { tag: 'Object', universalKey: GLASS_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
             ],
             edges: [
-                { tag: 'Relational', from: GLASS_ID, to: TRAY_ID, kind: 'On' },
-                { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' },
+                { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'tied to' },
             ],
         })
         const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [] })
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
 
         const steps: MutationKernelStep[] = [
-            { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
-            { kind: 'transferMembership', entityIds: new Set([TRAY_ID, GLASS_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
+            { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
 
         const result = await commitStepSequence(
@@ -94,7 +92,7 @@ describe('commitStepSequence', () => {
         expect(internalCache.Positions.set).toHaveBeenCalled()
 
         const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
-        expect(eventTypes).toEqual(['Object Relation Changed', 'Object Moved', 'Object Moved'])
+        expect(eventTypes).toEqual(['Object Relation Changed', 'Object Moved'])
 
         expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: ROOM_ID })
     })
@@ -105,7 +103,7 @@ describe('commitStepSequence', () => {
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
 
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
 
         const result = await commitStepSequence(
@@ -160,7 +158,7 @@ describe('commitStepSequence', () => {
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph })
 
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: otherRoomId },
+            { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([ROOM_ID]), toHostId: otherRoomId },
         ]
 
         const result = await commitStepSequence(
@@ -201,7 +199,7 @@ describe('commitStepSequence', () => {
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
 
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
 
         await commitStepSequence(
@@ -221,7 +219,7 @@ describe('commitStepSequence', () => {
         const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: trayHostGraph })
 
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([GLASS_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: TRAY_ID },
+            { kind: 'transferMembership', entityId: GLASS_ID, fromHostIds: new Set([ROOM_ID]), toHostId: TRAY_ID },
         ]
 
         const result = await commitStepSequence(
@@ -250,7 +248,7 @@ describe('commitStepSequence', () => {
 
             const steps: MutationKernelStep[] = [
                 { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
-                { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
+                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
             ]
 
             const result = await commitStepSequence(
@@ -286,7 +284,7 @@ describe('commitStepSequence', () => {
 
             const steps: MutationKernelStep[] = [
                 { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
-                { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
+                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
             ]
 
             const result = await commitStepSequence(
@@ -310,7 +308,7 @@ describe('commitStepSequence', () => {
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
             const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set(), toHostId: ROOM_ID },
+                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
             ]
 
             const result = await commitStepSequence(
@@ -329,7 +327,7 @@ describe('commitStepSequence', () => {
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
             const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
+                { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
             ]
 
             const result = await commitStepSequence(
@@ -352,7 +350,7 @@ describe('commitStepSequence', () => {
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
             const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set(), toHostId: ROOM_ID },
+                { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
             ]
 
             const result = await commitStepSequence(
@@ -482,7 +480,7 @@ describe('commitStepSequence', () => {
 
             const steps: MutationKernelStep[] = [
                 { kind: 'capture', hostId: ROOM_ID, captureId: 'departure' },
-                { kind: 'transferMembership', entityIds: new Set([CHARACTER_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: otherRoomId },
+                { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([ROOM_ID]), toHostId: otherRoomId },
             ]
 
             const result = await commitStepSequence(
@@ -503,7 +501,7 @@ describe('commitStepSequence', () => {
 
             const steps: MutationKernelStep[] = [
                 { kind: 'capture', hostId: otherRoomId, captureId: 'onlooker' },
-                { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: null },
+                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
             ]
 
             const result = await commitStepSequence(
@@ -528,7 +526,7 @@ describe('commitStepSequence', () => {
 
             const steps: MutationKernelStep[] = [
                 { kind: 'capture', hostId: ROOM_ID, captureId: 'departure' },
-                { kind: 'transferMembership', entityIds: new Set([TRAY_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
             ]
 
             const result = await commitStepSequence(

@@ -42,7 +42,7 @@ const groundedInstructionStep = (change: Change<GroundedReferent>): GroundedInst
     if (!isEphemeraObjectId(objectId) || !isEphemeraMembershipHostId(fromHostId) || !isEphemeraMembershipHostId(toHostId)) {
         return { ok: false, reason: `ill-typed transferMembership ids (${objectId}, ${fromHostId}, ${toHostId})` }
     }
-    return { ok: true, step: { kind: 'transferMembership', objectIds: new Set([objectId]), fromHostId, toHostId } }
+    return { ok: true, step: { kind: 'transferMembership', objectId, fromHostId, toHostId } }
 }
 
 /**

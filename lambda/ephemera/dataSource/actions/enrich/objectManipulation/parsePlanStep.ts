@@ -3,7 +3,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 export type TransferMembershipStep = {
     kind: 'transferMembership'
-    objectIds: ReadonlySet<EphemeraObjectId> // BD-13: a set, though every live producer names one object --- hosted contents travel with its shard
+    objectId: EphemeraObjectId // one object: anything it hosts lives in its own shard and travels with it
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
 }

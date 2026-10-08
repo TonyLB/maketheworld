@@ -18,30 +18,28 @@ const graphsMap = (
 ): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map(entries)
 
 describe('factsForStep', () => {
-    it('transferMembership with object-only entityIds produces one Object Moved fact per object', () => {
+    it('transferMembership of an object produces one Object Moved fact', () => {
         const step: MutationKernelStep = {
             kind: 'transferMembership',
-            entityIds: new Set([trayId, glassId]),
+            entityId: trayId,
             fromHostIds: new Set([roomId]),
             toHostId: characterId,
         }
         const facts = factsForStep(step, graphsMap(), beatAnchorTime)
         expect(facts).toEqual([
             { type: 'Object Moved', objectId: trayId, froms: [roomId], to: characterId, beatAnchorTime },
-            { type: 'Object Moved', objectId: glassId, froms: [roomId], to: characterId, beatAnchorTime },
         ])
     })
 
-    it('a character in entityIds produces both an Object Moved and a Character Moved fact (folded in, character-route Migrate row)', () => {
+    it('transferMembership of a character produces one Character Moved fact (folded in, character-route Migrate row)', () => {
         const step: MutationKernelStep = {
             kind: 'transferMembership',
-            entityIds: new Set<EphemeraObjectId | EphemeraCharacterId>([trayId, characterId]),
+            entityId: characterId,
             fromHostIds: new Set([roomId]),
             toHostId: roomId,
         }
         const facts = factsForStep(step, graphsMap(), beatAnchorTime)
         expect(facts).toEqual([
-            { type: 'Object Moved', objectId: trayId, froms: [roomId], to: roomId, beatAnchorTime },
             { type: 'Character Moved', characterId, froms: [roomId], to: roomId, beatAnchorTime },
         ])
     })
@@ -49,7 +47,7 @@ describe('factsForStep', () => {
     it('characterNames resolves the Character Moved fact\'s characterName; unresolved leaves it omitted', () => {
         const step: MutationKernelStep = {
             kind: 'transferMembership',
-            entityIds: new Set([characterId]),
+            entityId: characterId,
             fromHostIds: new Set([roomId]),
             toHostId: roomId,
         }
@@ -135,24 +133,21 @@ describe('factsForStep', () => {
     it('a multi-step array processed via flatMap preserves output order (dissolve-before-move)', () => {
         const finalSourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
         const finalDestGraph = testLudicGraph(characterId, {
-            nodes: [
-                { tag: 'Object', universalKey: trayId },
-                { tag: 'Object', universalKey: glassId },
-            ],
+            nodes: [{ tag: 'Object', universalKey: trayId }],
         })
         const steps: MutationKernelStep[] = [
             { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' },
-            { kind: 'transferMembership', entityIds: new Set([trayId, glassId]), fromHostIds: new Set([roomId]), toHostId: characterId },
+            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         const finalGraphs = graphsMap([roomId, finalSourceGraph], [characterId, finalDestGraph])
         const facts = steps.flatMap((step) => factsForStep(step, finalGraphs, beatAnchorTime))
-        expect(facts.map((fact) => fact.type)).toEqual(['Object Relation Changed', 'Object Moved', 'Object Moved'])
+        expect(facts.map((fact) => fact.type)).toEqual(['Object Relation Changed', 'Object Moved'])
     })
 
-    it('pure remove (toHostId null): one Object Moved fact per object with froms from every departure host, to: null', () => {
+    it('pure remove (toHostId null): one Object Moved fact with froms from every departure host, to: null', () => {
         const step: MutationKernelStep = {
             kind: 'transferMembership',
-            entityIds: new Set([trayId]),
+            entityId: trayId,
             fromHostIds: new Set([roomId, characterId]),
             toHostId: null,
         }
@@ -189,7 +184,7 @@ describe('factsForStep', () => {
     it('pure add (fromHostIds empty): one Object Moved fact per object with froms: [], to: toHostId', () => {
         const step: MutationKernelStep = {
             kind: 'transferMembership',
-            entityIds: new Set([trayId]),
+            entityId: trayId,
             fromHostIds: new Set(),
             toHostId: roomId,
         }

@@ -1,12 +1,12 @@
 import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { applyTransferSet } from '../../ludicGraph/expandValidate/applyTransferSet'
+import { applyTransfer } from '../../ludicGraph/expandValidate/applyTransfer'
 import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
@@ -95,21 +95,20 @@ const confirmCarriedHost = (
  * guaranteed that order.
  *
  * `transferMembership` (BD-36) dispatches by shape on `fromHostIds`/`toHostId`. **Real transfer**
- * (`fromHostIds` has exactly one member, `toHostId` non-null): the whole `entityIds` set --- objects
- * and characters together --- routes through `applyTransferSet` (it dispatches by kind itself,
+ * (`fromHostIds` has exactly one member, `toHostId` non-null): the entity --- object or
+ * character --- routes through `applyTransfer` (it dispatches by kind itself,
  * `removeObject`/`addObject` for objects and `removeCharacter`/`addCharacter` for characters, so no
  * separate character swap is needed here; only objects get the full boundary-edge legality
  * machinery, since a character can never carry a relational edge). **Room/Feature/Area never
- * relocate**, so a Room/Feature id reaching this branch **throws** before `applyTransferSet` ---
+ * relocate**, so a Room/Feature id reaching this branch **throws** before `applyTransfer` ---
  * which has no dispatch for either kind --- is ever called; a caller bug is a structural-invariant
  * violation, so it belongs on the throw side of the split described below. **Pure remove**
  * (`toHostId === null`) and **pure add** (`fromHostIds` empty) share one kind-agnostic loop over
  * `nodeIds`/`addNode`/`removeNode` (`EphemeraLudicGraph`'s own kind dispatch) rather than one
  * loop per entity kind: a presence-check then
  * `removeNode`/`addNode` for each host --- no boundary-sweep here, since the caller is responsible
- * for having already seeded explicit `dissolveRelation` steps for every edge the entity carried (an
- * object-lifecycle route uses `boundaryEdgeOutcomes` on a singleton set, collapsing every outcome to
- * "sever it", since there's no destination to carry into or defer against); a residual edge means
+ * for having already seeded explicit `dissolveRelation` steps for every edge the entity carried; a
+ * residual edge means
  * `removeNode`'s underlying `removeObject`/`removeCharacter`/`removeRoom`/`removeFeature` throws, the
  * fail-loud contract BD-33 wants. A freshly spawned/authored entity has no prior edges, so pure add
  * needs no assert.
@@ -118,7 +117,7 @@ const confirmCarriedHost = (
  * against live graph state (BD-33 assert-and-throw), throws on mismatch, else applies the patch.
  *
  * Structural-invariant violations (BD-33's host mismatch; `RelationalEdgeStillReferencedError` from
- * inside `applyTransferSet`/`removeObject`/`removeCharacter`; a Room/Feature id in a real transfer;
+ * inside `applyTransfer`/`removeObject`/`removeCharacter`; a Room/Feature id in a real transfer;
  * the end-of-sequence character presence check below) throw, uniformly in both modes --- not a
  * `MutationKernelApplyOutcome` verdict. Legitimate outcomes return through the discriminated result,
  * and there are only two non-`legal` ones: `stale` (stale candidate, host outside the locked
@@ -162,18 +161,18 @@ export const applyStepSequenceCore = (
             // Real transfer: exactly the shape the two already-migrated player routes produce.
             if (fromHostIds.length === 1 && toHostId !== null) {
                 // Room/Feature/Area are hosts that never relocate, so a Room/Feature id reaching a
-                // real (single-from, single-to) transfer is a caller bug --- `applyTransferSet` has
+                // real (single-from, single-to) transfer is a caller bug --- `applyTransfer` has
                 // no dispatch for either kind, and every caller emits a pure add for them instead
                 // (see `kernelStep.ts`'s doc comment). The Throw-vs-verdict rule stated at the head
                 // of this file puts structural-invariant violations outside the result type, so this
                 // throws rather than returning a verdict; `commitStepSequence`'s BD-31 collapse
                 // throws from inside the same reducer and lands in the same catch.
-                const hasRoomOrFeature = [...step.entityIds].some((id) => isEphemeraRoomId(id) || isEphemeraFeatureId(id))
-                if (hasRoomOrFeature) {
+                if (isEphemeraRoomId(step.entityId) || isEphemeraFeatureId(step.entityId)) {
                     throw new Error(
                         `transferMembership carries a Room or Feature id into a real transfer --- structural invariant violated (Room/Feature/Area are hosts that never relocate; step 3's callers emit a pure add for them)`
                     )
                 }
+                const entityId = step.entityId
 
                 const [fromHostId] = fromHostIds as [EphemeraMembershipHostId]
                 const sourceGraph = graphs.get(fromHostId)
@@ -182,56 +181,42 @@ export const applyStepSequenceCore = (
                     return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
                 }
 
-                for (const id of step.entityIds) {
-                    if (!sourceGraph.nodeIds.has(id) || destGraph.nodeIds.has(id)) {
-                        return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
+                if (!sourceGraph.nodeIds.has(entityId) || destGraph.nodeIds.has(entityId)) {
+                    return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
+                }
+
+                // applyTransfer dispatches both objects and characters itself --- no separate
+                // character add/remove needed here.
+                const outcome = applyTransfer(sourceGraph, destGraph, entityId)
+                // `applyTransfer` names the offending edge but not the host it sits on --- it is
+                // handed two graphs and knows neither's id. Supply `fromHostId` here: boundary
+                // edges are found on the *source* graph, so that is where a repair step would have
+                // to be aimed. `repairKind` passes through untouched --- mapping reason codes back
+                // to repair kinds here would re-derive at the boundary exactly what the layer below
+                // already knew.
+                if (outcome.verdict === 'repairable') {
+                    return {
+                        verdict: 'repairable',
+                        reasonCode: outcome.reasonCode,
+                        authority: outcome.authority,
+                        repair: {
+                            kind: outcome.repairKind,
+                            hostId: fromHostId,
+                            edge: outcome.edge,
+                        },
                     }
                 }
 
-                let nextSourceGraph = sourceGraph
-                let nextDestGraph = destGraph
-
-                if (step.entityIds.size > 0) {
-                    // applyTransferSet dispatches both objects and characters itself --- no
-                    // separate character add/remove loop needed here. Safe cast: the guard above
-                    // already confirmed entityIds contains no Room/Feature id.
-                    const outcome = applyTransferSet(
-                        nextSourceGraph,
-                        nextDestGraph,
-                        step.entityIds as ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
-                    )
-                    // `applyTransferSet` names the offending edge but not the host it sits on ---
-                    // it is handed two graphs and knows neither's id. Supply `fromHostId` here:
-                    // boundary edges are found on the *source* graph, so that is where a repair
-                    // step would have to be aimed. `repairKind` passes through untouched --- mapping
-                    // reason codes back to repair kinds here would re-derive at the boundary exactly
-                    // what the layer below already knew.
-                    if (outcome.verdict === 'repairable') {
-                        return {
-                            verdict: 'repairable',
-                            reasonCode: outcome.reasonCode,
-                            authority: outcome.authority,
-                            repair: {
-                                kind: outcome.repairKind,
-                                hostId: fromHostId,
-                                edge: outcome.edge,
-                            },
-                        }
-                    }
-                    nextSourceGraph = outcome.sourceGraph
-                    nextDestGraph = outcome.destGraph
-                }
-
-                graphs.set(fromHostId, nextSourceGraph)
-                graphs.set(toHostId, nextDestGraph)
+                graphs.set(fromHostId, outcome.sourceGraph)
+                graphs.set(toHostId, outcome.destGraph)
                 continue
             }
 
-            // Pure remove (no destination) or pure add (no departure hosts): each entity id is
-            // added/removed on its own host independently --- there is no boundary sweep to run
+            // Pure remove (no destination) or pure add (no departure hosts): the entity is
+            // added/removed on each host independently --- there is no boundary sweep to run
             // here (the caller already seeded explicit `dissolveRelation`
             // steps for a pure remove; a pure add is a freshly-spawned entity with no prior edges).
-            // One loop over `nodeIds`/`addNode`/`removeNode` covers all four entity kinds ---
+            // `nodeIds`/`addNode`/`removeNode` cover all four entity kinds ---
             // `EphemeraLudicGraph.addNode`/`removeNode` is the
             // kind-dispatch, so this branch doesn't have to re-derive it per kind.
             for (const fromHostId of fromHostIds) {
@@ -239,14 +224,10 @@ export const applyStepSequenceCore = (
                 if (!sourceGraph) {
                     return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
                 }
-                let nextSourceGraph = sourceGraph
-                for (const id of step.entityIds) {
-                    if (!nextSourceGraph.nodeIds.has(id)) {
-                        return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
-                    }
-                    nextSourceGraph = nextSourceGraph.removeNode(id)
+                if (!sourceGraph.nodeIds.has(step.entityId)) {
+                    return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
                 }
-                graphs.set(fromHostId, nextSourceGraph)
+                graphs.set(fromHostId, sourceGraph.removeNode(step.entityId))
             }
 
             if (toHostId !== null) {
@@ -254,14 +235,10 @@ export const applyStepSequenceCore = (
                 if (!destGraph) {
                     return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
                 }
-                let nextDestGraph = destGraph
-                for (const id of step.entityIds) {
-                    if (nextDestGraph.nodeIds.has(id)) {
-                        return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
-                    }
-                    nextDestGraph = nextDestGraph.addNode(id)
+                if (destGraph.nodeIds.has(step.entityId)) {
+                    return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
                 }
-                graphs.set(toHostId, nextDestGraph)
+                graphs.set(toHostId, destGraph.addNode(step.entityId))
             }
             continue
         }

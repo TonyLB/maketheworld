@@ -13,14 +13,14 @@ const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('computeStepSequenceFootprint', () => {
     it('a transferMembership step contributes every fromHostIds member and toHostId directly', () => {
-        const step: MutationKernelStep = { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId }
+        const step: MutationKernelStep = { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId }
         expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId, characterId]))
     })
 
     it('a pure-remove transferMembership step (toHostId null) contributes only its fromHostIds', () => {
         const step: MutationKernelStep = {
             kind: 'transferMembership',
-            entityIds: new Set([trayId]),
+            entityId: trayId,
             fromHostIds: new Set([roomId, otherRoomId]),
             toHostId: null,
         }
@@ -28,7 +28,7 @@ describe('computeStepSequenceFootprint', () => {
     })
 
     it('a pure-add transferMembership step (fromHostIds empty) contributes only toHostId', () => {
-        const step: MutationKernelStep = { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set(), toHostId: roomId }
+        const step: MutationKernelStep = { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set(), toHostId: roomId }
         expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId]))
     })
 
@@ -41,7 +41,7 @@ describe('computeStepSequenceFootprint', () => {
     it('unions hosts across a multi-step sequence with no duplicates', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'dissolveRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' },
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
+            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
         const getCurrentHost = () => roomId
         expect(computeStepSequenceFootprint(steps, getCurrentHost)).toEqual(new Set([roomId, characterId]))
@@ -95,7 +95,7 @@ describe('computeStepSequenceFootprint', () => {
 
     it('a capture step contributes its hostId even when no mutation step in the sequence touches that host', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
+            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
             { kind: 'capture', hostId: otherRoomId, captureId: 'onlooker' },
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([roomId, characterId, otherRoomId]))

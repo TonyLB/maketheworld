@@ -47,7 +47,7 @@ describe('commitAndPresentStepSequence', () => {
         })
 
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([OBJECT_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
             { kind: 'describe', referentId: ROOM_ID, referentKind: 'room' },
         ]
         const plan: CompiledPositionKernelPlan = { steps, slots: [] }
@@ -69,7 +69,7 @@ describe('commitAndPresentStepSequence', () => {
         commitStepSequence.mockResolvedValue({ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage: 'stale' })
 
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([OBJECT_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
             { kind: 'describe', referentId: ROOM_ID, referentKind: 'room' },
         ]
         const plan: CompiledPositionKernelPlan = { steps, slots: [] }
@@ -86,7 +86,7 @@ describe('commitAndPresentStepSequence', () => {
         presentStepSequence.mockResolvedValue(undefined)
 
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([OBJECT_ID]), fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
         ]
         const plan: CompiledPositionKernelPlan = { steps, slots: [] }
 

@@ -175,11 +175,11 @@ Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / *
 
 Hosting kinds never reach the table legitimately: a hosted thing lives in its host's own shard and travels with it, so "take the tray" moves the glass on it without any edge to classify. A hosting-kind edge on the exterior graph means a producer built a graph the constructor does not author, so the classifier throws.
 
-**Construction vs. validation.** Three callers read the table, and none grows the moved set:
+**Construction vs. validation.** Three callers read the table, and none widens what moves:
 
 - **At Expand**, before scoring, [`attemptCandidates.ts`](attemptCandidates.ts)'s `expandAndAdjudicateCandidates` records the table on each already-grounded transfer's attempt: one facilitating action per boundary edge, with a graph challenge on each `defer`, plus an exit-contact challenge ([`commandAttempt/expandBoundaryChallenges.ts`](../../commandAttempt/expandBoundaryChallenges.ts)). Adjudicate then records *met* on each `Custom`-edge challenge ([`commandAttempt/adjudicate.ts`](../../commandAttempt/adjudicate.ts)), including a subject-move: the adjudicator meets it whether it means clearance or a pinned relation, since the graph cannot tell them apart.
 - **At selection**, [`attemptDryRun`](attemptCandidates.ts) reads the attempt's result: `pending` defers, and `succeeded` checks the transfer's preconditions and lowers the attempt through the Synthesize executor, its facilitating dissolves first ([`synthesize/executor.ts`](synthesize/executor.ts)'s `seedFromGroundedSteps`), over the per-command environment. The executor does not read the table.
-- **At commit**, positions' `buildObjectMoveOp` classifies again from the departure host's graph, dissolving each `dissolve` cell and each `defer` edge the published attempt recorded as met, and the commit re-validates on the locked graphs, so a change since selection is caught rather than applied.
+- **At commit**, positions' [`commitAttempt`](../../../positions/manipulation/commitAttempt.ts) commits the attempt's facilitating dissolves ahead of the transfer, and `buildObjectMoveOp` adds only the mover's own containment edge. The transfer then classifies again on the locked graphs ([`applyTransfer`](../../../positions/ludicGraph/expandValidate/applyTransfer.ts)) and refuses the move over any boundary edge still present, so a change since selection is caught rather than applied.
 
 The table lives in `positions/ludicGraph/expandValidate/`, a location neither the actions compiler nor the kernel owns, so that every caller shares one legality authority.
 

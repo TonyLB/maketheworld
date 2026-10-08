@@ -121,10 +121,16 @@ A **`MutationKernelCaptureStep`** carries **`hostId`** + **`captureId`** and **n
 
 An attempt's lines come only from the narration units its actions' creators authored (Plan's templates, Expansion; the authorship rules are [`../actions/AGENT.contract.md`](../actions/AGENT.contract.md#command-attempt)'s). Positions fills labels and delivers; it **must not** synthesize a line for an action, and **must not** derive a verb from a move's delta or infer one backwards from a published fact. An action no narration unit covers narrates nothing. The delta cannot carry the act: `coins: Table -> Pouch` has a room on neither side, a relation's state maps to many acts (tie / lash / knot), and manner has no source in it at all.
 
-### An object move's moved set
+### A move transfers one entity
 
-- The moved set **must** travel as `moved: EphemeraObjectId | EphemeraCharacterId` --- a bare entity id, for both objects and characters. The id is the whole moved set: anything the entity hosts lives in its own shard and travels with it, so no step widens the set and narration counts no carried objects.
-- Severed boundary edges **must not** enter the moved set. The command attempt's Expansion classifies them ([`boundaryEdgeOutcomes`](ludicGraph/expandValidate/interactionUnderTransfer.ts)) into facilitating dissolve actions listed ahead of the move, and `commitAttempt` commits them in that order, ahead of the transfer. `op.dissolvedEdges` carries only the mover's own containment edge, which the compiler renders into a `dissolveRelation` step ahead of the transfer. **Expansion classifies; the attempt and the compiler sequence.**
+A move, and every `transferMembership` step it compiles to, names exactly one entity (`moved` on the op, `objectId` on the executor's step, `entityId` on the kernel's), for objects and characters alike. Anything the entity hosts lives in its own shard and travels with it.
+
+- No step **may** widen a move to further entities, and narration **must not** count carried objects. Carrying is what hosting does, not something a move computes.
+- A boundary edge is a relational edge with the mover at one end and something staying behind at the other. Because only one entity moves, no relational edge has both ends moving: there is no interior edge for a move to carry.
+
+### A move's severed edges
+
+The command attempt's Expansion classifies the mover's boundary edges ([`boundaryEdgeOutcomes`](ludicGraph/expandValidate/interactionUnderTransfer.ts)) into facilitating dissolve actions listed ahead of the move, and `commitAttempt` commits them in that order, ahead of the transfer. `op.dissolvedEdges` carries only the mover's own containment edge, which the compiler renders into a `dissolveRelation` step ahead of the transfer. A boundary edge still present when the transfer applies refuses the move ([`applyTransfer`](ludicGraph/expandValidate/applyTransfer.ts) returns `repairable`); it is never silently severed. **Expansion classifies; the attempt and the compiler sequence.**
 
 ### Narration is presented only for a committed mutation
 
@@ -275,7 +281,7 @@ A severed boundary relation streams **`Object Relation Changed`** alongside the 
 
 The plan is **re-derived, not scrubbed from trusted ingress**: `commitAttempt`'s dry run re-classifies boundary edges against the departure host's current graph (any the attempt does not dissolve refuses the move), and the reducer re-validates presence and boundary-edge classification on the locked graphs at commit time. A concurrent modification since selection aborts the whole transact rather than applying a stale plan.
 
-The post-persist bundle is the kernel's, per entity in the transfer set:
+The post-persist bundle is the kernel's, for the moved entity:
 
 1. **`Object Moved`**, streamed in step order after any `Object Relation Changed` for severed boundary edges. `takeHold`: `froms: [ROOM#...]`, `to: CHARACTER#...`. `drop`: `froms: [CHARACTER#...]`, `to: ROOM#...`.
 2. `Positions.set` on **every** committed graph --- both hosts; `ComponentEphemeraMeta.invalidate` / `AffordanceRoomDeliverable.invalidate` for Room hosts only.

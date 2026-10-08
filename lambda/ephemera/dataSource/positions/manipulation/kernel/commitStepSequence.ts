@@ -37,9 +37,9 @@ export type CommitStepSequenceDeps = {
     suppressRelationalFacts?: boolean
     /**
      * Character-route Migrate row: resolved character display names for any `transferMembership`
-     * step's character-kind `entityIds`, so `factsForStep` (synchronous) can build a fully-populated
+     * step whose `entityId` is a character, so `factsForStep` (synchronous) can build a fully-populated
      * `Character Moved` fact without fetching anything itself. Only `orchestrateCharacterRoomMembership.ts`
-     * populates this today; every other caller's steps carry no character entityIds, so it's a no-op.
+     * populates this today; every other caller's steps move no character, so it's a no-op.
      */
     characterNames?: ReadonlyMap<EphemeraCharacterId, string>
     /**
@@ -162,21 +162,21 @@ export const commitStepSequence = async (
 
     // Adjacency rows (positionAdjacency#<hostId>) for every entity moved by a transferMembership
     // step, built as plain, unconditioned sibling items --- same convention as the two live
-    // kernels (transfer set and hosts are known before the reducer runs, so nothing depends on
+    // kernels (the moved entity and hosts are known before the reducer runs, so nothing depends on
     // the reducer's computed output; if the reducer throws, these never fire either). A `Delete`
-    // per (entityId, fromHostId) pair across every departure host; a `Put` per entityId only when
+    // per departure host; a `Put` only when
     // `toHostId` is non-null (a pure remove, e.g. destroy, has no arrival row to write).
     const adjacencyItems: CommitStepSequenceTransactItem[] = steps
         .filter((step): step is Extract<MutationKernelStep, { kind: 'transferMembership' }> => step.kind === 'transferMembership')
         .flatMap((step) =>
-            [...step.entityIds].flatMap((entityId) => [
+            [
                 ...[...step.fromHostIds].map((fromHostId) => ({
-                    Delete: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(fromHostId) },
+                    Delete: { EphemeraId: step.entityId, DataCategory: buildPositionAdjacencyDataCategory(fromHostId) },
                 })),
                 ...(step.toHostId !== null
-                    ? [{ Put: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(step.toHostId) } }]
+                    ? [{ Put: { EphemeraId: step.entityId, DataCategory: buildPositionAdjacencyDataCategory(step.toHostId) } }]
                     : []),
-            ])
+            ]
         )
 
     let persisted = false
@@ -213,12 +213,10 @@ export const commitStepSequence = async (
         if (step.kind !== 'transferMembership') {
             continue
         }
-        for (const entityId of step.entityIds) {
-            internalCache.Positions.setMembershipContainers({
-                componentId: entityId,
-                containers: step.toHostId !== null ? [step.toHostId] : [],
-            })
-        }
+        internalCache.Positions.setMembershipContainers({
+            componentId: step.entityId,
+            containers: step.toHostId !== null ? [step.toHostId] : [],
+        })
     }
 
     for (const step of steps) {

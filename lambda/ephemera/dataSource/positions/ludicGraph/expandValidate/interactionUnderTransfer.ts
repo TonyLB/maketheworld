@@ -1,5 +1,4 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph, HostRelationalEdge } from '../index'
@@ -65,13 +64,12 @@ export type BoundaryEdgeOutcome = {
 }
 
 /**
- * Edges crossing the boundary of a resolved transfer set --- exactly one
- * endpoint inside the set --- each classified. Edges with both endpoints
- * inside the set are internal (never evaluated, never dissolved) and are
- * not part of this result.
+ * The mover's boundary edges --- relational edges with the mover at one end and something staying
+ * behind at the other --- each classified. A move names one object (anything it hosts lives in its
+ * own shard and travels with it), so no edge has both ends moving.
  */
 export function boundaryEdgeOutcomes(
-    transferSet: ReadonlySet<EphemeraObjectId>,
+    moverId: EphemeraObjectId,
     graph: EphemeraLudicGraph,
     /**
      * Edges the move itself removes, so they are not boundary edges: the mover's own containment
@@ -85,16 +83,15 @@ export function boundaryEdgeOutcomes(
         if (isRemovedByMove(edge)) {
             continue
         }
-        // `edge.from`/`.to` are widened to `EphemeraLudicTerminalPrimitive`, but `transferSet` is
-        // Object-only: the caller's transfer set is Object | Character and filters back down to
-        // Object before calling in here (applyTransferSet.ts). See `ludicGraph/AGENT.md`'s
-        // "Character-relation widening" note.
-        const fromInSet = typeof edge.from === 'string' && isEphemeraObjectId(edge.from) && transferSet.has(edge.from)
-        const toInSet = typeof edge.to === 'string' && isEphemeraObjectId(edge.to) && transferSet.has(edge.to)
-        if (fromInSet === toInSet) {
+        // `edge.from`/`.to` are widened to `EphemeraLudicTerminalPrimitive`, but the mover is
+        // Object-only: `applyTransfer.ts` calls in here only for an object. See
+        // `ludicGraph/AGENT.md`'s "Character-relation widening" note.
+        const fromIsMover = edge.from === moverId
+        const toIsMover = edge.to === moverId
+        if (fromIsMover === toIsMover) {
             continue
         }
-        const movedRole: TransferEndpointRole = fromInSet ? 'subject' : 'target'
+        const movedRole: TransferEndpointRole = fromIsMover ? 'subject' : 'target'
         results.push({
             edge,
             movedRole,

@@ -33,7 +33,7 @@ export type MutationKernelRepair =
 
 /**
  * BD-27c's shared apply-core result. Legitimate legality outcomes return through this discriminated
- * union, matching `applyTransferSet`'s convention. Structural-invariant violations (BD-33 relational
+ * union, matching `applyTransfer`'s convention. Structural-invariant violations (BD-33 relational
  * host mismatch; `RelationalEdgeStillReferencedError`) are *not* a verdict here --- they throw,
  * uniformly in both modes (dry-run and commit), per the design doc's "Throw vs. verdict" decision.
  * `captures` rides alongside `graphs` on the `legal` verdict only --- any non-`legal` outcome

@@ -22,7 +22,7 @@ describe('dryRunStepSequence', () => {
         const destGraph = testLudicGraph(characterId, { nodes: [] })
         const graphs = graphFixture([roomId, sourceGraph], [characterId, destGraph])
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
+            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
 
         const outcome = await dryRunStepSequence(steps, {
@@ -37,7 +37,7 @@ describe('dryRunStepSequence', () => {
     it('stale/hostNotInFootprint: a footprint host the fetcher cannot actually supply a graph for', async () => {
         const destGraph = testLudicGraph(characterId, { nodes: [] })
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
+            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
 
         // roomId is in the footprint (transferMembership contributes fromHostIds directly) but the
@@ -57,7 +57,7 @@ describe('dryRunStepSequence', () => {
         const destGraph = testLudicGraph(characterId, { nodes: [] })
         const graphs = graphFixture([roomId, sourceGraph], [characterId, destGraph])
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
+            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
 
         const outcome = await dryRunStepSequence(steps, {
@@ -80,7 +80,7 @@ describe('dryRunStepSequence', () => {
         const graphs = graphFixture([roomId, sourceGraph], [characterId, destGraph])
         // Bug-injection, mirroring applyStepSequenceCore.test.ts: no paired dissolveRelation step.
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityIds: new Set([trayId]), fromHostIds: new Set([roomId]), toHostId: characterId },
+            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
 
         const outcome = await dryRunStepSequence(steps, {
@@ -110,11 +110,12 @@ describe('dryRunStepSequence', () => {
         const destGraph = testLudicGraph(characterId, { nodes: [] })
         const graphs = graphFixture([roomId, sourceGraph], [characterId, destGraph])
         const getGraph = jest.fn(async (hostId: EphemeraMembershipHostId) => graphs.get(hostId)!)
-        // Two steps sharing the same footprint hosts (a two-entity transfer expressed as one step
-        // plus a capture on the same source host) --- both touch `roomId`.
+        // Three steps sharing the same footprint hosts (two transfers plus a capture on the same
+        // source host) --- all touch `roomId`.
         const steps: MutationKernelStep[] = [
             { kind: 'capture', captureId: 'before', hostId: roomId },
-            { kind: 'transferMembership', entityIds: new Set([trayId, tableId]), fromHostIds: new Set([roomId]), toHostId: characterId },
+            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
+            { kind: 'transferMembership', entityId: tableId, fromHostIds: new Set([roomId]), toHostId: characterId },
         ]
 
         const outcome = await dryRunStepSequence(steps, { getCurrentHost: () => undefined, getGraph })

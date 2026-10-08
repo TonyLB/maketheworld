@@ -47,7 +47,7 @@ Per-operator coordinators       membership fact projection consumption, cache/bu
 ```typescript
 type MutationKernelTransferStep = {
     kind: 'transferMembership'
-    entityIds: ReadonlySet<EphemeraObjectId | EphemeraCharacterId>
+    entityId: EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId
     fromHostIds: ReadonlySet<EphemeraMembershipHostId>
     toHostId: EphemeraMembershipHostId | null
 }
@@ -68,9 +68,9 @@ type KernelStep = MutationKernelStep | ExecutorDescribeStep | PresentationKernel
 
 **`KernelStep` is deliberately unprefixed** --- it is the shared, cross-kernel vocabulary that each kernel filters down to the steps it owns, so it belongs to no single kernel. Everything mutation-specific carries `MutationKernel`; everything presentation-specific carries `PresentationKernel`. `ExecutorDescribeStep` is **not** renamed: it is owned by `executorTypes.ts` and reused verbatim. Rationale: [`../AGENT.concepts.md` --- Naming](../AGENT.concepts.md#naming-kernel-alone-names-nothing).
 
-Two widenings distinguish `MutationKernelTransferStep` from the executor's object-only, singular-host `TransferMembershipStep`:
+Both steps transfer exactly one entity: anything it hosts lives in its own shard and travels with it. Two widenings distinguish `MutationKernelTransferStep` from the executor's object-only, singular-host `TransferMembershipStep`:
 
-- **`entityIds` admits characters as well as objects**, since kernel membership transfer generalizes over entity kind. The executor's own step stays object-only --- character movement never passes through Grounding/Expansion/Validation at all.
+- **`entityId` admits characters as well as objects**, since kernel membership transfer generalizes over entity kind (and Rooms/Features, in the pure-add shape only, for cache-time containment authoring). The executor's own step stays object-only --- character movement never passes through Grounding/Expansion/Validation at all.
 - **`fromHostIds` is a set and `toHostId` is nullable**, mirroring `MembershipDiff`'s `{ froms, to }` shape. One step kind therefore covers three shapes:
 
 | Shape | Condition | Route |
@@ -140,7 +140,7 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 
 | Step shape | Behavior |
 | --- | --- |
-| **Real transfer** | Object subset routes through [`applyTransferSet`](../ludicGraph/expandValidate/applyTransferSet.ts) --- the full boundary-edge legality machinery, shared with the compiler's selection-time sandbox. Relational edges *internal* to the transfer set are re-materialized on the destination graph by `applyTransferSet` itself, derived live from the freshly-fetched source graph --- never precomputed and passed in. Character subset is a direct `removeCharacter`/`addCharacter` swap with no boundary sweep, since a character can never hold a relational edge |
+| **Real transfer** | Routes through [`applyTransfer`](../ludicGraph/expandValidate/applyTransfer.ts). An object gets the full boundary-edge legality machinery, shared with the compiler's selection-time sandbox, classified live from the freshly-fetched source graph. A character is a direct `removeCharacter`/`addCharacter` swap with no boundary sweep, since a character can never hold a relational edge. A Room/Feature id here throws: hosts never relocate |
 | **Pure remove** | Presence-check then `removeObject`/`removeCharacter` per departure host. **No** boundary sweep here --- the caller is responsible for having seeded explicit `dissolveRelation` steps for every edge the entity carried. A residual edge makes `removeObject` throw, by design |
 | **Pure add** | `addObject`/`addCharacter` on the destination only; a freshly spawned entity has no prior edges, so no assert is needed |
 | **Relational** | Derives the shared host live from the graph map, throws on endpoint host mismatch, else applies the patch |

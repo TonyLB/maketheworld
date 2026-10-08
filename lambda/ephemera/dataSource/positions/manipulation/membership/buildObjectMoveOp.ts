@@ -16,7 +16,7 @@ export type BuildObjectMoveOpArgs = {
      * gaining it (`containment`). No other edge is dissolved here. A boundary edge's dissolve
      * is a facilitating action the command attempt states explicitly, and the commit path
      * commits it as a sibling of this op; one the attempt does not cover is left in place for
-     * `applyTransferSet` to report as `repairable`, and the move is refused.
+     * `applyTransfer` to report as `repairable`, and the move is refused.
      */
     fromGraph: EphemeraLudicGraph
     fromHostId: EphemeraMembershipHostId

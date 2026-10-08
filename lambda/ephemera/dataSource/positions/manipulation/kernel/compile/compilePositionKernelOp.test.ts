@@ -112,7 +112,7 @@ describe('compilePositionKernelOp', () => {
         expect(plan.steps).toEqual([
             {
                 kind: 'transferMembership',
-                entityIds: new Set([CHARACTER_ID]),
+                entityId: CHARACTER_ID,
                 fromHostIds: new Set([FROM_ROOM]),
                 toHostId: TO_ROOM,
             },

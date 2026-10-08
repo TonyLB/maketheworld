@@ -38,7 +38,7 @@ describe('classifyInteractionUnderTransfer', () => {
 })
 
 describe('boundaryEdgeOutcomes', () => {
-    it('reports only the true external edge for a resolved transfer set (peer kinds only -- On/In/PartOf throw)', () => {
+    it('reports an edge with the mover at one end, with the role the mover plays (peer kinds only -- On/In/PartOf throw)', () => {
         const glassLeaningOnBook: EphemeraLudicRelationalEdgeData = { tag: 'Relational', from: glassId, to: bookId, kind: 'Custom', relationLabel: 'leaning on' }
         const graph = testLudicGraph(roomId, {
             nodes: [
@@ -47,7 +47,7 @@ describe('boundaryEdgeOutcomes', () => {
             ],
             edges: [glassLeaningOnBook],
         })
-        const outcomes = boundaryEdgeOutcomes(new Set([bookId]), graph)
+        const outcomes = boundaryEdgeOutcomes(bookId, graph)
 
         expect(outcomes).toHaveLength(1)
         expect(outcomes[0]).toEqual({

@@ -10,16 +10,16 @@ const roomId = 'ROOM#Cafe' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('fromExecutorStep', () => {
-    it('converts a TransferMembershipStep to a MutationKernelTransferStep with the same object ids as entityIds', () => {
+    it('converts a TransferMembershipStep to a MutationKernelTransferStep with the same object as entityId', () => {
         const step: ExecutorParsePlanStep = {
             kind: 'transferMembership',
-            objectIds: new Set([trayId, glassId]),
+            objectId: trayId,
             fromHostId: roomId,
             toHostId: characterId,
         }
         expect(fromExecutorStep(step)).toEqual({
             kind: 'transferMembership',
-            entityIds: new Set([trayId, glassId]),
+            entityId: trayId,
             fromHostIds: new Set([roomId]),
             toHostId: characterId,
         })

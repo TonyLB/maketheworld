@@ -55,7 +55,7 @@ const CAPTURE_ID_TO = 'capture:to'
 export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPositionKernelPlan => {
     const transferStep: MutationKernelTransferStep = {
         kind: 'transferMembership',
-        entityIds: new Set([op.moved]),
+        entityId: op.moved,
         fromHostIds: new Set(op.froms),
         toHostId: op.to,
     }

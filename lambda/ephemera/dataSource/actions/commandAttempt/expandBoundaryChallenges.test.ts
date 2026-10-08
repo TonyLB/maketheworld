@@ -26,7 +26,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction('action-1', [], undefined, 'Take: rope')
 
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph, noShards).actions
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, graph, noShards).actions
 
         expect(actions).toHaveLength(2)
         expect(actions[0]?.desiredResult).toEqual(expect.objectContaining({
@@ -46,7 +46,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction('action-2', [], undefined, 'Take: rope')
 
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph, noShards).actions
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, graph, noShards).actions
 
         expect(actions).toHaveLength(2)
         const dissolveAction = actions[0]
@@ -69,7 +69,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction('action-3', [], undefined, 'Take: rope')
 
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph, noShards).actions
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, graph, noShards).actions
 
         expect((actions[0]?.toJSON() as any).desiredResult).toEqual({
             kind: 'change',
@@ -95,7 +95,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
 
-        const ids = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph, noShards).actions.map((action) => action.id)
+        const ids = attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, graph, noShards).actions.map((action) => action.id)
 
         expect(ids).toHaveLength(3)
         expect(ids[2]).toBe('primary')
@@ -108,7 +108,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction('action-4', [], undefined, 'Take: rope')
 
-        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph, noShards).actions
+        const actions = attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, graph, noShards).actions
 
         expect(actions).toEqual([primaryAction])
     })
@@ -133,7 +133,7 @@ describe('attemptActionsFromBoundaryOutcomes: the narration units Expansion auth
     it('authors one unit per dissolve, covering it, worded from the moved end, with one audience over both ends before the dissolve', () => {
         const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
 
-        const { actions, narrationUnits } = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), lashedGraph(ropeId, postId), noShards)
+        const { actions, narrationUnits } = attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, lashedGraph(ropeId, postId), noShards)
 
         expect(narrationUnits).toEqual([{
             covers: [actions[0]!.id],
@@ -147,7 +147,7 @@ describe('attemptActionsFromBoundaryOutcomes: the narration units Expansion auth
     it('words the line from the moved end even when the moved object is the edge\'s target', () => {
         const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
 
-        const { narrationUnits } = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), lashedGraph(postId, ropeId), noShards)
+        const { narrationUnits } = attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, lashedGraph(postId, ropeId), noShards)
 
         expect(narrationUnits[0]?.variants[0]?.parts).toEqual(freesRopeFromPost)
         expect(narrationUnits[0]?.variants[0]?.audience.refs).toEqual([`graphNode:${ropeId}`, `graphNode:${postId}`])
@@ -167,7 +167,7 @@ describe('attemptActionsFromBoundaryOutcomes: the narration units Expansion auth
         })
         const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
 
-        const { actions, narrationUnits } = attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph, noShards)
+        const { actions, narrationUnits } = attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, graph, noShards)
 
         expect(narrationUnits.map(({ covers }) => covers)).toEqual([[actions[0]!.id], [actions[1]!.id]])
     })
@@ -176,7 +176,7 @@ describe('attemptActionsFromBoundaryOutcomes: the narration units Expansion auth
         const graph = testLudicGraph(roomId, { nodes: [{ tag: 'Object' as const, universalKey: ropeId }] })
         const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
 
-        expect(attemptActionsFromBoundaryOutcomes(primaryAction, new Set([ropeId]), graph, noShards).narrationUnits).toEqual([])
+        expect(attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, graph, noShards).narrationUnits).toEqual([])
     })
 })
 
