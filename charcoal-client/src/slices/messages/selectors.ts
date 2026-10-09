@@ -251,7 +251,13 @@ export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<M
             }
             messages = probeMessages
         }
-        
+
+        // Transcript shows only the most recent command echo; presentation/history keep all of them.
+        const latestCommandTranscriptId = messages.reduce<string | undefined>(
+            (latest, message) => (message.DisplayProtocol === 'CommandTranscriptMessage' ? message.MessageId : latest),
+            undefined
+        )
+
         const aggregate: MessageRoomInProgress = messages.reduce((previous, message) => {
             if (isAffordanceRoomHeader(message as PerceptionMessage)) {
                 const m = message as RoomHeaderMessage
@@ -315,6 +321,10 @@ export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<M
             }
 
             if (isRoomHeader(message)) {
+                return previous
+            }
+
+            if (message.DisplayProtocol === 'CommandTranscriptMessage' && message.MessageId !== latestCommandTranscriptId) {
                 return previous
             }
 
