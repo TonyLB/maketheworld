@@ -64,6 +64,26 @@ describe('CommandTranscriptMessage', () => {
         })).toBe(true)
     })
 
+    it('should validate with string SessionId', () => {
+        expect(isMessage({
+            DisplayProtocol: 'CommandTranscriptMessage',
+            MessageId: 'MESSAGE#x',
+            CreatedTime: 1,
+            SessionId: 'SESSION-A',
+            Message: ['> look']
+        })).toBe(true)
+    })
+
+    it('should reject non-string SessionId', () => {
+        expect(isMessage({
+            DisplayProtocol: 'CommandTranscriptMessage',
+            MessageId: 'MESSAGE#x',
+            CreatedTime: 1,
+            SessionId: 7,
+            Message: ['> look']
+        })).toBe(false)
+    })
+
     it('should reject with malformed target', () => {
         expect(isMessage({
             DisplayProtocol: 'CommandTranscriptMessage',

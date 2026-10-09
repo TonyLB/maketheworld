@@ -247,6 +247,7 @@ export const publishMessage = async ({ payloads }: { payloads: PublishMessage[],
                 CreatedTime,
                 Message: payload.message,
                 DisplayProtocol: payload.displayProtocol,
+                ...(isPublishCommandTranscriptMessage(payload) && payload.sessionId ? { SessionId: payload.sessionId } : {}),
             })
         }
         //

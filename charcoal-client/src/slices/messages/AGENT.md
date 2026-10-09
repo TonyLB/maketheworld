@@ -85,7 +85,7 @@ Redux state for this slice has three parts, all keyed by character (see **Transc
 
 #### **Message Retrieval** (`selectors`)
 - `getMessages` / `getPresentation`: Character-scoped arrays (see State Structure above)
-- `getMessagesByRoom` / `getRecentlyVisited`: Room visits and grouped transcript; use `presentation` via `getPresentation`. `getMessagesByRoom` keeps only the latest `CommandTranscriptMessage` per character; `presentation` and `history` keep every echo
+- `getMessagesByRoom` / `getRecentlyVisited`: Room visits and grouped transcript; use `presentation` via `getPresentation`. `getMessagesByRoom` keeps only the latest `CommandTranscriptMessage` per character whose `SessionId` matches this client's session (`getSessionId`); `presentation` and `history` keep every echo
 
 ### **Message Synchronization Flow**
 

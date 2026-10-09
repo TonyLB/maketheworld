@@ -42,6 +42,7 @@ describe('app handler', () => {
                 collectErrors([payload])
             }
         })
+        ;(internalCache.Global.get as jest.Mock).mockReset()
         mockThinkingResultsGet = jest.fn()
         ;(internalCache as unknown as { ThinkingResults: { get: jest.Mock } }).ThinkingResults = {
             get: mockThinkingResultsGet,
@@ -230,6 +231,40 @@ describe('app handler', () => {
                 command: 'look',
             })
             expect(mockMessageBus.flushAndSettle).toHaveBeenCalled()
+        })
+
+        it('includes the connection\'s sessionId in Parse Requested synthetic payload', async () => {
+            ;(internalCache.Global.get as jest.Mock).mockImplementation(async (key: string) => (
+                key === 'SessionId' ? 'SESSION-A' : undefined
+            ))
+            const commandMessage = {
+                message: 'command',
+                CharacterId: 'CHARACTER#123',
+                command: 'look'
+            }
+
+            const event = {
+                requestContext: {
+                    connectionId: 'test-connection'
+                },
+                body: JSON.stringify(commandMessage)
+            }
+
+            await handler(event, {})
+
+            const parseRequestedCall = mockMessageBus.publish.mock.calls.find(
+                ([payload]) => payload?.type === 'StreamingEvent'
+                    && payload?.dataSourceKey === 'api.ephemera'
+                    && payload?.header?.type === 'Parse Requested'
+            )
+            expect(parseRequestedCall).toBeDefined()
+            const parsePayload = parseRequestedCall![0] as { getContent: () => Promise<unknown> }
+            const content = await parsePayload.getContent()
+            expect(content).toEqual({
+                characterId: 'CHARACTER#123',
+                command: 'look',
+                sessionId: 'SESSION-A',
+            })
         })
 
         it('includes requestId in Parse Requested synthetic payload when present on wire request', async () => {

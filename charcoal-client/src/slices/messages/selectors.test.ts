@@ -174,7 +174,8 @@ describe('messages selectors', () => {
                 history: historyForRoom,
                 aggregates: {},
                 presentation: structuredClone(historyForRoom)
-            }
+            },
+            settings: { connection: { sessionId: '' } }
         } as unknown as RootState
 
         it('should return empty when no messages exist', () => {
@@ -323,7 +324,8 @@ describe('messages selectors', () => {
                     history: presentation,
                     aggregates: {},
                     presentation: structuredClone(presentation)
-                }
+                },
+                settings: { connection: { sessionId: '' } }
             } as unknown as RootState
             const result = getMessagesByRoom('CHARACTER#TESS')(st)
             expect(result.Messages).toHaveLength(1)
@@ -363,7 +365,8 @@ describe('messages selectors', () => {
                     history: presentation,
                     aggregates: {},
                     presentation: structuredClone(presentation)
-                }
+                },
+                settings: { connection: { sessionId: '' } }
             } as unknown as RootState
             const result = getMessagesByRoom('CHARACTER#TESS')(st)
             expect(result.Messages.every((m) => m.DisplayProtocol !== 'RoomUpdate')).toBe(true)
@@ -379,12 +382,13 @@ describe('messages selectors', () => {
                 wmlContent: '<Room key=(a)><ShortName>A</ShortName></Room>',
                 metaData: { componentUUID: roomId, displayMode: 'header' }
             })
-            const transcript = (MessageId: string, CreatedTime: number) => ({
+            const transcript = (MessageId: string, CreatedTime: number, SessionId: string | null = 'SESSION-A') => ({
                 DisplayProtocol: 'CommandTranscriptMessage',
                 MessageId,
                 Message: [MessageId],
                 CreatedTime,
-                Target: 'CHARACTER#TESS'
+                Target: 'CHARACTER#TESS',
+                ...(SessionId ? { SessionId } : {})
             })
             const world = (MessageId: string, CreatedTime: number) => ({
                 DisplayProtocol: 'WorldMessage',
@@ -393,14 +397,15 @@ describe('messages selectors', () => {
                 CreatedTime,
                 Target: 'CHARACTER#TESS'
             })
-            const stateFor = (rows: any[]) => {
+            const stateFor = (rows: any[], sessionId = 'SESSION-A') => {
                 const presentation = { 'CHARACTER#TESS': rows } as MessageState
                 return {
                     messages: {
                         history: presentation,
                         aggregates: {},
                         presentation: structuredClone(presentation)
-                    }
+                    },
+                    settings: { connection: { sessionId } }
                 } as unknown as RootState
             }
 
@@ -442,6 +447,48 @@ describe('messages selectors', () => {
                 expect(result.Messages.map(({ DisplayProtocol }) => DisplayProtocol)).toEqual(['SpacerMessage', 'CommandTranscriptMessage'])
                 expect(result.Messages[1].MessageId).toEqual('C2')
                 expect(result.Groups.map(({ messageCount }) => messageCount)).toEqual([1, 1])
+            })
+
+            it('should not let a later echo from another session hide this session\'s latest', () => {
+                const st = stateFor([
+                    header('H1', 1, 'ROOM#X'),
+                    transcript('C1', 2),
+                    world('W1', 3),
+                    transcript('C2', 4, 'SESSION-B'),
+                    world('W2', 5)
+                ])
+                const result = getMessagesByRoom('CHARACTER#TESS')(st)
+                expect(result.Messages.map(({ MessageId }) => MessageId)).toEqual(['C1', 'W1', 'W2'])
+            })
+
+            it('should show no echo when every echo is from another session', () => {
+                const st = stateFor([
+                    header('H1', 1, 'ROOM#X'),
+                    transcript('C1', 2, 'SESSION-B'),
+                    world('W1', 3)
+                ])
+                const result = getMessagesByRoom('CHARACTER#TESS')(st)
+                expect(result.Messages.map(({ MessageId }) => MessageId)).toEqual(['W1'])
+            })
+
+            it('should never show an untagged echo', () => {
+                const st = stateFor([
+                    header('H1', 1, 'ROOM#X'),
+                    transcript('C1', 2, null),
+                    world('W1', 3)
+                ])
+                const result = getMessagesByRoom('CHARACTER#TESS')(st)
+                expect(result.Messages.map(({ MessageId }) => MessageId)).toEqual(['W1'])
+            })
+
+            it('should show no echo before the session is initialized', () => {
+                const st = stateFor([
+                    header('H1', 1, 'ROOM#X'),
+                    transcript('C1', 2, null),
+                    world('W1', 3)
+                ], '')
+                const result = getMessagesByRoom('CHARACTER#TESS')(st)
+                expect(result.Messages.map(({ MessageId }) => MessageId)).toEqual(['W1'])
             })
 
             it('should leave every command echo in presentation', () => {

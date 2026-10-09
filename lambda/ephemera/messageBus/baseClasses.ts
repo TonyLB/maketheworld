@@ -86,6 +86,8 @@ export type PublishCommandTranscriptMessage = PublishMessageBase & {
     message: RenderTree;
     messageId?: string;
     createdTime?: number;
+    /** Session that typed the command; published as SessionId on the wire row. */
+    sessionId?: string;
 }
 
 export type PublishCoyoteGameHelpMessage = PublishMessageBase & {

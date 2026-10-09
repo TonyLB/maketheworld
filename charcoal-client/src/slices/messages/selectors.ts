@@ -11,6 +11,7 @@ import { MessageState } from './baseClasses'
 import { Selector } from '../../store'
 import { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import binarySearch from './binarySearch'
+import { getSessionId } from '../settings'
 import { SchemaImportMapping } from '@tonylb/mtw-base/ts/schema/metaData'
 import { AssetUUID, ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
@@ -193,7 +194,8 @@ const combineCurrentHeader = (
 /** Room-grouped timeline for the main transcript. Reads `presentation`, not full `history`. */
 export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<MessageRoomBreakdown> = (CharacterId) => createSelector(
     getPresentation,
-    (allMessages) => {
+    getSessionId,
+    (allMessages, sessionId) => {
         let messages = [] as Message[]
         let initialHeader = undefined as MessageRoomBreakdownHeader | undefined
         let initialPending: Record<string, RoomHeaderMessage> = {}
@@ -252,9 +254,13 @@ export const getMessagesByRoom: (CharacterId: EphemeraCharacterId) => Selector<M
             messages = probeMessages
         }
 
-        // Transcript shows only the most recent command echo; presentation/history keep all of them.
+        // Transcript shows only this session's most recent command echo; presentation/history keep all of them.
         const latestCommandTranscriptId = messages.reduce<string | undefined>(
-            (latest, message) => (message.DisplayProtocol === 'CommandTranscriptMessage' ? message.MessageId : latest),
+            (latest, message) => (
+                message.DisplayProtocol === 'CommandTranscriptMessage' && message.SessionId === sessionId
+                    ? message.MessageId
+                    : latest
+            ),
             undefined
         )
 
