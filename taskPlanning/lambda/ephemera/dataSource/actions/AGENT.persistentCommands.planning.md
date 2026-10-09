@@ -1,6 +1,6 @@
 # Persistent in-progress commands
 
-**Status:** In progress. Slices 1 (the row module, `persistentCommand/`), 2 (delete on `Session Disconnect`) and 3 (the payload) are done 2026-10-09. All decisions (SC-1 to SC-5) are made; Slice 4 (resume) is next.
+**Status:** In progress. Slices 1 (the row module, `persistentCommand/`), 2 (delete on `Session Disconnect`), 3 (the payload) and 4 (resume) are done 2026-10-09. All decisions (SC-1 to SC-5) are made; only the close-out remains.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -218,12 +218,12 @@ Pending work is `[ ]`, completed is `[X]`. Mark each nested line `[X]` as it is 
   - [X] `get` (with read-side expiry) and `put` (sets `deleteAt`).
   - [X] Structural keys for `CustomEdgeChallenge` and `ExitEdgeChallenge`, stable when the same (attempt, identity) pair is rerun.
   - [X] The two-part payoff test from the SC-3 notes.
-- [ ] **Slice 4. Resume from a stored row (after Slice 3).** A resume entry point that takes a row instead of a command. It skips classify, Parse and Plan, and calls `compileAttemptsFromSkeleton` with the frozen root, as [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) does with Plan's output.
-  - [ ] Apply `selectedAttempt` by filtering the frozen attempts before they are compiled.
-  - [ ] Apply `referentAnswers` by filtering each answered `stableRefKey`'s pool just before `enumerateIdentityAssignments`, in `proposeAttemptCandidates` ([`attemptCandidates.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/attemptCandidates.ts)).
-  - [ ] Apply `challengeAnswers` around `expandAndAdjudicateCandidates`: a direct `recordVerdict`, or an input to adjudication, as decided in Slice 3: a direct `recordVerdict` from the stored `{ verdict, source }`, and an `askedAs` entry re-adds its question challenge.
-  - [ ] Stale answers refuse with the reason: a referent answer whose thing is no longer in its pool, or a chosen attempt with no valid identity left. Challenge answers given under a stale selection are dropped.
-  - [ ] Tests from hand-written rows: the selections narrow the candidates to one pair; a stored challenge answer becomes that challenge's verdict on a fresh run in a separate module instance (`jest.isolateModules`), which is the plan's end-to-end payoff; a stale referent answer refuses.
+- [X] **Slice 4. Resume from a stored row (after Slice 3).** A resume entry point that takes a row instead of a command. It skips classify, Parse and Plan, and calls `compileAttemptsFromSkeleton` with the frozen root, as [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) does with Plan's output.
+  - [X] Apply `selectedAttempt` by filtering the frozen attempts before they are compiled.
+  - [X] Apply `referentAnswers` by filtering each answered `stableRefKey`'s pool just before `enumerateIdentityAssignments`, in `proposeAttemptCandidates` ([`attemptCandidates.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/attemptCandidates.ts)).
+  - [X] Apply `challengeAnswers` around `expandAndAdjudicateCandidates`: a direct `recordVerdict`, or an input to adjudication, as decided in Slice 3: a direct `recordVerdict` from the stored `{ verdict, source }`, and an `askedAs` entry re-adds its question challenge.
+  - [X] Stale answers refuse with the reason: a referent answer whose thing is no longer in its pool, or a chosen attempt with no valid identity left. Challenge answers given under a stale selection are dropped.
+  - [X] Tests from hand-written rows: the selections narrow the candidates to one pair; a stored challenge answer becomes that challenge's verdict on a fresh run in a separate module instance (`jest.isolateModules`), which is the plan's end-to-end payoff; a stale referent answer refuses.
 - [ ] **Close-out.**
   - [ ] Move the row shape and lifetime rules to `actions/AGENT.contract.md`, and the paths to `actions/AGENT.implementation.md`.
   - [ ] Update the ladder note's row 11 bullet.
@@ -237,7 +237,7 @@ Pending work is `[ ]`, completed is `[X]`. Mark each nested line `[X]` as it is 
 | 1 | Done 2026-10-09 | `persistentCommand/`: `rowKey.ts`, `lifetime.ts`, `clear.ts` (+ tests) |
 | 2 | Done 2026-10-09 | `ConnectionsSessionDisconnect` rule; `isActionsSessionDisconnectEnvelope`; `receiveEvents` branch calls `clearSession`. Dev-instance check waits for Slice 3 (no rows are written yet) |
 | 3 | Done 2026-10-09 | `persistentCommand/`: `payload.ts`, `rowStore.ts` (+ tests, `payoff.test.ts`). Challenge ids in `expandBoundaryChallenges.ts` are now structural. `parseCommand.test.ts`'s snapshot serializer masks UUIDs embedded in ids |
-| 4 | Not started | After Slice 3 |
+| 4 | Done 2026-10-09 | `persistentCommand/resume.ts` (`resumePersistentCommand`); `compileAttemptsFromSkeleton` takes optional `answers` (`ResumeAnswers`, in `enrich/objectManipulation/resumeAnswers.ts` with `applyChallengeAnswers`, `primaryActionIdOf`, `resumeErrorMessages`). Stale answers (chosen attempt gone, chosen thing out of its pool) return `Error` on every route, via `proposeAttemptCandidates`'s `stale` flag. `selectedAttempt` is the primary (last) action's id, matching the challenge keys. An `askedAs` question is re-added as a pending `WorldKnowledgeChallenge` on the answered challenge's action. A stored challenge answer applies to every surviving candidate carrying that key, which is sound while answers are only stored under a fixed (attempt, identity) pair. Payoff: `resume.payoff.test.ts` |
 
 ## Verification
 
