@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid'
 import internalCache from '../../../../internalCache'
 import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import { registerIngressSlot } from '../../../messageOrchestration'
-import type { MessageOrchestrationSlotSpec } from '../../../messageOrchestration/localApiEvents'
+import type { IngressListenerSpec } from '../../../messageOrchestration/contentIngress'
 import { kickPassiveRenderRequestedForCharacterInRoom } from '../../../perception/kickRoomHeaderBroadcast'
 import { roomHeaderChannelWmlForRoomId } from '../../../perception/roomRenderWmlFromCacheRecord'
 import {
@@ -51,9 +51,6 @@ const buildNarrationCopy = (narration: NarrationSpecification): string => {
             return fillNarrationTemplate(narration)
     }
 }
-
-/** Vestigial listener slot id for a header: direct listeners never route by slot. Retires with the bundle layer. */
-const HEADER_LISTENER_SLOT_ID = 'header'
 
 const newMessageId = (): string => `MESSAGE#${uuidv4()}`
 
@@ -193,9 +190,7 @@ const presentDescribeStep = async (
             })
             return
         }
-        const spec: MessageOrchestrationSlotSpec = {
-            slotId: HEADER_LISTENER_SLOT_ID,
-            expectedPublishType: 'PerceptionMessage',
+        const spec: IngressListenerSpec = {
             componentId: referentId,
             perspectiveKey,
             targets: [characterId],

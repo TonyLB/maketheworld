@@ -1,16 +1,28 @@
 /**
- * Ingress side of the MO-10 Ingress/Delivery seam: content resolution, kickoff single-flight,
- * and replay --- deliberately ignorant of addressed envelopes (targets/messageId) and of
- * messageBus. Bucket-per-(componentId, perspectiveKey, contentStream) (MO-11, Phase 6.5: keyed by
- * content identity, not the finer threadKind), never draining listeners on content arrival ---
- * both a placeholder wave and a later terminal wave broadcast to the same, still-full listener
- * list. See AGENT.md's "Content ingress / delivery seam (MO-10)" and "Ingress key:
- * contentStream/format, not threadKind (MO-11)" sections.
+ * Ingress side of the content-ingress seam: content resolution, kickoff single-flight, and
+ * replay --- deliberately ignorant of addressed envelopes (targets/messageId) and of messageBus.
+ * Bucket-per-(componentId, perspectiveKey, contentStream), keyed by content identity, never
+ * draining listeners on content arrival --- both a placeholder wave and a later terminal wave
+ * broadcast to the same, still-full listener list. See AGENT.md's "Content ingress" section.
  */
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { PublishMessage } from '../../messageBus/baseClasses'
+import type { PublishMessage, PublishTarget } from '../../messageBus/baseClasses'
 import type { EphemeraCacheRenderedContent } from '../renderCache/baseClasses'
-import type { MessageOrchestrationSlotSpec } from './localApiEvents'
+
+/**
+ * What one listener wants delivered, and to whom. `contentStream` is content identity (which
+ * pipeline/cache a listener wants --- exactly the normative `roomChannel` binary) and is part of
+ * the ingress key; `format` is an envelope property of one listener (header vs full projection of
+ * the same shared content), not part of the key.
+ */
+export type IngressListenerSpec = {
+    componentId: string;
+    perspectiveKey: string;
+    targets: PublishTarget[];
+} & (
+    | { contentStream: 'render'; format: 'header' | 'full' }
+    | { contentStream: 'affordances'; format: 'default' }
+)
 
 /**
  * A plain `Omit` over the `PublishMessage` union isn't distributive (it collapses to only the
@@ -21,17 +33,15 @@ import type { MessageOrchestrationSlotSpec } from './localApiEvents'
 type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never
 
 /**
- * Shared content, before any listener's own targets/messageId is baked in (MO-10), and --- per
- * MO-11's content-vs-envelope split --- before format-specific projection is applied (Phase 6.5):
- * 'literal' content is already fully built WML with no cache record behind it, in a shape that
- * does not vary by format (feature/knowledge/object placeholders and errors --- these kinds have
- * only one possible listener format today) and is delivered as-is; 'roomRender' content is the
- * raw cache record, projected into header/full WML per-listener; 'roomPlaceholder' content is an
- * un-formatted placeholder/error body for a room, projected into header- or full-shaped WML
- * per-listener the same way (Phase 7: once roomDescription (`format:'full'`) shares a bucket with
- * characterMove/sessionOrientationRender (`format:'header'`), the room's Generating/Error
- * placeholder needs the same per-listener projection its terminal content already gets). All
- * projection happens in deliverListenerContent (index.ts).
+ * Shared content, before any listener's own targets/messageId is baked in, and before
+ * format-specific projection is applied: 'literal' content is already fully built WML with no
+ * cache record behind it, in a shape that does not vary by format (feature/knowledge/object
+ * placeholders and errors --- these kinds have only one possible listener format today) and is
+ * delivered as-is; 'roomRender' content is the raw cache record, projected into header/full WML
+ * per listener; 'roomPlaceholder' content is an un-formatted placeholder/error body for a room,
+ * projected the same way (roomDescription (`format:'full'`) shares a bucket with
+ * characterMove/sessionOrientationRender (`format:'header'`)). All projection happens in
+ * buildListenerMessage (index.ts).
  */
 export type RenderContent =
     | { kind: 'literal'; message: DistributiveOmit<PublishMessage, 'targets' | 'messageId'> }
@@ -39,35 +49,19 @@ export type RenderContent =
     | { kind: 'roomPlaceholder'; componentId: EphemeraRoomId; bodyText: string; status?: 'generating' }
 
 /**
- * Delivery state of a listener that owns its time and MessageId: its first wave is published at
- * `createdTime`, and `lastPublished` lets every later wave be stamped strictly after it.
+ * A listener's delivery address: it owns its transcript position. Its first wave is published at
+ * `createdTime`, under `messageId`, and `lastPublished` lets every later wave be stamped strictly
+ * after it.
  */
-export type DirectDelivery = {
+export type IngressAddress = {
     createdTime: number;
     messageId: string;
     lastPublished?: number;
 }
 
-/**
- * A listener's delivery address: either a slot in a declared bundle (the bundle owns time and
- * MessageId), or its own pre-assigned time and MessageId (the listener publishes directly).
- */
-export type IngressAddress = { bundleId: string } | DirectDelivery
-
 export type IngressListener = {
-    spec: MessageOrchestrationSlotSpec;
-    bundleId?: string;
-    direct?: DirectDelivery;
-}
-
-const listenerFromAddress = (address: string | IngressAddress, spec: MessageOrchestrationSlotSpec): IngressListener => {
-    if (typeof address === 'string') {
-        return { bundleId: address, spec }
-    }
-    if ('bundleId' in address) {
-        return { bundleId: address.bundleId, spec }
-    }
-    return { spec, direct: address }
+    spec: IngressListenerSpec;
+    address: IngressAddress;
 }
 
 export type RegisterSlotResult =
@@ -93,16 +87,16 @@ export class ContentIngressIndex {
      * kickoff. Every later registration against the same still-live stream returns
      * { shouldKickoff: false, replay }, where replay is every event recorded so far, for the
      * caller to deliver to this one new listener without re-triggering resolution. Listeners are
-     * never removed by this method or by reportContent --- draining is a Delivery-side concern
-     * (see deliveredSlotIndex.ts), not an Ingress one.
+     * never removed, by this method or by reportContent: a listener lives until the invocation's
+     * `clear()`.
      */
-    registerSlot(address: string | IngressAddress, spec: MessageOrchestrationSlotSpec): RegisterSlotResult {
-        if (!spec.componentId || !spec.perspectiveKey || !spec.contentStream) {
+    registerSlot(address: IngressAddress, spec: IngressListenerSpec): RegisterSlotResult {
+        if (!spec.componentId || !spec.perspectiveKey) {
             return { shouldKickoff: false, replay: [] }
         }
         const key = ContentIngressIndex.makeKey(spec.componentId, spec.perspectiveKey, spec.contentStream)
         const bucket = this.buckets[key]
-        const listener = listenerFromAddress(address, spec)
+        const listener: IngressListener = { spec, address }
         if (!bucket) {
             this.buckets[key] = { live: true, events: [], listeners: [listener] }
             return { shouldKickoff: true }

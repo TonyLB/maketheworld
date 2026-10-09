@@ -50,7 +50,6 @@ jest.mock('../publishMessage', () => ({
     default: jest.fn().mockResolvedValue(undefined),
 }))
 
-import { v4 as uuidv4 } from 'uuid'
 import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
@@ -67,8 +66,7 @@ import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { testLudicGraph } from './positions/ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from './positions/ludicGraph'
 import { orchestrateRoomDescriptionStreams } from './perception/orchestrate'
-import { sendMessageBundleDeclared } from './messageOrchestration/subscribedEvents'
-import { registerIngressSlot } from './messageOrchestration'
+import { newDirectIngressAddress, registerIngressSlot } from './messageOrchestration'
 import type { EphemeraCacheDynamoItem } from './renderCache/baseClasses'
 import { EPHEMERA_CACHE_PROVENANCE_AUTHORED } from './renderCache/baseClasses'
 
@@ -82,7 +80,6 @@ const CHARACTER_ID = 'CHARACTER#Tester' as EphemeraCharacterId
 const VIEWER = 'CHARACTER#viewer' as const
 const PERSPECTIVE_KEY = 'PERSPECTIVE#v1#abc123'
 const CACHE_ID = 'CACHE#fixture-cache-1' as const
-const SLOT_ID = 'box-look-slot'
 
 const boxTerminalCacheRecord = (): EphemeraCacheDynamoItem => ({
     EphemeraId: BOX_ID,
@@ -99,14 +96,7 @@ function spyPublish() {
 }
 
 async function registerBoxLookSlot(): Promise<void> {
-    const bundleId = uuidv4()
-    sendMessageBundleDeclared(messageBus, bundleId, {
-        bundleId,
-        slots: [{ slotId: SLOT_ID, expectedPublishType: 'PerceptionMessage' }],
-    })
-    await registerIngressSlot(messageBus, bundleId, {
-        slotId: SLOT_ID,
-        expectedPublishType: 'PerceptionMessage',
+    await registerIngressSlot(messageBus, newDirectIngressAddress(), {
         componentId: BOX_ID,
         perspectiveKey: PERSPECTIVE_KEY,
         targets: [VIEWER],

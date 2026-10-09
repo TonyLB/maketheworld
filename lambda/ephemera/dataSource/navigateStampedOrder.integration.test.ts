@@ -1,8 +1,7 @@
 /**
- * Payoff test for the compiler-stamped presentation order (messageBundleRetirement Slice 2): a
- * character navigates into a room whose render is **not cached**, and the PublishMessages the
- * server emits --- in emitted order --- carry the transcript order themselves. No bundle is
- * declared anywhere.
+ * Payoff test for the compiler-stamped presentation order: a character navigates into a room
+ * whose render is **not cached**, and the PublishMessages the server emits --- in emitted order ---
+ * carry the transcript order themselves.
  *
  * Real, unmocked: `compilePositionKernelOp` (leave, header, arrive order), `presentStepSequence` (stamping), and `messageOrchestration`'s content ingress (the header
  * listener, its placeholder wave and its terminal wave). Stubbed: the passive-render kickoff, which

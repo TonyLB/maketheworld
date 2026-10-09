@@ -33,7 +33,6 @@ jest.mock('@tonylb/mtw-base/ts/coyoteGame', () => ({
     coyoteGameEnabled: true,
 }))
 
-import { v4 as uuidv4 } from 'uuid'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardCharacter from '@tonylb/mtw-wml/ts/standardize/components/character'
@@ -41,8 +40,7 @@ import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { confirmGuestCharacter } from '../guestCharacter'
 import { orchestrateRoomDescriptionStreams } from './perception/orchestrate'
-import { sendMessageBundleDeclared } from './messageOrchestration/subscribedEvents'
-import { registerIngressSlot } from './messageOrchestration'
+import { newDirectIngressAddress, registerIngressSlot } from './messageOrchestration'
 import { EPHEMERA_CACHE_PROVENANCE_AUTHORED, type EphemeraCacheDynamoItem } from './renderCache/baseClasses'
 import { queryAllRenderCacheDataCategoriesForComponent } from './renderCache/queryAllRenderCacheDataCategoriesForComponent'
 
@@ -59,21 +57,13 @@ const CHARACTER_ID = `CHARACTER#${GUEST_ID}` as const
 const VIEWER = 'CHARACTER#viewer' as const
 const PERSPECTIVE_KEY = 'PERSPECTIVE#v1#abc123'
 const CACHE_ID = 'CACHE#fixture-cache-1' as const
-const SLOT_ID = 'guest-look-slot'
 
 function spyPublish() {
     return jest.spyOn(messageBus, 'publish')
 }
 
 async function registerLookSlot(): Promise<void> {
-    const bundleId = uuidv4()
-    sendMessageBundleDeclared(messageBus, bundleId, {
-        bundleId,
-        slots: [{ slotId: SLOT_ID, expectedPublishType: 'PerceptionMessage' }],
-    })
-    await registerIngressSlot(messageBus, bundleId, {
-        slotId: SLOT_ID,
-        expectedPublishType: 'PerceptionMessage',
+    await registerIngressSlot(messageBus, newDirectIngressAddress(), {
         componentId: CHARACTER_ID,
         perspectiveKey: PERSPECTIVE_KEY,
         targets: [VIEWER],

@@ -21,9 +21,10 @@ The Ephemera lambda needs a simple abstraction with which to deliver messages to
 
 Ordering messages relative to one another --- e.g. "Tess leaves" delivered fractionally before the room
 perception message for the place Tess is arriving to, and "Tess arrives" fractionally after it --- belongs to
-[`dataSource/messageOrchestration`](../dataSource/messageOrchestration/AGENT.md), which declares a bundle's
-slots up front in compiled order and assigns each flushed message's `createdTime` itself (sequential in
-declared order, 1ms apart).
+the presentation compiler, which stamps each line of a compiled plan at `beatAnchorTime + index`
+([`positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md#narration-and-presentation)); a
+render that resolves late publishes at its listener's stamped time through
+[`dataSource/messageOrchestration`](../dataSource/messageOrchestration/AGENT.md).
 
 This package assigns `CreatedTime` only for payloads that carry none of their own: `baseTime + index` in
 payload-array order. It has no notion of message groups, relative offsets, or deferred batching.

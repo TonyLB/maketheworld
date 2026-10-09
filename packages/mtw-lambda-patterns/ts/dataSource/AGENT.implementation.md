@@ -206,28 +206,13 @@ Two concerns are often conflated in perception-heavy flows. Keep them separate:
 
 Cross-links: [`AGENT.narrativeTranscript.concepts.md`](../../../../lambda/ephemera/AGENT.narrativeTranscript.concepts.md) (fictional **`CreatedTime`**, delivery looseness vs correlation), [`dataSource/perception/AGENT.md`](../../../../lambda/ephemera/dataSource/perception/AGENT.md#render-targeting-registry-perceptionthreads).
 
-#### Reference consumer: message orchestration
+#### Consumers: none today
 
-**DataSource:** [`mtw.ephemera.messageOrchestration`](../../../../lambda/ephemera/dataSource/messageOrchestration/AGENT.md) --- cluster spec [`messageOrchestrationFanIn.ts`](../../../../lambda/ephemera/dataSource/messageOrchestration/messageOrchestrationFanIn.ts), where a bundle's declared slots rendezvous with content reported by independent producers. It is the one consumer left in ephemera.
+The framework currently has **no consumer**. Its last one, `mtw.ephemera.messageOrchestration`'s bundle cluster (a bundle's declared slots rendezvousing with content reported by independent producers), was deleted once the presentation compiler began stamping transcript order itself; what remains of that module is content ingress, which needs no cluster ([`dataSource/messageOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/messageOrchestration/AGENT.md)).
 
-**A cautionary note on when this pattern is the right one.** Perception's *membership* and then *relational* presentation fan-ins each used to be this section's reference consumer, and both have since been deleted --- not because the framework failed, but because the fan-in shape was wrong for that problem. Each correlated an intent leg with a fact leg to reconstruct *what kind of event had happened*, information the producer already had; and each published against a live roster at flush, by which time the mover had left the room the message was about. Both are now handled at the producer: character moves compile narration into the same step sequence as the mutation, and an attempt's lines are narration units on the attempt itself, delivered by positions to rosters captured mid-commit.
+**A cautionary note on when this pattern is the right one.** Perception's *membership* and then *relational* presentation fan-ins were consumers too, and both were deleted --- not because the framework failed, but because the fan-in shape was wrong for that problem. Each correlated an intent leg with a fact leg to reconstruct *what kind of event had happened*, information the producer already had; and each published against a live roster at flush, by which time the mover had left the room the message was about. Both are now handled at the producer: character moves compile narration into the same step sequence as the mutation, and an attempt's lines are narration units on the attempt itself, delivered by positions to rosters captured mid-commit. The bundle cluster went the same way: it held lines until all resolved in order to assign their times, which the compiler already knew.
 
 **Use a fan-in cluster when two genuinely independent producers must rendezvous.** Do not use one to re-derive, downstream, something a single upstream producer already knew --- correlating an intent with the fact it caused is a strong signal that the two belong in one place instead.
-
-**Correlation:** **`clusterIdentity()`** is fact-authoritative (`characterId` + canonical sorted **`froms`** + **`to`**). Intent **`fromRoomId`** is non-authoritative; correlate when **`intent.fromRoomId in fact.froms`**. Plural **`froms`** may yield multi-leave emission (exit-aware only for the entry matching correlated intent).
-
-**Render-blind emission (intentional):** membership fan-in correlates only intent + fact. It publishes leave/arrive **without** waiting on mover header render success, failure, or deferral. The mover's arrival-room header is a separate concern, registered against `mtw.ephemera.messageOrchestration`'s ingress registry (not `PerceptionThreads` --- see [`dataSource/messageOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/messageOrchestration/AGENT.md)), decoupled from membership emission.
-
-**Fact producer contract:** [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#character-moved-fact) --- descriptive graph-diff emit at persistence apply; positions does not own emission copy policy.
-
-**Covers:** navigate, home, connect, and disconnect all emit through this fan-in; connect/disconnect carry no intent-side `exitName` and fall back to generic copy. Legacy home via imperative `MoveCharacter` does not exist --- `actions` streams `Character Home`, positions executes it.
-
-**Explicit non-goals:**
-
-- **No render-outcome legs on this fan-in.** Leave/arrive emission does not vary by header render success, failure, or deferral (render-blind emission, above). Whether it ever should is an open product question, not a scheduled change.
-- **No `requestId` on the arrival-room render kick.** `messageOrchestration`'s ingress registry correlates on `(componentId, perspectiveKey, contentStream)`, which is sufficient today.
-- **No positions-stream `Object Moved` affordance consumer here.** Affordance refresh for object moves is a separate concern from membership emission; see [`positions/AGENT.contract.md`](../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md)'s post-move presentation split.
-- **No admin teleport intent leg.** A teleport with no membership fan-in intent falls back to fact-only, generic copy.
 
 ### **Header/Content Envelope Model**
 

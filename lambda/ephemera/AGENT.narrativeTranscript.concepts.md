@@ -23,7 +23,7 @@ Player-facing messages use **`CreatedTime`** as **where the line belongs in the 
 - The server assigns **`CreatedTime`** at publish time (see [`publishMessage/index.ts`](publishMessage/index.ts)).
 - Dynamo **`message_delta`** keys rows as **`DeltaId = CreatedTime::MessageId`**.
 - The client sorts and sections the transcript by **`(CreatedTime, MessageId)`** ([`charcoal-client/src/slices/messages/index.ts`](../../charcoal-client/src/slices/messages/index.ts)).
-- **`messageOrchestration`'s bundle** ([`dataSource/messageOrchestration/messageOrchestrationFanIn.ts`](dataSource/messageOrchestration/messageOrchestrationFanIn.ts)) expresses **relative** positions within a beat: a bundle declares its slots up front in compiled order, and at flush assigns each resolved slot's **`CreatedTime`** itself --- sequential in declared order, 1ms apart --- **overwriting** whatever value the slot's message arrived with.
+- **Relative positions within a beat are assigned when the beat is compiled**, not when its lines resolve: each presentation step in a compiled plan is stamped from the beat's anchor (the commit's instant) plus its index, 1 ms apart, so a line whose content resolves late (a header awaiting a render) still lands at its compiled place.
 
 **Implication:** Backend latency, handler order, and websocket packet order are **implementation details**. What matters for display is that each row carries the **intended transcript position**.
 
@@ -55,9 +55,9 @@ These are **not** required for a correct transcript if **`CreatedTime`** (and **
 | --- | --- |
 | **Websocket packet order** | Client and server both sort by **`CreatedTime`** before display. |
 | **Same lambda invocation** | Rows may publish from different handlers or invocations if transcript times are assigned coherently. |
-| **Single batched publish** | `messageOrchestration`'s bundle flush ([`dataSource/messageOrchestration/messageOrchestrationFanIn.ts`](dataSource/messageOrchestration/messageOrchestrationFanIn.ts)) delivers a bundle's slots as one wire push once all are resolved --- a convenience of that mechanism, not a client contract. There is no general deferred-batching path: `publishMessage` delivers immediately and correctness rests on `CreatedTime`. |
+| **Batching** | Every line is its own publish and its own wire push; nothing waits for a beat's other lines to resolve. Correctness rests on `CreatedTime`. |
 | **Fan-in leg order** | Intent and fact may arrive in any order; completion is "all required legs present" ([`packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md`](../../packages/mtw-lambda-patterns/ts/dataSource/AGENT.implementation.md#fan-in-cluster-pattern-multi-leg-ingress-correlation)). |
-| **Emit cluster as one tuple** | Leave, header, and arrive may be **separate** `PublishMessage` publishes; ordering comes from the `messageOrchestration` bundle's declared-order `CreatedTime` assignment (or other explicit times), not a shared grouping id. |
+| **Emit cluster as one tuple** | Leave, header, and arrive may be **separate** `PublishMessage` publishes; ordering comes from compiled `CreatedTime` assignment (or other explicit times), not a shared grouping id. |
 
 **Example:** Room header at transcript time **X**, leave at **X - 1 ms**, arrive at **X + 1 ms** --- even if leave arrives on the wire a second after the header, the user sees leave, then header context, then arrive.
 
@@ -79,9 +79,9 @@ These are **not** required for a correct transcript if **`CreatedTime`** (and **
 
 ## Relation to PerceptionThreads and fan-in
 
-Directed perception (a specific actor's command producing perception aimed at them --- navigate's arrival header, an explicit `look`) registers an ingress slot with **`messageOrchestration`** so async render can correlate back to a bundle ([`presentCharacterMove.ts`](dataSource/positions/navigate/presentCharacterMove.ts), [`dataSource/messageOrchestration/AGENT.md`](dataSource/messageOrchestration/AGENT.md)). Reactive broadcast (room content changed, roster changed --- no actor) stays on **`PerceptionThreads`**. Either way that registration is **render targeting bookkeeping**, not a transcript law. Leave/arrive world lines publish from **membership fan-in** with explicit **`createdTime`** (Model A **`beatAnchorTime`**) --- independent of header render lifecycle.
+Directed perception (a specific actor's command producing perception aimed at them --- navigate's arrival header, an explicit `look`) registers a **content-ingress listener** that already carries its transcript position, so an async render can be delivered to it at that position ([`dataSource/messageOrchestration/AGENT.md`](dataSource/messageOrchestration/AGENT.md)). Reactive broadcast (room content changed, roster changed --- no actor) stays on **`PerceptionThreads`**. Either way that registration is **render targeting bookkeeping**, not a transcript law. Leave/arrive world lines publish at their compiled times, independent of header render lifecycle.
 
-**Target fan-in model:** clusters correlate ingress legs (intent + fact, kick + terminal, etc.), then emit **independent** `PublishMessage` rows with coherent **`CreatedTime`** assignments --- `messageOrchestration`'s bundle owns that assignment for directed presentation (`baseTime + offset` in declared order; see [`dataSource/messageOrchestration/AGENT.md`](dataSource/messageOrchestration/AGENT.md)); other producers set explicit `createdTime`. Cluster completion should be **order-independent**; output should not re-require "emit `[Leave, Header, Arrive]` in one synchronous block."
+**Target fan-in model:** clusters correlate ingress legs (intent + fact, kick + terminal, etc.), then emit **independent** `PublishMessage` rows with coherent **`CreatedTime`** assignments --- for directed presentation the compiler assigns them (beat anchor plus step index); other producers set explicit `createdTime`. Cluster completion should be **order-independent**; output should not re-require "emit `[Leave, Header, Arrive]` in one synchronous block."
 
 **Anti-patterns to avoid when designing fan-in specs:**
 
@@ -108,7 +108,7 @@ Channels are **semantically independent** on the wire; the client merges them fo
 | --- | --- | --- |
 | **`OrchestrateMessages` offsets** | [`publishMessage/index.ts`](publishMessage/index.ts) | Relative beat ordering within an invocation |
 | **Explicit `createdTime` on bus payload** | Perception orchestration, some render threads | Generating/terminal overwrite timing |
-| **`messageOrchestration` bundle sequential assignment** | [`dataSource/messageOrchestration/messageOrchestrationFanIn.ts`](dataSource/messageOrchestration/messageOrchestrationFanIn.ts) | `MessageOrchestrationFanInCluster.handler` assigns each flushed message's `CreatedTime` itself at flush time, sequential in declared order, 1ms apart --- overwriting whatever `CreatedTime` a slot's message arrived with |
+| **Compiled presentation order** | [`dataSource/positions/AGENT.contract.md`](dataSource/positions/AGENT.contract.md#narration-and-presentation) | Each presentation step of a compiled plan is stamped beat anchor plus index, 1 ms apart; a late-resolving render revises its line in place under the same `MessageId` |
 | **Character-voice room broadcast** | [`dataSource/narration/handleCharacterSpoke.ts`](dataSource/narration/handleCharacterSpoke.ts) | Terminal **`SayMessage`** / **`NarrateMessage`** / **`OOCMessage`** (no fan-in) |
 | **Client `presentation` overload** | [`charcoal-client/src/slices/messages/index.ts`](../../charcoal-client/src/slices/messages/index.ts) | Stable position for revised bodies |
 

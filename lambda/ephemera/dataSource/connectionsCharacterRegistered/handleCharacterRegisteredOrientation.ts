@@ -26,8 +26,6 @@ import { orchestrateRenderRequest } from '../renderOrchestration/orchestrationHa
 import type { RenderOrchestrationPublishedPayload } from '../renderOrchestration/publishedEvents'
 import { newDirectIngressAddress, registerIngressSlot } from '../messageOrchestration'
 
-const SESSION_ORIENTATION_RENDER_SLOT_ID = 'sessionOrientationRender'
-
 export type SessionOrientationChannel = 'render' | 'affordances'
 
 const LOG_PREFIX = '[mtw.ephemera.connectionsCharacterRegistered] sessionOrientation'
@@ -117,8 +115,6 @@ export async function handleCharacterRegisteredOrientation(
             messageBus,
             newDirectIngressAddress(),
             {
-                slotId: SESSION_ORIENTATION_RENDER_SLOT_ID,
-                expectedPublishType: 'PerceptionMessage',
                 componentId: roomId,
                 perspectiveKey,
                 targets,

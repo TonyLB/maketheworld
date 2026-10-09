@@ -19,8 +19,7 @@ import { prepareFeatureKnowledgeRenderForCharacter } from './prepareFeatureKnowl
 import { prepareObjectRenderForCharacter } from './prepareObjectRenderForCharacter'
 import { prepareCharacterRenderForCharacter } from './prepareCharacterRenderForCharacter'
 import { newDirectIngressAddress, registerIngressSlot } from '../messageOrchestration'
-import type { MessageOrchestrationSlotSpec } from '../messageOrchestration/localApiEvents'
-import { LOOK_DESCRIBE_SLOT_ID } from '../actions/lookBundleSlotIds'
+import type { IngressListenerSpec } from '../messageOrchestration/contentIngress'
 
 export const prepareLookOrchestrationPerspective = async (
     characterId: EphemeraCharacterId,
@@ -41,17 +40,13 @@ export const prepareLookOrchestrationPerspective = async (
 }
 
 /**
- * Registers a one-slot ingress listener that owns its own time and MessageId (Phase 7).
- * Minted locally here, not threaded through the `Look Command Requested` payload: every event this
- * handler processes maps 1:1 to its own invocation with no sibling slots to correlate with (unlike
- * navigate's leave/header/arrive, which are genuinely resolved by separate components) --- see the
- * planning doc's note on why the earlier declare-upstream-and-thread-through-the-payload shape was
- * simplified back out.
+ * Registers an ingress listener that owns its own time and MessageId: the stamp a plan forwarded on
+ * `Look Command Requested` when the look is one of its steps, otherwise one minted here.
  */
 async function registerLookSlot(
     bus: MessageBus,
     payload: LookCommandRequestedPublishedPayload,
-    spec: Omit<MessageOrchestrationSlotSpec, 'slotId' | 'expectedPublishType'>,
+    spec: IngressListenerSpec,
     kickoff: () => Promise<void>
 ): Promise<void> {
     await registerIngressSlot(
@@ -59,7 +54,7 @@ async function registerLookSlot(
         payload.createdTime !== undefined && payload.messageId !== undefined
             ? { createdTime: payload.createdTime, messageId: payload.messageId }
             : newDirectIngressAddress(),
-        { ...spec, slotId: LOOK_DESCRIBE_SLOT_ID, expectedPublishType: 'PerceptionMessage' } as MessageOrchestrationSlotSpec,
+        spec,
         kickoff
     )
 }

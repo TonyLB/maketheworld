@@ -4,12 +4,11 @@ import reducer, { receiveMessages } from './index'
 vi.mock('../../cacheDB')
 
 /**
- * Client half of the compiler-stamped presentation order payoff (messageBundleRetirement
- * Slice 2). The rows below are the wire-shaped copy of what
+ * Client half of the compiler-stamped presentation order payoff. The rows below are the wire-shaped copy of what
  * `lambda/ephemera/dataSource/navigateStampedOrder.integration.test.ts` captures for a navigate
  * into an uncached room, **in emitted order**: leave, header placeholder, arrive, header terminal
  * (a revision of the placeholder's MessageId, strictly later), then a trailing affordance header
- * (the one message that used to sort before the bundle's lines and now sorts after them). No
+ * (published after the plan's lines; the slice groups it without giving it a transcript position). No
  * cross-package harness exists, so keep this fixture in step with that test by hand.
  */
 const MOVER = 'CHARACTER#mover'

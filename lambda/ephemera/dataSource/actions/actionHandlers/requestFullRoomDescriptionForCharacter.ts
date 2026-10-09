@@ -9,8 +9,6 @@ import { sendRenderRequested } from '../../renderOrchestration/subscribedEvents'
 import type { RenderRequestedCommand } from '../../renderOrchestration/localApiEvents'
 import { newDirectIngressAddress, registerIngressSlot } from '../../messageOrchestration'
 
-const ROOM_DESCRIPTION_SLOT_ID = 'roomDescription'
-
 export type PreparedFullRoomDescriptionRender = {
     roomId: EphemeraRoomId;
     characterId: EphemeraCharacterId;
@@ -68,8 +66,6 @@ export async function requestFullRoomDescriptionForCharacter(
         bus,
         newDirectIngressAddress(),
         {
-            slotId: ROOM_DESCRIPTION_SLOT_ID,
-            expectedPublishType: 'PerceptionMessage',
             componentId: prepared.roomId,
             perspectiveKey: prepared.perspectiveKey,
             targets: [characterId],
