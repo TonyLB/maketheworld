@@ -1,6 +1,6 @@
 # Persistent in-progress commands
 
-**Status:** Drafted 2026-10-09, not started. All decisions (SC-1 to SC-5) are made, so Slices 1 to 3 can start; Slice 4 follows Slice 3. Slice 3 settles the challenge key's form, the answer's shape and how a decision to ask survives a rerun when it starts ([SC-3 verdict](#sc-3-verdict-2026-10-09)).
+**Status:** In progress. Slice 1 (the row module, `persistentCommand/`) is done 2026-10-09. All decisions (SC-1 to SC-5) are made, so Slices 2 and 3 can start; Slice 4 follows Slice 3. Slice 3 settles the challenge key's form, the answer's shape and how a decision to ask survives a rerun when it starts ([SC-3 verdict](#sc-3-verdict-2026-10-09)).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -52,8 +52,8 @@ in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| SC-1 | **Row key.** `EphemeraId: CHARACTER#<characterId>`, `DataCategory: SESSION#<sessionId>`, with one singular `currentAction` per row. A new command either answers the pending one or replaces it, so stale questions never pile up. Keying by session matches the command-echo behaviour (ISS8242): window B can't answer window A's question, and a reload drops the pending command. Lookups by session use the existing `DataCategoryIndex`. No current reader would pick these rows up: the diagnostics sweeps query that index on fixed values such as `Meta::Room`, and the `Meta::Character` reads name their keys exactly. | 1 | Decided 2026-10-09 |
-| SC-2 | **Lifetime.** Each write sets `deleteAt`, the table's existing TTL attribute. Reads treat a row past its `deleteAt` as absent, because DynamoDB can take up to about 48 hours to remove expired rows. A session's rows are deleted when ephemera receives `Session Disconnect`. Ephemera's event rule in `template.yaml` does not list that event today, so this plan adds it. The TTL length is a single named constant; start at one hour and tune it when the exchange plan uses it. | 1, 2 | Decided 2026-10-09 |
+| SC-1 | **Row key.** `EphemeraId: CHARACTER#<characterId>`, `DataCategory: SESSION#<sessionId>`, with one singular `currentAction` per row. A new command either answers the pending one or replaces it, so stale questions never pile up. Keying by session matches the command-echo behaviour (ISS8242): window B can't answer window A's question, and a reload drops the pending command. Lookups by session use the existing `DataCategoryIndex`. No current reader would pick these rows up: the diagnostics sweeps query that index on fixed values such as `Meta::Room`, and the `Meta::Character` reads name their keys exactly. | 1 | Decided 2026-10-09; key helpers shipped in Slice 1 |
+| SC-2 | **Lifetime.** Each write sets `deleteAt`, the table's existing TTL attribute. Reads treat a row past its `deleteAt` as absent, because DynamoDB can take up to about 48 hours to remove expired rows. A session's rows are deleted when ephemera receives `Session Disconnect`. Ephemera's event rule in `template.yaml` does not list that event today, so this plan adds it. The TTL length is a single named constant; start at one hour and tune it when the exchange plan uses it. | 1, 2 | Decided 2026-10-09; TTL constant, `deleteAt` and expiry helpers shipped in Slice 1 (disconnect delete is Slice 2) |
 | SC-3 | **What we store.** Plain, persistable data, never pipeline state (which would only make sense to one pipeline instance). The row holds four fields: the frozen root (SC-5), `selectedAttempt` (an attempt's action id), `referentAnswers` (`stableRefKey` to thing id) and `challengeAnswers` (structural challenge key to answer). Challenges are only asked once one attempt and one identity are fixed, so a challenge key need only be stable when that same pair is rerun against a fresh world, and challenge answers are dropped when the selection they were given under goes stale. `challengeAnswers` is built now, not deferred. See [SC-3 notes](#sc-3-notes-what-we-store) and [the verdict](#sc-3-verdict-2026-10-09). | 3 | Decided 2026-10-09 |
 | SC-4 | **Is referent ambiguity a challenge?** Decided in two halves. **(1) No fold for keys or application:** referent answers stay keyed by `stableRefKey` and narrow Enumerate's pools, while challenge answers stay keyed by graph structure and become verdicts after Expansion (this follows from SC-5). **(2) One place to wait:** the persistent command row is *the* single place where a command waiting on the player, or on another process, is kept. Referent questions and pending challenges both live there. Moved here from the ladder note's "Challenge or candidate pool?" bullet. See [SC-4 notes](#sc-4-notes-is-referent-ambiguity-a-challenge) and [the verdict](#sc-4-verdict-2026-10-09). | 3 (feeds SC-3 (c), (d)) | Decided 2026-10-09 |
 | SC-5 | **Freeze the ungrounded plan as the replay root.** Store Plan's output (the stamped skeleton, its ungrounded `CommandAttempt[]` and the classify confidence) once, and on every rerun resume from `compileAttemptsFromSkeleton` with world inputs read fresh. Traced 2026-10-09: on the object-manipulation route, everything up to and including Plan reads only the command text, so world changes and later player actions can't invalidate it. Two LLM calls do sit in that stretch, so it isn't deterministic, which is why it should be frozen rather than rerun. This answers SC-3 (b). See [SC-5 notes](#sc-5-notes-freezing-the-ungrounded-plan), and [what it implies for SC-4 and SC-3](#what-sc-5-implies-for-sc-4-and-sc-3). | 3 (answers SC-3 (b)) | Decided 2026-10-09 |
@@ -203,14 +203,14 @@ Pending work is `[ ]`, completed is `[X]`. Mark each nested line `[X]` as it is 
   - [X] SC-3 decided 2026-10-09: the four-field row; challenge keys only need stability within a fixed pair.
   - [X] SC-4 decided 2026-10-09: no fold for keys or application; the row is the one place a command waits.
   - [X] SC-5 decided 2026-10-09: freeze Plan's output as the replay root. Record each verdict in its row and state the payload type in prose. A long comparison of options goes in a linked temporary analysis document, not in this plan.
-- [ ] **Slice 1. The row module.** Put it in a new folder under `lambda/ephemera/dataSource/actions/`, because the actions data source owns the command pipeline. (The folder name is the implementer's choice.)
-  - [ ] Key helpers for SC-1's `EphemeraId` and `DataCategory`.
-  - [ ] `clear(characterId, sessionId)` and `clearSession(sessionId)`. `clearSession` queries `DataCategoryIndex` on `SESSION#<sessionId>` with `EphemeraId` beginning `CHARACTER#`, and deletes every row it finds. It doesn't take the `characterIds` list from `Session Disconnect`, because that list (`characterIds`, optional in `packages/mtw-interfaces/ts/eventBridge/connections/index.ts`) comes from the connections table's current adjacency, and a character the session already left could still have a row.
-  - [ ] The TTL constant, and a `deleteAt` helper.
-  - [ ] Tests, with `ephemeraDB` mocked as the `thinking` tests do.
+- [X] **Slice 1. The row module.** Put it in a new folder under `lambda/ephemera/dataSource/actions/`, because the actions data source owns the command pipeline. (The folder name is the implementer's choice.)
+  - [X] Key helpers for SC-1's `EphemeraId` and `DataCategory`.
+  - [X] `clear(characterId, sessionId)` and `clearSession(sessionId)`. `clearSession` queries `DataCategoryIndex` on `SESSION#<sessionId>` with `EphemeraId` beginning `CHARACTER#`, and deletes every row it finds. It doesn't take the `characterIds` list from `Session Disconnect`, because that list (`characterIds`, optional in `packages/mtw-interfaces/ts/eventBridge/connections/index.ts`) comes from the connections table's current adjacency, and a character the session already left could still have a row.
+  - [X] The TTL constant, and a `deleteAt` helper (plus `isPersistentCommandExpired`, the read-side expiry predicate Slice 3's `get` will call).
+  - [X] Tests, with `ephemeraDB` mocked as the `thinking` tests do.
 - [ ] **Slice 2. Delete on `Session Disconnect`.**
   - [ ] Add `Session Disconnect` (source `mtw.connections`) to ephemera's event rule in `template.yaml`, next to `Character Registered`.
-  - [ ] Add a subscribed-event guard and a branch in the actions data source that calls `clearSession`, following the positions pattern.
+  - [ ] Add a subscribed-event guard and a branch in the actions data source that calls `clearSession` (from `persistentCommand/`), following the positions pattern.
   - [ ] Tests for the guard and the handler.
 - [ ] **Slice 3. The payload.**
   - [ ] Settle the three items the [SC-3 verdict](#sc-3-verdict-2026-10-09) leaves to this slice: the challenge key's form, the answer's shape, and how a decision to ask survives a rerun.
@@ -234,7 +234,7 @@ Pending work is `[ ]`, completed is `[X]`. Mark each nested line `[X]` as it is 
 | Slice | State | Notes |
 | --- | --- | --- |
 | 0 | Done 2026-10-09 | SC-3, SC-4, SC-5 decided |
-| 1 | Not started | |
+| 1 | Done 2026-10-09 | `persistentCommand/`: `rowKey.ts`, `lifetime.ts`, `clear.ts` (+ tests) |
 | 2 | Not started | |
 | 3 | Not started | Settles challenge-key form and answer shape first |
 | 4 | Not started | After Slice 3 |
