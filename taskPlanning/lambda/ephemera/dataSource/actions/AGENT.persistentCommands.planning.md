@@ -1,6 +1,6 @@
 # Persistent in-progress commands
 
-**Status:** Drafted 2026-10-09, not started. All decisions (SC-1 to SC-5) are made, so Slices 1 to 3 can start; Slice 4 follows Slice 3. Slice 3 settles the challenge key's form and the answer's shape when it starts ([SC-3 verdict](#sc-3-verdict-2026-10-09)).
+**Status:** Drafted 2026-10-09, not started. All decisions (SC-1 to SC-5) are made, so Slices 1 to 3 can start; Slice 4 follows Slice 3. Slice 3 settles the challenge key's form, the answer's shape and how a decision to ask survives a rerun when it starts ([SC-3 verdict](#sc-3-verdict-2026-10-09)).
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -10,7 +10,7 @@ When the ephemera Lambda parses a command, the in-progress command is lost as so
 
 This plan **persists** that state: a row per character per session, its lifetime, and a stored shape that a later invocation can resume. It also builds the **resume**: rerunning a command from a stored row with its answers applied, because only that proves an answer stored in one run lands on the right question in another. It does **not** yet **use** either in play. Nothing asks the player a question, nothing writes the row from the live command path, and nothing starts a resume from player input. The first plan that does will wire those.
 
-It takes on the persistence half of the open thread in [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md) ("Referent clarification (row 11) has no settled shape yet"), whose third question ends: *an attempt held awaiting the player has to be saved and resumed from that point.* That thread's first question, challenge or candidate pool, is now [SC-4](#open-decisions-implementation--plan-only) here. Its second, a verdict that neither proceeds nor refuses, stays there, though SC-4's answer bears on it.
+It takes on the persistence half of the open thread in [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md) ("Referent clarification (row 11) has no settled shape yet"), whose third question ends: *an attempt held awaiting the player has to be saved and resumed from that point.* That thread's first question, challenge or candidate pool, is now [SC-4](#open-decisions-implementation--plan-only) here. Its second, a verdict that neither proceeds nor refuses, was answered there on 2026-10-09: no such verdict exists.
 
 ## Scope
 
@@ -153,11 +153,7 @@ The plan's author settled the remaining half: **the persistent command row exist
 
 **What "or another process" adds.** An answer can come from something other than the player: the deferred adjudication tier, or a future slow LLM judge or other asynchronous job. Such an answer is still a challenge answer under a structural key. Only where it comes from differs. So the row's answers are not tied to the player, and a stored answer should record its source, so a resumed command can tell the player's word from a process's judgement.
 
-**Consequence for the ladder note's second question (proposed; confirm before recording there).** That question asks for a verdict that "neither proceeds nor refuses", meaning "awaiting the player". Under this decision, waiting is something the row records, not a verdict:
-- An unanswered challenge is simply one with no verdict yet, which `CommandAttempt.result` already reports as `pending`.
-- An unanswered referent question comes before any candidate attempt exists, so it isn't a verdict at all.
-
-If that holds, no new verdict member is needed, and the question is answered by this plan rather than by the challenge family.
+**Consequence for the ladder note's second question (confirmed 2026-10-09; recorded there).** No verdict "neither proceeds nor refuses": waiting is something the row records. An unanswered challenge has no verdict yet (`pending`); an unanswered referent question comes before any attempt exists. When adjudication wants the player to answer, it records `met` and adds a new challenge carrying the question.
 
 **For SC-3.** The snapshot baseline and the answers-only candidate become one design. The row stores:
 - a snapshot of the part that doesn't depend on the world (SC-5's frozen root); and
@@ -191,6 +187,7 @@ The plan's author settled the row's contents, together with the order in which a
 **Settled in Slice 3, not here:**
 - The challenge key's form: deterministic `id` or a separate field, and the structural key for `CustomEdgeChallenge` and `ExitEdgeChallenge`. `WorldKnowledgeChallenge` has no producer yet, so its key waits for one.
 - The answer's shape: a `Verdict`, or a player statement that goes back through Adjudicate. Either way it records its source (the player or a process), per the SC-4 verdict.
+- How a decision to ask survives a rerun. Adjudication that asks the player records `met` and adds a question challenge, so the stored answer's key exists only if the rerun asks again. A nondeterministic judge may not, and the stale check would then refuse. Either the decision to ask is structural (the same challenge always asks), or the row records it, for example as the original challenge's entry in `challengeAnswers` ("met, asked as ⟨key⟩").
 
 **Payoff test for whatever is chosen (Slice 3).** The proof must reach the outcome this plan exists for: state that survives into a different instance. It has two parts:
 1. **Keys are stable.** Two runs of the stage that produces keys, each in its own module registry (`jest.isolateModules`, so no counter or other module-level state is shared), give the same keys for the same root.
@@ -216,7 +213,7 @@ Pending work is `[ ]`, completed is `[X]`. Mark each nested line `[X]` as it is 
   - [ ] Add a subscribed-event guard and a branch in the actions data source that calls `clearSession`, following the positions pattern.
   - [ ] Tests for the guard and the handler.
 - [ ] **Slice 3. The payload.**
-  - [ ] Settle the two items the [SC-3 verdict](#sc-3-verdict-2026-10-09) leaves to this slice: the challenge key's form and the answer's shape.
+  - [ ] Settle the three items the [SC-3 verdict](#sc-3-verdict-2026-10-09) leaves to this slice: the challenge key's form, the answer's shape, and how a decision to ask survives a rerun.
   - [ ] The payload type (`root`, `selectedAttempt`, `referentAnswers`, `challengeAnswers`) and its runtime guard. A read whose payload fails the guard is treated as absent rather than throwing, so a later shape change can't break a session.
   - [ ] `get` (with read-side expiry) and `put` (sets `deleteAt`).
   - [ ] Structural keys for `CustomEdgeChallenge` and `ExitEdgeChallenge`, stable when the same (attempt, identity) pair is rerun.

@@ -331,7 +331,7 @@ Not owned by any plan; each waits for its named trigger.
 
 - **Role variants (second-person copy).** "You pick up the rope" for the actor, later "Tess gives you the coins" for a recipient. Shape already chosen: a variant keyed by **role** rather than audience, delivered once to that character wherever they are, and that character removed from every witness capture of the unit. Roles stay off the capture because a capture says who was *there* and a role says how someone *relates to the event*. A missing role variant means the character gets their capture's witness line, which is today's behaviour. No producer of `!CHARACTER#` or `GLOBAL` targets exists.
 - **One merged line for a dissolve and its move** ("picks up the tray, leaving the cup behind"). Today each severed relation narrates its own line, before the move's. Merging needs no new mechanism: it is one unit covering both actions. Revisit when several relations sever at once and the separate lines read as noise.
-- **Failure narration** (a witness line for an attempt that did not commit) needs a `failed` verdict first, and an amendment to positions' narrate-on-commit clause; whoever builds that verdict owns the question. Then a unit gains a per-attempt outcome condition (a success variant and a failure variant), not before.
+- **Failure narration** (a witness line for an attempt that fell short of the player's goal) needs a `failed` verdict first; whoever builds that verdict owns the question. A failed attempt is not a refused one: its verdict proceeds, and what actually happened commits, so positions' narrate-on-commit clause already covers it. Then a unit gains a per-attempt outcome condition (a success variant and a failure variant), not before.
 
 ---
 
