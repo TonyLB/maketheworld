@@ -9,7 +9,7 @@ const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
  * Character-route sibling of `planObjectMoveTransfer.test.ts` (3e): pins the compiled plan a
  * character move builds exactly once, before commit. No commit happens inside this function ---
  * `getMembershipContainers` is the only I/O seam, so no `internalCache`/`transactWrite` mocking is
- * needed; `orchestrateCharacterRoomMembership.test.ts` covers the commit composition.
+ * needed; `orchestrateCharacterMove.test.ts` covers the commit composition.
  */
 describe('planCharacterMoveTransfer', () => {
     it('returns changed:false with no plan when the target room is already a container', async () => {

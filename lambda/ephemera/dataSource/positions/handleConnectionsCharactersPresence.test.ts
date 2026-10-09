@@ -45,7 +45,6 @@ describe('handleConnectionsCharactersPresence', () => {
             froms: [],
             to: 'ROOM#TownSquare',
             changed: true,
-            beatAnchorTime: 1_700_000_000_000,
         })
     })
 
@@ -98,9 +97,6 @@ describe('handleConnectionsCharactersPresence', () => {
                 froms: ['ROOM#roomA'],
                 to: null,
                 changed: true,
-                beatAnchorTime: 1_700_000_000_000,
-                captures: new Map([['capture:from:ROOM#roomA', ['CHARACTER#alpha']]]),
-                plan: { steps: [] },
             })
 
             await handleCharacterDisconnected({

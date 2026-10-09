@@ -9,7 +9,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
 jest.mock('../../../internalCache', () => ({
     __esModule: true,
     default: {
-        CharacterMeta: { set: jest.fn() },
+        CharacterMeta: { set: jest.fn(), invalidate: jest.fn() },
     },
 }))
 
@@ -21,6 +21,7 @@ import type { RoomStackItem } from './types'
 
 const optimisticUpdateMock = ephemeraDB.optimisticUpdate as jest.Mock
 const characterMetaSetMock = internalCache.CharacterMeta.set as jest.Mock
+const characterMetaInvalidateMock = internalCache.CharacterMeta.invalidate as jest.Mock
 
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const ROOM_ONE = 'ROOM#TestOne' as EphemeraRoomId
@@ -179,8 +180,9 @@ describe('persistRoomStackNavigate', () => {
         ])
     })
 
-    it('updates CharacterMeta cache on success', async () => {
+    it('invalidates the CharacterMeta cache entry on success rather than caching a partial one', async () => {
         optimisticUpdateMock.mockImplementation(async ({ updateReducer, successCallback }) => {
+            // `optimisticUpdate`'s prior carries only the update keys, so a `set` here would drop Name/assets.
             const prior = { RoomStack: [{ asset: 'primitives', RoomId: 'VORTEX' }] }
             const next = produce(prior, updateReducer)
             successCallback?.(next, prior)
@@ -196,12 +198,25 @@ describe('persistRoomStackNavigate', () => {
             canonAssets: ['primitives', 'TownCenter'],
         }, { optimisticUpdate: optimisticUpdateMock })
 
-        expect(characterMetaSetMock).toHaveBeenCalledWith(expect.objectContaining({
-            EphemeraId: CHARACTER_ID,
-            RoomStack: expect.arrayContaining([
-                expect.objectContaining({ asset: 'TownCenter', RoomId: 'TestTwo' }),
-            ]),
-        }))
+        expect(characterMetaSetMock).not.toHaveBeenCalled()
+        expect(characterMetaInvalidateMock).toHaveBeenCalledWith(CHARACTER_ID)
+    })
+
+    it('leaves the cache untouched when the write fails', async () => {
+        jest.spyOn(console, 'error').mockImplementation(() => undefined)
+        optimisticUpdateMock.mockRejectedValue(new Error('ConditionalCheckFailedException'))
+
+        await persistRoomStackNavigate({
+            characterId: CHARACTER_ID,
+            targetRoomId: ROOM_B,
+            beatAnchorTime: BEAT_ANCHOR_TIME,
+            characterAssets: ['primitives'],
+            roomAssets: ['ASSET#TownCenter'],
+            canonAssets: ['primitives'],
+        }, { optimisticUpdate: optimisticUpdateMock })
+
+        expect(characterMetaInvalidateMock).not.toHaveBeenCalled()
+        expect(characterMetaSetMock).not.toHaveBeenCalled()
     })
 
     it('logs and resolves without throwing when optimisticUpdate fails', async () => {

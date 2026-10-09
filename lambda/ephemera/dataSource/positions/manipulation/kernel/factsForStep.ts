@@ -42,7 +42,7 @@ const findHostOf = (
  * already be resolved, not fetched here). Folding this in (rather than layering it on top, in the
  * caller, after `commitStepSequence` returns) is what keeps `Character Moved` streaming before the
  * kernel's own `RoomUpdate` publish loop, mirroring `Object Moved`'s existing ordering guarantee ---
- * `orchestrateCharacterRoomMembership.ts`'s test suite asserts this ordering, and only folding the fact in
+ * `commitStepSequence.test.ts` asserts this ordering, and only folding the fact in
  * here (rather than leaving it to run after the kernel call returns) can preserve it.
  *
  * One `Object Moved` or `Character Moved` fact per step, with `froms: [...fromHostIds]`/

@@ -1,10 +1,11 @@
 /**
  * mtw.ephemera.characters DataSource: character play state. First tenant: the eviction
- * ladder (`Meta::Character.RoomStack`), maintained on positions' Character Moved.
+ * ladder (`Meta::Character.RoomStack`), maintained on positions' Character Moved, which also announces the mover as in play.
  */
 import EphemeraDataSource from '../abstract'
 import { isCharacterMovedPublishedPayload } from '../positions/publishedEvents'
 import { handleCharacterMoved } from './handleCharacterMoved'
+import { publishCharacterInPlay } from './publishCharacterInPlay'
 import type { CharactersPublishedPayload } from './publishedEvents'
 import {
     isCharactersSubscribedEnvelope,
@@ -26,7 +27,7 @@ export const ephemeraCharactersDataSource = new EphemeraDataSource<
             if (!isCharacterMovedPublishedPayload(content)) {
                 return
             }
-            await handleCharacterMoved(content)
+            await Promise.all([handleCharacterMoved(content), publishCharacterInPlay(content)])
         }))
     },
 })

@@ -20,7 +20,7 @@ Two `api.ephemera` command kinds, both in-process only (no EventBridge --- see [
 
 Envelope guards and typed send-helpers (`sendMessageBundleDeclared`, `sendMessageSlotReported`) live in [`subscribedEvents.ts`](subscribedEvents.ts), mirroring `dataSource/perception/subscribedEvents.ts`'s `sendPerceptionThreadRegistered` shape.
 
-Callers: `presentCharacterMove.ts` (navigate's header slot), `dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts` (the whole look family), `dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts` (session orientation render channel), `dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter.ts`.
+Callers: `positions/manipulation/kernel/presentStepSequence.ts` (navigate's header), `dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts` (the whole look family), `dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts` (session orientation render channel), `dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter.ts`.
 
 ## Fan-in / settle mechanics
 

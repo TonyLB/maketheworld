@@ -1,6 +1,6 @@
 # Message bundle retirement: compiler-stamped transcript order, and character moves on the presentation kernel
 
-**Status:** Slice 2 done. **Next:** Slice 3 (converge character moves onto `commitAndPresentStepSequence`).
+**Status:** Slice 3 done. **Next:** Slice 4 (delete the bundle layer, graduate docs, close).
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../AGENT.md). It is an **implementation plan**, not a design-stage one.
 
@@ -35,7 +35,7 @@ Retire `mtw.ephemera.messageOrchestration`'s **bundle** layer (declare, settle, 
 
 | Producer | Slots | After this plan |
 | --- | --- | --- |
-| [`presentCharacterMove.ts`](../../../../lambda/ephemera/dataSource/positions/navigate/presentCharacterMove.ts) (navigate, home, connect, disconnect, repair) | none (Slice 2: header is a `describe` step; leave/arrive publish directly) | Whole route goes through the composer (Slice 3) |
+| `presentCharacterMove.ts` (navigate, home, connect, disconnect, repair) | none (Slice 2: header is a `describe` step; leave/arrive publish directly) | Done (Slice 3): the file is deleted; every move goes through `orchestrateCharacterMove` -> `commitAndPresentStepSequence` |
 | [`commitAndPresentStepSequence.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/commitAndPresentStepSequence.ts) (`commitAttempt`, two `actions/index.ts` callers) | the compiled plan's `slots` | Done (Slice 2): presents with the commit's `beatAnchorTime`, no declare |
 | [`deliverNarrationUnits.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/deliverNarrationUnits.ts) (command-attempt narration) | one per narration variant | Done (Slice 2): publishes directly, times continue after the plan's last index |
 | [`handleLookCommandRequestedForRenderOrchestration.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) (room/feature/knowledge/object look) | 1 | Listener carries its own time (Slice 1) |
@@ -64,7 +64,7 @@ Retire `mtw.ephemera.messageOrchestration`'s **bundle** layer (declare, settle, 
 
 **`roomRosterSnapshots` has no production reader.** It is built in `orchestrateCharacterRoomMembership` and returned on `MembershipApplyResult`; only tests read it.
 
-**The ladder write leaves a partial `CharacterMeta` cache entry.** `persistRoomStackNavigate`'s `successCallback` caches `{ ...prior, EphemeraId, RoomStack }`, but `optimisticUpdate` fetches `prior` with `ProjectionFields` of only `updateKeys` plus the key fields ([`update.ts`](../../../../packages/mtw-utilities/ts/dynamoDB/mixins/update.ts)). The cached entry therefore lacks `Name`, `assets`, `Color`, `HomeId`, `Pronouns` and `player` for the rest of the invocation. This predates the characters DataSource. `trimPersistCharacterRoomStack` is not affected: it spreads a full `CharacterMeta` read first. Fixed by MB-4. **Whether it has a live victim is a race, not a certainty.** `Character Moved` is published inside `commitStepSequence`, so the subscriber's `optimisticUpdate` (a read plus a write) runs concurrently with positions' post-commit roster snapshot and `CharacterMeta.invalidate` ([`orchestrateCharacterRoomMembership.ts:120-122`](../../../../lambda/ephemera/dataSource/positions/manipulation/membership/orchestrateCharacterRoomMembership.ts)). If the invalidate lands last, the partial entry is cleared and nothing is wrong; if the ladder write lands last, the partial entry survives and any same-invocation `CharacterMeta.get` sees `assets` and `Name` as `undefined`. The readers that would then misbehave silently (most default `assets = []`, giving the wrong perspective key) include `handleAffordancesPertain.ts:27`, `perception/orchestrate.ts:116` and `:548`, `resolveNarrationLabels.ts:43`, `kickRoomHeaderBroadcast.ts:34` and the `renderOrchestration/prepare*RenderForCharacter.ts` family. `orchestrateCharacterMove` itself is safe: it passes its pre-commit `characterMeta` down to `presentCharacterMove`. Slice 3's regression test pins the behavior deterministically.
+**The ladder write used to leave a partial `CharacterMeta` cache entry (fixed in Slice 3).** `persistRoomStackNavigate`'s `successCallback` cached `{ ...prior, EphemeraId, RoomStack }`, but `optimisticUpdate` fetches `prior` with `ProjectionFields` of only `updateKeys` plus the key fields ([`update.ts`](../../../../packages/mtw-utilities/ts/dynamoDB/mixins/update.ts)), so the cached entry lacked `Name`, `assets`, `Color`, `HomeId`, `Pronouns` and `player` for the rest of the invocation. Whether it had a live victim was a race with positions' post-commit invalidate. The success path now invalidates instead (rule recorded in [`characters/AGENT.md`](../../../../lambda/ephemera/dataSource/characters/AGENT.md#ladder-maintenance)), and the test in `persistRoomStackNavigate.test.ts` pins it.
 
 **Between commit and the ladder write, the cache is not stale (MB-4's safety condition holds).** `commitStepSequence` writes `Meta::Character` only with `updateKeys: ['ludicGraph']` ([`commitStepSequence.ts:122-154`](../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/commitStepSequence.ts)), a field `CharacterMeta` does not project (it projects `Name`, `RoomStack`, `Color`, `fileURL`, `HomeId`, `assets`, `Pronouns`, `player`). The only projected field a move changes is `RoomStack`, and that is unchanged in storage until the subscriber writes it. Positions' post-commit `CharacterMeta.invalidate` therefore re-reads identical data.
 
@@ -72,12 +72,11 @@ Retire `mtw.ephemera.messageOrchestration`'s **bundle** layer (declare, settle, 
 
 ## Open decisions (implementation --- plan only)
 
-Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
+Plan-only: decisions we are making in order to implement the next slice(s). MB-1 is the only row still here, and it stays until Slice 4 records it; MB-2, MB-3 and MB-4 shipped (Slices 2 and 3) and live in `positions/AGENT.contract.md` and `characters/AGENT.md`. Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
 | MB-1 | **Placeholder handling.** The original premise was that a placeholder and its terminal both resolving before the bundle flushes sends only the terminal (`registerLeg`'s map overwrite). **Slice 1 found that premise false for one-slot listeners:** `FanInClusterStore.completeReadyPartials` flushes a complete cluster on its first report, so a one-slot bundle always published the placeholder immediately and the terminal as a post-flush revision. Holding each listener's latest wave until settle would have hidden the "Generating…" placeholder for every render that finishes in the same invocation (the settle loop waits for generation), and broke `characterRegisteredOrientation.integration.test.ts`. **Decided (revised): a direct listener publishes every wave as it arrives** (first at its pre-assigned time, later ones at `max(lastPublished + 1, now)`, same `MessageId`); a late registrant is replayed only the latest recorded event. No per-listener buffer and no settle flush. Deduplication that remains is replay collapse. Listeners never wait on each other. | 1 | Decided (revised in Slice 1) |
-| MB-4 | **Home for the move's post-commit work.** **Decided: `Character Moved` subscribers in `mtw.ephemera.characters`.** The cache invalidate runs in the ladder subscriber **after** the ladder write, replacing both positions' post-commit `CharacterMeta.invalidate` and `persistRoomStackNavigate`'s partial `CharacterMeta.set` (see [Grounding facts](#grounding-facts-verified-2026-10-08)). The `CharacterInPlay` publish moves to a characters subscriber too. Safety condition (confirmed in Slice 0): no cached field other than `RoomStack` changes on a move, so between commit and the ladder write the cache matches the stored row. | 3 | Decided |
 
 ## Recommended order
 
@@ -100,12 +99,12 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark each nested line `[X
   - [X] `commitAndPresentStepSequence` stops declaring bundles. `deliverNarrationUnits` publishes each variant directly, with times continuing after the plan's last presentation index (pass the next index from the composer's result).
   - [X] `NAVIGATE_HEADER_SLOT_ID`, `moveBundleSlotIds.ts` and slot-id plumbing on narrate steps are deleted or reduced to what the ordered list needs.
   - [X] **Payoff test** (`navigateStampedOrder.integration.test.ts` and `charcoal-client/.../messages/navigateStampedOrder.test.ts`; the server half drives the real compiler, presenter and ingress with a stubbed passive-render kickoff rather than a full `orchestrateCharacterMove`): an ephemera integration test captures the published rows for a navigate into an uncached room and asserts their `(CreatedTime, MessageId)` order, targets and `MessageId` sharing; a `charcoal-client` Vitest ingests that same row sequence, in emitted order, through the real messages slice and asserts the mover's and observer's presentation rows. No cross-package harness exists, so the client test uses a real-shape fixture of the server's rows fed into the real slice, not a mocked consumer. The fixture includes an affordance header with a time **after** the arrive line, since that is the one message Slice 0 found that changes position relative to the bundle's lines.
-- [ ] **Slice 3 --- converge character moves onto `commitAndPresentStepSequence`.**
-  - [ ] Delete `roomRosterSnapshots` (production code, `MembershipApplyResult`, tests).
-  - [ ] Apply MB-4: `persistRoomStackNavigate` invalidates `CharacterMeta` after a successful write instead of `set`ting a partial entry; delete positions' post-commit invalidate; move the `CharacterInPlay` publish to a characters subscriber.
-  - [ ] Test: after a navigate's ladder write, `CharacterMeta.get` in the same invocation returns `Name` and `assets` (fails today).
-  - [ ] `orchestrateCharacterMove` becomes: build the plan (`planCharacterMoveTransfer`), call `commitAndPresentStepSequence`. Fold or delete `orchestrateCharacterRoomMembership` and `presentCharacterMove` once empty. Keep the no-op pre-check (unchanged membership costs only the containers read).
-  - [ ] All six call sites (navigate, home, connect, disconnect, ghost-purge repair, legal-placement repair) still pass their existing tests; the payoff integration test still passes.
+- [X] **Slice 3 --- converge character moves onto `commitAndPresentStepSequence`.** Shipped; rules recorded in `positions/AGENT.contract.md` (Membership persistence API), `positions/AGENT.implementation.md`, `positions/manipulation/AGENT.implementation.md` and `characters/AGENT.md` (Ladder maintenance).
+  - [X] Delete `roomRosterSnapshots` (production code, `MembershipApplyResult`, tests). `MembershipApplyResult` is now `{ ok, froms, to, changed }` or the error arm; `MembershipApplyArgs` was deleted with the coordinator.
+  - [X] Apply MB-4: `persistRoomStackNavigate` invalidates `CharacterMeta` after a successful write instead of `set`ting a partial entry; positions' post-commit invalidate is deleted; the `CharacterInPlay` publish moved to `publishCharacterInPlay`, a second `Character Moved` handler in `mtw.ephemera.characters`.
+  - [X] Test: `persistRoomStackNavigate.test.ts` asserts the success path invalidates and never `set`s (failed before the change), and a failed write touches nothing. It pins the mechanism rather than a same-invocation `get`, because `optimisticUpdate` is mocked there.
+  - [X] `orchestrateCharacterMove` is now: no-op pre-check, `planCharacterMoveTransfer`, `commitAndPresentStepSequence`. `orchestrateCharacterRoomMembership` and `presentCharacterMove` (and their tests) are deleted. The no-op pre-check still costs only the containers read.
+  - [X] All six call sites still pass their existing tests; the Slice 2 payoff test (`navigateStampedOrder.integration.test.ts`) now drives `presentStepSequence` directly. `characterLadderConnectPayoff.integration.test.ts` stubs `publishCharacterInPlay`, since it observes the ladder write only.
 - [ ] **Slice 4 --- delete the bundle layer, graduate docs, close.**
   - [ ] Delete `messageOrchestrationFanIn.ts`, `deliveredSlotIndex.ts`, the `Message Bundle Declared` / `Message Slot Reported` commands and their send helpers, and the `{ bundleId }` delivery address from Slice 1. Reduce the `fanIn-mtw.ephemera.messageOrchestration` deferral in `messageOrchestration/index.ts` to `onClear` (its `afterSettled` only settles the bundle fan-in; MB-1 no longer needs a settle flush). Decide whether what remains (content ingress) keeps its DataSource or becomes a plain module; record the choice in its doc.
   - [ ] Rewrite `messageOrchestration/AGENT.md` as the content-ingress doc. State the time and `MessageId` rules (strictly increasing per `MessageId`, distinct times per plan) as contract rules.
@@ -121,7 +120,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark each nested line `[X
 | 0 --- grounding checks | Done |
 | 1 --- ingress listeners own time | Done |
 | 2 --- compiler-stamped order | Done |
-| 3 --- character-move convergence | Not started |
+| 3 --- character-move convergence | Done |
 | 4 --- delete bundles and close | Not started |
 
 ## Verification
@@ -143,6 +142,6 @@ Bundle-retirement greps (Slice 2 should empty the first for `positions/`; Slice 
 ```bash
 rg -n "sendMessageBundleDeclared|sendMessageSlotReported" lambda/ packages/
 rg -n "DeliveredSlotIndex|MessageOrchestrationFanIn" lambda/ packages/
-rg -n "NAVIGATE_HEADER_SLOT_ID|roomRosterSnapshots" lambda/
+rg -n "NAVIGATE_HEADER_SLOT_ID|roomRosterSnapshots|orchestrateCharacterRoomMembership|presentCharacterMove" lambda/
 rg -n "AGENT.messageBundleRetirement.planning.md" lambda/ packages/ charcoal-client/ taskPlanning/
 ```

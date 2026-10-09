@@ -48,12 +48,12 @@ export type CommitAndPresentResult =
  * comes from the plan's own `narrate`/`describe` steps, stamped from the commit's `beatAnchorTime`
  * (see `presentStepSequence`); no bundle is declared.
  *
- * Live callers: `actions/index.ts`'s object-directed `look` dispatch, and the object-move route
- * (take/drop/give, via `commitAttempt`). The character routes (navigate/home/connect/disconnect) do **not** call this ---
- * `orchestrateCharacterRoomMembership` already commits internally, and navigate additionally needs
- * its eviction-ladder write to run in parallel with presentation rather than serially after commit,
- * which this composer's strictly-serial shape cannot express (see `orchestrateCharacterMove.ts`'s own
- * doc comment for that carve-out).
+ * Live callers: `actions/index.ts`'s object-directed `look` dispatch, the object-move route
+ * (take/drop/give, via `commitAttempt`), and every character route (navigate/home/connect/disconnect,
+ * ghost-purge and legal-placement repair, via `orchestrateCharacterMove`). A character move's
+ * post-commit work (the eviction-ladder write, the `CharacterMeta` invalidate, `CharacterInPlay`) is
+ * a `Character Moved` subscriber in `mtw.ephemera.characters`, so it runs off the bus rather than
+ * between commit and presentation.
  */
 export const commitAndPresentStepSequence = async (
     plan: CompiledPositionKernelPlan,

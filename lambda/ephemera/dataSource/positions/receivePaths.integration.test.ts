@@ -88,7 +88,6 @@ describe('positions receive paths (integration)', () => {
             froms: [ROOM_A],
             to: null,
             changed: true,
-            beatAnchorTime: 1_700_000_000_000,
         })
         resolveConnectTargetRoomMock.mockResolvedValue({
             targetRoomId: ROOM_A,

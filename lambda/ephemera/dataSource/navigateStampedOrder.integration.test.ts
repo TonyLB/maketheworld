@@ -4,8 +4,7 @@
  * server emits --- in emitted order --- carry the transcript order themselves. No bundle is
  * declared anywhere.
  *
- * Real, unmocked: `compilePositionKernelOp` (leave, header, arrive order), `presentCharacterMove` ->
- * `presentStepSequence` (stamping), and `messageOrchestration`'s content ingress (the header
+ * Real, unmocked: `compilePositionKernelOp` (leave, header, arrive order), `presentStepSequence` (stamping), and `messageOrchestration`'s content ingress (the header
  * listener, its placeholder wave and its terminal wave). Stubbed: the passive-render kickoff, which
  * stands in for the render pipeline by reporting a "Generating..." placeholder and then the
  * terminal render into the real ingress, as an uncached room does.
@@ -29,7 +28,7 @@ import messageBus from '../messageBus'
 import type { PublishMessage } from '../messageBus/baseClasses'
 import { reportIngressContent } from './messageOrchestration'
 import { kickPassiveRenderRequestedForCharacterInRoom } from './perception/kickRoomHeaderBroadcast'
-import { presentCharacterMove } from './positions/navigate/presentCharacterMove'
+import { presentStepSequence } from './positions/manipulation/kernel/presentStepSequence'
 import { compilePositionKernelOp } from './positions/manipulation/kernel/compile/compilePositionKernelOp'
 import { buildCharacterMoveOp } from './positions/manipulation/membership/buildCharacterMoveOp'
 
@@ -77,16 +76,16 @@ describe('navigate into an uncached room: stamped presentation order (integratio
             header: { perspectiveKey: PERSPECTIVE_KEY, assets: [] },
         }))
 
-        await presentCharacterMove({
-            characterId: MOVER,
-            plan,
-            captures: new Map([
+        await presentStepSequence(
+            plan.steps,
+            MOVER,
+            { streamEvent: async () => {}, messageBus },
+            new Map([
                 [`capture:from:${FROM_ROOM}`, [MOVER, OBSERVER]],
                 ['capture:to', [MOVER]],
             ]),
-            beatAnchorTime: BEAT,
-            messageBus,
-        })
+            BEAT
+        )
 
         expect(published.some((message: any) => message.type === 'StreamingEvent')).toBe(false)
 

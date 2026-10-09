@@ -25,6 +25,12 @@
  */
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 
+// The same subscription also announces the mover (`CharacterInPlay`); that publish is covered by
+// `publishCharacterInPlay.test.ts` and is not what this ladder round trip observes.
+jest.mock('./characters/publishCharacterInPlay', () => ({
+    publishCharacterInPlay: jest.fn().mockResolvedValue(undefined),
+}))
+
 jest.mock('./positions/navigate/orchestrateCharacterMove', () => ({
     orchestrateCharacterMove: jest.fn(),
 }))

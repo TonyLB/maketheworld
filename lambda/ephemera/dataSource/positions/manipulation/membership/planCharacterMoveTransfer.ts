@@ -18,8 +18,8 @@ export type PlanCharacterMoveTransferArgs = {
     /**
      * Async arrival-header resolution, supplied only by navigate/connect; disconnect/repair omit it.
      * Called only once the move is confirmed changed and has a real destination, so a no-op move
-     * never pays for it --- matches today's behavior, where `presentCharacterMove` (the
-     * only caller of `getCharacterRoomPerspectiveKey`) never runs for an unchanged move.
+     * never pays for it --- matches today's behavior, where an unchanged move never
+     * reaches `getCharacterRoomPerspectiveKey`.
      */
     resolveHeader?: (to: EphemeraRoomId) => Promise<MoveHeaderBinding | null>
     /** injectable for test seams only. */
@@ -41,7 +41,7 @@ const defaultGetMembershipContainers = async (characterId: EphemeraCharacterId):
  * used to defer the op build until inside `executeMembershipTransfer`. Character moves have no
  * legality question (no dry run, no repair branch): `repairAdministrativeChainDissolve` was always a
  * no-op for a character `entityId` (`HostRelationalEdge` is object-only), so nothing is lost by never
- * calling it here. Reads only --- `orchestrateCharacterRoomMembership` still owns the commit.
+ * calling it here. Reads only --- `orchestrateCharacterMove` owns the commit.
  */
 export const planCharacterMoveTransfer = async (
     args: PlanCharacterMoveTransferArgs
