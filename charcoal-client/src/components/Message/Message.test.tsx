@@ -541,6 +541,7 @@ describe('Message component - CommandTranscriptMessage routing', () => {
         const outcome = screen.getByTestId('command-transcript-outcome')
         expect(bubble.contains(outcome)).toBe(true)
         expect(outcome.getAttribute('data-kind')).toEqual('Error')
+        expect(outcome.querySelector('[data-testid="command-transcript-outcome-icon"]')).not.toBeNull()
         expect(screen.getByText('You cannot go that way.')).toBeDefined()
         expect(screen.getByText('go nowhere')).toBeDefined()
     })
@@ -554,6 +555,7 @@ describe('Message component - CommandTranscriptMessage routing', () => {
             Outcome: { Kind: 'Info', Message: ['Which one?'] }
         })
         expect(screen.getByTestId('command-transcript-outcome').getAttribute('data-kind')).toEqual('Info')
+        expect(screen.queryByTestId('command-transcript-outcome-icon')).toBeNull()
     })
 
     it('should render no outcome node when Outcome is absent', () => {
