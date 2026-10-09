@@ -39,3 +39,9 @@ This file records **contracts** only. Mental models: [`AGENT.concepts.md`](./AGE
 - **A stale answer refuses.** A chosen attempt no longer among the frozen attempts, or a chosen thing no longer in its pool, returns `Error` with the reason on every route. A resume **must not** act on a stale id.
 - **The row is the single place a command waits,** on the player or on another process. Waiting is not a verdict: an unanswered challenge has no verdict yet (`pending`), and an unanswered referent question comes before any attempt exists.
 - **Plan stays blind to the world, or its output is frozen whole.** The freeze line is exactly `compileAttemptsFromSkeleton`'s input. A future LLM Plan fallback that proposes identities has read the world: either it proposes attempts only, or its whole output is frozen and its identity half is treated as a hint that is rechecked. Context outside the command text (a reading of "take it") would belong in the frozen root.
+
+## Command outcome
+
+- **An outcome rides the command's own bubble.** `handleParseRequested` mints the echo's `messageId` and `createdTime` when the request carries a `sessionId`, and carries them (with the trimmed command text and the session) on `ResponseContext.transcript`. Every line that answers a parsed command goes through `reportCommandOutcome(context, 'Error' | 'Info', lines)`, which republishes the echo under that id with `Outcome`.
+- **A revision resends the whole body.** The client replaces, never merges, so the republish carries `Message` (the command text) and `SessionId` again; the echo's position comes from the first publish's `createdTime`.
+- **No echo, no bubble.** With no `transcript` (no `sessionId`, or an `Action Assessed` entry that never had an echo) the helper falls back to a standalone `WorldOOCMessage`. Notices with no originating command stay `WorldOOCMessage`.

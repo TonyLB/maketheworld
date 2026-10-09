@@ -22,7 +22,10 @@ import {
 import { isSessionDisconnectEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import { clearSession } from './persistentCommand'
 import { isActionAssessedCommand, isParseRequestedCommand, type ActionAssessedCommand, type ParseRequestedCommand } from '../localApiEvents'
+import { v4 as uuidv4 } from 'uuid'
+import type { CommandOutcome } from '@tonylb/mtw-interfaces/ts/messages'
 import messageBus from '../../messageBus'
+import getCurrentTimestamp from '../../internalUtils/dateUtil'
 import internalCache from '../../internalCache'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import type { RoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
@@ -174,48 +177,69 @@ const consultMessageForPlayer = (
     return `Did you mean ${head}, or ${last}?`
 }
 
+/** The echo bubble a command's outcome is republished onto (a revision resends the whole body). */
+type TranscriptContext = {
+    messageId: string
+    createdTime: number
+    command: string
+    sessionId: string
+}
+
 type ResponseContext = {
     characterId: EphemeraCharacterId
     roomExitContext: RoomExitTargetsForCharacter
     coyoteOccupiedStableKeys: ReadonlySet<string>
     parseResult: ParseCommandResult
+    /** Absent when there is no echo to attach to (no sessionId, or an assessed-action entry). */
+    transcript?: TranscriptContext
 }
 
-const respondImperativelyForIntent = async ({ characterId, parseResult }: ResponseContext): Promise<void> => {
-    if (isParseCommandErrorResult(parseResult)) {
-        const line = parseErrorMessageForPlayer(parseResult.errorMessage)
+/**
+ * Reports what happened to a command inside the command's own transcript bubble, or as a
+ * standalone OOC line when there is no echo to attach to.
+ */
+const reportCommandOutcome = (
+    { characterId, transcript }: Pick<ResponseContext, 'characterId' | 'transcript'>,
+    kind: CommandOutcome['Kind'],
+    lines: string[],
+): void => {
+    if (transcript) {
         messageBus.publish({
             type: 'PublishMessage',
             targets: [characterId],
-            displayProtocol: 'WorldOOCMessage',
-            message: [line],
+            displayProtocol: 'CommandTranscriptMessage',
+            message: linesToRenderTree([transcript.command]),
+            messageId: transcript.messageId,
+            createdTime: transcript.createdTime,
+            sessionId: transcript.sessionId,
+            outcome: { Kind: kind, Message: linesToRenderTree(lines) },
         })
+        return
+    }
+    messageBus.publish({
+        type: 'PublishMessage',
+        targets: [characterId],
+        displayProtocol: 'WorldOOCMessage',
+        message: lines,
+    })
+}
+
+const respondImperativelyForIntent = async (context: ResponseContext): Promise<void> => {
+    const { characterId, parseResult } = context
+    if (isParseCommandErrorResult(parseResult)) {
+        const line = parseErrorMessageForPlayer(parseResult.errorMessage)
+        reportCommandOutcome(context, 'Error', [line])
     }
     else if (isParseCommandConsultResult(parseResult)) {
         const line = consultMessageForPlayer(parseResult.alternatives)
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [characterId],
-            displayProtocol: 'WorldOOCMessage',
-            message: [line],
-        })
+        reportCommandOutcome(context, 'Error', [line])
     }
     else if (isParseCommandAbstainResult(parseResult)) {
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [characterId],
-            displayProtocol: 'WorldOOCMessage',
-            message: ["I couldn't understand that command."],
-        })
+        reportCommandOutcome(context, 'Error', ["I couldn't understand that command."])
     }
     else if (isParseCommandCoyoteEngineTestResult(parseResult)) {
         if (!COYOTE_ENGINE_TEST_HARNESS_ENABLED) {
-            messageBus.publish({
-                type: 'PublishMessage',
-                targets: [characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message: ['Coyote engine test harness is currently disabled.'],
-            })
+            reportCommandOutcome(context, 'Error', ['Coyote engine test harness is currently disabled.'])
         }
         else {
             await runCoyoteEngineTestHarness({
@@ -229,12 +253,7 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
     }
     else if (isParseCommandCoyoteAffinitiesTestResult(parseResult)) {
         if (!COYOTE_AFFINITIES_TEST_HARNESS_ENABLED) {
-            messageBus.publish({
-                type: 'PublishMessage',
-                targets: [characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message: ['Acme affinities test harness is currently disabled.'],
-            })
+            reportCommandOutcome(context, 'Error', ['Acme affinities test harness is currently disabled.'])
         }
         else {
             await runAcmeOrderAffinitiesHarness({
@@ -247,32 +266,13 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
         }
     }
     else if (isParseCommandUnimplementedResult(parseResult)) {
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [characterId],
-            displayProtocol: 'WorldOOCMessage',
-            message: [
-                "I can tell you're trying to do something that hasn't been implemented in the game yet, sorry.",
-            ],
-        })
+        reportCommandOutcome(context, 'Error', ["I can tell you're trying to do something that hasn't been implemented in the game yet, sorry."])
     }
     else if (isParseCommandPromptInjectionAttemptResult(parseResult)) {
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [characterId],
-            displayProtocol: 'WorldOOCMessage',
-            message: [
-                "Prompt injection isn't going to get you any closer to catching the Road Runner.",
-            ],
-        })
+        reportCommandOutcome(context, 'Error', ["Prompt injection isn't going to get you any closer to catching the Road Runner."])
     }
     else if (isParseCommandMultipleCommandsResult(parseResult)) {
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [characterId],
-            displayProtocol: 'WorldOOCMessage',
-            message: [MULTIPLE_COMMANDS_PLAYER_MESSAGE],
-        })
+        reportCommandOutcome(context, 'Error', [MULTIPLE_COMMANDS_PLAYER_MESSAGE])
     }
     else if (isParseCommandHelpResult(parseResult)) {
         messageBus.publish({
@@ -282,14 +282,7 @@ const respondImperativelyForIntent = async ({ characterId, parseResult }: Respon
         })
     }
     else if (isParseCommandUnknownResult(parseResult)) {
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [characterId],
-            displayProtocol: 'WorldOOCMessage',
-            message: [
-                "I'm sorry, I can't tell what you're trying to tell me to do.",
-            ],
-        })
+        reportCommandOutcome(context, 'Error', ["I'm sorry, I can't tell what you're trying to tell me to do."])
     }
 }
 
@@ -332,35 +325,21 @@ const publishLudicNetworkChangeRequested = async (
 }
 
 const publishStreamEventsForIntent = async (
-    {
-        characterId,
-        roomExitContext,
-        coyoteOccupiedStableKeys,
-        parseResult,
-    }: ResponseContext,
+    context: ResponseContext,
     streamEvent: (event: {
         streamKey: string
         header: { type: string }
         update: Record<string, unknown>
     }) => Promise<void>
 ): Promise<void> => {
+    const { characterId, roomExitContext, coyoteOccupiedStableKeys, parseResult } = context
     if (isParseCommandNavigationResult(parseResult)) {
         const { fromRoomId, toRoomIds } = roomExitContext
         if (!fromRoomId) {
-            messageBus.publish({
-                type: 'PublishMessage',
-                targets: [characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message: ['You are not in a room, so you cannot go anywhere.'],
-            })
+            reportCommandOutcome(context, 'Error', ['You are not in a room, so you cannot go anywhere.'])
         }
         else if (!toRoomIds.includes(parseResult.targetId)) {
-            messageBus.publish({
-                type: 'PublishMessage',
-                targets: [characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message: ['There is no exit to that place from here.'],
-            })
+            reportCommandOutcome(context, 'Error', ['There is no exit to that place from here.'])
         }
         else {
             await streamEvent({
@@ -379,20 +358,10 @@ const publishStreamEventsForIntent = async (
     else if (isParseCommandHomeResult(parseResult)) {
         const resolution = await resolveHomeTargetForCharacter(characterId)
         if (resolution.type === 'NoExitContext') {
-            messageBus.publish({
-                type: 'PublishMessage',
-                targets: [characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message: ['You are not in a room, so you cannot go anywhere.'],
-            })
+            reportCommandOutcome(context, 'Error', ['You are not in a room, so you cannot go anywhere.'])
         }
         else if (resolution.type === 'AlreadyHome') {
-            messageBus.publish({
-                type: 'PublishMessage',
-                targets: [characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message: ['You are already home.'],
-            })
+            reportCommandOutcome(context, 'Info', ['You are already home.'])
         }
         else {
             await streamEvent({
@@ -410,12 +379,7 @@ const publishStreamEventsForIntent = async (
     else if (isParseCommandLookRoomResult(parseResult)) {
         const { fromRoomId } = roomExitContext
         if (!fromRoomId) {
-            messageBus.publish({
-                type: 'PublishMessage',
-                targets: [characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message: ['You are not in a room, so you cannot go anywhere.'],
-            })
+            reportCommandOutcome(context, 'Error', ['You are not in a room, so you cannot go anywhere.'])
         }
         else {
             await streamEvent({
@@ -516,22 +480,12 @@ const publishStreamEventsForIntent = async (
                 confidence: parseResult.confidence,
             },
         })
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [characterId],
-            displayProtocol: 'WorldOOCMessage',
-            message: ['Awaiting Road Runner'],
-        })
+        reportCommandOutcome(context, 'Info', ['Awaiting Road Runner'])
     }
     else if (isParseCommandPredictHypothesisResult(parseResult)) {
         const { fromRoomId } = roomExitContext
         if (!fromRoomId || !(await isCoyoteGameRoom(fromRoomId))) {
-            messageBus.publish({
-                type: 'PublishMessage',
-                targets: [characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message: ['You can only predict your Coyote plan from a Coyote Game room.'],
-            })
+            reportCommandOutcome(context, 'Error', ['You can only predict your Coyote plan from a Coyote Game room.'])
         }
         else {
             await streamEvent({
@@ -550,12 +504,7 @@ const publishStreamEventsForIntent = async (
         // the same for every route, looks included.
         const { fromRoomId } = roomExitContext
         if (!fromRoomId) {
-            messageBus.publish({
-                type: 'PublishMessage',
-                targets: [characterId],
-                displayProtocol: 'WorldOOCMessage',
-                message: ['You are not in a room, so you cannot do that.'],
-            })
+            reportCommandOutcome(context, 'Error', ['You are not in a room, so you cannot do that.'])
         }
         else {
             // An attempt made only of narration is a look: it runs in-process, the same way a UI
@@ -616,12 +565,20 @@ const handleParseRequested = async (
     if (!isEphemeraCharacterId(content.characterId)) {
         return
     }
+    // The id is minted here, and only when a session can see the echo: an outcome is a revision of
+    // this bubble, and the client shows only the latest echo per session.
+    const command = content.command.trim()
+    const transcript: TranscriptContext | undefined = content.sessionId
+        ? { messageId: `MESSAGE#${uuidv4()}`, createdTime: getCurrentTimestamp(), command, sessionId: content.sessionId }
+        : undefined
     messageBus.publish({
         type: 'PublishMessage',
         targets: [content.characterId],
         displayProtocol: 'CommandTranscriptMessage',
-        message: linesToRenderTree([content.command.trim()]),
-        ...(content.sessionId ? { sessionId: content.sessionId } : {}),
+        message: linesToRenderTree([command]),
+        ...(transcript
+            ? { sessionId: transcript.sessionId, messageId: transcript.messageId, createdTime: transcript.createdTime }
+            : {}),
     })
     // The embedding batch below keys off catalogObjectIds, so the ludicCache rebuild inside
     // getRoomObjectCatalogForCharacter must finish before that fetch runs --- keep this awaited
@@ -671,6 +628,7 @@ const handleParseRequested = async (
         roomExitContext,
         coyoteOccupiedStableKeys,
         parseResult,
+        ...(transcript ? { transcript } : {}),
     }
 
     await processAssessedParseResult(responseContext, streamEvent)
