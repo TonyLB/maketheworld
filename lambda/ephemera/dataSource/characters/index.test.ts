@@ -2,6 +2,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import * as handleModule from './handleCharacterMoved'
+import * as inPlayModule from './publishCharacterInPlay'
 import { ephemeraCharactersDataSource } from './index'
 import type { StreamingEventEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import {
@@ -42,8 +43,9 @@ describe('mtw.ephemera.characters DataSource', () => {
         expect(isCharactersSubscribedEnvelope(envelopeFor('Object Moved'))).toBe(false)
     })
 
-    it('receiveEvents routes Character Moved to handleCharacterMoved', async () => {
+    it('receiveEvents routes Character Moved to handleCharacterMoved and publishCharacterInPlay', async () => {
         const spy = jest.spyOn(handleModule, 'handleCharacterMoved').mockResolvedValue(undefined)
+        const inPlaySpy = jest.spyOn(inPlayModule, 'publishCharacterInPlay').mockResolvedValue(undefined)
 
         await ephemeraCharactersDataSource.receiveEvents!({
             events: [envelopeFor(CHARACTER_MOVED_HEADER_TYPE) as StreamingEventEnvelope<CharactersSubscribedContent>],
@@ -52,11 +54,14 @@ describe('mtw.ephemera.characters DataSource', () => {
         })
 
         expect(spy).toHaveBeenCalledWith(payload)
+        expect(inPlaySpy).toHaveBeenCalledWith(payload)
         spy.mockRestore()
+        inPlaySpy.mockRestore()
     })
 
     it('receiveEvents skips payloads that are not Character Moved', async () => {
         const spy = jest.spyOn(handleModule, 'handleCharacterMoved').mockResolvedValue(undefined)
+        const inPlaySpy = jest.spyOn(inPlayModule, 'publishCharacterInPlay').mockResolvedValue(undefined)
 
         await ephemeraCharactersDataSource.receiveEvents!({
             events: [envelopeFor(CHARACTER_MOVED_HEADER_TYPE, { type: 'Character Moved', characterId: 'bogus' }) as StreamingEventEnvelope<CharactersSubscribedContent>],
@@ -65,6 +70,8 @@ describe('mtw.ephemera.characters DataSource', () => {
         })
 
         expect(spy).not.toHaveBeenCalled()
+        expect(inPlaySpy).not.toHaveBeenCalled()
         spy.mockRestore()
+        inPlaySpy.mockRestore()
     })
 })

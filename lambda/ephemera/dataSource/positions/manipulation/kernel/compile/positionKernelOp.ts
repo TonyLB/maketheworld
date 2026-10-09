@@ -2,8 +2,11 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { HostRelationalEdge } from '../../types'
-import type { MessageOrchestrationSlotSpec } from '../../../../messageOrchestration/localApiEvents'
+import type { ExecutorDescribeStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { MembershipEmissionCopyKind } from '../kernelStep'
+
+/** The arrival header's binding, as carried on a `describe` step. */
+export type MoveHeaderBinding = NonNullable<ExecutorDescribeStep['header']>
 
 /**
  * Membership narration's ingredients: navigate/home/connect/disconnect. `leaveCopyKind` is a
@@ -46,10 +49,12 @@ export type PositionKernelMoveOp = {
     moved: EphemeraObjectId | EphemeraCharacterId
     froms: EphemeraMembershipHostId[]
     to: EphemeraMembershipHostId | null
-    /** messageOrchestration bundle correlation id for any narration/header slots this move declares. */
-    bundleId: string
-    /** Resolved by the caller (async perspective-key lookup is render-pipeline territory, not the compiler's job); null when no header render applies. */
-    headerSlot: MessageOrchestrationSlotSpec | null
+    /**
+     * Resolved by the caller (async perspective-key lookup is render-pipeline territory, not the
+     * compiler's job); null when no arrival header applies. The compiler places the header
+     * `describe` step between the leave and arrive narrations.
+     */
+    header: MoveHeaderBinding | null
     /**
      * Boundary edges severed by this move, **already classified as dissolve by Expansion**.
      * The compiler renders them into `dissolveRelation` steps ahead of the

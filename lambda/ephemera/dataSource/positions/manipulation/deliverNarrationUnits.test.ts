@@ -1,16 +1,9 @@
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-jest.mock('../../messageOrchestration/subscribedEvents', () => ({
-    sendMessageBundleDeclared: jest.fn(),
-    sendMessageSlotReported: jest.fn(),
-}))
-
-import { sendMessageBundleDeclared, sendMessageSlotReported } from '../../messageOrchestration/subscribedEvents'
 import { deliverNarrationUnits } from './deliverNarrationUnits'
 import type { NarrationUnit } from '../../actions/commandAttempt/narrationUnit'
 
-const sendMessageBundleDeclaredMock = sendMessageBundleDeclared as jest.MockedFunction<typeof sendMessageBundleDeclared>
-const sendMessageSlotReportedMock = sendMessageSlotReported as jest.MockedFunction<typeof sendMessageSlotReported>
+const BEAT = 1_700_000_000_000
 
 const ALICE = 'CHARACTER#Alice' as EphemeraCharacterId
 const BOB = 'CHARACTER#Bob' as EphemeraCharacterId
@@ -34,22 +27,23 @@ describe('deliverNarrationUnits', () => {
         jest.clearAllMocks()
     })
 
-    it('does nothing for an empty unit list --- no bundle declared', () => {
+    it('does nothing for an empty unit list', () => {
+        const messageBus = { publish: jest.fn() } as any
         deliverNarrationUnits({
             units: [],
             captures: new Map(),
-            bundleId: 'BUNDLE#test',
+            beatAnchorTime: BEAT,
+            firstPresentationIndex: 0,
             actorName: 'Alice',
             labels: { 'OBJECT#Broom': 'broom' },
-            messageBus: {} as any,
+            messageBus,
             resolveCaptureId: () => { throw new Error('should not be called') },
         })
 
-        expect(sendMessageBundleDeclaredMock).not.toHaveBeenCalled()
-        expect(sendMessageSlotReportedMock).not.toHaveBeenCalled()
+        expect(messageBus.publish).not.toHaveBeenCalled()
     })
 
-    it('declares one slot per variant, then reports each slot filled with its own audience\'s roster', () => {
+    it('publishes one line per variant, each to its own audience\'s roster, directly on the bus', () => {
         const messageBus = { publish: jest.fn() } as any
         const captures = new Map([
             ['capture:from:ROOM#Departure', [ALICE]],
@@ -59,23 +53,18 @@ describe('deliverNarrationUnits', () => {
         deliverNarrationUnits({
             units: [unit('OBJECT#Broom')],
             captures,
-            bundleId: 'BUNDLE#test',
+            beatAnchorTime: BEAT,
+            firstPresentationIndex: 0,
             actorName: 'Alice',
             labels: { 'OBJECT#Broom': 'broom' },
             messageBus,
             resolveCaptureId: (_unit, audience) => (audience.phase === 'before' ? ['capture:from:ROOM#Departure'] : ['capture:to']),
         })
 
-        expect(sendMessageBundleDeclaredMock).toHaveBeenCalledTimes(1)
-        const [, , declareContent] = sendMessageBundleDeclaredMock.mock.calls[0]!
-        expect(declareContent.bundleId).toBe('BUNDLE#test')
-        expect(declareContent.slots).toHaveLength(2)
-        expect(declareContent.slots.every((slot) => slot.expectedPublishType === 'WorldMessage')).toBe(true)
-
-        expect(sendMessageSlotReportedMock).toHaveBeenCalledTimes(2)
-        const reported = sendMessageSlotReportedMock.mock.calls.map(([, , content]) => content)
-        expect(reported[0]!.message).toMatchObject({ type: 'PublishMessage', displayProtocol: 'WorldMessage', targets: [ALICE], message: ['Alice picks up broom'] })
-        expect(reported[1]!.message).toMatchObject({ type: 'PublishMessage', displayProtocol: 'WorldMessage', targets: [BOB], message: ['Alice picks up broom'] })
+        expect(messageBus.publish).toHaveBeenCalledTimes(2)
+        const reported = messageBus.publish.mock.calls.map(([message]: any[]) => message)
+        expect(reported[0]).toMatchObject({ type: 'PublishMessage', displayProtocol: 'WorldMessage', targets: [ALICE], message: ['Alice picks up broom'] })
+        expect(reported[1]).toMatchObject({ type: 'PublishMessage', displayProtocol: 'WorldMessage', targets: [BOB], message: ['Alice picks up broom'] })
     })
 
     it('unions several capture ids into one deduplicated roster for a multi-room audience', () => {
@@ -88,23 +77,25 @@ describe('deliverNarrationUnits', () => {
         deliverNarrationUnits({
             units: [unit('OBJECT#Broom')],
             captures,
-            bundleId: 'BUNDLE#test',
+            beatAnchorTime: BEAT,
+            firstPresentationIndex: 0,
             actorName: 'Alice',
             labels: { 'OBJECT#Broom': 'broom' },
             messageBus,
             resolveCaptureId: (_unit, audience) => (audience.phase === 'before' ? ['capture:room-1', 'capture:room-2'] : []),
         })
 
-        const reported = sendMessageSlotReportedMock.mock.calls.map(([, , content]) => content)
-        expect(reported[0]!.message).toMatchObject({ targets: [ALICE, BOB] })
-        expect(reported[1]!.message).toMatchObject({ targets: [] })
+        const reported = messageBus.publish.mock.calls.map(([message]: any[]) => message)
+        expect(reported[0]).toMatchObject({ targets: [ALICE, BOB] })
+        expect(reported[1]).toMatchObject({ targets: [] })
     })
 
     it('throws the no-live-roster-fallback invariant when a resolved captureId has no entry', () => {
         expect(() => deliverNarrationUnits({
             units: [unit('OBJECT#Broom')],
             captures: new Map(),
-            bundleId: 'BUNDLE#test',
+            beatAnchorTime: BEAT,
+            firstPresentationIndex: 0,
             actorName: 'Alice',
             labels: { 'OBJECT#Broom': 'broom' },
             messageBus: { publish: jest.fn() } as any,
@@ -117,7 +108,8 @@ describe('deliverNarrationUnits', () => {
         expect(() => deliverNarrationUnits({
             units: [unit('OBJECT#Broom')],
             captures,
-            bundleId: 'BUNDLE#test',
+            beatAnchorTime: BEAT,
+            firstPresentationIndex: 0,
             actorName: 'Alice',
             labels: { 'OBJECT#Broom': 'broom' },
             messageBus: { publish: jest.fn() } as any,
@@ -127,6 +119,7 @@ describe('deliverNarrationUnits', () => {
 
     it('fills every variant from the caller\'s actor name and per-ref labels, not from the unit', () => {
         const captures = new Map([['capture:room', [ALICE]]])
+        const messageBus = { publish: jest.fn() } as any
         deliverNarrationUnits({
             units: [{
                 covers: ['action-1'],
@@ -136,26 +129,48 @@ describe('deliverNarrationUnits', () => {
                 }],
             }],
             captures,
-            bundleId: 'BUNDLE#test',
+            beatAnchorTime: BEAT,
+            firstPresentationIndex: 0,
             actorName: 'Tess',
             labels: { 'graphNode:OBJECT#Rope': 'rope', 'graphNode:OBJECT#Post': 'post' },
-            messageBus: { publish: jest.fn() } as any,
+            messageBus,
             resolveCaptureId: () => ['capture:room'],
         })
 
-        const reported = sendMessageSlotReportedMock.mock.calls.map(([, , content]) => content)
-        expect(reported[0]!.message).toMatchObject({ targets: [ALICE], message: ['Tess frees rope from post'] })
+        const reported = messageBus.publish.mock.calls.map(([message]: any[]) => message)
+        expect(reported[0]).toMatchObject({ targets: [ALICE], message: ['Tess frees rope from post'] })
     })
 
     it('throws when a variant refers to a ref the caller supplied no label for', () => {
         expect(() => deliverNarrationUnits({
             units: [unit('OBJECT#Broom')],
             captures: new Map([['capture:room', [ALICE]]]),
-            bundleId: 'BUNDLE#test',
+            beatAnchorTime: BEAT,
+            firstPresentationIndex: 0,
             actorName: 'Alice',
             labels: {},
             messageBus: { publish: jest.fn() } as any,
             resolveCaptureId: () => ['capture:room'],
         })).toThrow(/has no label/)
+    })
+
+    it('stamps each line at beatAnchorTime + firstPresentationIndex + n, each under its own MessageId', () => {
+        const messageBus = { publish: jest.fn() } as any
+        deliverNarrationUnits({
+            units: [unit('OBJECT#Broom')],
+            captures: new Map([['capture:room', [ALICE]]]),
+            beatAnchorTime: BEAT,
+            firstPresentationIndex: 3,
+            actorName: 'Alice',
+            labels: { 'OBJECT#Broom': 'broom' },
+            messageBus,
+            resolveCaptureId: () => ['capture:room'],
+        })
+
+        const [first, second] = messageBus.publish.mock.calls.map(([message]: any[]) => message)
+        expect(first.createdTime).toBe(BEAT + 3)
+        expect(second.createdTime).toBe(BEAT + 4)
+        expect(first.messageId).toMatch(/^MESSAGE#/)
+        expect(first.messageId).not.toEqual(second.messageId)
     })
 })

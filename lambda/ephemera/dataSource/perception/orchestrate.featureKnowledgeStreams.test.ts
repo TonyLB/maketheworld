@@ -12,7 +12,6 @@ jest.mock('../../publishMessage', () => ({
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardFeature from '@tonylb/mtw-wml/ts/standardize/components/feature'
 import StandardKnowledge from '@tonylb/mtw-wml/ts/standardize/components/knowledge'
-import { v4 as uuidv4 } from 'uuid'
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import {
@@ -24,8 +23,7 @@ import {
     passThroughFixturePerspectiveKey,
 } from '../passThroughContractFixtures'
 import { orchestrateRoomDescriptionStreams } from './orchestrate'
-import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
-import { registerIngressSlot } from '../messageOrchestration'
+import { newDirectIngressAddress, registerIngressSlot } from '../messageOrchestration'
 
 const TERMINAL_RENDERED_CONTENT = {
     displayName: ['Terminal title'],
@@ -86,24 +84,15 @@ function findPublishMessage(
     return match ? (match[0] as PublishMessageLike) : undefined
 }
 
-/** Declares a one-slot bundle and registers its ingress listener --- the Phase 7 feature/knowledge equivalent of dataSource/perception/index.test.ts's declareCharacterMoveBundle/registerCharacterMoveIngress. */
-async function registerRenderSlot(componentId: string, perspectiveKey: string, targets: string[] = [VIEWER]): Promise<string> {
-    const bundleId = uuidv4()
-    const slotId = 'slot'
-    sendMessageBundleDeclared(messageBus, bundleId, {
-        bundleId,
-        slots: [{ slotId, expectedPublishType: 'PerceptionMessage' }],
-    })
-    await registerIngressSlot(messageBus, bundleId, {
-        slotId,
-        expectedPublishType: 'PerceptionMessage',
+/** Registers a feature/knowledge-description ingress listener at its own time and MessageId. */
+async function registerRenderSlot(componentId: string, perspectiveKey: string, targets: string[] = [VIEWER]): Promise<void> {
+    await registerIngressSlot(messageBus, newDirectIngressAddress(), {
         componentId: componentId as any,
         perspectiveKey,
         targets: targets as any,
         contentStream: 'render',
         format: 'full',
     })
-    return bundleId
 }
 
 describe('orchestrateRoomDescriptionStreams feature/knowledge fan-in', () => {

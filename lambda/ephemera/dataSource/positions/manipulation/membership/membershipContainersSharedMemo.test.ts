@@ -4,7 +4,7 @@ import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ep
 import { createEphemeraLudicGraphCacheData } from '../../../../internalCache/ludicGraphCache'
 
 import { getRoomExitTargetsForCharacter } from '../../../actions/roomExitTargetsForCharacter'
-import { orchestrateCharacterRoomMembership } from './orchestrateCharacterRoomMembership'
+import { orchestrateCharacterMove } from '../../navigate/orchestrateCharacterMove'
 
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
@@ -21,6 +21,11 @@ jest.mock('../../../affordanceCache/ensureAffordanceTopology', () => ({
 
 jest.mock('../../../perception/kickRoomHeaderBroadcast', () => ({
     resolveCharacterRoomPerspectiveForRoom: jest.fn(),
+    getCharacterRoomPerspectiveKey: jest.fn(),
+}))
+
+jest.mock('../kernel/commitAndPresentStepSequence', () => ({
+    commitAndPresentStepSequence: jest.fn().mockResolvedValue({ ok: true, beatAnchorTime: 1, steps: [], captures: new Map(), nextPresentationIndex: 0 }),
 }))
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -56,17 +61,9 @@ describe('membership containers shared memo (slice 1c)', () => {
         })
 
         await getRoomExitTargetsForCharacter(CHARACTER_ID)
-        await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: ROOM_ID, bundleId: 'BUNDLE#test', intentKind: 'navigate' },
-            {
-                messageBus: { publish: jest.fn() } as any,
-                streamEvent: jest.fn(),
-                getMembershipContainers: async (characterId) => {
-                    const containers = await internalCache.Positions.getMembershipContainers(characterId)
-                    return containers.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
-                },
-                transactWrite: jest.fn(),
-            }
+        await orchestrateCharacterMove(
+            { characterId: CHARACTER_ID, targetRoomId: ROOM_ID, intentKind: 'navigate', messageBus: { publish: jest.fn() } as any, streamEvent: jest.fn() },
+            { transactWrite: jest.fn() }
         )
 
         expect(querySpy).toHaveBeenCalledTimes(1)

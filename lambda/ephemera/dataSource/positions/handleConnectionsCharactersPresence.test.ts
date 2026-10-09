@@ -45,7 +45,6 @@ describe('handleConnectionsCharactersPresence', () => {
             froms: [],
             to: 'ROOM#TownSquare',
             changed: true,
-            beatAnchorTime: 1_700_000_000_000,
         })
     })
 
@@ -63,7 +62,6 @@ describe('handleConnectionsCharactersPresence', () => {
                 expect.objectContaining({
                     characterId: 'CHARACTER#alpha',
                     targetRoomId: 'ROOM#TownSquare',
-                    bundleId: expect.any(String),
                     intentKind: 'connect',
                     characterMeta,
                     messageBus,
@@ -99,9 +97,6 @@ describe('handleConnectionsCharactersPresence', () => {
                 froms: ['ROOM#roomA'],
                 to: null,
                 changed: true,
-                beatAnchorTime: 1_700_000_000_000,
-                captures: new Map([['capture:from:ROOM#roomA', ['CHARACTER#alpha']]]),
-                plan: { steps: [], slots: [] },
             })
 
             await handleCharacterDisconnected({
@@ -115,7 +110,6 @@ describe('handleConnectionsCharactersPresence', () => {
                 expect.objectContaining({
                     characterId: 'CHARACTER#alpha',
                     targetRoomId: null,
-                    bundleId: expect.any(String),
                     intentKind: 'disconnect',
                     messageBus,
                     streamEvent,

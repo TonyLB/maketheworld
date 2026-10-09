@@ -42,14 +42,11 @@ describe('repairRoomOccupancyDrift', () => {
 
     it('purges ghost characters with no live sessions via disconnect apply', async () => {
         getCharacterSessions.mockResolvedValue([])
-        const plan = { steps: [], slots: [] }
         applyMembershipMock.mockResolvedValue({
             ok: true,
             froms: [ROOM_ID],
             to: null,
             changed: true,
-            captures: new Map([['capture:from:ROOM#alpha', [CHARACTER_ID]]]),
-            plan,
         })
 
         const result = await runRepair()

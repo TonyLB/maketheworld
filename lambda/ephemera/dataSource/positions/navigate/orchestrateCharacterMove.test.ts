@@ -1,41 +1,38 @@
-jest.mock('../manipulation/membership/orchestrateCharacterRoomMembership', () => ({
-    orchestrateCharacterRoomMembership: jest.fn(),
+jest.mock('../manipulation/kernel/commitAndPresentStepSequence', () => ({
+    commitAndPresentStepSequence: jest.fn(),
 }))
 
-jest.mock('./presentCharacterMove', () => ({
-    presentCharacterMove: jest.fn(),
+jest.mock('../../perception/kickRoomHeaderBroadcast', () => ({
+    getCharacterRoomPerspectiveKey: jest.fn(),
 }))
 
 jest.mock('../../../internalCache', () => ({
     __esModule: true,
     default: {
         CharacterMeta: { get: jest.fn() },
+        Positions: { getMembershipContainers: jest.fn() },
     },
 }))
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
-import * as membership from '../manipulation/membership/orchestrateCharacterRoomMembership'
-import * as presentCharacterMove from './presentCharacterMove'
+import * as composer from '../manipulation/kernel/commitAndPresentStepSequence'
+import { getCharacterRoomPerspectiveKey } from '../../perception/kickRoomHeaderBroadcast'
 import { orchestrateCharacterMove } from './orchestrateCharacterMove'
 import { MessageBus } from '../../../messageBus/baseClasses'
 
-const characterMetaGetMock = internalCache.CharacterMeta.get as jest.MockedFunction<
-    typeof internalCache.CharacterMeta.get
+const characterMetaGetMock = internalCache.CharacterMeta.get as jest.Mock
+const getMembershipContainersMock = internalCache.Positions.getMembershipContainers as jest.Mock
+const commitAndPresentMock = composer.commitAndPresentStepSequence as jest.MockedFunction<
+    typeof composer.commitAndPresentStepSequence
 >
-
-const orchestrateCharacterRoomMembershipMock = membership.orchestrateCharacterRoomMembership as jest.MockedFunction<
-    typeof membership.orchestrateCharacterRoomMembership
->
-const presentCharacterMoveMock = presentCharacterMove.presentCharacterMove as jest.MockedFunction<
-    typeof presentCharacterMove.presentCharacterMove
->
+const perspectiveKeyMock = getCharacterRoomPerspectiveKey as jest.Mock
 
 const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
+const ROOM_C = 'ROOM#TestThree' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
 const BEAT_ANCHOR_TIME = 1_700_000_000_000
-const PLAN = { steps: [], slots: [] }
 
 const characterMeta = {
     EphemeraId: CHARACTER_ID,
@@ -46,26 +43,27 @@ const characterMeta = {
 }
 
 describe('orchestrateCharacterMove', () => {
-    const messageBusPublish = jest.fn()
-    const messageBusMock = { publish: messageBusPublish } as unknown as MessageBus
+    const messageBusMock = { publish: jest.fn() } as unknown as MessageBus
     const streamEvent = jest.fn().mockResolvedValue(undefined)
 
     beforeEach(() => {
         jest.clearAllMocks()
         characterMetaGetMock.mockResolvedValue(characterMeta)
-        orchestrateCharacterRoomMembershipMock.mockResolvedValue({
+        getMembershipContainersMock.mockResolvedValue([FROM_ROOM])
+        perspectiveKeyMock.mockResolvedValue('perspective-key')
+        commitAndPresentMock.mockResolvedValue({
             ok: true,
-            froms: [FROM_ROOM],
-            to: TO_ROOM,
-            changed: true,
             beatAnchorTime: BEAT_ANCHOR_TIME,
-            plan: PLAN,
-        })
-        presentCharacterMoveMock.mockResolvedValue(undefined)
+            steps: [],
+            captures: new Map(),
+            nextPresentationIndex: 3,
+        } as any)
     })
 
-    it('navigate: fetches characterMeta, calls the membership coordinator with a resolveHeaderSlot closure, and presents (the characters subscriber maintains the ladder)', async () => {
-        await orchestrateCharacterMove({
+    const lastPlan = () => commitAndPresentMock.mock.calls[0][0]
+
+    it('navigate: builds the plan once and hands it to the composer with commit and perceive deps', async () => {
+        const result = await orchestrateCharacterMove({
             characterId: CHARACTER_ID,
             targetRoomId: TO_ROOM,
             intentKind: 'navigate',
@@ -74,31 +72,34 @@ describe('orchestrateCharacterMove', () => {
             streamEvent,
         })
 
+        expect(result).toEqual({ ok: true, froms: [FROM_ROOM], to: TO_ROOM, changed: true })
         expect(characterMetaGetMock).toHaveBeenCalledWith(CHARACTER_ID)
-        expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledWith(
+        expect(commitAndPresentMock).toHaveBeenCalledTimes(1)
+
+        // buildCharacterMoveOp always narrates, so the plan brackets the transfer with captures; the
+        // header is a describe step carrying the resolved binding.
+        expect(lastPlan().steps).toEqual([
+            { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
+            { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
+            { kind: 'removePresenceBinding', hostId: CHARACTER_ID, fromHostId: FROM_ROOM },
+            { kind: 'addPresenceBinding', hostId: CHARACTER_ID, fromHostId: TO_ROOM, presenceUuid: expect.any(String) },
+            { kind: 'capture', hostId: TO_ROOM, captureId: 'capture:to' },
+            expect.objectContaining({ kind: 'narrate' }),
+            { kind: 'describe', referentId: TO_ROOM, referentKind: 'room', header: { perspectiveKey: 'perspective-key', assets: ['primitives', 'TownCenter'] } },
+            expect.objectContaining({ kind: 'narrate' }),
+        ])
+        expect(commitAndPresentMock).toHaveBeenCalledWith(
+            expect.anything(),
+            CHARACTER_ID,
             {
-                characterId: CHARACTER_ID,
-                targetRoomId: TO_ROOM,
-                bundleId: expect.any(String),
-                intentKind: 'navigate',
-                intentFromRoomId: FROM_ROOM,
-                exitName: undefined,
-                resolveHeaderSlot: expect.any(Function),
-            },
-            expect.objectContaining({
-                messageBus: messageBusMock,
-                streamEvent,
-            })
+                commit: expect.objectContaining({
+                    messageBus: messageBusMock,
+                    streamEvent,
+                    characterNames: new Map([[CHARACTER_ID, 'Test']]),
+                }),
+                perceive: expect.objectContaining({ messageBus: messageBusMock }),
+            }
         )
-        expect(presentCharacterMoveMock).toHaveBeenCalledWith({
-            characterId: CHARACTER_ID,
-            characterMeta,
-            to: TO_ROOM,
-            bundleId: expect.any(String),
-            plan: PLAN,
-            captures: undefined,
-            messageBus: messageBusMock,
-        })
     })
 
     it('home: same shape as navigate, distinguished only by intentKind', async () => {
@@ -110,11 +111,8 @@ describe('orchestrateCharacterMove', () => {
             streamEvent,
         })
 
-        expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledWith(
-            expect.objectContaining({ intentKind: 'home' }),
-            expect.anything()
-        )
-        expect(presentCharacterMoveMock).toHaveBeenCalled()
+        expect(commitAndPresentMock).toHaveBeenCalledTimes(1)
+        expect(lastPlan().steps).toContainEqual(expect.objectContaining({ kind: 'describe', referentId: TO_ROOM }))
     })
 
     it('connect: uses a pre-fetched characterMeta without re-fetching', async () => {
@@ -128,23 +126,11 @@ describe('orchestrateCharacterMove', () => {
         })
 
         expect(characterMetaGetMock).not.toHaveBeenCalled()
-        expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledWith(
-            expect.objectContaining({ intentKind: 'connect', resolveHeaderSlot: expect.any(Function) }),
-            expect.anything()
-        )
+        expect(commitAndPresentMock).toHaveBeenCalledTimes(1)
     })
 
-    it('disconnect: passes no resolveHeaderSlot, never fetches characterMeta, and presents directly', async () => {
-        orchestrateCharacterRoomMembershipMock.mockResolvedValue({
-            ok: true,
-            froms: [FROM_ROOM],
-            to: null,
-            changed: true,
-            beatAnchorTime: BEAT_ANCHOR_TIME,
-            plan: PLAN,
-        })
-
-        await orchestrateCharacterMove({
+    it('disconnect: resolves no header and compiles no describe step', async () => {
+        const result = await orchestrateCharacterMove({
             characterId: CHARACTER_ID,
             targetRoomId: null,
             intentKind: 'disconnect',
@@ -152,38 +138,32 @@ describe('orchestrateCharacterMove', () => {
             streamEvent,
         })
 
-        expect(characterMetaGetMock).not.toHaveBeenCalled()
-        expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledWith(
-            {
-                characterId: CHARACTER_ID,
-                targetRoomId: null,
-                bundleId: expect.any(String),
-                intentKind: 'disconnect',
-                intentFromRoomId: undefined,
-                exitName: undefined,
-                resolveHeaderSlot: undefined,
-            },
-            expect.anything()
-        )
-        expect(presentCharacterMoveMock).toHaveBeenCalledWith({
-            characterId: CHARACTER_ID,
-            characterMeta: undefined,
-            to: null,
-            bundleId: expect.any(String),
-            plan: PLAN,
-            captures: undefined,
-            messageBus: messageBusMock,
-        })
+        expect(result).toEqual({ ok: true, froms: [FROM_ROOM], to: null, changed: true })
+        expect(perspectiveKeyMock).not.toHaveBeenCalled()
+        expect(lastPlan().steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
-    it('no-op move: still returns the coordinator result without presenting', async () => {
-        orchestrateCharacterRoomMembershipMock.mockResolvedValue({
-            ok: true,
-            froms: [FROM_ROOM],
-            to: FROM_ROOM,
-            changed: false,
+    it('drift scrub: captures and unbinds every prior container', async () => {
+        getMembershipContainersMock.mockResolvedValue([FROM_ROOM, ROOM_C])
+
+        await orchestrateCharacterMove({
+            characterId: CHARACTER_ID,
+            targetRoomId: TO_ROOM,
+            intentKind: 'navigate',
+            messageBus: messageBusMock,
+            streamEvent,
         })
 
+        expect(lastPlan().steps).toEqual(expect.arrayContaining([
+            { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
+            { kind: 'capture', hostId: ROOM_C, captureId: 'capture:from:ROOM#TestThree' },
+            { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM, ROOM_C]), toHostId: TO_ROOM },
+            { kind: 'removePresenceBinding', hostId: CHARACTER_ID, fromHostId: FROM_ROOM },
+            { kind: 'removePresenceBinding', hostId: CHARACTER_ID, fromHostId: ROOM_C },
+        ]))
+    })
+
+    it('no-op move: reads only the containers, then returns unchanged', async () => {
         const result = await orchestrateCharacterMove({
             characterId: CHARACTER_ID,
             targetRoomId: FROM_ROOM,
@@ -192,16 +172,20 @@ describe('orchestrateCharacterMove', () => {
             streamEvent,
         })
 
-        expect(result).toEqual(expect.objectContaining({ ok: true, changed: false }))
-        expect(presentCharacterMoveMock).not.toHaveBeenCalled()
+        expect(result).toEqual({ ok: true, froms: [], to: FROM_ROOM, changed: false })
+        expect(characterMetaGetMock).not.toHaveBeenCalled()
+        expect(perspectiveKeyMock).not.toHaveBeenCalled()
+        expect(commitAndPresentMock).not.toHaveBeenCalled()
+        expect(messageBusMock.publish).not.toHaveBeenCalled()
     })
 
-    it('failed apply: returns the error result without presenting', async () => {
-        orchestrateCharacterRoomMembershipMock.mockResolvedValue({
+    it('failed commit: logs and returns the error result', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+        commitAndPresentMock.mockResolvedValue({
             ok: false,
-            errorCode: 'HOST_EFFECTS_TRANSACT_FAILED',
+            errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED',
             errorMessage: 'boom',
-        })
+        } as any)
 
         const result = await orchestrateCharacterMove({
             characterId: CHARACTER_ID,
@@ -211,7 +195,8 @@ describe('orchestrateCharacterMove', () => {
             streamEvent,
         })
 
-        expect(result).toEqual({ ok: false, errorCode: 'HOST_EFFECTS_TRANSACT_FAILED', errorMessage: 'boom' })
-        expect(presentCharacterMoveMock).not.toHaveBeenCalled()
+        expect(result).toEqual({ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage: 'boom' })
+        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('boom'))
+        consoleSpy.mockRestore()
     })
 })

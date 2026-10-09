@@ -7,9 +7,8 @@ describe('buildCharacterMoveOp', () => {
             characterName: 'Tess',
             froms: [],
             to: 'ROOM#alpha',
-            bundleId: 'BUNDLE#test',
             intentKind: 'connect',
-            headerSlot: null,
+            header: null,
         })
 
         expect(op.narration?.arriveCopyKind).toEqual('connect')
@@ -22,11 +21,10 @@ describe('buildCharacterMoveOp', () => {
             characterName: 'Tess',
             froms: ['ROOM#alpha'],
             to: null,
-            bundleId: 'BUNDLE#test',
             intentKind: 'disconnect',
             intentFromRoomId: 'ROOM#somewhereElse',
             exitName: 'north',
-            headerSlot: null,
+            header: null,
         })
 
         expect(op.narration?.leaveCopyKind('ROOM#alpha' as any)).toEqual('disconnect')
@@ -39,9 +37,8 @@ describe('buildCharacterMoveOp', () => {
             characterName: 'Tess',
             froms: ['ROOM#alpha'],
             to: 'ROOM#home',
-            bundleId: 'BUNDLE#test',
             intentKind: 'home',
-            headerSlot: null,
+            header: null,
         })
         expect(homeOp.narration?.arriveCopyKind).toEqual('home')
         expect(homeOp.narration?.leaveCopyKind('ROOM#alpha' as any)).toEqual('home')
@@ -51,11 +48,10 @@ describe('buildCharacterMoveOp', () => {
             characterName: 'Tess',
             froms: ['ROOM#alpha'],
             to: 'ROOM#beta',
-            bundleId: 'BUNDLE#test',
             intentKind: 'navigate',
             intentFromRoomId: 'ROOM#alpha',
             exitName: 'north',
-            headerSlot: null,
+            header: null,
         })
         expect(navigateOp.narration?.arriveCopyKind).toEqual('exitAware')
         expect(navigateOp.narration?.leaveCopyKind('ROOM#alpha' as any)).toEqual('exitAware')

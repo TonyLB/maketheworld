@@ -13,14 +13,12 @@ import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
 import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { v4 as uuidv4 } from 'uuid'
 import internalCache from '../../internalCache'
 import messageBus from '../../messageBus'
 import type { EphemeraCacheDynamoItem } from '../renderCache/baseClasses'
 import { EPHEMERA_CACHE_PROVENANCE_AUTHORED } from '../renderCache/baseClasses'
 import { orchestrateRoomDescriptionStreams } from './orchestrate'
-import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
-import { registerIngressSlot } from '../messageOrchestration'
+import { newDirectIngressAddress, registerIngressSlot } from '../messageOrchestration'
 import { testLudicGraph } from '../positions/ludicGraph/testFixtures'
 
 const assetDBMock = jest.mocked(assetDB)
@@ -31,7 +29,6 @@ const PERSPECTIVE = { assetStack: ['ASSET#one'] } as const
 const PERSPECTIVE_KEY = 'PERSPECTIVE#v1#abc123'
 const CACHE_ID = 'CACHE#fixture-cache-1' as const
 const VIEWER = 'CHARACTER#viewer' as const
-const SLOT_ID = 'object-slot'
 
 function objectTerminalCacheRecord(): EphemeraCacheDynamoItem {
     return {
@@ -76,23 +73,15 @@ function spyPublish() {
     return jest.spyOn(messageBus, 'publish')
 }
 
-/** Declares a one-slot bundle and registers its ingress listener --- the Phase 7 object-description equivalent of dataSource/perception/index.test.ts's declareCharacterMoveBundle/registerCharacterMoveIngress. */
-async function registerObjectDescriptionSlot(targets: string[] = [VIEWER]): Promise<string> {
-    const bundleId = uuidv4()
-    sendMessageBundleDeclared(messageBus, bundleId, {
-        bundleId,
-        slots: [{ slotId: SLOT_ID, expectedPublishType: 'PerceptionMessage' }],
-    })
-    await registerIngressSlot(messageBus, bundleId, {
-        slotId: SLOT_ID,
-        expectedPublishType: 'PerceptionMessage',
+/** Registers an object-description ingress listener at its own time and MessageId. */
+async function registerObjectDescriptionSlot(targets: string[] = [VIEWER]): Promise<void> {
+    await registerIngressSlot(messageBus, newDirectIngressAddress(), {
         componentId: OBJECT_ID,
         perspectiveKey: PERSPECTIVE_KEY,
         targets: targets as any,
         contentStream: 'render',
         format: 'full',
     })
-    return bundleId
 }
 
 describe('orchestrateRoomDescriptionStreams object fan-in', () => {

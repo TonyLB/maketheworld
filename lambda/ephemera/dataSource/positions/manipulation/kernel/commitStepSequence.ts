@@ -38,7 +38,7 @@ export type CommitStepSequenceDeps = {
     /**
      * Character-route Migrate row: resolved character display names for any `transferMembership`
      * step whose `entityId` is a character, so `factsForStep` (synchronous) can build a fully-populated
-     * `Character Moved` fact without fetching anything itself. Only `orchestrateCharacterRoomMembership.ts`
+     * `Character Moved` fact without fetching anything itself. Only `orchestrateCharacterMove.ts`
      * populates this today; every other caller's steps move no character, so it's a no-op.
      */
     characterNames?: ReadonlyMap<EphemeraCharacterId, string>
@@ -90,8 +90,8 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * destroy/edit/spawn/place/drift-repair; this absorbed `applyObjectClearMembership`/
  * `applyObjectRoomMembership`/`executeObjectMove` into it, 2026-09-07),
  * `applyObjectRelationalChange` (establish/dissolve), and --- character-route
- * Migrate row --- `orchestrateCharacterRoomMembership` (navigate/connect/disconnect, itself now a thin
- * wrapper over `executeMembershipTransfer`).
+ * Migrate row --- `orchestrateCharacterMove` (navigate/connect/disconnect, via
+ * `commitAndPresentStepSequence`).
  * `applyHostEffects` and its transact-item builders have no remaining callers and are retired.
  */
 export const commitStepSequence = async (

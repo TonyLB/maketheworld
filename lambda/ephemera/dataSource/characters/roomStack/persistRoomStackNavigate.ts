@@ -1,7 +1,6 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import internalCache from '../../../internalCache'
-import type { CharacterMetaItem } from '../../../internalCache/characterMeta'
 import { mergeRoomStack } from './mergeRoomStack'
 import { buildProposedRoomStackForNavigate } from './membershipRoomStack'
 import { normalizeRoomStack } from './trimEvictionLadder'
@@ -49,13 +48,10 @@ export const persistRoomStackNavigate = async (
                 })
                 draft.RoomStack = mergeRoomStack(current, proposed, args.beatAnchorTime)
             },
-            successCallback: ({ RoomStack }, prior) => {
-                const priorMeta = prior as Partial<CharacterMetaItem>
-                internalCache.CharacterMeta.set({
-                    ...priorMeta,
-                    EphemeraId: args.characterId,
-                    RoomStack: RoomStack as RoomStackItem[],
-                } as CharacterMetaItem)
+            // `optimisticUpdate`'s prior holds only the update keys, so caching it would leave a partial
+            // entry (no Name/assets); drop the entry and let the next read hydrate it whole.
+            successCallback: () => {
+                internalCache.CharacterMeta.invalidate(args.characterId)
             },
             succeedAll: true,
         })

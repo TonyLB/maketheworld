@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -47,8 +46,9 @@ const defaultGetMembershipContainers = (id: EphemeraObjectId | EphemeraCharacter
  * The object-lifecycle administrative membership move --- room place/remove, spawn, destroy/edit,
  * drift repair. One call site for every non-narrating object rehost.
  *
- * **Character routes no longer call this function** (3e, 2026-09-08): `orchestrateCharacterRoomMembership`
- * now builds and compiles its plan upstream via `planCharacterMoveTransfer` and commits directly.
+ * **Character routes no longer call this function** (3e, 2026-09-08): `orchestrateCharacterMove`
+ * builds and compiles its plan upstream via `planCharacterMoveTransfer` and commits through
+ * `commitAndPresentStepSequence`.
  * **Take/drop/give no longer calls this function either** (3d, 2026-09-08): `honorDefer`, the mode
  * that let a single caller (the object-move route) opt into a player-refusable, single-hop
  * defer-aware check, is deleted --- that path is `commitAttempt` (via `planObjectMoveTransfer`),
@@ -91,8 +91,7 @@ export const executeMembershipTransfer = async (
         moved: args.entityId,
         froms,
         to: args.target,
-        bundleId: uuidv4(),
-        headerSlot: null,
+        header: null,
     })
     const steps = compiledSteps.filter(isKernelMutationStep)
 

@@ -9,7 +9,7 @@ const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
  * Character-route sibling of `planObjectMoveTransfer.test.ts` (3e): pins the compiled plan a
  * character move builds exactly once, before commit. No commit happens inside this function ---
  * `getMembershipContainers` is the only I/O seam, so no `internalCache`/`transactWrite` mocking is
- * needed; `orchestrateCharacterRoomMembership.test.ts` covers the commit composition.
+ * needed; `orchestrateCharacterMove.test.ts` covers the commit composition.
  */
 describe('planCharacterMoveTransfer', () => {
     it('returns changed:false with no plan when the target room is already a container', async () => {
@@ -17,7 +17,6 @@ describe('planCharacterMoveTransfer', () => {
             characterId: CHARACTER_ID,
             characterName: 'Test',
             targetRoomId: FROM_ROOM,
-            bundleId: 'BUNDLE#test',
             intentKind: 'navigate',
             getMembershipContainers: async () => [FROM_ROOM],
         })
@@ -31,7 +30,6 @@ describe('planCharacterMoveTransfer', () => {
             characterId: CHARACTER_ID,
             characterName: 'Test',
             targetRoomId: TO_ROOM,
-            bundleId: 'BUNDLE#test',
             intentKind: 'navigate',
             intentFromRoomId: FROM_ROOM,
             getMembershipContainers: async () => [FROM_ROOM],
@@ -47,63 +45,52 @@ describe('planCharacterMoveTransfer', () => {
     })
 
     it('resolves the header slot only once the move is confirmed changed and has a real destination', async () => {
-        const resolveHeaderSlot = jest.fn().mockResolvedValue(null)
+        const resolveHeader = jest.fn().mockResolvedValue(null)
 
         await planCharacterMoveTransfer({
             characterId: CHARACTER_ID,
             characterName: 'Test',
             targetRoomId: FROM_ROOM,
-            bundleId: 'BUNDLE#test',
             intentKind: 'navigate',
-            resolveHeaderSlot,
+            resolveHeader,
             getMembershipContainers: async () => [FROM_ROOM],
         })
 
-        expect(resolveHeaderSlot).not.toHaveBeenCalled()
+        expect(resolveHeader).not.toHaveBeenCalled()
     })
 
-    it('bakes a resolved header slot into the compiled plan', async () => {
-        const headerSlot = {
-            slotId: 'SLOT#header',
-            expectedPublishType: 'PerceptionMessage' as const,
-            componentId: TO_ROOM,
-            perspectiveKey: 'pk',
-            targets: [CHARACTER_ID],
-            contentStream: 'render' as const,
-            format: 'header' as const,
-        }
-        const resolveHeaderSlot = jest.fn().mockResolvedValue(headerSlot)
+    it('compiles a resolved header into a describe step', async () => {
+        const header = { perspectiveKey: 'pk', assets: [] as string[] }
+        const resolveHeader = jest.fn().mockResolvedValue(header)
 
         const result = await planCharacterMoveTransfer({
             characterId: CHARACTER_ID,
             characterName: 'Test',
             targetRoomId: TO_ROOM,
-            bundleId: 'BUNDLE#test',
             intentKind: 'connect',
-            resolveHeaderSlot,
+            resolveHeader,
             getMembershipContainers: async () => [FROM_ROOM],
         })
 
-        expect(resolveHeaderSlot).toHaveBeenCalledWith(TO_ROOM)
+        expect(resolveHeader).toHaveBeenCalledWith(TO_ROOM)
         if (!result.ok || !result.changed) { throw new Error('expected a changed plan') }
-        expect(result.plan.slots).toEqual(expect.arrayContaining([headerSlot]))
+        expect(result.plan.steps).toContainEqual({ kind: 'describe', referentId: TO_ROOM, referentKind: 'room', header })
     })
 
-    it('disconnect (target null) never resolves a header slot even if one is supplied', async () => {
-        const resolveHeaderSlot = jest.fn().mockResolvedValue(null)
+    it('disconnect (target null) never resolves a header even if one is supplied', async () => {
+        const resolveHeader = jest.fn().mockResolvedValue(null)
 
         const result = await planCharacterMoveTransfer({
             characterId: CHARACTER_ID,
             characterName: 'Test',
             targetRoomId: null,
-            bundleId: 'BUNDLE#test',
             intentKind: 'disconnect',
-            resolveHeaderSlot,
+            resolveHeader,
             getMembershipContainers: async () => [FROM_ROOM],
         })
 
-        expect(resolveHeaderSlot).not.toHaveBeenCalled()
+        expect(resolveHeader).not.toHaveBeenCalled()
         if (!result.ok || !result.changed) { throw new Error('expected a changed plan') }
-        expect(result.plan.slots.some((slot) => slot.expectedPublishType === 'PerceptionMessage')).toBe(false)
+        expect(result.plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 })

@@ -75,7 +75,6 @@ const labelForGroundedId = (labels: AttemptNarrationLabels, groundedId: string):
 
 type ActionFragment = {
     steps: CompiledPositionKernelPlan['steps']
-    slots: CompiledPositionKernelPlan['slots']
     relationalEdge?: RelationalEdgeFactSource
     membershipMove?: MembershipMoveInfo
 }
@@ -108,8 +107,7 @@ const buildMembershipFragment = async (
     actionId: string,
     change: TransferMembershipChange<GroundedReferent>,
     liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>,
-    args: CommitAttemptArgs,
-    bundleId: string
+    args: CommitAttemptArgs
 ): Promise<ActionFragment | undefined> => {
     const entityId = change.object.groundedId
     const fromHostId = change.from.groundedId as EphemeraMembershipHostId
@@ -142,7 +140,6 @@ const buildMembershipFragment = async (
         entityId,
         fromHostId,
         toHostId,
-        bundleId,
         // Containment: `planObjectMoveTransfer`/`buildObjectMoveOp`/
         // `compilePositionKernelOp` already thread this through to the establish step whose
         // `hostId` is always `toHostId` by construction --- no ancestry walk needed.
@@ -156,7 +153,6 @@ const buildMembershipFragment = async (
 
     return {
         steps: planResult.plan.steps,
-        slots: planResult.plan.slots,
         membershipMove: {
             actionId,
             entityId,
@@ -187,7 +183,7 @@ const buildRelationalFragment = async (
             ? { relationKind: 'Custom' as const, relationLabel: change.relationLabel }
             : { relationKind: change.relationKind }),
     }
-    return { steps: planResult.steps, slots: [], relationalEdge }
+    return { steps: planResult.steps, relationalEdge }
 }
 
 /**
@@ -399,10 +395,6 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         console.error(`[mtw.ephemera.positions] commitAttempt: attempt not committed: its result is ${result.status}`)
         return
     }
-    // Minted once, up front --- membership fragments are built with it (`planObjectMoveTransfer`),
-    // and the post-commit sweep declares the attempt's narration bundle under the same id.
-    const bundleId = uuidv4()
-
     // The span half travels on the attempt's referents; the derived half is rebuilt
     // here, against live state, for every action alike (a relational step, published fully
     // grounded, passes through unchanged).
@@ -451,7 +443,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     const fragmentActionIds: string[] = []
     for (const { actionId, change } of grounded) {
         const fragment = change.primitive === 'transferMembership'
-            ? await buildMembershipFragment(actionId, change, liveHosts, args, bundleId)
+            ? await buildMembershipFragment(actionId, change, liveHosts, args)
             : await buildRelationalFragment(change)
         if (fragment === undefined) {
             console.error(`[mtw.ephemera.positions] commitAttempt: attempt refused: ${change.primitive} action could not be built`)
@@ -487,7 +479,6 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
         ...fragment.steps,
         ...afterByFragmentIndex[index]!,
     ])
-    const slots = fragments.flatMap((fragment) => fragment.slots)
 
     // Mirrors `executeEstablishEdgeChain`'s own resolver: every relational
     // step already carries its own `hostId`, so no live lookup is needed to answer
@@ -515,8 +506,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     }
 
     const commitResult = await commitAndPresentStepSequence(
-        { steps, slots },
-        bundleId,
+        { steps },
         characterId,
         {
             commit: {
@@ -543,7 +533,8 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     deliverNarrationUnits({
         units: unitsToDeliver,
         captures: commitResult.captures,
-        bundleId,
+        beatAnchorTime: commitResult.beatAnchorTime,
+        firstPresentationIndex: commitResult.nextPresentationIndex,
         messageBus: args.messageBus,
         actorName: labels.actorName,
         labels: Object.fromEntries(refsInUnits(unitsToDeliver).map((ref) => [ref, labelForGroundedId(labels, groundingForRef(ref, byRef).groundedId)] as const)),

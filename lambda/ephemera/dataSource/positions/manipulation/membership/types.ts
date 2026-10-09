@@ -1,28 +1,5 @@
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { RoomCharacterListItem } from '../../../../internalCache/baseClasses'
-import type { MessageOrchestrationSlotSpec } from '../../../messageOrchestration/localApiEvents'
-
-export type MembershipApplyArgs = {
-    characterId: EphemeraCharacterId;
-    /** null = out of play (disconnect). */
-    targetRoomId: EphemeraRoomId | null;
-    /** messageOrchestration bundle correlation id --- forwarded to `planCharacterMoveTransfer`, which bakes it into the compiled plan's narrate steps (if any). */
-    bundleId: string;
-    /** Selects leave/arrive copy-kind (`buildCharacterMoveOp.ts`) --- forwarded to `planCharacterMoveTransfer`. */
-    intentKind: IntentKind;
-    /** The intent's own departure room, used to pick exit-aware copy among possibly several `froms`. */
-    intentFromRoomId?: EphemeraRoomId;
-    /** Normalized exit label, navigate only --- selects `exitAware` copy. */
-    exitName?: string;
-    /**
-     * Async header-slot resolution, supplied only by navigate/connect (whichever route needs a
-     * rendered room header); disconnect/repair omit it. Forwarded to `planCharacterMoveTransfer`,
-     * which calls it only once the move is confirmed changed and has a real destination --- see that
-     * function's own doc comment for why a no-op move never pays for it.
-     */
-    resolveHeaderSlot?: (to: EphemeraRoomId) => Promise<MessageOrchestrationSlotSpec | null>;
-}
 
 /**
  * Generic over the host id type so a narrower vocabulary derives from --- rather than merely
@@ -42,14 +19,6 @@ export type MembershipDiff<HostId extends EphemeraMembershipHostId = EphemeraMem
 
 export type MembershipApplySuccessResult = {
     ok: true;
-    /** Set when changed; Model A / slice 1b fact anchor (F1-4). */
-    beatAnchorTime?: number;
-    /** Room roster snapshots after apply; derived via getRoomCharacterList after graph memo seed. */
-    roomRosterSnapshots?: Partial<Record<EphemeraRoomId, RoomCharacterListItem[]>>;
-    /** Phase 2: the commit's captured rosters (`MutationKernelCaptures`), passed through so a caller whose committed steps included capture steps can feed `presentStepSequence`'s narration branch. Empty when the committed steps carried no capture steps (every route but navigate today). */
-    captures?: import('../kernel/types').MutationKernelCaptures;
-    /** 3e: the plan `planCharacterMoveTransfer` already compiled, carried through commit so `presentCharacterMove` (3f --- merged from the former `orchestrateCharacterNavigate`/`orchestrateCharacterDisconnect`) presents it rather than rebuilding it. Unset when `changed: false` (nothing was ever compiled). */
-    plan?: import('../kernel/compile/compilePositionKernelOp').CompiledPositionKernelPlan;
 } & MembershipDiff<EphemeraRoomId>
 
 export type MembershipApplyErrorResult = {

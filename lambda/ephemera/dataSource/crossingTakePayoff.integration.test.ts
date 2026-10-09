@@ -156,8 +156,9 @@ describe('crossing take payoff (integration)', () => {
     const delivered = async (publish: jest.Mock): Promise<{ line: string, targets: string[] }[]> => {
         const reports = publish.mock.calls
             .map((call: any[]) => call[0])
-            .filter((message: any) => message?.type === 'StreamingEvent' && message?.header?.type === 'Message Slot Reported')
-        const contents = await Promise.all(reports.map((report: any) => report.getContent()))
+            .filter((message: any) => message?.type === 'PublishMessage' && message?.displayProtocol === 'WorldMessage')
+            .sort((a: any, b: any) => a.createdTime - b.createdTime)
+        const contents = reports.map((report: any) => ({ message: report }))
         return contents.map((content: any) => ({ line: content.message.message.join(''), targets: [...content.message.targets].sort() }))
     }
 

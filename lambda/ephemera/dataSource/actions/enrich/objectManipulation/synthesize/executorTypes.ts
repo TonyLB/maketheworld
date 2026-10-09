@@ -66,6 +66,17 @@ export type ExecutorDescribeStep = {
     kind: 'describe'
     referentId: EphemeraRoomId | EphemeraObjectId | EphemeraCharacterId | EphemeraFeatureId | EphemeraKnowledgeId
     referentKind: DescribeReferentKind
+    /**
+     * Present only on a move's arrival header (room referent): the description is delivered in
+     * `header` format through a passive render rather than the full-format `Look Command Requested`
+     * path. `perspectiveKey` is resolved by the caller before commit; `null` means the character's
+     * assets match no stack for the room, and the header is the static cache-record header instead
+     * of a rendered one. `assets` feed the passive render's perspective.
+     */
+    header?: {
+        perspectiveKey: string | null
+        assets: readonly string[]
+    }
 }
 
 /**

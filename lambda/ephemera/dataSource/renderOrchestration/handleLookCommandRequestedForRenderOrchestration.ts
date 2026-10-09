@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import type { LookCommandRequestedPublishedPayload } from '../actions/publishedEvents'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import internalCache from '../../internalCache'
@@ -19,10 +18,8 @@ import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import { prepareFeatureKnowledgeRenderForCharacter } from './prepareFeatureKnowledgeRenderForCharacter'
 import { prepareObjectRenderForCharacter } from './prepareObjectRenderForCharacter'
 import { prepareCharacterRenderForCharacter } from './prepareCharacterRenderForCharacter'
-import { registerIngressSlot } from '../messageOrchestration'
-import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
-import type { MessageOrchestrationSlotSpec } from '../messageOrchestration/localApiEvents'
-import { LOOK_DESCRIBE_SLOT_ID } from '../actions/lookBundleSlotIds'
+import { newDirectIngressAddress, registerIngressSlot } from '../messageOrchestration'
+import type { IngressListenerSpec } from '../messageOrchestration/contentIngress'
 
 export const prepareLookOrchestrationPerspective = async (
     characterId: EphemeraCharacterId,
@@ -43,27 +40,21 @@ export const prepareLookOrchestrationPerspective = async (
 }
 
 /**
- * Declares a fresh one-slot messageOrchestration bundle and registers its ingress slot (Phase 7).
- * Minted locally here, not threaded through the `Look Command Requested` payload: every event this
- * handler processes maps 1:1 to its own invocation with no sibling slots to correlate with (unlike
- * navigate's leave/header/arrive, which are genuinely resolved by separate components) --- see the
- * planning doc's note on why the earlier declare-upstream-and-thread-through-the-payload shape was
- * simplified back out.
+ * Registers an ingress listener that owns its own time and MessageId: the stamp a plan forwarded on
+ * `Look Command Requested` when the look is one of its steps, otherwise one minted here.
  */
 async function registerLookSlot(
     bus: MessageBus,
-    spec: Omit<MessageOrchestrationSlotSpec, 'slotId' | 'expectedPublishType'>,
+    payload: LookCommandRequestedPublishedPayload,
+    spec: IngressListenerSpec,
     kickoff: () => Promise<void>
 ): Promise<void> {
-    const bundleId = uuidv4()
-    sendMessageBundleDeclared(bus, bundleId, {
-        bundleId,
-        slots: [{ slotId: LOOK_DESCRIBE_SLOT_ID, expectedPublishType: 'PerceptionMessage' }],
-    })
     await registerIngressSlot(
         bus,
-        bundleId,
-        { ...spec, slotId: LOOK_DESCRIBE_SLOT_ID, expectedPublishType: 'PerceptionMessage' } as MessageOrchestrationSlotSpec,
+        payload.createdTime !== undefined && payload.messageId !== undefined
+            ? { createdTime: payload.createdTime, messageId: payload.messageId }
+            : newDirectIngressAddress(),
+        spec,
         kickoff
     )
 }
@@ -87,6 +78,7 @@ export async function handleLookCommandRequestedForRenderOrchestration(
         )
         await registerLookSlot(
             messageBus,
+            payload,
             { componentId, perspectiveKey, targets: [characterId], contentStream: 'render', format: 'full' },
             async () => {
                 await orchestrateRenderRequest({
@@ -108,6 +100,7 @@ export async function handleLookCommandRequestedForRenderOrchestration(
         const targets: PublishTarget[] = [characterId]
         await registerLookSlot(
             messageBus,
+            payload,
             { componentId, perspectiveKey: prepared.perspectiveKey, targets, contentStream: 'render', format: 'full' },
             async () => {
                 await orchestrateRenderRequest({
@@ -131,6 +124,7 @@ export async function handleLookCommandRequestedForRenderOrchestration(
         const prepared = await prepareObjectRenderForCharacter(characterId, componentId)
         await registerLookSlot(
             messageBus,
+            payload,
             { componentId, perspectiveKey: prepared.perspectiveKey, targets: [characterId], contentStream: 'render', format: 'full' },
             async () => {
                 await orchestrateRenderRequest({
@@ -153,6 +147,7 @@ export async function handleLookCommandRequestedForRenderOrchestration(
         const prepared = await prepareCharacterRenderForCharacter(characterId, componentId)
         await registerLookSlot(
             messageBus,
+            payload,
             { componentId, perspectiveKey: prepared.perspectiveKey, targets: [characterId], contentStream: 'render', format: 'full' },
             async () => {
                 await orchestrateRenderRequest({

@@ -6,7 +6,6 @@ import * as prepareFeatureKnowledge from './prepareFeatureKnowledgeRenderForChar
 import * as prepareObject from './prepareObjectRenderForCharacter'
 import * as prepareCharacter from './prepareCharacterRenderForCharacter'
 import * as messageOrchestration from '../messageOrchestration'
-import * as messageOrchestrationSubscribedEvents from '../messageOrchestration/subscribedEvents'
 import {
     handleLookCommandRequestedForRenderOrchestration,
     prepareLookOrchestrationPerspective,
@@ -32,12 +31,13 @@ jest.mock('./prepareObjectRenderForCharacter', () => ({
 jest.mock('./prepareCharacterRenderForCharacter', () => ({
     prepareCharacterRenderForCharacter: jest.fn(),
 }))
-jest.mock('../messageOrchestration', () => ({
-    registerIngressSlot: jest.fn(),
-}))
-jest.mock('../messageOrchestration/subscribedEvents', () => ({
-    sendMessageBundleDeclared: jest.fn(),
-}))
+jest.mock('../messageOrchestration', () => {
+    let next = 0
+    return {
+        registerIngressSlot: jest.fn(),
+        newDirectIngressAddress: jest.fn(() => ({ createdTime: 1000 + next, messageId: `MESSAGE#${next++}` })),
+    }
+})
 
 const internalCacheMock = jest.mocked(internalCache, true as any)
 const mockResolveCanonAssetStackForRoom = resolveCanonAssetStackForRoom as jest.MockedFunction<typeof resolveCanonAssetStackForRoom>
@@ -48,7 +48,6 @@ const mockPrepareFeatureKnowledgeRenderForCharacter = prepareFeatureKnowledge.pr
 const mockPrepareObjectRenderForCharacter = prepareObject.prepareObjectRenderForCharacter as jest.MockedFunction<typeof prepareObject.prepareObjectRenderForCharacter>
 const mockPrepareCharacterRenderForCharacter = prepareCharacter.prepareCharacterRenderForCharacter as jest.MockedFunction<typeof prepareCharacter.prepareCharacterRenderForCharacter>
 const mockRegisterIngressSlot = messageOrchestration.registerIngressSlot as jest.MockedFunction<typeof messageOrchestration.registerIngressSlot>
-const mockSendMessageBundleDeclared = messageOrchestrationSubscribedEvents.sendMessageBundleDeclared as jest.MockedFunction<typeof messageOrchestrationSubscribedEvents.sendMessageBundleDeclared>
 
 describe('handleLookCommandRequestedForRenderOrchestration', () => {
     const streamEvent = jest.fn().mockResolvedValue(undefined)
@@ -69,7 +68,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         // in production --- invoke it here so these tests can assert on orchestrateRenderRequest
         // without depending on messageOrchestration's own registration/kickoff mechanics
         // (covered by dataSource/messageOrchestration's own test suite).
-        mockRegisterIngressSlot.mockImplementation(async (_bus, _bundleId, _spec, kickoff) => {
+        mockRegisterIngressSlot.mockImplementation(async (_bus, _address, _spec, kickoff) => {
             await kickoff?.()
         })
     })
@@ -104,16 +103,9 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
             confidence: 1,
         }, streamEvent)
 
-        expect(mockSendMessageBundleDeclared).toHaveBeenCalledWith(
-            messageBus,
-            expect.any(String),
-            expect.objectContaining({
-                slots: [expect.objectContaining({ slotId: expect.any(String), expectedPublishType: 'PerceptionMessage' })],
-            })
-        )
         expect(mockRegisterIngressSlot).toHaveBeenCalledWith(
             messageBus,
-            expect.any(String),
+            expect.objectContaining({ createdTime: expect.any(Number), messageId: expect.any(String) }),
             expect.objectContaining({
                 componentId: 'ROOM#X',
                 targets: ['CHARACTER#C'],
@@ -161,7 +153,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         expect(mockPrepareFeatureKnowledgeRenderForCharacter).toHaveBeenCalledWith('CHARACTER#C', 'FEATURE#Door')
         expect(mockRegisterIngressSlot).toHaveBeenCalledWith(
             messageBus,
-            expect.any(String),
+            expect.objectContaining({ createdTime: expect.any(Number), messageId: expect.any(String) }),
             expect.objectContaining({
                 componentId: 'FEATURE#Door',
                 perspectiveKey: 'pk-feature',
@@ -207,7 +199,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         expect(internalCacheMock.Global.get).not.toHaveBeenCalled()
         expect(mockRegisterIngressSlot).toHaveBeenCalledWith(
             messageBus,
-            expect.any(String),
+            expect.objectContaining({ createdTime: expect.any(Number), messageId: expect.any(String) }),
             expect.objectContaining({
                 componentId: 'KNOWLEDGE#Lore',
                 targets: ['CHARACTER#C'],
@@ -240,7 +232,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         expect(mockPrepareObjectRenderForCharacter).toHaveBeenCalledWith('CHARACTER#C', 'OBJECT#Tray')
         expect(mockRegisterIngressSlot).toHaveBeenCalledWith(
             messageBus,
-            expect.any(String),
+            expect.objectContaining({ createdTime: expect.any(Number), messageId: expect.any(String) }),
             expect.objectContaining({
                 componentId: 'OBJECT#Tray',
                 perspectiveKey: 'pk-object',
@@ -289,7 +281,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         expect(mockPrepareCharacterRenderForCharacter).toHaveBeenCalledWith('CHARACTER#C', 'CHARACTER#Target')
         expect(mockRegisterIngressSlot).toHaveBeenCalledWith(
             messageBus,
-            expect.any(String),
+            expect.objectContaining({ createdTime: expect.any(Number), messageId: expect.any(String) }),
             expect.objectContaining({
                 componentId: 'CHARACTER#Target',
                 perspectiveKey: 'pk-character',
@@ -315,7 +307,7 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
         expect(mockPrepareObjectRenderForCharacter).not.toHaveBeenCalled()
     })
 
-    it('mints a fresh bundleId per event, not shared across separate look events', async () => {
+    it('mints a fresh direct address (own MessageId) per event, not shared across separate look events', async () => {
         await handleLookCommandRequestedForRenderOrchestration(messageBus, {
             type: 'Look Command Requested',
             characterId: 'CHARACTER#C',
@@ -329,8 +321,8 @@ describe('handleLookCommandRequestedForRenderOrchestration', () => {
             confidence: 1,
         }, streamEvent)
 
-        const firstBundleId = mockRegisterIngressSlot.mock.calls[0][1]
-        const secondBundleId = mockRegisterIngressSlot.mock.calls[1][1]
-        expect(firstBundleId).not.toBe(secondBundleId)
+        const firstAddress = mockRegisterIngressSlot.mock.calls[0][1]
+        const secondAddress = mockRegisterIngressSlot.mock.calls[1][1]
+        expect((firstAddress as any).messageId).not.toBe((secondAddress as any).messageId)
     })
 })

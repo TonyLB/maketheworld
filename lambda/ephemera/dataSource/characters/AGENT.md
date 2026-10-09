@@ -58,12 +58,14 @@ Example (asset visibility): while a limited-time event overlay is active, middle
 
 ## Ingress
 
-Subscribes to **`mtw.ephemera.positions`** **`Character Moved`** ([`../positions/publishedEvents.ts`](../positions/publishedEvents.ts)). Positions is bus-only, so delivery happens in-process on the same invocation's message bus. It covers both membership apply and the kernel's `commitStepSequence`. Envelope guard: [`subscribedEvents.ts`](subscribedEvents.ts). Handler: [`handleCharacterMoved.ts`](handleCharacterMoved.ts).
+Subscribes to **`mtw.ephemera.positions`** **`Character Moved`** ([`../positions/publishedEvents.ts`](../positions/publishedEvents.ts)). Positions is bus-only, so delivery happens in-process on the same invocation's message bus. It covers both membership apply and the kernel's `commitStepSequence`. Envelope guard: [`subscribedEvents.ts`](subscribedEvents.ts). Handlers: [`handleCharacterMoved.ts`](handleCharacterMoved.ts) (ladder write) and [`publishCharacterInPlay.ts`](publishCharacterInPlay.ts) (`CharacterInPlay` announcement); both run for every delivered fact.
 
 ## Ladder maintenance
 
 - **On `Character Moved` with `to !== null`:** read character, room and canon assets from cache, then call [`persistRoomStackNavigate`](roomStack/persistRoomStackNavigate.ts) at the fact's **`beatAnchorTime`**. A timestamp merge means a late or duplicate delivery cannot regress newer frames.
 - **`to: null`** (disconnect, ghost purge): no write. Disconnect keeps the ladder.
+- **Cache invalidate:** a successful ladder write drops the `CharacterMeta` cache entry (`persistRoomStackNavigate`'s success path). It never `set`s one: `optimisticUpdate`'s prior holds only the update keys, so a cached copy would lack `Name`, `assets` and the rest. A move changes only `ludicGraph` (not a `CharacterMeta` field) plus `RoomStack`, so the cache is not stale before the write lands.
+- **`CharacterInPlay`:** [`publishCharacterInPlay`](publishCharacterInPlay.ts) publishes the `EphemeraUpdate` projection (room is `to`, or the character's `HomeId` when `to` is null) to `GLOBAL` and the session. Like the ladder write, it logs and never throws.
 - **Navigate merge:** ladder persist **must** use per-frame `timeWritten` (epoch ms) stamped from **`beatAnchorTime`** at graph persist. A write at time `T` **must not** overwrite or truncate frames with `timeWritten > T`, and **must not** extend outer frames unless `T` exceeds all existing frame timestamps. Missing `timeWritten` **must** be treated as `0` (legacy rows). Merge logic: [`roomStack/mergeRoomStack.ts`](roomStack/mergeRoomStack.ts).
 - **Trim persist:** asset/connect trim ([`trimPersistCharacterRoomStack`](roomStack/trimPersistCharacterRoomStack.ts)) **must** filter inaccessible frames and **preserve** survivor `timeWritten` values. **Must not** use navigate merge semantics on trim paths. Exported for positions' connect and asset-loss placement, which call it directly.
 - **Failure tolerance:** ladder persist failure after retry exhaustion **must not** fail membership apply or navigate presentation orchestration; errors **must** be logged, never thrown. The move has already committed, and the ladder is only placement's fallback.
@@ -88,7 +90,7 @@ Most ephemera readers go through `internalCache.CharacterMeta`, which projects `
 | `Pronouns` | `confirmGuestCharacter` | none found beyond the cache projection | unclaimed | `updateEphemera` writes `pronouns` instead (finding 3) |
 | `player` | `confirmGuestCharacter`; `updateEphemera` | none found beyond the cache projection | unclaimed | |
 | `fileURL` | **none found** | `publishMessage`, `fetchEphemera`, `ephemeraUpdate`, `hydrateRoomRoster` | unclaimed | Finding 4 |
-| `HomeId` | **none found** | actions `resolveHomeTargetForCharacter`; positions `orchestrateCharacterRoomMembership` (`CharacterInPlay` fallback when `to` is null) | unclaimed | Cache defaults it to `ROOM#VORTEX` (finding 4) |
+| `HomeId` | **none found** | actions `resolveHomeTargetForCharacter`; `publishCharacterInPlay` (`CharacterInPlay` fallback when `to` is null) | unclaimed | Cache defaults it to `ROOM#VORTEX` (finding 4) |
 | `Description` | `updateEphemera` (Coyote only) | none found | unclaimed | Finding 3 |
 
 Legacy `RoomId` is retired. It is no longer written (`updateEphemera`), read (`chaos/addGhostSession`, `mtw-gateways`) or projected (`internalCache.CharacterMeta`). Stored rows may still carry it, and nothing reads it.

@@ -7,7 +7,7 @@
  * `roomHeaderBroadcast` and `sessionOrientationAffordances` only. The five directed-consequence
  * kinds (roomDescription/featureDescription/knowledgeDescription/objectDescription/
  * sessionOrientationRender) register against messageOrchestration's ingress registry instead
- * (dataSource/messageOrchestration/localApiEvents.ts's MessageOrchestrationSlotSpec).
+ * (dataSource/messageOrchestration/contentIngress.ts's IngressListenerSpec).
  */
 import {
     isEphemeraCharacterId,

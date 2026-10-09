@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { computePerspectiveKey } from '@tonylb/mtw-interfaces/ts/perspective'
 
@@ -8,10 +7,7 @@ import { resolveCanonAssetStackForRoom, resolveRoomAssetStackForRoom } from '../
 import { filterRoomCanonStackByCharacterAssets } from '../../renderOrchestration/fanOutStateChangedToPassiveRenders'
 import { sendRenderRequested } from '../../renderOrchestration/subscribedEvents'
 import type { RenderRequestedCommand } from '../../renderOrchestration/localApiEvents'
-import { sendMessageBundleDeclared } from '../../messageOrchestration/subscribedEvents'
-import { registerIngressSlot } from '../../messageOrchestration'
-
-const ROOM_DESCRIPTION_SLOT_ID = 'roomDescription'
+import { newDirectIngressAddress, registerIngressSlot } from '../../messageOrchestration'
 
 export type PreparedFullRoomDescriptionRender = {
     roomId: EphemeraRoomId;
@@ -54,7 +50,7 @@ export async function prepareFullRoomDescriptionRenderForCharacter(
 }
 
 /**
- * Declare a one-slot messageOrchestration bundle, register its ingress slot, and request a render
+ * Register a one-slot ingress listener (own time and MessageId) and request a render
  * for the full (non-header) room view --- matching the trusted UI `look` path when `EphemeraId` is
  * a room. Phase 7: registers against messageOrchestration's ingress registry (`format:'full'`,
  * the same `(componentId, perspectiveKey, 'render')` bucket `roomDescription`/`characterMove`/
@@ -66,17 +62,10 @@ export async function requestFullRoomDescriptionForCharacter(
     roomId: EphemeraRoomId,
 ): Promise<void> {
     const prepared = await prepareFullRoomDescriptionRenderForCharacter(characterId, roomId)
-    const bundleId = uuidv4()
-    sendMessageBundleDeclared(bus, bundleId, {
-        bundleId,
-        slots: [{ slotId: ROOM_DESCRIPTION_SLOT_ID, expectedPublishType: 'PerceptionMessage' }],
-    })
     await registerIngressSlot(
         bus,
-        bundleId,
+        newDirectIngressAddress(),
         {
-            slotId: ROOM_DESCRIPTION_SLOT_ID,
-            expectedPublishType: 'PerceptionMessage',
             componentId: prepared.roomId,
             perspectiveKey: prepared.perspectiveKey,
             targets: [characterId],

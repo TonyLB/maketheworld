@@ -54,9 +54,6 @@ jest.mock('../../internalCache', () => ({
         AffordanceRoomDeliverable: {
             invalidate: (...args: unknown[]) => affordanceInvalidateMock(...args),
         },
-        CoyoteGame: {
-            get: jest.fn(),
-        },
         ComponentEphemeraMeta: {
             get: jest.fn(),
             invalidate: (...args: unknown[]) => componentEphemeraMetaInvalidateMock(...args),
@@ -82,7 +79,6 @@ import type { BuildShortNameSemanticEmbeddingResult } from './embedding/buildSho
 import { hashShortNameForEmbedding } from './embedding/impromptuEmbeddingNeedsRefresh'
 import { glossFromComponent } from './objectShortName'
 import {
-    persistClearCoyoteGameImprovisationObjects,
     persistDeleteImprovisationObject,
     persistSpawnImprovisationObject,
     persistUpdateImprovisationObject,
@@ -289,9 +285,11 @@ describe('persistImprovisationObject', () => {
         expect(improvisationInvalidateMock).toHaveBeenCalledWith(objectId, 'ASSET#IMPROVISATION')
         expect(objectMetaInvalidateMock).toHaveBeenCalledWith(objectId)
         expect(objectEmbeddingInvalidateMock).toHaveBeenCalledWith(objectId)
-        expect(componentEphemeraMetaInvalidateMock).toHaveBeenCalledWith(roomId)
         expect(affordanceInvalidateMock).toHaveBeenCalledWith(roomId)
-        expect(positionsInvalidateMock).toHaveBeenCalledWith(roomId)
+        // These rows touch no `Meta::Room` and no graph: the room's graph memo (just seeded by
+        // the placement/removal commit) and its meta row stay valid.
+        expect(componentEphemeraMetaInvalidateMock).not.toHaveBeenCalled()
+        expect(positionsInvalidateMock).not.toHaveBeenCalled()
     })
 
     it('persistDeleteImprovisationObject dispatches Delete Cache Records when the object has render-cache rows', async () => {
@@ -638,63 +636,5 @@ describe('persistImprovisationObject', () => {
         expect(result).toEqual({ ok: true, objectId })
         expect(buildEmbedImpl).toHaveBeenCalledWith('Anvil')
         expect(transactWriteMock.mock.calls[0][0]).toHaveLength(3)
-    })
-
-    it('persistClearCoyoteGameImprovisationObjects deletes objects from game room graphs only', async () => {
-        const objectTwo = 'OBJECT#Boulder' as const
-
-        const result = await persistClearCoyoteGameImprovisationObjects({
-            getGameRooms: async () => ['VORTEX', 'CORNER'],
-            getRoomLudicGraph: async (room) => {
-                if (room === 'ROOM#VORTEX') {
-                    return {
-                        EphemeraId: room,
-                        DataCategory: 'Meta::Room',
-                        ludicGraph: {
-                            rootId: room, ports: [],
-                            nodes: [{ tag: 'Object', universalKey: objectId }],
-                        },
-                    }
-                }
-                if (room === 'ROOM#CORNER') {
-                    return {
-                        EphemeraId: room,
-                        DataCategory: 'Meta::Room',
-                        ludicGraph: {
-                            rootId: room, ports: [],
-                            nodes: [{ tag: 'Object', universalKey: objectTwo }],
-                        },
-                    }
-                }
-                return undefined
-            },
-        })
-
-        expect(result).toEqual({
-            ok: true,
-            deletedObjectIds: [objectId, objectTwo],
-            affectedRoomIds: ['ROOM#VORTEX', 'ROOM#CORNER'],
-        })
-        expect(transactWriteMock).toHaveBeenCalledTimes(1)
-        expect(transactWriteMock.mock.calls[0][0]).toHaveLength(6)
-        expect(improvisationInvalidateMock).toHaveBeenCalledTimes(2)
-    })
-
-    it('persistClearCoyoteGameImprovisationObjects is a no-op when graphs have no Object nodes', async () => {
-        const result = await persistClearCoyoteGameImprovisationObjects({
-            getGameRooms: async () => ['VORTEX'],
-            getRoomLudicGraph: async (room) => ({
-                EphemeraId: room,
-                DataCategory: 'Meta::Room',
-                ludicGraph: { rootId: room, ports: [], nodes: [{ tag: 'Character', universalKey: 'CHARACTER#X' }] },
-            }),
-        })
-
-        expect(result).toEqual({
-            ok: true,
-            deletedObjectIds: [],
-            affectedRoomIds: ['ROOM#VORTEX'],
-        })
-        expect(transactWriteMock).not.toHaveBeenCalled()
     })
 })

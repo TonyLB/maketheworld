@@ -1,17 +1,19 @@
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { KernelStep, MutationKernelCaptureStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
-import type { MessageOrchestrationSlotSpec } from '../../../../messageOrchestration/localApiEvents'
 import type { MembershipMoveNarrationInput } from './positionKernelOp'
-import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 import { presenceBindingStepsForMove } from './presenceBindingStepsForMove'
 
+/**
+ * `steps` is the whole ordered plan; its `narrate` and `describe` steps, in array order, are the
+ * plan's presentation order (`presentStepSequence` stamps entry *i* at `beatAnchorTime + i`).
+ */
 export type CompiledPositionKernelPlan = {
     steps: readonly KernelStep[]
-    slots: readonly MessageOrchestrationSlotSpec[]
 }
 
 /** The capture ids this compiler mints for a move's leave/arrive captures. */
@@ -25,13 +27,10 @@ const CAPTURE_ID_TO = 'capture:to'
  * `dataSource/positions/AGENT.contract.md`, "Narration and presentation"; vocabulary:
  * `AGENT.concepts.md`, "Abstract op and compiled step."
  *
- * `op.headerSlot`'s presence in `slots` is unconditional, independent of `op.narration` --- the
- * header render is a separate, already-shipped mechanism (`presentCharacterMove.ts`'s
- * `registerIngressSlot`/`kickPassiveRenderRequestedForCharacterInRoom`, keyed off this same declared
- * slot), not the presentation kernel's `describe` branch, so this compiler never emits a `describe`
- * step for it --- doing so would fire a second, conflicting render request. Object routes have no
- * header at all and pass `headerSlot: null`; there is deliberately no character-host branch here,
- * because the caller resolving the header is the caller that knows whether one applies.
+ * `op.header`, when present, compiles to a `describe` step carrying the header binding, positioned
+ * between the leave and arrive narrations (the transcript order a navigate has always had). Object
+ * routes have no header at all and pass `header: null`; there is deliberately no character-host
+ * branch here, because the caller resolving the header is the caller that knows whether one applies.
  *
  * `op.dissolvedEdges` render into `dissolveRelation` steps positioned **ahead of** the transfer, which
  * is what preserves BD-28's ordering guarantee: `factsForStep` streams in step order precisely so a
@@ -41,12 +40,10 @@ const CAPTURE_ID_TO = 'capture:to'
  * When `op.narration` is present (character moves only), capture-from/capture-to steps are built
  * from the same `(froms, to)` pair, and each narrate step reads its own side's capture.
  * Capture/mutation ordering inside `steps` is the one place order matters for walk correctness;
- * narrate step position among them is cosmetic, since delivery order comes from `slots`, not `steps`
- * (the messageOrchestration bundle assigns `CreatedTime` in declared order at flush, fully decoupled
- * from execution order).
+ * the presentation steps' position among them is the transcript order, since presentation stamps
+ * `beatAnchorTime + index` over the plan's `narrate`/`describe` steps in array order.
  *
- * When `op.narration` is absent, only mutation steps are emitted and `slots` carries the header
- * only (if any). That covers every object move: lifecycle moves (spawn/destroy/place/remove) narrate
+ * When `op.narration` is absent, only mutation steps are emitted, plus the header `describe` (if any). That covers every object move: lifecycle moves (spawn/destroy/place/remove) narrate
  * nothing, and take/drop/give narrate through their attempt's narration units, whose audiences
  * `commitAttempt.ts` resolves and captures itself. It also covers the pre-commit mutation-only
  * compile navigate does. Narration belongs to whatever creates the action, and nothing here
@@ -100,7 +97,9 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
         }]
         : []
 
-    const headerSlotList: MessageOrchestrationSlotSpec[] = op.headerSlot ? [op.headerSlot] : []
+    const headerSteps: KernelStep[] = (op.header && op.to !== null && isEphemeraRoomId(op.to))
+        ? [{ kind: 'describe', referentId: op.to, referentKind: 'room', header: op.header }]
+        : []
 
     // one presence binding per rehost, every mover regardless of host kind. Mechanics --- the
     // remove-then-add pair, the missing-clear fix --- live in `presenceBindingStepsForMove`, of
@@ -109,7 +108,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     const presenceBindingSteps = presenceBindingStepsForMove(primaryMovedId, op.froms, op.to)
 
     if (!op.narration) {
-        return { steps: [...dissolveSteps, transferStep, ...establishSteps, ...presenceBindingSteps], slots: headerSlotList }
+        return { steps: [...dissolveSteps, transferStep, ...establishSteps, ...presenceBindingSteps, ...headerSteps] }
     }
 
     const { narration } = op
@@ -142,8 +141,6 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
         kind: 'narrate',
         narration: narrationSpec(narration, 'leave', hostId),
         captureId: captureIdForFrom(hostId),
-        bundleId: op.bundleId,
-        slotId: moveLeaveSlotId(hostId),
     }))
 
     const narrateArriveStep: KernelStep[] = op.to
@@ -151,19 +148,8 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             kind: 'narrate',
             narration: narrationSpec(narration, 'arrive', op.to),
             captureId: CAPTURE_ID_TO,
-            bundleId: op.bundleId,
-            slotId: MOVE_ARRIVE_SLOT_ID,
         }]
         : []
-
-    const slots: MessageOrchestrationSlotSpec[] = [
-        ...op.froms.map((hostId) => ({
-            slotId: moveLeaveSlotId(hostId),
-            expectedPublishType: 'WorldMessage' as const,
-        })),
-        ...headerSlotList,
-        ...(op.to ? [{ slotId: MOVE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' as const }] : []),
-    ]
 
     return {
         steps: [
@@ -174,8 +160,8 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             ...presenceBindingSteps,
             ...captureToStep,
             ...narrateLeaveSteps,
+            ...headerSteps,
             ...narrateArriveStep,
         ],
-        slots,
     }
 }
