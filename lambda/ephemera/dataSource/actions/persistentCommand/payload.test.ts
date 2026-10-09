@@ -11,7 +11,16 @@ describe('isPersistentCommandPayload', () => {
         expect(isPersistentCommandPayload({ ...rest, referentAnswers: {}, challengeAnswers: {} })).toBe(true)
     })
 
+    it('accepts a row written before transcript existed', () => {
+        const { transcript, ...rest } = takeCupPayload()
+        expect(isPersistentCommandPayload(rest)).toBe(true)
+    })
+
     it.each<[string, (payload: any) => any]>([
+        ['a non-object transcript', (payload) => ({ ...payload, transcript: 'x' })],
+        ['a non-string transcript messageId', ({ transcript, ...rest }) => ({ ...rest, transcript: { ...transcript, messageId: 3 } })],
+        ['a non-numeric transcript createdTime', ({ transcript, ...rest }) => ({ ...rest, transcript: { ...transcript, createdTime: 'now' } })],
+        ['a non-string transcript command', ({ transcript, ...rest }) => ({ ...rest, transcript: { ...transcript, command: 3 } })],
         ['a non-object', () => 'nope'],
         ['a missing root', ({ root, ...rest }) => rest],
         ['a root without a command', ({ root, ...rest }) => ({ ...rest, root: { ...root, command: 5 } })],

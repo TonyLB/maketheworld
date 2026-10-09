@@ -27,8 +27,21 @@ export type ChallengeAnswer = {
     askedAs?: string
 }
 
+/**
+ * The echo bubble this attempt answers: what a resume needs to republish its outcome under the
+ * original `MessageId` (a revision resends the whole body, hence `command`). The session comes from
+ * the row's key. Describes this attempt, not Plan's output, so it sits beside `root`, not inside it.
+ */
+export type PersistentCommandTranscript = {
+    messageId: string
+    createdTime: number
+    command: string
+}
+
 export type PersistentCommandPayload = {
     root: PersistentCommandRoot
+    /** Absent for a command with no echo (no session), and for rows written before it existed. */
+    transcript?: PersistentCommandTranscript
     /** An attempt's action id (Plan-minted, so stable across reruns of the frozen root). */
     selectedAttempt?: string
     /** `stableRefKey` to thing id; narrows that span's candidate pool. */
@@ -70,10 +83,18 @@ const isPersistentCommandRoot = (value: unknown): value is PersistentCommandRoot
     && typeof value.confidence === 'number'
 )
 
+const isPersistentCommandTranscript = (value: unknown): value is PersistentCommandTranscript => (
+    isRecord(value)
+    && typeof value.messageId === 'string'
+    && typeof value.createdTime === 'number'
+    && typeof value.command === 'string'
+)
+
 /** Structural guard: a stored row that fails it is treated as absent, so a later shape change can't break a session. */
 export const isPersistentCommandPayload = (value: unknown): value is PersistentCommandPayload => (
     isRecord(value)
     && isPersistentCommandRoot(value.root)
+    && (value.transcript === undefined || isPersistentCommandTranscript(value.transcript))
     && (value.selectedAttempt === undefined || typeof value.selectedAttempt === 'string')
     && isRecordOf((answer) => typeof answer === 'string')(value.referentAnswers)
     && isRecordOf(isChallengeAnswer)(value.challengeAnswers)

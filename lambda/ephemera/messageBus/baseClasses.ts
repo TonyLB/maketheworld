@@ -8,6 +8,7 @@ import {
 
 export type { ReturnValueMessage, ErrorMessage }
 import { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
+import type { CommandOutcome } from '@tonylb/mtw-interfaces/ts/messages'
 import type { Perspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import type { EphemeraCacheId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCacheDynamoItem } from '../dataSource/renderCache/baseClasses'
@@ -88,6 +89,8 @@ export type PublishCommandTranscriptMessage = PublishMessageBase & {
     createdTime?: number;
     /** Session that typed the command; published as SessionId on the wire row. */
     sessionId?: string;
+    /** Outcome of the command; published as Outcome on the wire row (a revision resends `message` too). */
+    outcome?: CommandOutcome;
 }
 
 export type PublishCoyoteGameHelpMessage = PublishMessageBase & {

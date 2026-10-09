@@ -286,6 +286,26 @@ describe('messages reducer', () => {
             })
         })
 
+        it('should replace a command echo body with an outcome revision, keeping the earliest position', () => {
+            const echo = {
+                DisplayProtocol: 'CommandTranscriptMessage',
+                CreatedTime: 100,
+                Message: ['go nowhere'],
+                MessageId: 'MESSAGE#command',
+                Target: 'CHARACTER#TESS'
+            }
+            const revision = {
+                ...echo,
+                CreatedTime: 200,
+                Outcome: { Kind: 'Error', Message: ['You cannot go that way.'] }
+            }
+            const base = reducer(undefined, receiveMessages([echo as any]))
+            const result = reducer(base, receiveMessages([revision as any]))
+            expect(result.history['CHARACTER#TESS']).toEqual([echo, revision])
+            expect(result.aggregates['CHARACTER#TESS']['MESSAGE#command']).toEqual({ earliestCreatedTime: 100, latestCreatedTime: 200 })
+            expect(result.presentation['CHARACTER#TESS']).toEqual([{ ...revision, CreatedTime: 100 }])
+        })
+
         it('should update earliest when later insert has earlier CreatedTime for same MessageId', () => {
             const base = reducer(undefined, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',

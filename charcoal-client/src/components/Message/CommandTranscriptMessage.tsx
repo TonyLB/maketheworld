@@ -5,6 +5,7 @@ import {
     Typography
 } from '@mui/material'
 import { grey } from '@mui/material/colors'
+import ErrorIcon from '@mui/icons-material/Error'
 
 import MessageComponent from './MessageComponent'
 import RenderTreeContent from './RenderTreeContent'
@@ -33,6 +34,25 @@ export const CommandTranscriptMessage = ({ message, ...rest }: CommandTranscript
                 <Typography variant='body2' align='left' sx={{ fontFamily: 'monospace', margin: 0 }}>
                     <RenderTreeContent list={message.Message} onClickLink={() => {}} />
                 </Typography>
+                {message.Outcome && <Box
+                    data-testid="command-transcript-outcome"
+                    data-kind={message.Outcome.Kind}
+                    sx={{ display: 'flex', alignItems: 'flex-start', gap: '6px', margin: '4px 0 0 0' }}
+                >
+                    {message.Outcome.Kind === 'Error' && <ErrorIcon
+                        data-testid="command-transcript-outcome-icon"
+                        titleAccess="Error"
+                        fontSize='small'
+                        sx={{ color: 'error.main', flexShrink: 0 }}
+                    />}
+                    <Typography
+                        variant='body2'
+                        align='left'
+                        sx={{ margin: 0, color: message.Outcome.Kind === 'Error' ? 'text.primary' : 'text.secondary' }}
+                    >
+                        <RenderTreeContent list={message.Outcome.Message} onClickLink={() => {}} />
+                    </Typography>
+                </Box>}
             </Box>
         </MessageComponent>
 }

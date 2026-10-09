@@ -309,6 +309,68 @@ describe('ephemeraActionsDataSource', () => {
             displayProtocol: 'CommandTranscriptMessage',
             message: ['look'],
             sessionId: 'SESSION-A',
+            messageId: expect.stringMatching(/^MESSAGE#/),
+            createdTime: expect.any(Number),
+        })
+    })
+
+    describe('command outcome on the transcript bubble', () => {
+        const parseWith = async (sessionId?: string) => {
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: '  look  ',
+                        ...(sessionId ? { sessionId } : {}),
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+        }
+
+        it('republishes the echo under its own id with the Error outcome and no OOC line', async () => {
+            await parseWith('SESSION-A')
+
+            const [echo, revision] = mockMessageBus.publish.mock.calls.map(([call]) => call as any)
+            expect(echo.displayProtocol).toBe('CommandTranscriptMessage')
+            expect(revision).toEqual({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'CommandTranscriptMessage',
+                message: ['look'],
+                messageId: echo.messageId,
+                createdTime: echo.createdTime,
+                sessionId: 'SESSION-A',
+                outcome: { Kind: 'Error', Message: ['Parse error'] },
+            })
+            expect(mockMessageBus.publish).toHaveBeenCalledTimes(2)
+        })
+
+        it('reports an informational outcome with Kind Info', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'AwaitRoadRunner', confidence: 1 } as any)
+            await parseWith('SESSION-A')
+
+            const revision = mockMessageBus.publish.mock.calls.map(([call]) => call as any)
+                .find((call) => call.outcome)
+            expect(revision.outcome).toEqual({ Kind: 'Info', Message: ['Awaiting Road Runner'] })
+        })
+
+        it('falls back to a WorldOOCMessage when there is no session to attach to', async () => {
+            await parseWith()
+
+            expect(mockMessageBus.publish).toHaveBeenNthCalledWith(2, {
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['Parse error'],
+            })
         })
     })
 

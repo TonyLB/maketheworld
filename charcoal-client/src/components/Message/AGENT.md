@@ -20,7 +20,7 @@ The `Message` directory contains React components that handle the display of dif
 - **`OOCMessage`**: Out-of-character player communication
 - **`WorldMessage`**: System-generated content
 - **`WorldOOCMessage`**: System / out-of-world lines (grey striped bubble, not in-play)
-- **`CommandTranscriptMessage`**: Player-submitted command echo on the message log (distinct styling); only the most recent echo typed in this session (`SessionId`) is rendered (see `getMessagesByRoom`)
+- **`CommandTranscriptMessage`**: Player-submitted command echo on the message log (distinct styling); only the most recent echo typed in this session (`SessionId`) is rendered (see `getMessagesByRoom`). An optional `Outcome` (`Kind: 'Error' | 'Info'`) renders inside the same bubble, below the monospace echo (`command-transcript-outcome`; a red `error.main` icon at the left with normal-colored text for Error, `text.secondary` text and no icon for Info); it arrives as a later revision of the same `MessageId`, which `presentation` shows at the echo's original position
 
 ### **Perception Messages**
 - **`RoomDescription`**: Room information and layout

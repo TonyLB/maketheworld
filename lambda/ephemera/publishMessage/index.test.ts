@@ -190,6 +190,45 @@ describe('PublishMessage', () => {
         })
     })
 
+    it('should carry CommandTranscriptMessage outcome as Outcome, reusing messageId and createdTime', async () => {
+        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
+        cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
+        await publishMessage({
+            payloads: [{
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'CommandTranscriptMessage',
+                message: ['look north'],
+                messageId: 'MESSAGE#ECHO',
+                createdTime: 999,
+                outcome: { Kind: 'Error', Message: ['You cannot go that way.'] },
+            }],
+        })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: 'CHARACTER#123',
+            DeltaId: '999::MESSAGE#ECHO',
+            RowId: 'MESSAGE#ECHO',
+            CreatedTime: 999,
+            Message: ['look north'],
+            DisplayProtocol: 'CommandTranscriptMessage',
+            Outcome: { Kind: 'Error', Message: ['You cannot go that way.'] },
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Y123',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: 'CHARACTER#123',
+                    MessageId: 'MESSAGE#ECHO',
+                    CreatedTime: 999,
+                    Message: ['look north'],
+                    DisplayProtocol: 'CommandTranscriptMessage',
+                    Outcome: { Kind: 'Error', Message: ['You cannot go that way.'] },
+                }],
+            }),
+        })
+    })
+
     it('should dispatch CoyoteGameHypothesisMessage with same wire shape as WorldMessage', async () => {
         cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
         cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])

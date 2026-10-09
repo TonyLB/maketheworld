@@ -12,6 +12,7 @@ export const takeCupPayload = (): PersistentCommandPayload => {
     const { attempts } = planSkeleton(skeleton, command)
     return {
         root: { command, skeleton, attempts: attempts.map((attempt) => attempt.toJSON()), confidence: 0.9 },
+        transcript: { messageId: 'MESSAGE#take-cup', createdTime: 1700000000000, command },
         selectedAttempt: attempts[0]!.actions()[0]!.id,
         referentAnswers: { [(skeleton[1] as { stableRefKey: string }).stableRefKey]: 'OBJECT#RedCup' },
         challengeAnswers: {

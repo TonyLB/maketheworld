@@ -67,7 +67,7 @@ Defines the display protocol for different types of game messages:
 #### **Current Message Types**
 - **`SpacerMessage`**: Visual spacing in chat
 - **`WorldMessage`**: System-generated content
-- **`CommandTranscriptMessage`**: Player command echo on the message log
+- **`CommandTranscriptMessage`**: Player command echo on the message log. Optional `Outcome: { Kind: 'Error' | 'Info'; Message: RenderTree }` carries what happened to the command; it is added by republishing the echo under its original `MessageId` (and `CreatedTime`), and since the latest revision replaces the whole body, a revision must resend `Message` too. `isMessage` accepts `Outcome` absent, or with a known `Kind` and a render-tree `Message`.
 - **`RoomDescription/Header/Update`**: Room information and changes
 - **`FeatureDescription`**: Feature details and interactions
 - **`KnowledgeDescription`**: Knowledge item information

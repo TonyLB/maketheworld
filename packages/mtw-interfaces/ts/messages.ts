@@ -42,6 +42,14 @@ const isRenderTree = (message: any): message is RenderTree | undefined => {
     return false
 }
 
+const isCommandOutcome = (outcome: any): outcome is CommandOutcome => (
+    typeof outcome === 'object'
+    && outcome !== null
+    && (outcome.Kind === 'Error' || outcome.Kind === 'Info')
+    && Array.isArray(outcome.Message)
+    && isRenderTree(outcome.Message)
+)
+
 export type WorldMessage = {
     DisplayProtocol: 'WorldMessage';
     Message: RenderTree;
@@ -53,10 +61,21 @@ export type WorldOOCMessage = {
     Message: RenderTree;
 } & MessageAddressing
 
+/** What happened to a command, shown inside its own transcript bubble. */
+export type CommandOutcome = {
+    Kind: 'Error' | 'Info';
+    Message: RenderTree;
+}
+
 /** Player-submitted command echo for the message log: same wire shape as WorldMessage, distinct DisplayProtocol for client styling. */
 export type CommandTranscriptMessage = {
     DisplayProtocol: 'CommandTranscriptMessage';
     Message: RenderTree;
+    /**
+     * Outcome of the command, added by republishing the echo under its original MessageId.
+     * The latest revision replaces the whole body, so a revision resends `Message` too.
+     */
+    Outcome?: CommandOutcome;
     /** Session that typed the command; the client shows only its own session's latest echo. */
     SessionId?: string;
 } & MessageAddressing
@@ -384,7 +403,9 @@ export const isMessage = (message: any): message is Message => {
         case 'CoyoteGameHypothesisMessage':
             return isRenderTree(message.Message)
         case 'CommandTranscriptMessage':
-            return checkTypes(message, {}, { SessionId: 'string' }) && isRenderTree(message.Message)
+            return checkTypes(message, {}, { SessionId: 'string' })
+                && isRenderTree(message.Message)
+                && (message.Outcome === undefined || isCommandOutcome(message.Outcome))
         case 'SayMessage':
         case 'NarrateMessage':
         case 'OOCMessage': {

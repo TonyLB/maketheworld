@@ -6,7 +6,7 @@ import type { PersistentCommandPayload } from './payload'
 import { isPersistentCommandPayload } from './payload'
 import { persistentCommandKey } from './rowKey'
 
-/** Replaces the character's row for the session (SC-1: a new command answers or replaces the pending one) and restarts its TTL. */
+/** Replaces the character's row for the session (a new command answers or replaces the pending one) and restarts its TTL. */
 export const put = async (
     characterId: EphemeraCharacterId,
     sessionId: string,
@@ -31,7 +31,7 @@ export const get = async (
     if (row === undefined || isPersistentCommandExpired(row)) {
         return undefined
     }
-    const { root, selectedAttempt, referentAnswers, challengeAnswers } = row
-    const payload = { root, selectedAttempt, referentAnswers, challengeAnswers }
+    const { root, transcript, selectedAttempt, referentAnswers, challengeAnswers } = row
+    const payload = { root, transcript, selectedAttempt, referentAnswers, challengeAnswers }
     return isPersistentCommandPayload(payload) ? payload : undefined
 }
