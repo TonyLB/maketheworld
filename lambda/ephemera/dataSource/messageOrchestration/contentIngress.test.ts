@@ -104,4 +104,29 @@ describe('ContentIngressIndex', () => {
         const result = index.registerSlot('bundle-b', spec('header'))
         expect(result).toEqual({ shouldKickoff: true })
     })
+
+    describe('direct listeners', () => {
+        it('a direct listener keeps the address it registered with, and shares the bucket with bundle listeners', () => {
+            const index = new ContentIngressIndex()
+            const address = { createdTime: 1001, messageId: 'MESSAGE#1' }
+            index.registerSlot('bundle-a', spec('header'))
+            expect(index.registerSlot(address, spec('full'))).toEqual({ shouldKickoff: false, replay: [] })
+
+            const listeners = index.reportContent('ROOM#a', 'PERSPECTIVE#a', 'render', content('Final'))
+            expect(listeners.map((l) => l.bundleId)).toEqual(['bundle-a', undefined])
+            expect(listeners[1].direct).toBe(address)
+        })
+
+        it('a late direct registrant gets the recorded events as replay', () => {
+            const index = new ContentIngressIndex()
+            index.registerSlot('bundle-a', spec('header'))
+            index.reportContent('ROOM#a', 'PERSPECTIVE#a', 'render', content('Generating'))
+            index.reportContent('ROOM#a', 'PERSPECTIVE#a', 'render', content('Final'))
+
+            expect(index.registerSlot({ createdTime: 1002, messageId: 'MESSAGE#2' }, spec('full'))).toEqual({
+                shouldKickoff: false,
+                replay: [content('Generating'), content('Final')],
+            })
+        })
+    })
 })

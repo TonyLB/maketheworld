@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import type { LookCommandRequestedPublishedPayload } from '../actions/publishedEvents'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import internalCache from '../../internalCache'
@@ -19,8 +18,7 @@ import type { RenderOrchestrationPublishedPayload } from './publishedEvents'
 import { prepareFeatureKnowledgeRenderForCharacter } from './prepareFeatureKnowledgeRenderForCharacter'
 import { prepareObjectRenderForCharacter } from './prepareObjectRenderForCharacter'
 import { prepareCharacterRenderForCharacter } from './prepareCharacterRenderForCharacter'
-import { registerIngressSlot } from '../messageOrchestration'
-import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
+import { newDirectIngressAddress, registerIngressSlot } from '../messageOrchestration'
 import type { MessageOrchestrationSlotSpec } from '../messageOrchestration/localApiEvents'
 import { LOOK_DESCRIBE_SLOT_ID } from '../actions/lookBundleSlotIds'
 
@@ -43,7 +41,7 @@ export const prepareLookOrchestrationPerspective = async (
 }
 
 /**
- * Declares a fresh one-slot messageOrchestration bundle and registers its ingress slot (Phase 7).
+ * Registers a one-slot ingress listener that owns its own time and MessageId (Phase 7).
  * Minted locally here, not threaded through the `Look Command Requested` payload: every event this
  * handler processes maps 1:1 to its own invocation with no sibling slots to correlate with (unlike
  * navigate's leave/header/arrive, which are genuinely resolved by separate components) --- see the
@@ -55,14 +53,9 @@ async function registerLookSlot(
     spec: Omit<MessageOrchestrationSlotSpec, 'slotId' | 'expectedPublishType'>,
     kickoff: () => Promise<void>
 ): Promise<void> {
-    const bundleId = uuidv4()
-    sendMessageBundleDeclared(bus, bundleId, {
-        bundleId,
-        slots: [{ slotId: LOOK_DESCRIBE_SLOT_ID, expectedPublishType: 'PerceptionMessage' }],
-    })
     await registerIngressSlot(
         bus,
-        bundleId,
+        newDirectIngressAddress(),
         { ...spec, slotId: LOOK_DESCRIBE_SLOT_ID, expectedPublishType: 'PerceptionMessage' } as MessageOrchestrationSlotSpec,
         kickoff
     )

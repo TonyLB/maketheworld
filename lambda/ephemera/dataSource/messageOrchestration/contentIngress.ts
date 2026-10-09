@@ -38,9 +38,36 @@ export type RenderContent =
     | { kind: 'roomRender'; componentId: EphemeraRoomId; renderedContent: EphemeraCacheRenderedContent }
     | { kind: 'roomPlaceholder'; componentId: EphemeraRoomId; bodyText: string; status?: 'generating' }
 
+/**
+ * Delivery state of a listener that owns its time and MessageId: its first wave is published at
+ * `createdTime`, and `lastPublished` lets every later wave be stamped strictly after it.
+ */
+export type DirectDelivery = {
+    createdTime: number;
+    messageId: string;
+    lastPublished?: number;
+}
+
+/**
+ * A listener's delivery address: either a slot in a declared bundle (the bundle owns time and
+ * MessageId), or its own pre-assigned time and MessageId (the listener publishes directly).
+ */
+export type IngressAddress = { bundleId: string } | DirectDelivery
+
 export type IngressListener = {
-    bundleId: string;
     spec: MessageOrchestrationSlotSpec;
+    bundleId?: string;
+    direct?: DirectDelivery;
+}
+
+const listenerFromAddress = (address: string | IngressAddress, spec: MessageOrchestrationSlotSpec): IngressListener => {
+    if (typeof address === 'string') {
+        return { bundleId: address, spec }
+    }
+    if ('bundleId' in address) {
+        return { bundleId: address.bundleId, spec }
+    }
+    return { spec, direct: address }
 }
 
 export type RegisterSlotResult =
@@ -69,17 +96,18 @@ export class ContentIngressIndex {
      * never removed by this method or by reportContent --- draining is a Delivery-side concern
      * (see deliveredSlotIndex.ts), not an Ingress one.
      */
-    registerSlot(bundleId: string, spec: MessageOrchestrationSlotSpec): RegisterSlotResult {
+    registerSlot(address: string | IngressAddress, spec: MessageOrchestrationSlotSpec): RegisterSlotResult {
         if (!spec.componentId || !spec.perspectiveKey || !spec.contentStream) {
             return { shouldKickoff: false, replay: [] }
         }
         const key = ContentIngressIndex.makeKey(spec.componentId, spec.perspectiveKey, spec.contentStream)
         const bucket = this.buckets[key]
+        const listener = listenerFromAddress(address, spec)
         if (!bucket) {
-            this.buckets[key] = { live: true, events: [], listeners: [{ bundleId, spec }] }
+            this.buckets[key] = { live: true, events: [], listeners: [listener] }
             return { shouldKickoff: true }
         }
-        bucket.listeners = [...bucket.listeners, { bundleId, spec }]
+        bucket.listeners = [...bucket.listeners, listener]
         return { shouldKickoff: false, replay: [...bucket.events] }
     }
 

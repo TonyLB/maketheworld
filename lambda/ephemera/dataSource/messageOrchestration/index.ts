@@ -4,6 +4,7 @@
  * Bus-only, non-replayable. Subscribes to api.ephemera bundle-declare / slot-report ingress.
  * See AGENT.md (normative decisions, obligations, verification).
  */
+import { v4 as uuidv4 } from 'uuid'
 import EphemeraDataSource from '../abstract'
 import messageBus from '../../messageBus'
 import getCurrentTimestamp from '../../internalUtils/dateUtil'
@@ -20,7 +21,7 @@ import {
     createMessageOrchestrationFanInStore,
 } from './messageOrchestrationFanIn'
 import { DeliveredSlotIndex } from './deliveredSlotIndex'
-import { ContentIngressIndex, type RenderContent } from './contentIngress'
+import { ContentIngressIndex, type DirectDelivery, type IngressAddress, type IngressListener, type RenderContent } from './contentIngress'
 import { roomHeaderWmlFromCacheRecord, roomRenderWmlFromCacheRecord } from '../perception/roomRenderWmlFromCacheRecord'
 import { roomHeaderErrorPlaceholderWml, roomHeaderGeneratingPlaceholderWml } from '../perception/roomHeaderPlaceholderWml'
 import { placeholderRoomFullWml } from '../perception/roomFullPlaceholderWml'
@@ -30,7 +31,17 @@ const deliveredSlotIndex = new DeliveredSlotIndex()
 const contentIngressIndex = new ContentIngressIndex()
 
 /**
- * Packages one listener's addressed envelope from shared content and reports it as a slot.
+ * Mints the delivery address of a listener that owns its own transcript position: its first
+ * wave is published at `createdTime`, under `messageId`, and later waves keep that `messageId`
+ * at strictly greater times.
+ */
+export const newDirectIngressAddress = (): IngressAddress => ({
+    createdTime: getCurrentTimestamp(),
+    messageId: `MESSAGE#${uuidv4()}`,
+})
+
+/**
+ * Packages one listener's addressed envelope from shared content.
  * 'literal' content (a placeholder/error message with no cache record behind it, in a shape that
  * does not vary by format) is delivered as-is; 'roomRender' content (a raw cache record) and
  * 'roomPlaceholder' content (an un-formatted room placeholder/error body) are each projected into
@@ -38,12 +49,7 @@ const contentIngressIndex = new ContentIngressIndex()
  * (Phase 6.5), extended to room placeholders (Phase 7) once roomDescription (`format:'full'`)
  * started sharing a bucket with characterMove/sessionOrientationRender (`format:'header'`).
  */
-function deliverListenerContent(
-    bus: MessageBus,
-    bundleId: string,
-    spec: MessageOrchestrationSlotSpec,
-    content: RenderContent
-): void {
+function buildListenerMessage(spec: MessageOrchestrationSlotSpec, content: RenderContent): PublishMessage {
     let message: PublishMessage
     if (content.kind === 'literal') {
         message = { ...content.message, targets: spec.targets ?? [] } as PublishMessage
@@ -81,10 +87,39 @@ function deliverListenerContent(
             },
         }
     }
+    return message
+}
+
+/** Publishes a direct listener's wave under its own MessageId, strictly after anything it sent before. */
+function publishDirectWave(bus: MessageBus, spec: MessageOrchestrationSlotSpec, direct: DirectDelivery, content: RenderContent): void {
+    const createdTime = direct.lastPublished === undefined
+        ? direct.createdTime
+        : Math.max(direct.lastPublished + 1, getCurrentTimestamp())
+    direct.lastPublished = createdTime
+    bus.publish({ ...buildListenerMessage(spec, content), messageId: direct.messageId, createdTime } as PublishMessage)
+}
+
+/**
+ * Bundle listeners report the wave as a slot (the bundle holds it until flush). Direct listeners
+ * publish every wave as it arrives, so a placeholder is visible while a render generates.
+ */
+function deliverListenerContent(
+    bus: MessageBus,
+    listener: IngressListener,
+    content: RenderContent
+): void {
+    const { spec, bundleId, direct } = listener
+    if (direct) {
+        publishDirectWave(bus, spec, direct, content)
+        return
+    }
+    if (bundleId === undefined) {
+        return
+    }
     sendMessageSlotReported(bus, bundleId, {
         bundleId,
         slotId: spec.slotId,
-        message,
+        message: buildListenerMessage(spec, content),
     })
 }
 
@@ -95,17 +130,28 @@ function deliverListenerContent(
  */
 export async function registerIngressSlot(
     bus: MessageBus,
-    bundleId: string,
+    address: string | IngressAddress,
     spec: MessageOrchestrationSlotSpec,
     kickoff?: () => void | Promise<void>
 ): Promise<void> {
-    const result = contentIngressIndex.registerSlot(bundleId, spec)
+    // Copied so the listener's lastPublished is tracked on state this call owns.
+    const listenerAddress = typeof address !== 'string' && !('bundleId' in address) ? { ...address } : address
+    const result = contentIngressIndex.registerSlot(listenerAddress, spec)
     if (result.shouldKickoff) {
         await kickoff?.()
         return
     }
+    if (typeof listenerAddress !== 'string' && !('bundleId' in listenerAddress)) {
+        // A direct listener's replay collapses to the latest event: one message, one revision.
+        const latest = result.replay[result.replay.length - 1]
+        if (latest !== undefined) {
+            publishDirectWave(bus, spec, listenerAddress, latest)
+        }
+        return
+    }
+    const bundleId = typeof listenerAddress === 'string' ? listenerAddress : listenerAddress.bundleId
     for (const content of result.replay) {
-        deliverListenerContent(bus, bundleId, spec, content)
+        deliverListenerContent(bus, { bundleId, spec }, content)
     }
 }
 
@@ -122,8 +168,8 @@ export function reportIngressContent(
     content: RenderContent
 ): number {
     const listeners = contentIngressIndex.reportContent(componentId, perspectiveKey, contentStream, content)
-    for (const { bundleId, spec } of listeners) {
-        deliverListenerContent(bus, bundleId, spec, content)
+    for (const listener of listeners) {
+        deliverListenerContent(bus, listener, content)
     }
     return listeners.length
 }

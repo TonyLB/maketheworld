@@ -9,7 +9,6 @@ import * as affordanceOrchestrationHandler from '../affordanceOrchestration/orch
 import * as perceptionSubscribedEvents from '../perception/subscribedEvents'
 import * as orchestrationHandler from '../renderOrchestration/orchestrationHandler'
 import * as messageOrchestration from '../messageOrchestration'
-import * as messageOrchestrationSubscribedEvents from '../messageOrchestration/subscribedEvents'
 
 jest.mock('../../internalCache', () => ({
     __esModule: true,
@@ -19,16 +18,16 @@ jest.mock('../../internalCache', () => ({
         },
     },
 }))
-jest.mock('../messageOrchestration', () => ({
-    registerIngressSlot: jest.fn(),
-}))
-jest.mock('../messageOrchestration/subscribedEvents', () => ({
-    sendMessageBundleDeclared: jest.fn(),
-}))
+jest.mock('../messageOrchestration', () => {
+    let next = 0
+    return {
+        registerIngressSlot: jest.fn(),
+        newDirectIngressAddress: jest.fn(() => ({ createdTime: 1000 + next, messageId: `MESSAGE#${next++}` })),
+    }
+})
 
 const internalCacheMock = jest.mocked(internalCache, true)
 const mockRegisterIngressSlot = messageOrchestration.registerIngressSlot as jest.MockedFunction<typeof messageOrchestration.registerIngressSlot>
-const mockSendMessageBundleDeclared = messageOrchestrationSubscribedEvents.sendMessageBundleDeclared as jest.MockedFunction<typeof messageOrchestrationSubscribedEvents.sendMessageBundleDeclared>
 
 const characterId = 'CHARACTER#c1' as EphemeraCharacterId
 const roomId = 'ROOM#r1' as EphemeraRoomId
@@ -96,7 +95,7 @@ describe('handleCharacterRegisteredOrientation', () => {
         // production --- invoke it here so these tests can assert on orchestrateRenderRequest
         // without depending on messageOrchestration's own single-flight mechanics (covered by
         // dataSource/messageOrchestration's own test suite).
-        mockRegisterIngressSlot.mockImplementation(async (_bus, _bundleId, _spec, kickoff) => {
+        mockRegisterIngressSlot.mockImplementation(async (_bus, _address, _spec, kickoff) => {
             await kickoff?.()
         })
     })
@@ -151,16 +150,9 @@ describe('handleCharacterRegisteredOrientation', () => {
 
         await handleCharacterRegisteredOrientation(messageBus, baseEvent, 'render', resolvedDeps(), renderStreamEvent)
 
-        expect(mockSendMessageBundleDeclared).toHaveBeenCalledWith(
-            messageBus,
-            expect.any(String),
-            expect.objectContaining({
-                slots: [expect.objectContaining({ slotId: expect.any(String), expectedPublishType: 'PerceptionMessage' })],
-            })
-        )
         expect(mockRegisterIngressSlot).toHaveBeenCalledWith(
             messageBus,
-            expect.any(String),
+            expect.objectContaining({ createdTime: expect.any(Number), messageId: expect.any(String) }),
             expect.objectContaining({
                 componentId: roomId,
                 perspectiveKey,

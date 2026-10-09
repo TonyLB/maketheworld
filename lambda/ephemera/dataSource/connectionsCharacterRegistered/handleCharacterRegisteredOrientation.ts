@@ -10,7 +10,6 @@
  *
  * Cross-layer integration: ../characterRegisteredOrientation.integration.test.ts
  */
-import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { ConnectionsCharacterRegisteredEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
@@ -25,8 +24,7 @@ import { orchestrateAffordanceRequest } from '../affordanceOrchestration/orchest
 import type { AffordanceOrchestrationPublishedPayload } from '../affordanceOrchestration/publishedEvents'
 import { orchestrateRenderRequest } from '../renderOrchestration/orchestrationHandler'
 import type { RenderOrchestrationPublishedPayload } from '../renderOrchestration/publishedEvents'
-import { sendMessageBundleDeclared } from '../messageOrchestration/subscribedEvents'
-import { registerIngressSlot } from '../messageOrchestration'
+import { newDirectIngressAddress, registerIngressSlot } from '../messageOrchestration'
 
 const SESSION_ORIENTATION_RENDER_SLOT_ID = 'sessionOrientationRender'
 
@@ -115,14 +113,9 @@ export async function handleCharacterRegisteredOrientation(
         if (!streamEvent) {
             throw new Error('sessionOrientation render channel requires streamEvent')
         }
-        const bundleId = uuidv4()
-        sendMessageBundleDeclared(messageBus, bundleId, {
-            bundleId,
-            slots: [{ slotId: SESSION_ORIENTATION_RENDER_SLOT_ID, expectedPublishType: 'PerceptionMessage' }],
-        })
         await registerIngressSlot(
             messageBus,
-            bundleId,
+            newDirectIngressAddress(),
             {
                 slotId: SESSION_ORIENTATION_RENDER_SLOT_ID,
                 expectedPublishType: 'PerceptionMessage',
