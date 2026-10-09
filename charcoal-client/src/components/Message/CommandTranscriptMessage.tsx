@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react'
 
 import {
     Box,
+    Button,
     Typography
 } from '@mui/material'
 import { grey } from '@mui/material/colors'
@@ -14,9 +15,11 @@ import type { CommandTranscriptMessage as CommandTranscriptMessageType } from '@
 interface CommandTranscriptMessageProps {
     message: CommandTranscriptMessageType;
     children?: ReactNode;
+    /** Called with the bubble's MessageId and the chosen option's OptionId; not yet wired to the server. */
+    onSelectOption?: (messageId: string, optionId: string) => void;
 }
 
-export const CommandTranscriptMessage = ({ message, ...rest }: CommandTranscriptMessageProps) => {
+export const CommandTranscriptMessage = ({ message, onSelectOption, ...rest }: CommandTranscriptMessageProps) => {
     return <MessageComponent
             sx={{ paddingTop: '10px', paddingBottom: '10px', paddingRight: '25px', paddingLeft: '25px' }}
             {...rest}
@@ -52,6 +55,23 @@ export const CommandTranscriptMessage = ({ message, ...rest }: CommandTranscript
                     >
                         <RenderTreeContent list={message.Outcome.Message} onClickLink={() => {}} />
                     </Typography>
+                </Box>}
+                {message.Outcome?.Kind === 'Select' && <Box
+                    data-testid="command-transcript-options"
+                    sx={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '6px 0 0 0' }}
+                >
+                    {message.Outcome.Options.map(({ OptionId, Label }) => (
+                        <Button
+                            key={OptionId}
+                            data-testid="command-transcript-option"
+                            data-option-id={OptionId}
+                            size='small'
+                            variant='outlined'
+                            onClick={() => { onSelectOption?.(message.MessageId, OptionId) }}
+                        >
+                            <RenderTreeContent list={Label} onClickLink={() => {}} />
+                        </Button>
+                    ))}
                 </Box>}
             </Box>
         </MessageComponent>

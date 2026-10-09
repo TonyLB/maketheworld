@@ -115,6 +115,36 @@ describe('CommandTranscriptMessage', () => {
             expect(isMessage({ ...base, Outcome: { Kind: 'Error', Message: 'not a render tree' } })).toBe(false)
         })
 
+        describe('Select', () => {
+            const select = {
+                Kind: 'Select',
+                Message: ['Which one?'],
+                Options: [
+                    { OptionId: 'opt-1', Label: ['cup'] },
+                    { OptionId: 'opt-2', Label: ['cup'] }
+                ]
+            }
+            it('should validate a Select outcome', () => {
+                expect(isMessage({ ...base, Outcome: select })).toBe(true)
+            })
+
+            it('should reject empty or missing Options', () => {
+                expect(isMessage({ ...base, Outcome: { ...select, Options: [] } })).toBe(false)
+                expect(isMessage({ ...base, Outcome: { Kind: 'Select', Message: ['Which one?'] } })).toBe(false)
+            })
+
+            it('should reject an option with a bad OptionId or Label', () => {
+                expect(isMessage({ ...base, Outcome: { ...select, Options: [{ OptionId: 1, Label: ['cup'] }] } })).toBe(false)
+                expect(isMessage({ ...base, Outcome: { ...select, Options: [{ OptionId: 'a', Label: 'cup' }] } })).toBe(false)
+                expect(isMessage({ ...base, Outcome: { ...select, Options: [{ OptionId: 'a' }] } })).toBe(false)
+                expect(isMessage({ ...base, Outcome: { ...select, Options: [null] } })).toBe(false)
+            })
+
+            it('should reject a Select with an invalid Message', () => {
+                expect(isMessage({ ...base, Outcome: { ...select, Message: 'nope' } })).toBe(false)
+            })
+        })
+
         it('should reject a non-object outcome', () => {
             expect(isMessage({ ...base, Outcome: 'oops' })).toBe(false)
             expect(isMessage({ ...base, Outcome: null })).toBe(false)

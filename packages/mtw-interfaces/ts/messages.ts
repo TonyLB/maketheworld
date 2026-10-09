@@ -45,9 +45,24 @@ const isRenderTree = (message: any): message is RenderTree | undefined => {
 const isCommandOutcome = (outcome: any): outcome is CommandOutcome => (
     typeof outcome === 'object'
     && outcome !== null
-    && (outcome.Kind === 'Error' || outcome.Kind === 'Info')
     && Array.isArray(outcome.Message)
     && isRenderTree(outcome.Message)
+    && (
+        outcome.Kind === 'Error'
+        || outcome.Kind === 'Info'
+        || (
+            outcome.Kind === 'Select'
+            && Array.isArray(outcome.Options)
+            && outcome.Options.length > 0
+            && outcome.Options.every((option: any) => (
+                typeof option === 'object'
+                && option !== null
+                && typeof option.OptionId === 'string'
+                && Array.isArray(option.Label)
+                && isRenderTree(option.Label)
+            ))
+        )
+    )
 )
 
 export type WorldMessage = {
@@ -62,10 +77,19 @@ export type WorldOOCMessage = {
 } & MessageAddressing
 
 /** What happened to a command, shown inside its own transcript bubble. */
-export type CommandOutcome = {
+export type CommandStatusOutcome = {
     Kind: 'Error' | 'Info';
     Message: RenderTree;
 }
+
+/** A question the player answers by picking an option; the answer is sent back by `OptionId`, never as text. */
+export type CommandSelectOutcome = {
+    Kind: 'Select';
+    Message: RenderTree;
+    Options: { OptionId: string; Label: RenderTree }[];
+}
+
+export type CommandOutcome = CommandStatusOutcome | CommandSelectOutcome
 
 /** Player-submitted command echo for the message log: same wire shape as WorldMessage, distinct DisplayProtocol for client styling. */
 export type CommandTranscriptMessage = {
