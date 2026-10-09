@@ -325,7 +325,6 @@ describe('ephemeraActionsDataSource', () => {
                     fromRoomId: from,
                     toRoomId: dest,
                     exitName: 'north',
-                    bundleId: expect.any(String),
                 },
             })
             expect(mockedParseCommand).toHaveBeenCalledWith(
@@ -450,7 +449,6 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     fromRoomId: from,
                     toRoomId: home,
-                    bundleId: expect.any(String),
                 },
             })
         })
@@ -534,7 +532,6 @@ describe('ephemeraActionsDataSource', () => {
                     fromRoomId: from,
                     toRoomId: dest,
                     exitName: 'north',
-                    bundleId: expect.any(String),
                 },
             })
             expect(mockMessageBus.publish).toHaveBeenCalledWith({
@@ -628,7 +625,6 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     fromRoomId: from,
                     toRoomId: home,
-                    bundleId: expect.any(String),
                 },
             })
             expect(mockMessageBus.publish).toHaveBeenCalledWith({
@@ -929,6 +925,8 @@ describe('ephemeraActionsDataSource', () => {
                     characterId: 'CHARACTER#123',
                     componentId: 'OBJECT#rocketSkates',
                     confidence: 1,
+                    createdTime: expect.any(Number),
+                    messageId: expect.stringMatching(/^MESSAGE#/),
                 },
             })
             expect(mockSendPerceptionThreadRegistered).not.toHaveBeenCalled()

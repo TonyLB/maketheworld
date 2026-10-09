@@ -245,9 +245,8 @@ export type NarrationSpecification = MembershipNarrationSpec | TemplateNarration
  * `kind` into `'narrate-leave'`/`'narrate-arrive'` would make the walk-dispatch discriminant carry
  * copy-generation concerns it never asks about.
  *
- * The remaining flat fields are exactly the delivery half --- `captureId` resolves the audience,
- * `bundleId` and `slotId` route the report --- and are read only by the presentation kernel's
- * plumbing, never by the copy-generator. Everything the copy-generator reads lives under
+ * The remaining flat field is exactly the delivery half --- `captureId` resolves the audience ---
+ * and is read only by the presentation kernel's plumbing, never by the copy-generator. Everything the copy-generator reads lives under
  * `narration`, so that boundary is structural rather than conventional.
  *
  * `captureId` is the **sole** audience input, deliberately: there is no accompanying `roomId`
@@ -265,8 +264,6 @@ export type PresentationKernelNarrateStep = {
     kind: 'narrate'
     narration: NarrationSpecification
     captureId: string
-    bundleId: string
-    slotId: string
 }
 
 /**

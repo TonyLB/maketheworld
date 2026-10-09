@@ -32,7 +32,6 @@ describe('planObjectMoveTransfer', () => {
                 entityId: TRAY_ID,
                 fromHostId: ROOM_ID,
                 toHostId: CHARACTER_ID,
-                bundleId: 'BUNDLE#test',
                 getGraph,
             })
 
@@ -64,7 +63,6 @@ describe('planObjectMoveTransfer', () => {
                 entityId: TRAY_ID,
                 fromHostId: ROOM_ID,
                 toHostId: CHARACTER_ID,
-                bundleId: 'BUNDLE#test',
                 getGraph,
             })
 
@@ -89,7 +87,6 @@ describe('planObjectMoveTransfer', () => {
                 entityId: CUP_ID,
                 fromHostId: CHARACTER_ID,
                 toHostId: TRAY_ID,
-                bundleId: 'BUNDLE#test',
                 containment: 'On',
                 getGraph,
             })
@@ -112,7 +109,6 @@ describe('planObjectMoveTransfer', () => {
                 entityId: CUP_ID,
                 fromHostId: TRAY_ID,
                 toHostId: TRAY2_ID,
-                bundleId: 'BUNDLE#test',
                 containment: 'On',
                 getGraph,
             })
@@ -137,7 +133,6 @@ describe('planObjectMoveTransfer', () => {
                 entityId: CUP_ID,
                 fromHostId: TRAY_ID,
                 toHostId: CHARACTER_ID,
-                bundleId: 'BUNDLE#test',
                 getGraph,
             })
 
@@ -165,7 +160,6 @@ describe('planObjectMoveTransfer', () => {
                 entityId: TRAY_ID,
                 fromHostId: ROOM_ID,
                 toHostId: CUP_ID,
-                bundleId: 'BUNDLE#test',
                 containment: 'On',
                 getGraph,
             })
@@ -181,7 +175,6 @@ describe('planObjectMoveTransfer', () => {
                 entityId: TRAY_ID,
                 fromHostId: ROOM_ID,
                 toHostId: TRAY_ID,
-                bundleId: 'BUNDLE#test',
                 containment: 'On',
                 getGraph,
             })

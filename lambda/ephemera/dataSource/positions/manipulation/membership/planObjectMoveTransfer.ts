@@ -12,7 +12,6 @@ export type PlanObjectMoveTransferArgs = {
     entityId: EphemeraObjectId
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
-    bundleId: string
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
     /** injectable for test seams only. */
@@ -53,7 +52,6 @@ export const planObjectMoveTransfer = async (
         fromGraph,
         fromHostId: args.fromHostId,
         toHostId: args.toHostId,
-        bundleId: args.bundleId,
         ...(args.containment ? { containment: args.containment } : {}),
     }
 

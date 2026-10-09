@@ -2,8 +2,7 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { MembershipEmissionCopyKind } from '../kernel/kernelStep'
-import type { MessageOrchestrationSlotSpec } from '../../../messageOrchestration/localApiEvents'
-import type { MembershipMoveNarrationInput, PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
+import type { MembershipMoveNarrationInput, MoveHeaderBinding, PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
 import type { IntentKind } from './types'
 
 /**
@@ -19,11 +18,10 @@ export type BuildCharacterMoveOpArgs = {
     characterName: string
     froms: EphemeraRoomId[]
     to: EphemeraRoomId | null
-    bundleId: string
     intentKind: IntentKind
     intentFromRoomId?: EphemeraRoomId
     exitName?: string
-    headerSlot: MessageOrchestrationSlotSpec | null
+    header: MoveHeaderBinding | null
 }
 
 /**
@@ -35,8 +33,8 @@ export type BuildCharacterMoveOpArgs = {
  * `repairRoomOccupancyDrift.ts`'s ghost-purge and `repairCharacterLegalPlacement.ts`'s relocation)
  * serves --- so the copy-kind logic exists in exactly one place.
  * `compilePositionKernelOp`'s captureId generation depends only on `froms`/`to` (never on narration
- * content), so building this op twice with the same `froms`/`to`/`bundleId` -- once without a
- * resolved `headerSlot` (mutation-only), once with (full plan) -- yields identical capture ids across
+ * content), so building this op twice with the same `froms`/`to` -- once without a
+ * resolved `header` (mutation-only), once with (full plan) -- yields identical capture ids across
  * both calls, which is what lets the narration steps built in the second call reference captures
  * taken during the first call's committed transaction.
  *
@@ -88,8 +86,7 @@ export const buildCharacterMoveOp = (args: BuildCharacterMoveOpArgs): CharacterM
         moved: args.characterId,
         froms: args.froms,
         to: args.to,
-        bundleId: args.bundleId,
-        headerSlot: args.headerSlot,
+        header: args.header,
         narration: {
             kind: 'membershipMove',
             characterName: args.characterName,

@@ -18,13 +18,12 @@ describe('buildObjectMoveOp', () => {
             fromGraph: emptyFromGraph,
             fromHostId: ROOM,
             toHostId: CHARACTER,
-            bundleId: 'BUNDLE#test',
         })
 
         expect(op.moved).toEqual(TRAY)
         expect(op.froms).toEqual([ROOM])
         expect(op.to).toEqual(CHARACTER)
-        expect(op.headerSlot).toBeNull()
+        expect(op.header).toBeNull()
     })
 
     it('carries no narration: an object move\'s lines are its attempt\'s narration units', () => {
@@ -33,7 +32,6 @@ describe('buildObjectMoveOp', () => {
             fromGraph: emptyFromGraph,
             fromHostId: ROOM,
             toHostId: CHARACTER,
-            bundleId: 'BUNDLE#test',
         })
 
         expect(op.narration).toBeUndefined()
@@ -56,7 +54,6 @@ describe('buildObjectMoveOp', () => {
             fromGraph,
             fromHostId: ROOM,
             toHostId: CHARACTER,
-            bundleId: 'BUNDLE#test',
         })
 
         expect(op.dissolvedEdges).toEqual([])
@@ -72,7 +69,6 @@ describe('buildObjectMoveOp', () => {
             fromGraph,
             fromHostId: TABLE,
             toHostId: ROOM,
-            bundleId: 'BUNDLE#test',
         })
 
         expect(op.dissolvedEdges).toEqual([{ from: TRAY, to: TABLE, kind: 'On' }])

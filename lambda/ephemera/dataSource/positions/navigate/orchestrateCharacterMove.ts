@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
@@ -7,17 +6,14 @@ import { orchestrateCharacterRoomMembership } from '../manipulation/membership/o
 import type { PositionsPublishedPayload } from '../publishedEvents'
 import type { MembershipApplyResult, IntentKind } from '../manipulation/membership/types'
 import type { MessageBus } from '../../../messageBus/baseClasses'
-import type { MessageOrchestrationSlotSpec } from '../../messageOrchestration/localApiEvents'
+import type { MoveHeaderBinding } from '../manipulation/kernel/compile/positionKernelOp'
 import { getCharacterRoomPerspectiveKey } from '../../perception/kickRoomHeaderBroadcast'
-import { NAVIGATE_HEADER_SLOT_ID } from './navigateBundleSlotIds'
 import { presentCharacterMove } from './presentCharacterMove'
 
 export type OrchestrateCharacterMoveArgs = {
     characterId: EphemeraCharacterId;
     /** null = out of play (disconnect / ghost-purge repair). */
     targetRoomId: EphemeraRoomId | null;
-    /** messageOrchestration bundle correlation id; when omitted, a fresh one is minted. */
-    bundleId?: string;
     /** Selects leave/arrive copy-kind (`buildCharacterMoveOp.ts`) --- forwarded to `orchestrateCharacterRoomMembership`. */
     intentKind: IntentKind;
     /** The intent's own departure room, used to pick exit-aware copy among possibly several `froms`. */
@@ -27,8 +23,8 @@ export type OrchestrateCharacterMoveArgs = {
     /**
      * Pre-fetched character meta (connect already has it, from `resolveConnectTargetRoom`); when
      * omitted and `targetRoomId` is non-null (navigate/home), fetched here. Never fetched for a
-     * null target (disconnect/ghost-purge never read it --- `presentCharacterMove` only reads
-     * `characterMeta` inside the header-slot branch, which a null-destination plan never enters).
+     * null target (disconnect/ghost-purge never read it --- only a destination
+     * room needs `characterMeta`, for the arrival header's perspective).
      */
     characterMeta?: CharacterMetaItem;
     messageBus: MessageBus;
@@ -46,7 +42,7 @@ export type OrchestrateCharacterMoveArgs = {
  *
  * Builds and compiles the abstract `Move` op exactly once, before commit (3e) ---
  * `orchestrateCharacterRoomMembership` forwards `intentKind`/`intentFromRoomId`/`exitName` and this
- * function's `resolveHeaderSlot` into `planCharacterMoveTransfer`, which builds the compiled plan and
+ * function's `resolveHeader` into `planCharacterMoveTransfer`, which builds the compiled plan and
  * carries it through commit; `presentCharacterMove` presents that same plan rather than rebuilding it.
  *
  * The object-move route (`commitAttempt`) is a sibling, not absorbed here --- 3g's correction: it commits or does not
@@ -57,7 +53,6 @@ export type OrchestrateCharacterMoveArgs = {
 export const orchestrateCharacterMove = async ({
     characterId,
     targetRoomId,
-    bundleId: suppliedBundleId,
     intentKind,
     intentFromRoomId,
     exitName,
@@ -65,29 +60,19 @@ export const orchestrateCharacterMove = async ({
     messageBus,
     streamEvent,
 }: OrchestrateCharacterMoveArgs): Promise<MembershipApplyResult> => {
-    const bundleId = suppliedBundleId ?? uuidv4()
-
     const characterMeta = targetRoomId !== null
         ? (suppliedCharacterMeta ?? await internalCache.CharacterMeta.get(characterId))
         : suppliedCharacterMeta
 
-    const resolveHeaderSlot = targetRoomId !== null
-        ? async (to: EphemeraRoomId): Promise<MessageOrchestrationSlotSpec | null> => {
-            const perspectiveKey = await getCharacterRoomPerspectiveKey(to, characterMeta?.assets || [])
-            return perspectiveKey ? {
-                slotId: NAVIGATE_HEADER_SLOT_ID,
-                expectedPublishType: 'PerceptionMessage',
-                componentId: to,
-                perspectiveKey,
-                targets: [characterId],
-                contentStream: 'render',
-                format: 'header',
-            } : null
+    const resolveHeader = targetRoomId !== null
+        ? async (to: EphemeraRoomId): Promise<MoveHeaderBinding> => {
+            const assets = characterMeta?.assets || []
+            return { perspectiveKey: await getCharacterRoomPerspectiveKey(to, assets), assets }
         }
         : undefined
 
     const result = await orchestrateCharacterRoomMembership(
-        { characterId, targetRoomId, bundleId, intentKind, intentFromRoomId, exitName, resolveHeaderSlot },
+        { characterId, targetRoomId, intentKind, intentFromRoomId, exitName, resolveHeader },
         { messageBus, streamEvent }
     )
 
@@ -97,11 +82,9 @@ export const orchestrateCharacterMove = async ({
 
     await presentCharacterMove({
         characterId,
-        characterMeta,
-        to: result.to,
-        bundleId,
         plan: result.plan,
         captures: result.captures,
+        beatAnchorTime: result.beatAnchorTime,
         messageBus,
     })
 

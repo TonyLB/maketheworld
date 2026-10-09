@@ -81,11 +81,10 @@ export const orchestrateCharacterRoomMembership = async (
         characterId: args.characterId,
         characterName: characterMeta.Name,
         targetRoomId: args.targetRoomId,
-        bundleId: args.bundleId,
         intentKind: args.intentKind,
         intentFromRoomId: args.intentFromRoomId,
         exitName: args.exitName,
-        resolveHeaderSlot: args.resolveHeaderSlot,
+        resolveHeader: args.resolveHeader,
         getMembershipContainers: async () => priorContainers,
     })
 

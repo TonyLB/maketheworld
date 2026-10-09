@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { MessageBus } from '../../../messageBus/baseClasses'
-import { sendMessageBundleDeclared, sendMessageSlotReported } from '../../messageOrchestration/subscribedEvents'
 import type { NarrationAudience, NarrationUnit } from '../../actions/commandAttempt/narrationUnit'
 import { fillNarrationTemplate } from './kernel/narrationTemplate'
 import type { MutationKernelCaptures } from './kernel/types'
@@ -13,8 +12,10 @@ export type DeliverNarrationUnitsArgs = {
     units: readonly NarrationUnit[]
     /** The commit's own captured rosters --- the same map `presentStepSequence` reads narrate steps against. */
     captures: MutationKernelCaptures
-    /** The attempt's own bundle id, so every unit's lines interleave in one declared bundle. */
-    bundleId: string
+    /** The commit's beat anchor: line *n* is stamped `beatAnchorTime + firstPresentationIndex + n`. */
+    beatAnchorTime: number
+    /** The first presentation index the committed plan did not use (`commitAndPresentStepSequence`'s `nextPresentationIndex`). */
+    firstPresentationIndex: number
     messageBus: MessageBus
     /** The acting character's display name, for every variant's actor slot. */
     actorName: string
@@ -34,28 +35,17 @@ export type DeliverNarrationUnitsArgs = {
  * through its narration units):
  * walks the attempt's narration units in order, and within each unit, its witness variants, filling
  * each variant's parts from the caller's `actorName` and `labels` and publishing one `WorldMessage`
- * per variant. Declares its own messageOrchestration bundle slots (one per variant, in delivery order) so `CreatedTime`/`MessageId` ordering falls out for free,
- * reusing the attempt's own `bundleId` the same way `commitAttempt.ts` already does for the plan it
- * commits. Runs only after a successful commit (`captures` only exists then); this function takes
+ * per variant, directly on the bus. Each line is stamped `beatAnchorTime + index`, continuing after
+ * the committed plan's own presentation steps, so transcript order is the delivery order. Runs only after a successful commit (`captures` only exists then); this function takes
  * no verdict of its own.
  */
 export const deliverNarrationUnits = (args: DeliverNarrationUnitsArgs): void => {
     const entries = args.units.flatMap((unit) => unit.variants.map((variant) => ({
-        slotId: `narrate:${uuidv4()}`,
         captureIds: args.resolveCaptureId(unit, variant.audience),
         template: { kind: 'template' as const, parts: variant.parts, actorName: args.actorName, labels: args.labels },
     })))
 
-    if (entries.length === 0) {
-        return
-    }
-
-    sendMessageBundleDeclared(args.messageBus, args.bundleId, {
-        bundleId: args.bundleId,
-        slots: entries.map(({ slotId }) => ({ slotId, expectedPublishType: 'WorldMessage' as const })),
-    })
-
-    for (const { slotId, captureIds, template } of entries) {
+    entries.forEach(({ captureIds, template }, offset) => {
         const targets = new Set<EphemeraCharacterId>()
         for (const captureId of captureIds) {
             /** Same hard-error invariant `presentStepSequence` enforces: no live-roster fallback. */
@@ -69,16 +59,13 @@ export const deliverNarrationUnits = (args: DeliverNarrationUnitsArgs): void => 
             }
         }
 
-        sendMessageSlotReported(args.messageBus, args.bundleId, {
-            bundleId: args.bundleId,
-            slotId,
-            message: {
-                type: 'PublishMessage',
-                targets: [...targets],
-                displayProtocol: 'WorldMessage',
-                message: [fillNarrationTemplate(template)],
-                createdTime: 0,
-            },
+        args.messageBus.publish({
+            type: 'PublishMessage',
+            targets: [...targets],
+            displayProtocol: 'WorldMessage',
+            message: [fillNarrationTemplate(template)],
+            messageId: `MESSAGE#${uuidv4()}`,
+            createdTime: args.beatAnchorTime + args.firstPresentationIndex + offset,
         })
-    }
+    })
 }

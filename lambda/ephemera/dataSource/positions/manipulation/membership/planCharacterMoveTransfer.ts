@@ -2,9 +2,9 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import internalCache from '../../../../internalCache'
-import type { MessageOrchestrationSlotSpec } from '../../../messageOrchestration/localApiEvents'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import type { CompiledPositionKernelPlan } from '../kernel/compile/compilePositionKernelOp'
+import type { MoveHeaderBinding } from '../kernel/compile/positionKernelOp'
 import { buildCharacterMoveOp } from './buildCharacterMoveOp'
 import type { IntentKind } from './types'
 
@@ -12,17 +12,16 @@ export type PlanCharacterMoveTransferArgs = {
     characterId: EphemeraCharacterId
     characterName: string
     targetRoomId: EphemeraRoomId | null
-    bundleId: string
     intentKind: IntentKind
     intentFromRoomId?: EphemeraRoomId
     exitName?: string
     /**
-     * Async header-slot resolution, supplied only by navigate/connect; disconnect/repair omit it.
+     * Async arrival-header resolution, supplied only by navigate/connect; disconnect/repair omit it.
      * Called only once the move is confirmed changed and has a real destination, so a no-op move
      * never pays for it --- matches today's behavior, where `presentCharacterMove` (the
      * only caller of `getCharacterRoomPerspectiveKey`) never runs for an unchanged move.
      */
-    resolveHeaderSlot?: (to: EphemeraRoomId) => Promise<MessageOrchestrationSlotSpec | null>
+    resolveHeader?: (to: EphemeraRoomId) => Promise<MoveHeaderBinding | null>
     /** injectable for test seams only. */
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>
 }
@@ -57,8 +56,8 @@ export const planCharacterMoveTransfer = async (
         return { ok: true, changed: false, froms, to: args.targetRoomId }
     }
 
-    const headerSlot = (args.resolveHeaderSlot && args.targetRoomId !== null)
-        ? await args.resolveHeaderSlot(args.targetRoomId)
+    const header = (args.resolveHeader && args.targetRoomId !== null)
+        ? await args.resolveHeader(args.targetRoomId)
         : null
 
     const op = buildCharacterMoveOp({
@@ -66,11 +65,10 @@ export const planCharacterMoveTransfer = async (
         characterName: args.characterName,
         froms,
         to: args.targetRoomId,
-        bundleId: args.bundleId,
         intentKind: args.intentKind,
         intentFromRoomId: args.intentFromRoomId,
         exitName: args.exitName,
-        headerSlot,
+        header,
     })
 
     const plan = compilePositionKernelOp(op)

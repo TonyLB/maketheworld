@@ -21,7 +21,6 @@ export type BuildObjectMoveOpArgs = {
     fromGraph: EphemeraLudicGraph
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
-    bundleId: string
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
 }
@@ -61,8 +60,7 @@ export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMo
         moved: args.entityId,
         froms: [args.fromHostId],
         to: args.toHostId,
-        bundleId: args.bundleId,
-        headerSlot: null,
+        header: null,
         dissolvedEdges,
         ...(args.containment ? { containment: args.containment } : {}),
     }

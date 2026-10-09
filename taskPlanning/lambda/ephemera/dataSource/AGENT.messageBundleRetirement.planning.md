@@ -1,6 +1,6 @@
 # Message bundle retirement: compiler-stamped transcript order, and character moves on the presentation kernel
 
-**Status:** Slice 1 done. **Next:** Slice 2 (compiler-stamped presentation order).
+**Status:** Slice 2 done. **Next:** Slice 3 (converge character moves onto `commitAndPresentStepSequence`).
 
 This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../AGENT.md). It is an **implementation plan**, not a design-stage one.
 
@@ -35,9 +35,9 @@ Retire `mtw.ephemera.messageOrchestration`'s **bundle** layer (declare, settle, 
 
 | Producer | Slots | After this plan |
 | --- | --- | --- |
-| [`presentCharacterMove.ts`](../../../../lambda/ephemera/dataSource/positions/navigate/presentCharacterMove.ts) (navigate, home, connect, disconnect, repair) | leave(s), header, arrive | Header becomes a `describe` step; whole route goes through the composer (Slices 2, 3) |
-| [`commitAndPresentStepSequence.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/commitAndPresentStepSequence.ts) (`commitAttempt`, two `actions/index.ts` callers) | the compiled plan's `slots` | Stamps presentation times instead of declaring (Slice 2) |
-| [`deliverNarrationUnits.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/deliverNarrationUnits.ts) (command-attempt narration) | one per narration variant | Publishes directly with stamped times (Slice 2) |
+| [`presentCharacterMove.ts`](../../../../lambda/ephemera/dataSource/positions/navigate/presentCharacterMove.ts) (navigate, home, connect, disconnect, repair) | none (Slice 2: header is a `describe` step; leave/arrive publish directly) | Whole route goes through the composer (Slice 3) |
+| [`commitAndPresentStepSequence.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/commitAndPresentStepSequence.ts) (`commitAttempt`, two `actions/index.ts` callers) | the compiled plan's `slots` | Done (Slice 2): presents with the commit's `beatAnchorTime`, no declare |
+| [`deliverNarrationUnits.ts`](../../../../lambda/ephemera/dataSource/positions/manipulation/deliverNarrationUnits.ts) (command-attempt narration) | one per narration variant | Done (Slice 2): publishes directly, times continue after the plan's last index |
 | [`handleLookCommandRequestedForRenderOrchestration.ts`](../../../../lambda/ephemera/dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts) (room/feature/knowledge/object look) | 1 | Listener carries its own time (Slice 1) |
 | [`handleCharacterRegisteredOrientation.ts`](../../../../lambda/ephemera/dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) (session orientation render) | 1 | Same (Slice 1) |
 | [`requestFullRoomDescriptionForCharacter.ts`](../../../../lambda/ephemera/dataSource/actions/actionHandlers/requestFullRoomDescriptionForCharacter.ts) | 1 | Same (Slice 1) |
@@ -77,8 +77,6 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
 | MB-1 | **Placeholder handling.** The original premise was that a placeholder and its terminal both resolving before the bundle flushes sends only the terminal (`registerLeg`'s map overwrite). **Slice 1 found that premise false for one-slot listeners:** `FanInClusterStore.completeReadyPartials` flushes a complete cluster on its first report, so a one-slot bundle always published the placeholder immediately and the terminal as a post-flush revision. Holding each listener's latest wave until settle would have hidden the "Generating…" placeholder for every render that finishes in the same invocation (the settle loop waits for generation), and broke `characterRegisteredOrientation.integration.test.ts`. **Decided (revised): a direct listener publishes every wave as it arrives** (first at its pre-assigned time, later ones at `max(lastPublished + 1, now)`, same `MessageId`); a late registrant is replayed only the latest recorded event. No per-listener buffer and no settle flush. Deduplication that remains is replay collapse. Listeners never wait on each other. | 1 | Decided (revised in Slice 1) |
-| MB-2 | **Where presentation order lives.** **Decided: an ordered list on the compiled plan** (today's `plan.slots`, renamed and stripped of bundle fields). Presentation stamps entry `i` at `beatAnchorTime + i`, 1 ms apart. | 2 | Decided |
-| MB-3 | **Header as a `describe` step.** **Decided:** `describe` gains an optional header binding (the slot spec's `format: 'header'`, perspective key, targets), delivered by registering an ingress listener and kicking the passive render, as `presentCharacterMove` does today. Full-format `describe` keeps the `Look Command Requested` path, forwarding its stamped time. This answers the "a `describe` step cannot request a header slot" open question in [`messageOrchestration/AGENT.md`](../../../../lambda/ephemera/dataSource/messageOrchestration/AGENT.md#registered-render-kinds). | 2 | Decided |
 | MB-4 | **Home for the move's post-commit work.** **Decided: `Character Moved` subscribers in `mtw.ephemera.characters`.** The cache invalidate runs in the ladder subscriber **after** the ladder write, replacing both positions' post-commit `CharacterMeta.invalidate` and `persistRoomStackNavigate`'s partial `CharacterMeta.set` (see [Grounding facts](#grounding-facts-verified-2026-10-08)). The `CharacterInPlay` publish moves to a characters subscriber too. Safety condition (confirmed in Slice 0): no cached field other than `RoomStack` changes on a move, so between commit and the ladder write the cache matches the stored row. | 3 | Decided |
 
 ## Recommended order
@@ -95,13 +93,13 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark each nested line `[X
   - [X] Converted the three one-slot producers (look family, session orientation render, `requestFullRoomDescriptionForCharacter`) to the direct address. Their bundle declares are gone.
   - [X] MB-1 revised (see the row): the buffer-until-settle design was built, then removed when the full suite showed it hides placeholders; direct listeners publish every wave as it arrives.
   - [X] Tests: direct listeners publish placeholder then terminal under one `MessageId` with strictly increasing times, including a terminal after settle; a late registrant gets only the latest replay at its own time; mixed bundle and direct listeners on one bucket; the roster-broadcast gating is unchanged (`reportIngressContent` still returns the listener count; the existing perception tests pass). Full ephemera suite green.
-- [ ] **Slice 2 --- compiler-stamped presentation order.**
-  - [ ] Apply MB-2: the compiled plan carries an ordered presentation list with no bundle fields; presentation stamps `beatAnchorTime + index` and mints each step's `MessageId`.
-  - [ ] `presentStepSequence`'s narrate branch publishes `PublishMessage` directly with its stamped time instead of `sendMessageSlotReported`.
-  - [ ] Apply MB-3: `describe` gains the header binding; the compiler emits the navigate header as a `describe` step in its ordered position; `presentCharacterMove`'s `registerIngressSlot` tail and its `Perception` fallback are removed.
-  - [ ] `commitAndPresentStepSequence` stops declaring bundles. `deliverNarrationUnits` publishes each variant directly, with times continuing after the plan's last presentation index (pass the next index from the composer's result).
-  - [ ] `NAVIGATE_HEADER_SLOT_ID`, `moveBundleSlotIds.ts` and slot-id plumbing on narrate steps are deleted or reduced to what the ordered list needs.
-  - [ ] **Payoff test** (see [Goal](#goal)): an ephemera integration test captures the published rows for a navigate into an uncached room and asserts their `(CreatedTime, MessageId)` order, targets and `MessageId` sharing; a `charcoal-client` Vitest ingests that same row sequence, in emitted order, through the real messages slice and asserts the mover's and observer's presentation rows. No cross-package harness exists, so the client test uses a real-shape fixture of the server's rows fed into the real slice, not a mocked consumer. The fixture includes an affordance header with a time **after** the arrive line, since that is the one message Slice 0 found that changes position relative to the bundle's lines.
+- [X] **Slice 2 --- compiler-stamped presentation order.** Shipped; rules recorded in `positions/AGENT.contract.md` (Narration and presentation) and `positions/manipulation/AGENT.implementation.md`.
+  - [X] Apply MB-2: the compiled plan is `{ steps }` (no `slots`); its `narrate`/`describe` steps in array order are the presentation list, stamped `beatAnchorTime + index`, each with its own `MessageId`.
+  - [X] `presentStepSequence`'s narrate branch publishes `PublishMessage` directly with its stamped time instead of `sendMessageSlotReported`.
+  - [X] Apply MB-3 (header binding is `{ perspectiveKey: string | null, assets }`; **a `null` key publishes the static cache header at the stamped place instead of dropping it**, since the old `Perception` fallback was not a no-op there); the compiler emits the navigate header as a `describe` step in its ordered position; `presentCharacterMove`'s `registerIngressSlot` tail and its `Perception` fallback are removed.
+  - [X] `commitAndPresentStepSequence` stops declaring bundles. `deliverNarrationUnits` publishes each variant directly, with times continuing after the plan's last presentation index (pass the next index from the composer's result).
+  - [X] `NAVIGATE_HEADER_SLOT_ID`, `moveBundleSlotIds.ts` and slot-id plumbing on narrate steps are deleted or reduced to what the ordered list needs.
+  - [X] **Payoff test** (`navigateStampedOrder.integration.test.ts` and `charcoal-client/.../messages/navigateStampedOrder.test.ts`; the server half drives the real compiler, presenter and ingress with a stubbed passive-render kickoff rather than a full `orchestrateCharacterMove`): an ephemera integration test captures the published rows for a navigate into an uncached room and asserts their `(CreatedTime, MessageId)` order, targets and `MessageId` sharing; a `charcoal-client` Vitest ingests that same row sequence, in emitted order, through the real messages slice and asserts the mover's and observer's presentation rows. No cross-package harness exists, so the client test uses a real-shape fixture of the server's rows fed into the real slice, not a mocked consumer. The fixture includes an affordance header with a time **after** the arrive line, since that is the one message Slice 0 found that changes position relative to the bundle's lines.
 - [ ] **Slice 3 --- converge character moves onto `commitAndPresentStepSequence`.**
   - [ ] Delete `roomRosterSnapshots` (production code, `MembershipApplyResult`, tests).
   - [ ] Apply MB-4: `persistRoomStackNavigate` invalidates `CharacterMeta` after a successful write instead of `set`ting a partial entry; delete positions' post-commit invalidate; move the `CharacterInPlay` publish to a characters subscriber.
@@ -122,7 +120,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark each nested line `[X
 | --- | --- |
 | 0 --- grounding checks | Done |
 | 1 --- ingress listeners own time | Done |
-| 2 --- compiler-stamped order | Not started |
+| 2 --- compiler-stamped order | Done |
 | 3 --- character-move convergence | Not started |
 | 4 --- delete bundles and close | Not started |
 

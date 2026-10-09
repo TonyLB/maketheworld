@@ -1,5 +1,22 @@
 import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
+const registerIngressSlot = jest.fn()
+const kickPassiveRenderRequestedForCharacterInRoom = jest.fn()
+const renderCacheGet = jest.fn()
+
+jest.mock('../../../messageOrchestration', () => ({
+    __esModule: true,
+    registerIngressSlot: (...args: any[]) => registerIngressSlot(...args),
+}))
+jest.mock('../../../perception/kickRoomHeaderBroadcast', () => ({
+    __esModule: true,
+    kickPassiveRenderRequestedForCharacterInRoom: (...args: any[]) => kickPassiveRenderRequestedForCharacterInRoom(...args),
+}))
+jest.mock('../../../../internalCache', () => ({
+    __esModule: true,
+    default: { RenderCache: { get: (...args: any[]) => renderCacheGet(...args) } },
+}))
+
 import { presentStepSequence } from './presentStepSequence'
 import type { KernelStep } from './kernelStep'
 
@@ -31,6 +48,8 @@ describe('presentStepSequence', () => {
                 characterId: CHARACTER_ID,
                 componentId: ROOM_ID,
                 confidence: 1,
+                createdTime: expect.any(Number),
+                messageId: expect.stringMatching(/^MESSAGE#/),
             },
         })
     })
@@ -92,6 +111,8 @@ describe('presentStepSequence', () => {
                 characterId: CHARACTER_ID,
                 componentId: OTHER_CHARACTER_ID,
                 confidence: 1,
+                createdTime: expect.any(Number),
+                messageId: expect.stringMatching(/^MESSAGE#/),
             },
         })
     })
@@ -119,7 +140,7 @@ describe('presentStepSequence', () => {
         const slotReports = () => (
             messageBus.publish.mock.calls
                 .map((call: any[]) => call[0])
-                .filter((message: any) => message?.type === 'StreamingEvent' && message?.header?.type === 'Message Slot Reported')
+                .filter((message: any) => message?.type === 'PublishMessage' && message?.displayProtocol === 'WorldMessage')
         )
 
         it('mover receives their own leave line; arrival-room occupants do not', async () => {
@@ -133,15 +154,13 @@ describe('presentStepSequence', () => {
                     copyKind: 'genericNavigate',
                 },
                 captureId: 'capture:from',
-                bundleId: 'BUNDLE#test',
-                slotId: 'leave:ROOM#Departure',
             }]
 
             await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus }, captures)
 
             const reports = slotReports()
             expect(reports).toHaveLength(1)
-            const content = await reports[0].getContent()
+            const content = { message: reports[0] }
             expect(content.message.targets).toEqual([CHARACTER_ID, OTHER_CHARACTER_ID])
             expect(content.message.targets).not.toContain(ARRIVAL_ROOM_ID)
             //  The captured roster is the sole audience --- no live-expanding ROOM# target rides
@@ -160,15 +179,13 @@ describe('presentStepSequence', () => {
                     copyKind: 'genericNavigate',
                 },
                 captureId: 'capture:to',
-                bundleId: 'BUNDLE#test',
-                slotId: 'arrive',
             }]
 
             await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus }, captures)
 
             const reports = slotReports()
             expect(reports).toHaveLength(1)
-            const content = await reports[0].getContent()
+            const content = { message: reports[0] }
             expect(content.message.targets).toEqual([CHARACTER_ID])
             expect(content.message.targets).not.toContain(DEPARTURE_ROOM_ID)
             expect(content.message.targets).not.toContain(ARRIVAL_ROOM_ID)
@@ -190,8 +207,6 @@ describe('presentStepSequence', () => {
                         exitName: 'north',
                     },
                     captureId: 'capture:from',
-                    bundleId: 'BUNDLE#test',
-                    slotId: 'leave:ROOM#Departure',
                 },
                 {
                     kind: 'narrate',
@@ -202,15 +217,13 @@ describe('presentStepSequence', () => {
                         copyKind: 'connect',
                     },
                     captureId: 'capture:to',
-                    bundleId: 'BUNDLE#test',
-                    slotId: 'arrive',
                 },
             ]
 
             await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus }, captures)
 
             const reports = slotReports()
-            const contents = await Promise.all(reports.map((report: any) => report.getContent()))
+            const contents = reports.map((report: any) => ({ message: report }))
             expect(contents[0].message.message).toEqual(['Tess left by north exit.'])
             expect(contents[1].message.message).toEqual(['Tess has connected.'])
         })
@@ -225,8 +238,6 @@ describe('presentStepSequence', () => {
                     copyKind: 'genericNavigate',
                 },
                 captureId: 'capture:missing',
-                bundleId: 'BUNDLE#test',
-                slotId: 'leave:ROOM#Departure',
             }]
 
             await expect(
@@ -246,15 +257,13 @@ describe('presentStepSequence', () => {
                     copyKind: 'genericNavigate',
                 },
                 captureId: 'capture:from',
-                bundleId: 'BUNDLE#test',
-                slotId: 'leave:ROOM#Departure',
             }]
 
             await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus }, captures)
 
             const reports = slotReports()
             expect(reports).toHaveLength(1)
-            const content = await reports[0].getContent()
+            const content = { message: reports[0] }
             expect(content.message.targets).toEqual([])
         })
     })
@@ -267,7 +276,7 @@ describe('presentStepSequence', () => {
         const slotReports = () => (
             messageBus.publish.mock.calls
                 .map((call: any[]) => call[0])
-                .filter((message: any) => message?.type === 'StreamingEvent' && message?.header?.type === 'Message Slot Reported')
+                .filter((message: any) => message?.type === 'PublishMessage' && message?.displayProtocol === 'WorldMessage')
         )
 
         const objectStep = (
@@ -282,14 +291,12 @@ describe('presentStepSequence', () => {
                 labels: { 'OBJECT#broom': 'broom' },
             },
             captureId,
-            bundleId: 'BUNDLE#test',
-            slotId: 'leave:ROOM#Cafe',
         })
 
         const reportedMessage = async () => {
             const reports = slotReports()
             expect(reports).toHaveLength(1)
-            const content = await reports[0].getContent()
+            const content = { message: reports[0] }
             return content.message
         }
 
@@ -341,6 +348,90 @@ describe('presentStepSequence', () => {
                 { streamEvent, messageBus },
                 new Map()
             )).rejects.toThrow()
+        })
+    })
+
+    describe('presentation order', () => {
+        const BEAT = 1_700_000_000_000
+        const narrate = (direction: 'leave' | 'arrive', captureId: string): KernelStep => ({
+            kind: 'narrate',
+            narration: { kind: 'membershipMove', direction, characterName: 'Tess', copyKind: 'genericNavigate' },
+            captureId,
+        })
+        const captures = new Map([['capture:from', [CHARACTER_ID]], ['capture:to', [CHARACTER_ID]]])
+        const published = () => messageBus.publish.mock.calls.map((call: any[]) => call[0])
+
+        it('stamps entry i at beatAnchorTime + i across narrate and describe steps, each with its own MessageId, and returns the next index', async () => {
+            const steps: KernelStep[] = [
+                narrate('leave', 'capture:from'),
+                { kind: 'describe', referentId: ROOM_ID, referentKind: 'room', header: { perspectiveKey: 'pk', assets: ['ASSET#a'] } },
+                narrate('arrive', 'capture:to'),
+            ]
+
+            const next = await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus }, captures, BEAT)
+
+            expect(next).toBe(3)
+            const [leave, arrive] = published()
+            expect(leave.createdTime).toBe(BEAT)
+            expect(arrive.createdTime).toBe(BEAT + 2)
+            const [, address, spec] = registerIngressSlot.mock.calls[0]!
+            expect(address.createdTime).toBe(BEAT + 1)
+            expect(new Set([leave.messageId, arrive.messageId, address.messageId]).size).toBe(3)
+            expect(spec).toEqual(expect.objectContaining({
+                componentId: ROOM_ID,
+                perspectiveKey: 'pk',
+                targets: [CHARACTER_ID],
+                contentStream: 'render',
+                format: 'header',
+            }))
+        })
+
+        it('kicks the passive render for the header listener with the binding\'s assets', async () => {
+            const steps: KernelStep[] = [
+                { kind: 'describe', referentId: ROOM_ID, referentKind: 'room', header: { perspectiveKey: 'pk', assets: ['ASSET#a'] } },
+            ]
+
+            await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus }, captures, BEAT)
+            const kickoff = registerIngressSlot.mock.calls[0]![3]
+            await kickoff()
+
+            expect(kickPassiveRenderRequestedForCharacterInRoom).toHaveBeenCalledWith({
+                roomId: ROOM_ID,
+                characterId: CHARACTER_ID,
+                assets: ['ASSET#a'],
+                messageBus,
+            })
+            expect(streamEvent).not.toHaveBeenCalled()
+        })
+
+        it('publishes the static cache header at its stamped place when the header has no perspective key', async () => {
+            renderCacheGet.mockResolvedValue([])
+            const steps: KernelStep[] = [
+                narrate('leave', 'capture:from'),
+                { kind: 'describe', referentId: ROOM_ID, referentKind: 'room', header: { perspectiveKey: null, assets: [] } },
+            ]
+
+            await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus }, captures, BEAT)
+
+            expect(registerIngressSlot).not.toHaveBeenCalled()
+            const header = published().find((message: any) => message.displayProtocol === 'PerceptionMessage')
+            expect(header).toEqual(expect.objectContaining({
+                targets: [CHARACTER_ID],
+                createdTime: BEAT + 1,
+                messageId: expect.stringMatching(/^MESSAGE#/),
+                metaData: { componentUUID: ROOM_ID, displayMode: 'header', roomChannel: 'render' },
+            }))
+        })
+
+        it('forwards the stamped time and MessageId on a full-format look', async () => {
+            const steps: KernelStep[] = [
+                narrate('leave', 'capture:from'),
+                { kind: 'describe', referentId: ROOM_ID, referentKind: 'room' },
+            ]
+
+            await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus }, captures, BEAT)
+
+            expect(streamEvent.mock.calls[0][0].update).toEqual(expect.objectContaining({ createdTime: BEAT + 1, messageId: expect.stringMatching(/^MESSAGE#/) }))
         })
     })
 })

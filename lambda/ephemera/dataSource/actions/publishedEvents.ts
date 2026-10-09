@@ -33,8 +33,6 @@ export type CharacterNavigatePublishedPayload = {
     toRoomId: EphemeraRoomId;
     /** Normalized exit label when parse matched a named exit (fan-in exit-aware copy). */
     exitName?: string;
-    /** messageOrchestration bundle correlation id, minted once here; shared by the positions execution tail and the perception membership fan-in intent leg. Optional so pre-migration/synthetic payloads degrade gracefully to direct-publish rather than dropping the leg. */
-    bundleId?: string;
 }
 
 export type CharacterHomePublishedPayload = {
@@ -42,8 +40,6 @@ export type CharacterHomePublishedPayload = {
     characterId: EphemeraCharacterId;
     fromRoomId: EphemeraRoomId;
     toRoomId: EphemeraRoomId;
-    /** messageOrchestration bundle correlation id, minted once here; shared by the positions execution tail and the perception membership fan-in intent leg. Optional so pre-migration/synthetic payloads degrade gracefully to direct-publish rather than dropping the leg. */
-    bundleId?: string;
 }
 
 /**
@@ -105,6 +101,9 @@ export type LookCommandRequestedPublishedPayload = {
      * `positions/manipulation/kernel/presentStepSequence.ts` for what replaced it. */
     componentId: EphemeraRoomId | EphemeraFeatureId | EphemeraKnowledgeId | EphemeraObjectId | EphemeraCharacterId;
     confidence: number;
+    /** The look's pre-assigned transcript position, when a presentation plan stamped one; the handler mints its own otherwise. */
+    createdTime?: number;
+    messageId?: string;
 }
 
 /** One catalog line on the bus; aligns with Objects Change add row (EphemeraMetaRoomObject) minus uuid. */
@@ -238,9 +237,6 @@ export const isCharacterNavigatePublishedPayload = (
             return false
         }
     }
-    if (v.bundleId !== undefined && typeof v.bundleId !== 'string') {
-        return false
-    }
     return true
 }
 
@@ -261,9 +257,6 @@ export const isCharacterHomePublishedPayload = (
         return false
     }
     if (typeof v.toRoomId !== 'string') {
-        return false
-    }
-    if (v.bundleId !== undefined && typeof v.bundleId !== 'string') {
         return false
     }
     return true

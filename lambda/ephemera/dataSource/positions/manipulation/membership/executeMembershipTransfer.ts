@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -91,8 +90,7 @@ export const executeMembershipTransfer = async (
         moved: args.entityId,
         froms,
         to: args.target,
-        bundleId: uuidv4(),
-        headerSlot: null,
+        header: null,
     })
     const steps = compiledSteps.filter(isKernelMutationStep)
 

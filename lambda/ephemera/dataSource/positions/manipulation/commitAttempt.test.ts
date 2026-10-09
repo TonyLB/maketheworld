@@ -28,7 +28,7 @@ jest.mock('./kernel/dryRunStepSequence', () => ({
 }))
 
 jest.mock('./kernel/commitAndPresentStepSequence', () => ({
-    commitAndPresentStepSequence: jest.fn().mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() }),
+    commitAndPresentStepSequence: jest.fn().mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map(), nextPresentationIndex: 0 }),
 }))
 
 /**
@@ -147,7 +147,7 @@ describe('commitAttempt', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
-        commitAndPresentStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
+        commitAndPresentStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map(), nextPresentationIndex: 0 })
         dryRunStepSequenceMock.mockResolvedValue({ verdict: 'legal', graphs: new Map(), captures: new Map() })
         mockLiveHosts(ROOM)
         /** No presence bindings by default: audience resolution falls to a dead end, not a thrown error, for a host with no narration-unit test coverage of its own. */
@@ -156,7 +156,7 @@ describe('commitAttempt', () => {
 
     it('grounds a published (ungrounded) take against live state and dispatches it through planObjectMoveTransfer', async () => {
         mockLiveHosts(ROOM)
-        const plan = { steps: [{ kind: 'transferMembership', entityId: BROOM, fromHostIds: new Set([ROOM]), toHostId: CHARACTER }], slots: [] }
+        const plan = { steps: [{ kind: 'transferMembership', entityId: BROOM, fromHostIds: new Set([ROOM]), toHostId: CHARACTER }] }
         planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
 
         await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
@@ -170,10 +170,8 @@ describe('commitAttempt', () => {
         }))
         const [committedPlan] = commitAndPresentStepSequenceMock.mock.calls[0]!
         expect(withoutCaptureSteps(committedPlan.steps)).toEqual(plan.steps)
-        expect(committedPlan.slots).toEqual([])
         expect(commitAndPresentStepSequenceMock).toHaveBeenCalledWith(
             expect.anything(),
-            expect.any(String),
             CHARACTER,
             expect.objectContaining({
                 commit: expect.objectContaining({ messageBus, streamEvent }),
@@ -234,20 +232,6 @@ describe('commitAttempt', () => {
         expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
     })
 
-    it('uses the same bundleId for planObjectMoveTransfer and the final commit', async () => {
-        mockLiveHosts(ROOM)
-        const plan = { steps: [{ kind: 'transferMembership', entityId: BROOM, fromHostIds: new Set([ROOM]), toHostId: CHARACTER }], slots: [] }
-        planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
-
-        await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
-
-        expect(planObjectMoveTransferMock).toHaveBeenCalledTimes(1)
-        expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
-        const [planArgs] = planObjectMoveTransferMock.mock.calls[0]!
-        const [, commitBundleId] = commitAndPresentStepSequenceMock.mock.calls[0]!
-        expect(commitBundleId).toBe((planArgs as any).bundleId)
-    })
-
     it('does not commit when the object has no single current host (drift)', async () => {
         mockLiveHosts(undefined)
 
@@ -274,8 +258,7 @@ describe('commitAttempt', () => {
 
         expect(planRelationalEdgeTransferMock).toHaveBeenCalledWith(expect.objectContaining({ primitive: 'establishRelation' }))
         expect(commitAndPresentStepSequenceMock).toHaveBeenCalledWith(
-            expect.objectContaining({ steps, slots: [] }),
-            expect.any(String),
+            expect.objectContaining({ steps }),
             CHARACTER,
             expect.objectContaining({
                 commit: expect.objectContaining({
@@ -297,7 +280,7 @@ describe('commitAttempt', () => {
         mockLiveHosts(ROOM)
         const membershipStep = { kind: 'transferMembership', entityId: BROOM, fromHostIds: new Set([ROOM]), toHostId: TABLE }
         const relationalStep = { kind: 'establishRelation', subjectId: BROOM, targetId: TABLE, hostId: TABLE, relationKind: 'On' }
-        planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [membershipStep], slots: [] } as any, fromHostId: ROOM })
+        planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [membershipStep] } as any, fromHostId: ROOM })
         planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: [relationalStep] as any })
 
         const mixedAttempt = CommandAttempt.fromJSON({
@@ -346,7 +329,7 @@ describe('commitAttempt', () => {
         const dissolveStep = { kind: 'dissolveRelation', subjectId: BROOM, targetId: TABLE, hostId: ROOM, relationKind: 'Custom', relationLabel: 'is lashed to' }
         const transferStep = { kind: 'transferMembership', entityId: BROOM, fromHostIds: new Set([ROOM]), toHostId: TABLE }
         planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: [dissolveStep] as any })
-        planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [transferStep], slots: [] } as any, fromHostId: ROOM })
+        planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [transferStep] } as any, fromHostId: ROOM })
 
         // The published attempt, as parseCommand's round trip hands it over: the met dissolve first.
         const published = CommandAttempt.fromJSON({
@@ -410,7 +393,7 @@ describe('commitAttempt', () => {
 
     it('dispatches a containment action through planObjectMoveTransfer with its containment flag', async () => {
         mockLiveHosts(ROOM)
-        const plan = { steps: [{ kind: 'transferMembership', entityId: BROOM, fromHostIds: new Set([ROOM]), toHostId: TABLE }], slots: [] }
+        const plan = { steps: [{ kind: 'transferMembership', entityId: BROOM, fromHostIds: new Set([ROOM]), toHostId: TABLE }] }
         planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
 
         await commitAttempt({ attempt: containmentAttempt('On'), characterId: CHARACTER, messageBus, streamEvent })
@@ -426,7 +409,7 @@ describe('commitAttempt', () => {
 
     it('omits the containment field when planObjectMoveTransfer is called for an ordinary membership move', async () => {
         mockLiveHosts(ROOM)
-        const plan = { steps: [{ kind: 'transferMembership', entityId: BROOM, fromHostIds: new Set([ROOM]), toHostId: CHARACTER }], slots: [] }
+        const plan = { steps: [{ kind: 'transferMembership', entityId: BROOM, fromHostIds: new Set([ROOM]), toHostId: CHARACTER }] }
         planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
 
         await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
@@ -455,7 +438,7 @@ describe('commitAttempt', () => {
                     ? { relationalEdges: [], presenceNodes: [{ tag: 'Presence', universalKey: 'PRESENCE#alice-binding', fromHostId: ROOM, cover: { tag: 'Full' } }] }
                     : { relationalEdges: [], presenceNodes: [] }
             ))
-            const takePlan = { steps: [{ kind: 'transferMembership', entityId: BROOM, fromHostIds: new Set([ROOM]), toHostId: CHARACTER }], slots: [] }
+            const takePlan = { steps: [{ kind: 'transferMembership', entityId: BROOM, fromHostIds: new Set([ROOM]), toHostId: CHARACTER }] }
             planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: takePlan as any, fromHostId: ROOM })
             const take = membershipAttempt('takeHold')
 
@@ -467,8 +450,9 @@ describe('commitAttempt', () => {
             // Labels are the attempt's, resolved once and filled at delivery, not baked into the unit.
             expect(sweepArgs.actorName).toBe('Alice')
             expect(sweepArgs.labels).toEqual({ primaryObject: 'broom' })
-            const [committedPlan, commitBundleId] = commitAndPresentStepSequenceMock.mock.calls[0]!
-            expect(sweepArgs.bundleId).toBe(commitBundleId)
+            const [committedPlan] = commitAndPresentStepSequenceMock.mock.calls[0]!
+            expect(sweepArgs.beatAnchorTime).toBe(1_700_000_000_000)
+            expect(sweepArgs.firstPresentationIndex).toBe(0)
 
             const [beforeVariant, afterVariant] = sweepArgs.units[0]!.variants
             const beforeCaptureIds = sweepArgs.resolveCaptureId(sweepArgs.units[0]!, beforeVariant!.audience)
@@ -487,7 +471,7 @@ describe('commitAttempt', () => {
 
         it('narrates nothing for a membership action no unit covers: positions derives no copy', async () => {
             mockLiveHosts(ROOM)
-            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [], slots: [] } as any, fromHostId: ROOM })
+            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [] } as any, fromHostId: ROOM })
 
             await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
 
@@ -510,7 +494,7 @@ describe('commitAttempt', () => {
                 takeOf('take-bucket', 'OBJECT#Bucket' as EphemeraObjectId, 'bucket'),
                 takeOf('take-broom', BROOM, 'broom'),
             ], [unitFor('take-broom', 'broom'), unitFor('take-mop', 'mop')]).toJSON())
-            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [], slots: [] } as any, fromHostId: ROOM })
+            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [] } as any, fromHostId: ROOM })
 
             await commitAttempt({ attempt, characterId: CHARACTER, messageBus, streamEvent })
 
@@ -532,7 +516,7 @@ describe('commitAttempt', () => {
                     parts: [{ slot: 'actor' as const }, { text: ' hands ' }, { ref: BOB }, { text: ' the ' }, { ref: 'primaryObject' }, { text: ' by ' }, { ref: NICHE }],
                 }],
             }
-            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [], slots: [] } as any, fromHostId: ROOM })
+            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [] } as any, fromHostId: ROOM })
 
             await commitAttempt({ attempt: CommandAttempt.create(take.words, take.actions(), [authored]), characterId: CHARACTER, messageBus, streamEvent })
 
@@ -600,7 +584,7 @@ describe('commitAttempt', () => {
         }
 
         beforeEach(() => {
-            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [transferStep], slots: [] } as any, fromHostId: ROOM })
+            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [transferStep] } as any, fromHostId: ROOM })
             planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: [dissolveStep] as any })
         })
 

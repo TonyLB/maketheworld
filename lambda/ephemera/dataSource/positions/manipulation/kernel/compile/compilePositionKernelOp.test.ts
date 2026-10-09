@@ -4,8 +4,6 @@ import { compilePositionKernelOp } from './compilePositionKernelOp'
 import { isNarrateStep } from '../kernelStep'
 import type { MembershipNarrationSpec, PresentationKernelNarrateStep } from '../kernelStep'
 import type { PositionKernelMoveOp } from './positionKernelOp'
-import { NAVIGATE_HEADER_SLOT_ID } from '../../../navigate/navigateBundleSlotIds'
-import { moveLeaveSlotId, MOVE_ARRIVE_SLOT_ID } from './moveBundleSlotIds'
 
 /** Narrows a compiled narrate step to the membership family these cases all exercise. */
 const membershipNarration = (step: PresentationKernelNarrateStep): MembershipNarrationSpec => {
@@ -24,8 +22,7 @@ const baseOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMo
     moved: CHARACTER_ID,
     froms: [FROM_ROOM],
     to: TO_ROOM,
-    bundleId: 'BUNDLE#test',
-    headerSlot: null,
+    header: null,
     narration: {
         kind: 'membershipMove',
         characterName: 'Tess',
@@ -52,23 +49,13 @@ describe('compilePositionKernelOp', () => {
         expect(narrateSteps.map((step) => membershipNarration(step).direction)).toEqual(['leave', 'arrive'])
     })
 
-    it('declares slots in delivery order [leave, header, arrive]', () => {
-        const headerSlot = {
-            slotId: NAVIGATE_HEADER_SLOT_ID,
-            expectedPublishType: 'PerceptionMessage' as const,
-            componentId: TO_ROOM,
-            perspectiveKey: 'perspective-key',
-            targets: [CHARACTER_ID],
-            contentStream: 'render' as const,
-            format: 'header' as const,
-        }
-        const plan = compilePositionKernelOp(baseOp({ headerSlot }))
+    it('places the header describe between the leave and arrive narrations', () => {
+        const header = { perspectiveKey: 'perspective-key', assets: ['primitives'] }
+        const plan = compilePositionKernelOp(baseOp({ header }))
 
-        expect(plan.slots).toEqual([
-            { slotId: moveLeaveSlotId(FROM_ROOM), expectedPublishType: 'WorldMessage' },
-            headerSlot,
-            { slotId: MOVE_ARRIVE_SLOT_ID, expectedPublishType: 'WorldMessage' },
-        ])
+        const presentation = plan.steps.filter((step) => step.kind === 'narrate' || step.kind === 'describe')
+        expect(presentation.map((step) => step.kind === 'narrate' ? membershipNarration(step).direction : 'header')).toEqual(['leave', 'header', 'arrive'])
+        expect(presentation[1]).toEqual({ kind: 'describe', referentId: TO_ROOM, referentKind: 'room', header })
     })
 
     it('narration steps carry ingredients (characterName/copyKind/exitName), not a built message', () => {
@@ -95,7 +82,6 @@ describe('compilePositionKernelOp', () => {
         const plan = compilePositionKernelOp(baseOp({ froms: [] }))
 
         expect(plan.steps.filter(isNarrateStep).some((step) => membershipNarration(step).direction === 'leave')).toBe(false)
-        expect(plan.slots.some((slot) => slot.slotId.startsWith('leave:'))).toBe(false)
     })
 
     it('produces no arrive step/slot/capture-to when to is null (disconnect shape)', () => {
@@ -103,7 +89,6 @@ describe('compilePositionKernelOp', () => {
 
         expect(plan.steps.filter(isNarrateStep).some((step) => membershipNarration(step).direction === 'arrive')).toBe(false)
         expect(plan.steps.filter((step) => step.kind === 'capture')).toHaveLength(1)
-        expect(plan.slots.some((slot) => slot.slotId === MOVE_ARRIVE_SLOT_ID)).toBe(false)
     })
 
     it('emits the transfer plus presence steps when narration is absent (object-lifecycle moves)', () => {
@@ -128,22 +113,15 @@ describe('compilePositionKernelOp', () => {
                 presenceUuid: expect.any(String),
             },
         ])
-        expect(plan.slots).toEqual([])
+        expect(plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
-    it('still declares the header slot when narration is absent (connect/disconnect header render)', () => {
-        const headerSlot = {
-            slotId: NAVIGATE_HEADER_SLOT_ID,
-            expectedPublishType: 'PerceptionMessage' as const,
-            componentId: TO_ROOM,
-            perspectiveKey: 'perspective-key',
-            targets: [CHARACTER_ID],
-            contentStream: 'render' as const,
-            format: 'header' as const,
-        }
-        const plan = compilePositionKernelOp(baseOp({ narration: undefined, headerSlot }))
+    it('still compiles the header describe when narration is absent (connect/disconnect header render)', () => {
+        const header = { perspectiveKey: 'perspective-key', assets: [] as string[] }
+        const plan = compilePositionKernelOp(baseOp({ narration: undefined, header }))
 
-        expect(plan.slots).toEqual([headerSlot])
+        expect(plan.steps).toContainEqual({ kind: 'describe', referentId: TO_ROOM, referentKind: 'room', header })
+        expect(plan.steps.some((step) => step.kind === 'narrate')).toBe(false)
     })
 })
 
@@ -151,7 +129,7 @@ describe('compilePositionKernelOp', () => {
  * Take/drop/give compile through this same `Move` case --- no sibling `Take`/`Drop` op, no
  * structural branch. An object move carries no narration: its lines are its attempt's authored
  * narration units, whose audiences `commitAttempt.ts` resolves and captures itself, so this compiler
- * builds no captures, narrate steps or slots for it; see `commitAttempt.test.ts` for the observable
+ * builds no captures, narrate or describe steps for it; see `commitAttempt.test.ts` for the observable
  * (published-message) regression pin.
  */
 describe('compilePositionKernelOp --- object moves', () => {
@@ -162,19 +140,18 @@ describe('compilePositionKernelOp --- object moves', () => {
         moved: TRAY,
         froms: [FROM_ROOM],
         to: CHARACTER_ID,
-        bundleId: 'BUNDLE#test',
-        headerSlot: null,
+        header: null,
         dissolvedEdges: [],
         ...overrides,
     })
 
-    it('compiles an object move to mutation steps only: no captures, narrate steps or slots', () => {
+    it('compiles an object move to mutation steps only: no captures, narrate or describe steps', () => {
         const plan = compilePositionKernelOp(objectOp())
 
         expect(plan.steps.map((step) => step.kind)).toEqual([
             'transferMembership', 'removePresenceBinding', 'addPresenceBinding',
         ])
-        expect(plan.slots).toEqual([])
+        expect(plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
     it('renders severed boundary edges as dissolveRelation steps ahead of the transfer (BD-28)', () => {
@@ -214,7 +191,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         }))
 
         expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding'])
-        expect(plan.slots).toEqual([])
+        expect(plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
     describe('containment and presence binding', () => {
@@ -259,8 +236,7 @@ describe('compilePositionKernelOp --- object moves', () => {
                 moved: CHARACTER_ID,
                 froms: [FROM_ROOM],
                 to: TO_ROOM,
-                bundleId: 'BUNDLE#test',
-                headerSlot: null,
+                header: null,
             })
             expect(plan.steps.find((step) => step.kind === 'removePresenceBinding')).toEqual({
                 kind: 'removePresenceBinding',

@@ -119,7 +119,6 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 await orchestrateCharacterMove({
                     characterId: content.characterId,
                     targetRoomId: content.toRoomId,
-                    bundleId: content.bundleId,
                     intentKind: 'navigate',
                     intentFromRoomId: content.fromRoomId,
                     exitName: content.exitName,
@@ -136,7 +135,6 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 await orchestrateCharacterMove({
                     characterId: content.characterId,
                     targetRoomId: content.toRoomId,
-                    bundleId: content.bundleId,
                     intentKind: 'home',
                     intentFromRoomId: content.fromRoomId,
                     messageBus,

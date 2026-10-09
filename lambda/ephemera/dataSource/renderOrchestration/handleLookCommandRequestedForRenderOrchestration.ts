@@ -50,12 +50,15 @@ export const prepareLookOrchestrationPerspective = async (
  */
 async function registerLookSlot(
     bus: MessageBus,
+    payload: LookCommandRequestedPublishedPayload,
     spec: Omit<MessageOrchestrationSlotSpec, 'slotId' | 'expectedPublishType'>,
     kickoff: () => Promise<void>
 ): Promise<void> {
     await registerIngressSlot(
         bus,
-        newDirectIngressAddress(),
+        payload.createdTime !== undefined && payload.messageId !== undefined
+            ? { createdTime: payload.createdTime, messageId: payload.messageId }
+            : newDirectIngressAddress(),
         { ...spec, slotId: LOOK_DESCRIBE_SLOT_ID, expectedPublishType: 'PerceptionMessage' } as MessageOrchestrationSlotSpec,
         kickoff
     )
@@ -80,6 +83,7 @@ export async function handleLookCommandRequestedForRenderOrchestration(
         )
         await registerLookSlot(
             messageBus,
+            payload,
             { componentId, perspectiveKey, targets: [characterId], contentStream: 'render', format: 'full' },
             async () => {
                 await orchestrateRenderRequest({
@@ -101,6 +105,7 @@ export async function handleLookCommandRequestedForRenderOrchestration(
         const targets: PublishTarget[] = [characterId]
         await registerLookSlot(
             messageBus,
+            payload,
             { componentId, perspectiveKey: prepared.perspectiveKey, targets, contentStream: 'render', format: 'full' },
             async () => {
                 await orchestrateRenderRequest({
@@ -124,6 +129,7 @@ export async function handleLookCommandRequestedForRenderOrchestration(
         const prepared = await prepareObjectRenderForCharacter(characterId, componentId)
         await registerLookSlot(
             messageBus,
+            payload,
             { componentId, perspectiveKey: prepared.perspectiveKey, targets: [characterId], contentStream: 'render', format: 'full' },
             async () => {
                 await orchestrateRenderRequest({
@@ -146,6 +152,7 @@ export async function handleLookCommandRequestedForRenderOrchestration(
         const prepared = await prepareCharacterRenderForCharacter(characterId, componentId)
         await registerLookSlot(
             messageBus,
+            payload,
             { componentId, perspectiveKey: prepared.perspectiveKey, targets: [characterId], contentStream: 'render', format: 'full' },
             async () => {
                 await orchestrateRenderRequest({

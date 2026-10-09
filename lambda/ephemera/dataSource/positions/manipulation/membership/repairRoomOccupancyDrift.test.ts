@@ -42,7 +42,7 @@ describe('repairRoomOccupancyDrift', () => {
 
     it('purges ghost characters with no live sessions via disconnect apply', async () => {
         getCharacterSessions.mockResolvedValue([])
-        const plan = { steps: [], slots: [] }
+        const plan = { steps: [] }
         applyMembershipMock.mockResolvedValue({
             ok: true,
             froms: [ROOM_ID],

@@ -35,7 +35,6 @@ const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
 const ROOM_C = 'ROOM#TestThree' as EphemeraRoomId
-const BUNDLE_ID = 'BUNDLE#test'
 
 describe('orchestrateCharacterRoomMembership', () => {
     const messageBus = { publish: jest.fn() }
@@ -63,7 +62,7 @@ describe('orchestrateCharacterRoomMembership', () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
 
         const result = await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: FROM_ROOM, bundleId: BUNDLE_ID, intentKind: 'navigate' },
+            { characterId: CHARACTER_ID, targetRoomId: FROM_ROOM, intentKind: 'navigate' },
             { messageBus: messageBus as any, streamEvent }
         )
 
@@ -85,7 +84,7 @@ describe('orchestrateCharacterRoomMembership', () => {
         commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures })
 
         const result = await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, bundleId: BUNDLE_ID, intentKind: 'navigate' },
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, intentKind: 'navigate' },
             { messageBus: messageBus as any, streamEvent }
         )
 
@@ -96,7 +95,7 @@ describe('orchestrateCharacterRoomMembership', () => {
             changed: true,
             beatAnchorTime: 1_700_000_000_000,
             captures,
-            plan: expect.objectContaining({ steps: expect.any(Array), slots: expect.any(Array) }),
+            plan: expect.objectContaining({ steps: expect.any(Array) }),
             roomRosterSnapshots: {
                 [FROM_ROOM]: [],
                 [TO_ROOM]: [{ EphemeraId: CHARACTER_ID, DisplayName: 'Test', SessionIds: [] }],
@@ -137,33 +136,33 @@ describe('orchestrateCharacterRoomMembership', () => {
         })
     })
 
-    it('resolves the header slot before commit when resolveHeaderSlot is supplied, and bakes it into the plan', async () => {
+    it('resolves the header before commit when resolveHeader is supplied, and bakes it into the plan', async () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
         commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
 
-        const headerSlot = { slotId: 'SLOT#header', expectedPublishType: 'PerceptionMessage' as const, componentId: TO_ROOM, perspectiveKey: 'pk', targets: [CHARACTER_ID], contentStream: 'render' as const, format: 'header' as const }
-        const resolveHeaderSlot = jest.fn().mockResolvedValue(headerSlot)
+        const header = { perspectiveKey: 'pk', assets: [] as string[] }
+        const resolveHeader = jest.fn().mockResolvedValue(header)
 
         const result = await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, bundleId: BUNDLE_ID, intentKind: 'connect', resolveHeaderSlot },
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, intentKind: 'connect', resolveHeader },
             { messageBus: messageBus as any, streamEvent }
         )
 
-        expect(resolveHeaderSlot).toHaveBeenCalledWith(TO_ROOM)
+        expect(resolveHeader).toHaveBeenCalledWith(TO_ROOM)
         if (!result.ok) { throw new Error('expected ok:true') }
-        expect(result.plan?.slots).toEqual(expect.arrayContaining([headerSlot]))
+        expect(result.plan?.steps).toContainEqual({ kind: 'describe', referentId: TO_ROOM, referentKind: 'room', header })
     })
 
-    it('does not call resolveHeaderSlot for a no-op move', async () => {
+    it('does not call resolveHeader for a no-op move', async () => {
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM])
-        const resolveHeaderSlot = jest.fn()
+        const resolveHeader = jest.fn()
 
         await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: FROM_ROOM, bundleId: BUNDLE_ID, intentKind: 'navigate', resolveHeaderSlot },
+            { characterId: CHARACTER_ID, targetRoomId: FROM_ROOM, intentKind: 'navigate', resolveHeader },
             { messageBus: messageBus as any, streamEvent }
         )
 
-        expect(resolveHeaderSlot).not.toHaveBeenCalled()
+        expect(resolveHeader).not.toHaveBeenCalled()
     })
 
     it('runs side-effect bundle for all froms on drift scrub', async () => {
@@ -171,7 +170,7 @@ describe('orchestrateCharacterRoomMembership', () => {
         commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
 
         await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, bundleId: BUNDLE_ID, intentKind: 'navigate' },
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, intentKind: 'navigate' },
             { messageBus: messageBus as any, streamEvent }
         )
 
@@ -209,7 +208,7 @@ describe('orchestrateCharacterRoomMembership', () => {
         })
 
         const result = await orchestrateCharacterRoomMembership(
-            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, bundleId: BUNDLE_ID, intentKind: 'navigate' },
+            { characterId: CHARACTER_ID, targetRoomId: TO_ROOM, intentKind: 'navigate' },
             { messageBus: messageBus as any, streamEvent }
         )
 

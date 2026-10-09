@@ -1,14 +1,12 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { RoomCharacterListItem } from '../../../../internalCache/baseClasses'
-import type { MessageOrchestrationSlotSpec } from '../../../messageOrchestration/localApiEvents'
+import type { MoveHeaderBinding } from '../kernel/compile/positionKernelOp'
 
 export type MembershipApplyArgs = {
     characterId: EphemeraCharacterId;
     /** null = out of play (disconnect). */
     targetRoomId: EphemeraRoomId | null;
-    /** messageOrchestration bundle correlation id --- forwarded to `planCharacterMoveTransfer`, which bakes it into the compiled plan's narrate steps (if any). */
-    bundleId: string;
     /** Selects leave/arrive copy-kind (`buildCharacterMoveOp.ts`) --- forwarded to `planCharacterMoveTransfer`. */
     intentKind: IntentKind;
     /** The intent's own departure room, used to pick exit-aware copy among possibly several `froms`. */
@@ -16,12 +14,12 @@ export type MembershipApplyArgs = {
     /** Normalized exit label, navigate only --- selects `exitAware` copy. */
     exitName?: string;
     /**
-     * Async header-slot resolution, supplied only by navigate/connect (whichever route needs a
+     * Async arrival-header resolution, supplied only by navigate/connect (whichever route needs a
      * rendered room header); disconnect/repair omit it. Forwarded to `planCharacterMoveTransfer`,
      * which calls it only once the move is confirmed changed and has a real destination --- see that
      * function's own doc comment for why a no-op move never pays for it.
      */
-    resolveHeaderSlot?: (to: EphemeraRoomId) => Promise<MessageOrchestrationSlotSpec | null>;
+    resolveHeader?: (to: EphemeraRoomId) => Promise<MoveHeaderBinding | null>;
 }
 
 /**

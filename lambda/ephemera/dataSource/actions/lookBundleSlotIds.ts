@@ -1,7 +1,7 @@
 /**
  * Deterministic messageOrchestration slot id for a look bundle (Phase 7). Every look declares
  * exactly one describe slot in its own one-slot bundle, so a single constant (not a per-room/
- * per-component derivation, unlike navigateBundleSlotIds.ts's leave slots) is sufficient.
+ * per-component derivation) is sufficient.
  *
  * Declare and register both happen in
  * dataSource/renderOrchestration/handleLookCommandRequestedForRenderOrchestration.ts, in the same

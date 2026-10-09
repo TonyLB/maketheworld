@@ -11,7 +11,6 @@
  * disconnect finds the character already out of play (`changed: false`) and the
  * second connect finds the character already in the target room.
  */
-import { v4 as uuidv4 } from 'uuid'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import {
     ConnectionsCharactersConnectedEvent,
@@ -41,12 +40,9 @@ export const handleCharacterConnected = async (
     }
 ): Promise<void> => {
     const { targetRoomId, characterMeta } = await resolveConnectTargetRoom(event.characterId)
-    const bundleId = uuidv4()
-
     await orchestrateCharacterMove({
         characterId: event.characterId,
         targetRoomId,
-        bundleId,
         intentKind: 'connect',
         characterMeta,
         messageBus,
@@ -64,12 +60,9 @@ export const handleCharacterDisconnected = async (
         streamEvent: StreamEventFunction<PositionsPublishedPayload>;
     }
 ): Promise<void> => {
-    const bundleId = uuidv4()
-
     await orchestrateCharacterMove({
         characterId: event.characterId,
         targetRoomId: null,
-        bundleId,
         intentKind: 'disconnect',
         messageBus,
         streamEvent,

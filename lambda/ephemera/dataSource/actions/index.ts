@@ -6,7 +6,6 @@
  * **`finalizeStableKeysDeterministic`** before **`streamEvent`** ---
  * see **`Where enforcement runs`** in [`AGENT.md`](./AGENT.md) (**Acme catalog lines and `stableKey`**).
  */
-import { v4 as uuidv4 } from 'uuid'
 import { isEphemeraCharacterId, isEphemeraObjectId, type EphemeraCharacterId, type EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
@@ -370,7 +369,6 @@ const publishStreamEventsForIntent = async (
                     fromRoomId,
                     toRoomId: parseResult.targetId,
                     ...(parseResult.exitName !== undefined ? { exitName: parseResult.exitName } : {}),
-                    bundleId: uuidv4(),
                 },
             })
         }
@@ -402,7 +400,6 @@ const publishStreamEventsForIntent = async (
                     characterId,
                     fromRoomId: resolution.fromRoomId,
                     toRoomId: resolution.toRoomId,
-                    bundleId: uuidv4(),
                 },
             })
         }
@@ -446,9 +443,7 @@ const publishStreamEventsForIntent = async (
             // deps are structural only.
             const objectId = parseResult.componentId
             await commitAndPresentStepSequence(
-                { steps: [{ kind: 'describe', referentId: objectId, referentKind: 'object' }], slots: [] },
-                // No bundle to declare (zero slots), so this id is never read.
-                'BUNDLE#none',
+                { steps: [{ kind: 'describe', referentId: objectId, referentKind: 'object' }] },
                 characterId,
                 {
                     commit: {
@@ -565,9 +560,7 @@ const publishStreamEventsForIntent = async (
             const lookedAtObjectId = lookedAtObjectIdOf(parseResult.attempt)
             if (lookedAtObjectId !== undefined) {
                 await commitAndPresentStepSequence(
-                    { steps: [{ kind: 'describe', referentId: lookedAtObjectId, referentKind: 'object' }], slots: [] },
-                    // No bundle to declare (zero slots), so this id is never read.
-                    'BUNDLE#none',
+                    { steps: [{ kind: 'describe', referentId: lookedAtObjectId, referentKind: 'object' }] },
                     characterId,
                     {
                         commit: {

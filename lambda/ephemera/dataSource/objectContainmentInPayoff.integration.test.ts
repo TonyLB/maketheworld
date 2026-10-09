@@ -274,8 +274,8 @@ describe('object containment In payoff (integration)', () => {
         // "picks up ball", so this assertion fails unless the authored unit replaced it.
         const reports = writeMessageBus.publish.mock.calls
             .map((call: any[]) => call[0])
-            .filter((message: any) => message?.type === 'StreamingEvent' && message?.header?.type === 'Message Slot Reported')
-        const contents = await Promise.all(reports.map((report: any) => report.getContent()))
+            .filter((message: any) => message?.type === 'PublishMessage' && message?.displayProtocol === 'WorldMessage')
+        const contents = reports.map((report: any) => ({ message: report }))
         expect(contents.map((content: any) => ({ line: content.message.message.join(''), targets: content.message.targets }))).toEqual([
             { line: expect.stringMatching(/ puts ball in box$/), targets: [CHARACTER_ID] },
         ])

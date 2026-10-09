@@ -1,6 +1,5 @@
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { sendMessageBundleDeclared } from '../../../messageOrchestration/subscribedEvents'
 import { commitStepSequence, type CommitStepSequenceDeps } from './commitStepSequence'
 import { presentStepSequence, type PresentStepSequenceDeps } from './presentStepSequence'
 import { isKernelMutationStep } from './kernelStep'
@@ -21,6 +20,14 @@ export type CommitAndPresentStepSequenceDeps = {
 }
 
 /**
+ * A successful commit also reports the first presentation index the plan did not use, so a caller
+ * with further lines for the same beat (`deliverNarrationUnits`) continues the stamping.
+ */
+export type CommitAndPresentResult =
+    | (Extract<MutationKernelCommitResult, { ok: true }> & { nextPresentationIndex: number })
+    | Extract<MutationKernelCommitResult, { ok: false }>
+
+/**
  * The generic commit-then-present composer (renamed from `executeStepSequence` in 3g --- `execute`
  * named a tier ambiguously across this stack; this function computes nothing of its own, it only
  * sequences two tiers, so its name says what it does rather than borrowing a tier verb). Under the
@@ -37,11 +44,9 @@ export type CommitAndPresentStepSequenceDeps = {
  * failure), the perception kernel is never invoked: a description must reflect final committed
  * state, and there is no committed state to describe when the mutation half aborted.
  *
- * Takes a `CompiledPositionKernelPlan` rather than bare `KernelStep[]` (3e) --- `plan.slots` is
- * the one thing every hand-rolled commit-then-present caller (the object-move orchestrator before that
- * slice) had to wedge a `sendMessageBundleDeclared` call between the two legs for; that declare call
- * lives inside this composer instead. `bundleId` is only read when `plan.slots.length > 0` --- a
- * plan with no slots (e.g. a bare `describe`, which never declares a bundle) can pass any string.
+ * Takes a `CompiledPositionKernelPlan` rather than bare `KernelStep[]` (3e). Presentation order
+ * comes from the plan's own `narrate`/`describe` steps, stamped from the commit's `beatAnchorTime`
+ * (see `presentStepSequence`); no bundle is declared.
  *
  * Live callers: `actions/index.ts`'s object-directed `look` dispatch, and the object-move route
  * (take/drop/give, via `commitAttempt`). The character routes (navigate/home/connect/disconnect) do **not** call this ---
@@ -52,21 +57,22 @@ export type CommitAndPresentStepSequenceDeps = {
  */
 export const commitAndPresentStepSequence = async (
     plan: CompiledPositionKernelPlan,
-    bundleId: string,
     characterId: EphemeraCharacterId,
     deps: CommitAndPresentStepSequenceDeps
-): Promise<MutationKernelCommitResult> => {
+): Promise<CommitAndPresentResult> => {
     const mutationSteps = plan.steps.filter(isKernelMutationStep)
     const commitResult = await commitStepSequence({ steps: mutationSteps }, deps.commit)
     if (!commitResult.ok) {
         return commitResult
     }
 
-    if (plan.slots.length > 0) {
-        sendMessageBundleDeclared(deps.perceive.messageBus, bundleId, { bundleId, slots: [...plan.slots] })
-    }
+    const nextPresentationIndex = await presentStepSequence(
+        plan.steps,
+        characterId,
+        deps.perceive,
+        commitResult.captures,
+        commitResult.beatAnchorTime
+    )
 
-    await presentStepSequence(plan.steps, characterId, deps.perceive, commitResult.captures)
-
-    return commitResult
+    return { ...commitResult, nextPresentationIndex }
 }

@@ -35,7 +35,7 @@ const CHARACTER_ID = 'CHARACTER#Test' as EphemeraCharacterId
 const FROM_ROOM = 'ROOM#VORTEX' as EphemeraRoomId
 const TO_ROOM = 'ROOM#TestTwo' as EphemeraRoomId
 const BEAT_ANCHOR_TIME = 1_700_000_000_000
-const PLAN = { steps: [], slots: [] }
+const PLAN = { steps: [] }
 
 const characterMeta = {
     EphemeraId: CHARACTER_ID,
@@ -64,7 +64,7 @@ describe('orchestrateCharacterMove', () => {
         presentCharacterMoveMock.mockResolvedValue(undefined)
     })
 
-    it('navigate: fetches characterMeta, calls the membership coordinator with a resolveHeaderSlot closure, and presents (the characters subscriber maintains the ladder)', async () => {
+    it('navigate: fetches characterMeta, calls the membership coordinator with a resolveHeader closure, and presents (the characters subscriber maintains the ladder)', async () => {
         await orchestrateCharacterMove({
             characterId: CHARACTER_ID,
             targetRoomId: TO_ROOM,
@@ -79,11 +79,10 @@ describe('orchestrateCharacterMove', () => {
             {
                 characterId: CHARACTER_ID,
                 targetRoomId: TO_ROOM,
-                bundleId: expect.any(String),
                 intentKind: 'navigate',
                 intentFromRoomId: FROM_ROOM,
                 exitName: undefined,
-                resolveHeaderSlot: expect.any(Function),
+                resolveHeader: expect.any(Function),
             },
             expect.objectContaining({
                 messageBus: messageBusMock,
@@ -92,11 +91,9 @@ describe('orchestrateCharacterMove', () => {
         )
         expect(presentCharacterMoveMock).toHaveBeenCalledWith({
             characterId: CHARACTER_ID,
-            characterMeta,
-            to: TO_ROOM,
-            bundleId: expect.any(String),
             plan: PLAN,
             captures: undefined,
+            beatAnchorTime: BEAT_ANCHOR_TIME,
             messageBus: messageBusMock,
         })
     })
@@ -129,12 +126,12 @@ describe('orchestrateCharacterMove', () => {
 
         expect(characterMetaGetMock).not.toHaveBeenCalled()
         expect(orchestrateCharacterRoomMembershipMock).toHaveBeenCalledWith(
-            expect.objectContaining({ intentKind: 'connect', resolveHeaderSlot: expect.any(Function) }),
+            expect.objectContaining({ intentKind: 'connect', resolveHeader: expect.any(Function) }),
             expect.anything()
         )
     })
 
-    it('disconnect: passes no resolveHeaderSlot, never fetches characterMeta, and presents directly', async () => {
+    it('disconnect: passes no resolveHeader, never fetches characterMeta, and presents directly', async () => {
         orchestrateCharacterRoomMembershipMock.mockResolvedValue({
             ok: true,
             froms: [FROM_ROOM],
@@ -157,21 +154,18 @@ describe('orchestrateCharacterMove', () => {
             {
                 characterId: CHARACTER_ID,
                 targetRoomId: null,
-                bundleId: expect.any(String),
                 intentKind: 'disconnect',
                 intentFromRoomId: undefined,
                 exitName: undefined,
-                resolveHeaderSlot: undefined,
+                resolveHeader: undefined,
             },
             expect.anything()
         )
         expect(presentCharacterMoveMock).toHaveBeenCalledWith({
             characterId: CHARACTER_ID,
-            characterMeta: undefined,
-            to: null,
-            bundleId: expect.any(String),
             plan: PLAN,
             captures: undefined,
+            beatAnchorTime: BEAT_ANCHOR_TIME,
             messageBus: messageBusMock,
         })
     })
