@@ -21,6 +21,7 @@ import type { ParseSkeleton } from './parse/parseToken'
 import type { TransferMembershipChange } from './plan/planStep'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { selectPlanTuple } from './selectPlanCandidate'
+import { applyChallengeAnswers, primaryActionIdOf, resumeErrorMessages, type ResumeAnswers } from './resumeAnswers'
 import {
     attemptDryRun,
     attemptSpanKeys,
@@ -41,6 +42,8 @@ export type CompileAttemptsFromSkeletonInput = {
     hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
+    /** A resumed command's stored answers (`persistentCommand/resume.ts`); absent on a first run. */
+    answers?: ResumeAnswers
 }
 
 export type CompileAttemptsFromSkeletonDeps = IdentityStageDeps & {
@@ -174,11 +177,19 @@ export async function compileAttemptsFromSkeleton(
         throw new Error('compileAttemptsFromSkeleton: no attempts (the caller routes the no-object case)')
     }
     const hostRoomId = input.hostRoomId
+    const answers = input.answers
+    // A resumed command's chosen plan narrows the frozen attempts; one no longer among them is stale.
+    const attempts = answers?.selectedAttempt === undefined
+        ? input.attempts
+        : input.attempts.filter((attempt) => primaryActionIdOf(attempt) === answers.selectedAttempt)
+    if (attempts.length === 0) {
+        return { type: 'Error', errorMessage: resumeErrorMessages.staleSelectedAttempt }
+    }
     const refusals: CompileAttemptsFromSkeletonResult[] = []
 
     // Pre-Identify: each attempt's own refusal, then the survivors.
     let survivors: AttemptEntry[] = []
-    for (const attempt of input.attempts) {
+    for (const attempt of attempts) {
         const entry: AttemptEntry = { attempt, kind: kindOf(attempt) }
         const refused = preIdentityRefusal(entry, input, intentConfidence)
         if (refused) {
@@ -250,16 +261,18 @@ export async function compileAttemptsFromSkeleton(
         spanPools: identityResult.spanPools,
         catalog,
         noAssignmentReason: noAssignmentReasonFor(lead.kind),
+        referentAnswers: answers?.referentAnswers,
     })
     if (!proposed.ok) {
-        return failure(proposed.reason)
+        return proposed.stale ? { type: 'Error', errorMessage: proposed.reason } : failure(proposed.reason)
     }
 
     // A pool of looks has no steps, so the shared dry run never reads its environment and none is built.
     const env = roomGraph === undefined || hostRoomId === undefined || survivors.every((entry) => entry.kind === 'look')
         ? undefined
         : await buildAttemptEnvironment(proposed.candidates, hostRoomId, roomGraph, positionsReads)
-    const candidates = env === undefined ? proposed.candidates : expandAndAdjudicateCandidates(proposed.candidates, env)
+    const expanded = env === undefined ? proposed.candidates : expandAndAdjudicateCandidates(proposed.candidates, env)
+    const candidates = answers?.challengeAnswers === undefined ? expanded : applyChallengeAnswers(expanded, answers.challengeAnswers)
     const dryRun = (candidate: GroundedAttemptCandidate) => attemptDryRun(candidate, env, {
         roomId: hostRoomId,
         actorCharacterId: input.characterId,

@@ -25,6 +25,7 @@ import type { SpanName } from './stampCandidateReferents'
 import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { DryRunOutcome } from './validatePlanDryRun'
+import { resumeErrorMessages } from './resumeAnswers'
 
 /**
  * The shared producer for Plan's attempts (ISS8203 slices 2-4): relational, transfer (take, drop
@@ -53,7 +54,8 @@ export type GroundedAttemptCandidate = {
 
 export type ProposeAttemptCandidatesResult =
     | { ok: true; candidates: GroundedAttemptCandidate[] }
-    | { ok: false; reason: string }
+    /** `stale`: a resumed command's answer no longer fits the world, so it is an Error whatever the route. */
+    | { ok: false; reason: string; stale?: true }
 
 export type ProposeAttemptCandidatesInput = {
     command: string
@@ -62,6 +64,8 @@ export type ProposeAttemptCandidatesInput = {
     catalog: readonly ObjectManipulationCatalogEntry[]
     /** Abstain wording when no joint assignment survives Enumerate (route-specific, as today). */
     noAssignmentReason: string
+    /** A resumed command's `stableRefKey` to thing id: narrows that span's pool to the chosen object. */
+    referentAnswers?: Readonly<Record<string, string>>
 }
 
 /** Every object-span referent the attempts name, in first-appearance order, one per stableRefKey. */
@@ -178,6 +182,16 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
         const candidates = (pool.shortlist ?? pool.candidates).filter((candidate) => isEphemeraObjectId(candidate.id))
         if (candidates.length === 0) {
             return { ok: false, reason: `No candidates found for span "${pool.span}"` }
+        }
+        const answered = input.referentAnswers?.[key]
+        if (answered !== undefined) {
+            // A chosen object no longer in the fresh pool is a stale answer: refuse rather than act on its id.
+            const chosen = candidates.filter((candidate) => candidate.id === answered)
+            if (chosen.length === 0) {
+                return { ok: false, reason: resumeErrorMessages.staleReferentAnswer(pool.span), stale: true }
+            }
+            pools.set(key, chosen)
+            continue
         }
         pools.set(key, candidates)
     }
