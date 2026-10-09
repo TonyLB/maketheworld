@@ -3,9 +3,10 @@
 */
 
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { vi } from 'vitest'
 import Message from './index'
+import CommandTranscriptMessage from './CommandTranscriptMessage'
 import { PerceptionMessage, PerceptionRoomMetaData } from '@tonylb/mtw-interfaces/ts/messages'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
@@ -566,5 +567,51 @@ describe('Message component - CommandTranscriptMessage routing', () => {
             Message: ['look']
         })
         expect(screen.queryByTestId('command-transcript-outcome')).toBeNull()
+    })
+
+    describe('Select outcome', () => {
+        const selectMessage: any = {
+            DisplayProtocol: 'CommandTranscriptMessage',
+            MessageId: 'msg-command',
+            CreatedTime: Date.now(),
+            Message: ['get cup'],
+            Outcome: {
+                Kind: 'Select',
+                Message: ['Which one?'],
+                Options: [
+                    { OptionId: 'opt-1', Label: ['cup'] },
+                    { OptionId: 'opt-2', Label: ['cup'] }
+                ]
+            }
+        }
+
+        it('should render the prompt and one control per option inside the bubble', () => {
+            renderMessage(selectMessage)
+            const bubble = screen.getByTestId('command-transcript-message')
+            expect(screen.getByTestId('command-transcript-outcome').getAttribute('data-kind')).toEqual('Select')
+            expect(screen.getByText('Which one?')).toBeDefined()
+            const options = screen.getAllByTestId('command-transcript-option')
+            expect(options).toHaveLength(2)
+            options.forEach((option) => { expect(bubble.contains(option)).toBe(true) })
+            expect(screen.queryByTestId('command-transcript-outcome-icon')).toBeNull()
+        })
+
+        it('should report the clicked option, even when labels are identical', () => {
+            const onSelectOption = vi.fn()
+            render(<CommandTranscriptMessage message={selectMessage} onSelectOption={onSelectOption} />)
+            fireEvent.click(screen.getAllByTestId('command-transcript-option')[1])
+            expect(onSelectOption).toHaveBeenCalledTimes(1)
+            expect(onSelectOption).toHaveBeenCalledWith('msg-command', 'opt-2')
+        })
+
+        it('should ignore a click when no callback is supplied', () => {
+            render(<CommandTranscriptMessage message={selectMessage} />)
+            expect(() => fireEvent.click(screen.getAllByTestId('command-transcript-option')[0])).not.toThrow()
+        })
+
+        it('should render no options for an Info outcome', () => {
+            renderMessage({ ...selectMessage, Outcome: { Kind: 'Info', Message: ['Done'] } })
+            expect(screen.queryByTestId('command-transcript-option')).toBeNull()
+        })
     })
 })

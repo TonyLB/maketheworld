@@ -229,6 +229,53 @@ describe('PublishMessage', () => {
         })
     })
 
+    it('should carry a Select outcome as Outcome, reusing messageId and createdTime', async () => {
+        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
+        cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
+        const outcome = {
+            Kind: 'Select' as const,
+            Message: ['Which one?'],
+            Options: [
+                { OptionId: 'opt-1', Label: ['cup'] },
+                { OptionId: 'opt-2', Label: ['cup'] },
+            ],
+        }
+        await publishMessage({
+            payloads: [{
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'CommandTranscriptMessage',
+                message: ['get cup'],
+                messageId: 'MESSAGE#ECHO',
+                createdTime: 999,
+                outcome,
+            }],
+        })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: 'CHARACTER#123',
+            DeltaId: '999::MESSAGE#ECHO',
+            RowId: 'MESSAGE#ECHO',
+            CreatedTime: 999,
+            Message: ['get cup'],
+            DisplayProtocol: 'CommandTranscriptMessage',
+            Outcome: outcome,
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Y123',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: 'CHARACTER#123',
+                    MessageId: 'MESSAGE#ECHO',
+                    CreatedTime: 999,
+                    Message: ['get cup'],
+                    DisplayProtocol: 'CommandTranscriptMessage',
+                    Outcome: outcome,
+                }],
+            }),
+        })
+    })
+
     it('should dispatch CoyoteGameHypothesisMessage with same wire shape as WorldMessage', async () => {
         cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
         cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])

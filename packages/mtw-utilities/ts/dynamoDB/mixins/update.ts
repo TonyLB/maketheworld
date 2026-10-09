@@ -412,6 +412,7 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                             ...updateOutput.update
                         }))
                         returnValue = this._remapOutgoingObject(props.ReturnValues ? unmarshall(Attributes) as any : { ...Key, ...updateOutput.newState })
+                        updated = true
                     }
                     catch (err: any) {
                         if (err.code === 'ConditionalCheckFailedException') {
@@ -429,7 +430,6 @@ export const withUpdate = <KIncoming extends DBHandlerLegalKey, T extends string
                             }
                         }
                     }
-                    updated = true
                 }
             }
             //

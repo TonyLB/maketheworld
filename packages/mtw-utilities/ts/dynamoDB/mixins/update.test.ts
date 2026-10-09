@@ -617,6 +617,95 @@ describe('withUpdate', () => {
             })
         })
 
+        it('should not call successCallback when a conditional failure is followed by a retry that makes no change', async () => {
+            // Two claimants race for one flag: this one loses the conditional write, refetches, and finds the flag already claimed.
+            dbMock.send
+                .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', claimed: false }) })
+                .mockRejectedValueOnce(Object.assign(new Error('conditional'), { code: 'ConditionalCheckFailedException' }))
+                .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', claimed: true }) })
+
+            const successCallback = jest.fn()
+            await dbHandler.optimisticUpdate({
+                Key: { PrimaryKey: 'TEST', DataCategory: 'Meta::Test'},
+                updateKeys: ['claimed'],
+                updateReducer: (draft) => {
+                    if (!draft.claimed) {
+                        draft.claimed = true
+                    }
+                },
+                successCallback
+            })
+            expect(dbMock.send).toHaveBeenCalledTimes(3)
+            expect(successCallback).not.toHaveBeenCalled()
+        })
+
+        describe('stale priorFetch (a cache holds A, the DB already holds B, the reducer would write B)', () => {
+            const setToB = (draft: { testOne?: string }) => {
+                if (draft.testOne !== 'B') {
+                    draft.testOne = 'B'
+                }
+            }
+            const conditionalFailure = () => Object.assign(new Error('conditional'), { code: 'ConditionalCheckFailedException' })
+
+            it('should refetch after the failed write and return the DB state without calling successCallback', async () => {
+                dbMock.send
+                    .mockRejectedValueOnce(conditionalFailure())
+                    .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'B' }) })
+
+                const successCallback = jest.fn()
+                const output = await dbHandler.optimisticUpdate<{ testOne?: string }>({
+                    Key: { PrimaryKey: 'TEST', DataCategory: 'Meta::Test'},
+                    updateKeys: ['testOne'],
+                    updateReducer: setToB,
+                    priorFetch: { testOne: 'A' },
+                    successCallback
+                })
+                // The write from the stale prior, then a fresh fetch (the prior is used only on the first pass)
+                expect(dbMock.send).toHaveBeenCalledTimes(2)
+                expect(output).toEqual({ PrimaryKey: 'TEST', DataCategory: 'Meta::Test', testOne: 'B' })
+                expect(successCallback).not.toHaveBeenCalled()
+            })
+
+            it('should call successCallback with the DB state as both output and prior when succeedAll is set', async () => {
+                dbMock.send
+                    .mockRejectedValueOnce(conditionalFailure())
+                    .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TEST', DataCategory: 'Meta::Test', testOne: 'B' }) })
+
+                const successCallback = jest.fn()
+                await dbHandler.optimisticUpdate<{ testOne?: string }>({
+                    Key: { PrimaryKey: 'TEST', DataCategory: 'Meta::Test'},
+                    updateKeys: ['testOne'],
+                    updateReducer: setToB,
+                    priorFetch: { testOne: 'A' },
+                    successCallback,
+                    succeedAll: true
+                })
+                // A cache refresh hooked here gets B (what the DB holds), never the stale A
+                expect(successCallback).toHaveBeenCalledTimes(1)
+                expect(successCallback).toHaveBeenCalledWith(
+                    { PrimaryKey: 'TEST', DataCategory: 'Meta::Test', testOne: 'B' },
+                    { PrimaryKey: 'TEST', DataCategory: 'Meta::Test', testOne: 'B' }
+                )
+            })
+
+            it('should call successCallback with the written value and the stale prior when the first write lands', async () => {
+                dbMock.send.mockResolvedValueOnce({})
+
+                const successCallback = jest.fn()
+                await dbHandler.optimisticUpdate<{ testOne?: string }>({
+                    Key: { PrimaryKey: 'TEST', DataCategory: 'Meta::Test'},
+                    updateKeys: ['testOne'],
+                    updateReducer: setToB,
+                    priorFetch: { testOne: 'A' },
+                    successCallback
+                })
+                expect(dbMock.send).toHaveBeenCalledTimes(1)
+                expect(successCallback).toHaveBeenCalledTimes(1)
+                expect(successCallback.mock.calls[0][0]).toMatchObject({ testOne: 'B' })
+                expect(successCallback.mock.calls[0][1]).toMatchObject({ testOne: 'A' })
+            })
+        })
+
         it('should call successCallback on delete or ignore if succeedAll is set', async () => {
             dbMock.send
                 .mockResolvedValueOnce({ Item: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1', testOne: 'Testing', testTwo: 'Also Testing', testFour: 'Unchanged' }) })

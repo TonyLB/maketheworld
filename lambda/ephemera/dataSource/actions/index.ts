@@ -24,7 +24,7 @@ import { clearSession } from './persistentCommand'
 import type { TranscriptContext } from './persistentCommand/transcript'
 import { isActionAssessedCommand, isParseRequestedCommand, type ActionAssessedCommand, type ParseRequestedCommand } from '../localApiEvents'
 import { v4 as uuidv4 } from 'uuid'
-import type { CommandOutcome } from '@tonylb/mtw-interfaces/ts/messages'
+import type { CommandStatusOutcome } from '@tonylb/mtw-interfaces/ts/messages'
 import messageBus from '../../messageBus'
 import getCurrentTimestamp from '../../internalUtils/dateUtil'
 import internalCache from '../../internalCache'
@@ -193,7 +193,7 @@ type ResponseContext = {
  */
 const reportCommandOutcome = (
     { characterId, transcript }: Pick<ResponseContext, 'characterId' | 'transcript'>,
-    kind: CommandOutcome['Kind'],
+    kind: CommandStatusOutcome['Kind'],
     lines: string[],
 ): void => {
     if (transcript) {
