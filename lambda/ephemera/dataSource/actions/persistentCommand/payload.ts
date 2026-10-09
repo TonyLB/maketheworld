@@ -75,7 +75,7 @@ const isRecordOf = (check: (value: unknown) => boolean) => (value: unknown): boo
     isRecord(value) && Object.values(value).every(check)
 )
 
-const isPersistentCommandRoot = (value: unknown): value is PersistentCommandRoot => (
+export const isPersistentCommandRoot =(value: unknown): value is PersistentCommandRoot => (
     isRecord(value)
     && typeof value.command === 'string'
     && Array.isArray(value.skeleton) && value.skeleton.every(isParseToken)

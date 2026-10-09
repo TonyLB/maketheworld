@@ -154,10 +154,17 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         expect(result).toEqual({
             type: 'Consult',
             alternatives: [
-                { proposedCommand: 'put the cup on the tray' },
-                { proposedCommand: 'put the cup on the tray' },
+                { proposedCommand: 'put the cup on the tray', label: 'cup / tray', referentAnswers: { cupRef: cupId, trayRef: trayId } },
+                { proposedCommand: 'put the cup on the tray', label: 'cup / tray', referentAnswers: { cupRef: secondCupId, trayRef: trayId } },
             ],
             confidence: 0.9,
+            root: {
+                command: 'put cup on tray',
+                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
+                // Plan mints fresh action ids per call, so the frozen attempts are matched by shape.
+                attempts: [expect.objectContaining({ actions: expect.any(Array) })],
+                confidence: 0.9,
+            },
         })
     })
 

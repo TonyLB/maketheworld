@@ -1,6 +1,6 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { attemptSpanKeys, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
+import { attemptReferentAnswers, attemptSpanKeys, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { planSkeleton } from './plan/planSkeleton'
 import type { ParseSkeleton } from './parse/parseToken'
@@ -63,6 +63,7 @@ describe('proposeAttemptCandidates', () => {
         expect(result.candidates).toHaveLength(1)
         const [candidate] = result.candidates
         expect(candidate.alternative).toEqual({ label: 'cup / tray', proposedCommand: 'put the cup on the tray' })
+        expect(attemptReferentAnswers(candidate.attempt)).toEqual({ cupRef: cupId, trayRef: trayId })
         const [action] = candidate.attempt.actions()
         expect(action.describe()).toBe('Put cup on tray')
         expect(action.referents()).toEqual([
@@ -178,6 +179,29 @@ describe('proposeAttemptCandidates', () => {
         expect(result.candidates.map((candidate) => candidate.alternative)).toEqual([
             { label: 'cup / tray', proposedCommand: 'put the cup on the tray' },
             { objectId: cupId, label: 'cup', proposedCommand: 'take the cup' },
+        ])
+    })
+
+    it('reads the joint assignment off each grounded attempt, one key per span', () => {
+        const secondCupId = 'OBJECT#Cup2' as EphemeraObjectId
+        const result = proposeAttemptCandidates({
+            command: 'put cup on tray',
+            attempts: [attemptFor(relationSkeleton, 'put cup on tray')],
+            spanPools: new Map([
+                ['cupRef', { ...pool('cup', cupId), candidates: [pool('cup', cupId).candidates[0]!, pool('cup', secondCupId).candidates[0]!] }],
+                ['trayRef', pool('tray', trayId)],
+            ]),
+            catalog: [...catalog, { objectId: secondCupId, normalizedShortName: 'cup', catalogScope: 'room' }],
+            noAssignmentReason: 'none',
+        })
+
+        expect(result.ok).toBe(true)
+        if (!result.ok) {
+            return
+        }
+        expect(result.candidates.map((candidate) => attemptReferentAnswers(candidate.attempt))).toEqual([
+            { cupRef: cupId, trayRef: trayId },
+            { cupRef: secondCupId, trayRef: trayId },
         ])
     })
 

@@ -88,6 +88,16 @@ describe('parseCommand type guards', () => {
             })).toBe(true)
         })
 
+        it('accepts label, referentAnswers and a root, and rejects malformed ones', () => {
+            const base = { type: 'Consult', confidence: 0.6 } as const
+            const root = { command: 'take cup', skeleton: [{ type: 'text', text: 'take' }], attempts: [], confidence: 0.6 }
+            const alternative = { proposedCommand: 'take the cup', label: 'cup', referentAnswers: { cupRef: broomId } }
+            expect(isParseCommandConsultResult({ ...base, alternatives: [alternative], root } as any)).toBe(true)
+            expect(isParseCommandConsultResult({ ...base, alternatives: [{ ...alternative, label: 3 }] } as any)).toBe(false)
+            expect(isParseCommandConsultResult({ ...base, alternatives: [{ ...alternative, referentAnswers: { cupRef: 'nope' } }] } as any)).toBe(false)
+            expect(isParseCommandConsultResult({ ...base, alternatives: [alternative], root: { command: 3 } } as any)).toBe(false)
+        })
+
         it('rejects empty alternatives or invalid confidence', () => {
             expect(isParseCommandConsultResult({
                 type: 'Consult',
@@ -1122,9 +1132,10 @@ describe('parseCommand LLM path', () => {
             expect(result).toEqual({
                 type: 'Consult',
                 confidence: 1,
+                root: expect.objectContaining({ confidence: 1, skeleton: expect.any(Array) }),
                 alternatives: [
-                    { proposedCommand: 'take the broom', objectId: broomId },
-                    { proposedCommand: 'take the mop', objectId: mopId },
+                    expect.objectContaining({ proposedCommand: 'take the broom', objectId: broomId }),
+                    expect.objectContaining({ proposedCommand: 'take the mop', objectId: mopId }),
                 ],
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
@@ -1162,9 +1173,10 @@ describe('parseCommand LLM path', () => {
             expect(result).toEqual({
                 type: 'Consult',
                 confidence: 1,
+                root: expect.objectContaining({ confidence: 1, skeleton: expect.any(Array) }),
                 alternatives: [
-                    { proposedCommand: 'take the broom', objectId: broomId },
-                    { proposedCommand: 'take the broom', objectId: mopId },
+                    expect.objectContaining({ proposedCommand: 'take the broom', objectId: broomId }),
+                    expect.objectContaining({ proposedCommand: 'take the broom', objectId: mopId }),
                 ],
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()

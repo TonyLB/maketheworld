@@ -27,6 +27,7 @@ import { invokeBedrockObjectManipulationParse } from '../../generateExample/invo
 import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
 import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
 import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
+import { isPersistentCommandRoot, type PersistentCommandRoot } from './persistentCommand/payload'
 import type { ObjectManipulationPositionsReadDeps } from './enrich/objectManipulation/membershipObservation'
 import type { MutationKernelStep } from '../positions/manipulation/kernel/kernelStep'
 import type { EmbedObjectSpanResult } from '../objects/embedding/embedObjectSpan'
@@ -91,6 +92,9 @@ export type ParseCommandErrorResult = {
 export type ParseCommandConsultAlternative = {
     proposedCommand: string
     objectId?: EphemeraObjectId
+    label?: string
+    /** The joint assignment this alternative stands for (stableRefKey to object id): what answering it stores. */
+    referentAnswers?: Record<string, EphemeraObjectId>
 }
 
 /** Player-facing consult terminal parse (FT-3.1); v1 OOC stub assembles copy from alternatives. */
@@ -98,6 +102,8 @@ export type ParseCommandConsultResult = {
     type: 'Consult'
     alternatives: readonly ParseCommandConsultAlternative[]
     confidence: ParseCommandConfidence
+    /** Plan's output, frozen, for a handler that stores the question as a persistent command. */
+    root?: PersistentCommandRoot
 }
 
 /**
@@ -385,6 +391,9 @@ export function isParseCommandConsultResult(
     if (!Array.isArray(result.alternatives) || result.alternatives.length === 0) {
         return false
     }
+    if (result.root !== undefined && !isPersistentCommandRoot(result.root)) {
+        return false
+    }
     return result.alternatives.every((alternative) => {
         if (!alternative || typeof alternative !== 'object' || Array.isArray(alternative)) {
             return false
@@ -392,6 +401,16 @@ export function isParseCommandConsultResult(
         const entry = alternative as Record<string, unknown>
         if (typeof entry.proposedCommand !== 'string' || entry.proposedCommand.trim().length === 0) {
             return false
+        }
+        if (entry.label !== undefined && typeof entry.label !== 'string') {
+            return false
+        }
+        if (entry.referentAnswers !== undefined) {
+            const answers = entry.referentAnswers
+            if (typeof answers !== 'object' || answers === null || Array.isArray(answers)
+                || !Object.values(answers).every((id) => typeof id === 'string' && isEphemeraObjectId(id))) {
+                return false
+            }
         }
         if (entry.objectId === undefined) {
             return true

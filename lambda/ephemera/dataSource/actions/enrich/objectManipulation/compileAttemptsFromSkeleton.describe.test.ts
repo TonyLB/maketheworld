@@ -147,10 +147,17 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
         expect(result).toEqual({
             type: 'Consult',
             alternatives: [
-                { proposedCommand: 'look at the rocket skates', objectId: rocketSkatesId },
-                { proposedCommand: 'look at the rocket skates', objectId: secondRocketSkatesId },
+                { proposedCommand: 'look at the rocket skates', objectId: rocketSkatesId, label: 'rocket skates', referentAnswers: { rocketSkatesRef: rocketSkatesId } },
+                { proposedCommand: 'look at the rocket skates', objectId: secondRocketSkatesId, label: 'rocket skates', referentAnswers: { rocketSkatesRef: secondRocketSkatesId } },
             ],
             confidence: 0.9,
+            root: {
+                command: 'look rocket skates',
+                skeleton: lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'),
+                // Plan mints fresh action ids per call, so the frozen attempts are matched by shape.
+                attempts: [expect.objectContaining({ actions: expect.any(Array) })],
+                confidence: 0.9,
+            },
         })
     })
 

@@ -90,6 +90,19 @@ const actionSpanKeys = (action: AttemptAction): string[] => [
     ...new Set(action.referents().flatMap(objectSpansIn).map((span) => span.stableRefKey).filter((key): key is string => key !== undefined)),
 ]
 
+/**
+ * The joint identity assignment an attempt was grounded with: stableRefKey to object id, read off its
+ * grounded object-span referents (across all its actions, so a multi-action attempt gives the whole
+ * assignment). What answering a Consult alternative stores; the attempt stays the one source of truth.
+ */
+export const attemptReferentAnswers = (attempt: CommandAttempt): Record<string, EphemeraObjectId> => Object.fromEntries(
+    attempt.actions().flatMap((action) => action.referents().flatMap(objectSpansIn)).flatMap((span) => (
+        span.stableRefKey !== undefined && span.groundedId !== undefined && isEphemeraObjectId(span.groundedId)
+            ? [[span.stableRefKey, span.groundedId] as const]
+            : []
+    ))
+)
+
 /** A referent's name for prose: the grounded short name, else the span text. */
 const labelOf = (referent: Referent): string => {
     const [span] = objectSpansIn(referent)

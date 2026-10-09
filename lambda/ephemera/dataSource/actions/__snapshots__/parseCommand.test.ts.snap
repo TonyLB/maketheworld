@@ -1270,15 +1270,100 @@ Object {
   "result": Object {
     "alternatives": Array [
       Object {
+        "label": "broom",
         "objectId": "OBJECT#Broom",
         "proposedCommand": "take the broom",
+        "referentAnswers": Object {
+          "broomRef": "OBJECT#Broom",
+        },
       },
       Object {
+        "label": "broom",
         "objectId": "OBJECT#Mop",
         "proposedCommand": "take the broom",
+        "referentAnswers": Object {
+          "broomRef": "OBJECT#Mop",
+        },
       },
     ],
     "confidence": 1,
+    "root": Object {
+      "attempts": Array [
+        Object {
+          "actions": Array [
+            Object {
+              "challenges": Array [],
+              "desiredResult": Object {
+                "from": Object {
+                  "referentTarget": Object {
+                    "referentType": "objectSpan",
+                    "span": "broom",
+                    "stableRefKey": "broomRef",
+                  },
+                  "referentType": "currentHost",
+                },
+                "kind": "change",
+                "object": Object {
+                  "referentType": "objectSpan",
+                  "span": "broom",
+                  "stableRefKey": "broomRef",
+                },
+                "primitive": "transferMembership",
+                "to": Object {
+                  "referentType": "actingCharacter",
+                },
+              },
+              "id": "<minted id 1>",
+              "kind": "position",
+            },
+          ],
+          "narrationUnits": Array [
+            Object {
+              "covers": Array [
+                "<minted id 1>",
+              ],
+              "variants": Array [
+                Object {
+                  "audience": Object {
+                    "phase": "before",
+                    "refs": Array [
+                      "actor",
+                      "broomRef",
+                    ],
+                  },
+                  "parts": Array [
+                    Object {
+                      "slot": "actor",
+                    },
+                    Object {
+                      "text": " picks up ",
+                    },
+                    Object {
+                      "ref": "broomRef",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          "referents": Array [],
+          "words": "take the broom",
+        },
+      ],
+      "command": "take the broom",
+      "confidence": 1,
+      "skeleton": Array [
+        Object {
+          "text": "take",
+          "type": "text",
+        },
+        Object {
+          "span": "broom",
+          "stableRefKey": "broomRef",
+          "type": "objectSpan",
+        },
+      ],
+    },
     "type": "Consult",
   },
   "stubCalls": Object {
@@ -1344,15 +1429,100 @@ Object {
   "result": Object {
     "alternatives": Array [
       Object {
+        "label": "rope",
         "objectId": "OBJECT#Rope",
         "proposedCommand": "take the rope",
+        "referentAnswers": Object {
+          "ropeOffThePostRef": "OBJECT#Rope",
+        },
       },
       Object {
+        "label": "post",
         "objectId": "OBJECT#Post",
         "proposedCommand": "take the post",
+        "referentAnswers": Object {
+          "ropeOffThePostRef": "OBJECT#Post",
+        },
       },
     ],
     "confidence": 1,
+    "root": Object {
+      "attempts": Array [
+        Object {
+          "actions": Array [
+            Object {
+              "challenges": Array [],
+              "desiredResult": Object {
+                "from": Object {
+                  "referentTarget": Object {
+                    "referentType": "objectSpan",
+                    "span": "rope off the post",
+                    "stableRefKey": "ropeOffThePostRef",
+                  },
+                  "referentType": "currentHost",
+                },
+                "kind": "change",
+                "object": Object {
+                  "referentType": "objectSpan",
+                  "span": "rope off the post",
+                  "stableRefKey": "ropeOffThePostRef",
+                },
+                "primitive": "transferMembership",
+                "to": Object {
+                  "referentType": "actingCharacter",
+                },
+              },
+              "id": "<minted id 1>",
+              "kind": "position",
+            },
+          ],
+          "narrationUnits": Array [
+            Object {
+              "covers": Array [
+                "<minted id 1>",
+              ],
+              "variants": Array [
+                Object {
+                  "audience": Object {
+                    "phase": "before",
+                    "refs": Array [
+                      "actor",
+                      "ropeOffThePostRef",
+                    ],
+                  },
+                  "parts": Array [
+                    Object {
+                      "slot": "actor",
+                    },
+                    Object {
+                      "text": " picks up ",
+                    },
+                    Object {
+                      "ref": "ropeOffThePostRef",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          "referents": Array [],
+          "words": "take the rope off the post",
+        },
+      ],
+      "command": "take the rope off the post",
+      "confidence": 1,
+      "skeleton": Array [
+        Object {
+          "text": "take",
+          "type": "text",
+        },
+        Object {
+          "span": "rope off the post",
+          "stableRefKey": "ropeOffThePostRef",
+          "type": "objectSpan",
+        },
+      ],
+    },
     "type": "Consult",
   },
   "stubCalls": Object {

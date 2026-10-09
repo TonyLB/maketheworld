@@ -49,6 +49,8 @@ export type ConsultAlternative = {
     objectId?: EphemeraObjectId
     label: string
     proposedCommand: string
+    /** The joint identity assignment this alternative stands for (stableRefKey to object id); absent for the harness-only fallbacks. */
+    referentAnswers?: Record<string, EphemeraObjectId>
 }
 
 export type SpanResolutionOutcome =
