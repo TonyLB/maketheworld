@@ -21,7 +21,8 @@ export type InvalidateImprovisationObjectCachesArgs = {
 
 /**
  * Post-write cache contract for improvisation object persistence.
- * Pair body: ImprovisationComponentData; play meta: ObjectEphemeraMeta; embedding: ObjectEmbedding.
+ * Pair body: ImprovisationComponentData; play meta: ObjectEphemeraMeta; embedding: ObjectEmbedding;
+ * per affected room: AffordanceRoomDeliverable only.
  */
 export const invalidateImprovisationObjectCaches = (args: InvalidateImprovisationObjectCachesArgs): void => {
     if (args.pairComponent) {
@@ -45,9 +46,11 @@ export const invalidateImprovisationObjectCaches = (args: InvalidateImprovisatio
         internalCache.ObjectEmbedding.invalidate(args.objectId)
     }
 
+    // Only the room deliverable embeds object prose (shortName). These writes touch no `Meta::Room`
+    // row and no graph, so `ComponentEphemeraMeta` and `Positions` stay valid --- and the room's
+    // graph memo was just seeded by the placement/removal commit that precedes a spawn's place or
+    // a delete; invalidating it would discard that write-through for an eventually-consistent re-read.
     for (const roomId of args.affectedRoomIds ?? []) {
-        internalCache.ComponentEphemeraMeta.invalidate(roomId)
         internalCache.AffordanceRoomDeliverable.invalidate(roomId)
-        internalCache.Positions.invalidate(roomId)
     }
 }

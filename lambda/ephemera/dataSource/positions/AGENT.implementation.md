@@ -259,13 +259,13 @@ Concept and write-side maintenance: [`characters/AGENT.md` --- Eviction ladder](
 | System | Use |
 | --- | --- |
 | `ephemeraDB.transactWrite` | `Meta::<Kind>.ludicGraph` (Room / Character / Object / Feature / Area); adjacency rows |
-| `ephemeraDB.optimisticUpdate` | `Meta::Character.RoomStack` on navigate (parallel tail) and trim-only connect paths |
-| `internalCache.CharacterMeta` | Presentation fields for roster hydrate; `invalidate` after apply --- not transact lock snapshots |
-| `internalCache.ComponentEphemeraMeta.invalidate` | Room meta after roster change |
+| `ephemeraDB.optimisticUpdate` | Not here: `Meta::Character.RoomStack` is written by the `characters/` `Character Moved` subscriber |
+| `internalCache.CharacterMeta` | Presentation fields for roster hydrate and `characterNames`; invalidated by the `characters/` ladder subscriber, not here |
+| `internalCache.ComponentEphemeraMeta.invalidate` | Room meta row after a graph commit (Room hosts; the row holds stored `ludicGraph`) |
 | `internalCache.AffordanceRoomDeliverable.invalidate` | Affordance compose memo |
-| `internalCache.Positions.set` | Forward ludic graph memo from **`postApplyGraphs`** (**`EphemeraLudicGraph`**) |
+| `internalCache.Positions.set` | Forward ludic graph memo, written through from every committed graph (`seedGraphMemos`) |
 | `internalCache.Positions.setMembershipContainers` | Character reverse containers memo |
-| `messageBus.publish` | `RoomUpdate`, `EphemeraUpdate` when `changed` |
+| `messageBus.publish` | `RoomUpdate` when `changed`; the `CharacterInPlay` `EphemeraUpdate` is a `characters/` `Character Moved` subscriber |
 | `streamEvent` (required; from DataSource `receiveEvents`) | `Character Moved` when `changed` |
 
 ---

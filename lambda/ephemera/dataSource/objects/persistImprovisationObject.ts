@@ -6,21 +6,19 @@ import {
     isEphemeraObjectEmbedding,
     type EphemeraObjectEmbedding,
 } from '@tonylb/mtw-interfaces/ts/ephemeraEmbedding'
-import type { EphemeraMetaObject, EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import type { FacetListData } from '@tonylb/mtw-wml/ts/standardize/keys/abstract'
 import type { SituationProseFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
-import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
 import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import messageBus from '../../messageBus'
 import { sendDeleteCacheRecords } from '../apiEphemera'
 import { queryAllRenderCacheDataCategoriesForComponent } from '../renderCache/queryAllRenderCacheDataCategoriesForComponent'
-import { collectObjectIdsFromLudicGraph } from './collectObjectIdsFromRoomLudicGraphs'
 import { buildShortNameSemanticEmbedding } from './embedding/buildShortNameSemanticEmbedding'
 import { impromptuEmbeddingNeedsRefresh } from './embedding/impromptuEmbeddingNeedsRefresh'
 import { objectEmbeddingPutItem } from './embedding/objectEmbeddingPutItem'
@@ -28,9 +26,6 @@ import { invalidateImprovisationObjectCaches } from './invalidateImprovisationOb
 import { glossFromComponent } from './objectShortName'
 
 const META_OBJECT_DATA_CATEGORY = 'Meta::Object' as const
-
-/** Dynamo transact limit; each object delete uses three Delete items. */
-const MAX_OBJECTS_PER_DELETE_TRANSACT = 8
 
 export type SpawnImprovisationObjectArgs = {
     objectId: EphemeraObjectId;
@@ -62,11 +57,6 @@ export type UpdateImprovisationObjectArgs = {
 export type DeleteImprovisationObjectArgs = {
     objectId: EphemeraObjectId;
     affectedRoomIds?: EphemeraRoomId[];
-}
-
-export type ClearCoyoteGameImprovisationObjectsArgs = {
-    getGameRooms?: () => Promise<string[]>;
-    getRoomLudicGraph?: (roomId: EphemeraRoomId) => Promise<EphemeraMetaRoom | undefined>;
 }
 
 export type PersistImprovisationObjectDependencies = {
@@ -364,62 +354,6 @@ export const persistDeleteImprovisationObject = async (
             })
         }
         return { ok: true, objectId: args.objectId }
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        return { ok: false, errorMessage: message }
-    }
-}
-
-const defaultGetRoomLudicGraph = async (roomId: EphemeraRoomId) =>
-    internalCache.ComponentEphemeraMeta.get(roomId)
-
-/**
- * Coyote-scoped bulk delete: enumerate OBJECT# ids from stored ludicGraph on game rooms,
- * then delete pair + Meta::Object + EMBEDDING#IMPROMPTU rows. Does not mutate graphs (Phase 4 placement).
- */
-export const persistClearCoyoteGameImprovisationObjects = async (
-    args: ClearCoyoteGameImprovisationObjectsArgs = {},
-    deps?: PersistImprovisationObjectDependencies
-): Promise<{ ok: true; deletedObjectIds: EphemeraObjectId[]; affectedRoomIds: EphemeraRoomId[] } | { ok: false; errorMessage: string }> => {
-    const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
-    const getGameRooms = args.getGameRooms ?? (() => internalCache.CoyoteGame.get('gameRooms'))
-    const getRoomLudicGraph = args.getRoomLudicGraph ?? defaultGetRoomLudicGraph
-
-    try {
-        const gameRooms = await getGameRooms()
-        const affectedRoomIds = gameRooms.map((room) => RoomKey(room) as EphemeraRoomId)
-        const objectIdSet = new Set<EphemeraObjectId>()
-
-        for (const roomId of affectedRoomIds) {
-            const meta = await getRoomLudicGraph(roomId)
-            for (const objectId of collectObjectIdsFromLudicGraph(meta?.ludicGraph)) {
-                objectIdSet.add(objectId)
-            }
-        }
-
-        const objectIds = [...objectIdSet]
-        if (objectIds.length === 0) {
-            return { ok: true, deletedObjectIds: [], affectedRoomIds }
-        }
-
-        for (let offset = 0; offset < objectIds.length; offset += MAX_OBJECTS_PER_DELETE_TRANSACT) {
-            const chunk = objectIds.slice(offset, offset + MAX_OBJECTS_PER_DELETE_TRANSACT)
-            const transactItems = chunk.flatMap((objectId) => deleteTransactItemsForObject(objectId))
-            await exponentialBackoffWrapper(async () => {
-                await transactWrite(transactItems)
-            }, { retryErrors: ['TransactionCanceledException'] })
-        }
-
-        for (const objectId of objectIds) {
-            invalidateImprovisationObjectCaches({
-                objectId,
-                affectedRoomIds,
-                clearEmbedding: true,
-            })
-        }
-
-        return { ok: true, deletedObjectIds: objectIds, affectedRoomIds }
     }
     catch (error) {
         const message = error instanceof Error ? error.message : String(error)
