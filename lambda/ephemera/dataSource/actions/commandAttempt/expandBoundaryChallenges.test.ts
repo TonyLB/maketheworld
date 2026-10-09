@@ -102,6 +102,38 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         expect(new Set(ids).size).toBe(3)
     })
 
+    it('keys each CustomEdgeChallenge structurally: by the primary action and the edge, not by a counter', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [{ tag: 'Relational', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' }],
+        })
+        const expand = (primaryId: string) => attemptActionsFromBoundaryOutcomes(
+            new PositionAttemptAction(primaryId, [], undefined, 'Take: rope'), ropeId, graph, noShards
+        ).actions[0]!.challenges().map(({ id }) => id)
+
+        expect(expand('primary')).toEqual(expand('primary'))
+        expect(expand('primary')).toEqual([`customEdge:primary:${ropeId}|${postId}|Custom|is lashed to`])
+        expect(expand('other')).not.toEqual(expand('primary'))
+    })
+
+    it('keys a CustomEdgeChallenge by edgeId when the edge has one', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [{ tag: 'Relational', edgeId: 'lashing-1', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' }],
+        })
+        const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
+
+        const challenges = attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, graph, noShards).actions[0]!.challenges()
+
+        expect(challenges.map(({ id }) => id)).toEqual(['customEdge:primary:lashing-1'])
+    })
+
     it('returns only the primary action when the graph has no boundary edges', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Object' as const, universalKey: ropeId }],
@@ -192,6 +224,21 @@ describe('attemptActionsFromTransfer', () => {
 
         expect(primary?.challenges().map((challenge) => challenge.toJSON().kind)).toEqual(['exitEdge'])
         expect(primary?.id).toBe('primary')
+    })
+
+    it('keys the exit-edge challenge by its primary action, and adds only one', () => {
+        const graph = testLudicGraphFromEnvelope(roomId, {
+            nodes: [],
+            edges: [
+                { kind: 'Navigation', uuid: 'edge-1', from: ropeId, to: postId, payload: {} },
+                { kind: 'Navigation', uuid: 'edge-2', from: ropeId, to: anvilId, payload: {} },
+            ],
+        })
+        const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
+
+        const [primary] = attemptActionsFromTransfer(primaryAction, ropeId, graph, noShards).actions
+
+        expect(primary?.challenges().map(({ id }) => id)).toEqual(['exitEdge:primary'])
     })
 
     describe('presence on the dissolves\' referents', () => {

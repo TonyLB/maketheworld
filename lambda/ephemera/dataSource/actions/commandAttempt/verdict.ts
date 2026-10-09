@@ -3,18 +3,18 @@
  * not a three-way string --- `undefined` means "no verdict recorded yet" (formerly
  * `'pending'`), and is deliberately not a member of this family (it is the *absence*
  * of one, per `AGENT.architecture.codeOrganization.md`'s worked example). Two members
- * ship now (`met`, `impossible`); `failed` (CA-2) is named on the roadmap but has no
- * producer yet, so it is not built.
+ * ship now (`met`, `impossible`).
  *
- * Every member answers the same three questions (1.6): does the attempt proceed,
- * refuse, or fail with a consequence; what goes to narration; how does it render in
- * the result section. `CommandAttempt.result` folds over these answers instead of
- * comparing verdict strings.
+ * Every member answers the same three questions (1.6): does it refuse the attempt; what
+ * goes to narration; how does it render in the result section. The process question has
+ * only two answers --- a verdict that does not refuse lets the attempt proceed. Failing
+ * at the player's goal (CA-2's roadmap `failed`) is a narrative outcome, not a third
+ * process answer: such a member proceeds, and differs in what commits and how it
+ * narrates. `CommandAttempt.result` folds over these answers instead of comparing
+ * verdict strings.
  */
 export interface Verdict {
     readonly kind: 'met' | 'impossible'
-    /** Does this verdict, alone, let the attempt proceed toward success? */
-    proceeds(): boolean
     /** Does this verdict, alone, refuse the whole attempt regardless of any other challenge? */
     refuses(): boolean
     /** Detail for narration --- e.g. a manner or a failure reason. Not consumed yet: no narration unit reads a verdict. */
@@ -37,10 +37,6 @@ export class MetVerdict implements Verdict {
 
     toJSON(): VerdictData {
         return { kind: 'met' }
-    }
-
-    proceeds(): boolean {
-        return true
     }
 
     refuses(): boolean {
@@ -70,10 +66,6 @@ export class ImpossibleVerdict implements Verdict {
 
     toJSON(): VerdictData {
         return { kind: 'impossible', reason: this.reason }
-    }
-
-    proceeds(): boolean {
-        return false
     }
 
     refuses(): boolean {

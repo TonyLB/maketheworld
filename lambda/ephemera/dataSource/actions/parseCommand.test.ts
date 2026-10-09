@@ -1736,21 +1736,21 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
     })
     const catalogOf = (ids: Array<[EphemeraObjectId, string]>) => ids.map(([objectId, normalizedShortName]) => ({ objectId, normalizedShortName }))
 
-    // Action ids are minted UUIDs: snapshot them as placeholders numbered by first appearance,
-    // so a snapshot still shows which actions share an id and which are distinct.
-    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    // Action ids are minted UUIDs (and a challenge id embeds its primary action's): snapshot them as
+    // placeholders numbered by first appearance, so a snapshot still shows which ids are shared and which are distinct.
+    const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g
     let mintedIds = new Map<string, string>()
     beforeEach(() => {
         mintedIds = new Map()
     })
     expect.addSnapshotSerializer({
-        test: (value) => typeof value === 'string' && UUID.test(value),
-        serialize: (value: string) => {
-            if (!mintedIds.has(value)) {
-                mintedIds.set(value, `<minted id ${mintedIds.size + 1}>`)
+        test: (value) => typeof value === 'string' && new RegExp(UUID.source).test(value),
+        serialize: (value: string) => `"${value.replace(UUID, (uuid) => {
+            if (!mintedIds.has(uuid)) {
+                mintedIds.set(uuid, `<minted id ${mintedIds.size + 1}>`)
             }
-            return `"${mintedIds.get(value)}"`
-        },
+            return mintedIds.get(uuid)!
+        })}"`,
     })
 
     /**

@@ -16,11 +16,19 @@ import { CustomEdgeChallenge, ExitEdgeChallenge } from './challenge'
 import { objectTouchesExitEdgeOnGraph } from '../enrich/objectManipulation/membershipObservation'
 import type { NarrationUnit } from './narrationUnit'
 
-let challengeIdCounter = 0
-const mintChallengeId = (): string => {
-    challengeIdCounter += 1
-    return `boundaryChallenge-${challengeIdCounter}`
-}
+/**
+ * A challenge's `id` is its key: structural, so a fresh run of the same (attempt, identity) pair
+ * mints the same ids in any module instance, which is what lets a stored answer find its challenge.
+ * Each id is scoped by the primary action's id (Plan-minted, so stable across reruns of a frozen root).
+ */
+const terminalKey = (terminal: unknown): string => typeof terminal === 'string' ? terminal : JSON.stringify(terminal)
+
+const exitEdgeChallengeId = (primaryActionId: string): string => `exitEdge:${primaryActionId}`
+
+const customEdgeChallengeId = (
+    primaryActionId: string,
+    edge: Extract<HostRelationalEdge, { kind: 'Custom' }>
+): string => `customEdge:${primaryActionId}:${edge.edgeId ?? [terminalKey(edge.from), terminalKey(edge.to), edge.kind, edge.relationLabel].join('|')}`
 
 const describeCustomEdgeChallenge = (edge: Extract<HostRelationalEdge, { kind: 'Custom' }>): string =>
     `Boundary relation to dissolve: ${edge.relationLabel}.`
@@ -134,7 +142,7 @@ export const attemptActionsFromBoundaryOutcomes = (
             if (entry.edge.kind !== 'Custom') {
                 throw new Error(`attemptActionsFromBoundaryOutcomes: a '${entry.edge.kind}' boundary edge deferred, but only 'Custom' defers`)
             }
-            challenges = [new CustomEdgeChallenge(mintChallengeId(), entry.edge, describeCustomEdgeChallenge(entry.edge))]
+            challenges = [new CustomEdgeChallenge(customEdgeChallengeId(primaryAction.id, entry.edge), entry.edge, describeCustomEdgeChallenge(entry.edge))]
         }
 
         const action = new PositionAttemptAction(
@@ -172,7 +180,7 @@ export const attemptActionsFromTransfer = (
     const primary = exitChallenged
         ? primaryAction.withChallenges([
             ...primaryAction.challenges(),
-            new ExitEdgeChallenge(mintChallengeId(), describeExitEdgeChallenge()),
+            new ExitEdgeChallenge(exitEdgeChallengeId(primaryAction.id), describeExitEdgeChallenge()),
         ])
         : primaryAction
     return attemptActionsFromBoundaryOutcomes(primary, objectId, graph, getGraph)

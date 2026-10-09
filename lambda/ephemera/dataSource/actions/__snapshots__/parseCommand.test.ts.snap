@@ -327,7 +327,7 @@ Object {
                 "relationLabel": "is lashed to",
                 "to": "OBJECT#Post",
               },
-              "id": "boundaryChallenge-6",
+              "id": "customEdge:<minted id 1>:OBJECT#Rope|OBJECT#Post|Custom|is lashed to",
               "kind": "customEdge",
               "verdict": Object {
                 "kind": "met",
@@ -355,7 +355,7 @@ Object {
             },
           },
           "desiredResultDescription": "Dissolve: is lashed to",
-          "id": "<minted id 1>",
+          "id": "<minted id 2>",
           "kind": "position",
         },
         Object {
@@ -390,14 +390,14 @@ Object {
             },
           },
           "desiredResultDescription": "Put rope on table",
-          "id": "<minted id 2>",
+          "id": "<minted id 1>",
           "kind": "position",
         },
       ],
       "narrationUnits": Array [
         Object {
           "covers": Array [
-            "<minted id 2>",
+            "<minted id 1>",
           ],
           "variants": Array [
             Object {
@@ -431,7 +431,7 @@ Object {
         },
         Object {
           "covers": Array [
-            "<minted id 1>",
+            "<minted id 2>",
           ],
           "variants": Array [
             Object {
@@ -866,7 +866,7 @@ Object {
                 "relationLabel": "is lashed to",
                 "to": "OBJECT#Post",
               },
-              "id": "boundaryChallenge-1",
+              "id": "customEdge:<minted id 1>:OBJECT#Rope|OBJECT#Post|Custom|is lashed to",
               "kind": "customEdge",
               "verdict": Object {
                 "kind": "met",
@@ -894,7 +894,7 @@ Object {
             },
           },
           "desiredResultDescription": "Dissolve: is lashed to",
-          "id": "<minted id 1>",
+          "id": "<minted id 2>",
           "kind": "position",
         },
         Object {
@@ -924,14 +924,14 @@ Object {
             },
           },
           "desiredResultDescription": "Take: rope",
-          "id": "<minted id 2>",
+          "id": "<minted id 1>",
           "kind": "position",
         },
       ],
       "narrationUnits": Array [
         Object {
           "covers": Array [
-            "<minted id 2>",
+            "<minted id 1>",
           ],
           "variants": Array [
             Object {
@@ -958,7 +958,7 @@ Object {
         },
         Object {
           "covers": Array [
-            "<minted id 1>",
+            "<minted id 2>",
           ],
           "variants": Array [
             Object {
@@ -1027,7 +1027,7 @@ Object {
                 "relationLabel": "under",
                 "to": "OBJECT#Post",
               },
-              "id": "boundaryChallenge-3",
+              "id": "customEdge:<minted id 1>:OBJECT#Rope|OBJECT#Post|Custom|under",
               "kind": "customEdge",
               "verdict": Object {
                 "kind": "met",
@@ -1055,7 +1055,7 @@ Object {
             },
           },
           "desiredResultDescription": "Dissolve: under",
-          "id": "<minted id 1>",
+          "id": "<minted id 2>",
           "kind": "position",
         },
         Object {
@@ -1085,14 +1085,14 @@ Object {
             },
           },
           "desiredResultDescription": "Take: rope",
-          "id": "<minted id 2>",
+          "id": "<minted id 1>",
           "kind": "position",
         },
       ],
       "narrationUnits": Array [
         Object {
           "covers": Array [
-            "<minted id 2>",
+            "<minted id 1>",
           ],
           "variants": Array [
             Object {
@@ -1119,7 +1119,7 @@ Object {
         },
         Object {
           "covers": Array [
-            "<minted id 1>",
+            "<minted id 2>",
           ],
           "variants": Array [
             Object {

@@ -21,6 +21,7 @@ import { isCoyoteGameRoom } from '../coyoteGame/utilities/isCoyoteGameRoom'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
 import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
 import internalCache from '../../internalCache'
+import { clearSession } from './persistentCommand'
 
 jest.mock('@tonylb/mtw-wml/ts/schema', () => ({
     schemaToWML: jest.fn(() => '<Asset />'),
@@ -40,6 +41,9 @@ jest.mock('../renderOrchestration/subscribedEvents', () => {
     }
 })
 jest.mock('../../messageBus')
+jest.mock('./persistentCommand', () => ({
+    clearSession: jest.fn(),
+}))
 jest.mock('../../internalCache')
 jest.mock('./roomExitTargetsForCharacter', () => ({
     getRoomExitTargetsForCharacter: jest.fn(),
@@ -2785,6 +2789,38 @@ describe('ephemeraActionsDataSource', () => {
                     "I'm sorry, I can't tell what you're trying to tell me to do.",
                 ],
             })
+        })
+    })
+
+    describe('Session Disconnect', () => {
+        const disconnectEnvelope = (content: unknown) => ({
+            header: {
+                dataSourceKey: 'mtw.connections',
+                streamKey: 'SESSION#abc',
+                timestamp: Date.now(),
+                type: 'Session Disconnect',
+            },
+            getContent: async () => content,
+        })
+
+        it('clears the session\'s persistent command rows', async () => {
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [disconnectEnvelope({ type: 'Session Disconnect', sessionId: 'abc' })] as any,
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(jest.mocked(clearSession)).toHaveBeenCalledWith('abc')
+        })
+
+        it('ignores a malformed event', async () => {
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [disconnectEnvelope({ type: 'Session Disconnect' })] as any,
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+
+            expect(jest.mocked(clearSession)).not.toHaveBeenCalled()
         })
     })
 })

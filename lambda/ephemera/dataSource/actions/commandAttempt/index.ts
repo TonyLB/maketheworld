@@ -161,12 +161,10 @@ export class CommandAttempt {
 
     /**
      * CA-2: derived from the challenge verdicts, never stored. Folds by asking each
-     * recorded verdict its proceed/refuse question (1.6) rather than comparing verdict
-     * strings: an `undefined` verdict keeps the attempt pending; any verdict that
-     * refuses (impossible) wins over everything else; only once every challenge has a
-     * verdict that proceeds does the attempt succeed. A verdict that neither proceeds nor
-     * refuses (e.g. a future `failed`) has no result status yet, so it throws rather than
-     * falling through to success --- adding such a member must extend `AttemptResult`.
+     * recorded verdict whether it refuses (1.6) rather than comparing verdict strings:
+     * any verdict that refuses (impossible) wins over everything else; an `undefined`
+     * verdict keeps the attempt pending; otherwise every challenge has a verdict that
+     * proceeds, and the attempt succeeds.
      */
     get result(): AttemptResult {
         const allChallenges = this._actions.flatMap((action) => action.challenges())
@@ -176,12 +174,6 @@ export class CommandAttempt {
         }
         if (allChallenges.some((challenge) => challenge.verdict === undefined)) {
             return { status: 'pending' }
-        }
-        const stalled = allChallenges.find((challenge) => !challenge.verdict?.proceeds())
-        if (stalled) {
-            throw new Error(
-                `CommandAttempt.result: verdict '${stalled.verdict?.kind}' on challenge '${stalled.id}' neither proceeds nor refuses`
-            )
         }
         const outcome = this._actions
             .map((action) => action.describe())
