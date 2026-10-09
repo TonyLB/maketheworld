@@ -449,6 +449,17 @@ describe('messages selectors', () => {
                 expect(result.Groups.map(({ messageCount }) => messageCount)).toEqual([1, 1])
             })
 
+            it('should keep a command echo that carries an outcome revision', () => {
+                const st = stateFor([
+                    header('H1', 1, 'ROOM#X'),
+                    { ...transcript('C1', 2), Outcome: { Kind: 'Error', Message: ['No.'] } },
+                    world('W1', 3)
+                ])
+                const result = getMessagesByRoom('CHARACTER#TESS')(st)
+                expect(result.Messages.map(({ MessageId }) => MessageId)).toEqual(['C1', 'W1'])
+                expect((result.Messages[0] as any).Outcome).toEqual({ Kind: 'Error', Message: ['No.'] })
+            })
+
             it('should not let a later echo from another session hide this session\'s latest', () => {
                 const st = stateFor([
                     header('H1', 1, 'ROOM#X'),

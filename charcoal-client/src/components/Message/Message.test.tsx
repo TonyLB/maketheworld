@@ -486,5 +486,83 @@ describe('Message component - CommandTranscriptMessage routing', () => {
         expect(screen.getByTestId('command-transcript-message')).toBeDefined()
         expect(screen.getByText('look')).toBeDefined()
     })
-})
 
+    const renderMessage = (message: any) => {
+        const store = mockStore({
+            player: {
+                Players: {
+                    'CHARACTER#test': {
+                        Assets: []
+                    }
+                }
+            },
+            playerDataSource: {
+                publicData: {
+                    activeStreamKeys: [],
+                    subscribedStreams: {
+                        'test-player': {
+                            materializedView: {
+                                type: 'Snapshot',
+                                assets: [],
+                                characters: [],
+                                settings: { onboardCompleteTags: [] }
+                            }
+                        }
+                    }
+                }
+            },
+            personalAssets: { byId: {} },
+            activeCharacters: {
+                activeCharacter: 'CHARACTER#test'
+            },
+            settings: {
+                server: { ChatPrompt: 'What do you do?' },
+                client: { TextEntryLines: 1, ShowNeighborhoodHeaders: false, AlwaysShowOnboarding: false },
+                connection: { sessionId: '', playerName: 'test-player' }
+            },
+            lifeLine: {}
+        })
+        render(
+            <Provider store={store}>
+                <Message message={message} />
+            </Provider>
+        )
+    }
+
+    it('should render an Error outcome inside the bubble below the echo', () => {
+        renderMessage({
+            DisplayProtocol: 'CommandTranscriptMessage',
+            MessageId: 'msg-command',
+            CreatedTime: Date.now(),
+            Message: ['go nowhere'],
+            Outcome: { Kind: 'Error', Message: ['You cannot go that way.'] }
+        })
+        const bubble = screen.getByTestId('command-transcript-message')
+        const outcome = screen.getByTestId('command-transcript-outcome')
+        expect(bubble.contains(outcome)).toBe(true)
+        expect(outcome.getAttribute('data-kind')).toEqual('Error')
+        expect(screen.getByText('You cannot go that way.')).toBeDefined()
+        expect(screen.getByText('go nowhere')).toBeDefined()
+    })
+
+    it('should mark an Info outcome distinctly from an Error', () => {
+        renderMessage({
+            DisplayProtocol: 'CommandTranscriptMessage',
+            MessageId: 'msg-command',
+            CreatedTime: Date.now(),
+            Message: ['take it'],
+            Outcome: { Kind: 'Info', Message: ['Which one?'] }
+        })
+        expect(screen.getByTestId('command-transcript-outcome').getAttribute('data-kind')).toEqual('Info')
+    })
+
+    it('should render no outcome node when Outcome is absent', () => {
+        renderMessage({
+            DisplayProtocol: 'CommandTranscriptMessage',
+            MessageId: 'msg-command',
+            CreatedTime: Date.now(),
+            Message: ['look']
+        })
+        expect(screen.queryByTestId('command-transcript-outcome')).toBeNull()
+    })
+})

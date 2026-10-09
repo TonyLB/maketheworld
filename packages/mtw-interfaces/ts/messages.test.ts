@@ -93,6 +93,33 @@ describe('CommandTranscriptMessage', () => {
             Message: ['> wait']
         })).toBe(false)
     })
+
+    describe('Outcome', () => {
+        const base = {
+            DisplayProtocol: 'CommandTranscriptMessage',
+            MessageId: 'MESSAGE#x',
+            CreatedTime: 1,
+            Message: ['> look']
+        }
+        it('should validate with an Error or Info outcome', () => {
+            expect(isMessage({ ...base, Outcome: { Kind: 'Error', Message: ['No such thing'] } })).toBe(true)
+            expect(isMessage({ ...base, Outcome: { Kind: 'Info', Message: ['Did you mean...?'] } })).toBe(true)
+        })
+
+        it('should reject an unknown Kind', () => {
+            expect(isMessage({ ...base, Outcome: { Kind: 'Warning', Message: ['x'] } })).toBe(false)
+        })
+
+        it('should reject an outcome with a missing or invalid Message', () => {
+            expect(isMessage({ ...base, Outcome: { Kind: 'Error' } })).toBe(false)
+            expect(isMessage({ ...base, Outcome: { Kind: 'Error', Message: 'not a render tree' } })).toBe(false)
+        })
+
+        it('should reject a non-object outcome', () => {
+            expect(isMessage({ ...base, Outcome: 'oops' })).toBe(false)
+            expect(isMessage({ ...base, Outcome: null })).toBe(false)
+        })
+    })
 })
 
 describe('CoyoteGameHypothesisMessage', () => {

@@ -33,6 +33,15 @@ export const CommandTranscriptMessage = ({ message, ...rest }: CommandTranscript
                 <Typography variant='body2' align='left' sx={{ fontFamily: 'monospace', margin: 0 }}>
                     <RenderTreeContent list={message.Message} onClickLink={() => {}} />
                 </Typography>
+                {message.Outcome && <Typography
+                    data-testid="command-transcript-outcome"
+                    data-kind={message.Outcome.Kind}
+                    variant='body2'
+                    align='left'
+                    sx={{ margin: '4px 0 0 0', color: message.Outcome.Kind === 'Error' ? 'error.main' : 'text.secondary' }}
+                >
+                    <RenderTreeContent list={message.Outcome.Message} onClickLink={() => {}} />
+                </Typography>}
             </Box>
         </MessageComponent>
 }
