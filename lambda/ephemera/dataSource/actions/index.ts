@@ -16,8 +16,11 @@ import type { ActionsSubscribedContent } from './subscribedEvents'
 import {
     isActionsActionAssessedEnvelope,
     isActionsParseRequestedEnvelope,
+    isActionsSessionDisconnectEnvelope,
     isActionsSubscribedEnvelope,
 } from './subscribedEvents'
+import { isSessionDisconnectEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
+import { clearSession } from './persistentCommand'
 import { isActionAssessedCommand, isParseRequestedCommand, type ActionAssessedCommand, type ParseRequestedCommand } from '../localApiEvents'
 import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
@@ -717,6 +720,14 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
             if (isActionsActionAssessedEnvelope(event)) {
                 const content = await event.getContent()
                 await handleActionAssessed(content, streamEventFn)
+                return
+            }
+            if (isActionsSessionDisconnectEnvelope(event)) {
+                const content = await event.getContent()
+                if (!isSessionDisconnectEvent(content)) {
+                    return
+                }
+                await clearSession(content.sessionId)
             }
         }))
     },

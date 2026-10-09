@@ -78,6 +78,10 @@ Ingress: `mtw.connections` / `Character Registered` via `ConnectionsEventSeriali
 
 Handlers: [`handleCharacterRegisteredOrientation`](dataSource/connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) resolves the character's current room from `Meta::Character`, registers two perception threads (`sessionOrientationRender` + `sessionOrientationAffordances`) with `targets: [characterId]`, and kicks render + affordance orchestration with room + perspective only. Terminal **`PublishMessage`** rows are emitted by **`mtw.ephemera.perception`** on **`Render Pertains`** / **`Affordances Pertain`** fan-in (see [`dataSource/perception/AGENT.md`](dataSource/perception/AGENT.md)).
 
+#### **Session teardown (`Session Disconnect`)**
+
+Ingress: `mtw.connections` / `Session Disconnect` via `ConnectionsEventSerializer` and CloudWatch rule `ConnectionsSessionDisconnect` in [`template.yaml`](../../template.yaml). Subscribed by **`mtw.ephemera.actions`** ([`dataSource/actions/subscribedEvents.ts`](dataSource/actions/subscribedEvents.ts)), which calls `clearSession(sessionId)` from [`persistentCommand/`](dataSource/actions/persistentCommand/) to delete that session's persistent-command rows. It queries by session and ignores the event's `characterIds`.
+
 **Perception thread principle:** delivery intent is captured once at thread registration; orchestration and cache streams carry routing identity only (`roomId` / `componentId` + `perspectiveKey`). Do **not** plumb `targets` or `sessionId` through orchestration ingress or cache outbounds.
 
 **Non-goals for this path:** does not update `Meta::Room.activeCharacters`, does not send room arrival `WorldMessage` to other occupants. Those remain the **`Character Connected`** / `mtw.ephemera.positions` responsibility.

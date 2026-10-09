@@ -2,6 +2,7 @@ import {
     isActionsSubscribedEnvelope,
     isActionsParseRequestedEnvelope,
     isActionsActionAssessedEnvelope,
+    isActionsSessionDisconnectEnvelope,
 } from './subscribedEvents'
 
 describe('mtw.ephemera.actions subscribedEvents', () => {
@@ -120,5 +121,37 @@ describe('mtw.ephemera.actions subscribedEvents', () => {
         }
 
         expect(isActionsSubscribedEnvelope(envelope as any)).toBe(false)
+    })
+
+    it('accepts mtw.connections Session Disconnect envelope', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.connections',
+                streamKey: 'SESSION#abc',
+                timestamp: Date.now(),
+                type: 'Session Disconnect' as const,
+            },
+            getContent: () => Promise.resolve({ type: 'Session Disconnect' as const, sessionId: 'abc' }),
+        }
+
+        expect(isActionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isActionsSessionDisconnectEnvelope(envelope as any)).toBe(true)
+        expect(isActionsParseRequestedEnvelope(envelope as any)).toBe(false)
+        expect(isActionsActionAssessedEnvelope(envelope as any)).toBe(false)
+    })
+
+    it('rejects other mtw.connections event types', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.connections',
+                streamKey: 'SESSION#abc',
+                timestamp: Date.now(),
+                type: 'Character Registered',
+            },
+            getContent: () => Promise.resolve({}),
+        }
+
+        expect(isActionsSubscribedEnvelope(envelope as any)).toBe(false)
+        expect(isActionsSessionDisconnectEnvelope(envelope as any)).toBe(false)
     })
 })
