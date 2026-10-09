@@ -1,6 +1,6 @@
 # Persistent in-progress commands
 
-**Status:** In progress. Slices 1 (the row module, `persistentCommand/`) and 2 (delete on `Session Disconnect`) are done 2026-10-09. All decisions (SC-1 to SC-5) are made, so Slice 3 can start; Slice 4 follows Slice 3. Slice 3 settles the challenge key's form, the answer's shape and how a decision to ask survives a rerun when it starts ([SC-3 verdict](#sc-3-verdict-2026-10-09)).
+**Status:** In progress. Slices 1 (the row module, `persistentCommand/`), 2 (delete on `Session Disconnect`) and 3 (the payload) are done 2026-10-09. All decisions (SC-1 to SC-5) are made; Slice 4 (resume) is next.
 
 Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
@@ -54,7 +54,7 @@ in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
 | --- | --- | --- | --- |
 | SC-1 | **Row key.** `EphemeraId: CHARACTER#<characterId>`, `DataCategory: SESSION#<sessionId>`, with one singular `currentAction` per row. A new command either answers the pending one or replaces it, so stale questions never pile up. Keying by session matches the command-echo behaviour (ISS8242): window B can't answer window A's question, and a reload drops the pending command. Lookups by session use the existing `DataCategoryIndex`. No current reader would pick these rows up: the diagnostics sweeps query that index on fixed values such as `Meta::Room`, and the `Meta::Character` reads name their keys exactly. | 1 | Decided 2026-10-09; key helpers shipped in Slice 1 |
 | SC-2 | **Lifetime.** Each write sets `deleteAt`, the table's existing TTL attribute. Reads treat a row past its `deleteAt` as absent, because DynamoDB can take up to about 48 hours to remove expired rows. A session's rows are deleted when ephemera receives `Session Disconnect`. Ephemera's event rule in `template.yaml` does not list that event today, so this plan adds it. The TTL length is a single named constant; start at one hour and tune it when the exchange plan uses it. | 1, 2 | Decided 2026-10-09; TTL constant, `deleteAt` and expiry helpers shipped in Slice 1 disconnect delete shipped in Slice 2 |
-| SC-3 | **What we store.** Plain, persistable data, never pipeline state (which would only make sense to one pipeline instance). The row holds four fields: the frozen root (SC-5), `selectedAttempt` (an attempt's action id), `referentAnswers` (`stableRefKey` to thing id) and `challengeAnswers` (structural challenge key to answer). Challenges are only asked once one attempt and one identity are fixed, so a challenge key need only be stable when that same pair is rerun against a fresh world, and challenge answers are dropped when the selection they were given under goes stale. `challengeAnswers` is built now, not deferred. See [SC-3 notes](#sc-3-notes-what-we-store) and [the verdict](#sc-3-verdict-2026-10-09). | 3 | Decided 2026-10-09 |
+| SC-3 | **What we store.** Plain, persistable data, never pipeline state (which would only make sense to one pipeline instance). The row holds four fields: the frozen root (SC-5), `selectedAttempt` (an attempt's action id), `referentAnswers` (`stableRefKey` to thing id) and `challengeAnswers` (structural challenge key to answer). Challenges are only asked once one attempt and one identity are fixed, so a challenge key need only be stable when that same pair is rerun against a fresh world, and challenge answers are dropped when the selection they were given under goes stale. `challengeAnswers` is built now, not deferred. See [SC-3 notes](#sc-3-notes-what-we-store) and [the verdict](#sc-3-verdict-2026-10-09). | 3 | Decided 2026-10-09; payload type, guard, `get`/`put` and structural challenge ids shipped in Slice 3 |
 | SC-4 | **Is referent ambiguity a challenge?** Decided in two halves. **(1) No fold for keys or application:** referent answers stay keyed by `stableRefKey` and narrow Enumerate's pools, while challenge answers stay keyed by graph structure and become verdicts after Expansion (this follows from SC-5). **(2) One place to wait:** the persistent command row is *the* single place where a command waiting on the player, or on another process, is kept. Referent questions and pending challenges both live there. Moved here from the ladder note's "Challenge or candidate pool?" bullet. See [SC-4 notes](#sc-4-notes-is-referent-ambiguity-a-challenge) and [the verdict](#sc-4-verdict-2026-10-09). | 3 (feeds SC-3 (c), (d)) | Decided 2026-10-09 |
 | SC-5 | **Freeze the ungrounded plan as the replay root.** Store Plan's output (the stamped skeleton, its ungrounded `CommandAttempt[]` and the classify confidence) once, and on every rerun resume from `compileAttemptsFromSkeleton` with world inputs read fresh. Traced 2026-10-09: on the object-manipulation route, everything up to and including Plan reads only the command text, so world changes and later player actions can't invalidate it. Two LLM calls do sit in that stretch, so it isn't deterministic, which is why it should be frozen rather than rerun. This answers SC-3 (b). See [SC-5 notes](#sc-5-notes-freezing-the-ungrounded-plan), and [what it implies for SC-4 and SC-3](#what-sc-5-implies-for-sc-4-and-sc-3). | 3 (answers SC-3 (b)) | Decided 2026-10-09 |
 
@@ -184,10 +184,10 @@ The plan's author settled the row's contents, together with the order in which a
 
 **Answers depend on the selection they were given under.** If a referent answer goes stale (the red cup is gone), the challenge answers given under it are dropped with it.
 
-**Settled in Slice 3, not here:**
-- The challenge key's form: deterministic `id` or a separate field, and the structural key for `CustomEdgeChallenge` and `ExitEdgeChallenge`. `WorldKnowledgeChallenge` has no producer yet, so its key waits for one.
-- The answer's shape: a `Verdict`, or a player statement that goes back through Adjudicate. Either way it records its source (the player or a process), per the SC-4 verdict.
-- How a decision to ask survives a rerun. Adjudication that asks the player records `met` and adds a question challenge, so the stored answer's key exists only if the rerun asks again. A nondeterministic judge may not, and the stale check would then refuse. Either the decision to ask is structural (the same challenge always asks), or the row records it, for example as the original challenge's entry in `challengeAnswers` ("met, asked as ⟨key⟩").
+**Settled in Slice 3 (2026-10-09):**
+- The challenge key's form: the challenge's `id` itself, made deterministic (the module counter is gone). `exitEdge:<primaryActionId>` and `customEdge:<primaryActionId>:<edgeId, or from|to|kind|relationLabel>`, scoped by the primary action's Plan-minted id. One exit challenge exists per primary action by construction. `WorldKnowledgeChallenge` has no producer yet, so its key waits for one.
+- The answer's shape: `{ verdict, source: 'player' | 'process', askedAs? }`. Resume calls `recordVerdict` directly. A player statement that goes back through Adjudicate would be a new arm, added when something produces one.
+- How a decision to ask survives a rerun: the row records it. The original challenge's entry carries `askedAs` (by convention `ask:<challengeKey>`), so resume re-adds the question whether or not a nondeterministic judge asks again. Nothing produces `askedAs` yet. The problem: adjudication that asks the player records `met` and adds a question challenge, so the stored answer's key exists only if the rerun asks again. A nondeterministic judge may not, and the stale check would then refuse. Either the decision to ask is structural (the same challenge always asks), or the row records it, for example as the original challenge's entry in `challengeAnswers` ("met, asked as ⟨key⟩").
 
 **Payoff test for whatever is chosen (Slice 3).** The proof must reach the outcome this plan exists for: state that survives into a different instance. It has two parts:
 1. **Keys are stable.** Two runs of the stage that produces keys, each in its own module registry (`jest.isolateModules`, so no counter or other module-level state is shared), give the same keys for the same root.
@@ -212,16 +212,16 @@ Pending work is `[ ]`, completed is `[X]`. Mark each nested line `[X]` as it is 
   - [X] Add `Session Disconnect` (source `mtw.connections`) to ephemera's event rule in `template.yaml`, next to `Character Registered`.
   - [X] Add a subscribed-event guard and a branch in the actions data source that calls `clearSession` (from `persistentCommand/`), following the positions pattern.
   - [X] Tests for the guard and the handler.
-- [ ] **Slice 3. The payload.**
-  - [ ] Settle the three items the [SC-3 verdict](#sc-3-verdict-2026-10-09) leaves to this slice: the challenge key's form, the answer's shape, and how a decision to ask survives a rerun.
-  - [ ] The payload type (`root`, `selectedAttempt`, `referentAnswers`, `challengeAnswers`) and its runtime guard. A read whose payload fails the guard is treated as absent rather than throwing, so a later shape change can't break a session.
-  - [ ] `get` (with read-side expiry) and `put` (sets `deleteAt`).
-  - [ ] Structural keys for `CustomEdgeChallenge` and `ExitEdgeChallenge`, stable when the same (attempt, identity) pair is rerun.
-  - [ ] The two-part payoff test from the SC-3 notes.
+- [X] **Slice 3. The payload.**
+  - [X] Settle the three items the [SC-3 verdict](#sc-3-verdict-2026-10-09) leaves to this slice: the challenge key's form, the answer's shape, and how a decision to ask survives a rerun.
+  - [X] The payload type (`root`, `selectedAttempt`, `referentAnswers`, `challengeAnswers`) and its runtime guard. A read whose payload fails the guard is treated as absent rather than throwing, so a later shape change can't break a session.
+  - [X] `get` (with read-side expiry) and `put` (sets `deleteAt`).
+  - [X] Structural keys for `CustomEdgeChallenge` and `ExitEdgeChallenge`, stable when the same (attempt, identity) pair is rerun.
+  - [X] The two-part payoff test from the SC-3 notes.
 - [ ] **Slice 4. Resume from a stored row (after Slice 3).** A resume entry point that takes a row instead of a command. It skips classify, Parse and Plan, and calls `compileAttemptsFromSkeleton` with the frozen root, as [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) does with Plan's output.
   - [ ] Apply `selectedAttempt` by filtering the frozen attempts before they are compiled.
   - [ ] Apply `referentAnswers` by filtering each answered `stableRefKey`'s pool just before `enumerateIdentityAssignments`, in `proposeAttemptCandidates` ([`attemptCandidates.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/attemptCandidates.ts)).
-  - [ ] Apply `challengeAnswers` around `expandAndAdjudicateCandidates`: a direct `recordVerdict`, or an input to adjudication, per Slice 3's answer shape.
+  - [ ] Apply `challengeAnswers` around `expandAndAdjudicateCandidates`: a direct `recordVerdict`, or an input to adjudication, as decided in Slice 3: a direct `recordVerdict` from the stored `{ verdict, source }`, and an `askedAs` entry re-adds its question challenge.
   - [ ] Stale answers refuse with the reason: a referent answer whose thing is no longer in its pool, or a chosen attempt with no valid identity left. Challenge answers given under a stale selection are dropped.
   - [ ] Tests from hand-written rows: the selections narrow the candidates to one pair; a stored challenge answer becomes that challenge's verdict on a fresh run in a separate module instance (`jest.isolateModules`), which is the plan's end-to-end payoff; a stale referent answer refuses.
 - [ ] **Close-out.**
@@ -236,7 +236,7 @@ Pending work is `[ ]`, completed is `[X]`. Mark each nested line `[X]` as it is 
 | 0 | Done 2026-10-09 | SC-3, SC-4, SC-5 decided |
 | 1 | Done 2026-10-09 | `persistentCommand/`: `rowKey.ts`, `lifetime.ts`, `clear.ts` (+ tests) |
 | 2 | Done 2026-10-09 | `ConnectionsSessionDisconnect` rule; `isActionsSessionDisconnectEnvelope`; `receiveEvents` branch calls `clearSession`. Dev-instance check waits for Slice 3 (no rows are written yet) |
-| 3 | Not started | Settles challenge-key form and answer shape first |
+| 3 | Done 2026-10-09 | `persistentCommand/`: `payload.ts`, `rowStore.ts` (+ tests, `payoff.test.ts`). Challenge ids in `expandBoundaryChallenges.ts` are now structural. `parseCommand.test.ts`'s snapshot serializer masks UUIDs embedded in ids |
 | 4 | Not started | After Slice 3 |
 
 ## Verification

@@ -240,6 +240,8 @@ Concepts (the three jobs, producers vs. the shared stage, `CommandAttempt`): [`A
 - **Grounding:** [`synthesize/groundChange.ts`](enrich/objectManipulation/synthesize/groundChange.ts).
 - **Boundary-edge Expansion:** [`commandAttempt/expandBoundaryChallenges.ts`](commandAttempt/expandBoundaryChallenges.ts), reading [`interactionUnderTransfer.ts`](../positions/ludicGraph/expandValidate/interactionUnderTransfer.ts). Where else that table is read: [`enrich/objectManipulation/AGENT.md`](enrich/objectManipulation/AGENT.md#interaction-under-transfer).
 - **Adjudicate:** [`commandAttempt/adjudicate.ts`](commandAttempt/adjudicate.ts).
+- **Challenge ids are structural:** a challenge's `id` is built from its primary action's id and the edge (`exitEdge:<primaryActionId>`, `customEdge:<primaryActionId>:<edge>`), never a counter, so a rerun of the same (attempt, identity) pair mints the same ids in any instance.
+- **Persistent command row:** [`persistentCommand/`](persistentCommand/) --- key, TTL and expiry, `clear`/`clearSession`, the payload type and guard (`payload.ts`), and `get`/`put` (`rowStore.ts`). Nothing in live play writes a row yet.
 - **Executor (placement expansion, dry-run Validation):** [`synthesize/`](enrich/objectManipulation/synthesize/AGENT.implementation.md).
 - **Selection:** below.
 

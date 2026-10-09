@@ -54,7 +54,7 @@ export const adjudicateDeferred = <T extends { attempt: CommandAttempt }>(
     _context: DeferredAdjudicationContext
 ): T => candidate
 
-const isVerdictData = (value: unknown): value is VerdictData => {
+export const isVerdictData = (value: unknown): value is VerdictData => {
     if (!value || typeof value !== 'object') {
         return false
     }
