@@ -87,6 +87,8 @@ describe('persistentCommand payoff: state survives into another module instance'
         const read = await getPromise
 
         expect(written).toBeDefined()
+        expect(read?.transcript).toEqual(written!.transcript)
+        expect(read?.transcript).toBeDefined()
         expect(read).toEqual(JSON.parse(JSON.stringify(written)))
         expect(rehydratedWords).toEqual(written!.root.attempts.map((attempt) => attempt.words))
         expect(rehydratedWords.length).toBeGreaterThan(0)

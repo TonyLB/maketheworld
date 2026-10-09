@@ -7,6 +7,7 @@ import { resumeErrorMessages, primaryActionIdOf } from '../enrich/objectManipula
 import { CommandAttempt } from '../commandAttempt'
 import type { PersistentCommandPayload } from './payload'
 import { resumePersistentCommand } from './resume'
+import { transcriptContextForResume } from './transcript'
 
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
@@ -152,5 +153,17 @@ describe('resumePersistentCommand', () => {
 
             expect(result.type).toBe('Abstain')
         })
+    })
+})
+
+describe('transcriptContextForResume', () => {
+    it('points a resumed outcome at the stored bubble, in the key\'s session', () => {
+        const transcript = { messageId: 'MESSAGE#abc', createdTime: 1700000000000, command: 'take cup' }
+
+        expect(transcriptContextForResume(rowOf({ transcript }), 'session-1')).toEqual({ ...transcript, sessionId: 'session-1' })
+    })
+
+    it('is undefined for a row with no echo, so the outcome falls back to an OOC line', () => {
+        expect(transcriptContextForResume(rowOf(), 'session-1')).toBeUndefined()
     })
 })

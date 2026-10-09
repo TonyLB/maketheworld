@@ -21,6 +21,7 @@ import {
 } from './subscribedEvents'
 import { isSessionDisconnectEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
 import { clearSession } from './persistentCommand'
+import type { TranscriptContext } from './persistentCommand/transcript'
 import { isActionAssessedCommand, isParseRequestedCommand, type ActionAssessedCommand, type ParseRequestedCommand } from '../localApiEvents'
 import { v4 as uuidv4 } from 'uuid'
 import type { CommandOutcome } from '@tonylb/mtw-interfaces/ts/messages'
@@ -175,14 +176,6 @@ const consultMessageForPlayer = (
     const head = quoted.slice(0, -1).join(', ')
     const last = quoted[quoted.length - 1]
     return `Did you mean ${head}, or ${last}?`
-}
-
-/** The echo bubble a command's outcome is republished onto (a revision resends the whole body). */
-type TranscriptContext = {
-    messageId: string
-    createdTime: number
-    command: string
-    sessionId: string
 }
 
 type ResponseContext = {
