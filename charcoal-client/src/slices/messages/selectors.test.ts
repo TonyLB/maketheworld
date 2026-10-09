@@ -4,6 +4,7 @@ import { RootState } from '../../store'
 import {
     getMessages,
     getMessagesByRoom,
+    getPresentation,
     getRecentlyVisited
 } from './selectors'
 
@@ -367,6 +368,90 @@ describe('messages selectors', () => {
             const result = getMessagesByRoom('CHARACTER#TESS')(st)
             expect(result.Messages.every((m) => m.DisplayProtocol !== 'RoomUpdate')).toBe(true)
             expect(result.Messages).toHaveLength(1)
+        })
+
+        describe('CommandTranscriptMessage', () => {
+            const header = (MessageId: string, CreatedTime: number, roomId: string) => ({
+                DisplayProtocol: 'PerceptionMessage',
+                MessageId,
+                CreatedTime,
+                Target: 'CHARACTER#TESS',
+                wmlContent: '<Room key=(a)><ShortName>A</ShortName></Room>',
+                metaData: { componentUUID: roomId, displayMode: 'header' }
+            })
+            const transcript = (MessageId: string, CreatedTime: number) => ({
+                DisplayProtocol: 'CommandTranscriptMessage',
+                MessageId,
+                Message: [MessageId],
+                CreatedTime,
+                Target: 'CHARACTER#TESS'
+            })
+            const world = (MessageId: string, CreatedTime: number) => ({
+                DisplayProtocol: 'WorldMessage',
+                MessageId,
+                Message: [MessageId],
+                CreatedTime,
+                Target: 'CHARACTER#TESS'
+            })
+            const stateFor = (rows: any[]) => {
+                const presentation = { 'CHARACTER#TESS': rows } as MessageState
+                return {
+                    messages: {
+                        history: presentation,
+                        aggregates: {},
+                        presentation: structuredClone(presentation)
+                    }
+                } as unknown as RootState
+            }
+
+            it('should show only the latest command echo in a room', () => {
+                const st = stateFor([
+                    header('H1', 1, 'ROOM#X'),
+                    transcript('C1', 2),
+                    world('W1', 3),
+                    transcript('C2', 4),
+                    world('W2', 5)
+                ])
+                const result = getMessagesByRoom('CHARACTER#TESS')(st)
+                expect(result.Messages.map(({ MessageId }) => MessageId)).toEqual(['W1', 'C2', 'W2'])
+                expect(result.Groups.map(({ messageCount }) => messageCount)).toEqual([3])
+            })
+
+            it('should drop stale command echoes from earlier rooms', () => {
+                const st = stateFor([
+                    header('H1', 1, 'ROOM#X'),
+                    transcript('C1', 2),
+                    world('W1', 3),
+                    header('H2', 4, 'ROOM#Y'),
+                    transcript('C2', 5),
+                    world('W2', 6)
+                ])
+                const result = getMessagesByRoom('CHARACTER#TESS')(st)
+                expect(result.Messages.map(({ MessageId }) => MessageId)).toEqual(['W1', 'C2', 'W2'])
+                expect(result.Groups.map(({ messageCount }) => messageCount)).toEqual([1, 2])
+            })
+
+            it('should collapse a room section holding only a stale echo to a spacer', () => {
+                const st = stateFor([
+                    header('H1', 1, 'ROOM#X'),
+                    transcript('C1', 2),
+                    header('H2', 3, 'ROOM#Y'),
+                    transcript('C2', 4)
+                ])
+                const result = getMessagesByRoom('CHARACTER#TESS')(st)
+                expect(result.Messages.map(({ DisplayProtocol }) => DisplayProtocol)).toEqual(['SpacerMessage', 'CommandTranscriptMessage'])
+                expect(result.Messages[1].MessageId).toEqual('C2')
+                expect(result.Groups.map(({ messageCount }) => messageCount)).toEqual([1, 1])
+            })
+
+            it('should leave every command echo in presentation', () => {
+                const st = stateFor([
+                    header('H1', 1, 'ROOM#X'),
+                    transcript('C1', 2),
+                    transcript('C2', 3)
+                ])
+                expect(getPresentation(st)['CHARACTER#TESS'].map(({ MessageId }) => MessageId)).toEqual(['H1', 'C1', 'C2'])
+            })
         })
     })
 
