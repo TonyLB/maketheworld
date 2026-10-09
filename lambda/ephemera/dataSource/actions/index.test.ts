@@ -280,6 +280,34 @@ describe('ephemeraActionsDataSource', () => {
         })
     })
 
+    it('stamps the originating sessionId on the CommandTranscriptMessage echo', async () => {
+        await ephemeraActionsDataSource.receiveEvents!({
+            events: [{
+                header: {
+                    dataSourceKey: 'api.ephemera',
+                    streamKey: 'CHARACTER#123',
+                    timestamp: Date.now(),
+                    type: 'Parse Requested',
+                },
+                getContent: async () => ({
+                    characterId: 'CHARACTER#123',
+                    command: 'look',
+                    sessionId: 'SESSION-A',
+                }),
+            }],
+            streamEvent: jest.fn(async () => {}),
+            streamEnvelope: jest.fn(async () => {}),
+        })
+
+        expect(mockMessageBus.publish).toHaveBeenNthCalledWith(1, {
+            type: 'PublishMessage',
+            targets: ['CHARACTER#123'],
+            displayProtocol: 'CommandTranscriptMessage',
+            message: ['look'],
+            sessionId: 'SESSION-A',
+        })
+    })
+
     describe('ParseCommandNavigationResult', () => {
         const dest = 'ROOM#dest' as EphemeraRoomId
         const from = 'ROOM#from' as EphemeraRoomId

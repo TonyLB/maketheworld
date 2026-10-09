@@ -618,6 +618,7 @@ const handleParseRequested = async (
         targets: [content.characterId],
         displayProtocol: 'CommandTranscriptMessage',
         message: linesToRenderTree([content.command.trim()]),
+        ...(content.sessionId ? { sessionId: content.sessionId } : {}),
     })
     // The embedding batch below keys off catalogObjectIds, so the ludicCache rebuild inside
     // getRoomObjectCatalogForCharacter must finish before that fetch runs --- keep this awaited

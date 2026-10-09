@@ -250,10 +250,12 @@ export const handler = async (event: any, context: any) => {
         }
 
         if (isCommandAPIMessage(request)) {
+            const sessionId = await internalCache.Global.get('SessionId')
             sendParseRequested(messageBus, request.CharacterId, {
                 characterId: request.CharacterId,
                 command: request.command,
                 ...(request.RequestId ? { requestId: request.RequestId } : {}),
+                ...(sessionId ? { sessionId } : {}),
             })
         }
 

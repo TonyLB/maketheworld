@@ -82,6 +82,8 @@ export type ParseRequestedCommand = {
     characterId: string;
     command: string;
     requestId?: string;
+    /** Session that typed the command; stamped onto its CommandTranscriptMessage echo. */
+    sessionId?: string;
 }
 
 export type ActionAssessedOutcome =
@@ -202,6 +204,9 @@ export const isParseRequestedCommand = (value: unknown): value is ParseRequested
         return false
     }
     if (v.requestId !== undefined && typeof v.requestId !== 'string') {
+        return false
+    }
+    if (v.sessionId !== undefined && typeof v.sessionId !== 'string') {
         return false
     }
     return true

@@ -153,6 +153,43 @@ describe('PublishMessage', () => {
         })
     })
 
+    it('should carry CommandTranscriptMessage sessionId as SessionId to storage and wire', async () => {
+        cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
+        cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])
+        await publishMessage({
+            payloads: [{
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'CommandTranscriptMessage',
+                message: ['look north'],
+                sessionId: 'SESSION-A',
+            }],
+        })
+        expect(messageDeltaDBMock.putItem).toHaveBeenCalledWith({
+            Target: 'CHARACTER#123',
+            DeltaId: '1000000000000::MESSAGE#UUID',
+            RowId: 'MESSAGE#UUID',
+            CreatedTime: 1000000000000,
+            Message: ['look north'],
+            DisplayProtocol: 'CommandTranscriptMessage',
+            SessionId: 'SESSION-A',
+        })
+        expect(apiClientMock.send).toHaveBeenCalledWith({
+            ConnectionId: 'Y123',
+            Data: JSON.stringify({
+                messageType: 'Messages',
+                messages: [{
+                    Target: 'CHARACTER#123',
+                    MessageId: 'MESSAGE#UUID',
+                    CreatedTime: 1000000000000,
+                    Message: ['look north'],
+                    DisplayProtocol: 'CommandTranscriptMessage',
+                    SessionId: 'SESSION-A',
+                }],
+            }),
+        })
+    })
+
     it('should dispatch CoyoteGameHypothesisMessage with same wire shape as WorldMessage', async () => {
         cacheMock.CharacterSessions.get.mockResolvedValue(['Z123'])
         cacheMock.SessionConnections.get.mockResolvedValue(['Y123'])

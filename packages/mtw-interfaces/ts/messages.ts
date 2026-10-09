@@ -57,6 +57,8 @@ export type WorldOOCMessage = {
 export type CommandTranscriptMessage = {
     DisplayProtocol: 'CommandTranscriptMessage';
     Message: RenderTree;
+    /** Session that typed the command; the client shows only its own session's latest echo. */
+    SessionId?: string;
 } & MessageAddressing
 
 /** Coyote compact hypothesis rows: same wire shape as WorldMessage, distinct DisplayProtocol for client routing. */
@@ -379,9 +381,10 @@ export const isMessage = (message: any): message is Message => {
             return true
         case 'WorldMessage':
         case 'WorldOOCMessage':
-        case 'CommandTranscriptMessage':
         case 'CoyoteGameHypothesisMessage':
             return isRenderTree(message.Message)
+        case 'CommandTranscriptMessage':
+            return checkTypes(message, {}, { SessionId: 'string' }) && isRenderTree(message.Message)
         case 'SayMessage':
         case 'NarrateMessage':
         case 'OOCMessage': {
