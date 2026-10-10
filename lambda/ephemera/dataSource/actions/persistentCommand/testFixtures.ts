@@ -2,6 +2,24 @@ import { stampStableRefKeys } from '../enrich/objectManipulation/parse/stampStab
 import { planSkeleton } from '../enrich/objectManipulation/plan/planSkeleton'
 import type { PersistentCommandPayload } from './payload'
 
+/** `take cup` waiting on a choice between two cups: no answers yet, two options. */
+export const twoCupPendingPayload = (): PersistentCommandPayload => {
+    const payload = takeCupPayload()
+    const key = Object.keys(payload.referentAnswers)[0]!
+    const { selectedAttempt, ...rest } = payload
+    return {
+        ...rest,
+        referentAnswers: {},
+        challengeAnswers: {},
+        pending: {
+            options: {
+                'option-red': { [key]: 'OBJECT#RedCup' },
+                'option-blue': { [key]: 'OBJECT#BlueCup' },
+            },
+        },
+    }
+}
+
 /** A realistic payload: the frozen root is what Plan really returns for `take cup`. */
 export const takeCupPayload = (): PersistentCommandPayload => {
     const command = 'take cup'

@@ -38,10 +38,23 @@ export type PersistentCommandTranscript = {
     command: string
 }
 
+/**
+ * The question the command is waiting on: each option id (a fresh uuid per question, so also its
+ * nonce) maps to the joint `referentAnswers` that choosing it stores. Only the open question lives
+ * here; answers accumulate in the payload's `referentAnswers`. `answer` is the option that was
+ * chosen: its being defined is what marks the question answered.
+ */
+export type PersistentCommandPending = {
+    options: Record<string, Record<string, string>>
+    answer?: string
+}
+
 export type PersistentCommandPayload = {
     root: PersistentCommandRoot
     /** Absent for a command with no echo (no session), and for rows written before it existed. */
     transcript?: PersistentCommandTranscript
+    /** Absent for a command that is not waiting on a choice, and for rows written before it existed. */
+    pending?: PersistentCommandPending
     /** An attempt's action id (Plan-minted, so stable across reruns of the frozen root). */
     selectedAttempt?: string
     /** `stableRefKey` to thing id; narrows that span's candidate pool. */
@@ -90,11 +103,18 @@ const isPersistentCommandTranscript = (value: unknown): value is PersistentComma
     && typeof value.command === 'string'
 )
 
+const isPersistentCommandPending = (value: unknown): value is PersistentCommandPending => (
+    isRecord(value)
+    && isRecordOf((answers) => isRecordOf((id) => typeof id === 'string')(answers))(value.options)
+    && (value.answer === undefined || (typeof value.answer === 'string' && Object.prototype.hasOwnProperty.call(value.options, value.answer)))
+)
+
 /** Structural guard: a stored row that fails it is treated as absent, so a later shape change can't break a session. */
 export const isPersistentCommandPayload = (value: unknown): value is PersistentCommandPayload => (
     isRecord(value)
     && isPersistentCommandRoot(value.root)
     && (value.transcript === undefined || isPersistentCommandTranscript(value.transcript))
+    && (value.pending === undefined || isPersistentCommandPending(value.pending))
     && (value.selectedAttempt === undefined || typeof value.selectedAttempt === 'string')
     && isRecordOf((answer) => typeof answer === 'string')(value.referentAnswers)
     && isRecordOf(isChallengeAnswer)(value.challengeAnswers)

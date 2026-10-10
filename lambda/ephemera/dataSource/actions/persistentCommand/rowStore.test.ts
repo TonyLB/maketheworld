@@ -3,7 +3,7 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { PERSISTENT_COMMAND_TTL_MS } from './lifetime'
 import { get, put } from './rowStore'
-import { takeCupPayload } from './testFixtures'
+import { takeCupPayload, twoCupPendingPayload } from './testFixtures'
 
 const nowSeconds = () => Math.floor(Date.now() / 1000)
 
@@ -39,6 +39,12 @@ describe('persistentCommand rowStore', () => {
             Key: { EphemeraId: 'CHARACTER#TESS', DataCategory: 'SESSION#abc' },
             getAllFields: true,
         })
+    })
+
+    it('keeps a pending question across a put and get', async () => {
+        const payload = twoCupPendingPayload()
+        ;(ephemeraDB.getItem as jest.Mock).mockResolvedValue({ ...payload, deleteAt: nowSeconds() + 100 })
+        expect((await get('CHARACTER#TESS', 'abc'))?.pending).toEqual(payload.pending)
     })
 
     it('treats a missing row as absent', async () => {

@@ -20,11 +20,13 @@ import {
     isActionsSubscribedEnvelope,
 } from './subscribedEvents'
 import { isSessionDisconnectEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
-import { clearSession } from './persistentCommand'
+import { clearSession, put as putPersistentCommand } from './persistentCommand'
+import type { PersistentCommandPayload } from './persistentCommand/payload'
+import { askRowPayload, selectQuestionFromConsult } from './selectQuestion'
 import type { TranscriptContext } from './persistentCommand/transcript'
 import { isActionAssessedCommand, isParseRequestedCommand, type ActionAssessedCommand, type ParseRequestedCommand } from '../localApiEvents'
 import { v4 as uuidv4 } from 'uuid'
-import type { CommandStatusOutcome } from '@tonylb/mtw-interfaces/ts/messages'
+import type { CommandOutcome, CommandStatusOutcome } from '@tonylb/mtw-interfaces/ts/messages'
 import messageBus from '../../messageBus'
 import getCurrentTimestamp from '../../internalUtils/dateUtil'
 import internalCache from '../../internalCache'
@@ -40,6 +42,7 @@ import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
     type ParseCommandAcmeOrderLine,
     type ParseCommandConsultAlternative,
+    type ParseCommandConsultResult,
     type ParseCommandResult,
     isParseCommandAbstainResult,
     isParseCommandAcmeOrderResult,
@@ -185,6 +188,25 @@ type ResponseContext = {
     parseResult: ParseCommandResult
     /** Absent when there is no echo to attach to (no sessionId, or an assessed-action entry). */
     transcript?: TranscriptContext
+    /** Answers already given to this command (a resumed one), kept if it has to ask again. */
+    priorAnswers?: Pick<PersistentCommandPayload, 'referentAnswers' | 'challengeAnswers'>
+}
+
+/** Republishes the command's own transcript bubble with `outcome` (a revision resends the whole body). */
+const publishCommandOutcome = (
+    { characterId, transcript }: { characterId: EphemeraCharacterId; transcript: TranscriptContext },
+    outcome: CommandOutcome,
+): void => {
+    messageBus.publish({
+        type: 'PublishMessage',
+        targets: [characterId],
+        displayProtocol: 'CommandTranscriptMessage',
+        message: linesToRenderTree([transcript.command]),
+        messageId: transcript.messageId,
+        createdTime: transcript.createdTime,
+        sessionId: transcript.sessionId,
+        outcome,
+    })
 }
 
 /**
@@ -197,16 +219,7 @@ const reportCommandOutcome = (
     lines: string[],
 ): void => {
     if (transcript) {
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [characterId],
-            displayProtocol: 'CommandTranscriptMessage',
-            message: linesToRenderTree([transcript.command]),
-            messageId: transcript.messageId,
-            createdTime: transcript.createdTime,
-            sessionId: transcript.sessionId,
-            outcome: { Kind: kind, Message: linesToRenderTree(lines) },
-        })
+        publishCommandOutcome({ characterId, transcript }, { Kind: kind, Message: linesToRenderTree(lines) })
         return
     }
     messageBus.publish({
@@ -217,6 +230,34 @@ const reportCommandOutcome = (
     })
 }
 
+/**
+ * Asks the player which referent they meant, as a Select on the command's own bubble. The row is
+ * written first, so an answer can never arrive before it. False when this Consult is not a
+ * referent question, there is no bubble to ask on, or the row could not be stored (an unanswerable
+ * Select is worse than the old line); the caller then keeps its `Error` copy.
+ */
+const askReferentQuestion = async (
+    { characterId, transcript, priorAnswers }: ResponseContext,
+    consult: ParseCommandConsultResult,
+): Promise<boolean> => {
+    if (!transcript) {
+        return false
+    }
+    const question = selectQuestionFromConsult(consult, uuidv4)
+    if (!question) {
+        return false
+    }
+    try {
+        await putPersistentCommand(characterId, transcript.sessionId, askRowPayload(question, transcript, priorAnswers))
+    }
+    catch (error) {
+        console.error('Could not store persistent command', error)
+        return false
+    }
+    publishCommandOutcome({ characterId, transcript }, question.outcome)
+    return true
+}
+
 const respondImperativelyForIntent = async (context: ResponseContext): Promise<void> => {
     const { characterId, parseResult } = context
     if (isParseCommandErrorResult(parseResult)) {
@@ -224,8 +265,9 @@ const respondImperativelyForIntent = async (context: ResponseContext): Promise<v
         reportCommandOutcome(context, 'Error', [line])
     }
     else if (isParseCommandConsultResult(parseResult)) {
-        const line = consultMessageForPlayer(parseResult.alternatives)
-        reportCommandOutcome(context, 'Error', [line])
+        if (!(await askReferentQuestion(context, parseResult))) {
+            reportCommandOutcome(context, 'Error', [consultMessageForPlayer(parseResult.alternatives)])
+        }
     }
     else if (isParseCommandAbstainResult(parseResult)) {
         reportCommandOutcome(context, 'Error', ["I couldn't understand that command."])
