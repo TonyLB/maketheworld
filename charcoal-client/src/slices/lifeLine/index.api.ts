@@ -466,6 +466,11 @@ export const moveCharacter = (CharacterId: EphemeraCharacterId) => ({ ExitName, 
     dispatch(socketDispatch({ message: 'action', actionType: 'move', payload: { CharacterId, ExitName, RoomId } }))
 }
 
+/** A click on one option of a Select: the server holds the options, so only the ids travel. */
+export const answerSelectOption = (CharacterId: EphemeraCharacterId) => (messageId: string, optionId: string): ThunkAction<void, RootState, unknown, AnyAction> => (dispatch) => {
+    dispatch(socketDispatch({ message: 'answer', CharacterId, messageId, optionId }))
+}
+
 export const parseCommand = (CharacterId: EphemeraCharacterId) => ({ mode, entry, commandDispatchStrategy = 'fireAndForget' }: ParseCommandProps): ThunkAction<boolean, RootState, unknown, AnyAction> => (dispatch) => {
     if (mode === 'Command') {
         if (commandDispatchStrategy === 'promise') {

@@ -334,6 +334,26 @@ describe('messages reducer', () => {
             expect(result.presentation['CHARACTER#TESS']).toEqual([{ ...info, CreatedTime: 100 }])
         })
 
+        it('should replace a Select revision with an outcome-less echo revision', () => {
+            const echo = {
+                DisplayProtocol: 'CommandTranscriptMessage',
+                CreatedTime: 100,
+                Message: ['get cup'],
+                MessageId: 'MESSAGE#command',
+                Target: 'CHARACTER#TESS'
+            }
+            const select = {
+                ...echo,
+                CreatedTime: 200,
+                Outcome: { Kind: 'Select', Message: ['Which one?'], Options: [{ OptionId: 'opt-1', Label: ['cup'] }] }
+            }
+            const cleared = { ...echo, CreatedTime: 300 }
+            const base = reducer(undefined, receiveMessages([echo as any, select as any]))
+            const result = reducer(base, receiveMessages([cleared as any]))
+            expect(result.presentation['CHARACTER#TESS']).toEqual([{ ...cleared, CreatedTime: 100 }])
+            expect((result.presentation['CHARACTER#TESS'][0] as any).Outcome).toBeUndefined()
+        })
+
         it('should update earliest when later insert has earlier CreatedTime for same MessageId', () => {
             const base = reducer(undefined, receiveMessages([{
                 DisplayProtocol: 'WorldMessage',

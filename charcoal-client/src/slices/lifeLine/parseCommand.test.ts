@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { parseCommand } from './index.api'
+import { answerSelectOption, parseCommand } from './index.api'
 
 describe('parseCommand', () => {
     const CharacterId = 'CHARACTER#test-character-id' as const
@@ -76,5 +76,14 @@ describe('parseCommand', () => {
         expect(outbound.actionType).toBe('SayMessage')
         expect(outbound.payload.Message).toBe('hello')
         expect(outbound.RequestId).toBeUndefined()
+    })
+
+    it('sends only the ids when answering a Select', () => {
+        const { mockSend, dispatch, getState } = setupHarness()
+        answerSelectOption(CharacterId)('MESSAGE#1', 'opt-2')(dispatch as never, getState as never, undefined as never)
+
+        expect(mockSend).toHaveBeenCalledTimes(1)
+        const outbound = JSON.parse(mockSend.mock.calls[0][0] as string)
+        expect(outbound).toMatchObject({ message: 'answer', CharacterId, messageId: 'MESSAGE#1', optionId: 'opt-2' })
     })
 })

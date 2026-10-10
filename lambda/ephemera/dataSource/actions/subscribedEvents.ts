@@ -5,10 +5,13 @@ import {
     makeStreamingEnvelopeGuardFromHeaderGuard,
 } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import type { ConnectionsSessionDisconnectEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
-import type { ActionAssessedCommand, ParseRequestedCommand } from '../localApiEvents'
+import type { ActionAssessedCommand, AnswerSubmittedCommand, ParseRequestedCommand } from '../localApiEvents'
 
 export type ActionsParseRequestedHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' }
+
+export type ActionsAnswerSubmittedHeader =
+    StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Answer Submitted' }
 
 export type ActionsActionAssessedHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Action Assessed' }
@@ -16,12 +19,18 @@ export type ActionsActionAssessedHeader =
 export type ActionsSessionDisconnectHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.connections'; type: 'Session Disconnect' }
 
-export type ActionsSubscribedContent = ParseRequestedCommand | ActionAssessedCommand | ConnectionsSessionDisconnectEvent
+export type ActionsSubscribedContent = ParseRequestedCommand | AnswerSubmittedCommand | ActionAssessedCommand | ConnectionsSessionDisconnectEvent
 
 const isActionsParseRequestedHeader: HeaderGuard<ActionsParseRequestedHeader> = (
     h
 ): h is ActionsParseRequestedHeader => (
     h.dataSourceKey === 'api.ephemera' && h.type === 'Parse Requested'
+)
+
+const isActionsAnswerSubmittedHeader: HeaderGuard<ActionsAnswerSubmittedHeader> = (
+    h
+): h is ActionsAnswerSubmittedHeader => (
+    h.dataSourceKey === 'api.ephemera' && h.type === 'Answer Submitted'
 )
 
 const isActionsActionAssessedHeader: HeaderGuard<ActionsActionAssessedHeader> = (
@@ -41,6 +50,11 @@ export const isActionsParseRequestedEnvelope = makeStreamingEnvelopeGuardFromHea
     ActionsParseRequestedHeader
 >(isActionsParseRequestedHeader)
 
+export const isActionsAnswerSubmittedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    AnswerSubmittedCommand,
+    ActionsAnswerSubmittedHeader
+>(isActionsAnswerSubmittedHeader)
+
 export const isActionsActionAssessedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ActionAssessedCommand,
     ActionsActionAssessedHeader
@@ -55,6 +69,7 @@ export const isActionsSubscribedEnvelope = (
     envelope: StreamingEventEnvelope<unknown>
 ): envelope is StreamingEventEnvelope<ActionsSubscribedContent> => (
     isActionsParseRequestedEnvelope(envelope)
+    || isActionsAnswerSubmittedEnvelope(envelope)
     || isActionsActionAssessedEnvelope(envelope)
     || isActionsSessionDisconnectEnvelope(envelope)
 )

@@ -15,6 +15,7 @@ import {
     isEphemeraAPIMessage,
     isMapUnsubscribeAPIMessage,
     isCommandAPIMessage,
+    isAnswerAPIMessage,
     isActionAPIMessage,
     isEphemeraApiStateChangeAPIMessage,
     isFetchThinkingResultAPIMessage,
@@ -36,7 +37,7 @@ import { PlayersEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/pl
 import { fromEventBridgeFormat } from '@tonylb/mtw-lambda-patterns/ts/dataSource/formatTransform'
 import { coreFormatToStreamingEnvelope } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
-import { sendActionAssessed, sendParseRequested, sendStateChange } from './dataSource/apiEphemera'
+import { sendActionAssessed, sendAnswerSubmitted, sendParseRequested, sendStateChange } from './dataSource/apiEphemera'
 import { routeTrustedUiAction } from './dataSource/routeTrustedUiAction'
 import { sendInitializeSubscription } from './dataSource/initSubscription'
 import { isStateChangeCommand } from './dataSource/localApiEvents'
@@ -257,6 +258,20 @@ export const handler = async (event: any, context: any) => {
                 ...(request.RequestId ? { requestId: request.RequestId } : {}),
                 ...(sessionId ? { sessionId } : {}),
             })
+        }
+
+        if (isAnswerAPIMessage(request)) {
+            // The row is keyed by session, so an answer with no session has nothing to answer.
+            const sessionId = await internalCache.Global.get('SessionId')
+            if (sessionId) {
+                sendAnswerSubmitted(messageBus, request.CharacterId, {
+                    characterId: request.CharacterId,
+                    messageId: request.messageId,
+                    optionId: request.optionId,
+                    sessionId,
+                    ...(request.RequestId ? { requestId: request.RequestId } : {}),
+                })
+            }
         }
 
         if (isActionAPIMessage(request)) {

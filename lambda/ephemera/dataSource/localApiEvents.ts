@@ -86,6 +86,18 @@ export type ParseRequestedCommand = {
     sessionId?: string;
 }
 
+/**
+ * A player's click on one option of a Select, for mtw.ephemera.actions. The session comes from the
+ * connection (never the client); `messageId` and `optionId` are looked up against the stored row.
+ */
+export type AnswerSubmittedCommand = {
+    characterId: string;
+    messageId: string;
+    optionId: string;
+    requestId?: string;
+    sessionId?: string;
+}
+
 export type ActionAssessedOutcome =
     | ParseCommandNavigationResult
     | ParseCommandHomeResult
@@ -212,6 +224,18 @@ export const isParseRequestedCommand = (value: unknown): value is ParseRequested
     return true
 }
 
+export const isAnswerSubmittedCommand = (value: unknown): value is AnswerSubmittedCommand => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    return typeof v.characterId === 'string'
+        && typeof v.messageId === 'string'
+        && typeof v.optionId === 'string'
+        && (v.requestId === undefined || typeof v.requestId === 'string')
+        && (v.sessionId === undefined || typeof v.sessionId === 'string')
+}
+
 export const isPutCacheRecordCommand = (value: unknown): value is PutCacheRecordCommand => {
     if (!value || typeof value !== 'object') {
         return false
@@ -267,6 +291,7 @@ export type EphemeraApiCommandPayload =
     | StateChangeCommand
     | ObjectsChangeCommand
     | ParseRequestedCommand
+    | AnswerSubmittedCommand
     | ActionAssessedCommand
     | PutThinkingScheduleCommand
     | PutThinkingJobCreateCommand

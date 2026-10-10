@@ -38,6 +38,26 @@ describe('EphemeraAPIMessage typeguard', () => {
 
     })
 
+    describe('answer', () => {
+        const valid = { message: 'answer', CharacterId: 'CHARACTER#TestABC', messageId: 'MESSAGE#1', optionId: 'opt-1' }
+
+        it('should accept a well-formed answer', () => {
+            expect(isEphemeraAPIMessage(valid)).toBe(true)
+        })
+
+        it('should reject a missing or non-string optionId', () => {
+            const { optionId, ...rest } = valid
+            expect(isEphemeraAPIMessage(rest)).toBe(false)
+            expect(isEphemeraAPIMessage({ ...valid, optionId: 3 })).toBe(false)
+        })
+
+        it('should reject a missing messageId or a bad CharacterId', () => {
+            const { messageId, ...rest } = valid
+            expect(isEphemeraAPIMessage(rest)).toBe(false)
+            expect(isEphemeraAPIMessage({ ...valid, CharacterId: 'ROOM#x' })).toBe(false)
+        })
+    })
+
     describe('action', () => {
 
         it('should reject when no actionType', () => {
