@@ -1,3 +1,5 @@
+import { produce } from 'immer'
+
 import { stampStableRefKeys } from '../enrich/objectManipulation/parse/stampStableRefKeys'
 import { planSkeleton } from '../enrich/objectManipulation/plan/planSkeleton'
 import type { PersistentCommandPayload } from './payload'
@@ -38,4 +40,22 @@ export const takeCupPayload = (): PersistentCommandPayload => {
             'customEdge:a:b': { verdict: { kind: 'impossible', reason: 'too tight' }, source: 'player' },
         },
     }
+}
+
+/**
+ * Stands in for `ephemeraDB.optimisticUpdate` over one row: runs the real reducer under Immer and
+ * fires `successCallback(next, previous)` only if it changed something. Returns the new row (or
+ * `undefined` when nothing changed) and the value `optimisticUpdate` would return.
+ */
+export const applyOptimisticUpdate = async (
+    row: Record<string, unknown> | undefined,
+    props: { Key: Record<string, unknown>; updateReducer: (draft: any) => void; successCallback?: (next: any, previous: any) => Promise<void> | void }
+): Promise<{ next?: Record<string, unknown>; returned: Record<string, unknown> }> => {
+    const state = row ?? {}
+    const next = produce(state, props.updateReducer)
+    if (next === state) {
+        return { returned: { ...props.Key, ...state } }
+    }
+    await props.successCallback?.({ ...props.Key, ...next }, state)
+    return { next: next as Record<string, unknown>, returned: { ...props.Key, ...next } }
 }

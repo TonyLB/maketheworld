@@ -1,23 +1,13 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 
-import { produce } from 'immer'
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { answerPending } from './answer'
-import { twoCupPendingPayload } from './testFixtures'
+import { applyOptimisticUpdate, twoCupPendingPayload } from './testFixtures'
 
 const nowSeconds = () => Math.floor(Date.now() / 1000)
 
-/** Stands in for `optimisticUpdate`: runs the real reducer over `row` and fires `successCallback` only if it changed something. */
 const fakeOptimisticUpdate = (row: Record<string, unknown> | undefined) => {
-    ;(ephemeraDB.optimisticUpdate as jest.Mock).mockImplementation(async (props) => {
-        const state = row ?? {}
-        const next = produce(state, props.updateReducer)
-        if (next === state) {
-            return { ...props.Key, ...state }
-        }
-        await props.successCallback?.({ ...props.Key, ...next }, state)
-        return { ...props.Key, ...next }
-    })
+    ;(ephemeraDB.optimisticUpdate as jest.Mock).mockImplementation(async (props) => (await applyOptimisticUpdate(row, props)).returned)
 }
 
 describe('answerPending', () => {
