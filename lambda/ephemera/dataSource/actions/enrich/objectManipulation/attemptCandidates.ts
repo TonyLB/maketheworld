@@ -26,6 +26,7 @@ import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from 
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { DryRunOutcome } from './validatePlanDryRun'
 import { resumeErrorMessages } from './resumeAnswers'
+import type { ParseSkeleton } from './parse/parseToken'
 
 /**
  * The shared producer for Plan's attempts (ISS8203 slices 2-4): relational, transfer (take, drop
@@ -102,6 +103,39 @@ export const attemptReferentAnswers = (attempt: CommandAttempt): Record<string, 
             : []
     ))
 )
+
+/** The grounded short name of each object span an attempt names, by stableRefKey. */
+export const attemptReferentNames = (attempt: CommandAttempt): Record<string, string> => Object.fromEntries(
+    attempt.actions().flatMap((action) => action.referents().flatMap(objectSpansIn)).flatMap((span) => (
+        span.stableRefKey !== undefined && span.shortName !== undefined ? [[span.stableRefKey, span.shortName] as const] : []
+    ))
+)
+
+/**
+ * Select option labels for one question, from each alternative's joint answers and names. Where a
+ * single referent is ambiguous the options are just its names ("Red cup" / "Blue cup"), even if the
+ * command names other, settled referents. Where several are ambiguous, a name alone can't say which
+ * slot it fills, so each option is the whole command as the player typed it, with each object span
+ * replaced by the name that option assigns it ("put Red cup on Blue cup"). A span with no grounded
+ * name keeps its text.
+ */
+export const disambiguationLabels = (
+    skeleton: ParseSkeleton,
+    options: readonly { answers: Record<string, string>; names: Record<string, string> }[]
+): string[] => {
+    const keys = [...new Set(options.flatMap(({ answers }) => Object.keys(answers)))]
+    const ambiguous = keys.filter((key) => new Set(options.map(({ answers }) => answers[key])).size > 1)
+    if (ambiguous.length === 1) {
+        const [key] = ambiguous
+        return options.map(({ names }) => names[key] ?? key)
+    }
+    return options.map(({ names }) => skeleton
+        .map((token) => (token.type === 'objectSpan' ? names[token.stableRefKey] ?? token.span : token.text))
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+    )
+}
 
 /** A referent's name for prose: the grounded short name, else the span text. */
 const labelOf = (referent: Referent): string => {
