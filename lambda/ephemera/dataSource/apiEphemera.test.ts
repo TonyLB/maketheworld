@@ -4,6 +4,7 @@ import {
     sendStateChange,
     sendObjectsChange,
     sendParseRequested,
+    sendAnswerSubmitted,
     sendActionAssessed,
     sendPutThinkingSchedule,
     sendPutThinkingJobCreate,
@@ -244,6 +245,19 @@ describe('apiEphemera', () => {
         })
         expect(publish).toHaveBeenCalledTimes(1)
         expect(publish.mock.calls[0][0].header.type).toBe('Parse Requested')
+    })
+
+    it('sendAnswerSubmitted posts StreamingEvent with Answer Submitted header', () => {
+        const publish = jest.fn()
+        sendAnswerSubmitted({ publish }, 'CHARACTER#123', {
+            characterId: 'CHARACTER#123',
+            messageId: 'MESSAGE#1',
+            optionId: 'opt-1',
+            sessionId: 'S1',
+        })
+        expect(publish).toHaveBeenCalledTimes(1)
+        expect(publish.mock.calls[0][0].header.type).toBe('Answer Submitted')
+        expect(publish.mock.calls[0][0].streamKey).toBe('CHARACTER#123')
     })
 
     it('sendActionAssessed posts StreamingEvent with Action Assessed header and streamKey', async () => {

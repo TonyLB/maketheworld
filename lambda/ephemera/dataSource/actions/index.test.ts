@@ -21,7 +21,8 @@ import { isCoyoteGameRoom } from '../coyoteGame/utilities/isCoyoteGameRoom'
 import { sendPerceptionThreadRegistered } from '../perception/subscribedEvents'
 import { sendRenderRequested } from '../renderOrchestration/subscribedEvents'
 import internalCache from '../../internalCache'
-import { clearSession } from './persistentCommand'
+import { answerPending, clearSession, put, resumePersistentCommand } from './persistentCommand'
+import { takeCupPayload } from './persistentCommand/testFixtures'
 
 jest.mock('@tonylb/mtw-wml/ts/schema', () => ({
     schemaToWML: jest.fn(() => '<Asset />'),
@@ -42,7 +43,11 @@ jest.mock('../renderOrchestration/subscribedEvents', () => {
 })
 jest.mock('../../messageBus')
 jest.mock('./persistentCommand', () => ({
+    ...jest.requireActual<typeof import('./persistentCommand')>('./persistentCommand'),
+    answerPending: jest.fn(),
     clearSession: jest.fn(),
+    put: jest.fn(),
+    resumePersistentCommand: jest.fn(),
 }))
 jest.mock('../../internalCache')
 jest.mock('./roomExitTargetsForCharacter', () => ({
@@ -371,6 +376,245 @@ describe('ephemeraActionsDataSource', () => {
                 displayProtocol: 'WorldOOCMessage',
                 message: ['Parse error'],
             })
+        })
+    })
+
+    describe('a Consult that asks which referent was meant', () => {
+        const alternatives = [
+            { proposedCommand: 'take cup', label: 'red cup', referentAnswers: { 'ref-1': 'OBJECT#RedCup' } },
+            { proposedCommand: 'take cup', label: 'blue cup', referentAnswers: { 'ref-1': 'OBJECT#BlueCup' } },
+        ]
+        const consultWith = (overrides: Record<string, unknown> = {}) => ({
+            type: 'Consult',
+            confidence: 0.9,
+            alternatives,
+            root: takeCupPayload().root,
+            ...overrides,
+        }) as any
+
+        const parseWith = async (sessionId?: string) => {
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'take cup',
+                        ...(sessionId ? { sessionId } : {}),
+                    }),
+                }],
+                streamEvent: jest.fn(async () => {}),
+                streamEnvelope: jest.fn(async () => {}),
+            })
+        }
+        const published = () => mockMessageBus.publish.mock.calls.map(([call]) => call as any)
+
+        it('writes the row, then revises the echo with a Select whose options map to their own answers', async () => {
+            mockedParseCommand.mockResolvedValue(consultWith())
+            await parseWith('SESSION-A')
+
+            const [echo, revision] = published()
+            expect(revision.outcome.Kind).toBe('Select')
+            expect(revision.messageId).toBe(echo.messageId)
+            expect(revision.sessionId).toBe('SESSION-A')
+            expect(revision.message).toEqual(['take cup'])
+            expect(revision.outcome.Options.map(({ Label }: any) => Label)).toEqual([['red cup'], ['blue cup']])
+
+            expect(jest.mocked(put)).toHaveBeenCalledTimes(1)
+            const [characterId, sessionId, payload] = jest.mocked(put).mock.calls[0]
+            expect(characterId).toBe('CHARACTER#123')
+            expect(sessionId).toBe('SESSION-A')
+            expect(payload.transcript).toEqual({ messageId: echo.messageId, createdTime: echo.createdTime, command: 'take cup' })
+            const [first, second] = revision.outcome.Options.map(({ OptionId }: any) => OptionId)
+            expect(Object.keys(payload.pending!.options)).toEqual([first, second])
+            expect(payload.pending!.options[second]).toEqual({ 'ref-1': 'OBJECT#BlueCup' })
+            expect(payload.referentAnswers).toEqual({})
+            expect(jest.mocked(put).mock.invocationCallOrder[0]).toBeLessThan(mockMessageBus.publish.mock.invocationCallOrder[1])
+        })
+
+        it('keeps the Error copy when there is no session to ask on', async () => {
+            mockedParseCommand.mockResolvedValue(consultWith())
+            await parseWith()
+
+            expect(jest.mocked(put)).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                displayProtocol: 'WorldOOCMessage',
+                message: ['Did you mean "take cup" or "take cup"?'],
+            }))
+        })
+
+        it('keeps the Error copy when the alternatives share one assignment', async () => {
+            mockedParseCommand.mockResolvedValue(consultWith({
+                alternatives: [
+                    { proposedCommand: 'take cup', referentAnswers: { 'ref-1': 'OBJECT#RedCup' } },
+                    { proposedCommand: 'grab cup', referentAnswers: { 'ref-1': 'OBJECT#RedCup' } },
+                ],
+            }))
+            await parseWith('SESSION-A')
+
+            expect(jest.mocked(put)).not.toHaveBeenCalled()
+            expect(published()[1].outcome).toEqual({ Kind: 'Error', Message: ['Did you mean "take cup" or "grab cup"?'] })
+        })
+
+        it('keeps the Error copy rather than publish a Select it cannot answer when the row will not store', async () => {
+            jest.spyOn(console, 'error').mockImplementation(() => {})
+            jest.mocked(put).mockRejectedValueOnce(new Error('dynamo down'))
+            mockedParseCommand.mockResolvedValue(consultWith())
+            await parseWith('SESSION-A')
+
+            expect(published()[1].outcome.Kind).toBe('Error')
+            expect(mockMessageBus.publish).toHaveBeenCalledTimes(2)
+        })
+    })
+
+    describe('an answer to a Select', () => {
+        const fixture = takeCupPayload()
+        const answered = () => ({ outcome: 'answered' as const, payload: fixture })
+        const answerWith = async (overrides: Record<string, unknown> = {}, streamEvent = jest.fn(async () => {})) => {
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Answer Submitted',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        messageId: 'MESSAGE#take-cup',
+                        optionId: 'option-blue',
+                        sessionId: 'SESSION-A',
+                        ...overrides,
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+            return streamEvent
+        }
+        const published = () => mockMessageBus.publish.mock.calls.map(([call]) => call as any)
+
+        beforeEach(() => {
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: 'ROOM#from' as EphemeraRoomId, toRoomIds: [], exits: [] })
+        })
+
+        it('resumes the stored command and clears the Select when the attempt is accepted', async () => {
+            const attempt = { words: 'take cup', referents: [], actions: [], narrationUnits: [] }
+            jest.mocked(answerPending).mockResolvedValue(answered())
+            jest.mocked(resumePersistentCommand).mockResolvedValue({ type: 'CommandAttempt', confidence: 0.9, attempt } as any)
+
+            const streamEvent = await answerWith()
+
+            expect(jest.mocked(answerPending)).toHaveBeenCalledWith('CHARACTER#123', 'SESSION-A', 'option-blue')
+            expect(jest.mocked(resumePersistentCommand)).toHaveBeenCalledWith(
+                answered().payload,
+                expect.objectContaining({ characterId: 'CHARACTER#123', hostRoomId: 'ROOM#from' }),
+            )
+            expect(published()).toEqual([{
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'CommandTranscriptMessage',
+                message: ['take cup'],
+                messageId: 'MESSAGE#take-cup',
+                createdTime: 1700000000000,
+                sessionId: 'SESSION-A',
+            }])
+            expect(streamEvent).toHaveBeenCalledWith(expect.objectContaining({
+                header: { type: 'Ludic Network Change Requested' },
+            }))
+        })
+
+        it('reports a resumed refusal on the original bubble', async () => {
+            jest.mocked(answerPending).mockResolvedValue(answered())
+            jest.mocked(resumePersistentCommand).mockResolvedValue({ type: 'Error', errorMessage: 'Parse error' })
+
+            await answerWith()
+
+            expect(published()).toEqual([expect.objectContaining({
+                messageId: 'MESSAGE#take-cup',
+                sessionId: 'SESSION-A',
+                outcome: { Kind: 'Error', Message: ['Parse error'] },
+            })])
+        })
+
+        it('asks again when the resume is still ambiguous, keeping the answers already given', async () => {
+            const payload = { ...fixture, referentAnswers: { 'ref-0': 'OBJECT#Table' } }
+            jest.mocked(answerPending).mockResolvedValue({ outcome: 'answered', payload })
+            jest.mocked(resumePersistentCommand).mockResolvedValue({
+                type: 'Consult',
+                confidence: 0.9,
+                alternatives: [
+                    { proposedCommand: 'take cup', label: 'red cup', referentAnswers: { 'ref-1': 'OBJECT#RedCup' } },
+                    { proposedCommand: 'take cup', label: 'blue cup', referentAnswers: { 'ref-1': 'OBJECT#BlueCup' } },
+                ],
+                root: payload.root,
+            } as any)
+
+            await answerWith()
+
+            expect(published()).toHaveLength(1)
+            expect(published()[0].messageId).toBe('MESSAGE#take-cup')
+            expect(published()[0].outcome.Kind).toBe('Select')
+            const [characterId, sessionId, row] = jest.mocked(put).mock.calls[0]
+            expect([characterId, sessionId]).toEqual(['CHARACTER#123', 'SESSION-A'])
+            expect(row.referentAnswers).toEqual({ 'ref-0': 'OBJECT#Table' })
+            expect(row.transcript!.messageId).toBe('MESSAGE#take-cup')
+            expect(Object.keys(row.pending!.options)).toHaveLength(2)
+        })
+
+        it('falls back to an OOC line when the row has no bubble', async () => {
+            const { transcript, ...payload } = fixture
+            jest.mocked(answerPending).mockResolvedValue({ outcome: 'answered', payload })
+            jest.mocked(resumePersistentCommand).mockResolvedValue({ type: 'Error', errorMessage: 'Parse error' })
+
+            await answerWith()
+
+            expect(published()).toEqual([expect.objectContaining({ displayProtocol: 'WorldOOCMessage', message: ['Parse error'] })])
+        })
+
+        it('executes nothing and tells the bubble the choice is gone when the answer is stale (unknown option, missing or overwritten question)', async () => {
+            jest.mocked(answerPending).mockResolvedValue({ outcome: 'stale', transcript: takeCupPayload().transcript })
+
+            const streamEvent = await answerWith()
+
+            expect(jest.mocked(resumePersistentCommand)).not.toHaveBeenCalled()
+            expect(streamEvent).not.toHaveBeenCalled()
+            expect(published()).toEqual([expect.objectContaining({
+                messageId: 'MESSAGE#take-cup',
+                outcome: { Kind: 'Error', Message: ['That choice is no longer available.'] },
+            })])
+        })
+
+        it('leaves the bubble alone when the question was already answered', async () => {
+            jest.mocked(answerPending).mockResolvedValue({ outcome: 'duplicate' })
+
+            const streamEvent = await answerWith()
+
+            expect(jest.mocked(resumePersistentCommand)).not.toHaveBeenCalled()
+            expect(streamEvent).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).not.toHaveBeenCalled()
+        })
+
+        it('does not trust a client messageId that is not the row\'s bubble', async () => {
+            jest.mocked(answerPending).mockResolvedValue({ outcome: 'stale', transcript: takeCupPayload().transcript })
+
+            await answerWith({ messageId: 'MESSAGE#someone-elses' })
+
+            expect(published()).toEqual([expect.objectContaining({
+                displayProtocol: 'WorldOOCMessage',
+                message: ['That choice is no longer available.'],
+            })])
+        })
+
+        it('does nothing without a session', async () => {
+            await answerWith({ sessionId: undefined })
+
+            expect(jest.mocked(answerPending)).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).not.toHaveBeenCalled()
         })
     })
 

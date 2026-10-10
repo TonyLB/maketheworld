@@ -49,6 +49,7 @@ Defines interfaces for real-time game state and character interactions:
 - **`ActionAPIMessage`**: Character actions (look, move, speak, narrate, OOC)
 - **`LinkAPIMessage`**: Create connections between components
 - **`CommandAPIMessage`**: Execute game commands
+- **`AnswerAPIMessage`**: `{ message: 'answer'; CharacterId; messageId; optionId }`, a click on one option of a `Select` outcome. It carries ids only (the server looks the option up in the command's stored row) and no session (the server takes it from the connection).
 
 #### **Client Messages** (Server → Client)
 - **`EphemeraClientMessageEphemeraUpdate`**: Real-time state updates

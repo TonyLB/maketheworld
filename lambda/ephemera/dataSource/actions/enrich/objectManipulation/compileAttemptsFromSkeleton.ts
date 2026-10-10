@@ -24,6 +24,7 @@ import { selectPlanTuple } from './selectPlanCandidate'
 import { applyChallengeAnswers, primaryActionIdOf, resumeErrorMessages, type ResumeAnswers } from './resumeAnswers'
 import {
     attemptDryRun,
+    attemptReferentAnswers,
     attemptSpanKeys,
     buildAttemptEnvironment,
     defaultPositionsReads,
@@ -281,7 +282,7 @@ export async function compileAttemptsFromSkeleton(
         candidates: pool,
         getConfidence: (candidate) => candidate.confidence,
         dryRun,
-        toConsultAlternative: (candidate) => candidate.alternative,
+        toConsultAlternative: (candidate) => ({ ...candidate.alternative, referentAnswers: attemptReferentAnswers(candidate.attempt) }),
     })
 
     let selection = select(candidates)
@@ -297,8 +298,15 @@ export async function compileAttemptsFromSkeleton(
     if (selection.verdict === 'consult') {
         return {
             type: 'Consult',
-            alternatives: selection.alternatives.map(({ proposedCommand, objectId }) => ({ proposedCommand, objectId })),
+            alternatives: selection.alternatives.map(({ proposedCommand, objectId, label, referentAnswers }) => ({ proposedCommand, objectId, label, referentAnswers })),
             confidence: intentConfidence,
+            // All of Plan's attempts, not the survivors: a resume restarts from the same frozen set.
+            root: {
+                command: input.command,
+                skeleton: input.skeleton,
+                attempts: input.attempts.map((attempt) => attempt.toJSON()),
+                confidence: intentConfidence,
+            },
         }
     }
 

@@ -15,16 +15,32 @@ import type { CommandAttemptData } from './commandAttempt'
 import type { ActionsSubscribedContent } from './subscribedEvents'
 import {
     isActionsActionAssessedEnvelope,
+    isActionsAnswerSubmittedEnvelope,
     isActionsParseRequestedEnvelope,
     isActionsSessionDisconnectEnvelope,
     isActionsSubscribedEnvelope,
 } from './subscribedEvents'
 import { isSessionDisconnectEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
-import { clearSession } from './persistentCommand'
+import {
+    answerPending,
+    clearSession,
+    put as putPersistentCommand,
+    resumePersistentCommand,
+    transcriptContextForResume,
+} from './persistentCommand'
+import type { PersistentCommandPayload } from './persistentCommand/payload'
+import { askRowPayload, selectQuestionFromConsult } from './selectQuestion'
 import type { TranscriptContext } from './persistentCommand/transcript'
-import { isActionAssessedCommand, isParseRequestedCommand, type ActionAssessedCommand, type ParseRequestedCommand } from '../localApiEvents'
+import {
+    isActionAssessedCommand,
+    isAnswerSubmittedCommand,
+    isParseRequestedCommand,
+    type ActionAssessedCommand,
+    type AnswerSubmittedCommand,
+    type ParseRequestedCommand,
+} from '../localApiEvents'
 import { v4 as uuidv4 } from 'uuid'
-import type { CommandStatusOutcome } from '@tonylb/mtw-interfaces/ts/messages'
+import type { CommandOutcome, CommandStatusOutcome } from '@tonylb/mtw-interfaces/ts/messages'
 import messageBus from '../../messageBus'
 import getCurrentTimestamp from '../../internalUtils/dateUtil'
 import internalCache from '../../internalCache'
@@ -40,6 +56,7 @@ import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
     type ParseCommandAcmeOrderLine,
     type ParseCommandConsultAlternative,
+    type ParseCommandConsultResult,
     type ParseCommandResult,
     isParseCommandAbstainResult,
     isParseCommandAcmeOrderResult,
@@ -185,6 +202,29 @@ type ResponseContext = {
     parseResult: ParseCommandResult
     /** Absent when there is no echo to attach to (no sessionId, or an assessed-action entry). */
     transcript?: TranscriptContext
+    /** Answers already given to this command (a resumed one), kept if it has to ask again. */
+    priorAnswers?: Pick<PersistentCommandPayload, 'referentAnswers' | 'challengeAnswers'>
+}
+
+/**
+ * Republishes the command's own transcript bubble with `outcome` (a revision resends the whole
+ * body). With no `outcome` the bubble is just the echo again, which clears a Select the command
+ * no longer waits on.
+ */
+const publishCommandOutcome = (
+    { characterId, transcript }: { characterId: EphemeraCharacterId; transcript: TranscriptContext },
+    outcome?: CommandOutcome,
+): void => {
+    messageBus.publish({
+        type: 'PublishMessage',
+        targets: [characterId],
+        displayProtocol: 'CommandTranscriptMessage',
+        message: linesToRenderTree([transcript.command]),
+        messageId: transcript.messageId,
+        createdTime: transcript.createdTime,
+        sessionId: transcript.sessionId,
+        ...(outcome ? { outcome } : {}),
+    })
 }
 
 /**
@@ -197,16 +237,7 @@ const reportCommandOutcome = (
     lines: string[],
 ): void => {
     if (transcript) {
-        messageBus.publish({
-            type: 'PublishMessage',
-            targets: [characterId],
-            displayProtocol: 'CommandTranscriptMessage',
-            message: linesToRenderTree([transcript.command]),
-            messageId: transcript.messageId,
-            createdTime: transcript.createdTime,
-            sessionId: transcript.sessionId,
-            outcome: { Kind: kind, Message: linesToRenderTree(lines) },
-        })
+        publishCommandOutcome({ characterId, transcript }, { Kind: kind, Message: linesToRenderTree(lines) })
         return
     }
     messageBus.publish({
@@ -217,6 +248,34 @@ const reportCommandOutcome = (
     })
 }
 
+/**
+ * Asks the player which referent they meant, as a Select on the command's own bubble. The row is
+ * written first, so an answer can never arrive before it. False when this Consult is not a
+ * referent question, there is no bubble to ask on, or the row could not be stored (an unanswerable
+ * Select is worse than the old line); the caller then keeps its `Error` copy.
+ */
+const askReferentQuestion = async (
+    { characterId, transcript, priorAnswers }: ResponseContext,
+    consult: ParseCommandConsultResult,
+): Promise<boolean> => {
+    if (!transcript) {
+        return false
+    }
+    const question = selectQuestionFromConsult(consult, uuidv4)
+    if (!question) {
+        return false
+    }
+    try {
+        await putPersistentCommand(characterId, transcript.sessionId, askRowPayload(question, transcript, priorAnswers))
+    }
+    catch (error) {
+        console.error('Could not store persistent command', error)
+        return false
+    }
+    publishCommandOutcome({ characterId, transcript }, question.outcome)
+    return true
+}
+
 const respondImperativelyForIntent = async (context: ResponseContext): Promise<void> => {
     const { characterId, parseResult } = context
     if (isParseCommandErrorResult(parseResult)) {
@@ -224,8 +283,9 @@ const respondImperativelyForIntent = async (context: ResponseContext): Promise<v
         reportCommandOutcome(context, 'Error', [line])
     }
     else if (isParseCommandConsultResult(parseResult)) {
-        const line = consultMessageForPlayer(parseResult.alternatives)
-        reportCommandOutcome(context, 'Error', [line])
+        if (!(await askReferentQuestion(context, parseResult))) {
+            reportCommandOutcome(context, 'Error', [consultMessageForPlayer(parseResult.alternatives)])
+        }
     }
     else if (isParseCommandAbstainResult(parseResult)) {
         reportCommandOutcome(context, 'Error', ["I couldn't understand that command."])
@@ -551,35 +611,15 @@ const publishReturnValueForRequest = (requestId: string | undefined, message: st
     }
 }
 
-const handleParseRequested = async (
-    content: ParseRequestedCommand,
-    streamEvent: StreamEventFn,
-): Promise<void> => {
-    if (!isEphemeraCharacterId(content.characterId)) {
-        return
-    }
-    // The id is minted here, and only when a session can see the echo: an outcome is a revision of
-    // this bubble, and the client shows only the latest echo per session.
-    const command = content.command.trim()
-    const transcript: TranscriptContext | undefined = content.sessionId
-        ? { messageId: `MESSAGE#${uuidv4()}`, createdTime: getCurrentTimestamp(), command, sessionId: content.sessionId }
-        : undefined
-    messageBus.publish({
-        type: 'PublishMessage',
-        targets: [content.characterId],
-        displayProtocol: 'CommandTranscriptMessage',
-        message: linesToRenderTree([command]),
-        ...(transcript
-            ? { sessionId: transcript.sessionId, messageId: transcript.messageId, createdTime: transcript.createdTime }
-            : {}),
-    })
+/** The world a command is parsed or resumed against, read fresh each time (a stored row holds none of it). */
+const loadCommandWorld = async (characterId: EphemeraCharacterId) => {
     // The embedding batch below keys off catalogObjectIds, so the ludicCache rebuild inside
     // getRoomObjectCatalogForCharacter must finish before that fetch runs --- keep this awaited
     // as a batch, not started in parallel with the embedding fetch.
     const [roomExitContext, roomObjectCatalogResult, heldInventoryCatalogResult] = await Promise.all([
-        getRoomExitTargetsForCharacter(content.characterId),
-        getRoomObjectCatalogForCharacter(content.characterId),
-        getHeldInventoryCatalogForCharacter(content.characterId),
+        getRoomExitTargetsForCharacter(characterId),
+        getRoomObjectCatalogForCharacter(characterId),
+        getHeldInventoryCatalogForCharacter(characterId),
     ])
     const catalogObjectIds = catalogObjectIdsUnion(
         roomObjectCatalogResult.entries,
@@ -603,6 +643,38 @@ const handleParseRequested = async (
         ]),
     ]
     const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
+    return { roomExitContext, roomObjectCatalog, heldInventoryCatalog, roomObjectLabels, coyoteOccupiedStableKeys }
+}
+
+const handleParseRequested = async (
+    content: ParseRequestedCommand,
+    streamEvent: StreamEventFn,
+): Promise<void> => {
+    if (!isEphemeraCharacterId(content.characterId)) {
+        return
+    }
+    // The id is minted here, and only when a session can see the echo: an outcome is a revision of
+    // this bubble, and the client shows only the latest echo per session.
+    const command = content.command.trim()
+    const transcript: TranscriptContext | undefined = content.sessionId
+        ? { messageId: `MESSAGE#${uuidv4()}`, createdTime: getCurrentTimestamp(), command, sessionId: content.sessionId }
+        : undefined
+    messageBus.publish({
+        type: 'PublishMessage',
+        targets: [content.characterId],
+        displayProtocol: 'CommandTranscriptMessage',
+        message: linesToRenderTree([command]),
+        ...(transcript
+            ? { sessionId: transcript.sessionId, messageId: transcript.messageId, createdTime: transcript.createdTime }
+            : {}),
+    })
+    const {
+        roomExitContext,
+        roomObjectCatalog,
+        heldInventoryCatalog,
+        roomObjectLabels,
+        coyoteOccupiedStableKeys,
+    } = await loadCommandWorld(content.characterId)
     const parseResult = await parseCommand({
         command: content.command,
         characterId: content.characterId,
@@ -626,6 +698,59 @@ const handleParseRequested = async (
 
     await processAssessedParseResult(responseContext, streamEvent)
     publishReturnValueForRequest(content.requestId, 'parse_request_handled')
+}
+
+const STALE_ANSWER_MESSAGE = 'That choice is no longer available.'
+
+/**
+ * A click on one option of a Select. The row decides everything: `answerPending` marks the open
+ * question answered (once), and the command resumes from its frozen root with the chosen answers.
+ * The client's `messageId` is only trusted to pick the bubble a stale-answer error lands on.
+ */
+const handleAnswerSubmitted = async (
+    content: AnswerSubmittedCommand,
+    streamEvent: StreamEventFn,
+): Promise<void> => {
+    const { characterId, sessionId, messageId, optionId } = content
+    if (!isEphemeraCharacterId(characterId) || !sessionId) {
+        return
+    }
+    const answered = await answerPending(characterId, sessionId, optionId)
+    if (answered.outcome === 'duplicate') {
+        // The first answer's outcome owns the bubble; an error here would overwrite it.
+        publishReturnValueForRequest(content.requestId, 'answer_handled')
+        return
+    }
+    if (answered.outcome === 'stale') {
+        const staleTranscript: TranscriptContext | undefined = answered.transcript?.messageId === messageId
+            ? { ...answered.transcript, sessionId }
+            : undefined
+        reportCommandOutcome({ characterId, transcript: staleTranscript }, 'Error', [STALE_ANSWER_MESSAGE])
+        publishReturnValueForRequest(content.requestId, 'answer_handled')
+        return
+    }
+    const { payload } = answered
+    const { roomExitContext, roomObjectCatalog, heldInventoryCatalog, coyoteOccupiedStableKeys } = await loadCommandWorld(characterId)
+    const parseResult = await resumePersistentCommand(payload, {
+        characterId,
+        hostRoomId: roomExitContext.fromRoomId ?? undefined,
+        roomObjectCatalog,
+        heldInventoryCatalog,
+    })
+    const transcript = transcriptContextForResume(payload, sessionId)
+    if (transcript && isParseCommandCommandAttemptResult(parseResult)) {
+        // An accepted command reports no outcome of its own: clear the Select the bubble still shows.
+        publishCommandOutcome({ characterId, transcript })
+    }
+    await processAssessedParseResult({
+        characterId,
+        roomExitContext,
+        coyoteOccupiedStableKeys,
+        parseResult,
+        priorAnswers: { referentAnswers: payload.referentAnswers, challengeAnswers: payload.challengeAnswers },
+        ...(transcript ? { transcript } : {}),
+    }, streamEvent)
+    publishReturnValueForRequest(content.requestId, 'answer_handled')
 }
 
 const handleActionAssessed = async (
@@ -666,6 +791,14 @@ export const ephemeraActionsDataSource = new EphemeraDataSource<
                     return
                 }
                 await handleParseRequested(content, streamEventFn)
+                return
+            }
+            if (isActionsAnswerSubmittedEnvelope(event)) {
+                const content = await event.getContent()
+                if (!isAnswerSubmittedCommand(content)) {
+                    return
+                }
+                await handleAnswerSubmitted(content, streamEventFn)
                 return
             }
             if (isActionsActionAssessedEnvelope(event)) {

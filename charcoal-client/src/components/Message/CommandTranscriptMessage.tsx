@@ -15,7 +15,7 @@ import type { CommandTranscriptMessage as CommandTranscriptMessageType } from '@
 interface CommandTranscriptMessageProps {
     message: CommandTranscriptMessageType;
     children?: ReactNode;
-    /** Called with the bubble's MessageId and the chosen option's OptionId; not yet wired to the server. */
+    /** Called with the bubble's MessageId and the chosen option's OptionId. */
     onSelectOption?: (messageId: string, optionId: string) => void;
 }
 

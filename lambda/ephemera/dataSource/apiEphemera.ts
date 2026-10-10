@@ -18,6 +18,7 @@ import type {
     StateChangeCommand,
     ObjectsChangeCommand,
     ParseRequestedCommand,
+    AnswerSubmittedCommand,
     ActionAssessedCommand,
     PutThinkingScheduleCommand,
     PutThinkingJobCreateCommand,
@@ -31,6 +32,7 @@ export type EphemeraApiSubscribedHeader =
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'State Change' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Objects Change' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' })
+    | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Answer Submitted' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Action Assessed' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Schedule' })
     | (StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Put Thinking Job Create' })
@@ -56,6 +58,10 @@ export type EphemeraApiIncomingEvent =
     | {
           header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' };
           getContent: () => Promise<ParseRequestedCommand>;
+      }
+    | {
+          header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Answer Submitted' };
+          getContent: () => Promise<AnswerSubmittedCommand>;
       }
     | {
           header: StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Action Assessed' };
@@ -98,6 +104,11 @@ const isParseRequestedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey
     h
 ): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' } =>
     h.dataSourceKey === 'api.ephemera' && h.type === 'Parse Requested'
+
+const isAnswerSubmittedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Answer Submitted' }> = (
+    h
+): h is StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Answer Submitted' } =>
+    h.dataSourceKey === 'api.ephemera' && h.type === 'Answer Submitted'
 
 const isActionAssessedHeader: HeaderGuard<StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Action Assessed' }> = (
     h
@@ -144,6 +155,11 @@ export const isEphemeraApiParseRequestedEnvelope = makeStreamingEnvelopeGuardFro
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Parse Requested' }
 >(isParseRequestedHeader)
 
+export const isEphemeraApiAnswerSubmittedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    AnswerSubmittedCommand,
+    StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Answer Submitted' }
+>(isAnswerSubmittedHeader)
+
 export const isEphemeraApiActionAssessedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ActionAssessedCommand,
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Action Assessed' }
@@ -172,6 +188,7 @@ export const isEphemeraApiSubscribedHeader: HeaderGuard<EphemeraApiSubscribedHea
     || isStateChangeHeader(header)
     || isObjectsChangeHeader(header)
     || isParseRequestedHeader(header)
+    || isAnswerSubmittedHeader(header)
     || isActionAssessedHeader(header)
     || isPutThinkingScheduleHeader(header)
     || isPutThinkingJobCreateHeader(header)
@@ -291,6 +308,24 @@ export function sendParseRequested(
         streamKey,
         timestamp: Date.now(),
         type: 'Parse Requested',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
+    postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent)
+}
+
+/**
+ * Post **Answer Submitted** to the internal bus for mtw.ephemera.actions ingestion.
+ */
+export function sendAnswerSubmitted(
+    bus: ApiEphemeraCommandBus,
+    streamKey: string,
+    content: AnswerSubmittedCommand,
+): void {
+    const header: StreamingEventHeader = {
+        dataSourceKey: 'api.ephemera',
+        streamKey,
+        timestamp: Date.now(),
+        type: 'Answer Submitted',
     }
     const envelope = createInternalOriginEnvelope(header, content, apiEphemeraSerializer)
     postApiEphemeraStreamingEvent(bus, streamKey, envelope.header, envelope.getContent)

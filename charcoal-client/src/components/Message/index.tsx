@@ -31,7 +31,7 @@ import { useActiveCharacter } from '../ActiveCharacter'
 import CharacterDescription from './CharacterDescription'
 import { useDispatch } from 'react-redux'
 import { EphemeraCharacterId, EphemeraFeatureId, EphemeraKnowledgeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { socketDispatchPromise } from '../../slices/lifeLine'
+import { answerSelectOption, socketDispatchPromise } from '../../slices/lifeLine'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 
 interface MessageProps {
@@ -49,6 +49,9 @@ export const Message = ({ message, ...rest }: MessageProps) => {
             CharacterId
         }))
     }, [dispatch, CharacterId])
+    const onSelectOption = useCallback((messageId: string, optionId: string) => {
+        dispatch(answerSelectOption(CharacterId)(messageId, optionId))
+    }, [dispatch, CharacterId])
     const { DisplayProtocol } = message
     switch(DisplayProtocol) {
         case 'SayMessage':
@@ -62,7 +65,7 @@ export const Message = ({ message, ...rest }: MessageProps) => {
         case 'WorldOOCMessage':
             return <WorldOOCMessage message={message} {...rest} />
         case 'CommandTranscriptMessage':
-            return <CommandTranscriptMessage message={message} {...rest} />
+            return <CommandTranscriptMessage message={message} onSelectOption={onSelectOption} {...rest} />
         case 'CoyoteGameHelpMessage':
             return <CoyoteHelpMessage message={message} {...rest} />
         case 'CoyoteGameHypothesisMessage':

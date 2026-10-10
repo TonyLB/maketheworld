@@ -1,5 +1,5 @@
 import { isPersistentCommandPayload } from './payload'
-import { takeCupPayload } from './testFixtures'
+import { takeCupPayload, twoCupPendingPayload } from './testFixtures'
 
 describe('isPersistentCommandPayload', () => {
     it('accepts a payload built from a real plan', () => {
@@ -14,6 +14,23 @@ describe('isPersistentCommandPayload', () => {
     it('accepts a row written before transcript existed', () => {
         const { transcript, ...rest } = takeCupPayload()
         expect(isPersistentCommandPayload(rest)).toBe(true)
+    })
+
+    it('accepts a pending question, answered or not', () => {
+        const payload = twoCupPendingPayload()
+        expect(isPersistentCommandPayload(payload)).toBe(true)
+        expect(isPersistentCommandPayload({ ...payload, pending: { ...payload.pending, answer: 'option-blue' } })).toBe(true)
+    })
+
+    it.each<[string, (payload: any) => any]>([
+        ['a non-record pending', (payload) => ({ ...payload, pending: 'x' })],
+        ['pending without options', (payload) => ({ ...payload, pending: {} })],
+        ['an option mapping to a non-record', (payload) => ({ ...payload, pending: { options: { a: 'x' } } })],
+        ['a non-string answer in an option', (payload) => ({ ...payload, pending: { options: { a: { k: 3 } } } })],
+        ['a non-string pending answer', (payload) => ({ ...payload, pending: { ...payload.pending, answer: 3 } })],
+        ['a pending answer that names no option', (payload) => ({ ...payload, pending: { ...payload.pending, answer: 'option-green' } })],
+    ])('rejects %s', (_label, corrupt) => {
+        expect(isPersistentCommandPayload(corrupt(twoCupPendingPayload()))).toBe(false)
     })
 
     it.each<[string, (payload: any) => any]>([

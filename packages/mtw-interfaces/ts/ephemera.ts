@@ -97,6 +97,14 @@ export type CommandAPIMessage = {
     command: string;
 }
 
+/** A click on one option of a Select: the server looks the option up in the command's stored row. */
+export type AnswerAPIMessage = {
+    message: 'answer';
+    CharacterId: EphemeraCharacterId;
+    messageId: string;
+    optionId: string;
+}
+
 /**
  * WebSocket client requests that map to internal `api.ephemera` StreamingEvents (see lambda ephemera `send*` helpers).
  */
@@ -124,6 +132,7 @@ export type EphemeraAPIMessage = { RequestId?: string } & (
     ActionAPIMessage |
     LinkAPIMessage |
     CommandAPIMessage |
+    AnswerAPIMessage |
     EphemeraApiStateChangeRequest |
     FetchThinkingResultAPIMessage
 )
@@ -136,6 +145,7 @@ export const isMapUnsubscribeAPIMessage = (message: EphemeraAPIMessage): message
 export const isActionAPIMessage = (message: EphemeraAPIMessage): message is ActionAPIMessage => (message.message === 'action')
 export const isLinkAPIMessage = (message: EphemeraAPIMessage): message is LinkAPIMessage => (message.message === 'link')
 export const isCommandAPIMessage = (message: EphemeraAPIMessage): message is CommandAPIMessage => (message.message === 'command')
+export const isAnswerAPIMessage = (message: EphemeraAPIMessage): message is AnswerAPIMessage => (message.message === 'answer')
 
 const isEphemeraApiStateChangeWire = (message: any): boolean => {
     if (!message || typeof message !== 'object') {
@@ -211,6 +221,11 @@ export const isEphemeraAPIMessage = (message: any): message is EphemeraAPIMessag
         case 'command':
             return Boolean(
                 checkTypes(message, { CharacterId: 'string', command: 'string' })
+                && isEphemeraCharacterId(message.CharacterId)
+            )
+        case 'answer':
+            return Boolean(
+                checkTypes(message, { CharacterId: 'string', messageId: 'string', optionId: 'string' })
                 && isEphemeraCharacterId(message.CharacterId)
             )
         case 'action':

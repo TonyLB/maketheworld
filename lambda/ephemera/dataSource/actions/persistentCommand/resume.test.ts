@@ -72,6 +72,23 @@ describe('resumePersistentCommand', () => {
         expect(action.desiredResult.object.groundedId).toBe(blueCupId)
     })
 
+    it.each([[0, redCupId], [1, blueCupId]])('a Consult\'s own root and option %i resume to that option\'s cup', async (index, expectedId) => {
+        const catalog = world([redCupId, blueCupId])
+        const consult = await resumePersistentCommand(rowOf(), catalog, { positionsReadDeps: readsFor([redCupId, blueCupId]) })
+        if (consult.type !== 'Consult' || consult.root === undefined) {
+            throw new Error('expected a Consult carrying its root')
+        }
+
+        const answered = await resumePersistentCommand(
+            { root: consult.root, referentAnswers: consult.alternatives[index]!.referentAnswers!, challengeAnswers: {} },
+            catalog,
+            { positionsReadDeps: readsFor([redCupId, blueCupId]) }
+        )
+
+        expect(answered).toMatchObject({ type: 'CommandAttempt' })
+        expect((answered as any).attempt.actions[0].desiredResult.object.groundedId).toBe(expectedId)
+    })
+
     it('refuses a referent answer whose thing is no longer in the pool', async () => {
         const result = await resumePersistentCommand(
             rowOf({ referentAnswers: { [cupKey]: redCupId } }),

@@ -19,6 +19,7 @@ export {
     apiDispatchPromise,
     moveCharacter,
     parseCommand,
+    answerSelectOption,
     LifeLinePubSub
 } from './index.api'
 export type {

@@ -21,6 +21,15 @@ vi.mock('./ComponentDescription', () => ({
     default: () => <div data-testid="component-description-route">ComponentDescription</div>
 }))
 
+const mockAnswerSelectOption = vi.hoisted(() => vi.fn())
+vi.mock('../../slices/lifeLine', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('../../slices/lifeLine')>()),
+    answerSelectOption: (CharacterId: string) => (messageId: string, optionId: string) => {
+        mockAnswerSelectOption(CharacterId, messageId, optionId)
+        return { type: 'test/answerSelectOption' }
+    },
+}))
+
 const mockStore = configureStore([])
 
 describe('Message component - PerceptionMessage routing', () => {
@@ -602,6 +611,14 @@ describe('Message component - CommandTranscriptMessage routing', () => {
             fireEvent.click(screen.getAllByTestId('command-transcript-option')[1])
             expect(onSelectOption).toHaveBeenCalledTimes(1)
             expect(onSelectOption).toHaveBeenCalledWith('msg-command', 'opt-2')
+        })
+
+        it('should send the clicked option as an answer when rendered through Message', () => {
+            mockAnswerSelectOption.mockClear()
+            renderMessage(selectMessage)
+            fireEvent.click(screen.getAllByTestId('command-transcript-option')[1])
+            expect(mockAnswerSelectOption).toHaveBeenCalledTimes(1)
+            expect(mockAnswerSelectOption).toHaveBeenCalledWith(expect.anything(), 'msg-command', 'opt-2')
         })
 
         it('should ignore a click when no callback is supplied', () => {

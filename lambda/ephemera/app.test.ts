@@ -300,6 +300,53 @@ describe('app handler', () => {
         })
     })
 
+    describe('answer message handling', () => {
+        const answerEvent = (extra: Record<string, unknown> = {}) => ({
+            requestContext: { connectionId: 'test-connection' },
+            body: JSON.stringify({
+                message: 'answer',
+                CharacterId: 'CHARACTER#123',
+                messageId: 'MESSAGE#1',
+                optionId: 'opt-1',
+                ...extra,
+            }),
+        })
+        const answerCall = () => mockMessageBus.publish.mock.calls.find(
+            ([payload]) => payload?.type === 'StreamingEvent'
+                && payload?.dataSourceKey === 'api.ephemera'
+                && payload?.header?.type === 'Answer Submitted'
+        )
+
+        it('routes an answer to Answer Submitted with the connection\'s sessionId', async () => {
+            ;(internalCache.Global.get as jest.Mock).mockImplementation(async (key: string) => (
+                key === 'SessionId' ? 'SESSION-A' : undefined
+            ))
+            await handler(answerEvent(), {})
+            expect(answerCall()).toBeDefined()
+            const content = await (answerCall()![0] as { getContent: () => Promise<unknown> }).getContent()
+            expect(content).toEqual({
+                characterId: 'CHARACTER#123',
+                messageId: 'MESSAGE#1',
+                optionId: 'opt-1',
+                sessionId: 'SESSION-A',
+            })
+        })
+
+        it('ignores a sessionId supplied by the client', async () => {
+            ;(internalCache.Global.get as jest.Mock).mockImplementation(async (key: string) => (
+                key === 'SessionId' ? 'SESSION-A' : undefined
+            ))
+            await handler(answerEvent({ sessionId: 'SESSION-EVIL' }), {})
+            const content = await (answerCall()![0] as { getContent: () => Promise<{ sessionId: string }> }).getContent()
+            expect(content.sessionId).toBe('SESSION-A')
+        })
+
+        it('drops an answer when the connection has no session', async () => {
+            await handler(answerEvent(), {})
+            expect(answerCall()).toBeUndefined()
+        })
+    })
+
     describe('WebSocket wire routes', () => {
         it('does not route unregistercharacter on ephemera ingress', async () => {
             const response = await handler(

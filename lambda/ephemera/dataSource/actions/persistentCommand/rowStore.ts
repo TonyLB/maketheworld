@@ -31,7 +31,7 @@ export const get = async (
     if (row === undefined || isPersistentCommandExpired(row)) {
         return undefined
     }
-    const { root, transcript, selectedAttempt, referentAnswers, challengeAnswers } = row
-    const payload = { root, transcript, selectedAttempt, referentAnswers, challengeAnswers }
+    const { root, transcript, pending, selectedAttempt, referentAnswers, challengeAnswers } = row
+    const payload = { root, transcript, pending, selectedAttempt, referentAnswers, challengeAnswers }
     return isPersistentCommandPayload(payload) ? payload : undefined
 }
