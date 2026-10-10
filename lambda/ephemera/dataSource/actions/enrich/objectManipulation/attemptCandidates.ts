@@ -26,6 +26,7 @@ import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from 
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { DryRunOutcome } from './validatePlanDryRun'
 import { resumeErrorMessages } from './resumeAnswers'
+import type { ParseSkeleton } from './parse/parseToken'
 
 /**
  * The shared producer for Plan's attempts (ISS8203 slices 2-4): relational, transfer (take, drop
@@ -102,6 +103,24 @@ export const attemptReferentAnswers = (attempt: CommandAttempt): Record<string, 
             : []
     ))
 )
+
+/**
+ * The whole command as the player typed it, with each object span replaced by the grounded name of
+ * the object this attempt assigns to it ("put Red cup on Blue cup"). A Select's option label: the
+ * subject and target stay in the slots the player gave them. A span with no grounded name keeps its text.
+ */
+export const attemptSkeletonLabel = (skeleton: ParseSkeleton, attempt: CommandAttempt): string => {
+    const nameByKey = new Map(
+        attempt.actions().flatMap((action) => action.referents().flatMap(objectSpansIn)).flatMap((span) => (
+            span.stableRefKey !== undefined && span.shortName !== undefined ? [[span.stableRefKey, span.shortName] as const] : []
+        ))
+    )
+    return skeleton
+        .map((token) => (token.type === 'objectSpan' ? nameByKey.get(token.stableRefKey) ?? token.span : token.text))
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+}
 
 /** A referent's name for prose: the grounded short name, else the span text. */
 const labelOf = (referent: Referent): string => {

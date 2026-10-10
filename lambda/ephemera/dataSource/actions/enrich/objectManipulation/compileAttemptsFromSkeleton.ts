@@ -25,6 +25,7 @@ import { applyChallengeAnswers, primaryActionIdOf, resumeErrorMessages, type Res
 import {
     attemptDryRun,
     attemptReferentAnswers,
+    attemptSkeletonLabel,
     attemptSpanKeys,
     buildAttemptEnvironment,
     defaultPositionsReads,
@@ -282,7 +283,11 @@ export async function compileAttemptsFromSkeleton(
         candidates: pool,
         getConfidence: (candidate) => candidate.confidence,
         dryRun,
-        toConsultAlternative: (candidate) => ({ ...candidate.alternative, referentAnswers: attemptReferentAnswers(candidate.attempt) }),
+        toConsultAlternative: (candidate) => ({
+            ...candidate.alternative,
+            label: attemptSkeletonLabel(input.skeleton, candidate.attempt),
+            referentAnswers: attemptReferentAnswers(candidate.attempt),
+        }),
     })
 
     let selection = select(candidates)

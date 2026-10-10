@@ -1270,7 +1270,7 @@ Object {
   "result": Object {
     "alternatives": Array [
       Object {
-        "label": "broom",
+        "label": "take broom",
         "objectId": "OBJECT#Broom",
         "proposedCommand": "take the broom",
         "referentAnswers": Object {
@@ -1278,7 +1278,7 @@ Object {
         },
       },
       Object {
-        "label": "broom",
+        "label": "take broom",
         "objectId": "OBJECT#Mop",
         "proposedCommand": "take the broom",
         "referentAnswers": Object {
@@ -1429,7 +1429,7 @@ Object {
   "result": Object {
     "alternatives": Array [
       Object {
-        "label": "rope",
+        "label": "take rope",
         "objectId": "OBJECT#Rope",
         "proposedCommand": "take the rope",
         "referentAnswers": Object {
@@ -1437,7 +1437,7 @@ Object {
         },
       },
       Object {
-        "label": "post",
+        "label": "take post",
         "objectId": "OBJECT#Post",
         "proposedCommand": "take the post",
         "referentAnswers": Object {

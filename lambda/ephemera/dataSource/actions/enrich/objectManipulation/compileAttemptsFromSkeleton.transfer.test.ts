@@ -154,8 +154,8 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         expect(result).toEqual({
             type: 'Consult',
             alternatives: [
-                { proposedCommand: 'put the cup on the tray', label: 'cup / tray', referentAnswers: { cupRef: cupId, trayRef: trayId } },
-                { proposedCommand: 'put the cup on the tray', label: 'cup / tray', referentAnswers: { cupRef: secondCupId, trayRef: trayId } },
+                { proposedCommand: 'put the cup on the tray', label: 'put cup on tray', referentAnswers: { cupRef: cupId, trayRef: trayId } },
+                { proposedCommand: 'put the cup on the tray', label: 'put cup on tray', referentAnswers: { cupRef: secondCupId, trayRef: trayId } },
             ],
             confidence: 0.9,
             root: {
@@ -166,6 +166,31 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 confidence: 0.9,
             },
         })
+    })
+
+    it('labels each Consult alternative as the whole command, with each span in its own slot', async () => {
+        const redId = 'OBJECT#RedCup' as EphemeraObjectId
+        const blueId = 'OBJECT#BlueCup' as EphemeraObjectId
+        const skeleton = containmentSkeleton('put', 'cup', 'cupRef1', 'on', 'cup', 'cupRef2')
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command: 'put cup on cup',
+                skeleton,
+                attempts: [planAttempt(skeleton, 'put cup on cup')],
+                hostRoomId: roomId,
+                roomObjectCatalog: [
+                    { objectId: redId, normalizedShortName: 'Red cup' },
+                    { objectId: blueId, normalizedShortName: 'Blue cup' },
+                ],
+            },
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
+        )
+
+        if (result.type !== 'Consult') {
+            throw new Error(`expected a Consult, got ${result.type}`)
+        }
+        expect(result.alternatives.map(({ label }) => label).sort()).toEqual(['put Blue cup on Red cup', 'put Red cup on Blue cup'])
     })
 
     it('abstains when subject and target resolve to the same object', async () => {
