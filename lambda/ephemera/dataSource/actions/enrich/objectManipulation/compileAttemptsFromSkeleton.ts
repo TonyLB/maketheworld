@@ -21,11 +21,13 @@ import type { ParseSkeleton } from './parse/parseToken'
 import type { TransferMembershipChange } from './plan/planStep'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { selectPlanTuple } from './selectPlanCandidate'
+import type { ConsultAlternative } from './spanResolution'
 import { applyChallengeAnswers, primaryActionIdOf, resumeErrorMessages, type ResumeAnswers } from './resumeAnswers'
 import {
     attemptDryRun,
     attemptReferentAnswers,
-    attemptSkeletonLabel,
+    attemptReferentNames,
+    disambiguationLabels,
     attemptSpanKeys,
     buildAttemptEnvironment,
     defaultPositionsReads,
@@ -279,15 +281,16 @@ export async function compileAttemptsFromSkeleton(
         roomId: hostRoomId,
         actorCharacterId: input.characterId,
     })
+    const namesOf = new Map<ConsultAlternative, Record<string, string>>()
     const select = (pool: readonly GroundedAttemptCandidate[]) => selectPlanTuple({
         candidates: pool,
         getConfidence: (candidate) => candidate.confidence,
         dryRun,
-        toConsultAlternative: (candidate) => ({
-            ...candidate.alternative,
-            label: attemptSkeletonLabel(input.skeleton, candidate.attempt),
-            referentAnswers: attemptReferentAnswers(candidate.attempt),
-        }),
+        toConsultAlternative: (candidate) => {
+            const alternative = { ...candidate.alternative, referentAnswers: attemptReferentAnswers(candidate.attempt) }
+            namesOf.set(alternative, attemptReferentNames(candidate.attempt))
+            return alternative
+        },
     })
 
     let selection = select(candidates)
@@ -301,9 +304,13 @@ export async function compileAttemptsFromSkeleton(
     }
 
     if (selection.verdict === 'consult') {
+        const labels = disambiguationLabels(input.skeleton, selection.alternatives.map((alternative) => ({
+            answers: alternative.referentAnswers ?? {},
+            names: namesOf.get(alternative) ?? {},
+        })))
         return {
             type: 'Consult',
-            alternatives: selection.alternatives.map(({ proposedCommand, objectId, label, referentAnswers }) => ({ proposedCommand, objectId, label, referentAnswers })),
+            alternatives: selection.alternatives.map(({ proposedCommand, objectId, referentAnswers }, index) => ({ proposedCommand, objectId, label: labels[index], referentAnswers })),
             confidence: intentConfidence,
             // All of Plan's attempts, not the survivors: a resume restarts from the same frozen set.
             root: {

@@ -154,8 +154,8 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         expect(result).toEqual({
             type: 'Consult',
             alternatives: [
-                { proposedCommand: 'put the cup on the tray', label: 'put cup on tray', referentAnswers: { cupRef: cupId, trayRef: trayId } },
-                { proposedCommand: 'put the cup on the tray', label: 'put cup on tray', referentAnswers: { cupRef: secondCupId, trayRef: trayId } },
+                { proposedCommand: 'put the cup on the tray', label: 'cup', referentAnswers: { cupRef: cupId, trayRef: trayId } },
+                { proposedCommand: 'put the cup on the tray', label: 'cup', referentAnswers: { cupRef: secondCupId, trayRef: trayId } },
             ],
             confidence: 0.9,
             root: {
@@ -168,7 +168,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         })
     })
 
-    it('labels each Consult alternative as the whole command, with each span in its own slot', async () => {
+    it('labels each Consult alternative as the whole command when several referents are ambiguous', async () => {
         const redId = 'OBJECT#RedCup' as EphemeraObjectId
         const blueId = 'OBJECT#BlueCup' as EphemeraObjectId
         const skeleton = containmentSkeleton('put', 'cup', 'cupRef1', 'on', 'cup', 'cupRef2')
@@ -191,6 +191,32 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
             throw new Error(`expected a Consult, got ${result.type}`)
         }
         expect(result.alternatives.map(({ label }) => label).sort()).toEqual(['put Blue cup on Red cup', 'put Red cup on Blue cup'])
+    })
+
+    it('labels with just the ambiguous referent\'s names when the other referent is settled', async () => {
+        const redId = 'OBJECT#RedCup' as EphemeraObjectId
+        const blueId = 'OBJECT#BlueCup' as EphemeraObjectId
+        const skeleton = containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef')
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command: 'put cup on tray',
+                skeleton,
+                attempts: [planAttempt(skeleton, 'put cup on tray')],
+                hostRoomId: roomId,
+                roomObjectCatalog: [
+                    { objectId: redId, normalizedShortName: 'Red cup' },
+                    { objectId: blueId, normalizedShortName: 'Blue cup' },
+                    { objectId: trayId, normalizedShortName: 'tray' },
+                ],
+            },
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
+        )
+
+        if (result.type !== 'Consult') {
+            throw new Error(`expected a Consult, got ${result.type}`)
+        }
+        expect(result.alternatives.map(({ label }) => label).sort()).toEqual(['Blue cup', 'Red cup'])
     })
 
     it('abstains when subject and target resolve to the same object', async () => {

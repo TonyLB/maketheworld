@@ -147,8 +147,8 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
         expect(result).toEqual({
             type: 'Consult',
             alternatives: [
-                { proposedCommand: 'look at the rocket skates', objectId: rocketSkatesId, label: 'look rocket skates', referentAnswers: { rocketSkatesRef: rocketSkatesId } },
-                { proposedCommand: 'look at the rocket skates', objectId: secondRocketSkatesId, label: 'look rocket skates', referentAnswers: { rocketSkatesRef: secondRocketSkatesId } },
+                { proposedCommand: 'look at the rocket skates', objectId: rocketSkatesId, label: 'rocket skates', referentAnswers: { rocketSkatesRef: rocketSkatesId } },
+                { proposedCommand: 'look at the rocket skates', objectId: secondRocketSkatesId, label: 'rocket skates', referentAnswers: { rocketSkatesRef: secondRocketSkatesId } },
             ],
             confidence: 0.9,
             root: {
