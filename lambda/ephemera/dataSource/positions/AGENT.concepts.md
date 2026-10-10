@@ -230,6 +230,8 @@ An abstraction is a **cognitive tool, not an objective feature of the world.** T
 
 **Why location resolution terminates.** Where a thing is, in room terms, is found by walking its bindings up through its hosts, each of which has bindings of its own. **The base case is the room:** rooms are never *members* of any graph, so the walk bottoms out. The rule is the same at every step, whether the thing at that step is being discussed as a whole or as a part. This holds only while the room boundary stays a seam of different provenance ([Wholes, parts, and ports](#wholes-parts-and-ports)); if rooms ever enter the part-of ladder, this argument needs rebuilding.
 
+**Bindings form a forest, though components form a DAG.** Each binding has one host, and --- because arity is inherited --- sits inside exactly one of that host's buckets: a whole present two ways gives each of its parts one binding per way, never one binding under both. So every binding has a single chain of ancestors, ending at a room. Multi-hosting branches at the **component** (the spring in the box and in the contraption has two bindings, each a leaf of its own chain), never at the **binding**. **"DAG, not a tree" is a claim about components and does not transfer to bindings.** The consequence: anything keyed by binding --- which room a bucket is ultimately in, which room-seeded cache consolidates it --- is a walk with one answer, not an index to maintain. **Target, not yet held by stored data:** inheriting arity is the nested-whole constructor named above as the known shortfall, so today a whole with two bindings gives both of them a `Full` cover holding the same member binding, which then has two parents; and a thing placed without a move has no binding, so no chain.
+
 | Term | Means |
 | --- | --- |
 | **Cover** | The whole family of buckets for one whole: stored, one bucket per presence node, as that node's `cover` field, and graded against totality, root-in-every-bucket, and nodes-only |
@@ -237,6 +239,7 @@ An abstraction is a **cognitive tool, not an objective feature of the world.** T
 | **Presence binding** | One distinguishable way a whole is present --- what the cover is indexed by. Realized as a presence node; *the index is finer than the host set* is the semantics, *a binding is a node* is the mechanism |
 | **Presence node** | A graph node (tag `'Presence'`), never a port record, carrying `cover` and `fromHostId`. It is addressable from outside its host as a `PRESENCE#`-tagged port-form terminal. An edge landing on a presence binding is a terminal, never a crossing, and denotes the part of the object present via that binding |
 | **Totality** | The invariant that the buckets' union is every node, over hosted wholes |
+| **Binding forest** | Bindings, each under one binding of its host, rooted at rooms: one ancestor chain per binding, where components have a DAG. Target --- needs inherited arity to hold |
 | **Aggregation** | Recombining every bucket to recover the node set. **Overlap dedupes**; it is not an error |
 
 **Not modelled:** what sub-graph a bucket *induces*, and what becomes of an edge with one endpoint outside it (a **reduction** convention, not a cover question).
