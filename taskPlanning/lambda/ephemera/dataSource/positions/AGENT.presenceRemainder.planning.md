@@ -1,6 +1,6 @@
 # Presence remainder: implementation
 
-**Status: not started. Next step: [Slice 0](#recommended-order) (verify premises).** Opened 2026-10-11, as soon as PR-21 was Locked. **Why now (the user, 2026-10-11):** the `fromHostId` -> `fromHostPresence` migration is the largest part of this change and only grows with each feature added before it; and until a direct-to-presence parent path exists, new code has to walk binding-to-host, which is the debt this design removes.
+**Status: in progress. Slices 0-1 done 2026-10-11. Next step: [Slice 2](#recommended-order) (the extra-bucket defect).** Opened 2026-10-11, as soon as PR-21 was Locked. **Why now (the user, 2026-10-11):** the `fromHostId` -> `fromHostPresence` migration is the largest part of this change and only grows with each feature added before it; and until a direct-to-presence parent path exists, new code has to walk binding-to-host, which is the debt this design removes.
 
 **Scope in one sentence: build PR-21 --- the remainder cover, the optional `fromHostPresence` parent pointer, pointers governing with covers as their index, the room rule, and audience stopping at the room --- in code and in stored data.**
 
@@ -36,13 +36,18 @@ cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/ludi
 
 Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
 
-- [ ] **Slice 0. Verify premises (no code).** Record each answer inline here.
-  - [ ] **Classify every reader.** `grep -rn "fromHostId\|presenceNodes" --include='*.ts' lambda/ephemera/dataSource packages/mtw-interfaces/ts | grep -v test` hits about 28 files, most of them crossing-port `fromHostId`, not presence. List each presence reader here, so Slice 4 has a complete target list. Known so far beyond Getting Started step 3: `actions/enrich/objectManipulation/synthesize/findRelationalChain.ts` (a presence node read as a port's owner).
-  - [ ] **Count multi-`Full` parents.** Find stored hosts with more than one presence binding --- for example a Feature authored into several rooms in `packages/mtw-wml/ts/*.wml` --- and the test fixtures that build one. This grounds PRm-1.
-  - [ ] **Order against [`AGENT.authoredObjectPopulation.planning.md`](AGENT.authoredObjectPopulation.planning.md).** It widens the same population emitter to Objects. Decide which lands first; whichever is second adopts the other's emitter shape.
-- [ ] **Slice 1. The seam.** Add one accessor in `ludicGraph/`, roughly `parentBinding(owner, binding, getGraph)`, derived from today's data per PRm-1. Move `roomsForHost`, `roomsForPresenceNode` and `hasPresenceAncestor` onto it. From then on new code has a direct-to-presence parent path, and Slice 4 swaps the accessor's implementation instead of chasing call sites. **Observed 2026-10-11, while correcting the docs:** the two walkers already differ over a room: `roomsForHost` treats a room as a terminal, while `hasPresenceAncestor` follows the room's Area binding and so counts Areas among a host's ancestors. Decide in this slice whether the shared accessor keeps both behaviors (a room-stop option) or unifies them; its one caller, `planObjectMoveTransfer.ts`, shows which is needed.
-  - [ ] Behavior-preserving: the existing `presenceRooms.test.ts` and `presenceAncestry.test.ts` pass unchanged.
-  - [ ] New unit tests for the accessor, including the first fixture with an Area-hosted room and a parent with two bindings.
+- [X] **Slice 0. Verify premises (no code).** Record each answer inline here.
+  - [X] **Classify every reader.** `grep -rn "fromHostId\|presenceNodes" --include='*.ts' lambda/ephemera/dataSource packages/mtw-interfaces/ts | grep -v test` hits 35 files (135 lines), most of them crossing-port or transfer `fromHostId`, not presence. List each presence reader here, so Slice 4 has a complete target list. Known so far beyond Getting Started step 3: `actions/enrich/objectManipulation/synthesize/findRelationalChain.ts` (a presence node read as a port's owner).
+    - **Answer (2026-10-11).** Presence readers, Slice 4's target list (beyond Getting Started step 3's walkers and writers): `ludicGraph/presenceSubGraph.ts` (lookups at the `presenceNodes.find`, the exterior-address node built from `ephemeraLudicTerminalOwner`, and the holder scan), `ludicGraph/index.ts` (`presenceNodes` getter, `addPresenceNode`, `removePresenceNode`), `kernel/kernelStep.ts` (the add/remove binding step types carry `fromHostId`), `ludicCache/mergeReducer.ts:462` (copies `fromHostId` onto cache nodes), `ludicCache/types.ts:169-172` (guard), `ludicCache/catalogHandles.ts`, `ludicCache/roomObjectContents.ts` (cover readers; unaffected until Slice 3), `ephemeraMeta.ts:422` (type) and its guard. **Not `fromHostId` readers:** `findRelationalChain.ts:96` reads only `universalKey` off the presence node, so Slice 4 does not touch it; `publishedEvents.ts`, `interactionUnderTransfer.ts` and `ludicGraph/baseClasses.ts` mention `presenceNodes` only in retirement comments. **Port or transfer `fromHostId`/`fromHostIds`, excluded:** `healLudicGraphPortMismatch.ts`, `findRelationalChainsForRemoval.ts`, `buildCrossingLegs.ts`, `parsePlanStep.ts`, `executor.ts`, `commitAttempt.ts`, `planObjectMoveTransfer.ts`, `buildObjectMoveOp.ts`, `compilePositionKernelOp.ts`, `commitStepSequence.ts`, `factsForStep.ts`, `computeStepSequenceFootprint.ts`. **Fixtures:** 43 test files mention `fromHostId`; Slice 4 migrates those that build presence nodes.
+    - **Found:** `ludicCache/fold.ts:144` uses `.find` on a child's bindings, so it takes the first binding of a multi-binding parent without saying so. Slice 4 must replace it; the seam leaves `presence` unset for a multi-binding parent (never guess).
+  - [X] **Count multi-`Full` parents.** Find stored hosts with more than one presence binding --- for example a Feature authored into several rooms in `packages/mtw-wml/ts/*.wml` --- and the test fixtures that build one. This grounded the seam's multi-binding case.
+    - **Answer (2026-10-11).** Authored: none. The only WML with Rooms and Features, `packages/mtw-wml/ts/dungeon.wml`, places `orc` and `pie` in one room each. Multi-binding comes only from improvised Objects, which is legal by design (`applyStepSequenceCore.test.ts:732`). Fixtures that build one: `ludicCache/fold.test.ts` (`objZ`), `ludicCache/roomObjectContents.test.ts:76`, `ludicCache/catalogHandles.test.ts:210`, `applyStepSequenceCore.test.ts:732`, `wireProjection.test.ts:106`. Stored dev-world data was not sampled; that remains the user's to check if wanted. So the multi-binding case is real but exercised only by fixtures. Area-hosted-room binding fixtures exist only in the containment tests (`containmentPopulationSteps.test.ts`, `populateContainmentAtCache.test.ts`); no walker or cache test has one, which Slice 1 adds.
+  - [X] **Order against [`AGENT.authoredObjectPopulation.planning.md`](AGENT.authoredObjectPopulation.planning.md).** It widens the same population emitter to Objects. Decide which lands first; whichever is second adopts the other's emitter shape.
+    - **Answer (2026-10-11).** Both edit `containmentPopulationSteps.ts`: that plan widens the id filter and adds a re-cache guard (AO2), while Slice 4 here rewrites the binding idempotency check at `:65`. **Decided (the user, 2026-10-11): Slices 1-4 here, then [`AGENT.authoredObjectPopulation.planning.md`](AGENT.authoredObjectPopulation.planning.md), then Slices 5+.** Reason: that plan governs *which components* get authored into a presence, not *how* a binding is represented, so it can build on the settled `fromHostPresence` emitter, and AO2's re-cache guard is then written once, after Slice 5's re-pointing is the only remaining open question for it to account for.
+- [X] **Slice 1. The seam.** Add one accessor in `ludicGraph/`, roughly `parentBinding(owner, binding, getGraph)`. Move `roomsForHost`, `roomsForPresenceNode` and `hasPresenceAncestor` onto it. From then on new code has a direct-to-presence parent path, and Slice 4 swaps the accessor's implementation instead of chasing call sites. **Observed 2026-10-11, while correcting the docs:** the two walkers already differ over a room: `roomsForHost` treats a room as a terminal, while `hasPresenceAncestor` follows the room's Area binding and so counts Areas among a host's ancestors. Decide in this slice whether the shared accessor keeps both behaviors (a room-stop option) or unifies them; its one caller, `planObjectMoveTransfer.ts`, shows which is needed.
+  - [X] Behavior-preserving: the existing `presenceRooms.test.ts` and `presenceAncestry.test.ts` pass unchanged.
+  - [X] New unit tests for the accessor, including the first fixture with an Area-hosted room and a parent with two bindings.
+    - **Done 2026-10-11.** Room-stop stayed a walker policy, not an accessor option: `roomsForHost` stops at rooms, `hasPresenceAncestor` still follows into Areas (unifying would change nothing for its one caller, which asks about an Object ancestor, but is a behavior change; revisit if the extra reads matter). The accessor is [`ludicGraph/presenceParent.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/presenceParent.ts); `presence` derivation is opt-in (`resolvePresence`) and unused by the walkers until Slice 2/4. Rule recorded in `positions/AGENT.implementation.md`.
 - [ ] **Slice 2. The extra-bucket defect.** A room-seeded cache gives each room member a bucket `{ host: <room>, presence: <room's Area binding> }`, which resolves to no rooms (verified by reading, 2026-10-11). Fold a room's Area bindings as carve-outs with empty member lists, per PR-21(f).
   - [ ] Payoff test: a room-seeded `ludicCacheObjectHandles` handle's `presence` resolves, through `roomsForReferent`, to exactly that room.
 - [ ] **Slice 3. The cover type.** A remainder flag replaces `Full`, encoded per PRm-2, with at most one remainder per whole.
@@ -51,8 +56,8 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
 - [ ] **Slice 4. Stored `fromHostPresence`.** An optional `fromHostPresence: { host, presence }` replaces `fromHostId` on presence nodes.
   - [ ] Writers name the parent binding. Population applies the room rule: a room's remainder is always hostless, and its Area bindings are carve-outs with empty member lists.
   - [ ] `parentBinding` reads the stored pointer; the derivation is retired.
-  - [ ] Every presence reader from Slice 0's list moves over, including `containmentPopulationSteps`'s idempotency check and the fold's `memberBindings` filter.
-- [ ] **Slice 5. Moves and disconnects.**
+  - [ ] Every presence reader from [Slice 0's recorded list](#recommended-order) moves over, including `containmentPopulationSteps`'s idempotency check and the fold's `memberBindings` filter.
+- [ ] **Slice 5. Moves and disconnects.** Starts after `AGENT.authoredObjectPopulation.planning.md` lands (ordering decided in Slice 0).
   - [ ] A move re-points the mover's stable remainder, in place of `presenceBindingStepsForMove`'s remove-then-add.
   - [ ] A disconnect, destroy or scrub re-points to a hostless remainder instead of deleting the binding.
   - [ ] Re-check the character-cardinality validator in `applyStepSequenceCore` (PR-13): an offline character keeps one hostless remainder, which still satisfies "at most one".
@@ -74,7 +79,6 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
-| **PRm-1** | **What does the seam return, and how is it derived before `fromHostPresence` is stored?** The first-draft wording --- the parent binding whose cover lists `{ owner, binding }`, otherwise the host's single `Full` binding --- leaves three cases open, all in today's data. No stored cover is `Enumerated`, so the second branch always runs. (1) The parent is a Room in an Area: its only binding is the Area binding, so "single Full" picks it, which is the Slice 2 defect and contradicts PR-21(f). (2) The parent has no binding (a Room with no Area, or another top-level host): there is no binding to name, but the parent host is known. (3) The parent has several bindings (a Feature in two rooms): the data cannot say which, and PR-21(d) says report, never guess. **Recommended:** return `{ host, presence? }`. `host` always comes from `fromHostId`; `presence` is set only when the derivation is unambiguous (a cover lists the binding, or a non-room parent holds exactly one binding). A walker given no `presence` falls back to today's host-grain fan-out, kept in one place. Slice 4 makes `presence` required, the same optional-field-made-required pattern as `groundedId?`. This keeps Slice 1 behavior-preserving and leaves the defect fix to Slice 2. | Slice 1 | Open (recommended) |
 | **PRm-2** | **The cover's exact encoding.** PR-21(b) locks the shape, roughly `{ remainder: boolean, members }`, with at most one remainder per whole; the field names, whether it stays a tagged union, and whether a remainder's `members` is stored or always empty are open. | Slice 3 | Open |
 | **PRm-3** | **Migration mechanism.** A one-shot script over stored graphs, or heal-on-read through Slice 6's cover-rebuild heal. | Slice 7 | Open |
 
@@ -84,7 +88,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 # Baseline and per-slice tests (from repo root):
 cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/ludicGraph/ dataSource/positions/ludicCache/ dataSource/positions/manipulation/
 
-# After Slice 4: no presence reader still matches on `fromHostId` (port readers remain; check each hit against Slice 0's list).
+# After Slice 4: no presence reader still matches on `fromHostId` (port readers remain; check each hit against Slice 0's recorded list).
 grep -rn "fromHostId" --include='*.ts' lambda/ephemera/dataSource packages/mtw-interfaces/ts | grep -v test
 
 # Relative links resolve in every touched markdown file (pass the files as arguments).
@@ -97,8 +101,8 @@ node -e 'const fs=require("fs"),path=require("path");let bad=0;for(const f of pr
 
 | Slice | Status |
 | --- | --- |
-| 0. Verify premises | Not started |
-| 1. The seam | Not started (PRm-1) |
+| 0. Verify premises | Done 2026-10-11 |
+| 1. The seam | Done 2026-10-11 |
 | 2. Extra-bucket defect | Not started |
 | 3. Cover type | Not started (PRm-2) |
 | 4. Stored `fromHostPresence` | Not started |

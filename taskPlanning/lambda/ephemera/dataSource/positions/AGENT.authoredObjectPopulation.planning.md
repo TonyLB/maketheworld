@@ -28,6 +28,8 @@ This is a standard implementation plan under [`taskPlanning/AGENT.md`](../../../
 cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/manipulation/containment/
 ```
 
+**Ordering (the user, 2026-10-11):** starts after [`AGENT.presenceRemainder.planning.md`](AGENT.presenceRemainder.planning.md) Slices 1-4, so population is written against the `fromHostPresence` emitter shape; that plan's Slices 5+ follow this one.
+
 ## What is deliberately out of scope
 
 - **Removal on de-authoring.** A child dropped from authored WML keeps its live placement, as the contract already says for Rooms and Features.
