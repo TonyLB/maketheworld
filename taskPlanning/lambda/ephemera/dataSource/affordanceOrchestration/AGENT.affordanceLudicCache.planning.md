@@ -1,6 +1,6 @@
 # Room affordances on `ludicCache`: one level of nested contents
 
-**Status: Slices 0--1 done (D1 re-scoped to a forward read 2026-10-11; `ludicCacheRoomObjectContents` shipped). Next step: [Slice 2](#recommended-order).** Branch `iss8260-first-draft-affordance-refactor-design`.
+**Status: Slices 0--2 done (D1 re-scoped to a forward read 2026-10-11; `ludicCacheRoomObjectContents` shipped and composed into the room header). Next step: [Slice 3](#recommended-order).** Branch `iss8260-first-draft-affordance-refactor-design`.
 
 **Scope in one sentence: build the room-affordance channel's object list from `ludicCache`'s own data (read forward through a purpose-built reader, not the command path's handle function), and show one level of contents beside each room-level object --- `Table (with Red cup)`, `Table (with Red cup, Blue cup)`, and `Table (with several objects)` past three.**
 
@@ -72,12 +72,12 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [X] Tests beside it: object on the floor with no contents; cup on a table (via the table's binding cover); table bound into two rooms (covers unioned, once each); box on a table holding a cup (the cup does not appear at the table's level); unresolved shortName dropped at both levels; (a character-held item is excluded by the caller's input --- the room's shard never lists it --- so it needs no reader test).
   - [X] `catalogHandles.ts` and `roomObjectCatalogForCharacter.ts` are not edited.
 
-- [ ] **Slice 2. Compose the room header from the reader.**
-  - [ ] `AffordanceRoomDeliverableData` calls Slice 1's reader with the room's `ludicGraph.objectIds` in place of `getImprovisationObject` per id. The room row's own `ludicGraph` wire field is unchanged (still the room's shard).
-  - [ ] **Room-level objects** = the room's own shard objects (as today); each one's **contents** = the reader's `contents`. Each room-level object's stub carries a `ludicGraph` of bare references to its contents (root excluded, as `toWireLudicGraphFull` already does), and each content object travels as a sibling name stub --- the look path's shape.
-  - [ ] Depth stops there: an object held only by a content object (cup in box on table) is never read, so it gets no stub and no reference.
-  - [ ] Drop `getImprovisationObject` from `AffordanceRoomDeliverableObjectReads` if nothing else reads it; thread the reader as a dep instead, so tests inject it without the cache walk.
-  - [ ] Tests in the deliverable's suite: the cases from Slice 1 produce the expected stubs and references; an object whose shortName is unresolved is dropped at both levels, as today. Assert on the form **reparsed** from `schemaToWML([form.schema])` in `ephemeraWire` (Slice 0 found no committed test of a room-rooted form carrying a nested object graph).
+- [X] **Slice 2. Compose the room header from the reader.** Done 2026-10-11.
+  - [X] `AffordanceRoomDeliverableData` calls Slice 1's reader with the room's `ludicGraph.objectIds` in place of `getImprovisationObject` per id. The room row's own `ludicGraph` wire field is unchanged (still the room's shard).
+  - [X] **Room-level objects** = the room's own shard objects (as today); each one's **contents** = the reader's `contents`. Each room-level object's stub carries a `ludicGraph` of bare references to its contents (root excluded, as `toWireLudicGraphFull` already does), and each content object travels as a sibling name stub --- the look path's shape.
+  - [X] Depth stops there: an object held only by a content object (cup in box on table) is never read, so it gets no stub and no reference.
+  - [X] **Done:** `AffordanceRoomDeliverableObjectReads.getImprovisationObject` is replaced by `getRoomObjectContents(roomId, objectIds, assetStack)`, wired in `internalCache/index.ts` to `ludicCacheRoomObjectContents` (deferred `require`, matching the file's `getMessageBus` pattern). The room's `objectIds` still come from `getLudicGraph(roomId)` --- the cache can't say which objects are direct room members. Stub shape: the object stub's `ludicGraph` is `{ rootId, nodes: [self, ...contentIds] }` (bare ids, root stripped on print); contents are sibling name stubs, deduped, and a content that is also room-level keeps its room-level stub. Drop `getImprovisationObject` from `AffordanceRoomDeliverableObjectReads` if nothing else reads it; thread the reader as a dep instead, so tests inject it without the cache walk.
+  - [X] Tests in the deliverable's suite: the cases from Slice 1 produce the expected stubs and references; an object whose shortName is unresolved is dropped at both levels, as today. Assert on the form **reparsed** from `schemaToWML([form.schema])` in `ephemeraWire` (Slice 0 found no committed test of a room-rooted form carrying a nested object graph).
 
 - [ ] **Slice 3. Room refresh as a consumer of `ludicCache` invalidation.** The route from a move to the rooms it affects *is* the cache's invalidation path. Build it once, in `positions/ludicCache`, and have the affordance refresh consume it, rather than growing a second route inside affordanceOrchestration. The rule: **when a room's cache is invalidated, if the room has occupants, rebuild and re-render its affordances.**
   - [ ] **The invalidation seam.** A function in `positions/ludicCache` takes an `Object Moved` fact and returns the rooms whose cache it invalidates: every room reachable upward from each host in `froms`/`to`, by [`roomsForHost`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/presenceRooms.ts) (bindings form a forest rooted at rooms --- [`AGENT.concepts.md` --- Presence as a cover](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#presence-as-a-cover)), deduplicated. Reuse `roomsForHost` as is; do not write a one-step variant.
@@ -128,7 +128,7 @@ Manual check (the user's): in a dev room, put a cup on a table and see `Table (w
 | --- | --- |
 | 0. Verify premises | Done (2026-10-10) |
 | 1. Forward reader over the cache | Done (2026-10-11) |
-| 2. Compose from the reader | Not started |
+| 2. Compose from the reader | Done (2026-10-11) |
 | 3. Refresh as an invalidation consumer | Not started |
 | 4. Client formatting | Not started |
 | 5. Graduate and dispose | Not started |
