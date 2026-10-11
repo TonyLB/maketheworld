@@ -12,8 +12,9 @@ import type { EphemeraLudicGraph } from './index'
  * ancestor once however many paths reach it, and also terminates on a cycle already in storage.
  * No depth cap --- a capped walk would answer "no" for an ancestor just past the cap.
  *
- * Cost is the size of `startId`'s ancestor set, fetched level by level in parallel. Rooms carry no
- * presence bindings of their own, so every walk ends at the rooms above it.
+ * Cost is the size of `startId`'s ancestor set, fetched level by level in parallel. The walk does not stop at
+ * a room: a room's bindings into its areas are followed like any other, so the ancestor set
+ * includes areas, and a walk ends only at hosts with no binding of their own.
  *
  * **Depends on every membership having a presence binding on the member.** A host whose binding
  * is missing looks parentless here, so the walk answers "no" past it --- a false negative, never a

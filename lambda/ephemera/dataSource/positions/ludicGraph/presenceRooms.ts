@@ -10,8 +10,8 @@ import type { GroundedPresence } from '../../actions/enrich/objectManipulation/p
  * resolution.
  *
  * Generalizes `hasPresenceAncestor`'s BFS from a yes/no reachability test to a terminal-collecting
- * walk: a frontier host that is itself a Room is a terminal (rooms carry no presence bindings of
- * their own); any other frontier host advances through its own `graph.presenceNodes[].fromHostId`,
+ * walk: a frontier host that is itself a Room is a terminal (a room is a perspective root: it has
+ * bindings into its areas, which the walk deliberately does not follow); any other frontier host advances through its own `graph.presenceNodes[].fromHostId`,
  * exactly as `hasPresenceAncestor` does, fanning out blindly over every presence node rather than
  * checking that a parent's `cover` admits the specific binding it arrived from (no code does
  * cover-matching today, and an audience reaching an extra room is harmless: overlapping audiences

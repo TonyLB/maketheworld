@@ -1,6 +1,6 @@
 # Presence remainder: design sweep
 
-**Status: in progress. Next step: [Slice 3](#recommended-order) (correct present-tense docs and comments), after Slice 0's target-list check.** Slices 1, 1b and 2 are done; the implementation plan is open as [`AGENT.presenceRemainder.planning.md`](AGENT.presenceRemainder.planning.md). Slice 0's target-list check stays open and gates only Slice 3. Opened 2026-10-11 from conversation, after a review of how `ROOM#` components are special-cased in presence bindings.
+**Status: in progress. Next step: [Slice 4](#recommended-order) (close).** Slices 0, 1, 1b, 2 and 3 are done; the implementation plan is open as [`AGENT.presenceRemainder.planning.md`](AGENT.presenceRemainder.planning.md).  Opened 2026-10-11 from conversation, after a review of how `ROOM#` components are special-cased in presence bindings.
 
 **Scope in one sentence: carry a design decision reached in conversation --- rooms as perspective roots, and a remainder binding with an optional `fromHostPresence` parent pointer --- into the design plans and durable docs that it changes, without writing any code.**
 
@@ -42,10 +42,10 @@ cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/ludi
 
 Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
 
-- [ ] **Slice 0. Verify premises (no edits).** Record each answer inline here.
+- [X] **Slice 0. Verify premises (no edits).** Record each answer inline here.
   - [X] **Rooms carry Area bindings.** Verified 2026-10-11 by reading: `containmentPopulationSteps` emits `addPresenceBinding` with `hostId: <room>`, `fromHostId: <area>` for Room-in-Area, and authored Areas exist (`packages/mtw-wml/ts/dungeon.wml`).
   - [X] **The extra cache bucket.** Verified 2026-10-11 by reading: `applyStepSequenceCore`'s `addPresenceBinding` mints every binding `Full`, Room-in-Area ones included; `presenceCacheNodesFromFold` expands the room's `Full` Area binding into the room's members; `bucketsByMember` gives each member `{ host: <room>, presence: <that binding> }`; and `roomsForPresenceNode` walks to the Area, which has no bindings, so it resolves to no rooms. Recorded as the implementation plan's Slice 2. The original check: read `foldSameHostBuckets` ([`ludicCache/mergeReducer.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/mergeReducer.ts)) and confirm that a room-seeded `buildLudicCache` folds the room's own Area binding with a cover listing the room's members, so `bucketsByMember` ([`catalogHandles.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/catalogHandles.ts)) gives each member `{ host: <room>, presence: <room's Area binding> }`, which `roomsForPresenceNode` resolves to no rooms. Settle it by reading, or with a throwaway test that is not committed. No cache or audience test today has an Area-hosted room.
-  - [ ] **The target list is complete.** Re-run the stale-phrase grep in [Verification](#verification) and confirm it matches the Slice 3 list.
+  - [X] **The target list is complete.** Verified 2026-10-11: the grep and the two wrapped-line greps matched the Slice 3 list exactly (plus one gap, the tag-clause sentence in `AGENT.concepts.md`, which the grep cannot see and Slice 2's note had already assigned here).
 - [X] **Slice 1. Record the decision in the presence plan.**
   - [X] Ground PR-21 in the corpus (done 2026-10-11, ahead of the rest of this slice so the tier could be decided):
     - [X] **PR-C3**, *the alley filled with refuse, in two areas at once*, in [`AGENT.presence.corpus.planning.md`](AGENT.presence.corpus.planning.md#pr-c3-the-alley-filled-with-refuse-in-two-areas-at-once). Grades the pinch, and records the re-open trigger's near-miss.
@@ -69,13 +69,13 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [X] **PR-12** (open): obligation B (*binding-to-binding, never binding-to-host*) now has a stored field to follow. Note it, and that today's `roomsForHost` fans out binding-to-host.
   - [X] **PR-12 and PR-14** (open): add, as a forward note and not a decision, that placement becomes moving nodes from one bucket to another, the remainder included, so first placement and bucket splitting share one primitive.
   - [X] **PR-18** (open): note that a carve-out with an empty member list has the room's root as its whole bucket, which relies on the root being in every bucket. Both of PR-18's dispositions agree on this, so it stays non-blocking.
-- [ ] **Slice 3. Correct present-tense docs and comments** (false claims only).
-  - [ ] [`AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md): rewrite *Why location resolution terminates* around the perspective root, and mark the remainder model, claim 4's change, and the cover's change from authority to index (*"authoritative rather than derived"*) as Target. Vocabulary only: no dates, slices or file names.
-  - [ ] [`AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) (the character-host restriction, near "a room is never a graph member"): correct the stated reason; the validator itself is unchanged.
-  - [ ] [`AGENT.ludicNetwork.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md) section 1 ("rooms are never members of another play graph"): correct it, and say plainly in section 4 that the remainder model is unbuilt.
-  - [ ] [`ludicGraph/AGENT.md`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/AGENT.md) (`toWireLudicGraphFull`): the projection is still right, for a different reason --- a room's contents fall in one bucket, today its single `Full` binding.
-  - [ ] Code comments, comment-only edits: [`ludicGraph/wireProjection.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/wireProjection.ts) (`toWireLudicGraphFull`'s header), [`ludicGraph/presenceRooms.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/presenceRooms.ts) (`roomsForHost`'s header), [`ludicGraph/presenceAncestry.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/presenceAncestry.ts) (`hasPresenceAncestor`'s header), [`ludicCache/catalogHandles.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/catalogHandles.ts) (file header) and [`plan/planStep.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/plan/planStep.ts) (`GroundedPresence`'s comment).
-  - [ ] Discussion-file derivations ([`AGENT.presence.discussion.planning.md`](AGENT.presence.discussion.planning.md) PR-2 and PR-10 sections) keep their argument as written; they only gain the dated pointer from Slice 2.
+- [X] **Slice 3. Correct present-tense docs and comments** (false claims only). Done 2026-10-11.
+  - [X] [`AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md): rewrite *Why location resolution terminates* around the perspective root, and mark the remainder model, claim 4's change, and the cover's change from authority to index (*"authoritative rather than derived"*) as Target. Vocabulary only: no dates, slices or file names. Also dropped the tag clause from the *guards against reclassification* sentence (PR-9's retired tag-scoping clause; now two guards).
+  - [X] [`AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) (the character-host restriction, near "a room is never a graph member"): correct the stated reason; the validator itself is unchanged.
+  - [X] [`AGENT.ludicNetwork.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md) section 1 ("rooms are never members of another play graph"): correct it, and say plainly in section 4 that the remainder model is unbuilt.
+  - [X] [`ludicGraph/AGENT.md`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/AGENT.md) (`toWireLudicGraphFull`): the projection is still right, for a different reason --- a room's contents fall in one bucket, today its single `Full` binding.
+  - [X] Code comments, comment-only edits: [`ludicGraph/wireProjection.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/wireProjection.ts) (`toWireLudicGraphFull`'s header), [`ludicGraph/presenceRooms.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/presenceRooms.ts) (`roomsForHost`'s header), [`ludicGraph/presenceAncestry.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/presenceAncestry.ts) (`hasPresenceAncestor`'s header; it turned out the walk does NOT stop at rooms, it follows a room's Area binding, unlike `roomsForHost`; header now says so, behavior untouched), [`ludicCache/catalogHandles.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/catalogHandles.ts) (file header) and [`plan/planStep.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/plan/planStep.ts) (`GroundedPresence`'s comment).
+  - [X] Discussion-file derivations ([`AGENT.presence.discussion.planning.md`](AGENT.presence.discussion.planning.md) PR-2 and PR-10 sections) keep their argument as written; they only gain the dated pointer from Slice 2.
 - [ ] **Slice 4. Close.**
   - [ ] Graduation sweep: grep for inbound links to this file (including from the implementation plan opened in Slice 1b), then delete it.
 
@@ -89,7 +89,7 @@ Plan-only: decisions made in order to carry out the next slices. Each row is rem
 ## Verification
 
 ```bash
-# Stale-phrase grep. Expected after Slice 3: hits only in AGENT.presence.discussion.planning.md (preserved derivations).
+# Stale-phrase grep. Expected after Slice 3: hits only in AGENT.presence.discussion.planning.md (preserved derivations), the presence plan's PR-20/PR-3 rows and PR-C3 (they quote the false premise to correct it), and this file.
 grep -rn -iE "rooms? (are|is) never (a )?(graph )?members?|never (a )?members? of (any|another)|rooms? (carry|carries|have|has) no (presence )?binding|a room has no binding|base case is the room" --include='*.md' --include='*.ts' lambda packages taskPlanning
 # Two claims wrap across comment lines and need their own check:
 grep -n -A1 "Rooms carry no$" lambda/ephemera/dataSource/positions/ludicGraph/presenceAncestry.ts
@@ -110,9 +110,9 @@ The link check tests paths only, not anchors. Check by hand any anchor link into
 
 | Slice | Status |
 | --- | --- |
-| 0. Verify premises | In progress (two of three premises verified) |
+| 0. Verify premises | Done 2026-10-11 |
 | 1. Record the decision | Done 2026-10-11 |
 | 1b. Open the implementation plan | Done 2026-10-11 (plan opened) |
 | 2. Amend rows | Done 2026-10-11 |
-| 3. Correct docs and comments | Not started |
+| 3. Correct docs and comments | Done 2026-10-11 |
 | 4. Close | Not started |

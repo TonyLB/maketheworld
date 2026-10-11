@@ -20,8 +20,8 @@ export type GroundedPresenceBinding = { host: EphemeraMembershipHostId; presence
 
 /**
  * One place a referent is seen: a presence bucket (a binding of the host whose graph holds the
- * thing), or the room itself when the thing sits in the room's own graph (a room has no
- * binding). A referent's `groundedPresence` lists every one, so an audience walks up from all of
+ * thing), or the room itself when the thing sits in the room's own graph (a room is a
+ * perspective root, so what sits in its graph is seen there without a binding). A referent's `groundedPresence` lists every one, so an audience walks up from all of
  * them to every room that can see the thing change. Learned alongside `groundedId`, by whoever
  * learns it (Grounding, from the `ludicCache`; Expansion, from the graph it read). Optional:
  * absent means not learned, never "in the room".

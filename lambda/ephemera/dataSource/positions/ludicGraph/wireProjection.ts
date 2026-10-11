@@ -227,9 +227,10 @@ export const toWireLudicGraph = (
 
 /**
  * Slice 5a: the un-cut projection, for a host that is never itself a hosted thing with presence
- * multiplicity -- a Room. Rooms are never members of another play graph (`AGENT.ludicNetwork.md`
- * section 1), so there is no presence binding to sub-graph by; this ships the host's whole stored
- * graph as-is, reusing the same field-by-field mappers `toWireLudicGraph` uses after its cut.
+ * multiplicity -- a Room. A room is a perspective root (`AGENT.ludicNetwork.md` section 1): however
+ * it is grouped into areas, its contents fall in one bucket (today its single `Full` binding), so
+ * there is nothing to cut; this ships the host's whole stored graph as-is, reusing the same
+ * field-by-field mappers `toWireLudicGraph` uses after its cut.
  */
 export const toWireLudicGraphFull = (graph: EphemeraLudicGraph): StandardLudicGraphData => {
     const stored = graph.toStored()

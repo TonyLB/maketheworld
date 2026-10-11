@@ -17,7 +17,8 @@
  * not. The caller's perspective decides *which* thing a phrase means, not who can see it change,
  * so a bucket bound into a room the walk never reached counts, and a whole bound into several
  * rooms names every one. The seed room when it is in no bucket (the object sits in the room's own
- * graph and has no binding of its own; a room has no binding). Still flat scalars, and still not
+ * graph and has no binding of its own; a room is a perspective root, so what sits in its graph is
+ * seen in the room without one). Still flat scalars, and still not
  * a filter: this records where each thing is seen and drops nothing.
  *
  * **Slice 5 (PC-3): this is also the instrumentation boundary.** `buildLudicCache` and
