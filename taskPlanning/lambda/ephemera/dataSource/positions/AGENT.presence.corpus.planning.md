@@ -278,3 +278,47 @@ Each root is in every bucket of its own graph by definition, per PR-9's point (4
 **Also not decided: [PQ-13](AGENT.abstractionLayers.proposals.planning.md#open-questions-ab-34-sub-questions-ids-stable-never-reused) versus [H-3 residual (i)](#ph0a-harvest--the-presence-cases-that-already-exist)** --- whether an unspanned object carries a presence port or an empty list. **The case is run on both branches and PR-11's answer survives both**, which is the useful result: presence-port count is *filter `ports` on `kind === 'Present'` and count*, which is well-defined on an empty list, so **the kind field makes that question cheaper to keep deferring rather than more urgent to settle.** Also nothing about **apprehension**: whether a decomposed flashlight with a cord in it reads as one thing is [C8](AGENT.abstractionLayers.corpus.planning.md#c8-the-flashlight-that-vanished-when-someone-looked-at-it)'s and [C10](AGENT.abstractionLayers.corpus.planning.md#c10-the-moonbase-computer-system)'s axis, and the case is silent on it deliberately. And nothing about **what the reducer does with a non-presence port during a transfer**, which is [PR-8](AGENT.presence.planning.md#open-decisions-design--plan-only)'s.
 
 **Rows graded:** [PR-11](AGENT.presence.planning.md#settled-register) (**survives, and is widened.** Its edge-derivation rejection is confirmed on the case it cites and its discriminator is shown to have no weaker alternative; Finding 3 falsifies its *"the same union the relational edge type already carries, unrestricted"* clause as an incomplete statement of the shape, **and the row's answer becomes `kind` plus an exterior and an interior `Custom` payload --- (B)**), LP6 (**two effects: its agreement obligation stands and gains a grain and a precondition** --- `kind`-grain only, never the labels, vacuous where no edge exists --- **and its open *interior-authoritative* arbitration is promoted from inferred to owed by (B)**), [PR-10](AGENT.presence.planning.md#settled-register) (**register's *at-most-one* confirmed against PR-C1's looser *exactly one*; no change to the row**), [PR-C1](#pr-c1-the-contraption-in-two-rooms-and-whether-covers-nest) (**its booked discriminator gap is discharged here**).
+
+### PR-C3. The alley filled with refuse, in two areas at once
+
+**Origin:** supplied by the user 2026-10-11, to ground [PR-21](AGENT.presence.planning.md#open-decisions-design--plan-only)'s room rule. **It tries to falsify the pinch:** *a room has one hostless remainder however many groupings hold it, and nothing below the room inherits that multiplicity.* It also tests the premise PR-2 and PR-10 rested on, *a room is never a member of any graph.*
+
+**The setup.** `ROOM#Alley` is in `AREA#Marketplace` and in `AREA#FireSpitterTurf`. Both are true at once: it is a market back-alley, and the Fire-Spitter gang claims it. In the alley: `OBJECT#RefuseHeap`, and a character standing in it.
+
+**Levels staged:** grouping (two Areas over one room), the room, and the room's contents.
+
+**Today's model.** Cache-time population ([`containmentPopulationSteps.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/containment/containmentPopulationSteps.ts)) makes the alley a node of both Areas' graphs and mints **one binding per parent, each with a `Full` cover**. So the old premise is already false in shipped code: the alley is a member of two graphs and carries two bindings. Each `Full` binding covers the heap and the character, so each of them is in **two of the alley's buckets** --- "the heap as present via the Marketplace" and "the heap as present via the Turf." Nothing writes inherited arity yet; if anything did, the character would inherit two bindings, and the character cardinality validator in `applyStepSequenceCore` would refuse the write.
+
+| Reading | The alley's bindings | The heap and the character |
+| --- | --- | --- |
+| **Today** (one `Full` binding per parent) | Two, each covering everything | Two buckets each: the room as present in each Area |
+| **PR-21** (remainder plus carve-outs) | One hostless remainder; two carve-outs with empty member lists, whose bucket is the alley itself | One binding each, under the remainder |
+
+**Finding.** Only the remainder reading matches the requirement in [PR-20](AGENT.presence.planning.md#open-decisions-design--plan-only): the player is in the Alley, full stop. "Which areas is this in?" still answers both, from the carve-outs above the pinch. A fight in the alley reaches the alley's audience, not the whole Marketplace, because resolution stops at the room. **The pinch survives a second grouping parent, and the old premise does not.**
+
+**The near-miss, recorded as PR-21's re-open trigger.** *"The east end of the alley is Fire-Spitter turf; the west end is not."* That is grouping splitting a room. The model answers it as two rooms. If a story needs it to stay one room, a room would need two remainders or a grouping carve-out that holds part of its contents, and the shape re-opens.
+
+**Rows graded:** PR-21 (the pinch: survives), PR-20 (perspective: survives), [PR-2](AGENT.presence.planning.md#settled-register) and [PR-10](AGENT.presence.planning.md#settled-register) (their premise falsified; their verdicts restated on the pinch).
+
+### PR-C4. The crate of angry bees, before Acme delivers it
+
+**Origin:** supplied by the user 2026-10-11, to ground PR-21's hostless remainder for things that exist but are not yet anywhere. The order is a real one: *"a reinforced crate of angry bees"* is a phrase in the Acme affinities harness ([`acmeOrderAffinitiesHarnessPhrases.ts`](../../../../../lambda/ephemera/dataSource/actions/acmeOrderAffinitiesHarnessPhrases.ts), `borderline-003-bees-crate`). **It tries to falsify** [PR-1](AGENT.presence.planning.md#settled-register)'s representation of hostlessness, *a hostless whole carries no presence nodes and is outside the invariant*, and the [primer](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md)'s *every binding has one ancestor chain ending at a room.*
+
+**The setup.** Coyote orders the crate. Between the order and the delivery, the crate exists and the bees are in it, but it is in no room: it is in Acme's hands, in transit. Then it lands in `ROOM#Canyon`. Or delivery fails, and it stays undelivered.
+
+**Levels staged:** the crate (whole), the bees (its contents), and the room it lands in.
+
+**Today's model, and where it stops.** An order becomes one object per catalog line; the harness expects one line, `bees`, so the crate as a container is never built. Each object is created and then placed directly into a room by [`spawnOneImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts): it writes the object's rows, calls `executeMembershipTransfer`, and **if placement fails, deletes the object again** (and reports a problem if the delete fails too). That compensating delete exists because *created but not placed* is not a legal state.
+
+| Reading | Before delivery | At delivery | If delivery fails |
+| --- | --- | --- | --- |
+| **PR-1's hostless reading** (no presence nodes) | The crate has no binding. The bees' binding into the crate has no binding of the crate to sit under, so its chain ends nowhere --- the primer's forest claim fails | The crate gains a binding, and the bees' binding gains a parent after the fact | Either an orphaned composition or a delete, as today |
+| **PR-21** (hostless remainder) | The crate's remainder has no host and holds the bees; the bees' binding sits under it | The remainder gets a host, `ROOM#Canyon`; the bees are untouched | A legal state: a crate in transit. Nothing to delete |
+
+**Finding.** The requirement half of PR-1 stands --- hostless wholes must be representable. **Its representation does not survive a hostless whole with contents:** the contents' bindings have no parent until the whole is placed. Under PR-21 every binding's chain ends at a room *or at a hostless remainder*, and the second ending means "present nowhere," which an undelivered crate is. The primer's forest claim is restated that way, not dropped.
+
+**Amended the same day, 2026-10-11, when pointers were made the authority.** As first written, this case did not grade whether the crate's remainder keeps its id across delivery, because the bees' binding named only the crate as host. Under PR-21 as decided later that day, the bees' binding names the crate's *remainder* (`fromHostPresence`), so **delivery must re-point the remainder, never re-mint it**, or every binding inside the crate is orphaned. The case now grades the stable remainder id, and it survives.
+
+**What this case does not grade.** Whether the order pipeline should build the crate as a container at all --- that is the Acme interpretation's call, and the harness currently counts *"over-index on crate packaging"* as an error.
+
+**Rows graded:** [PR-1](AGENT.presence.planning.md#settled-register) (requirement survives; representation restated), PR-21 (hostless remainder and stable remainder id: survive), [PR-9](AGENT.presence.planning.md#settled-register) (its domain clause: hostless wholes are now inside the invariant).

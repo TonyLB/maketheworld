@@ -414,6 +414,25 @@ Under ports there is exactly **one** system graph either way, and the rope is no
 
 **Rows grounded.** AB-12 (above-human-scale abstraction with no Feature or Area dependency), AB-15 (apprehension versus authored binding level), AB-23 (the live challenge), AB-6 (presence half --- C9's rule needs qualifying), AB-25 (residue softened), H1 clause 1b (the fork re-framed).
 
+#### Annotation 2026-10-11: an intangible member, the database library
+
+**Added from conversation, not rewritten into the case above.** The case's parts are all tangible: terminals, a door control, a drone. Add one that is not: `OBJECT#DesignLibrary`, the computer's database of ancestral design patterns. It is a real member of the system's graph --- you can query it from any terminal, and corrupting it is a story event --- but it is not *in* the lab, the mess or the airlock.
+
+**What this tests is totality, not apprehension.** The computer is bound into several rooms, so it is a hosted whole, and [PR-9](AGENT.presence.planning.md#settled-register)'s totality applies: every node of its graph must fall in some bucket. The library has to go somewhere. The readings:
+
+| Reading | Where the library goes | What it gets wrong |
+| --- | --- | --- |
+| **Tag that does not bear presence** (PR-9's anticipated route) | Nowhere, legitimately, because its tag is exempt | Needs an `IntangibleObject`-style kind. Intangibility becomes a property of the kind, not of the thing's place in this whole |
+| **Every terminal's bucket** | In the lab, the mess and the airlock | Claims physical presence for what is only access. Presence is not apprehension, and this conflates them |
+| **No bucket** (PR-1's hostless reading does not apply: the computer is hosted) | Nowhere, as a totality violation | PR-9's guards say a node in no bucket is a bug, never grounds for reclassifying it |
+| **The computer's hostless remainder** ([PR-21](AGENT.presence.planning.md#open-decisions-design--plan-only)) | In the remainder, which has no host; each terminal is a carve-out bound to its room | --- |
+
+**Only the remainder reading keeps totality, keeps the library an ordinary `OBJECT#`, and claims no false presence.** It also states the choice the modeller is making: hosting the computer's remainder in the server room would put the library in the server room, which is a different and equally expressible story.
+
+**Not touched:** this case's own open question, apprehension scale (terminal versus system). The library's presence says nothing about what a room's description contains.
+
+**Rows grounded.** PR-21 (the remainder, and intangibility as structure), PR-9 (its tag-scoping route retired).
+
 ### C11. The Rube Goldberg machine
 
 **Origin:** proposed 2026-08-07, **as a direct challenge to an assessment made in this plan hours earlier.** An argument for retaining [H1](AGENT.abstractionLayers.proposals.rejected.planning.md#h1-is-a-conjunction-and-its-clauses-are-tested-separately)'s H1 clause 1a leaned on parts and wholes being different kinds of thing with different hosting rules; the objection was that a scale-invariant system cannot be built on that basis, because **whole and part are consequences of point of view and positioning, not attributes of an item.** No case C1--C10 could settle it: every one of them has exactly two levels, so nothing in the corpus had ever occupied both roles at once. **This case was built to supply the missing level.**
