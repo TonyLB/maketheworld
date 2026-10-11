@@ -574,6 +574,13 @@ export class EphemeraLudicGraph {
         return this.withNodes([...this._nodes, node])
     }
 
+    /** In-place rewrite of an existing binding, keeping its position and `universalKey`; absent key: unchanged. */
+    replacePresenceNode(node: EphemeraLudicGraphStructureNode): EphemeraLudicGraph {
+        return this.withNodes(
+            this._nodes.map((existing) => existing.tag === 'Presence' && existing.universalKey === node.universalKey ? node : existing)
+        )
+    }
+
     removePresenceNode(universalKey: EphemeraPresenceNodeId): EphemeraLudicGraph {
         return this.withNodes(
             this._nodes.filter((node) => !(node.tag === 'Presence' && node.universalKey === universalKey))

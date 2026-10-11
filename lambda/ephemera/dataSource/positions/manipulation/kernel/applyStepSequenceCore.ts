@@ -7,6 +7,8 @@ import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemera
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyTransfer } from '../../ludicGraph/expandValidate/applyTransfer'
+import { childParentBindingIdOf, parentHostOf } from '../../ludicGraph/presenceParent'
+import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
@@ -20,6 +22,21 @@ import type { MutationKernelApplyOutcome } from './types'
  * particular id happens to be a node of two graphs, only one of which is shared with the other
  * endpoint."
  */
+/**
+ * Fills in which of the parent's bindings a new binding sits under, when the step named only the
+ * parent host (a move: the compiler has no prior-state read). The parent graph is in the
+ * footprint (the transfer puts the destination there), so the read is free and happens inside the
+ * lock; unresolved --- no binding, or several --- leaves `presence` unset rather than guessing.
+ */
+const withParentPresence = (
+    pointer: EphemeraPresenceParentPointer,
+    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
+): EphemeraPresenceParentPointer => {
+    const parentGraph = graphs.get(pointer.host)
+    const presence = pointer.presence ?? (parentGraph ? childParentBindingIdOf(parentGraph) : undefined)
+    return presence ? { host: pointer.host, presence } : { host: pointer.host }
+}
+
 const hostsOf = (
     id: EphemeraLudicTerminalId,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
@@ -257,8 +274,8 @@ export const applyStepSequenceCore = (
             const withNode = graph.addPresenceNode({
                 tag: 'Presence',
                 universalKey: PresenceKey(step.presenceUuid),
-                fromHostId: step.fromHostId,
-                cover: remainderCover(),
+                ...(step.fromHostPresence ? { fromHostPresence: withParentPresence(step.fromHostPresence, graphs) } : {}),
+                cover: step.cover ?? remainderCover(),
             })
             graphs.set(step.hostId, withNode)
             continue
@@ -272,9 +289,26 @@ export const applyStepSequenceCore = (
             // it is what lets the compiler emit one of these per departure host without
             // knowing which one, if any, actually held the binding.
             const withoutBinding = graph.presenceNodes
-                .filter((node) => node.fromHostId === step.fromHostId)
+                .filter((node) => parentHostOf(node) === step.fromHostId)
                 .reduce((current, node) => current.removePresenceNode(node.universalKey), graph)
             graphs.set(step.hostId, withoutBinding)
+            continue
+        }
+
+        if (step.kind === 'repairPresenceBinding') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
+            }
+            if (!graph.presenceNodes.some((node) => node.universalKey === step.presenceId)) {
+                return { verdict: 'stale', reasonCode: 'presenceBindingMissing' }
+            }
+            graphs.set(step.hostId, graph.replacePresenceNode({
+                tag: 'Presence',
+                universalKey: step.presenceId,
+                ...(step.fromHostPresence ? { fromHostPresence: step.fromHostPresence } : {}),
+                cover: step.cover,
+            }))
             continue
         }
 

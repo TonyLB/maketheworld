@@ -9,10 +9,10 @@ import type { EphemeraLudicGraph } from './index'
 type GetGraph = (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 
 /**
- * The parent a presence binding is present at. `host` always names the parent's shard. `presence`
- * names the parent's binding that covers this one, and is set only when that is unambiguous (see
- * `resolveParentPresence`); a walker given no `presence` falls back to host-grain fan-out. A later
- * slice stores the pointer and makes `presence` required.
+ * The parent a presence binding is present at, read from its stored `fromHostPresence`. `host`
+ * names the parent's shard; `presence` names the parent binding this one sits under. `presence`
+ * is absent only on the legacy host-only read (a binding stored with `fromHostId` and no pointer),
+ * which the Slice 4 `cacheAsset` rerun rewrites; a walker given no `presence` fans out at host grain.
  */
 export type ParentBinding = {
     host: EphemeraMembershipHostId
@@ -24,67 +24,63 @@ export type OwnedParentBinding = {
     parent: ParentBinding
 }
 
-/**
- * Which of `parentHostId`'s own bindings covers `owner`'s `binding`, if the data says so
- * unambiguously: a binding whose cover lists it as an entry, else the parent's only binding when
- * the parent is not a room. Never guesses: a room's only binding is its Area binding (a
- * carve-out, not the parent of what the room holds), no binding leaves nothing to name, and
- * several bindings cannot be told apart.
- */
-const resolveParentPresence = async (
-    owner: EphemeraMembershipHostId,
-    binding: EphemeraLudicGraphStructureNode,
-    parentHostId: EphemeraMembershipHostId,
-    getGraph: GetGraph
-): Promise<EphemeraPresenceNodeId | undefined> => {
-    const parentBindings = (await getGraph(parentHostId)).presenceNodes
-    const listing = parentBindings.find(({ cover }) => (
-        cover.members.some((entry) => !isEphemeraPresenceCoverRemainder(entry) && entry.host === owner && entry.presence === binding.universalKey)
-    ))
-    if (listing) {
-        return listing.universalKey
+export const parentOf = (binding: EphemeraLudicGraphStructureNode): ParentBinding | undefined => {
+    if (binding.fromHostPresence) {
+        return { host: binding.fromHostPresence.host, presence: binding.fromHostPresence.presence }
     }
-    if (!isEphemeraRoomId(parentHostId) && parentBindings.length === 1) {
-        return parentBindings[0].universalKey
-    }
-    return undefined
+    return binding.fromHostId ? { host: binding.fromHostId } : undefined
 }
 
+/** The parent HOST a binding sits under (stored pointer, else the legacy host-only read), if it has one. */
+export const parentHostOf = (binding: EphemeraLudicGraphStructureNode): EphemeraMembershipHostId | undefined => parentOf(binding)?.host
+
 /**
- * Every presence binding on `ownerHostId`'s own graph (a binding is minted onto the mover's own
- * graph), each with the parent it names: the one place a walker reads upward edges. Walkers read
- * `parent.host` and fan out over it; membership is a DAG, so one host can have several parents.
- *
- * `resolvePresence` additionally reads each parent's graph to fill `parent.presence`. It is off by
- * default because host-grain walkers fetch those graphs anyway on their next level.
+ * Every presence binding on `ownerHostId`'s own graph that has a parent (a binding is minted onto
+ * the mover's own graph), each with the parent it names: the one place a walker reads upward
+ * edges. A hostless remainder has no parent and no upward edge, so it is not returned. Membership
+ * is a DAG, so one host can have several parents.
  */
 export const parentBindingsOf = async (
     ownerHostId: EphemeraMembershipHostId,
-    getGraph: GetGraph,
-    { resolvePresence = false }: { resolvePresence?: boolean } = {}
+    getGraph: GetGraph
 ): Promise<OwnedParentBinding[]> => {
     const { presenceNodes } = await getGraph(ownerHostId)
-    return Promise.all(presenceNodes.map(async (binding) => {
-        const host = binding.fromHostId
-        if (!resolvePresence) {
-            return { binding, parent: { host } }
-        }
-        const presence = await resolveParentPresence(ownerHostId, binding, host, getGraph)
-        return { binding, parent: presence ? { host, presence } : { host } }
-    }))
+    return presenceNodes.flatMap((binding) => {
+        const parent = parentOf(binding)
+        return parent ? [{ binding, parent }] : []
+    })
 }
 
-/** One binding of `ownerHostId`'s, located by id on the owner's own graph. */
+/** One binding of `ownerHostId`'s, located by id on the owner's own graph. Hostless: `undefined`. */
 export const parentBinding = async (
     ownerHostId: EphemeraMembershipHostId,
     presenceId: EphemeraPresenceNodeId,
-    getGraph: GetGraph,
-    options: { resolvePresence?: boolean } = {}
-): Promise<ParentBinding> => {
-    const found = (await parentBindingsOf(ownerHostId, getGraph, options))
-        .find(({ binding }) => binding.universalKey === presenceId)
+    getGraph: GetGraph
+): Promise<ParentBinding | undefined> => {
+    const { presenceNodes } = await getGraph(ownerHostId)
+    const found = presenceNodes.find((binding) => binding.universalKey === presenceId)
     if (!found) {
         throw new Error(`parentBinding: ${presenceId} not found on ${ownerHostId}'s own graph`)
     }
-    return found.parent
+    return parentOf(found)
+}
+
+/** A room's one hostless remainder (PR-21(f)): no parent pointer, and a cover that includes the remainder. */
+export const hostlessRemainderOf = (graph: EphemeraLudicGraph): EphemeraLudicGraphStructureNode | undefined => (
+    graph.presenceNodes.find((node) => (
+        !node.fromHostPresence && !node.fromHostId && node.cover.members.some(isEphemeraPresenceCoverRemainder)
+    ))
+)
+
+/**
+ * The binding of `parentGraph`'s host that its children sit under, when the data names one
+ * unambiguously: a room's hostless remainder, else the host's only binding. Never guesses --- no
+ * binding, or several (the caller must name which), is `undefined`. An Area holds no bindings.
+ */
+export const childParentBindingIdOf = (parentGraph: EphemeraLudicGraph): EphemeraPresenceNodeId | undefined => {
+    if (isEphemeraRoomId(parentGraph.hostId)) {
+        return hostlessRemainderOf(parentGraph)?.universalKey
+    }
+    const { presenceNodes } = parentGraph
+    return presenceNodes.length === 1 ? presenceNodes[0].universalKey : undefined
 }

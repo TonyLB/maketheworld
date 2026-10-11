@@ -18,7 +18,7 @@ const ball = 'OBJECT#Ball' as EphemeraObjectId
 const presenceAt = (fromHostId: EphemeraMembershipHostId): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: PresenceKey(`${fromHostId.replace('#', '-')}-binding`),
-    fromHostId,
+    fromHostPresence: { host: fromHostId },
     cover: { members: [{ tag: 'Remainder' }] },
 })
 

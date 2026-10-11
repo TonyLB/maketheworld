@@ -82,7 +82,7 @@ describe('orchestrateCharacterMove', () => {
             { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
             { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
             { kind: 'removePresenceBinding', hostId: CHARACTER_ID, fromHostId: FROM_ROOM },
-            { kind: 'addPresenceBinding', hostId: CHARACTER_ID, fromHostId: TO_ROOM, presenceUuid: expect.any(String) },
+            { kind: 'addPresenceBinding', hostId: CHARACTER_ID, fromHostPresence: { host: TO_ROOM }, presenceUuid: expect.any(String) },
             { kind: 'capture', hostId: TO_ROOM, captureId: 'capture:to' },
             expect.objectContaining({ kind: 'narrate' }),
             { kind: 'describe', referentId: TO_ROOM, referentKind: 'room', header: { perspectiveKey: 'perspective-key', assets: ['primitives', 'TownCenter'] } },

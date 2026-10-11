@@ -42,7 +42,7 @@ const noMemberBindings = () => []
 const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: `PRESENCE#${portId}` as EphemeraPresenceNodeId,
-    fromHostId: roomId,
+    fromHostPresence: { host: roomId },
     cover,
 })
 
@@ -465,7 +465,7 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_1',
-                fromHostId: roomId,
+                fromHostPresence: { host: roomId },
                 consolidated: true,
                 cover: {
                     members: expect.arrayContaining([
@@ -478,7 +478,7 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_2',
-                fromHostId: roomId,
+                fromHostPresence: { host: roomId },
                 consolidated: true,
                 cover: {
                     members: expect.arrayContaining([
@@ -490,7 +490,7 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_3',
-                fromHostId: roomId,
+                fromHostPresence: { host: roomId },
                 consolidated: true,
                 cover: {
                     members: expect.arrayContaining([

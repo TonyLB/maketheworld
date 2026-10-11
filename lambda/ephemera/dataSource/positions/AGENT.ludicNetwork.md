@@ -148,10 +148,10 @@ Sections 1--3 answer *what is in each host*. Presence answers the converse from 
 **Every hosted thing carries *at least* one presence node per host it is in**, as a node in its own graph. Usually exactly one --- but a thing inside a whole that is itself present in a host two distinguishable ways **inherits that arity**: a grappling-hook gun that is part of a contraption straddling two rooms has *one* host (the contraption) and *two* bindings into it, one per bucket of the contraption's own cover. That is why presence is indexed by binding rather than by host:
 
 ```text
-{ tag: 'Presence', universalKey: 'PRESENCE#<uuid>', fromHostId: <the host>, cover: <see below> }
+{ tag: 'Presence', universalKey: 'PRESENCE#<uuid>', fromHostPresence: { host: <the parent host>, presence: <its binding> }, cover: <see below> }
 ```
 
-- **`fromHostId`** is a shard locator: which host's graph to read to find this thing as a member.
+- **`fromHostPresence`** names the parent binding: `host` is the shard to read, `presence` is which of that host's bindings this one sits under. It governs; the parent's cover is a stored index of it. Absent on a hostless remainder (a room's own), and `presence` is absent where the parent holds no binding (a room in an Area).
 - **`cover`** is the **bucket** --- which of this thing's own nodes are present at this host. `{ members: [...] }`, each entry either `{ host, presence }` --- naming one of this thing's nodes *and which of that node's own bindings* is meant --- or the `Remainder` sentinel, standing for every node of the thing that no binding of it lists explicitly (a sole `Remainder` is "all of them").
 
 The rope makes the point. It is a node in the Lab's graph and in the Hall's graph, so its own graph holds two presence nodes:
@@ -160,8 +160,8 @@ The rope makes the point. It is a node in the Lab's graph and in the Hall's grap
 OBJECT#Rope.ludicGraph
   rootId: OBJECT#Rope
   nodes:  OBJECT#Rope, OBJECT#RopeEndA, OBJECT#RopeEndB,
-          { Presence, PRESENCE#p1, fromHostId: ROOM#Lab,  cover: [EndA] }   // bucket 1
-          { Presence, PRESENCE#p2, fromHostId: ROOM#Hall, cover: [EndB] }   // bucket 2
+          { Presence, PRESENCE#p1, fromHostPresence: ROOM#Lab,  cover: [EndA] }   // bucket 1
+          { Presence, PRESENCE#p2, fromHostPresence: ROOM#Hall, cover: [EndB] }   // bucket 2
   edges:  OBJECT#RopeEndA -PartOf-> OBJECT#Rope
           OBJECT#RopeEndB -PartOf-> OBJECT#Rope
           OBJECT#RopeEndA -Custom('spliced to')-> OBJECT#RopeEndB
@@ -184,7 +184,7 @@ The **formulation**, in the terms the design uses:
 
 **What is built and what is not.** The presence-node record, its single write path (one binding minted per rehost, removed on departure --- so the shipped emitters produce arity 1; inherited arity above one is representable but not yet written by anything), the cover field, the `PRESENCE#` addressing, and the cache's reading of it are all shipped. **No writer yet computes a carve-out** --- every binding is minted as a sole `Remainder`, which is correct for every single-hosted thing and is the rope's *target* shape, not its current one. Descent (a part's own bindings following its whole's) is likewise unbuilt; no current caller needs it.
 
-**The remainder model is unbuilt.** The target is that every whole has at least one *remainder* (a binding whose cover is every node no binding lists explicitly; usually exactly one) and the rest are *carve-outs* with explicit members; that a binding names its parent binding directly, in place of today's host-only `fromHostId`; that a remainder keeps its id across moves; and that a thing present nowhere (offline character, intangible part, item created but not yet placed) holds a hostless remainder instead of having no binding. The `Remainder` cover type is shipped; the rest is not stored today: bindings are a sole `Remainder`, hostless wholes have none, and a move removes and re-mints. The "forest ending at a room" above holds either way.
+**The remainder model is partly built.** The target is that every whole has at least one *remainder* (a binding whose cover is every node no binding lists explicitly; usually exactly one) and the rest are *carve-outs* with explicit members; that a binding names its parent binding directly (shipped: `fromHostPresence`); that a remainder keeps its id across moves; and that a thing present nowhere (offline character, intangible part, item created but not yet placed) holds a hostless remainder instead of having no binding. The `Remainder` cover type, the stored parent pointer and a room's hostless remainder are shipped; not yet stored: a stable remainder id across moves (a move removes and re-mints), and hostless remainders for anything but a room. The "forest ending at a room" above holds either way.
 
 Where this is normative: [`AGENT.contract.md` --- Presence nodes](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path). Mental model, with the reasoning: [`AGENT.concepts.md` --- Presence as a cover](AGENT.concepts.md#presence-as-a-cover). Build status: [`AGENT.implementation.md` --- `ludicGraph/`](AGENT.implementation.md#ludicgraph-play-manipulation-model).
 
@@ -255,7 +255,7 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 | **Crossing port** | The record in `ports` where a relation passes through the boundary; interior-side, two scopes of field | [Port records](AGENT.contract.md#port-records-field-scope-and-the-conflict-rule) |
 | **Leg / chain** | A relation across boundaries is stored as legs, one per graph; the chain is their shared identity | [`AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) |
 | **Coarsening** | An unresolvable port address reads as its owner | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
-| **Presence node** | `{ tag: 'Presence', PRESENCE#…, fromHostId, cover }` in the hosted thing's graph; one per binding, and a host may hold more than one binding into the same thing | [Presence nodes](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path) |
+| **Presence node** | `{ tag: 'Presence', PRESENCE#…, fromHostPresence, cover }` in the hosted thing's graph; one per binding, and a host may hold more than one binding into the same thing | [Presence nodes](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path) |
 | **Binding / bucket / cover / totality** | One way of being present / its node subset / the family of buckets / their union is every node | [Presence as a cover](AGENT.concepts.md#presence-as-a-cover) |
 | **Apprehension scale** | Whether a thing answers "what is here" at a host's scale; an attention concern of the cache, declared, not yet modelled | [`ludicCache` entry](AGENT.concepts.md#ludiccache-the-attention-scoped-read-structure) |
 | **`ludicCache`** | Derived, attention-scoped, cross-shard read structure; hits return handles | [`ludicCache` entry](AGENT.concepts.md#ludiccache-the-attention-scoped-read-structure), [`ludicCache/types.ts`](ludicCache/types.ts), [rebuild plan](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCacheRebuild.planning.md) |

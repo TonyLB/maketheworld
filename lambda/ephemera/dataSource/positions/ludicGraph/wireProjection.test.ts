@@ -39,11 +39,11 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                     { tag: 'Feature', universalKey: featureId },
                     { tag: 'Area', universalKey: areaId },
                     // Lists Box explicitly as well: binding2 claims it, and a bare remainder excludes claimed members.
-                    { tag: 'Presence', universalKey: bindingId, fromHostId: roomId, cover: { members: [{ tag: 'Remainder' }, { host: boxId, presence: 'PRESENCE#box-binding' as EphemeraPresenceNodeId }] } },
+                    { tag: 'Presence', universalKey: bindingId, fromHostPresence: { host: roomId }, cover: { members: [{ tag: 'Remainder' }, { host: boxId, presence: 'PRESENCE#box-binding' as EphemeraPresenceNodeId }] } },
                     {
                         tag: 'Presence',
                         universalKey: 'PRESENCE#binding2' as EphemeraPresenceNodeId,
-                        fromHostId: hallId,
+                        fromHostPresence: { host: hallId },
                         cover: enumeratedCover(boxId, 'PRESENCE#box-binding'),
                     },
                 ],
@@ -87,8 +87,8 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                 nodes: [
                     { tag: 'Object', universalKey: tableId },
                     { tag: 'Object', universalKey: boxId },
-                    { tag: 'Presence', universalKey: 'PRESENCE#legacyFull' as EphemeraPresenceNodeId, fromHostId: roomId, cover: fullCover },
-                    { tag: 'Presence', universalKey: 'PRESENCE#legacyEnum' as EphemeraPresenceNodeId, fromHostId: hallId, cover: enumeratedCover(boxId, 'PRESENCE#box-binding') },
+                    { tag: 'Presence', universalKey: 'PRESENCE#legacyFull' as EphemeraPresenceNodeId, fromHostPresence: { host: roomId }, cover: fullCover },
+                    { tag: 'Presence', universalKey: 'PRESENCE#legacyEnum' as EphemeraPresenceNodeId, fromHostPresence: { host: hallId }, cover: enumeratedCover(boxId, 'PRESENCE#box-binding') },
                 ],
             })
             const current = toWireLudicGraph(graph, 'legacyFull')
@@ -122,8 +122,8 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                 { tag: 'Object', universalKey: ropeId },
                 { tag: 'Object', universalKey: endAId },
                 { tag: 'Object', universalKey: endBId },
-                { tag: 'Presence', universalKey: bindingAId, fromHostId: roomId, cover: enumeratedCover(endAId, 'PRESENCE#endA-binding') },
-                { tag: 'Presence', universalKey: bindingBId, fromHostId: hallId, cover: enumeratedCover(endBId, 'PRESENCE#endB-binding') },
+                { tag: 'Presence', universalKey: bindingAId, fromHostPresence: { host: roomId }, cover: enumeratedCover(endAId, 'PRESENCE#endA-binding') },
+                { tag: 'Presence', universalKey: bindingBId, fromHostPresence: { host: hallId }, cover: enumeratedCover(endBId, 'PRESENCE#endB-binding') },
             ],
             edges: [
                 { tag: 'Relational', kind: 'PartOf', from: endAId, to: ropeId },

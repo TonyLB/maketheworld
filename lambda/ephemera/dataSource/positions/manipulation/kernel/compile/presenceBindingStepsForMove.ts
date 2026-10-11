@@ -22,6 +22,10 @@ import type { MutationKernelAddPresenceBindingStep, MutationKernelRemovePresence
  * standing. This is the missing-clear fix, added 2026-09-04 to close a live defect, not new
  * behaviour of the move itself.
  *
+ * **The add names the parent HOST only** (`fromHostPresence: { host: to }`): the compiler has no
+ * prior-state read, so `applyStepSequenceCore` fills in which of the destination's bindings the
+ * mover sits under, from the destination graph the transfer already put in the footprint.
+ *
  * **Renamed from `presencePortStepsForMove` (presenceNodes Slice 7a, PN-23).** The step no longer
  * carries a port record --- `applyStepSequenceCore.ts`'s handler mints the presence NODE directly
  * --- so `presenceUuid` here is a bare, freshly-minted uuid rather than a field nested inside an
@@ -41,7 +45,7 @@ export const presenceBindingStepsForMove = (
         ? [{
             kind: 'addPresenceBinding' as const,
             hostId,
-            fromHostId: to,
+            fromHostPresence: { host: to },
             presenceUuid: uuidv4(),
         }]
         : []),

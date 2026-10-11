@@ -23,11 +23,12 @@
 import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraPresenceCoverRemainder, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from '../ludicGraph'
+import { parentHostOf } from '../ludicGraph/presenceParent'
 import { nodesFromPresenceBinding, subGraphFromNodes, unclaimedComponentNodes } from '../ludicGraph/presenceSubGraph'
 import type { EphemeraLudicCacheCoverEntry, EphemeraLudicCacheEdge, EphemeraLudicCachePresenceNode, EphemeraLudicCacheSupportHop } from './types'
 
@@ -428,7 +429,7 @@ const assertZeroOrAllPresenceBindings = (graph: EphemeraLudicGraph, presenceUuid
 }
 
 /**
- * A covered member's own bindings into the host being folded (those whose `fromHostId` is that
+ * A covered member's own bindings into the host being folded (those whose parent pointer names that
  * host), read from the member's own graph; `[]` when the member's graph was not read or holds
  * none. `buildLudicCache` builds it from the graphs its walk already fetched.
  */
@@ -450,10 +451,11 @@ const presenceCacheNodesFromFold = (
         // The room rule (PR-21(f)): a room's sole-remainder binding into an Area is a carve-out with an
         // empty member list, so a member's bucket is the room itself, not a binding that resolves to no
         // rooms. A cover with entries on a room is a genuine split and keeps its members.
-        // Stopgap: reads around `cacheAsset` storing the room's remainder as a sole `Remainder` at its
-        // Area; retired in presenceRemainder Slice 4.
+        // Stopgap (keyed to a parent that is an Area, so the room's own hostless remainder still expands
+        // to its contents): reads around a binding `cacheAsset` stored before the repair step existed;
+        // retired once the rerun has rewritten it.
         const soleRemainder = presenceNode.cover.members.length === 1 && isEphemeraPresenceCoverRemainder(presenceNode.cover.members[0])
-        const members: EphemeraLudicCacheCoverEntry[] = isEphemeraRoomId(graph.hostId) && soleRemainder
+        const members: EphemeraLudicCacheCoverEntry[] = isEphemeraRoomId(graph.hostId) && soleRemainder && isEphemeraAreaId(parentHostOf(presenceNode) ?? '')
             ? []
             : presenceNode.cover.members.flatMap((entry): EphemeraLudicCacheCoverEntry[] => {
                 if (!isEphemeraPresenceCoverRemainder(entry)) {
@@ -472,7 +474,8 @@ const presenceCacheNodesFromFold = (
         return [...acc, {
             tag: 'Presence' as const,
             universalKey,
-            fromHostId: presenceNode.fromHostId,
+            ...(presenceNode.fromHostPresence ? { fromHostPresence: presenceNode.fromHostPresence } : {}),
+            ...(presenceNode.fromHostId ? { fromHostId: presenceNode.fromHostId } : {}),
             cover: { members },
             consolidated: true,
         }]

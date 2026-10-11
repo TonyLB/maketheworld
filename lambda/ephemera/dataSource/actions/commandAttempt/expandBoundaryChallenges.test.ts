@@ -257,7 +257,7 @@ describe('attemptActionsFromTransfer', () => {
                 ...bindings.map(({ key, members }) => ({
                     tag: 'Presence' as const,
                     universalKey: key,
-                    fromHostId: roomId,
+                    fromHostPresence: { host: roomId },
                     cover: members === undefined
                         ? { members: [{ tag: 'Remainder' as const }] }
                         : { members: members.map((host) => ({ host, presence: `PRESENCE#${host}-on-board` as EphemeraPresenceNodeId })) },
@@ -320,7 +320,7 @@ describe('attemptActionsFromTransfer: a crossing relation', () => {
     const tableGraph = EphemeraLudicGraph.empty(tableId)
         .addObject(cupId)
         .addPort(port)
-        .addPresenceNode({ tag: 'Presence', universalKey: tableBinding, fromHostId: roomId, cover: { members: [{ tag: 'Remainder' }] } })
+        .addPresenceNode({ tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId }, cover: { members: [{ tag: 'Remainder' }] } })
         .addRelationalEdge({ from: portAddress, to: cupId, kind: 'Custom', relationLabel: 'is tied to' })
     const shards = (hostId: EphemeraMembershipHostId) => ({ [roomId]: roomGraph, [tableId]: tableGraph } as Record<string, EphemeraLudicGraph>)[hostId]
     /** The cup is seen through the table's binding, which lives on the table's graph. */

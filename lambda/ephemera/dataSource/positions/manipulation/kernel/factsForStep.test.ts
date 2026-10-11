@@ -214,12 +214,14 @@ describe('factsForStep', () => {
         const addStep: MutationKernelStep = {
             kind: 'addPresenceBinding',
             hostId: trayId,
-            fromHostId: roomId,
+            fromHostPresence: { host: roomId },
             presenceUuid: 'p2',
         }
         const removeStep: MutationKernelStep = { kind: 'removePresenceBinding', hostId: trayId, fromHostId: roomId }
         expect(factsForStep(addStep, graphsMap(), beatAnchorTime)).toEqual([])
         expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
+        const repairStep: MutationKernelStep = { kind: 'repairPresenceBinding', hostId: trayId, presenceId: 'PRESENCE#p2', cover: { members: [] } }
+        expect(factsForStep(repairStep, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
     it('a leg with a port-address endpoint yields no fact --- no established fact shape yet for a port-qualified relation', () => {

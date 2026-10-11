@@ -73,7 +73,7 @@ describe('getHeldInventoryCatalogForCharacter', () => {
             getLudicGraph: async () => testLudicGraph(characterId, {
                 nodes: [
                     { tag: 'Object', universalKey: broomId },
-                    { tag: 'Presence', universalKey: characterBinding, fromHostId: 'ROOM#Kitchen', cover: { members: [{ tag: 'Remainder' }] } },
+                    { tag: 'Presence', universalKey: characterBinding, fromHostPresence: { host: 'ROOM#Kitchen' }, cover: { members: [{ tag: 'Remainder' }] } },
                 ],
             }),
             getComponentAggregate: namedComponentAggregate({ [broomId]: 'Broom' }),

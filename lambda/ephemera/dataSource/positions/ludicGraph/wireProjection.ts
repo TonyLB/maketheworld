@@ -126,7 +126,10 @@ const nodeToWire = (node: EphemeraLudicGraphNode): StandardLudicGraphNodeData =>
         ? {
             tag: 'Presence',
             universalKey: node.universalKey,
-            fromHostId: ephemeraComponentIdToReferenceData(node.fromHostId),
+            ...(node.fromHostPresence
+                ? { fromHostPresence: { host: ephemeraComponentIdToReferenceData(node.fromHostPresence.host), ...(node.fromHostPresence.presence ? { presence: node.fromHostPresence.presence } : {}) } }
+                : {}),
+            ...(node.fromHostId ? { fromHostId: ephemeraComponentIdToReferenceData(node.fromHostId) } : {}),
             cover: coverToWire(node.cover),
         }
         : ephemeraComponentIdToReferenceData(node.universalKey)
@@ -136,7 +139,15 @@ const wireNodeToEphemera = (data: StandardLudicGraphNodeData): EphemeraLudicGrap
         return {
             tag: 'Presence',
             universalKey: data.universalKey as EphemeraPresenceNodeId,
-            fromHostId: referenceDataToEphemeraComponentId(data.fromHostId),
+            ...(data.fromHostPresence
+                ? {
+                    fromHostPresence: {
+                        host: referenceDataToEphemeraComponentId(data.fromHostPresence.host) as EphemeraMembershipHostId,
+                        ...(data.fromHostPresence.presence ? { presence: data.fromHostPresence.presence as EphemeraPresenceNodeId } : {}),
+                    },
+                }
+                : {}),
+            ...(data.fromHostId ? { fromHostId: referenceDataToEphemeraComponentId(data.fromHostId) as EphemeraMembershipHostId } : {}),
             cover: wireCoverToEphemera(data.cover),
         }
     }

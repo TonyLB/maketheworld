@@ -43,10 +43,19 @@ const isStandardLudicGraphPresenceCoverMember = (entry: unknown): boolean => (
     )
 )
 
+/** Mirrors `EphemeraPresenceParentPointer`: the parent binding (host shard + which of its bindings). */
+export type StandardLudicGraphPresenceParentPointerData = {
+    host: StandardReferenceData
+    presence?: string
+}
+
 export type StandardLudicGraphPresenceNodeData = {
     tag: 'Presence'
     universalKey: string
-    fromHostId: StandardReferenceData
+    /** Absent on a hostless remainder. */
+    fromHostPresence?: StandardLudicGraphPresenceParentPointerData
+    /** Legacy host-only locator, read until the Slice 4 migration. */
+    fromHostId?: StandardReferenceData
     cover: StandardLudicGraphPresenceCoverData | StandardLudicGraphLegacyPresenceCoverData
     ref?: number
 }
@@ -74,7 +83,12 @@ export const isStandardLudicGraphPresenceNodeData = (arg: unknown): arg is Stand
         return false
     }
     return typeof node.universalKey === 'string' &&
-        isStandardReferenceData(node.fromHostId) &&
+        (node.fromHostPresence === undefined || (
+            typeof node.fromHostPresence === 'object' && node.fromHostPresence !== null &&
+            isStandardReferenceData(node.fromHostPresence.host) &&
+            (node.fromHostPresence.presence === undefined || typeof node.fromHostPresence.presence === 'string')
+        )) &&
+        (node.fromHostId === undefined || isStandardReferenceData(node.fromHostId)) &&
         isStandardLudicGraphPresenceCoverData(node.cover) &&
         (node.ref === undefined || typeof node.ref === 'number')
 }

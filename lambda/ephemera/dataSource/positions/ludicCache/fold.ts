@@ -55,6 +55,7 @@ import { stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../../internalCache'
 import { EphemeraLudicGraph, nodeFromId } from '../ludicGraph'
+import { parentHostOf } from '../ludicGraph/presenceParent'
 import { resolveComponentCacheFields } from '../../objects/objectShortName'
 import { enumerateLudicCacheShards, type EnumerateLudicCacheShardsDeps } from './enumerateShards'
 import { collapseCrossingPorts, collapsedEdgeIdentityKey, foldSameHostBuckets } from './mergeReducer'
@@ -123,7 +124,7 @@ export const buildLudicCache = async (
         // Each covered member's own bindings into this host, read from the member's graph; none
         // when the member was placed without a move and never had a binding minted.
         const memberBindings = (member: string) => (graphs.get(member as EphemeraMembershipHostId)?.presenceNodes ?? [])
-            .filter((presenceNode) => presenceNode.fromHostId === hostId)
+            .filter((presenceNode) => parentHostOf(presenceNode) === hostId)
             .map((presenceNode) => presenceNode.universalKey)
         const { presenceNodes, edges: sameHostEdges } = foldSameHostBuckets(graph, presenceUuids, memberBindings)
         bindingsByOwner.set(hostId, presenceNodes)
@@ -141,11 +142,11 @@ export const buildLudicCache = async (
             if (!childGraph) {
                 continue
             }
-            const binding = childGraph.presenceNodes.find((presenceNode) => presenceNode.fromHostId === hostId)
-            if (!binding) {
-                continue
+            // Every binding of the child under this host, never the first of several: a child bound
+            // twice into one host (an Object under two of a Feature's bindings) crosses at each.
+            for (const binding of childGraph.presenceNodes.filter((presenceNode) => parentHostOf(presenceNode) === hostId)) {
+                addEdges(byIdentity, collapseCrossingPorts(graph, childGraph, presenceUuidFromKey(binding.universalKey)))
             }
-            addEdges(byIdentity, collapseCrossingPorts(graph, childGraph, presenceUuidFromKey(binding.universalKey)))
         }
     }
 

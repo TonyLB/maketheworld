@@ -1,5 +1,8 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraLudicGraphFieldPayload, EphemeraLudicGraphStructureNode, EphemeraPresenceCover, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 
 import { EphemeraLudicGraph } from './index'
@@ -18,3 +21,24 @@ export const testLudicGraphFromEnvelope = (
     hostId: EphemeraMembershipHostId,
     envelope: PlayLudicGraph = { nodes: [] }
 ): EphemeraLudicGraph => EphemeraLudicGraph.fromPlayEnvelope(hostId, envelope)
+
+/** Test convention: a parent host's conventional remainder binding id, when a fixture names only the host. */
+export const parentRemainderKey = (host: EphemeraMembershipHostId): EphemeraPresenceNodeId => PresenceKey(`${host.replace('#', '-')}-remainder`) as EphemeraPresenceNodeId
+
+/**
+ * Test helper: a presence binding. `parent` is a `{ host, presence }` pointer, a bare host (pointing
+ * at that host's conventional remainder, `parentRemainderKey`), or `undefined` for a hostless remainder.
+ * `name` mints the binding's own id unless a full `universalKey` is passed.
+ */
+export const presenceBindingNode = (
+    name: string | EphemeraPresenceNodeId,
+    parent?: EphemeraMembershipHostId | EphemeraPresenceParentPointer,
+    cover: EphemeraPresenceCover = remainderCover()
+): EphemeraLudicGraphStructureNode => ({
+    tag: 'Presence',
+    universalKey: name.startsWith('PRESENCE#') ? name as EphemeraPresenceNodeId : PresenceKey(name) as EphemeraPresenceNodeId,
+    ...(parent
+        ? { fromHostPresence: typeof parent === 'string' ? { host: parent, presence: parentRemainderKey(parent) } : parent }
+        : {}),
+    cover,
+})

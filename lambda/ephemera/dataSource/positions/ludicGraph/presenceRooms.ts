@@ -64,6 +64,10 @@ export const roomsForPresenceNode = async (
     getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 ): Promise<Set<EphemeraRoomId>> => {
     const parent = await parentBinding(ownerHostId, presenceId, getGraph)
+    if (!parent) {
+        // A hostless binding (PR-21(g)): a room's own resolves to that room, any other to no rooms.
+        return new Set(isEphemeraRoomId(ownerHostId) ? [ownerHostId] : [])
+    }
     return roomsForHost(parent.host, getGraph)
 }
 

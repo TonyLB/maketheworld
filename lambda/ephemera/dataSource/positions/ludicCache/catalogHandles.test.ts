@@ -151,7 +151,7 @@ describe('ludicCacheObjectHandles', () => {
                     { tag: 'Object', universalKey: boxId },
                     { tag: 'Object', universalKey: pebble },
                     { tag: 'Object', universalKey: stone },
-                    ...bindings.map(({ key, from, cover }) => ({ tag: 'Presence' as const, universalKey: key, fromHostId: from, cover: cover ?? { members: [{ tag: 'Remainder' as const }] } })),
+                    ...bindings.map(({ key, from, cover }) => ({ tag: 'Presence' as const, universalKey: key, fromHostPresence: { host: from }, cover: cover ?? { members: [{ tag: 'Remainder' as const }] } })),
                 ],
             })],
             [pebble, testLudicGraph(pebble, { nodes: [{ tag: 'Object', universalKey: pebble }] })],
@@ -197,7 +197,7 @@ describe('ludicCacheObjectHandles', () => {
             graphs.set(pebble, testLudicGraph(pebble, {
                 nodes: [
                     { tag: 'Object', universalKey: pebble },
-                    { tag: 'Presence', universalKey: pebbleInBox, fromHostId: boxId, cover: { members: [{ tag: 'Remainder' }] } },
+                    { tag: 'Presence', universalKey: pebbleInBox, fromHostPresence: { host: boxId }, cover: { members: [{ tag: 'Remainder' }] } },
                 ],
             }))
 
@@ -251,7 +251,7 @@ describe('ludicCacheObjectHandles', () => {
                     nodes: [
                         { tag: 'Room', universalKey: roomA },
                         { tag: 'Object', universalKey: namedId },
-                        { tag: 'Presence', universalKey: roomInTown, fromHostId: town, cover: { members: [{ tag: 'Remainder' }] } },
+                        { tag: 'Presence', universalKey: roomInTown, fromHostPresence: { host: town }, cover: { members: [{ tag: 'Remainder' }] } },
                     ],
                 })],
                 [namedId, testLudicGraph(namedId, { nodes: [{ tag: 'Object', universalKey: namedId }] })],
@@ -259,6 +259,69 @@ describe('ludicCacheObjectHandles', () => {
             const getGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) ?? testLudicGraph(hostId, { nodes: [] })
 
             const handles = await ludicCacheObjectHandles(roomA, [], {
+                ...graphsAsDeps(graphs),
+                ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
+            })
+
+            expect(handles).toHaveLength(1)
+            await expect(roomsForReferent(namedId, handles[0].presence as never, getGraph)).resolves.toEqual(new Set([roomA]))
+        })
+
+        // Slice 4's stored shape: the room keeps one hostless remainder and an empty Area carve-out;
+        // a thing in the room points at the remainder.
+        it('resolves to the room when the room holds a hostless remainder beside its empty Area carve-out', async () => {
+            const roomRemainder = PresenceKey('a-remainder')
+            const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+                [roomA, testLudicGraph(roomA, {
+                    nodes: [
+                        { tag: 'Room', universalKey: roomA },
+                        { tag: 'Object', universalKey: namedId },
+                        { tag: 'Presence', universalKey: roomRemainder, cover: { members: [{ tag: 'Remainder' }] } },
+                        { tag: 'Presence', universalKey: roomInTown, fromHostPresence: { host: town }, cover: { members: [] } },
+                    ],
+                })],
+                [namedId, testLudicGraph(namedId, {
+                    nodes: [
+                        { tag: 'Object', universalKey: namedId },
+                        { tag: 'Presence', universalKey: PresenceKey('named-in-a'), fromHostPresence: { host: roomA, presence: roomRemainder }, cover: { members: [{ tag: 'Remainder' }] } },
+                    ],
+                })],
+            ])
+            const getGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) ?? testLudicGraph(hostId, { nodes: [] })
+
+            const handles = await ludicCacheObjectHandles(roomA, [], {
+                ...graphsAsDeps(graphs),
+                ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
+            })
+
+            expect(handles).toHaveLength(1)
+            await expect(roomsForReferent(namedId, handles[0].presence as never, getGraph)).resolves.toEqual(new Set([roomA]))
+        })
+
+        // The Slice 2 residual: seeded at the Area, a walked room's members now have a bucket,
+        // because each member's stored pointer names the room.
+        it('resolves an Area-seeded handle for a thing in a walked room to that room', async () => {
+            const roomRemainder = PresenceKey('a-remainder')
+            const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+                [town, testLudicGraph(town, { nodes: [{ tag: 'Room', universalKey: roomA }] })],
+                [roomA, testLudicGraph(roomA, {
+                    nodes: [
+                        { tag: 'Room', universalKey: roomA },
+                        { tag: 'Object', universalKey: namedId },
+                        { tag: 'Presence', universalKey: roomRemainder, cover: { members: [{ tag: 'Remainder' }] } },
+                        { tag: 'Presence', universalKey: roomInTown, fromHostPresence: { host: town }, cover: { members: [] } },
+                    ],
+                })],
+                [namedId, testLudicGraph(namedId, {
+                    nodes: [
+                        { tag: 'Object', universalKey: namedId },
+                        { tag: 'Presence', universalKey: PresenceKey('named-in-a'), fromHostPresence: { host: roomA, presence: roomRemainder }, cover: { members: [{ tag: 'Remainder' }] } },
+                    ],
+                })],
+            ])
+            const getGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) ?? testLudicGraph(hostId, { nodes: [] })
+
+            const handles = await ludicCacheObjectHandles(town, [], {
                 ...graphsAsDeps(graphs),
                 ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
             })

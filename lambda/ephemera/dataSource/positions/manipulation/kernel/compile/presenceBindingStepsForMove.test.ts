@@ -14,7 +14,7 @@ describe('presenceBindingStepsForMove', () => {
         expect(steps).toEqual([{
             kind: 'addPresenceBinding',
             hostId: HOST_ID,
-            fromHostId: TO_ROOM,
+            fromHostPresence: { host: TO_ROOM },
             presenceUuid: expect.any(String),
         }])
     })
@@ -36,7 +36,7 @@ describe('presenceBindingStepsForMove', () => {
         expect(steps[1]).toMatchObject({
             kind: 'addPresenceBinding',
             hostId: HOST_ID,
-            fromHostId: TO_ROOM,
+            fromHostPresence: { host: TO_ROOM },
         })
     })
 

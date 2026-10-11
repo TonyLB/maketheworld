@@ -423,24 +423,35 @@ export const normalizeEphemeraPresenceCover = (cover: EphemeraPresenceCover | { 
 /**
  * A presence node (presenceNodes plan / PN-5, 2026-09-15): the reified boundary site that used
  * to be carried as a presence *port*. Unlike the five component arms above, its `universalKey`
- * is a minted `PRESENCE#{uuid}`, not a real component id, and it carries `fromHostId` --- the
- * host it is presence for --- which no component arm has a field for. `kind: 'Present'` is not
- * carried here; `tag: 'Presence'` is already the discriminant, and a second constant field would
- * be a discriminant with no second value.
+ * is a minted `PRESENCE#{uuid}`, not a real component id, and it carries a parent pointer which
+ * no component arm has a field for. `kind: 'Present'` is not carried here; `tag: 'Presence'` is
+ * already the discriminant, and a second constant field would be a discriminant with no second
+ * value.
  *
- * `fromHostId` is a SHARD LOCATOR, deliberately NOT the inverse of the parent's cover (PN-21).
- * It says which host's graph to read in order to find the binding covering this one --- one
- * Dynamo read instead of a scan --- and stops there. WHICH binding of that host is the parent is
- * stated on the parent side, as a `{ host, presence }` cover entry (PN-20), and the parent side
- * is authoritative per the conflict rule in `positions/AGENT.contract.md`. Do not "reconcile"
- * the two grains by widening this field: it buys no read, and a single-valued parent reference
- * would foreclose PN-22 (whether one presence node may be covered by more than one parent
- * binding) before that question is costed.
+ * `fromHostPresence` (presenceRemainder Slice 4, PR-21) names the parent BINDING: `host` is the
+ * shard to read (one Dynamo read), `presence` is which of that host's bindings this one sits
+ * under. The child's pointer governs; the parent's cover is a stored index of it. Absent means a
+ * hostless remainder (a room, an unplaced or offline whole).
+ *
+ * `fromHostId` is the RETIRED host-only locator, still read (never written) until the Slice 4
+ * `cacheAsset` rerun has rewritten stored bindings.
  */
+export type EphemeraPresenceParentPointer = {
+    host: EphemeraMembershipHostId;
+    /**
+     * The parent binding. Absent only where the parent holds no binding to name: a Room in an Area
+     * (Areas hold none), or a move into a host whose binding is unresolved. Rooms and Features keep
+     * their own bindings, so a child of one always names it.
+     */
+    presence?: EphemeraPresenceNodeId;
+}
+
 export type EphemeraLudicGraphStructureNode = {
     tag: 'Presence';
     universalKey: EphemeraPresenceNodeId;
-    fromHostId: EphemeraMembershipHostId;
+    fromHostPresence?: EphemeraPresenceParentPointer;
+    /** @deprecated Legacy read until the Slice 4 migration; use `fromHostPresence`. */
+    fromHostId?: EphemeraMembershipHostId;
     cover: EphemeraPresenceCover;
 }
 
@@ -738,8 +749,21 @@ export const isEphemeraLudicGraphStructureNode = (value: unknown): value is Ephe
         return false
     }
     return isEphemeraPresenceNodeId(entry.universalKey) &&
-        isEphemeraMembershipHostId(entry.fromHostId) &&
+        isEphemeraPresenceParentPointerOrAbsent(entry.fromHostPresence) &&
+        (entry.fromHostId === undefined || isEphemeraMembershipHostId(entry.fromHostId)) &&
         isEphemeraPresenceCover(entry.cover)
+}
+
+/** Absent is legal: a hostless remainder has no parent. Present must be a well-formed `{ host, presence }`. */
+export const isEphemeraPresenceParentPointerOrAbsent = (value: unknown): boolean => {
+    if (value === undefined) {
+        return true
+    }
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const { host, presence } = value as Partial<EphemeraPresenceParentPointer>
+    return typeof host === 'string' && isEphemeraMembershipHostId(host) && (presence === undefined || (typeof presence === 'string' && isEphemeraPresenceNodeId(presence)))
 }
 
 export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudicGraphNode => {

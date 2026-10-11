@@ -45,7 +45,7 @@ const objectGraph = (id: EphemeraObjectId, extra: Node = []) => testLudicGraph(i
 const roomGraph = (...objects: EphemeraObjectId[]) =>
     testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, ...objects.map((universalKey) => ({ tag: 'Object' as const, universalKey }))] })
 const binding = (key: string, from: EphemeraMembershipHostId, cover: EphemeraPresenceCover = { members: [{ tag: 'Remainder' }] }) =>
-    ({ tag: 'Presence' as const, universalKey: PresenceKey(key), fromHostId: from, cover })
+    ({ tag: 'Presence' as const, universalKey: PresenceKey(key), fromHostPresence: { host: from }, cover })
 
 const names = namedShortNameDeps({ [table]: 'Table', [box]: 'Box', [cup]: 'Cup', [mug]: 'Mug' })
 

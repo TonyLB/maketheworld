@@ -37,7 +37,7 @@ const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey
 const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: `PRESENCE#${portId}` as EphemeraPresenceNodeId,
-    fromHostId: roomId,
+    fromHostPresence: { host: roomId },
     cover,
 })
 
