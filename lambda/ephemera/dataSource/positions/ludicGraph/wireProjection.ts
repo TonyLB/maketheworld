@@ -29,6 +29,7 @@ import type {
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 import type {
     LudicGraphNodeListData,
@@ -37,6 +38,7 @@ import type {
     StandardLudicGraphNodeData,
     StandardLudicGraphPortData,
     StandardLudicGraphPresenceCoverData,
+    StandardLudicGraphLegacyPresenceCoverData,
     StandardLudicGraphPresenceNodeData,
 } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/ludicGraph'
 import { isStandardLudicGraphPresenceNodeData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/ludicGraph'
@@ -93,26 +95,25 @@ const wireTerminalToEphemera = (data: StandardLudicTerminalData): EphemeraLudicT
 // terminal widening needed on this arm.
 //
 
-const coverToWire = (cover: EphemeraPresenceCover): StandardLudicGraphPresenceCoverData =>
-    cover.tag === 'Full'
-        ? { tag: 'Full' }
-        : {
-            tag: 'Enumerated',
-            members: cover.members.map((entry) => ({
-                host: ephemeraComponentIdToReferenceData(entry.host),
-                presence: entry.presence,
-            })),
-        }
+const coverToWire = (cover: EphemeraPresenceCover): StandardLudicGraphPresenceCoverData => ({
+    members: cover.members.map((entry) => isEphemeraPresenceCoverRemainder(entry)
+        ? entry
+        : { host: ephemeraComponentIdToReferenceData(entry.host), presence: entry.presence }
+    ),
+})
 
-const wireCoverToEphemera = (cover: StandardLudicGraphPresenceCoverData): EphemeraPresenceCover =>
-    cover.tag === 'Full'
-        ? { tag: 'Full' }
+// The legacy-read point for stored graphs: `Full` becomes a sole `Remainder`, `Enumerated` loses its tag.
+const wireCoverToEphemera = (cover: StandardLudicGraphPresenceCoverData | StandardLudicGraphLegacyPresenceCoverData): EphemeraPresenceCover =>
+    'tag' in cover && cover.tag === 'Full'
+        ? { members: [{ tag: 'Remainder' }] }
         : {
-            tag: 'Enumerated',
-            members: cover.members.map((entry) => ({
-                host: referenceDataToEphemeraComponentId(entry.host) as EphemeraLudicGraphComponentNode['universalKey'],
-                presence: entry.presence as EphemeraPresenceNodeId,
-            })),
+            members: cover.members.map((entry) => 'tag' in entry
+                ? entry
+                : {
+                    host: referenceDataToEphemeraComponentId(entry.host) as EphemeraLudicGraphComponentNode['universalKey'],
+                    presence: entry.presence as EphemeraPresenceNodeId,
+                }
+            ),
         }
 
 //

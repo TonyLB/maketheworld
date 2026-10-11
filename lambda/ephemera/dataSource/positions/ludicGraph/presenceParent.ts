@@ -1,6 +1,7 @@
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from './index'
@@ -25,7 +26,7 @@ export type OwnedParentBinding = {
 
 /**
  * Which of `parentHostId`'s own bindings covers `owner`'s `binding`, if the data says so
- * unambiguously: a binding whose `Enumerated` cover lists it, else the parent's only binding when
+ * unambiguously: a binding whose cover lists it as an entry, else the parent's only binding when
  * the parent is not a room. Never guesses: a room's only binding is its Area binding (a
  * carve-out, not the parent of what the room holds), no binding leaves nothing to name, and
  * several bindings cannot be told apart.
@@ -38,8 +39,7 @@ const resolveParentPresence = async (
 ): Promise<EphemeraPresenceNodeId | undefined> => {
     const parentBindings = (await getGraph(parentHostId)).presenceNodes
     const listing = parentBindings.find(({ cover }) => (
-        cover.tag === 'Enumerated'
-        && cover.members.some(({ host, presence }) => host === owner && presence === binding.universalKey)
+        cover.members.some((entry) => !isEphemeraPresenceCoverRemainder(entry) && entry.host === owner && entry.presence === binding.universalKey)
     ))
     if (listing) {
         return listing.universalKey

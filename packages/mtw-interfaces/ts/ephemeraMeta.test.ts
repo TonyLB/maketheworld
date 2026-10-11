@@ -6,6 +6,8 @@ import {
     isEphemeraLudicGraphData,
     isEphemeraLudicGraphFieldPayload,
     isEphemeraLudicGraphNode,
+    normalizeEphemeraPresenceCover,
+    remainderCover,
     isEphemeraLudicGraphComponentNode,
     isEphemeraLudicGraphStructureNode,
     isEphemeraLudicGraphPort,
@@ -449,6 +451,23 @@ describe('isEphemeraLudicGraphNode', () => {
             fromHostId: 'ROOM#A',
             cover: { tag: 'Full' },
         })).toBe(true)
+    })
+
+    it('accepts the current cover shape (entries and the Remainder sentinel) and still reads the legacy Full / Enumerated tags', () => {
+        const node = (cover: unknown) => ({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A', cover })
+        expect(isEphemeraLudicGraphNode(node({ members: [{ tag: 'Remainder' }] }))).toBe(true)
+        expect(isEphemeraLudicGraphNode(node({ members: [{ host: 'OBJECT#cup', presence: 'PRESENCE#cup1' }, { tag: 'Remainder' }] }))).toBe(true)
+        expect(isEphemeraLudicGraphNode(node({ members: [] }))).toBe(true)
+        expect(isEphemeraLudicGraphNode(node({ tag: 'Enumerated', members: [{ host: 'OBJECT#cup', presence: 'PRESENCE#cup1' }] }))).toBe(true)
+        expect(isEphemeraLudicGraphNode(node({ members: [{ host: 'OBJECT#cup' }] }))).toBe(false)
+        expect(isEphemeraLudicGraphNode(node({ members: [{ tag: 'Bogus' }] }))).toBe(false)
+    })
+
+    it('normalizes legacy covers: Full is a sole Remainder, Enumerated loses its tag', () => {
+        expect(normalizeEphemeraPresenceCover({ tag: 'Full' })).toEqual({ members: [{ tag: 'Remainder' }] })
+        expect(normalizeEphemeraPresenceCover({ tag: 'Enumerated', members: [{ host: 'OBJECT#cup', presence: 'PRESENCE#cup1' }] } as any))
+            .toEqual({ members: [{ host: 'OBJECT#cup', presence: 'PRESENCE#cup1' }] })
+        expect(normalizeEphemeraPresenceCover(remainderCover())).toEqual({ members: [{ tag: 'Remainder' }] })
     })
 
     it('rejects a Presence-tagged node with a component universalKey', () => {

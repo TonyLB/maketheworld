@@ -151,7 +151,7 @@ describe('ludicCacheObjectHandles', () => {
                     { tag: 'Object', universalKey: boxId },
                     { tag: 'Object', universalKey: pebble },
                     { tag: 'Object', universalKey: stone },
-                    ...bindings.map(({ key, from, cover }) => ({ tag: 'Presence' as const, universalKey: key, fromHostId: from, cover: cover ?? { tag: 'Full' as const } })),
+                    ...bindings.map(({ key, from, cover }) => ({ tag: 'Presence' as const, universalKey: key, fromHostId: from, cover: cover ?? { members: [{ tag: 'Remainder' as const }] } })),
                 ],
             })],
             [pebble, testLudicGraph(pebble, { nodes: [{ tag: 'Object', universalKey: pebble }] })],
@@ -192,12 +192,12 @@ describe('ludicCacheObjectHandles', () => {
             const graphs = boxInRoom([{
                 key: boxBinding,
                 from: roomA,
-                cover: { tag: 'Enumerated', members: [{ host: pebble, presence: pebbleInBox }] },
+                cover: { members: [{ host: pebble, presence: pebbleInBox }] },
             }])
             graphs.set(pebble, testLudicGraph(pebble, {
                 nodes: [
                     { tag: 'Object', universalKey: pebble },
-                    { tag: 'Presence', universalKey: pebbleInBox, fromHostId: boxId, cover: { tag: 'Full' } },
+                    { tag: 'Presence', universalKey: pebbleInBox, fromHostId: boxId, cover: { members: [{ tag: 'Remainder' }] } },
                 ],
             }))
 
@@ -222,8 +222,8 @@ describe('ludicCacheObjectHandles', () => {
         it('names only the bucket whose Enumerated cover holds it', async () => {
             const handles = await ludicCacheObjectHandles(roomA, [], {
                 ...graphsAsDeps(boxInRoom([
-                    { key: boxBinding, from: roomA, cover: { tag: 'Enumerated', members: [{ host: pebble, presence: PresenceKey('pebble-in-box') }] } },
-                    { key: boxOtherBinding, from: roomB, cover: { tag: 'Enumerated', members: [{ host: stone, presence: PresenceKey('stone-in-box') }] } },
+                    { key: boxBinding, from: roomA, cover: { members: [{ host: pebble, presence: PresenceKey('pebble-in-box') }] } },
+                    { key: boxOtherBinding, from: roomB, cover: { members: [{ host: stone, presence: PresenceKey('stone-in-box') }] } },
                 ])),
                 ...names,
             })
@@ -251,7 +251,7 @@ describe('ludicCacheObjectHandles', () => {
                     nodes: [
                         { tag: 'Room', universalKey: roomA },
                         { tag: 'Object', universalKey: namedId },
-                        { tag: 'Presence', universalKey: roomInTown, fromHostId: town, cover: { tag: 'Full' } },
+                        { tag: 'Presence', universalKey: roomInTown, fromHostId: town, cover: { members: [{ tag: 'Remainder' }] } },
                     ],
                 })],
                 [namedId, testLudicGraph(namedId, { nodes: [{ tag: 'Object', universalKey: namedId }] })],

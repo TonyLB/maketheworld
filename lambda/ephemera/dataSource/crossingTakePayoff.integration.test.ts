@@ -50,7 +50,7 @@ const HOOK_ID = 'OBJECT#Hook' as EphemeraObjectId
 
 const tied = (from: unknown, to: unknown) => ({ from, to, kind: 'Custom' as const, relationLabel: 'is tied to' }) as never
 const crossingPort = (portId: string, fromHostId: EphemeraRoomId) => ({ portId, fromHostId, kind: 'Custom' as const, exteriorRelationLabel: 'is tied to' })
-const fullBinding = (key: string, fromHostId: EphemeraRoomId) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, fromHostId, cover: { tag: 'Full' as const } })
+const fullBinding = (key: string, fromHostId: EphemeraRoomId) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, fromHostId, cover: { members: [{ tag: 'Remainder' as const }] } })
 
 /** Same stand-in as `ropeLashedTakePayoff.integration.test.ts`: runs the real reducer over the seeded graphs. */
 const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => (

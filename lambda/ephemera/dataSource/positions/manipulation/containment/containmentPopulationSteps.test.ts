@@ -26,7 +26,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             edges: [{ tag: 'Relational', from: ROOM_ID, to: AREA_ID, kind: 'PartOf' }],
         })
         const childGraph = testLudicGraph(ROOM_ID, {
-            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostId: AREA_ID, cover: { tag: 'Full' } }],
+            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostId: AREA_ID, cover: { members: [{ tag: 'Remainder' }] } }],
         })
 
         expect(containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)).toEqual([])
@@ -44,7 +44,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
     it('emits only the node and edge steps when the presence binding already exists', () => {
         const parentGraph = testLudicGraph(AREA_ID, { nodes: [] })
         const childGraph = testLudicGraph(ROOM_ID, {
-            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostId: AREA_ID, cover: { tag: 'Full' } }],
+            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostId: AREA_ID, cover: { members: [{ tag: 'Remainder' }] } }],
         })
 
         const steps = containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)
@@ -68,7 +68,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         const otherAreaId = 'AREA#Elsewhere' as EphemeraAreaId
         const parentGraph = testLudicGraph(AREA_ID, { nodes: [{ tag: 'Room', universalKey: ROOM_ID }] })
         const childGraph = testLudicGraph(ROOM_ID, {
-            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostId: otherAreaId, cover: { tag: 'Full' } }],
+            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostId: otherAreaId, cover: { members: [{ tag: 'Remainder' }] } }],
         })
 
         const steps = containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)

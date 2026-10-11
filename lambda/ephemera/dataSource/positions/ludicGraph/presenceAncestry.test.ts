@@ -19,7 +19,7 @@ const presenceAt = (fromHostId: EphemeraMembershipHostId): EphemeraLudicGraphStr
     tag: 'Presence',
     universalKey: PresenceKey(`${fromHostId.replace('#', '-')}-binding`),
     fromHostId,
-    cover: { tag: 'Full' },
+    cover: { members: [{ tag: 'Remainder' }] },
 })
 
 /** `parents` maps each host to the hosts it is present at; every graph also lists itself. */

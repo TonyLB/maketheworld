@@ -44,7 +44,7 @@ type Node = NonNullable<Parameters<typeof testLudicGraph>[1]>['nodes']
 const objectGraph = (id: EphemeraObjectId, extra: Node = []) => testLudicGraph(id, { nodes: [{ tag: 'Object', universalKey: id }, ...extra] })
 const roomGraph = (...objects: EphemeraObjectId[]) =>
     testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, ...objects.map((universalKey) => ({ tag: 'Object' as const, universalKey }))] })
-const binding = (key: string, from: EphemeraMembershipHostId, cover: EphemeraPresenceCover = { tag: 'Full' }) =>
+const binding = (key: string, from: EphemeraMembershipHostId, cover: EphemeraPresenceCover = { members: [{ tag: 'Remainder' }] }) =>
     ({ tag: 'Presence' as const, universalKey: PresenceKey(key), fromHostId: from, cover })
 
 const names = namedShortNameDeps({ [table]: 'Table', [box]: 'Box', [cup]: 'Cup', [mug]: 'Mug' })
@@ -79,8 +79,8 @@ describe('ludicCacheRoomObjectContents', () => {
             [table, objectGraph(table, [
                 { tag: 'Object', universalKey: cup },
                 { tag: 'Object', universalKey: mug },
-                binding('table-in-b', roomB, { tag: 'Enumerated', members: [{ host: cup, presence: PresenceKey('cup-on-table') }] }),
-                binding('table-in-a', roomA, { tag: 'Enumerated', members: [{ host: cup, presence: PresenceKey('cup-on-table') }, { host: mug, presence: PresenceKey('mug-on-table') }] }),
+                binding('table-in-b', roomB, { members: [{ host: cup, presence: PresenceKey('cup-on-table') }] }),
+                binding('table-in-a', roomA, { members: [{ host: cup, presence: PresenceKey('cup-on-table') }, { host: mug, presence: PresenceKey('mug-on-table') }] }),
             ])],
             [cup, objectGraph(cup)],
             [mug, objectGraph(mug)],

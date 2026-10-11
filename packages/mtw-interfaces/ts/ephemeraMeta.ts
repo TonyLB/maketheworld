@@ -387,17 +387,38 @@ export type EphemeraPresenceCoverEntry = {
 }
 
 /**
- * A presence binding's extent (clause 7, PN-19 decided (b): a tagged arm of `cover`, never a
- * sibling boolean discriminated by `Array.isArray`). `'Full'` means every node of the host is
- * covered, derived from arity nowhere -- clause 7 retires the implicit at-most-one-binding form
- * PR-10 licensed, so even a single-hosted node writes this tag rather than leaving it implicit.
- * `'Enumerated'` states the members explicitly. Illegal-in-`ludicCache` (loss (A): "every node of
- * the host" has no referent in a multi-host merge) is enforced by `ludicCache/types.ts`'s
- * structure arm taking the `'Enumerated'` arm only -- structural, not a runtime guard.
+ * The sentinel in a cover's member list: every node of the whole that NO binding of the whole
+ * lists explicitly. A typed variant beside `EphemeraPresenceCoverEntry`,
+ * not a magic id. It may appear in any number of a whole's bindings; each such binding holds that
+ * same unclaimed set. Only the graph holds it: the cache expands it (`ludicCache/types.ts`).
  */
-export type EphemeraPresenceCover =
-    | { tag: 'Full' }
-    | { tag: 'Enumerated'; members: EphemeraPresenceCoverEntry[] }
+export type EphemeraPresenceCoverRemainder = { tag: 'Remainder' }
+
+/**
+ * A presence binding's extent: one type, an ordered list of explicit entries and/or the
+ * `Remainder` sentinel. `{ members: [Remainder] }` is what the retired `{ tag: 'Full' }` meant.
+ * Every whole keeps at least one remainder (so a member added later still lands in a bucket); a
+ * room keeps exactly one, hostless. Legacy stored `{ tag: 'Full' }` / `{ tag: 'Enumerated' }` is
+ * still READ (`normalizeEphemeraPresenceCover`) until the Slice 4 `cacheAsset` rerun rewrites it.
+ */
+export type EphemeraPresenceCover = {
+    members: (EphemeraPresenceCoverEntry | EphemeraPresenceCoverRemainder)[];
+}
+
+/** A fresh sole-remainder cover each call (never a shared object a reducer could freeze or mutate). */
+export const remainderCover = (): EphemeraPresenceCover => ({ members: [{ tag: 'Remainder' }] })
+
+export const isEphemeraPresenceCoverRemainder = (value: unknown): value is EphemeraPresenceCoverRemainder => (
+    !!value && typeof value === 'object' && (value as { tag?: unknown }).tag === 'Remainder'
+)
+
+/** Reads a legacy `{ tag: 'Full' }` as `{ members: [Remainder] }` and `{ tag: 'Enumerated', members }` as `{ members }`. */
+export const normalizeEphemeraPresenceCover = (cover: EphemeraPresenceCover | { tag: 'Full' } | { tag: 'Enumerated'; members: EphemeraPresenceCoverEntry[] }): EphemeraPresenceCover => {
+    if ('tag' in cover && cover.tag === 'Full') {
+        return { members: [{ tag: 'Remainder' }] }
+    }
+    return { members: [...cover.members] }
+}
 
 /**
  * A presence node (presenceNodes plan / PN-5, 2026-09-15): the reified boundary site that used
@@ -682,26 +703,30 @@ export const isEphemeraLudicGraphComponentNode = (value: unknown): value is Ephe
     return false
 }
 
-/** Branches on the declared `tag`, never on shape (`Array.isArray`) -- PR-15's rule, cited by PN-19. */
+const isEphemeraPresenceCoverEntry = (entry: unknown): entry is EphemeraPresenceCoverEntry => {
+    if (!entry || typeof entry !== 'object') {
+        return false
+    }
+    const { host, presence } = entry as EphemeraPresenceCoverEntry
+    return typeof host === 'string' && typeof presence === 'string' && isEphemeraPresenceNodeId(presence) && (
+        isEphemeraCharacterId(host) || isEphemeraObjectId(host) ||
+        isEphemeraRoomId(host) || isEphemeraFeatureId(host) || isEphemeraAreaId(host)
+    )
+}
+
+/** Accepts the current shape and the legacy `Full` / `Enumerated` tags (read, never written). */
 export const isEphemeraPresenceCover = (value: unknown): value is EphemeraPresenceCover => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const cover = value as EphemeraPresenceCover
+    const cover = value as { tag?: unknown; members?: unknown }
     if (cover.tag === 'Full') {
         return true
     }
-    if (cover.tag !== 'Enumerated') {
+    if (cover.tag !== undefined && cover.tag !== 'Enumerated') {
         return false
     }
-    return Array.isArray(cover.members) && cover.members.every((entry) => (
-        !!entry && typeof entry === 'object' &&
-        isEphemeraPresenceNodeId(entry.presence) &&
-        (
-            isEphemeraCharacterId(entry.host) || isEphemeraObjectId(entry.host) ||
-            isEphemeraRoomId(entry.host) || isEphemeraFeatureId(entry.host) || isEphemeraAreaId(entry.host)
-        )
-    ))
+    return Array.isArray(cover.members) && cover.members.every((entry) => isEphemeraPresenceCoverRemainder(entry) || isEphemeraPresenceCoverEntry(entry))
 }
 
 export const isEphemeraLudicGraphStructureNode = (value: unknown): value is EphemeraLudicGraphStructureNode => {

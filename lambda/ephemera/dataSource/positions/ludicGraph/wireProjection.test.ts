@@ -20,9 +20,8 @@ const boxId = 'OBJECT#Box' as EphemeraObjectId
 const featureId = 'FEATURE#Fountain' as EphemeraFeatureId
 const areaId = 'AREA#Downtown' as EphemeraAreaId
 
-const fullCover: EphemeraPresenceCover = { tag: 'Full' }
+const fullCover: EphemeraPresenceCover = { members: [{ tag: 'Remainder' }] }
 const enumeratedCover = (host: string, presence: string): EphemeraPresenceCover => ({
-    tag: 'Enumerated',
     members: [{ host: host as any, presence: presence as EphemeraPresenceNodeId }],
 })
 
@@ -39,7 +38,8 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                     { tag: 'Object', universalKey: boxId },
                     { tag: 'Feature', universalKey: featureId },
                     { tag: 'Area', universalKey: areaId },
-                    { tag: 'Presence', universalKey: bindingId, fromHostId: roomId, cover: fullCover },
+                    // Lists Box explicitly as well: binding2 claims it, and a bare remainder excludes claimed members.
+                    { tag: 'Presence', universalKey: bindingId, fromHostId: roomId, cover: { members: [{ tag: 'Remainder' }, { host: boxId, presence: 'PRESENCE#box-binding' as EphemeraPresenceNodeId }] } },
                     {
                         tag: 'Presence',
                         universalKey: 'PRESENCE#binding2' as EphemeraPresenceNodeId,
@@ -69,7 +69,7 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
 
             const wire = toWireLudicGraph(graph, bindingUuid)
 
-            // Nothing is cut away: `bindingUuid`'s cover is Full, so the bucket is every
+            // Nothing is cut away: `bindingUuid`'s cover is a remainder plus the one claimed member, so the bucket is every
             // component node plus both presence nodes (carried unconditionally) plus the root.
             expect(wire.nodes).toHaveLength(8)
             expect(wire.edges).toHaveLength(8)
@@ -77,6 +77,35 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
 
             const roundTripped = fromWireLudicGraph(tableId, wire)
             expect(roundTripped).toEqual(graph.toStored())
+        })
+    })
+
+    describe('legacy covers', () => {
+        // Stored graphs written before the Remainder sentinel carry `{ tag: 'Full' }` / `{ tag: 'Enumerated' }`.
+        it('reads a legacy Full as a sole Remainder and a legacy Enumerated as plain members', () => {
+            const graph = testLudicGraph(tableId, {
+                nodes: [
+                    { tag: 'Object', universalKey: tableId },
+                    { tag: 'Object', universalKey: boxId },
+                    { tag: 'Presence', universalKey: 'PRESENCE#legacyFull' as EphemeraPresenceNodeId, fromHostId: roomId, cover: fullCover },
+                    { tag: 'Presence', universalKey: 'PRESENCE#legacyEnum' as EphemeraPresenceNodeId, fromHostId: hallId, cover: enumeratedCover(boxId, 'PRESENCE#box-binding') },
+                ],
+            })
+            const current = toWireLudicGraph(graph, 'legacyFull')
+            const currentEntry = (current.nodes as any[]).find((node) => node?.universalKey === 'PRESENCE#legacyEnum').cover.members[0]
+            const legacyCovers: Record<string, unknown> = {
+                'PRESENCE#legacyFull': { tag: 'Full' },
+                'PRESENCE#legacyEnum': { tag: 'Enumerated', members: [currentEntry] },
+            }
+            const wire = {
+                ...current,
+                nodes: (current.nodes as any[]).map((node: any) => node?.tag === 'Presence' ? { ...node, cover: legacyCovers[node.universalKey] } : node),
+            } as any
+            const stored = fromWireLudicGraph(tableId, wire)
+            expect(stored.nodes.filter((node: any) => node.tag === 'Presence').map((node: any) => node.cover)).toEqual([
+                { members: [{ tag: 'Remainder' }] },
+                { members: [{ host: boxId, presence: 'PRESENCE#box-binding' }] },
+            ])
         })
     })
 

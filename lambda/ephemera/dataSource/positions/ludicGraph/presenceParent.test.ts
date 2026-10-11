@@ -19,7 +19,7 @@ const bindingKey = (name: string) => PresenceKey(name) as EphemeraPresenceNodeId
 const binding = (
     name: string,
     fromHostId: EphemeraMembershipHostId,
-    cover: EphemeraPresenceCover = { tag: 'Full' }
+    cover: EphemeraPresenceCover = { members: [{ tag: 'Remainder' }] }
 ): EphemeraLudicGraphStructureNode => ({ tag: 'Presence', universalKey: bindingKey(name), fromHostId, cover })
 
 const graphsFrom = (nodes: Partial<Record<EphemeraMembershipHostId, EphemeraLudicGraphStructureNode[]>>) => (
@@ -80,7 +80,6 @@ describe('parentBindingsOf', () => {
                 [lamp]: [
                     binding('lamp-roomA', roomA),
                     binding('lamp-roomB', roomB, {
-                        tag: 'Enumerated',
                         members: [{ host: cup, presence: bindingKey('cup-lamp') }],
                     }),
                 ],

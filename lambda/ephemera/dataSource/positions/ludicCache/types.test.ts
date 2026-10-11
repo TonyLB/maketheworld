@@ -88,7 +88,7 @@ describe('isEphemeraLudicCacheNode', () => {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#abc123',
                 fromHostId: 'ROOM#A',
-                cover: { tag: 'Enumerated', members: [] },
+                cover: { members: [] },
                 consolidated: true,
             }],
         })).toBe(true)
@@ -102,7 +102,7 @@ describe('isEphemeraLudicCacheNode', () => {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#abc123',
                 fromHostId: 'ROOM#A',
-                cover: { tag: 'Full' },
+                cover: { members: [{ tag: 'Remainder' }] },
                 consolidated: true,
             }],
         })).toBe(false)
@@ -114,33 +114,40 @@ describe('isEphemeraLudicCacheNode', () => {
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'ROOM#A',
-            cover: { tag: 'Enumerated', members: [] },
+            cover: { members: [] },
             consolidated: false,
         })).toBe(false)
     })
 })
 
 // Structure arm (PN-19, presenceNodes Slice 3): a binding carries none of the cache extras a
-// component node needs --- no shortName --- but does carry `cover` (narrowed to the `'Enumerated'`
-// arm only, `'Full'` being unrepresentable in the cache by construction) and `consolidated`
+// component node needs --- no shortName --- but does carry `cover` (entries only, the
+// graph's `Remainder` sentinel being unrepresentable in the cache by construction) and `consolidated`
 // (PN-15, a separate boolean beside `cover`).
 describe('isEphemeraLudicCachePresenceNode', () => {
-    it('accepts a binding with an Enumerated cover and a consolidated flag', () => {
+    it('accepts a binding with an entries-only cover and a consolidated flag', () => {
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'ROOM#A',
-            cover: { tag: 'Enumerated', members: [] },
+            cover: { members: [] },
             consolidated: false,
         })).toBe(true)
     })
 
-    it("rejects a binding with a 'Full' cover -- unrepresentable in the cache by construction (PN-19)", () => {
+    it("rejects a binding with a legacy 'Full' cover or a Remainder entry -- unrepresentable in the cache by construction (PN-19)", () => {
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'ROOM#A',
             cover: { tag: 'Full' },
+            consolidated: false,
+        })).toBe(false)
+        expect(isEphemeraLudicCachePresenceNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+            cover: { members: [{ tag: 'Remainder' }] },
             consolidated: false,
         })).toBe(false)
     })
@@ -150,7 +157,7 @@ describe('isEphemeraLudicCachePresenceNode', () => {
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'ROOM#A',
-            cover: { tag: 'Enumerated', members: [] },
+            cover: { members: [] },
         })).toBe(false)
     })
 
@@ -159,7 +166,7 @@ describe('isEphemeraLudicCachePresenceNode', () => {
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'PRESENCE#xyz789',
-            cover: { tag: 'Enumerated', members: [] },
+            cover: { members: [] },
             consolidated: false,
         })).toBe(false)
     })
@@ -171,7 +178,7 @@ describe('isEphemeraLudicCachePresenceNode', () => {
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'ROOM#A',
-            cover: { tag: 'Enumerated', members: [{ host: 'OBJECT#Z', presence: 'PRESENCE#z_in_x' }, { host: 'OBJECT#W' }] },
+            cover: { members: [{ host: 'OBJECT#Z', presence: 'PRESENCE#z_in_x' }, { host: 'OBJECT#W' }] },
             consolidated: true,
         })).toBe(true)
     })
@@ -181,7 +188,7 @@ describe('isEphemeraLudicCachePresenceNode', () => {
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'ROOM#A',
-            cover: { tag: 'Enumerated', members: [{ host: 'OBJECT#Z', presence: 'OBJECT#Z' }] },
+            cover: { members: [{ host: 'OBJECT#Z', presence: 'OBJECT#Z' }] },
             consolidated: true,
         })).toBe(false)
     })
@@ -191,7 +198,7 @@ describe('isEphemeraLudicCachePresenceNode', () => {
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostId: 'ROOM#A',
-            cover: { tag: 'Enumerated', members: [{ host: 'PRESENCE#z_in_x' }] },
+            cover: { members: [{ host: 'PRESENCE#z_in_x' }] },
             consolidated: true,
         })).toBe(false)
     })
@@ -343,7 +350,7 @@ describe('isEphemeraLudicCacheData', () => {
             tag: 'Presence' as const,
             universalKey: 'PRESENCE#box_in_room',
             fromHostId: 'ROOM#Test',
-            cover: { tag: 'Enumerated' as const, members },
+            cover: { members },
             consolidated: true,
         }],
     })
@@ -353,7 +360,7 @@ describe('isEphemeraLudicCacheData', () => {
             tag: 'Presence' as const,
             universalKey: 'PRESENCE#helmet_in_box',
             fromHostId: 'OBJECT#box',
-            cover: { tag: 'Enumerated' as const, members: [] },
+            cover: { members: [] },
             consolidated: true,
         }],
     }

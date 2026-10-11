@@ -22,34 +22,47 @@ export type StandardLudicGraphPresenceCoverEntryData = {
     presence: string
 }
 
-export type StandardLudicGraphPresenceCoverData =
+export type StandardLudicGraphPresenceCoverRemainderData = { tag: 'Remainder' }
+
+/** Mirrors `EphemeraPresenceCover`: entries and/or the `Remainder` sentinel (legacy `Full`/`Enumerated` tags are read by the guard, normalized in `wireCoverToEphemera`). */
+export type StandardLudicGraphPresenceCoverData = {
+    members: (StandardLudicGraphPresenceCoverEntryData | StandardLudicGraphPresenceCoverRemainderData)[]
+}
+
+/** The legacy shapes the guard still accepts on read. */
+export type StandardLudicGraphLegacyPresenceCoverData =
     | { tag: 'Full' }
     | { tag: 'Enumerated'; members: StandardLudicGraphPresenceCoverEntryData[] }
+
+const isStandardLudicGraphPresenceCoverMember = (entry: unknown): boolean => (
+    !!entry && typeof entry === 'object' && (
+        (entry as { tag?: unknown }).tag === 'Remainder' || (
+            typeof (entry as StandardLudicGraphPresenceCoverEntryData).presence === 'string' &&
+            isStandardReferenceData((entry as StandardLudicGraphPresenceCoverEntryData).host)
+        )
+    )
+)
 
 export type StandardLudicGraphPresenceNodeData = {
     tag: 'Presence'
     universalKey: string
     fromHostId: StandardReferenceData
-    cover: StandardLudicGraphPresenceCoverData
+    cover: StandardLudicGraphPresenceCoverData | StandardLudicGraphLegacyPresenceCoverData
     ref?: number
 }
 
-export const isStandardLudicGraphPresenceCoverData = (arg: unknown): arg is StandardLudicGraphPresenceCoverData => {
+export const isStandardLudicGraphPresenceCoverData = (arg: unknown): arg is StandardLudicGraphPresenceCoverData | StandardLudicGraphLegacyPresenceCoverData => {
     if (typeof arg !== 'object' || arg === null) {
         return false
     }
-    const cover = arg as StandardLudicGraphPresenceCoverData
+    const cover = arg as { tag?: unknown; members?: unknown }
     if (cover.tag === 'Full') {
         return true
     }
-    if (cover.tag !== 'Enumerated') {
+    if (cover.tag !== undefined && cover.tag !== 'Enumerated') {
         return false
     }
-    return Array.isArray(cover.members) && cover.members.every((entry) => (
-        !!entry && typeof entry === 'object' &&
-        typeof entry.presence === 'string' &&
-        isStandardReferenceData(entry.host)
-    ))
+    return Array.isArray(cover.members) && cover.members.every(isStandardLudicGraphPresenceCoverMember)
 }
 
 export const isStandardLudicGraphPresenceNodeData = (arg: unknown): arg is StandardLudicGraphPresenceNodeData => {

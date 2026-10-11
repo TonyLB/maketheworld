@@ -21,14 +21,14 @@
  * its findings live on in PR-8 and PR-12 above.
  */
 import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraPresenceCoverRemainder, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from '../ludicGraph'
-import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
+import { nodesFromPresenceBinding, subGraphFromNodes, unclaimedComponentNodes } from '../ludicGraph/presenceSubGraph'
 import type { EphemeraLudicCacheCoverEntry, EphemeraLudicCacheEdge, EphemeraLudicCachePresenceNode, EphemeraLudicCacheSupportHop } from './types'
 
 /**
@@ -396,12 +396,12 @@ export const mergeSameHostBucket = (
  * field carries it").
  *
  * `cover` entries name each covered member's OWN binding into this host, never the covering
- * binding (`EphemeraLudicCacheCoverEntry`). A graph-side `'Enumerated'` cover already says so,
- * and its entries are copied (root filtered out; the parent side is authoritative, so no
- * cross-check against the member's graph). A graph-side `'Full'` cover is expanded here (PN-19's
- * cache-side legality: `'Full'` has no referent once merged, so this is where it is made
- * unrepresentable by construction): its members are `nodesFromPresenceBinding`'s set, root and
- * the binding's own id (PN-6 clause (c)) filtered out, and each gets one entry per binding
+ * binding (`EphemeraLudicCacheCoverEntry`). A graph-side explicit entry already says so,
+ * and is copied (root filtered out; the parent side is authoritative, so no
+ * cross-check against the member's graph). A graph-side `Remainder` is expanded here (PN-19's
+ * cache-side legality: the sentinel has no referent once merged, so this is where it is made
+ * unrepresentable by construction): it stands for `unclaimedComponentNodes` --- the whole's
+ * nodes that no binding lists, root excluded --- and each gets one entry per binding
  * `memberBindings` finds for it --- or one entry with `presence` absent when it finds none
  * (PNR-3: still covered, only which binding is unknown). A binding named in
  * `presenceUuids` with no matching graph node (the same degenerate case
@@ -447,27 +447,33 @@ const presenceCacheNodesFromFold = (
         if (!presenceNode) {
             return acc
         }
-        // The room rule (PR-21(f)): a room's `Full` binding into an Area is a carve-out with an empty
-        // member list, so a member's bucket is the room itself, not a binding that resolves to no
-        // rooms. An `Enumerated` cover on a room is a genuine split and keeps its members.
-        // Stopgap: reads around `cacheAsset` storing the room's remainder as `Full` at its Area;
-        // retired in presenceRemainder Slice 4.
-        const members: EphemeraLudicCacheCoverEntry[] = isEphemeraRoomId(graph.hostId) && presenceNode.cover.tag === 'Full'
+        // The room rule (PR-21(f)): a room's sole-remainder binding into an Area is a carve-out with an
+        // empty member list, so a member's bucket is the room itself, not a binding that resolves to no
+        // rooms. A cover with entries on a room is a genuine split and keeps its members.
+        // Stopgap: reads around `cacheAsset` storing the room's remainder as a sole `Remainder` at its
+        // Area; retired in presenceRemainder Slice 4.
+        const soleRemainder = presenceNode.cover.members.length === 1 && isEphemeraPresenceCoverRemainder(presenceNode.cover.members[0])
+        const members: EphemeraLudicCacheCoverEntry[] = isEphemeraRoomId(graph.hostId) && soleRemainder
             ? []
-            : presenceNode.cover.tag === 'Enumerated'
-            ? presenceNode.cover.members.filter((entry) => entry.host !== root)
-            : [...nodesFromPresenceBinding(graph, presenceUuid)]
-                .filter((id) => id !== root && id !== universalKey)
-                .flatMap((id) => {
-                    const host = id as EphemeraLudicCacheCoverEntry['host']
-                    const bindings = memberBindings(host)
-                    return bindings.length ? bindings.map((presence) => ({ host, presence })) : [{ host }]
-                })
+            : presenceNode.cover.members.flatMap((entry): EphemeraLudicCacheCoverEntry[] => {
+                if (!isEphemeraPresenceCoverRemainder(entry)) {
+                    return entry.host === root ? [] : [entry]
+                }
+                // A remainder expands against the whole's claimed set (members any binding lists), so
+                // a member listed by a sibling binding never leaks into this one.
+                return unclaimedComponentNodes(graph)
+                    .filter((id) => id !== root)
+                    .flatMap((id) => {
+                        const host = id as EphemeraLudicCacheCoverEntry['host']
+                        const bindings = memberBindings(host)
+                        return bindings.length ? bindings.map((presence) => ({ host, presence })) : [{ host }]
+                    })
+            })
         return [...acc, {
             tag: 'Presence' as const,
             universalKey,
             fromHostId: presenceNode.fromHostId,
-            cover: { tag: 'Enumerated' as const, members },
+            cover: { members },
             consolidated: true,
         }]
     }, [])

@@ -1,4 +1,4 @@
-import { edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { edgeKindAndLabelFrom, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
@@ -251,14 +251,14 @@ export const applyStepSequenceCore = (
             // presenceNodes Slice 7a (PN-23): mints the presence node directly, with no port
             // record --- `EphemeraPresencePort` is retired, and `presenceUuid` (minted at
             // compile time, `presenceBindingStepsForMove.ts`) becomes the node's `universalKey`
-            // suffix on its own. Full coverage by default -- nothing here computes real bucket
+            // suffix on its own. A sole remainder by default -- nothing here computes real bucket
             // membership; that is future work, not a migration of anything that exists today (no
             // `Present` edge was ever written to derive it from).
             const withNode = graph.addPresenceNode({
                 tag: 'Presence',
                 universalKey: PresenceKey(step.presenceUuid),
                 fromHostId: step.fromHostId,
-                cover: { tag: 'Full' },
+                cover: remainderCover(),
             })
             graphs.set(step.hostId, withNode)
             continue

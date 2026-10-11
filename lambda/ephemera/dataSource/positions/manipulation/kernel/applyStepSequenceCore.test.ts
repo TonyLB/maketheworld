@@ -663,14 +663,14 @@ describe('applyStepSequenceCore', () => {
                     tag: 'Presence',
                     universalKey: 'PRESENCE#p1',
                     fromHostId: roomId,
-                    cover: { tag: 'Full' },
+                    cover: { members: [{ tag: 'Remainder' }] },
                 }])
             )
         })
 
         it('removePresenceBinding removes the matching presence node by fromHostId', () => {
             const trayGraph = testLudicGraph(trayId, {
-                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } }],
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { members: [{ tag: 'Remainder' }] } }],
             })
             const steps: MutationKernelStep[] = [
                 { kind: 'removePresenceBinding', hostId: trayId, fromHostId: roomId },
@@ -685,7 +685,7 @@ describe('applyStepSequenceCore', () => {
 
         it('removePresenceBinding against an absent binding is a silent no-op, not illegal', () => {
             const trayGraph = testLudicGraph(trayId, {
-                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } }],
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { members: [{ tag: 'Remainder' }] } }],
             })
             const steps: MutationKernelStep[] = [
                 { kind: 'removePresenceBinding', hostId: trayId, fromHostId: otherRoomId },
@@ -696,13 +696,13 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(trayId)!.toStored().nodes).toEqual([
-                { tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } },
+                { tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { members: [{ tag: 'Remainder' }] } },
             ])
         })
 
         it('a remove-then-add pair leaving one presence binding on a character does not throw', () => {
             const characterGraph = testLudicGraph(characterId, {
-                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } }],
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { members: [{ tag: 'Remainder' }] } }],
             })
             const steps: MutationKernelStep[] = [
                 { kind: 'removePresenceBinding', hostId: characterId, fromHostId: roomId },
@@ -714,13 +714,13 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(characterId)!.toStored().nodes).toEqual([
-                { tag: 'Presence', universalKey: 'PRESENCE#p2', fromHostId: otherRoomId, cover: { tag: 'Full' } },
+                { tag: 'Presence', universalKey: 'PRESENCE#p2', fromHostId: otherRoomId, cover: { members: [{ tag: 'Remainder' }] } },
             ])
         })
 
         it('throws when a sequence would leave a character with two presence bindings --- characters are single-hosted', () => {
             const characterGraph = testLudicGraph(characterId, {
-                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } }],
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { members: [{ tag: 'Remainder' }] } }],
             })
             const steps: MutationKernelStep[] = [
                 { kind: 'addPresenceBinding', hostId: characterId, fromHostId: otherRoomId, presenceUuid: 'p2' },
@@ -731,7 +731,7 @@ describe('applyStepSequenceCore', () => {
 
         it('does not throw when an object carries two presence bindings --- multi-presence is the point for objects', () => {
             const trayGraph = testLudicGraph(trayId, {
-                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { tag: 'Full' } }],
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#p1', fromHostId: roomId, cover: { members: [{ tag: 'Remainder' }] } }],
             })
             const steps: MutationKernelStep[] = [
                 { kind: 'addPresenceBinding', hostId: trayId, fromHostId: otherRoomId, presenceUuid: 'p2' },

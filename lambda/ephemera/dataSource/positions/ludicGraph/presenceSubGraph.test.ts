@@ -25,12 +25,11 @@ const crossingPort = (portId: string): EphemeraLudicGraphPort => ({
     kind: 'Custom', exteriorRelationLabel: 'under',
 })
 
-const fullCover: EphemeraPresenceCover = { tag: 'Full' }
+const fullCover: EphemeraPresenceCover = { members: [{ tag: 'Remainder' }] }
 
 /** A dummy `presence` disambiguator per member --- these fixtures don't exercise a covered
  * component's own multiple bindings (PN-22), so any well-formed `PRESENCE#` id suffices. */
 const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey'][]): EphemeraPresenceCover => ({
-    tag: 'Enumerated',
     members: hosts.map((host) => ({ host, presence: `PRESENCE#${host}-binding` as EphemeraPresenceNodeId })),
 })
 
@@ -55,7 +54,24 @@ describe('nodesFromPresenceBinding', () => {
         expect(nodesFromPresenceBinding(graph, 'nonexistent')).toEqual(new Set([roomId, charA, objC]))
     })
 
-    it("returns every component node when the presence node's cover is 'Full', plus the binding's own presence id (PN-6 clause (c))", () => {
+    // A Remainder stands for what NO binding of the whole lists, so a sibling's member never leaks in.
+    it('expands each Remainder against the whole\'s claimed set, not its own binding\'s list', () => {
+        const objB = 'OBJECT#B' as EphemeraObjectId
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objB },
+                { tag: 'Character', universalKey: charA },
+                { tag: 'Object', universalKey: objC },
+                presenceNode('p1', { members: [{ host: objB, presence: 'PRESENCE#b-1' as EphemeraPresenceNodeId }, { tag: 'Remainder' }] }),
+                presenceNode('p2', { members: [{ host: charA, presence: 'PRESENCE#a-2' as EphemeraPresenceNodeId }, { tag: 'Remainder' }] }),
+            ],
+        })
+        expect(nodesFromPresenceBinding(graph, 'p1')).toEqual(new Set([objB, objC, roomId, 'PRESENCE#p1' as EphemeraPresenceNodeId]))
+        expect(nodesFromPresenceBinding(graph, 'p2')).toEqual(new Set([charA, objC, roomId, 'PRESENCE#p2' as EphemeraPresenceNodeId]))
+    })
+
+    it("returns every component node when the presence node's cover is a sole Remainder, plus the binding's own presence id (PN-6 clause (c))", () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },

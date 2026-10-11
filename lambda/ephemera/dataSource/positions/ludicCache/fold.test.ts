@@ -41,7 +41,6 @@ const pebble = 'OBJECT#Pebble' as EphemeraObjectId
 
 /** Each entry is a covered member and the uuid of that member's OWN binding into the cover's host. */
 const enumeratedCover = (...entries: [EphemeraMembershipHostId, string][]): EphemeraPresenceCover => ({
-    tag: 'Enumerated',
     members: entries.map(([host, uuid]) => ({ host, presence: PresenceKey(uuid) as EphemeraPresenceNodeId })),
 })
 
@@ -136,7 +135,7 @@ describe('buildLudicCache', () => {
         expect(shortNameDeps.getComponentAggregate).toHaveBeenCalledTimes(6) // roomA, objX, objY, objZ, pebble1, pebble2
         const binding = (uuid: string, fromHostId: EphemeraMembershipHostId, members: { host: EphemeraMembershipHostId, presence: string }[]) => ({
             tag: 'Presence', universalKey: PresenceKey(uuid), fromHostId, consolidated: true,
-            cover: { tag: 'Enumerated', members },
+            cover: { members },
         })
         expect(cache.nodes).toHaveLength(6)
         expect(cache.nodes).toEqual(expect.arrayContaining([
@@ -179,14 +178,14 @@ describe('buildLudicCache', () => {
                 { tag: 'Object', universalKey: objX },
                 { tag: 'Object', universalKey: objZ },
                 { tag: 'Object', universalKey: objW },
-                presenceNode('x_to_room', roomA, { tag: 'Full' }),
+                presenceNode('x_to_room', roomA, { members: [{ tag: 'Remainder' }] }),
             ],
         })
         const zGraph = testLudicGraph(objZ, {
             nodes: [
                 { tag: 'Object', universalKey: objZ },
-                presenceNode('z_at_x_1', objX, { tag: 'Full' }),
-                presenceNode('z_at_x_2', objX, { tag: 'Full' }),
+                presenceNode('z_at_x_1', objX, { members: [{ tag: 'Remainder' }] }),
+                presenceNode('z_at_x_2', objX, { members: [{ tag: 'Remainder' }] }),
             ],
         })
         const wGraph = testLudicGraph(objW, { nodes: [{ tag: 'Object', universalKey: objW }] })
@@ -206,7 +205,6 @@ describe('buildLudicCache', () => {
         expect(xBinding).toEqual({
             tag: 'Presence', universalKey: 'PRESENCE#x_to_room', fromHostId: roomA, consolidated: true,
             cover: {
-                tag: 'Enumerated',
                 members: expect.arrayContaining([
                     { host: objZ, presence: 'PRESENCE#z_at_x_1' },
                     { host: objZ, presence: 'PRESENCE#z_at_x_2' },
@@ -218,6 +216,50 @@ describe('buildLudicCache', () => {
         expect(isEphemeraLudicCacheData(cache)).toBe(true)
     })
 
+    // `A` holds B, C and other stuff, with presences { B, Remainder } and { C, Remainder }.
+    // Each remainder expands against the whole's claimed set, so B never leaks into P2 nor C into P1.
+    it('expands several remainders against the claimed set, not each binding\'s own list', async () => {
+        const objB = 'OBJECT#B' as EphemeraObjectId
+        const objC = 'OBJECT#C' as EphemeraObjectId
+        const objD = 'OBJECT#D' as EphemeraObjectId
+        const roomGraph = testLudicGraph(roomA, {
+            nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: objX }],
+        })
+        const xGraph = testLudicGraph(objX, {
+            nodes: [
+                { tag: 'Object', universalKey: objX },
+                { tag: 'Object', universalKey: objB },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+                presenceNode('p1', roomA, { members: [{ host: objB, presence: 'PRESENCE#b_in_p1' as EphemeraPresenceNodeId }, { tag: 'Remainder' }] }),
+                presenceNode('p2', roomA, { members: [{ host: objC, presence: 'PRESENCE#c_in_p2' as EphemeraPresenceNodeId }, { tag: 'Remainder' }] }),
+            ],
+        })
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, roomGraph], [objX, xGraph],
+            ...[objB, objC, objD].map((id): [EphemeraMembershipHostId, EphemeraLudicGraph] => [id, testLudicGraph(id, { nodes: [{ tag: 'Object', universalKey: id }] })]),
+        ])
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
+            const graph = graphs.get(hostId)
+            if (!graph) {
+                throw new Error(`No fixture graph for ${hostId}`)
+            }
+            return graph
+        }
+
+        const { cache } = await buildLudicCache(roomA, [testAssetUUID], { getLudicGraph, ...noShortNameDeps() })
+
+        const bindings = cache.nodes.find((node) => node.universalKey === objX)?.presenceNodes ?? []
+        expect(bindings.find((binding) => binding.universalKey === 'PRESENCE#p1')?.cover.members).toEqual([
+            { host: objB, presence: 'PRESENCE#b_in_p1' },
+            { host: objD },
+        ])
+        expect(bindings.find((binding) => binding.universalKey === 'PRESENCE#p2')?.cover.members).toEqual([
+            { host: objC, presence: 'PRESENCE#c_in_p2' },
+            { host: objD },
+        ])
+    })
+
     // The room rule (PR-21(f)): a room's Full binding into an Area is a carve-out with no members.
     it('gives a room\'s Area binding an empty member list', async () => {
         const town = 'AREA#Town' as EphemeraAreaId
@@ -225,7 +267,7 @@ describe('buildLudicCache', () => {
             nodes: [
                 { tag: 'Room', universalKey: roomA },
                 { tag: 'Object', universalKey: objX },
-                presenceNode('a_in_town', town, { tag: 'Full' }),
+                presenceNode('a_in_town', town, { members: [{ tag: 'Remainder' }] }),
             ],
         })
         const xGraph = testLudicGraph(objX, { nodes: [{ tag: 'Object', universalKey: objX }] })
@@ -237,7 +279,7 @@ describe('buildLudicCache', () => {
         const roomBinding = cache.nodes.find((node) => node.universalKey === roomA)?.presenceNodes[0]
         expect(roomBinding).toEqual({
             tag: 'Presence', universalKey: 'PRESENCE#a_in_town', fromHostId: town, consolidated: true,
-            cover: { tag: 'Enumerated', members: [] },
+            cover: { members: [] },
         })
         expect(isEphemeraLudicCacheData(cache)).toBe(true)
     })
@@ -251,11 +293,11 @@ describe('buildLudicCache', () => {
                 { tag: 'Object', universalKey: objX },
                 { tag: 'Object', universalKey: objZ },
                 presenceNode('x_to_room_a', roomA, enumeratedCover()),
-                presenceNode('x_to_room_b', roomB, { tag: 'Full' }),
+                presenceNode('x_to_room_b', roomB, { members: [{ tag: 'Remainder' }] }),
             ],
         })
         const zGraph = testLudicGraph(objZ, {
-            nodes: [{ tag: 'Object', universalKey: objZ }, presenceNode('z_in_x', objX, { tag: 'Full' })],
+            nodes: [{ tag: 'Object', universalKey: objZ }, presenceNode('z_in_x', objX, { members: [{ tag: 'Remainder' }] })],
         })
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[objX, xGraph], [objZ, zGraph]])
         const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
@@ -275,11 +317,11 @@ describe('buildLudicCache', () => {
                 presenceNodes: [
                     {
                         tag: 'Presence', universalKey: 'PRESENCE#x_to_room_a', fromHostId: roomA, consolidated: true,
-                        cover: { tag: 'Enumerated', members: [] },
+                        cover: { members: [] },
                     },
                     {
                         tag: 'Presence', universalKey: 'PRESENCE#x_to_room_b', fromHostId: roomB, consolidated: true,
-                        cover: { tag: 'Enumerated', members: [{ host: objZ, presence: 'PRESENCE#z_in_x' }] },
+                        cover: { members: [{ host: objZ, presence: 'PRESENCE#z_in_x' }] },
                     },
                 ],
             },
@@ -288,7 +330,7 @@ describe('buildLudicCache', () => {
                 universalKey: objZ,
                 presenceNodes: [{
                     tag: 'Presence', universalKey: 'PRESENCE#z_in_x', fromHostId: objX, consolidated: true,
-                    cover: { tag: 'Enumerated', members: [] },
+                    cover: { members: [] },
                 }],
             },
         ])

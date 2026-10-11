@@ -2090,7 +2090,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                             nodes: [
                                 { tag: 'Object', universalKey: COIN },
                                 { tag: 'Object', universalKey: POST },
-                                { tag: 'Presence', universalKey: tableBinding, fromHostId: ROOM, cover: { tag: 'Full' } },
+                                { tag: 'Presence', universalKey: tableBinding, fromHostId: ROOM, cover: { members: [{ tag: 'Remainder' }] } },
                             ],
                             edges: [
                                 { tag: 'Relational', from: COIN, to: TABLE, kind: 'On' },
@@ -2125,8 +2125,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                 [TABLE]: testLudicGraph(TABLE as unknown as EphemeraRoomId, {
                     nodes: [
                         { tag: 'Object', universalKey: TABLE },
-                        { tag: 'Presence', universalKey: tableHere, fromHostId: ROOM, cover: { tag: 'Full' } },
-                        { tag: 'Presence', universalKey: tableThere, fromHostId: OTHER_ROOM, cover: { tag: 'Full' } },
+                        { tag: 'Presence', universalKey: tableHere, fromHostId: ROOM, cover: { members: [{ tag: 'Remainder' }] } },
+                        { tag: 'Presence', universalKey: tableThere, fromHostId: OTHER_ROOM, cover: { members: [{ tag: 'Remainder' }] } },
                     ],
                 }),
             }

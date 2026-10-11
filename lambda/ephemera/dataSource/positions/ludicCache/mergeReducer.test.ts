@@ -32,7 +32,6 @@ const objE2 = 'OBJECT#E2' as EphemeraObjectId
 const ownBinding = (host: EphemeraLudicGraphComponentNode['universalKey']) => `PRESENCE#${host}-binding` as EphemeraPresenceNodeId
 
 const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey'][]): EphemeraPresenceCover => ({
-    tag: 'Enumerated',
     members: hosts.map((host) => ({ host, presence: ownBinding(host) })),
 })
 
@@ -469,7 +468,6 @@ describe('foldSameHostBuckets', () => {
                 fromHostId: roomId,
                 consolidated: true,
                 cover: {
-                    tag: 'Enumerated',
                     members: expect.arrayContaining([
                         { host: charA, presence: ownBinding(charA) },
                         { host: objC, presence: ownBinding(objC) },
@@ -483,7 +481,6 @@ describe('foldSameHostBuckets', () => {
                 fromHostId: roomId,
                 consolidated: true,
                 cover: {
-                    tag: 'Enumerated',
                     members: expect.arrayContaining([
                         { host: charB, presence: ownBinding(charB) },
                         { host: objD, presence: ownBinding(objD) },
@@ -496,7 +493,6 @@ describe('foldSameHostBuckets', () => {
                 fromHostId: roomId,
                 consolidated: true,
                 cover: {
-                    tag: 'Enumerated',
                     members: expect.arrayContaining([
                         { host: charC, presence: ownBinding(charC) },
                         { host: objF, presence: ownBinding(objF) },
