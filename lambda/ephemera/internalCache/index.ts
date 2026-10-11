@@ -1,5 +1,4 @@
 
-import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses';
 
 import CacheCharacterMetaData from './characterMeta';
 import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB';
@@ -171,7 +170,10 @@ export class InternalCache {
             (roomId) => this.ComponentEphemeraMeta.get(roomId),
             {
                 getLudicGraph: (roomId) => this.Positions.getLudicGraph(roomId),
-                getImprovisationObject: (objectId) => this.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID),
+                getRoomObjectContents: (roomId, objectIds, assetStack) => {
+                    const { ludicCacheRoomObjectContents } = require('../dataSource/positions/ludicCache/roomObjectContents') as typeof import('../dataSource/positions/ludicCache/roomObjectContents')
+                    return ludicCacheRoomObjectContents(roomId, objectIds, assetStack)
+                },
             }
         )
         this.GenerationContext = new GenerationContextData(this.ComponentData)

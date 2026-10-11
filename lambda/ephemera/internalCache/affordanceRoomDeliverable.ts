@@ -6,20 +6,19 @@ import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/asse
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import type { AffordanceCacheData } from './affordanceCache'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
-import { EphemeraObjectId, EphemeraRoomId, IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { appendImprovisationToPerspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
-import { shortNameToJSON } from '@tonylb/mtw-wml/ts/standardize/components/shortNameField'
-import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
-import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { getRoomCharacterList } from './hydrateRoomRoster'
 import { roomCharacterListToStandardCharacterData } from './roomWireMergeHelpers'
 import type { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 import { toWireLudicGraphFull } from '../dataSource/positions/ludicGraph/wireProjection'
 import type { StandardObjectData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/object'
+import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
+import type { RoomObjectWithContents } from '../dataSource/positions/ludicCache/roomObjectContents'
 
 /** Cache key for AffordanceRoomDeliverable (roomId, perspectiveKey). */
 export function generateAffordanceRoomDeliverableCacheKey(
@@ -36,13 +35,18 @@ export function affordanceRoomDeliverableCacheKeyForRoom(cacheKey: string, roomI
 
 export type AffordanceRoomDeliverableObjectReads = {
     getLudicGraph: (roomId: EphemeraRoomId) => Promise<EphemeraLudicGraph>
-    getImprovisationObject: (objectId: EphemeraObjectId) => Promise<{ component?: StandardComponent }>
+    /** One level of contents per room-level object, read forward from `ludicCache` (`ludicCacheRoomObjectContents`). */
+    getRoomObjectContents: (
+        roomId: EphemeraRoomId,
+        objectIds: readonly EphemeraObjectId[],
+        assetStack: readonly string[]
+    ) => Promise<RoomObjectWithContents[]>
 }
 
 /**
  * Per-invocation compose memo keyed by (roomId, perspectiveKey): builds affordance-channel
  * room header StandardForm (shortName via ComponentAggregate, exits via AffordanceCache,
- * roster via graph, objects via ludicGraph + improvisation merge). Called from perception on Affordances Pertain only.
+ * roster via graph, room-level objects via ludicGraph, each with one level of contents from ludicCache). Called from perception on Affordances Pertain only.
  */
 export class AffordanceRoomDeliverableData {
     _componentAggregate: ComponentAggregateMergedCache
@@ -122,16 +126,22 @@ export class AffordanceRoomDeliverableData {
             throw new Error(`ComponentAggregate did not return StandardRoom for ${roomId}`)
         }
 
-        const objectComponents = (await Promise.all(objectIds.map(async (objectId): Promise<StandardObjectData | undefined> => {
-            const pairRow = await this._objectReads.getImprovisationObject(objectId)
-            const component = pairRow?.component
-            const shortName = component instanceof StandardObject && component.shortName
-                ? shortNameToJSON(component.shortName)
-                : undefined
-            return typeof shortName === 'string'
-                ? { tag: 'Object', universalKey: objectId, shortName }
-                : undefined
-        }))).filter((row): row is StandardObjectData => row !== undefined)
+        const roomObjects = await this._objectReads.getRoomObjectContents(roomId, objectIds, affordanceRow.assetStack)
+        const roomLevelIds = new Set<string>(roomObjects.map(({ objectId }) => objectId))
+        // Look-path shape: the object's contents are bare references in its own `ludicGraph`, and each content's
+        // name travels as a sibling stub (a content that is also room-level keeps its one room-level stub).
+        const objectComponents: StandardObjectData[] = roomObjects.map(({ objectId, shortName, contents }) => ({
+            tag: 'Object',
+            universalKey: objectId,
+            shortName,
+            ...(contents.length
+                ? { ludicGraph: { rootId: objectId as unknown as StandardReferenceData, nodes: [objectId, ...contents.map(({ objectId }) => objectId)] as unknown as StandardReferenceData[] } }
+                : {}),
+        }))
+        const contentComponents: StandardObjectData[] = roomObjects
+            .flatMap(({ contents }) => contents)
+            .filter(({ objectId }, index, all) => !roomLevelIds.has(objectId) && all.findIndex((other) => other.objectId === objectId) === index)
+            .map(({ objectId, shortName }) => ({ tag: 'Object', universalKey: objectId, shortName }))
 
         const exits = affordanceRow.topology.exits
         const shortNameLiteral = mergedRoom.shortName
@@ -153,6 +163,7 @@ export class AffordanceRoomDeliverableData {
                 roomRow,
                 ...characterComponents,
                 ...objectComponents,
+                ...contentComponents,
             ],
             { standardizeMode: 'ephemeraWire' }
         )
