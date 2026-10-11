@@ -1,6 +1,6 @@
 # Presence remainder: design sweep
 
-**Status: in progress. Next step: [Slice 2](#recommended-order) (amend rows).** Slices 1 and 1b are done; the implementation plan is open as [`AGENT.presenceRemainder.planning.md`](AGENT.presenceRemainder.planning.md). Slice 0's target-list check stays open and gates only Slice 3. Opened 2026-10-11 from conversation, after a review of how `ROOM#` components are special-cased in presence bindings.
+**Status: in progress. Next step: [Slice 3](#recommended-order) (correct present-tense docs and comments), after Slice 0's target-list check.** Slices 1, 1b and 2 are done; the implementation plan is open as [`AGENT.presenceRemainder.planning.md`](AGENT.presenceRemainder.planning.md). Slice 0's target-list check stays open and gates only Slice 3. Opened 2026-10-11 from conversation, after a review of how `ROOM#` components are special-cased in presence bindings.
 
 **Scope in one sentence: carry a design decision reached in conversation --- rooms as perspective roots, and a remainder binding with an optional `fromHostPresence` parent pointer --- into the design plans and durable docs that it changes, without writing any code.**
 
@@ -47,7 +47,7 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [X] **The extra cache bucket.** Verified 2026-10-11 by reading: `applyStepSequenceCore`'s `addPresenceBinding` mints every binding `Full`, Room-in-Area ones included; `presenceCacheNodesFromFold` expands the room's `Full` Area binding into the room's members; `bucketsByMember` gives each member `{ host: <room>, presence: <that binding> }`; and `roomsForPresenceNode` walks to the Area, which has no bindings, so it resolves to no rooms. Recorded as the implementation plan's Slice 2. The original check: read `foldSameHostBuckets` ([`ludicCache/mergeReducer.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/mergeReducer.ts)) and confirm that a room-seeded `buildLudicCache` folds the room's own Area binding with a cover listing the room's members, so `bucketsByMember` ([`catalogHandles.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/catalogHandles.ts)) gives each member `{ host: <room>, presence: <room's Area binding> }`, which `roomsForPresenceNode` resolves to no rooms. Settle it by reading, or with a throwaway test that is not committed. No cache or audience test today has an Area-hosted room.
   - [ ] **The target list is complete.** Re-run the stale-phrase grep in [Verification](#verification) and confirm it matches the Slice 3 list.
 - [X] **Slice 1. Record the decision in the presence plan.**
-  - [X] Ground PR-21 in the corpus (done 2026-10-11, ahead of the rest of this slice so DS1 could be decided):
+  - [X] Ground PR-21 in the corpus (done 2026-10-11, ahead of the rest of this slice so the tier could be decided):
     - [X] **PR-C3**, *the alley filled with refuse, in two areas at once*, in [`AGENT.presence.corpus.planning.md`](AGENT.presence.corpus.planning.md#pr-c3-the-alley-filled-with-refuse-in-two-areas-at-once). Grades the pinch, and records the re-open trigger's near-miss.
     - [X] **PR-C4**, *the crate of angry bees, before Acme delivers it*, in the same file ([link](AGENT.presence.corpus.planning.md#pr-c4-the-crate-of-angry-bees-before-acme-delivers-it)). Grades the hostless remainder against PR-1's representation of hostlessness.
     - [X] **C10 annotation**, *an intangible member, the database library*, in [`AGENT.abstractionLayers.corpus.planning.md`](AGENT.abstractionLayers.corpus.planning.md#annotation-2026-10-11-an-intangible-member-the-database-library). Grades intangibility as structure against PR-9's tag route.
@@ -58,17 +58,17 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [X] **Its first slice is the seam, not the storage.** Add one accessor (roughly `parentBinding(owner, binding) -> { host, presence } | undefined`), implemented over today's data by derivation: the parent binding whose cover lists `{ owner, binding }`, otherwise the host's single `Full` binding. Move `roomsForHost` and `hasPresenceAncestor` onto it. From then on new code has a direct-to-presence parent path, and the storage migration swaps the accessor's implementation instead of chasing call sites. (The "single `Full` binding" derivation misreads a room in an Area, a parent with no binding, and a parent with several; the implementation plan takes this up as PRm-1.)
   - [X] Seed the rest of the plan with: the cover type change and `Full` inventory above; `fromHostId` becoming `fromHostPresence`, and its readers (`roomsForHost`, `roomsForPresenceNode`, `hasPresenceAncestor`, the fold's `memberBindings` filter, the idempotency check in `containmentPopulationSteps`, the removal match in `presenceBindingStepsForMove`); the room rule in population; re-pointing a stable remainder on a move in place of `presenceBindingStepsForMove`'s remove-then-add; disconnect re-pointing to a hostless remainder; a pointer-versus-cover drift sweep and a cover rebuild heal that reads every member's graph (match the existing diagnostics sweeps); every member carrying a binding; the extra-bucket defect; migration of stored bindings, including room bindings into Areas; and, as a forward candidate, the AcmeOrder spawn's compensating delete in [`spawnImprovisationObjectsBatch.ts`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts), which exists because "created but not placed" is not a legal state today.
   - [X] Note the overlap with [`AGENT.authoredObjectPopulation.planning.md`](AGENT.authoredObjectPopulation.planning.md), which widens the same population emitter to Objects.
-- [ ] **Slice 2. Amend the rows it changes** (one pass per row; see Getting Started step 5).
-  - [ ] **PR-2** (settled): the verdict rests cardinality on *a room is never a member of any graph*. Restate it on the pinch: a room-hosted character sits under the room's one remainder, so it has one binding however the room is grouped.
-  - [ ] **PR-10** (settled): same premise, same restatement. Leave its parked host-arity obligation untouched.
-  - [ ] **PR-9** (settled): restate the domain clause (hostless wholes are no longer outside the invariant; a hostless remainder covers them), and retire the tag-scoping clause per DS2. Its guard *"never grounds for deciding its tag does not bear presence"* loses its tag clause; the other guards stand. The same sentence is in [`AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#presence-as-a-cover) (Slice 3).
-  - [ ] **PR-1** (settled): restate how hostlessness is read --- a remainder with no host and no hosted carve-out, not *no presence nodes*.
-  - [ ] **PR-3** (open): correct its "rooms are never members" statement.
-  - [ ] **PR-13** (open): note that the character cardinality validator in `applyStepSequenceCore` counts presence nodes; under the remainder model an offline character keeps one hostless remainder, which still satisfies "at most one".
-  - [ ] **PR-C1 Finding 4** (corpus): add a dated annotation after its 2026-09-17 amendment. The parent-side alignment and the "location, not assertion" ground are superseded: the pairing's authority moves to the child's `fromHostPresence`, which still costs one read, and the cover becomes its index.
-  - [ ] **PR-12** (open): obligation B (*binding-to-binding, never binding-to-host*) now has a stored field to follow. Note it, and that today's `roomsForHost` fans out binding-to-host.
-  - [ ] **PR-12 and PR-14** (open): add, as a forward note and not a decision, that placement becomes moving nodes from one bucket to another, the remainder included, so first placement and bucket splitting share one primitive.
-  - [ ] **PR-18** (open): note that a carve-out with an empty member list has the room's root as its whole bucket, which relies on the root being in every bucket. Both of PR-18's dispositions agree on this, so it stays non-blocking.
+- [X] **Slice 2. Amend the rows it changes** (one pass per row; see Getting Started step 5).
+  - [X] **PR-2** (settled): the verdict rests cardinality on *a room is never a member of any graph*. Restate it on the pinch: a room-hosted character sits under the room's one remainder, so it has one binding however the room is grouped.
+  - [X] **PR-10** (settled): same premise, same restatement. Leave its parked host-arity obligation untouched.
+  - [X] **PR-9** (settled): restate the domain clause (hostless wholes are no longer outside the invariant; a hostless remainder covers them), and retire the tag-scoping clause (decided by the user 2026-10-11). Its guard *"never grounds for deciding its tag does not bear presence"* loses its tag clause; the other guards stand. The same sentence is in [`AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#presence-as-a-cover) (Slice 3).
+  - [X] **PR-1** (settled): restate how hostlessness is read --- a remainder with no host and no hosted carve-out, not *no presence nodes*.
+  - [X] **PR-3** (open): correct its "rooms are never members" statement.
+  - [X] **PR-13** (open): note that the character cardinality validator in `applyStepSequenceCore` counts presence nodes; under the remainder model an offline character keeps one hostless remainder, which still satisfies "at most one".
+  - [X] **PR-C1 Finding 4** (corpus): add a dated annotation after its 2026-09-17 amendment. The parent-side alignment and the "location, not assertion" ground are superseded: the pairing's authority moves to the child's `fromHostPresence`, which still costs one read, and the cover becomes its index.
+  - [X] **PR-12** (open): obligation B (*binding-to-binding, never binding-to-host*) now has a stored field to follow. Note it, and that today's `roomsForHost` fans out binding-to-host.
+  - [X] **PR-12 and PR-14** (open): add, as a forward note and not a decision, that placement becomes moving nodes from one bucket to another, the remainder included, so first placement and bucket splitting share one primitive.
+  - [X] **PR-18** (open): note that a carve-out with an empty member list has the room's root as its whole bucket, which relies on the root being in every bucket. Both of PR-18's dispositions agree on this, so it stays non-blocking.
 - [ ] **Slice 3. Correct present-tense docs and comments** (false claims only).
   - [ ] [`AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md): rewrite *Why location resolution terminates* around the perspective root, and mark the remainder model, claim 4's change, and the cover's change from authority to index (*"authoritative rather than derived"*) as Target. Vocabulary only: no dates, slices or file names.
   - [ ] [`AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) (the character-host restriction, near "a room is never a graph member"): correct the stated reason; the validator itself is unchanged.
@@ -85,7 +85,6 @@ Plan-only: decisions made in order to carry out the next slices. Each row is rem
 
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
-| **DS2** | **Does PR-9's tag-scoping clause survive?** It says presence-capability is a property of a node's tag, and anticipates a future tag declared not to bear presence. **Retire it, decided by the user 2026-10-11:** intangibility is structural (a hostless remainder), so presence is not a property of a tag. Graded by the C10 annotation, where the tag route is the reading that makes intangibility a kind. PR-9's anti-reclassification guards stay; the one that refers to a tag is restated without it. | Slice 2 (PR-9) | Decided (retire) |
 
 ## Verification
 
@@ -114,6 +113,6 @@ The link check tests paths only, not anchors. Check by hand any anchor link into
 | 0. Verify premises | In progress (two of three premises verified) |
 | 1. Record the decision | Done 2026-10-11 |
 | 1b. Open the implementation plan | Done 2026-10-11 (plan opened) |
-| 2. Amend rows | Not started |
+| 2. Amend rows | Done 2026-10-11 |
 | 3. Correct docs and comments | Not started |
 | 4. Close | Not started |
