@@ -13,7 +13,7 @@
  * that child --- present inside both `objX` and `objY`, with an interior `pebble1 -Custom: under->
  * pebble2` edge split across its two bindings' covers.
  */
-import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicGraphStructureNode, EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
@@ -215,6 +215,30 @@ describe('buildLudicCache', () => {
             },
         })
         expect(xBinding?.cover.members).toHaveLength(3)
+        expect(isEphemeraLudicCacheData(cache)).toBe(true)
+    })
+
+    // The room rule (PR-21(f)): a room's Full binding into an Area is a carve-out with no members.
+    it('gives a room\'s Area binding an empty member list', async () => {
+        const town = 'AREA#Town' as EphemeraAreaId
+        const roomGraph = testLudicGraph(roomA, {
+            nodes: [
+                { tag: 'Room', universalKey: roomA },
+                { tag: 'Object', universalKey: objX },
+                presenceNode('a_in_town', town, { tag: 'Full' }),
+            ],
+        })
+        const xGraph = testLudicGraph(objX, { nodes: [{ tag: 'Object', universalKey: objX }] })
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[roomA, roomGraph], [objX, xGraph]])
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) as EphemeraLudicGraph
+
+        const { cache } = await buildLudicCache(roomA, [testAssetUUID], { getLudicGraph, ...noShortNameDeps() })
+
+        const roomBinding = cache.nodes.find((node) => node.universalKey === roomA)?.presenceNodes[0]
+        expect(roomBinding).toEqual({
+            tag: 'Presence', universalKey: 'PRESENCE#a_in_town', fromHostId: town, consolidated: true,
+            cover: { tag: 'Enumerated', members: [] },
+        })
         expect(isEphemeraLudicCacheData(cache)).toBe(true)
     })
 

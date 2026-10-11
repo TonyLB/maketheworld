@@ -23,7 +23,7 @@
 import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
@@ -447,7 +447,14 @@ const presenceCacheNodesFromFold = (
         if (!presenceNode) {
             return acc
         }
-        const members: EphemeraLudicCacheCoverEntry[] = presenceNode.cover.tag === 'Enumerated'
+        // The room rule (PR-21(f)): a room's `Full` binding into an Area is a carve-out with an empty
+        // member list, so a member's bucket is the room itself, not a binding that resolves to no
+        // rooms. An `Enumerated` cover on a room is a genuine split and keeps its members.
+        // Stopgap: reads around `cacheAsset` storing the room's remainder as `Full` at its Area;
+        // retired in presenceRemainder Slice 4.
+        const members: EphemeraLudicCacheCoverEntry[] = isEphemeraRoomId(graph.hostId) && presenceNode.cover.tag === 'Full'
+            ? []
+            : presenceNode.cover.tag === 'Enumerated'
             ? presenceNode.cover.members.filter((entry) => entry.host !== root)
             : [...nodesFromPresenceBinding(graph, presenceUuid)]
                 .filter((id) => id !== root && id !== universalKey)

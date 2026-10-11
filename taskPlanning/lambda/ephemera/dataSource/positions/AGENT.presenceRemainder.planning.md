@@ -1,6 +1,6 @@
 # Presence remainder: implementation
 
-**Status: in progress. Slices 0-1 done 2026-10-11. Next step: [Slice 2](#recommended-order) (the extra-bucket defect).** Opened 2026-10-11, as soon as PR-21 was Locked. **Why now (the user, 2026-10-11):** the `fromHostId` -> `fromHostPresence` migration is the largest part of this change and only grows with each feature added before it; and until a direct-to-presence parent path exists, new code has to walk binding-to-host, which is the debt this design removes.
+**Status: in progress. Slices 0-2 done 2026-10-11. Next step: [Slice 3](#recommended-order) (the cover type).** Opened 2026-10-11, as soon as PR-21 was Locked. **Why now (the user, 2026-10-11):** the `fromHostId` -> `fromHostPresence` migration is the largest part of this change and only grows with each feature added before it; and until a direct-to-presence parent path exists, new code has to walk binding-to-host, which is the debt this design removes.
 
 **Scope in one sentence: build PR-21 --- the remainder cover, the optional `fromHostPresence` parent pointer, pointers governing with covers as their index, the room rule, and audience stopping at the room --- in code and in stored data.**
 
@@ -48,24 +48,30 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [X] Behavior-preserving: the existing `presenceRooms.test.ts` and `presenceAncestry.test.ts` pass unchanged.
   - [X] New unit tests for the accessor, including the first fixture with an Area-hosted room and a parent with two bindings.
     - **Done 2026-10-11.** Room-stop stayed a walker policy, not an accessor option: `roomsForHost` stops at rooms, `hasPresenceAncestor` still follows into Areas (unifying would change nothing for its one caller, which asks about an Object ancestor, but is a behavior change; revisit if the extra reads matter). The accessor is [`ludicGraph/presenceParent.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/presenceParent.ts); `presence` derivation is opt-in (`resolvePresence`) and unused by the walkers until Slice 2/4. Rule recorded in `positions/AGENT.implementation.md`.
-- [ ] **Slice 2. The extra-bucket defect.** A room-seeded cache gives each room member a bucket `{ host: <room>, presence: <room's Area binding> }`, which resolves to no rooms (verified by reading, 2026-10-11). Fold a room's Area bindings as carve-outs with empty member lists, per PR-21(f).
-  - [ ] Payoff test: a room-seeded `ludicCacheObjectHandles` handle's `presence` resolves, through `roomsForReferent`, to exactly that room.
-- [ ] **Slice 3. The cover type.** A remainder flag replaces `Full`, encoded per PRm-2, with at most one remainder per whole.
-  - [ ] Type and guards: `ephemeraMeta.ts`, `ludicCache/types.ts`; wire: `wireProjection.ts`.
+- [X] **Slice 2. The extra-bucket defect.** A room-seeded cache gives each room member a bucket `{ host: <room>, presence: <room's Area binding> }`, which resolves to no rooms (verified by reading, 2026-10-11). Fold a room's Area bindings as carve-outs with empty member lists, per PR-21(f).
+  - [X] Payoff test: a room-seeded `ludicCacheObjectHandles` handle's `presence` resolves, through `roomsForReferent`, to exactly that room.
+    - **Done 2026-10-11.** `presenceCacheNodesFromFold` ([`mergeReducer.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/mergeReducer.ts)) gives a room's `Full` binding an empty member list. **Only `Full`:** `mergeReducer.test.ts` builds `Enumerated` covers on a room-hosted graph, which are real splits and keep their members. Payoff test in `catalogHandles.test.ts` (fails without the fix, passes with it); fold-level test in `fold.test.ts`; edges unchanged. Full ephemera suite and `tsc` green. **Residual, not fixed:** an Area-seeded cache leaves a walked room's members with no bucket, so `presence` is undefined and `roomsForReferent` falls to `roomsForHost(groundedId)`, which resolves nothing for them either --- same outcome as before the fix, not a regression; Slice 4's `fromHostPresence` is the real fix. Rule recorded in `positions/AGENT.implementation.md`.
+- [ ] **Slice 3. The cover type.** The `Remainder` sentinel replaces `Full`, per [PRm-2](#open-decisions-implementation--plan-only) (decided).
+  - [ ] Type and guards: `ephemeraMeta.ts` (one cover type; the sentinel a typed variant; legacy `{ tag: 'Full' }` still read as `{ members: [Remainder] }`), `ludicCache/types.ts` (cache cover is entries only); wire: `wireProjection.ts`.
+  - [ ] Fold: rewrite `presenceCacheNodesFromFold` and `nodesFromPresenceBinding` to expand each sentinel against the whole's **claimed** set (members listed in any binding), not its own binding's list. Test: `A` with `P1 = { B, Remainder }`, `P2 = { C, Remainder }` gives `P1` = B plus the unclaimed, `P2` = C plus the unclaimed, and `B` in neither remainder expansion. Also retire Slice 2's room special case here if the room's Area binding is already `{ members: [] }`; otherwise leave it for Slice 4.
   - [ ] `Full` in shipped docs: [`positions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md), [`packages/mtw-wml/ts/standardize/AGENT.md`](../../../../../packages/mtw-wml/ts/standardize/AGENT.md), [`AGENT.ludicCacheRebuild.planning.md`](AGENT.ludicCacheRebuild.planning.md), [`lambda/ephemera/AGENT.caching.planning.md`](../../../../../lambda/ephemera/AGENT.caching.planning.md), [`AGENT.designVariant.performance.md`](../../../../AGENT.designVariant.performance.md).
 - [ ] **Slice 4. Stored `fromHostPresence`.** An optional `fromHostPresence: { host, presence }` replaces `fromHostId` on presence nodes.
-  - [ ] Writers name the parent binding. Population applies the room rule: a room's remainder is always hostless, and its Area bindings are carve-outs with empty member lists.
+  - [ ] Writers name the parent binding. Population applies the room rule: a room has exactly one remainder, hostless, and its Area bindings are carve-outs with empty member lists.
+    - **Explicit repair, not replace (the user, 2026-10-11).** `containmentPopulationSteps`'s `hasPresenceBinding` (`fromHostId === parentId`) skips a child whose old `Full` binding into its parent exists, so a rerun would never migrate it. Add a distinct repair path: when the binding exists but has the wrong shape (a room's `Full` cover at its Area, or a stored `fromHostId` without `fromHostPresence`), emit a repair step that rewrites the cover and pointer **in place and keeps the binding's id**, so no child pointer is orphaned and the run is a true no-op once repaired. The step kind and name are this slice's to choose. A correct binding still emits nothing. Deliberately more machinery than delete-and-remint: the extra reliability in `cacheAsset`'s rerun path is worth the small cost.
+    - **Migrate the dev data here (PRm-3).** No bridge is built. Preconditions, all the user's to confirm: (1) every improvised Object is removed from the CoyoteGame; (2) the user's character is logged out, so no character or Object holds a binding (no hosted Features exist either); (3) a read-only count shows no presence node in the dev DB outside the two assets (guest and test characters); (4) this is done **before** [`AGENT.authoredObjectPopulation.planning.md`](AGENT.authoredObjectPopulation.planning.md) lands, since that plan makes `cacheAsset` create hosted Objects, and **before Slice 5**, whose disconnects write hostless remainders. Then run `cacheAsset` on both assets and confirm every Room-in-Area, Feature-in-Room and Feature-in-Feature binding has the new shape (the run covers all three levels).
+    - **Then delete the two stopgaps:** the legacy `{ tag: 'Full' }` read from Slice 3, and Slice 2's fold special case.
   - [ ] `parentBinding` reads the stored pointer; the derivation is retired.
   - [ ] Every presence reader from [Slice 0's recorded list](#recommended-order) moves over, including `containmentPopulationSteps`'s idempotency check and the fold's `memberBindings` filter.
 - [ ] **Slice 5. Moves and disconnects.** Starts after `AGENT.authoredObjectPopulation.planning.md` lands (ordering decided in Slice 0).
-  - [ ] A move re-points the mover's stable remainder, in place of `presenceBindingStepsForMove`'s remove-then-add.
+  - [ ] A move re-points the mover's stable remainder, in place of `presenceBindingStepsForMove`'s remove-then-add. With several remainders a move names which binding it re-points; it never re-points all of them.
   - [ ] A disconnect, destroy or scrub re-points to a hostless remainder instead of deleting the binding.
   - [ ] Re-check the character-cardinality validator in `applyStepSequenceCore` (PR-13): an offline character keeps one hostless remainder, which still satisfies "at most one".
 - [ ] **Slice 6. Pointers govern.**
-  - [ ] Every member carries a binding; an unbound member is reported, never guessed.
+  - [ ] Every member carries a binding; an unbound member is reported, never guessed. A member holds one binding per remainder that includes it and one per cover that lists it; the sweep reports a count mismatch either way.
+  - [ ] Report any whole with **no** remainder (at least one is the invariant): it is legal only while every member is listed explicitly, and a later-added member would fall in no bucket.
   - [ ] A pointer-versus-cover drift sweep, matching the existing diagnostics sweeps (inline `EventBridgeClient`, per-call DI).
   - [ ] A cover-rebuild heal that reads every member's graph.
-- [ ] **Slice 7. Migrate stored bindings,** including room bindings into Areas, per PRm-3.
+- [ ] **Slice 7. Residual migration only,** per PRm-3. Room, Feature and Feature-in-Feature bindings migrate at the end of Slice 4 (rerun `cacheAsset`, empty dev world). What remains is whatever stored object or character bindings exist at this point: normally none, since Slice 5 writes the new shape. If any do, decide then between a one-shot script and Slice 6's cover-rebuild heal; otherwise this slice is a check that none remain.
 - [ ] **Forward candidate (unscheduled).** The AcmeOrder spawn's compensating delete in [`spawnImprovisationObjectsBatch.ts`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) exists because "created but not placed" is not a legal state today. Under a hostless remainder it is; schedule it once Slice 5 lands, or shelve it in `AGENT.implementation.md`.
 - [ ] **Slice 8. Close.**
   - [ ] Rules into `positions/AGENT.contract.md` and `AGENT.implementation.md`; `AGENT.concepts.md` Target items flip to Shipped.
@@ -79,8 +85,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
-| **PRm-2** | **The cover's exact encoding.** PR-21(b) locks the shape, roughly `{ remainder: boolean, members }`, with at most one remainder per whole; the field names, whether it stays a tagged union, and whether a remainder's `members` is stored or always empty are open. | Slice 3 | Open |
-| **PRm-3** | **Migration mechanism.** A one-shot script over stored graphs, or heal-on-read through Slice 6's cover-rebuild heal. | Slice 7 | Open |
+| **PRm-2** | **The cover's exact encoding.** | Slice 3 | **Decided 2026-10-11 (the user).** One cover type, `{ members: (Entry \| Remainder)[] }`; `Remainder` is a typed sentinel (a variant beside `{ host, presence? }`, not a magic id) that may appear in any number of a whole's bindings. **Meaning:** it stands for every node present in the graph, root and presence nodes excluded, that **no binding of the whole lists explicitly**; several remainders each hold that same set. `Full` is `{ members: [Remainder] }`; the `Full`/`Enumerated` tag is gone. **Invariants:** every whole has **at least one** remainder (typically exactly one; this replaces PR-21's "exactly one" and keeps totality for members added later), and a room has exactly one, hostless, by the room rule. **Grounding:** `A` holds `B`, `C` and other stuff, with presences `{ B, Remainder }` and `{ C, Remainder }`; and [PR-C1](AGENT.presence.corpus.planning.md#pr-c1-the-contraption-in-two-rooms-and-whether-covers-nest). **Consequences, built in the slices:** (1) the cache **expands** the sentinel and never holds it (PN-19 already makes `Full` unrepresentable once merged), with a cache-side boolean added only if a consumer needs one; (2) expansion subtracts the whole's **claimed** set (members listed in any binding), so `B` never leaks into `P2`; (3) each unclaimed member holds one binding per remainder (PR-10's arity-descends rule), and a member listed in several covers holds one per cover; (4) legacy `{ tag: 'Full' }` reads as `{ members: [Remainder] }` until the end-of-Slice-4 `cacheAsset` rerun rewrites it. PR-21 and the present-state docs were amended 2026-10-11. |
+| **PRm-3** | **Migration mechanism.** | Slice 4 (Slice 7 residual) | **Decided 2026-10-11 (the user): no bridge.** Empty the dev world of everything that hosts a binding other than `cacheAsset`'s (improvised Objects, the user's character), then rerun `cacheAsset` on the two assets at the end of Slice 4, whose population code repairs wrong-shaped bindings explicitly and in place. Preconditions are listed in Slice 4. Sidesteps the stored object and character converter and heal-on-read as a migration route. Slice 6's cover-rebuild heal is still built, for drift. Slice 7 shrinks to a check for residual bindings. |
 
 ## Verification
 
@@ -103,10 +109,10 @@ node -e 'const fs=require("fs"),path=require("path");let bad=0;for(const f of pr
 | --- | --- |
 | 0. Verify premises | Done 2026-10-11 |
 | 1. The seam | Done 2026-10-11 |
-| 2. Extra-bucket defect | Not started |
-| 3. Cover type | Not started (PRm-2) |
+| 2. Extra-bucket defect | Done 2026-10-11 |
+| 3. Cover type | Not started (PRm-2 decided 2026-10-11) |
 | 4. Stored `fromHostPresence` | Not started |
 | 5. Moves and disconnects | Not started |
 | 6. Pointers govern | Not started |
-| 7. Migrate stored bindings | Not started (PRm-3) |
+| 7. Residual migration | Not started (PRm-3 decided 2026-10-11; the main migration is Slice 4's) |
 | 8. Close | Not started |

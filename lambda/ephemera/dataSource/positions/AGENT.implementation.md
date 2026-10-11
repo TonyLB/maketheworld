@@ -109,7 +109,7 @@ ludicGraph/  <-- shared primitive
 | Mint / remove | `applyStepSequenceCore.ts`'s `addPresenceBinding`/`removePresenceBinding` step handlers -> `EphemeraLudicGraph.addPresenceNode`/`removePresenceNode` (`ludicGraph/index.ts`), 1:1 with the port's own minted uuid |
 | Emit (the only two callers of the above) | [`presenceBindingStepsForMove.ts`](manipulation/kernel/compile/presenceBindingStepsForMove.ts), [`containmentPopulationSteps.ts`](manipulation/containment/containmentPopulationSteps.ts) |
 | Cut / read | [`presenceSubGraph.ts`](ludicGraph/presenceSubGraph.ts)'s `nodesFromPresenceBinding(s)` (resolves a `cover`'s `'Full'`/`'Enumerated'` tag to a member set) and `EphemeraLudicGraph.presenceNodes` getter |
-| Merge / fold | `ludicCache/mergeReducer.ts`'s `presenceCacheNodesFromFold` (mints one `consolidated: true` structure node per folded binding, enforcing clause 3 via `assertZeroOrAllPresenceBindings`) |
+| Merge / fold | `ludicCache/mergeReducer.ts`'s `presenceCacheNodesFromFold` (mints one `consolidated: true` structure node per folded binding, enforcing clause 3 via `assertZeroOrAllPresenceBindings`; a room's `Full` binding into an Area folds with an empty member list --- the room rule, so a room member's bucket is the room itself and `bucketsByMember` adds none) |
 | Materialize / integrity | `ludicCache/types.ts`'s `isEphemeraLudicCacheData` (cover-names-absent-node fails; edge-to-absent-presence-node passes) |
 | Resolve | [`findRelationalChain.ts`](../actions/enrich/objectManipulation/synthesize/findRelationalChain.ts)'s `resolveEndpoint`, looking up a `PRESENCE#`-tagged terminal directly rather than through `.ports` |
 

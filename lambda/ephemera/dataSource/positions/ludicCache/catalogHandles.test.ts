@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
@@ -8,6 +8,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import { EphemeraLudicGraph } from '../ludicGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
 import { ludicCacheObjectHandles } from './catalogHandles'
+import { roomsForReferent } from '../ludicGraph/presenceRooms'
 
 const makeObjectComponent = (shortName: string) => new StandardObject({ tag: 'Object', shortName })
 
@@ -235,6 +236,35 @@ describe('ludicCacheObjectHandles', () => {
             const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(boxInRoom([])), ...names })
 
             expect(presenceOf(handles, pebble)).toEqual([roomA])
+        })
+    })
+
+    // The room rule (PR-21(f)): a room's Area binding is a carve-out with no members, so a thing
+    // sitting in the room is seen in the room itself, not in a bucket that resolves to no rooms.
+    describe('room bound into an Area', () => {
+        const town = 'AREA#Town' as EphemeraAreaId
+        const roomInTown = PresenceKey('a-in-town')
+
+        it('resolves a room-seeded handle\'s audience to exactly that room', async () => {
+            const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+                [roomA, testLudicGraph(roomA, {
+                    nodes: [
+                        { tag: 'Room', universalKey: roomA },
+                        { tag: 'Object', universalKey: namedId },
+                        { tag: 'Presence', universalKey: roomInTown, fromHostId: town, cover: { tag: 'Full' } },
+                    ],
+                })],
+                [namedId, testLudicGraph(namedId, { nodes: [{ tag: 'Object', universalKey: namedId }] })],
+            ])
+            const getGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) ?? testLudicGraph(hostId, { nodes: [] })
+
+            const handles = await ludicCacheObjectHandles(roomA, [], {
+                ...graphsAsDeps(graphs),
+                ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
+            })
+
+            expect(handles).toHaveLength(1)
+            await expect(roomsForReferent(namedId, handles[0].presence as never, getGraph)).resolves.toEqual(new Set([roomA]))
         })
     })
 })
