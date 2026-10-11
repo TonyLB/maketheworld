@@ -126,6 +126,63 @@
 
 ---
 
+## PR-20. Requirement: what must presence say about rooms, and about things present nowhere?
+
+**The row is open; this section is its detail, not a graduated record.** The answer a reader may cite is the row in the plan's [open table](AGENT.presence.planning.md#open-decisions-design--plan-only). Reached in conversation 2026-10-11, after a review of how `ROOM#` components are special-cased in presence bindings; first written in the design sweep's interim record and moved here.
+
+### The requirement as answered
+
+- **A room is a player-perspective root.** Graph detail below a room is how things *exist*; detail above it is how rooms are *grouped* into areas and neighborhoods. A player is in ROOM#A, full stop, never "ROOM#A as it is present in AREA#C."
+- **Grouping above a room is still presence.** Room-in-Area is a real binding. What is special is that the room is a **pinch point**: whatever groups a room takes it whole, and nothing below the room inherits that multiplicity. Below the room, the tree of bindings starts again.
+- **Audience and perspective stop at the room.** For this iteration, every presence chain from a thing upward reaches a room. Things bound directly into an Area are future work.
+- **Some parts are present nowhere.** An abstraction such as the moonbase computer system ([C10](AGENT.abstractionLayers.corpus.planning.md#c10-the-moonbase-computer-system)) may contain an intangible member (a "Library of Ancestral design patterns") that is not in any room its terminals are in. An improvised item before it is placed, and an offline character, are likewise present nowhere.
+
+### How it was reached
+
+**The premise it corrects.** Several documents said *rooms are never members of another play graph*, so they carry no presence binding. That has been false since 2026-09-05, when cache-time containment population began making a Room a node of its Area's graph with a `PartOf` edge and a presence binding (`fromHostId: AREA#...`).
+
+**A conclusion withdrawn the same morning.** The first reading of "a player is in ROOM#A, full stop" concluded that Room-in-Area is therefore *not* presence. The user rejected it: grouping does not split the room, but that does not make it not-presence. It makes rooms a level of pinch points in the presence tree. The tree runs from Areas down to rooms, every leaf pointing at a room is a reference to the *same* binding, and the tree resumes below the room. **The withdrawn reading is the one to watch for:** it gets from "perception stops here" to "the structure stops here" in one step.
+
+---
+
+## PR-21. Representation: the remainder binding and its parent pointer
+
+**The row is open (Locked); this section is its detail, not a graduated record.** The answer a reader may cite is the row in the plan's [open table](AGENT.presence.planning.md#open-decisions-design--plan-only). Reached in conversation 2026-10-11 and locked by the user the same day; first written in the design sweep's interim record and moved here.
+
+### The representation as locked
+
+- **Every whole has exactly one *remainder* binding,** which holds every node that no other binding of the whole lists explicitly. Its other bindings are **carve-outs** with explicit member lists.
+- **The cover gains a remainder flag in place of `Full`,** roughly `{ remainder: boolean, members: EphemeraPresenceCoverEntry[] }`. At most one binding per whole sets the flag. Today's `Full` is a remainder with no members. "`Full` with an overlap" is a remainder plus the overlapping members listed explicitly, so buckets may still overlap.
+- **`fromHostId` becomes an optional `fromHostPresence: { host, presence }`,** naming the parent *binding*, not just the parent host. It still carries the host, so finding the parent is still one read. A remainder may be hosted (a typical single-hosted item: its remainder is its only binding, and it has a parent, which is exactly today's single `Full` binding) or hostless (a room, an unplaced or offline whole, an abstraction whose intangible members are nowhere).
+- **Pointers govern; covers are a stored index over them.** A child's `fromHostPresence` is the authority for which of its host's bindings it sits under. A whole's covers state the same pairing from the whole's side, for locality: the cache's cut runs on one host's row. Both are written in one transaction by the single write path. On drift, the cover is rebuilt by reading every member's graph, which is accepted as the cost. This makes the binding forest a type fact (one parent pointer per binding). The remainder flag remains the cover's compact encoding of "every member pointing here that no other binding lists"; it is also why most moves write no cover entry.
+- **A member with no binding has no authority for its bucket.** A rebuild reports it, never guesses. So every member must carry a binding; a thing placed without a move does not today.
+- **The room rule: a room's remainder is always hostless, and every binding below the room points at it.** Its bindings into Areas are carve-outs with empty member lists, so their bucket is the room itself. That shared target is the pinch, visible in storage rather than derived from a kind check.
+- **Audience resolution's one room check:** a binding owned by a room resolves to that room; a hostless binding owned by anything else resolves to no rooms.
+- **Where the remainder is hosted decides where unclaimed parts read as being.** Hosting the computer's remainder in the server room would put its Library in the server room; keeping the Library nowhere means a hostless remainder and every terminal a carve-out.
+- **Intangibility is structural.** It is a hostless remainder (or a remainder hosted where it should read), not a separate tag such as `IntangibleObject`.
+- **A remainder's id is stable across moves.** A move re-points the remainder's `fromHostPresence`; it never removes one binding and mints another. Required, not optional: children point at the remainder, so re-minting it would orphan them.
+
+### Alternatives considered, 2026-10-11
+
+1. **One binding with `fromHostIds: HostId[]` and a `Full` cover** (the user's Option 1, for a room in several Areas). Rejected: it makes one binding's parentage multi-valued, which is the implicit DAG the pinch exists to avoid.
+2. **N upward bindings with no cover, each with a single parent, plus one `Full` binding with no parent for the downward links** (Option 2). Adopted, with "no cover" as an empty member list, which `isEphemeraPresenceCover` already accepts. It is what made `fromHostId` optional.
+3. **A root binding only when totality needs one** (the user's alternate to minting a parentless binding everywhere: only when a container has unplaced children). Generalized into the remainder: every whole has exactly one, and in the typical case it is hosted, so nothing changes for a single-hosted thing.
+4. **Host-grain `fromHostId`, with the pairing of child binding to parent binding stated only on the parent's cover.** This was the shape kept on 2026-09-17 ([PR-C1 Finding 4](AGENT.presence.corpus.planning.md#pr-c1-the-contraption-in-two-rooms-and-whether-covers-nest): *the alignment fact belongs on the parent*, on the ground of *location, not assertion*). Re-examined at the user's prompting: host grain leaves inherited arity implicit and pulls the binding tree toward an implicit DAG, because which of a host's bindings a child sits under has to be recovered by scanning covers. Replaced by `fromHostPresence`, which still costs one read.
+5. **Covers govern, pointers derived** (or drop stored covers). Rejected by the user: covers and pointers live in different rows (the whole's graph and each member's graph), so removing covers is not simple, and the cache's cut needs the whole-side locality. Decision: pointers win, covers are kept as an index written atomically with them, and drift is healed by a rebuild that reads every member's graph.
+6. **Remainder uniqueness.** Asked by the user: must only one binding per whole carry the flag? Yes. The stable remainder id is what children point at, so two remainders would make "unclaimed" ambiguous; a whole that needs two independent remainders is a re-open trigger.
+
+**Why the migration is worth doing now (the user).** The `fromHostId` -> `fromHostPresence` migration is the largest part of the change by lines of code and only grows with each feature added before it; until a direct-to-presence parent path exists, new code has to walk binding-to-host, which is the debt this design removes.
+
+### What it supersedes
+
+PR-9's tag-scoping clause, retired; claim 4's "a hostless whole has an empty cover and is outside the invariant" and PR-1's matching reading of hostlessness as *no presence nodes*; the concepts doc's "the cover is stored, authoritative rather than derived"; PR-C1 Finding 4's parent-side alignment and the 2026-09-17 ground that kept host-grain `fromHostId`; and every "rooms are never members" premise. The amendments to those rows and documents are carried by [`AGENT.presenceRemainderDesignSweep.planning.md`](AGENT.presenceRemainderDesignSweep.planning.md) Slices 2 and 3.
+
+### Grounding for the lock
+
+[C22](AGENT.abstractionLayers.corpus.planning.md#c22-the-ships-wheel-and-the-lighthouse) (a moving Area of rooms: the pinch keeps relocation above the room); PR-1's zero-host fork and its shipped witness, offline characters; [C7](AGENT.abstractionLayers.corpus.planning.md#c7-ariadnes-thread) and [C10](AGENT.abstractionLayers.corpus.planning.md#c10-the-moonbase-computer-system) ("some wholes correctly live nowhere"); shipped Room-in-Area bindings; overlapping buckets from C7 and PR-C1; [PR-C3](AGENT.presence.corpus.planning.md#pr-c3-the-alley-filled-with-refuse-in-two-areas-at-once) (a room under two grouping parents); [PR-C4](AGENT.presence.corpus.planning.md#pr-c4-the-crate-of-angry-bees-before-acme-delivers-it) (a created-but-unplaced whole with contents, which also grades the stable id); and the [C10 annotation](AGENT.abstractionLayers.corpus.planning.md#annotation-2026-10-11-an-intangible-member-the-database-library) (an intangible member). Pointers-govern is grounded by PR-C1's alignment case (two bindings into one host, paired by a single-valued pointer) and follows the house forward/reverse-index pattern (`ludicGraph` and adjacency rows; port records' exterior and interior halves).
+
+---
+
 ## PH0. Write the corpus
 
 **Graduated 2026-09-09.** The verdict lives in the plan's [Recommended order](AGENT.presence.planning.md#recommended-order) checklist and its Progress table; this is the derivation, moved verbatim from the checklist rather than re-summarised. **Moved because the phase closed 2026-08-21 and its four sub-steps then kept their full working history for nineteen days** --- 16KB of it, roughly a quarter of the mass of the corpus file the phase produced, and the great majority of it superseded briefs arguing for cases that were never written. **The variant's litmus applies to a closed *phase* exactly as it does to a closed *row*, which is the thing this graduation establishes:** the answer stays, the derivation graduates. Nothing here is retracted; it is relocated.
