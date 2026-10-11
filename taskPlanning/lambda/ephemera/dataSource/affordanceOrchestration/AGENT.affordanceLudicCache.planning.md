@@ -1,8 +1,8 @@
 # Room affordances on `ludicCache`: one level of nested contents
 
-**Status: Slice 0 done (premises verified, D1 decided). Next step: [Slice 1](#recommended-order).** Branch `iss8260-first-draft-affordance-refactor-design`.
+**Status: Slices 0--1 done (D1 re-scoped to a forward read 2026-10-11; `ludicCacheRoomObjectContents` shipped). Next step: [Slice 2](#recommended-order).** Branch `iss8260-first-draft-affordance-refactor-design`.
 
-**Scope in one sentence: build the room-affordance channel's object list from the same exhaustive `ludicCache` handles the command path already uses, and show one level of contents beside each room-level object --- `Table (with Red cup)`, `Table (with Red cup, Blue cup)`, and `Table (with several objects)` past three.**
+**Scope in one sentence: build the room-affordance channel's object list from `ludicCache`'s own data (read forward through a purpose-built reader, not the command path's handle function), and show one level of contents beside each room-level object --- `Table (with Red cup)`, `Table (with Red cup, Blue cup)`, and `Table (with several objects)` past three.**
 
 This is a standard implementation plan under [`taskPlanning/AGENT.md`](../../../../AGENT.md). Deleted when the work lands; lasting rules move to the durable docs named in [Slice 5](#recommended-order).
 
@@ -14,7 +14,7 @@ This is a standard implementation plan under [`taskPlanning/AGENT.md`](../../../
 2. **Read the two affordance docs:** [`affordanceOrchestration/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/AGENT.md) (ingress, fan-out, the `Object Moved` room filter) and [`affordanceCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md) (the `Affordance::` row --- exits only, unchanged by this plan).
 3. **The code this plan changes:**
    - [`internalCache/affordanceRoomDeliverable.ts`](../../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) --- the compose. Today objects come from the room's own shard (`ludicGraph.objectIds`) with shortNames from `ImprovisationComponentData` only.
-   - [`positions/ludicCache/catalogHandles.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/catalogHandles.ts) and [`fold.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/fold.ts) --- the handle seam this plan extends.
+   - [`positions/ludicCache/catalogHandles.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/catalogHandles.ts) and [`fold.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/fold.ts) --- the command path's flat handle seam (**read for its pattern; this plan adds a sibling reader beside it and does not extend it**) and the fold it builds on.
    - [`affordanceOrchestration/roomsAffectedByObjectMoved.ts`](../../../../../lambda/ephemera/dataSource/affordanceOrchestration/roomsAffectedByObjectMoved.ts) --- the refresh filter, replaced in Slice 3 by a `ludicCache` invalidation seam over [`positions/ludicGraph/presenceRooms.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/presenceRooms.ts)'s `roomsForHost`.
    - [`charcoal-client/src/slices/messages/roomHeaderContents.ts`](../../../../../charcoal-client/src/slices/messages/roomHeaderContents.ts) --- `formatRoomContentsLine`, the client formatter.
 4. **The wire precedent to copy, not reinvent:** the `look <object>` path's `resolveHostedNodeWmlData` in [`perception/orchestrate.ts`](../../../../../lambda/ephemera/dataSource/perception/orchestrate.ts) ships an object's contents as the object stub's own `ludicGraph` (bare references) plus **sibling name stubs** in the same `StandardForm`, and the client's `formatObjectContentsLine` already reads that shape via `nonRootComponentRefs`. The room header uses the same shape one level down; no new wire field.
@@ -66,17 +66,18 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
     - The printer inlines the definitions (`<Room><Object uuid=(table)><ShortName/><Object uuid=(cup)>…</Object></Object></Room>`). On reparse, the room's `nonRootComponentRefs` = `[table]`, the table's = `[cup]`, and the cup's shortName is intact.
     - No committed test covers a room-rooted form with a nested object graph, so Slice 2's deliverable test should assert the reparsed shape, not just the built `StandardForm`.
 
-- [ ] **Slice 1. Read direct hosts off what the cache already states ([D1](#open-decisions-implementation--plan-only)).** No new cache field and no new `buildLudicCache` output.
-  - [ ] In `catalogHandles.ts`, derive each object's direct hosts from the cache: the owners of bindings whose cover lists it (what `bucketsByMember` already walks), plus the `fromHostId` of its own bindings; the seed room when neither names anything (the existing fallback). Whether that surfaces as a new handle field or the deliverable groups on the existing `presence` field is a free choice --- pick whichever keeps the handle flat.
-  - [X] ~~If Slice 0 found double-unbound pairs, fix them at the placement path that skips the binding.~~ Not needed: Slice 0 found none.
-  - [ ] Tests in `catalogHandles.test.ts`: object on room floor; cup on a bound table (cover side); cup with its own binding on an unbound table (member side --- only legacy pre-presence data produces an unbound table, so this is the defensive case, not a live one); spring in box and contraption (both hosts); held item excluded. The command path (`roomObjectCatalogForCharacter.ts`) stays green without edits.
+- [X] **Slice 1. A purpose-built forward reader over the cache ([D1](#open-decisions-implementation--plan-only)).** A new sibling of `catalogHandles.ts` in `positions/ludicCache/`, **not** an extension of it: `ludicCacheObjectHandles` is the command path's referent pool (flat handles, clause 3) and stays as it is. No new cache field and no new `buildLudicCache` output.
+  - [X] **Done (2026-10-11): [`roomObjectContents.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/roomObjectContents.ts), `ludicCacheRoomObjectContents(seedHostId, roomObjectIds, assetStack, deps)`.** The reader builds the cache as `catalogHandles` does (`buildLudicCache`) and reads it **forward**. Given the room's direct object ids (the caller already holds them: `ludicGraph.objectIds`), it returns, per such object, `{ objectId, shortName, contents: { objectId, shortName }[] }`. An object's `contents` are the `cover.members` of its own `presenceNodes` on its cache node (a binding's cover is the owner's own graph, root excluded), deduped across its bindings, Objects only, one level. An object with an unresolved `shortName` is dropped at both levels.
+  - [X] No reverse index and no fallbacks. The room level comes from the room's own shard, which states it forward; nothing reconstructs "who are this object's parents".
+  - [X] Tests beside it: object on the floor with no contents; cup on a table (via the table's binding cover); table bound into two rooms (covers unioned, once each); box on a table holding a cup (the cup does not appear at the table's level); unresolved shortName dropped at both levels; (a character-held item is excluded by the caller's input --- the room's shard never lists it --- so it needs no reader test).
+  - [X] `catalogHandles.ts` and `roomObjectCatalogForCharacter.ts` are not edited.
 
-- [ ] **Slice 2. Compose the room header from handles.**
-  - [ ] `AffordanceRoomDeliverableData` calls `ludicCacheObjectHandles(roomId, affordanceRow.assetStack)` in place of `getImprovisationObject` per id. The room row's own `ludicGraph` wire field is unchanged (still the room's shard).
-  - [ ] **Room-level objects** = handles whose `hosts` include `roomId`. For each, its **contents** = handles whose `hosts` include that object. Each room-level object's stub carries a `ludicGraph` of bare references to its contents (root excluded, as `toWireLudicGraphFull` already does), and each content object travels as a sibling name stub --- the look path's shape.
-  - [ ] Depth stops there: a handle hosted only by a content object (cup in box on table) gets no stub and no reference.
-  - [ ] Drop `getImprovisationObject` from `AffordanceRoomDeliverableObjectReads` if nothing else reads it; thread the handle function as a dep instead, so tests inject it without the cache walk.
-  - [ ] Tests in the deliverable's suite: the three cases from Slice 1 produce the expected stubs and references; an object whose shortName is unresolved is dropped at both levels, as today. Assert on the form **reparsed** from `schemaToWML([form.schema])` in `ephemeraWire` (Slice 0 found no committed test of a room-rooted form carrying a nested object graph).
+- [ ] **Slice 2. Compose the room header from the reader.**
+  - [ ] `AffordanceRoomDeliverableData` calls Slice 1's reader with the room's `ludicGraph.objectIds` in place of `getImprovisationObject` per id. The room row's own `ludicGraph` wire field is unchanged (still the room's shard).
+  - [ ] **Room-level objects** = the room's own shard objects (as today); each one's **contents** = the reader's `contents`. Each room-level object's stub carries a `ludicGraph` of bare references to its contents (root excluded, as `toWireLudicGraphFull` already does), and each content object travels as a sibling name stub --- the look path's shape.
+  - [ ] Depth stops there: an object held only by a content object (cup in box on table) is never read, so it gets no stub and no reference.
+  - [ ] Drop `getImprovisationObject` from `AffordanceRoomDeliverableObjectReads` if nothing else reads it; thread the reader as a dep instead, so tests inject it without the cache walk.
+  - [ ] Tests in the deliverable's suite: the cases from Slice 1 produce the expected stubs and references; an object whose shortName is unresolved is dropped at both levels, as today. Assert on the form **reparsed** from `schemaToWML([form.schema])` in `ephemeraWire` (Slice 0 found no committed test of a room-rooted form carrying a nested object graph).
 
 - [ ] **Slice 3. Room refresh as a consumer of `ludicCache` invalidation.** The route from a move to the rooms it affects *is* the cache's invalidation path. Build it once, in `positions/ludicCache`, and have the affordance refresh consume it, rather than growing a second route inside affordanceOrchestration. The rule: **when a room's cache is invalidated, if the room has occupants, rebuild and re-render its affordances.**
   - [ ] **The invalidation seam.** A function in `positions/ludicCache` takes an `Object Moved` fact and returns the rooms whose cache it invalidates: every room reachable upward from each host in `froms`/`to`, by [`roomsForHost`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/presenceRooms.ts) (bindings form a forest rooted at rooms --- [`AGENT.concepts.md` --- Presence as a cover](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#presence-as-a-cover)), deduplicated. Reuse `roomsForHost` as is; do not write a one-step variant.
@@ -96,7 +97,7 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [ ] **Payoff test at the observable output:** a `RoomDescription` render test asserting the visible `Contents:` line for a room whose table holds a cup, starting from wire WML in the shape Slice 2 emits.
 
 - [ ] **Slice 5. Graduate and dispose.**
-  - [ ] Rules to durable docs: how a handle's direct hosts are read in [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) (beside "A catalog handle's `presence`"); object source and one-level contents in [`affordanceCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md) / the gateway doc's Consumers table; client formatting rule in [`charcoal-client/src/components/Message/AGENT.md`](../../../../../charcoal-client/src/components/Message/AGENT.md).
+  - [ ] Rules to durable docs: how the forward reader derives an object's one-level contents from its bindings' covers in [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) (beside "A catalog handle's `presence`"); object source and one-level contents in [`affordanceCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md) / the gateway doc's Consumers table; client formatting rule in [`charcoal-client/src/components/Message/AGENT.md`](../../../../../charcoal-client/src/components/Message/AGENT.md).
   - [ ] Update the primer's cache **Status** paragraph ([`AGENT.ludicNetwork.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md) section 5): two consumers.
   - [ ] Update `AGENT.ludicCacheRebuild.planning.md` Slice 6's invalidation note: from "the seam is planned" to "the seam is shipped", naming the function. Add that the cache now has a second cold-rebuild consumer, which rebuilds once per occupant perspective on each invalidated, occupied room, and that this consumer is an async push, not on a command's response path.
   - [ ] Graduation sweep: grep for inbound links to this file, then delete it.
@@ -105,14 +106,14 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
 
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
-| **D1** | **Where does an object's direct host come from?** From the cache's existing presence data: host-side cover membership, member-side `fromHostId`, seed room as fallback. A separate membership record (new cache field or build output) would duplicate what presence already states. **Slice 0 (2026-10-10): no live placement path leaves an Object unbound** --- all go through `compilePositionKernelOp`, which always mints a binding; authored Objects never reach a live graph at all. Member-side `fromHostId` stays as a defensive second source for legacy pre-presence data. | Slice 1 | Decided |
+| **D1** | **Where does an object's contents come from?** The cache's existing presence data, read **forward**: an object's contents are the covers of its own bindings; the room's direct objects come from the room's own shard. A reverse index (every object's parents) was built and reverted 2026-10-11: it answered a question the header never asks, and the handle surface it extended is the command path's, not this plan's. A separate membership record would duplicate what presence already states. **Slice 0 (2026-10-10): no live placement path leaves an Object unbound** --- all go through `compilePositionKernelOp`; authored Objects never reach a live graph. | Slice 1 | Decided |
 | **D2** | **Threshold and wording.** List up to three contents, aggregate to `several objects` at four or more; comma-separated inside the parentheses, no "and". Taken from the request; the formatter keeps the threshold as one named constant. | Slice 4 | Decided |
 | **D3** | **Should authored `<Object>`s reach live graphs?** Slice 0 found that cache-time population ([`populateContainmentAtCache.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/containment/populateContainmentAtCache.ts)) keeps only Room/Feature children, so authored Objects never become live nodes, while [`positions/AGENT.contract.md`'s `Component Updated` rule](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) says "for each child named". **Decided 2026-10-10: yes, they should** --- forwarded to [`positions/AGENT.authoredObjectPopulation.planning.md`](../positions/AGENT.authoredObjectPopulation.planning.md), which owns the edge kind and the re-cache-versus-player-move question. Nothing here depends on it: Slices 1--4 hold either way, and once it ships authored objects appear in the header as a fix, not a regression. | --- | Decided (forwarded) |
 
 ## Verification
 
 ```bash
-cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/ludicCache/ dataSource/actions/   # Slice 1
+cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/ludicCache/ dataSource/actions/   # Slice 1 (actions: confirm the command path is untouched)
 cd lambda/ephemera && npm run test -- --watchAll=false internalCache/ dataSource/perception/                   # Slice 2
 cd lambda/ephemera && npm run test -- --watchAll=false dataSource/affordanceOrchestration/ dataSource/positions/ludicGraph/ dataSource/positions/ludicCache/   # Slice 3
 cd charcoal-client && npm run test:single -- src/slices/messages/ src/components/Message/                     # Slice 4
@@ -126,8 +127,8 @@ Manual check (the user's): in a dev room, put a cup on a table and see `Table (w
 | Slice | Status |
 | --- | --- |
 | 0. Verify premises | Done (2026-10-10) |
-| 1. Direct hosts from presence | Not started |
-| 2. Compose from handles | Not started |
+| 1. Forward reader over the cache | Done (2026-10-11) |
+| 2. Compose from the reader | Not started |
 | 3. Refresh as an invalidation consumer | Not started |
 | 4. Client formatting | Not started |
 | 5. Graduate and dispose | Not started |
