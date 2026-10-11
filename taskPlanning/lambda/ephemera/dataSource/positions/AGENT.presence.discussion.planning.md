@@ -146,7 +146,7 @@ The settled verdict's characters clause read: *"**Characters stay exempt**, now 
 
 ## PR-20. Requirement: what must presence say about rooms, and about things present nowhere?
 
-**The row is open; this section is its detail, not a graduated record.** The answer a reader may cite is the row in the plan's [open table](AGENT.presence.planning.md#open-decisions-design--plan-only). Reached in conversation 2026-10-11, after a review of how `ROOM#` components are special-cased in presence bindings; first written in the design sweep's interim record and moved here.
+**The row is open; this section is its detail, not a graduated record.** The answer a reader may cite is the row in the plan's [open table](AGENT.presence.planning.md#open-decisions-design--plan-only). Reached in conversation 2026-10-11, after a review of how `ROOM#` components are special-cased in presence bindings.
 
 ### The requirement as answered
 
@@ -165,7 +165,7 @@ The settled verdict's characters clause read: *"**Characters stay exempt**, now 
 
 ## PR-21. Representation: the remainder binding and its parent pointer
 
-**The row is open (Locked); this section is its detail, not a graduated record.** The answer a reader may cite is the row in the plan's [open table](AGENT.presence.planning.md#open-decisions-design--plan-only). Reached in conversation 2026-10-11 and locked by the user the same day; first written in the design sweep's interim record and moved here.
+**The row is open (Locked); this section is its detail, not a graduated record.** The answer a reader may cite is the row in the plan's [open table](AGENT.presence.planning.md#open-decisions-design--plan-only). Reached in conversation 2026-10-11 and locked by the user the same day.
 
 ### The representation as locked
 
@@ -193,7 +193,7 @@ The settled verdict's characters clause read: *"**Characters stay exempt**, now 
 
 ### What it supersedes
 
-PR-9's tag-scoping clause, retired; claim 4's "a hostless whole has an empty cover and is outside the invariant" and PR-1's matching reading of hostlessness as *no presence nodes*; the concepts doc's "the cover is stored, authoritative rather than derived"; PR-C1 Finding 4's parent-side alignment and the 2026-09-17 ground that kept host-grain `fromHostId`; and every "rooms are never members" premise. The amendments to those rows and documents are carried by [`AGENT.presenceRemainderDesignSweep.planning.md`](AGENT.presenceRemainderDesignSweep.planning.md) Slices 2 and 3.
+PR-9's tag-scoping clause, retired; claim 4's "a hostless whole has an empty cover and is outside the invariant" and PR-1's matching reading of hostlessness as *no presence nodes*; the concepts doc's "the cover is stored, authoritative rather than derived"; PR-C1 Finding 4's parent-side alignment and the 2026-09-17 ground that kept host-grain `fromHostId`; and every "rooms are never members" premise. The amendments to those rows and documents were made 2026-10-11, in the amended settled rows and the present-tense docs.
 
 ### Grounding for the lock
 
