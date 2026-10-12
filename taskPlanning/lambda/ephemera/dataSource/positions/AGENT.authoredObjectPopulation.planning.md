@@ -1,6 +1,6 @@
 # Authored Objects in live graphs
 
-**Status: Slice 0 done. Next step: [Slice 1](#recommended-order) (place newly authored Objects).** Opened 2026-10-10 from [`AGENT.affordanceLudicCache.planning.md`'s D3](../affordanceOrchestration/AGENT.affordanceLudicCache.planning.md#open-decisions-implementation--plan-only), which chose this direction and handed it here.
+**Status: Slices 0-1 done. Next step: [Slice 2](#recommended-order) (remove de-authored Objects).** Opened 2026-10-10 from [`AGENT.affordanceLudicCache.planning.md`'s D3](../affordanceOrchestration/AGENT.affordanceLudicCache.planning.md#open-decisions-implementation--plan-only), which chose this direction and handed it here.
 
 **Scope in one sentence: an authored `<Object>` newly added to an asset becomes a live node at its authored position, with its presence binding; one removed from the asset is removed from wherever it is; and nothing else an author or a re-cache does moves a live Object.**
 
@@ -75,10 +75,12 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
       - The Object's own graph row is left in place, with no bindings. That matches every other destroy today.
     - **Contents:** the members of the removed Object's bindings. Each one moves with an ordinary `move` op `{ moved: content, froms: [objectId], to: <host> }`, the same shape a command already emits.
     - **Keying caveat:** `removePresenceBinding` is still addressed by `fromHostId`, not `fromHostPresence`, so one step clears every binding the Object has under that host. For a removal that is exactly what's wanted.
-- [ ] **Slice 1. Place newly authored Objects.** Shaped by AO1 and AO2.
-  - [ ] Widen the id filter to Objects. The emitted edge kind follows AO1 (`In`); the "no live host anywhere" check follows AO2 (`parentBindingsOf` non-empty, per Slice 0).
-  - [ ] Character parents: Slice 0 found that a Character's component can also list an Object, i.e. an authored carried item. Decided (the user, 2026-10-11): handle it with the same rule. It is placed `In` the character, under the same live-host check, with no character-specific branch. Add a test for an authored Object under a Character.
-  - [ ] Tests in `containmentPopulationSteps.test.ts` (or `populateContainmentAtCache.test.ts`, wherever the live-host read sits):
+- [X] **Slice 1. Place newly authored Objects.** Shaped by AO1 and AO2.
+  - [X] Widen the id filter to Objects. The emitted edge kind follows AO1 (`In`); the "no live host anywhere" check follows AO2 (`parentBindingsOf` non-empty, per Slice 0).
+    - **As built:** the gate is in `containmentPopulationSteps` and reads `childGraph.presenceNodes` with `parentOf`, the same read as `parentBindingsOf` but on the graph the orchestrator already fetched, so no second fetch and the step-computer stays pure. A live binding of the wrong shape is skipped, not repaired.
+  - [X] Character parents: Slice 0 found that a Character's component can also list an Object, i.e. an authored carried item. Decided (the user, 2026-10-11): handle it with the same rule. It is placed `In` the character, under the same live-host check, with no character-specific branch. Add a test for an authored Object under a Character.
+    - **Finding:** an empty Character graph yields a host-only pointer (`{ host: character }`), since `childParentBindingIdOf` names a binding only when the host has exactly one. A Character already holding one room binding would be named as the parent presence. That matches a take's pointer shape closely enough that no repair is needed, but it is untested against real Character data.
+  - [X] Tests in `containmentPopulationSteps.test.ts` (or `populateContainmentAtCache.test.ts`, wherever the live-host read sits):
     - an authored Object under a Room;
     - an authored Object under an Object;
     - a rerun over unchanged state emits nothing;
@@ -120,6 +122,6 @@ Manual check (the user's):
 | Slice | Status |
 | --- | --- |
 | 0. Verify premises | Done (2026-10-11); dev-world overlap check is the user's |
-| 1. Place newly authored Objects | Not started |
+| 1. Place newly authored Objects | Done (2026-10-11); full ephemera suite and tsc green |
 | 2. Remove de-authored Objects | Not started |
 | 3. Graduate | Not started |
