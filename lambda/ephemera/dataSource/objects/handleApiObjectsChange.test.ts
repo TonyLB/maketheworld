@@ -4,7 +4,7 @@ import {
     SEMANTIC_EMBEDDING_V1_DIMENSIONS,
     SemanticEmbedding,
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
-import { executeMembershipTransfer } from '../positions/manipulation/membership/executeMembershipTransfer'
+import type { executeComponentCreation } from '../positions/manipulation/membership/executeComponentCreation'
 import {
     handleAcmeOrderAddObjects,
     handleApiObjectsChangeCommand,
@@ -13,7 +13,6 @@ import {
 import { applyObjectsChange } from './applyObjectsChange'
 import { clearCoyoteGameImprovisationObjects } from './clearCoyoteGameImprovisationObjects'
 import type { BuildShortNameSemanticEmbeddingResult } from './embedding/buildShortNameSemanticEmbedding'
-import { persistSpawnImprovisationObject } from './persistImprovisationObject'
 import { spawnOneImprovisationObject } from './spawnImprovisationObjectsBatch'
 
 jest.mock('./applyObjectsChange', () => ({
@@ -25,8 +24,8 @@ jest.mock('./clearCoyoteGameImprovisationObjects', () => ({
 }))
 
 jest.mock('./persistImprovisationObject', () => ({
-    persistSpawnImprovisationObject: jest.fn(),
-    persistDeleteImprovisationObject: jest.fn(),
+    ...jest.requireActual('./persistImprovisationObject'),
+    destroyImprovisedObject: jest.fn(),
 }))
 
 jest.mock('../positions/manipulation/membership/executeMembershipTransfer', () => ({
@@ -568,30 +567,22 @@ describe('handleAcmeOrderAddObjects', () => {
 
 describe('handleAcmeOrderAddObjects embed wiring', () => {
     const streamEvent = jest.fn().mockResolvedValue(undefined)
-    const mockPersist = persistSpawnImprovisationObject as jest.MockedFunction<typeof persistSpawnImprovisationObject>
-    const mockPlace = executeMembershipTransfer as jest.MockedFunction<typeof executeMembershipTransfer>
+    const mockCreate = jest.fn<ReturnType<typeof executeComponentCreation>, Parameters<typeof executeComponentCreation>>()
     const mockBuildEmbed = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
 
     const spawnOneImpl = (row: Parameters<typeof spawnOneActual>[0], innerDeps: Parameters<typeof spawnOneActual>[1]) =>
         spawnOneActual(row, {
             ...innerDeps,
             buildEmbedImpl: mockBuildEmbed,
-            spawnImpl: mockPersist,
-            applyMembershipImpl: mockPlace,
+            createImpl: mockCreate,
         })
 
     beforeEach(() => {
         jest.clearAllMocks()
-        mockPersist.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
-        mockPlace.mockResolvedValue({
-            ok: true,
-            froms: [],
-            to: 'ROOM#VORTEX' as EphemeraRoomId,
-            changed: true,
-        })
+        mockCreate.mockResolvedValue({ ok: true, beatAnchorTime: 1 })
     })
 
-    it('includes object in createdIds when embed fails but persist and placement succeed (OE-3)', async () => {
+    it('includes object in createdIds when embed fails but the create-and-place commit succeeds (OE-3)', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
         mockBuildEmbed.mockResolvedValue({ success: false, errorMessage: 'Bedrock timeout' })
         const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
@@ -622,15 +613,13 @@ describe('handleAcmeOrderAddObjects embed wiring', () => {
                 errorMessage: 'Bedrock timeout',
             })
         )
-        expect(mockPersist).toHaveBeenCalledWith({
-            objectId: 'OBJECT#u1',
-            shortName: 'anvil',
-            stableKey: 'anvil',
-        })
+        expect(mockCreate.mock.calls[0][0].existenceItems).toEqual([
+            { Put: { EphemeraId: 'OBJECT#u1', DataCategory: 'ASSET#IMPROVISATION', tag: 'Object', shortName: 'anvil' } },
+        ])
         consoleSpy.mockRestore()
     })
 
-    it('passes embedding to persist when embed succeeds', async () => {
+    it('writes the embedding row in the same commit when embed succeeds', async () => {
         const embedding = makeTestEmbedding()
         mockBuildEmbed.mockResolvedValue({ success: true, embedding })
         const resolveCharacterRoomId = jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId)
@@ -648,11 +637,30 @@ describe('handleAcmeOrderAddObjects embed wiring', () => {
             spawnOneImpl,
         })
 
-        expect(mockPersist).toHaveBeenCalledWith({
-            objectId: 'OBJECT#u1',
-            shortName: 'anvil',
-            stableKey: 'anvil',
-            embedding,
+        expect(mockCreate.mock.calls[0][0].existenceItems).toEqual(expect.arrayContaining([
+            { Put: { EphemeraId: 'OBJECT#u1', DataCategory: 'EMBEDDING#IMPROMPTU', embedding: embedding.toDynamoRecord() } },
+        ]))
+    })
+
+    it('writes the order\'s gloss onto the pair row', async () => {
+        mockBuildEmbed.mockResolvedValue({ success: false, errorMessage: 'skipped' })
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+        await handleAcmeOrderAddObjects({
+            type: 'Acme Order',
+            characterId: 'CHARACTER#123',
+            orders: [{ shortName: 'anvil', stableKey: 'anvil', gloss: 'a squat cast-iron anvil' }],
+            confidence: 0.9,
+        }, {
+            streamEvent,
+            resolveCharacterRoomId: jest.fn(async () => 'ROOM#VORTEX' as EphemeraRoomId),
+            uuidFactory: jest.fn(() => 'u1'),
+            spawnOneImpl,
         })
+
+        expect(mockCreate.mock.calls[0][0].existenceItems).toEqual([
+            { Put: { EphemeraId: 'OBJECT#u1', DataCategory: 'ASSET#IMPROVISATION', tag: 'Object', shortName: 'anvil', gloss: 'a squat cast-iron anvil' } },
+        ])
+        consoleSpy.mockRestore()
     })
 })

@@ -5,11 +5,12 @@ import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
+import { graphFromMeta } from '../../ludicGraph'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyTransfer } from '../../ludicGraph/expandValidate/applyTransfer'
-import { childParentBindingIdOf, parentHostOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf } from '../../ludicGraph/presenceParent'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { MutationKernelStep } from './kernelStep'
+import type { MutationKernelRehostPresenceBindingStep, MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
 /**
@@ -35,6 +36,42 @@ const withParentPresence = (
     const parentGraph = graphs.get(pointer.host)
     const presence = pointer.presence ?? (parentGraph ? childParentBindingIdOf(parentGraph) : undefined)
     return presence ? { host: pointer.host, presence } : { host: pointer.host }
+}
+
+/**
+ * A move's presence write (`MutationKernelRehostPresenceBindingStep`): re-point one binding, keeping
+ * its id, rather than remove and re-mint (PR-21(e)). With a destination, the first binding at a
+ * departure host is re-pointed, else a hostless remainder (a reconnect, or a whole whose root
+ * population minted), else a new remainder is minted (a first placement). With none, the departing
+ * bindings are removed, but a whole never drops below one: the last only loses its pointer.
+ */
+const rehostPresenceBinding = (
+    graph: EphemeraLudicGraph,
+    step: MutationKernelRehostPresenceBindingStep,
+    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
+): EphemeraLudicGraph => {
+    const departing = step.fromHostIds.flatMap((fromHostId) => (
+        graph.presenceNodes.filter((node) => parentHostOf(node) === fromHostId)
+    ))
+    const kept = step.toHostId
+        ? departing[0] ?? hostlessRemainderOf(graph)
+        : (departing.length === graph.presenceNodes.length ? departing[0] : undefined)
+    const withoutDeparted = departing
+        .filter((node) => node !== kept)
+        .reduce((current, node) => current.removePresenceNode(node.universalKey), graph)
+    const fromHostPresence = step.toHostId ? withParentPresence({ host: step.toHostId }, graphs) : undefined
+    const repointed = {
+        tag: 'Presence' as const,
+        universalKey: kept?.universalKey ?? PresenceKey(step.presenceUuid),
+        ...(fromHostPresence ? { fromHostPresence } : {}),
+        cover: kept?.cover ?? remainderCover(),
+    }
+    if (kept) {
+        return withoutDeparted.replacePresenceNode(repointed)
+    }
+    return step.toHostId || withoutDeparted.presenceNodes.length === 0
+        ? withoutDeparted.addPresenceNode(repointed)
+        : withoutDeparted
 }
 
 const hostsOf = (
@@ -143,10 +180,15 @@ const confirmCarriedHost = (
  * This function has no verdict meaning "the world forbids this" because it makes no such judgment
  * --- it checks mechanism, and legality is the enrich tier's question. See `types.ts`.
  *
- * `addPresenceBinding`/`removePresenceBinding`: the moved entity's own presence
- * binding, one step per add or remove rather than one step replacing whatever was there --- see
- * `kernelStep.ts`'s doc comments. `removePresenceBinding` is a plain filter-by-`fromHostId`, so
- * removing an absent binding is a silent no-op.
+ * `addPresenceBinding`/`rehostPresenceBinding`/`repairPresenceBinding`: a host's own presence
+ * bindings --- population's mint, a move's re-point (`rehostPresenceBinding`, above), and
+ * population's in-place repair. See `kernelStep.ts`'s doc comments.
+ *
+ * `createComponent`: seeds a not-yet-existing host's graph empty, holding one hostless remainder,
+ * so the component is born with a binding. Throws if the host is already in `graphs`.
+ *
+ * `destroyComponent`: drops the host from the outcome, so `commitStepSequence` deletes its row.
+ * Throws if the host's graph still holds anything but its own root and its own presence bindings.
  *
  * `capture`: snapshots `graphs.get(hostId).characterIds` into the returned `captures` map and
  * moves on --- the one step kind that never touches `graphs`. Reading the map at the step's own
@@ -260,6 +302,44 @@ export const applyStepSequenceCore = (
             continue
         }
 
+        if (step.kind === 'createComponent') {
+            // The created host is never fetched, so it is in `graphs` only if an earlier step in
+            // this sequence already created it: a caller bug, not a stale world.
+            if (graphs.has(step.hostId)) {
+                throw new Error(
+                    `createComponent: ${step.hostId} is already in the footprint --- structural invariant violated (a component is created once, and never over a fetched host)`
+                )
+            }
+            graphs.set(step.hostId, graphFromMeta({}, step.hostId).addPresenceNode({
+                tag: 'Presence',
+                universalKey: PresenceKey(step.presenceUuid),
+                cover: remainderCover(),
+            }))
+            continue
+        }
+
+        if (step.kind === 'destroyComponent') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
+            }
+            // Contents must leave first (earlier in this sequence, or in an earlier commit): deleting
+            // the host's row would strand them. A structural invariant, so a throw rather than a verdict.
+            const heldIds = [...graph.nodeIds].filter((id) => id !== step.hostId && !graph.presenceNodes.some((node) => node.universalKey === id))
+            const leftBehind = [
+                ...(heldIds.length > 0 ? [`${heldIds.length} hosted node(s) (${heldIds.join(', ')})`] : []),
+                ...(graph.relationalEdges.length > 0 ? [`${graph.relationalEdges.length} relational edge(s)`] : []),
+                ...(graph.ports.length > 0 ? [`${graph.ports.length} port(s)`] : []),
+            ]
+            if (leftBehind.length > 0) {
+                throw new Error(
+                    `destroyComponent: ${step.hostId} still holds ${leftBehind.join(', ')} --- structural invariant violated (contents must leave before their host is destroyed)`
+                )
+            }
+            graphs.delete(step.hostId)
+            continue
+        }
+
         if (step.kind === 'addPresenceBinding') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
@@ -280,18 +360,12 @@ export const applyStepSequenceCore = (
             graphs.set(step.hostId, withNode)
             continue
         }
-        if (step.kind === 'removePresenceBinding') {
+        if (step.kind === 'rehostPresenceBinding') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
-            // A silent no-op when no presence node carries this `fromHostId` --- deliberate,
-            // it is what lets the compiler emit one of these per departure host without
-            // knowing which one, if any, actually held the binding.
-            const withoutBinding = graph.presenceNodes
-                .filter((node) => parentHostOf(node) === step.fromHostId)
-                .reduce((current, node) => current.removePresenceNode(node.universalKey), graph)
-            graphs.set(step.hostId, withoutBinding)
+            graphs.set(step.hostId, rehostPresenceBinding(graph, step, graphs))
             continue
         }
 
@@ -360,8 +434,9 @@ export const applyStepSequenceCore = (
     // add/remove, so it is re-enforced here for the one kind still restricted to it: characters,
     // per AGENT.contract.md's "a character's membership host is a ROOM, and only a ROOM ... it
     // lifts when that work does". Objects get no such check, deliberately --- multi-presence for
-    // objects is the point. End-of-sequence, not per-step: the compiler emits remove-then-
-    // add, so a per-step check would make the invariant depend on emission order. This is a
+    // objects is the point. End-of-sequence, not per-step, so the invariant never depends on
+    // emission order. A move re-points a character's one binding and a disconnect keeps it
+    // hostless, so an offline character still has exactly one. This is a
     // structural-invariant violation (BD-33's category, `types.ts`'s "Throw vs. verdict"), not a
     // `MutationKernelApplyOutcome` verdict, and a ratchet on new writes, not a repair --- a
     // character already carrying a stale or duplicate binding before this sequence ran is

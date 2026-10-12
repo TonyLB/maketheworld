@@ -1,24 +1,24 @@
-jest.mock('./persistImprovisationObject', () => ({
-    persistSpawnImprovisationObject: jest.fn(),
-    persistDeleteImprovisationObject: jest.fn(),
-}))
-
-jest.mock('../positions/manipulation/membership/executeMembershipTransfer', () => ({
-    executeMembershipTransfer: jest.fn(),
+jest.mock('../../internalCache', () => ({
+    __esModule: true,
+    default: {
+        ComponentEphemeraMeta: { invalidate: jest.fn() },
+        AffordanceRoomDeliverable: { invalidate: jest.fn() },
+        Positions: { set: jest.fn(), setMembershipContainers: jest.fn() },
+        ImprovisationComponentData: { set: jest.fn(), invalidate: jest.fn() },
+        ObjectEphemeraMeta: { set: jest.fn(), invalidate: jest.fn() },
+        ObjectEmbedding: { set: jest.fn(), invalidate: jest.fn() },
+    },
 }))
 
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { buildSpawnCompensationDedupeKey } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/objects'
 import {
     SEMANTIC_EMBEDDING_V1_DIMENSIONS,
     SemanticEmbedding,
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
-import { executeMembershipTransfer } from '../positions/manipulation/membership/executeMembershipTransfer'
+import internalCache from '../../internalCache'
+import { executeComponentCreation } from '../positions/manipulation/membership/executeComponentCreation'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../positions/ludicGraph/testFixtures'
 import type { BuildShortNameSemanticEmbeddingResult } from './embedding/buildShortNameSemanticEmbedding'
-import {
-    persistDeleteImprovisationObject,
-    persistSpawnImprovisationObject,
-} from './persistImprovisationObject'
 import {
     spawnImprovisationObjectsBatch,
     spawnOneImprovisationObject,
@@ -35,6 +35,9 @@ const spawnRow = {
     targetRoomId: ROOM_ID,
 }
 
+const META = { EphemeraId: OBJECT_ID, DataCategory: 'Meta::Object', stableKey: 'skates' }
+const PAIR_ITEM = { Put: { EphemeraId: OBJECT_ID, DataCategory: 'ASSET#IMPROVISATION', tag: 'Object', shortName: 'Skates' } }
+
 const makeTestEmbedding = () => {
     const values = Array.from({ length: SEMANTIC_EMBEDDING_V1_DIMENSIONS }, () => 0)
     values[0] = 1
@@ -46,10 +49,31 @@ const embedFailure = (): BuildShortNameSemanticEmbeddingResult => ({
     errorMessage: 'embed skipped in test',
 })
 
+/**
+ * A `transactWrite` standing in for the database: runs the `MultiKeyUpdate` reducer over the room's
+ * stored graph, then the wrapper's `cascade`, and records everything the one call would write.
+ */
+const makeRoomTransactWrite = (roomGraph = testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode(parentRemainderKey(ROOM_ID))] })) => {
+    const written: any[] = []
+    const transactWrite: any = jest.fn(async (items: any[]) => {
+        const multiKeyItem = items.find((item) => 'MultiKeyUpdate' in item).MultiKeyUpdate
+        const draft: Record<string, any> = {}
+        multiKeyItem.Keys.forEach((key: { EphemeraId: string; DataCategory: string }) => {
+            draft[`${key.EphemeraId}#${key.DataCategory}`] = { ...key, ludicGraph: roomGraph.toStored() }
+        })
+        const prior = structuredClone(draft)
+        multiKeyItem.reducer(draft)
+        written.push(
+            ...Object.values(draft).map((row) => ({ Update: row })),
+            ...(multiKeyItem.cascade?.(prior, draft) ?? []),
+            ...items.filter((item) => !('MultiKeyUpdate' in item)),
+        )
+    })
+    return { transactWrite, written }
+}
+
 describe('spawnOneImprovisationObject', () => {
-    const spawnImpl = persistSpawnImprovisationObject as jest.MockedFunction<typeof persistSpawnImprovisationObject>
-    const applyMembershipImpl = executeMembershipTransfer as jest.MockedFunction<typeof executeMembershipTransfer>
-    const deleteImpl = persistDeleteImprovisationObject as jest.MockedFunction<typeof persistDeleteImprovisationObject>
+    const createImpl = jest.fn<ReturnType<typeof executeComponentCreation>, Parameters<typeof executeComponentCreation>>()
     const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
     const messageBus = { publish: jest.fn() }
     const streamEvent = jest.fn().mockResolvedValue(undefined)
@@ -58,59 +82,62 @@ describe('spawnOneImprovisationObject', () => {
         messageBus: messageBus as any,
         streamEvent,
         buildEmbedImpl,
-        spawnImpl,
-        applyMembershipImpl,
-        deleteImpl,
+        createImpl,
     })
 
     beforeEach(() => {
         jest.clearAllMocks()
         buildEmbedImpl.mockResolvedValue(embedFailure())
-        spawnImpl.mockResolvedValue({ ok: true, objectId: OBJECT_ID })
-        applyMembershipImpl.mockResolvedValue({
-            ok: true,
-            froms: [],
-            to: ROOM_ID,
-            changed: true,
-        })
-        deleteImpl.mockResolvedValue({ ok: true, objectId: OBJECT_ID })
+        createImpl.mockResolvedValue({ ok: true, beatAnchorTime: 1 })
     })
 
-    it('persists existence then applies room membership', async () => {
+    it('creates and places in one call: meta, target and the pair row as an existence item', async () => {
         const result = await spawnOneImprovisationObject(spawnRow, spawnDeps())
 
         expect(result).toEqual({ ok: true, objectId: OBJECT_ID })
         expect(buildEmbedImpl).toHaveBeenCalledWith('Skates')
-        expect(spawnImpl).toHaveBeenCalledWith({
+        expect(createImpl).toHaveBeenCalledTimes(1)
+        expect(createImpl).toHaveBeenCalledWith(expect.objectContaining({
             objectId: OBJECT_ID,
-            shortName: 'Skates',
-            stableKey: 'skates',
-        })
-        expect(applyMembershipImpl).toHaveBeenCalledWith({
-            entityId: OBJECT_ID,
+            meta: META,
             target: ROOM_ID,
+            existenceItems: [PAIR_ITEM],
             messageBus,
             streamEvent,
-        })
-        expect(deleteImpl).not.toHaveBeenCalled()
+        }))
     })
 
-    it('passes embedding to persist when embed succeeds', async () => {
+    it('adds the embedding row to the same commit when embed succeeds', async () => {
         const embedding = makeTestEmbedding()
         buildEmbedImpl.mockResolvedValue({ success: true, embedding })
 
-        const result = await spawnOneImprovisationObject(spawnRow, spawnDeps())
+        await spawnOneImprovisationObject(spawnRow, spawnDeps())
 
-        expect(result).toEqual({ ok: true, objectId: OBJECT_ID })
-        expect(buildEmbedImpl).toHaveBeenCalledWith('Skates')
-        expect(spawnImpl).toHaveBeenCalledWith({
-            objectId: OBJECT_ID,
-            shortName: 'Skates',
-            stableKey: 'skates',
-            embedding,
-        })
-        expect(buildEmbedImpl.mock.invocationCallOrder[0])
-            .toBeLessThan(spawnImpl.mock.invocationCallOrder[0])
+        expect(createImpl.mock.calls[0][0].existenceItems).toEqual([
+            PAIR_ITEM,
+            { Put: { EphemeraId: OBJECT_ID, DataCategory: 'EMBEDDING#IMPROMPTU', embedding: embedding.toDynamoRecord() } },
+        ])
+    })
+
+    it('writes situations and gloss onto the pair row', async () => {
+        const situations = [{ reference: 'SITUATION#DEFAULT', payload: { prose: 'Gleaming.' } }] as any
+
+        await spawnOneImprovisationObject({ ...spawnRow, situations, gloss: 'a pair of rocket skates' }, spawnDeps())
+
+        expect(createImpl.mock.calls[0][0].existenceItems).toEqual([
+            { Put: { ...PAIR_ITEM.Put, situations, gloss: 'a pair of rocket skates' } },
+        ])
+    })
+
+    it('seeds the object caches only once the commit has persisted', async () => {
+        await spawnOneImprovisationObject(spawnRow, spawnDeps())
+
+        expect(internalCache.ObjectEphemeraMeta.set).not.toHaveBeenCalled()
+        createImpl.mock.calls[0][0].afterPersist!()
+        expect(internalCache.ObjectEphemeraMeta.set).toHaveBeenCalledWith(OBJECT_ID, META)
+        expect(internalCache.ImprovisationComponentData.set).toHaveBeenCalledTimes(1)
+        expect(internalCache.ObjectEmbedding.invalidate).toHaveBeenCalledWith(OBJECT_ID)
+        expect(internalCache.AffordanceRoomDeliverable.invalidate).toHaveBeenCalledWith(ROOM_ID)
     })
 
     it('logs and spawns without embedding when embed fails (OE-3)', async () => {
@@ -128,118 +155,54 @@ describe('spawnOneImprovisationObject', () => {
                 errorMessage: 'Bedrock timeout',
             }
         )
-        expect(spawnImpl).toHaveBeenCalledWith({
-            objectId: OBJECT_ID,
-            shortName: 'Skates',
-            stableKey: 'skates',
-        })
-        expect(applyMembershipImpl).toHaveBeenCalled()
+        expect(createImpl.mock.calls[0][0].existenceItems).toEqual([PAIR_ITEM])
         consoleSpy.mockRestore()
     })
 
-    it('returns early when existence persist fails even if embed failed', async () => {
-        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-        buildEmbedImpl.mockResolvedValue({ success: false, errorMessage: 'Bedrock timeout' })
-        spawnImpl.mockResolvedValue({ ok: false, errorMessage: 'transact failed' })
+    it('a failed commit fails the spawn, with no compensating write', async () => {
+        createImpl.mockResolvedValue({ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage: 'placement failed' })
 
         const result = await spawnOneImprovisationObject(spawnRow, spawnDeps())
 
-        expect(result).toEqual({ ok: false, errorMessage: 'transact failed' })
-        expect(applyMembershipImpl).not.toHaveBeenCalled()
-        expect(deleteImpl).not.toHaveBeenCalled()
-        consoleSpy.mockRestore()
-    })
-
-    it('returns early when existence persist fails', async () => {
-        spawnImpl.mockResolvedValue({ ok: false, errorMessage: 'transact failed' })
-
-        const result = await spawnOneImprovisationObject(spawnRow, spawnDeps())
-
-        expect(result).toEqual({ ok: false, errorMessage: 'transact failed' })
-        expect(applyMembershipImpl).not.toHaveBeenCalled()
-        expect(deleteImpl).not.toHaveBeenCalled()
-    })
-
-    it('compensates with delete when placement fails', async () => {
-        const streamProblemReport = jest.fn().mockResolvedValue(undefined)
-        applyMembershipImpl.mockResolvedValue({
-            ok: false,
-            errorCode: 'KERNEL_FAIL',
-            errorMessage: 'placement failed',
-        })
-
-        const result = await spawnOneImprovisationObject(spawnRow, {
-            ...spawnDeps(),
-            streamProblemReport,
-        })
-
         expect(result).toEqual({ ok: false, errorMessage: 'placement failed' })
-        expect(deleteImpl).toHaveBeenCalledWith({
-            objectId: OBJECT_ID,
-            affectedRoomIds: [ROOM_ID],
-        })
-        expect(streamProblemReport).not.toHaveBeenCalled()
+        expect(createImpl).toHaveBeenCalledTimes(1)
     })
 
-    it('logs when placement and compensation delete both fail', async () => {
-        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-        const streamProblemReport = jest.fn().mockResolvedValue(undefined)
-        applyMembershipImpl.mockResolvedValue({
-            ok: false,
-            errorCode: 'KERNEL_FAIL',
-            errorMessage: 'placement failed',
-        })
-        deleteImpl.mockResolvedValue({ ok: false, errorMessage: 'delete failed' })
+    describe('through the real kernel commit', () => {
+        it('spawn is one transaction: the Object is born bound under the room\'s remainder, beside its existence rows', async () => {
+            const { transactWrite, written } = makeRoomTransactWrite()
 
-        const result = await spawnOneImprovisationObject(spawnRow, {
-            ...spawnDeps(),
-            streamProblemReport,
-        })
-
-        expect(result).toEqual({ ok: false, errorMessage: 'placement failed' })
-        expect(consoleSpy).toHaveBeenCalledWith(
-            '[mtw.ephemera.objects] spawn placement failed; compensation delete failed',
-            expect.objectContaining({
-                objectId: OBJECT_ID,
-                placementError: 'placement failed',
-                deleteError: 'delete failed',
+            const result = await spawnOneImprovisationObject(spawnRow, {
+                ...spawnDeps(),
+                createImpl: (args) => executeComponentCreation({ ...args, transactWrite }),
             })
-        )
-        expect(streamProblemReport).toHaveBeenCalledTimes(1)
-        expect(streamProblemReport).toHaveBeenCalledWith({
-            objectId: OBJECT_ID,
-            targetRoomId: ROOM_ID,
-            placementError: 'placement failed',
-            deleteError: 'delete failed',
-            sourceOperation: 'spawnOneImprovisationObject',
-            attemptCount: 1,
-        })
-        consoleSpy.mockRestore()
-    })
 
-    it('uses stable dedupeKey for repeated double-fail reports', async () => {
-        const streamProblemReport = jest.fn().mockResolvedValue(undefined)
-        applyMembershipImpl.mockResolvedValue({
-            ok: false,
-            errorCode: 'KERNEL_FAIL',
-            errorMessage: 'placement failed',
-        })
-        deleteImpl.mockResolvedValue({ ok: false, errorMessage: 'delete failed' })
-
-        await spawnOneImprovisationObject(spawnRow, {
-            ...spawnDeps(),
-            streamProblemReport,
-        })
-        await spawnOneImprovisationObject(spawnRow, {
-            ...spawnDeps(),
-            streamProblemReport,
+            expect(result).toEqual({ ok: true, objectId: OBJECT_ID })
+            expect(transactWrite).toHaveBeenCalledTimes(1)
+            const metaPut = written.find((item) => item.Put?.DataCategory === 'Meta::Object')
+            const presenceNodes = metaPut.Put.ludicGraph.nodes.filter((node: { tag: string }) => node.tag === 'Presence')
+            expect(presenceNodes).toHaveLength(1)
+            expect(presenceNodes[0].fromHostPresence).toEqual({ host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) })
+            expect(written).toEqual(expect.arrayContaining([PAIR_ITEM]))
         })
 
-        const expectedDedupeKey = buildSpawnCompensationDedupeKey(OBJECT_ID, 1)
-        expect(expectedDedupeKey).toBe('OBJECT#Skates::spawnCompensation::1')
-        expect(streamProblemReport).toHaveBeenCalledTimes(2)
-        expect(streamProblemReport.mock.calls[0][0].attemptCount).toBe(1)
-        expect(streamProblemReport.mock.calls[1][0].attemptCount).toBe(1)
+        it('a placement the commit refuses writes no Meta::Object row and seeds no cache', async () => {
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+            // the Object is already a node of the room, so its placement is stale at commit time
+            const { transactWrite, written } = makeRoomTransactWrite(
+                testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
+            )
+
+            const result = await spawnOneImprovisationObject(spawnRow, {
+                ...spawnDeps(),
+                createImpl: (args) => executeComponentCreation({ ...args, transactWrite }),
+            })
+
+            expect(result.ok).toBe(false)
+            expect(written.some((item) => item.Put?.DataCategory === 'Meta::Object')).toBe(false)
+            expect(internalCache.ObjectEphemeraMeta.set).not.toHaveBeenCalled()
+            consoleSpy.mockRestore()
+        })
     })
 })
 
@@ -307,8 +270,8 @@ describe('spawnImprovisationObjectsBatch', () => {
     })
 
     it('collects createdIds when embed fails on one row but spawn succeeds (S3)', async () => {
-        const spawnImpl = persistSpawnImprovisationObject as jest.MockedFunction<typeof persistSpawnImprovisationObject>
-        const applyMembershipImpl = executeMembershipTransfer as jest.MockedFunction<typeof executeMembershipTransfer>
+        const createImpl = jest.fn<ReturnType<typeof executeComponentCreation>, Parameters<typeof executeComponentCreation>>()
+            .mockResolvedValue({ ok: true, beatAnchorTime: 1 })
         const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
         buildEmbedImpl.mockImplementation(async (shortName) => {
             if (shortName === 'B') {
@@ -316,20 +279,12 @@ describe('spawnImprovisationObjectsBatch', () => {
             }
             return { success: true, embedding: makeTestEmbedding() }
         })
-        spawnImpl.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
-        applyMembershipImpl.mockResolvedValue({
-            ok: true,
-            froms: [],
-            to: ROOM_ID,
-            changed: true,
-        })
 
         const realSpawnOne = (row: Parameters<typeof spawnOneImprovisationObject>[0], innerDeps: Parameters<typeof spawnOneImprovisationObject>[1]) =>
             spawnOneImprovisationObject(row, {
                 ...innerDeps,
                 buildEmbedImpl,
-                spawnImpl,
-                applyMembershipImpl,
+                createImpl,
             })
 
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
@@ -342,9 +297,9 @@ describe('spawnImprovisationObjectsBatch', () => {
             createdIds: ['OBJECT#a', 'OBJECT#b'],
             addFailures: [],
         })
-        expect(spawnImpl).toHaveBeenCalledTimes(2)
-        expect(spawnImpl.mock.calls[0][0]).toMatchObject({ embedding: expect.any(SemanticEmbedding) })
-        expect(spawnImpl.mock.calls[1][0]).not.toHaveProperty('embedding')
+        expect(createImpl).toHaveBeenCalledTimes(2)
+        expect(createImpl.mock.calls[0][0].existenceItems).toHaveLength(2)
+        expect(createImpl.mock.calls[1][0].existenceItems).toHaveLength(1)
         expect(consoleSpy).toHaveBeenCalledWith(
             '[mtw.ephemera.objects] shortName embed failed; spawning without embedding',
             expect.objectContaining({

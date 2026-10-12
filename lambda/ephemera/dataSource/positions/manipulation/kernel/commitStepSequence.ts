@@ -15,10 +15,10 @@ import { streamObjectMembershipFact } from '../membership/streamObjectMembership
 import { streamMembershipFact } from '../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
-import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
+import { computeStepSequenceFootprint, createdHostsOf } from './computeStepSequenceFootprint'
 import { factForRelationalEdge, factsForStep, isFactOfRelationalEdge } from './factsForStep'
 import type { RelationalEdgeFactSource } from './factsForStep'
-import type { MutationKernelStep } from './kernelStep'
+import type { MutationKernelCreateComponentStep, MutationKernelStep } from './kernelStep'
 import type { MutationKernelCaptures, MutationKernelCommitResult } from './types'
 
 export type CommitStepSequenceDeps = {
@@ -52,9 +52,15 @@ export type CommitStepSequenceDeps = {
      * any relational fact.
      */
     relationalEdges?: readonly RelationalEdgeFactSource[]
+    /**
+     * Runs once the transaction has persisted, after the graph memos are seeded and before any fact
+     * streams: a creating caller's own cache write-through (the rows it passed as `existenceItems`),
+     * under the same cache-before-facts ordering `seedGraphMemos` follows.
+     */
+    afterPersist?: () => void
 }
 
-type CommitStepSequenceTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
+export type CommitStepSequenceTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
 
 const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
     for (const graph of graphs) {
@@ -93,9 +99,15 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * Migrate row --- `orchestrateCharacterMove` (navigate/connect/disconnect, via
  * `commitAndPresentStepSequence`).
  * `applyHostEffects` and its transact-item builders have no remaining callers and are retired.
+ *
+ * **Created hosts** (`createComponent`) have no row to fetch, so they are left out of the
+ * `MultiKeyUpdate` keys; the step seeds them inside the reducer, and the wrapper's `cascade` (which
+ * runs after the reducer, in the same `TransactWriteItems` call) writes each as a `Put` of the
+ * step's `meta` plus its committed `ludicGraph`. `existenceItems` (a creating caller's own rows,
+ * opaque here) ride the same `cascade`, so creation, its rows and its placement commit together.
  */
 export const commitStepSequence = async (
-    args: { steps: readonly MutationKernelStep[] },
+    args: { steps: readonly MutationKernelStep[]; existenceItems?: readonly CommitStepSequenceTransactItem[] },
     deps: CommitStepSequenceDeps
 ): Promise<MutationKernelCommitResult> => {
     const { steps } = args
@@ -105,6 +117,8 @@ export const commitStepSequence = async (
 
     const transactWrite = deps.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
     const footprint = computeStepSequenceFootprint(steps, deps.getCurrentHost)
+    const created = createdHostsOf(steps)
+    const createSteps = steps.filter((step): step is MutationKernelCreateComponentStep => step.kind === 'createComponent')
 
     let committedGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
     // Assignment, not append --- the reducer body can run more than once under
@@ -117,14 +131,21 @@ export const commitStepSequence = async (
     // falls back to this snapshot to re-derive that endpoint's host --- the host it actually held the
     // edge on, right before removal --- rather than throwing.
     let priorGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
+    // Overwritten whole per reducer run, like `committedGraphs`.
+    let destroyedHosts: EphemeraMembershipHostId[] = []
 
     const multiKeyItem: CommitStepSequenceTransactItem = {
         MultiKeyUpdate: {
-            Keys: [...footprint].map((hostId) => ({ EphemeraId: hostId, DataCategory: hostDataCategory(hostId) })),
+            Keys: [...footprint]
+                .filter((hostId) => !created.has(hostId))
+                .map((hostId) => ({ EphemeraId: hostId, DataCategory: hostDataCategory(hostId) })),
             updateKeys: ['ludicGraph'],
             reducer: (draft: Record<string, any>) => {
                 const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>()
                 for (const hostId of footprint) {
+                    if (created.has(hostId)) {
+                        continue
+                    }
                     const entry = Object.values(draft).find(
                         (item: any) => item.EphemeraId === hostId && item.DataCategory === hostDataCategory(hostId)
                     )
@@ -134,6 +155,7 @@ export const commitStepSequence = async (
                     graphs.set(hostId, graphFromMeta(entry, hostId))
                 }
                 priorGraphs = graphs
+                destroyedHosts = []
 
                 const outcome = applyStepSequenceCore(steps, graphs)
                 if (outcome.verdict !== 'legal') {
@@ -147,7 +169,25 @@ export const commitStepSequence = async (
                     )
                 }
 
+                // A fetched host the outcome no longer holds was destroyed: removing its draft entry
+                // makes the wrapper delete the row, conditioned on the graph it read.
+                for (const hostId of footprint) {
+                    if (created.has(hostId) || outcome.graphs.has(hostId)) {
+                        continue
+                    }
+                    const draftKey = Object.keys(draft).find(
+                        (key) => draft[key].EphemeraId === hostId && draft[key].DataCategory === hostDataCategory(hostId)
+                    )
+                    if (draftKey !== undefined) {
+                        delete draft[draftKey]
+                    }
+                    destroyedHosts.push(hostId)
+                }
                 for (const [hostId, graph] of outcome.graphs) {
+                    // written by `cascade` below: there is no fetched row to update.
+                    if (created.has(hostId)) {
+                        continue
+                    }
                     const entry = Object.values(draft).find(
                         (item: any) => item.EphemeraId === hostId && item.DataCategory === hostDataCategory(hostId)
                     )!
@@ -158,6 +198,16 @@ export const commitStepSequence = async (
                 // draft-backed, so a fresh `Map` copy here is enough --- no per-entry plain-copy needed.
                 committedCaptures = new Map(outcome.captures)
             },
+            ...((createSteps.length > 0 || (args.existenceItems ?? []).length > 0)
+                ? {
+                    cascade: () => [
+                        ...createSteps.map((step) => ({
+                            Put: { ...step.meta, ludicGraph: committedGraphs!.get(step.hostId)!.toStored() },
+                        })),
+                        ...(args.existenceItems ?? []),
+                    ],
+                }
+                : {}),
         },
     } as CommitStepSequenceTransactItem
 
@@ -209,6 +259,10 @@ export const commitStepSequence = async (
     // Cache write-through must land before any fact streams below --- see applyObjectSetTransfer.ts's
     // matching comment on the affordance-refresh race this ordering avoids.
     seedGraphMemos([...committedGraphs.values()])
+    for (const hostId of destroyedHosts) {
+        internalCache.Positions.invalidate(hostId as Parameters<typeof internalCache.Positions.invalidate>[0])
+    }
+    deps.afterPersist?.()
 
     for (const step of steps) {
         if (step.kind !== 'transferMembership') {

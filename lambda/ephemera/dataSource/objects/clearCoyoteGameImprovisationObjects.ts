@@ -1,5 +1,4 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -12,7 +11,6 @@ import messageBus from '../../messageBus'
 import { collectActiveCharactersInCoyoteRooms } from '../coyoteGame/utilities/collectActiveCharactersInCoyoteRooms'
 import { collectNestedObjectIds } from './collectNestedObjectIds'
 import type { EphemeraLudicGraph } from '../positions/ludicGraph'
-import { executeMembershipTransfer } from '../positions/manipulation/membership/executeMembershipTransfer'
 import { commitStepSequence } from '../positions/manipulation/kernel/commitStepSequence'
 import type { PositionsPublishedPayload } from '../positions/publishedEvents'
 import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
@@ -24,7 +22,7 @@ import {
 import { lowerRelationalChain } from '../actions/enrich/objectManipulation/synthesize/buildCrossingLegs'
 import type { ObjectsChangedPayload } from './events'
 import { streamObjectsChangedFact } from './events'
-import { persistDeleteImprovisationObject } from './persistImprovisationObject'
+import { destroyImprovisedObject } from './persistImprovisationObject'
 
 export type ClearCoyoteGameImprovisationObjectsArgs = {
     getGameRooms?: () => Promise<string[]>;
@@ -47,12 +45,8 @@ export type ClearCoyoteGameImprovisationObjectsDependencies = {
     messageBus?: typeof messageBus;
     positionsStreamEvent?: StreamEventFunction<PositionsPublishedPayload>;
     objectsStreamEvent?: StreamEventFunction<ObjectsChangedPayload, StreamingEventHeader>;
-    applyClearMembershipImpl?: typeof executeMembershipTransfer;
-    deleteObjectImpl?: typeof persistDeleteImprovisationObject;
+    deleteObjectImpl?: typeof destroyImprovisedObject;
 }
-
-const roomIdsFromMembershipFroms = (froms: readonly string[]): EphemeraRoomId[] =>
-    froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id))
 
 /**
  * Orders the removal set so an object always comes before whatever hosts it.
@@ -117,8 +111,7 @@ export const clearCoyoteGameImprovisationObjects = async (
 
     const bus = deps.messageBus ?? messageBus
     const positionsStreamEvent = deps.positionsStreamEvent ?? streamPositionsEventFromMessageBus(bus)
-    const applyClearMembership = deps.applyClearMembershipImpl ?? executeMembershipTransfer
-    const deleteObject = deps.deleteObjectImpl ?? persistDeleteImprovisationObject
+    const deleteObject = deps.deleteObjectImpl ?? destroyImprovisedObject
 
     const gameRooms = await getGameRooms()
     const affectedRoomIds = gameRooms.map((roomKey) => RoomKey(roomKey) as EphemeraRoomId)
@@ -199,24 +192,12 @@ export const clearCoyoteGameImprovisationObjects = async (
     }
 
     for (const objectId of objectIds) {
-        const membershipResult = await applyClearMembership({
-            entityId: objectId,
-            target: null,
-            messageBus: bus,
-            streamEvent: positionsStreamEvent,
-        })
-        if (!membershipResult.ok) {
-            return { ok: false, errorMessage: membershipResult.errorMessage ?? `executeMembershipTransfer failed for ${objectId}` }
-        }
-
-        const deleteAffectedRoomIds = [
-            ...new Set([
-                ...affectedRoomIds,
-                ...roomIdsFromMembershipFroms(membershipResult.froms),
-            ]),
-        ]
-
-        const deleteResult = await deleteObject({ objectId, affectedRoomIds: deleteAffectedRoomIds })
+        // one commit per Object (placement clear + row deletes), in contents-first order: the kernel
+        // refuses to destroy a host that still holds an Object, so a wrong order fails loudly.
+        const deleteResult = await deleteObject(
+            { objectId, affectedRoomIds },
+            { messageBus: bus, positionsStreamEvent }
+        )
         if (!deleteResult.ok) {
             return { ok: false, errorMessage: deleteResult.errorMessage }
         }

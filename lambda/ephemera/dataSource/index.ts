@@ -2,7 +2,7 @@ import EphemeraDataSource from './abstract'
 import { EphemeraEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera'
 import { AssetsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import messageBus from '../messageBus'
-import { isEphemeraRoomId, isEphemeraAssetId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraRoomId, isEphemeraAssetId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     EphemeraIncomingEvent,
     EphemeraSubscribedContent,
@@ -28,12 +28,12 @@ const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { hea
     // Duck-typed on `ludicGraph` rather than switched on `component.tag`, so any host kind whose
     // component authors nested nodes participates with no change here. That scale-invariance is deliberate, and is contracted in
     // `positions/AGENT.contract.md`'s `Component Updated` ingress section.
-    // A Room is populated even with no nested nodes: its hostless remainder is the root of its
-    // presence tree, which every room keeps (`roomRootStep`).
+    // A Room or Area is populated even with no nested nodes: its hostless remainder is the root of
+    // its presence tree, which every Room and Area keeps (`rootStep`).
     const { component } = content
     if (isEphemeraMembershipHostId(componentId) && 'ludicGraph' in component) {
         const nodes = (component as { ludicGraph: { nodes: { payload: readonly { universalKey?: string }[] } } }).ludicGraph.nodes.payload
-        if (nodes.length > 0 || isEphemeraRoomId(componentId)) {
+        if (nodes.length > 0 || isEphemeraRoomId(componentId) || isEphemeraAreaId(componentId)) {
             await populateContainmentAtCache(componentId, nodes, { messageBus })
         }
     }

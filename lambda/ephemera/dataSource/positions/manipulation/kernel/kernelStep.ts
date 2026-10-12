@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraCrossingPort, EphemeraPresenceCover, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPort, EphemeraMetaObject, EphemeraPresenceCover, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { TransferMembershipStep } from '../../../actions/enrich/objectManipulation/parsePlanStep'
 import type {
@@ -61,23 +61,17 @@ export type MutationKernelCaptureStep = {
 }
 
 /**
- * the moved object's own presence binding, on its own graph (`hostId` is the moved object's
- * own id --- a legal `EphemeraMembershipHostId`). Since 2026-09-04, multiplicity lives in
- * the sequence rather than the step --- N bindings is N `addPresenceBinding` steps, paired with a
- * `removePresenceBinding` per departure host, rather than one step replacing whatever was there. This
- * is what lets a pure add (spawn/population-everywhere) be expressed without touching
- * `MutationKernelTransferStep` (PR-12 in `AGENT.presence.planning.md`). At-most-one presence
- * (PR-10) is no longer a reducer-enforced property of this step; for characters it is enforced
- * separately, by an end-of-sequence validator in `applyStepSequenceCore.ts` --- characters are
- * single-hosted, per `AGENT.contract.md`. Objects get no such enforcement, deliberately --- multi-
- * presence is the point. No `Present` edge is written --- PR-10 makes the cover implicit, derived
- * from the binding list, not a record either step maintains.
+ * Mints one presence binding on `hostId`'s own graph: cache-time containment population's add
+ * (a child's first binding into an authored parent, or a whole's hostless root). A move never
+ * emits this: it re-points the mover's existing binding (`rehostPresenceBinding`, below), so a
+ * binding keeps its id for the whole's life (PR-21(e)). At-most-one presence is not a property of
+ * this step; for characters it is enforced separately, by an end-of-sequence validator in
+ * `applyStepSequenceCore.ts` --- characters are single-hosted, per `AGENT.contract.md`. Objects get
+ * no such enforcement, deliberately --- multi-presence is the point.
  *
  * **Carries no port record (presenceNodes Slice 7a, PN-23).** The presence binding is a NODE
- * (`applyStepSequenceCore.ts`'s handler mints it via `addPresenceNode`), not a port pushed into
- * `EphemeraLudicGraph.ports` --- `EphemeraPresencePort` and its `kind: 'Present'` literal are
- * retired. `presenceUuid` is still minted fresh per binding (it becomes the node's
- * `PRESENCE#{presenceUuid}` key), it just no longer rides inside a port object.
+ * (`applyStepSequenceCore.ts`'s handler mints it via `addPresenceNode`). `presenceUuid` is minted
+ * fresh per binding and becomes the node's `PRESENCE#{presenceUuid}` key.
  */
 export type MutationKernelAddPresenceBindingStep = {
     kind: 'addPresenceBinding'
@@ -87,6 +81,36 @@ export type MutationKernelAddPresenceBindingStep = {
     /** Defaults to a sole remainder; a room's Area carve-out passes `{ members: [] }` (the room rule). */
     cover?: EphemeraPresenceCover
     presenceUuid: string
+}
+
+/**
+ * Creates a component's host row, born holding one hostless remainder (`PRESENCE#{presenceUuid}`,
+ * no parent pointer), so a component never exists without a binding. Birth is a binding's proper
+ * origin; `containmentPopulationSteps.ts`'s `rootStep` is the late catch-up for components created
+ * outside the kernel. A placement later in the same sequence re-points this remainder
+ * (`rehostPresenceBinding`), keeping its id.
+ *
+ * The host is not fetched: `commitStepSequence` leaves it out of the `MultiKeyUpdate` keys and
+ * writes `{ ...meta, ludicGraph }` as a `Put` through the wrapper's `cascade`. v1 creates
+ * improvised Objects only; `meta` is the row's non-graph fields.
+ */
+export type MutationKernelCreateComponentStep = {
+    kind: 'createComponent'
+    hostId: EphemeraObjectId
+    presenceUuid: string
+    meta: Omit<EphemeraMetaObject, 'ludicGraph'>
+}
+
+/**
+ * Ends a component: drops its host from the outcome, and `commitStepSequence` turns that into a
+ * conditioned `Delete` of the host row (`MultiKeyUpdate` deleting a fetched key). The mirror of
+ * `createComponent`. The handler throws unless the host's graph holds nothing but its own root and
+ * its own presence bindings, so anything it hosts must leave first, earlier in the same sequence
+ * or in an earlier commit. v1 destroys improvised Objects only.
+ */
+export type MutationKernelDestroyComponentStep = {
+    kind: 'destroyComponent'
+    hostId: EphemeraObjectId
 }
 
 /**
@@ -105,16 +129,27 @@ export type MutationKernelRepairPresenceBindingStep = {
 }
 
 /**
- * The remove half of that add/remove split. Addressed by host pair (`hostId` + `fromHostId`), not by
- * `presenceUuid` --- unlike `removeCrossingPort`, because the compiler has no prior-state read to
- * learn a `presenceUuid` from; that read is exactly what the old replace-all step existed to avoid.
- * Removing an absent binding is a silent no-op in the reducer, which is what lets the compiler emit
- * one of these per departure host without knowing which one (if any) actually held the binding.
+ * A move's presence write: re-points the mover's binding at the destination rather than removing
+ * and re-minting it, so its id is stable and no child pointer naming it is orphaned (PR-21(e)).
+ * Addressed by host (`fromHostIds`/`toHostId`, the same hosts the transfer step names), because the
+ * compiler has no prior-state read to learn a binding id from; the handler resolves which binding
+ * from the mover's graph inside the lock:
+ *
+ * - **`toHostId` set:** the first binding at a departure host, else a hostless remainder, else a
+ *   new remainder (keyed `PRESENCE#{presenceUuid}`, a first placement) is re-pointed. One binding
+ *   is re-pointed, never all of them; any other binding at a departure host is removed.
+ * - **`toHostId` null** (disconnect, destroy, scrub): every binding at a departure host is removed,
+ *   except that a whole never drops below one binding --- the last one only loses its parent
+ *   pointer, becoming a hostless remainder.
+ *
+ * `presenceUuid` is consumed only when the mover has no binding to re-point.
  */
-export type MutationKernelRemovePresenceBindingStep = {
-    kind: 'removePresenceBinding'
+export type MutationKernelRehostPresenceBindingStep = {
+    kind: 'rehostPresenceBinding'
     hostId: EphemeraMembershipHostId
-    fromHostId: EphemeraMembershipHostId
+    fromHostIds: readonly EphemeraMembershipHostId[]
+    toHostId: EphemeraMembershipHostId | null
+    presenceUuid: string
 }
 
 /**
@@ -144,8 +179,10 @@ export type MutationKernelStep =
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
     | MutationKernelCaptureStep
+    | MutationKernelCreateComponentStep
+    | MutationKernelDestroyComponentStep
     | MutationKernelAddPresenceBindingStep
-    | MutationKernelRemovePresenceBindingStep
+    | MutationKernelRehostPresenceBindingStep
     | MutationKernelRepairPresenceBindingStep
     | MutationKernelAddCrossingPortStep
     | MutationKernelRemoveCrossingPortStep
@@ -337,8 +374,10 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'establishRelation' ||
     step.kind === 'dissolveRelation' ||
     step.kind === 'capture' ||
+    step.kind === 'createComponent' ||
+    step.kind === 'destroyComponent' ||
     step.kind === 'addPresenceBinding' ||
-    step.kind === 'removePresenceBinding' ||
+    step.kind === 'rehostPresenceBinding' ||
     step.kind === 'repairPresenceBinding' ||
     step.kind === 'addCrossingPort' ||
     step.kind === 'removeCrossingPort'

@@ -1,14 +1,10 @@
 import { HeaderGuard, StreamingEventHeader, makeStreamingEnvelopeGuardFromHeaderGuard } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
 import { ConnectionsSessionDisconnectProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
-import { EphemeraObjectsSpawnCompensationProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/objects'
 import { PlayerStaleSessionProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/players'
 import { DiagnosticsAPIPayload, DiagnosticsApiSubscribedHeader } from './apiDiagnostics'
 
 export type DiagnosticsConnectionsProblemHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.connections'; type: 'Session Disconnect Problem' }
-
-export type DiagnosticsEphemeraObjectsProblemHeader =
-    StreamingEventHeader & { dataSourceKey: 'mtw.ephemera.objects'; type: 'Spawn Compensation Problem' }
 
 export type DiagnosticsPlayersProblemHeader =
     StreamingEventHeader & { dataSourceKey: 'mtw.players'; type: 'Stale Session Problem' }
@@ -46,16 +42,19 @@ const isDiagnosticsApiContainmentPopulationDriftSweepHeader: HeaderGuard<Diagnos
     header.dataSourceKey === 'api.diagnostics' && header.type === 'ContainmentPopulationDriftSweep'
 )
 
+export type DiagnosticsApiPresenceCoverDriftSweepHeader =
+    StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'PresenceCoverDriftSweep' }
+
+const isDiagnosticsApiPresenceCoverDriftSweepHeader: HeaderGuard<DiagnosticsApiPresenceCoverDriftSweepHeader> = (
+    header
+): header is DiagnosticsApiPresenceCoverDriftSweepHeader => (
+    header.dataSourceKey === 'api.diagnostics' && header.type === 'PresenceCoverDriftSweep'
+)
+
 const isConnectionsProblemHeader: HeaderGuard<DiagnosticsConnectionsProblemHeader> = (
     header
 ): header is DiagnosticsConnectionsProblemHeader => (
     header.dataSourceKey === 'mtw.connections' && header.type === 'Session Disconnect Problem'
-)
-
-const isEphemeraObjectsProblemHeader: HeaderGuard<DiagnosticsEphemeraObjectsProblemHeader> = (
-    header
-): header is DiagnosticsEphemeraObjectsProblemHeader => (
-    header.dataSourceKey === 'mtw.ephemera.objects' && header.type === 'Spawn Compensation Problem'
 )
 
 const isPlayersProblemHeader: HeaderGuard<DiagnosticsPlayersProblemHeader> = (
@@ -114,14 +113,12 @@ const isDiagnosticsApiLudicGraphPortMismatchSweepHeader: HeaderGuard<Diagnostics
 
 export const isDiagnosticsSubscribedHeader: HeaderGuard<
     DiagnosticsConnectionsProblemHeader |
-    DiagnosticsEphemeraObjectsProblemHeader |
     DiagnosticsPlayersProblemHeader |
     DiagnosticsApiSubscribedHeader
 > = (
     header
-): header is DiagnosticsConnectionsProblemHeader | DiagnosticsEphemeraObjectsProblemHeader | DiagnosticsPlayersProblemHeader | DiagnosticsApiSubscribedHeader => (
+): header is DiagnosticsConnectionsProblemHeader | DiagnosticsPlayersProblemHeader | DiagnosticsApiSubscribedHeader => (
     isConnectionsProblemHeader(header) ||
-    isEphemeraObjectsProblemHeader(header) ||
     isPlayersProblemHeader(header) ||
     isDiagnosticsApiStaleSessionSweepHeader(header) ||
     isDiagnosticsApiRoomOccupancyDriftSweepHeader(header) ||
@@ -131,18 +128,14 @@ export const isDiagnosticsSubscribedHeader: HeaderGuard<
     isDiagnosticsApiOrphanedImprovisedObjectSweepHeader(header) ||
     isDiagnosticsApiLudicGraphStaleStructureSweepHeader(header) ||
     isDiagnosticsApiLudicGraphPortMismatchSweepHeader(header) ||
-    isDiagnosticsApiContainmentPopulationDriftSweepHeader(header)
+    isDiagnosticsApiContainmentPopulationDriftSweepHeader(header) ||
+    isDiagnosticsApiPresenceCoverDriftSweepHeader(header)
 )
 
 export const isConnectionsProblemEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ConnectionsSessionDisconnectProblemEvent,
     DiagnosticsConnectionsProblemHeader
 >(isConnectionsProblemHeader)
-
-export const isEphemeraObjectsProblemEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    EphemeraObjectsSpawnCompensationProblemEvent,
-    DiagnosticsEphemeraObjectsProblemHeader
->(isEphemeraObjectsProblemHeader)
 
 export const isPlayersProblemEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     PlayerStaleSessionProblemEvent,
@@ -194,13 +187,17 @@ export const isDiagnosticsApiContainmentPopulationDriftSweepEnvelope = makeStrea
     DiagnosticsApiContainmentPopulationDriftSweepHeader
 >(isDiagnosticsApiContainmentPopulationDriftSweepHeader)
 
+export const isDiagnosticsApiPresenceCoverDriftSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    Extract<DiagnosticsAPIPayload, { type: 'PresenceCoverDriftSweep' }>,
+    DiagnosticsApiPresenceCoverDriftSweepHeader
+>(isDiagnosticsApiPresenceCoverDriftSweepHeader)
+
 export const isDiagnosticsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    ConnectionsSessionDisconnectProblemEvent | EphemeraObjectsSpawnCompensationProblemEvent | PlayerStaleSessionProblemEvent | DiagnosticsAPIPayload,
-    DiagnosticsConnectionsProblemHeader | DiagnosticsEphemeraObjectsProblemHeader | DiagnosticsPlayersProblemHeader | DiagnosticsApiSubscribedHeader
+    ConnectionsSessionDisconnectProblemEvent | PlayerStaleSessionProblemEvent | DiagnosticsAPIPayload,
+    DiagnosticsConnectionsProblemHeader | DiagnosticsPlayersProblemHeader | DiagnosticsApiSubscribedHeader
 >(isDiagnosticsSubscribedHeader)
 
 export type DiagnosticsSubscribedContent =
     | ConnectionsSessionDisconnectProblemEvent
-    | EphemeraObjectsSpawnCompensationProblemEvent
     | PlayerStaleSessionProblemEvent
     | DiagnosticsAPIPayload

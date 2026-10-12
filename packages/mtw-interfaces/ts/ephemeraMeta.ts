@@ -420,7 +420,7 @@ export const isEphemeraPresenceCoverRemainder = (value: unknown): value is Ephem
  * already the discriminant, and a second constant field would be a discriminant with no second
  * value.
  *
- * `fromHostPresence` (presenceRemainder Slice 4, PR-21) names the parent BINDING: `host` is the
+ * `fromHostPresence` (PR-21) names the parent BINDING: `host` is the
  * shard to read (one Dynamo read), `presence` is which of that host's bindings this one sits
  * under. The child's pointer governs; the parent's cover is a stored index of it. Absent means a
  * hostless remainder (a room, an unplaced or offline whole).

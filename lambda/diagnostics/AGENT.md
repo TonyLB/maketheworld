@@ -27,7 +27,6 @@
 - [`ingress.ts`](ingress.ts) routes EventBridge ingress onto diagnostics message-bus streaming envelopes.
 - [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts) owns subscribed header/envelope guards for:
   - `mtw.connections` / `Session Disconnect Problem`
-  - `mtw.ephemera.objects` / `Spawn Compensation Problem`
   - `mtw.players` / `Stale Session Problem` (`DiagnosticsPlayersProblemHeader` / `isPlayersProblemHeader` / `isPlayersProblemEnvelope`)
   - `api.diagnostics` synthetic command envelopes (`StaleSessionSweep`, `RoomOccupancyDriftSweep`, `PlayerMisalignmentSweep`, `ComponentVerticalMisalignmentSweep`, `RenderCacheDriftSweep`, `OrphanedImprovisedObjectSweep`)
 - [`dataSource/index.ts`](dataSource/index.ts) owns subscribed-event handling.
@@ -35,11 +34,10 @@
 **Handling semantics:**
 
 - `Session Disconnect Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/connections`](../../packages/mtw-interfaces/ts/eventBridge/connections).
-- `Spawn Compensation Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts); same tidy-failure, invocation dedupe, and report-only sweep trigger semantics as connections problem reports.
 - `Stale Session Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/players`](../../packages/mtw-interfaces/ts/eventBridge/players/index.ts). Producer: [`connect.ts`](../authentication/connect.ts) in `lambda/authentication` detects (via [`staleSessionDetection.ts`](../authentication/staleSessionDetection.ts), which resolves the connecting player's reverse-index pointers) and reports its own problem at connect time -- connections-table stale-session detection used to require the whole-table sweep, which is why it could only run on a schedule; the reverse index lets the connecting player's own connect path recognize the problem instead. Diagnostics does not subscribe to the healthy-path `Player Connected` event for this.
   - Evaluation routes to `evaluateStaleSessionsForPlayer` in [`staleSessionSweep/index.ts`](staleSessionSweep/index.ts): a player-scoped counterpart to `staleSessionSweep()` that resolves only the reported player's reverse-index pointers (one `connectionDB.query` + batch-`getItems`, `ConsistentRead`) and emits the same `Stale SessionId Finding` contract if that player has a currently-stale session. It does **not** perform the pointer backfill/prune maintenance described in the "Pointer maintenance" note below -- that stays exclusively with the full `staleSessionSweep()` run.
 - Intake is tidy-failure: malformed/partial payloads are logged and dropped at ingress/deserialization boundaries without throwing.
-- Within one lambda invocation, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation (invocation-wide `tryClaim` in [`dataSource/intakeDeduper.ts`](dataSource/intakeDeduper.ts); reset on `messageBus.clear()` at handler entry). Applies to `Session Disconnect Problem`, `Spawn Compensation Problem`, and `Stale Session Problem`.
+- Within one lambda invocation, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation (invocation-wide `tryClaim` in [`dataSource/intakeDeduper.ts`](dataSource/intakeDeduper.ts); reset on `messageBus.clear()` at handler entry). Applies to `Session Disconnect Problem` and `Stale Session Problem`.
 - Diagnostics remains report-only: problem reports trigger sweep evaluation and finding emission only; diagnostics does not perform storage repairs.
 - Bus ingress uses `publish`; boundary drain uses `flushAndSettle()`; direct command return values use ReturnValue/Error `publish` plus [`createBoundaryResponseCollector`](../../packages/mtw-lambda-patterns/ts/messageBus/boundaryResponseCollector.ts) (via [`returnValue/collector.ts`](returnValue/collector.ts)) and [`returnValue/index.ts`](returnValue/index.ts) assembly at the app boundary.
 
@@ -70,20 +68,19 @@
 
 **Purpose:** Read-only sweep for improvisational **`OBJECT#`** ids with both `(OBJECT#, ASSET#IMPROVISATION)` pair and `Meta::Object` rows present but no positions-lane placement (empty `getMembershipContainers` and no **`Object`** node on any host `ludicGraph`). Emits descriptive findings only; no repairs in diagnostics.
 
-**Trigger context:** S1 spawn double-failure --- placement fails after existence create, then compensation delete also fails --- emits **`Spawn Compensation Problem`** on **`mtw.ephemera.objects`** ([`spawnOneImprovisationObject`](../ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) via [`streamSpawnCompensationProblem`](../ephemera/dataSource/objects/problemReports.ts); emission contract in [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md)). Normative S1 + existence-without-placement rules: [`positions/AGENT.contract.md`](../ephemera/dataSource/positions/AGENT.contract.md) **Object room membership**.
+**Trigger context:** direct invoke only. Spawn can no longer leave an orphan (its rows and placement are one kernel commit, so the spawn double-fail problem report that used to trigger a targeted run is retired). **Remove** still can: it clears placement and then deletes the rows as two writes, so a failure between them leaves existence without placement. Normative rules: [`positions/AGENT.contract.md`](../ephemera/dataSource/positions/AGENT.contract.md) **Object room membership**.
 
 **Entrypoints:**
 
-- Problem report intake: `mtw.ephemera.objects` / **`Spawn Compensation Problem`** triggers targeted sweep with `objectIds: [objectId]` from the payload.
 - Direct invoke: `{ type: 'OrphanedImprovisedObjectSweep', objectIds?: string[], optional diagnosticRunId, optional nowMs }`. Omit **`objectIds`** for full-scan ops backstop (enumerates all `ASSET#IMPROVISATION` pair rows via `DataCategoryIndex`).
 
 **Finding contract:** `mtw.diagnostics` / **`Orphaned Improvised Object Finding`** with payload `{ objectId, diagnosticRunId, timestamp }`. Emission uses `publishStreamEvent` + `DiagnosticsEventSerializer`.
 
 **Evaluation (orphan litmus):** pair row present **and** `Meta::Object` present **and** no **`Object`** node on any `Meta::Room`, `Meta::Character`, **or `Meta::Object`** `ludicGraph` **and** `internalCache.Positions.getMembershipContainers(objectId)` returns empty. **Not orphan:** adjacency lag only (graph node present, containers empty) --- owned by [`repairObjectPlacementDrift`](../ephemera/dataSource/positions/manipulation/membership/repairObjectPlacementDrift.ts). Implementation: [`orphanedImprovisedObjectSweep/`](orphanedImprovisedObjectSweep/).
 
-**`Meta::Object` graphs are part of the litmus, and must stay so (2026-09-03).** An object hosted On/In/PartOf another object lives in that host's own shard, not in any room or character graph (CC3) --- so scanning only Room and Character made every legitimately nested object (a cup on a table) read as orphaned. Findings route to `persistDeleteImprovisationObject` with no further guard, so that omission was live data loss, not a reporting gap. A host graph's own root node is excluded from the held set: an object listing itself says nothing about whether anything holds *it*.
+**`Meta::Object` graphs are part of the litmus, and must stay so (2026-09-03).** An object hosted On/In/PartOf another object lives in that host's own shard, not in any room or character graph (CC3) --- so scanning only Room and Character made every legitimately nested object (a cup on a table) read as orphaned. Findings route to `destroyImprovisedObject` with no further guard (the kernel refuses a host that still holds an Object, but a nested object that reads as orphaned would still be destroyed), so that omission was live data loss, not a reporting gap. A host graph's own root node is excluded from the held set: an object listing itself says nothing about whether anything holds *it*.
 
-**Downstream handling:** Ephemera **`mtw.ephemera.objects`** consumes `mtw.diagnostics` / **`Orphaned Improvised Object Finding`** via [`handleOrphanedImprovisedObjectFinding`](../ephemera/dataSource/objects/handleOrphanedImprovisedObjectFinding.ts) -> [`persistDeleteImprovisationObject`](../ephemera/dataSource/objects/persistImprovisationObject.ts) (delete-only repair; Coyote Game v1). Diagnostics remains report-only; repair ownership is objects-lane. Contract: [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md) **Diagnostics repair**.
+**Downstream handling:** Ephemera **`mtw.ephemera.objects`** consumes `mtw.diagnostics` / **`Orphaned Improvised Object Finding`** via [`handleOrphanedImprovisedObjectFinding`](../ephemera/dataSource/objects/handleOrphanedImprovisedObjectFinding.ts) -> [`destroyImprovisedObject`](../ephemera/dataSource/objects/persistImprovisationObject.ts) (one kernel commit; delete-only repair; Coyote Game v1). Diagnostics remains report-only; repair ownership is objects-lane. Contract: [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md) **Diagnostics repair**.
 
 **Verification:**
 
@@ -99,17 +96,15 @@ npm run test -- --watchAll=false \
 | --- | --- |
 | [`orphanedImprovisedObjectSweep/classification.test.ts`](orphanedImprovisedObjectSweep/classification.test.ts) | Orphan litmus (pair + meta + empty containers; adjacency lag excluded) |
 | [`orphanedImprovisedObjectSweep/index.test.ts`](orphanedImprovisedObjectSweep/index.test.ts) | Sweep emission, targeted vs full scan, finding payload |
-| [`dataSource/index.test.ts`](dataSource/index.test.ts) | **`Spawn Compensation Problem`** intake, dedupe, malformed drop |
 | [`app.test.ts`](app.test.ts) | End-to-end diagnostics handler wiring |
 
 **Wiring greps (repo root):**
 
 ```bash
-rg -n "Spawn Compensation Problem|mtw.ephemera.objects" lambda/diagnostics/dataSource/
 rg -n "Orphaned Improvised Object Finding" lambda/diagnostics/ packages/mtw-interfaces/ts/eventBridge/diagnostics/
 ```
 
-Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md) **Verification**.
+Objects-lane repair: [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md) **Verification**.
 
 ## Player Misalignment sweep (player heal targeting diagnostics)
 
@@ -169,7 +164,7 @@ Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemer
 
 ## Ludic Graph Stale Structure sweep (`ludicGraph` structural staleness diagnostics)
 
-**Purpose:** Read-only sweep over every `Meta::Room`/`Meta::Character`/`Meta::Object`/`Meta::Feature`/`Meta::Area` row that can carry a `ludicGraph` field (the five host kinds `EphemeraMembershipHostId` admits). Flags a row iff its stored `ludicGraph` fails the shipped shape guard (`isEphemeraLudicGraphFieldPayload`, `@tonylb/mtw-interfaces/ts/ephemeraMeta`) --- the sweep is a **caller** of that guard, not a second theory of staleness, so the two can never drift apart. Reachable two ways: concepts clause 3's root-in-nodes gap (every graph's designated root must be present in its own node list, and the guard checks it), which ephemera's heal repairs; and a presence binding in a retired shape (a host-only `fromHostId`, a tagged `Full`/`Enumerated` cover), which nothing repairs, so a finding of that kind is a residual from before the presenceRemainder migration and needs a one-off fix. Emits findings only; diagnostics does not repair.
+**Purpose:** Read-only sweep over every `Meta::Room`/`Meta::Character`/`Meta::Object`/`Meta::Feature`/`Meta::Area` row that can carry a `ludicGraph` field (the five host kinds `EphemeraMembershipHostId` admits). Flags a row iff its stored `ludicGraph` fails the shipped shape guard (`isEphemeraLudicGraphFieldPayload`, `@tonylb/mtw-interfaces/ts/ephemeraMeta`) --- the sweep is a **caller** of that guard, not a second theory of staleness, so the two can never drift apart. Reachable two ways: concepts clause 3's root-in-nodes gap (every graph's designated root must be present in its own node list, and the guard checks it), which ephemera's heal repairs; and a presence binding in a retired shape (a host-only `fromHostId`, a tagged `Full`/`Enumerated` cover), which nothing repairs, so a finding of that kind is a residual from before the `fromHostPresence` migration and needs a one-off fix. Emits findings only; diagnostics does not repair.
 
 **Entrypoints:**
 
@@ -198,6 +193,18 @@ Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemer
 **Evaluation:** Scans the same five host-kind `DataCategory`s and indexes the rows by `EphemeraId`, so **one scan supplies both sides of every comparison** --- a port names its referrer, and the referrer is already in hand. No per-port fetch and no reverse index. The comparison itself lives in the shared package ([`classifyLudicGraphPortMismatch`](../../packages/mtw-gateways/ts/ephemera/positions/classifyLudicGraphPortMismatch.ts)) because the ephemera-side self-heal rechecks with the same function. A mismatch requires the matching exterior edges to be **unanimous** and to disagree with the port; a fan disagreeing with itself is reported but carries no correction. **Not findings, deliberately:** no matching edge, an absent or shape-stale referrer graph, or an edge naming the same owner but a different port.
 
 **Downstream handling:** `EphemeraFunction`'s `template.yaml` `Events:` block carries the detail-type on its `mtw.diagnostics` rule; ephemera `mtw.ephemera.positions` repairs via [`healLudicGraphPortMismatch.ts`](../ephemera/dataSource/positions/ludicGraph/healLudicGraphPortMismatch.ts), which re-reads both rows and re-classifies before writing.
+
+## Presence Cover Drift sweep (pointer-versus-cover diagnostics)
+
+**Purpose:** Read-only sweep for a whole whose presence-binding `cover` disagrees with its members' `fromHostPresence` pointers (the pointer governs; the cover is a stored index of it). Unlike the per-row sweeps it is **cross-row**: it reads every `Meta::Room`/`Feature`/`Area`/`Object`/`Character` row into one map and joins each whole with its members' rows.
+
+**Entrypoints:** direct invoke `{ type: 'PresenceCoverDriftSweep', optional diagnosticRunId, optional nowMs }`, normalized through `ingress.ts` and synthetic `api.diagnostics`; operator-invoked, no cron. Returns `{ emittedCount, ephemeraIds, unrepairable }`.
+
+**Finding contract:** `mtw.diagnostics` / `Presence Cover Drift Finding`, payload `{ ephemeraId }`, the **whole**. Emitted only when a remainder-free binding's stored cover differs from the one rebuilt from member pointers (`coverRebuildsFor`), which is what the heal can rewrite. Everything the heal cannot repair without minting a binding (a member with no binding, a duplicated or stale member binding, a whole with members and no remainder) is listed under `unrepairable` in the result and never emitted, so a clean run still reads `emittedCount: 0`. Read `unrepairable` as the follow-up list.
+
+**Evaluation:** [`classification.ts`](presenceCoverDriftSweep/classification.ts) adapts raw rows to the shared comparison in `@tonylb/mtw-gateways` ([`classifyPresenceCoverDrift.ts`](../../packages/mtw-gateways/ts/ephemera/positions/classifyPresenceCoverDrift.ts)), the same one the heal rechecks with. Implementation: [`presenceCoverDriftSweep/`](presenceCoverDriftSweep/).
+
+**Downstream handling:** `template.yaml`'s `mtw.diagnostics` rule carries the detail-type; ephemera consumes it via [`healPresenceCover`](../ephemera/dataSource/positions/manipulation/containment/healPresenceCover.ts).
 
 ## Containment Population Drift sweep (presence-binding shape diagnostics)
 

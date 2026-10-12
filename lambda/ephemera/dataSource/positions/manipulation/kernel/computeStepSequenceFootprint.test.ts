@@ -66,13 +66,24 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([roomId, otherRoomId]))
     })
 
-    it('presence binding add/remove/repair steps contribute their hostId directly', () => {
+    it('a destroyComponent step contributes its hostId even with no move naming it (the orphan case)', () => {
+        const footprint = computeStepSequenceFootprint([{ kind: 'destroyComponent', hostId: 'OBJECT#Tray' as EphemeraObjectId }], () => undefined)
+        expect([...footprint]).toEqual(['OBJECT#Tray'])
+    })
+
+    it('presence binding add/repair steps contribute their hostId directly', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: { host: roomId }, presenceUuid: 'p1' },
-            { kind: 'removePresenceBinding', hostId: glassId, fromHostId: roomId },
             { kind: 'repairPresenceBinding', hostId: otherRoomId, presenceId: 'PRESENCE#p2', cover: { members: [] } },
         ]
-        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, glassId, otherRoomId]))
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, otherRoomId]))
+    })
+
+    it('a rehost step contributes its hostId and its destination (read to name the parent binding), never its departures', () => {
+        const rehost: MutationKernelStep = { kind: 'rehostPresenceBinding', hostId: glassId, fromHostIds: [otherRoomId], toHostId: roomId, presenceUuid: 'p3' }
+        const disconnect: MutationKernelStep = { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [roomId], toHostId: null, presenceUuid: 'p4' }
+        expect(computeStepSequenceFootprint([rehost], () => undefined)).toEqual(new Set([glassId, roomId]))
+        expect(computeStepSequenceFootprint([disconnect], () => undefined)).toEqual(new Set([trayId]))
     })
 
     it('a leg with a port-address endpoint resolves its host from the primitive endpoint alone, not both', () => {

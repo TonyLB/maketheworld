@@ -1,103 +1,79 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { IMPROVISATION_ASSET_ID, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
-import {
-    EMBEDDING_IMPROMPTU_DATA_CATEGORY,
-    isEphemeraObjectEmbedding,
-    type EphemeraObjectEmbedding,
-} from '@tonylb/mtw-interfaces/ts/ephemeraEmbedding'
+import { EMBEDDING_IMPROMPTU_DATA_CATEGORY } from '@tonylb/mtw-interfaces/ts/ephemeraEmbedding'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import type { FacetListData } from '@tonylb/mtw-wml/ts/standardize/keys/abstract'
 import type { SituationProseFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 
-import internalCache from '../../internalCache'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import messageBus from '../../messageBus'
 import { sendDeleteCacheRecords } from '../apiEphemera'
 import { queryAllRenderCacheDataCategoriesForComponent } from '../renderCache/queryAllRenderCacheDataCategoriesForComponent'
-import { buildShortNameSemanticEmbedding } from './embedding/buildShortNameSemanticEmbedding'
-import { impromptuEmbeddingNeedsRefresh } from './embedding/impromptuEmbeddingNeedsRefresh'
-import { objectEmbeddingPutItem } from './embedding/objectEmbeddingPutItem'
+import { executeComponentDestruction } from '../positions/manipulation/membership/executeComponentDestruction'
+import type { PositionsPublishedPayload } from '../positions/publishedEvents'
+import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
 import { invalidateImprovisationObjectCaches } from './invalidateImprovisationObjectCaches'
-import { glossFromComponent } from './objectShortName'
 
 const META_OBJECT_DATA_CATEGORY = 'Meta::Object' as const
-
-export type SpawnImprovisationObjectArgs = {
-    objectId: EphemeraObjectId;
-    shortName: string;
-    stableKey: string;
-    tropeAffinities?: CoyoteTropeAffinity[];
-    tropeAffinitiesFailed?: boolean;
-    affectedRoomIds?: EphemeraRoomId[];
-    embedding?: SemanticEmbedding;
-    /** `SITUATION#DEFAULT` prose facet (Acme-generated); already-built merge-body shape. */
-    situations?: FacetListData<SituationProseFacetPayloadType>;
-    /** Short, reasoning-facing identity description (Acme-generated); absence is valid. */
-    gloss?: string;
-}
-
-export type UpdateImprovisationObjectArgs = {
-    objectId: EphemeraObjectId;
-    shortName?: string;
-    stableKey?: string;
-    tropeAffinities?: CoyoteTropeAffinity[];
-    tropeAffinitiesFailed?: boolean;
-    affectedRoomIds?: EphemeraRoomId[];
-    /** Explicit override; omit to preserve whatever `situations` the prior pair row already carried. */
-    situations?: FacetListData<SituationProseFacetPayloadType>;
-    /** Explicit override; omit to preserve whatever `gloss` the prior pair row already carried. */
-    gloss?: string;
-}
 
 export type DeleteImprovisationObjectArgs = {
     objectId: EphemeraObjectId;
     affectedRoomIds?: EphemeraRoomId[];
 }
 
-export type PersistImprovisationObjectDependencies = {
-    transactWrite?: typeof ephemeraDB.transactWrite;
-    getMetaObject?: (objectId: EphemeraObjectId) => Promise<EphemeraMetaObject | undefined>;
-    getImprovisationPair?: (objectId: EphemeraObjectId) => Promise<StandardObject | undefined>;
-    getImprovisationEmbedding?: (objectId: EphemeraObjectId) => Promise<EphemeraObjectEmbedding | undefined>;
-    buildEmbedImpl?: typeof buildShortNameSemanticEmbedding;
+export type DestroyImprovisedObjectDependencies = {
     messageBus?: MessageBus;
+    positionsStreamEvent?: StreamEventFunction<PositionsPublishedPayload>;
+    executeDestruction?: typeof executeComponentDestruction;
     queryRenderCacheDataCategories?: typeof queryAllRenderCacheDataCategoriesForComponent;
 }
 
-const pairRowFromShortName = (
-    objectId: EphemeraObjectId,
-    shortName: string,
-    situations?: FacetListData<SituationProseFacetPayloadType>,
-    gloss?: string
-) => ({
-    EphemeraId: objectId,
-    DataCategory: IMPROVISATION_ASSET_ID,
-    tag: 'Object' as const,
-    shortName,
+/** The improvisation pair's merge body: what `ImprovisationComponentData` reads back. */
+export type ImprovisationPairFields = {
+    objectId: EphemeraObjectId;
+    shortName: string;
+    /** `SITUATION#DEFAULT` prose facet (Acme-generated); already-built merge-body shape. */
+    situations?: FacetListData<SituationProseFacetPayloadType>;
+    /** Short, reasoning-facing identity description (Acme-generated); absence is valid. */
+    gloss?: string;
+}
+
+const pairOptionalFields = ({ situations, gloss }: ImprovisationPairFields) => ({
     ...(situations !== undefined && situations.length > 0 ? { situations } : {}),
     ...(gloss !== undefined && gloss.length > 0 ? { gloss } : {}),
 })
 
-export const improvisationPairPutItem = (
-    objectId: EphemeraObjectId,
-    shortName: string,
-    situations?: FacetListData<SituationProseFacetPayloadType>,
-    gloss?: string
-) => ({
-    Put: pairRowFromShortName(objectId, shortName, situations, gloss),
+export const improvisationPairPutItem = (fields: ImprovisationPairFields) => ({
+    Put: {
+        EphemeraId: fields.objectId,
+        DataCategory: IMPROVISATION_ASSET_ID,
+        tag: 'Object' as const,
+        shortName: fields.shortName,
+        ...pairOptionalFields(fields),
+    },
 })
 
-const metaRowFromArgs = (args: {
+/** The same pair body as a component, for seeding `ImprovisationComponentData` after a write. */
+export const improvisationPairComponent = (fields: ImprovisationPairFields): StandardObject => (
+    new StandardObject({
+        tag: 'Object',
+        universalKey: fields.objectId,
+        shortName: fields.shortName,
+        ...pairOptionalFields(fields),
+    })
+)
+
+/** An improvised Object's `Meta::Object` fields, without its `ludicGraph` (the kernel owns that). */
+export const improvisationMetaRow = (args: {
     objectId: EphemeraObjectId;
     stableKey: string;
     tropeAffinities?: CoyoteTropeAffinity[];
     tropeAffinitiesFailed?: boolean;
-}): EphemeraMetaObject => ({
+}): Omit<EphemeraMetaObject, 'ludicGraph'> => ({
     EphemeraId: args.objectId,
     DataCategory: META_OBJECT_DATA_CATEGORY,
     stableKey: args.stableKey,
@@ -105,258 +81,60 @@ const metaRowFromArgs = (args: {
     ...(args.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
 })
 
-export const metaObjectPutItem = (args: {
-    objectId: EphemeraObjectId;
-    stableKey: string;
-    tropeAffinities?: CoyoteTropeAffinity[];
-    tropeAffinitiesFailed?: boolean;
-}) => ({
-    Put: metaRowFromArgs(args),
-})
-
-const deleteTransactItemsForObject = (objectId: EphemeraObjectId) => [
-    {
-        Delete: {
-            EphemeraId: objectId,
-            DataCategory: IMPROVISATION_ASSET_ID,
-        },
-    },
-    {
-        Delete: {
-            EphemeraId: objectId,
-            DataCategory: META_OBJECT_DATA_CATEGORY,
-        },
-    },
-    {
-        Delete: {
-            EphemeraId: objectId,
-            DataCategory: EMBEDDING_IMPROMPTU_DATA_CATEGORY,
-        },
-    },
+/** The pair and embedding rows an improvised Object owns; its `Meta::Object` row is the kernel's. */
+const existenceDeleteItems = (objectId: EphemeraObjectId) => [
+    { Delete: { EphemeraId: objectId, DataCategory: IMPROVISATION_ASSET_ID } },
+    { Delete: { EphemeraId: objectId, DataCategory: EMBEDDING_IMPROMPTU_DATA_CATEGORY } },
 ]
 
-const defaultGetMetaObject = async (objectId: EphemeraObjectId): Promise<EphemeraMetaObject | undefined> =>
-    internalCache.ObjectEphemeraMeta.get(objectId)
-
-const defaultGetImprovisationPair = async (objectId: EphemeraObjectId): Promise<StandardObject | undefined> => {
-    const row = await internalCache.ImprovisationComponentData.get(objectId, IMPROVISATION_ASSET_ID)
-    return row.component instanceof StandardObject ? row.component : undefined
-}
-
-const defaultGetImprovisationEmbedding = async (
-    objectId: EphemeraObjectId
-): Promise<EphemeraObjectEmbedding | undefined> => {
-    const map = await internalCache.ObjectEmbedding.get([objectId])
-    const semantic = map[objectId]
-    return semantic
-        ? {
-            EphemeraId: objectId,
-            DataCategory: EMBEDDING_IMPROMPTU_DATA_CATEGORY,
-            embedding: semantic.toDynamoRecord(),
-        }
-        : undefined
-}
-
 /**
- * Atomically create improvisation pair + Meta::Object rows for a new OBJECT#.
- * When embedding is present, includes EMBEDDING#IMPROMPTU in the same transact.
+ * Destroys one improvised Object as one kernel commit: the placement clear, the `Meta::Object` row
+ * (the kernel's `destroyComponent`), and the pair and `EMBEDDING#IMPROMPTU` rows (riding as
+ * `existenceItems`). The kernel refuses while the Object still hosts anything of its own.
  */
-export const persistSpawnImprovisationObject = async (
-    args: SpawnImprovisationObjectArgs,
-    deps?: PersistImprovisationObjectDependencies
-): Promise<{ ok: true; objectId: EphemeraObjectId } | { ok: false; errorMessage: string }> => {
-    const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
-    const metaRow = metaRowFromArgs(args)
-
-    if (!isEphemeraMetaObject(metaRow)) {
-        return { ok: false, errorMessage: `Invalid Meta::Object payload for ${args.objectId}` }
-    }
-
-    const transactItems: Array<
-        ReturnType<typeof improvisationPairPutItem> |
-        ReturnType<typeof metaObjectPutItem> |
-        ReturnType<typeof objectEmbeddingPutItem>
-    > = [
-        improvisationPairPutItem(args.objectId, args.shortName, args.situations, args.gloss),
-        metaObjectPutItem(args),
-    ]
-
-    if (args.embedding) {
-        const embeddingItem = objectEmbeddingPutItem({
-            objectId: args.objectId,
-            embedding: args.embedding,
-        })
-        if (!isEphemeraObjectEmbedding(embeddingItem.Put)) {
-            return { ok: false, errorMessage: `Invalid EMBEDDING#IMPROMPTU payload for ${args.objectId}` }
-        }
-        transactItems.push(embeddingItem)
-    }
-
-    try {
-        await transactWrite(transactItems)
-
-        const component = new StandardObject({
-            tag: 'Object',
-            universalKey: args.objectId,
-            shortName: args.shortName,
-            ...(args.situations !== undefined && args.situations.length > 0 ? { situations: args.situations } : {}),
-            ...(args.gloss !== undefined && args.gloss.length > 0 ? { gloss: args.gloss } : {}),
-        })
-        invalidateImprovisationObjectCaches({
-            objectId: args.objectId,
-            affectedRoomIds: args.affectedRoomIds,
-            pairComponent: component,
-            metaRow,
-            ...(args.embedding ? { embedding: args.embedding } : { clearEmbedding: true }),
-        })
-
-        return { ok: true, objectId: args.objectId }
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        return { ok: false, errorMessage: message }
-    }
-}
-
-/**
- * Update improvisation pair body and/or Meta::Object fields in one transact.
- * Hash-checks EMBEDDING#IMPROMPTU on every call; best-effort re-embed when stale or absent.
- */
-export const persistUpdateImprovisationObject = async (
-    args: UpdateImprovisationObjectArgs,
-    deps?: PersistImprovisationObjectDependencies
-): Promise<{ ok: true; objectId: EphemeraObjectId } | { ok: false; errorMessage: string }> => {
-    const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
-    const getMetaObject = deps?.getMetaObject ?? defaultGetMetaObject
-    const getImprovisationPair = deps?.getImprovisationPair ?? defaultGetImprovisationPair
-    const getImprovisationEmbedding = deps?.getImprovisationEmbedding ?? defaultGetImprovisationEmbedding
-    const buildEmbed = deps?.buildEmbedImpl ?? buildShortNameSemanticEmbedding
-
-    const priorMeta = await getMetaObject(args.objectId)
-    const priorPair = await getImprovisationPair(args.objectId)
-
-    if (!priorMeta || !priorPair) {
-        return { ok: false, errorMessage: `Improvisation rows not found for ${args.objectId}` }
-    }
-
-    const nextShortName = args.shortName ?? (priorPair.toJSON().shortName as string | undefined) ?? ''
-    const priorSituations = priorPair.situations.toJSON() as FacetListData<SituationProseFacetPayloadType>
-    const nextSituations = args.situations ?? (priorSituations.length > 0 ? priorSituations : undefined)
-    const nextGloss = args.gloss ?? glossFromComponent(priorPair)
-    const nextMeta = metaRowFromArgs({
-        objectId: args.objectId,
-        stableKey: args.stableKey ?? priorMeta.stableKey,
-        tropeAffinities: args.tropeAffinities !== undefined ? args.tropeAffinities : priorMeta.tropeAffinities,
-        tropeAffinitiesFailed: args.tropeAffinitiesFailed !== undefined
-            ? args.tropeAffinitiesFailed
-            : priorMeta.tropeAffinitiesFailed,
-    })
-
-    if (!isEphemeraMetaObject(nextMeta)) {
-        return { ok: false, errorMessage: `Invalid Meta::Object payload for ${args.objectId}` }
-    }
-
-    const priorEmbedding = await getImprovisationEmbedding(args.objectId)
-    let embedding: SemanticEmbedding | undefined
-    let clearEmbedding = false
-
-    const embeddingRefreshNeeded = impromptuEmbeddingNeedsRefresh(nextShortName, priorEmbedding)
-    if (embeddingRefreshNeeded) {
-        const embedResult = await buildEmbed(nextShortName)
-        if (embedResult.success) {
-            embedding = embedResult.embedding
-        }
-        else {
-            clearEmbedding = true
-            console.error('[mtw.ephemera.objects] shortName embed failed; updating without embedding', {
-                objectId: args.objectId,
-                shortName: nextShortName,
-                errorMessage: embedResult.errorMessage,
-            })
-        }
-    }
-
-    const transactItems: Array<
-        { Put: ReturnType<typeof pairRowFromShortName> } |
-        { Put: EphemeraMetaObject } |
-        ReturnType<typeof objectEmbeddingPutItem>
-    > = [
-        { Put: pairRowFromShortName(args.objectId, nextShortName, nextSituations, nextGloss) },
-        { Put: nextMeta },
-    ]
-
-    if (embedding) {
-        const embeddingItem = objectEmbeddingPutItem({
-            objectId: args.objectId,
-            embedding,
-        })
-        if (!isEphemeraObjectEmbedding(embeddingItem.Put)) {
-            return { ok: false, errorMessage: `Invalid EMBEDDING#IMPROMPTU payload for ${args.objectId}` }
-        }
-        transactItems.push(embeddingItem)
-    }
-
-    try {
-        await transactWrite(transactItems)
-
-        const component = new StandardObject({
-            tag: 'Object',
-            universalKey: args.objectId,
-            shortName: nextShortName,
-            ...(nextSituations !== undefined && nextSituations.length > 0 ? { situations: nextSituations } : {}),
-            ...(nextGloss !== undefined && nextGloss.length > 0 ? { gloss: nextGloss } : {}),
-        })
-        invalidateImprovisationObjectCaches({
-            objectId: args.objectId,
-            affectedRoomIds: args.affectedRoomIds,
-            pairComponent: component,
-            metaRow: nextMeta,
-            ...(embedding ? { embedding } : clearEmbedding ? { clearEmbedding: true } : {}),
-        })
-
-        return { ok: true, objectId: args.objectId }
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        return { ok: false, errorMessage: message }
-    }
-}
-
-/**
- * Delete improvisation pair, Meta::Object, and EMBEDDING#IMPROMPTU rows for one OBJECT#.
- */
-export const persistDeleteImprovisationObject = async (
+export const destroyImprovisedObject = async (
     args: DeleteImprovisationObjectArgs,
-    deps?: PersistImprovisationObjectDependencies
-): Promise<{ ok: true; objectId: EphemeraObjectId } | { ok: false; errorMessage: string }> => {
-    const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
+    deps?: DestroyImprovisedObjectDependencies
+): Promise<{ ok: true; objectId: EphemeraObjectId; froms: EphemeraMembershipHostId[] } | { ok: false; errorMessage: string }> => {
     const bus = deps?.messageBus ?? messageBus
+    const streamEvent = deps?.positionsStreamEvent ?? streamPositionsEventFromMessageBus(bus)
+    const executeDestruction = deps?.executeDestruction ?? executeComponentDestruction
     const queryRenderCacheDataCategories = deps?.queryRenderCacheDataCategories ?? queryAllRenderCacheDataCategoriesForComponent
 
-    try {
-        await transactWrite(deleteTransactItemsForObject(args.objectId))
-        invalidateImprovisationObjectCaches({
-            objectId: args.objectId,
-            affectedRoomIds: args.affectedRoomIds,
-            clearEmbedding: true,
-        })
-        try {
-            const dataCategories = await queryRenderCacheDataCategories(args.objectId)
-            if (dataCategories.length > 0) {
-                sendDeleteCacheRecords(bus, args.objectId, { componentId: args.objectId, dataCategories })
-            }
-        }
-        catch (renderCacheError) {
-            const renderCacheErrorMessage = renderCacheError instanceof Error ? renderCacheError.message : String(renderCacheError)
-            console.error('[dataSource/objects] render-cache cleanup failed after object delete', {
+    const result = await executeDestruction({
+        objectId: args.objectId,
+        existenceItems: existenceDeleteItems(args.objectId),
+        messageBus: bus,
+        streamEvent,
+        afterPersist: (froms) => {
+            invalidateImprovisationObjectCaches({
                 objectId: args.objectId,
-                errorMessage: renderCacheErrorMessage,
+                affectedRoomIds: [
+                    ...new Set([
+                        ...(args.affectedRoomIds ?? []),
+                        ...froms.filter((hostId): hostId is EphemeraRoomId => isEphemeraRoomId(hostId)),
+                    ]),
+                ],
+                clearEmbedding: true,
             })
+        },
+    })
+    if (!result.ok) {
+        return { ok: false, errorMessage: result.errorMessage ?? `executeComponentDestruction failed for ${args.objectId}` }
+    }
+
+    try {
+        const dataCategories = await queryRenderCacheDataCategories(args.objectId)
+        if (dataCategories.length > 0) {
+            sendDeleteCacheRecords(bus, args.objectId, { componentId: args.objectId, dataCategories })
         }
-        return { ok: true, objectId: args.objectId }
     }
-    catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        return { ok: false, errorMessage: message }
+    catch (renderCacheError) {
+        const renderCacheErrorMessage = renderCacheError instanceof Error ? renderCacheError.message : String(renderCacheError)
+        console.error('[dataSource/objects] render-cache cleanup failed after object delete', {
+            objectId: args.objectId,
+            errorMessage: renderCacheErrorMessage,
+        })
     }
+    return { ok: true, objectId: args.objectId, froms: result.froms }
 }

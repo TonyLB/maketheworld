@@ -5,7 +5,7 @@ import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta
 
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
-import type { MutationKernelStep } from '../kernel/kernelStep'
+import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { RelationalApplyResult, RelationalIngressArgs } from './types'
 
@@ -39,7 +39,9 @@ export const applyObjectRelationalChange = async (
     args: RelationalIngressArgs,
     deps: ApplyObjectRelationalChangeDependencies
 ): Promise<RelationalApplyResult> => {
-    const relationalStep: MutationKernelStep = {
+    // typed against the relational pair, not the whole step union: a union-valued `kind` only
+    // narrows against a small target union.
+    const relationalStep: ExecutorEstablishRelationStep | ExecutorDissolveRelationStep = {
         kind: args.operation === 'establish' ? 'establishRelation' : 'dissolveRelation',
         subjectId: args.subjectId,
         targetId: args.targetId,

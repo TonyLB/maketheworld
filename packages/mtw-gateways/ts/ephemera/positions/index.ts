@@ -48,3 +48,17 @@ export type {
     LudicGraphPortExteriorValues,
     LudicGraphPortMismatchVerdict,
 } from './classifyLudicGraphPortMismatch'
+
+export {
+    classifyPresenceCoverDrift,
+    coverRebuildsFor,
+    coveredByBinding,
+    rebuiltCoverEntries,
+    wholeMembersOf,
+} from './classifyPresenceCoverDrift'
+export type {
+    PresenceBindingView,
+    PresenceCoverDriftFinding,
+    PresenceCoverDriftVerdict,
+    PresenceGraphView,
+} from './classifyPresenceCoverDrift'

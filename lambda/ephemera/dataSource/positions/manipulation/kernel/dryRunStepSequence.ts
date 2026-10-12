@@ -4,7 +4,7 @@ import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/e
 import internalCache from '../../../../internalCache'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
-import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
+import { computeStepSequenceFootprint, createdHostsOf } from './computeStepSequenceFootprint'
 import type { MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
@@ -44,9 +44,10 @@ export const dryRunStepSequence = async (
 ): Promise<MutationKernelApplyOutcome> => {
     const getGraph = deps.getGraph ?? defaultGetGraph
     const footprint = computeStepSequenceFootprint(steps, deps.getCurrentHost)
+    const created = createdHostsOf(steps)
 
     const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>()
-    await Promise.all([...footprint].map(async (hostId) => {
+    await Promise.all([...footprint].filter((hostId) => !created.has(hostId)).map(async (hostId) => {
         graphs.set(hostId, await getGraph(hostId))
     }))
 

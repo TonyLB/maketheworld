@@ -29,6 +29,9 @@ jest.mock('./orphanedImprovisedObjectSweep', () => ({
 jest.mock('./ludicGraphStaleStructureSweep', () => ({
     ludicGraphStaleStructureSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[] }))
 }))
+jest.mock('./presenceCoverDriftSweep', () => ({
+    presenceCoverDriftSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[], unrepairable: [] as unknown[] }))
+}))
 jest.mock('./containmentPopulationDriftSweep', () => ({
     containmentPopulationDriftSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[] }))
 }))
@@ -45,6 +48,7 @@ import { orphanedImprovisedObjectSweep } from './orphanedImprovisedObjectSweep'
 import { ludicGraphStaleStructureSweep } from './ludicGraphStaleStructureSweep'
 import { ludicGraphPortMismatchSweep } from './ludicGraphPortMismatchSweep'
 import { containmentPopulationDriftSweep } from './containmentPopulationDriftSweep'
+import { presenceCoverDriftSweep } from './presenceCoverDriftSweep'
 import { handler } from './app'
 
 describe('diagnostics handler', () => {
@@ -223,40 +227,6 @@ describe('diagnostics handler', () => {
         expect(result).toEqual({ emittedCount: 1, objectIds: ['OBJECT#Skates'] })
     })
 
-    it('invokes orphanedImprovisedObjectSweep for mtw.ephemera.objects Spawn Compensation Problem', async () => {
-        await handler({
-            source: 'mtw.ephemera.objects',
-            'detail-type': 'Spawn Compensation Problem',
-            detail: {
-                objectId: 'OBJECT#Skates',
-                targetRoomId: 'ROOM#Cafe',
-                sourceOperation: 'spawnOneImprovisationObject',
-                placementError: 'placement failed',
-                deleteError: 'delete failed',
-                attemptCount: 1,
-                dedupeKey: 'OBJECT#Skates::spawnCompensation::1',
-            },
-        })
-
-        expect(orphanedImprovisedObjectSweep).toHaveBeenCalledWith({ objectIds: ['OBJECT#Skates'] })
-    })
-
-    it('drops malformed mtw.ephemera.objects Spawn Compensation Problem payloads without throwing', async () => {
-        await expect(handler({
-            source: 'mtw.ephemera.objects',
-            'detail-type': 'Spawn Compensation Problem',
-            detail: {
-                objectId: 'OBJECT#Skates',
-                targetRoomId: 'ROOM#Cafe',
-                sourceOperation: 'spawnOneImprovisationObject',
-                placementError: 'placement failed',
-                attemptCount: 1,
-            },
-        })).resolves.toBeUndefined()
-
-        expect(orphanedImprovisedObjectSweep).not.toHaveBeenCalled()
-    })
-
     // Regression: the direct-invoke allow-list in app.ts named this type, but ingress.ts's
     // normalizeApiDiagnosticsIngress switch had no matching case, so the sweep silently never ran.
     it('invokes ludicGraphStaleStructureSweep for direct LudicGraphStaleStructureSweep type', async () => {
@@ -293,6 +263,14 @@ describe('diagnostics handler', () => {
             nowMs: 5555,
         })
         expect(result).toEqual({ emittedCount: 1, ephemeraIds: ['AREA#Overworld'] })
+    })
+
+    it('invokes presenceCoverDriftSweep for direct PresenceCoverDriftSweep type', async () => {
+        jest.mocked(presenceCoverDriftSweep).mockResolvedValueOnce({ emittedCount: 0, ephemeraIds: [], unrepairable: [] })
+        const result = await handler({ type: 'PresenceCoverDriftSweep', diagnosticRunId: 'dr-pcd', nowMs: 5555 })
+
+        expect(presenceCoverDriftSweep).toHaveBeenCalledWith({ diagnosticRunId: 'dr-pcd', nowMs: 5555 })
+        expect(result).toEqual({ emittedCount: 0, ephemeraIds: [], unrepairable: [] })
     })
 
     // Same regression shape as the case above: app.ts's allow-list and ingress.ts's switch have

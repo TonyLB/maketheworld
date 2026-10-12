@@ -32,7 +32,7 @@ Required on wire (`SemanticEmbeddingDynamoRecord`): `modelId`, `dimensions`, `en
 
 `fromFloat32` / `fromBinary` accept `SemanticEmbeddingMetadata` where `dimensions` and `encoding` default to v1 constants. Wrong dimensions or unsupported encoding throw.
 
-Optional `sourceTextHash` drives invalidation on the object impromptu update path; included in `equals` when present. Object impromptu embed (`buildShortNameSemanticEmbedding`) sets it to **SHA-256 hex** of UTF-8 normalized shortName (`normalizeExitName` after trim). `persistUpdateImprovisationObject` compares hash plus `modelId` / `dimensions` / `encoding` before re-embedding ([`impromptuEmbeddingNeedsRefresh.ts`](../../../../lambda/ephemera/dataSource/objects/embedding/impromptuEmbeddingNeedsRefresh.ts)).
+Optional `sourceTextHash` is the staleness key for an object impromptu embedding; included in `equals` when present. Object impromptu embed (`buildShortNameSemanticEmbedding`) sets it to **SHA-256 hex** of UTF-8 normalized shortName (`normalizeExitName` after trim). [`impromptuEmbeddingNeedsRefresh.ts`](../../../../lambda/ephemera/dataSource/objects/embedding/impromptuEmbeddingNeedsRefresh.ts) compares hash plus `modelId` / `dimensions` / `encoding` to decide a re-embed; no object edit route calls it today.
 
 ## Immutability
 

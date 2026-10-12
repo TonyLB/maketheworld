@@ -41,18 +41,11 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         ObjectsChangedPayload,
         StreamingEventHeader
     >
-    const applyClearMembershipImpl = jest.fn()
     const deleteObjectImpl = jest.fn()
 
     beforeEach(() => {
         jest.clearAllMocks()
-        applyClearMembershipImpl.mockResolvedValue({
-            ok: true,
-            froms: [],
-            to: null,
-            changed: false,
-        })
-        deleteObjectImpl.mockImplementation(async ({ objectId }) => ({ ok: true, objectId }))
+        deleteObjectImpl.mockImplementation(async ({ objectId }) => ({ ok: true, objectId, froms: [] }))
         commitStepSequenceMock.mockResolvedValue({ ok: true, beatAnchorTime: 1, steps: [], captures: new Map() })
     })
 
@@ -64,21 +57,14 @@ describe('clearCoyoteGameImprovisationObjects', () => {
                 getRoomLudicGraph: async () => EphemeraLudicGraph.empty(ROOM_A),
                 getActiveCharactersInCoyoteRooms: async () => [],
             },
-            { messageBus: messageBus as any, applyClearMembershipImpl, deleteObjectImpl }
+            { messageBus: messageBus as any, deleteObjectImpl }
         )
 
         expect(result).toEqual({ ok: true, persisted: false, destroyedIds: [] })
-        expect(applyClearMembershipImpl).not.toHaveBeenCalled()
+        expect(deleteObjectImpl).not.toHaveBeenCalled()
     })
 
-    it('clears room-placed object membership then deletes rows', async () => {
-        applyClearMembershipImpl.mockResolvedValue({
-            ok: true,
-            froms: [ROOM_A],
-            to: null,
-            changed: true,
-        })
-
+    it('destroys a room-placed object in one commit', async () => {
         const result = await clearCoyoteGameImprovisationObjects(
             {
                 ...noRelationsArgs,
@@ -94,33 +80,19 @@ describe('clearCoyoteGameImprovisationObjects', () => {
                 messageBus: messageBus as any,
                 positionsStreamEvent,
                 objectsStreamEvent,
-                applyClearMembershipImpl,
                 deleteObjectImpl,
             }
         )
 
         expect(result).toEqual({ ok: true, persisted: true, destroyedIds: [OBJECT_ROOM] })
-        expect(applyClearMembershipImpl).toHaveBeenCalledWith({
-            entityId: OBJECT_ROOM,
-            target: null,
-            messageBus,
-            streamEvent: positionsStreamEvent,
-        })
-        expect(deleteObjectImpl).toHaveBeenCalledWith({
-            objectId: OBJECT_ROOM,
-            affectedRoomIds: [ROOM_A],
-        })
+        expect(deleteObjectImpl).toHaveBeenCalledWith(
+            { objectId: OBJECT_ROOM, affectedRoomIds: [ROOM_A] },
+            { messageBus, positionsStreamEvent }
+        )
         expect(objectsStreamEvent).toHaveBeenCalled()
     })
 
     it('discovers held-only objects via active Coyote character graphs', async () => {
-        applyClearMembershipImpl.mockResolvedValue({
-            ok: true,
-            froms: [CHARACTER_A],
-            to: null,
-            changed: true,
-        })
-
         const result = await clearCoyoteGameImprovisationObjects(
             {
                 ...noRelationsArgs,
@@ -135,25 +107,18 @@ describe('clearCoyoteGameImprovisationObjects', () => {
             },
             {
                 messageBus: messageBus as any,
-                applyClearMembershipImpl,
                 deleteObjectImpl,
             }
         )
 
         expect(result).toEqual({ ok: true, persisted: true, destroyedIds: [OBJECT_HELD] })
-        expect(applyClearMembershipImpl).toHaveBeenCalledWith(
-            expect.objectContaining({ entityId: OBJECT_HELD, target: null })
+        expect(deleteObjectImpl).toHaveBeenCalledWith(
+            expect.objectContaining({ objectId: OBJECT_HELD }),
+            expect.anything()
         )
     })
 
     it('unions room and character graph object ids without duplicates', async () => {
-        applyClearMembershipImpl.mockResolvedValue({
-            ok: true,
-            froms: [ROOM_A, CHARACTER_A],
-            to: null,
-            changed: true,
-        })
-
         const result = await clearCoyoteGameImprovisationObjects(
             {
                 ...noRelationsArgs,
@@ -170,14 +135,14 @@ describe('clearCoyoteGameImprovisationObjects', () => {
                     edges: [],
                 }),
             },
-            { messageBus: messageBus as any, applyClearMembershipImpl, deleteObjectImpl }
+            { messageBus: messageBus as any, deleteObjectImpl }
         )
 
         expect(result.ok).toBe(true)
         if (result.ok && result.persisted) {
             expect(result.destroyedIds.sort()).toEqual([OBJECT_HELD, OBJECT_ROOM].sort())
         }
-        expect(applyClearMembershipImpl).toHaveBeenCalledTimes(2)
+        expect(deleteObjectImpl).toHaveBeenCalledTimes(2)
     })
 
     it("a batch clear dissolves a crossing spanning two of its own objects in one phase-1 transact, before either object's own removal --- the room-side object never independently identifies the crossing-port-owning object's own graph", async () => {
@@ -209,7 +174,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
                 getGraph: async (hostId) => (hostId === ROOM_A ? roomGraph : hostId === TABLE_ID ? tableGraph : EphemeraLudicGraph.empty(hostId)),
                 getObjectLudicGraph: async (objectId) => (objectId === TABLE_ID ? tableGraph : EphemeraLudicGraph.empty(objectId)),
             },
-            { messageBus: messageBus as any, applyClearMembershipImpl, deleteObjectImpl }
+            { messageBus: messageBus as any, deleteObjectImpl }
         )
 
         expect(result.ok).toBe(true)
@@ -222,24 +187,22 @@ describe('clearCoyoteGameImprovisationObjects', () => {
             { kind: 'dissolveRelation', subjectId: interiorEdge.from, targetId: interiorEdge.to, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
         ]))
         expect(steps).toHaveLength(3)
-        // Phase 2: membership-clear runs per object --- string and table from the room graph, and
+        // Phase 2: one destroy commit per object --- string and table from the room graph, and
         // cup by descending into table's own shard. Cup is not a member of any room or character
         // graph, so the two flat scans miss it entirely; before that descent shipped it survived
         // the clear and was then stranded when table's row was deleted underneath it (2026-09-03).
-        expect(applyClearMembershipImpl).toHaveBeenCalledTimes(3)
-        expect(applyClearMembershipImpl).toHaveBeenCalledWith(
-            expect.objectContaining({ entityId: CUP_ID, target: null })
-        )
+        expect(deleteObjectImpl).toHaveBeenCalledTimes(3)
         expect(deleteObjectImpl).toHaveBeenCalledWith(
-            expect.objectContaining({ objectId: CUP_ID })
+            expect.objectContaining({ objectId: CUP_ID }),
+            expect.anything()
         )
     })
 
     it('removes a nested object before the host it lives in', async () => {
-        // Phase 2 deletes each object's whole `Meta::Object` row, host graph and all. If the host
-        // goes first, the nested object's own membership-clear then has to remove it from a graph
-        // whose row no longer exists --- the commit's footprint fetch fails and the object is
-        // stranded exactly as if it had never been enumerated (2026-09-03, second live run).
+        // Phase 2 destroys each object's whole `Meta::Object` row, host graph and all. If the host
+        // goes first, the nested object's own destroy then has to remove it from a graph whose row
+        // no longer exists (2026-09-03, second live run). The kernel now refuses to destroy a host
+        // that still holds an Object, so the wrong order fails loudly rather than stranding it.
         const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
         const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
         const roomGraph = EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
@@ -262,13 +225,11 @@ describe('clearCoyoteGameImprovisationObjects', () => {
                 getGraph: async (hostId) => (hostId === ROOM_A ? roomGraph : hostId === TABLE_ID ? tableGraph : EphemeraLudicGraph.empty(hostId)),
                 getObjectLudicGraph: async (objectId) => (objectId === TABLE_ID ? tableGraph : EphemeraLudicGraph.empty(objectId)),
             },
-            { messageBus: messageBus as any, applyClearMembershipImpl, deleteObjectImpl }
+            { messageBus: messageBus as any, deleteObjectImpl }
         )
 
         expect(result.ok).toBe(true)
-        const clearedOrder = applyClearMembershipImpl.mock.calls.map(([args]: any) => args.entityId)
         const deletedOrder = deleteObjectImpl.mock.calls.map(([args]: any) => args.objectId)
-        expect(clearedOrder.indexOf(CUP_ID)).toBeLessThan(clearedOrder.indexOf(TABLE_ID))
         expect(deletedOrder.indexOf(CUP_ID)).toBeLessThan(deletedOrder.indexOf(TABLE_ID))
     })
 })

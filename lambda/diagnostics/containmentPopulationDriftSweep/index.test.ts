@@ -10,22 +10,23 @@ const CHARACTER_ID = 'CHARACTER#Alpha'
 const graphWith = (...nodes: object[]) => ({ nodes })
 const remainder = { members: [{ tag: 'Remainder' }] }
 const roomRoot = { tag: 'Presence', universalKey: 'PRESENCE#root', cover: remainder }
+const areaPointer = { host: AREA_ID, presence: 'PRESENCE#area-root' }
 
 describe('containmentDriftParentsOf', () => {
-    it('(a) flags a pointer naming no parent binding, unless the parent is an Area', () => {
+    it('(a) flags a pointer naming no parent binding, an Area parent included', () => {
         expect(containmentDriftParentsOf(FEATURE_ID, graphWith(
             { tag: 'Presence', universalKey: 'PRESENCE#b', fromHostPresence: { host: ROOM_ID }, cover: remainder }
         ))).toEqual([ROOM_ID])
         expect(containmentDriftParentsOf(ROOM_ID, graphWith(
             roomRoot,
             { tag: 'Presence', universalKey: 'PRESENCE#b', fromHostPresence: { host: AREA_ID }, cover: { members: [] } }
-        ))).toEqual([])
+        ))).toEqual([AREA_ID])
     })
 
     it('(b) flags a Room\'s Area binding that is not an empty-member carve-out', () => {
         expect(containmentDriftParentsOf(ROOM_ID, graphWith(
             roomRoot,
-            { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: { host: AREA_ID }, cover: remainder }
+            { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: areaPointer, cover: remainder }
         ))).toEqual([AREA_ID])
     })
 
@@ -34,6 +35,11 @@ describe('containmentDriftParentsOf', () => {
             { tag: 'Presence', universalKey: 'PRESENCE#d', fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#r' }, cover: remainder }
         ))).toEqual([])
         expect(containmentDriftParentsOf(ROOM_ID, graphWith(roomRoot))).toEqual([])
+        expect(containmentDriftParentsOf(ROOM_ID, graphWith(
+            roomRoot,
+            { tag: 'Presence', universalKey: 'PRESENCE#b', fromHostPresence: areaPointer, cover: { members: [] } }
+        ))).toEqual([])
+        expect(containmentDriftParentsOf(AREA_ID, graphWith(roomRoot))).toEqual([])
         expect(containmentDriftParentsOf(CHARACTER_ID, graphWith(
             { tag: 'Presence', universalKey: 'PRESENCE#e', fromHostPresence: { host: ROOM_ID }, cover: remainder }
         ))).toEqual([])
@@ -44,8 +50,13 @@ describe('containmentDriftParentsOf', () => {
         expect(containmentDriftParentsOf(ROOM_ID, graphWith({ tag: 'Room', universalKey: ROOM_ID }))).toEqual([ROOM_ID])
         expect(containmentDriftParentsOf(ROOM_ID, undefined)).toEqual([ROOM_ID])
         expect(containmentDriftParentsOf(ROOM_ID, graphWith(
-            { tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: { host: AREA_ID }, cover: { members: [] } }
+            { tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: areaPointer, cover: { members: [] } }
         ))).toEqual([ROOM_ID])
+    })
+
+    it('(c) flags an Area with no hostless remainder as its own parent', () => {
+        expect(containmentDriftParentsOf(AREA_ID, graphWith({ tag: 'Room', universalKey: ROOM_ID }))).toEqual([AREA_ID])
+        expect(containmentDriftParentsOf(AREA_ID, undefined)).toEqual([AREA_ID])
     })
 })
 
@@ -70,7 +81,7 @@ describe('containmentPopulationDriftSweep', () => {
                     {
                         EphemeraId: OTHER_ROOM_ID,
                         DataCategory: 'Meta::Room',
-                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: { host: AREA_ID }, cover: { members: [] } }),
+                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: areaPointer, cover: { members: [] } }),
                     },
                     {
                         EphemeraId: FEATURE_ID,
@@ -104,8 +115,12 @@ describe('containmentPopulationDriftSweep', () => {
                 DataCategory: 'Meta::Room',
                 ludicGraph: graphWith(
                     roomRoot,
-                    { tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: { host: AREA_ID }, cover: { members: [] } },
+                    { tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: areaPointer, cover: { members: [] } },
                 ),
+            }, {
+                EphemeraId: AREA_ID,
+                DataCategory: 'Meta::Area',
+                ludicGraph: graphWith(roomRoot),
             }],
             emitFinding,
         })

@@ -1,13 +1,13 @@
 jest.mock('./persistImprovisationObject', () => ({
-    persistDeleteImprovisationObject: jest.fn(),
+    destroyImprovisedObject: jest.fn(),
 }))
 
-import { persistDeleteImprovisationObject } from './persistImprovisationObject'
+import { destroyImprovisedObject } from './persistImprovisationObject'
 import { handleOrphanedImprovisedObjectFinding } from './handleOrphanedImprovisedObjectFinding'
 import type { DiagnosticsOrphanedImprovisedObjectFindingEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 
-const persistDeleteMock = persistDeleteImprovisationObject as jest.MockedFunction<
-    typeof persistDeleteImprovisationObject
+const persistDeleteMock = destroyImprovisedObject as jest.MockedFunction<
+    typeof destroyImprovisedObject
 >
 
 const baseFinding: DiagnosticsOrphanedImprovisedObjectFindingEvent = {
@@ -18,16 +18,27 @@ const baseFinding: DiagnosticsOrphanedImprovisedObjectFindingEvent = {
 }
 
 describe('handleOrphanedImprovisedObjectFinding', () => {
+    const deps = { metaRowExists: jest.fn().mockResolvedValue(true) }
+
     beforeEach(() => {
         jest.clearAllMocks()
-        persistDeleteMock.mockResolvedValue({ ok: true, objectId: 'OBJECT#Skates' })
+        deps.metaRowExists.mockResolvedValue(true)
+        persistDeleteMock.mockResolvedValue({ ok: true, objectId: 'OBJECT#Skates', froms: [] })
     })
 
-    it('calls persistDeleteImprovisationObject with objectId only', async () => {
-        await handleOrphanedImprovisedObjectFinding(baseFinding)
+    it('calls destroyImprovisedObject with objectId only', async () => {
+        await handleOrphanedImprovisedObjectFinding(baseFinding, deps)
 
         expect(persistDeleteMock).toHaveBeenCalledTimes(1)
         expect(persistDeleteMock).toHaveBeenCalledWith({ objectId: 'OBJECT#Skates' })
+    })
+
+    it('does nothing when the Meta::Object row is already gone (a repeated finding)', async () => {
+        deps.metaRowExists.mockResolvedValue(false)
+
+        await handleOrphanedImprovisedObjectFinding(baseFinding, deps)
+
+        expect(persistDeleteMock).not.toHaveBeenCalled()
     })
 
     it('no-ops when finding payload is invalid', async () => {
@@ -43,7 +54,7 @@ describe('handleOrphanedImprovisedObjectFinding', () => {
         const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined)
         persistDeleteMock.mockResolvedValue({ ok: false, errorMessage: 'transact failed' })
 
-        await handleOrphanedImprovisedObjectFinding(baseFinding)
+        await handleOrphanedImprovisedObjectFinding(baseFinding, deps)
 
         expect(consoleErrorSpy).toHaveBeenCalledWith(
             '[mtw.ephemera.objects] orphaned improvised object repair delete failed',
@@ -59,7 +70,7 @@ describe('handleOrphanedImprovisedObjectFinding', () => {
     it('returns silently when delete succeeds', async () => {
         const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined)
 
-        await handleOrphanedImprovisedObjectFinding(baseFinding)
+        await handleOrphanedImprovisedObjectFinding(baseFinding, deps)
 
         expect(consoleErrorSpy).not.toHaveBeenCalled()
         consoleErrorSpy.mockRestore()

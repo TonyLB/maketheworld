@@ -8,7 +8,7 @@ import { parentBindingsOf } from './presenceParent'
  *
  * Upward edges are read from the graphs themselves, not from the adjacency index, through
  * `parentBindingsOf`: every presence node on a host's own graph names a parent that host is present
- * at (`presenceBindingStepsForMove.ts` mints the binding onto the MOVER's graph). Membership is a
+ * at (`presenceBindingStepsForMove.ts` writes the binding onto the MOVER's graph). Membership is a
  * DAG, so one host can have several parents and the walk branches; the visited set fetches each
  * ancestor once however many paths reach it, and also terminates on a cycle already in storage.
  * No depth cap --- a capped walk would answer "no" for an ancestor just past the cap.

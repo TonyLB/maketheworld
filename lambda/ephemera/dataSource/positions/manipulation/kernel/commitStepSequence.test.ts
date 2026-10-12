@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import { commitStepSequence } from './commitStepSequence'
 import type { MutationKernelStep } from './kernelStep'
-import { testLudicGraph } from '../../ludicGraph/testFixtures'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 jest.mock('../../../../internalCache', () => ({
@@ -12,6 +12,7 @@ jest.mock('../../../../internalCache', () => ({
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
         Positions: {
             set: jest.fn(),
+            invalidate: jest.fn(),
             setMembershipContainers: jest.fn(),
         },
     },
@@ -37,6 +38,10 @@ const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
  */
 const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => {
     const lastItems: { current: any[] | undefined } = { current: undefined }
+    // what the wrapper's `cascade` hook returned, i.e. the extra items it would append to the call
+    const cascadeItems: { current: any[] | undefined } = { current: undefined }
+    // the draft after the reducer ran: a key the reducer removed is the wrapper's cue to emit a `Delete`
+    const lastDraft: { current: Record<string, any> | undefined } = { current: undefined }
     const transactWrite: any = jest.fn(async (items: any[]): Promise<void> => {
         lastItems.current = items
         const multiKeyItem = items.find((item) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
@@ -52,9 +57,12 @@ const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>)
                 ludicGraph: graph.toStored(),
             }
         })
+        const prior = structuredClone(draft)
         multiKeyItem.reducer(draft)
+        lastDraft.current = draft
+        cascadeItems.current = multiKeyItem.cascade?.(prior, draft)
     })
-    return { transactWrite, lastItems }
+    return { transactWrite, lastItems, cascadeItems, lastDraft }
 }
 
 describe('commitStepSequence', () => {
@@ -63,6 +71,153 @@ describe('commitStepSequence', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+    })
+
+    describe('destroyComponent', () => {
+        const destroyTray: MutationKernelStep = { kind: 'destroyComponent', hostId: TRAY_ID }
+        const pairDelete = { Delete: { EphemeraId: TRAY_ID, DataCategory: 'ASSET#IMPROVISATION' } }
+
+        it('removes the destroyed host from the draft, so the wrapper deletes its row; the room is updated, not the tray', async () => {
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode(parentRemainderKey(ROOM_ID))] })
+            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [presenceBindingNode('p1', ROOM_ID)] })
+            const { transactWrite, lastItems, cascadeItems, lastDraft } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: trayGraph })
+            const steps: MutationKernelStep[] = [
+                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
+                { kind: 'rehostPresenceBinding', hostId: TRAY_ID, fromHostIds: [ROOM_ID], toHostId: null, presenceUuid: 'unused' },
+                destroyTray,
+            ]
+
+            const result = await commitStepSequence(
+                { steps, existenceItems: [pairDelete] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            const multiKeyItem = lastItems.current!.find((item) => 'MultiKeyUpdate' in item).MultiKeyUpdate
+            expect(multiKeyItem.Keys).toEqual(expect.arrayContaining([
+                { EphemeraId: TRAY_ID, DataCategory: 'Meta::Object' },
+                { EphemeraId: ROOM_ID, DataCategory: 'Meta::Room' },
+            ]))
+            expect(Object.keys(lastDraft.current!)).toEqual([`${ROOM_ID}#Meta::Room`])
+            expect(cascadeItems.current).toEqual([pairDelete])
+            // adjacency row for the departure rides along; the host's own memo is dropped
+            expect(lastItems.current).toContainEqual({ Delete: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } })
+            expect(internalCache.Positions.invalidate).toHaveBeenCalledWith(TRAY_ID)
+            expect(internalCache.Positions.set).not.toHaveBeenCalledWith(expect.objectContaining({ hostId: TRAY_ID }))
+        })
+
+        it('an orphan (no move) is destroyed alone, and afterPersist runs before any fact streams', async () => {
+            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [presenceBindingNode('born')] })
+            const { transactWrite, lastDraft } = makeTransactWriteMock({ [TRAY_ID]: trayGraph })
+            const afterPersist = jest.fn()
+
+            const result = await commitStepSequence(
+                { steps: [destroyTray], existenceItems: [pairDelete] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite, afterPersist }
+            )
+
+            expect(result.ok).toBe(true)
+            expect(lastDraft.current).toEqual({})
+            expect(afterPersist).toHaveBeenCalledTimes(1)
+            expect(transactWrite.mock.invocationCallOrder[0]).toBeLessThan(afterPersist.mock.invocationCallOrder[0])
+        })
+
+        it('a host still holding an Object aborts the commit: nothing is deleted and afterPersist never runs', async () => {
+            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [{ tag: 'Object', universalKey: GLASS_ID }, presenceBindingNode('born')] })
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [TRAY_ID]: trayGraph })
+            const afterPersist = jest.fn()
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+            const result = await commitStepSequence(
+                { steps: [destroyTray], existenceItems: [pairDelete] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite, afterPersist }
+            )
+
+            expect(result).toEqual(expect.objectContaining({ ok: false, errorMessage: expect.stringContaining('still holds') }))
+            expect(cascadeItems.current).toBeUndefined()
+            expect(afterPersist).not.toHaveBeenCalled()
+            expect(internalCache.Positions.invalidate).not.toHaveBeenCalled()
+            consoleSpy.mockRestore()
+        })
+    })
+
+    describe('createComponent', () => {
+        const createTray: MutationKernelStep = {
+            kind: 'createComponent',
+            hostId: TRAY_ID,
+            presenceUuid: 'born',
+            meta: { EphemeraId: TRAY_ID, DataCategory: 'Meta::Object', stableKey: 'tray' },
+        }
+        const placeTray: MutationKernelStep[] = [
+            { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
+            { kind: 'rehostPresenceBinding', hostId: TRAY_ID, fromHostIds: [], toHostId: ROOM_ID, presenceUuid: 'unused' },
+        ]
+        const pairItem = { Put: { EphemeraId: TRAY_ID, DataCategory: 'ASSET#IMPROVISATION', tag: 'Object', shortName: 'tray' } }
+
+        it('leaves the created host out of the fetched keys and writes it, with existenceItems, through cascade', async () => {
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode(parentRemainderKey(ROOM_ID))] })
+            const { transactWrite, lastItems, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+
+            const result = await commitStepSequence(
+                { steps: [createTray, ...placeTray], existenceItems: [pairItem] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            expect(transactWrite).toHaveBeenCalledTimes(1)
+            const multiKeyItem = lastItems.current!.find((item) => 'MultiKeyUpdate' in item).MultiKeyUpdate
+            expect(multiKeyItem.Keys).toEqual([{ EphemeraId: ROOM_ID, DataCategory: 'Meta::Room' }])
+            expect(cascadeItems.current).toEqual([
+                {
+                    Put: {
+                        EphemeraId: TRAY_ID,
+                        DataCategory: 'Meta::Object',
+                        stableKey: 'tray',
+                        ludicGraph: expect.objectContaining({
+                            nodes: expect.arrayContaining([presenceBindingNode('born', ROOM_ID)]),
+                        }),
+                    },
+                },
+                pairItem,
+            ])
+            const storedNodes = cascadeItems.current![0].Put.ludicGraph.nodes
+            expect(storedNodes.filter((node: { tag: string }) => node.tag === 'Presence')).toHaveLength(1)
+        })
+
+        it('runs afterPersist after the write and before any fact streams', async () => {
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode(parentRemainderKey(ROOM_ID))] })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+            const afterPersist = jest.fn()
+
+            await commitStepSequence(
+                { steps: [createTray, ...placeTray] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite, afterPersist }
+            )
+
+            expect(afterPersist).toHaveBeenCalledTimes(1)
+            expect(streamEvent).toHaveBeenCalled()
+            expect(transactWrite.mock.invocationCallOrder[0]).toBeLessThan(afterPersist.mock.invocationCallOrder[0])
+            expect(afterPersist.mock.invocationCallOrder[0]).toBeLessThan(streamEvent.mock.invocationCallOrder[0])
+        })
+
+        it('a refused placement writes nothing: the reducer throws before cascade, and afterPersist never runs', async () => {
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({
+                // the tray is already a node of the room, so the placement is stale
+                [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }] }),
+            })
+            const afterPersist = jest.fn()
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+            const result = await commitStepSequence(
+                { steps: [createTray, ...placeTray], existenceItems: [pairItem] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite, afterPersist }
+            )
+
+            expect(result.ok).toBe(false)
+            expect(cascadeItems.current).toBeUndefined()
+            expect(afterPersist).not.toHaveBeenCalled()
+            consoleSpy.mockRestore()
+        })
     })
 
     it('happy path: dissolve+transfer sequence commits, ludicGraph written back, facts stream in output order', async () => {

@@ -640,6 +640,7 @@ Resources:
                 - Ludic Graph Stale Structure Finding
                 - Ludic Graph Port Mismatch Finding
                 - Containment Population Drift Finding
+                - Presence Cover Drift Finding
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -1766,15 +1767,6 @@ Resources:
                   - mtw.connections
                 detail-type:
                   - Session Disconnect Problem
-          SpawnCompensationProblem:
-            Type: CloudWatchEvent
-            Properties:
-              EventBusName: !Sub ${TablePrefix}-bus
-              Pattern:
-                source:
-                  - mtw.ephemera.objects
-                detail-type:
-                  - Spawn Compensation Problem
           StaleSessionProblem:
             Type: CloudWatchEvent
             Properties:

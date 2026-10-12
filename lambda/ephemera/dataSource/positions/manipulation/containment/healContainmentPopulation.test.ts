@@ -73,7 +73,7 @@ describe('healContainmentPopulation', () => {
         expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding', 'repairPresenceBinding'])
     })
 
-    it('repairs a room\'s sole-remainder Area binding to an empty-member carve-out', async () => {
+    it('repairs a room\'s sole-remainder Area binding to an empty-member carve-out naming the Area\'s root', async () => {
         withGraphs({
             [AREA_ID]: testLudicGraph(AREA_ID, {
                 nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
@@ -86,13 +86,18 @@ describe('healContainmentPopulation', () => {
 
         await healContainmentPopulation(AREA_ID, { messageBus, streamEvent })
 
-        expect(committedSteps()).toEqual([expect.objectContaining({
-            kind: 'repairPresenceBinding',
-            hostId: ROOM_ID,
-            presenceId: 'PRESENCE#kitchen-in-area',
-            fromHostPresence: { host: AREA_ID },
-            cover: { members: [] },
-        })])
+        // The Area's own root is minted first, and the carve-out names it.
+        const steps = committedSteps()
+        expect(steps).toEqual([
+            { kind: 'addPresenceBinding', hostId: AREA_ID, presenceUuid: expect.any(String) },
+            expect.objectContaining({
+                kind: 'repairPresenceBinding',
+                hostId: ROOM_ID,
+                presenceId: 'PRESENCE#kitchen-in-area',
+                fromHostPresence: { host: AREA_ID, presence: `PRESENCE#${steps[0].presenceUuid}` },
+                cover: { members: [] },
+            }),
+        ])
     })
 
     it('commits nothing when every child is already in the current shape', async () => {

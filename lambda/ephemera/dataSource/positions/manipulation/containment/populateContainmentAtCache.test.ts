@@ -36,7 +36,7 @@ describe('populateContainmentAtCache', () => {
     })
 
     it('ignores child references that are not Room, Feature or Object ids', async () => {
-        await populateContainmentAtCache(AREA_ID, [{ universalKey: 'CHARACTER#Alpha' }], { messageBus, streamEvent })
+        await populateContainmentAtCache(FEATURE_A, [{ universalKey: 'CHARACTER#Alpha' }], { messageBus, streamEvent })
 
         expect(internalCache.Positions.getLudicGraph).not.toHaveBeenCalled()
         expect(commitStepSequence).not.toHaveBeenCalled()
@@ -57,11 +57,11 @@ describe('populateContainmentAtCache', () => {
 
     it('does nothing when every named child is already fully populated', async () => {
         const parentGraph = testLudicGraph(AREA_ID, {
-            nodes: [{ tag: 'Room', universalKey: ROOM_A }],
+            nodes: [{ tag: 'Room', universalKey: ROOM_A }, presenceBindingNode('overworld-remainder')],
             edges: [{ tag: 'Relational', from: ROOM_A, to: AREA_ID, kind: 'PartOf' }],
         })
         const childGraph = testLudicGraph(ROOM_A, {
-            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostPresence: { host: AREA_ID }, cover: { members: [] } }],
+            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostPresence: { host: AREA_ID, presence: 'PRESENCE#overworld-remainder' }, cover: { members: [] } }],
         })
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === AREA_ID ? parentGraph : childGraph
@@ -82,7 +82,8 @@ describe('populateContainmentAtCache', () => {
 
         expect(commitStepSequence).toHaveBeenCalledTimes(1)
         const [{ steps }, deps] = (commitStepSequence as jest.Mock).mock.calls[0]
-        expect(steps).toHaveLength(6) // 3 steps x 2 children
+        expect(steps).toHaveLength(7) // the Area's root, then 3 steps x 2 children
+        expect(steps[0]).toEqual({ kind: 'addPresenceBinding', hostId: AREA_ID, presenceUuid: expect.any(String) })
         expect(steps.filter((step: any) => step.kind === 'transferMembership')).toHaveLength(2)
         expect(deps.messageBus).toBe(messageBus)
         expect(deps.getCurrentHost()).toBe(AREA_ID)
@@ -124,10 +125,26 @@ describe('populateContainmentAtCache', () => {
         ])
     })
 
-    it('does nothing for a childless non-room parent', async () => {
-        await populateContainmentAtCache(AREA_ID, [], { messageBus, streamEvent })
+    it('does nothing for a childless parent that is neither a Room nor an Area', async () => {
+        await populateContainmentAtCache(FEATURE_A, [], { messageBus, streamEvent })
 
         expect(internalCache.Positions.getLudicGraph).not.toHaveBeenCalled()
+        expect(commitStepSequence).not.toHaveBeenCalled()
+    })
+
+    it('mints a childless Area\'s hostless remainder, and a second run commits nothing', async () => {
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(testLudicGraph(AREA_ID, { nodes: [] }))
+
+        await populateContainmentAtCache(AREA_ID, [], { messageBus, streamEvent })
+
+        const [{ steps }] = (commitStepSequence as jest.Mock).mock.calls[0]
+        expect(steps).toEqual([{ kind: 'addPresenceBinding', hostId: AREA_ID, presenceUuid: expect.any(String) }])
+
+        ;(commitStepSequence as jest.Mock).mockClear()
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(
+            testLudicGraph(AREA_ID, { nodes: [presenceBindingNode('overworld-remainder')] })
+        )
+        await populateContainmentAtCache(AREA_ID, [], { messageBus, streamEvent })
         expect(commitStepSequence).not.toHaveBeenCalled()
     })
 

@@ -74,11 +74,23 @@ export const factsForStep = (
 
     // not a world event any narration channel reads today --- the object-move narrate
     // steps already cover "arrives," and a presence binding's own visibility is future work.
-    if (step.kind === 'addPresenceBinding' || step.kind === 'removePresenceBinding' || step.kind === 'repairPresenceBinding') {
+    if (step.kind === 'addPresenceBinding' || step.kind === 'rehostPresenceBinding' || step.kind === 'repairPresenceBinding') {
         return []
     }
 
-    // same deferral as addPresenceBinding/removePresenceBinding --- a crossing port's own visibility is future work.
+    // a creation is announced by the placement that follows it (`Object Moved` from nowhere); the
+    // objects lane's `Objects Changed` `createdIds` is the creation event itself.
+    if (step.kind === 'createComponent') {
+        return []
+    }
+
+    // a destruction is announced by the move that precedes it (`Object Moved` to nowhere); the
+    // objects lane's `Objects Changed` `destroyedIds` is the destruction event itself.
+    if (step.kind === 'destroyComponent') {
+        return []
+    }
+
+    // same deferral as addPresenceBinding/rehostPresenceBinding --- a crossing port's own visibility is future work.
     if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {
         return []
     }

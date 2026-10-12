@@ -1,4 +1,4 @@
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -11,8 +11,8 @@ type GetGraph = (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph
 /**
  * The parent a presence binding is present at, read from its stored `fromHostPresence`. `host`
  * names the parent's shard; `presence` names the parent binding this one sits under. `presence`
- * is absent only where the parent holds no binding to name (a Room in an Area, or a move into a
- * host whose binding is unresolved); a walker given no `presence` fans out at host grain.
+ * is absent only where the parent has no single binding to name (a host with several bindings);
+ * a walker given no `presence` fans out at host grain.
  */
 export type ParentBinding = {
     host: EphemeraMembershipHostId
@@ -64,7 +64,11 @@ export const parentBinding = async (
     return parentOf(found)
 }
 
-/** A room's one hostless remainder (PR-21(f)): no parent pointer, and a cover that includes the remainder. */
+/**
+ * A hostless remainder of the graph's host: no parent pointer, and a cover that includes the
+ * remainder. A Room or Area keeps exactly one for good (PR-21(f)); any other whole holds one while
+ * unplaced (minted by population as a parent's root, or left by a disconnect/destroy).
+ */
 export const hostlessRemainderOf = (graph: EphemeraLudicGraph): EphemeraLudicGraphStructureNode | undefined => (
     graph.presenceNodes.find((node) => (
         !node.fromHostPresence && node.cover.members.some(isEphemeraPresenceCoverRemainder)
@@ -73,11 +77,11 @@ export const hostlessRemainderOf = (graph: EphemeraLudicGraph): EphemeraLudicGra
 
 /**
  * The binding of `parentGraph`'s host that its children sit under, when the data names one
- * unambiguously: a room's hostless remainder, else the host's only binding. Never guesses --- no
- * binding, or several (the caller must name which), is `undefined`. An Area holds no bindings.
+ * unambiguously: a Room's or Area's hostless remainder, else the host's only binding. Never
+ * guesses --- no binding, or several (the caller must name which), is `undefined`.
  */
 export const childParentBindingIdOf = (parentGraph: EphemeraLudicGraph): EphemeraPresenceNodeId | undefined => {
-    if (isEphemeraRoomId(parentGraph.hostId)) {
+    if (isEphemeraRoomId(parentGraph.hostId) || isEphemeraAreaId(parentGraph.hostId)) {
         return hostlessRemainderOf(parentGraph)?.universalKey
     }
     const { presenceNodes } = parentGraph
