@@ -168,8 +168,7 @@ describe("StandardLudicGraph", () => {
                     {
                         tag: 'Presence' as const,
                         universalKey: 'PRESENCE#p1',
-                        fromHostId: 'ROOM#lab' as const,
-                        cover: { tag: 'Full' as const },
+                        cover: { members: [{ tag: 'Remainder' as const }] },
                     },
                 ],
             }
@@ -186,30 +185,12 @@ describe("StandardLudicGraph", () => {
                     {
                         tag: 'Presence' as const,
                         universalKey: 'PRESENCE#p3',
-                        fromHostId: 'ROOM#hall' as const,
+                        fromHostPresence: { host: 'ROOM#hall' as const, presence: 'PRESENCE#hallRoot' },
                         cover: {
                             members: [
                                 { host: 'OBJECT#rope' as const, presence: 'PRESENCE#p2' },
                                 { tag: 'Remainder' as const },
                             ],
-                        },
-                    },
-                ],
-            }
-            const graph = StandardLudicGraph.fromJSON(data)
-            expect(graph.toJSON()).toEqual(data)
-        })
-
-        it("round-trips a presence node with a legacy Enumerated cover", () => {
-            const data = {
-                nodes: [
-                    {
-                        tag: 'Presence' as const,
-                        universalKey: 'PRESENCE#p2',
-                        fromHostId: 'ROOM#hall' as const,
-                        cover: {
-                            tag: 'Enumerated' as const,
-                            members: [{ host: 'OBJECT#rope' as const, presence: 'PRESENCE#p2' }],
                         },
                     },
                 ],

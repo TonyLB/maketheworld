@@ -178,8 +178,7 @@ describe('StandardForm.standardizeMode', () => {
                             {
                                 tag: 'Presence',
                                 universalKey: 'PRESENCE#test',
-                                fromHostId: { tag: 'Room', key: 'main' },
-                                cover: { tag: 'Full' },
+                                cover: { members: [{ tag: 'Remainder' }] },
                             },
                         ],
                     },
@@ -204,8 +203,7 @@ describe('StandardForm.standardizeMode', () => {
                             {
                                 tag: 'Presence',
                                 universalKey: 'PRESENCE#test',
-                                fromHostId: { tag: 'Room', key: 'main' },
-                                cover: { tag: 'Full' },
+                                cover: { members: [{ tag: 'Remainder' }] },
                             },
                         ],
                     },

@@ -91,8 +91,8 @@ export type MutationKernelAddPresenceBindingStep = {
 
 /**
  * Rewrites an existing binding's parent pointer and cover IN PLACE, keeping its `universalKey`
- * (so no child pointer is orphaned). The explicit repair path for a binding stored in a retired
- * shape (host-only `fromHostId`, a room's sole-remainder Area cover); a correct binding never
+ * (so no child pointer is orphaned). The explicit repair path for a binding population would now
+ * write differently (a pointer not naming the parent's binding, a room's Area cover with members); a correct binding never
  * emits one, so a rerun of population is a true no-op once repaired. A missing binding is stale,
  * never silently created.
  */

@@ -790,14 +790,14 @@ describe('applyStepSequenceCore', () => {
     })
 
     describe('repairPresenceBinding', () => {
-        const legacy = { ...presenceBindingNode('p1'), fromHostId: roomId }
+        const hostOnly = presenceBindingNode('p1', { host: roomId })
 
         it('rewrites pointer and cover in place, keeping the binding id and its position', () => {
-            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('first', otherRoomId), legacy] })
+            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('first', otherRoomId), hostOnly] })
             const steps: MutationKernelStep[] = [{
                 kind: 'repairPresenceBinding',
                 hostId: trayId,
-                presenceId: legacy.universalKey,
+                presenceId: hostOnly.universalKey,
                 fromHostPresence: { host: roomId, presence: 'PRESENCE#room-remainder' },
                 cover: { members: [] },
             }]
@@ -807,10 +807,10 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             const nodes = outcome.graphs.get(trayId)!.presenceNodes
-            expect(nodes.map(({ universalKey }) => universalKey)).toEqual([presenceBindingNode('first').universalKey, legacy.universalKey])
+            expect(nodes.map(({ universalKey }) => universalKey)).toEqual([presenceBindingNode('first').universalKey, hostOnly.universalKey])
             expect(nodes[1]).toEqual({
                 tag: 'Presence',
-                universalKey: legacy.universalKey,
+                universalKey: hostOnly.universalKey,
                 fromHostPresence: { host: roomId, presence: 'PRESENCE#room-remainder' },
                 cover: { members: [] },
             })
@@ -820,7 +820,7 @@ describe('applyStepSequenceCore', () => {
             const steps: MutationKernelStep[] = [{
                 kind: 'repairPresenceBinding',
                 hostId: trayId,
-                presenceId: legacy.universalKey,
+                presenceId: hostOnly.universalKey,
                 cover: { members: [] },
             }]
 
@@ -834,7 +834,7 @@ describe('applyStepSequenceCore', () => {
             const steps: MutationKernelStep[] = [{
                 kind: 'repairPresenceBinding',
                 hostId: trayId,
-                presenceId: legacy.universalKey,
+                presenceId: hostOnly.universalKey,
                 cover: { members: [] },
             }]
 

@@ -105,21 +105,21 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
     })
 
     describe('repair: a binding in the wrong shape is rewritten in place, keeping its id', () => {
-        it('repairs a host-only legacy binding to carry the parent pointer', () => {
+        it('repairs a pointer naming only the host once the parent binding exists', () => {
             const remainder = presenceBindingNode('room-remainder')
             const parentGraph = testLudicGraph(ROOM_ID, {
                 nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID }],
                 edges: [{ tag: 'Relational', from: FEATURE_ID, to: ROOM_ID, kind: 'PartOf' }],
             })
-            const legacy = { ...presenceBindingNode('feature-binding'), fromHostId: ROOM_ID }
-            const childGraph = testLudicGraph(FEATURE_ID, { nodes: [legacy] })
+            const hostOnly = presenceBindingNode('feature-binding', { host: ROOM_ID })
+            const childGraph = testLudicGraph(FEATURE_ID, { nodes: [hostOnly] })
 
             expect(containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph)).toEqual([{
                 kind: 'repairPresenceBinding',
                 hostId: FEATURE_ID,
-                presenceId: legacy.universalKey,
+                presenceId: hostOnly.universalKey,
                 fromHostPresence: { host: ROOM_ID, presence: remainder.universalKey },
-                cover: legacy.cover,
+                cover: hostOnly.cover,
             }])
         })
 

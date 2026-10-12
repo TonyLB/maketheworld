@@ -396,10 +396,10 @@ export type EphemeraPresenceCoverRemainder = { tag: 'Remainder' }
 
 /**
  * A presence binding's extent: one type, an ordered list of explicit entries and/or the
- * `Remainder` sentinel. `{ members: [Remainder] }` is what the retired `{ tag: 'Full' }` meant.
+ * `Remainder` sentinel, which stands for every member no other binding of the whole lists.
  * Every whole keeps at least one remainder (so a member added later still lands in a bucket); a
- * room keeps exactly one, hostless. Legacy stored `{ tag: 'Full' }` / `{ tag: 'Enumerated' }` is
- * still READ (`normalizeEphemeraPresenceCover`) until the `ContainmentPopulationDriftSweep` migration rewrites it.
+ * room keeps exactly one, hostless. A room's binding into an Area is the one exception: a carve-out
+ * with no members at all.
  */
 export type EphemeraPresenceCover = {
     members: (EphemeraPresenceCoverEntry | EphemeraPresenceCoverRemainder)[];
@@ -411,14 +411,6 @@ export const remainderCover = (): EphemeraPresenceCover => ({ members: [{ tag: '
 export const isEphemeraPresenceCoverRemainder = (value: unknown): value is EphemeraPresenceCoverRemainder => (
     !!value && typeof value === 'object' && (value as { tag?: unknown }).tag === 'Remainder'
 )
-
-/** Reads a legacy `{ tag: 'Full' }` as `{ members: [Remainder] }` and `{ tag: 'Enumerated', members }` as `{ members }`. */
-export const normalizeEphemeraPresenceCover = (cover: EphemeraPresenceCover | { tag: 'Full' } | { tag: 'Enumerated'; members: EphemeraPresenceCoverEntry[] }): EphemeraPresenceCover => {
-    if ('tag' in cover && cover.tag === 'Full') {
-        return { members: [{ tag: 'Remainder' }] }
-    }
-    return { members: [...cover.members] }
-}
 
 /**
  * A presence node (presenceNodes plan / PN-5, 2026-09-15): the reified boundary site that used
@@ -432,9 +424,6 @@ export const normalizeEphemeraPresenceCover = (cover: EphemeraPresenceCover | { 
  * shard to read (one Dynamo read), `presence` is which of that host's bindings this one sits
  * under. The child's pointer governs; the parent's cover is a stored index of it. Absent means a
  * hostless remainder (a room, an unplaced or offline whole).
- *
- * `fromHostId` is the RETIRED host-only locator, still read (never written) until the
- * `ContainmentPopulationDriftSweep` migration has rewritten stored bindings.
  */
 export type EphemeraPresenceParentPointer = {
     host: EphemeraMembershipHostId;
@@ -450,8 +439,6 @@ export type EphemeraLudicGraphStructureNode = {
     tag: 'Presence';
     universalKey: EphemeraPresenceNodeId;
     fromHostPresence?: EphemeraPresenceParentPointer;
-    /** @deprecated Legacy read until the Slice 4 migration; use `fromHostPresence`. */
-    fromHostId?: EphemeraMembershipHostId;
     cover: EphemeraPresenceCover;
 }
 
@@ -725,16 +712,12 @@ const isEphemeraPresenceCoverEntry = (entry: unknown): entry is EphemeraPresence
     )
 }
 
-/** Accepts the current shape and the legacy `Full` / `Enumerated` tags (read, never written). */
 export const isEphemeraPresenceCover = (value: unknown): value is EphemeraPresenceCover => {
     if (!value || typeof value !== 'object') {
         return false
     }
     const cover = value as { tag?: unknown; members?: unknown }
-    if (cover.tag === 'Full') {
-        return true
-    }
-    if (cover.tag !== undefined && cover.tag !== 'Enumerated') {
+    if (cover.tag !== undefined) {
         return false
     }
     return Array.isArray(cover.members) && cover.members.every((entry) => isEphemeraPresenceCoverRemainder(entry) || isEphemeraPresenceCoverEntry(entry))
@@ -748,9 +731,12 @@ export const isEphemeraLudicGraphStructureNode = (value: unknown): value is Ephe
     if (entry.tag !== 'Presence') {
         return false
     }
+    // A stored host-only `fromHostId` is the retired locator: rejected outright rather than read as
+    // hostless, so a surviving row reports through `LudicGraphStaleStructureSweep` instead of
+    // silently losing its parent.
     return isEphemeraPresenceNodeId(entry.universalKey) &&
         isEphemeraPresenceParentPointerOrAbsent(entry.fromHostPresence) &&
-        (entry.fromHostId === undefined || isEphemeraMembershipHostId(entry.fromHostId)) &&
+        !('fromHostId' in entry) &&
         isEphemeraPresenceCover(entry.cover)
 }
 

@@ -24,15 +24,10 @@ export type StandardLudicGraphPresenceCoverEntryData = {
 
 export type StandardLudicGraphPresenceCoverRemainderData = { tag: 'Remainder' }
 
-/** Mirrors `EphemeraPresenceCover`: entries and/or the `Remainder` sentinel (legacy `Full`/`Enumerated` tags are read by the guard, normalized in `wireCoverToEphemera`). */
+/** Mirrors `EphemeraPresenceCover`: entries and/or the `Remainder` sentinel. */
 export type StandardLudicGraphPresenceCoverData = {
     members: (StandardLudicGraphPresenceCoverEntryData | StandardLudicGraphPresenceCoverRemainderData)[]
 }
-
-/** The legacy shapes the guard still accepts on read. */
-export type StandardLudicGraphLegacyPresenceCoverData =
-    | { tag: 'Full' }
-    | { tag: 'Enumerated'; members: StandardLudicGraphPresenceCoverEntryData[] }
 
 const isStandardLudicGraphPresenceCoverMember = (entry: unknown): boolean => (
     !!entry && typeof entry === 'object' && (
@@ -54,21 +49,16 @@ export type StandardLudicGraphPresenceNodeData = {
     universalKey: string
     /** Absent on a hostless remainder. */
     fromHostPresence?: StandardLudicGraphPresenceParentPointerData
-    /** Legacy host-only locator, read until the Slice 4 migration. */
-    fromHostId?: StandardReferenceData
-    cover: StandardLudicGraphPresenceCoverData | StandardLudicGraphLegacyPresenceCoverData
+    cover: StandardLudicGraphPresenceCoverData
     ref?: number
 }
 
-export const isStandardLudicGraphPresenceCoverData = (arg: unknown): arg is StandardLudicGraphPresenceCoverData | StandardLudicGraphLegacyPresenceCoverData => {
+export const isStandardLudicGraphPresenceCoverData = (arg: unknown): arg is StandardLudicGraphPresenceCoverData => {
     if (typeof arg !== 'object' || arg === null) {
         return false
     }
     const cover = arg as { tag?: unknown; members?: unknown }
-    if (cover.tag === 'Full') {
-        return true
-    }
-    if (cover.tag !== undefined && cover.tag !== 'Enumerated') {
+    if (cover.tag !== undefined) {
         return false
     }
     return Array.isArray(cover.members) && cover.members.every(isStandardLudicGraphPresenceCoverMember)
@@ -88,7 +78,6 @@ export const isStandardLudicGraphPresenceNodeData = (arg: unknown): arg is Stand
             isStandardReferenceData(node.fromHostPresence.host) &&
             (node.fromHostPresence.presence === undefined || typeof node.fromHostPresence.presence === 'string')
         )) &&
-        (node.fromHostId === undefined || isStandardReferenceData(node.fromHostId)) &&
         isStandardLudicGraphPresenceCoverData(node.cover) &&
         (node.ref === undefined || typeof node.ref === 'number')
 }

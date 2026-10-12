@@ -38,7 +38,6 @@ import type {
     StandardLudicGraphNodeData,
     StandardLudicGraphPortData,
     StandardLudicGraphPresenceCoverData,
-    StandardLudicGraphLegacyPresenceCoverData,
     StandardLudicGraphPresenceNodeData,
 } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/ludicGraph'
 import { isStandardLudicGraphPresenceNodeData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/ludicGraph'
@@ -90,9 +89,9 @@ const wireTerminalToEphemera = (data: StandardLudicTerminalData): EphemeraLudicT
 }
 
 //
-// Presence cover conversion. `fromHostId`/cover-entry `host` are always bare component ids
-// (`EphemeraLudicGraphStructureNode`/`EphemeraPresenceCoverEntry`), never port-qualified -- no
-// terminal widening needed on this arm.
+// Presence cover conversion. The parent pointer's and each cover entry's `host` are always bare
+// component ids (`EphemeraPresenceParentPointer`/`EphemeraPresenceCoverEntry`), never
+// port-qualified -- no terminal widening needed on this arm.
 //
 
 const coverToWire = (cover: EphemeraPresenceCover): StandardLudicGraphPresenceCoverData => ({
@@ -102,19 +101,15 @@ const coverToWire = (cover: EphemeraPresenceCover): StandardLudicGraphPresenceCo
     ),
 })
 
-// The legacy-read point for stored graphs: `Full` becomes a sole `Remainder`, `Enumerated` loses its tag.
-const wireCoverToEphemera = (cover: StandardLudicGraphPresenceCoverData | StandardLudicGraphLegacyPresenceCoverData): EphemeraPresenceCover =>
-    'tag' in cover && cover.tag === 'Full'
-        ? { members: [{ tag: 'Remainder' }] }
+const wireCoverToEphemera = (cover: StandardLudicGraphPresenceCoverData): EphemeraPresenceCover => ({
+    members: cover.members.map((entry) => 'tag' in entry
+        ? entry
         : {
-            members: cover.members.map((entry) => 'tag' in entry
-                ? entry
-                : {
-                    host: referenceDataToEphemeraComponentId(entry.host) as EphemeraLudicGraphComponentNode['universalKey'],
-                    presence: entry.presence as EphemeraPresenceNodeId,
-                }
-            ),
+            host: referenceDataToEphemeraComponentId(entry.host) as EphemeraLudicGraphComponentNode['universalKey'],
+            presence: entry.presence as EphemeraPresenceNodeId,
         }
+    ),
+})
 
 //
 // Node conversion. One field, mirroring `EphemeraLudicGraph._nodes` (LG-8), so this reshapes
@@ -129,7 +124,6 @@ const nodeToWire = (node: EphemeraLudicGraphNode): StandardLudicGraphNodeData =>
             ...(node.fromHostPresence
                 ? { fromHostPresence: { host: ephemeraComponentIdToReferenceData(node.fromHostPresence.host), ...(node.fromHostPresence.presence ? { presence: node.fromHostPresence.presence } : {}) } }
                 : {}),
-            ...(node.fromHostId ? { fromHostId: ephemeraComponentIdToReferenceData(node.fromHostId) } : {}),
             cover: coverToWire(node.cover),
         }
         : ephemeraComponentIdToReferenceData(node.universalKey)
@@ -147,7 +141,6 @@ const wireNodeToEphemera = (data: StandardLudicGraphNodeData): EphemeraLudicGrap
                     },
                 }
                 : {}),
-            ...(data.fromHostId ? { fromHostId: referenceDataToEphemeraComponentId(data.fromHostId) as EphemeraMembershipHostId } : {}),
             cover: wireCoverToEphemera(data.cover),
         }
     }
@@ -217,7 +210,7 @@ const wirePortToEphemera = (data: StandardLudicGraphPortData): EphemeraLudicGrap
 /**
  * The forward projection: cut `graph` to `presenceUuid`'s bucket via the real arity-general
  * primitives (never a hand-rolled node walk), then reshape the cut's stored fields into WML's
- * aligned wire type. Binding-grained even though every real binding is `Full` today -- the lift
+ * aligned wire type. Binding-grained even though every real binding is a sole remainder today -- the lift
  * rule's central case for this slice.
  */
 export const toWireLudicGraph = (
@@ -240,7 +233,7 @@ export const toWireLudicGraph = (
 /**
  * Slice 5a: the un-cut projection, for a host that is never itself a hosted thing with presence
  * multiplicity -- a Room. A room is a perspective root (`AGENT.ludicNetwork.md` section 1): however
- * it is grouped into areas, its contents fall in one bucket (today its single `Full` binding), so
+ * it is grouped into areas, its contents fall in one bucket (its one hostless remainder), so
  * there is nothing to cut; this ships the host's whole stored graph as-is, reusing the same
  * field-by-field mappers `toWireLudicGraph` uses after its cut.
  */

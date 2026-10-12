@@ -76,9 +76,9 @@ export type DiagnosticsOrphanedImprovisedObjectFindingEvent = {
 
 /**
  * A `Meta::*.ludicGraph` row whose stored payload fails the shipped shape guard
- * (`isEphemeraLudicGraphFieldPayload`) --- currently only reachable by the root-in-nodes gap
- * (concepts clause 3), since the guard is the single source of truth for staleness and nothing
- * else in the shape has drifted yet.
+ * (`isEphemeraLudicGraphFieldPayload`), the single source of truth for staleness: the root-in-nodes
+ * gap (concepts clause 3), or a presence binding stored in a retired shape (host-only `fromHostId`,
+ * a tagged cover).
  */
 export type DiagnosticsLudicGraphStaleStructureFindingEvent = {
     type: 'Ludic Graph Stale Structure Finding'

@@ -252,7 +252,7 @@ type EndpointStatus = 'qualified' | 'disqualified' | 'neutral'
  * `rootId` are carried over unchanged; the root is always present in `nodes` by Slice 1a's own
  * contract. **Presence data is carried forward on `nodes` alone (presenceNodes Slice 7a):
  * `subNodes` already includes every one of `graph.presenceNodes` unconditionally (LR-6's original
- * argument, restated on nodes rather than ports --- `fromHostId` on a presence node is the "which
+ * argument, restated on nodes rather than ports --- `fromHostPresence` on a presence node is the "which
  * shard is this whole home to" fact, independent of which bucket is being extracted), so `ports`
  * carries no presence entry at all any more.** The returned graph's `ports` are the minted stub
  * ports plus the crossing ports a surviving edge actually names --- a neutral endpoint would otherwise dangle on
@@ -272,7 +272,7 @@ export const subGraphFromNodes = (
     // Component nodes are cut by bucket membership as before; presence/structure nodes are
     // carried into every bucket unconditionally instead (PN-6: a presence node is a member of no
     // bucket, present in every cut). They can't be reconstructed via `nodeIds`-then-`nodeFromId`
-    // either way --- a structure node's `fromHostId`/`cover` have no derivation from the id alone.
+    // either way --- a structure node's `fromHostPresence`/`cover` have no derivation from the id alone.
     const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
     const subNodes = [
         ...componentNodeIds.filter((id) => nodes.has(id)).map(nodeFromId),

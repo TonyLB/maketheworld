@@ -11,8 +11,8 @@ type GetGraph = (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph
 /**
  * The parent a presence binding is present at, read from its stored `fromHostPresence`. `host`
  * names the parent's shard; `presence` names the parent binding this one sits under. `presence`
- * is absent only on the legacy host-only read (a binding stored with `fromHostId` and no pointer),
- * which the `ContainmentPopulationDriftSweep` migration rewrites; a walker given no `presence` fans out at host grain.
+ * is absent only where the parent holds no binding to name (a Room in an Area, or a move into a
+ * host whose binding is unresolved); a walker given no `presence` fans out at host grain.
  */
 export type ParentBinding = {
     host: EphemeraMembershipHostId
@@ -24,14 +24,13 @@ export type OwnedParentBinding = {
     parent: ParentBinding
 }
 
-export const parentOf = (binding: EphemeraLudicGraphStructureNode): ParentBinding | undefined => {
-    if (binding.fromHostPresence) {
-        return { host: binding.fromHostPresence.host, presence: binding.fromHostPresence.presence }
-    }
-    return binding.fromHostId ? { host: binding.fromHostId } : undefined
-}
+export const parentOf = (binding: EphemeraLudicGraphStructureNode): ParentBinding | undefined => (
+    binding.fromHostPresence
+        ? { host: binding.fromHostPresence.host, presence: binding.fromHostPresence.presence }
+        : undefined
+)
 
-/** The parent HOST a binding sits under (stored pointer, else the legacy host-only read), if it has one. */
+/** The parent HOST a binding sits under, if it has one. */
 export const parentHostOf = (binding: EphemeraLudicGraphStructureNode): EphemeraMembershipHostId | undefined => parentOf(binding)?.host
 
 /**
@@ -68,7 +67,7 @@ export const parentBinding = async (
 /** A room's one hostless remainder (PR-21(f)): no parent pointer, and a cover that includes the remainder. */
 export const hostlessRemainderOf = (graph: EphemeraLudicGraph): EphemeraLudicGraphStructureNode | undefined => (
     graph.presenceNodes.find((node) => (
-        !node.fromHostPresence && !node.fromHostId && node.cover.members.some(isEphemeraPresenceCoverRemainder)
+        !node.fromHostPresence && node.cover.members.some(isEphemeraPresenceCoverRemainder)
     ))
 )
 

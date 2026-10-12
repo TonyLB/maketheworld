@@ -50,7 +50,7 @@ export const roomRootStep = (
  *
  * - **Node membership**: emitted only if `childId` is not already a node of `parentGraph`.
  * - **Presence binding** (three states): absent (no binding of `childGraph` points at `parentId`)
- *   adds one; present in the wrong shape (host-only pointer, a room's remainder at its Area)
+ *   adds one; present in the wrong shape (a pointer not naming the parent's binding, a room's remainder at its Area)
  *   emits `repairPresenceBinding`, in place and keeping the id; correct emits nothing. A room
  *   parent's remainder is `roomRootStep`'s, minted once per parent before any child is computed.
  * - **Containment edge**: emitted only if `parentGraph` carries no `PartOf` edge from `childId` to
@@ -113,7 +113,7 @@ export const containmentPopulationSteps = (
         existing.fromHostPresence?.presence !== fromHostPresence.presence ||
         (wantedCover && existing.cover.members.length > 0)
     ) {
-        // Wrong shape (stored host-only, or a room's sole remainder at its Area): rewrite in place,
+        // Wrong shape (a pointer not naming the parent's binding, or a room's remainder at its Area): rewrite in place,
         // same id, so no child pointer is orphaned. A correct binding falls through and emits nothing.
         const repairStep: MutationKernelRepairPresenceBindingStep = {
             kind: 'repairPresenceBinding',

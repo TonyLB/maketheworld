@@ -48,10 +48,9 @@ describe('parentBindingsOf', () => {
         expect(result.map(({ parent }) => parent.host)).toEqual([area])
     })
 
-    it('reads a legacy host-only binding as a parent without a presence', async () => {
-        const legacy = { ...presenceBindingNode('cup-shelf'), fromHostId: shelf }
-        const result = await parentBindingsOf(cup, graphsFrom({ [cup]: [legacy] }))
-        expect(result.map(({ parent }) => parent)).toEqual([{ host: shelf }])
+    it('reads a pointer naming no parent binding (a Room in an Area) as a parent without a presence', async () => {
+        const result = await parentBindingsOf(roomA, graphsFrom({ [roomA]: [presenceBindingNode('roomA-area', { host: area }, { members: [] })] }))
+        expect(result.map(({ parent }) => parent)).toEqual([{ host: area, presence: undefined }])
     })
 
     it('returns nothing for a host with no bindings', async () => {

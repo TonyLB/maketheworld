@@ -45,15 +45,15 @@ const enumeratedCover = (...entries: [EphemeraMembershipHostId, string][]): Ephe
 })
 
 /** A presence binding minted on ITS OWN graph (`presenceBindingStepsForMove.ts`'s convention):
- * `hostId` is the mover, `fromHostId` is the parent it's now present at. */
+ * `hostId` is the mover, `parentHost` is the parent it's now present at. */
 const presenceNode = (
     uuid: string,
-    fromHostId: EphemeraMembershipHostId,
+    parentHost: EphemeraMembershipHostId,
     cover: EphemeraPresenceCover
 ): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: PresenceKey(uuid),
-    fromHostPresence: { host: fromHostId },
+    fromHostPresence: { host: parentHost },
     cover,
 })
 
@@ -133,8 +133,8 @@ describe('buildLudicCache', () => {
         // names the MEMBER's own binding into the covering binding's host (objZ is in X through
         // z_at_x), never the covering binding.
         expect(shortNameDeps.getComponentAggregate).toHaveBeenCalledTimes(6) // roomA, objX, objY, objZ, pebble1, pebble2
-        const binding = (uuid: string, fromHostId: EphemeraMembershipHostId, members: { host: EphemeraMembershipHostId, presence: string }[]) => ({
-            tag: 'Presence', universalKey: PresenceKey(uuid), fromHostPresence: { host: fromHostId }, consolidated: true,
+        const binding = (uuid: string, parentHost: EphemeraMembershipHostId, members: { host: EphemeraMembershipHostId, presence: string }[]) => ({
+            tag: 'Presence', universalKey: PresenceKey(uuid), fromHostPresence: { host: parentHost }, consolidated: true,
             cover: { members },
         })
         expect(cache.nodes).toHaveLength(6)
@@ -260,14 +260,16 @@ describe('buildLudicCache', () => {
         ])
     })
 
-    // The room rule (PR-21(f)): a room's Full binding into an Area is a carve-out with no members.
-    it('gives a room\'s Area binding an empty member list', async () => {
+    // The room rule (PR-21(f)), as population stores it: the room's hostless remainder holds its
+    // contents and its Area binding is a carve-out with no members. The fold keeps both as stored.
+    it('keeps a room\'s empty Area carve-out empty while its hostless remainder holds its contents', async () => {
         const town = 'AREA#Town' as EphemeraAreaId
         const roomGraph = testLudicGraph(roomA, {
             nodes: [
                 { tag: 'Room', universalKey: roomA },
                 { tag: 'Object', universalKey: objX },
-                presenceNode('a_in_town', town, { members: [{ tag: 'Remainder' }] }),
+                { tag: 'Presence', universalKey: PresenceKey('a_root'), cover: { members: [{ tag: 'Remainder' }] } },
+                presenceNode('a_in_town', town, { members: [] }),
             ],
         })
         const xGraph = testLudicGraph(objX, { nodes: [{ tag: 'Object', universalKey: objX }] })
@@ -276,11 +278,11 @@ describe('buildLudicCache', () => {
 
         const { cache } = await buildLudicCache(roomA, [testAssetUUID], { getLudicGraph, ...noShortNameDeps() })
 
-        const roomBinding = cache.nodes.find((node) => node.universalKey === roomA)?.presenceNodes[0]
-        expect(roomBinding).toEqual({
-            tag: 'Presence', universalKey: 'PRESENCE#a_in_town', fromHostPresence: { host: town }, consolidated: true,
-            cover: { members: [] },
-        })
+        const roomBindings = cache.nodes.find((node) => node.universalKey === roomA)?.presenceNodes ?? []
+        expect(roomBindings).toEqual([
+            { tag: 'Presence', universalKey: 'PRESENCE#a_root', consolidated: true, cover: { members: [{ host: objX }] } },
+            { tag: 'Presence', universalKey: 'PRESENCE#a_in_town', fromHostPresence: { host: town }, consolidated: true, cover: { members: [] } },
+        ])
         expect(isEphemeraLudicCacheData(cache)).toBe(true)
     })
 
@@ -335,6 +337,45 @@ describe('buildLudicCache', () => {
             },
         ])
         expect(isEphemeraLudicCacheData(cache)).toBe(true)
+    })
+
+    // A child bound twice into one host crosses at each binding, never only the first found: the
+    // collapsed edge carries one route per binding, side by side (LR-8).
+    it('collapses a crossing once per binding when a child is bound twice into the same host', async () => {
+        const roomGraph = testLudicGraph(roomA, {
+            nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: boulder }, { tag: 'Object', universalKey: boxId }],
+            edges: [{ tag: 'Relational', from: boulder, to: { owner: boxId, port: 'port_1' }, kind: 'On' }],
+        })
+        const boxGraph = testLudicGraph(boxId, {
+            nodes: [
+                { tag: 'Object', universalKey: boxId },
+                { tag: 'Object', universalKey: pebble },
+                presenceNode('box_in_a_1', roomA, { members: [{ tag: 'Remainder' }] }),
+                presenceNode('box_in_a_2', roomA, { members: [] }),
+            ],
+            edges: [{ tag: 'Relational', from: { owner: boxId, port: 'port_1' }, to: pebble, kind: 'On' }],
+            ports: [{ portId: 'port_1', fromHostId: roomA, kind: 'On' }],
+        })
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, roomGraph], [boxId, boxGraph],
+            [boulder, testLudicGraph(boulder, { nodes: [{ tag: 'Object', universalKey: boulder }] })],
+            [pebble, testLudicGraph(pebble, { nodes: [{ tag: 'Object', universalKey: pebble }] })],
+        ])
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
+            const graph = graphs.get(hostId)
+            if (!graph) {
+                throw new Error(`No fixture graph for ${hostId}`)
+            }
+            return graph
+        }
+
+        const { cache } = await buildLudicCache(roomA, [], { getLudicGraph, ...noShortNameDeps() })
+
+        const crossing = cache.edges.find((edge) => edge.from === boulder && edge.to === pebble)
+        expect(crossing?.supportedBy).toEqual([
+            [{ host: boxId, presenceBucketIds: ['PRESENCE#box_in_a_1'], port: 'port_1' }],
+            [{ host: boxId, presenceBucketIds: ['PRESENCE#box_in_a_2'], port: 'port_1' }],
+        ])
     })
 
     // 3b: the one-way-walk failure this exists to rule out --- a crossing port whose matching leg

@@ -27,7 +27,7 @@ const AREA_ID = 'AREA#Overworld' as EphemeraAreaId
 const ROOM_ID = 'ROOM#Kitchen' as EphemeraRoomId
 const FEATURE_ID = 'FEATURE#Stove' as EphemeraFeatureId
 const OBJECT_ID = 'OBJECT#Kettle' as EphemeraObjectId
-const LEGACY_BINDING = 'PRESENCE#stove-legacy' as EphemeraPresenceNodeId
+const HOST_ONLY_BINDING = 'PRESENCE#stove-host-only' as EphemeraPresenceNodeId
 const ROOM_REMAINDER = 'PRESENCE#kitchen-remainder' as EphemeraPresenceNodeId
 
 const partOf = (from: EphemeraLudicTerminalId, to: EphemeraLudicTerminalId) => ({ tag: 'Relational' as const, from, to, kind: 'PartOf' as const })
@@ -47,14 +47,14 @@ describe('healContainmentPopulation', () => {
         ;(commitStepSequence as jest.Mock).mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
     })
 
-    it('repairs a legacy host-only child binding in place and mints the room parent\'s remainder', async () => {
+    it('mints the room parent\'s remainder and repairs a child binding that could name no parent binding', async () => {
         withGraphs({
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
                 nodes: [{ tag: 'Feature', universalKey: FEATURE_ID }],
                 edges: [partOf(FEATURE_ID, ROOM_ID)],
             }),
             [FEATURE_ID]: testLudicGraph(FEATURE_ID, {
-                nodes: [{ tag: 'Presence', universalKey: LEGACY_BINDING, fromHostId: ROOM_ID, cover: remainderCover() }],
+                nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresence: { host: ROOM_ID }, cover: remainderCover() }],
             }),
         })
 
@@ -67,7 +67,7 @@ describe('healContainmentPopulation', () => {
         const repair = steps.find((step) => step.kind === 'repairPresenceBinding')
         expect(repair).toMatchObject({
             hostId: FEATURE_ID,
-            presenceId: LEGACY_BINDING,
+            presenceId: HOST_ONLY_BINDING,
             fromHostPresence: { host: ROOM_ID, presence: `PRESENCE#${mint.presenceUuid}` },
         })
         expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding', 'repairPresenceBinding'])

@@ -80,35 +80,6 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
         })
     })
 
-    describe('legacy covers', () => {
-        // Stored graphs written before the Remainder sentinel carry `{ tag: 'Full' }` / `{ tag: 'Enumerated' }`.
-        it('reads a legacy Full as a sole Remainder and a legacy Enumerated as plain members', () => {
-            const graph = testLudicGraph(tableId, {
-                nodes: [
-                    { tag: 'Object', universalKey: tableId },
-                    { tag: 'Object', universalKey: boxId },
-                    { tag: 'Presence', universalKey: 'PRESENCE#legacyFull' as EphemeraPresenceNodeId, fromHostPresence: { host: roomId }, cover: fullCover },
-                    { tag: 'Presence', universalKey: 'PRESENCE#legacyEnum' as EphemeraPresenceNodeId, fromHostPresence: { host: hallId }, cover: enumeratedCover(boxId, 'PRESENCE#box-binding') },
-                ],
-            })
-            const current = toWireLudicGraph(graph, 'legacyFull')
-            const currentEntry = (current.nodes as any[]).find((node) => node?.universalKey === 'PRESENCE#legacyEnum').cover.members[0]
-            const legacyCovers: Record<string, unknown> = {
-                'PRESENCE#legacyFull': { tag: 'Full' },
-                'PRESENCE#legacyEnum': { tag: 'Enumerated', members: [currentEntry] },
-            }
-            const wire = {
-                ...current,
-                nodes: (current.nodes as any[]).map((node: any) => node?.tag === 'Presence' ? { ...node, cover: legacyCovers[node.universalKey] } : node),
-            } as any
-            const stored = fromWireLudicGraph(tableId, wire)
-            expect(stored.nodes.filter((node: any) => node.tag === 'Presence').map((node: any) => node.cover)).toEqual([
-                { members: [{ tag: 'Remainder' }] },
-                { members: [{ host: boxId, presence: 'PRESENCE#box-binding' }] },
-            ])
-        })
-    })
-
     describe('rope-shaped second-binding test', () => {
         const ropeId = 'OBJECT#Rope' as EphemeraObjectId
         const endAId = 'OBJECT#RopeEndA' as EphemeraObjectId

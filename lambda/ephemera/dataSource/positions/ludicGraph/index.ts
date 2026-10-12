@@ -254,7 +254,7 @@ export class EphemeraLudicGraph {
     /**
      * Every presence node's full record, not just its id (presenceNodes Slice 3). Unlike the
      * typed component accessors above, a structure node can't be reconstructed from its
-     * `universalKey` alone -- `fromHostId`/`cover` have no derivation from the id -- so callers
+     * `universalKey` alone -- `fromHostPresence`/`cover` have no derivation from the id -- so callers
      * that fold node sets from more than one graph (`mergeReducer.ts`, `subGraphFromNodes`) need
      * the real objects, not `nodeIds` plus `nodeFromId`.
      */

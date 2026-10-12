@@ -245,29 +245,7 @@ describe('ludicCacheObjectHandles', () => {
         const town = 'AREA#Town' as EphemeraAreaId
         const roomInTown = PresenceKey('a-in-town')
 
-        it('resolves a room-seeded handle\'s audience to exactly that room', async () => {
-            const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-                [roomA, testLudicGraph(roomA, {
-                    nodes: [
-                        { tag: 'Room', universalKey: roomA },
-                        { tag: 'Object', universalKey: namedId },
-                        { tag: 'Presence', universalKey: roomInTown, fromHostPresence: { host: town }, cover: { members: [{ tag: 'Remainder' }] } },
-                    ],
-                })],
-                [namedId, testLudicGraph(namedId, { nodes: [{ tag: 'Object', universalKey: namedId }] })],
-            ])
-            const getGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) ?? testLudicGraph(hostId, { nodes: [] })
-
-            const handles = await ludicCacheObjectHandles(roomA, [], {
-                ...graphsAsDeps(graphs),
-                ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
-            })
-
-            expect(handles).toHaveLength(1)
-            await expect(roomsForReferent(namedId, handles[0].presence as never, getGraph)).resolves.toEqual(new Set([roomA]))
-        })
-
-        // Slice 4's stored shape: the room keeps one hostless remainder and an empty Area carve-out;
+        // The stored shape (PR-21(f)): the room keeps one hostless remainder and an empty Area carve-out;
         // a thing in the room points at the remainder.
         it('resolves to the room when the room holds a hostless remainder beside its empty Area carve-out', async () => {
             const roomRemainder = PresenceKey('a-remainder')

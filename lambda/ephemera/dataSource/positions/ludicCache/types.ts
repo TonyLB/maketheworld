@@ -167,11 +167,11 @@ export const isEphemeraLudicCachePresenceNode = (value: unknown): value is Ephem
     if (!value || typeof value !== 'object') {
         return false
     }
-    const node = value as { tag?: unknown; universalKey?: unknown; fromHostId?: unknown; fromHostPresence?: unknown; cover?: { tag?: unknown; members?: unknown }; consolidated?: unknown }
+    const node = value as { tag?: unknown; universalKey?: unknown; fromHostPresence?: unknown; cover?: { tag?: unknown; members?: unknown }; consolidated?: unknown }
     return node.tag === 'Presence'
         && typeof node.universalKey === 'string' && isEphemeraPresenceNodeId(node.universalKey)
         && isEphemeraPresenceParentPointerOrAbsent(node.fromHostPresence)
-        && (node.fromHostId === undefined || (typeof node.fromHostId === 'string' && isEphemeraMembershipHostId(node.fromHostId)))
+        && !('fromHostId' in node)
         && !!node.cover && node.cover.tag === undefined
         && Array.isArray(node.cover.members)
         && node.cover.members.every((entry: unknown) => isEphemeraLudicCacheCoverEntry(entry))

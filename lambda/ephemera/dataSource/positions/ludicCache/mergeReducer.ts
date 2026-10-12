@@ -23,12 +23,11 @@
 import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraPresenceCoverRemainder, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraAreaId, isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from '../ludicGraph'
-import { parentHostOf } from '../ludicGraph/presenceParent'
 import { nodesFromPresenceBinding, subGraphFromNodes, unclaimedComponentNodes } from '../ludicGraph/presenceSubGraph'
 import type { EphemeraLudicCacheCoverEntry, EphemeraLudicCacheEdge, EphemeraLudicCachePresenceNode, EphemeraLudicCacheSupportHop } from './types'
 
@@ -365,7 +364,7 @@ export const mergeSameHostBucket = (
         .filter(([key], index, all) => all.findIndex(([other]) => other === key) === index)
         .map(([, edge]) => edge)
 
-    // Presence nodes aren't reconstructible from `nodeIds` alone (`fromHostId`/`cover` have no
+    // Presence nodes aren't reconstructible from `nodeIds` alone (`fromHostPresence`/`cover` have no
     // derivation from the id), and both sides carry the same ones anyway -- every presence node
     // is present in every cut of its own host (PN-6), so `accumulated` and `bucket` are unioning
     // identical copies here, not merging distinct facts. Component ids stay on the
@@ -448,34 +447,26 @@ const presenceCacheNodesFromFold = (
         if (!presenceNode) {
             return acc
         }
-        // The room rule (PR-21(f)): a room's sole-remainder binding into an Area is a carve-out with an
-        // empty member list, so a member's bucket is the room itself, not a binding that resolves to no
-        // rooms. A cover with entries on a room is a genuine split and keeps its members.
-        // Stopgap (keyed to a parent that is an Area, so the room's own hostless remainder still expands
-        // to its contents): reads around a binding `cacheAsset` stored before the repair step existed;
-        // retired once the rerun has rewritten it.
-        const soleRemainder = presenceNode.cover.members.length === 1 && isEphemeraPresenceCoverRemainder(presenceNode.cover.members[0])
-        const members: EphemeraLudicCacheCoverEntry[] = isEphemeraRoomId(graph.hostId) && soleRemainder && isEphemeraAreaId(parentHostOf(presenceNode) ?? '')
-            ? []
-            : presenceNode.cover.members.flatMap((entry): EphemeraLudicCacheCoverEntry[] => {
-                if (!isEphemeraPresenceCoverRemainder(entry)) {
-                    return entry.host === root ? [] : [entry]
-                }
-                // A remainder expands against the whole's claimed set (members any binding lists), so
-                // a member listed by a sibling binding never leaks into this one.
-                return unclaimedComponentNodes(graph)
-                    .filter((id) => id !== root)
-                    .flatMap((id) => {
-                        const host = id as EphemeraLudicCacheCoverEntry['host']
-                        const bindings = memberBindings(host)
-                        return bindings.length ? bindings.map((presence) => ({ host, presence })) : [{ host }]
-                    })
-            })
+        // A room's binding into an Area is stored as a carve-out with no members (the room rule,
+        // PR-21(f)), so it expands to nothing here and a member's bucket is the room's own remainder.
+        const members = presenceNode.cover.members.flatMap((entry): EphemeraLudicCacheCoverEntry[] => {
+            if (!isEphemeraPresenceCoverRemainder(entry)) {
+                return entry.host === root ? [] : [entry]
+            }
+            // A remainder expands against the whole's claimed set (members any binding lists), so
+            // a member listed by a sibling binding never leaks into this one.
+            return unclaimedComponentNodes(graph)
+                .filter((id) => id !== root)
+                .flatMap((id) => {
+                    const host = id as EphemeraLudicCacheCoverEntry['host']
+                    const bindings = memberBindings(host)
+                    return bindings.length ? bindings.map((presence) => ({ host, presence })) : [{ host }]
+                })
+        })
         return [...acc, {
             tag: 'Presence' as const,
             universalKey,
             ...(presenceNode.fromHostPresence ? { fromHostPresence: presenceNode.fromHostPresence } : {}),
-            ...(presenceNode.fromHostId ? { fromHostId: presenceNode.fromHostId } : {}),
             cover: { members },
             consolidated: true,
         }]

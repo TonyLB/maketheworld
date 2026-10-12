@@ -6,8 +6,6 @@ import {
     isEphemeraLudicGraphData,
     isEphemeraLudicGraphFieldPayload,
     isEphemeraLudicGraphNode,
-    normalizeEphemeraPresenceCover,
-    remainderCover,
     isEphemeraLudicGraphComponentNode,
     isEphemeraLudicGraphStructureNode,
     isEphemeraLudicGraphPort,
@@ -448,34 +446,36 @@ describe('isEphemeraLudicGraphNode', () => {
         expect(isEphemeraLudicGraphNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
-            fromHostId: 'ROOM#A',
-            cover: { tag: 'Full' },
+            fromHostPresence: { host: 'ROOM#A', presence: 'PRESENCE#root1' },
+            cover: { members: [{ tag: 'Remainder' }] },
         })).toBe(true)
     })
 
-    it('accepts the current cover shape (entries and the Remainder sentinel) and still reads the legacy Full / Enumerated tags', () => {
-        const node = (cover: unknown) => ({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A', cover })
+    it('accepts the cover shape (entries and the Remainder sentinel) and rejects the retired Full / Enumerated tags', () => {
+        const node = (cover: unknown) => ({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostPresence: { host: 'ROOM#A', presence: 'PRESENCE#root1' }, cover })
         expect(isEphemeraLudicGraphNode(node({ members: [{ tag: 'Remainder' }] }))).toBe(true)
         expect(isEphemeraLudicGraphNode(node({ members: [{ host: 'OBJECT#cup', presence: 'PRESENCE#cup1' }, { tag: 'Remainder' }] }))).toBe(true)
         expect(isEphemeraLudicGraphNode(node({ members: [] }))).toBe(true)
-        expect(isEphemeraLudicGraphNode(node({ tag: 'Enumerated', members: [{ host: 'OBJECT#cup', presence: 'PRESENCE#cup1' }] }))).toBe(true)
+        expect(isEphemeraLudicGraphNode(node({ tag: 'Full' }))).toBe(false)
+        expect(isEphemeraLudicGraphNode(node({ tag: 'Enumerated', members: [{ host: 'OBJECT#cup', presence: 'PRESENCE#cup1' }] }))).toBe(false)
         expect(isEphemeraLudicGraphNode(node({ members: [{ host: 'OBJECT#cup' }] }))).toBe(false)
         expect(isEphemeraLudicGraphNode(node({ members: [{ tag: 'Bogus' }] }))).toBe(false)
     })
 
-    it('normalizes legacy covers: Full is a sole Remainder, Enumerated loses its tag', () => {
-        expect(normalizeEphemeraPresenceCover({ tag: 'Full' })).toEqual({ members: [{ tag: 'Remainder' }] })
-        expect(normalizeEphemeraPresenceCover({ tag: 'Enumerated', members: [{ host: 'OBJECT#cup', presence: 'PRESENCE#cup1' }] } as any))
-            .toEqual({ members: [{ host: 'OBJECT#cup', presence: 'PRESENCE#cup1' }] })
-        expect(normalizeEphemeraPresenceCover(remainderCover())).toEqual({ members: [{ tag: 'Remainder' }] })
+    it('rejects a presence node carrying the retired host-only fromHostId, even beside a well-formed cover', () => {
+        expect(isEphemeraLudicGraphNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostId: 'ROOM#A',
+            cover: { members: [{ tag: 'Remainder' }] },
+        })).toBe(false)
     })
 
     it('rejects a Presence-tagged node with a component universalKey', () => {
         expect(isEphemeraLudicGraphNode({
             tag: 'Presence',
             universalKey: 'OBJECT#helmet',
-            fromHostId: 'ROOM#A',
-            cover: { tag: 'Full' },
+            cover: { members: [{ tag: 'Remainder' }] },
         })).toBe(false)
     })
 
@@ -483,15 +483,6 @@ describe('isEphemeraLudicGraphNode', () => {
         expect(isEphemeraLudicGraphNode({
             tag: 'Object',
             universalKey: 'PRESENCE#abc123',
-        })).toBe(false)
-    })
-
-    it('rejects a presence node with a malformed fromHostId', () => {
-        expect(isEphemeraLudicGraphNode({
-            tag: 'Presence',
-            universalKey: 'PRESENCE#abc123',
-            fromHostId: 'PRESENCE#xyz789',
-            cover: { tag: 'Full' },
         })).toBe(false)
     })
 
@@ -516,7 +507,6 @@ describe('isEphemeraLudicGraphNode', () => {
         expect(isEphemeraLudicGraphNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
-            fromHostId: 'ROOM#A',
             cover: { tag: 'Bogus' },
         })).toBe(false)
     })
@@ -525,11 +515,11 @@ describe('isEphemeraLudicGraphNode', () => {
 describe('isEphemeraLudicGraphComponentNode / isEphemeraLudicGraphStructureNode', () => {
     it('the component guard accepts exactly the five component arms, never Presence', () => {
         expect(isEphemeraLudicGraphComponentNode({ tag: 'Object', universalKey: 'OBJECT#helmet' })).toBe(true)
-        expect(isEphemeraLudicGraphComponentNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A', cover: { tag: 'Full' } })).toBe(false)
+        expect(isEphemeraLudicGraphComponentNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', cover: { members: [{ tag: 'Remainder' }] } })).toBe(false)
     })
 
     it('the structure guard accepts only a well-formed presence node', () => {
-        expect(isEphemeraLudicGraphStructureNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostId: 'ROOM#A', cover: { tag: 'Full' } })).toBe(true)
+        expect(isEphemeraLudicGraphStructureNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', cover: { members: [{ tag: 'Remainder' }] } })).toBe(true)
         expect(isEphemeraLudicGraphStructureNode({ tag: 'Object', universalKey: 'OBJECT#helmet' })).toBe(false)
     })
 
