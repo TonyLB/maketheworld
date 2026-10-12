@@ -8,9 +8,9 @@ import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemera
 import { graphFromMeta } from '../../ludicGraph'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyTransfer } from '../../ludicGraph/expandValidate/applyTransfer'
-import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf } from '../../ludicGraph/presenceParent'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { MutationKernelRehostPresenceBindingStep, MutationKernelStep } from './kernelStep'
+import type { MutationKernelMovePresenceBindingStep, MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
 /**
@@ -39,39 +39,59 @@ const withParentPresence = (
 }
 
 /**
- * A move's presence write (`MutationKernelRehostPresenceBindingStep`): re-point one binding, keeping
- * its id, rather than remove and re-mint (PR-21(e)). With a destination, the first binding at a
- * departure host is re-pointed, else a hostless remainder (a reconnect, or a whole whose root
- * population minted), else a new remainder is minted (a first placement). With none, the departing
- * bindings are removed, but a whole never drops below one: the last only loses its pointer.
+ * A move's presence write (`MutationKernelMovePresenceBindingStep`): re-point the named binding at
+ * the named destination binding, keeping its id and cover (PR-21(e)). `undefined` is the `stale`
+ * reason: the binding is gone, no longer sits under `from`, or the destination binding is gone.
  */
-const rehostPresenceBinding = (
+const movePresenceBinding = (
     graph: EphemeraLudicGraph,
-    step: MutationKernelRehostPresenceBindingStep,
+    step: MutationKernelMovePresenceBindingStep,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
-): EphemeraLudicGraph => {
-    const departing = step.fromHostIds.flatMap((fromHostId) => (
-        graph.presenceNodes.filter((node) => parentHostOf(node) === fromHostId)
-    ))
-    const kept = step.toHostId
-        ? departing[0] ?? hostlessRemainderOf(graph)
-        : (departing.length === graph.presenceNodes.length ? departing[0] : undefined)
-    const withoutDeparted = departing
-        .filter((node) => node !== kept)
+): { graph: EphemeraLudicGraph } | { reasonCode: string } => {
+    const node = graph.presenceNodes.find(({ universalKey }) => universalKey === step.presence)
+    if (!node) {
+        return { reasonCode: 'presenceBindingMissing' }
+    }
+    const stored = node.fromHostPresence
+    const sitsUnderFrom = step.from === null
+        ? !stored
+        : stored?.host === step.from.host && stored.presence === step.from.presence
+    if (!sitsUnderFrom) {
+        return { reasonCode: 'presenceBindingMoved' }
+    }
+    const destination = graphs.get(step.to.host)
+    if (!destination) {
+        return { reasonCode: 'hostNotInFootprint' }
+    }
+    if (!destination.presenceNodes.some(({ universalKey }) => universalKey === step.to.presence)) {
+        return { reasonCode: 'destinationBindingMissing' }
+    }
+    return {
+        graph: graph.replacePresenceNode({
+            ...node,
+            fromHostPresence: { host: step.to.host, presence: step.to.presence },
+        }),
+    }
+}
+
+/**
+ * A whole's departure (`MutationKernelReleasePresenceBindingsStep`): every binding that carries a
+ * parent pointer is removed when a hostless one remains; otherwise the first keeps its id and cover
+ * with the pointer stripped, so a whole never drops below one binding.
+ */
+const releasePresenceBindings = (graph: EphemeraLudicGraph): EphemeraLudicGraph => {
+    const parented = graph.presenceNodes.filter((node) => node.fromHostPresence)
+    if (parented.length === 0) {
+        return graph
+    }
+    if (graph.presenceNodes.length > parented.length) {
+        return parented.reduce((current, node) => current.removePresenceNode(node.universalKey), graph)
+    }
+    const [kept, ...rest] = parented
+    const { fromHostPresence: _departed, ...hostless } = kept
+    return rest
         .reduce((current, node) => current.removePresenceNode(node.universalKey), graph)
-    const fromHostPresence = step.toHostId ? withParentPresence({ host: step.toHostId }, graphs) : undefined
-    const repointed = {
-        tag: 'Presence' as const,
-        universalKey: kept?.universalKey ?? PresenceKey(step.presenceUuid),
-        ...(fromHostPresence ? { fromHostPresence } : {}),
-        cover: kept?.cover ?? remainderCover(),
-    }
-    if (kept) {
-        return withoutDeparted.replacePresenceNode(repointed)
-    }
-    return step.toHostId || withoutDeparted.presenceNodes.length === 0
-        ? withoutDeparted.addPresenceNode(repointed)
-        : withoutDeparted
+        .replacePresenceNode(hostless)
 }
 
 const hostsOf = (
@@ -180,8 +200,8 @@ const confirmCarriedHost = (
  * This function has no verdict meaning "the world forbids this" because it makes no such judgment
  * --- it checks mechanism, and legality is the enrich tier's question. See `types.ts`.
  *
- * `addPresenceBinding`/`rehostPresenceBinding`/`repairPresenceBinding`: a host's own presence
- * bindings --- population's mint, a move's re-point (`rehostPresenceBinding`, above), and
+ * `addPresenceBinding`/`movePresenceBinding`/`releasePresenceBindings`/`repairPresenceBinding`: a host's own presence
+ * bindings --- population's mint, a move's re-point (`movePresenceBinding`, above), a departure, and
  * population's in-place repair. See `kernelStep.ts`'s doc comments.
  *
  * `createComponent`: seeds a not-yet-existing host's graph empty, holding one hostless remainder,
@@ -360,13 +380,33 @@ export const applyStepSequenceCore = (
             graphs.set(step.hostId, withNode)
             continue
         }
-        if (step.kind === 'rehostPresenceBinding') {
+        if (step.kind === 'movePresenceBinding') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
-            graphs.set(step.hostId, rehostPresenceBinding(graph, step, graphs))
+            const moved = movePresenceBinding(graph, step, graphs)
+            if ('reasonCode' in moved) {
+                return { verdict: 'stale', reasonCode: moved.reasonCode }
+            }
+            graphs.set(step.hostId, moved.graph)
             continue
+        }
+        if (step.kind === 'releasePresenceBindings') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
+            }
+            graphs.set(step.hostId, releasePresenceBindings(graph))
+            continue
+        }
+        // Stubs (presenceMoves Slices 3 and 4). A join is deliberately a no-op: a multi-binding move
+        // leaves its bindings side by side until it has a body.
+        if (step.kind === 'joinPresenceBindings') {
+            continue
+        }
+        if (step.kind === 'splitPresenceBinding') {
+            return { verdict: 'stale', reasonCode: 'notImplemented' }
         }
 
         if (step.kind === 'repairPresenceBinding') {

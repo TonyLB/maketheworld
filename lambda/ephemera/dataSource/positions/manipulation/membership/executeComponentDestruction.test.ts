@@ -41,7 +41,7 @@ describe('executeComponentDestruction', () => {
         const [args, deps] = commitMock.mock.calls[0]
         expect(args.steps).toEqual([
             { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
-            { kind: 'rehostPresenceBinding', hostId: OBJECT_ID, fromHostIds: [ROOM_ID], toHostId: null, presenceUuid: expect.any(String) },
+            { kind: 'releasePresenceBindings', hostId: OBJECT_ID },
             { kind: 'destroyComponent', hostId: OBJECT_ID },
         ])
         expect(args.existenceItems).toEqual([rowItem])

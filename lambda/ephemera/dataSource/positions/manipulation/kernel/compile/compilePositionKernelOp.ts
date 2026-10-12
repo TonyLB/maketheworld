@@ -101,11 +101,11 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
         ? [{ kind: 'describe', referentId: op.to, referentKind: 'room', header: op.header }]
         : []
 
-    // one presence re-point per rehost, every mover regardless of host kind. Mechanics --- one
-    // stable binding re-pointed, kept hostless on a departure to nowhere --- live in `presenceBindingStepsForMove`, of
+    // the mover's presence writes, every mover regardless of host kind. Mechanics --- stable bindings
+    // re-pointed, kept hostless on a departure to nowhere --- live in `presenceBindingStepsForMove`, of
     // which this is the only caller: `executeMembershipTransfer` reaches it through this
     // compiler rather than emitting its own steps.
-    const presenceBindingSteps = presenceBindingStepsForMove(primaryMovedId, op.froms, op.to)
+    const presenceBindingSteps = presenceBindingStepsForMove(primaryMovedId, op)
 
     if (!op.narration) {
         return { steps: [...dissolveSteps, transferStep, ...establishSteps, ...presenceBindingSteps, ...headerSteps] }

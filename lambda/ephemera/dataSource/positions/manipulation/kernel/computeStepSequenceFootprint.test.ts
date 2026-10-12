@@ -79,11 +79,18 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, otherRoomId]))
     })
 
-    it('a rehost step contributes its hostId and its destination (read to name the parent binding), never its departures', () => {
-        const rehost: MutationKernelStep = { kind: 'rehostPresenceBinding', hostId: glassId, fromHostIds: [otherRoomId], toHostId: roomId, presenceUuid: 'p3' }
-        const disconnect: MutationKernelStep = { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [roomId], toHostId: null, presenceUuid: 'p4' }
-        expect(computeStepSequenceFootprint([rehost], () => undefined)).toEqual(new Set([glassId, roomId]))
-        expect(computeStepSequenceFootprint([disconnect], () => undefined)).toEqual(new Set([trayId]))
+    it('a move step contributes its hostId and its destination (read to confirm the binding), never its departure', () => {
+        const move: MutationKernelStep = { kind: 'movePresenceBinding', hostId: glassId, presence: 'PRESENCE#p3' as any, from: { host: otherRoomId }, to: { host: roomId, presence: 'PRESENCE#r' as any } }
+        expect(computeStepSequenceFootprint([move], () => undefined)).toEqual(new Set([glassId, roomId]))
+    })
+
+    it('release, split and join steps contribute their hostId alone', () => {
+        const steps: MutationKernelStep[] = [
+            { kind: 'releasePresenceBindings', hostId: trayId },
+            { kind: 'splitPresenceBinding', hostId: glassId, presence: 'PRESENCE#a' as any, results: [] },
+            { kind: 'joinPresenceBindings', hostId: roomId, survivor: 'PRESENCE#a' as any, absorbed: 'PRESENCE#b' as any },
+        ]
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, glassId, roomId]))
     })
 
     it('a leg with a port-address endpoint resolves its host from the primitive endpoint alone, not both', () => {

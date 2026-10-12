@@ -83,7 +83,7 @@ describe('commitStepSequence', () => {
             const { transactWrite, lastItems, cascadeItems, lastDraft } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: trayGraph })
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
-                { kind: 'rehostPresenceBinding', hostId: TRAY_ID, fromHostIds: [ROOM_ID], toHostId: null, presenceUuid: 'unused' },
+                { kind: 'releasePresenceBindings', hostId: TRAY_ID },
                 destroyTray,
             ]
 
@@ -150,7 +150,7 @@ describe('commitStepSequence', () => {
         }
         const placeTray: MutationKernelStep[] = [
             { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
-            { kind: 'rehostPresenceBinding', hostId: TRAY_ID, fromHostIds: [], toHostId: ROOM_ID, presenceUuid: 'unused' },
+            { kind: 'movePresenceBinding', hostId: TRAY_ID, presence: 'PRESENCE#born' as any, from: null, to: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) } },
         ]
         const pairItem = { Put: { EphemeraId: TRAY_ID, DataCategory: 'ASSET#IMPROVISATION', tag: 'Object', shortName: 'tray' } }
 

@@ -12,6 +12,7 @@ import type { MutationKernelCaptures } from '../kernel/types'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { defaultGetGraph } from '../relational/findRelationalChainsForRemoval'
 import { repairAdministrativeChainDissolve } from './repairAdministrativeChainDissolve'
+import { resolvePresenceMoves } from './resolvePresenceMoves'
 
 export type ExecuteMembershipTransferArgs = {
     entityId: EphemeraObjectId | EphemeraCharacterId
@@ -86,12 +87,20 @@ export const executeMembershipTransfer = async (
         getGraph
     )
 
+    const resolved = await resolvePresenceMoves({ moved: args.entityId, froms, to: args.target, getGraph })
+    if (!resolved.ok) {
+        console.error(`[mtw.ephemera.positions] executeMembershipTransfer refused for ${args.entityId}: ${resolved.errorCode}`)
+        return { ok: false, errorCode: resolved.errorCode, errorMessage: resolved.errorCode }
+    }
+
     const { steps: compiledSteps } = compilePositionKernelOp({
         kind: 'move',
         moved: args.entityId,
         froms,
         to: args.target,
         header: null,
+        presenceMoves: resolved.presenceMoves,
+        ...(resolved.mintedRootUuid ? { mintedRootUuid: resolved.mintedRootUuid } : {}),
     })
     const steps = compiledSteps.filter(isKernelMutationStep)
 

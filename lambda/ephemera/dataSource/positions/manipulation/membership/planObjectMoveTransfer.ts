@@ -7,11 +7,15 @@ import type { CompiledPositionKernelPlan } from '../kernel/compile/compilePositi
 import { buildObjectMoveOp } from './buildObjectMoveOp'
 import { defaultGetGraph } from '../relational/findRelationalChainsForRemoval'
 import { hasPresenceAncestor } from '../../ludicGraph/presenceAncestry'
+import type { GroundedPresence } from '../../../actions/enrich/objectManipulation/plan/planStep'
+import { resolvePresenceMoves } from './resolvePresenceMoves'
 
 export type PlanObjectMoveTransferArgs = {
     entityId: EphemeraObjectId
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
+    /** Where the destination is seen in the host that holds it: names which of its bindings the mover lands under. */
+    toGroundedPresence?: readonly GroundedPresence[]
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
     /** injectable for test seams only. */
@@ -47,11 +51,24 @@ export const planObjectMoveTransfer = async (
 
     const fromGraph = await getGraph(args.fromHostId)
 
+    const resolved = await resolvePresenceMoves({
+        moved: args.entityId,
+        froms: [args.fromHostId],
+        to: args.toHostId,
+        ...(args.toGroundedPresence ? { toGroundedPresence: args.toGroundedPresence } : {}),
+        getGraph,
+    })
+    if (!resolved.ok) {
+        return { ok: false, errorCode: resolved.errorCode }
+    }
+
     const buildArgs = {
         entityId: args.entityId,
         fromGraph,
         fromHostId: args.fromHostId,
         toHostId: args.toHostId,
+        presenceMoves: resolved.presenceMoves,
+        ...(resolved.mintedRootUuid ? { mintedRootUuid: resolved.mintedRootUuid } : {}),
         ...(args.containment ? { containment: args.containment } : {}),
     }
 

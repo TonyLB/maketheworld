@@ -38,7 +38,7 @@ import messageBus from '../messageBus'
 import { CommandAttempt } from './actions/commandAttempt'
 import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { enumerateLudicCacheShards } from './positions/ludicCache/enumerateShards'
-import { testLudicGraph } from './positions/ludicGraph/testFixtures'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from './positions/ludicGraph/testFixtures'
 
 const assetDBMock = jest.mocked(assetDB)
 const ephemeraDBMock = jest.mocked(ephemeraDB)
@@ -114,11 +114,12 @@ describe('object containment cycle (AB-63)', () => {
                 nodes: [
                     { tag: 'Object', universalKey: BOX_ID },
                     { tag: 'Object', universalKey: CUP_ID },
+                    presenceBindingNode(parentRemainderKey(ROOM_ID)),
                 ],
                 edges: [],
             }).toStored(),
-            [BOX_ID]: testLudicGraph(BOX_ID, { nodes: [{ tag: 'Object', universalKey: BOX_ID }] }).toStored(),
-            [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }] }).toStored(),
+            [BOX_ID]: testLudicGraph(BOX_ID, { nodes: [{ tag: 'Object', universalKey: BOX_ID }, presenceBindingNode('box-in-room', ROOM_ID)] }).toStored(),
+            [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }, presenceBindingNode('cup-in-room', ROOM_ID)] }).toStored(),
         }
         ephemeraDBMock.getItem.mockImplementation(async ({ Key }: any) => {
             const stored = storedByHost[Key.EphemeraId]

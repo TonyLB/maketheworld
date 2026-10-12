@@ -140,6 +140,7 @@ const buildMembershipFragment = async (
         entityId,
         fromHostId,
         toHostId,
+        ...('groundedPresence' in change.to && change.to.groundedPresence ? { toGroundedPresence: change.to.groundedPresence } : {}),
         // Containment: `planObjectMoveTransfer`/`buildObjectMoveOp`/
         // `compilePositionKernelOp` already thread this through to the establish step whose
         // `hostId` is always `toHostId` by construction --- no ancestry walk needed.

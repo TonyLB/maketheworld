@@ -112,6 +112,10 @@ export const orchestrateCharacterMove = async ({
         resolveHeader,
         getMembershipContainers: async () => priorContainers,
     })
+    if (!planResult.ok) {
+        console.error(`[mtw.ephemera.positions] orchestrateCharacterMove refused: ${planResult.errorCode}`)
+        return { ok: false, errorCode: planResult.errorCode, errorMessage: planResult.errorCode }
+    }
     if (!planResult.changed) {
         return planResult
     }

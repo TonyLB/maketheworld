@@ -5,10 +5,12 @@ jest.mock('../kernel/commitStepSequence', () => ({
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { commitStepSequence } from '../kernel/commitStepSequence'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import { executeComponentCreation } from './executeComponentCreation'
 
 const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
+const getGraph = async (hostId: string) => testLudicGraph(hostId as EphemeraRoomId, { nodes: [presenceBindingNode(parentRemainderKey(hostId as EphemeraRoomId))] })
 const META = { EphemeraId: OBJECT_ID, DataCategory: 'Meta::Object' as const, stableKey: 'skates' }
 
 describe('executeComponentCreation', () => {
@@ -29,6 +31,7 @@ describe('executeComponentCreation', () => {
             objectId: OBJECT_ID,
             meta: META,
             target: ROOM_ID,
+            getGraph,
             existenceItems: [pairItem],
             messageBus: messageBus as any,
             streamEvent,
@@ -38,10 +41,11 @@ describe('executeComponentCreation', () => {
         expect(result).toEqual({ ok: true, beatAnchorTime: 1 })
         expect(commitMock).toHaveBeenCalledTimes(1)
         const [args, deps] = commitMock.mock.calls[0]
+        const createStep = args.steps[0] as { presenceUuid: string }
         expect(args.steps).toEqual([
             { kind: 'createComponent', hostId: OBJECT_ID, presenceUuid: expect.any(String), meta: META },
             { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
-            { kind: 'rehostPresenceBinding', hostId: OBJECT_ID, fromHostIds: [], toHostId: ROOM_ID, presenceUuid: expect.any(String) },
+            { kind: 'movePresenceBinding', hostId: OBJECT_ID, presence: `PRESENCE#${createStep.presenceUuid}`, from: null, to: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) } },
         ])
         expect(args.existenceItems).toEqual([pairItem])
         expect(deps.afterPersist).toBe(afterPersist)
@@ -69,11 +73,29 @@ describe('executeComponentCreation', () => {
             objectId: OBJECT_ID,
             meta: META,
             target: ROOM_ID,
+            getGraph,
             messageBus: messageBus as any,
             streamEvent,
         })
 
         expect(result).toEqual({ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage: 'stale' })
+        consoleSpy.mockRestore()
+    })
+
+    it('refuses, committing nothing, when the destination holds no binding to land under', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+        const result = await executeComponentCreation({
+            objectId: OBJECT_ID,
+            meta: META,
+            target: ROOM_ID,
+            getGraph: async (hostId) => testLudicGraph(hostId as EphemeraRoomId, { nodes: [] }),
+            messageBus: messageBus as any,
+            streamEvent,
+        })
+
+        expect(result).toEqual({ ok: false, errorCode: 'destinationBindingMissing', errorMessage: 'destinationBindingMissing' })
+        expect(commitMock).not.toHaveBeenCalled()
         consoleSpy.mockRestore()
     })
 })

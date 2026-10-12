@@ -225,14 +225,16 @@ describe('factsForStep', () => {
         expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
-    it('addPresenceBinding/rehostPresenceBinding/repairPresenceBinding steps yield no facts --- not a narration channel yet', () => {
+    it('addPresenceBinding/movePresenceBinding/releasePresenceBindings/repairPresenceBinding steps yield no facts --- not a narration channel yet', () => {
         const addStep: MutationKernelStep = {
             kind: 'addPresenceBinding',
             hostId: trayId,
             fromHostPresence: { host: roomId },
             presenceUuid: 'p2',
         }
-        const rehostStep: MutationKernelStep = { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [roomId], toHostId: null, presenceUuid: 'p3' }
+        const rehostStep: MutationKernelStep = { kind: 'releasePresenceBindings', hostId: trayId }
+        const moveStep: MutationKernelStep = { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#p3' as any, from: null, to: { host: roomId, presence: 'PRESENCE#r' as any } }
+        expect(factsForStep(moveStep, graphsMap(), beatAnchorTime)).toEqual([])
         expect(factsForStep(addStep, graphsMap(), beatAnchorTime)).toEqual([])
         expect(factsForStep(rehostStep, graphsMap(), beatAnchorTime)).toEqual([])
         const repairStep: MutationKernelStep = { kind: 'repairPresenceBinding', hostId: trayId, presenceId: 'PRESENCE#p2', cover: { members: [] } }

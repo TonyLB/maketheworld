@@ -60,6 +60,7 @@ export const executeComponentDestruction = async (
             froms,
             to: null,
             header: null,
+            presenceMoves: [],
         }).steps.filter(isKernelMutationStep)
 
     const result = await commitStepSequence(

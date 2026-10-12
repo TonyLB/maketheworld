@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import { planObjectMoveTransfer } from './planObjectMoveTransfer'
-import { testLudicGraph } from '../../ludicGraph/testFixtures'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
@@ -12,6 +12,11 @@ const CHANDELIER_ID = 'OBJECT#Chandelier' as EphemeraObjectId
 const ROOM_ID = 'ROOM#TownSquare' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#alpha' as EphemeraCharacterId
 
+/** A graph per host; any other host reads empty. */
+const worldOf = (graphs: Record<string, EphemeraLudicGraph>) => async (hostId: string): Promise<EphemeraLudicGraph> => (
+    graphs[hostId] ?? testLudicGraph(hostId as EphemeraObjectId)
+)
+const trayBinding = (name: string, parent: string) => presenceBindingNode(name, parent as any)
 
 /**
  * Take/drop/give's `planObjectMoveTransfer`: the containment-cycle refusal, and the move's own
@@ -25,8 +30,9 @@ describe('planObjectMoveTransfer', () => {
     describe('room -> character (take-hold)', () => {
         it('returns a legal plan with the default step shape', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
-            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            const getGraph = async (hostId: string): Promise<EphemeraLudicGraph> => (hostId === ROOM_ID ? roomGraph : emptyCharacterGraph)
+            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')], edges: [] })
+            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [trayBinding('tray-in-room', ROOM_ID)] })
+            const getGraph = worldOf({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: trayGraph })
 
             const result = await planObjectMoveTransfer({
                 entityId: TRAY_ID,
@@ -39,8 +45,15 @@ describe('planObjectMoveTransfer', () => {
             if (!result.ok) { throw new Error('expected a legal plan') }
             // Mutation steps only: the move's audiences are `commitAttempt.ts`'s to resolve and capture.
             expect(result.plan.steps.map((step) => step.kind)).toEqual([
-                'transferMembership', 'rehostPresenceBinding',
+                'transferMembership', 'movePresenceBinding',
             ])
+            expect(result.plan.steps[1]).toEqual({
+                kind: 'movePresenceBinding',
+                hostId: TRAY_ID,
+                presence: 'PRESENCE#tray-in-room',
+                from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
+                to: { host: CHARACTER_ID, presence: 'PRESENCE#character-root' },
+            })
             expect(result.fromHostId).toBe(ROOM_ID)
         })
 
@@ -56,8 +69,9 @@ describe('planObjectMoveTransfer', () => {
                     { tag: 'Relational', from: TRAY_ID, to: CHANDELIER_ID, kind: 'Custom', relationLabel: 'under' },
                 ],
             })
-            const emptyCharacterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            const getGraph = async (hostId: string): Promise<EphemeraLudicGraph> => (hostId === ROOM_ID ? roomGraph : emptyCharacterGraph)
+            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')], edges: [] })
+            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [trayBinding('tray-in-room', ROOM_ID)] })
+            const getGraph = worldOf({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: trayGraph })
 
             const result = await planObjectMoveTransfer({
                 entityId: TRAY_ID,
@@ -80,8 +94,9 @@ describe('planObjectMoveTransfer', () => {
     describe('On rehost', () => {
         it('put on an empty tray: transferMembership then an establishRelation edge into the tray', async () => {
             const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }], edges: [] })
-            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
-            const getGraph = async (hostId: string): Promise<EphemeraLudicGraph> => (hostId === CHARACTER_ID ? characterGraph : trayGraph)
+            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode('tray-root')], edges: [] })
+            const cupGraph = testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-held', CHARACTER_ID)] })
+            const getGraph = worldOf({ [CHARACTER_ID]: characterGraph, [TRAY_ID]: trayGraph, [CUP_ID]: cupGraph })
 
             const result = await planObjectMoveTransfer({
                 entityId: CUP_ID,
@@ -102,8 +117,9 @@ describe('planObjectMoveTransfer', () => {
                 nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID }],
                 edges: [{ tag: 'Relational', from: CUP_ID, to: TRAY_ID, kind: 'On' }],
             })
-            const tray2Graph = testLudicGraph(TRAY2_ID, { nodes: [{ tag: 'Object', universalKey: TRAY2_ID }], edges: [] })
-            const getGraph = async (hostId: string): Promise<EphemeraLudicGraph> => (hostId === TRAY_ID ? tray1Graph : tray2Graph)
+            const tray2Graph = testLudicGraph(TRAY2_ID, { nodes: [{ tag: 'Object', universalKey: TRAY2_ID }, presenceBindingNode('tray2-root')], edges: [] })
+            const cupGraph = testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-on-tray', TRAY_ID)] })
+            const getGraph = worldOf({ [TRAY_ID]: tray1Graph, [TRAY2_ID]: tray2Graph, [CUP_ID]: cupGraph })
 
             const result = await planObjectMoveTransfer({
                 entityId: CUP_ID,
@@ -126,8 +142,9 @@ describe('planObjectMoveTransfer', () => {
                 nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID }],
                 edges: [{ tag: 'Relational', from: CUP_ID, to: TRAY_ID, kind: 'On' }],
             })
-            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [], edges: [] })
-            const getGraph = async (hostId: string): Promise<EphemeraLudicGraph> => (hostId === TRAY_ID ? trayGraph : characterGraph)
+            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')], edges: [] })
+            const cupGraph = testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-on-tray', TRAY_ID)] })
+            const getGraph = worldOf({ [TRAY_ID]: trayGraph, [CHARACTER_ID]: characterGraph, [CUP_ID]: cupGraph })
 
             const result = await planObjectMoveTransfer({
                 entityId: CUP_ID,
@@ -180,6 +197,79 @@ describe('planObjectMoveTransfer', () => {
             })
 
             expect(result).toEqual({ ok: false, errorCode: 'containmentCycle' })
+        })
+    })
+
+    describe('binding-addressed destination', () => {
+        const tableBindings = [
+            presenceBindingNode('table-left', { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }),
+            presenceBindingNode('table-right', { host: ROOM_ID, presence: PresenceKey('room-other') as any }),
+        ]
+        const world = () => worldOf({
+            [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
+            [TABLE_ID]: testLudicGraph(TABLE_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }, ...tableBindings] }),
+            [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-in-room', ROOM_ID)] }),
+        })
+
+        it('lands under the destination binding whose pointer names the bucket where the destination is seen', async () => {
+            const result = await planObjectMoveTransfer({
+                entityId: CUP_ID,
+                fromHostId: ROOM_ID,
+                toHostId: TABLE_ID,
+                toGroundedPresence: [{ host: ROOM_ID, presence: PresenceKey('room-other') as any }],
+                getGraph: world(),
+            })
+
+            if (!result.ok) { throw new Error('expected a plan') }
+            expect(result.plan.steps.find((step) => step.kind === 'movePresenceBinding')).toEqual(expect.objectContaining({
+                to: { host: TABLE_ID, presence: 'PRESENCE#table-right' },
+            }))
+        })
+
+        it('refuses a destination with several bindings that nothing narrows (never a guess)', async () => {
+            const result = await planObjectMoveTransfer({ entityId: CUP_ID, fromHostId: ROOM_ID, toHostId: TABLE_ID, getGraph: world() })
+
+            expect(result).toEqual({ ok: false, errorCode: 'destinationBindingAmbiguous' })
+        })
+
+        it('refuses a destination where two bindings sit under the one seen bucket', async () => {
+            const twinned = worldOf({
+                [TABLE_ID]: testLudicGraph(TABLE_ID, { nodes: [
+                    presenceBindingNode('twin-a', { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }),
+                    presenceBindingNode('twin-b', { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }),
+                ] }),
+                [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-in-room', ROOM_ID)] }),
+            })
+
+            const result = await planObjectMoveTransfer({
+                entityId: CUP_ID,
+                fromHostId: ROOM_ID,
+                toHostId: TABLE_ID,
+                toGroundedPresence: [{ host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }],
+                getGraph: twinned,
+            })
+
+            expect(result).toEqual({ ok: false, errorCode: 'destinationBindingAmbiguous' })
+        })
+
+        it('refuses a mover with two bindings under the departure host (cannot be told apart by host)', async () => {
+            const result = await planObjectMoveTransfer({
+                entityId: CUP_ID,
+                fromHostId: ROOM_ID,
+                toHostId: CHARACTER_ID,
+                getGraph: worldOf({
+                    [CHARACTER_ID]: testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')] }),
+                    [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-a', ROOM_ID), trayBinding('cup-b', ROOM_ID)] }),
+                }),
+            })
+
+            expect(result).toEqual({ ok: false, errorCode: 'moverBindingAmbiguous' })
+        })
+
+        it('refuses a destination holding no binding at all', async () => {
+            const result = await planObjectMoveTransfer({ entityId: CUP_ID, fromHostId: ROOM_ID, toHostId: CHARACTER_ID, getGraph: world() })
+
+            expect(result).toEqual({ ok: false, errorCode: 'destinationBindingMissing' })
         })
     })
 })

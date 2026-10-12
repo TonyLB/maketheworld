@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { MembershipEmissionCopyKind } from '../kernel/kernelStep'
-import type { MembershipMoveNarrationInput, MoveHeaderBinding, PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
+import type { MembershipMoveNarrationInput, MoveHeaderBinding, PositionKernelMoveOp, PositionKernelPresenceMove } from '../kernel/compile/positionKernelOp'
 import type { IntentKind } from './types'
 
 /**
@@ -22,6 +22,9 @@ export type BuildCharacterMoveOpArgs = {
     intentFromRoomId?: EphemeraRoomId
     exitName?: string
     header: MoveHeaderBinding | null
+    /** The bindings the move re-points, named by `resolvePresenceMoves`. */
+    presenceMoves: readonly PositionKernelPresenceMove[]
+    mintedRootUuid?: string
 }
 
 /**
@@ -87,6 +90,8 @@ export const buildCharacterMoveOp = (args: BuildCharacterMoveOpArgs): CharacterM
         froms: args.froms,
         to: args.to,
         header: args.header,
+        presenceMoves: args.presenceMoves,
+        ...(args.mintedRootUuid ? { mintedRootUuid: args.mintedRootUuid } : {}),
         narration: {
             kind: 'membershipMove',
             characterName: args.characterName,

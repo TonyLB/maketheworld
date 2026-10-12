@@ -4,7 +4,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import { dryRunStepSequence } from './dryRunStepSequence'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import type { MutationKernelStep } from './kernelStep'
-import { testLudicGraph } from '../../ludicGraph/testFixtures'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
@@ -35,7 +35,7 @@ describe('dryRunStepSequence', () => {
     })
 
     it('never fetches a host the sequence creates; the create step seeds it', async () => {
-        const roomGraph = testLudicGraph(roomId, { nodes: [] })
+        const roomGraph = testLudicGraph(roomId, { nodes: [presenceBindingNode(parentRemainderKey(roomId))] })
         const getGraph = jest.fn(async (hostId: EphemeraMembershipHostId) => {
             if (hostId !== roomId) {
                 throw new Error(`unexpected fetch of ${hostId}`)
@@ -45,7 +45,7 @@ describe('dryRunStepSequence', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'createComponent', hostId: trayId, presenceUuid: 'born', meta: { EphemeraId: trayId, DataCategory: 'Meta::Object', stableKey: 'tray' } },
             { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set(), toHostId: roomId },
-            { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [], toHostId: roomId, presenceUuid: 'unused' },
+            { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#born' as any, from: null, to: { host: roomId, presence: parentRemainderKey(roomId) } },
         ]
 
         const outcome = await dryRunStepSequence(steps, { getCurrentHost: () => undefined, getGraph })
