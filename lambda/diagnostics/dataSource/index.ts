@@ -10,6 +10,7 @@ import { orphanedImprovisedObjectSweep } from '../orphanedImprovisedObjectSweep'
 import { ludicGraphStaleStructureSweep } from '../ludicGraphStaleStructureSweep'
 import { ludicGraphPortMismatchSweep } from '../ludicGraphPortMismatchSweep'
 import { containmentPopulationDriftSweep } from '../containmentPopulationDriftSweep'
+import { presenceCoverDriftSweep } from '../presenceCoverDriftSweep'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalignmentSweep'
 import { playerMisalignmentSweep } from '../playerMisalignmentSweep'
@@ -29,6 +30,7 @@ import {
     isDiagnosticsApiLudicGraphStaleStructureSweepEnvelope,
     isDiagnosticsApiLudicGraphPortMismatchSweepEnvelope,
     isDiagnosticsApiContainmentPopulationDriftSweepEnvelope,
+    isDiagnosticsApiPresenceCoverDriftSweepEnvelope,
     isDiagnosticsApiStaleSessionSweepEnvelope,
     isDiagnosticsSubscribedEnvelope
 } from './subscribedEvents'
@@ -200,6 +202,18 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
             if (isDiagnosticsApiLudicGraphStaleStructureSweepEnvelope(event as any)) {
                 const content = await event.getContent()
                 const result = await ludicGraphStaleStructureSweep({
+                    diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
+                    nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
+                })
+                messageBus.publish({
+                    type: 'ReturnValue',
+                    body: result as Record<string, any>
+                })
+                return
+            }
+            if (isDiagnosticsApiPresenceCoverDriftSweepEnvelope(event as any)) {
+                const content = await event.getContent()
+                const result = await presenceCoverDriftSweep({
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })

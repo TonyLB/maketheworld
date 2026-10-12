@@ -29,6 +29,9 @@ jest.mock('./orphanedImprovisedObjectSweep', () => ({
 jest.mock('./ludicGraphStaleStructureSweep', () => ({
     ludicGraphStaleStructureSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[] }))
 }))
+jest.mock('./presenceCoverDriftSweep', () => ({
+    presenceCoverDriftSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[], unrepairable: [] as unknown[] }))
+}))
 jest.mock('./containmentPopulationDriftSweep', () => ({
     containmentPopulationDriftSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[] }))
 }))
@@ -45,6 +48,7 @@ import { orphanedImprovisedObjectSweep } from './orphanedImprovisedObjectSweep'
 import { ludicGraphStaleStructureSweep } from './ludicGraphStaleStructureSweep'
 import { ludicGraphPortMismatchSweep } from './ludicGraphPortMismatchSweep'
 import { containmentPopulationDriftSweep } from './containmentPopulationDriftSweep'
+import { presenceCoverDriftSweep } from './presenceCoverDriftSweep'
 import { handler } from './app'
 
 describe('diagnostics handler', () => {
@@ -293,6 +297,14 @@ describe('diagnostics handler', () => {
             nowMs: 5555,
         })
         expect(result).toEqual({ emittedCount: 1, ephemeraIds: ['AREA#Overworld'] })
+    })
+
+    it('invokes presenceCoverDriftSweep for direct PresenceCoverDriftSweep type', async () => {
+        jest.mocked(presenceCoverDriftSweep).mockResolvedValueOnce({ emittedCount: 0, ephemeraIds: [], unrepairable: [] })
+        const result = await handler({ type: 'PresenceCoverDriftSweep', diagnosticRunId: 'dr-pcd', nowMs: 5555 })
+
+        expect(presenceCoverDriftSweep).toHaveBeenCalledWith({ diagnosticRunId: 'dr-pcd', nowMs: 5555 })
+        expect(result).toEqual({ emittedCount: 0, ephemeraIds: [], unrepairable: [] })
     })
 
     // Same regression shape as the case above: app.ts's allow-list and ingress.ts's switch have

@@ -11,6 +11,7 @@ import {
     isComponentVerticalMisalignedFindingEvent,
     isLudicGraphStaleStructureFindingEvent,
     isContainmentPopulationDriftFindingEvent,
+    isPresenceCoverDriftFindingEvent,
     isLudicGraphPortMismatchFindingEvent,
     isWMLMaterializedViewFindingEvent,
     isDiagnosticsEventUpdate
@@ -1164,6 +1165,19 @@ describe('DiagnosticsEventSerializer', () => {
                 })).toBe(true)
                 expect(isContainmentPopulationDriftFindingEvent({ type: 'Containment Population Drift Finding', ephemeraId: 'BOGUS#x' })).toBe(false)
                 expect(isContainmentPopulationDriftFindingEvent({ type: 'Ludic Graph Stale Structure Finding', ephemeraId: 'ROOM#Kitchen' })).toBe(false)
+            })
+        })
+
+        describe('isPresenceCoverDriftFindingEvent', () => {
+            it('accepts a membership-host whole and rejects anything else', () => {
+                expect(isPresenceCoverDriftFindingEvent({
+                    type: 'Presence Cover Drift Finding',
+                    ephemeraId: 'ROOM#Kitchen',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                })).toBe(true)
+                expect(isPresenceCoverDriftFindingEvent({ type: 'Presence Cover Drift Finding', ephemeraId: 'BOGUS#x' })).toBe(false)
+                expect(isPresenceCoverDriftFindingEvent({ type: 'Containment Population Drift Finding', ephemeraId: 'ROOM#Kitchen' })).toBe(false)
             })
         })
 

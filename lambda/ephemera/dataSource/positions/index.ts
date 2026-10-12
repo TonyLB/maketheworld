@@ -9,7 +9,7 @@
  * (`Character Navigate`, `Character Home`, `Ludic Network Change Requested` (the
  * generalized hand-off for membership/relational/containment attempts)),
  * `mtw.diagnostics` (`Room Occupancy Drift Finding`, `Ludic Graph Stale Structure Finding`,
- * `Ludic Graph Port Mismatch Finding`, `Containment Population Drift Finding`). Additional
+ * `Ludic Graph Port Mismatch Finding`, `Containment Population Drift Finding`, `Presence Cover Drift Finding`). Additional
  * position-affecting subscriptions can be added here without inventing another one-off
  * DataSource module.
  *
@@ -34,6 +34,7 @@ import {
     isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
     isEphemeraPositionsDiagnosticsContainmentPopulationDriftFindingEnvelope,
+    isEphemeraPositionsDiagnosticsPresenceCoverDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
@@ -51,6 +52,7 @@ import { repairRoomOccupancyDrift } from './manipulation/membership/repairRoomOc
 import { healLudicGraphStructure } from './ludicGraph/healLudicGraphStructure'
 import { healLudicGraphPortMismatch } from './ludicGraph/healLudicGraphPortMismatch'
 import { healContainmentPopulation } from './manipulation/containment/healContainmentPopulation'
+import { healPresenceCover } from './manipulation/containment/healPresenceCover'
 import type { PositionsPublishedPayload } from './publishedEvents'
 
 export const ephemeraPositionsDataSource = new EphemeraDataSource<
@@ -90,6 +92,14 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                     return
                 }
                 await healContainmentPopulation(content.ephemeraId, { messageBus, streamEvent })
+                return
+            }
+            if (isEphemeraPositionsDiagnosticsPresenceCoverDriftFindingEnvelope(envelope)) {
+                const content = await envelope.getContent()
+                if (!content?.ephemeraId) {
+                    return
+                }
+                await healPresenceCover(content.ephemeraId, { messageBus, streamEvent })
                 return
             }
             if (isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope(envelope)) {

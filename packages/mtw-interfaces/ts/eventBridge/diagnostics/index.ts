@@ -101,6 +101,19 @@ export type DiagnosticsContainmentPopulationDriftFindingEvent = {
 }
 
 /**
+ * A whole whose presence-binding covers disagree with its members' `fromHostPresence` pointers
+ * (the pointer governs; the cover is a stored index of it), or that holds no remainder. The
+ * subject is the **whole**: the comparison reads its row and each member's, and the cover rebuild
+ * writes only the whole's.
+ */
+export type DiagnosticsPresenceCoverDriftFindingEvent = {
+    type: 'Presence Cover Drift Finding'
+    ephemeraId: EphemeraMembershipHostId
+    diagnosticRunId: string
+    timestamp: string
+}
+
+/**
  * A `ludicGraph` port whose denormalized exterior values (`kind`,
  * `exteriorRelationLabel`) disagree with the referring edge held by the host the port itself
  * names. The subject is the individual port, not the row --- a mismatch is one crossing being
@@ -153,6 +166,7 @@ export type DiagnosticsEventUpdate =
     | DiagnosticsLudicGraphStaleStructureFindingEvent
     | DiagnosticsLudicGraphPortMismatchFindingEvent
     | DiagnosticsContainmentPopulationDriftFindingEvent
+    | DiagnosticsPresenceCoverDriftFindingEvent
     | DiagnosticsHealGlobalValuesContent
 
 //
@@ -225,6 +239,13 @@ export type DiagnosticsContainmentPopulationDriftFindingEventExternal = {
     timestamp?: string
 }
 
+export type DiagnosticsPresenceCoverDriftFindingEventExternal = {
+    type: 'Presence Cover Drift Finding'
+    ephemeraId: EphemeraMembershipHostId
+    diagnosticRunId?: string
+    timestamp?: string
+}
+
 export type DiagnosticsLudicGraphPortMismatchFindingEventExternal = {
     type: 'Ludic Graph Port Mismatch Finding'
     ephemeraId: EphemeraMembershipHostId
@@ -261,6 +282,7 @@ export type DiagnosticsEventExternal =
     | DiagnosticsLudicGraphStaleStructureFindingEventExternal
     | DiagnosticsLudicGraphPortMismatchFindingEventExternal
     | DiagnosticsContainmentPopulationDriftFindingEventExternal
+    | DiagnosticsPresenceCoverDriftFindingEventExternal
 
 //
 // Type guards
@@ -415,6 +437,18 @@ export const isContainmentPopulationDriftFindingEvent = (
     )
 }
 
+export const isPresenceCoverDriftFindingEvent = (
+    event: any
+): event is DiagnosticsPresenceCoverDriftFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Presence Cover Drift Finding' &&
+        typeof event.ephemeraId === 'string' &&
+        isEphemeraMembershipHostId(event.ephemeraId)
+    )
+}
+
 export const isLudicGraphPortMismatchFindingEvent = (
     event: any
 ): event is DiagnosticsLudicGraphPortMismatchFindingEvent => {
@@ -449,6 +483,7 @@ export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEv
         isOrphanedImprovisedObjectFindingEvent(event) || isPlayerMisalignmentFindingEvent(event) ||
         isComponentVerticalMisalignedFindingEvent(event) || isLudicGraphStaleStructureFindingEvent(event) ||
         isLudicGraphPortMismatchFindingEvent(event) || isContainmentPopulationDriftFindingEvent(event) ||
+        isPresenceCoverDriftFindingEvent(event) ||
         (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
 
@@ -561,6 +596,14 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
         if (header.type === 'Containment Population Drift Finding' && isContainmentPopulationDriftFindingEvent(content)) {
             return {
                 type: 'Containment Population Drift Finding',
+                ephemeraId: content.ephemeraId,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'Presence Cover Drift Finding' && isPresenceCoverDriftFindingEvent(content)) {
+            return {
+                type: 'Presence Cover Drift Finding',
                 ephemeraId: content.ephemeraId,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
@@ -739,6 +782,18 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             }
             return {
                 type: 'Containment Population Drift Finding',
+                ephemeraId: content.ephemeraId as EphemeraMembershipHostId,
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'Presence Cover Drift Finding') {
+            if (typeof content.ephemeraId !== 'string' || !isEphemeraMembershipHostId(content.ephemeraId)) {
+                return null
+            }
+            return {
+                type: 'Presence Cover Drift Finding',
                 ephemeraId: content.ephemeraId as EphemeraMembershipHostId,
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()

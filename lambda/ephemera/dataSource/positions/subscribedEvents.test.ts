@@ -6,6 +6,7 @@ import {
     isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsContainmentPopulationDriftFindingEnvelope,
+    isEphemeraPositionsDiagnosticsPresenceCoverDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope,
 } from './subscribedEvents'
@@ -230,6 +231,27 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
         expect(isEphemeraPositionsDiagnosticsContainmentPopulationDriftFindingEnvelope(envelope as any)).toBe(true)
         expect(isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope(envelope as any)).toBe(false)
+    })
+
+    it('accepts mtw.diagnostics Presence Cover Drift Finding envelope', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                timestamp: Date.now(),
+                type: 'Presence Cover Drift Finding' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'Presence Cover Drift Finding' as const,
+                ephemeraId: 'ROOM#Kitchen' as const,
+                diagnosticRunId: 'diag-4',
+                timestamp: '2026-10-12T10:00:00.000Z',
+            }),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsDiagnosticsPresenceCoverDriftFindingEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsDiagnosticsContainmentPopulationDriftFindingEnvelope(envelope as any)).toBe(false)
     })
 
     it('accepts mtw.diagnostics Ludic Graph Port Mismatch Finding envelope', () => {

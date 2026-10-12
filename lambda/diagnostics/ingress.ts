@@ -91,6 +91,13 @@ const normalizeApiDiagnosticsIngress = async (event: any) => {
                 ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
             })
             return
+        case 'PresenceCoverDriftSweep':
+            sendApiDiagnosticsEvent(messageBus, {
+                type: 'PresenceCoverDriftSweep',
+                ...(typeof event.diagnosticRunId === 'string' ? { diagnosticRunId: event.diagnosticRunId } : {}),
+                ...(typeof event.nowMs === 'number' ? { nowMs: event.nowMs } : {})
+            })
+            return
         case 'ContainmentPopulationDriftSweep':
             sendApiDiagnosticsEvent(messageBus, {
                 type: 'ContainmentPopulationDriftSweep',

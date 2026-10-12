@@ -199,6 +199,18 @@ Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemer
 
 **Downstream handling:** `EphemeraFunction`'s `template.yaml` `Events:` block carries the detail-type on its `mtw.diagnostics` rule; ephemera `mtw.ephemera.positions` repairs via [`healLudicGraphPortMismatch.ts`](../ephemera/dataSource/positions/ludicGraph/healLudicGraphPortMismatch.ts), which re-reads both rows and re-classifies before writing.
 
+## Presence Cover Drift sweep (pointer-versus-cover diagnostics)
+
+**Purpose:** Read-only sweep for a whole whose presence-binding `cover` disagrees with its members' `fromHostPresence` pointers (the pointer governs; the cover is a stored index of it). Unlike the per-row sweeps it is **cross-row**: it reads every `Meta::Room`/`Feature`/`Area`/`Object`/`Character` row into one map and joins each whole with its members' rows.
+
+**Entrypoints:** direct invoke `{ type: 'PresenceCoverDriftSweep', optional diagnosticRunId, optional nowMs }`, normalized through `ingress.ts` and synthetic `api.diagnostics`; operator-invoked, no cron. Returns `{ emittedCount, ephemeraIds, unrepairable }`.
+
+**Finding contract:** `mtw.diagnostics` / `Presence Cover Drift Finding`, payload `{ ephemeraId }`, the **whole**. Emitted only when a remainder-free binding's stored cover differs from the one rebuilt from member pointers (`coverRebuildsFor`), which is what the heal can rewrite. Everything the heal cannot repair without minting a binding (a member with no binding, a duplicated or stale member binding, a whole with members and no remainder) is listed under `unrepairable` in the result and never emitted, so a clean run still reads `emittedCount: 0`. Read `unrepairable` as the follow-up list.
+
+**Evaluation:** [`classification.ts`](presenceCoverDriftSweep/classification.ts) adapts raw rows to the shared comparison in `@tonylb/mtw-gateways` ([`classifyPresenceCoverDrift.ts`](../../packages/mtw-gateways/ts/ephemera/positions/classifyPresenceCoverDrift.ts)), the same one the heal rechecks with. Implementation: [`presenceCoverDriftSweep/`](presenceCoverDriftSweep/).
+
+**Downstream handling:** `template.yaml`'s `mtw.diagnostics` rule carries the detail-type; ephemera consumes it via [`healPresenceCover`](../ephemera/dataSource/positions/manipulation/containment/healPresenceCover.ts).
+
 ## Containment Population Drift sweep (presence-binding shape diagnostics)
 
 **Purpose:** Read-only sweep for Room and Feature presence bindings that cache-time containment population would now write differently. It is the no-diff rerun path into that population: `cacheAsset` emits `Component Updated` only for components in its diff, so an unchanged asset never reaches population again, and a binding stored in an older shape would otherwise stay that way.

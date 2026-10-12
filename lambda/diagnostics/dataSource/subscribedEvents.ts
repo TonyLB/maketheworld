@@ -46,6 +46,15 @@ const isDiagnosticsApiContainmentPopulationDriftSweepHeader: HeaderGuard<Diagnos
     header.dataSourceKey === 'api.diagnostics' && header.type === 'ContainmentPopulationDriftSweep'
 )
 
+export type DiagnosticsApiPresenceCoverDriftSweepHeader =
+    StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'PresenceCoverDriftSweep' }
+
+const isDiagnosticsApiPresenceCoverDriftSweepHeader: HeaderGuard<DiagnosticsApiPresenceCoverDriftSweepHeader> = (
+    header
+): header is DiagnosticsApiPresenceCoverDriftSweepHeader => (
+    header.dataSourceKey === 'api.diagnostics' && header.type === 'PresenceCoverDriftSweep'
+)
+
 const isConnectionsProblemHeader: HeaderGuard<DiagnosticsConnectionsProblemHeader> = (
     header
 ): header is DiagnosticsConnectionsProblemHeader => (
@@ -131,7 +140,8 @@ export const isDiagnosticsSubscribedHeader: HeaderGuard<
     isDiagnosticsApiOrphanedImprovisedObjectSweepHeader(header) ||
     isDiagnosticsApiLudicGraphStaleStructureSweepHeader(header) ||
     isDiagnosticsApiLudicGraphPortMismatchSweepHeader(header) ||
-    isDiagnosticsApiContainmentPopulationDriftSweepHeader(header)
+    isDiagnosticsApiContainmentPopulationDriftSweepHeader(header) ||
+    isDiagnosticsApiPresenceCoverDriftSweepHeader(header)
 )
 
 export const isConnectionsProblemEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
@@ -193,6 +203,11 @@ export const isDiagnosticsApiContainmentPopulationDriftSweepEnvelope = makeStrea
     Extract<DiagnosticsAPIPayload, { type: 'ContainmentPopulationDriftSweep' }>,
     DiagnosticsApiContainmentPopulationDriftSweepHeader
 >(isDiagnosticsApiContainmentPopulationDriftSweepHeader)
+
+export const isDiagnosticsApiPresenceCoverDriftSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    Extract<DiagnosticsAPIPayload, { type: 'PresenceCoverDriftSweep' }>,
+    DiagnosticsApiPresenceCoverDriftSweepHeader
+>(isDiagnosticsApiPresenceCoverDriftSweepHeader)
 
 export const isDiagnosticsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ConnectionsSessionDisconnectProblemEvent | EphemeraObjectsSpawnCompensationProblemEvent | PlayerStaleSessionProblemEvent | DiagnosticsAPIPayload,
