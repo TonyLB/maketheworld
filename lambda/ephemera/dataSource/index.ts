@@ -26,10 +26,12 @@ const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { hea
     // Duck-typed on `ludicGraph` rather than switched on `component.tag`, so any host kind whose
     // component authors nested nodes participates with no change here. That scale-invariance is deliberate, and is contracted in
     // `positions/AGENT.contract.md`'s `Component Updated` ingress section.
+    // A Room is populated even with no nested nodes: its hostless remainder is the root of its
+    // presence tree, which every room keeps (`roomRootStep`).
     const { component } = content
     if (isEphemeraMembershipHostId(componentId) && 'ludicGraph' in component) {
         const nodes = (component as { ludicGraph: { nodes: { payload: readonly { universalKey?: string }[] } } }).ludicGraph.nodes.payload
-        if (nodes.length > 0) {
+        if (nodes.length > 0 || isEphemeraRoomId(componentId)) {
             await populateContainmentAtCache(componentId, nodes, { messageBus })
         }
     }

@@ -14,6 +14,10 @@ jest.mock('./manipulation/membership/repairRoomOccupancyDrift', () => ({
     repairRoomOccupancyDrift: jest.fn(),
 }))
 
+jest.mock('./manipulation/containment/healContainmentPopulation', () => ({
+    healContainmentPopulation: jest.fn(),
+}))
+
 jest.mock('../../internalCache', () => ({
     __esModule: true,
     default: {
@@ -32,6 +36,9 @@ import { orchestrateCharacterMove } from './navigate/orchestrateCharacterMove'
 import { resolveConnectTargetRoom } from './manipulation/membership/resolveConnectTargetRoom'
 import { repairRoomOccupancyDrift } from './manipulation/membership/repairRoomOccupancyDrift'
 import { commitAttempt } from './manipulation/commitAttempt'
+import { healContainmentPopulation } from './manipulation/containment/healContainmentPopulation'
+import { DiagnosticsEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
+import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/dataSource/nodeEnvironment'
 import { CommandAttempt, type CommandAttemptData } from '../actions/commandAttempt'
 
 import './index'
@@ -313,6 +320,32 @@ describe('positions receive paths (integration)', () => {
             )
             expect(orchestrateCharacterMoveMock).not.toHaveBeenCalled()
             expect(resolveConnectTargetRoomMock).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('Containment Population Drift Finding', () => {
+        it('routes the serialized mtw.diagnostics finding through healContainmentPopulation for its parent', async () => {
+            const serializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
+            const header = { dataSourceKey: 'mtw.diagnostics', streamKey: 'global', timestamp: Date.now(), type: 'Containment Population Drift Finding' }
+            const wire = serializer.serialize({
+                header: header as any,
+                content: {
+                    type: 'Containment Population Drift Finding',
+                    ephemeraId: 'AREA#Overworld',
+                    diagnosticRunId: 'diag-cpd',
+                    timestamp: '2026-10-11T10:00:00.000Z',
+                },
+            })
+            const content = await serializer.deserialize({ header: header as any, content: JSON.parse(JSON.stringify(wire)) })
+            publishPositionsStreamingEvent('mtw.diagnostics', 'Containment Population Drift Finding', content as object)
+
+            await messageBus.flushAndSettle()
+
+            expect(healContainmentPopulation).toHaveBeenCalledWith(
+                'AREA#Overworld',
+                expect.objectContaining({ messageBus: expect.any(Object), streamEvent: expect.any(Function) })
+            )
+            expect(repairRoomOccupancyDriftMock).not.toHaveBeenCalled()
         })
     })
 })

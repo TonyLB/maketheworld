@@ -10,6 +10,7 @@ import {
     isPlayerMisalignmentFindingEvent,
     isComponentVerticalMisalignedFindingEvent,
     isLudicGraphStaleStructureFindingEvent,
+    isContainmentPopulationDriftFindingEvent,
     isLudicGraphPortMismatchFindingEvent,
     isWMLMaterializedViewFindingEvent,
     isDiagnosticsEventUpdate
@@ -1153,6 +1154,19 @@ describe('DiagnosticsEventSerializer', () => {
             })
         })
 
+        describe('isContainmentPopulationDriftFindingEvent', () => {
+            it('accepts a membership-host parent and rejects anything else', () => {
+                expect(isContainmentPopulationDriftFindingEvent({
+                    type: 'Containment Population Drift Finding',
+                    ephemeraId: 'AREA#Downtown',
+                    diagnosticRunId: 'run-1',
+                    timestamp: '2025-10-18T12:00:00.000Z'
+                })).toBe(true)
+                expect(isContainmentPopulationDriftFindingEvent({ type: 'Containment Population Drift Finding', ephemeraId: 'BOGUS#x' })).toBe(false)
+                expect(isContainmentPopulationDriftFindingEvent({ type: 'Ludic Graph Stale Structure Finding', ephemeraId: 'ROOM#Kitchen' })).toBe(false)
+            })
+        })
+
         describe('isLudicGraphPortMismatchFindingEvent', () => {
             it('should return true for valid Ludic Graph Port Mismatch Finding event', () => {
                 const event = {
@@ -1376,6 +1390,34 @@ describe('DiagnosticsEventSerializer', () => {
             })
 
             expect(deserialized).toEqual(original)
+        })
+
+        it('should round-trip Containment Population Drift Finding', async () => {
+            const original: DiagnosticsEventUpdate = {
+                type: 'Containment Population Drift Finding',
+                ephemeraId: 'ROOM#Kitchen',
+                diagnosticRunId: 'run-cpd-rt',
+                timestamp: '2025-10-18T18:24:00.000Z'
+            }
+
+            const external = serializer.serialize({
+                content: original,
+                header: diagnosticsHeader('Containment Population Drift Finding')
+            })
+            const deserialized = await serializer.deserialize({
+                content: external,
+                header: diagnosticsHeader('Containment Population Drift Finding')
+            })
+
+            expect(deserialized).toEqual(original)
+        })
+
+        it('should return null for Containment Population Drift Finding with invalid ephemeraId', async () => {
+            const deserialized = await serializer.deserialize({
+                content: { type: 'Containment Population Drift Finding', ephemeraId: 'BOGUS#x' },
+                header: diagnosticsHeader('Containment Population Drift Finding')
+            })
+            expect(deserialized).toBeNull()
         })
 
         it('should round-trip Ludic Graph Port Mismatch Finding', async () => {

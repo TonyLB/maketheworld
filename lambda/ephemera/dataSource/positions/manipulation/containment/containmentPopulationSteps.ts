@@ -4,19 +4,43 @@ import { isEphemeraAreaId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/ba
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalsEqual, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf, parentHostOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf } from '../../ludicGraph/presenceParent'
 import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelStep, MutationKernelTransferStep } from '../kernel/kernelStep'
+
+/**
+ * The room rule's root (PR-21(f)): every room keeps exactly one hostless remainder, the root of its
+ * presence tree, whether or not anything is contained in it or it sits in an Area. Returns the step
+ * that mints it and the graph as it will read once minted, so the room's children (computed against
+ * that graph) point at the same remainder; a room that already has one, or a non-room, is unchanged.
+ */
+export const roomRootStep = (
+    parentId: EphemeraMembershipHostId,
+    parentGraph: EphemeraLudicGraph
+): { step?: MutationKernelAddPresenceBindingStep; graph: EphemeraLudicGraph } => {
+    if (!isEphemeraRoomId(parentId) || hostlessRemainderOf(parentGraph)) {
+        return { graph: parentGraph }
+    }
+    const presenceUuid = uuidv4()
+    return {
+        step: { kind: 'addPresenceBinding', hostId: parentId, presenceUuid },
+        graph: parentGraph.addPresenceNode({
+            tag: 'Presence',
+            universalKey: PresenceKey(presenceUuid) as EphemeraPresenceNodeId,
+            cover: remainderCover(),
+        }),
+    }
+}
 
 /**
  * The pure step-computer for cache-time containment authoring (Room-in-Area, Feature-in-Room,
  * Feature-in-Feature); the contract it implements is in `../../AGENT.contract.md`'s
  * `Component Updated` ingress section. Takes both graphs
- * already fetched, so the idempotency obligation --- `cacheAsset` reruns frequently over state that
- * already reflects a prior write --- is met by checking current state here rather than relying on
+ * already fetched, so the idempotency obligation --- a re-cached parent or a drift-finding heal reruns over
+ * state that already reflects a prior write --- is met by checking current state here rather than relying on
  * the reducer to absorb a replay (neither `transferMembership`'s pure-add branch nor
  * `addPresenceBinding` is safe to replay unconditionally --- see this directory's callers).
  *
@@ -27,8 +51,8 @@ import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresence
  * - **Node membership**: emitted only if `childId` is not already a node of `parentGraph`.
  * - **Presence binding** (three states): absent (no binding of `childGraph` points at `parentId`)
  *   adds one; present in the wrong shape (host-only pointer, a room's remainder at its Area)
- *   emits `repairPresenceBinding`, in place and keeping the id; correct emits nothing. Also mints
- *   a room parent's single hostless remainder when it has none, for children to point at.
+ *   emits `repairPresenceBinding`, in place and keeping the id; correct emits nothing. A room
+ *   parent's remainder is `roomRootStep`'s, minted once per parent before any child is computed.
  * - **Containment edge**: emitted only if `parentGraph` carries no `PartOf` edge from `childId` to
  *   `parentId` already. `establishRelation`'s `op: 'add'` is already idempotent-safe on an existing
  *   edge (`EphemeraLudicGraph.applyRelationalPatch`) --- this check isn't load-bearing for
@@ -66,21 +90,11 @@ export const containmentPopulationSteps = (
         steps.push(nodeStep)
     }
 
-    // The parent binding children sit under: a room's hostless remainder (minted here when absent
-    // --- the room rule, PR-21(f)), else the parent's only binding. An Area holds none, and a
+    // The parent binding children sit under: a room's hostless remainder (`roomRootStep`, applied
+    // to `parentGraph` by the caller), else the parent's only binding. An Area holds none, and a
     // Feature parent not yet bound names none; the pointer then carries the host alone and a later
     // run repairs it once the parent binding exists.
-    let parentPresence = isEphemeraAreaId(parentId) ? undefined : childParentBindingIdOf(parentGraph)
-    if (!parentPresence && isEphemeraRoomId(parentId)) {
-        const remainderUuid = uuidv4()
-        const remainderStep: MutationKernelAddPresenceBindingStep = {
-            kind: 'addPresenceBinding',
-            hostId: parentId,
-            presenceUuid: remainderUuid,
-        }
-        steps.push(remainderStep)
-        parentPresence = PresenceKey(remainderUuid) as EphemeraPresenceNodeId
-    }
+    const parentPresence = isEphemeraAreaId(parentId) ? undefined : childParentBindingIdOf(parentGraph)
     const fromHostPresence: EphemeraPresenceParentPointer = parentPresence ? { host: parentId, presence: parentPresence } : { host: parentId }
     // A room's binding into its Area is a carve-out with no members, so the bucket is the room itself.
     const wantedCover = isEphemeraRoomId(childId) && isEphemeraAreaId(parentId) ? { members: [] } : undefined

@@ -638,6 +638,7 @@ Resources:
               detail-type:
                 - Ludic Graph Stale Structure Finding
                 - Ludic Graph Port Mismatch Finding
+                - Containment Population Drift Finding
   DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

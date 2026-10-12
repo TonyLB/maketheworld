@@ -399,7 +399,7 @@ export type EphemeraPresenceCoverRemainder = { tag: 'Remainder' }
  * `Remainder` sentinel. `{ members: [Remainder] }` is what the retired `{ tag: 'Full' }` meant.
  * Every whole keeps at least one remainder (so a member added later still lands in a bucket); a
  * room keeps exactly one, hostless. Legacy stored `{ tag: 'Full' }` / `{ tag: 'Enumerated' }` is
- * still READ (`normalizeEphemeraPresenceCover`) until the Slice 4 `cacheAsset` rerun rewrites it.
+ * still READ (`normalizeEphemeraPresenceCover`) until the `ContainmentPopulationDriftSweep` migration rewrites it.
  */
 export type EphemeraPresenceCover = {
     members: (EphemeraPresenceCoverEntry | EphemeraPresenceCoverRemainder)[];
@@ -433,8 +433,8 @@ export const normalizeEphemeraPresenceCover = (cover: EphemeraPresenceCover | { 
  * under. The child's pointer governs; the parent's cover is a stored index of it. Absent means a
  * hostless remainder (a room, an unplaced or offline whole).
  *
- * `fromHostId` is the RETIRED host-only locator, still read (never written) until the Slice 4
- * `cacheAsset` rerun has rewritten stored bindings.
+ * `fromHostId` is the RETIRED host-only locator, still read (never written) until the
+ * `ContainmentPopulationDriftSweep` migration has rewritten stored bindings.
  */
 export type EphemeraPresenceParentPointer = {
     host: EphemeraMembershipHostId;

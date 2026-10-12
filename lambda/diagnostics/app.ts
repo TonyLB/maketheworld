@@ -18,6 +18,7 @@ export const handler = async (event) => {
             'OrphanedImprovisedObjectSweep',
             'LudicGraphStaleStructureSweep',
             'LudicGraphPortMismatchSweep',
+            'ContainmentPopulationDriftSweep',
         ].includes(event?.type)
     ) {
         await routeDiagnosticsIngress(event)

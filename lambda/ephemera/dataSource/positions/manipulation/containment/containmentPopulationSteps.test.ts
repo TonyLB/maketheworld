@@ -1,7 +1,8 @@
 import type { EphemeraAreaId, EphemeraFeatureId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
-import { containmentPopulationSteps } from './containmentPopulationSteps'
+import { hostlessRemainderOf } from '../../ludicGraph/presenceParent'
+import { containmentPopulationSteps, roomRootStep } from './containmentPopulationSteps'
 
 const AREA_ID = 'AREA#Overworld' as EphemeraAreaId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -74,26 +75,23 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding', 'establishRelation'])
     })
 
-    describe('the room rule: a room parent keeps one hostless remainder, which its children point at', () => {
-        it('mints the room remainder, then points the Feature at it, when the room has none', () => {
-            const parentGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Feature', universalKey: FEATURE_ID }] })
-            const childGraph = testLudicGraph(FEATURE_ID, { nodes: [] })
+    describe('the room rule: every room keeps one hostless remainder, which its children point at', () => {
+        it('roomRootStep mints the remainder for a room with none, and the returned graph already holds it', () => {
+            const { step, graph } = roomRootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [] }))
 
-            const steps = containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph)
-
-            const remainder = steps[0] as any
-            const binding = steps[1] as any
-            expect(remainder).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, presenceUuid: expect.any(String) })
-            expect(remainder.fromHostPresence).toBeUndefined()
-            expect(binding).toEqual({
-                kind: 'addPresenceBinding',
-                hostId: FEATURE_ID,
-                fromHostPresence: { host: ROOM_ID, presence: `PRESENCE#${remainder.presenceUuid}` },
-                presenceUuid: expect.any(String),
-            })
+            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, presenceUuid: expect.any(String) })
+            expect(hostlessRemainderOf(graph)?.universalKey).toBe(`PRESENCE#${step!.presenceUuid}`)
         })
 
-        it('reuses the existing hostless remainder: no second one is minted', () => {
+        it('roomRootStep leaves a room that has one, and any non-room, unchanged', () => {
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode('room-remainder')] })
+            const featureGraph = testLudicGraph(FEATURE_ID, { nodes: [] })
+
+            expect(roomRootStep(ROOM_ID, roomGraph)).toEqual({ graph: roomGraph })
+            expect(roomRootStep(FEATURE_ID, featureGraph)).toEqual({ graph: featureGraph })
+        })
+
+        it('points a Feature at the room\'s remainder and mints no second one', () => {
             const remainder = presenceBindingNode('room-remainder')
             const parentGraph = testLudicGraph(ROOM_ID, { nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID }] })
             const childGraph = testLudicGraph(FEATURE_ID, { nodes: [] })

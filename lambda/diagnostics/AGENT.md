@@ -199,6 +199,21 @@ Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemer
 
 **Downstream handling:** `EphemeraFunction`'s `template.yaml` `Events:` block carries the detail-type on its `mtw.diagnostics` rule; ephemera `mtw.ephemera.positions` repairs via [`healLudicGraphPortMismatch.ts`](../ephemera/dataSource/positions/ludicGraph/healLudicGraphPortMismatch.ts), which re-reads both rows and re-classifies before writing.
 
+## Containment Population Drift sweep (presence-binding shape diagnostics)
+
+**Purpose:** Read-only sweep for Room and Feature presence bindings that cache-time containment population would now write differently. It is the no-diff rerun path into that population: `cacheAsset` emits `Component Updated` only for components in its diff, so an unchanged asset never reaches population again, and a binding stored in an older shape would otherwise stay that way.
+
+**Entrypoints:**
+
+- Direct invoke: `{ type: 'ContainmentPopulationDriftSweep', optional diagnosticRunId, optional nowMs }`, normalized through `ingress.ts` and synthetic `api.diagnostics` ([`dataSource/index.ts`](dataSource/index.ts)).
+- No `mtw.diagnostics` EventBridge trigger and no scheduled/cron trigger; operator-invoked, like its siblings.
+
+**Finding contract:** `mtw.diagnostics` / `Containment Population Drift Finding` with payload `{ ephemeraId: EphemeraMembershipHostId }`, the **parent** host, since population is keyed on the parent. Optional `diagnosticRunId` for sweep correlation. Emission uses `publishStreamEvent` + `DiagnosticsEventSerializer` and an inline `EventBridgeClient`. Implementation: [`containmentPopulationDriftSweep/`](containmentPopulationDriftSweep/).
+
+**Evaluation:** Scans `Meta::Room` and `Meta::Feature` (the child kinds population binds) and classifies each row's raw presence nodes via [`classification.ts`](containmentPopulationDriftSweep/classification.ts)'s `containmentDriftParentsOf`: a legacy host-only `fromHostId`; a pointer naming no parent binding when the parent is not an Area; or a Room's Area binding that is not an empty-member carve-out. A Room with no hostless remainder (the root of its presence tree, which every room keeps) is flagged with the Room itself as the parent, including a Room row with no stored graph. Emits one finding per drifted parent, deduplicated and sorted. The classifier is **deliberately a superset** of the population's own wrong-shape test, because the consumer rechecks: a false positive costs a no-op heal. Character and Object bindings are not classified, since this heal cannot repair them.
+
+**Downstream handling:** `EphemeraFunction`'s `template.yaml` `mtw.diagnostics` rule carries the detail-type; ephemera `mtw.ephemera.positions` consumes it via [`healContainmentPopulation`](../ephemera/dataSource/positions/manipulation/containment/healContainmentPopulation.ts), which reruns `populateContainmentAtCache` for the parent's existing `PartOf` Room/Feature children. A second sweep reading `emittedCount: 0` confirms every heal landed. Pointer-versus-cover drift and the cover-rebuild heal are not this sweep's; they extend this path later.
+
 ## Related docs
 
 - Diagnostics **`internalCache`** slice (sweep read handlers): [`internalCache/AGENT.md`](internalCache/AGENT.md)
