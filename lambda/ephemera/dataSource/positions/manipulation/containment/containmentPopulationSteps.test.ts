@@ -1,4 +1,4 @@
-import type { EphemeraAreaId, EphemeraFeatureId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import { hostlessRemainderOf } from '../../ludicGraph/presenceParent'
@@ -7,6 +7,9 @@ import { containmentPopulationSteps, roomRootStep } from './containmentPopulatio
 const AREA_ID = 'AREA#Overworld' as EphemeraAreaId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const FEATURE_ID = 'FEATURE#Counter' as EphemeraFeatureId
+const OBJECT_ID = 'OBJECT#Cup' as EphemeraObjectId
+const SHELF_ID = 'OBJECT#Shelf' as EphemeraObjectId
+const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 // A room's Area binding is a carve-out: pointer at the Area (which holds no binding), no members.
 const areaCarveOut = (name = 'binding-1') => presenceBindingNode(name, { host: AREA_ID }, { members: [] })
@@ -166,6 +169,70 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             })
 
             expect(containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph)).toEqual([])
+        })
+    })
+
+    describe('authored Objects: placed In the parent, only if not live anywhere', () => {
+        const remainder = presenceBindingNode('room-remainder')
+
+        it('places an Object under a Room: node, binding at the remainder, and an In edge', () => {
+            const parentGraph = testLudicGraph(ROOM_ID, { nodes: [remainder] })
+            const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
+
+            expect(containmentPopulationSteps(ROOM_ID, OBJECT_ID, parentGraph, childGraph)).toEqual([
+                { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
+                { kind: 'addPresenceBinding', hostId: OBJECT_ID, fromHostPresence: { host: ROOM_ID, presence: remainder.universalKey }, presenceUuid: expect.any(String) },
+                { kind: 'establishRelation', subjectId: OBJECT_ID, targetId: ROOM_ID, hostId: ROOM_ID, relationKind: 'In' },
+            ])
+        })
+
+        it('places an Object under an Object', () => {
+            const shelfBinding = presenceBindingNode('shelf-binding', ROOM_ID)
+            const parentGraph = testLudicGraph(SHELF_ID, { nodes: [shelfBinding] })
+            const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
+
+            expect(containmentPopulationSteps(SHELF_ID, OBJECT_ID, parentGraph, childGraph)).toEqual([
+                expect.objectContaining({ kind: 'transferMembership', toHostId: SHELF_ID }),
+                expect.objectContaining({ kind: 'addPresenceBinding', fromHostPresence: { host: SHELF_ID, presence: shelfBinding.universalKey } }),
+                expect.objectContaining({ kind: 'establishRelation', relationKind: 'In', targetId: SHELF_ID }),
+            ])
+        })
+
+        it('places an Object under a Character by the same rule, with no character branch', () => {
+            const parentGraph = testLudicGraph(CHARACTER_ID, { nodes: [] })
+            const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
+
+            const steps = containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, parentGraph, childGraph)
+
+            expect(steps.map((step) => step.kind)).toEqual(['transferMembership', 'addPresenceBinding', 'establishRelation'])
+            expect(steps[2]).toEqual(expect.objectContaining({ relationKind: 'In', targetId: CHARACTER_ID }))
+        })
+
+        it('emits nothing on a rerun over populated state', () => {
+            const parentGraph = testLudicGraph(ROOM_ID, {
+                nodes: [remainder, { tag: 'Object', universalKey: OBJECT_ID }],
+                edges: [{ tag: 'Relational', from: OBJECT_ID, to: ROOM_ID, kind: 'In' }],
+            })
+            const childGraph = testLudicGraph(OBJECT_ID, {
+                nodes: [presenceBindingNode('cup-binding', { host: ROOM_ID, presence: remainder.universalKey })],
+            })
+
+            expect(containmentPopulationSteps(ROOM_ID, OBJECT_ID, parentGraph, childGraph)).toEqual([])
+        })
+
+        it('does not put an Object back after a player moved it out', () => {
+            const parentGraph = testLudicGraph(ROOM_ID, { nodes: [remainder] })
+            const childGraph = testLudicGraph(OBJECT_ID, { nodes: [presenceBindingNode('cup-binding', CHARACTER_ID)] })
+
+            expect(containmentPopulationSteps(ROOM_ID, OBJECT_ID, parentGraph, childGraph)).toEqual([])
+        })
+
+        it('leaves an Object where it is live when the author lists it under another parent', () => {
+            const roomB = 'ROOM#Kitchen' as EphemeraRoomId
+            const parentGraph = testLudicGraph(roomB, { nodes: [presenceBindingNode('kitchen-remainder')] })
+            const childGraph = testLudicGraph(OBJECT_ID, { nodes: [presenceBindingNode('cup-binding', ROOM_ID)] })
+
+            expect(containmentPopulationSteps(roomB, OBJECT_ID, parentGraph, childGraph)).toEqual([])
         })
     })
 })

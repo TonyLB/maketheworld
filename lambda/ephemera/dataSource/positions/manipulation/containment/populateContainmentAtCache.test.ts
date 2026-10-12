@@ -35,11 +35,24 @@ describe('populateContainmentAtCache', () => {
         ;(commitStepSequence as jest.Mock).mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
     })
 
-    it('ignores child references that are not Room or Feature ids', async () => {
+    it('ignores child references that are not Room, Feature or Object ids', async () => {
         await populateContainmentAtCache(AREA_ID, [{ universalKey: 'CHARACTER#Alpha' }], { messageBus, streamEvent })
 
         expect(internalCache.Positions.getLudicGraph).not.toHaveBeenCalled()
         expect(commitStepSequence).not.toHaveBeenCalled()
+    })
+
+    it('batches a Room, a Feature and an Object into one commit', async () => {
+        const parentGraph = testLudicGraph(AREA_ID, { nodes: [] })
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            hostId === AREA_ID ? parentGraph : testLudicGraph(hostId as any, { nodes: [] })
+        )
+
+        await populateContainmentAtCache(AREA_ID, [{ universalKey: ROOM_A }, { universalKey: FEATURE_A }, { universalKey: 'OBJECT#Cup' }], { messageBus, streamEvent })
+
+        expect(commitStepSequence).toHaveBeenCalledTimes(1)
+        const [{ steps }] = (commitStepSequence as jest.Mock).mock.calls[0]
+        expect(steps.filter((step: any) => step.kind === 'establishRelation').map((step: any) => step.relationKind)).toEqual(['PartOf', 'PartOf', 'In'])
     })
 
     it('does nothing when every named child is already fully populated', async () => {

@@ -1,5 +1,5 @@
-import type { EphemeraFeatureId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 
@@ -14,7 +14,7 @@ import { containmentPopulationSteps, roomRootStep } from './containmentPopulatio
 /**
  * The shape a `ludicGraph.nodes` entry carries regardless of which of `StandardReference`'s two
  * serialized forms it took (`ComponentUUID` string, or `{key, universalKey, tag}` object) --- both
- * already carry the fully-prefixed `EphemeraId` (`ROOM#...`/`FEATURE#...`) in `universalKey`, so no
+ * already carry the fully-prefixed `EphemeraId` (`ROOM#...`/`FEATURE#...`/`OBJECT#...`) in `universalKey`, so no
  * separate tag-to-prefix resolution step is needed here.
  */
 export type ContainmentChildReference = { universalKey?: string } | string
@@ -50,8 +50,8 @@ export const populateContainmentAtCache = async (
 ): Promise<void> => {
     const childIds = childReferences
         .map(universalKeyOf)
-        .filter((key): key is EphemeraRoomId | EphemeraFeatureId =>
-            typeof key === 'string' && (isEphemeraRoomId(key) || isEphemeraFeatureId(key))
+        .filter((key): key is EphemeraRoomId | EphemeraFeatureId | EphemeraObjectId =>
+            typeof key === 'string' && (isEphemeraRoomId(key) || isEphemeraFeatureId(key) || isEphemeraObjectId(key))
         )
 
     // A room is populated even with no children: its hostless remainder is the root of its

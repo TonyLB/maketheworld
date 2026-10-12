@@ -2,18 +2,20 @@ import EphemeraDataSource from './abstract'
 import { EphemeraEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera'
 import { AssetsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import messageBus from '../messageBus'
-import { isEphemeraRoomId, isEphemeraAssetId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraRoomId, isEphemeraAssetId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     EphemeraIncomingEvent,
     EphemeraSubscribedContent,
     isEphemeraSubscribedEnvelope,
     isEphemeraComponentEnvelope,
+    isEphemeraComponentRemovedEnvelope,
     isEphemeraCanonUpdatedEnvelope,
     isEphemeraZoneUpdatedEnvelope,
 } from './subscribedEvents'
 import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroadcast'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { populateContainmentAtCache } from './positions/manipulation/containment/populateContainmentAtCache'
+import { removeAuthoredObject } from './positions/manipulation/containment/removeAuthoredObject'
 
 const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Component Updated' } }>): Promise<void> => {
     const content = await evt.getContent()
@@ -34,6 +36,17 @@ const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { hea
         if (nodes.length > 0 || isEphemeraRoomId(componentId)) {
             await populateContainmentAtCache(componentId, nodes, { messageBus })
         }
+    }
+}
+
+// Cache-time removal is for Objects only: Rooms and Features never move, so the contract's removal
+// deferral still holds for them. See `positions/AGENT.contract.md`'s `Component Updated` section.
+const processComponentRemoved = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Component Removed' } }>): Promise<void> => {
+    const content = await evt.getContent()
+    if (!content) return
+    const componentId = content.component.universalKey || ''
+    if (isEphemeraObjectId(componentId)) {
+        await removeAuthoredObject(componentId, { messageBus })
     }
 }
 
@@ -69,6 +82,10 @@ export const ephemeraDataSource = new EphemeraDataSource<never, AssetsEventUpdat
         await Promise.all(events.map(async (evt) => {
             if (isEphemeraComponentEnvelope(evt)) {
                 await processComponentUpdated(evt)
+                return
+            }
+            if (isEphemeraComponentRemovedEnvelope(evt)) {
+                await processComponentRemoved(evt)
                 return
             }
             if (isEphemeraCanonUpdatedEnvelope(evt)) {
