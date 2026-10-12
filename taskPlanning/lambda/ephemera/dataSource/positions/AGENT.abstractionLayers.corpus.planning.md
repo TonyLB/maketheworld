@@ -425,7 +425,7 @@ Under ports there is exactly **one** system graph either way, and the rope is no
 | **Tag that does not bear presence** (PR-9's anticipated route) | Nowhere, legitimately, because its tag is exempt | Needs an `IntangibleObject`-style kind. Intangibility becomes a property of the kind, not of the thing's place in this whole |
 | **Every terminal's bucket** | In the lab, the mess and the airlock | Claims physical presence for what is only access. Presence is not apprehension, and this conflates them |
 | **No bucket** (PR-1's hostless reading does not apply: the computer is hosted) | Nowhere, as a totality violation | PR-9's guards say a node in no bucket is a bug, never grounds for reclassifying it |
-| **The computer's hostless remainder** ([PR-21](AGENT.presence.planning.md#open-decisions-design--plan-only)) | In the remainder, which has no host; each terminal is a carve-out bound to its room | --- |
+| **The computer's hostless remainder** ([PR-21](AGENT.presence.planning.md#settled-register)) | In the remainder, which has no host; each terminal is a carve-out bound to its room | --- |
 
 **Only the remainder reading keeps totality, keeps the library an ordinary `OBJECT#`, and claims no false presence.** It also states the choice the modeller is making: hosting the computer's remainder in the server room would put the library in the server room, which is a different and equally expressible story.
 

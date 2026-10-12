@@ -121,7 +121,7 @@ const defaultEmitFinding = async (args: {
 }
 
 /**
- * Read-only diagnostics sweep for pointer-versus-cover drift (presenceRemainder Slice 6): a
+ * Read-only diagnostics sweep for pointer-versus-cover drift (the contract's presence cover drift self-heal): a
  * member's `fromHostPresence` governs, and the whole's `cover` is a stored index of it. Joins each
  * whole's row with its members' rows (`classification.ts`; the comparison is shared with the heal).
  *
