@@ -227,40 +227,6 @@ describe('diagnostics handler', () => {
         expect(result).toEqual({ emittedCount: 1, objectIds: ['OBJECT#Skates'] })
     })
 
-    it('invokes orphanedImprovisedObjectSweep for mtw.ephemera.objects Spawn Compensation Problem', async () => {
-        await handler({
-            source: 'mtw.ephemera.objects',
-            'detail-type': 'Spawn Compensation Problem',
-            detail: {
-                objectId: 'OBJECT#Skates',
-                targetRoomId: 'ROOM#Cafe',
-                sourceOperation: 'spawnOneImprovisationObject',
-                placementError: 'placement failed',
-                deleteError: 'delete failed',
-                attemptCount: 1,
-                dedupeKey: 'OBJECT#Skates::spawnCompensation::1',
-            },
-        })
-
-        expect(orphanedImprovisedObjectSweep).toHaveBeenCalledWith({ objectIds: ['OBJECT#Skates'] })
-    })
-
-    it('drops malformed mtw.ephemera.objects Spawn Compensation Problem payloads without throwing', async () => {
-        await expect(handler({
-            source: 'mtw.ephemera.objects',
-            'detail-type': 'Spawn Compensation Problem',
-            detail: {
-                objectId: 'OBJECT#Skates',
-                targetRoomId: 'ROOM#Cafe',
-                sourceOperation: 'spawnOneImprovisationObject',
-                placementError: 'placement failed',
-                attemptCount: 1,
-            },
-        })).resolves.toBeUndefined()
-
-        expect(orphanedImprovisedObjectSweep).not.toHaveBeenCalled()
-    })
-
     // Regression: the direct-invoke allow-list in app.ts named this type, but ingress.ts's
     // normalizeApiDiagnosticsIngress switch had no matching case, so the sweep silently never ran.
     it('invokes ludicGraphStaleStructureSweep for direct LudicGraphStaleStructureSweep type', async () => {

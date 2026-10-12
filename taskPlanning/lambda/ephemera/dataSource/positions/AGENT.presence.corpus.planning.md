@@ -310,7 +310,7 @@ Each root is in every bucket of its own graph by definition, per PR-9's point (4
 
 **Levels staged:** the crate (whole), the bees (its contents), and the room it lands in.
 
-**Today's model, and where it stops.** An order becomes one object per catalog line; the harness expects one line, `bees`, so the crate as a container is never built. Each object is created and then placed directly into a room by [`spawnOneImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts): it writes the object's rows, calls `executeMembershipTransfer`, and **if placement fails, deletes the object again** (and reports a problem if the delete fails too). That compensating delete exists because *created but not placed* is not a legal state.
+**Today's model, and where it stops.** An order becomes one object per catalog line; the harness expects one line, `bees`, so the crate as a container is never built. Each object is created and placed directly into a room by [`spawnOneImprovisationObject`](../../../../../lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) in **one kernel commit** ([`executeComponentCreation`](../../../../../lambda/ephemera/dataSource/positions/manipulation/membership/executeComponentCreation.ts)): a `createComponent` step writes the object born holding a hostless remainder, and the placement re-points it into the room, so a failed placement writes nothing. *Created but not placed* is now a legal kernel state (`target: null`), but no caller uses it yet; the crate before delivery would be several `createComponent` steps in one sequence.
 
 | Reading | Before delivery | At delivery | If delivery fails |
 | --- | --- | --- | --- |

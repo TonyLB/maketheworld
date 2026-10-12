@@ -199,6 +199,16 @@ describe('factsForStep', () => {
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
+    it('a createComponent step yields no facts --- the placement that follows it announces arrival', () => {
+        const step: MutationKernelStep = {
+            kind: 'createComponent',
+            hostId: trayId,
+            presenceUuid: 'born',
+            meta: { EphemeraId: trayId, DataCategory: 'Meta::Object', stableKey: 'tray' },
+        }
+        expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
+    })
+
     it('addCrossingPort/removeCrossingPort steps yield no facts --- not a narration channel yet, same as the presence binding steps', () => {
         const addStep: MutationKernelStep = {
             kind: 'addCrossingPort',

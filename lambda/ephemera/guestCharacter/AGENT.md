@@ -13,7 +13,7 @@
 
 `writeGuestSituationFacet` reads the existing pair row first (`internalCache.ImprovisationComponentData.get`, the same read-through cache `persistImprovisationObject.ts` uses) and compares it against the desired `StandardCharacter` via `StandardComponent.equals()` (base-class `deepEqual` on `toJSON()`). It skips the `putItem` / memo-patch / render-cache-invalidation entirely when they already match. Every `Player Connected` is a reconnect as much as a first connect, so without this check every reconnect would perform an unconditional write plus a cache-invalidation query for a guest already up to date.
 
-**Rewrite semantics on mismatch are unconditional**, though --- there is nothing per-guest worth preserving on the row while prose is a single shared static slice, so a prose edit still reaches every existing guest on their next confirm. This would need revisiting (cf. `persistUpdateImprovisationObject`'s preserve-prior-`situations` fix) if per-guest generated prose ever lands.
+**Rewrite semantics on mismatch are unconditional**, though --- there is nothing per-guest worth preserving on the row while prose is a single shared static slice, so a prose edit still reaches every existing guest on their next confirm. This would need revisiting (cf. the improvised-object rule that an edit preserves prior `situations`, in [`objects/AGENT.md`](../dataSource/objects/AGENT.md)) if per-guest generated prose ever lands.
 
 On mismatch: `ephemeraDB.putItem`, `internalCache.ImprovisationComponentData.set` (memo-patch), then `queryAllRenderCacheDataCategoriesForComponent` + `sendDeleteCacheRecords` to clear stale `CACHE#`/`Cache::` rows so a repaired guest doesn't keep serving pre-repair render output.
 

@@ -12,6 +12,7 @@ import { edgeKindAndLabelFrom, relationKindAndLabelOf } from '@tonylb/mtw-interf
 type CrossingKindAndLabel = RelationalKindAndLabel<HostRelationalEdgeKind>
 
 import type { MutationKernelStep } from '../../../../positions/manipulation/kernel/kernelStep'
+import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep } from './executorTypes'
 import type { RelationalChainStep } from './findRelationalChain'
 
 const portFieldsFrom = (kindAndLabel: CrossingKindAndLabel): Pick<EphemeraCrossingPort, 'kind' | 'exteriorRelationLabel'> =>
@@ -131,13 +132,16 @@ export const lowerRelationalChain = (
 ): MutationKernelStep[] =>
     chain.map((step): MutationKernelStep => {
         if (step.type === 'edge') {
-            return {
+            // typed against the relational pair, not the whole step union: a union-valued `kind`
+            // only narrows against a small target union.
+            const relationalStep: ExecutorEstablishRelationStep | ExecutorDissolveRelationStep = {
                 kind: operationKind,
                 subjectId: step.edge.from,
                 targetId: step.edge.to,
                 hostId: step.hostId,
                 ...relationKindAndLabelOf(step.edge),
             }
+            return relationalStep
         }
         return operationKind === 'establishRelation'
             ? { kind: 'addCrossingPort', hostId: step.hostId, port: step.port }

@@ -648,6 +648,46 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
+    describe('createComponent', () => {
+        const createTray: MutationKernelStep = {
+            kind: 'createComponent',
+            hostId: trayId,
+            presenceUuid: 'born',
+            meta: { EphemeraId: trayId, DataCategory: 'Meta::Object', stableKey: 'tray' },
+        }
+
+        it('creates the host holding exactly one hostless remainder', () => {
+            const outcome = applyStepSequenceCore([createTray], new Map())
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('born')])
+        })
+
+        it('a placement later in the same sequence re-points that remainder, keeping its id', () => {
+            const roomGraph = testLudicGraph(roomId, { nodes: [presenceBindingNode(parentRemainderKey(roomId))] })
+            const steps: MutationKernelStep[] = [
+                createTray,
+                ...compilePositionKernelOp({ kind: 'move', moved: trayId, froms: [], to: roomId, header: null })
+                    .steps.filter(isKernelMutationStep),
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('born', roomId)])
+            expect(outcome.graphs.get(roomId)!.nodeIds.has(trayId)).toBe(true)
+        })
+
+        it('throws when the host is already in the footprint', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [] })
+
+            expect(() => applyStepSequenceCore([createTray], graphsMap([trayId, trayGraph]))).toThrow(/already in the footprint/)
+            expect(() => applyStepSequenceCore([createTray, createTray], new Map())).toThrow(/already in the footprint/)
+        })
+    })
+
     describe('presence binding steps (addPresenceBinding/rehostPresenceBinding)', () => {
         // presenceNodes Slice 7a (PN-23): these steps mint/remove the presence NODE directly ---
         // there is no port record any more, so `.ports` is untouched by any of this and only

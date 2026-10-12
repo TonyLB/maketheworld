@@ -70,7 +70,7 @@ export const coveredByBinding = (whole: PresenceGraphView): Map<string, Set<stri
  * `memberGraph` returns a member's own graph view, or `undefined` when it cannot be read; an
  * unreadable member is skipped (its absence is not drift this comparison can see).
  *
- * A member pointer with no `presence` (a parent with several bindings, PRm-5) is compared at host
+ * A member pointer with no `presence` (written into a parent with several bindings) is compared at host
  * grain only: it satisfies "bound into this whole" and is never a count mismatch.
  */
 export const classifyPresenceCoverDrift = (

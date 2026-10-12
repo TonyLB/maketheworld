@@ -1,18 +1,22 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
+import { isEphemeraObjectEmbedding } from '@tonylb/mtw-interfaces/ts/ephemeraEmbedding'
+import { isEphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { FacetListData } from '@tonylb/mtw-wml/ts/standardize/keys/abstract'
 import type { SituationProseFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
 
 import type { MessageBus } from '../../messageBus/baseClasses'
-import { executeMembershipTransfer } from '../positions/manipulation/membership/executeMembershipTransfer'
+import { executeComponentCreation } from '../positions/manipulation/membership/executeComponentCreation'
 import type { PositionsPublishedPayload } from '../positions/publishedEvents'
 import { buildShortNameSemanticEmbedding } from './embedding/buildShortNameSemanticEmbedding'
+import { objectEmbeddingPutItem } from './embedding/objectEmbeddingPutItem'
+import { invalidateImprovisationObjectCaches } from './invalidateImprovisationObjectCaches'
 import {
-    persistDeleteImprovisationObject,
-    persistSpawnImprovisationObject,
+    improvisationMetaRow,
+    improvisationPairComponent,
+    improvisationPairPutItem,
 } from './persistImprovisationObject'
-import { streamSpawnCompensationProblem } from './problemReports'
 
 export type SpawnImprovisationObjectRow = {
     objectId: EphemeraObjectId;
@@ -23,41 +27,36 @@ export type SpawnImprovisationObjectRow = {
     tropeAffinitiesFailed?: boolean;
     /** `SITUATION#DEFAULT` prose facet (Acme-generated); already-built merge-body shape, no generation here. */
     situations?: FacetListData<SituationProseFacetPayloadType>;
+    /** Short, reasoning-facing identity description (Acme-generated); absence is valid. */
+    gloss?: string;
 }
 
 export type SpawnOneImprovisationObjectDependencies = {
     messageBus: MessageBus;
     streamEvent: StreamEventFunction<PositionsPublishedPayload>;
     buildEmbedImpl?: typeof buildShortNameSemanticEmbedding;
-    spawnImpl?: typeof persistSpawnImprovisationObject;
-    applyMembershipImpl?: typeof executeMembershipTransfer;
-    deleteImpl?: typeof persistDeleteImprovisationObject;
-    streamProblemReport?: typeof streamSpawnCompensationProblem;
+    createImpl?: typeof executeComponentCreation;
 }
 
 /**
- * Two-step spawn coordinator: existence rows, then room placement via manipulation kernel.
+ * Spawn and place as one kernel commit (contract S1): the existence rows ride the same transaction
+ * as `createComponent` (the `Meta::Object` row, born holding a hostless remainder) and the
+ * placement that re-points that remainder into the room. A failed placement writes nothing, so
+ * there is nothing to compensate for.
  */
 export const spawnOneImprovisationObject = async (
     args: SpawnImprovisationObjectRow,
     deps: SpawnOneImprovisationObjectDependencies
 ): Promise<{ ok: true; objectId: EphemeraObjectId } | { ok: false; errorMessage: string }> => {
     const buildEmbed = deps.buildEmbedImpl ?? buildShortNameSemanticEmbedding
-    const spawnImpl = deps.spawnImpl ?? persistSpawnImprovisationObject
-    const applyMembershipImpl = deps.applyMembershipImpl ?? executeMembershipTransfer
-    const deleteImpl = deps.deleteImpl ?? persistDeleteImprovisationObject
-    const streamProblemReport = deps.streamProblemReport ?? streamSpawnCompensationProblem
+    const createImpl = deps.createImpl ?? executeComponentCreation
+
+    const meta = improvisationMetaRow(args)
+    if (!isEphemeraMetaObject(meta)) {
+        return { ok: false, errorMessage: `Invalid Meta::Object payload for ${args.objectId}` }
+    }
 
     const embedResult = await buildEmbed(args.shortName)
-    const spawnArgs = {
-        objectId: args.objectId,
-        shortName: args.shortName,
-        stableKey: args.stableKey,
-        tropeAffinities: args.tropeAffinities,
-        tropeAffinitiesFailed: args.tropeAffinitiesFailed,
-        situations: args.situations,
-        ...(embedResult.success ? { embedding: embedResult.embedding } : {}),
-    }
     if (!embedResult.success) {
         console.error('[mtw.ephemera.objects] shortName embed failed; spawning without embedding', {
             objectId: args.objectId,
@@ -65,41 +64,32 @@ export const spawnOneImprovisationObject = async (
             errorMessage: embedResult.errorMessage,
         })
     }
-
-    const spawnResult = await spawnImpl(spawnArgs)
-    if (!spawnResult.ok) {
-        return spawnResult
+    const embedding = embedResult.success ? embedResult.embedding : undefined
+    const embeddingItem = embedding ? objectEmbeddingPutItem({ objectId: args.objectId, embedding }) : undefined
+    if (embeddingItem && !isEphemeraObjectEmbedding(embeddingItem.Put)) {
+        return { ok: false, errorMessage: `Invalid EMBEDDING#IMPROMPTU payload for ${args.objectId}` }
     }
 
-    const placeResult = await applyMembershipImpl({
-        entityId: args.objectId,
+    const createResult = await createImpl({
+        objectId: args.objectId,
+        meta,
         target: args.targetRoomId,
+        existenceItems: [
+            improvisationPairPutItem(args),
+            ...(embeddingItem ? [embeddingItem] : []),
+        ],
         messageBus: deps.messageBus,
         streamEvent: deps.streamEvent,
-    })
-    if (!placeResult.ok) {
-        const placementError = placeResult.errorMessage ?? 'executeMembershipTransfer failed'
-        const deleteResult = await deleteImpl({
+        afterPersist: () => invalidateImprovisationObjectCaches({
             objectId: args.objectId,
             affectedRoomIds: [args.targetRoomId],
-        })
-        if (!deleteResult.ok) {
-            const deleteError = deleteResult.errorMessage ?? 'persistDeleteImprovisationObject failed'
-            console.error('[mtw.ephemera.objects] spawn placement failed; compensation delete failed', {
-                objectId: args.objectId,
-                placementError,
-                deleteError,
-            })
-            await streamProblemReport({
-                objectId: args.objectId,
-                targetRoomId: args.targetRoomId,
-                placementError,
-                deleteError,
-                sourceOperation: 'spawnOneImprovisationObject',
-                attemptCount: 1,
-            })
-        }
-        return { ok: false, errorMessage: placementError }
+            pairComponent: improvisationPairComponent(args),
+            metaRow: meta,
+            ...(embedding ? { embedding } : { clearEmbedding: true }),
+        }),
+    })
+    if (!createResult.ok) {
+        return { ok: false, errorMessage: createResult.errorMessage ?? 'executeComponentCreation failed' }
     }
 
     return { ok: true, objectId: args.objectId }

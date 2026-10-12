@@ -42,7 +42,7 @@ export const computeStepSequenceFootprint = (
             }
             continue
         }
-        if (step.kind === 'addPresenceBinding' || step.kind === 'repairPresenceBinding') {
+        if (step.kind === 'createComponent' || step.kind === 'addPresenceBinding' || step.kind === 'repairPresenceBinding') {
             hosts.add(step.hostId)
             continue
         }
@@ -86,3 +86,11 @@ export const computeStepSequenceFootprint = (
     }
     return hosts
 }
+
+/**
+ * The footprint hosts a `createComponent` step brings into being. They stay in the footprint (they
+ * are written, and later steps read them), but there is no row to fetch: dry-run seeds nothing for
+ * them and commit leaves them out of the `MultiKeyUpdate` keys, letting the step seed them.
+ */
+export const createdHostsOf = (steps: readonly MutationKernelStep[]): ReadonlySet<EphemeraMembershipHostId> =>
+    new Set(steps.flatMap((step) => (step.kind === 'createComponent' ? [step.hostId] : [])))

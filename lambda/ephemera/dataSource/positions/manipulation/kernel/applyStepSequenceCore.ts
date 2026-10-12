@@ -5,6 +5,7 @@ import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
+import { graphFromMeta } from '../../ludicGraph'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyTransfer } from '../../ludicGraph/expandValidate/applyTransfer'
 import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf } from '../../ludicGraph/presenceParent'
@@ -183,6 +184,9 @@ const confirmCarriedHost = (
  * bindings --- population's mint, a move's re-point (`rehostPresenceBinding`, above), and
  * population's in-place repair. See `kernelStep.ts`'s doc comments.
  *
+ * `createComponent`: seeds a not-yet-existing host's graph empty, holding one hostless remainder,
+ * so the component is born with a binding. Throws if the host is already in `graphs`.
+ *
  * `capture`: snapshots `graphs.get(hostId).characterIds` into the returned `captures` map and
  * moves on --- the one step kind that never touches `graphs`. Reading the map at the step's own
  * position (not resorted, same as every other step here) is what makes the snapshot positional rather
@@ -292,6 +296,22 @@ export const applyStepSequenceCore = (
                 }
                 graphs.set(toHostId, destGraph.addNode(step.entityId))
             }
+            continue
+        }
+
+        if (step.kind === 'createComponent') {
+            // The created host is never fetched, so it is in `graphs` only if an earlier step in
+            // this sequence already created it: a caller bug, not a stale world.
+            if (graphs.has(step.hostId)) {
+                throw new Error(
+                    `createComponent: ${step.hostId} is already in the footprint --- structural invariant violated (a component is created once, and never over a fetched host)`
+                )
+            }
+            graphs.set(step.hostId, graphFromMeta({}, step.hostId).addPresenceNode({
+                tag: 'Presence',
+                universalKey: PresenceKey(step.presenceUuid),
+                cover: remainderCover(),
+            }))
             continue
         }
 

@@ -76,7 +76,7 @@ Both steps transfer exactly one entity: anything it hosts lives in its own shard
 | Shape | Condition | Route |
 | --- | --- | --- |
 | **Real transfer** | one `fromHostId`, non-null `toHostId` | take-hold, drop, navigate, relational repair |
-| **Pure add** | `fromHostIds` empty | improvisational object spawn |
+| **Pure add** | `fromHostIds` empty | improvisational object spawn (after its `createComponent`) |
 | **Pure remove** | `toHostId === null` | destroy/edit clear, multi-room drift scrub |
 
 Relational steps are reused verbatim from the executor: relational edges stay `EphemeraObjectId`-typed, so there is nothing to generalize (character-relation widening is deferred).
@@ -112,9 +112,9 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 | --- | --- |
 | **Input** | Explicit ordered `MutationKernelStep[]` only --- the kernel **must not** call `getMembershipContainers` or plan transfers |
 | **Footprint** | [`computeStepSequenceFootprint`](kernel/computeStepSequenceFootprint.ts) computes the full lock set up front from a snapshot; `MultiKeyUpdate` does exactly one batched fetch and cannot be re-entered to lock a newly-discovered host |
-| **Reads** | Only footprint hosts, and only through the `MultiKeyUpdate` reducer's own fetch --- no separate pre-fetch |
+| **Reads** | Only footprint hosts, and only through the `MultiKeyUpdate` reducer's own fetch --- no separate pre-fetch. A host a `createComponent` step creates (`createdHostsOf`) is in the footprint but not fetched: the step seeds it in the reducer |
 | **Validate** | The reducer re-runs [`applyStepSequenceCore`](kernel/applyStepSequenceCore.ts) against freshly-fetched graphs; a non-`legal` verdict throws and aborts the whole transact rather than applying a stale plan |
-| **Transact** | One `transactWrite`: the `MultiKeyUpdate` item plus plain sibling adjacency `Put`/`Delete` items, under `exponentialBackoffWrapper` retrying `TransactionCanceledException` |
+| **Transact** | One `transactWrite`: the `MultiKeyUpdate` item plus plain sibling adjacency `Put`/`Delete` items, under `exponentialBackoffWrapper` retrying `TransactionCanceledException`. A created host's row (`{ ...meta, ludicGraph }`) and a caller's opaque `existenceItems` are `Put`s returned by the `MultiKeyUpdate`'s `cascade`, which runs after the reducer and rides the same call; `afterPersist` runs after the write and before facts |
 | **Output** | `MutationKernelCommitResult` --- `{ ok: true, beatAnchorTime, steps, captures }` or `{ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage }`. **`captures` exists only on the success branch**, which is what makes "narrate only a committed mutation" a type-level guarantee rather than a convention |
 | **Conflict** | On conflict between graph and adjacency, **`ludicGraph` wins** (unchanged positions authority) |
 
@@ -144,6 +144,7 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 | **Pure add** | `addObject`/`addCharacter` on the destination only; a freshly spawned entity has no prior edges, so no assert is needed |
 | **Relational** | Derives the shared host live from the graph map, throws on endpoint host mismatch, else applies the patch |
 | **Capture** | Snapshots the host's `characterIds` under `captureId` and continues. Mutates nothing, writes nothing |
+| **Create** (`createComponent`) | Seeds a not-yet-existing host's graph holding one hostless remainder, so the component is born with a binding; a later placement in the sequence re-points it. Throws if the host is already in the graph map |
 
 **Capture at the reducer boundary (both rules matter).** The reducer body can run several times under `exponentialBackoffWrapper`, so `commitStepSequence` records `committedCaptures = new Map(outcome.captures)` fresh on **every** invocation --- **assignment, never append**, or narration duplicates across retry attempts. The plain-`Map` copy also satisfies the Immer rule that nothing draft-backed may survive the reducer's return; captured values being primitive id strings makes that free here by construction rather than by discipline. Capture performs **no validity filtering** (missing `CharacterMeta` is dropped later, at hydration) --- it snapshots ids and nothing else.
 
@@ -225,7 +226,7 @@ Character routes (navigate / home / connect / disconnect / ghost-purge repair), 
     -> [Character Moved subscribers, mtw.ephemera.characters] ladder write then CharacterMeta
        invalidate (to !== null); CharacterInPlay publish
 
-Object-lifecycle administrative routes (room place/remove, spawn, destroy/edit, drift repair)
+Object-lifecycle administrative routes (room place/remove, destroy/edit, drift repair)
   Ingress args (called directly, no coordinator file)
     -> membership observation (getMembershipContainers or repair graph-forward read)
     -> executeMembershipTransfer's own inline end-state diff against priorContainers
@@ -233,6 +234,12 @@ Object-lifecycle administrative routes (room place/remove, spawn, destroy/edit, 
     -> compilePositionKernelOp on a bare { kind: 'move', ... } op literal (no narration ingredients
        to carry) --- the same shared compiler every other route uses, not a hand-built literal (3e)
     -> commitStepSequence
+
+Object creation (improvisational spawn)
+  spawnOneImprovisationObject builds meta + existenceItems (pair, embedding)
+    -> executeComponentCreation: [createComponent, ...compilePositionKernelOp(move from nowhere)]
+    -> commitStepSequence (one transaction; created row and existenceItems via cascade)
+    -> afterPersist seeds the objects lane's caches, then facts stream
 
 Object-move routes (object take-hold / drop / give / containment)
   Ingress carries the whole selected attempt (Ludic Network Change Requested)
@@ -299,7 +306,7 @@ commitStepSequence          one transactWrite; re-validates live on locked graph
 | --- | --- | --- | --- |
 | Navigate / connect / disconnect / home | [`orchestrateCharacterMove`](../navigate/orchestrateCharacterMove.ts) (3g convergence) | [`planCharacterMoveTransfer`](membership/planCharacterMoveTransfer.ts) (end-state, inline diff; builds + compiles the op once, before commit --- 3e, 2026-09-08) | [`commitAndPresentStepSequence`](kernel/commitAndPresentStepSequence.ts) (commit via [`commitStepSequence`](kernel/commitStepSequence.ts)) |
 | Object room place / remove / drift repair | `executeMembershipTransfer` (called directly --- no coordinator file) | end-state, inline diff, compiled through `compilePositionKernelOp` on a bare op literal (3e) | [`commitStepSequence`](kernel/commitStepSequence.ts) |
-| Improvisational object spawn | `executeMembershipTransfer` via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | end-state, inline diff | [`commitStepSequence`](kernel/commitStepSequence.ts) |
+| Improvisational object spawn | [`executeComponentCreation`](membership/executeComponentCreation.ts) via [`spawnOneImprovisationObject`](../../objects/spawnImprovisationObjectsBatch.ts) | no diff: `createComponent` then the first-placement move, one commit, existence rows as `existenceItems` | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Object destroy / edit | `executeMembershipTransfer` (`target: null`) | end-state-to-null, inline diff + chain-aware relational sweep | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | **`takeHold`** / **`drop`** / containment (one route, host pair reversed) | [`../commitAttempt.ts`](commitAttempt.ts) -> [`membership/planObjectMoveTransfer.ts`](membership/planObjectMoveTransfer.ts) | Boundary dissolves are the attempt's own actions, committed alongside; `commitAttempt` dry-runs the combined sequence and refuses any uncovered boundary edge --- no repair | [`commitStepSequence`](kernel/commitStepSequence.ts) |
 | Establish / dissolve relation | [`../commitAttempt.ts`](commitAttempt.ts) -> [`relational/planRelationalEdgeTransfer.ts`](relational/planRelationalEdgeTransfer.ts) | Rebuilds the chain fresh against live state at commit time; no coordinator-level carry or repair | [`commitStepSequence`](kernel/commitStepSequence.ts) |
@@ -376,7 +383,8 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | [`membership/planObjectMoveTransfer.ts`](membership/planObjectMoveTransfer.ts) | Take/drop/give/containment's `plan*`-tier stage: refuses a containment cycle, then builds the op via `buildObjectMoveOp` (whose `dissolvedEdges` is only the mover's own containment strip) and compiles it. No dry run and no repair: a boundary edge's dissolve is the command attempt's own action, so this fragment alone would look illegal; [`../commitAttempt.ts`](commitAttempt.ts) dry-runs the whole attempt instead. No commit. |
 | [`membership/repairAdministrativeChainDissolve.ts`](membership/repairAdministrativeChainDissolve.ts) | The administrative repair-authority policy (a player move has none: it refuses any boundary edge its attempt does not dissolve): unconditional, chain-aware ([`findRelationalChainsForRemoval.ts`](relational/findRelationalChainsForRemoval.ts)), no dry run, no legality question to ask ("may sever anything") |
 | [`membership/findOwnRootContainmentEdge.ts`](membership/findOwnRootContainmentEdge.ts) | Pure helper: the moved object's own containment edge into a graph's root, if any --- the only edge `buildObjectMoveOp` dissolves itself |
-| [`membership/executeMembershipTransfer.ts`](membership/executeMembershipTransfer.ts) | The object-lifecycle administrative membership move (room place/remove, spawn, destroy/edit, drift repair): single entity, diffed against its own fetched `priorContainers`, no defer concept --- gets `repairAdministrativeChainDissolve`'s chain-aware relational sweep (following crossing ports across hosts, unconditionally dissolving everything it finds). Compiles its bare move op through `compilePositionKernelOp` rather than hand-building a step literal (3e, 2026-09-08). Take/drop/give no longer calls this function (3d, 2026-09-08; see `planObjectMoveTransfer` above), and **neither does any character route** any more (3e, 2026-09-08; see `planCharacterMoveTransfer` below) --- this file is once again purely the object-lifecycle administrative path it was named for. |
+| [`membership/executeComponentCreation.ts`](membership/executeComponentCreation.ts) | Creation and first placement as one commit: `[createComponent, ...the compiled move from nowhere]`, with the caller's own rows as opaque `existenceItems` and its cache seeding as `afterPersist`. The one emitter of `createComponent`. `target: null` (created unplaced) is legal; no caller uses it yet |
+| [`membership/executeMembershipTransfer.ts`](membership/executeMembershipTransfer.ts) | The object-lifecycle administrative membership move (room place/remove, destroy/edit, drift repair): single entity, diffed against its own fetched `priorContainers`, no defer concept --- gets `repairAdministrativeChainDissolve`'s chain-aware relational sweep (following crossing ports across hosts, unconditionally dissolving everything it finds). Compiles its bare move op through `compilePositionKernelOp` rather than hand-building a step literal (3e, 2026-09-08). Take/drop/give no longer calls this function (3d, 2026-09-08; see `planObjectMoveTransfer` above), and **neither does any character route** any more (3e, 2026-09-08; see `planCharacterMoveTransfer` below) --- this file is once again purely the object-lifecycle administrative path it was named for. |
 | [`membership/planCharacterMoveTransfer.ts`](membership/planCharacterMoveTransfer.ts) | The character-route sibling of `planObjectMoveTransfer.ts` (3e, 2026-09-08): diffs against its own fetched `priorContainers`, resolves the header slot (navigate/connect only, only once changed is confirmed), builds the op via `buildCharacterMoveOp`, and compiles it once via `compilePositionKernelOp` --- no dry run, no repair branch (character moves have no legality question). Called by `orchestrateCharacterMove`, which commits the returned plan through `commitAndPresentStepSequence`; no longer routes through `executeMembershipTransfer`. |
 | [`membership/types.ts`](membership/types.ts) | Bare, host-general `MembershipDiff` (shared by `buildObjectMovedFact` and `buildCharacterMovedFact`; the character route's own `MembershipDiff<EphemeraRoomId>` instantiation is documented in `../AGENT.implementation.md`'s `membership/` code map) --- 3h/3h-ii |
 

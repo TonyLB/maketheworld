@@ -27,7 +27,7 @@ EphemeraDB rows per **`OBJECT#`**:
 
 | Row | Key | Module |
 | --- | --- | --- |
-| Merge body | `(OBJECT#, ASSET#IMPROVISATION)` | [`persistImprovisationObject.ts`](persistImprovisationObject.ts) **`persistSpawnImprovisationObject`** (2- or 3-item transact) / **`persistUpdateImprovisationObject`** / **`persistDeleteImprovisationObject`** (3 deletes) |
+| Merge body | `(OBJECT#, ASSET#IMPROVISATION)` | Written at spawn as an `existenceItems` `Put` built by [`persistImprovisationObject.ts`](persistImprovisationObject.ts) **`improvisationPairPutItem`** (riding the kernel's create commit); deleted by **`persistDeleteImprovisationObject`** (3 deletes). No update path: an edit of an improvised Object would be a kernel step, not a whole-row write outside it |
 | Play meta | `(OBJECT#, Meta::Object)` | same coordinators (`stableKey`, trope fields only) |
 | Semantic embedding (impromptu scope) | `(OBJECT#, EMBEDDING#IMPROMPTU)` | optional third **`Put`** on spawn or update when embed succeeds ([`embedding/objectEmbeddingPutItem.ts`](embedding/objectEmbeddingPutItem.ts)); always deleted with pair + meta |
 
@@ -35,7 +35,7 @@ EphemeraDB rows per **`OBJECT#`**:
 
 **Deferred (cross-host Exit/play-only edge references only):** Relational edges/crossing chains are now handled by phase 1 above; adjacency still does not index which graphs mention an `OBJECT#` only in a play-only (Exit) edge endpoint, so after clear another host may retain a stale Exit edge referencing a destroyed id until a future sweep or edge-reference index ships. See [`../positions/ludicGraph/AGENT.md`](../positions/ludicGraph/AGENT.md) **Known limitation (deferred)**.
 
-**Spawn + place:** two-step coordinator in [`spawnImprovisationObjectsBatch.ts`](spawnImprovisationObjectsBatch.ts) --- [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) runs best-effort [`buildShortNameSemanticEmbedding`](embedding/buildShortNameSemanticEmbedding.ts) **before** [`persistSpawnImprovisationObject`](persistImprovisationObject.ts) (existence; 2- or 3-item transact), then `executeMembershipTransfer` ([`../positions/manipulation/membership/executeObjectMove.ts`](../positions/manipulation/membership/executeMembershipTransfer.ts); placement via manipulation kernel; **S1** compensating delete on placement failure). Embed failure logs and proceeds with 2-row transact only; object creation and placement are unaffected. On **S1 double-fail** (compensation delete also fails), **`console.error`** **and** [`streamSpawnCompensationProblem`](problemReports.ts) emit **`Spawn Compensation Problem`** on EventBridge (see **Operational diagnostics** below). **`Object Moved`** / **`RoomUpdate`** come from the positions coordinator only. Batch **`add`** uses the same module (**S3** per-object isolation; partial **`createdIds`**).
+**Spawn + place:** one kernel commit, from [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts). It runs best-effort [`buildShortNameSemanticEmbedding`](embedding/buildShortNameSemanticEmbedding.ts) first, then calls [`executeComponentCreation`](../positions/manipulation/membership/executeComponentCreation.ts): `createComponent` writes the **`Meta::Object`** row born holding a hostless remainder, the first-placement move re-points it at the room, and the pair row (plus `EMBEDDING#IMPROMPTU` when the embed succeeded) rides the same transaction as `existenceItems`. The pair, meta and embedding caches are seeded in `afterPersist`, before **`Object Moved`** streams. **S1:** a failed placement writes nothing, so there is no compensation ([the contract's S1](../positions/AGENT.contract.md#object-room-membership-nodes-only)). Embed failure logs and proceeds without the embedding row; creation and placement are unaffected. **`Object Moved`** / **`RoomUpdate`** come from the positions kernel only. Batch **`add`** uses the same module (**S3** per-object isolation; partial **`createdIds`**).
 
 **Room-scoped ingress coordinator:** [`applyObjectsChange.ts`](applyObjectsChange.ts) --- **`Objects Change`** **`add`** -> **`spawnImprovisationObjectsBatch`**; **`remove`** -> `executeMembershipTransfer` ([`../positions/manipulation/membership/executeObjectMove.ts`](../positions/manipulation/membership/executeMembershipTransfer.ts), `target: null`; all membership hosts) + row delete; returns **`createdIds`** / **`destroyedIds`** (and optional **`addFailures`**) for outbound **`Objects Changed`**.
 
@@ -50,18 +50,13 @@ EphemeraDB rows per **`OBJECT#`**:
 | Header `type` | Where | Role |
 | --- | --- | --- |
 | **`Objects Change`** | **`api.ephemera`** ingress (internal) | Imperative command; parallels **`State Change`**. Payload: **`componentId`** (room, v1) and **`{ add, remove }`**. |
-| **`Objects Changed`** | **`mtw.ephemera.objects`** outbound (bus-only) | After successful persist; **I4** object-id existence fact: **`createdIds`** / **`destroyedIds`** ([`events.ts`](events.ts), **`streamObjectsChangedFact`**). **`createdIds`:** include an id only when existence create **and** room placement both succeeded (**S2**); compensated placement failures excluded. **`streamKey`:** room id for API batches; first destroyed id or first Coyote game room for RoadRunner bulk clear. |
-| **`Spawn Compensation Problem`** | **`mtw.ephemera.objects`** outbound (EventBridge) | S1 double-fail: placement fails after existence create, then compensating delete also fails. Emitted via [`problemReports.ts`](problemReports.ts) **`streamSpawnCompensationProblem`** ( **`publishStreamEvent`** + PutEvents; **`Objects Changed`** remains bus-only). Contract: [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts). |
+| **`Objects Changed`** | **`mtw.ephemera.objects`** outbound (bus-only) | After successful persist; **I4** object-id existence fact: **`createdIds`** / **`destroyedIds`** ([`events.ts`](events.ts), **`streamObjectsChangedFact`**). **`createdIds`:** include an id only when its create-and-place commit succeeded (**S2**); failed spawns excluded. **`streamKey`:** room id for API batches; first destroyed id or first Coyote game room for RoadRunner bulk clear. |
 
 Placement **`Object Moved`** facts are emitted by **`mtw.ephemera.positions`** apply coordinators, not duplicated from objects handlers.
 
-## Operational diagnostics (S1 double-fail)
+## Orphan sweep (existence-without-placement)
 
-When [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) succeeds at existence create but `executeMembershipTransfer` ([`../positions/manipulation/membership/executeObjectMove.ts`](../positions/manipulation/membership/executeMembershipTransfer.ts)) fails, **S1** runs [`persistDeleteImprovisationObject`](persistImprovisationObject.ts) as compensation. If compensation also fails, durable pair + **`Meta::Object`** (+ optional embedding) rows can remain with no graph placement (existence-without-placement).
-
-**Emission:** [`streamSpawnCompensationProblem`](problemReports.ts) on **`mtw.ephemera.objects`** (EventBridge via **`publishStreamEvent`**), **in addition to** `console.error` until ops confirms EventBridge delivery. Wire shape: [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts) (`objectId`, `targetRoomId`, `sourceOperation`, `placementError`, `deleteError`, `attemptCount`, `dedupeKey`, `timestamp`).
-
-**Downstream:** diagnostics lambda intake triggers [`orphanedImprovisedObjectSweep`](../../../diagnostics/orphanedImprovisedObjectSweep) with targeted `objectIds: [objectId]`; confirmed orphans emit **`Orphaned Improvised Object Finding`** on **`mtw.diagnostics`**. Sweep contract: [`lambda/diagnostics/AGENT.md`](../../../diagnostics/AGENT.md) **Orphaned improvised object sweep**. Objects lane consumes the finding for delete repair (see **Diagnostics repair** below).
+Spawn cannot leave an orphan: its rows and its placement commit together. **Remove** still can, since [`applyObjectsChange`](applyObjectsChange.ts) clears placement (`executeMembershipTransfer`, `target: null`) and then deletes the rows, as two writes. [`orphanedImprovisedObjectSweep`](../../../diagnostics/orphanedImprovisedObjectSweep) runs by direct invoke (full scan); confirmed orphans emit **`Orphaned Improvised Object Finding`** on **`mtw.diagnostics`**. Sweep contract: [`lambda/diagnostics/AGENT.md`](../../../diagnostics/AGENT.md) **Orphaned improvised object sweep**. Objects lane consumes the finding for delete repair (see **Diagnostics repair** below).
 
 ## Diagnostics repair (orphan finding)
 
@@ -89,7 +84,7 @@ When [`spawnOneImprovisationObject`](spawnImprovisationObjectsBatch.ts) succeeds
 
 **Coyote Acme orders:** [`handleAcmeOrderAddObjects`](handleApiObjectsChange.ts) mints **`OBJECT#`** per enriched catalog line, calls **`spawnImprovisationObjectsBatch`**, streams partial **`createdIds`** when at least one row succeeds, logs per-failure **`addFailures`**. **RoadRunner clear:** [`clearCoyoteGameImprovisationObjects.ts`](clearCoyoteGameImprovisationObjects.ts) emits **`destroyedIds`**.
 
-**Spawn-time `DEFAULT` situation prose (Phase 5, shipped):** the Acme order enrich Bedrock call ([`actions/enrich/acmeOrder/`](../actions/enrich/acmeOrder/)) generates optional `defaultSituation` flavor-text prose alongside `tropeAffinities`, one call per order (no second Bedrock call). `handleAcmeOrderAddObjects`'s `acmeOrderToSpawnArgs` maps that prose into a `SITUATION#DEFAULT` `situations` facet on the spawn row when present; `persistSpawnImprovisationObject` writes it onto the pair row and the cache-seeded `StandardObject`. This routes the object through the same real `ensureAuthoredCatalog` render path Feature/Knowledge/Character use (see [`perception/AGENT.md`](../perception/AGENT.md) **Correlated Object description (policy)**) instead of the shortName-only fallback. `persistUpdateImprovisationObject` preserves prior `situations` unless a caller explicitly overrides them --- a later trope-only update must not erase spawn-time prose. Plain API `Objects Change` `add` (no Acme enrich in the loop) still has no source for this prose; the live-shortName fallback remains load-bearing for that path.
+**Spawn-time `DEFAULT` situation prose (Phase 5, shipped):** the Acme order enrich Bedrock call ([`actions/enrich/acmeOrder/`](../actions/enrich/acmeOrder/)) generates optional `defaultSituation` flavor-text prose alongside `tropeAffinities`, one call per order (no second Bedrock call). `handleAcmeOrderAddObjects`'s `acmeOrderToSpawnArgs` maps that prose into a `SITUATION#DEFAULT` `situations` facet on the spawn row when present; `spawnOneImprovisationObject` writes it onto the pair row (`improvisationPairPutItem`) and the cache-seeded `StandardObject` (`improvisationPairComponent`), as it does the order's `gloss`. This routes the object through the same real `ensureAuthoredCatalog` render path Feature/Knowledge/Character use (see [`perception/AGENT.md`](../perception/AGENT.md) **Correlated Object description (policy)**) instead of the shortName-only fallback. Any future edit of an improvised Object (a kernel step; there is no edit path today) must preserve prior `situations` unless explicitly overridden --- a later trope-only edit must not erase spawn-time prose. Plain API `Objects Change` `add` (no Acme enrich in the loop) still has no source for this prose; the live-shortName fallback remains load-bearing for that path.
 
 **Registration:** [`index.ts`](index.ts) --- **`EphemeraDataSource`**, **`publisherStrategy: 'busOnly'`**, **`replayable: false`**, **`outboundBusDelivery: 'publish'`** (no EventBridge-visible replay contract for this DataSource in v1; same posture as **`mtw.ephemera.state`**). Outbounds use **`publish`** via the DataSource; boundary **`flushAndSettle`** at lambda exit quiesces concurrent subscribers.
 
@@ -123,16 +118,14 @@ This does **not** couple the two DataSources automatically; it is **ordering pol
 | **`dataSourceKey`** | **`mtw.ephemera.objects`** --- parallel to **`mtw.ephemera.state`**, not nested under a room-aggregate key. |
 | **v1 storage** | Improvisation pair + **`Meta::Object`** + optional **`EMBEDDING#IMPROMPTU`** + **`ludicGraph`** **`Object`** nodes; **`Meta::Room.objects`** removed from room meta type. |
 | **Impromptu embedding (spawn)** | Best-effort **`EMBEDDING#IMPROMPTU`** on every improvisational spawn; absence is valid; embed failure **must not** block object creation or placement. |
-| **Existence transact (spawn)** | 2-item (pair + **`Meta::Object`**) when embed fails or is skipped; 3-item (+ **`EMBEDDING#IMPROMPTU`**) when embed succeeds --- single `transactWrite`, Bedrock runs before transact. |
+| **Existence rows (spawn)** | Pair always; **`EMBEDDING#IMPROMPTU`** only when the embed succeeds. Both are `existenceItems` on the kernel's create commit, beside the kernel-written **`Meta::Object`** row, so all land in one transaction. |
 | **Delete transact** | Always 3 unconditional **`Delete`** items (pair, **`Meta::Object`**, **`EMBEDDING#IMPROMPTU`**) --- idempotent when embedding row absent. |
 | **Delete render-cache cleanup** | Not part of the transact --- a decoupled, best-effort dispatch of `Delete Cache Records` (message bus) after the transact succeeds, since a render-cache host's row count is unbounded and can exceed a transact's item cap. Failure is logged, not fatal to the object delete. |
-| **Embedding update path** | Hash-check on **every** `persistUpdateImprovisationObject` call (including trope-only updates). Re-embed when row absent, `sourceTextHash` missing/mismatched, or model/encoding/dimensions stale ([`embedding/impromptuEmbeddingNeedsRefresh.ts`](embedding/impromptuEmbeddingNeedsRefresh.ts)). Best-effort Bedrock; failure **must not** block update; 2- vs 3-item transact mirrors spawn. |
 | **Embedding read path** | **`createObjectEmbeddingCacheHandler`** + **`internalCache.ObjectEmbedding`**; batch **`get(objectIds[])`** at parse ingress ([`attachEmbeddingsToCatalogEntries`](../actions/attachEmbeddingsToCatalogEntries.ts)); memo invalidate on object writes. |
 | **Outbound `Objects Changed`** | **`createdIds`** / **`destroyedIds`** only (**I4**); no room-list snapshots. |
-| **Spawn sequencing** | Two atomic steps: existence transact (`persistSpawnImprovisationObject`), then placement (`executeMembershipTransfer`); not a cross-lane single transact. |
-| **`createdIds` timing (S2)** | Include an id only when both existence create and room placement succeeded. |
+| **Spawn sequencing** | One transaction: `createComponent`, the first placement, and the objects lane's rows as `existenceItems` ([`executeComponentCreation`](../positions/manipulation/membership/executeComponentCreation.ts)). |
+| **`createdIds` timing (S2)** | Include an id only when its create-and-place commit succeeded. |
 | **Batch `add` isolation (S3)** | Per-object loop; partial **`createdIds`** + **`addFailures`**; one row's failure does not abort earlier successes or skip remaining rows. |
-| **S1 double-fail signal** | **`Spawn Compensation Problem`** on EventBridge + `console.error`; triggers diagnostics orphan sweep (not log-only). |
 | **Orphan repair (O1)** | **`Orphaned Improvised Object Finding`** -> delete-only via **`persistDeleteImprovisationObject`**; placement retry out of scope for Coyote v1. |
 | **Ingress payload** | **`Objects Change`:** **`add: EphemeraMetaRoomObject[]`**, **`remove: OBJECT#...[]`** with **`componentId`** ([`localApiEvents.ts`](../localApiEvents.ts)). |
 | **Bus helper** | **`sendObjectsChange`** (parallels **`sendStateChange`**). |
@@ -156,13 +149,13 @@ npm run test -- --watchAll=false
 | [`embedding/buildShortNameSemanticEmbedding.test.ts`](embedding/buildShortNameSemanticEmbedding.test.ts) | Normalized input, mocked Bedrock, `SemanticEmbedding` Dynamo record shape |
 | [`embedding/impromptuEmbeddingNeedsRefresh.test.ts`](embedding/impromptuEmbeddingNeedsRefresh.test.ts) | `sourceTextHash` + model metadata refresh decision |
 | [`embedding/objectEmbeddingPutItem.test.ts`](embedding/objectEmbeddingPutItem.test.ts) | `EMBEDDING#IMPROMPTU` transact **`Put`** item builder |
-| [`spawnImprovisationObjectsBatch.test.ts`](spawnImprovisationObjectsBatch.test.ts) | Two-step sequencing; **S1** compensating delete + double-fail log + problem report; **S3** batch partial `createdIds`; embed success (3 puts) vs failure (2 puts + log) |
+| [`spawnImprovisationObjectsBatch.test.ts`](spawnImprovisationObjectsBatch.test.ts) | One create-and-place call per spawn (meta, target, pair and embedding rows as `existenceItems`; situations and gloss on the pair row); caches seeded only after persist; **S3** batch partial `createdIds`; payoff: through the real kernel commit, spawn is one transaction and the Object's one binding names the room's remainder, and a refused placement writes no `Meta::Object` row |
 | [`handleOrphanedImprovisedObjectFinding.test.ts`](handleOrphanedImprovisedObjectFinding.test.ts) | Orphan finding triggers delete; invalid payload skipped; delete failure logged |
 | [`subscribedEvents.test.ts`](subscribedEvents.test.ts) | **`Orphaned Improvised Object Finding`** envelope guard from `mtw.diagnostics` |
 | [`index.test.ts`](index.test.ts) | `receiveEvents` dispatches orphan finding to repair handler |
-| [`persistImprovisationObject.test.ts`](persistImprovisationObject.test.ts) | Existence spawn/delete/update transact helpers (2- vs 3-item spawn/update; 3 deletes; hash-gated re-embed on update); delete's render-cache cleanup dispatch (present, absent, and failure-tolerance cases) |
-| [`applyObjectsChange.test.ts`](applyObjectsChange.test.ts) | Ingress coordinator; **S1** failed id excluded from `createdIds`; **S2**/`S3` partial batch + mixed add/remove; embed mock assertions |
-| [`handleApiObjectsChange.test.ts`](handleApiObjectsChange.test.ts) | API + Acme outbound partial `createdIds`; per-failure logging; all-fail no stream; embed mock assertions |
+| [`persistImprovisationObject.test.ts`](persistImprovisationObject.test.ts) | Pair-row and pair-component builders (situations, gloss); delete transact (3 deletes) and its render-cache cleanup dispatch (present, absent, and failure-tolerance cases) |
+| [`applyObjectsChange.test.ts`](applyObjectsChange.test.ts) | Ingress coordinator; failed spawn id excluded from `createdIds`; **S2**/`S3` partial batch + mixed add/remove; embed wiring into `existenceItems` |
+| [`handleApiObjectsChange.test.ts`](handleApiObjectsChange.test.ts) | API + Acme outbound partial `createdIds`; per-failure logging; all-fail no stream; embed wiring and the order's gloss reaching the pair row |
 
 **Regression checks:**
 
@@ -179,10 +172,10 @@ rg -n "computePostApplyObjectRoomGraphs|postApplyGraphProjection|spawnAndPlaceIm
   lambda/ephemera/
 ```
 
-Two-step primitives and ingress coordinator wiring:
+Spawn primitives and ingress coordinator wiring:
 
 ```bash
-rg -n "persistSpawnImprovisationObject|executeMembershipTransfer" \
+rg -n "executeComponentCreation|improvisationPairPutItem" \
   lambda/ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts
 
 rg -n "spawnImprovisationObjectsBatch|spawnOneImprovisationObject" \

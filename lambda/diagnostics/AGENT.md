@@ -27,7 +27,6 @@
 - [`ingress.ts`](ingress.ts) routes EventBridge ingress onto diagnostics message-bus streaming envelopes.
 - [`dataSource/subscribedEvents.ts`](dataSource/subscribedEvents.ts) owns subscribed header/envelope guards for:
   - `mtw.connections` / `Session Disconnect Problem`
-  - `mtw.ephemera.objects` / `Spawn Compensation Problem`
   - `mtw.players` / `Stale Session Problem` (`DiagnosticsPlayersProblemHeader` / `isPlayersProblemHeader` / `isPlayersProblemEnvelope`)
   - `api.diagnostics` synthetic command envelopes (`StaleSessionSweep`, `RoomOccupancyDriftSweep`, `PlayerMisalignmentSweep`, `ComponentVerticalMisalignmentSweep`, `RenderCacheDriftSweep`, `OrphanedImprovisedObjectSweep`)
 - [`dataSource/index.ts`](dataSource/index.ts) owns subscribed-event handling.
@@ -35,11 +34,10 @@
 **Handling semantics:**
 
 - `Session Disconnect Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/connections`](../../packages/mtw-interfaces/ts/eventBridge/connections).
-- `Spawn Compensation Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/ephemera/objects`](../../packages/mtw-interfaces/ts/eventBridge/ephemera/objects/index.ts); same tidy-failure, invocation dedupe, and report-only sweep trigger semantics as connections problem reports.
 - `Stale Session Problem` intake consumes shared serializer/contracts from [`packages/mtw-interfaces/ts/eventBridge/players`](../../packages/mtw-interfaces/ts/eventBridge/players/index.ts). Producer: [`connect.ts`](../authentication/connect.ts) in `lambda/authentication` detects (via [`staleSessionDetection.ts`](../authentication/staleSessionDetection.ts), which resolves the connecting player's reverse-index pointers) and reports its own problem at connect time -- connections-table stale-session detection used to require the whole-table sweep, which is why it could only run on a schedule; the reverse index lets the connecting player's own connect path recognize the problem instead. Diagnostics does not subscribe to the healthy-path `Player Connected` event for this.
   - Evaluation routes to `evaluateStaleSessionsForPlayer` in [`staleSessionSweep/index.ts`](staleSessionSweep/index.ts): a player-scoped counterpart to `staleSessionSweep()` that resolves only the reported player's reverse-index pointers (one `connectionDB.query` + batch-`getItems`, `ConsistentRead`) and emits the same `Stale SessionId Finding` contract if that player has a currently-stale session. It does **not** perform the pointer backfill/prune maintenance described in the "Pointer maintenance" note below -- that stays exclusively with the full `staleSessionSweep()` run.
 - Intake is tidy-failure: malformed/partial payloads are logged and dropped at ingress/deserialization boundaries without throwing.
-- Within one lambda invocation, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation (invocation-wide `tryClaim` in [`dataSource/intakeDeduper.ts`](dataSource/intakeDeduper.ts); reset on `messageBus.clear()` at handler entry). Applies to `Session Disconnect Problem`, `Spawn Compensation Problem`, and `Stale Session Problem`.
+- Within one lambda invocation, repeated problem reports with the same `dedupeKey` are suppressed before triggering sweep evaluation (invocation-wide `tryClaim` in [`dataSource/intakeDeduper.ts`](dataSource/intakeDeduper.ts); reset on `messageBus.clear()` at handler entry). Applies to `Session Disconnect Problem` and `Stale Session Problem`.
 - Diagnostics remains report-only: problem reports trigger sweep evaluation and finding emission only; diagnostics does not perform storage repairs.
 - Bus ingress uses `publish`; boundary drain uses `flushAndSettle()`; direct command return values use ReturnValue/Error `publish` plus [`createBoundaryResponseCollector`](../../packages/mtw-lambda-patterns/ts/messageBus/boundaryResponseCollector.ts) (via [`returnValue/collector.ts`](returnValue/collector.ts)) and [`returnValue/index.ts`](returnValue/index.ts) assembly at the app boundary.
 
@@ -70,11 +68,10 @@
 
 **Purpose:** Read-only sweep for improvisational **`OBJECT#`** ids with both `(OBJECT#, ASSET#IMPROVISATION)` pair and `Meta::Object` rows present but no positions-lane placement (empty `getMembershipContainers` and no **`Object`** node on any host `ludicGraph`). Emits descriptive findings only; no repairs in diagnostics.
 
-**Trigger context:** S1 spawn double-failure --- placement fails after existence create, then compensation delete also fails --- emits **`Spawn Compensation Problem`** on **`mtw.ephemera.objects`** ([`spawnOneImprovisationObject`](../ephemera/dataSource/objects/spawnImprovisationObjectsBatch.ts) via [`streamSpawnCompensationProblem`](../ephemera/dataSource/objects/problemReports.ts); emission contract in [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md)). Normative S1 + existence-without-placement rules: [`positions/AGENT.contract.md`](../ephemera/dataSource/positions/AGENT.contract.md) **Object room membership**.
+**Trigger context:** direct invoke only. Spawn can no longer leave an orphan (its rows and placement are one kernel commit, so the spawn double-fail problem report that used to trigger a targeted run is retired). **Remove** still can: it clears placement and then deletes the rows as two writes, so a failure between them leaves existence without placement. Normative rules: [`positions/AGENT.contract.md`](../ephemera/dataSource/positions/AGENT.contract.md) **Object room membership**.
 
 **Entrypoints:**
 
-- Problem report intake: `mtw.ephemera.objects` / **`Spawn Compensation Problem`** triggers targeted sweep with `objectIds: [objectId]` from the payload.
 - Direct invoke: `{ type: 'OrphanedImprovisedObjectSweep', objectIds?: string[], optional diagnosticRunId, optional nowMs }`. Omit **`objectIds`** for full-scan ops backstop (enumerates all `ASSET#IMPROVISATION` pair rows via `DataCategoryIndex`).
 
 **Finding contract:** `mtw.diagnostics` / **`Orphaned Improvised Object Finding`** with payload `{ objectId, diagnosticRunId, timestamp }`. Emission uses `publishStreamEvent` + `DiagnosticsEventSerializer`.
@@ -99,17 +96,15 @@ npm run test -- --watchAll=false \
 | --- | --- |
 | [`orphanedImprovisedObjectSweep/classification.test.ts`](orphanedImprovisedObjectSweep/classification.test.ts) | Orphan litmus (pair + meta + empty containers; adjacency lag excluded) |
 | [`orphanedImprovisedObjectSweep/index.test.ts`](orphanedImprovisedObjectSweep/index.test.ts) | Sweep emission, targeted vs full scan, finding payload |
-| [`dataSource/index.test.ts`](dataSource/index.test.ts) | **`Spawn Compensation Problem`** intake, dedupe, malformed drop |
 | [`app.test.ts`](app.test.ts) | End-to-end diagnostics handler wiring |
 
 **Wiring greps (repo root):**
 
 ```bash
-rg -n "Spawn Compensation Problem|mtw.ephemera.objects" lambda/diagnostics/dataSource/
 rg -n "Orphaned Improvised Object Finding" lambda/diagnostics/ packages/mtw-interfaces/ts/eventBridge/diagnostics/
 ```
 
-Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md) **Verification**.
+Objects-lane repair: [`objects/AGENT.md`](../ephemera/dataSource/objects/AGENT.md) **Verification**.
 
 ## Player Misalignment sweep (player heal targeting diagnostics)
 

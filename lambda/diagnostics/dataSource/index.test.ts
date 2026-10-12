@@ -76,22 +76,6 @@ const staleSessionProblemEnvelope = (dedupeKey: string, player = 'player-one') =
 
 const OBJECT_ID = 'OBJECT#Skates' as EphemeraObjectId
 
-const spawnCompensationProblemEnvelope = (dedupeKey: string) =>
-    makeEnvelope(
-        { dataSourceKey: 'mtw.ephemera.objects', type: 'Spawn Compensation Problem' },
-        {
-            type: 'Spawn Compensation Problem',
-            objectId: OBJECT_ID,
-            targetRoomId: 'ROOM#Cafe',
-            sourceOperation: 'spawnOneImprovisationObject',
-            placementError: 'placement failed',
-            deleteError: 'delete failed',
-            attemptCount: 1,
-            dedupeKey,
-            timestamp: new Date().toISOString(),
-        }
-    )
-
 describe('diagnosticsDataSource subscribed event processing', () => {
     beforeEach(() => {
         jest.mocked(staleSessionSweep).mockReset()
@@ -276,47 +260,6 @@ describe('diagnosticsDataSource subscribed event processing', () => {
             error: 'RenderCacheDriftSweep requires roomIds array',
             statusCode: 400,
         })
-    })
-
-    it('triggers orphanedImprovisedObjectSweep for Spawn Compensation Problem with targeted objectId', async () => {
-        await processDiagnosticsSubscribedEvents([spawnCompensationProblemEnvelope('skates-dup-1')])
-
-        expect(orphanedImprovisedObjectSweep).toHaveBeenCalledWith({ objectIds: [OBJECT_ID] })
-    })
-
-    it('drops malformed Spawn Compensation Problem payloads without invoking sweep', async () => {
-        await processDiagnosticsSubscribedEvents([
-            makeEnvelope(
-                { dataSourceKey: 'mtw.ephemera.objects', type: 'Spawn Compensation Problem' },
-                {
-                    type: 'Spawn Compensation Problem',
-                    objectId: OBJECT_ID,
-                    targetRoomId: 'ROOM#Cafe',
-                    sourceOperation: 'spawnOneImprovisationObject',
-                    placementError: 'placement failed',
-                    attemptCount: 1,
-                    dedupeKey: 'missing-delete-error',
-                }
-            )
-        ])
-
-        expect(orphanedImprovisedObjectSweep).not.toHaveBeenCalled()
-    })
-
-    it('dedupes repeated Spawn Compensation Problem reports by dedupeKey within one batch', async () => {
-        await processDiagnosticsSubscribedEvents([
-            spawnCompensationProblemEnvelope('skates-batch-dup'),
-            spawnCompensationProblemEnvelope('skates-batch-dup'),
-        ])
-
-        expect(orphanedImprovisedObjectSweep).toHaveBeenCalledTimes(1)
-    })
-
-    it('dedupes repeated Spawn Compensation Problem reports by dedupeKey across separate receiveEvents calls', async () => {
-        await processDiagnosticsSubscribedEvents([spawnCompensationProblemEnvelope('skates-cross-dup')])
-        await processDiagnosticsSubscribedEvents([spawnCompensationProblemEnvelope('skates-cross-dup')])
-
-        expect(orphanedImprovisedObjectSweep).toHaveBeenCalledTimes(1)
     })
 
     it('runs evaluateStaleSessionsForPlayer scoped to the reported player for Stale Session Problem', async () => {

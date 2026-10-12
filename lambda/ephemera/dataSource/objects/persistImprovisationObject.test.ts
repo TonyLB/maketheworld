@@ -66,58 +66,14 @@ jest.mock('../../internalCache', () => ({
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
-import type { EphemeraObjectEmbedding } from '@tonylb/mtw-interfaces/ts/ephemeraEmbedding'
-import { EMBEDDING_IMPROMPTU_DATA_CATEGORY } from '@tonylb/mtw-interfaces/ts/ephemeraEmbedding'
-import {
-    SemanticEmbedding,
-    SEMANTIC_EMBEDDING_V1_DIMENSIONS,
-    SEMANTIC_EMBEDDING_V1_ENCODING,
-} from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
-import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
-
-import type { BuildShortNameSemanticEmbeddingResult } from './embedding/buildShortNameSemanticEmbedding'
-import { hashShortNameForEmbedding } from './embedding/impromptuEmbeddingNeedsRefresh'
 import { glossFromComponent } from './objectShortName'
 import {
+    improvisationPairComponent,
+    improvisationPairPutItem,
     persistDeleteImprovisationObject,
-    persistSpawnImprovisationObject,
-    persistUpdateImprovisationObject,
 } from './persistImprovisationObject'
 
 const transactWriteMock = ephemeraDB.transactWrite as jest.Mock
-
-const TEST_MODEL_ID = 'amazon.titan-embed-text-v2:0'
-
-const makeTestEmbedding = (): SemanticEmbedding => {
-    const values = Array.from({ length: SEMANTIC_EMBEDDING_V1_DIMENSIONS }, () => 0)
-    values[0] = 1
-    return SemanticEmbedding.fromFloat32(values, { modelId: TEST_MODEL_ID })
-}
-
-const makeEmbeddingRow = (
-    shortName: string,
-    overrides: Partial<EphemeraObjectEmbedding['embedding']> = {}
-): EphemeraObjectEmbedding => ({
-    EphemeraId: 'OBJECT#Anvil',
-    DataCategory: EMBEDDING_IMPROMPTU_DATA_CATEGORY,
-    embedding: {
-        modelId: TEST_MODEL_ID,
-        dimensions: SEMANTIC_EMBEDDING_V1_DIMENSIONS,
-        encoding: SEMANTIC_EMBEDDING_V1_ENCODING,
-        vector: new Uint8Array(SEMANTIC_EMBEDDING_V1_DIMENSIONS),
-        sourceTextHash: hashShortNameForEmbedding(shortName.toLowerCase()),
-        ...overrides,
-    },
-})
-
-const defaultUpdateDeps = (priorComponent: StandardObject) => ({
-    getMetaObject: async () => ({
-        EphemeraId: 'OBJECT#Anvil' as const,
-        DataCategory: 'Meta::Object' as const,
-        stableKey: 'anvil',
-    }),
-    getImprovisationPair: async () => priorComponent,
-})
 
 describe('persistImprovisationObject', () => {
     const objectId = 'OBJECT#Anvil' as const
@@ -126,151 +82,6 @@ describe('persistImprovisationObject', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         transactWriteMock.mockResolvedValue(undefined)
-    })
-
-    it('persistSpawnImprovisationObject writes pair + Meta::Object in one transact', async () => {
-        const result = await persistSpawnImprovisationObject({
-            objectId,
-            shortName: 'Anvil',
-            stableKey: 'anvil',
-        })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'ASSET#IMPROVISATION',
-                    tag: 'Object',
-                    shortName: 'Anvil',
-                },
-            },
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'Meta::Object',
-                    stableKey: 'anvil',
-                },
-            },
-        ])
-        expect(improvisationSetMock).toHaveBeenCalled()
-        expect(objectMetaSetMock).toHaveBeenCalledWith(objectId, expect.objectContaining({ stableKey: 'anvil' }))
-        expect(objectEmbeddingInvalidateMock).toHaveBeenCalledWith(objectId)
-        expect(objectEmbeddingSetMock).not.toHaveBeenCalled()
-    })
-
-    it('persistSpawnImprovisationObject writes pair + Meta::Object + EMBEDDING#IMPROMPTU when embedding present', async () => {
-        const values = Array.from({ length: SEMANTIC_EMBEDDING_V1_DIMENSIONS }, () => 0)
-        values[0] = 1
-        const embedding = SemanticEmbedding.fromFloat32(values, { modelId: TEST_MODEL_ID })
-
-        const result = await persistSpawnImprovisationObject({
-            objectId,
-            shortName: 'Anvil',
-            stableKey: 'anvil',
-            embedding,
-        })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'ASSET#IMPROVISATION',
-                    tag: 'Object',
-                    shortName: 'Anvil',
-                },
-            },
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'Meta::Object',
-                    stableKey: 'anvil',
-                },
-            },
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'EMBEDDING#IMPROMPTU',
-                    embedding: expect.objectContaining({
-                        modelId: TEST_MODEL_ID,
-                        dimensions: SEMANTIC_EMBEDDING_V1_DIMENSIONS,
-                        vector: expect.any(Uint8Array),
-                    }),
-                },
-            },
-        ])
-        expect(transactWriteMock.mock.calls[0][0][2].Put.embedding.vector.byteLength)
-            .toBe(SEMANTIC_EMBEDDING_V1_DIMENSIONS)
-        expect(objectEmbeddingSetMock).toHaveBeenCalledWith(objectId, embedding)
-        expect(objectEmbeddingInvalidateMock).not.toHaveBeenCalled()
-    })
-
-    it('persistSpawnImprovisationObject writes situations to the pair row and the cache-seeded StandardObject', async () => {
-        const situations = [{
-            reference: 'SITUATION#DEFAULT' as const,
-            payload: { displayName: 'a heavy anvil', description: ['A cast-iron anvil sits here.'] },
-        }]
-
-        const result = await persistSpawnImprovisationObject({
-            objectId,
-            shortName: 'Anvil',
-            stableKey: 'anvil',
-            situations,
-        })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'ASSET#IMPROVISATION',
-                    tag: 'Object',
-                    shortName: 'Anvil',
-                    situations,
-                },
-            },
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'Meta::Object',
-                    stableKey: 'anvil',
-                },
-            },
-        ])
-        const cachedComponent = improvisationSetMock.mock.calls[0][2] as StandardObject
-        expect(cachedComponent.situations.toJSON()).toEqual(situations)
-    })
-
-    it('persistSpawnImprovisationObject writes gloss to the pair row and the cache-seeded StandardObject', async () => {
-        const result = await persistSpawnImprovisationObject({
-            objectId,
-            shortName: 'Anvil',
-            stableKey: 'anvil',
-            gloss: 'a squat cast-iron anvil, chipped along one edge',
-        })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'ASSET#IMPROVISATION',
-                    tag: 'Object',
-                    shortName: 'Anvil',
-                    gloss: 'a squat cast-iron anvil, chipped along one edge',
-                },
-            },
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'Meta::Object',
-                    stableKey: 'anvil',
-                },
-            },
-        ])
-        const cachedComponent = improvisationSetMock.mock.calls[0][2] as StandardObject
-        expect(glossFromComponent(cachedComponent)).toBe('a squat cast-iron anvil, chipped along one edge')
     })
 
     it('persistDeleteImprovisationObject deletes pair, Meta::Object, and EMBEDDING#IMPROMPTU rows', async () => {
@@ -338,303 +149,36 @@ describe('persistImprovisationObject', () => {
         ])
     })
 
-    it('persistUpdateImprovisationObject merges prior rows and re-embeds on shortName change', async () => {
-        const priorComponent = new StandardObject({ tag: 'Object', universalKey: objectId, shortName: 'Old' })
-        const embedding = makeTestEmbedding()
-        const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
-            .mockResolvedValue({ success: true, embedding })
-        const getImprovisationEmbedding = jest.fn().mockResolvedValue(makeEmbeddingRow('old'))
+})
 
-        const result = await persistUpdateImprovisationObject({
-            objectId,
-            shortName: 'New',
-        }, {
-            ...defaultUpdateDeps(priorComponent),
-            getImprovisationEmbedding,
-            buildEmbedImpl,
-        })
+describe('improvisation pair builders', () => {
+    const objectId = 'OBJECT#Anvil' as const
 
-        expect(result).toEqual({ ok: true, objectId })
-        expect(buildEmbedImpl).toHaveBeenCalledWith('New')
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'ASSET#IMPROVISATION',
-                    tag: 'Object',
-                    shortName: 'New',
-                },
-            },
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'Meta::Object',
-                    stableKey: 'anvil',
-                },
-            },
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'EMBEDDING#IMPROMPTU',
-                    embedding: expect.objectContaining({
-                        modelId: TEST_MODEL_ID,
-                        dimensions: SEMANTIC_EMBEDDING_V1_DIMENSIONS,
-                        vector: expect.any(Uint8Array),
-                    }),
-                },
-            },
-        ])
-        expect(objectEmbeddingSetMock).toHaveBeenCalledWith(objectId, embedding)
-    })
-
-    it('persistUpdateImprovisationObject preserves prior situations when not explicitly overridden', async () => {
+    it('write situations and gloss to the pair row and to the cache-seeded StandardObject', () => {
         const situations = [{
             reference: 'SITUATION#DEFAULT' as const,
             payload: { displayName: 'a heavy anvil', description: ['A cast-iron anvil sits here.'] },
         }]
-        const priorComponent = new StandardObject({
-            tag: 'Object',
-            universalKey: objectId,
-            shortName: 'Anvil',
-            situations,
-        })
-        const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
-        const getImprovisationEmbedding = jest.fn().mockResolvedValue(makeEmbeddingRow('anvil'))
+        const fields = { objectId, shortName: 'Anvil', situations, gloss: 'a squat cast-iron anvil, chipped along one edge' }
 
-        const result = await persistUpdateImprovisationObject({
-            objectId,
-            tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'forge' }],
-        }, {
-            ...defaultUpdateDeps(priorComponent),
-            getImprovisationEmbedding,
-            buildEmbedImpl,
-        })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            expect.objectContaining({
-                Put: expect.objectContaining({
-                    EphemeraId: objectId,
-                    DataCategory: 'ASSET#IMPROVISATION',
-                    shortName: 'Anvil',
-                    situations,
-                }),
-            }),
-            expect.anything(),
-        ])
-        const cachedComponent = improvisationSetMock.mock.calls[0][2] as StandardObject
-        expect(cachedComponent.situations.toJSON()).toEqual(situations)
-    })
-
-    it('persistUpdateImprovisationObject preserves prior gloss when not explicitly overridden', async () => {
-        const priorComponent = new StandardObject({
-            tag: 'Object',
-            universalKey: objectId,
-            shortName: 'Anvil',
-            gloss: 'a squat cast-iron anvil, chipped along one edge',
-        })
-        const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
-        const getImprovisationEmbedding = jest.fn().mockResolvedValue(makeEmbeddingRow('anvil'))
-
-        const result = await persistUpdateImprovisationObject({
-            objectId,
-            tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'forge' }],
-        }, {
-            ...defaultUpdateDeps(priorComponent),
-            getImprovisationEmbedding,
-            buildEmbedImpl,
-        })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            expect.objectContaining({
-                Put: expect.objectContaining({
-                    EphemeraId: objectId,
-                    DataCategory: 'ASSET#IMPROVISATION',
-                    shortName: 'Anvil',
-                    gloss: 'a squat cast-iron anvil, chipped along one edge',
-                }),
-            }),
-            expect.anything(),
-        ])
-        const cachedComponent = improvisationSetMock.mock.calls[0][2] as StandardObject
-        expect(glossFromComponent(cachedComponent)).toBe('a squat cast-iron anvil, chipped along one edge')
-    })
-
-    it('persistUpdateImprovisationObject overwrites gloss when explicitly provided', async () => {
-        const priorComponent = new StandardObject({
-            tag: 'Object',
-            universalKey: objectId,
-            shortName: 'Anvil',
-            gloss: 'old gloss',
-        })
-        const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
-        const getImprovisationEmbedding = jest.fn().mockResolvedValue(makeEmbeddingRow('anvil'))
-
-        const result = await persistUpdateImprovisationObject({
-            objectId,
-            gloss: 'new gloss',
-        }, {
-            ...defaultUpdateDeps(priorComponent),
-            getImprovisationEmbedding,
-            buildEmbedImpl,
-        })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            expect.objectContaining({
-                Put: expect.objectContaining({ gloss: 'new gloss' }),
-            }),
-            expect.anything(),
-        ])
-    })
-
-    it('persistUpdateImprovisationObject overwrites situations when explicitly provided', async () => {
-        const priorSituations = [{
-            reference: 'SITUATION#DEFAULT' as const,
-            payload: { description: ['Old prose.'] },
-        }]
-        const nextSituations = [{
-            reference: 'SITUATION#DEFAULT' as const,
-            payload: { description: ['New prose.'] },
-        }]
-        const priorComponent = new StandardObject({
-            tag: 'Object',
-            universalKey: objectId,
-            shortName: 'Anvil',
-            situations: priorSituations,
-        })
-        const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
-        const getImprovisationEmbedding = jest.fn().mockResolvedValue(makeEmbeddingRow('anvil'))
-
-        const result = await persistUpdateImprovisationObject({
-            objectId,
-            situations: nextSituations,
-        }, {
-            ...defaultUpdateDeps(priorComponent),
-            getImprovisationEmbedding,
-            buildEmbedImpl,
-        })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            expect.objectContaining({
-                Put: expect.objectContaining({ situations: nextSituations }),
-            }),
-            expect.anything(),
-        ])
-    })
-
-    it('persistUpdateImprovisationObject skips embed when hash matches on trope-only update', async () => {
-        const priorComponent = new StandardObject({ tag: 'Object', universalKey: objectId, shortName: 'Anvil' })
-        const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
-        const getImprovisationEmbedding = jest.fn().mockResolvedValue(makeEmbeddingRow('anvil'))
-
-        const result = await persistUpdateImprovisationObject({
-            objectId,
-            tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'forge' }],
-        }, {
-            ...defaultUpdateDeps(priorComponent),
-            getImprovisationEmbedding,
-            buildEmbedImpl,
-        })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(buildEmbedImpl).not.toHaveBeenCalled()
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'ASSET#IMPROVISATION',
-                    tag: 'Object',
-                    shortName: 'Anvil',
-                },
+        expect(improvisationPairPutItem(fields)).toEqual({
+            Put: {
+                EphemeraId: objectId,
+                DataCategory: 'ASSET#IMPROVISATION',
+                tag: 'Object',
+                shortName: 'Anvil',
+                situations,
+                gloss: 'a squat cast-iron anvil, chipped along one edge',
             },
-            {
-                Put: {
-                    EphemeraId: objectId,
-                    DataCategory: 'Meta::Object',
-                    stableKey: 'anvil',
-                    tropeAffinities: [{ trope: 'Contraption', aptness: 'High', narrowing: 'forge' }],
-                },
-            },
-        ])
-        expect(objectEmbeddingSetMock).not.toHaveBeenCalled()
-        expect(objectEmbeddingInvalidateMock).not.toHaveBeenCalled()
+        })
+        const component = improvisationPairComponent(fields)
+        expect(component.situations.toJSON()).toEqual(situations)
+        expect(glossFromComponent(component)).toBe('a squat cast-iron anvil, chipped along one edge')
     })
 
-    it('persistUpdateImprovisationObject backfills embedding when row absent on trope-only update', async () => {
-        const priorComponent = new StandardObject({ tag: 'Object', universalKey: objectId, shortName: 'Anvil' })
-        const embedding = makeTestEmbedding()
-        const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
-            .mockResolvedValue({ success: true, embedding })
-        const getImprovisationEmbedding = jest.fn().mockResolvedValue(undefined)
-
-        const result = await persistUpdateImprovisationObject({
-            objectId,
-            tropeAffinitiesFailed: true,
-        }, {
-            ...defaultUpdateDeps(priorComponent),
-            getImprovisationEmbedding,
-            buildEmbedImpl,
+    it('omit empty situations and gloss', () => {
+        expect(improvisationPairPutItem({ objectId, shortName: 'Anvil', situations: [], gloss: '' })).toEqual({
+            Put: { EphemeraId: objectId, DataCategory: 'ASSET#IMPROVISATION', tag: 'Object', shortName: 'Anvil' },
         })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(buildEmbedImpl).toHaveBeenCalledWith('Anvil')
-        expect(transactWriteMock.mock.calls[0][0]).toHaveLength(3)
-        expect(objectEmbeddingSetMock).toHaveBeenCalledWith(objectId, embedding)
-    })
-
-    it('persistUpdateImprovisationObject proceeds without embedding when embed fails', async () => {
-        const priorComponent = new StandardObject({ tag: 'Object', universalKey: objectId, shortName: 'Anvil' })
-        const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
-            .mockResolvedValue({ success: false, errorMessage: 'ThrottlingException' })
-        const getImprovisationEmbedding = jest.fn().mockResolvedValue(undefined)
-        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-
-        const result = await persistUpdateImprovisationObject({
-            objectId,
-            shortName: 'New',
-        }, {
-            ...defaultUpdateDeps(priorComponent),
-            getImprovisationEmbedding,
-            buildEmbedImpl,
-        })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(transactWriteMock.mock.calls[0][0]).toHaveLength(2)
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-            '[mtw.ephemera.objects] shortName embed failed; updating without embedding',
-            expect.objectContaining({
-                objectId,
-                shortName: 'New',
-                errorMessage: 'ThrottlingException',
-            })
-        )
-        expect(objectEmbeddingInvalidateMock).toHaveBeenCalledWith(objectId)
-        expect(objectEmbeddingSetMock).not.toHaveBeenCalled()
-        consoleErrorSpy.mockRestore()
-    })
-
-    it('persistUpdateImprovisationObject re-embeds when sourceTextHash is missing on prior row', async () => {
-        const priorComponent = new StandardObject({ tag: 'Object', universalKey: objectId, shortName: 'Anvil' })
-        const embedding = makeTestEmbedding()
-        const buildEmbedImpl = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
-            .mockResolvedValue({ success: true, embedding })
-        const getImprovisationEmbedding = jest.fn().mockResolvedValue(
-            makeEmbeddingRow('anvil', { sourceTextHash: undefined })
-        )
-
-        const result = await persistUpdateImprovisationObject({
-            objectId,
-        }, {
-            ...defaultUpdateDeps(priorComponent),
-            getImprovisationEmbedding,
-            buildEmbedImpl,
-        })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(buildEmbedImpl).toHaveBeenCalledWith('Anvil')
-        expect(transactWriteMock.mock.calls[0][0]).toHaveLength(3)
     })
 })

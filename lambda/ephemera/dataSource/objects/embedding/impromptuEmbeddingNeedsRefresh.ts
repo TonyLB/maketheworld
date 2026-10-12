@@ -16,7 +16,9 @@ export const hashShortNameForEmbedding = (normalized: string): string =>
     createHash('sha256').update(normalized, 'utf8').digest('hex')
 
 /**
- * Whether update should attempt a best-effort re-embed for EMBEDDING#IMPROMPTU.
+ * Whether an edit of an improvised Object should attempt a best-effort re-embed for
+ * EMBEDDING#IMPROMPTU. No edit route exists today (the old whole-row update persister was retired,
+ * since it wrote `Meta::Object` outside the kernel); an edit would be a kernel step, and use this.
  */
 export const impromptuEmbeddingNeedsRefresh = (
     nextShortName: string,

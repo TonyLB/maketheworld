@@ -4,19 +4,16 @@ import {
     SEMANTIC_EMBEDDING_V1_DIMENSIONS,
     SemanticEmbedding,
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
-import { executeMembershipTransfer } from '../positions/manipulation/membership/executeMembershipTransfer'
+import type { executeComponentCreation } from '../positions/manipulation/membership/executeComponentCreation'
 import { applyObjectsChange } from './applyObjectsChange'
 import type { BuildShortNameSemanticEmbeddingResult } from './embedding/buildShortNameSemanticEmbedding'
-import {
-    persistSpawnImprovisationObject,
-} from './persistImprovisationObject'
 import {
     spawnOneImprovisationObject,
     type spawnOneImprovisationObject as SpawnOneType,
 } from './spawnImprovisationObjectsBatch'
 
 jest.mock('./persistImprovisationObject', () => ({
-    persistSpawnImprovisationObject: jest.fn(),
+    ...jest.requireActual('./persistImprovisationObject'),
     persistDeleteImprovisationObject: jest.fn(),
 }))
 
@@ -266,30 +263,22 @@ describe('applyObjectsChange', () => {
 describe('applyObjectsChange embed wiring', () => {
     const messageBus = { publish: jest.fn() }
     const positionsStreamEvent = jest.fn().mockResolvedValue(undefined)
-    const mockPersist = persistSpawnImprovisationObject as jest.MockedFunction<typeof persistSpawnImprovisationObject>
-    const mockPlace = executeMembershipTransfer as jest.MockedFunction<typeof executeMembershipTransfer>
+    const mockCreate = jest.fn<ReturnType<typeof executeComponentCreation>, Parameters<typeof executeComponentCreation>>()
     const mockBuildEmbed = jest.fn<Promise<BuildShortNameSemanticEmbeddingResult>, [string]>()
 
     const spawnOneImpl: typeof SpawnOneType = (row, innerDeps) =>
         spawnOneImprovisationObject(row, {
             ...innerDeps,
             buildEmbedImpl: mockBuildEmbed,
-            spawnImpl: mockPersist,
-            applyMembershipImpl: mockPlace,
+            createImpl: mockCreate,
         })
 
     beforeEach(() => {
         jest.clearAllMocks()
-        mockPersist.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
-        mockPlace.mockResolvedValue({
-            ok: true,
-            froms: [],
-            to: ROOM_ID,
-            changed: true,
-        })
+        mockCreate.mockResolvedValue({ ok: true, beatAnchorTime: 1 })
     })
 
-    it('includes object in createdIds when embed fails but persist and placement succeed (OE-3)', async () => {
+    it('includes object in createdIds when embed fails but the create-and-place commit succeeds (OE-3)', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
         mockBuildEmbed.mockResolvedValue({ success: false, errorMessage: 'Bedrock timeout' })
 
@@ -312,15 +301,13 @@ describe('applyObjectsChange embed wiring', () => {
                 errorMessage: 'Bedrock timeout',
             })
         )
-        expect(mockPersist).toHaveBeenCalledWith({
-            objectId: 'OBJECT#a',
-            shortName: 'Anvil',
-            stableKey: 'a',
-        })
+        expect(mockCreate.mock.calls[0][0].existenceItems).toEqual([
+            { Put: { EphemeraId: 'OBJECT#a', DataCategory: 'ASSET#IMPROVISATION', tag: 'Object', shortName: 'Anvil' } },
+        ])
         consoleSpy.mockRestore()
     })
 
-    it('passes embedding to persist when embed succeeds', async () => {
+    it('writes the embedding row in the same commit when embed succeeds', async () => {
         const embedding = makeTestEmbedding()
         mockBuildEmbed.mockResolvedValue({ success: true, embedding })
 
@@ -329,11 +316,8 @@ describe('applyObjectsChange embed wiring', () => {
             { messageBus: messageBus as any, positionsStreamEvent, spawnOneImpl }
         )
 
-        expect(mockPersist).toHaveBeenCalledWith({
-            objectId: 'OBJECT#a',
-            shortName: 'Anvil',
-            stableKey: 'a',
-            embedding,
-        })
+        expect(mockCreate.mock.calls[0][0].existenceItems).toEqual(expect.arrayContaining([
+            { Put: { EphemeraId: 'OBJECT#a', DataCategory: 'EMBEDDING#IMPROMPTU', embedding: embedding.toDynamoRecord() } },
+        ]))
     })
 })

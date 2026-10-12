@@ -78,6 +78,12 @@ export const factsForStep = (
         return []
     }
 
+    // a creation is announced by the placement that follows it (`Object Moved` from nowhere); the
+    // objects lane's `Objects Changed` `createdIds` is the creation event itself.
+    if (step.kind === 'createComponent') {
+        return []
+    }
+
     // same deferral as addPresenceBinding/rehostPresenceBinding --- a crossing port's own visibility is future work.
     if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {
         return []

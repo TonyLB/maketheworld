@@ -3,7 +3,6 @@ import { createNodeDataSourceEnvironment } from '@tonylb/mtw-lambda-patterns/ts/
 import { connectionDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { DiagnosticsEventSerializer, DiagnosticsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import { isSessionDisconnectProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/connections'
-import { isSpawnCompensationProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera/objects'
 import { isStaleSessionProblemEvent } from '@tonylb/mtw-interfaces/ts/eventBridge/players'
 import messageBus from '../messageBus'
 import { orphanedImprovisedObjectSweep } from '../orphanedImprovisedObjectSweep'
@@ -20,7 +19,6 @@ import { diagnosticsIntakeDeduper } from './intakeDeduper'
 import {
     DiagnosticsSubscribedContent,
     isConnectionsProblemEnvelope,
-    isEphemeraObjectsProblemEnvelope,
     isPlayersProblemEnvelope,
     isDiagnosticsApiRoomOccupancyDriftSweepEnvelope,
     isDiagnosticsApiComponentVerticalMisalignmentSweepEnvelope,
@@ -41,7 +39,6 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
     const preparedEvents = await Promise.all(events.map(async (event) => {
         if (
             !isConnectionsProblemEnvelope(event as any) &&
-            !isEphemeraObjectsProblemEnvelope(event as any) &&
             !isPlayersProblemEnvelope(event as any)
         ) {
             return { event, normalizedContent: null }
@@ -72,24 +69,6 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                     return
                 }
                 await staleSessionSweep()
-                return
-            }
-            if (isEphemeraObjectsProblemEnvelope(event as any)) {
-                if (!isSpawnCompensationProblemEvent(normalizedContent)) {
-                    console.log(JSON.stringify({
-                        event: 'diagnostics-intake-drop',
-                        reason: 'invalid-ephemera-objects-event-payload',
-                        source: event.header.dataSourceKey,
-                        detailType: event.header.type
-                    }))
-                    return
-                }
-                if (!diagnosticsIntakeDeduper.tryClaim(normalizedContent.dedupeKey)) {
-                    return
-                }
-                await orphanedImprovisedObjectSweep({
-                    objectIds: [normalizedContent.objectId]
-                })
                 return
             }
             if (isPlayersProblemEnvelope(event as any)) {

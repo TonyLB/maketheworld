@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraCrossingPort, EphemeraPresenceCover, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPort, EphemeraMetaObject, EphemeraPresenceCover, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { TransferMembershipStep } from '../../../actions/enrich/objectManipulation/parsePlanStep'
 import type {
@@ -84,6 +84,24 @@ export type MutationKernelAddPresenceBindingStep = {
 }
 
 /**
+ * Creates a component's host row, born holding one hostless remainder (`PRESENCE#{presenceUuid}`,
+ * no parent pointer), so a component never exists without a binding. Birth is a binding's proper
+ * origin; `containmentPopulationSteps.ts`'s `rootStep` is the late catch-up for components created
+ * outside the kernel. A placement later in the same sequence re-points this remainder
+ * (`rehostPresenceBinding`), keeping its id.
+ *
+ * The host is not fetched: `commitStepSequence` leaves it out of the `MultiKeyUpdate` keys and
+ * writes `{ ...meta, ludicGraph }` as a `Put` through the wrapper's `cascade`. v1 creates
+ * improvised Objects only; `meta` is the row's non-graph fields.
+ */
+export type MutationKernelCreateComponentStep = {
+    kind: 'createComponent'
+    hostId: EphemeraObjectId
+    presenceUuid: string
+    meta: Omit<EphemeraMetaObject, 'ludicGraph'>
+}
+
+/**
  * Rewrites an existing binding's parent pointer and cover IN PLACE, keeping its `universalKey`
  * (so no child pointer is orphaned). The explicit repair path for a binding population would now
  * write differently (a pointer not naming the parent's binding, a room's Area cover with members); a correct binding never
@@ -149,6 +167,7 @@ export type MutationKernelStep =
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
     | MutationKernelCaptureStep
+    | MutationKernelCreateComponentStep
     | MutationKernelAddPresenceBindingStep
     | MutationKernelRehostPresenceBindingStep
     | MutationKernelRepairPresenceBindingStep
@@ -342,6 +361,7 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'establishRelation' ||
     step.kind === 'dissolveRelation' ||
     step.kind === 'capture' ||
+    step.kind === 'createComponent' ||
     step.kind === 'addPresenceBinding' ||
     step.kind === 'rehostPresenceBinding' ||
     step.kind === 'repairPresenceBinding' ||

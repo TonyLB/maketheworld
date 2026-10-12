@@ -34,6 +34,26 @@ describe('dryRunStepSequence', () => {
         expect(outcome.verdict).toBe('legal')
     })
 
+    it('never fetches a host the sequence creates; the create step seeds it', async () => {
+        const roomGraph = testLudicGraph(roomId, { nodes: [] })
+        const getGraph = jest.fn(async (hostId: EphemeraMembershipHostId) => {
+            if (hostId !== roomId) {
+                throw new Error(`unexpected fetch of ${hostId}`)
+            }
+            return roomGraph
+        })
+        const steps: MutationKernelStep[] = [
+            { kind: 'createComponent', hostId: trayId, presenceUuid: 'born', meta: { EphemeraId: trayId, DataCategory: 'Meta::Object', stableKey: 'tray' } },
+            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set(), toHostId: roomId },
+            { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [], toHostId: roomId, presenceUuid: 'unused' },
+        ]
+
+        const outcome = await dryRunStepSequence(steps, { getCurrentHost: () => undefined, getGraph })
+
+        expect(outcome.verdict).toBe('legal')
+        expect(getGraph.mock.calls.map(([hostId]) => hostId)).toEqual([roomId])
+    })
+
     it('stale/hostNotInFootprint: a footprint host the fetcher cannot actually supply a graph for', async () => {
         const destGraph = testLudicGraph(characterId, { nodes: [] })
         const steps: MutationKernelStep[] = [
