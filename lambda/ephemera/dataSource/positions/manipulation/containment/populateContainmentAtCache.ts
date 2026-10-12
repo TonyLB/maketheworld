@@ -9,7 +9,7 @@ import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { streamEventFromMessageBus } from '../../publishedEvents'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { MutationKernelStep } from '../kernel/kernelStep'
-import { containmentPopulationSteps } from './containmentPopulationSteps'
+import { containmentPopulationSteps, roomRootStep } from './containmentPopulationSteps'
 
 /**
  * The shape a `ludicGraph.nodes` entry carries regardless of which of `StandardReference`'s two
@@ -31,8 +31,8 @@ const universalKeyOf = (reference: ContainmentChildReference): string | undefine
 /**
  * The orchestrator half of cache-time containment population; the contract it implements is in
  * `../../AGENT.contract.md`'s `Component Updated` ingress section.
- * Reads current state (never assumed) so a `cacheAsset` rerun over
- * already-cached, unchanged state costs nothing beyond the reads --- see
+ * Reads current state (never assumed) so a rerun over already-populated children (a re-cached
+ * parent, or `healContainmentPopulation`'s no-diff rerun) costs nothing beyond the reads --- see
  * `containmentPopulationSteps.ts`'s doc comment for why neither `transferMembership`'s pure-add
  * branch nor `addPresenceBinding` is safe to replay unconditionally.
  *
@@ -54,18 +54,20 @@ export const populateContainmentAtCache = async (
             typeof key === 'string' && (isEphemeraRoomId(key) || isEphemeraFeatureId(key))
         )
 
-    if (childIds.length === 0) {
+    // A room is populated even with no children: its hostless remainder is the root of its
+    // presence tree (`roomRootStep`), minted once here so every child points at the same one.
+    if (childIds.length === 0 && !isEphemeraRoomId(parentId)) {
         return
     }
 
-    const parentGraph = await internalCache.Positions.getLudicGraph(parentId)
+    const root = roomRootStep(parentId, await internalCache.Positions.getLudicGraph(parentId))
     const stepsByChild = await Promise.all(
         childIds.map(async (childId) => {
             const childGraph = await internalCache.Positions.getLudicGraph(childId)
-            return containmentPopulationSteps(parentId, childId, parentGraph, childGraph)
+            return containmentPopulationSteps(parentId, childId, root.graph, childGraph)
         })
     )
-    const steps: MutationKernelStep[] = stepsByChild.flat()
+    const steps: MutationKernelStep[] = [...(root.step ? [root.step] : []), ...stepsByChild.flat()]
 
     if (steps.length === 0) {
         return

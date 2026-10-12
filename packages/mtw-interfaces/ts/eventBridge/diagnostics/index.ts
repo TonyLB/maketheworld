@@ -76,12 +76,25 @@ export type DiagnosticsOrphanedImprovisedObjectFindingEvent = {
 
 /**
  * A `Meta::*.ludicGraph` row whose stored payload fails the shipped shape guard
- * (`isEphemeraLudicGraphFieldPayload`) --- currently only reachable by the root-in-nodes gap
- * (concepts clause 3), since the guard is the single source of truth for staleness and nothing
- * else in the shape has drifted yet.
+ * (`isEphemeraLudicGraphFieldPayload`), the single source of truth for staleness: the root-in-nodes
+ * gap (concepts clause 3), or a presence binding stored in a retired shape (host-only `fromHostId`,
+ * a tagged cover).
  */
 export type DiagnosticsLudicGraphStaleStructureFindingEvent = {
     type: 'Ludic Graph Stale Structure Finding'
+    ephemeraId: EphemeraMembershipHostId
+    diagnosticRunId: string
+    timestamp: string
+}
+
+/**
+ * A parent host whose authored-containment children carry a presence binding in a shape cache-time
+ * population would now write differently (a host-only pointer, a room's remainder at its Area).
+ * The subject is the **parent**, because population is keyed on the parent: the consumer reruns it
+ * for that parent's existing children, with no asset diff needed.
+ */
+export type DiagnosticsContainmentPopulationDriftFindingEvent = {
+    type: 'Containment Population Drift Finding'
     ephemeraId: EphemeraMembershipHostId
     diagnosticRunId: string
     timestamp: string
@@ -139,6 +152,7 @@ export type DiagnosticsEventUpdate =
     | DiagnosticsComponentVerticalMisalignedFindingEvent
     | DiagnosticsLudicGraphStaleStructureFindingEvent
     | DiagnosticsLudicGraphPortMismatchFindingEvent
+    | DiagnosticsContainmentPopulationDriftFindingEvent
     | DiagnosticsHealGlobalValuesContent
 
 //
@@ -204,6 +218,13 @@ export type DiagnosticsLudicGraphStaleStructureFindingEventExternal = {
     timestamp?: string
 }
 
+export type DiagnosticsContainmentPopulationDriftFindingEventExternal = {
+    type: 'Containment Population Drift Finding'
+    ephemeraId: EphemeraMembershipHostId
+    diagnosticRunId?: string
+    timestamp?: string
+}
+
 export type DiagnosticsLudicGraphPortMismatchFindingEventExternal = {
     type: 'Ludic Graph Port Mismatch Finding'
     ephemeraId: EphemeraMembershipHostId
@@ -239,6 +260,7 @@ export type DiagnosticsEventExternal =
     | DiagnosticsComponentVerticalMisalignedFindingEventExternal
     | DiagnosticsLudicGraphStaleStructureFindingEventExternal
     | DiagnosticsLudicGraphPortMismatchFindingEventExternal
+    | DiagnosticsContainmentPopulationDriftFindingEventExternal
 
 //
 // Type guards
@@ -381,6 +403,18 @@ export const isLudicGraphStaleStructureFindingEvent = (
     )
 }
 
+export const isContainmentPopulationDriftFindingEvent = (
+    event: any
+): event is DiagnosticsContainmentPopulationDriftFindingEvent => {
+    return Boolean(
+        event &&
+        typeof event === 'object' &&
+        event.type === 'Containment Population Drift Finding' &&
+        typeof event.ephemeraId === 'string' &&
+        isEphemeraMembershipHostId(event.ephemeraId)
+    )
+}
+
 export const isLudicGraphPortMismatchFindingEvent = (
     event: any
 ): event is DiagnosticsLudicGraphPortMismatchFindingEvent => {
@@ -414,7 +448,7 @@ export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEv
         isStaleSessionIdFindingEvent(event) || isRoomOccupancyDriftFindingEvent(event) ||
         isOrphanedImprovisedObjectFindingEvent(event) || isPlayerMisalignmentFindingEvent(event) ||
         isComponentVerticalMisalignedFindingEvent(event) || isLudicGraphStaleStructureFindingEvent(event) ||
-        isLudicGraphPortMismatchFindingEvent(event) ||
+        isLudicGraphPortMismatchFindingEvent(event) || isContainmentPopulationDriftFindingEvent(event) ||
         (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
 
@@ -519,6 +553,14 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
         if (header.type === 'Ludic Graph Stale Structure Finding' && isLudicGraphStaleStructureFindingEvent(content)) {
             return {
                 type: 'Ludic Graph Stale Structure Finding',
+                ephemeraId: content.ephemeraId,
+                diagnosticRunId: content.diagnosticRunId,
+                timestamp: content.timestamp
+            }
+        }
+        if (header.type === 'Containment Population Drift Finding' && isContainmentPopulationDriftFindingEvent(content)) {
+            return {
+                type: 'Containment Population Drift Finding',
                 ephemeraId: content.ephemeraId,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
@@ -685,6 +727,18 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             }
             return {
                 type: 'Ludic Graph Stale Structure Finding',
+                ephemeraId: content.ephemeraId as EphemeraMembershipHostId,
+                diagnosticRunId: content.diagnosticRunId || 'unknown',
+                timestamp: content.timestamp || new Date().toISOString()
+            }
+        }
+
+        if (eventType === 'Containment Population Drift Finding') {
+            if (typeof content.ephemeraId !== 'string' || !isEphemeraMembershipHostId(content.ephemeraId)) {
+                return null
+            }
+            return {
+                type: 'Containment Population Drift Finding',
                 ephemeraId: content.ephemeraId as EphemeraMembershipHostId,
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()

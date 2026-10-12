@@ -32,7 +32,6 @@ const objE2 = 'OBJECT#E2' as EphemeraObjectId
 const ownBinding = (host: EphemeraLudicGraphComponentNode['universalKey']) => `PRESENCE#${host}-binding` as EphemeraPresenceNodeId
 
 const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey'][]): EphemeraPresenceCover => ({
-    tag: 'Enumerated',
     members: hosts.map((host) => ({ host, presence: ownBinding(host) })),
 })
 
@@ -43,7 +42,7 @@ const noMemberBindings = () => []
 const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: `PRESENCE#${portId}` as EphemeraPresenceNodeId,
-    fromHostId: roomId,
+    fromHostPresence: { host: roomId },
     cover,
 })
 
@@ -466,10 +465,9 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_1',
-                fromHostId: roomId,
+                fromHostPresence: { host: roomId },
                 consolidated: true,
                 cover: {
-                    tag: 'Enumerated',
                     members: expect.arrayContaining([
                         { host: charA, presence: ownBinding(charA) },
                         { host: objC, presence: ownBinding(objC) },
@@ -480,10 +478,9 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_2',
-                fromHostId: roomId,
+                fromHostPresence: { host: roomId },
                 consolidated: true,
                 cover: {
-                    tag: 'Enumerated',
                     members: expect.arrayContaining([
                         { host: charB, presence: ownBinding(charB) },
                         { host: objD, presence: ownBinding(objD) },
@@ -493,10 +490,9 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_3',
-                fromHostId: roomId,
+                fromHostPresence: { host: roomId },
                 consolidated: true,
                 cover: {
-                    tag: 'Enumerated',
                     members: expect.arrayContaining([
                         { host: charC, presence: ownBinding(charC) },
                         { host: objF, presence: ownBinding(objF) },

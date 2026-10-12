@@ -66,6 +66,15 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([roomId, otherRoomId]))
     })
 
+    it('presence binding add/remove/repair steps contribute their hostId directly', () => {
+        const steps: MutationKernelStep[] = [
+            { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: { host: roomId }, presenceUuid: 'p1' },
+            { kind: 'removePresenceBinding', hostId: glassId, fromHostId: roomId },
+            { kind: 'repairPresenceBinding', hostId: otherRoomId, presenceId: 'PRESENCE#p2', cover: { members: [] } },
+        ]
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, glassId, otherRoomId]))
+    })
+
     it('a leg with a port-address endpoint resolves its host from the primitive endpoint alone, not both', () => {
         const step: MutationKernelStep = {
             kind: 'establishRelation',

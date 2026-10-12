@@ -98,27 +98,27 @@ export class LudicGraphComponentNode implements LudicGraphNodeListItem {
 export class LudicGraphPresenceNode implements LudicGraphNodeListItem {
     readonly isPresence = true as const
     _universalKey: string
-    _fromHostId: StandardLudicGraphPresenceNodeData['fromHostId']
+    _fromHostPresence: StandardLudicGraphPresenceNodeData['fromHostPresence']
     _cover: StandardLudicGraphPresenceNodeData['cover']
     _ref: number
 
     constructor(arg: LudicGraphPresenceNode | StandardLudicGraphPresenceNodeData) {
         if (arg instanceof LudicGraphPresenceNode) {
             this._universalKey = arg._universalKey
-            this._fromHostId = arg._fromHostId
+            this._fromHostPresence = arg._fromHostPresence
             this._cover = arg._cover
             this._ref = arg._ref
             return
         }
         this._universalKey = arg.universalKey
-        this._fromHostId = arg.fromHostId
+        this._fromHostPresence = arg.fromHostPresence
         this._cover = arg.cover
         this._ref = arg.ref ?? 1
     }
 
     get tag(): 'Presence' { return 'Presence' }
     get universalKey(): string { return this._universalKey }
-    get fromHostId(): StandardLudicGraphPresenceNodeData['fromHostId'] { return this._fromHostId }
+    get fromHostPresence(): StandardLudicGraphPresenceNodeData['fromHostPresence'] { return this._fromHostPresence }
     get cover(): StandardLudicGraphPresenceNodeData['cover'] { return this._cover }
     get ref(): number { return this._ref }
 
@@ -134,7 +134,7 @@ export class LudicGraphPresenceNode implements LudicGraphNodeListItem {
         return new LudicGraphPresenceNode({
             tag: 'Presence',
             universalKey: this._universalKey,
-            fromHostId: this._fromHostId,
+            ...(this._fromHostPresence ? { fromHostPresence: this._fromHostPresence } : {}),
             cover: this._cover,
             ref,
         })
@@ -165,7 +165,7 @@ export class LudicGraphPresenceNode implements LudicGraphNodeListItem {
         return {
             tag: 'Presence',
             universalKey: this._universalKey,
-            fromHostId: this._fromHostId,
+            ...(this._fromHostPresence ? { fromHostPresence: this._fromHostPresence } : {}),
             cover: this._cover,
             ...(this._ref !== 1 ? { ref: this._ref } : {}),
         }

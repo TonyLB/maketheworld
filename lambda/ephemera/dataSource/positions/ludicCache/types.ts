@@ -10,6 +10,7 @@ import {
     isEphemeraLudicGraphComponentNode,
     isEphemeraLudicRelationalEdgeData,
     isPresenceTaggedPortId,
+    isEphemeraPresenceParentPointerOrAbsent,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -61,7 +62,7 @@ export type EphemeraLudicCacheNode = EphemeraLudicGraphComponentNode & {
 /**
  * One of a host's own bindings, nested on that host's `EphemeraLudicCacheNode`
  * (presenceNodes Slice 3, PN-19 decided (b)): `cover` is
- * narrowed to the `'Enumerated'` arm only --- `'Full'` ("every node of the host") has no
+ * entries only --- the graph's `Remainder` sentinel ("every unclaimed node of the host") has no
  * referent in a multi-host merge (loss (A)), so this makes it unrepresentable in the cache
  * *by construction* rather than by a runtime guard someone could forget. `consolidated`
  * stays a separate boolean beside `cover` (PN-15) rather than folding into it --- two facts,
@@ -70,18 +71,18 @@ export type EphemeraLudicCacheNode = EphemeraLudicGraphComponentNode & {
  * entry names the member's own binding into this binding's host (`EphemeraLudicCacheCoverEntry`).
  */
 export type EphemeraLudicCachePresenceNode = Omit<EphemeraLudicGraphStructureNode, 'cover'> & {
-    cover: { tag: 'Enumerated'; members: EphemeraLudicCacheCoverEntry[] };
+    cover: { members: EphemeraLudicCacheCoverEntry[] };
     consolidated: boolean;
 }
 
 /**
  * A cache cover entry: `host` is covered, and `presence` names which of `host`'s own bindings
  * (into the covering binding's host) is meant. The graph-side `EphemeraPresenceCoverEntry`
- * requires `presence`; here it is optional because the cache expands a graph-side `'Full'` cover,
- * which has no entries, into an `'Enumerated'` list, and must look each member's binding up in
+ * requires `presence`; here it is optional because the cache expands a graph-side `Remainder`,
+ * which has no entries, into an entry list, and must look each member's binding up in
  * the member's own graph. That lookup can come back empty --- e.g. a thing placed without a move,
  * which never had a binding minted --- and the member is still covered, so the entry stays
- * with `presence` absent. Entries copied from a graph-side `'Enumerated'` cover always carry it.
+ * with `presence` absent. Entries copied from a graph-side explicit entry always carry it.
  */
 export type EphemeraLudicCacheCoverEntry = Omit<EphemeraPresenceCoverEntry, 'presence'> & {
     presence?: EphemeraPresenceNodeId;
@@ -160,17 +161,18 @@ const isEphemeraLudicCacheCoverEntry = (value: unknown): value is EphemeraLudicC
 }
 
 // Checked here rather than through the graph-side structure guard, whose cover check requires
-// `presence` on every entry (see `EphemeraLudicCacheCoverEntry`). 'Full' cover is illegal in the
+// `presence` on every entry (see `EphemeraLudicCacheCoverEntry`). A `Remainder` entry or a legacy `tag` is illegal in the
 // cache (PN-19), and `consolidated` is cache-only.
 export const isEphemeraLudicCachePresenceNode = (value: unknown): value is EphemeraLudicCachePresenceNode => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const node = value as { tag?: unknown; universalKey?: unknown; fromHostId?: unknown; cover?: { tag?: unknown; members?: unknown }; consolidated?: unknown }
+    const node = value as { tag?: unknown; universalKey?: unknown; fromHostPresence?: unknown; cover?: { tag?: unknown; members?: unknown }; consolidated?: unknown }
     return node.tag === 'Presence'
         && typeof node.universalKey === 'string' && isEphemeraPresenceNodeId(node.universalKey)
-        && typeof node.fromHostId === 'string' && isEphemeraMembershipHostId(node.fromHostId)
-        && !!node.cover && node.cover.tag === 'Enumerated'
+        && isEphemeraPresenceParentPointerOrAbsent(node.fromHostPresence)
+        && !('fromHostId' in node)
+        && !!node.cover && node.cover.tag === undefined
         && Array.isArray(node.cover.members)
         && node.cover.members.every((entry: unknown) => isEphemeraLudicCacheCoverEntry(entry))
         && typeof node.consolidated === 'boolean'

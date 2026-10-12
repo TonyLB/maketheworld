@@ -18,8 +18,8 @@ const ball = 'OBJECT#Ball' as EphemeraObjectId
 const presenceAt = (fromHostId: EphemeraMembershipHostId): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: PresenceKey(`${fromHostId.replace('#', '-')}-binding`),
-    fromHostId,
-    cover: { tag: 'Full' },
+    fromHostPresence: { host: fromHostId },
+    cover: { members: [{ tag: 'Remainder' }] },
 })
 
 /** `parents` maps each host to the hosts it is present at; every graph also lists itself. */

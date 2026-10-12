@@ -29,6 +29,9 @@ jest.mock('./orphanedImprovisedObjectSweep', () => ({
 jest.mock('./ludicGraphStaleStructureSweep', () => ({
     ludicGraphStaleStructureSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[] }))
 }))
+jest.mock('./containmentPopulationDriftSweep', () => ({
+    containmentPopulationDriftSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[] }))
+}))
 jest.mock('./ludicGraphPortMismatchSweep', () => ({
     ludicGraphPortMismatchSweep: jest.fn(async () => ({ emittedCount: 0, ports: [] as { ephemeraId: string; portId: string }[] }))
 }))
@@ -41,6 +44,7 @@ import { renderCacheDriftSweep } from './renderCacheDriftSweep'
 import { orphanedImprovisedObjectSweep } from './orphanedImprovisedObjectSweep'
 import { ludicGraphStaleStructureSweep } from './ludicGraphStaleStructureSweep'
 import { ludicGraphPortMismatchSweep } from './ludicGraphPortMismatchSweep'
+import { containmentPopulationDriftSweep } from './containmentPopulationDriftSweep'
 import { handler } from './app'
 
 describe('diagnostics handler', () => {
@@ -66,6 +70,8 @@ describe('diagnostics handler', () => {
         jest.mocked(ludicGraphStaleStructureSweep).mockResolvedValue({ emittedCount: 0, ephemeraIds: [] as EphemeraMembershipHostId[] })
         jest.mocked(ludicGraphPortMismatchSweep).mockReset()
         jest.mocked(ludicGraphPortMismatchSweep).mockResolvedValue({ emittedCount: 0, ports: [] })
+        jest.mocked(containmentPopulationDriftSweep).mockReset()
+        jest.mocked(containmentPopulationDriftSweep).mockResolvedValue({ emittedCount: 0, ephemeraIds: [] as EphemeraMembershipHostId[] })
     })
 
     it('invokes staleSessionSweep for direct StaleSessionSweep via api.diagnostics synthetic lane', async () => {
@@ -269,6 +275,24 @@ describe('diagnostics handler', () => {
             nowMs: 5555,
         })
         expect(result).toEqual({ emittedCount: 1, ephemeraIds: ['ROOM#Kitchen'] })
+    })
+
+    it('invokes containmentPopulationDriftSweep for direct ContainmentPopulationDriftSweep type', async () => {
+        jest.mocked(containmentPopulationDriftSweep).mockResolvedValueOnce({
+            emittedCount: 1,
+            ephemeraIds: ['AREA#Overworld' as EphemeraMembershipHostId],
+        })
+        const result = await handler({
+            type: 'ContainmentPopulationDriftSweep',
+            diagnosticRunId: 'dr-cpd',
+            nowMs: 5555,
+        })
+
+        expect(containmentPopulationDriftSweep).toHaveBeenCalledWith({
+            diagnosticRunId: 'dr-cpd',
+            nowMs: 5555,
+        })
+        expect(result).toEqual({ emittedCount: 1, ephemeraIds: ['AREA#Overworld'] })
     })
 
     // Same regression shape as the case above: app.ts's allow-list and ingress.ts's switch have

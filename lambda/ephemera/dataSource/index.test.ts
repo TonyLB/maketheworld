@@ -196,7 +196,7 @@ describe('Ephemera DataSource receiveEvents', () => {
             )
         })
 
-        it('does not call populateContainmentAtCache for a component with no ludicGraph nodes', async () => {
+        it('calls populateContainmentAtCache for a Room with no ludicGraph nodes, so it gets its root remainder', async () => {
             const roomComponent = new StandardRoom(deIndentWML(`
                 <Room uuid=(empty)>
                     <ShortName>Empty Room</ShortName>
@@ -220,7 +220,7 @@ describe('Ephemera DataSource receiveEvents', () => {
 
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: jest.fn().mockResolvedValue(undefined), streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
-            expect(populateContainmentAtCache).not.toHaveBeenCalled()
+            expect(populateContainmentAtCache).toHaveBeenCalledWith(roomComponent.universalKey, [], expect.objectContaining({ messageBus: expect.anything() }))
         })
 
         it('does not call populateContainmentAtCache for a component kind with no ludicGraph field (e.g. Character)', async () => {

@@ -37,6 +37,15 @@ export type DiagnosticsApiLudicGraphStaleStructureSweepHeader =
 export type DiagnosticsApiLudicGraphPortMismatchSweepHeader =
     StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'LudicGraphPortMismatchSweep' }
 
+export type DiagnosticsApiContainmentPopulationDriftSweepHeader =
+    StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'ContainmentPopulationDriftSweep' }
+
+const isDiagnosticsApiContainmentPopulationDriftSweepHeader: HeaderGuard<DiagnosticsApiContainmentPopulationDriftSweepHeader> = (
+    header
+): header is DiagnosticsApiContainmentPopulationDriftSweepHeader => (
+    header.dataSourceKey === 'api.diagnostics' && header.type === 'ContainmentPopulationDriftSweep'
+)
+
 const isConnectionsProblemHeader: HeaderGuard<DiagnosticsConnectionsProblemHeader> = (
     header
 ): header is DiagnosticsConnectionsProblemHeader => (
@@ -121,7 +130,8 @@ export const isDiagnosticsSubscribedHeader: HeaderGuard<
     isDiagnosticsApiRenderCacheDriftSweepHeader(header) ||
     isDiagnosticsApiOrphanedImprovisedObjectSweepHeader(header) ||
     isDiagnosticsApiLudicGraphStaleStructureSweepHeader(header) ||
-    isDiagnosticsApiLudicGraphPortMismatchSweepHeader(header)
+    isDiagnosticsApiLudicGraphPortMismatchSweepHeader(header) ||
+    isDiagnosticsApiContainmentPopulationDriftSweepHeader(header)
 )
 
 export const isConnectionsProblemEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
@@ -178,6 +188,11 @@ export const isDiagnosticsApiLudicGraphPortMismatchSweepEnvelope = makeStreaming
     Extract<DiagnosticsAPIPayload, { type: 'LudicGraphPortMismatchSweep' }>,
     DiagnosticsApiLudicGraphPortMismatchSweepHeader
 >(isDiagnosticsApiLudicGraphPortMismatchSweepHeader)
+
+export const isDiagnosticsApiContainmentPopulationDriftSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    Extract<DiagnosticsAPIPayload, { type: 'ContainmentPopulationDriftSweep' }>,
+    DiagnosticsApiContainmentPopulationDriftSweepHeader
+>(isDiagnosticsApiContainmentPopulationDriftSweepHeader)
 
 export const isDiagnosticsSubscribedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     ConnectionsSessionDisconnectProblemEvent | EphemeraObjectsSpawnCompensationProblemEvent | PlayerStaleSessionProblemEvent | DiagnosticsAPIPayload,

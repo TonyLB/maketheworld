@@ -387,39 +387,58 @@ export type EphemeraPresenceCoverEntry = {
 }
 
 /**
- * A presence binding's extent (clause 7, PN-19 decided (b): a tagged arm of `cover`, never a
- * sibling boolean discriminated by `Array.isArray`). `'Full'` means every node of the host is
- * covered, derived from arity nowhere -- clause 7 retires the implicit at-most-one-binding form
- * PR-10 licensed, so even a single-hosted node writes this tag rather than leaving it implicit.
- * `'Enumerated'` states the members explicitly. Illegal-in-`ludicCache` (loss (A): "every node of
- * the host" has no referent in a multi-host merge) is enforced by `ludicCache/types.ts`'s
- * structure arm taking the `'Enumerated'` arm only -- structural, not a runtime guard.
+ * The sentinel in a cover's member list: every node of the whole that NO binding of the whole
+ * lists explicitly. A typed variant beside `EphemeraPresenceCoverEntry`,
+ * not a magic id. It may appear in any number of a whole's bindings; each such binding holds that
+ * same unclaimed set. Only the graph holds it: the cache expands it (`ludicCache/types.ts`).
  */
-export type EphemeraPresenceCover =
-    | { tag: 'Full' }
-    | { tag: 'Enumerated'; members: EphemeraPresenceCoverEntry[] }
+export type EphemeraPresenceCoverRemainder = { tag: 'Remainder' }
+
+/**
+ * A presence binding's extent: one type, an ordered list of explicit entries and/or the
+ * `Remainder` sentinel, which stands for every member no other binding of the whole lists.
+ * Every whole keeps at least one remainder (so a member added later still lands in a bucket); a
+ * room keeps exactly one, hostless. A room's binding into an Area is the one exception: a carve-out
+ * with no members at all.
+ */
+export type EphemeraPresenceCover = {
+    members: (EphemeraPresenceCoverEntry | EphemeraPresenceCoverRemainder)[];
+}
+
+/** A fresh sole-remainder cover each call (never a shared object a reducer could freeze or mutate). */
+export const remainderCover = (): EphemeraPresenceCover => ({ members: [{ tag: 'Remainder' }] })
+
+export const isEphemeraPresenceCoverRemainder = (value: unknown): value is EphemeraPresenceCoverRemainder => (
+    !!value && typeof value === 'object' && (value as { tag?: unknown }).tag === 'Remainder'
+)
 
 /**
  * A presence node (presenceNodes plan / PN-5, 2026-09-15): the reified boundary site that used
  * to be carried as a presence *port*. Unlike the five component arms above, its `universalKey`
- * is a minted `PRESENCE#{uuid}`, not a real component id, and it carries `fromHostId` --- the
- * host it is presence for --- which no component arm has a field for. `kind: 'Present'` is not
- * carried here; `tag: 'Presence'` is already the discriminant, and a second constant field would
- * be a discriminant with no second value.
+ * is a minted `PRESENCE#{uuid}`, not a real component id, and it carries a parent pointer which
+ * no component arm has a field for. `kind: 'Present'` is not carried here; `tag: 'Presence'` is
+ * already the discriminant, and a second constant field would be a discriminant with no second
+ * value.
  *
- * `fromHostId` is a SHARD LOCATOR, deliberately NOT the inverse of the parent's cover (PN-21).
- * It says which host's graph to read in order to find the binding covering this one --- one
- * Dynamo read instead of a scan --- and stops there. WHICH binding of that host is the parent is
- * stated on the parent side, as a `{ host, presence }` cover entry (PN-20), and the parent side
- * is authoritative per the conflict rule in `positions/AGENT.contract.md`. Do not "reconcile"
- * the two grains by widening this field: it buys no read, and a single-valued parent reference
- * would foreclose PN-22 (whether one presence node may be covered by more than one parent
- * binding) before that question is costed.
+ * `fromHostPresence` (presenceRemainder Slice 4, PR-21) names the parent BINDING: `host` is the
+ * shard to read (one Dynamo read), `presence` is which of that host's bindings this one sits
+ * under. The child's pointer governs; the parent's cover is a stored index of it. Absent means a
+ * hostless remainder (a room, an unplaced or offline whole).
  */
+export type EphemeraPresenceParentPointer = {
+    host: EphemeraMembershipHostId;
+    /**
+     * The parent binding. Absent only where the parent holds no binding to name: a Room in an Area
+     * (Areas hold none), or a move into a host whose binding is unresolved. Rooms and Features keep
+     * their own bindings, so a child of one always names it.
+     */
+    presence?: EphemeraPresenceNodeId;
+}
+
 export type EphemeraLudicGraphStructureNode = {
     tag: 'Presence';
     universalKey: EphemeraPresenceNodeId;
-    fromHostId: EphemeraMembershipHostId;
+    fromHostPresence?: EphemeraPresenceParentPointer;
     cover: EphemeraPresenceCover;
 }
 
@@ -682,26 +701,26 @@ export const isEphemeraLudicGraphComponentNode = (value: unknown): value is Ephe
     return false
 }
 
-/** Branches on the declared `tag`, never on shape (`Array.isArray`) -- PR-15's rule, cited by PN-19. */
+const isEphemeraPresenceCoverEntry = (entry: unknown): entry is EphemeraPresenceCoverEntry => {
+    if (!entry || typeof entry !== 'object') {
+        return false
+    }
+    const { host, presence } = entry as EphemeraPresenceCoverEntry
+    return typeof host === 'string' && typeof presence === 'string' && isEphemeraPresenceNodeId(presence) && (
+        isEphemeraCharacterId(host) || isEphemeraObjectId(host) ||
+        isEphemeraRoomId(host) || isEphemeraFeatureId(host) || isEphemeraAreaId(host)
+    )
+}
+
 export const isEphemeraPresenceCover = (value: unknown): value is EphemeraPresenceCover => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const cover = value as EphemeraPresenceCover
-    if (cover.tag === 'Full') {
-        return true
-    }
-    if (cover.tag !== 'Enumerated') {
+    const cover = value as { tag?: unknown; members?: unknown }
+    if (cover.tag !== undefined) {
         return false
     }
-    return Array.isArray(cover.members) && cover.members.every((entry) => (
-        !!entry && typeof entry === 'object' &&
-        isEphemeraPresenceNodeId(entry.presence) &&
-        (
-            isEphemeraCharacterId(entry.host) || isEphemeraObjectId(entry.host) ||
-            isEphemeraRoomId(entry.host) || isEphemeraFeatureId(entry.host) || isEphemeraAreaId(entry.host)
-        )
-    ))
+    return Array.isArray(cover.members) && cover.members.every((entry) => isEphemeraPresenceCoverRemainder(entry) || isEphemeraPresenceCoverEntry(entry))
 }
 
 export const isEphemeraLudicGraphStructureNode = (value: unknown): value is EphemeraLudicGraphStructureNode => {
@@ -712,9 +731,25 @@ export const isEphemeraLudicGraphStructureNode = (value: unknown): value is Ephe
     if (entry.tag !== 'Presence') {
         return false
     }
+    // A stored host-only `fromHostId` is the retired locator: rejected outright rather than read as
+    // hostless, so a surviving row reports through `LudicGraphStaleStructureSweep` instead of
+    // silently losing its parent.
     return isEphemeraPresenceNodeId(entry.universalKey) &&
-        isEphemeraMembershipHostId(entry.fromHostId) &&
+        isEphemeraPresenceParentPointerOrAbsent(entry.fromHostPresence) &&
+        !('fromHostId' in entry) &&
         isEphemeraPresenceCover(entry.cover)
+}
+
+/** Absent is legal: a hostless remainder has no parent. Present must be a well-formed `{ host, presence }`. */
+export const isEphemeraPresenceParentPointerOrAbsent = (value: unknown): boolean => {
+    if (value === undefined) {
+        return true
+    }
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const { host, presence } = value as Partial<EphemeraPresenceParentPointer>
+    return typeof host === 'string' && isEphemeraMembershipHostId(host) && (presence === undefined || (typeof presence === 'string' && isEphemeraPresenceNodeId(presence)))
 }
 
 export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudicGraphNode => {

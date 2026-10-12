@@ -29,6 +29,7 @@ import type {
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 import type {
     LudicGraphNodeListData,
@@ -88,32 +89,27 @@ const wireTerminalToEphemera = (data: StandardLudicTerminalData): EphemeraLudicT
 }
 
 //
-// Presence cover conversion. `fromHostId`/cover-entry `host` are always bare component ids
-// (`EphemeraLudicGraphStructureNode`/`EphemeraPresenceCoverEntry`), never port-qualified -- no
-// terminal widening needed on this arm.
+// Presence cover conversion. The parent pointer's and each cover entry's `host` are always bare
+// component ids (`EphemeraPresenceParentPointer`/`EphemeraPresenceCoverEntry`), never
+// port-qualified -- no terminal widening needed on this arm.
 //
 
-const coverToWire = (cover: EphemeraPresenceCover): StandardLudicGraphPresenceCoverData =>
-    cover.tag === 'Full'
-        ? { tag: 'Full' }
-        : {
-            tag: 'Enumerated',
-            members: cover.members.map((entry) => ({
-                host: ephemeraComponentIdToReferenceData(entry.host),
-                presence: entry.presence,
-            })),
-        }
+const coverToWire = (cover: EphemeraPresenceCover): StandardLudicGraphPresenceCoverData => ({
+    members: cover.members.map((entry) => isEphemeraPresenceCoverRemainder(entry)
+        ? entry
+        : { host: ephemeraComponentIdToReferenceData(entry.host), presence: entry.presence }
+    ),
+})
 
-const wireCoverToEphemera = (cover: StandardLudicGraphPresenceCoverData): EphemeraPresenceCover =>
-    cover.tag === 'Full'
-        ? { tag: 'Full' }
+const wireCoverToEphemera = (cover: StandardLudicGraphPresenceCoverData): EphemeraPresenceCover => ({
+    members: cover.members.map((entry) => 'tag' in entry
+        ? entry
         : {
-            tag: 'Enumerated',
-            members: cover.members.map((entry) => ({
-                host: referenceDataToEphemeraComponentId(entry.host) as EphemeraLudicGraphComponentNode['universalKey'],
-                presence: entry.presence as EphemeraPresenceNodeId,
-            })),
+            host: referenceDataToEphemeraComponentId(entry.host) as EphemeraLudicGraphComponentNode['universalKey'],
+            presence: entry.presence as EphemeraPresenceNodeId,
         }
+    ),
+})
 
 //
 // Node conversion. One field, mirroring `EphemeraLudicGraph._nodes` (LG-8), so this reshapes
@@ -125,7 +121,9 @@ const nodeToWire = (node: EphemeraLudicGraphNode): StandardLudicGraphNodeData =>
         ? {
             tag: 'Presence',
             universalKey: node.universalKey,
-            fromHostId: ephemeraComponentIdToReferenceData(node.fromHostId),
+            ...(node.fromHostPresence
+                ? { fromHostPresence: { host: ephemeraComponentIdToReferenceData(node.fromHostPresence.host), ...(node.fromHostPresence.presence ? { presence: node.fromHostPresence.presence } : {}) } }
+                : {}),
             cover: coverToWire(node.cover),
         }
         : ephemeraComponentIdToReferenceData(node.universalKey)
@@ -135,7 +133,14 @@ const wireNodeToEphemera = (data: StandardLudicGraphNodeData): EphemeraLudicGrap
         return {
             tag: 'Presence',
             universalKey: data.universalKey as EphemeraPresenceNodeId,
-            fromHostId: referenceDataToEphemeraComponentId(data.fromHostId),
+            ...(data.fromHostPresence
+                ? {
+                    fromHostPresence: {
+                        host: referenceDataToEphemeraComponentId(data.fromHostPresence.host) as EphemeraMembershipHostId,
+                        ...(data.fromHostPresence.presence ? { presence: data.fromHostPresence.presence as EphemeraPresenceNodeId } : {}),
+                    },
+                }
+                : {}),
             cover: wireCoverToEphemera(data.cover),
         }
     }
@@ -205,7 +210,7 @@ const wirePortToEphemera = (data: StandardLudicGraphPortData): EphemeraLudicGrap
 /**
  * The forward projection: cut `graph` to `presenceUuid`'s bucket via the real arity-general
  * primitives (never a hand-rolled node walk), then reshape the cut's stored fields into WML's
- * aligned wire type. Binding-grained even though every real binding is `Full` today -- the lift
+ * aligned wire type. Binding-grained even though every real binding is a sole remainder today -- the lift
  * rule's central case for this slice.
  */
 export const toWireLudicGraph = (
@@ -228,7 +233,7 @@ export const toWireLudicGraph = (
 /**
  * Slice 5a: the un-cut projection, for a host that is never itself a hosted thing with presence
  * multiplicity -- a Room. A room is a perspective root (`AGENT.ludicNetwork.md` section 1): however
- * it is grouped into areas, its contents fall in one bucket (today its single `Full` binding), so
+ * it is grouped into areas, its contents fall in one bucket (its one hostless remainder), so
  * there is nothing to cut; this ships the host's whole stored graph as-is, reusing the same
  * field-by-field mappers `toWireLudicGraph` uses after its cut.
  */

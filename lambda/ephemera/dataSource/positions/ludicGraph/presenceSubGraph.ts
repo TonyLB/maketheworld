@@ -24,14 +24,27 @@
  * Built under a since-deleted implementation plan (AGENT.ludicCacheReducer.planning.md);
  * its findings live on in PR-8 and PR-12 above.
  */
-import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { ephemeraLudicTerminalOwner } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PresenceKey, stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from './index'
 import type { GroundedPresence } from '../../actions/enrich/objectManipulation/plan/planStep'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
+
+const isListedEntry = (entry: EphemeraPresenceCover['members'][number]): entry is EphemeraPresenceCoverEntry => !isEphemeraPresenceCoverRemainder(entry)
+
+/** Every component host any binding of `graph` lists explicitly (the whole's claimed set). */
+export const claimedHosts = (graph: EphemeraLudicGraph): Set<EphemeraLudicTerminalPrimitive> => new Set(
+    graph.presenceNodes.flatMap((node) => node.cover.members.filter(isListedEntry).map((entry) => entry.host))
+)
+
+/** What a `Remainder` stands for: the graph's component nodes no binding lists. Shared with the cache fold so the two cannot drift. */
+export const unclaimedComponentNodes = (graph: EphemeraLudicGraph): EphemeraLudicTerminalPrimitive[] => {
+    const claimed = claimedHosts(graph)
+    return [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id) && !claimed.has(id))
+}
 
 /**
  * The bucket a presence binding names --- the nodes of `graph` present at that binding.
@@ -43,18 +56,15 @@ import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
  * it with, which becomes the node's `PRESENCE#{presenceUuid}` key.
  *
  * - The root is in the bucket unconditionally (PR-9/PN-6), regardless of `cover.tag`.
- * - **`cover.tag === 'Full'`:** every component node of `graph` is in the bucket --- the same
- *   value the retired `presencePortCount <= 1` short-circuit used to return (PN-18: `fullCoverage`
- *   is written at every arity now, not derived from it, so this is a rewrite of that arm, not a
- *   behavior change for it). Presence/structure nodes are excluded from this set: PN-6 settled
- *   that a presence node is a member of no bucket, present in every cut instead (mirroring how
- *   `subGraphFromNodes` already carries every presence node into every bucket unconditionally).
- * - **`cover.tag === 'Enumerated'`:** membership is exactly `cover.members`' `host` component
- *   (PN-20: each entry is a `{ host, presence }` pair; `presence` disambiguates which of that
- *   component's own bindings is meant and is not consumed by this function's return type).
- *   **No shipped writer constructs an `Enumerated` cover yet** (Slice 3 only ever mints `'Full'`,
- *   per the mint-time decision recorded in `applyStepSequenceCore.ts`) --- this arm is typed and
- *   exercised in isolation, not yet reachable end-to-end from a real move.
+ * - **Explicit entries:** membership includes each entry's `host` component (PN-20: each entry
+ *   is a `{ host, presence }` pair; `presence` disambiguates which of that component's own
+ *   bindings is meant and is not consumed by this function's return type).
+ * - **The `Remainder` sentinel:** adds every component node of `graph`
+ *   that no binding of the graph lists explicitly (`claimedHosts`). A sole-`Remainder` binding is
+ *   therefore every component node, which is what the retired `Full` tag meant. Presence/structure
+ *   nodes are excluded from this set: PN-6 settled that a presence node is a member of no bucket,
+ *   present in every cut instead (mirroring how `subGraphFromNodes` already carries every
+ *   presence node into every bucket unconditionally).
  * - **The binding's own presence node id is ALSO in the returned set (PN-6 clause (c),
  *   presenceNodes Slice 4).** This is unrelated to node *cutting* --- `subGraphFromNodes` filters
  *   presence ids out of its own component-node candidate list before consulting this set, so the
@@ -78,11 +88,11 @@ export const nodesFromPresenceBinding = (
         const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
         return new Set([...componentNodeIds, root])
     }
-    if (presenceNode.cover.tag === 'Full') {
-        const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
-        return new Set([...componentNodeIds, root, presenceNodeId])
-    }
-    return new Set([...presenceNode.cover.members.map((entry) => entry.host), root, presenceNodeId])
+    const listed = presenceNode.cover.members.filter(isListedEntry).map((entry) => entry.host)
+    const remainder = presenceNode.cover.members.some(isEphemeraPresenceCoverRemainder)
+        ? unclaimedComponentNodes(graph)
+        : []
+    return new Set<EphemeraLudicTerminalPrimitive>([...listed, ...remainder, root, presenceNodeId])
 }
 
 /**
@@ -242,7 +252,7 @@ type EndpointStatus = 'qualified' | 'disqualified' | 'neutral'
  * `rootId` are carried over unchanged; the root is always present in `nodes` by Slice 1a's own
  * contract. **Presence data is carried forward on `nodes` alone (presenceNodes Slice 7a):
  * `subNodes` already includes every one of `graph.presenceNodes` unconditionally (LR-6's original
- * argument, restated on nodes rather than ports --- `fromHostId` on a presence node is the "which
+ * argument, restated on nodes rather than ports --- `fromHostPresence` on a presence node is the "which
  * shard is this whole home to" fact, independent of which bucket is being extracted), so `ports`
  * carries no presence entry at all any more.** The returned graph's `ports` are the minted stub
  * ports plus the crossing ports a surviving edge actually names --- a neutral endpoint would otherwise dangle on
@@ -262,7 +272,7 @@ export const subGraphFromNodes = (
     // Component nodes are cut by bucket membership as before; presence/structure nodes are
     // carried into every bucket unconditionally instead (PN-6: a presence node is a member of no
     // bucket, present in every cut). They can't be reconstructed via `nodeIds`-then-`nodeFromId`
-    // either way --- a structure node's `fromHostId`/`cover` have no derivation from the id alone.
+    // either way --- a structure node's `fromHostPresence`/`cover` have no derivation from the id alone.
     const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
     const subNodes = [
         ...componentNodeIds.filter((id) => nodes.has(id)).map(nodeFromId),

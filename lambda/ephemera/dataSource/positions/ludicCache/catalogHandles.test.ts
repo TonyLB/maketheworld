@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
@@ -8,6 +8,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import { EphemeraLudicGraph } from '../ludicGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
 import { ludicCacheObjectHandles } from './catalogHandles'
+import { roomsForReferent } from '../ludicGraph/presenceRooms'
 
 const makeObjectComponent = (shortName: string) => new StandardObject({ tag: 'Object', shortName })
 
@@ -150,7 +151,7 @@ describe('ludicCacheObjectHandles', () => {
                     { tag: 'Object', universalKey: boxId },
                     { tag: 'Object', universalKey: pebble },
                     { tag: 'Object', universalKey: stone },
-                    ...bindings.map(({ key, from, cover }) => ({ tag: 'Presence' as const, universalKey: key, fromHostId: from, cover: cover ?? { tag: 'Full' as const } })),
+                    ...bindings.map(({ key, from, cover }) => ({ tag: 'Presence' as const, universalKey: key, fromHostPresence: { host: from }, cover: cover ?? { members: [{ tag: 'Remainder' as const }] } })),
                 ],
             })],
             [pebble, testLudicGraph(pebble, { nodes: [{ tag: 'Object', universalKey: pebble }] })],
@@ -191,12 +192,12 @@ describe('ludicCacheObjectHandles', () => {
             const graphs = boxInRoom([{
                 key: boxBinding,
                 from: roomA,
-                cover: { tag: 'Enumerated', members: [{ host: pebble, presence: pebbleInBox }] },
+                cover: { members: [{ host: pebble, presence: pebbleInBox }] },
             }])
             graphs.set(pebble, testLudicGraph(pebble, {
                 nodes: [
                     { tag: 'Object', universalKey: pebble },
-                    { tag: 'Presence', universalKey: pebbleInBox, fromHostId: boxId, cover: { tag: 'Full' } },
+                    { tag: 'Presence', universalKey: pebbleInBox, fromHostPresence: { host: boxId }, cover: { members: [{ tag: 'Remainder' }] } },
                 ],
             }))
 
@@ -221,8 +222,8 @@ describe('ludicCacheObjectHandles', () => {
         it('names only the bucket whose Enumerated cover holds it', async () => {
             const handles = await ludicCacheObjectHandles(roomA, [], {
                 ...graphsAsDeps(boxInRoom([
-                    { key: boxBinding, from: roomA, cover: { tag: 'Enumerated', members: [{ host: pebble, presence: PresenceKey('pebble-in-box') }] } },
-                    { key: boxOtherBinding, from: roomB, cover: { tag: 'Enumerated', members: [{ host: stone, presence: PresenceKey('stone-in-box') }] } },
+                    { key: boxBinding, from: roomA, cover: { members: [{ host: pebble, presence: PresenceKey('pebble-in-box') }] } },
+                    { key: boxOtherBinding, from: roomB, cover: { members: [{ host: stone, presence: PresenceKey('stone-in-box') }] } },
                 ])),
                 ...names,
             })
@@ -235,6 +236,76 @@ describe('ludicCacheObjectHandles', () => {
             const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(boxInRoom([])), ...names })
 
             expect(presenceOf(handles, pebble)).toEqual([roomA])
+        })
+    })
+
+    // The room rule (PR-21(f)): a room's Area binding is a carve-out with no members, so a thing
+    // sitting in the room is seen in the room itself, not in a bucket that resolves to no rooms.
+    describe('room bound into an Area', () => {
+        const town = 'AREA#Town' as EphemeraAreaId
+        const roomInTown = PresenceKey('a-in-town')
+
+        // The stored shape (PR-21(f)): the room keeps one hostless remainder and an empty Area carve-out;
+        // a thing in the room points at the remainder.
+        it('resolves to the room when the room holds a hostless remainder beside its empty Area carve-out', async () => {
+            const roomRemainder = PresenceKey('a-remainder')
+            const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+                [roomA, testLudicGraph(roomA, {
+                    nodes: [
+                        { tag: 'Room', universalKey: roomA },
+                        { tag: 'Object', universalKey: namedId },
+                        { tag: 'Presence', universalKey: roomRemainder, cover: { members: [{ tag: 'Remainder' }] } },
+                        { tag: 'Presence', universalKey: roomInTown, fromHostPresence: { host: town }, cover: { members: [] } },
+                    ],
+                })],
+                [namedId, testLudicGraph(namedId, {
+                    nodes: [
+                        { tag: 'Object', universalKey: namedId },
+                        { tag: 'Presence', universalKey: PresenceKey('named-in-a'), fromHostPresence: { host: roomA, presence: roomRemainder }, cover: { members: [{ tag: 'Remainder' }] } },
+                    ],
+                })],
+            ])
+            const getGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) ?? testLudicGraph(hostId, { nodes: [] })
+
+            const handles = await ludicCacheObjectHandles(roomA, [], {
+                ...graphsAsDeps(graphs),
+                ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
+            })
+
+            expect(handles).toHaveLength(1)
+            await expect(roomsForReferent(namedId, handles[0].presence as never, getGraph)).resolves.toEqual(new Set([roomA]))
+        })
+
+        // The Slice 2 residual: seeded at the Area, a walked room's members now have a bucket,
+        // because each member's stored pointer names the room.
+        it('resolves an Area-seeded handle for a thing in a walked room to that room', async () => {
+            const roomRemainder = PresenceKey('a-remainder')
+            const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+                [town, testLudicGraph(town, { nodes: [{ tag: 'Room', universalKey: roomA }] })],
+                [roomA, testLudicGraph(roomA, {
+                    nodes: [
+                        { tag: 'Room', universalKey: roomA },
+                        { tag: 'Object', universalKey: namedId },
+                        { tag: 'Presence', universalKey: roomRemainder, cover: { members: [{ tag: 'Remainder' }] } },
+                        { tag: 'Presence', universalKey: roomInTown, fromHostPresence: { host: town }, cover: { members: [] } },
+                    ],
+                })],
+                [namedId, testLudicGraph(namedId, {
+                    nodes: [
+                        { tag: 'Object', universalKey: namedId },
+                        { tag: 'Presence', universalKey: PresenceKey('named-in-a'), fromHostPresence: { host: roomA, presence: roomRemainder }, cover: { members: [{ tag: 'Remainder' }] } },
+                    ],
+                })],
+            ])
+            const getGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) ?? testLudicGraph(hostId, { nodes: [] })
+
+            const handles = await ludicCacheObjectHandles(town, [], {
+                ...graphsAsDeps(graphs),
+                ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
+            })
+
+            expect(handles).toHaveLength(1)
+            await expect(roomsForReferent(namedId, handles[0].presence as never, getGraph)).resolves.toEqual(new Set([roomA]))
         })
     })
 })

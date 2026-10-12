@@ -1,6 +1,6 @@
-import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraCrossingPort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPort, EphemeraPresenceCover, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { TransferMembershipStep } from '../../../actions/enrich/objectManipulation/parsePlanStep'
 import type {
@@ -82,8 +82,26 @@ export type MutationKernelCaptureStep = {
 export type MutationKernelAddPresenceBindingStep = {
     kind: 'addPresenceBinding'
     hostId: EphemeraMembershipHostId
-    fromHostId: EphemeraMembershipHostId
+    /** The parent binding this one sits under (PR-21); absent for a hostless remainder. */
+    fromHostPresence?: EphemeraPresenceParentPointer
+    /** Defaults to a sole remainder; a room's Area carve-out passes `{ members: [] }` (the room rule). */
+    cover?: EphemeraPresenceCover
     presenceUuid: string
+}
+
+/**
+ * Rewrites an existing binding's parent pointer and cover IN PLACE, keeping its `universalKey`
+ * (so no child pointer is orphaned). The explicit repair path for a binding population would now
+ * write differently (a pointer not naming the parent's binding, a room's Area cover with members); a correct binding never
+ * emits one, so a rerun of population is a true no-op once repaired. A missing binding is stale,
+ * never silently created.
+ */
+export type MutationKernelRepairPresenceBindingStep = {
+    kind: 'repairPresenceBinding'
+    hostId: EphemeraMembershipHostId
+    presenceId: EphemeraPresenceNodeId
+    fromHostPresence?: EphemeraPresenceParentPointer
+    cover: EphemeraPresenceCover
 }
 
 /**
@@ -128,6 +146,7 @@ export type MutationKernelStep =
     | MutationKernelCaptureStep
     | MutationKernelAddPresenceBindingStep
     | MutationKernelRemovePresenceBindingStep
+    | MutationKernelRepairPresenceBindingStep
     | MutationKernelAddCrossingPortStep
     | MutationKernelRemoveCrossingPortStep
 
@@ -320,6 +339,7 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'capture' ||
     step.kind === 'addPresenceBinding' ||
     step.kind === 'removePresenceBinding' ||
+    step.kind === 'repairPresenceBinding' ||
     step.kind === 'addCrossingPort' ||
     step.kind === 'removeCrossingPort'
 

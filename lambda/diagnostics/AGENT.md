@@ -169,7 +169,7 @@ Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemer
 
 ## Ludic Graph Stale Structure sweep (`ludicGraph` structural staleness diagnostics)
 
-**Purpose:** Read-only sweep over every `Meta::Room`/`Meta::Character`/`Meta::Object`/`Meta::Feature`/`Meta::Area` row that can carry a `ludicGraph` field (the five host kinds `EphemeraMembershipHostId` admits). Flags a row iff its stored `ludicGraph` fails the shipped shape guard (`isEphemeraLudicGraphFieldPayload`, `@tonylb/mtw-interfaces/ts/ephemeraMeta`) --- the sweep is a **caller** of that guard, not a second theory of staleness, so the two can never drift apart. Currently reachable only via concepts clause 3's root-in-nodes gap: every graph's designated root must be present in its own node list, and the guard checks it. Emits findings only; diagnostics does not repair.
+**Purpose:** Read-only sweep over every `Meta::Room`/`Meta::Character`/`Meta::Object`/`Meta::Feature`/`Meta::Area` row that can carry a `ludicGraph` field (the five host kinds `EphemeraMembershipHostId` admits). Flags a row iff its stored `ludicGraph` fails the shipped shape guard (`isEphemeraLudicGraphFieldPayload`, `@tonylb/mtw-interfaces/ts/ephemeraMeta`) --- the sweep is a **caller** of that guard, not a second theory of staleness, so the two can never drift apart. Reachable two ways: concepts clause 3's root-in-nodes gap (every graph's designated root must be present in its own node list, and the guard checks it), which ephemera's heal repairs; and a presence binding in a retired shape (a host-only `fromHostId`, a tagged `Full`/`Enumerated` cover), which nothing repairs, so a finding of that kind is a residual from before the presenceRemainder migration and needs a one-off fix. Emits findings only; diagnostics does not repair.
 
 **Entrypoints:**
 
@@ -198,6 +198,21 @@ Objects-lane repair and problem-report emission: [`objects/AGENT.md`](../ephemer
 **Evaluation:** Scans the same five host-kind `DataCategory`s and indexes the rows by `EphemeraId`, so **one scan supplies both sides of every comparison** --- a port names its referrer, and the referrer is already in hand. No per-port fetch and no reverse index. The comparison itself lives in the shared package ([`classifyLudicGraphPortMismatch`](../../packages/mtw-gateways/ts/ephemera/positions/classifyLudicGraphPortMismatch.ts)) because the ephemera-side self-heal rechecks with the same function. A mismatch requires the matching exterior edges to be **unanimous** and to disagree with the port; a fan disagreeing with itself is reported but carries no correction. **Not findings, deliberately:** no matching edge, an absent or shape-stale referrer graph, or an edge naming the same owner but a different port.
 
 **Downstream handling:** `EphemeraFunction`'s `template.yaml` `Events:` block carries the detail-type on its `mtw.diagnostics` rule; ephemera `mtw.ephemera.positions` repairs via [`healLudicGraphPortMismatch.ts`](../ephemera/dataSource/positions/ludicGraph/healLudicGraphPortMismatch.ts), which re-reads both rows and re-classifies before writing.
+
+## Containment Population Drift sweep (presence-binding shape diagnostics)
+
+**Purpose:** Read-only sweep for Room and Feature presence bindings that cache-time containment population would now write differently. It is the no-diff rerun path into that population: `cacheAsset` emits `Component Updated` only for components in its diff, so an unchanged asset never reaches population again, and a binding stored in an older shape would otherwise stay that way.
+
+**Entrypoints:**
+
+- Direct invoke: `{ type: 'ContainmentPopulationDriftSweep', optional diagnosticRunId, optional nowMs }`, normalized through `ingress.ts` and synthetic `api.diagnostics` ([`dataSource/index.ts`](dataSource/index.ts)).
+- No `mtw.diagnostics` EventBridge trigger and no scheduled/cron trigger; operator-invoked, like its siblings.
+
+**Finding contract:** `mtw.diagnostics` / `Containment Population Drift Finding` with payload `{ ephemeraId: EphemeraMembershipHostId }`, the **parent** host, since population is keyed on the parent. Optional `diagnosticRunId` for sweep correlation. Emission uses `publishStreamEvent` + `DiagnosticsEventSerializer` and an inline `EventBridgeClient`. Implementation: [`containmentPopulationDriftSweep/`](containmentPopulationDriftSweep/).
+
+**Evaluation:** Scans `Meta::Room` and `Meta::Feature` (the child kinds population binds) and classifies each row's raw presence nodes via [`classification.ts`](containmentPopulationDriftSweep/classification.ts)'s `containmentDriftParentsOf`: a pointer naming no parent binding when the parent is not an Area; or a Room's Area binding that is not an empty-member carve-out. A Room with no hostless remainder (the root of its presence tree, which every room keeps) is flagged with the Room itself as the parent, including a Room row with no stored graph. Emits one finding per drifted parent, deduplicated and sorted. The classifier is **deliberately a superset** of the population's own wrong-shape test, because the consumer rechecks: a false positive costs a no-op heal. Character and Object bindings are not classified, since this heal cannot repair them. A row in a shape the shared guard rejects (such as the retired host-only `fromHostId`) is the Ludic Graph Stale Structure sweep's to report, since the heal could not read it either.
+
+**Downstream handling:** `EphemeraFunction`'s `template.yaml` `mtw.diagnostics` rule carries the detail-type; ephemera `mtw.ephemera.positions` consumes it via [`healContainmentPopulation`](../ephemera/dataSource/positions/manipulation/containment/healContainmentPopulation.ts), which reruns `populateContainmentAtCache` for the parent's existing `PartOf` Room/Feature children. A second sweep reading `emittedCount: 0` confirms every heal landed. Pointer-versus-cover drift and the cover-rebuild heal are not this sweep's; they extend this path later.
 
 ## Related docs
 

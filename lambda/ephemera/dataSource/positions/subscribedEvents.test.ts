@@ -5,6 +5,7 @@ import {
     isEphemeraPositionsActionsCharacterHomeEnvelope,
     isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
+    isEphemeraPositionsDiagnosticsContainmentPopulationDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope,
 } from './subscribedEvents'
@@ -208,6 +209,27 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
         expect(isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope(envelope as any)).toBe(true)
+    })
+
+    it('accepts mtw.diagnostics Containment Population Drift Finding envelope', () => {
+        const envelope = {
+            header: {
+                dataSourceKey: 'mtw.diagnostics',
+                streamKey: 'global',
+                timestamp: Date.now(),
+                type: 'Containment Population Drift Finding' as const,
+            },
+            getContent: () => Promise.resolve({
+                type: 'Containment Population Drift Finding' as const,
+                ephemeraId: 'AREA#Overworld' as const,
+                diagnosticRunId: 'diag-3',
+                timestamp: '2026-10-11T10:00:00.000Z',
+            }),
+        }
+
+        expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsDiagnosticsContainmentPopulationDriftFindingEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope(envelope as any)).toBe(false)
     })
 
     it('accepts mtw.diagnostics Ludic Graph Port Mismatch Finding envelope', () => {

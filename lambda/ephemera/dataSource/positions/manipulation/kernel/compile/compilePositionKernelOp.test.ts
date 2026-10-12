@@ -109,7 +109,7 @@ describe('compilePositionKernelOp', () => {
             {
                 kind: 'addPresenceBinding',
                 hostId: CHARACTER_ID,
-                fromHostId: TO_ROOM,
+                fromHostPresence: { host: TO_ROOM },
                 presenceUuid: expect.any(String),
             },
         ])
@@ -226,7 +226,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             expect(addStep).toMatchObject({
                 kind: 'addPresenceBinding',
                 hostId: TRAY,
-                fromHostId: CHARACTER_ID,
+                fromHostPresence: { host: CHARACTER_ID },
             })
         })
 
@@ -246,7 +246,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             expect(plan.steps.find((step) => step.kind === 'addPresenceBinding')).toMatchObject({
                 kind: 'addPresenceBinding',
                 hostId: CHARACTER_ID,
-                fromHostId: TO_ROOM,
+                fromHostPresence: { host: TO_ROOM },
             })
         })
 

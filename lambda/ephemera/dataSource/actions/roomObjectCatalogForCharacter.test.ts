@@ -135,7 +135,7 @@ describe('getRoomObjectCatalogForCharacter', () => {
                 [tableId]: testLudicGraph(tableId, {
                     nodes: [
                         { tag: 'Object', universalKey: cupId },
-                        { tag: 'Presence', universalKey: tableBinding, fromHostId: roomId, cover: { tag: 'Full' } },
+                        { tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId }, cover: { members: [{ tag: 'Remainder' }] } },
                     ],
                 }),
             }),

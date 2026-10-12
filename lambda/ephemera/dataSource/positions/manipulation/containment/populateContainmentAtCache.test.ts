@@ -1,6 +1,6 @@
-import type { EphemeraAreaId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraFeatureId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { testLudicGraph } from '../../ludicGraph/testFixtures'
+import { presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 
 jest.mock('../kernel/commitStepSequence', () => ({
     __esModule: true,
@@ -23,6 +23,8 @@ import { populateContainmentAtCache } from './populateContainmentAtCache'
 const AREA_ID = 'AREA#Overworld' as EphemeraAreaId
 const ROOM_A = 'ROOM#Cafe' as EphemeraRoomId
 const ROOM_B = 'ROOM#Kitchen' as EphemeraRoomId
+const FEATURE_A = 'FEATURE#Counter' as EphemeraFeatureId
+const FEATURE_B = 'FEATURE#Espresso' as EphemeraFeatureId
 
 describe('populateContainmentAtCache', () => {
     const messageBus = { publish: jest.fn() } as any
@@ -46,7 +48,7 @@ describe('populateContainmentAtCache', () => {
             edges: [{ tag: 'Relational', from: ROOM_A, to: AREA_ID, kind: 'PartOf' }],
         })
         const childGraph = testLudicGraph(ROOM_A, {
-            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostId: AREA_ID, cover: { tag: 'Full' } }],
+            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostPresence: { host: AREA_ID }, cover: { members: [] } }],
         })
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === AREA_ID ? parentGraph : childGraph
@@ -71,6 +73,49 @@ describe('populateContainmentAtCache', () => {
         expect(steps.filter((step: any) => step.kind === 'transferMembership')).toHaveLength(2)
         expect(deps.messageBus).toBe(messageBus)
         expect(deps.getCurrentHost()).toBe(AREA_ID)
+    })
+
+    it('mints a childless room\'s hostless remainder, and a second run commits nothing', async () => {
+        const emptyRoom = testLudicGraph(ROOM_A, { nodes: [] })
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(emptyRoom)
+
+        await populateContainmentAtCache(ROOM_A, [], { messageBus, streamEvent })
+
+        expect(commitStepSequence).toHaveBeenCalledTimes(1)
+        const [{ steps }] = (commitStepSequence as jest.Mock).mock.calls[0]
+        expect(steps).toEqual([{ kind: 'addPresenceBinding', hostId: ROOM_A, presenceUuid: expect.any(String) }])
+
+        ;(commitStepSequence as jest.Mock).mockClear()
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(
+            testLudicGraph(ROOM_A, { nodes: [presenceBindingNode('cafe-remainder')] })
+        )
+        await populateContainmentAtCache(ROOM_A, [], { messageBus, streamEvent })
+        expect(commitStepSequence).not.toHaveBeenCalled()
+    })
+
+    it('mints one remainder per room, however many children point at it', async () => {
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            testLudicGraph(hostId as any, { nodes: [] })
+        )
+
+        await populateContainmentAtCache(ROOM_A, [{ universalKey: FEATURE_A }, { universalKey: FEATURE_B }], { messageBus, streamEvent })
+
+        const [{ steps }] = (commitStepSequence as jest.Mock).mock.calls[0]
+        const roomMints = steps.filter((step: any) => step.kind === 'addPresenceBinding' && step.hostId === ROOM_A)
+        expect(roomMints).toHaveLength(1)
+        const remainderKey = `PRESENCE#${roomMints[0].presenceUuid}`
+        const childBindings = steps.filter((step: any) => step.kind === 'addPresenceBinding' && step.hostId !== ROOM_A)
+        expect(childBindings.map((step: any) => step.fromHostPresence)).toEqual([
+            { host: ROOM_A, presence: remainderKey },
+            { host: ROOM_A, presence: remainderKey },
+        ])
+    })
+
+    it('does nothing for a childless non-room parent', async () => {
+        await populateContainmentAtCache(AREA_ID, [], { messageBus, streamEvent })
+
+        expect(internalCache.Positions.getLudicGraph).not.toHaveBeenCalled()
+        expect(commitStepSequence).not.toHaveBeenCalled()
     })
 
     it('logs but does not throw when commitStepSequence fails', async () => {

@@ -20,9 +20,8 @@ const boxId = 'OBJECT#Box' as EphemeraObjectId
 const featureId = 'FEATURE#Fountain' as EphemeraFeatureId
 const areaId = 'AREA#Downtown' as EphemeraAreaId
 
-const fullCover: EphemeraPresenceCover = { tag: 'Full' }
+const fullCover: EphemeraPresenceCover = { members: [{ tag: 'Remainder' }] }
 const enumeratedCover = (host: string, presence: string): EphemeraPresenceCover => ({
-    tag: 'Enumerated',
     members: [{ host: host as any, presence: presence as EphemeraPresenceNodeId }],
 })
 
@@ -39,11 +38,12 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                     { tag: 'Object', universalKey: boxId },
                     { tag: 'Feature', universalKey: featureId },
                     { tag: 'Area', universalKey: areaId },
-                    { tag: 'Presence', universalKey: bindingId, fromHostId: roomId, cover: fullCover },
+                    // Lists Box explicitly as well: binding2 claims it, and a bare remainder excludes claimed members.
+                    { tag: 'Presence', universalKey: bindingId, fromHostPresence: { host: roomId }, cover: { members: [{ tag: 'Remainder' }, { host: boxId, presence: 'PRESENCE#box-binding' as EphemeraPresenceNodeId }] } },
                     {
                         tag: 'Presence',
                         universalKey: 'PRESENCE#binding2' as EphemeraPresenceNodeId,
-                        fromHostId: hallId,
+                        fromHostPresence: { host: hallId },
                         cover: enumeratedCover(boxId, 'PRESENCE#box-binding'),
                     },
                 ],
@@ -69,7 +69,7 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
 
             const wire = toWireLudicGraph(graph, bindingUuid)
 
-            // Nothing is cut away: `bindingUuid`'s cover is Full, so the bucket is every
+            // Nothing is cut away: `bindingUuid`'s cover is a remainder plus the one claimed member, so the bucket is every
             // component node plus both presence nodes (carried unconditionally) plus the root.
             expect(wire.nodes).toHaveLength(8)
             expect(wire.edges).toHaveLength(8)
@@ -93,8 +93,8 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                 { tag: 'Object', universalKey: ropeId },
                 { tag: 'Object', universalKey: endAId },
                 { tag: 'Object', universalKey: endBId },
-                { tag: 'Presence', universalKey: bindingAId, fromHostId: roomId, cover: enumeratedCover(endAId, 'PRESENCE#endA-binding') },
-                { tag: 'Presence', universalKey: bindingBId, fromHostId: hallId, cover: enumeratedCover(endBId, 'PRESENCE#endB-binding') },
+                { tag: 'Presence', universalKey: bindingAId, fromHostPresence: { host: roomId }, cover: enumeratedCover(endAId, 'PRESENCE#endA-binding') },
+                { tag: 'Presence', universalKey: bindingBId, fromHostPresence: { host: hallId }, cover: enumeratedCover(endBId, 'PRESENCE#endB-binding') },
             ],
             edges: [
                 { tag: 'Relational', kind: 'PartOf', from: endAId, to: ropeId },
