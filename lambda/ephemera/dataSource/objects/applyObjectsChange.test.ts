@@ -14,11 +14,7 @@ import {
 
 jest.mock('./persistImprovisationObject', () => ({
     ...jest.requireActual('./persistImprovisationObject'),
-    persistDeleteImprovisationObject: jest.fn(),
-}))
-
-jest.mock('../positions/manipulation/membership/executeMembershipTransfer', () => ({
-    executeMembershipTransfer: jest.fn(),
+    destroyImprovisedObject: jest.fn(),
 }))
 
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
@@ -41,19 +37,12 @@ describe('applyObjectsChange', () => {
     const messageBus = { publish: jest.fn() }
     const positionsStreamEvent = jest.fn().mockResolvedValue(undefined)
     const spawnOneImpl = jest.fn<ReturnType<typeof spawnOneImprovisationObject>, Parameters<typeof spawnOneImprovisationObject>>()
-    const applyClearMembershipImpl = jest.fn()
     const deleteObjectImpl = jest.fn()
 
     beforeEach(() => {
         jest.clearAllMocks()
         spawnOneImpl.mockImplementation(async (args) => ({ ok: true, objectId: args.objectId }))
-        applyClearMembershipImpl.mockResolvedValue({
-            ok: true,
-            froms: [ROOM_ID],
-            to: null,
-            changed: true,
-        })
-        deleteObjectImpl.mockResolvedValue({ ok: true, objectId: 'OBJECT#removed' })
+        deleteObjectImpl.mockResolvedValue({ ok: true, objectId: 'OBJECT#removed', froms: [ROOM_ID] })
     })
 
     it('returns persisted false when add and remove are empty', async () => {
@@ -185,7 +174,7 @@ describe('applyObjectsChange', () => {
             }
             return { ok: true, objectId: args.objectId }
         })
-        deleteObjectImpl.mockImplementation(async ({ objectId }) => ({ ok: true, objectId }))
+        deleteObjectImpl.mockImplementation(async ({ objectId }) => ({ ok: true, objectId, froms: [ROOM_ID] }))
 
         const result = await applyObjectsChange(
             {
@@ -197,7 +186,6 @@ describe('applyObjectsChange', () => {
                 messageBus: messageBus as any,
                 positionsStreamEvent,
                 spawnOneImpl,
-                applyClearMembershipImpl,
                 deleteObjectImpl,
             }
         )
@@ -213,16 +201,10 @@ describe('applyObjectsChange', () => {
                 errorMessage: 'placement failed',
             }],
         })
-        expect(applyClearMembershipImpl).toHaveBeenCalledWith({
-            entityId: 'OBJECT#removed',
-            target: null,
-            messageBus,
-            streamEvent: positionsStreamEvent,
-        })
-        expect(deleteObjectImpl).toHaveBeenCalledWith({
-            objectId: 'OBJECT#removed',
-            affectedRoomIds: [ROOM_ID],
-        })
+        expect(deleteObjectImpl).toHaveBeenCalledWith(
+            { objectId: 'OBJECT#removed', affectedRoomIds: [ROOM_ID] },
+            { messageBus, positionsStreamEvent }
+        )
     })
 
     it('maps tropeAffinities through room filter on add rows', async () => {

@@ -209,6 +209,11 @@ describe('factsForStep', () => {
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
+    it('a destroyComponent step yields no facts --- the move to nowhere that precedes it announces departure', () => {
+        const step: MutationKernelStep = { kind: 'destroyComponent', hostId: trayId }
+        expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
+    })
+
     it('addCrossingPort/removeCrossingPort steps yield no facts --- not a narration channel yet, same as the presence binding steps', () => {
         const addStep: MutationKernelStep = {
             kind: 'addCrossingPort',

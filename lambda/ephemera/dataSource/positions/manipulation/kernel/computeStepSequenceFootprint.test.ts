@@ -66,6 +66,11 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([roomId, otherRoomId]))
     })
 
+    it('a destroyComponent step contributes its hostId even with no move naming it (the orphan case)', () => {
+        const footprint = computeStepSequenceFootprint([{ kind: 'destroyComponent', hostId: 'OBJECT#Tray' as EphemeraObjectId }], () => undefined)
+        expect([...footprint]).toEqual(['OBJECT#Tray'])
+    })
+
     it('presence binding add/repair steps contribute their hostId directly', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: { host: roomId }, presenceUuid: 'p1' },

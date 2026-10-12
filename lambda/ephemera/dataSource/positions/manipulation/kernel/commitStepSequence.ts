@@ -131,6 +131,8 @@ export const commitStepSequence = async (
     // falls back to this snapshot to re-derive that endpoint's host --- the host it actually held the
     // edge on, right before removal --- rather than throwing.
     let priorGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
+    // Overwritten whole per reducer run, like `committedGraphs`.
+    let destroyedHosts: EphemeraMembershipHostId[] = []
 
     const multiKeyItem: CommitStepSequenceTransactItem = {
         MultiKeyUpdate: {
@@ -153,6 +155,7 @@ export const commitStepSequence = async (
                     graphs.set(hostId, graphFromMeta(entry, hostId))
                 }
                 priorGraphs = graphs
+                destroyedHosts = []
 
                 const outcome = applyStepSequenceCore(steps, graphs)
                 if (outcome.verdict !== 'legal') {
@@ -166,6 +169,20 @@ export const commitStepSequence = async (
                     )
                 }
 
+                // A fetched host the outcome no longer holds was destroyed: removing its draft entry
+                // makes the wrapper delete the row, conditioned on the graph it read.
+                for (const hostId of footprint) {
+                    if (created.has(hostId) || outcome.graphs.has(hostId)) {
+                        continue
+                    }
+                    const draftKey = Object.keys(draft).find(
+                        (key) => draft[key].EphemeraId === hostId && draft[key].DataCategory === hostDataCategory(hostId)
+                    )
+                    if (draftKey !== undefined) {
+                        delete draft[draftKey]
+                    }
+                    destroyedHosts.push(hostId)
+                }
                 for (const [hostId, graph] of outcome.graphs) {
                     // written by `cascade` below: there is no fetched row to update.
                     if (created.has(hostId)) {
@@ -242,6 +259,9 @@ export const commitStepSequence = async (
     // Cache write-through must land before any fact streams below --- see applyObjectSetTransfer.ts's
     // matching comment on the affordance-refresh race this ordering avoids.
     seedGraphMemos([...committedGraphs.values()])
+    for (const hostId of destroyedHosts) {
+        internalCache.Positions.invalidate(hostId as Parameters<typeof internalCache.Positions.invalidate>[0])
+    }
     deps.afterPersist?.()
 
     for (const step of steps) {

@@ -70,7 +70,7 @@ import { glossFromComponent } from './objectShortName'
 import {
     improvisationPairComponent,
     improvisationPairPutItem,
-    persistDeleteImprovisationObject,
+    destroyImprovisedObject,
 } from './persistImprovisationObject'
 
 const transactWriteMock = ephemeraDB.transactWrite as jest.Mock
@@ -84,34 +84,67 @@ describe('persistImprovisationObject', () => {
         transactWriteMock.mockResolvedValue(undefined)
     })
 
-    it('persistDeleteImprovisationObject deletes pair, Meta::Object, and EMBEDDING#IMPROMPTU rows', async () => {
-        const result = await persistDeleteImprovisationObject({ objectId, affectedRoomIds: [roomId] })
+    const executeDestruction = jest.fn()
+    // no messageBus override: the module's mocked bus is what the render-cache cleanup publishes to
+    const destroyDeps = { positionsStreamEvent: jest.fn(), executeDestruction }
 
-        expect(result).toEqual({ ok: true, objectId })
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            { Delete: { EphemeraId: objectId, DataCategory: 'ASSET#IMPROVISATION' } },
-            { Delete: { EphemeraId: objectId, DataCategory: 'Meta::Object' } },
-            { Delete: { EphemeraId: objectId, DataCategory: 'EMBEDDING#IMPROMPTU' } },
-        ])
+    it('destroyImprovisedObject commits once, with the pair and embedding rows as existenceItems and Meta::Object left to the kernel', async () => {
+        executeDestruction.mockResolvedValue({ ok: true, froms: [roomId], beatAnchorTime: 1 })
+
+        const result = await destroyImprovisedObject({ objectId, affectedRoomIds: [roomId] }, destroyDeps)
+
+        expect(result).toEqual({ ok: true, objectId, froms: [roomId] })
+        expect(executeDestruction).toHaveBeenCalledTimes(1)
+        expect(executeDestruction).toHaveBeenCalledWith(expect.objectContaining({
+            objectId,
+            existenceItems: [
+                { Delete: { EphemeraId: objectId, DataCategory: 'ASSET#IMPROVISATION' } },
+                { Delete: { EphemeraId: objectId, DataCategory: 'EMBEDDING#IMPROMPTU' } },
+            ],
+        }))
+        // no write outside the kernel
+        expect(transactWriteMock).not.toHaveBeenCalled()
+    })
+
+    it('destroyImprovisedObject invalidates caches only once the commit has persisted, for the caller\'s rooms and the rooms it left', async () => {
+        const otherRoomId = 'ROOM#CAFE' as const
+        executeDestruction.mockImplementation(async (args: any) => {
+            expect(improvisationInvalidateMock).not.toHaveBeenCalled()
+            args.afterPersist([otherRoomId, 'CHARACTER#Alpha'])
+            return { ok: true, froms: [otherRoomId], beatAnchorTime: 1 }
+        })
+
+        await destroyImprovisedObject({ objectId, affectedRoomIds: [roomId] }, destroyDeps)
+
         expect(improvisationInvalidateMock).toHaveBeenCalledWith(objectId, 'ASSET#IMPROVISATION')
         expect(objectMetaInvalidateMock).toHaveBeenCalledWith(objectId)
         expect(objectEmbeddingInvalidateMock).toHaveBeenCalledWith(objectId)
         expect(affordanceInvalidateMock).toHaveBeenCalledWith(roomId)
-        // These rows touch no `Meta::Room` and no graph: the room's graph memo (just seeded by
-        // the placement/removal commit) and its meta row stay valid.
+        expect(affordanceInvalidateMock).toHaveBeenCalledWith(otherRoomId)
+        expect(affordanceInvalidateMock).toHaveBeenCalledTimes(2)
         expect(componentEphemeraMetaInvalidateMock).not.toHaveBeenCalled()
-        expect(positionsInvalidateMock).not.toHaveBeenCalled()
     })
 
-    it('persistDeleteImprovisationObject dispatches Delete Cache Records when the object has render-cache rows', async () => {
+    it('destroyImprovisedObject passes a failed commit through and cleans up nothing', async () => {
+        executeDestruction.mockResolvedValue({ ok: false, errorMessage: 'stale' })
+
+        const result = await destroyImprovisedObject({ objectId }, destroyDeps)
+
+        expect(result).toEqual({ ok: false, errorMessage: 'stale' })
+        expect(queryAllRenderCacheDataCategoriesForComponentMock).not.toHaveBeenCalled()
+        expect(messageBusPublishMock).not.toHaveBeenCalled()
+    })
+
+    it('destroyImprovisedObject dispatches Delete Cache Records when the object has render-cache rows', async () => {
+        executeDestruction.mockResolvedValue({ ok: true, froms: [roomId], beatAnchorTime: 1 })
         queryAllRenderCacheDataCategoriesForComponentMock.mockResolvedValueOnce([
             'CACHE#one',
             'Cache::perspective-key',
         ])
 
-        const result = await persistDeleteImprovisationObject({ objectId, affectedRoomIds: [roomId] })
+        const result = await destroyImprovisedObject({ objectId, affectedRoomIds: [roomId] }, destroyDeps)
 
-        expect(result).toEqual({ ok: true, objectId })
+        expect(result).toEqual({ ok: true, objectId, froms: [roomId] })
         expect(queryAllRenderCacheDataCategoriesForComponentMock).toHaveBeenCalledWith(objectId)
         expect(messageBusPublishMock).toHaveBeenCalledTimes(1)
         const published = messageBusPublishMock.mock.calls[0][0]
@@ -122,31 +155,23 @@ describe('persistImprovisationObject', () => {
         })
     })
 
-    it('persistDeleteImprovisationObject does not dispatch Delete Cache Records when the object has no render-cache rows', async () => {
-        const result = await persistDeleteImprovisationObject({ objectId, affectedRoomIds: [roomId] })
+    it('destroyImprovisedObject does not dispatch Delete Cache Records when the object has no render-cache rows', async () => {
+        executeDestruction.mockResolvedValue({ ok: true, froms: [], beatAnchorTime: 1 })
 
-        expect(result).toEqual({ ok: true, objectId })
+        const result = await destroyImprovisedObject({ objectId, affectedRoomIds: [roomId] }, destroyDeps)
+
+        expect(result).toEqual({ ok: true, objectId, froms: [] })
         expect(messageBusPublishMock).not.toHaveBeenCalled()
     })
 
-    it('persistDeleteImprovisationObject still succeeds when render-cache cleanup fails', async () => {
+    it('destroyImprovisedObject still succeeds when render-cache cleanup fails', async () => {
+        executeDestruction.mockResolvedValue({ ok: true, froms: [], beatAnchorTime: 1 })
         queryAllRenderCacheDataCategoriesForComponentMock.mockRejectedValueOnce(new Error('dynamo unavailable'))
 
-        const result = await persistDeleteImprovisationObject({ objectId, affectedRoomIds: [roomId] })
+        const result = await destroyImprovisedObject({ objectId, affectedRoomIds: [roomId] }, destroyDeps)
 
-        expect(result).toEqual({ ok: true, objectId })
+        expect(result).toEqual({ ok: true, objectId, froms: [] })
         expect(messageBusPublishMock).not.toHaveBeenCalled()
-    })
-
-    it('persistDeleteImprovisationObject returns ok when rows are already absent', async () => {
-        const result = await persistDeleteImprovisationObject({ objectId })
-
-        expect(result).toEqual({ ok: true, objectId })
-        expect(transactWriteMock).toHaveBeenCalledWith([
-            { Delete: { EphemeraId: objectId, DataCategory: 'ASSET#IMPROVISATION' } },
-            { Delete: { EphemeraId: objectId, DataCategory: 'Meta::Object' } },
-            { Delete: { EphemeraId: objectId, DataCategory: 'EMBEDDING#IMPROMPTU' } },
-        ])
     })
 
 })

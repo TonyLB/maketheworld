@@ -92,7 +92,7 @@ const defaultGetPairRow = async (objectId: EphemeraObjectId): Promise<Improvisat
  * lives in that host's own shard, not in any room or character graph (CC3). Scanning only
  * Room and Character rows (as this did until 2026-09-03) makes every legitimately nested object
  * --- a cup genuinely sitting on a table --- look orphaned, and a finding here routes straight to
- * `persistDeleteImprovisationObject` with no further guard. That is a deletion of live data, so
+ * `destroyImprovisedObject` with no further guard. That is a deletion of live data, so
  * the omission was a latent data-loss bug, not just an incomplete scan.
  *
  * Scanning the third DataCategory covers arbitrary nesting depth in one pass: a nested object is

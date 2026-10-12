@@ -25,7 +25,7 @@ jest.mock('./clearCoyoteGameImprovisationObjects', () => ({
 
 jest.mock('./persistImprovisationObject', () => ({
     ...jest.requireActual('./persistImprovisationObject'),
-    persistDeleteImprovisationObject: jest.fn(),
+    destroyImprovisedObject: jest.fn(),
 }))
 
 jest.mock('../positions/manipulation/membership/executeMembershipTransfer', () => ({

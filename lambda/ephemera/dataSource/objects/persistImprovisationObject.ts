@@ -1,17 +1,21 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { IMPROVISATION_ASSET_ID, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { CoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffinities'
 import { EMBEDDING_IMPROMPTU_DATA_CATEGORY } from '@tonylb/mtw-interfaces/ts/ephemeraEmbedding'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraMetaObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import type { FacetListData } from '@tonylb/mtw-wml/ts/standardize/keys/abstract'
 import type { SituationProseFacetPayloadType } from '@tonylb/mtw-wml/ts/standardize/keys/facets/situationRoom'
-import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
+import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 
 import type { MessageBus } from '../../messageBus/baseClasses'
 import messageBus from '../../messageBus'
 import { sendDeleteCacheRecords } from '../apiEphemera'
 import { queryAllRenderCacheDataCategoriesForComponent } from '../renderCache/queryAllRenderCacheDataCategoriesForComponent'
+import { executeComponentDestruction } from '../positions/manipulation/membership/executeComponentDestruction'
+import type { PositionsPublishedPayload } from '../positions/publishedEvents'
+import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
 import { invalidateImprovisationObjectCaches } from './invalidateImprovisationObjectCaches'
 
 const META_OBJECT_DATA_CATEGORY = 'Meta::Object' as const
@@ -21,9 +25,10 @@ export type DeleteImprovisationObjectArgs = {
     affectedRoomIds?: EphemeraRoomId[];
 }
 
-export type PersistImprovisationObjectDependencies = {
-    transactWrite?: typeof ephemeraDB.transactWrite;
+export type DestroyImprovisedObjectDependencies = {
     messageBus?: MessageBus;
+    positionsStreamEvent?: StreamEventFunction<PositionsPublishedPayload>;
+    executeDestruction?: typeof executeComponentDestruction;
     queryRenderCacheDataCategories?: typeof queryAllRenderCacheDataCategoriesForComponent;
 }
 
@@ -76,62 +81,60 @@ export const improvisationMetaRow = (args: {
     ...(args.tropeAffinitiesFailed === true ? { tropeAffinitiesFailed: true as const } : {}),
 })
 
-const deleteTransactItemsForObject = (objectId: EphemeraObjectId) => [
-    {
-        Delete: {
-            EphemeraId: objectId,
-            DataCategory: IMPROVISATION_ASSET_ID,
-        },
-    },
-    {
-        Delete: {
-            EphemeraId: objectId,
-            DataCategory: META_OBJECT_DATA_CATEGORY,
-        },
-    },
-    {
-        Delete: {
-            EphemeraId: objectId,
-            DataCategory: EMBEDDING_IMPROMPTU_DATA_CATEGORY,
-        },
-    },
+/** The pair and embedding rows an improvised Object owns; its `Meta::Object` row is the kernel's. */
+const existenceDeleteItems = (objectId: EphemeraObjectId) => [
+    { Delete: { EphemeraId: objectId, DataCategory: IMPROVISATION_ASSET_ID } },
+    { Delete: { EphemeraId: objectId, DataCategory: EMBEDDING_IMPROMPTU_DATA_CATEGORY } },
 ]
 
 /**
- * Delete improvisation pair, Meta::Object, and EMBEDDING#IMPROMPTU rows for one OBJECT#.
+ * Destroys one improvised Object as one kernel commit: the placement clear, the `Meta::Object` row
+ * (the kernel's `destroyComponent`), and the pair and `EMBEDDING#IMPROMPTU` rows (riding as
+ * `existenceItems`). The kernel refuses while the Object still hosts anything of its own.
  */
-export const persistDeleteImprovisationObject = async (
+export const destroyImprovisedObject = async (
     args: DeleteImprovisationObjectArgs,
-    deps?: PersistImprovisationObjectDependencies
-): Promise<{ ok: true; objectId: EphemeraObjectId } | { ok: false; errorMessage: string }> => {
-    const transactWrite = deps?.transactWrite ?? ephemeraDB.transactWrite.bind(ephemeraDB)
+    deps?: DestroyImprovisedObjectDependencies
+): Promise<{ ok: true; objectId: EphemeraObjectId; froms: EphemeraMembershipHostId[] } | { ok: false; errorMessage: string }> => {
     const bus = deps?.messageBus ?? messageBus
+    const streamEvent = deps?.positionsStreamEvent ?? streamPositionsEventFromMessageBus(bus)
+    const executeDestruction = deps?.executeDestruction ?? executeComponentDestruction
     const queryRenderCacheDataCategories = deps?.queryRenderCacheDataCategories ?? queryAllRenderCacheDataCategoriesForComponent
 
-    try {
-        await transactWrite(deleteTransactItemsForObject(args.objectId))
-        invalidateImprovisationObjectCaches({
-            objectId: args.objectId,
-            affectedRoomIds: args.affectedRoomIds,
-            clearEmbedding: true,
-        })
-        try {
-            const dataCategories = await queryRenderCacheDataCategories(args.objectId)
-            if (dataCategories.length > 0) {
-                sendDeleteCacheRecords(bus, args.objectId, { componentId: args.objectId, dataCategories })
-            }
-        }
-        catch (renderCacheError) {
-            const renderCacheErrorMessage = renderCacheError instanceof Error ? renderCacheError.message : String(renderCacheError)
-            console.error('[dataSource/objects] render-cache cleanup failed after object delete', {
+    const result = await executeDestruction({
+        objectId: args.objectId,
+        existenceItems: existenceDeleteItems(args.objectId),
+        messageBus: bus,
+        streamEvent,
+        afterPersist: (froms) => {
+            invalidateImprovisationObjectCaches({
                 objectId: args.objectId,
-                errorMessage: renderCacheErrorMessage,
+                affectedRoomIds: [
+                    ...new Set([
+                        ...(args.affectedRoomIds ?? []),
+                        ...froms.filter((hostId): hostId is EphemeraRoomId => isEphemeraRoomId(hostId)),
+                    ]),
+                ],
+                clearEmbedding: true,
             })
+        },
+    })
+    if (!result.ok) {
+        return { ok: false, errorMessage: result.errorMessage ?? `executeComponentDestruction failed for ${args.objectId}` }
+    }
+
+    try {
+        const dataCategories = await queryRenderCacheDataCategories(args.objectId)
+        if (dataCategories.length > 0) {
+            sendDeleteCacheRecords(bus, args.objectId, { componentId: args.objectId, dataCategories })
         }
-        return { ok: true, objectId: args.objectId }
     }
-    catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        return { ok: false, errorMessage: message }
+    catch (renderCacheError) {
+        const renderCacheErrorMessage = renderCacheError instanceof Error ? renderCacheError.message : String(renderCacheError)
+        console.error('[dataSource/objects] render-cache cleanup failed after object delete', {
+            objectId: args.objectId,
+            errorMessage: renderCacheErrorMessage,
+        })
     }
+    return { ok: true, objectId: args.objectId, froms: result.froms }
 }

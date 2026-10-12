@@ -1,14 +1,12 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoomObject } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 
 import messageBus from '../../messageBus'
-import { executeMembershipTransfer } from '../positions/manipulation/membership/executeMembershipTransfer'
 import type { PositionsPublishedPayload } from '../positions/publishedEvents'
 import { streamEventFromMessageBus as streamPositionsEventFromMessageBus } from '../positions/publishedEvents'
 import { filterTropeAffinitiesByRoom } from './filterTropeAffinitiesByRoom'
-import { persistDeleteImprovisationObject } from './persistImprovisationObject'
+import { destroyImprovisedObject } from './persistImprovisationObject'
 import {
     spawnImprovisationObjectsBatch,
     spawnOneImprovisationObject,
@@ -32,8 +30,7 @@ export type ApplyObjectsChangeDependencies = {
     messageBus?: typeof messageBus;
     positionsStreamEvent?: StreamEventFunction<PositionsPublishedPayload>;
     spawnOneImpl?: typeof spawnOneImprovisationObject;
-    applyClearMembershipImpl?: typeof executeMembershipTransfer;
-    deleteObjectImpl?: typeof persistDeleteImprovisationObject;
+    deleteObjectImpl?: typeof destroyImprovisedObject;
 }
 
 export const mapAddEntryToSpawnArgs = (
@@ -64,8 +61,7 @@ export const applyObjectsChange = async (
     const bus = deps.messageBus ?? messageBus
     const positionsStreamEvent = deps.positionsStreamEvent ?? streamPositionsEventFromMessageBus(bus)
     const spawnOne = deps.spawnOneImpl ?? spawnOneImprovisationObject
-    const applyClearMembership = deps.applyClearMembershipImpl ?? executeMembershipTransfer
-    const deleteObject = deps.deleteObjectImpl ?? persistDeleteImprovisationObject
+    const deleteObject = deps.deleteObjectImpl ?? destroyImprovisedObject
 
     const destroyedIds: EphemeraObjectId[] = []
 
@@ -77,25 +73,10 @@ export const applyObjectsChange = async (
     })
 
     for (const objectId of args.remove) {
-        const membershipResult = await applyClearMembership({
-            entityId: objectId,
-            target: null,
-            messageBus: bus,
-            streamEvent: positionsStreamEvent,
-        })
-        if (!membershipResult.ok) {
-            return { ok: false, errorMessage: membershipResult.errorMessage ?? `executeMembershipTransfer failed for ${objectId}` }
-        }
-
-        const affectedRoomIds = [
-            ...new Set([
-                ...membershipResult.froms.filter((id): id is EphemeraRoomId => isEphemeraRoomId(id)),
-                ...(membershipResult.to !== null && isEphemeraRoomId(membershipResult.to) ? [membershipResult.to] : []),
-                args.roomId,
-            ]),
-        ]
-
-        const deleteResult = await deleteObject({ objectId, affectedRoomIds })
+        const deleteResult = await deleteObject(
+            { objectId, affectedRoomIds: [args.roomId] },
+            { messageBus: bus, positionsStreamEvent }
+        )
         if (!deleteResult.ok) {
             return { ok: false, errorMessage: deleteResult.errorMessage }
         }

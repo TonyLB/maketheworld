@@ -84,6 +84,12 @@ export const factsForStep = (
         return []
     }
 
+    // a destruction is announced by the move that precedes it (`Object Moved` to nowhere); the
+    // objects lane's `Objects Changed` `destroyedIds` is the destruction event itself.
+    if (step.kind === 'destroyComponent') {
+        return []
+    }
+
     // same deferral as addPresenceBinding/rehostPresenceBinding --- a crossing port's own visibility is future work.
     if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {
         return []

@@ -102,6 +102,18 @@ export type MutationKernelCreateComponentStep = {
 }
 
 /**
+ * Ends a component: drops its host from the outcome, and `commitStepSequence` turns that into a
+ * conditioned `Delete` of the host row (`MultiKeyUpdate` deleting a fetched key). The mirror of
+ * `createComponent`. The handler throws unless the host's graph holds nothing but its own root and
+ * its own presence bindings, so anything it hosts must leave first, earlier in the same sequence
+ * or in an earlier commit. v1 destroys improvised Objects only.
+ */
+export type MutationKernelDestroyComponentStep = {
+    kind: 'destroyComponent'
+    hostId: EphemeraObjectId
+}
+
+/**
  * Rewrites an existing binding's parent pointer and cover IN PLACE, keeping its `universalKey`
  * (so no child pointer is orphaned). The explicit repair path for a binding population would now
  * write differently (a pointer not naming the parent's binding, a room's Area cover with members); a correct binding never
@@ -168,6 +180,7 @@ export type MutationKernelStep =
     | ExecutorDissolveRelationStep
     | MutationKernelCaptureStep
     | MutationKernelCreateComponentStep
+    | MutationKernelDestroyComponentStep
     | MutationKernelAddPresenceBindingStep
     | MutationKernelRehostPresenceBindingStep
     | MutationKernelRepairPresenceBindingStep
@@ -362,6 +375,7 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'dissolveRelation' ||
     step.kind === 'capture' ||
     step.kind === 'createComponent' ||
+    step.kind === 'destroyComponent' ||
     step.kind === 'addPresenceBinding' ||
     step.kind === 'rehostPresenceBinding' ||
     step.kind === 'repairPresenceBinding' ||

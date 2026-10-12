@@ -688,6 +688,63 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
+    describe('destroyComponent', () => {
+        const destroyTray: MutationKernelStep = { kind: 'destroyComponent', hostId: trayId }
+
+        it('drops an empty host (root and own bindings only) from the outcome', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('born')] })
+
+            const outcome = applyStepSequenceCore([destroyTray], graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.has(trayId)).toBe(false)
+        })
+
+        it('after a move to nowhere, the same sequence destroys the host; the room no longer holds it', () => {
+            const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }, presenceBindingNode(parentRemainderKey(roomId))] })
+            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('p1', roomId)] })
+            const steps: MutationKernelStep[] = [
+                ...compilePositionKernelOp({ kind: 'move', moved: trayId, froms: [roomId], to: null, header: null })
+                    .steps.filter(isKernelMutationStep),
+                destroyTray,
+            ]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.has(trayId)).toBe(false)
+            expect(outcome.graphs.get(roomId)!.nodeIds.has(trayId)).toBe(false)
+        })
+
+        it('throws while the host still holds another component', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
+
+            expect(() => applyStepSequenceCore([destroyTray], graphsMap([trayId, trayGraph]))).toThrow(/still holds 1 hosted node/)
+        })
+
+        it('throws while the host still holds a relational edge', () => {
+            const trayGraph = testLudicGraph(trayId, {
+                nodes: [],
+                edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'against' }],
+            })
+
+            expect(() => applyStepSequenceCore([destroyTray], graphsMap([trayId, trayGraph]))).toThrow(/relational edge/)
+        })
+
+        it('is stale when the host is not in the footprint, and a later step on a destroyed host is stale too', () => {
+            expect(applyStepSequenceCore([destroyTray], new Map())).toEqual({ verdict: 'stale', reasonCode: 'hostNotInFootprint' })
+
+            const trayGraph = testLudicGraph(trayId, { nodes: [] })
+            const steps: MutationKernelStep[] = [
+                destroyTray,
+                { kind: 'addPresenceBinding', hostId: trayId, presenceUuid: 'late' },
+            ]
+            expect(applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))).toEqual({ verdict: 'stale', reasonCode: 'hostNotInFootprint' })
+        })
+    })
+
     describe('presence binding steps (addPresenceBinding/rehostPresenceBinding)', () => {
         // presenceNodes Slice 7a (PN-23): these steps mint/remove the presence NODE directly ---
         // there is no port record any more, so `.ports` is untouched by any of this and only

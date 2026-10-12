@@ -187,6 +187,9 @@ const confirmCarriedHost = (
  * `createComponent`: seeds a not-yet-existing host's graph empty, holding one hostless remainder,
  * so the component is born with a binding. Throws if the host is already in `graphs`.
  *
+ * `destroyComponent`: drops the host from the outcome, so `commitStepSequence` deletes its row.
+ * Throws if the host's graph still holds anything but its own root and its own presence bindings.
+ *
  * `capture`: snapshots `graphs.get(hostId).characterIds` into the returned `captures` map and
  * moves on --- the one step kind that never touches `graphs`. Reading the map at the step's own
  * position (not resorted, same as every other step here) is what makes the snapshot positional rather
@@ -312,6 +315,28 @@ export const applyStepSequenceCore = (
                 universalKey: PresenceKey(step.presenceUuid),
                 cover: remainderCover(),
             }))
+            continue
+        }
+
+        if (step.kind === 'destroyComponent') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
+            }
+            // Contents must leave first (earlier in this sequence, or in an earlier commit): deleting
+            // the host's row would strand them. A structural invariant, so a throw rather than a verdict.
+            const heldIds = [...graph.nodeIds].filter((id) => id !== step.hostId && !graph.presenceNodes.some((node) => node.universalKey === id))
+            const leftBehind = [
+                ...(heldIds.length > 0 ? [`${heldIds.length} hosted node(s) (${heldIds.join(', ')})`] : []),
+                ...(graph.relationalEdges.length > 0 ? [`${graph.relationalEdges.length} relational edge(s)`] : []),
+                ...(graph.ports.length > 0 ? [`${graph.ports.length} port(s)`] : []),
+            ]
+            if (leftBehind.length > 0) {
+                throw new Error(
+                    `destroyComponent: ${step.hostId} still holds ${leftBehind.join(', ')} --- structural invariant violated (contents must leave before their host is destroyed)`
+                )
+            }
+            graphs.delete(step.hostId)
             continue
         }
 
