@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { executeMembershipTransfer } from './executeMembershipTransfer'
-import { testLudicGraph } from '../../ludicGraph/testFixtures'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
@@ -91,8 +91,8 @@ describe('executeMembershipTransfer', () => {
             ],
             edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'against' }],
         })
-        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
-        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [] });
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [presenceBindingNode(parentRemainderKey(TO_ROOM))] })
+        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [presenceBindingNode('skates', FROM_ROOM)] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? fromRoomGraph : hostId === TO_ROOM ? toRoomGraph : ownGraph
@@ -120,7 +120,7 @@ describe('executeMembershipTransfer', () => {
     })
 
     it('spawn shape: empty priorContainers, no sweep, no dissolve facts', async () => {
-        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [presenceBindingNode(parentRemainderKey(TO_ROOM))] })
         const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
@@ -139,22 +139,21 @@ describe('executeMembershipTransfer', () => {
         const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
         expect(eventTypes).toEqual(['Object Moved'])
 
-        // A transfer with no caller-supplied steps still mints a presence binding, not just a bare
-        // transferMembership step: it compiles through `compilePositionKernelOp`, and binding
-        // minting there is universal --- every mover, regardless of host kind. No port record
-        // (presenceNodes Slice 7a) --- the binding shows up as a presence node instead.
+        // A mover holding no binding at all gets a root minted ahead of its first-placement move, so
+        // the placement is never a bare host-level write: it compiles through
+        // `compilePositionKernelOp`, universal for every mover regardless of host kind.
         const committedOwnGraph = (internalCache.Positions.set as jest.Mock).mock.calls
             .map(([graph]: any[]) => graph)
             .find((graph: EphemeraLudicGraph) => graph.hostId === OBJECT_ID)
         expect(committedOwnGraph?.presenceNodes).toEqual([
-            expect.objectContaining({ fromHostPresence: { host: TO_ROOM } }),
+            expect.objectContaining({ fromHostPresence: { host: TO_ROOM, presence: parentRemainderKey(TO_ROOM) } }),
         ])
     })
 
     it('clear shape: sweeps every current host (any kind), target null, no arrival row', async () => {
         const roomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
-        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [] });
+        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [presenceBindingNode('in-room', FROM_ROOM), presenceBindingNode('in-hand', CHARACTER_ID)] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, CHARACTER_ID]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? roomGraph : hostId === CHARACTER_ID ? characterGraph : ownGraph
@@ -178,8 +177,8 @@ describe('executeMembershipTransfer', () => {
             update: expect.objectContaining({ type: 'Object Moved', froms: [FROM_ROOM, CHARACTER_ID], to: null }),
         }))
 
-        // The missing-clear fix: a departure to no host still removes every prior binding, even
-        // though there is no destination to add one for.
+        // The missing-clear fix: a departure to no host still releases every prior binding (the whole
+        // keeps one, hostless), even though there is no destination to add one for.
         const committedOwnGraph = (internalCache.Positions.set as jest.Mock).mock.calls
             .map(([graph]: any[]) => graph)
             .find((graph: EphemeraLudicGraph) => graph.hostId === OBJECT_ID)
@@ -194,8 +193,8 @@ describe('executeMembershipTransfer', () => {
             ],
             edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'against' }],
         })
-        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
-        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [] });
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [presenceBindingNode(parentRemainderKey(TO_ROOM))] })
+        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [presenceBindingNode('skates', FROM_ROOM)] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? fromRoomGraph : hostId === TO_ROOM ? toRoomGraph : ownGraph
@@ -217,8 +216,8 @@ describe('executeMembershipTransfer', () => {
 
     it('character entity: never runs the boundary sweep (no departure-graph fetch), only Character Moved streams', async () => {
         const fromRoomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
-        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] })
-        const ownGraph = testLudicGraph(CHARACTER_ID, { nodes: [] });
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [presenceBindingNode(parentRemainderKey(TO_ROOM))] })
+        const ownGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('alpha', FROM_ROOM)] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === TO_ROOM ? toRoomGraph : ownGraph
@@ -314,7 +313,7 @@ describe('executeMembershipTransfer', () => {
     })
 
     it('propagates commitStepSequence failure as errorCode/errorMessage', async () => {
-        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [] });
+        const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [presenceBindingNode(parentRemainderKey(TO_ROOM))] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(toRoomGraph);
         (ephemeraDB.transactWrite as jest.Mock).mockRejectedValue(new Error('boom'))

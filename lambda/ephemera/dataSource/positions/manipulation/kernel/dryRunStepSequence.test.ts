@@ -4,13 +4,19 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import { dryRunStepSequence } from './dryRunStepSequence'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import type { MutationKernelStep } from './kernelStep'
-import { testLudicGraph } from '../../ludicGraph/testFixtures'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
+
+const moveTrayOut = (mover: EphemeraMembershipHostId = trayId): MutationKernelStep => (
+    { kind: 'movePresenceBinding', hostId: mover, presence: 'PRESENCE#p1' as any, from: { host: roomId, presence: parentRemainderKey(roomId) }, to: { host: characterId, presence: parentRemainderKey(characterId) } }
+)
+const moverGraph = (mover: EphemeraMembershipHostId) => testLudicGraph(mover, { nodes: [presenceBindingNode('p1', roomId)] })
+const characterHost = () => testLudicGraph(characterId, { nodes: [presenceBindingNode(parentRemainderKey(characterId))] })
 
 const graphFixture = (
     ...entries: [EphemeraMembershipHostId, EphemeraLudicGraph][]
@@ -19,11 +25,8 @@ const graphFixture = (
 describe('dryRunStepSequence', () => {
     it('legal: matches applyStepSequenceCore run directly against the same fetched graphs', async () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
-        const graphs = graphFixture([roomId, sourceGraph], [characterId, destGraph])
-        const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
-        ]
+        const graphs = graphFixture([roomId, sourceGraph], [characterId, characterHost()], [trayId, moverGraph(trayId)])
+        const steps: MutationKernelStep[] = [moveTrayOut()]
 
         const outcome = await dryRunStepSequence(steps, {
             getCurrentHost: () => undefined,
@@ -35,7 +38,7 @@ describe('dryRunStepSequence', () => {
     })
 
     it('never fetches a host the sequence creates; the create step seeds it', async () => {
-        const roomGraph = testLudicGraph(roomId, { nodes: [] })
+        const roomGraph = testLudicGraph(roomId, { nodes: [presenceBindingNode(parentRemainderKey(roomId))] })
         const getGraph = jest.fn(async (hostId: EphemeraMembershipHostId) => {
             if (hostId !== roomId) {
                 throw new Error(`unexpected fetch of ${hostId}`)
@@ -44,8 +47,7 @@ describe('dryRunStepSequence', () => {
         })
         const steps: MutationKernelStep[] = [
             { kind: 'createComponent', hostId: trayId, presenceUuid: 'born', meta: { EphemeraId: trayId, DataCategory: 'Meta::Object', stableKey: 'tray' } },
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set(), toHostId: roomId },
-            { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [], toHostId: roomId, presenceUuid: 'unused' },
+            { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#born' as any, from: null, to: { host: roomId, presence: parentRemainderKey(roomId) } },
         ]
 
         const outcome = await dryRunStepSequence(steps, { getCurrentHost: () => undefined, getGraph })
@@ -55,18 +57,16 @@ describe('dryRunStepSequence', () => {
     })
 
     it('stale/hostNotInFootprint: a footprint host the fetcher cannot actually supply a graph for', async () => {
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
-        const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
-        ]
+        const destGraph = characterHost()
+        const steps: MutationKernelStep[] = [moveTrayOut()]
 
-        // roomId is in the footprint (transferMembership contributes fromHostIds directly) but the
+        // roomId is in the footprint (a move contributes the host it leaves directly) but the
         // fetcher returns nothing for it --- the real-world case being a host that no longer exists.
         // dryRunStepSequence must forward that gap through to applyStepSequenceCore's own
         // hostNotInFootprint check rather than throwing on the missing entry itself.
         const outcome = await dryRunStepSequence(steps, {
             getCurrentHost: () => undefined,
-            getGraph: async (hostId) => (hostId === characterId ? destGraph : (undefined as unknown as EphemeraLudicGraph)),
+            getGraph: async (hostId) => (hostId === characterId ? destGraph : hostId === trayId ? moverGraph(trayId) : (undefined as unknown as EphemeraLudicGraph)),
         })
 
         expect(outcome).toEqual({ verdict: 'stale', reasonCode: 'hostNotInFootprint' })
@@ -74,11 +74,8 @@ describe('dryRunStepSequence', () => {
 
     it('stale/staleTransferCandidate: entity absent from the fetched source graph', async () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [] })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
-        const graphs = graphFixture([roomId, sourceGraph], [characterId, destGraph])
-        const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
-        ]
+        const graphs = graphFixture([roomId, sourceGraph], [characterId, characterHost()], [trayId, moverGraph(trayId)])
+        const steps: MutationKernelStep[] = [moveTrayOut()]
 
         const outcome = await dryRunStepSequence(steps, {
             getCurrentHost: () => undefined,
@@ -96,12 +93,9 @@ describe('dryRunStepSequence', () => {
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'against' }],
         })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
-        const graphs = graphFixture([roomId, sourceGraph], [characterId, destGraph])
+        const graphs = graphFixture([roomId, sourceGraph], [characterId, characterHost()], [trayId, moverGraph(trayId)])
         // Bug-injection, mirroring applyStepSequenceCore.test.ts: no paired dissolveRelation step.
-        const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
-        ]
+        const steps: MutationKernelStep[] = [moveTrayOut()]
 
         const outcome = await dryRunStepSequence(steps, {
             getCurrentHost: () => undefined,
@@ -127,23 +121,24 @@ describe('dryRunStepSequence', () => {
                 { tag: 'Object', universalKey: tableId },
             ],
         })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
-        const graphs = graphFixture([roomId, sourceGraph], [characterId, destGraph])
+        const graphs = graphFixture([roomId, sourceGraph], [characterId, characterHost()], [trayId, moverGraph(trayId)], [tableId, moverGraph(tableId)])
         const getGraph = jest.fn(async (hostId: EphemeraMembershipHostId) => graphs.get(hostId)!)
-        // Three steps sharing the same footprint hosts (two transfers plus a capture on the same
+        // Three steps sharing the same footprint hosts (two moves plus a capture on the same
         // source host) --- all touch `roomId`.
         const steps: MutationKernelStep[] = [
             { kind: 'capture', captureId: 'before', hostId: roomId },
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
-            { kind: 'transferMembership', entityId: tableId, fromHostIds: new Set([roomId]), toHostId: characterId },
+            moveTrayOut(trayId),
+            moveTrayOut(tableId),
         ]
 
         const outcome = await dryRunStepSequence(steps, { getCurrentHost: () => undefined, getGraph })
 
         expect(outcome.verdict).toBe('legal')
-        expect(getGraph).toHaveBeenCalledTimes(2)
+        expect(getGraph).toHaveBeenCalledTimes(4)
         expect(getGraph).toHaveBeenCalledWith(roomId)
         expect(getGraph).toHaveBeenCalledWith(characterId)
+        expect(getGraph).toHaveBeenCalledWith(trayId)
+        expect(getGraph).toHaveBeenCalledWith(tableId)
     })
 
     it('takes no transactWrite dependency --- there is no write path to reach', () => {

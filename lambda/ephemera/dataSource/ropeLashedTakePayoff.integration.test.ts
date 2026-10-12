@@ -43,7 +43,7 @@ import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
 import { CommandAttempt, type CommandAttemptData } from './actions/commandAttempt'
 import { commitAttempt } from './positions/manipulation/commitAttempt'
-import { testLudicGraph } from './positions/ludicGraph/testFixtures'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from './positions/ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from './positions/ludicGraph'
 
 const assetDBMock = jest.mocked(assetDB)
@@ -89,11 +89,12 @@ const seedGraphs = (edge: EphemeraLudicGraphEdgeInput): Record<string, EphemeraL
         nodes: [
             { tag: 'Object', universalKey: ROPE_ID },
             { tag: 'Object', universalKey: POST_ID },
+            presenceBindingNode(parentRemainderKey(ROOM_ID)),
         ],
         edges: [{ tag: 'Relational', ...edge }],
     }),
-    [CHARACTER_ID]: testLudicGraph(CHARACTER_ID, { nodes: [] }),
-    [ROPE_ID]: testLudicGraph(ROPE_ID, { nodes: [{ tag: 'Object', universalKey: ROPE_ID }] }),
+    [CHARACTER_ID]: testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')] }),
+    [ROPE_ID]: testLudicGraph(ROPE_ID, { nodes: [{ tag: 'Object', universalKey: ROPE_ID }, presenceBindingNode('rope-in-room', ROOM_ID)] }),
 })
 
 describe('lashed rope take payoff (integration)', () => {

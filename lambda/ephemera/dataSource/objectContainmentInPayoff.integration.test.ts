@@ -63,7 +63,7 @@ import { isParseCommandCommandAttemptResult } from './actions/baseClasses'
 import { CommandAttempt } from './actions/commandAttempt'
 import type { CommandAttemptData } from './actions/commandAttempt'
 import { commitAttempt } from './positions/manipulation/commitAttempt'
-import { testLudicGraph } from './positions/ludicGraph/testFixtures'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from './positions/ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from './positions/ludicGraph'
 import { orchestrateRoomDescriptionStreams } from './perception/orchestrate'
 import { newDirectIngressAddress, registerIngressSlot } from './messageOrchestration'
@@ -167,6 +167,7 @@ describe('object containment In payoff (integration)', () => {
                 nodes: [
                     { tag: 'Object', universalKey: BALL_ID },
                     { tag: 'Object', universalKey: BOX_ID },
+                    presenceBindingNode(parentRemainderKey(ROOM_ID)),
                 ],
                 edges: [],
             }).addCharacter(CHARACTER_ID),
@@ -176,8 +177,8 @@ describe('object containment In payoff (integration)', () => {
             // normalization. Required here because `establishRelation`'s target is the box
             // itself (`In`'s containment edge targets its own host): `confirmCarriedHost` checks
             // that the box is a member of its own graph.
-            [BOX_ID]: testLudicGraph(BOX_ID, { nodes: [{ tag: 'Object', universalKey: BOX_ID }] }),
-            [BALL_ID]: testLudicGraph(BALL_ID, { nodes: [{ tag: 'Object', universalKey: BALL_ID }] }),
+            [BOX_ID]: testLudicGraph(BOX_ID, { nodes: [{ tag: 'Object', universalKey: BOX_ID }, presenceBindingNode('box-in-room', ROOM_ID)] }),
+            [BALL_ID]: testLudicGraph(BALL_ID, { nodes: [{ tag: 'Object', universalKey: BALL_ID }, presenceBindingNode('ball-in-room', ROOM_ID)] }),
         }
 
         ephemeraDBMock.getItem.mockImplementation(async ({ Key }: any) => {

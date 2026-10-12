@@ -15,6 +15,7 @@ import type {
     ObjectMovedPublishedPayload,
     ObjectRelationChangedPublishedPayload,
 } from '../../publishedEvents'
+import type { MembershipChange } from './membershipChanges'
 import type { MutationKernelStep } from './kernelStep'
 
 // Kind-indifferent: checks graph.nodeIds (any terminal kind), not graph.objectIds.
@@ -33,48 +34,33 @@ const findHostOf = (
 /**
  * BD-27c's generic fact-streaming mapping: walks the *output-ordered* steps (not a hand-assembled
  * subset) and maps each to zero-or-more facts. Streaming in step order (BD-28) is what guarantees a
- * move's steps --- `[dissolveRelation*, transferMembership]` --- stream their dissolve facts before
- * the moved fact.
- *
- * Character-kind fact emission (folded in for the character-route Migrate row, BD-36): a
- * `transferMembership` whose `entityId` is a character produces a `Character Moved` fact here too, via
- * `characterNames` (a caller-supplied lookup --- this function stays synchronous, so the name must
- * already be resolved, not fetched here). Folding this in (rather than layering it on top, in the
- * caller, after `commitStepSequence` returns) is what keeps `Character Moved` streaming before the
- * kernel's own `RoomUpdate` publish loop, mirroring `Object Moved`'s existing ordering guarantee ---
- * `commitStepSequence.test.ts` asserts this ordering, and only folding the fact in
- * here (rather than leaving it to run after the kernel call returns) can preserve it.
- *
- * One `Object Moved` or `Character Moved` fact per step, with `froms: [...fromHostIds]`/
- * `to: toHostId` --- matching `buildObjectMovedFact`/`buildCharacterMovedFact`'s existing multi-`froms`/
- * nullable-`to` diff shape --- rather than one fact per host, so the object-lifecycle routes'
- * (plural-`froms`, nullable-`to`) steps get the same single-fact-per-entity behavior as every other
- * caller.
+ * move's `dissolveRelation` facts stream before its moved fact, which `commitStepSequence` streams
+ * right after the mover's last presence step (`movedFactsFor`, below).
  *
  * `priorGraphs` (object-lifecycle Migrate row): a `dissolveRelation` step's endpoint can be entirely
- * removed from the footprint by a later pure-remove `transferMembership` step in the same sequence
- * (destroy), leaving it absent from `finalGraphs` altogether. Falls back to the pre-apply snapshot to
- * re-derive the host it actually held the edge on, right before removal, rather than throwing ---
- * defaults to `finalGraphs` itself so every other caller (a real transfer, where the object always
- * lands on some footprint graph) is unaffected.
+ * removed from the footprint by a later departure in the same sequence (destroy), leaving it absent
+ * from `finalGraphs` altogether. Falls back to the pre-apply snapshot to re-derive the host it
+ * actually held the edge on, right before removal, rather than throwing --- defaults to `finalGraphs`
+ * itself so every other caller is unaffected.
  *
- * `capture` yields no facts --- it is not a world event, just a read of one already reflected
- * (or not yet reflected) by whatever mutation facts stream around it.
+ * Presence, create and destroy steps yield no facts of their own (their world event is the moved
+ * fact, or the objects lane's own created/destroyed ids); `capture` yields none either --- it is not
+ * a world event, just a read of one already reflected (or not yet reflected) by whatever mutation
+ * facts stream around it.
  */
 export const factsForStep = (
     step: MutationKernelStep,
     finalGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>,
     beatAnchorTime: number,
-    priorGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph> = finalGraphs,
-    characterNames: ReadonlyMap<EphemeraCharacterId, string> = new Map()
-): (ObjectMovedPublishedPayload | CharacterMovedPublishedPayload | ObjectRelationChangedPublishedPayload)[] => {
+    priorGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph> = finalGraphs
+): ObjectRelationChangedPublishedPayload[] => {
     if (step.kind === 'capture') {
         return []
     }
 
     // not a world event any narration channel reads today --- the object-move narrate
     // steps already cover "arrives," and a presence binding's own visibility is future work.
-    if (step.kind === 'addPresenceBinding' || step.kind === 'rehostPresenceBinding' || step.kind === 'repairPresenceBinding') {
+    if (step.kind === 'addPresenceBinding' || step.kind === 'movePresenceBinding' || step.kind === 'releasePresenceBinding' || step.kind === 'splitPresenceBinding' || step.kind === 'joinPresenceBindings' || step.kind === 'repairPresenceBinding') {
         return []
     }
 
@@ -90,26 +76,9 @@ export const factsForStep = (
         return []
     }
 
-    // same deferral as addPresenceBinding/rehostPresenceBinding --- a crossing port's own visibility is future work.
+    // same deferral as addPresenceBinding/movePresenceBinding --- a crossing port's own visibility is future work.
     if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {
         return []
-    }
-
-    if (step.kind === 'transferMembership') {
-        const froms = [...step.fromHostIds]
-        const diff = { froms, to: step.toHostId, changed: true }
-        const entityId = step.entityId
-        const fact = isEphemeraObjectId(entityId)
-            ? buildObjectMovedFact({ objectId: entityId, diff, beatAnchorTime })
-            : isEphemeraCharacterId(entityId)
-                ? buildCharacterMovedFact({
-                    characterId: entityId,
-                    diff,
-                    beatAnchorTime,
-                    characterName: characterNames.get(entityId),
-                })
-                : undefined
-        return fact === undefined ? [] : [fact]
     }
 
     // a crossing leg names a port, not the edge's real pair, so it yields no fact; the edge's
@@ -186,4 +155,33 @@ export const factForRelationalEdge = (
         operation: edge.operation,
         beatAnchorTime,
     })
+}
+
+/**
+ * A mover's one moved fact, from its net membership change (`membershipChangesOf`): `froms` are the
+ * hosts it left, `to` the host it arrived at (a mover has one arrival; none is a departure). One
+ * `Object Moved` or `Character Moved` per entity, with plural `froms` and nullable `to`, so the
+ * lifecycle routes keep the single-fact-per-entity shape. `characterNames` is a caller-supplied lookup
+ * (this function stays synchronous), so a `Character Moved` fact carries its display name.
+ * Folding this into `commitStepSequence` (rather than layering it on top after the kernel returns)
+ * keeps `Character Moved` streaming before the kernel's own `RoomUpdate` publish loop.
+ */
+export const movedFactsFor = (
+    change: MembershipChange,
+    beatAnchorTime: number,
+    characterNames: ReadonlyMap<EphemeraCharacterId, string> = new Map()
+): (ObjectMovedPublishedPayload | CharacterMovedPublishedPayload)[] => {
+    const diff = { froms: change.left, to: change.arrived[0] ?? null, changed: true }
+    const entityId = change.entityId
+    const fact = isEphemeraObjectId(entityId)
+        ? buildObjectMovedFact({ objectId: entityId, diff, beatAnchorTime })
+        : isEphemeraCharacterId(entityId)
+            ? buildCharacterMovedFact({
+                characterId: entityId,
+                diff,
+                beatAnchorTime,
+                characterName: characterNames.get(entityId),
+            })
+            : undefined
+    return fact === undefined ? [] : [fact]
 }

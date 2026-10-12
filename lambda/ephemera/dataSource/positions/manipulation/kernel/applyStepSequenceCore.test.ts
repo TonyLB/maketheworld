@@ -23,8 +23,34 @@ const graphsMap = (
     ...entries: [EphemeraMembershipHostId, EphemeraLudicGraph][]
 ): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map(entries)
 
+/** A host graph holding `held` plus its conventional remainder binding. */
+const hostHolding = (hostId: EphemeraMembershipHostId, ...held: ({ tag: 'Object'; universalKey: EphemeraObjectId } | { tag: 'Character'; universalKey: EphemeraCharacterId })[]) => (
+    testLudicGraph(hostId, { nodes: [...held, presenceBindingNode(parentRemainderKey(hostId))] })
+)
+const object = (universalKey: EphemeraObjectId) => ({ tag: 'Object' as const, universalKey })
+const character = (universalKey: EphemeraCharacterId) => ({ tag: 'Character' as const, universalKey })
+
+/** The mover's own graph: one binding, `p1`, sitting under the host's remainder. */
+const moverAt = (moverId: EphemeraMembershipHostId, host: EphemeraMembershipHostId, name = 'p1') => (
+    testLudicGraph(moverId, { nodes: [presenceBindingNode(name, host)] })
+)
+const remainderOf = (host: EphemeraMembershipHostId) => ({ host, presence: parentRemainderKey(host) })
+
+const moveStep = (
+    hostId: EphemeraMembershipHostId,
+    presence: string,
+    from: { host: EphemeraMembershipHostId; presence?: string } | null,
+    to: { host: EphemeraMembershipHostId; presence: string }
+): MutationKernelStep => ({ kind: 'movePresenceBinding', hostId, presence, from, to } as MutationKernelStep)
+
+const releaseStep = (
+    hostId: EphemeraMembershipHostId,
+    presence: string,
+    from: { host: EphemeraMembershipHostId; presence?: string }
+): MutationKernelStep => ({ kind: 'releasePresenceBinding', hostId, presence, from } as MutationKernelStep)
+
 describe('applyStepSequenceCore', () => {
-    it('explicit dissolveRelation before transferMembership composes correctly', () => {
+    it('explicit dissolveRelation before a move composes correctly', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
@@ -34,33 +60,34 @@ describe('applyStepSequenceCore', () => {
                 { tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' },
             ],
         })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
+        const destGraph = hostHolding(characterId)
         const steps: MutationKernelStep[] = [
             { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'Custom', relationLabel: 'tied to' },
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
+            moveStep(trayId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(characterId)),
         ]
 
-        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))
+        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph], [trayId, moverAt(trayId, roomId)]))
 
         expect(outcome.verdict).toBe('legal')
         if (outcome.verdict !== 'legal') return
         const nextSource = outcome.graphs.get(roomId)!
         const nextDest = outcome.graphs.get(characterId)!
         expect(nextSource.objectIds.has(tableId)).toBe(true)
+        expect(nextSource.objectIds.has(trayId)).toBe(false)
         expect(nextSource.relationalEdges).toEqual([])
         expect(nextDest.objectIds.has(trayId)).toBe(true)
         expect(nextDest.relationalEdges).toEqual([])
     })
 
-    it('transferMembership before establishRelation lands the relation on the shared destination host', () => {
-        const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-        const destGraph = testLudicGraph(characterId, { nodes: [{ tag: 'Object', universalKey: glassId }] })
+    it('a move before establishRelation lands the relation on the shared destination host', () => {
+        const sourceGraph = hostHolding(roomId, object(trayId))
+        const destGraph = testLudicGraph(characterId, { nodes: [{ tag: 'Object', universalKey: glassId }, presenceBindingNode(parentRemainderKey(characterId))] })
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
+            moveStep(trayId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(characterId)),
             { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: characterId, relationKind: 'On' },
         ]
 
-        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))
+        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph], [trayId, moverAt(trayId, roomId)]))
 
         expect(outcome.verdict).toBe('legal')
         if (outcome.verdict !== 'legal') return
@@ -127,22 +154,17 @@ describe('applyStepSequenceCore', () => {
         // there, AB-54) --- both graphs are locked in the same footprint. Previously, an
         // intersection-based resolver had to disambiguate this at commit time (the historical bug:
         // a first-match-per-side scan could pick the room for `tableId` while `trayId`, just
-        // transferred, only resolves in the table's own shard, spuriously throwing "do not share a
+        // moved, only resolves in the table's own shard, spuriously throwing "do not share a
         // host" for a perfectly legal move). Now, Expansion already carries `hostId:
         // tableId` on the step, so `confirmCarriedHost` only needs to confirm it, not resolve it.
-        const roomGraph = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Object', universalKey: trayId },
-                { tag: 'Object', universalKey: tableId },
-            ],
-        })
-        const tableGraph = testLudicGraph(tableId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
+        const roomGraph = hostHolding(roomId, object(trayId), object(tableId))
+        const tableGraph = testLudicGraph(tableId, { nodes: [{ tag: 'Object', universalKey: tableId }, presenceBindingNode('table-root')] })
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: tableId },
+            moveStep(trayId, 'PRESENCE#p1', remainderOf(roomId), { host: tableId, presence: 'PRESENCE#table-root' }),
             { kind: 'establishRelation', subjectId: trayId, targetId: tableId, hostId: tableId, relationKind: 'On' },
         ]
 
-        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [tableId, tableGraph]))
+        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [tableId, tableGraph], [trayId, moverAt(trayId, roomId)]))
 
         expect(outcome.verdict).toBe('legal')
         if (outcome.verdict !== 'legal') return
@@ -154,24 +176,21 @@ describe('applyStepSequenceCore', () => {
         expect(nextTableShard.relationalEdges).toEqual([{ from: trayId, to: tableId, kind: 'On' }])
     })
 
-    it('illegal (hostNotInFootprint): transferMembership referencing a host absent from the graphs map', () => {
-        const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
+    it('stale (hostNotInFootprint): a move whose departure host is absent from the graphs map', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
+            moveStep(trayId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(characterId)),
         ]
-        expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph]))).toEqual({
+        expect(applyStepSequenceCore(steps, graphsMap([characterId, hostHolding(characterId)], [trayId, moverAt(trayId, roomId)]))).toEqual({
             verdict: 'stale',
             reasonCode: 'hostNotInFootprint',
         })
     })
 
-    it('illegal (staleTransferCandidate, object): object absent from source host', () => {
-        const sourceGraph = testLudicGraph(roomId, { nodes: [] })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
+    it('stale (staleTransferCandidate, object): object absent from the host the move leaves', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
+            moveStep(trayId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(characterId)),
         ]
-        expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
+        expect(applyStepSequenceCore(steps, graphsMap([roomId, hostHolding(roomId)], [characterId, hostHolding(characterId)], [trayId, moverAt(trayId, roomId)]))).toEqual({
             verdict: 'stale',
             reasonCode: 'staleTransferCandidate',
         })
@@ -194,11 +213,10 @@ describe('applyStepSequenceCore', () => {
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
         })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
+            moveStep(trayId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(characterId)),
         ]
-        expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
+        expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, hostHolding(characterId)], [trayId, moverAt(trayId, roomId)]))).toEqual({
             verdict: 'repairable',
             reasonCode: 'undecidableInteractionEdge',
             authority: 'worldChanging',
@@ -221,12 +239,11 @@ describe('applyStepSequenceCore', () => {
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'against' }],
         })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
         // Bug-injection: no paired dissolveRelation step for the tray-table edge.
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
+            moveStep(trayId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(characterId)),
         ]
-        expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph]))).toEqual({
+        expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, hostHolding(characterId)], [trayId, moverAt(trayId, roomId)]))).toEqual({
             verdict: 'repairable',
             reasonCode: 'undecidableInteractionEdge',
             authority: 'worldChanging',
@@ -241,14 +258,14 @@ describe('applyStepSequenceCore', () => {
     })
 
     describe('BD-36 entity-kind split', () => {
-        it('character-only transferMembership: legal via addCharacter/removeCharacter, no boundary-edge involvement', () => {
-            const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
-            const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
+        it('a character move: legal via addCharacter/removeCharacter, no boundary-edge involvement', () => {
+            const sourceGraph = hostHolding(roomId, character(characterId))
+            const destGraph = hostHolding(otherRoomId)
             const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: characterId, fromHostIds: new Set([roomId]), toHostId: otherRoomId },
+                moveStep(characterId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(otherRoomId)),
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, destGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, destGraph], [characterId, moverAt(characterId, roomId)]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
@@ -256,13 +273,11 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.get(otherRoomId)!.characterIds.has(characterId)).toBe(true)
         })
 
-        it('stale character candidate: character absent from source host', () => {
-            const sourceGraph = testLudicGraph(roomId, { nodes: [] })
-            const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
+        it('stale character candidate: character absent from the host it leaves', () => {
             const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: characterId, fromHostIds: new Set([roomId]), toHostId: otherRoomId },
+                moveStep(characterId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(otherRoomId)),
             ]
-            expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, destGraph]))).toEqual({
+            expect(applyStepSequenceCore(steps, graphsMap([roomId, hostHolding(roomId)], [otherRoomId, hostHolding(otherRoomId)], [characterId, moverAt(characterId, roomId)]))).toEqual({
                 verdict: 'stale',
                 reasonCode: 'staleTransferCandidate',
             })
@@ -277,12 +292,11 @@ describe('applyStepSequenceCore', () => {
                 ],
                 edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
             })
-            const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
             const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: characterId, fromHostIds: new Set([roomId]), toHostId: otherRoomId },
+                moveStep(characterId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(otherRoomId)),
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, destGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, hostHolding(otherRoomId)], [characterId, moverAt(characterId, roomId)]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
@@ -290,65 +304,50 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.get(otherRoomId)!.characterIds.has(characterId)).toBe(true)
         })
 
-        it('character-only pure remove (toHostId null, disconnect-shaped): removes the character from every fromHostIds member', () => {
-            const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
-            const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
-            const steps: MutationKernelStep[] = [
-                {
-                    kind: 'transferMembership',
-                    entityId: characterId,
-                    fromHostIds: new Set([roomId, otherRoomId]),
-                    toHostId: null,
-                },
-            ]
+        it('a character release (disconnect-shaped): leaves the room, keeping its binding hostless', () => {
+            const steps: MutationKernelStep[] = [releaseStep(characterId, 'PRESENCE#p1', remainderOf(roomId))]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, hostHolding(roomId, character(characterId))], [characterId, moverAt(characterId, roomId)]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(roomId)!.characterIds.has(characterId)).toBe(false)
-            expect(outcome.graphs.get(otherRoomId)!.characterIds.has(characterId)).toBe(false)
+            expect(outcome.graphs.get(characterId)!.presenceNodes).toEqual([presenceBindingNode('p1')])
         })
 
-        it('character-only pure add (fromHostIds empty, connect-from-nowhere-shaped): adds the character to toHostId only', () => {
-            const roomGraph = testLudicGraph(roomId, { nodes: [] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: characterId, fromHostIds: new Set(), toHostId: roomId },
-            ]
+        it('a first placement (from: null, connect-shaped): adds the character to the destination only', () => {
+            const steps: MutationKernelStep[] = [moveStep(characterId, 'PRESENCE#p1', null, remainderOf(roomId))]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, hostHolding(roomId)], [characterId, testLudicGraph(characterId, { nodes: [presenceBindingNode('p1')] })]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(roomId)!.characterIds.has(characterId)).toBe(true)
         })
 
-        it('character-only pure remove: illegal (staleTransferCandidate) when the character is already absent from a fromHostIds member', () => {
-            const roomGraph = testLudicGraph(roomId, { nodes: [] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: characterId, fromHostIds: new Set([roomId]), toHostId: null },
-            ]
-            expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
+        it('a character release is stale (staleTransferCandidate) when the character is already absent from the host', () => {
+            const steps: MutationKernelStep[] = [releaseStep(characterId, 'PRESENCE#p1', remainderOf(roomId))]
+            expect(applyStepSequenceCore(steps, graphsMap([roomId, hostHolding(roomId)], [characterId, moverAt(characterId, roomId)]))).toEqual({
                 verdict: 'stale',
                 reasonCode: 'staleTransferCandidate',
             })
         })
     })
 
-    describe('object-lifecycle Migrate row: pure remove / pure add / multi-from', () => {
-        it('pure remove (toHostId null): removes the object from every fromHostIds member, no destination graph needed', () => {
-            const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-            const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
+    describe('object-lifecycle Migrate row: release / first placement / several bindings', () => {
+        const twoRooms = () => graphsMap(
+            [roomId, hostHolding(roomId, object(trayId))],
+            [otherRoomId, hostHolding(otherRoomId, object(trayId))],
+            [trayId, testLudicGraph(trayId, { nodes: [presenceBindingNode('a', roomId), presenceBindingNode('b', otherRoomId)] })]
+        )
+
+        it('releasing every binding removes the object from every host it was in', () => {
             const steps: MutationKernelStep[] = [
-                {
-                    kind: 'transferMembership',
-                    entityId: trayId,
-                    fromHostIds: new Set([roomId, otherRoomId]),
-                    toHostId: null,
-                },
+                releaseStep(trayId, 'PRESENCE#a', remainderOf(roomId)),
+                releaseStep(trayId, 'PRESENCE#b', remainderOf(otherRoomId)),
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph]))
+            const outcome = applyStepSequenceCore(steps, twoRooms())
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
@@ -356,25 +355,34 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.get(otherRoomId)!.objectIds.has(trayId)).toBe(false)
         })
 
-        it('pure remove with a residual edge throws (removeObject), not a silent strip', () => {
+        it('releasing one of two bindings leaves the host of the other untouched', () => {
+            const outcome = applyStepSequenceCore([releaseStep(trayId, 'PRESENCE#a', remainderOf(roomId))], twoRooms())
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.objectIds.has(trayId)).toBe(false)
+            expect(outcome.graphs.get(otherRoomId)!.objectIds.has(trayId)).toBe(true)
+        })
+
+        it('a release with a residual boundary edge is repairable, not a silent strip or a throw', () => {
             const roomGraph = testLudicGraph(roomId, {
                 nodes: [
                     { tag: 'Object', universalKey: trayId },
                     { tag: 'Object', universalKey: tableId },
                 ],
-                edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
             })
             // Bug-injection: no paired dissolveRelation step for the tray-table edge.
-            const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: null },
-            ]
+            const steps: MutationKernelStep[] = [releaseStep(trayId, 'PRESENCE#p1', remainderOf(roomId))]
 
-            expect(() => applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toThrow(
-                /still has a relational edge/
-            )
+            expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [trayId, moverAt(trayId, roomId)]))).toMatchObject({
+                verdict: 'repairable',
+                reasonCode: 'undecidableInteractionEdge',
+                repair: { hostId: roomId },
+            })
         })
 
-        it('pure remove preceded by an explicit dissolveRelation succeeds (destroy-shaped sequence)', () => {
+        it('a release preceded by an explicit dissolveRelation succeeds (destroy-shaped sequence)', () => {
             const roomGraph = testLudicGraph(roomId, {
                 nodes: [
                     { tag: 'Object', universalKey: trayId },
@@ -384,10 +392,10 @@ describe('applyStepSequenceCore', () => {
             })
             const steps: MutationKernelStep[] = [
                 { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' },
-                { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: null },
+                releaseStep(trayId, 'PRESENCE#p1', remainderOf(roomId)),
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [trayId, moverAt(trayId, roomId)]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
@@ -397,84 +405,94 @@ describe('applyStepSequenceCore', () => {
             expect(nextRoom.relationalEdges).toEqual([])
         })
 
-        it('pure add (fromHostIds empty): adds the object to toHostId only, no source graph needed', () => {
-            const roomGraph = testLudicGraph(roomId, { nodes: [] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set(), toHostId: roomId },
-            ]
+        it('a first placement (from: null) adds the object to the destination only, no source graph needed', () => {
+            const steps: MutationKernelStep[] = [moveStep(trayId, 'PRESENCE#root', null, remainderOf(roomId))]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, hostHolding(roomId)], [trayId, testLudicGraph(trayId, { nodes: [presenceBindingNode('root')] })]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(roomId)!.objectIds.has(trayId)).toBe(true)
         })
 
-        it('pure remove: illegal (staleTransferCandidate) when the object is already absent from a fromHostIds member', () => {
-            const roomGraph = testLudicGraph(roomId, { nodes: [] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: null },
-            ]
-            expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
+        it('arriving where the mover already holds a node is harmless: nothing is added twice', () => {
+            const steps: MutationKernelStep[] = [moveStep(trayId, 'PRESENCE#a', remainderOf(roomId), remainderOf(otherRoomId))]
+
+            const outcome = applyStepSequenceCore(steps, twoRooms())
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.objectIds.has(trayId)).toBe(false)
+            expect(outcome.graphs.get(otherRoomId)!.objectIds.has(trayId)).toBe(true)
+        })
+
+        it('a release is stale (staleTransferCandidate) when the object is already absent from the host', () => {
+            const steps: MutationKernelStep[] = [releaseStep(trayId, 'PRESENCE#p1', remainderOf(roomId))]
+            expect(applyStepSequenceCore(steps, graphsMap([roomId, hostHolding(roomId)], [trayId, moverAt(trayId, roomId)]))).toEqual({
                 verdict: 'stale',
                 reasonCode: 'staleTransferCandidate',
             })
         })
+
+        it('a node held in a host that no binding points at is drift: a release of another binding leaves it alone', () => {
+            const graphs = graphsMap(
+                [roomId, hostHolding(roomId, object(trayId))],
+                [otherRoomId, hostHolding(otherRoomId, object(trayId))],
+                [trayId, moverAt(trayId, roomId)]
+            )
+
+            const outcome = applyStepSequenceCore([releaseStep(trayId, 'PRESENCE#p1', remainderOf(roomId))], graphs)
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(otherRoomId)!.objectIds.has(trayId)).toBe(true)
+        })
     })
 
-    describe('Room/Feature entityId in transferMembership (pure-add only)', () => {
-        it('pure add (fromHostIds empty): adds a Room to an Area host, mirroring the object/character pure-add shape', () => {
-            const areaGraph = testLudicGraph(areaId, { nodes: [] })
+    describe('Room/Feature membership comes with the binding step that points at the parent', () => {
+        it('addPresenceBinding with a pointer adds a Room to an Area host', () => {
             const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: roomId, fromHostIds: new Set(), toHostId: areaId },
+                { kind: 'addPresenceBinding', hostId: roomId, fromHostPresence: { host: areaId }, cover: { members: [] }, presenceUuid: 'p1' },
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([areaId, areaGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([areaId, testLudicGraph(areaId, { nodes: [] })], [roomId, testLudicGraph(roomId, { nodes: [] })]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(areaId)!.roomIds.has(roomId)).toBe(true)
         })
 
-        it('pure add (fromHostIds empty): adds a Feature to a Room host', () => {
-            const roomGraph = testLudicGraph(roomId, { nodes: [] })
+        it('addPresenceBinding with a pointer adds a Feature to a Room host', () => {
             const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: featureId, fromHostIds: new Set(), toHostId: roomId },
+                { kind: 'addPresenceBinding', hostId: featureId, fromHostPresence: { host: roomId }, presenceUuid: 'p1' },
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, testLudicGraph(roomId, { nodes: [] })], [featureId, testLudicGraph(featureId, { nodes: [] })]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(roomId)!.featureIds.has(featureId)).toBe(true)
         })
 
-        it('pure add: illegal (staleTransferCandidate) when the Room is already a node of toHostId', () => {
+        it('replaying a population step is harmless: a Room already a node of its Area stays one node', () => {
             const areaGraph = testLudicGraph(areaId, { nodes: [{ tag: 'Room', universalKey: roomId }] })
             const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: roomId, fromHostIds: new Set(), toHostId: areaId },
+                { kind: 'addPresenceBinding', hostId: roomId, fromHostPresence: { host: areaId }, cover: { members: [] }, presenceUuid: 'p1' },
             ]
-            expect(applyStepSequenceCore(steps, graphsMap([areaId, areaGraph]))).toEqual({
-                verdict: 'stale',
-                reasonCode: 'staleTransferCandidate',
-            })
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([areaId, areaGraph], [roomId, testLudicGraph(roomId, { nodes: [] })]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect([...outcome.graphs.get(areaId)!.roomIds]).toEqual([roomId])
         })
 
-        it('real transfer (fromHostIds length 1, toHostId non-null): throws for a Room --- stays Object/Character-only', () => {
+        it('a Room never relocates: releasing its binding at an Area is a caller bug and throws', () => {
             const areaGraph = testLudicGraph(areaId, { nodes: [{ tag: 'Room', universalKey: roomId }] })
-            const otherAreaGraph = testLudicGraph('AREA#Elsewhere' as EphemeraAreaId, { nodes: [] })
-            const steps: MutationKernelStep[] = [
-                {
-                    kind: 'transferMembership',
-                    entityId: roomId,
-                    fromHostIds: new Set([areaId]),
-                    toHostId: 'AREA#Elsewhere' as EphemeraAreaId,
-                },
-            ]
-            // A caller bug, so a throw rather than a verdict (2026-09-08) --- same side of the
-            // Throw-vs-verdict split as the BD-33 host mismatch, which this file's own comment
-            // always said it belonged on.
-            expect(() => applyStepSequenceCore(steps, graphsMap([areaId, areaGraph], ['AREA#Elsewhere' as EphemeraAreaId, otherAreaGraph])))
+            const roomGraph = testLudicGraph(roomId, { nodes: [presenceBindingNode('p1', areaId)] })
+            const steps: MutationKernelStep[] = [releaseStep(roomId, 'PRESENCE#p1', remainderOf(areaId))]
+
+            expect(() => applyStepSequenceCore(steps, graphsMap([areaId, areaGraph], [roomId, roomGraph])))
                 .toThrow('structural invariant violated')
         })
     })
@@ -597,14 +615,14 @@ describe('applyStepSequenceCore', () => {
 
     describe('capture step', () => {
         it('a capture before a mutation step snapshots the entity as still present', () => {
-            const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
-            const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [] })
+            const roomGraph = hostHolding(roomId, character(characterId))
+            const otherRoomGraph = hostHolding(otherRoomId)
             const steps: MutationKernelStep[] = [
                 { kind: 'capture', hostId: roomId, captureId: 'before' },
-                { kind: 'transferMembership', entityId: characterId, fromHostIds: new Set([roomId]), toHostId: otherRoomId },
+                moveStep(characterId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(otherRoomId)),
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph], [characterId, moverAt(characterId, roomId)]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
@@ -612,14 +630,14 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('the same capture placed after the mutation does not see the entity', () => {
-            const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
-            const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [] })
+            const roomGraph = hostHolding(roomId, character(characterId))
+            const otherRoomGraph = hostHolding(otherRoomId)
             const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: characterId, fromHostIds: new Set([roomId]), toHostId: otherRoomId },
+                moveStep(characterId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(otherRoomId)),
                 { kind: 'capture', hostId: roomId, captureId: 'after' },
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph], [characterId, moverAt(characterId, roomId)]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
@@ -668,7 +686,7 @@ describe('applyStepSequenceCore', () => {
             const roomGraph = testLudicGraph(roomId, { nodes: [presenceBindingNode(parentRemainderKey(roomId))] })
             const steps: MutationKernelStep[] = [
                 createTray,
-                ...compilePositionKernelOp({ kind: 'move', moved: trayId, froms: [], to: roomId, header: null })
+                ...compilePositionKernelOp({ kind: 'move', moved: trayId, froms: [], to: roomId, header: null, presenceMoves: [{ presence: 'PRESENCE#born' as any, from: null, to: { host: roomId, presence: parentRemainderKey(roomId) } }] })
                     .steps.filter(isKernelMutationStep),
             ]
 
@@ -701,11 +719,11 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.has(trayId)).toBe(false)
         })
 
-        it('after a move to nowhere, the same sequence destroys the host; the room no longer holds it', () => {
+        it('after a release, the same sequence destroys the host; the room no longer holds it', () => {
             const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }, presenceBindingNode(parentRemainderKey(roomId))] })
             const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('p1', roomId)] })
             const steps: MutationKernelStep[] = [
-                ...compilePositionKernelOp({ kind: 'move', moved: trayId, froms: [roomId], to: null, header: null })
+                ...compilePositionKernelOp({ kind: 'move', moved: trayId, froms: [roomId], to: null, header: null, presenceMoves: [{ presence: 'PRESENCE#p1' as any, from: { host: roomId, presence: parentRemainderKey(roomId) }, to: null }] })
                     .steps.filter(isKernelMutationStep),
                 destroyTray,
             ]
@@ -745,7 +763,7 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
-    describe('presence binding steps (addPresenceBinding/rehostPresenceBinding)', () => {
+    describe('presence binding steps (addPresenceBinding/movePresenceBinding/releasePresenceBinding)', () => {
         // presenceNodes Slice 7a (PN-23): these steps mint/remove the presence NODE directly ---
         // there is no port record any more, so `.ports` is untouched by any of this and only
         // `.presenceNodes`/`.toStored().nodes` reflects the binding.
@@ -755,10 +773,11 @@ describe('applyStepSequenceCore', () => {
                 { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: { host: roomId }, presenceUuid: 'p1' },
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [roomId, testLudicGraph(roomId, { nodes: [] })]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.objectIds.has(trayId)).toBe(true)
             expect(outcome.graphs.get(trayId)!.toStored().nodes).toEqual(
                 expect.arrayContaining([{
                     tag: 'Presence',
@@ -769,40 +788,24 @@ describe('applyStepSequenceCore', () => {
             )
         })
 
-        it('a move re-points the existing binding in place: same id and cover, pointer at the destination\'s binding', () => {
+        it('a move re-points the named binding in place: same id and cover, pointer at the destination\'s binding', () => {
             const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('p1', roomId)] })
             const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [presenceBindingNode(parentRemainderKey(otherRoomId))] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [roomId], toHostId: otherRoomId, presenceUuid: 'unused' },
+            const steps = [
+                moveStep(trayId, 'PRESENCE#p1', { host: roomId, presence: parentRemainderKey(roomId) }, { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }),
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [otherRoomId, otherRoomGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [roomId, hostHolding(roomId, object(trayId))], [otherRoomId, otherRoomGraph]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('p1', otherRoomId)])
         })
 
-        it('a first placement mints one binding, keyed by the step\'s presenceUuid', () => {
-            const trayGraph = testLudicGraph(trayId, { nodes: [] })
-            const roomGraph = testLudicGraph(roomId, { nodes: [presenceBindingNode(parentRemainderKey(roomId))] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [], toHostId: roomId, presenceUuid: 'p1' },
-            ]
-
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [roomId, roomGraph]))
-
-            expect(outcome.verdict).toBe('legal')
-            if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('p1', roomId)])
-        })
-
-        it('a placement re-points a hostless remainder rather than minting beside it', () => {
+        it('a first placement (from: null) re-points a hostless remainder rather than minting beside it', () => {
             const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('root')] })
             const roomGraph = testLudicGraph(roomId, { nodes: [presenceBindingNode(parentRemainderKey(roomId))] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [], toHostId: roomId, presenceUuid: 'unused' },
-            ]
+            const steps = [moveStep(trayId, 'PRESENCE#root', null, { host: roomId, presence: parentRemainderKey(roomId) })]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [roomId, roomGraph]))
 
@@ -811,25 +814,10 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('root', roomId)])
         })
 
-        it('a departure to no host keeps the last binding, hostless, instead of deleting it', () => {
-            const characterGraph = testLudicGraph(characterId, { nodes: [presenceBindingNode('p1', roomId)] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'rehostPresenceBinding', hostId: characterId, fromHostIds: [roomId], toHostId: null, presenceUuid: 'unused' },
-            ]
-
-            const outcome = applyStepSequenceCore(steps, graphsMap([characterId, characterGraph]))
-
-            expect(outcome.verdict).toBe('legal')
-            if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(characterId)!.presenceNodes).toEqual([presenceBindingNode('p1')])
-        })
-
         it('a reconnect re-points that same hostless binding, and the character still carries exactly one', () => {
             const characterGraph = testLudicGraph(characterId, { nodes: [presenceBindingNode('p1')] })
             const roomGraph = testLudicGraph(roomId, { nodes: [presenceBindingNode(parentRemainderKey(roomId))] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'rehostPresenceBinding', hostId: characterId, fromHostIds: [], toHostId: roomId, presenceUuid: 'unused' },
-            ]
+            const steps = [moveStep(characterId, 'PRESENCE#p1', null, { host: roomId, presence: parentRemainderKey(roomId) })]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([characterId, characterGraph], [roomId, roomGraph]))
 
@@ -838,65 +826,129 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.graphs.get(characterId)!.presenceNodes).toEqual([presenceBindingNode('p1', roomId)])
         })
 
-        it('a departure from two hosts re-points one binding and removes the other --- never re-points all of them', () => {
+        it('a move names one of several bindings and leaves the others alone', () => {
             const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('a', roomId), presenceBindingNode('b', otherRoomId)] })
             const characterGraph = testLudicGraph(characterId, { nodes: [presenceBindingNode(parentRemainderKey(characterId))] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [roomId, otherRoomId], toHostId: characterId, presenceUuid: 'unused' },
-            ]
+            const steps = [moveStep(trayId, 'PRESENCE#b', { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }, { host: characterId, presence: parentRemainderKey(characterId) })]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [characterId, characterGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [characterId, characterGraph], [otherRoomId, hostHolding(otherRoomId, object(trayId))]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('a', characterId)])
+            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('a', roomId), presenceBindingNode('b', characterId)])
+            expect(outcome.graphs.get(otherRoomId)!.objectIds.has(trayId)).toBe(false)
         })
 
-        it('a departure to no host removes every departing binding when another binding remains', () => {
+        it('a move between two bindings of one parent changes the pointer and nothing else', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('p1', { host: tableId, presence: 'PRESENCE#left' as any })] })
+            const tableGraph = testLudicGraph(tableId, { nodes: [{ tag: 'Object', universalKey: trayId }, presenceBindingNode('left', roomId), presenceBindingNode('right', roomId)] })
+            const steps = [moveStep(trayId, 'PRESENCE#p1', { host: tableId, presence: 'PRESENCE#left' }, { host: tableId, presence: 'PRESENCE#right' })]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [tableId, tableGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('p1', { host: tableId, presence: 'PRESENCE#right' as any })])
+            expect(outcome.graphs.get(tableId)).toBe(tableGraph)
+        })
+
+        it.each([
+            ['the named binding is gone', 'PRESENCE#gone', { host: roomId, presence: parentRemainderKey(roomId) }, parentRemainderKey(otherRoomId), 'presenceBindingMissing'],
+            ['the binding no longer sits under `from`', 'PRESENCE#p1', { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }, parentRemainderKey(otherRoomId), 'presenceBindingMoved'],
+            ['`from: null` but the binding is placed', 'PRESENCE#p1', null, parentRemainderKey(otherRoomId), 'presenceBindingMoved'],
+            ['the destination binding is gone', 'PRESENCE#p1', { host: roomId, presence: parentRemainderKey(roomId) }, 'PRESENCE#gone', 'destinationBindingMissing'],
+        ])('a move is stale when %s', (_label, presence, from, toPresence, reasonCode) => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('p1', roomId)] })
+            const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [presenceBindingNode(parentRemainderKey(otherRoomId))] })
+            const steps = [moveStep(trayId, presence, from, { host: otherRoomId, presence: toPresence })]
+
+            expect(applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [otherRoomId, otherRoomGraph]))).toEqual({ verdict: 'stale', reasonCode })
+        })
+
+        it('a move whose destination host is outside the footprint is stale', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('p1', roomId)] })
+            const steps = [moveStep(trayId, 'PRESENCE#p1', { host: roomId, presence: parentRemainderKey(roomId) }, { host: otherRoomId, presence: parentRemainderKey(otherRoomId) })]
+
+            expect(applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))).toEqual({ verdict: 'stale', reasonCode: 'hostNotInFootprint' })
+        })
+
+        it('a release keeps the last binding, hostless, instead of deleting it', () => {
+            const steps: MutationKernelStep[] = [releaseStep(characterId, 'PRESENCE#p1', remainderOf(roomId))]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([characterId, moverAt(characterId, roomId)], [roomId, hostHolding(roomId, character(characterId))]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(characterId)!.presenceNodes).toEqual([presenceBindingNode('p1')])
+        })
+
+        it('a release removes the binding when another remains, and leaves the other untouched', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('root'), presenceBindingNode('a', roomId)] })
+            const steps: MutationKernelStep[] = [releaseStep(trayId, 'PRESENCE#a', remainderOf(roomId))]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [roomId, hostHolding(roomId, object(trayId))]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('root')])
+        })
+
+        it('releasing several placed bindings one by one leaves the last, hostless', () => {
             const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('a', roomId), presenceBindingNode('b', otherRoomId)] })
             const steps: MutationKernelStep[] = [
-                { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [roomId], toHostId: null, presenceUuid: 'unused' },
+                releaseStep(trayId, 'PRESENCE#a', remainderOf(roomId)),
+                releaseStep(trayId, 'PRESENCE#b', remainderOf(otherRoomId)),
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [roomId, hostHolding(roomId, object(trayId))], [otherRoomId, hostHolding(otherRoomId, object(trayId))]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('b', otherRoomId)])
+            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('b')])
         })
 
-        it('a departure that holds no binding at the departure host leaves the mover\'s bindings alone', () => {
-            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('a', roomId)] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [otherRoomId], toHostId: null, presenceUuid: 'unused' },
-            ]
+        it('a release keeps the host while another binding of the mover still points there', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('a', roomId), presenceBindingNode('a2', roomId)] })
+            const steps: MutationKernelStep[] = [releaseStep(trayId, 'PRESENCE#a', remainderOf(roomId))]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [roomId, hostHolding(roomId, object(trayId))]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('a', roomId)])
+            expect(outcome.graphs.get(roomId)!.objectIds.has(trayId)).toBe(true)
         })
 
-        it('a departure to no host from a mover with no binding at all mints a hostless one (never below one)', () => {
-            const trayGraph = testLudicGraph(trayId, { nodes: [] })
-            const steps: MutationKernelStep[] = [
-                { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [roomId], toHostId: null, presenceUuid: 'p1' },
-            ]
+        it.each([
+            ['the binding is gone', 'PRESENCE#gone', remainderOf(roomId), 'presenceBindingMissing'],
+            ['the binding no longer sits under `from`', 'PRESENCE#p1', remainderOf(otherRoomId), 'presenceBindingMoved'],
+        ])('a release is stale when %s', (_label, presence, from, reasonCode) => {
+            const steps: MutationKernelStep[] = [releaseStep(trayId, presence, from)]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
-
-            expect(outcome.verdict).toBe('legal')
-            if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('p1')])
+            expect(applyStepSequenceCore(steps, graphsMap([trayId, moverAt(trayId, roomId)], [roomId, hostHolding(roomId, object(trayId))], [otherRoomId, hostHolding(otherRoomId)]))).toEqual({ verdict: 'stale', reasonCode })
         })
 
-        it('a rehost step whose mover is outside the footprint is stale', () => {
-            const steps: MutationKernelStep[] = [
-                { kind: 'rehostPresenceBinding', hostId: trayId, fromHostIds: [roomId], toHostId: null, presenceUuid: 'p1' },
-            ]
+        it('a release whose whole is outside the footprint is stale', () => {
+            const steps: MutationKernelStep[] = [releaseStep(trayId, 'PRESENCE#p1', remainderOf(roomId))]
 
             expect(applyStepSequenceCore(steps, graphsMap())).toEqual({ verdict: 'stale', reasonCode: 'hostNotInFootprint' })
+        })
+
+        it('a join is a stub: it changes nothing, so a multi-binding move leaves its bindings side by side', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('a', roomId), presenceBindingNode('b', roomId)] })
+            const steps: MutationKernelStep[] = [{ kind: 'joinPresenceBindings', hostId: trayId, survivor: 'PRESENCE#a' as any, absorbed: 'PRESENCE#b' as any }]
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual(trayGraph.presenceNodes)
+        })
+
+        it('a split is a stub: stale with notImplemented', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('a', roomId)] })
+            const steps: MutationKernelStep[] = [{ kind: 'splitPresenceBinding', hostId: trayId, presence: 'PRESENCE#a' as any, results: [] }]
+
+            expect(applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))).toEqual({ verdict: 'stale', reasonCode: 'notImplemented' })
         })
 
         it('throws when a sequence would leave a character with two presence bindings --- characters are single-hosted', () => {
@@ -907,7 +959,7 @@ describe('applyStepSequenceCore', () => {
                 { kind: 'addPresenceBinding', hostId: characterId, fromHostPresence: { host: otherRoomId }, presenceUuid: 'p2' },
             ]
 
-            expect(() => applyStepSequenceCore(steps, graphsMap([characterId, characterGraph]))).toThrow(/AGENT\.contract\.md/)
+            expect(() => applyStepSequenceCore(steps, graphsMap([characterId, characterGraph], [otherRoomId, hostHolding(otherRoomId)]))).toThrow(/AGENT\.contract\.md/)
         })
 
         it('does not throw when an object carries two presence bindings --- multi-presence is the point for objects', () => {
@@ -918,7 +970,7 @@ describe('applyStepSequenceCore', () => {
                 { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: { host: otherRoomId }, presenceUuid: 'p2' },
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [otherRoomId, hostHolding(otherRoomId)]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
@@ -962,7 +1014,7 @@ describe('applyStepSequenceCore', () => {
                 { kind: 'addPresenceBinding', hostId: roomId, fromHostPresence: { host: areaId }, cover: { members: [] }, presenceUuid: 'p1' },
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [areaId, testLudicGraph(areaId, { nodes: [] })]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
@@ -983,7 +1035,7 @@ describe('applyStepSequenceCore', () => {
             const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }, presenceBindingNode(parentRemainderKey(roomId))] })
             const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [presenceBindingNode(parentRemainderKey(otherRoomId))] })
             const characterGraph = testLudicGraph(characterId, { nodes: [characterBinding, { tag: 'Object', universalKey: cupId }] })
-            const { steps } = compilePositionKernelOp({ kind: 'move', moved: characterId, froms: [roomId], to: otherRoomId, header: null })
+            const { steps } = compilePositionKernelOp({ kind: 'move', moved: characterId, froms: [roomId], to: otherRoomId, header: null, presenceMoves: [{ presence: characterBinding.universalKey, from: { host: roomId, presence: parentRemainderKey(roomId) }, to: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) } }] })
 
             const outcome = applyStepSequenceCore(
                 steps.filter(isKernelMutationStep),
@@ -1015,10 +1067,12 @@ describe('applyStepSequenceCore', () => {
                 cover: { members: [] },
             }]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [roomId, testLudicGraph(roomId, { nodes: [] })]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
+            // The pointer names the host the mover now sits in, so the node is added there (and only if absent).
+            expect(outcome.graphs.get(roomId)!.objectIds.has(trayId)).toBe(true)
             const nodes = outcome.graphs.get(trayId)!.presenceNodes
             expect(nodes.map(({ universalKey }) => universalKey)).toEqual([presenceBindingNode('first').universalKey, hostOnly.universalKey])
             expect(nodes[1]).toEqual({
@@ -1026,6 +1080,42 @@ describe('applyStepSequenceCore', () => {
                 universalKey: hostOnly.universalKey,
                 fromHostPresence: { host: roomId, presence: 'PRESENCE#room-remainder' },
                 cover: { members: [] },
+            })
+        })
+
+        it('adds the node to the pointer\'s host when a correct binding\'s parent lacks it, and a replay changes nothing more', () => {
+            const trayGraph = testLudicGraph(trayId, { nodes: [hostOnly] })
+            const step: MutationKernelStep = {
+                kind: 'repairPresenceBinding',
+                hostId: trayId,
+                presenceId: hostOnly.universalKey,
+                fromHostPresence: { host: roomId },
+                cover: hostOnly.cover,
+            }
+
+            const once = applyStepSequenceCore([step], graphsMap([trayId, trayGraph], [roomId, testLudicGraph(roomId, { nodes: [] })]))
+            expect(once.verdict).toBe('legal')
+            if (once.verdict !== 'legal') return
+            expect(once.graphs.get(roomId)!.objectIds.has(trayId)).toBe(true)
+
+            const twice = applyStepSequenceCore([step], once.graphs)
+            expect(twice.verdict).toBe('legal')
+            if (twice.verdict !== 'legal') return
+            expect([...twice.graphs.get(roomId)!.objectIds]).toEqual([trayId])
+        })
+
+        it('is stale when the pointer\'s host is outside the footprint', () => {
+            const steps: MutationKernelStep[] = [{
+                kind: 'repairPresenceBinding',
+                hostId: trayId,
+                presenceId: hostOnly.universalKey,
+                fromHostPresence: { host: roomId },
+                cover: hostOnly.cover,
+            }]
+
+            expect(applyStepSequenceCore(steps, graphsMap([trayId, testLudicGraph(trayId, { nodes: [hostOnly] })]))).toEqual({
+                verdict: 'stale',
+                reasonCode: 'hostNotInFootprint',
             })
         })
 

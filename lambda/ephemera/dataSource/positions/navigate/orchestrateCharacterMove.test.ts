@@ -10,7 +10,7 @@ jest.mock('../../../internalCache', () => ({
     __esModule: true,
     default: {
         CharacterMeta: { get: jest.fn() },
-        Positions: { getMembershipContainers: jest.fn() },
+        Positions: { getMembershipContainers: jest.fn(), getLudicGraph: jest.fn() },
     },
 }))
 
@@ -20,9 +20,11 @@ import * as composer from '../manipulation/kernel/commitAndPresentStepSequence'
 import { getCharacterRoomPerspectiveKey } from '../../perception/kickRoomHeaderBroadcast'
 import { orchestrateCharacterMove } from './orchestrateCharacterMove'
 import { MessageBus } from '../../../messageBus/baseClasses'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../ludicGraph/testFixtures'
 
 const characterMetaGetMock = internalCache.CharacterMeta.get as jest.Mock
 const getMembershipContainersMock = internalCache.Positions.getMembershipContainers as jest.Mock
+const getLudicGraphMock = internalCache.Positions.getLudicGraph as jest.Mock
 const commitAndPresentMock = composer.commitAndPresentStepSequence as jest.MockedFunction<
     typeof composer.commitAndPresentStepSequence
 >
@@ -50,6 +52,12 @@ describe('orchestrateCharacterMove', () => {
         jest.clearAllMocks()
         characterMetaGetMock.mockResolvedValue(characterMeta)
         getMembershipContainersMock.mockResolvedValue([FROM_ROOM])
+        // Each room holds its remainder; the character holds one binding under each room it is in.
+        getLudicGraphMock.mockImplementation(async (hostId: string) => (
+            hostId === CHARACTER_ID
+                ? testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('in-vortex', FROM_ROOM), presenceBindingNode('in-three', ROOM_C)] })
+                : testLudicGraph(hostId as EphemeraRoomId, { nodes: [presenceBindingNode(parentRemainderKey(hostId as EphemeraRoomId))] })
+        ))
         perspectiveKeyMock.mockResolvedValue('perspective-key')
         commitAndPresentMock.mockResolvedValue({
             ok: true,
@@ -76,12 +84,11 @@ describe('orchestrateCharacterMove', () => {
         expect(characterMetaGetMock).toHaveBeenCalledWith(CHARACTER_ID)
         expect(commitAndPresentMock).toHaveBeenCalledTimes(1)
 
-        // buildCharacterMoveOp always narrates, so the plan brackets the transfer with captures; the
+        // buildCharacterMoveOp always narrates, so the plan brackets the presence move with captures; the
         // header is a describe step carrying the resolved binding.
         expect(lastPlan().steps).toEqual([
             { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
-            { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
-            { kind: 'rehostPresenceBinding', hostId: CHARACTER_ID, fromHostIds: [FROM_ROOM], toHostId: TO_ROOM, presenceUuid: expect.any(String) },
+            { kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex', from: { host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) }, to: { host: TO_ROOM, presence: parentRemainderKey(TO_ROOM) } },
             { kind: 'capture', hostId: TO_ROOM, captureId: 'capture:to' },
             expect.objectContaining({ kind: 'narrate' }),
             { kind: 'describe', referentId: TO_ROOM, referentKind: 'room', header: { perspectiveKey: 'perspective-key', assets: ['primitives', 'TownCenter'] } },
@@ -142,7 +149,7 @@ describe('orchestrateCharacterMove', () => {
         expect(lastPlan().steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
-    it('drift scrub: captures every prior container and re-points the binding off all of them', async () => {
+    it('drift scrub: captures every prior container, moves each binding to the destination and joins them', async () => {
         getMembershipContainersMock.mockResolvedValue([FROM_ROOM, ROOM_C])
 
         await orchestrateCharacterMove({
@@ -156,8 +163,9 @@ describe('orchestrateCharacterMove', () => {
         expect(lastPlan().steps).toEqual(expect.arrayContaining([
             { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
             { kind: 'capture', hostId: ROOM_C, captureId: 'capture:from:ROOM#TestThree' },
-            { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM, ROOM_C]), toHostId: TO_ROOM },
-            { kind: 'rehostPresenceBinding', hostId: CHARACTER_ID, fromHostIds: [FROM_ROOM, ROOM_C], toHostId: TO_ROOM, presenceUuid: expect.any(String) },
+            expect.objectContaining({ kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex' }),
+            expect.objectContaining({ kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-three' }),
+            { kind: 'joinPresenceBindings', hostId: CHARACTER_ID, survivor: 'PRESENCE#in-vortex', absorbed: 'PRESENCE#in-three' },
         ]))
     })
 

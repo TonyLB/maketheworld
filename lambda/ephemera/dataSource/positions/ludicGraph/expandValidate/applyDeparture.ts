@@ -8,18 +8,18 @@ import { boundaryEdgeOutcomes } from './interactionUnderTransfer'
 /**
  * Verdicts partition by *what a caller can do next*, not by how bad the news is --- see
  * [`manipulation/kernel/types.ts`](../../manipulation/kernel/types.ts) for the full statement of
- * the vocabulary this mirrors. Every non-`legal` outcome this function can produce is `repairable`
+ * the vocabulary this mirrors. Every non-`legal` outcome `applyDeparture` can produce is `repairable`
  * and carries the offending `edge`: it is the repair, and discarding it (as this type did until
  * 2026-09-08) is what forced a caller to re-derive from a reason code. No `hostId` here --- this
- * function is handed two graphs and knows neither's id, so the kernel supplies it when re-wrapping.
+ * function is handed one graph and does not know its id, so the kernel supplies it when re-wrapping.
  *
  * `repairKind` is carried rather than derived from `reasonCode`, deliberately. The kernel builds a
  * `MutationKernelRepair` from this, and having it map reason codes back to repair kinds would be the
  * same discard-and-re-derive-at-the-boundary fault the 2026-09-08 rename removed, reintroduced one
  * layer up. The kernel adds the `hostId` and nothing else.
  */
-export type ApplyTransferOutcome =
-    | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph; destGraph: EphemeraLudicGraph }
+export type ApplyDepartureOutcome =
+    | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph }
     | {
         verdict: 'repairable'
         reasonCode: 'unresolvedDissolveEdge' | 'transferInteractionDefer' | 'undecidableInteractionEdge'
@@ -29,23 +29,20 @@ export type ApplyTransferOutcome =
     }
 
 /**
- * BD-27c/BD-33/BD-35 Expand+Validate core for a membership transfer (BD-13) of one entity: anything
- * it hosts lives in its own shard and travels with it, so nothing here widens what moves. Assumes any
- * boundary edge (a relational edge with the mover at one end) that should dissolve has already been
- * severed by an explicit `dissolveRelation` step earlier in the same kernel-apply loop. A
- * `dissolve`-classified boundary edge still present at this point is therefore reported as
- * `repairable` (`unresolvedDissolveEdge`, `authority: 'mechanical'`, carrying the edge), not
- * silently resolved: the repair is to emit the missing `dissolveRelation` step and re-propose.
- *
- * Only [`applyStepSequenceCore.ts`](../../manipulation/kernel/applyStepSequenceCore.ts) calls it.
+ * A mover's departure from a host: the boundary-edge legality check, then the entity's removal from
+ * the host (BD-27c/BD-33/BD-35 Expand+Validate core). Anything the entity hosts lives in its own
+ * shard and travels with it, so nothing here widens what leaves. Assumes any boundary edge (a
+ * relational edge with the mover at one end) that should dissolve has already been severed by an
+ * explicit `dissolveRelation` step earlier in the same kernel-apply loop; one still present is
+ * `repairable` (`unresolvedDissolveEdge`, `authority: 'mechanical'`, carrying the edge), not silently
+ * resolved: the repair is to emit the missing `dissolveRelation` step and re-propose. Called only
+ * from `settleMembership`, for a mover leaving a host with its **last** binding there; one that
+ * keeps another binding there has not left and runs no check.
  */
-export function applyTransfer(
+export function applyDeparture(
     sourceGraph: EphemeraLudicGraph,
-    destGraph: EphemeraLudicGraph,
-    // Object | Character, and no wider --- transfer means *changes host*, and Room/Feature/Area
-    // are hosts that never relocate.
     entityId: EphemeraObjectId | EphemeraCharacterId
-): ApplyTransferOutcome {
+): ApplyDepartureOutcome {
     // boundaryEdgeOutcomes stays Object-only (interactionUnderTransfer.ts):
     // no production path produces a character-endpoint relational edge yet, so a character can never
     // appear on either side of a boundary edge.
@@ -97,7 +94,8 @@ export function applyTransfer(
         }
     }
 
-    return isEphemeraObjectId(entityId)
-        ? { verdict: 'legal', sourceGraph: sourceGraph.removeObject(entityId), destGraph: destGraph.addObject(entityId) }
-        : { verdict: 'legal', sourceGraph: sourceGraph.removeCharacter(entityId), destGraph: destGraph.addCharacter(entityId) }
+    return {
+        verdict: 'legal',
+        sourceGraph: isEphemeraObjectId(entityId) ? sourceGraph.removeObject(entityId) : sourceGraph.removeCharacter(entityId),
+    }
 }

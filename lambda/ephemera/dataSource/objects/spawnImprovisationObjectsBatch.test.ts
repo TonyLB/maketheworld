@@ -69,7 +69,7 @@ const makeRoomTransactWrite = (roomGraph = testLudicGraph(ROOM_ID, { nodes: [pre
             ...items.filter((item) => !('MultiKeyUpdate' in item)),
         )
     })
-    return { transactWrite, written }
+    return { transactWrite, written, roomGraph }
 }
 
 describe('spawnOneImprovisationObject', () => {
@@ -170,11 +170,11 @@ describe('spawnOneImprovisationObject', () => {
 
     describe('through the real kernel commit', () => {
         it('spawn is one transaction: the Object is born bound under the room\'s remainder, beside its existence rows', async () => {
-            const { transactWrite, written } = makeRoomTransactWrite()
+            const { transactWrite, written, roomGraph } = makeRoomTransactWrite()
 
             const result = await spawnOneImprovisationObject(spawnRow, {
                 ...spawnDeps(),
-                createImpl: (args) => executeComponentCreation({ ...args, transactWrite }),
+                createImpl: (args) => executeComponentCreation({ ...args, getGraph: async () => roomGraph, transactWrite }),
             })
 
             expect(result).toEqual({ ok: true, objectId: OBJECT_ID })
@@ -188,14 +188,13 @@ describe('spawnOneImprovisationObject', () => {
 
         it('a placement the commit refuses writes no Meta::Object row and seeds no cache', async () => {
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-            // the Object is already a node of the room, so its placement is stale at commit time
-            const { transactWrite, written } = makeRoomTransactWrite(
-                testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
-            )
+            // the room's remainder is gone by commit time (a concurrent write), so the placement is stale
+            const { transactWrite, written } = makeRoomTransactWrite(testLudicGraph(ROOM_ID, { nodes: [] }))
+            const plannedAgainst = testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode(parentRemainderKey(ROOM_ID))] })
 
             const result = await spawnOneImprovisationObject(spawnRow, {
                 ...spawnDeps(),
-                createImpl: (args) => executeComponentCreation({ ...args, transactWrite }),
+                createImpl: (args) => executeComponentCreation({ ...args, getGraph: async () => plannedAgainst, transactWrite }),
             })
 
             expect(result.ok).toBe(false)

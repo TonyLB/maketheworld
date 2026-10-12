@@ -1,8 +1,8 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { compilePositionKernelOp } from './compilePositionKernelOp'
 import { isNarrateStep } from '../kernelStep'
-import type { MembershipNarrationSpec, PresentationKernelNarrateStep } from '../kernelStep'
+import type { MembershipNarrationSpec, PresentationKernelNarrateStep, PresenceBindingRef } from '../kernelStep'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 
 /** Narrows a compiled narrate step to the membership family these cases all exercise. */
@@ -17,12 +17,18 @@ const CHARACTER_ID = 'CHARACTER#Tess' as EphemeraCharacterId
 const FROM_ROOM = 'ROOM#Departure' as EphemeraRoomId
 const TO_ROOM = 'ROOM#Arrival' as EphemeraRoomId
 
+const TO_BINDING = { host: TO_ROOM, presence: 'PRESENCE#arrival-remainder' as EphemeraPresenceNodeId }
+const presenceMovesFrom = (presence: string, from: { host: EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId; presence?: string } | null, to: PresenceBindingRef = TO_BINDING) => [
+    { presence: `PRESENCE#${presence}` as EphemeraPresenceNodeId, from: from as any, to },
+]
+
 const baseOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMoveOp => ({
     kind: 'move',
     moved: CHARACTER_ID,
     froms: [FROM_ROOM],
     to: TO_ROOM,
     header: null,
+    presenceMoves: presenceMovesFrom('mover', { host: FROM_ROOM }),
     narration: {
         kind: 'membershipMove',
         characterName: 'Tess',
@@ -33,13 +39,12 @@ const baseOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMo
 })
 
 describe('compilePositionKernelOp', () => {
-    it('orders steps as [capture(from), transfer, presence(rehost), capture(to), narrate(leave), narrate(arrive)] for a full move', () => {
+    it('orders steps as [capture(from), presence(move), capture(to), narrate(leave), narrate(arrive)] for a full move', () => {
         const plan = compilePositionKernelOp(baseOp())
 
         expect(plan.steps.map((step) => step.kind)).toEqual([
             'capture',
-            'transferMembership',
-            'rehostPresenceBinding',
+            'movePresenceBinding',
             'capture',
             'narrate',
             'narrate',
@@ -90,22 +95,16 @@ describe('compilePositionKernelOp', () => {
         expect(plan.steps.filter((step) => step.kind === 'capture')).toHaveLength(1)
     })
 
-    it('emits the transfer plus presence steps when narration is absent (object-lifecycle moves)', () => {
+    it('emits the presence steps alone when narration is absent (object-lifecycle moves): membership is theirs', () => {
         const plan = compilePositionKernelOp(baseOp({ narration: undefined }))
 
         expect(plan.steps).toEqual([
             {
-                kind: 'transferMembership',
-                entityId: CHARACTER_ID,
-                fromHostIds: new Set([FROM_ROOM]),
-                toHostId: TO_ROOM,
-            },
-            {
-                kind: 'rehostPresenceBinding',
+                kind: 'movePresenceBinding',
                 hostId: CHARACTER_ID,
-                fromHostIds: [FROM_ROOM],
-                toHostId: TO_ROOM,
-                presenceUuid: expect.any(String),
+                presence: 'PRESENCE#mover',
+                from: { host: FROM_ROOM },
+                to: TO_BINDING,
             },
         ])
         expect(plan.steps.some((step) => step.kind === 'describe')).toBe(false)
@@ -136,6 +135,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         froms: [FROM_ROOM],
         to: CHARACTER_ID,
         header: null,
+        presenceMoves: presenceMovesFrom('tray', { host: FROM_ROOM }, { host: CHARACTER_ID, presence: 'PRESENCE#character-root' as EphemeraPresenceNodeId }),
         dissolvedEdges: [],
         ...overrides,
     })
@@ -143,20 +143,18 @@ describe('compilePositionKernelOp --- object moves', () => {
     it('compiles an object move to mutation steps only: no captures, narrate or describe steps', () => {
         const plan = compilePositionKernelOp(objectOp())
 
-        expect(plan.steps.map((step) => step.kind)).toEqual([
-            'transferMembership', 'rehostPresenceBinding',
-        ])
+        expect(plan.steps.map((step) => step.kind)).toEqual(['movePresenceBinding'])
         expect(plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
-    it('renders severed boundary edges as dissolveRelation steps ahead of the transfer (BD-28)', () => {
+    it('renders severed boundary edges as dissolveRelation steps ahead of the presence steps (BD-28)', () => {
         const plan = compilePositionKernelOp(objectOp({
             dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
         }))
 
         const kinds = plan.steps.map((step) => step.kind)
         // factsForStep streams in step order, so a severed relation's fact must precede the move's.
-        expect(kinds.indexOf('dissolveRelation')).toBeLessThan(kinds.indexOf('transferMembership'))
+        expect(kinds.indexOf('dissolveRelation')).toBeLessThan(kinds.indexOf('movePresenceBinding'))
         expect(plan.steps.find((step) => step.kind === 'dissolveRelation')).toEqual({
             kind: 'dissolveRelation',
             subjectId: TRAY,
@@ -180,21 +178,21 @@ describe('compilePositionKernelOp --- object moves', () => {
         })
     })
 
-    it('emits the dissolves, transfer and presence re-point, and nothing else', () => {
+    it('emits the dissolves and the presence re-point, and nothing else', () => {
         const plan = compilePositionKernelOp(objectOp({
             dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
         }))
 
-        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'transferMembership', 'rehostPresenceBinding'])
+        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'movePresenceBinding'])
         expect(plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
     describe('containment and presence binding', () => {
-        it('emits an establishRelation step after the transfer when containment is set', () => {
+        it('emits an establishRelation step after the presence steps when containment is set', () => {
             const plan = compilePositionKernelOp(objectOp({ containment: 'On' }))
 
             const kinds = plan.steps.map((step) => step.kind)
-            expect(kinds.indexOf('transferMembership')).toBeLessThan(kinds.indexOf('establishRelation'))
+            expect(kinds.indexOf('movePresenceBinding')).toBeLessThan(kinds.indexOf('establishRelation'))
             expect(plan.steps.find((step) => step.kind === 'establishRelation')).toEqual({
                 kind: 'establishRelation',
                 subjectId: TRAY,
@@ -211,12 +209,12 @@ describe('compilePositionKernelOp --- object moves', () => {
 
         it('re-points the presence binding at the destination on every object rehost, containment or not', () => {
             const plan = compilePositionKernelOp(objectOp())
-            expect(plan.steps.filter((step) => step.kind === 'rehostPresenceBinding')).toEqual([{
-                kind: 'rehostPresenceBinding',
+            expect(plan.steps.filter((step) => step.kind === 'movePresenceBinding')).toEqual([{
+                kind: 'movePresenceBinding',
                 hostId: TRAY,
-                fromHostIds: [FROM_ROOM],
-                toHostId: CHARACTER_ID,
-                presenceUuid: expect.any(String),
+                presence: 'PRESENCE#tray',
+                from: { host: FROM_ROOM },
+                to: { host: CHARACTER_ID, presence: 'PRESENCE#character-root' },
             }])
             expect(plan.steps.some((step) => step.kind === 'addPresenceBinding')).toBe(false)
         })
@@ -228,14 +226,37 @@ describe('compilePositionKernelOp --- object moves', () => {
                 froms: [FROM_ROOM],
                 to: TO_ROOM,
                 header: null,
+                presenceMoves: presenceMovesFrom('mover', { host: FROM_ROOM }),
             })
-            expect(plan.steps.find((step) => step.kind === 'rehostPresenceBinding')).toEqual({
-                kind: 'rehostPresenceBinding',
+            expect(plan.steps.find((step) => step.kind === 'movePresenceBinding')).toEqual({
+                kind: 'movePresenceBinding',
                 hostId: CHARACTER_ID,
-                fromHostIds: [FROM_ROOM],
-                toHostId: TO_ROOM,
-                presenceUuid: expect.any(String),
+                presence: 'PRESENCE#mover',
+                from: { host: FROM_ROOM },
+                to: TO_BINDING,
             })
+        })
+
+        it('compiles each departing binding to a release, and a multi-binding move to moves followed by a join', () => {
+            const departing = compilePositionKernelOp(objectOp({
+                to: null,
+                presenceMoves: [{ presence: 'PRESENCE#tray' as EphemeraPresenceNodeId, from: { host: FROM_ROOM, presence: 'PRESENCE#room-root' as EphemeraPresenceNodeId }, to: null }],
+            }))
+            expect(departing.steps).toEqual([{
+                kind: 'releasePresenceBinding',
+                hostId: TRAY,
+                presence: 'PRESENCE#tray',
+                from: { host: FROM_ROOM, presence: 'PRESENCE#room-root' },
+            }])
+
+            const scrub = compilePositionKernelOp(objectOp({
+                froms: [FROM_ROOM, 'ROOM#Third' as EphemeraRoomId],
+                presenceMoves: [
+                    ...presenceMovesFrom('a', { host: FROM_ROOM }),
+                    ...presenceMovesFrom('b', { host: 'ROOM#Third' as EphemeraRoomId }),
+                ],
+            }))
+            expect(scrub.steps.map((step) => step.kind)).toEqual(['movePresenceBinding', 'movePresenceBinding', 'joinPresenceBindings'])
         })
 
         it('throws when containment is set with no destination', () => {

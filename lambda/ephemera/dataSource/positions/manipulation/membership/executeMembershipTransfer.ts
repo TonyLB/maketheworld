@@ -12,6 +12,7 @@ import type { MutationKernelCaptures } from '../kernel/types'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { defaultGetGraph } from '../relational/findRelationalChainsForRemoval'
 import { repairAdministrativeChainDissolve } from './repairAdministrativeChainDissolve'
+import { resolvePresenceMoves } from './resolvePresenceMoves'
 
 export type ExecuteMembershipTransferArgs = {
     entityId: EphemeraObjectId | EphemeraCharacterId
@@ -62,7 +63,7 @@ const defaultGetMembershipContainers = (id: EphemeraObjectId | EphemeraCharacter
  * The committed step sequence is built by the same shared `compilePositionKernelOp` every narrating
  * route already routes through (3e) --- fed a bare `{ kind: 'move', ... }` op literal, since an
  * administrative move has no narration ingredients to carry. `compilePositionKernelOp`'s non-narration
- * branch produces the identical `[transferMembership, ...presencePortSteps]` shape this function used
+ * branch produces the presence-step sequence (membership is theirs) this function used
  * to hand-build directly.
  */
 export const executeMembershipTransfer = async (
@@ -86,12 +87,20 @@ export const executeMembershipTransfer = async (
         getGraph
     )
 
+    const resolved = await resolvePresenceMoves({ moved: args.entityId, froms, to: args.target, getGraph })
+    if (!resolved.ok) {
+        console.error(`[mtw.ephemera.positions] executeMembershipTransfer refused for ${args.entityId}: ${resolved.errorCode}`)
+        return { ok: false, errorCode: resolved.errorCode, errorMessage: resolved.errorCode }
+    }
+
     const { steps: compiledSteps } = compilePositionKernelOp({
         kind: 'move',
         moved: args.entityId,
         froms,
         to: args.target,
         header: null,
+        presenceMoves: resolved.presenceMoves,
+        ...(resolved.mintedRootUuid ? { mintedRootUuid: resolved.mintedRootUuid } : {}),
     })
     const steps = compiledSteps.filter(isKernelMutationStep)
 

@@ -50,7 +50,9 @@ const HOOK_ID = 'OBJECT#Hook' as EphemeraObjectId
 
 const tied = (from: unknown, to: unknown) => ({ from, to, kind: 'Custom' as const, relationLabel: 'is tied to' }) as never
 const crossingPort = (portId: string, fromHostId: EphemeraRoomId) => ({ portId, fromHostId, kind: 'Custom' as const, exteriorRelationLabel: 'is tied to' })
-const fullBinding = (key: string, parentHost: EphemeraRoomId) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, fromHostPresence: { host: parentHost }, cover: { members: [{ tag: 'Remainder' as const }] } })
+const fullBinding = (key: string, parentHost: EphemeraMembershipHostId, parentPresence?: string) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, fromHostPresence: { host: parentHost, ...(parentPresence ? { presence: parentPresence as EphemeraPresenceNodeId } : {}) }, cover: { members: [{ tag: 'Remainder' as const }] } })
+/** A hostless binding: the root a mover's presence write re-points. */
+const rootBinding = (key: string) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, cover: { members: [{ tag: 'Remainder' as const }] } })
 
 /** Same stand-in as `ropeLashedTakePayoff.integration.test.ts`: runs the real reducer over the seeded graphs. */
 const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => (
@@ -179,9 +181,9 @@ describe('crossing take payoff (integration)', () => {
                     .addPresenceNode(fullBinding('PRESENCE#table-in-bridge', ROOM_ID))
                     .addRelationalEdge({ from: CUP_ID, to: TABLE_ID, kind: 'On' })
                     .addRelationalEdge(tied(tablePort, CUP_ID)),
-                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID),
-                [CUP_ID]: EphemeraLudicGraph.empty(CUP_ID),
-                [STRING_ID]: EphemeraLudicGraph.empty(STRING_ID),
+                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#character-root')),
+                [CUP_ID]: EphemeraLudicGraph.empty(CUP_ID).addPresenceNode(fullBinding('PRESENCE#cup-on-table', TABLE_ID, 'PRESENCE#table-in-bridge')),
+                [STRING_ID]: EphemeraLudicGraph.empty(STRING_ID).addPresenceNode(fullBinding('PRESENCE#string-in-bridge', ROOM_ID)),
             },
             containers: { [CHARACTER_ID]: [ROOM_ID], [STRING_ID]: [ROOM_ID], [TABLE_ID]: [ROOM_ID], [CUP_ID]: [TABLE_ID] },
             names: { [STRING_ID]: 'string', [TABLE_ID]: 'table', [CUP_ID]: 'cup' },
@@ -227,8 +229,8 @@ describe('crossing take payoff (integration)', () => {
                     .addPresenceNode(fullBinding('PRESENCE#wall-in-bridge', ROOM_ID))
                     .addPresenceNode(fullBinding('PRESENCE#wall-in-galley', OTHER_ROOM_ID))
                     .addRelationalEdge(tied(wallPort, HOOK_ID)),
-                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID),
-                [STRING_ID]: EphemeraLudicGraph.empty(STRING_ID),
+                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#character-root')),
+                [STRING_ID]: EphemeraLudicGraph.empty(STRING_ID).addPresenceNode(fullBinding('PRESENCE#string-in-bridge', ROOM_ID)),
                 [HOOK_ID]: EphemeraLudicGraph.empty(HOOK_ID),
             },
             containers: {

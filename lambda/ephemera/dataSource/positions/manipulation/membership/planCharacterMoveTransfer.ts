@@ -6,6 +6,10 @@ import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernel
 import type { CompiledPositionKernelPlan } from '../kernel/compile/compilePositionKernelOp'
 import type { MoveHeaderBinding } from '../kernel/compile/positionKernelOp'
 import { buildCharacterMoveOp } from './buildCharacterMoveOp'
+import { resolvePresenceMoves } from './resolvePresenceMoves'
+import { defaultGetGraph } from '../relational/findRelationalChainsForRemoval'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { IntentKind } from './types'
 
 export type PlanCharacterMoveTransferArgs = {
@@ -24,11 +28,13 @@ export type PlanCharacterMoveTransferArgs = {
     resolveHeader?: (to: EphemeraRoomId) => Promise<MoveHeaderBinding | null>
     /** injectable for test seams only. */
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>
+    getGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 }
 
 export type PlanCharacterMoveTransferResult =
     | { ok: true; changed: false; froms: EphemeraRoomId[]; to: EphemeraRoomId | null }
     | { ok: true; changed: true; froms: EphemeraRoomId[]; to: EphemeraRoomId | null; plan: CompiledPositionKernelPlan }
+    | { ok: false; errorCode: string }
 
 const defaultGetMembershipContainers = async (characterId: EphemeraCharacterId): Promise<EphemeraRoomId[]> => {
     const containers = await internalCache.Positions.getMembershipContainers(characterId)
@@ -60,6 +66,16 @@ export const planCharacterMoveTransfer = async (
         ? await args.resolveHeader(args.targetRoomId)
         : null
 
+    const resolved = await resolvePresenceMoves({
+        moved: args.characterId,
+        froms,
+        to: args.targetRoomId,
+        getGraph: args.getGraph ?? defaultGetGraph,
+    })
+    if (!resolved.ok) {
+        return { ok: false, errorCode: resolved.errorCode }
+    }
+
     const op = buildCharacterMoveOp({
         characterId: args.characterId,
         characterName: args.characterName,
@@ -69,6 +85,8 @@ export const planCharacterMoveTransfer = async (
         intentFromRoomId: args.intentFromRoomId,
         exitName: args.exitName,
         header,
+        presenceMoves: resolved.presenceMoves,
+        ...(resolved.mintedRootUuid ? { mintedRootUuid: resolved.mintedRootUuid } : {}),
     })
 
     const plan = compilePositionKernelOp(op)

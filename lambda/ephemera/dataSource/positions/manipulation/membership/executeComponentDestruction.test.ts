@@ -5,6 +5,7 @@ jest.mock('../kernel/commitStepSequence', () => ({
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { EphemeraLudicGraph } from '../../ludicGraph'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import { executeComponentDestruction } from './executeComponentDestruction'
 
@@ -15,14 +16,17 @@ describe('executeComponentDestruction', () => {
     const commitMock = commitStepSequence as jest.MockedFunction<typeof commitStepSequence>
     const messageBus = { publish: jest.fn() }
     const streamEvent = jest.fn().mockResolvedValue(undefined)
-    const getGraph = async (hostId: any) => EphemeraLudicGraph.empty(hostId)
+    // the object holds one binding, under the room's remainder
+    const getGraph = async (hostId: any) => hostId === OBJECT_ID
+        ? testLudicGraph(OBJECT_ID, { nodes: [presenceBindingNode('p1', ROOM_ID)] })
+        : EphemeraLudicGraph.empty(hostId)
 
     beforeEach(() => {
         jest.clearAllMocks()
         commitMock.mockResolvedValue({ ok: true, beatAnchorTime: 1, steps: [], captures: new Map() })
     })
 
-    it('commits the move to nowhere and destroyComponent in one sequence, handing afterPersist the hosts left', async () => {
+    it('commits a release per binding and destroyComponent in one sequence, handing afterPersist the hosts left', async () => {
         const rowItem = { Delete: { EphemeraId: OBJECT_ID, DataCategory: 'ASSET#IMPROVISATION' } } as any
         const afterPersist = jest.fn()
 
@@ -40,8 +44,7 @@ describe('executeComponentDestruction', () => {
         expect(commitMock).toHaveBeenCalledTimes(1)
         const [args, deps] = commitMock.mock.calls[0]
         expect(args.steps).toEqual([
-            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
-            { kind: 'rehostPresenceBinding', hostId: OBJECT_ID, fromHostIds: [ROOM_ID], toHostId: null, presenceUuid: expect.any(String) },
+            { kind: 'releasePresenceBinding', hostId: OBJECT_ID, presence: 'PRESENCE#p1', from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) } },
             { kind: 'destroyComponent', hostId: OBJECT_ID },
         ])
         expect(args.existenceItems).toEqual([rowItem])
@@ -49,7 +52,7 @@ describe('executeComponentDestruction', () => {
         expect(afterPersist).toHaveBeenCalledWith([ROOM_ID])
     })
 
-    it('an orphan (no containers) is destroyed with no move at all', async () => {
+    it('an orphan (no containers) is destroyed with no release at all', async () => {
         await executeComponentDestruction({
             objectId: OBJECT_ID,
             messageBus: messageBus as any,

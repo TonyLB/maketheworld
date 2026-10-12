@@ -9,6 +9,7 @@ describe('buildCharacterMoveOp', () => {
             to: 'ROOM#alpha',
             intentKind: 'connect',
             header: null,
+            presenceMoves: [],
         })
 
         expect(op.narration?.arriveCopyKind).toEqual('connect')
@@ -25,6 +26,7 @@ describe('buildCharacterMoveOp', () => {
             intentFromRoomId: 'ROOM#somewhereElse',
             exitName: 'north',
             header: null,
+            presenceMoves: [],
         })
 
         expect(op.narration?.leaveCopyKind('ROOM#alpha' as any)).toEqual('disconnect')
@@ -39,6 +41,7 @@ describe('buildCharacterMoveOp', () => {
             to: 'ROOM#home',
             intentKind: 'home',
             header: null,
+            presenceMoves: [],
         })
         expect(homeOp.narration?.arriveCopyKind).toEqual('home')
         expect(homeOp.narration?.leaveCopyKind('ROOM#alpha' as any)).toEqual('home')
@@ -52,6 +55,7 @@ describe('buildCharacterMoveOp', () => {
             intentFromRoomId: 'ROOM#alpha',
             exitName: 'north',
             header: null,
+            presenceMoves: [],
         })
         expect(navigateOp.narration?.arriveCopyKind).toEqual('exitAware')
         expect(navigateOp.narration?.leaveCopyKind('ROOM#alpha' as any)).toEqual('exitAware')

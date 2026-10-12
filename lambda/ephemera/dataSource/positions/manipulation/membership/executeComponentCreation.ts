@@ -8,6 +8,11 @@ import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { CommitStepSequenceDeps, CommitStepSequenceTransactItem } from '../kernel/commitStepSequence'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import { isKernelMutationStep } from '../kernel/kernelStep'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
+import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { defaultGetGraph } from '../relational/findRelationalChainsForRemoval'
+import { destinationBindingOf } from './resolvePresenceMoves'
 import type { MutationKernelCreateComponentStep, MutationKernelStep } from '../kernel/kernelStep'
 
 export type ExecuteComponentCreationArgs = {
@@ -19,6 +24,8 @@ export type ExecuteComponentCreationArgs = {
      * hostless remainder (legal; no v1 caller uses it).
      */
     target: EphemeraMembershipHostId | null
+    /** injectable for test seams only. */
+    getGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
     /** The caller's own rows for this component (opaque here), written in the same transaction. */
     existenceItems?: readonly CommitStepSequenceTransactItem[]
     messageBus: MessageBus
@@ -46,7 +53,16 @@ export const executeComponentCreation = async (
         presenceUuid: uuidv4(),
         meta: args.meta,
     }
-    const placementSteps: MutationKernelStep[] = args.target === null
+    // The first placement moves the remainder `createComponent` seeds (`from: null`), so the binding's
+    // id is the creator's own uuid and needs no read; only the destination's binding is looked up.
+    const destination = args.target === null
+        ? undefined
+        : destinationBindingOf(await (args.getGraph ?? defaultGetGraph)(args.target), undefined)
+    if (destination && 'errorCode' in destination) {
+        console.error(`[mtw.ephemera.positions] executeComponentCreation refused for ${args.objectId}: ${destination.errorCode}`)
+        return { ok: false, errorCode: destination.errorCode, errorMessage: destination.errorCode }
+    }
+    const placementSteps: MutationKernelStep[] = args.target === null || !destination
         ? []
         : compilePositionKernelOp({
             kind: 'move',
@@ -54,6 +70,11 @@ export const executeComponentCreation = async (
             froms: [],
             to: args.target,
             header: null,
+            presenceMoves: [{
+                presence: PresenceKey(createStep.presenceUuid) as EphemeraPresenceNodeId,
+                from: null,
+                to: { host: args.target, presence: destination.presence },
+            }],
         }).steps.filter(isKernelMutationStep)
 
     const result = await commitStepSequence(

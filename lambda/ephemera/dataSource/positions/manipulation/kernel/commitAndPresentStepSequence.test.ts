@@ -41,7 +41,7 @@ describe('commitAndPresentStepSequence', () => {
         })
 
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'movePresenceBinding', hostId: OBJECT_ID, presence: 'PRESENCE#p1' as any, from: { host: ROOM_ID, presence: 'PRESENCE#r1' as any }, to: { host: CHARACTER_ID, presence: 'PRESENCE#c1' as any } },
             { kind: 'describe', referentId: ROOM_ID, referentKind: 'room' },
         ]
         const plan: CompiledPositionKernelPlan = { steps }
@@ -62,7 +62,7 @@ describe('commitAndPresentStepSequence', () => {
         commitStepSequence.mockResolvedValue({ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage: 'stale' })
 
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'movePresenceBinding', hostId: OBJECT_ID, presence: 'PRESENCE#p1' as any, from: { host: ROOM_ID, presence: 'PRESENCE#r1' as any }, to: { host: CHARACTER_ID, presence: 'PRESENCE#c1' as any } },
             { kind: 'describe', referentId: ROOM_ID, referentKind: 'room' },
         ]
         const plan: CompiledPositionKernelPlan = { steps }
@@ -78,7 +78,7 @@ describe('commitAndPresentStepSequence', () => {
         presentStepSequence.mockResolvedValue(0)
 
         const steps: KernelStep[] = [
-            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            { kind: 'movePresenceBinding', hostId: OBJECT_ID, presence: 'PRESENCE#p1' as any, from: { host: ROOM_ID, presence: 'PRESENCE#r1' as any }, to: { host: CHARACTER_ID, presence: 'PRESENCE#c1' as any } },
         ]
         const plan: CompiledPositionKernelPlan = { steps }
 

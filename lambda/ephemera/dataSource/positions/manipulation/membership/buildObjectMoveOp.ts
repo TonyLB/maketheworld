@@ -4,7 +4,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { HostRelationalEdge } from '../types'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { findOwnRootContainmentEdge } from './findOwnRootContainmentEdge'
-import type { PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
+import type { PositionKernelMoveOp, PositionKernelPresenceMove } from '../kernel/compile/positionKernelOp'
 
 export type BuildObjectMoveOpArgs = {
     /** The moved object --- the whole moved set: anything it hosts lives in its own shard and travels with it. */
@@ -16,11 +16,14 @@ export type BuildObjectMoveOpArgs = {
      * gaining it (`containment`). No other edge is dissolved here. A boundary edge's dissolve
      * is a facilitating action the command attempt states explicitly, and the commit path
      * commits it as a sibling of this op; one the attempt does not cover is left in place for
-     * `applyTransfer` to report as `repairable`, and the move is refused.
+     * `applyDeparture` to report as `repairable`, and the move is refused.
      */
     fromGraph: EphemeraLudicGraph
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
+    /** The bindings the move re-points, named by `resolvePresenceMoves`. */
+    presenceMoves: readonly PositionKernelPresenceMove[]
+    mintedRootUuid?: string
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
 }
@@ -61,6 +64,8 @@ export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMo
         froms: [args.fromHostId],
         to: args.toHostId,
         header: null,
+        presenceMoves: args.presenceMoves,
+        ...(args.mintedRootUuid ? { mintedRootUuid: args.mintedRootUuid } : {}),
         dissolvedEdges,
         ...(args.containment ? { containment: args.containment } : {}),
     }

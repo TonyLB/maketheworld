@@ -1,16 +1,16 @@
 import { edgeKindAndLabelFrom, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { graphFromMeta } from '../../ludicGraph'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { applyTransfer } from '../../ludicGraph/expandValidate/applyTransfer'
-import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf } from '../../ludicGraph/presenceParent'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { MutationKernelRehostPresenceBindingStep, MutationKernelStep } from './kernelStep'
+import type { MutationKernelMovePresenceBindingStep, MutationKernelReleasePresenceBindingStep, MutationKernelStep } from './kernelStep'
+import { settleMembership } from './settleMembership'
 import type { MutationKernelApplyOutcome } from './types'
 
 /**
@@ -26,7 +26,7 @@ import type { MutationKernelApplyOutcome } from './types'
 /**
  * Fills in which of the parent's bindings a new binding sits under, when the step named only the
  * parent host (a move: the compiler has no prior-state read). The parent graph is in the
- * footprint (the transfer puts the destination there), so the read is free and happens inside the
+ * footprint (the step's pointer host is part of its footprint), so the read is free and happens inside the
  * lock; unresolved --- no binding, or several --- leaves `presence` unset rather than guessing.
  */
 const withParentPresence = (
@@ -39,39 +39,63 @@ const withParentPresence = (
 }
 
 /**
- * A move's presence write (`MutationKernelRehostPresenceBindingStep`): re-point one binding, keeping
- * its id, rather than remove and re-mint (PR-21(e)). With a destination, the first binding at a
- * departure host is re-pointed, else a hostless remainder (a reconnect, or a whole whose root
- * population minted), else a new remainder is minted (a first placement). With none, the departing
- * bindings are removed, but a whole never drops below one: the last only loses its pointer.
+ * A move's presence write (`MutationKernelMovePresenceBindingStep`): re-point the named binding at
+ * the named destination binding, keeping its id and cover (PR-21(e)). `undefined` is the `stale`
+ * reason: the binding is gone, no longer sits under `from`, or the destination binding is gone.
  */
-const rehostPresenceBinding = (
+const movePresenceBinding = (
     graph: EphemeraLudicGraph,
-    step: MutationKernelRehostPresenceBindingStep,
+    step: MutationKernelMovePresenceBindingStep,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
-): EphemeraLudicGraph => {
-    const departing = step.fromHostIds.flatMap((fromHostId) => (
-        graph.presenceNodes.filter((node) => parentHostOf(node) === fromHostId)
-    ))
-    const kept = step.toHostId
-        ? departing[0] ?? hostlessRemainderOf(graph)
-        : (departing.length === graph.presenceNodes.length ? departing[0] : undefined)
-    const withoutDeparted = departing
-        .filter((node) => node !== kept)
-        .reduce((current, node) => current.removePresenceNode(node.universalKey), graph)
-    const fromHostPresence = step.toHostId ? withParentPresence({ host: step.toHostId }, graphs) : undefined
-    const repointed = {
-        tag: 'Presence' as const,
-        universalKey: kept?.universalKey ?? PresenceKey(step.presenceUuid),
-        ...(fromHostPresence ? { fromHostPresence } : {}),
-        cover: kept?.cover ?? remainderCover(),
+): { graph: EphemeraLudicGraph } | { reasonCode: string } => {
+    const node = graph.presenceNodes.find(({ universalKey }) => universalKey === step.presence)
+    if (!node) {
+        return { reasonCode: 'presenceBindingMissing' }
     }
-    if (kept) {
-        return withoutDeparted.replacePresenceNode(repointed)
+    const stored = node.fromHostPresence
+    const sitsUnderFrom = step.from === null
+        ? !stored
+        : stored?.host === step.from.host && stored.presence === step.from.presence
+    if (!sitsUnderFrom) {
+        return { reasonCode: 'presenceBindingMoved' }
     }
-    return step.toHostId || withoutDeparted.presenceNodes.length === 0
-        ? withoutDeparted.addPresenceNode(repointed)
-        : withoutDeparted
+    const destination = graphs.get(step.to.host)
+    if (!destination) {
+        return { reasonCode: 'hostNotInFootprint' }
+    }
+    if (!destination.presenceNodes.some(({ universalKey }) => universalKey === step.to.presence)) {
+        return { reasonCode: 'destinationBindingMissing' }
+    }
+    return {
+        graph: graph.replacePresenceNode({
+            ...node,
+            fromHostPresence: { host: step.to.host, presence: step.to.presence },
+        }),
+    }
+}
+
+/**
+ * One binding's departure (`MutationKernelReleasePresenceBindingStep`): removed when another binding
+ * of the whole remains, else its pointer is stripped, so a whole never drops below one binding.
+ * `undefined` is the `stale` reason: the binding is gone or no longer sits under `from`.
+ */
+const releasePresenceBinding = (
+    graph: EphemeraLudicGraph,
+    step: MutationKernelReleasePresenceBindingStep
+): { graph: EphemeraLudicGraph } | { reasonCode: string } => {
+    const node = graph.presenceNodes.find(({ universalKey }) => universalKey === step.presence)
+    if (!node) {
+        return { reasonCode: 'presenceBindingMissing' }
+    }
+    const stored = node.fromHostPresence
+    if (stored?.host !== step.from.host || stored.presence !== step.from.presence) {
+        return { reasonCode: 'presenceBindingMoved' }
+    }
+    if (graph.presenceNodes.length > 1) {
+        return { graph: graph.removePresenceNode(node.universalKey) }
+    }
+    const { fromHostPresence: _departed, ...hostless } = node
+    return { graph: graph.replacePresenceNode(hostless) }
 }
 
 const hostsOf = (
@@ -145,33 +169,19 @@ const confirmCarriedHost = (
  * primitive (never per `kind` grouping, mirroring the Synthesize executor's own `commandExpand`
  * dispatch). Applying the array in-order (not resorting it) is what makes the sequencing contract
  * hold: a paired `dissolveRelation` step always mutates the graph map before a following
- * `transferMembership` step reads it, because the worklist that produced this array already
- * guaranteed that order.
+ * presence step's departure checks its boundary edges, because the worklist that produced this array
+ * already guaranteed that order.
  *
- * `transferMembership` (BD-36) dispatches by shape on `fromHostIds`/`toHostId`. **Real transfer**
- * (`fromHostIds` has exactly one member, `toHostId` non-null): the entity --- object or
- * character --- routes through `applyTransfer` (it dispatches by kind itself,
- * `removeObject`/`addObject` for objects and `removeCharacter`/`addCharacter` for characters, so no
- * separate character swap is needed here; only objects get the full boundary-edge legality
- * machinery, since a character can never carry a relational edge). **Room/Feature/Area never
- * relocate**, so a Room/Feature id reaching this branch **throws** before `applyTransfer` ---
- * which has no dispatch for either kind --- is ever called; a caller bug is a structural-invariant
- * violation, so it belongs on the throw side of the split described below. **Pure remove**
- * (`toHostId === null`) and **pure add** (`fromHostIds` empty) share one kind-agnostic loop over
- * `nodeIds`/`addNode`/`removeNode` (`EphemeraLudicGraph`'s own kind dispatch) rather than one
- * loop per entity kind: a presence-check then
- * `removeNode`/`addNode` for each host --- no boundary-sweep here, since the caller is responsible
- * for having already seeded explicit `dissolveRelation` steps for every edge the entity carried; a
- * residual edge means
- * `removeNode`'s underlying `removeObject`/`removeCharacter`/`removeRoom`/`removeFeature` throws, the
- * fail-loud contract BD-33 wants. A freshly spawned/authored entity has no prior edges, so pure add
- * needs no assert.
+ * **Membership is applied by the presence steps** (`settleMembership.ts`): `addPresenceBinding` and
+ * `repairPresenceBinding` (with a parent pointer) add the node at the pointer's host, `movePresenceBinding`
+ * departs `from.host` and arrives at `to.host`, `releasePresenceBinding` departs `from.host`. A node
+ * leaves a host only with the mover's last binding there and arrives only if absent.
  *
  * `establishRelation`/`dissolveRelation`: confirms the step's own carried `hostId` 
  * against live graph state (BD-33 assert-and-throw), throws on mismatch, else applies the patch.
  *
  * Structural-invariant violations (BD-33's host mismatch; `RelationalEdgeStillReferencedError` from
- * inside `applyTransfer`/`removeObject`/`removeCharacter`; a Room/Feature id in a real transfer;
+ * inside `applyDeparture`/`removeObject`/`removeCharacter`; a Room/Feature departing a host;
  * the end-of-sequence character presence check below) throw, uniformly in both modes --- not a
  * `MutationKernelApplyOutcome` verdict. Legitimate outcomes return through the discriminated result,
  * and there are only two non-`legal` ones: `stale` (stale candidate, host outside the locked
@@ -180,8 +190,8 @@ const confirmCarriedHost = (
  * This function has no verdict meaning "the world forbids this" because it makes no such judgment
  * --- it checks mechanism, and legality is the enrich tier's question. See `types.ts`.
  *
- * `addPresenceBinding`/`rehostPresenceBinding`/`repairPresenceBinding`: a host's own presence
- * bindings --- population's mint, a move's re-point (`rehostPresenceBinding`, above), and
+ * `addPresenceBinding`/`movePresenceBinding`/`releasePresenceBinding`/`repairPresenceBinding`: a host's own presence
+ * bindings --- population's mint, a move's re-point (`movePresenceBinding`, above), a departure, and
  * population's in-place repair. See `kernelStep.ts`'s doc comments.
  *
  * `createComponent`: seeds a not-yet-existing host's graph empty, holding one hostless remainder,
@@ -200,7 +210,7 @@ export const applyStepSequenceCore = (
     steps: readonly MutationKernelStep[],
     initialGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): MutationKernelApplyOutcome => {
-    const graphs = new Map(initialGraphs)
+    let graphs = new Map(initialGraphs)
     const captures = new Map<string, readonly EphemeraCharacterId[]>()
 
     for (const step of steps) {
@@ -210,95 +220,6 @@ export const applyStepSequenceCore = (
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             captures.set(step.captureId, [...hostGraph.characterIds])
-            continue
-        }
-
-        if (step.kind === 'transferMembership') {
-            const fromHostIds = [...step.fromHostIds]
-            const toHostId = step.toHostId
-
-            // Real transfer: exactly the shape the two already-migrated player routes produce.
-            if (fromHostIds.length === 1 && toHostId !== null) {
-                // Room/Feature/Area are hosts that never relocate, so a Room/Feature id reaching a
-                // real (single-from, single-to) transfer is a caller bug --- `applyTransfer` has
-                // no dispatch for either kind, and every caller emits a pure add for them instead
-                // (see `kernelStep.ts`'s doc comment). The Throw-vs-verdict rule stated at the head
-                // of this file puts structural-invariant violations outside the result type, so this
-                // throws rather than returning a verdict; `commitStepSequence`'s BD-31 collapse
-                // throws from inside the same reducer and lands in the same catch.
-                if (isEphemeraRoomId(step.entityId) || isEphemeraFeatureId(step.entityId)) {
-                    throw new Error(
-                        `transferMembership carries a Room or Feature id into a real transfer --- structural invariant violated (Room/Feature/Area are hosts that never relocate; step 3's callers emit a pure add for them)`
-                    )
-                }
-                const entityId = step.entityId
-
-                const [fromHostId] = fromHostIds as [EphemeraMembershipHostId]
-                const sourceGraph = graphs.get(fromHostId)
-                const destGraph = graphs.get(toHostId)
-                if (!sourceGraph || !destGraph) {
-                    return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
-                }
-
-                if (!sourceGraph.nodeIds.has(entityId) || destGraph.nodeIds.has(entityId)) {
-                    return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
-                }
-
-                // applyTransfer dispatches both objects and characters itself --- no separate
-                // character add/remove needed here.
-                const outcome = applyTransfer(sourceGraph, destGraph, entityId)
-                // `applyTransfer` names the offending edge but not the host it sits on --- it is
-                // handed two graphs and knows neither's id. Supply `fromHostId` here: boundary
-                // edges are found on the *source* graph, so that is where a repair step would have
-                // to be aimed. `repairKind` passes through untouched --- mapping reason codes back
-                // to repair kinds here would re-derive at the boundary exactly what the layer below
-                // already knew.
-                if (outcome.verdict === 'repairable') {
-                    return {
-                        verdict: 'repairable',
-                        reasonCode: outcome.reasonCode,
-                        authority: outcome.authority,
-                        repair: {
-                            kind: outcome.repairKind,
-                            hostId: fromHostId,
-                            edge: outcome.edge,
-                        },
-                    }
-                }
-
-                graphs.set(fromHostId, outcome.sourceGraph)
-                graphs.set(toHostId, outcome.destGraph)
-                continue
-            }
-
-            // Pure remove (no destination) or pure add (no departure hosts): the entity is
-            // added/removed on each host independently --- there is no boundary sweep to run
-            // here (the caller already seeded explicit `dissolveRelation`
-            // steps for a pure remove; a pure add is a freshly-spawned entity with no prior edges).
-            // `nodeIds`/`addNode`/`removeNode` cover all four entity kinds ---
-            // `EphemeraLudicGraph.addNode`/`removeNode` is the
-            // kind-dispatch, so this branch doesn't have to re-derive it per kind.
-            for (const fromHostId of fromHostIds) {
-                const sourceGraph = graphs.get(fromHostId)
-                if (!sourceGraph) {
-                    return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
-                }
-                if (!sourceGraph.nodeIds.has(step.entityId)) {
-                    return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
-                }
-                graphs.set(fromHostId, sourceGraph.removeNode(step.entityId))
-            }
-
-            if (toHostId !== null) {
-                const destGraph = graphs.get(toHostId)
-                if (!destGraph) {
-                    return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
-                }
-                if (destGraph.nodeIds.has(step.entityId)) {
-                    return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
-                }
-                graphs.set(toHostId, destGraph.addNode(step.entityId))
-            }
             continue
         }
 
@@ -357,16 +278,57 @@ export const applyStepSequenceCore = (
                 ...(step.fromHostPresence ? { fromHostPresence: withParentPresence(step.fromHostPresence, graphs) } : {}),
                 cover: step.cover ?? remainderCover(),
             })
-            graphs.set(step.hostId, withNode)
+            const settled = settleMembership(new Map(graphs).set(step.hostId, withNode), step.hostId, {
+                ...(step.fromHostPresence ? { arrived: step.fromHostPresence.host } : {}),
+            })
+            if (settled.verdict !== 'legal') {
+                return settled
+            }
+            graphs = settled.graphs
             continue
         }
-        if (step.kind === 'rehostPresenceBinding') {
+        if (step.kind === 'movePresenceBinding') {
             const graph = graphs.get(step.hostId)
             if (!graph) {
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
-            graphs.set(step.hostId, rehostPresenceBinding(graph, step, graphs))
+            const moved = movePresenceBinding(graph, step, graphs)
+            if ('reasonCode' in moved) {
+                return { verdict: 'stale', reasonCode: moved.reasonCode }
+            }
+            const settled = settleMembership(new Map(graphs).set(step.hostId, moved.graph), step.hostId, {
+                ...(step.from ? { left: step.from.host } : {}),
+                arrived: step.to.host,
+            })
+            if (settled.verdict !== 'legal') {
+                return settled
+            }
+            graphs = settled.graphs
             continue
+        }
+        if (step.kind === 'releasePresenceBinding') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
+            }
+            const released = releasePresenceBinding(graph, step)
+            if ('reasonCode' in released) {
+                return { verdict: 'stale', reasonCode: released.reasonCode }
+            }
+            const settled = settleMembership(new Map(graphs).set(step.hostId, released.graph), step.hostId, { left: step.from.host })
+            if (settled.verdict !== 'legal') {
+                return settled
+            }
+            graphs = settled.graphs
+            continue
+        }
+        // Stubs (presenceMoves Slices 3 and 4). A join is deliberately a no-op: a multi-binding move
+        // leaves its bindings side by side until it has a body.
+        if (step.kind === 'joinPresenceBindings') {
+            continue
+        }
+        if (step.kind === 'splitPresenceBinding') {
+            return { verdict: 'stale', reasonCode: 'notImplemented' }
         }
 
         if (step.kind === 'repairPresenceBinding') {
@@ -377,12 +339,18 @@ export const applyStepSequenceCore = (
             if (!graph.presenceNodes.some((node) => node.universalKey === step.presenceId)) {
                 return { verdict: 'stale', reasonCode: 'presenceBindingMissing' }
             }
-            graphs.set(step.hostId, graph.replacePresenceNode({
+            const settled = settleMembership(new Map(graphs).set(step.hostId, graph.replacePresenceNode({
                 tag: 'Presence',
                 universalKey: step.presenceId,
                 ...(step.fromHostPresence ? { fromHostPresence: step.fromHostPresence } : {}),
                 cover: step.cover,
-            }))
+            })), step.hostId, {
+                ...(step.fromHostPresence ? { arrived: step.fromHostPresence.host } : {}),
+            })
+            if (settled.verdict !== 'legal') {
+                return settled
+            }
+            graphs = settled.graphs
             continue
         }
 

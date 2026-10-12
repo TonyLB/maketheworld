@@ -45,18 +45,16 @@ Per-operator coordinators       membership fact projection consumption, cache/bu
 [`kernel/kernelStep.ts`](kernel/kernelStep.ts) defines a deliberately narrow superset of the Synthesize executor's `ExecutorParsePlanStep`:
 
 ```typescript
-type MutationKernelTransferStep = {
-    kind: 'transferMembership'
-    entityId: EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId
-    fromHostIds: ReadonlySet<EphemeraMembershipHostId>
-    toHostId: EphemeraMembershipHostId | null
-}
+/** A presence step names the mover's own graph (`hostId`) and one of its bindings; each also applies membership. */
+type MutationKernelMovePresenceBindingStep = { kind: 'movePresenceBinding'; hostId; presence; from: ParentBinding | null; to: PresenceBindingRef }
+type MutationKernelReleasePresenceBindingStep = { kind: 'releasePresenceBinding'; hostId; presence; from: ParentBinding }
+// ...and addPresenceBinding / repairPresenceBinding (population), createComponent / destroyComponent
 
 /** Read-only: `hostId` + `captureId` and no write payload. That shape is what makes it safe in the walk. */
 type MutationKernelCaptureStep = { kind: 'capture'; hostId: EphemeraMembershipHostId; captureId: string }
 
 type MutationKernelStep =
-    | MutationKernelTransferStep
+    | MutationKernelPresenceStep   // add / move / release / repair, plus split / join stubs
     | MutationKernelCaptureStep
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
@@ -68,20 +66,19 @@ type KernelStep = MutationKernelStep | ExecutorDescribeStep | PresentationKernel
 
 **`KernelStep` is deliberately unprefixed** --- it is the shared, cross-kernel vocabulary that each kernel filters down to the steps it owns, so it belongs to no single kernel. Everything mutation-specific carries `MutationKernel`; everything presentation-specific carries `PresentationKernel`. `ExecutorDescribeStep` is **not** renamed: it is owned by `executorTypes.ts` and reused verbatim. With two kernels, a bare `Kernel` prefix would identify neither. **State this reason wherever the exception comes up**: `KernelStep` reads as an inconsistency, and the next reader will "fix" it by prefixing it, destroying the one distinction the scheme gets right.
 
-Both steps transfer exactly one entity: anything it hosts lives in its own shard and travels with it. Two widenings distinguish `MutationKernelTransferStep` from the executor's object-only, singular-host `TransferMembershipStep`:
+**Membership has no step of its own.** An entity's node in a host's graph is a consequence of its presence bindings: the node is in host H **iff some binding of the mover points at H**. The presence steps apply that rule themselves ([`settleMembership`](kernel/settleMembership.ts), called by [`applyStepSequenceCore`](kernel/applyStepSequenceCore.ts) after each pointer write):
 
-- **`entityId` admits characters as well as objects**, since kernel membership transfer generalizes over entity kind (and Rooms/Features, in the pure-add shape only, for cache-time containment authoring). The executor's own step stays object-only --- character movement never passes through Grounding/Expansion/Validation at all.
-- **`fromHostIds` is a set and `toHostId` is nullable**, mirroring `MembershipDiff`'s `{ froms, to }` shape. One step kind therefore covers three shapes:
-
-| Shape | Condition | Route |
+| Step | Membership effect | Footprint (beyond the mover's own host) |
 | --- | --- | --- |
-| **Real transfer** | one `fromHostId`, non-null `toHostId` | take-hold, drop, navigate, relational repair |
-| **Pure add** | `fromHostIds` empty | improvisational object spawn (after its `createComponent`) |
-| **Pure remove** | `toHostId === null` | destroy/edit clear, multi-room drift scrub |
+| `movePresenceBinding` | leaves `from.host` unless another binding of the mover still points there; arrives at `to.host` unless already there | `from.host`, `to.host` |
+| `releasePresenceBinding` (one per binding) | leaves `from.host` unless another binding still points there | `from.host` |
+| `addPresenceBinding` / `repairPresenceBinding` with a parent pointer (cache-time population) | arrives at the pointer's host unless already there | the pointer's host |
+
+A departure runs the boundary-edge legality check (`applyDeparture`); a node absent from the host it leaves is `stale` (`staleTransferCandidate`); a Room or Feature departing a host, or an Area arriving anywhere, throws (they never relocate or nest). Arrival is idempotent, which is what lets a replayed population step be harmless. A node held in a host that no binding names is drift the kernel leaves to the sweeps. A move is one entity: anything it hosts lives in its own shard and travels with it. Players' `transferMembership` (the *action-layer* primitive in `actions/`) compiles to these steps in [`planObjectMoveTransfer`](membership/planObjectMoveTransfer.ts).
 
 Relational steps are reused verbatim from the executor: relational edges stay `EphemeraObjectId`-typed, so there is nothing to generalize (character-relation widening is deferred).
 
-Callers converting executor output use `fromExecutorStep` (overloaded, so mutation-only call sites get `MutationKernelStep` back with no cast). A shared `KernelStep[]` list is filtered per kernel: `isKernelMutationStep` for the mutation kernel; `isDescribeStep` and `isNarrateStep` for the presentation kernel's two branches.
+A shared `KernelStep[]` list is filtered per kernel: `isKernelMutationStep` for the mutation kernel; `isDescribeStep` and `isNarrateStep` for the presentation kernel's two branches.
 
 **The array's membership test is "does this step need the walk's *position*?"** `describe` does not --- it is terminally bound and reads final state. `capture` does, definitionally, which is why it is an array step and not a side-table: [`computeStepSequenceFootprint`](kernel/computeStepSequenceFootprint.ts) then picks up its `hostId` into the lock set automatically, and forgetting to lock a capture's host becomes structurally impossible. Narration itself **never enters the walk**, but it *is* a `KernelStep`: the compiler emits narrate steps referencing a `captureId`, and the presentation kernel filters them out of the shared list post-commit. Because the capture sits at its own position in the array, `captureId` carries **identity only, never position** --- there is no index correlation between the compiler's two kinds of output.
 
@@ -93,9 +90,9 @@ Call sites do not hand-build step lists. They emit an **abstract op** and [`comp
 
 | File | Role |
 | --- | --- |
-| [`kernel/compile/positionKernelOp.ts`](kernel/compile/positionKernelOp.ts) | `PositionKernelMoveOp`: `moved` (a bare entity id), `froms`, `to`, `header` (a `describe` header binding, or `null`), optional `dissolvedEdges`, optional `narration` (`membershipMove` ingredients; character moves only --- an object move carries none) |
+| [`kernel/compile/positionKernelOp.ts`](kernel/compile/positionKernelOp.ts) | `PositionKernelMoveOp`: `moved` (a bare entity id), `froms`, `to`, `presenceMoves` (the bindings to re-point, named by the producer), optional `mintedRootUuid`, `header` (a `describe` header binding, or `null`), optional `dissolvedEdges`, optional `narration` (`membershipMove` ingredients; character moves only --- an object move carries none) |
 | [`kernel/compile/compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) | op -> `CompiledPositionKernelPlan { steps }`. Owns bracket shape, capture-id generation, dissolve sequencing, and presentation order (leave, header, arrive). Builds no object-family copy |
-| [`kernel/compile/presenceBindingStepsForMove.ts`](kernel/compile/presenceBindingStepsForMove.ts) | `(movedId, froms, to)` -> one `rehostPresenceBinding` step for one move, on the mover's own root: the kernel re-points the mover's existing binding (stable id), mints one only on a first placement, and keeps the last one hostless on a departure to no host. **Renamed from `presencePortStepsForMove` in `42b1683e5`** (presenceNodes Slice 7a, PN-23) --- the step no longer carries a port record; `applyStepSequenceCore.ts` mints the presence NODE directly. **A departure to no host still clears every binding at a departure host except the last**, which loses its parent pointer rather than standing stale. **`compilePositionKernelOp` is its only caller** --- extracted so that every membership-transfer route populates presence bindings through one emitter, not per-caller. **Single-level by construction:** it addresses the mover's own host id and never descends into composition |
+| [`kernel/compile/presenceBindingStepsForMove.ts`](kernel/compile/presenceBindingStepsForMove.ts) | `(movedId, op)` -> the mover's presence steps: one `movePresenceBinding` per binding the producer named in `op.presenceMoves` (preceded by an `addPresenceBinding` root when `op.mintedRootUuid` is set), a `joinPresenceBindings` for each extra binding (a stub until presenceMoves Slice 4), or one `releasePresenceBinding` per binding a departure to no host leaves. Reads nothing: the planner ([`membership/resolvePresenceMoves.ts`](membership/resolvePresenceMoves.ts)) names every binding. **Renamed from `presencePortStepsForMove` in `42b1683e5`** (presenceNodes Slice 7a, PN-23). **`compilePositionKernelOp` is its only caller** --- extracted so that every membership-moving route populates presence bindings through one emitter, not per-caller. **Single-level by construction:** it addresses the mover's own host id and never descends into composition |
 
 Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRelation, ...presencePortSteps, ...captureTo, ...narrateLeave, ...narrateArrive]`; the non-narrating branch (every object move) emits the same spine without the capture and narrate steps. **`establishRelation` runs *after* the transfer deliberately** --- placed before it, `findHostOf(moved)` would resolve against the old host. Two properties of this function are load-bearing and each is pinned by a test:
 
@@ -118,11 +115,11 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 | **Output** | `MutationKernelCommitResult` --- `{ ok: true, beatAnchorTime, steps, captures }` or `{ ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage }`. **`captures` exists only on the success branch**, which is what makes "narrate only a committed mutation" a type-level guarantee rather than a convention |
 | **Conflict** | On conflict between graph and adjacency, **`ludicGraph` wins** (unchanged positions authority) |
 
-**Footprint derivation.** `transferMembership` contributes every `fromHostIds` member plus `toHostId` when non-null --- all decided at grounding time. `capture` contributes its `hostId`, which is the whole point of it being an array step: a capture may name a host no mutation touches, and `MultiKeyUpdate` cannot be re-entered mid-reducer to lock a newly-discovered one. `establishRelation`/`dissolveRelation` carry no host field, so both endpoints' *pre-transaction* host comes from the injected `getCurrentHost` resolver. The footprint is a lock-set declaration only, never trusted as ground truth: the reducer independently re-derives each relational step's shared host from the locked graphs.
+**Footprint derivation.** A presence step contributes the mover's own host plus every host whose membership it can change (table above) --- all decided at grounding time. `capture` contributes its `hostId`, which is the whole point of it being an array step: a capture may name a host no mutation touches, and `MultiKeyUpdate` cannot be re-entered mid-reducer to lock a newly-discovered one. `establishRelation`/`dissolveRelation` carry no host field, so both endpoints' *pre-transaction* host comes from the injected `getCurrentHost` resolver. The footprint is a lock-set declaration only, never trusted as ground truth: the reducer independently re-derives each relational step's shared host from the locked graphs.
 
 **Why that re-derivation always finds its host locked.** A relational step's correct host is always *some endpoint's own `getCurrentHost`*, and therefore always in the lock set. This holds even when the correct host is one of the endpoints itself --- an object that hosts the other is that other endpoint's `getCurrentHost`, so its shard is locked via the contained side (tie a cup to the table it sits on: the correct host is the table, contributed by `getCurrentHost(cup)`). The one exception is a crossing leg's **exterior** side, whose port-address endpoint names a host it does not live in; that is precisely what `findSharedHost`'s port-address fallback exists for, and why a port address is a *candidate* rather than a veto. Corollary when reading `hostsOf`: an id's candidate list is **footprint-contingent, not structural**. Every object host carries a graph rooted at itself (`fromPlainHostMeta`, `ludicGraph/index.ts`), so a contained object and its container are the same shape --- each a member node of its container's graph plus the root of its own. An id gets more than one candidate only when some *other* endpoint's containment happens to drag its shard into the lock set; `getCurrentHost` names only the containing host, never the self-root.
 
-**Adjacency rows** (`positionAdjacency#<hostId>`) are built as unconditioned sibling items, since the entity set and hosts are caller-known before the reducer runs: a `Delete` per `(entityId, fromHostId)` pair across every departure host, and a `Put` per entity only when `toHostId` is non-null. If the reducer throws, none of these fire either. Relational edges get **no** adjacency dual-write --- forward graph only.
+**Adjacency rows** (`positionAdjacency#<hostId>`) are unconditioned sibling items derived from the sequence's **net membership change** ([`membershipChangesOf`](kernel/membershipChanges.ts), prior graphs against committed graphs, per mover): a `Delete` per host the mover left, a `Put` per host it arrived at. They ride the `MultiKeyUpdate`'s `cascade`, which runs after the reducer, because only that sees the committed graphs. If the reducer throws, none of these fire either. Relational edges get **no** adjacency dual-write --- forward graph only. The same change list drives the cache's membership containers (the hosts the mover's committed bindings point at) and the moved fact.
 
 **Optional deps:**
 
@@ -135,13 +132,11 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 
 ### Apply modes
 
-[`applyStepSequenceCore`](kernel/applyStepSequenceCore.ts) walks the ordered step array once, dispatching per specific primitive. Applying **in array order, without resorting**, is what makes the sequencing contract hold: a paired `dissolveRelation` step always mutates the graph map before a following `transferMembership` step reads it.
+[`applyStepSequenceCore`](kernel/applyStepSequenceCore.ts) walks the ordered step array once, dispatching per specific primitive. Applying **in array order, without resorting**, is what makes the sequencing contract hold: a paired `dissolveRelation` step always mutates the graph map before a following presence step's departure checks the mover's boundary edges.
 
 | Step shape | Behavior |
 | --- | --- |
-| **Real transfer** | Routes through [`applyTransfer`](../ludicGraph/expandValidate/applyTransfer.ts). An object gets the full boundary-edge legality machinery, shared with the compiler's selection-time sandbox, classified live from the freshly-fetched source graph. A character is a direct `removeCharacter`/`addCharacter` swap with no boundary sweep, since a character can never hold a relational edge. A Room/Feature id here throws: hosts never relocate |
-| **Pure remove** | Presence-check then `removeObject`/`removeCharacter` per departure host. **No** boundary sweep here --- the caller is responsible for having seeded explicit `dissolveRelation` steps for every edge the entity carried. A residual edge makes `removeObject` throw, by design |
-| **Pure add** | `addObject`/`addCharacter` on the destination only; a freshly spawned entity has no prior edges, so no assert is needed |
+| **Presence steps** | Write the mover's pointer, then `settleMembership` (above). A character leaves by `removeCharacter`/arrives by `addCharacter` with no boundary sweep (it can never hold a relational edge); an object's departure gets the full boundary-edge legality machinery of [`applyDeparture`](../ludicGraph/expandValidate/applyDeparture.ts), shared with the compiler's selection-time sandbox, classified live from the freshly-fetched host graph. The caller is responsible for having seeded explicit `dissolveRelation` steps for every edge the mover carried: a residual one makes the departure `repairable` |
 | **Relational** | Derives the shared host live from the graph map, throws on endpoint host mismatch, else applies the patch |
 | **Capture** | Snapshots the host's `characterIds` under `captureId` and continues. Mutates nothing, writes nothing |
 | **Destroy** (`destroyComponent`) | Drops the host from the outcome, so the commit deletes its row (a conditioned `Delete`: `MultiKeyUpdate` deleting a fetched key). Throws unless the host's graph holds only its own root and its own presence bindings: contents must leave first. Stale if the host is not in the graph map |
@@ -163,19 +158,13 @@ Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRela
 
 ### Fact emission: projection-first (provisional)
 
-**For the moment**, membership facts are built forward from the step's own `{ froms, to }` on successful persist --- **assuming apply succeeded as planned** --- rather than re-derived from post-apply graphs.
+Membership facts are derived from the committed graphs: [`membershipChangesOf`](kernel/membershipChanges.ts) compares each mover's host membership before and after the sequence, and [`movedFactsFor`](kernel/factsForStep.ts) builds one fact from it (`froms` the hosts left, `to` the host arrived at). Upstream of the kernel, the adapter's `MembershipTransferProjection` still serves the coordinator's `changed` gates.
 
-| Chosen (now) | Deferred alternative |
-| --- | --- |
-| Build `Character Moved` / `Object Moved` from the committed step's `fromHostIds`/`toHostId` (and, upstream of the kernel, from the adapter's `MembershipTransferProjection` for coordinator `changed` gates) | Derive facts from post-apply graphs (graph-grounded projection) |
-
-**May revisit** when graph-grounded fact verification lands.
-
-[`factsForStep`](kernel/factsForStep.ts) walks the *output-ordered* steps rather than a hand-assembled subset, which is what makes a move's `[dissolveRelation*, transferMembership]` stream its dissolve facts before the moved fact. It emits **one combined fact per entity** (with plural `froms` and nullable `to`), not one per host, so the widened lifecycle routes keep the same single-fact-per-entity behavior their predecessors had.
+[`factsForStep`](kernel/factsForStep.ts) walks the *output-ordered* steps rather than a hand-assembled subset, which is what makes a move's `[dissolveRelation*, presence steps]` stream its dissolve facts before the moved fact: the relational facts come from `factsForStep` per step, and the moved fact (`movedFactsFor`) streams right after the mover's last presence step. It emits **one combined fact per entity** (with plural `froms` and nullable `to`), not one per host, so the widened lifecycle routes keep the same single-fact-per-entity behavior their predecessors had.
 
 Character-kind emission is folded into `factsForStep` rather than layered on after `commitStepSequence` returns --- that is what keeps `Character Moved` streaming before the kernel's own `RoomUpdate` publish loop, matching `Object Moved`'s ordering guarantee. `commitStepSequence.test.ts` asserts this ordering.
 
-`factsForStep` also takes a **pre-apply graph snapshot**: a `dissolveRelation` endpoint can be removed from the footprint entirely by a later pure-remove step in the same sequence (destroy), leaving it absent from the post-apply map. The snapshot lets the fact re-derive the host it actually held the edge on rather than throwing.
+`factsForStep` also takes a **pre-apply graph snapshot**: a `dissolveRelation` endpoint can be removed from the footprint entirely by a later release and `destroyComponent` in the same sequence (destroy), leaving it absent from the post-apply map. The snapshot lets the fact re-derive the host it actually held the edge on rather than throwing.
 
 **A relation's fact comes from its edge, not its legs.** A crossing leg has a port endpoint and names no real pair, so `factsForStep` yields nothing for it. A caller that commits a whole edge passes it as `relationalEdges`, and `factForRelationalEdge` builds one fact from the edge's real subject and target, hosted on the subject's graph, however many legs the chain has. Without `relationalEdges`, each relational step with primitive endpoints yields its own fact (a move's boundary dissolves).
 
@@ -291,7 +280,7 @@ commitAttempt.ts            dispatches the relational action to planRelationalEd
 commitStepSequence          one transactWrite; re-validates live on locked graphs (as before)
 ```
 
-`applyObjectRelationalChange` has **no production caller** and is **parked, not dead**: it is kept for the LLM planning work to take up, so do not delete it as unreferenced. Its own repair-transfer branch (`[dissolveRelation*, transferMembership, establishRelation]`) was retired outright, 2026-09-01 --- a relation whose endpoints are in different shards is a crossing to build as legs, not a misplacement to fix by moving an endpoint --- so today it only ever builds a single-step `[establishRelation]`/`[dissolveRelation]` sequence, at whichever call site still uses it.
+`applyObjectRelationalChange` has **no production caller** and is **parked, not dead**: it is kept for the LLM planning work to take up, so do not delete it as unreferenced. Its own repair-transfer branch (`[dissolveRelation*, <a move>, establishRelation]`) was retired outright, 2026-09-01 --- a relation whose endpoints are in different shards is a crossing to build as legs, not a misplacement to fix by moving an endpoint --- so today it only ever builds a single-step `[establishRelation]`/`[dissolveRelation]` sequence, at whichever call site still uses it.
 
 | Item | Value |
 | --- | --- |
@@ -371,7 +360,9 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 | Path | Role |
 | --- | --- |
-| [`kernel/kernelStep.ts`](kernel/kernelStep.ts) | Step vocabulary (mutation, capture, describe, narrate); `NarrationSpecification` (`membershipMove` \| `template`) + `TemplateNarrationSpec` / `NarrationPart` + its escalation-trigger doc comment; `fromExecutorStep` adapter; `isKernelMutationStep` / `isDescribeStep` / `isNarrateStep` filters |
+| [`kernel/kernelStep.ts`](kernel/kernelStep.ts) | Step vocabulary (mutation, capture, describe, narrate); `NarrationSpecification` (`membershipMove` \| `template`) + `TemplateNarrationSpec` / `NarrationPart` + its escalation-trigger doc comment; `isKernelMutationStep` / `isDescribeStep` / `isNarrateStep` filters |
+| [`kernel/settleMembership.ts`](kernel/settleMembership.ts) | Pure `settleMembership(graphs, moverId, { left, arrived })`: the node leaves a host only with the mover's last binding there (through `applyDeparture`) and arrives only if absent. Called by `applyStepSequenceCore` after each presence step writes a pointer |
+| [`kernel/membershipChanges.ts`](kernel/membershipChanges.ts) | `membershipChangesOf(steps, priorGraphs, committedGraphs)`: per mover, the hosts left and arrived at, and the index of its last presence step. The one source for adjacency rows, cache containers and the moved fact in `commitStepSequence` |
 | [`kernel/narrationTemplate.ts`](kernel/narrationTemplate.ts) | The flush-time template fill (`fillNarrationTemplate`, shared by `presentStepSequence` and `deliverNarrationUnits`: `'Someone'` actor fallback; a `ref` with no label throws) |
 | [`kernel/types.ts`](kernel/types.ts) | `StepSequenceFootprint`, `MutationKernelApplyOutcome`, `MutationKernelCommitResult`, `MutationKernelCaptures` |
 | [`kernel/commitStepSequence.ts`](kernel/commitStepSequence.ts) | The commit entrypoint: footprint lock, `MultiKeyUpdate` transact, adjacency items, cache seed, fact stream, `RoomUpdate` publish |
@@ -417,7 +408,7 @@ Rules: [`../AGENT.contract.md`](../AGENT.contract.md#component-updated-containme
 
 | Path | Role |
 | --- | --- |
-| [`containment/containmentPopulationSteps.ts`](containment/containmentPopulationSteps.ts) | Pure step-computer: given a parent id, a child id, and both already-fetched graphs, returns 0-3 `MutationKernelStep`s (a pure-add `transferMembership`, an `addPresenceBinding`/`repairPresenceBinding`, an `establishRelation` edge: `PartOf` for a Room or Feature, `In` for an authored Object). An Object that already has a live binding with a parent pointer returns `[]` (never re-placed), each independently pre-checked against current state so a fully-populated call returns `[]`. No I/O, no `internalCache`, no `commitStepSequence` --- the idempotency obligation lives entirely here, since neither primitive it emits is safe to replay unconditionally at the reducer level. |
+| [`containment/containmentPopulationSteps.ts`](containment/containmentPopulationSteps.ts) | Pure step-computer: given a parent id, a child id, and both already-fetched graphs, returns 0-2 `MutationKernelStep`s (an `addPresenceBinding`/`repairPresenceBinding`, which also adds the child's node to the parent, and an `establishRelation` edge: `PartOf` for a Room or Feature, `In` for an authored Object). An Object that already has a live binding with a parent pointer returns `[]` (never re-placed), each independently pre-checked against current state so a fully-populated call returns `[]`. No I/O, no `internalCache`, no `commitStepSequence` --- the idempotency obligation lives entirely here, since `addPresenceBinding` is not safe to replay unconditionally at the reducer level. |
 | [`containment/populateContainmentAtCache.ts`](containment/populateContainmentAtCache.ts) | Orchestrator: reads the parent's graph once, reads each named child's graph, calls `containmentPopulationSteps` per child, and commits every child's steps for one parent update as a single `commitStepSequence` call (one `MultiKeyUpdate`) --- never one commit per child. `commitStepSequence`'s own empty-array no-op means a fully-populated parent update makes no transaction at all. |
 | [`containment/healContainmentPopulation.ts`](containment/healContainmentPopulation.ts) | Handles the `Containment Population Drift Finding` (from `ContainmentPopulationDriftSweep`). It reruns population for one parent's existing `PartOf` children, i.e. its Rooms and Features, for data no asset diff will reach. Authored Objects (`In`) are not rerun. |
 | [`containment/removeAuthoredObject.ts`](containment/removeAuthoredObject.ts) | Cache-time removal of a de-authored Object. `contentDestinations` (pure) maps each content to the parent host of the Object binding that content points at, falling back to the Object's first host. The orchestrator then calls [`executeMembershipTransfer`](membership/executeMembershipTransfer.ts) once per content, then once for the Object with `target: null`, as separate commits. It stops, leaving the Object live, if a content move fails. Optional deps (`streamEvent`, `getMembershipContainers`, `getLudicGraph`) are test seams only. |
