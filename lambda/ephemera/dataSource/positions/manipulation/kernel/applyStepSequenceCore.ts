@@ -7,9 +7,10 @@ import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemera
 
 import { graphFromMeta } from '../../ludicGraph'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { applyTransfer } from '../../ludicGraph/expandValidate/applyTransfer'
-import { childParentBindingIdOf } from '../../ludicGraph/presenceParent'
+import { applyDeparture, applyTransfer } from '../../ludicGraph/expandValidate/applyTransfer'
+import { childParentBindingIdOf, parentHostOf } from '../../ludicGraph/presenceParent'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { ApplyDepartureOutcome, ApplyTransferOutcome } from '../../ludicGraph/expandValidate/applyTransfer'
 import type { MutationKernelMovePresenceBindingStep, MutationKernelStep } from './kernelStep'
 import type { MutationKernelApplyOutcome } from './types'
 
@@ -93,6 +94,27 @@ const releasePresenceBindings = (graph: EphemeraLudicGraph): EphemeraLudicGraph 
         .reduce((current, node) => current.removePresenceNode(node.universalKey), graph)
         .replacePresenceNode(hostless)
 }
+
+/**
+ * Membership counts bindings: a mover is a member of a host while **some binding of it points at that
+ * host**. Read from the mover's own graph as it stands when the transfer runs (the compiler emits a
+ * move's presence writes ahead of its transfer), so a transfer drops the node from a departure host
+ * only with the mover's last binding there, and adds it at an arrival host only for its first. A
+ * mover whose own graph is not in the footprint (hand-built sequences) has no bindings to read, so
+ * membership there is the old unconditional host-level transfer.
+ */
+const bindingPointsAt = (
+    entityId: EphemeraLudicTerminalId,
+    hostId: EphemeraMembershipHostId,
+    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
+): boolean => (
+    typeof entityId === 'string'
+        && (graphs.get(entityId as EphemeraMembershipHostId)?.presenceNodes ?? []).some((node) => parentHostOf(node) === hostId)
+)
+
+const withDest = (departure: ApplyDepartureOutcome, destGraph: EphemeraLudicGraph): ApplyTransferOutcome => (
+    departure.verdict === 'repairable' ? departure : { verdict: 'legal', sourceGraph: departure.sourceGraph, destGraph }
+)
 
 const hostsOf = (
     id: EphemeraLudicTerminalId,
@@ -260,13 +282,22 @@ export const applyStepSequenceCore = (
                     return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
                 }
 
-                if (!sourceGraph.nodeIds.has(entityId) || destGraph.nodeIds.has(entityId)) {
+                const leaves = !bindingPointsAt(entityId, fromHostId, graphs)
+                const alreadyAtDest = destGraph.nodeIds.has(entityId)
+                // Arriving where the node already is stays stale unless another binding of the mover
+                // is what put it there (this move's own pointer, plus an earlier one).
+                const arrives = !alreadyAtDest
+                if ((leaves && !sourceGraph.nodeIds.has(entityId)) || (alreadyAtDest && !bindingPointsAt(entityId, toHostId, graphs))) {
                     return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
                 }
 
                 // applyTransfer dispatches both objects and characters itself --- no separate
                 // character add/remove needed here.
-                const outcome = applyTransfer(sourceGraph, destGraph, entityId)
+                const outcome: ApplyTransferOutcome = leaves && arrives
+                    ? applyTransfer(sourceGraph, destGraph, entityId)
+                    : leaves
+                        ? withDest(applyDeparture(sourceGraph, entityId), destGraph)
+                        : { verdict: 'legal', sourceGraph, destGraph: arrives ? destGraph.addNode(entityId) : destGraph }
                 // `applyTransfer` names the offending edge but not the host it sits on --- it is
                 // handed two graphs and knows neither's id. Supply `fromHostId` here: boundary
                 // edges are found on the *source* graph, so that is where a repair step would have
@@ -305,6 +336,10 @@ export const applyStepSequenceCore = (
                 }
                 if (!sourceGraph.nodeIds.has(step.entityId)) {
                     return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
+                }
+                // Still a member while another binding of the mover points here.
+                if (bindingPointsAt(step.entityId, fromHostId, graphs)) {
+                    continue
                 }
                 graphs.set(fromHostId, sourceGraph.removeNode(step.entityId))
             }

@@ -51,7 +51,7 @@ describe('planCharacterMoveTransfer', () => {
         expect(result.froms).toEqual([FROM_ROOM])
         expect(result.to).toEqual(TO_ROOM)
         expect(result.plan.steps.map((step) => step.kind)).toEqual([
-            'capture', 'transferMembership', 'movePresenceBinding', 'capture', 'narrate', 'narrate',
+            'capture', 'movePresenceBinding', 'transferMembership', 'capture', 'narrate', 'narrate',
         ])
         expect(result.plan.steps.find((step) => step.kind === 'movePresenceBinding')).toEqual({
             kind: 'movePresenceBinding',
@@ -154,8 +154,8 @@ describe('planCharacterMoveTransfer', () => {
 
         if (!result.ok || !result.changed) { throw new Error('expected a changed plan') }
         const kinds = result.plan.steps.map((step) => step.kind)
-        expect(kinds.indexOf('addPresenceBinding')).toBeGreaterThan(kinds.indexOf('transferMembership'))
         expect(kinds.indexOf('addPresenceBinding')).toBeLessThan(kinds.indexOf('movePresenceBinding'))
+        expect(kinds.indexOf('movePresenceBinding')).toBeLessThan(kinds.indexOf('transferMembership'))
         const mint = result.plan.steps.find((step) => step.kind === 'addPresenceBinding') as { presenceUuid: string }
         expect(result.plan.steps.find((step) => step.kind === 'movePresenceBinding')).toEqual(expect.objectContaining({
             presence: `PRESENCE#${mint.presenceUuid}`,

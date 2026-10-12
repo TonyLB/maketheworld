@@ -46,6 +46,29 @@ export function applyTransfer(
     // are hosts that never relocate.
     entityId: EphemeraObjectId | EphemeraCharacterId
 ): ApplyTransferOutcome {
+    const departure = applyDeparture(sourceGraph, entityId)
+    if (departure.verdict === 'repairable') {
+        return departure
+    }
+    return {
+        verdict: 'legal',
+        sourceGraph: departure.sourceGraph,
+        destGraph: isEphemeraObjectId(entityId) ? destGraph.addObject(entityId) : destGraph.addCharacter(entityId),
+    }
+}
+
+export type ApplyDepartureOutcome = Exclude<ApplyTransferOutcome, { verdict: 'legal' }> | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph }
+
+/**
+ * The departure half of a transfer: the boundary-edge legality check, then the entity's removal from
+ * the source host. Split out so a mover leaving a host with its **last** binding there (see
+ * `applyStepSequenceCore`'s membership gate) runs exactly the checks a whole transfer would, while a
+ * mover that keeps another binding there runs none --- it has not left.
+ */
+export function applyDeparture(
+    sourceGraph: EphemeraLudicGraph,
+    entityId: EphemeraObjectId | EphemeraCharacterId
+): ApplyDepartureOutcome {
     // boundaryEdgeOutcomes stays Object-only (interactionUnderTransfer.ts):
     // no production path produces a character-endpoint relational edge yet, so a character can never
     // appear on either side of a boundary edge.
@@ -97,7 +120,8 @@ export function applyTransfer(
         }
     }
 
-    return isEphemeraObjectId(entityId)
-        ? { verdict: 'legal', sourceGraph: sourceGraph.removeObject(entityId), destGraph: destGraph.addObject(entityId) }
-        : { verdict: 'legal', sourceGraph: sourceGraph.removeCharacter(entityId), destGraph: destGraph.addCharacter(entityId) }
+    return {
+        verdict: 'legal',
+        sourceGraph: isEphemeraObjectId(entityId) ? sourceGraph.removeObject(entityId) : sourceGraph.removeCharacter(entityId),
+    }
 }

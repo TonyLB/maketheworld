@@ -6,6 +6,7 @@ import type { EphemeraLudicTerminalPrimitive, RelationalKindAndLabel } from '@to
 import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { parentHostOf } from '../../ludicGraph/presenceParent'
 import { buildObjectMovedFact } from '../membership/buildObjectMovedFact'
 import { buildCharacterMovedFact } from '../membership/buildCharacterMovedFact'
 import { buildRelationalFact } from '../relational/buildObjectRelationalFact'
@@ -96,7 +97,16 @@ export const factsForStep = (
     }
 
     if (step.kind === 'transferMembership') {
-        const froms = [...step.fromHostIds]
+        // Membership counts bindings: a host the mover still has a binding at was not left, and an
+        // arrival where it already had one is not new. A move that changes no host streams no fact.
+        const stillBoundAt = (graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>, hostId: EphemeraMembershipHostId): boolean => (
+            (graphs.get(step.entityId as EphemeraMembershipHostId)?.presenceNodes ?? []).some((node) => parentHostOf(node) === hostId)
+        )
+        const froms = [...step.fromHostIds].filter((hostId) => !stillBoundAt(finalGraphs, hostId))
+        const arrivesNew = step.toHostId !== null && !stillBoundAt(priorGraphs, step.toHostId)
+        if (step.toHostId !== null && froms.length === 0 && !arrivesNew && step.fromHostIds.size > 0) {
+            return []
+        }
         const diff = { froms, to: step.toHostId, changed: true }
         const entityId = step.entityId
         const fact = isEphemeraObjectId(entityId)

@@ -50,12 +50,17 @@ const CAPTURE_ID_TO = 'capture:to'
  * creates one.
  */
 export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPositionKernelPlan => {
-    const transferStep: MutationKernelTransferStep = {
-        kind: 'transferMembership',
-        entityId: op.moved,
-        fromHostIds: new Set(op.froms),
-        toHostId: op.to,
-    }
+    // A move between two bindings of one host changes no membership (a node is a member of a host
+    // while any binding of it sits there), so it compiles to its presence writes alone.
+    const sameHostMove = op.to !== null && op.froms.length === 1 && op.froms[0] === op.to
+    const transferSteps: MutationKernelTransferStep[] = sameHostMove
+        ? []
+        : [{
+            kind: 'transferMembership',
+            entityId: op.moved,
+            fromHostIds: new Set(op.froms),
+            toHostId: op.to,
+        }]
 
     // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed, but this op's only producer
     // (`buildObjectMoveOp`, below) severs the mover's own containment edge, which joins two
@@ -104,11 +109,13 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     // the mover's presence writes, every mover regardless of host kind. Mechanics --- stable bindings
     // re-pointed, kept hostless on a departure to nowhere --- live in `presenceBindingStepsForMove`, of
     // which this is the only caller: `executeMembershipTransfer` reaches it through this
-    // compiler rather than emitting its own steps.
+    // compiler rather than emitting its own steps. They run **ahead of** the transfer, because the
+    // transfer's membership gate reads the bindings as they stand after the move (a host loses the
+    // node only with the mover's last binding there).
     const presenceBindingSteps = presenceBindingStepsForMove(primaryMovedId, op)
 
     if (!op.narration) {
-        return { steps: [...dissolveSteps, transferStep, ...establishSteps, ...presenceBindingSteps, ...headerSteps] }
+        return { steps: [...dissolveSteps, ...presenceBindingSteps, ...transferSteps, ...establishSteps, ...headerSteps] }
     }
 
     const { narration } = op
@@ -155,9 +162,9 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
         steps: [
             ...captureFromSteps,
             ...dissolveSteps,
-            transferStep,
-            ...establishSteps,
             ...presenceBindingSteps,
+            ...transferSteps,
+            ...establishSteps,
             ...captureToStep,
             ...narrateLeaveSteps,
             ...headerSteps,

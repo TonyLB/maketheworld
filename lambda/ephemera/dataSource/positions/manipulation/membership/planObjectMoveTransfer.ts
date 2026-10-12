@@ -16,6 +16,8 @@ export type PlanObjectMoveTransferArgs = {
     toHostId: EphemeraMembershipHostId
     /** Where the destination is seen in the host that holds it: names which of its bindings the mover lands under. */
     toGroundedPresence?: readonly GroundedPresence[]
+    /** Where the mover is seen in the host it leaves: names which of its bindings under that host moves. */
+    moverGroundedPresence?: readonly GroundedPresence[]
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
     /** injectable for test seams only. */
@@ -56,6 +58,7 @@ export const planObjectMoveTransfer = async (
         froms: [args.fromHostId],
         to: args.toHostId,
         ...(args.toGroundedPresence ? { toGroundedPresence: args.toGroundedPresence } : {}),
+        ...(args.moverGroundedPresence ? { moverGroundedPresence: args.moverGroundedPresence } : {}),
         getGraph,
     })
     if (!resolved.ok) {

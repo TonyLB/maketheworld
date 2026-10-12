@@ -88,8 +88,8 @@ describe('orchestrateCharacterMove', () => {
         // header is a describe step carrying the resolved binding.
         expect(lastPlan().steps).toEqual([
             { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
-            { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
             { kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex', from: { host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) }, to: { host: TO_ROOM, presence: parentRemainderKey(TO_ROOM) } },
+            { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
             { kind: 'capture', hostId: TO_ROOM, captureId: 'capture:to' },
             expect.objectContaining({ kind: 'narrate' }),
             { kind: 'describe', referentId: TO_ROOM, referentKind: 'room', header: { perspectiveKey: 'perspective-key', assets: ['primitives', 'TownCenter'] } },

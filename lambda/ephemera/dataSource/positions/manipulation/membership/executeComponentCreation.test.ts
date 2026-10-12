@@ -44,8 +44,8 @@ describe('executeComponentCreation', () => {
         const createStep = args.steps[0] as { presenceUuid: string }
         expect(args.steps).toEqual([
             { kind: 'createComponent', hostId: OBJECT_ID, presenceUuid: expect.any(String), meta: META },
-            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
             { kind: 'movePresenceBinding', hostId: OBJECT_ID, presence: `PRESENCE#${createStep.presenceUuid}`, from: null, to: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) } },
+            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
         ])
         expect(args.existenceItems).toEqual([pairItem])
         expect(deps.afterPersist).toBe(afterPersist)

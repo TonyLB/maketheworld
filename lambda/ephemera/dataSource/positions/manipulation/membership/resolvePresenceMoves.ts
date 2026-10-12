@@ -5,6 +5,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 
 import type { GroundedPresence } from '../../../actions/enrich/objectManipulation/plan/planStep'
+import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
 import type { PositionKernelPresenceMove } from '../kernel/compile/positionKernelOp'
@@ -18,6 +19,12 @@ export type ResolvePresenceMovesArgs = {
      * the destination's own bindings the mover lands under. Absent, the destination's only binding.
      */
     toGroundedPresence?: readonly GroundedPresence[]
+    /**
+     * Where the mover is seen in the host it leaves (`groundedPresence`): names which of that host's
+     * buckets it sits in, so a mover holding several bindings under one host (a plank under two
+     * bindings of a table) is told apart by binding. Absent, the host alone must be enough.
+     */
+    moverGroundedPresence?: readonly GroundedPresence[]
     getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 }
 
@@ -25,17 +32,23 @@ export type ResolvedPresenceMoves =
     | { ok: true; presenceMoves: PositionKernelPresenceMove[]; mintedRootUuid?: string }
     | { ok: false; errorCode: 'destinationBindingMissing' | 'destinationBindingAmbiguous' | 'moverBindingAmbiguous' }
 
+/** Whether a binding's parent pointer names one of the buckets where its whole is seen. */
+const sitsUnderSeenBucket = (
+    { fromHostPresence }: EphemeraLudicGraphStructureNode,
+    seen: readonly GroundedPresence[]
+): boolean => seen.some((bucket) => (
+    typeof bucket === 'string'
+        ? fromHostPresence?.host === bucket
+        : fromHostPresence?.host === bucket.host && fromHostPresence?.presence === bucket.presence
+))
+
 /** The bindings of a destination's own graph whose pointer names a bucket where it is seen. */
 const bindingsUnderSeenBuckets = (
     destGraph: EphemeraLudicGraph,
     seen: readonly GroundedPresence[]
 ): EphemeraPresenceNodeId[] => (
     destGraph.presenceNodes
-        .filter(({ fromHostPresence }) => seen.some((bucket) => (
-            typeof bucket === 'string'
-                ? fromHostPresence?.host === bucket
-                : fromHostPresence?.host === bucket.host && fromHostPresence?.presence === bucket.presence
-        )))
+        .filter((node) => sitsUnderSeenBucket(node, seen))
         .map(({ universalKey }) => universalKey)
 )
 
@@ -75,7 +88,8 @@ export const destinationBindingOf = (
  *
  * - **A departure** (`to: null`) names nothing: it compiles to `releasePresenceBindings`.
  * - **A mover with a binding under each `from` host** moves those bindings. Several under one
- *   host cannot be told apart by host, so that is a refusal.
+ *   host are told apart by where the mover is seen (`moverGroundedPresence`); still several, or no
+ *   such name, is a refusal.
  * - **A mover with none** (a first placement, a connect, or a legacy whole) moves its hostless
  *   binding, `from: null`; if it holds no hostless binding, a root is minted ahead of the move.
  */
@@ -90,9 +104,14 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
     const to = { host: args.to, presence: destination.presence }
 
     const moverGraph = await args.getGraph(args.moved)
-    const departing = args.froms.map((fromHostId) => (
-        moverGraph.presenceNodes.filter((node) => parentHostOf(node) === fromHostId)
-    ))
+    const departing = args.froms.map((fromHostId) => {
+        const underHost = moverGraph.presenceNodes.filter((node) => parentHostOf(node) === fromHostId)
+        const seen = args.moverGroundedPresence
+        const narrowed = underHost.length > 1 && seen && seen.length > 0
+            ? underHost.filter((node) => sitsUnderSeenBucket(node, seen))
+            : underHost
+        return narrowed.length > 0 ? narrowed : underHost
+    })
     if (departing.some((nodes) => nodes.length > 1)) {
         return { ok: false, errorCode: 'moverBindingAmbiguous' }
     }

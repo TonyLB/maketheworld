@@ -73,6 +73,75 @@ describe('commitStepSequence', () => {
         jest.clearAllMocks()
     })
 
+    describe('membership counts bindings', () => {
+        const OTHER_ROOM = 'ROOM#Terrace' as EphemeraRoomId
+        const DEST_ROOM = 'ROOM#Garden' as EphemeraRoomId
+
+        it('writes the adjacency row only for hosts whose membership changed: one of two bindings leaves, the other host keeps its row', async () => {
+            const graphs = {
+                [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
+                [OTHER_ROOM]: testLudicGraph(OTHER_ROOM, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode(parentRemainderKey(OTHER_ROOM))] }),
+                [DEST_ROOM]: testLudicGraph(DEST_ROOM, { nodes: [presenceBindingNode(parentRemainderKey(DEST_ROOM))] }),
+                [TRAY_ID]: testLudicGraph(TRAY_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode('tray-a', ROOM_ID), presenceBindingNode('tray-b', OTHER_ROOM)] }),
+            }
+            const { transactWrite, cascadeItems } = makeTransactWriteMock(graphs)
+            const steps: MutationKernelStep[] = [
+                {
+                    kind: 'movePresenceBinding',
+                    hostId: TRAY_ID,
+                    presence: 'PRESENCE#tray-a' as any,
+                    from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
+                    to: { host: DEST_ROOM, presence: parentRemainderKey(DEST_ROOM) },
+                },
+                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: DEST_ROOM },
+            ]
+
+            const result = await commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            expect(cascadeItems.current).toEqual([
+                { Delete: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } },
+                { Put: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(DEST_ROOM) } },
+            ])
+            // the cache lists every host a binding still points at, not only the destination
+            expect(internalCache.Positions.setMembershipContainers).toHaveBeenCalledWith({
+                componentId: TRAY_ID,
+                containers: [DEST_ROOM, OTHER_ROOM],
+            })
+        })
+
+        it('writes no adjacency row for a departure from a host where another binding of the mover remains', async () => {
+            const graphs = {
+                [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
+                [DEST_ROOM]: testLudicGraph(DEST_ROOM, { nodes: [presenceBindingNode(parentRemainderKey(DEST_ROOM))] }),
+                [TRAY_ID]: testLudicGraph(TRAY_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode('tray-a', ROOM_ID), presenceBindingNode('tray-b', ROOM_ID)] }),
+            }
+            const { transactWrite, cascadeItems } = makeTransactWriteMock(graphs)
+            const steps: MutationKernelStep[] = [
+                {
+                    kind: 'movePresenceBinding',
+                    hostId: TRAY_ID,
+                    presence: 'PRESENCE#tray-a' as any,
+                    from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
+                    to: { host: DEST_ROOM, presence: parentRemainderKey(DEST_ROOM) },
+                },
+                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: DEST_ROOM },
+            ]
+
+            await commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite }
+            )
+
+            expect(cascadeItems.current).toEqual([
+                { Put: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(DEST_ROOM) } },
+            ])
+        })
+    })
+
     describe('destroyComponent', () => {
         const destroyTray: MutationKernelStep = { kind: 'destroyComponent', hostId: TRAY_ID }
         const pairDelete = { Delete: { EphemeraId: TRAY_ID, DataCategory: 'ASSET#IMPROVISATION' } }
@@ -82,8 +151,8 @@ describe('commitStepSequence', () => {
             const trayGraph = testLudicGraph(TRAY_ID, { nodes: [presenceBindingNode('p1', ROOM_ID)] })
             const { transactWrite, lastItems, cascadeItems, lastDraft } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: trayGraph })
             const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
                 { kind: 'releasePresenceBindings', hostId: TRAY_ID },
+                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
                 destroyTray,
             ]
 
@@ -99,9 +168,11 @@ describe('commitStepSequence', () => {
                 { EphemeraId: ROOM_ID, DataCategory: 'Meta::Room' },
             ]))
             expect(Object.keys(lastDraft.current!)).toEqual([`${ROOM_ID}#Meta::Room`])
-            expect(cascadeItems.current).toEqual([pairDelete])
             // adjacency row for the departure rides along; the host's own memo is dropped
-            expect(lastItems.current).toContainEqual({ Delete: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } })
+            expect(cascadeItems.current).toEqual([
+                { Delete: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } },
+                pairDelete,
+            ])
             expect(internalCache.Positions.invalidate).toHaveBeenCalledWith(TRAY_ID)
             expect(internalCache.Positions.set).not.toHaveBeenCalledWith(expect.objectContaining({ hostId: TRAY_ID }))
         })
@@ -178,6 +249,7 @@ describe('commitStepSequence', () => {
                         }),
                     },
                 },
+                { Put: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } },
                 pairItem,
             ])
             const storedNodes = cascadeItems.current![0].Put.ludicGraph.nodes
@@ -399,7 +471,7 @@ describe('commitStepSequence', () => {
                 ],
                 edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' }],
             })
-            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
             const steps: MutationKernelStep[] = [
                 { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
@@ -422,8 +494,8 @@ describe('commitStepSequence', () => {
                 expect.objectContaining({ objectId: TRAY_ID, froms: [ROOM_ID], to: null })
             )
 
-            const items = transactWrite.mock.calls[0][0]
-            const adjacencyItems = items.filter((item: any) => 'Delete' in item || 'Put' in item)
+            // adjacency rows come from the committed graphs, through the wrapper's `cascade`
+            const adjacencyItems = cascadeItems.current!.filter((item: any) => 'Delete' in item || 'Put' in item)
             expect(adjacencyItems).toEqual([{ Delete: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
         })
 
@@ -460,7 +532,7 @@ describe('commitStepSequence', () => {
 
         it('pure add (spawn-shaped, fromHostIds empty): adds to destination, adjacency Put-only, no dissolve needed', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, { nodes: [] })
-            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
@@ -472,14 +544,14 @@ describe('commitStepSequence', () => {
             )
 
             expect(result.ok).toBe(true)
-            const items = transactWrite.mock.calls[0][0]
-            const adjacencyItems = items.filter((item: any) => 'Delete' in item || 'Put' in item)
+            // adjacency rows come from the committed graphs, through the wrapper's `cascade`
+            const adjacencyItems = cascadeItems.current!.filter((item: any) => 'Delete' in item || 'Put' in item)
             expect(adjacencyItems).toEqual([{ Put: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
         })
 
         it('character-only pure remove (disconnect-shaped, toHostId null): commits, adjacency Delete-only, streams Character Moved with to: null', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
-            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
@@ -495,14 +567,14 @@ describe('commitStepSequence', () => {
                 header: { type: 'Character Moved' },
                 update: expect.objectContaining({ froms: [ROOM_ID], to: null }),
             }))
-            const items = transactWrite.mock.calls[0][0]
-            const adjacencyItems = items.filter((item: any) => 'Delete' in item || 'Put' in item)
+            // adjacency rows come from the committed graphs, through the wrapper's `cascade`
+            const adjacencyItems = cascadeItems.current!.filter((item: any) => 'Delete' in item || 'Put' in item)
             expect(adjacencyItems).toEqual([{ Delete: { EphemeraId: CHARACTER_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
         })
 
         it('character-only pure add (connect-from-nowhere-shaped, fromHostIds empty): commits, adjacency Put-only, streams Character Moved with froms: []', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, { nodes: [] })
-            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
             const steps: MutationKernelStep[] = [
                 { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
@@ -518,8 +590,8 @@ describe('commitStepSequence', () => {
                 header: { type: 'Character Moved' },
                 update: expect.objectContaining({ froms: [], to: ROOM_ID }),
             }))
-            const items = transactWrite.mock.calls[0][0]
-            const adjacencyItems = items.filter((item: any) => 'Delete' in item || 'Put' in item)
+            // adjacency rows come from the committed graphs, through the wrapper's `cascade`
+            const adjacencyItems = cascadeItems.current!.filter((item: any) => 'Delete' in item || 'Put' in item)
             expect(adjacencyItems).toEqual([{ Put: { EphemeraId: CHARACTER_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
         })
     })

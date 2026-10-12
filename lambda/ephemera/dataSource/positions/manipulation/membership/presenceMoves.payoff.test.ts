@@ -125,7 +125,7 @@ describe('the bridge: a multi-from scrub moves each binding and leaves the join 
     it('compiles to one move per binding followed by a join, and both bindings end under the destination', async () => {
         const { steps, after } = await scrub(roomsAndPlank())
 
-        expect(steps.map((step) => step.kind)).toEqual(['transferMembership', 'movePresenceBinding', 'movePresenceBinding', 'joinPresenceBindings'])
+        expect(steps.map((step) => step.kind)).toEqual(['movePresenceBinding', 'movePresenceBinding', 'joinPresenceBindings', 'transferMembership'])
         expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence])).toEqual([
             [presence('plank-a'), { host: roomC, presence: parentRemainderKey(roomC) }],
             [presence('plank-b'), { host: roomC, presence: parentRemainderKey(roomC) }],

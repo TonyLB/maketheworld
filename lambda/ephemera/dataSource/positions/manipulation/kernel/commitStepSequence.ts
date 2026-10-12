@@ -11,6 +11,7 @@ import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { EphemeraLudicGraph, graphFromMeta, hostDataCategory } from '../../ludicGraph'
+import { parentHostOf } from '../../ludicGraph/presenceParent'
 import { streamObjectMembershipFact } from '../membership/streamObjectMembershipFact'
 import { streamMembershipFact } from '../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
@@ -18,7 +19,7 @@ import { applyStepSequenceCore } from './applyStepSequenceCore'
 import { computeStepSequenceFootprint, createdHostsOf } from './computeStepSequenceFootprint'
 import { factForRelationalEdge, factsForStep, isFactOfRelationalEdge } from './factsForStep'
 import type { RelationalEdgeFactSource } from './factsForStep'
-import type { MutationKernelCreateComponentStep, MutationKernelStep } from './kernelStep'
+import type { MutationKernelCreateComponentStep, MutationKernelStep, MutationKernelTransferStep } from './kernelStep'
 import type { MutationKernelCaptures, MutationKernelCommitResult } from './types'
 
 export type CommitStepSequenceDeps = {
@@ -73,6 +74,46 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
 }
 
 /**
+ * Adjacency rows (`positionAdjacency#<hostId>`) for every entity a `transferMembership` step moves,
+ * read from the **committed** graphs rather than from the steps' host sets: membership counts
+ * bindings, so a departure host keeps its row while another binding of the mover still holds the
+ * node there, and an arrival host's row is written only once the node is there. Plain, unconditioned
+ * sibling items, as before; they ride the `MultiKeyUpdate`'s `cascade` because only that sees the
+ * reducer's output. A host the outcome no longer holds (destroyed) holds nothing.
+ */
+const adjacencyItemsFor = (
+    transferSteps: readonly MutationKernelTransferStep[],
+    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
+): CommitStepSequenceTransactItem[] => transferSteps.flatMap((step) => [
+    ...[...step.fromHostIds]
+        .filter((fromHostId) => !graphs.get(fromHostId)?.nodeIds.has(step.entityId))
+        .map((fromHostId) => ({
+            Delete: { EphemeraId: step.entityId, DataCategory: buildPositionAdjacencyDataCategory(fromHostId) },
+        })),
+    ...(step.toHostId !== null && graphs.get(step.toHostId)?.nodeIds.has(step.entityId)
+        ? [{ Put: { EphemeraId: step.entityId, DataCategory: buildPositionAdjacencyDataCategory(step.toHostId) } }]
+        : []),
+])
+
+/**
+ * The hosts the cache should list as an entity's containers after a transfer: every host one of the
+ * mover's own committed bindings points at. A mover whose graph is absent or holds no pointer (a
+ * hand-built sequence, a hostless whole) falls back to the step's own destination.
+ */
+const containersAfter = (
+    step: MutationKernelTransferStep,
+    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
+): EphemeraMembershipHostId[] => {
+    const bound = [...new Set(
+        (graphs.get(step.entityId as EphemeraMembershipHostId)?.presenceNodes ?? []).flatMap((node) => {
+            const host = parentHostOf(node)
+            return host === undefined ? [] : [host]
+        })
+    )]
+    return bound.length > 0 || step.toHostId === null ? bound : [step.toHostId]
+}
+
+/**
  * BD-27c's unified commit entry point --- one `commitStepSequence` replaces both
  * `applyObjectSetTransfer.ts`'s and `applyObjectRelationalChangeWithTransfer.ts`'s call surface,
  * rather than two route-specific thin wrappers (splitting by route would recreate, one layer up,
@@ -119,6 +160,7 @@ export const commitStepSequence = async (
     const footprint = computeStepSequenceFootprint(steps, deps.getCurrentHost)
     const created = createdHostsOf(steps)
     const createSteps = steps.filter((step): step is MutationKernelCreateComponentStep => step.kind === 'createComponent')
+    const transferSteps = steps.filter((step): step is MutationKernelTransferStep => step.kind === 'transferMembership')
 
     let committedGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
     // Assignment, not append --- the reducer body can run more than once under
@@ -198,12 +240,13 @@ export const commitStepSequence = async (
                 // draft-backed, so a fresh `Map` copy here is enough --- no per-entry plain-copy needed.
                 committedCaptures = new Map(outcome.captures)
             },
-            ...((createSteps.length > 0 || (args.existenceItems ?? []).length > 0)
+            ...((createSteps.length > 0 || transferSteps.length > 0 || (args.existenceItems ?? []).length > 0)
                 ? {
                     cascade: () => [
                         ...createSteps.map((step) => ({
                             Put: { ...step.meta, ludicGraph: committedGraphs!.get(step.hostId)!.toStored() },
                         })),
+                        ...adjacencyItemsFor(transferSteps, committedGraphs!),
                         ...(args.existenceItems ?? []),
                     ],
                 }
@@ -211,30 +254,11 @@ export const commitStepSequence = async (
         },
     } as CommitStepSequenceTransactItem
 
-    // Adjacency rows (positionAdjacency#<hostId>) for every entity moved by a transferMembership
-    // step, built as plain, unconditioned sibling items --- same convention as the two live
-    // kernels (the moved entity and hosts are known before the reducer runs, so nothing depends on
-    // the reducer's computed output; if the reducer throws, these never fire either). A `Delete`
-    // per departure host; a `Put` only when
-    // `toHostId` is non-null (a pure remove, e.g. destroy, has no arrival row to write).
-    const adjacencyItems: CommitStepSequenceTransactItem[] = steps
-        .filter((step): step is Extract<MutationKernelStep, { kind: 'transferMembership' }> => step.kind === 'transferMembership')
-        .flatMap((step) =>
-            [
-                ...[...step.fromHostIds].map((fromHostId) => ({
-                    Delete: { EphemeraId: step.entityId, DataCategory: buildPositionAdjacencyDataCategory(fromHostId) },
-                })),
-                ...(step.toHostId !== null
-                    ? [{ Put: { EphemeraId: step.entityId, DataCategory: buildPositionAdjacencyDataCategory(step.toHostId) } }]
-                    : []),
-            ]
-        )
-
     let persisted = false
     try {
         await exponentialBackoffWrapper(
             async () => {
-                await transactWrite([multiKeyItem, ...adjacencyItems])
+                await transactWrite([multiKeyItem])
                 persisted = true
             },
             { retryErrors: ['TransactionCanceledException'] }
@@ -270,7 +294,7 @@ export const commitStepSequence = async (
         }
         internalCache.Positions.setMembershipContainers({
             componentId: step.entityId,
-            containers: step.toHostId !== null ? [step.toHostId] : [],
+            containers: containersAfter(step, committedGraphs),
         })
     }
 
