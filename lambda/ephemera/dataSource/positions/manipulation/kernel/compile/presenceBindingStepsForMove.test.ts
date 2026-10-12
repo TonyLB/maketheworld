@@ -8,36 +8,40 @@ const OTHER_FROM = 'ROOM#Third' as EphemeraRoomId
 const TO_ROOM = 'ROOM#Arrival' as EphemeraRoomId
 
 describe('presenceBindingStepsForMove', () => {
-    it('emits an add-only step for a pure add (empty froms)', () => {
+    it('emits one re-point step for a first placement (empty froms)', () => {
         const steps = presenceBindingStepsForMove(HOST_ID, [], TO_ROOM)
 
         expect(steps).toEqual([{
-            kind: 'addPresenceBinding',
+            kind: 'rehostPresenceBinding',
             hostId: HOST_ID,
-            fromHostPresence: { host: TO_ROOM },
+            fromHostIds: [],
+            toHostId: TO_ROOM,
             presenceUuid: expect.any(String),
         }])
     })
 
-    it('emits remove-only steps for a pure remove (to: null) --- the missing-clear fix', () => {
+    it('emits one re-point step for a departure to no host (to: null), which the kernel leaves hostless', () => {
         const steps = presenceBindingStepsForMove(HOST_ID, [FROM_ROOM, OTHER_FROM], null)
 
-        expect(steps).toEqual([
-            { kind: 'removePresenceBinding', hostId: HOST_ID, fromHostId: FROM_ROOM },
-            { kind: 'removePresenceBinding', hostId: HOST_ID, fromHostId: OTHER_FROM },
-        ])
+        expect(steps).toEqual([{
+            kind: 'rehostPresenceBinding',
+            hostId: HOST_ID,
+            fromHostIds: [FROM_ROOM, OTHER_FROM],
+            toHostId: null,
+            presenceUuid: expect.any(String),
+        }])
     })
 
-    it('emits a remove-then-add pair for an ordinary rehost', () => {
+    it('emits one re-point step for an ordinary rehost, not a remove-then-add pair', () => {
         const steps = presenceBindingStepsForMove(HOST_ID, [FROM_ROOM], TO_ROOM)
 
-        expect(steps.map((step) => step.kind)).toEqual(['removePresenceBinding', 'addPresenceBinding'])
-        expect(steps[0]).toEqual({ kind: 'removePresenceBinding', hostId: HOST_ID, fromHostId: FROM_ROOM })
-        expect(steps[1]).toMatchObject({
-            kind: 'addPresenceBinding',
+        expect(steps).toEqual([{
+            kind: 'rehostPresenceBinding',
             hostId: HOST_ID,
-            fromHostPresence: { host: TO_ROOM },
-        })
+            fromHostIds: [FROM_ROOM],
+            toHostId: TO_ROOM,
+            presenceUuid: expect.any(String),
+        }])
     })
 
     it('emits nothing when there is neither a departure nor a destination', () => {

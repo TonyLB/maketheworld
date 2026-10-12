@@ -33,14 +33,13 @@ const baseOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMo
 })
 
 describe('compilePositionKernelOp', () => {
-    it('orders steps as [capture(from), transfer, presence(remove/add), capture(to), narrate(leave), narrate(arrive)] for a full move', () => {
+    it('orders steps as [capture(from), transfer, presence(rehost), capture(to), narrate(leave), narrate(arrive)] for a full move', () => {
         const plan = compilePositionKernelOp(baseOp())
 
         expect(plan.steps.map((step) => step.kind)).toEqual([
             'capture',
             'transferMembership',
-            'removePresenceBinding',
-            'addPresenceBinding',
+            'rehostPresenceBinding',
             'capture',
             'narrate',
             'narrate',
@@ -102,14 +101,10 @@ describe('compilePositionKernelOp', () => {
                 toHostId: TO_ROOM,
             },
             {
-                kind: 'removePresenceBinding',
+                kind: 'rehostPresenceBinding',
                 hostId: CHARACTER_ID,
-                fromHostId: FROM_ROOM,
-            },
-            {
-                kind: 'addPresenceBinding',
-                hostId: CHARACTER_ID,
-                fromHostPresence: { host: TO_ROOM },
+                fromHostIds: [FROM_ROOM],
+                toHostId: TO_ROOM,
                 presenceUuid: expect.any(String),
             },
         ])
@@ -149,7 +144,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         const plan = compilePositionKernelOp(objectOp())
 
         expect(plan.steps.map((step) => step.kind)).toEqual([
-            'transferMembership', 'removePresenceBinding', 'addPresenceBinding',
+            'transferMembership', 'rehostPresenceBinding',
         ])
         expect(plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
@@ -185,12 +180,12 @@ describe('compilePositionKernelOp --- object moves', () => {
         })
     })
 
-    it('emits the dissolves, transfer and presence pair, and nothing else', () => {
+    it('emits the dissolves, transfer and presence re-point, and nothing else', () => {
         const plan = compilePositionKernelOp(objectOp({
             dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
         }))
 
-        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'transferMembership', 'removePresenceBinding', 'addPresenceBinding'])
+        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'transferMembership', 'rehostPresenceBinding'])
         expect(plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
@@ -214,23 +209,19 @@ describe('compilePositionKernelOp --- object moves', () => {
             expect(plan.steps.some((step) => step.kind === 'establishRelation')).toBe(false)
         })
 
-        it('mints a presence binding naming the destination on every object rehost, containment or not', () => {
+        it('re-points the presence binding at the destination on every object rehost, containment or not', () => {
             const plan = compilePositionKernelOp(objectOp())
-            const removeStep = plan.steps.find((step) => step.kind === 'removePresenceBinding')
-            expect(removeStep).toEqual({
-                kind: 'removePresenceBinding',
+            expect(plan.steps.filter((step) => step.kind === 'rehostPresenceBinding')).toEqual([{
+                kind: 'rehostPresenceBinding',
                 hostId: TRAY,
-                fromHostId: FROM_ROOM,
-            })
-            const addStep = plan.steps.find((step) => step.kind === 'addPresenceBinding')
-            expect(addStep).toMatchObject({
-                kind: 'addPresenceBinding',
-                hostId: TRAY,
-                fromHostPresence: { host: CHARACTER_ID },
-            })
+                fromHostIds: [FROM_ROOM],
+                toHostId: CHARACTER_ID,
+                presenceUuid: expect.any(String),
+            }])
+            expect(plan.steps.some((step) => step.kind === 'addPresenceBinding')).toBe(false)
         })
 
-        it('mints a presence binding for a character-only move too --- binding minting is not gated on host kind', () => {
+        it('re-points a presence binding for a character-only move too --- the binding write is not gated on host kind', () => {
             const plan = compilePositionKernelOp({
                 kind: 'move',
                 moved: CHARACTER_ID,
@@ -238,15 +229,12 @@ describe('compilePositionKernelOp --- object moves', () => {
                 to: TO_ROOM,
                 header: null,
             })
-            expect(plan.steps.find((step) => step.kind === 'removePresenceBinding')).toEqual({
-                kind: 'removePresenceBinding',
+            expect(plan.steps.find((step) => step.kind === 'rehostPresenceBinding')).toEqual({
+                kind: 'rehostPresenceBinding',
                 hostId: CHARACTER_ID,
-                fromHostId: FROM_ROOM,
-            })
-            expect(plan.steps.find((step) => step.kind === 'addPresenceBinding')).toMatchObject({
-                kind: 'addPresenceBinding',
-                hostId: CHARACTER_ID,
-                fromHostPresence: { host: TO_ROOM },
+                fromHostIds: [FROM_ROOM],
+                toHostId: TO_ROOM,
+                presenceUuid: expect.any(String),
             })
         })
 

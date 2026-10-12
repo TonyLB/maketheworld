@@ -74,11 +74,11 @@ export const factsForStep = (
 
     // not a world event any narration channel reads today --- the object-move narrate
     // steps already cover "arrives," and a presence binding's own visibility is future work.
-    if (step.kind === 'addPresenceBinding' || step.kind === 'removePresenceBinding' || step.kind === 'repairPresenceBinding') {
+    if (step.kind === 'addPresenceBinding' || step.kind === 'rehostPresenceBinding' || step.kind === 'repairPresenceBinding') {
         return []
     }
 
-    // same deferral as addPresenceBinding/removePresenceBinding --- a crossing port's own visibility is future work.
+    // same deferral as addPresenceBinding/rehostPresenceBinding --- a crossing port's own visibility is future work.
     if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {
         return []
     }

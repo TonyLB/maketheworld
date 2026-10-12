@@ -39,7 +39,7 @@ describe('planObjectMoveTransfer', () => {
             if (!result.ok) { throw new Error('expected a legal plan') }
             // Mutation steps only: the move's audiences are `commitAttempt.ts`'s to resolve and capture.
             expect(result.plan.steps.map((step) => step.kind)).toEqual([
-                'transferMembership', 'removePresenceBinding', 'addPresenceBinding',
+                'transferMembership', 'rehostPresenceBinding',
             ])
             expect(result.fromHostId).toBe(ROOM_ID)
         })

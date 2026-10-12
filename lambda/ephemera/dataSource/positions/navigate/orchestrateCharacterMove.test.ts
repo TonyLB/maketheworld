@@ -81,8 +81,7 @@ describe('orchestrateCharacterMove', () => {
         expect(lastPlan().steps).toEqual([
             { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
             { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
-            { kind: 'removePresenceBinding', hostId: CHARACTER_ID, fromHostId: FROM_ROOM },
-            { kind: 'addPresenceBinding', hostId: CHARACTER_ID, fromHostPresence: { host: TO_ROOM }, presenceUuid: expect.any(String) },
+            { kind: 'rehostPresenceBinding', hostId: CHARACTER_ID, fromHostIds: [FROM_ROOM], toHostId: TO_ROOM, presenceUuid: expect.any(String) },
             { kind: 'capture', hostId: TO_ROOM, captureId: 'capture:to' },
             expect.objectContaining({ kind: 'narrate' }),
             { kind: 'describe', referentId: TO_ROOM, referentKind: 'room', header: { perspectiveKey: 'perspective-key', assets: ['primitives', 'TownCenter'] } },
@@ -143,7 +142,7 @@ describe('orchestrateCharacterMove', () => {
         expect(lastPlan().steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
-    it('drift scrub: captures and unbinds every prior container', async () => {
+    it('drift scrub: captures every prior container and re-points the binding off all of them', async () => {
         getMembershipContainersMock.mockResolvedValue([FROM_ROOM, ROOM_C])
 
         await orchestrateCharacterMove({
@@ -158,8 +157,7 @@ describe('orchestrateCharacterMove', () => {
             { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
             { kind: 'capture', hostId: ROOM_C, captureId: 'capture:from:ROOM#TestThree' },
             { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM, ROOM_C]), toHostId: TO_ROOM },
-            { kind: 'removePresenceBinding', hostId: CHARACTER_ID, fromHostId: FROM_ROOM },
-            { kind: 'removePresenceBinding', hostId: CHARACTER_ID, fromHostId: ROOM_C },
+            { kind: 'rehostPresenceBinding', hostId: CHARACTER_ID, fromHostIds: [FROM_ROOM, ROOM_C], toHostId: TO_ROOM, presenceUuid: expect.any(String) },
         ]))
     })
 

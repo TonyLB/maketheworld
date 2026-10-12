@@ -12,16 +12,22 @@ import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/obje
 import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelStep, MutationKernelTransferStep } from '../kernel/kernelStep'
 
 /**
- * The room rule's root (PR-21(f)): every room keeps exactly one hostless remainder, the root of its
- * presence tree, whether or not anything is contained in it or it sits in an Area. Returns the step
- * that mints it and the graph as it will read once minted, so the room's children (computed against
- * that graph) point at the same remainder; a room that already has one, or a non-room, is unchanged.
+ * A parent's root binding, the one its children name (`childParentBindingIdOf`). A Room or Area
+ * keeps exactly one hostless remainder for good (the room rule, PR-21(f), extended to Areas),
+ * whether or not anything is contained in it. Any other parent (a Feature, an authored Object) with
+ * no binding at all gets a hostless remainder too, which its own placement later re-points rather
+ * than re-mints, so its children's pointers stay valid. Returns the step that mints it and the
+ * graph as it will read once minted, so the parent's children (computed against that graph) point
+ * at the same root; a parent that already has one is unchanged.
  */
-export const roomRootStep = (
+export const rootStep = (
     parentId: EphemeraMembershipHostId,
     parentGraph: EphemeraLudicGraph
 ): { step?: MutationKernelAddPresenceBindingStep; graph: EphemeraLudicGraph } => {
-    if (!isEphemeraRoomId(parentId) || hostlessRemainderOf(parentGraph)) {
+    const hasRoot = isEphemeraRoomId(parentId) || isEphemeraAreaId(parentId)
+        ? Boolean(hostlessRemainderOf(parentGraph))
+        : parentGraph.presenceNodes.length > 0
+    if (hasRoot) {
         return { graph: parentGraph }
     }
     const presenceUuid = uuidv4()
@@ -50,9 +56,12 @@ export const roomRootStep = (
  *
  * - **Node membership**: emitted only if `childId` is not already a node of `parentGraph`.
  * - **Presence binding** (three states): absent (no binding of `childGraph` points at `parentId`)
- *   adds one; present in the wrong shape (a pointer not naming the parent's binding, a room's remainder at its Area)
- *   emits `repairPresenceBinding`, in place and keeping the id; correct emits nothing. A room
- *   parent's remainder is `roomRootStep`'s, minted once per parent before any child is computed.
+ *   is a first placement --- a child holding a hostless remainder (minted as a parent's root) has
+ *   it re-pointed in place (`repairPresenceBinding`, keeping the id), otherwise one is added; a Room
+ *   always adds its Area carve-out, since its remainder never moves. Present in the wrong shape (a
+ *   pointer not naming the parent's binding, a room's remainder at its Area) emits
+ *   `repairPresenceBinding`, in place and keeping the id; correct emits nothing. The parent's own
+ *   root is `rootStep`'s, minted once per parent before any child is computed.
  * - **Authored Objects** (`positions/AGENT.contract.md`, `Component Updated`): an Object child is skipped outright if its own graph holds any
  *   binding with a parent pointer (it is live somewhere, so a rerun must not move it); otherwise it
  *   goes through the same three checks, with an `In` edge. A live binding of the wrong shape is
@@ -101,17 +110,28 @@ export const containmentPopulationSteps = (
         steps.push(nodeStep)
     }
 
-    // The parent binding children sit under: a room's hostless remainder (`roomRootStep`, applied
-    // to `parentGraph` by the caller), else the parent's only binding. An Area holds none, and a
-    // Feature parent not yet bound names none; the pointer then carries the host alone and a later
-    // run repairs it once the parent binding exists.
-    const parentPresence = isEphemeraAreaId(parentId) ? undefined : childParentBindingIdOf(parentGraph)
+    // The parent binding children sit under: a Room's or Area's hostless remainder, else the
+    // parent's only binding (its root is `rootStep`'s, applied to `parentGraph` by the caller). A
+    // parent with several bindings names none (never guessed); the pointer then carries the host alone.
+    const parentPresence = childParentBindingIdOf(parentGraph)
     const fromHostPresence: EphemeraPresenceParentPointer = parentPresence ? { host: parentId, presence: parentPresence } : { host: parentId }
     // A room's binding into its Area is a carve-out with no members, so the bucket is the room itself.
     const wantedCover = isEphemeraRoomId(childId) && isEphemeraAreaId(parentId) ? { members: [] } : undefined
 
     const existing = childGraph.presenceNodes.find((node) => parentHostOf(node) === parentId)
-    if (!existing) {
+    // A first placement re-points a hostless root rather than minting beside it, so the child's own
+    // children keep naming it. A Room's remainder never moves: it gets an Area carve-out instead.
+    const unplacedRoot = existing || isEphemeraRoomId(childId) ? undefined : hostlessRemainderOf(childGraph)
+    if (unplacedRoot) {
+        const placeStep: MutationKernelRepairPresenceBindingStep = {
+            kind: 'repairPresenceBinding',
+            hostId: childId,
+            presenceId: unplacedRoot.universalKey,
+            fromHostPresence,
+            cover: unplacedRoot.cover,
+        }
+        steps.push(placeStep)
+    } else if (!existing) {
         const bindingStep: MutationKernelAddPresenceBindingStep = {
             kind: 'addPresenceBinding',
             hostId: childId,

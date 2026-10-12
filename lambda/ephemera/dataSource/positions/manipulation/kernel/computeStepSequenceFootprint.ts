@@ -42,8 +42,16 @@ export const computeStepSequenceFootprint = (
             }
             continue
         }
-        if (step.kind === 'addPresenceBinding' || step.kind === 'removePresenceBinding' || step.kind === 'repairPresenceBinding') {
+        if (step.kind === 'addPresenceBinding' || step.kind === 'repairPresenceBinding') {
             hosts.add(step.hostId)
+            continue
+        }
+        // the destination is read to name which of its bindings the mover sits under.
+        if (step.kind === 'rehostPresenceBinding') {
+            hosts.add(step.hostId)
+            if (step.toHostId !== null) {
+                hosts.add(step.toHostId)
+            }
             continue
         }
         if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {

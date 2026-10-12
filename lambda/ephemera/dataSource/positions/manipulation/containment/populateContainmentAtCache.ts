@@ -1,5 +1,5 @@
 import type { EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 
@@ -9,7 +9,7 @@ import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { streamEventFromMessageBus } from '../../publishedEvents'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { MutationKernelStep } from '../kernel/kernelStep'
-import { containmentPopulationSteps, roomRootStep } from './containmentPopulationSteps'
+import { containmentPopulationSteps, rootStep } from './containmentPopulationSteps'
 
 /**
  * The shape a `ludicGraph.nodes` entry carries regardless of which of `StandardReference`'s two
@@ -54,13 +54,13 @@ export const populateContainmentAtCache = async (
             typeof key === 'string' && (isEphemeraRoomId(key) || isEphemeraFeatureId(key) || isEphemeraObjectId(key))
         )
 
-    // A room is populated even with no children: its hostless remainder is the root of its
-    // presence tree (`roomRootStep`), minted once here so every child points at the same one.
-    if (childIds.length === 0 && !isEphemeraRoomId(parentId)) {
+    // A Room or Area is populated even with no children: its hostless remainder is the root of its
+    // presence tree (`rootStep`), minted once here so every child points at the same one.
+    if (childIds.length === 0 && !isEphemeraRoomId(parentId) && !isEphemeraAreaId(parentId)) {
         return
     }
 
-    const root = roomRootStep(parentId, await internalCache.Positions.getLudicGraph(parentId))
+    const root = rootStep(parentId, await internalCache.Positions.getLudicGraph(parentId))
     const stepsByChild = await Promise.all(
         childIds.map(async (childId) => {
             const childGraph = await internalCache.Positions.getLudicGraph(childId)

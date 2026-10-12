@@ -64,8 +64,9 @@ const queryAllEphemeraRowsByDataCategory = async <T extends DBHandlerItem<'Ephem
 }
 
 // The two child kinds cache-time containment population binds (Room-in-Area, Feature-in-Room,
-// Feature-in-Feature): their own rows hold the bindings this sweep classifies.
-const CHILD_DATA_CATEGORIES = ['Meta::Room', 'Meta::Feature'] as const
+// Feature-in-Feature), whose own rows hold the bindings this sweep classifies, plus Areas, whose
+// rows hold the root a Room's carve-out names.
+const CHILD_DATA_CATEGORIES = ['Meta::Room', 'Meta::Feature', 'Meta::Area'] as const
 
 const defaultListCandidateRows = async (): Promise<HostMetaRow[]> => {
     const rowsByCategory = await Promise.all(
@@ -113,7 +114,7 @@ const defaultEmitFinding = async (args: {
 }
 
 /**
- * Read-only diagnostics sweep for containment-population drift: a Room's or Feature's presence
+ * Read-only diagnostics sweep for containment-population drift: a Room's, Feature's or Area's presence
  * binding stored in a shape cache-time population would now write differently (see
  * `classification.ts`). Emits one `Containment Population Drift Finding` per **parent** host,
  * since population is keyed on the parent; ephemera's consumer reruns it for that parent with no
