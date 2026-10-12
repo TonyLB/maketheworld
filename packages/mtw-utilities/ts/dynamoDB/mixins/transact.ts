@@ -184,28 +184,36 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                     const marshalledKey = this._marshalledKeyString(key)
                     const prior = priorRecord[marshalledKey]
                     const next = nextRecord[marshalledKey]
-                    if (deepEqual(prior, next)) {
+                    //
+                    // A key that was fetched and is left alone (ConditionCheck) or removed (Delete) carries
+                    // the same condition: the stored row must still hold what the reducer read.
+                    //
+                    const lockedKeyItem = (kind: 'ConditionCheck' | 'Delete'): TransactWriteItem[] => {
                         const { ExpressionAttributeNames, ExpressionAttributeValues, conditionExpressions } = this._unchangedFieldConditions(checkKeys ?? updateKeys, prior)
                         if (!conditionExpressions.length) {
-                            return []
-                        }
-                        return [{
-                            ConditionCheck: {
-                                TableName: this._tableName,
-                                Key: marshall(this._remapIncomingObject(key), { removeUndefinedValues: true }),
-                                ConditionExpression: conditionExpressions.join(' AND '),
-                                ...(Object.keys(ExpressionAttributeNames).length > 0 ? { ExpressionAttributeNames } : {}),
-                                ...(Object.keys(ExpressionAttributeValues).length > 0 ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {})
+                            //
+                            // Nothing to compare, which a ConditionCheck can skip. A Delete still requires the
+                            // row to exist, so it never degrades to an unconditioned delete.
+                            //
+                            if (kind === 'ConditionCheck') {
+                                return []
                             }
-                        }] as TransactWriteItem[]
+                            conditionExpressions.push('attribute_exists(DataCategory)')
+                        }
+                        const lock = {
+                            TableName: this._tableName,
+                            Key: marshall(this._remapIncomingObject(key), { removeUndefinedValues: true }),
+                            ConditionExpression: conditionExpressions.join(' AND '),
+                            ...(Object.keys(ExpressionAttributeNames).length > 0 ? { ExpressionAttributeNames } : {}),
+                            ...(Object.keys(ExpressionAttributeValues).length > 0 ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {})
+                        }
+                        return [(kind === 'Delete' ? { Delete: lock } : { ConditionCheck: lock }) as TransactWriteItem]
+                    }
+                    if (deepEqual(prior, next)) {
+                        return lockedKeyItem('ConditionCheck')
                     }
                     if (prior !== undefined && next === undefined) {
-                        //
-                        // MultiKeyUpdate does not (yet) support removing a key from the Record it reduces
-                        // over --- see OD-2 in the MultiKeyUpdate task plan. A reducer that clears a
-                        // previously-fetched key's value is a caller error, not a legal "delete" outcome.
-                        //
-                        throw new Error('MultiKeyUpdate reducer may not remove a previously-fetched key (deletion is not yet supported)')
+                        return lockedKeyItem('Delete')
                     }
                     const updateTransaction = this._optimisticUpdateFactory(prior, { Key: key, updateKeys, updateReducer: () => next, checkKeys })
                     if (updateTransaction.action !== 'update') {

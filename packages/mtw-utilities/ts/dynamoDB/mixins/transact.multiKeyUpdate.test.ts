@@ -197,19 +197,88 @@ describe('withTransactions: MultiKeyUpdate', () => {
         }).rejects.toThrow('ConditionalCheckFailedException')
     })
 
-    it('throws if the reducer removes a previously-fetched key (deletion is not yet supported --- OD-2)', async () => {
-        getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestOne', DataCategory: 'MultiKey', TestValue: 2 }])
-        await expect(async () => {
+    describe('removing a fetched key', () => {
+        const rowOne = { PrimaryKey: 'TestOne', DataCategory: 'MultiKey', TestValue: 2 }
+        const rowTwo = { PrimaryKey: 'TestTwo', DataCategory: 'MultiKey', TestValue: 7 }
+        const marshalledKey = (key: { PrimaryKey: string; DataCategory: string }) => marshall({ EphemeraId: key.PrimaryKey, DataCategory: key.DataCategory })
+
+        it('yields one Delete carrying the condition a ConditionCheck on that key would carry', async () => {
+            getItemsMock.mockResolvedValue([rowOne])
+            await dbHandler.transactWrite([
+                { MultiKeyUpdate: { Keys: [keyOne], updateKeys: ['TestValue'], reducer: () => {} } }
+            ])
+            await dbHandler.transactWrite([
+                { MultiKeyUpdate: { Keys: [keyOne], updateKeys: ['TestValue'], reducer: (draft) => { delete draft[keyOneString] } } }
+            ])
+            const [{ ConditionCheck }] = dbMock.send.mock.calls[0][0].input.TransactItems
+            const items = dbMock.send.mock.calls[1][0].input.TransactItems
+            expect(items).toEqual([{ Delete: ConditionCheck }])
+            expect(items[0].Delete).toEqual({
+                TableName: 'Ephemera',
+                Key: marshalledKey(keyOne),
+                ConditionExpression: 'TestValue = :Old0',
+                ExpressionAttributeValues: marshall({ ':Old0': 2 })
+            })
+        })
+
+        it('yields Update, ConditionCheck and Delete in Keys order for changed, unchanged and removed keys', async () => {
+            const keyThree = { PrimaryKey: 'TestThree', DataCategory: 'MultiKey' }
+            const keyThreeString = (dbHandler as any)._marshalledKeyString(keyThree)
+            getItemsMock.mockResolvedValueOnce([rowOne, rowTwo, { ...keyThree, TestValue: 9 }])
             await dbHandler.transactWrite([
                 { MultiKeyUpdate: {
-                    Keys: [keyOne],
+                    Keys: [keyOne, keyTwo, keyThree],
                     updateKeys: ['TestValue'],
                     reducer: (draft) => {
-                        delete draft[keyOneString]
+                        draft[keyOneString].TestValue = 5
+                        delete draft[keyThreeString]
                     }
-                }}
+                } }
             ])
-        }).rejects.toThrow('MultiKeyUpdate reducer may not remove a previously-fetched key')
+            const items = dbMock.send.mock.calls[0][0].input.TransactItems
+            expect(items.map((item: any) => Object.keys(item)[0])).toEqual(['Update', 'ConditionCheck', 'Delete'])
+            expect(items[1].ConditionCheck.Key).toEqual(marshalledKey(keyTwo))
+            expect(items[2].Delete.Key).toEqual(marshalledKey(keyThree))
+        })
+
+        it('conditions on attribute_not_exists for a checked field the fetched row did not have', async () => {
+            getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestOne', DataCategory: 'MultiKey', Other: 1 }])
+            await dbHandler.transactWrite([
+                { MultiKeyUpdate: { Keys: [keyOne], updateKeys: ['TestValue', 'Other'], reducer: (draft) => { delete draft[keyOneString] } } }
+            ])
+            const { Delete } = dbMock.send.mock.calls[0][0].input.TransactItems[0]
+            expect(Delete.ConditionExpression).toEqual('attribute_not_exists(TestValue) AND Other = :Old1')
+        })
+
+        it('requires the row to exist when there are no checked fields to compare', async () => {
+            getItemsMock.mockResolvedValueOnce([rowOne])
+            await dbHandler.transactWrite([
+                { MultiKeyUpdate: { Keys: [keyOne], updateKeys: [], reducer: (draft) => { delete draft[keyOneString] } } }
+            ])
+            const { Delete } = dbMock.send.mock.calls[0][0].input.TransactItems[0]
+            expect(Delete.ConditionExpression).toEqual('attribute_exists(DataCategory)')
+        })
+
+        it('shows the cascade a next record without the removed key, and a prior that still has it', async () => {
+            getItemsMock.mockResolvedValueOnce([rowOne])
+            const cascade = jest.fn().mockReturnValue([
+                { Put: { PrimaryKey: 'CascadePut', DataCategory: 'Cascade', TestValue: 1 } as any }
+            ])
+            await dbHandler.transactWrite([
+                { MultiKeyUpdate: { Keys: [keyOne], updateKeys: ['TestValue'], reducer: (draft) => { delete draft[keyOneString] }, cascade } }
+            ])
+            expect(cascade).toHaveBeenCalledWith({ [keyOneString]: rowOne }, {})
+            const items = dbMock.send.mock.calls[0][0].input.TransactItems
+            expect(items.map((item: any) => Object.keys(item)[0])).toEqual(['Delete', 'Put'])
+        })
+
+        it('rejects the whole transaction when the delete\'s condition fails', async () => {
+            getItemsMock.mockResolvedValueOnce([rowOne])
+            dbMock.send.mockRejectedValueOnce(new Error('TransactionCanceledException'))
+            await expect(dbHandler.transactWrite([
+                { MultiKeyUpdate: { Keys: [keyOne], updateKeys: ['TestValue'], reducer: (draft) => { delete draft[keyOneString] } } }
+            ])).rejects.toThrow('TransactionCanceledException')
+        })
     })
 
     describe('cascade', () => {
