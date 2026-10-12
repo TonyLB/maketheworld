@@ -392,12 +392,18 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 ### `containment/`
 
-Cache-time containment population: the one ingress in this folder not triggered by a player command, but by `dataSource/index.ts`'s `processComponentUpdated` on every asset-cache `Component Updated` event.
+Cache-time containment. Unlike the rest of this folder's ingresses, nothing here is triggered by a player command; asset-cache events drive it instead:
+- `dataSource/index.ts`'s `processComponentUpdated` runs population on every `Component Updated` event;
+- `processComponentRemoved` runs authored-Object removal on `Component Removed`.
+
+Rules: [`../AGENT.contract.md`](../AGENT.contract.md#component-updated-containment-population-cache-time).
 
 | Path | Role |
 | --- | --- |
 | [`containment/containmentPopulationSteps.ts`](containment/containmentPopulationSteps.ts) | Pure step-computer: given a parent id, a child id, and both already-fetched graphs, returns 0-3 `MutationKernelStep`s (a pure-add `transferMembership`, an `addPresenceBinding`/`repairPresenceBinding`, an `establishRelation` edge: `PartOf` for a Room or Feature, `In` for an authored Object). An Object that already has a live binding with a parent pointer returns `[]` (never re-placed), each independently pre-checked against current state so a fully-populated call returns `[]`. No I/O, no `internalCache`, no `commitStepSequence` --- the idempotency obligation lives entirely here, since neither primitive it emits is safe to replay unconditionally at the reducer level. |
 | [`containment/populateContainmentAtCache.ts`](containment/populateContainmentAtCache.ts) | Orchestrator: reads the parent's graph once, reads each named child's graph, calls `containmentPopulationSteps` per child, and commits every child's steps for one parent update as a single `commitStepSequence` call (one `MultiKeyUpdate`) --- never one commit per child. `commitStepSequence`'s own empty-array no-op means a fully-populated parent update makes no transaction at all. |
+| [`containment/healContainmentPopulation.ts`](containment/healContainmentPopulation.ts) | Handles the `Containment Population Drift Finding` (from `ContainmentPopulationDriftSweep`). It reruns population for one parent's existing `PartOf` children, i.e. its Rooms and Features, for data no asset diff will reach. Authored Objects (`In`) are not rerun. |
+| [`containment/removeAuthoredObject.ts`](containment/removeAuthoredObject.ts) | Cache-time removal of a de-authored Object. `contentDestinations` (pure) maps each content to the parent host of the Object binding that content points at, falling back to the Object's first host. The orchestrator then calls [`executeMembershipTransfer`](membership/executeMembershipTransfer.ts) once per content, then once for the Object with `target: null`, as separate commits. It stops, leaving the Object live, if a content move fails. Optional deps (`streamEvent`, `getMembershipContainers`, `getLudicGraph`) are test seams only. |
 
 ### Top level
 

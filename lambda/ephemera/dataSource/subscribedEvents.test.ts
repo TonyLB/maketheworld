@@ -35,4 +35,13 @@ describe('ephemera subscribedEvents', () => {
 
         expect(isEphemeraSubscribedEnvelope(envelope as any)).toBe(false)
     })
+
+    it('subscribes to mtw.assets Component Removed', () => {
+        const envelope = {
+            header: { dataSourceKey: 'mtw.assets', streamKey: 'ASSET#a', timestamp: Date.now(), type: 'Component Removed' },
+            getContent: () => Promise.resolve({}),
+        }
+
+        expect(isEphemeraSubscribedEnvelope(envelope as any)).toBe(true)
+    })
 })

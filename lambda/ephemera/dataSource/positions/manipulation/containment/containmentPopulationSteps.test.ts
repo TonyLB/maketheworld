@@ -172,7 +172,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         })
     })
 
-    describe('authored Objects: placed In the parent, only if not live anywhere (AO1, AO2)', () => {
+    describe('authored Objects: placed In the parent, only if not live anywhere', () => {
         const remainder = presenceBindingNode('room-remainder')
 
         it('places an Object under a Room: node, binding at the remainder, and an In edge', () => {

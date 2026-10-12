@@ -53,7 +53,7 @@ export const roomRootStep = (
  *   adds one; present in the wrong shape (a pointer not naming the parent's binding, a room's remainder at its Area)
  *   emits `repairPresenceBinding`, in place and keeping the id; correct emits nothing. A room
  *   parent's remainder is `roomRootStep`'s, minted once per parent before any child is computed.
- * - **Authored Objects** (AO1/AO2): an Object child is skipped outright if its own graph holds any
+ * - **Authored Objects** (`positions/AGENT.contract.md`, `Component Updated`): an Object child is skipped outright if its own graph holds any
  *   binding with a parent pointer (it is live somewhere, so a rerun must not move it); otherwise it
  *   goes through the same three checks, with an `In` edge. A live binding of the wrong shape is
  *   therefore not repaired for Objects --- acceptable, since repair would also move a live Object.
@@ -82,7 +82,7 @@ export const containmentPopulationSteps = (
     parentGraph: EphemeraLudicGraph,
     childGraph: EphemeraLudicGraph
 ): MutationKernelStep[] => {
-    // An authored Object is placed only if it has no live host anywhere (AO2): population reruns for
+    // An authored Object is placed only if it has no live host anywhere: population reruns for
     // every child a parent lists, so without this a player-moved or author-repositioned Object would
     // be put back or doubled. Any binding with a parent pointer on its own graph means it is live.
     if (isEphemeraObjectId(childId) && childGraph.presenceNodes.some((node) => parentOf(node))) {

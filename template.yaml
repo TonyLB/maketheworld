@@ -570,6 +570,7 @@ Resources:
                 - mtw.assets
               detail-type:
                 - Component Updated
+                - Component Removed
                 - Canon Updated
                 - Zone Changed
         ComponentExamples:

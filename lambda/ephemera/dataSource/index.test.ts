@@ -22,6 +22,11 @@ jest.mock('./positions/manipulation/containment/populateContainmentAtCache', () 
     populateContainmentAtCache: jest.fn().mockResolvedValue(undefined),
 }))
 
+jest.mock('./positions/manipulation/containment/removeAuthoredObject', () => ({
+    removeAuthoredObject: jest.fn().mockResolvedValue(undefined),
+}))
+
+import { removeAuthoredObject } from './positions/manipulation/containment/removeAuthoredObject'
 import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroadcast'
 import { populateContainmentAtCache } from './positions/manipulation/containment/populateContainmentAtCache'
 
@@ -248,6 +253,29 @@ describe('Ephemera DataSource receiveEvents', () => {
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: jest.fn().mockResolvedValue(undefined), streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(populateContainmentAtCache).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('Component Removed Events', () => {
+        const removedEvent = (universalKey: string) => ({
+            header: {
+                dataSourceKey: 'mtw.assets' as const,
+                streamKey: 'ASSET#test-asset',
+                timestamp: getCurrentTimestamp(),
+                type: 'Component Removed'
+            },
+            getContent: () => Promise.resolve({ component: { universalKey } })
+        })
+        const receive = (events: any[]) => ephemeraDataSource.receiveEvents?.({ events, streamEvent: jest.fn().mockResolvedValue(undefined), streamEnvelope: jest.fn().mockResolvedValue(undefined) })
+
+        it('removes a de-authored Object', async () => {
+            await receive([removedEvent('OBJECT#cup')])
+            expect(removeAuthoredObject).toHaveBeenCalledWith('OBJECT#cup', { messageBus: mockMessageBus })
+        })
+
+        it('ignores removed Rooms and Features (their removal stays deferred)', async () => {
+            await receive([removedEvent('ROOM#cafe'), removedEvent('FEATURE#sign')])
+            expect(removeAuthoredObject).not.toHaveBeenCalled()
         })
     })
 
