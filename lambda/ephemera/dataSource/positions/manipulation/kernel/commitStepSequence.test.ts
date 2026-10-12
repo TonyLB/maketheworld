@@ -1,4 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { commitStepSequence } from './commitStepSequence'
 import type { MutationKernelStep } from './kernelStep'
@@ -30,6 +31,20 @@ const GLASS_ID = 'OBJECT#Glass' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
+
+const remainder = (host: EphemeraMembershipHostId) => ({ host, presence: parentRemainderKey(host) })
+/** A binding move of `mover`'s binding `name` between hosts (`from: null` is a first placement). */
+const move = (mover: EphemeraMembershipHostId, name: string, from: EphemeraMembershipHostId | null, to: EphemeraMembershipHostId): MutationKernelStep => (
+    { kind: 'movePresenceBinding', hostId: mover, presence: `PRESENCE#${name}` as any, from: from ? remainder(from) : null, to: remainder(to) }
+)
+const release = (mover: EphemeraMembershipHostId, name: string, from: EphemeraMembershipHostId): MutationKernelStep => (
+    { kind: 'releasePresenceBinding', hostId: mover, presence: `PRESENCE#${name}` as any, from: remainder(from) }
+)
+/** The mover's own graph, holding one binding `name` under `host` (hostless without one). */
+const moverGraph = (mover: EphemeraMembershipHostId, host?: EphemeraMembershipHostId, name = 'p1') => (
+    testLudicGraph(mover, { nodes: [presenceBindingNode(name, host)] })
+)
+const withRemainder = (host: EphemeraMembershipHostId, ...held: any[]) => testLudicGraph(host, { nodes: [...held, presenceBindingNode(parentRemainderKey(host))] })
 
 /**
  * Reuses the established `MultiKeyUpdate` unit-test pattern from `applyObjectSetTransfer.test.ts`:
@@ -86,14 +101,7 @@ describe('commitStepSequence', () => {
             }
             const { transactWrite, cascadeItems } = makeTransactWriteMock(graphs)
             const steps: MutationKernelStep[] = [
-                {
-                    kind: 'movePresenceBinding',
-                    hostId: TRAY_ID,
-                    presence: 'PRESENCE#tray-a' as any,
-                    from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
-                    to: { host: DEST_ROOM, presence: parentRemainderKey(DEST_ROOM) },
-                },
-                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: DEST_ROOM },
+                move(TRAY_ID, 'tray-a', ROOM_ID, DEST_ROOM),
             ]
 
             const result = await commitStepSequence(
@@ -121,14 +129,7 @@ describe('commitStepSequence', () => {
             }
             const { transactWrite, cascadeItems } = makeTransactWriteMock(graphs)
             const steps: MutationKernelStep[] = [
-                {
-                    kind: 'movePresenceBinding',
-                    hostId: TRAY_ID,
-                    presence: 'PRESENCE#tray-a' as any,
-                    from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
-                    to: { host: DEST_ROOM, presence: parentRemainderKey(DEST_ROOM) },
-                },
-                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: DEST_ROOM },
+                move(TRAY_ID, 'tray-a', ROOM_ID, DEST_ROOM),
             ]
 
             await commitStepSequence(
@@ -151,8 +152,7 @@ describe('commitStepSequence', () => {
             const trayGraph = testLudicGraph(TRAY_ID, { nodes: [presenceBindingNode('p1', ROOM_ID)] })
             const { transactWrite, lastItems, cascadeItems, lastDraft } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: trayGraph })
             const steps: MutationKernelStep[] = [
-                { kind: 'releasePresenceBindings', hostId: TRAY_ID },
-                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
+                release(TRAY_ID, 'p1', ROOM_ID),
                 destroyTray,
             ]
 
@@ -219,10 +219,7 @@ describe('commitStepSequence', () => {
             presenceUuid: 'born',
             meta: { EphemeraId: TRAY_ID, DataCategory: 'Meta::Object', stableKey: 'tray' },
         }
-        const placeTray: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
-            { kind: 'movePresenceBinding', hostId: TRAY_ID, presence: 'PRESENCE#born' as any, from: null, to: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) } },
-        ]
+        const placeTray: MutationKernelStep[] = [move(TRAY_ID, 'born', null, ROOM_ID)]
         const pairItem = { Put: { EphemeraId: TRAY_ID, DataCategory: 'ASSET#IMPROVISATION', tag: 'Object', shortName: 'tray' } }
 
         it('leaves the created host out of the fetched keys and writes it, with existenceItems, through cascade', async () => {
@@ -274,8 +271,8 @@ describe('commitStepSequence', () => {
 
         it('a refused placement writes nothing: the reducer throws before cascade, and afterPersist never runs', async () => {
             const { transactWrite, cascadeItems } = makeTransactWriteMock({
-                // the tray is already a node of the room, so the placement is stale
-                [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }] }),
+                // the room holds no binding to land under, so the placement is stale
+                [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [] }),
             })
             const afterPersist = jest.fn()
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
@@ -292,7 +289,7 @@ describe('commitStepSequence', () => {
         })
     })
 
-    it('happy path: dissolve+transfer sequence commits, ludicGraph written back, facts stream in output order', async () => {
+    it('happy path: dissolve+move sequence commits, ludicGraph written back, facts stream in output order', async () => {
         const roomGraph = testLudicGraph(ROOM_ID, {
             nodes: [
                 { tag: 'Object', universalKey: TRAY_ID },
@@ -302,12 +299,12 @@ describe('commitStepSequence', () => {
                 { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'tied to' },
             ],
         })
-        const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [] })
-        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
+        const characterGraph = withRemainder(CHARACTER_ID)
+        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
 
         const steps: MutationKernelStep[] = [
             { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
-            { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+            move(TRAY_ID, 'p1', ROOM_ID, CHARACTER_ID),
         ]
 
         const result = await commitStepSequence(
@@ -325,13 +322,11 @@ describe('commitStepSequence', () => {
     })
 
     it('illegal/defer verdict from applyStepSequenceCore aborts the transact and returns ok:false', async () => {
-        const roomGraph = testLudicGraph(ROOM_ID, { nodes: [] }) // stale: tray not actually present
-        const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [] })
-        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
+        const roomGraph = withRemainder(ROOM_ID) // stale: tray not actually present
+        const characterGraph = withRemainder(CHARACTER_ID)
+        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
 
-        const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
-        ]
+        const steps: MutationKernelStep[] = [move(TRAY_ID, 'p1', ROOM_ID, CHARACTER_ID)]
 
         const result = await commitStepSequence(
             { steps },
@@ -378,15 +373,13 @@ describe('commitStepSequence', () => {
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
-    it('character-kind transfer commits correctly and streams a Character Moved fact for the character subset', async () => {
-        const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
+    it('a character move commits correctly and streams a Character Moved fact for the character subset', async () => {
+        const roomGraph = withRemainder(ROOM_ID, { tag: 'Character', universalKey: CHARACTER_ID })
         const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
-        const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [] })
-        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph })
+        const otherRoomGraph = withRemainder(otherRoomId)
+        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph, [CHARACTER_ID]: moverGraph(CHARACTER_ID, ROOM_ID) })
 
-        const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([ROOM_ID]), toHostId: otherRoomId },
-        ]
+        const steps: MutationKernelStep[] = [move(CHARACTER_ID, 'p1', ROOM_ID, otherRoomId)]
 
         const result = await commitStepSequence(
             { steps },
@@ -421,13 +414,11 @@ describe('commitStepSequence', () => {
     })
 
     it('footprint precompute matches exactly the Keys passed to MultiKeyUpdate (no under- or over-locking)', async () => {
-        const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }] })
-        const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [] })
-        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
+        const roomGraph = withRemainder(ROOM_ID, { tag: 'Object', universalKey: TRAY_ID })
+        const characterGraph = withRemainder(CHARACTER_ID)
+        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
 
-        const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
-        ]
+        const steps: MutationKernelStep[] = [move(TRAY_ID, 'p1', ROOM_ID, CHARACTER_ID)]
 
         await commitStepSequence(
             { steps },
@@ -437,17 +428,15 @@ describe('commitStepSequence', () => {
         const items = transactWrite.mock.calls[0][0]
         const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item).MultiKeyUpdate
         const keyedHosts = new Set(multiKeyItem.Keys.map((key: any) => key.EphemeraId))
-        expect(keyedHosts).toEqual(new Set([ROOM_ID, CHARACTER_ID]))
+        expect(keyedHosts).toEqual(new Set([TRAY_ID, ROOM_ID, CHARACTER_ID]))
     })
 
-    it('MK2: an Object-hosted transfer commits through Meta::Object, not Meta::Character', async () => {
-        const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: GLASS_ID }] })
-        const trayHostGraph = testLudicGraph(TRAY_ID, { nodes: [] })
-        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: trayHostGraph })
+    it('MK2: an Object-hosted move commits through Meta::Object, not Meta::Character', async () => {
+        const roomGraph = withRemainder(ROOM_ID, { tag: 'Object', universalKey: GLASS_ID })
+        const trayHostGraph = withRemainder(TRAY_ID)
+        const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: trayHostGraph, [GLASS_ID]: moverGraph(GLASS_ID, ROOM_ID) })
 
-        const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: GLASS_ID, fromHostIds: new Set([ROOM_ID]), toHostId: TRAY_ID },
-        ]
+        const steps: MutationKernelStep[] = [move(GLASS_ID, 'p1', ROOM_ID, TRAY_ID)]
 
         const result = await commitStepSequence(
             { steps },
@@ -462,8 +451,8 @@ describe('commitStepSequence', () => {
         expect(trayKey.DataCategory).toBe('Meta::Object')
     })
 
-    describe('object-lifecycle Migrate row: pure remove, suppressRelationalFacts', () => {
-        it('destroy-shaped sequence (explicit dissolve + pure remove) commits, streams the dissolve fact, adjacency Delete-only', async () => {
+    describe('object-lifecycle Migrate row: release, first placement, suppressRelationalFacts', () => {
+        it('destroy-shaped sequence (explicit dissolve + release) commits, streams the dissolve fact, adjacency Delete-only', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, {
                 nodes: [
                     { tag: 'Object', universalKey: TRAY_ID },
@@ -471,11 +460,11 @@ describe('commitStepSequence', () => {
                 ],
                 edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' }],
             })
-            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
 
             const steps: MutationKernelStep[] = [
                 { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
-                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
+                release(TRAY_ID, 'p1', ROOM_ID),
             ]
 
             const result = await commitStepSequence(
@@ -507,11 +496,11 @@ describe('commitStepSequence', () => {
                 ],
                 edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' }],
             })
-            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
 
             const steps: MutationKernelStep[] = [
                 { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
-                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
+                release(TRAY_ID, 'p1', ROOM_ID),
             ]
 
             const result = await commitStepSequence(
@@ -530,13 +519,11 @@ describe('commitStepSequence', () => {
             expect(eventTypes).toEqual(['Object Moved'])
         })
 
-        it('pure add (spawn-shaped, fromHostIds empty): adds to destination, adjacency Put-only, no dissolve needed', async () => {
-            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [] })
-            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+        it('first placement (spawn-shaped, from null): adds to destination, adjacency Put-only, no dissolve needed', async () => {
+            const roomGraph = withRemainder(ROOM_ID)
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: moverGraph(TRAY_ID) })
 
-            const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
-            ]
+            const steps: MutationKernelStep[] = [move(TRAY_ID, 'p1', null, ROOM_ID)]
 
             const result = await commitStepSequence(
                 { steps },
@@ -549,13 +536,11 @@ describe('commitStepSequence', () => {
             expect(adjacencyItems).toEqual([{ Put: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
         })
 
-        it('character-only pure remove (disconnect-shaped, toHostId null): commits, adjacency Delete-only, streams Character Moved with to: null', async () => {
-            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
-            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+        it('character release (disconnect-shaped): commits, adjacency Delete-only, streams Character Moved with to: null', async () => {
+            const roomGraph = withRemainder(ROOM_ID, { tag: 'Character', universalKey: CHARACTER_ID })
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: moverGraph(CHARACTER_ID, ROOM_ID) })
 
-            const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
-            ]
+            const steps: MutationKernelStep[] = [release(CHARACTER_ID, 'p1', ROOM_ID)]
 
             const result = await commitStepSequence(
                 { steps },
@@ -572,13 +557,11 @@ describe('commitStepSequence', () => {
             expect(adjacencyItems).toEqual([{ Delete: { EphemeraId: CHARACTER_ID, DataCategory: expect.stringContaining(ROOM_ID) } }])
         })
 
-        it('character-only pure add (connect-from-nowhere-shaped, fromHostIds empty): commits, adjacency Put-only, streams Character Moved with froms: []', async () => {
-            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [] })
-            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+        it('character first placement (connect-from-nowhere-shaped): commits, adjacency Put-only, streams Character Moved with froms: []', async () => {
+            const roomGraph = withRemainder(ROOM_ID)
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: moverGraph(CHARACTER_ID) })
 
-            const steps: MutationKernelStep[] = [
-                { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
-            ]
+            const steps: MutationKernelStep[] = [move(CHARACTER_ID, 'p1', null, ROOM_ID)]
 
             const result = await commitStepSequence(
                 { steps },
@@ -727,14 +710,14 @@ describe('commitStepSequence', () => {
 
     describe('capture step', () => {
         it('a legal commit returns the captured roster keyed by captureId', async () => {
-            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
+            const roomGraph = withRemainder(ROOM_ID, { tag: 'Character', universalKey: CHARACTER_ID })
             const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
-            const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [] })
-            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph })
+            const otherRoomGraph = withRemainder(otherRoomId)
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph, [CHARACTER_ID]: moverGraph(CHARACTER_ID, ROOM_ID) })
 
             const steps: MutationKernelStep[] = [
                 { kind: 'capture', hostId: ROOM_ID, captureId: 'departure' },
-                { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([ROOM_ID]), toHostId: otherRoomId },
+                move(CHARACTER_ID, 'p1', ROOM_ID, otherRoomId),
             ]
 
             const result = await commitStepSequence(
@@ -748,14 +731,14 @@ describe('commitStepSequence', () => {
         })
 
         it('a capture naming a host no mutation step touches still locks that host into the footprint', async () => {
-            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }] })
+            const roomGraph = withRemainder(ROOM_ID, { tag: 'Object', universalKey: TRAY_ID })
             const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
             const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
-            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
 
             const steps: MutationKernelStep[] = [
                 { kind: 'capture', hostId: otherRoomId, captureId: 'onlooker' },
-                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: null },
+                release(TRAY_ID, 'p1', ROOM_ID),
             ]
 
             const result = await commitStepSequence(
@@ -770,17 +753,17 @@ describe('commitStepSequence', () => {
             const items = transactWrite.mock.calls[0][0]
             const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item).MultiKeyUpdate
             const keyedHosts = new Set(multiKeyItem.Keys.map((key: any) => key.EphemeraId))
-            expect(keyedHosts).toEqual(new Set([ROOM_ID, otherRoomId]))
+            expect(keyedHosts).toEqual(new Set([TRAY_ID, ROOM_ID, otherRoomId]))
         })
 
         it('an illegal commit discards captures entirely', async () => {
-            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [] }) // stale: tray not actually present
-            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [] })
-            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph })
+            const roomGraph = withRemainder(ROOM_ID) // stale: tray not actually present
+            const characterGraph = withRemainder(CHARACTER_ID)
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
 
             const steps: MutationKernelStep[] = [
                 { kind: 'capture', hostId: ROOM_ID, captureId: 'departure' },
-                { kind: 'transferMembership', entityId: TRAY_ID, fromHostIds: new Set([ROOM_ID]), toHostId: CHARACTER_ID },
+                move(TRAY_ID, 'p1', ROOM_ID, CHARACTER_ID),
             ]
 
             const result = await commitStepSequence(

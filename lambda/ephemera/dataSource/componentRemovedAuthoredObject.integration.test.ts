@@ -23,7 +23,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import { ephemeraDataSource } from './index'
 import { commitStepSequence } from './positions/manipulation/kernel/commitStepSequence'
-import { testLudicGraph } from './positions/ludicGraph/testFixtures'
+import { presenceBindingNode, testLudicGraph } from './positions/ludicGraph/testFixtures'
 
 const ROOM = 'ROOM#cafe' as EphemeraRoomId
 
@@ -32,10 +32,13 @@ describe('Component Removed for an authored Object', () => {
         jest.clearAllMocks()
         ;(commitStepSequence as jest.Mock).mockResolvedValue({ ok: true, beatAnchorTime: 1, steps: [], captures: new Map() })
         ;(internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([ROOM])
-        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (id: any) => testLudicGraph(id, { nodes: [] }))
+        // the Object holds one binding, in the room; every other host is empty
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (id: any) =>
+            testLudicGraph(id, { nodes: id === 'OBJECT#cup' ? [presenceBindingNode('cup-in-cafe', ROOM)] : [] })
+        )
     })
 
-    it('reaches the real handler off the wire and commits a pure-remove of the Object', async () => {
+    it('reaches the real handler off the wire and commits a release of the Object\'s binding', async () => {
         const serializer = new EphemeraEventSerializer()
         const component = new StandardObject('OBJECT#cup' as any)
         const wire = JSON.parse(JSON.stringify(serializer.serialize({
@@ -51,9 +54,9 @@ describe('Component Removed for an authored Object', () => {
 
         expect(commitStepSequence).toHaveBeenCalledTimes(1)
         const [{ steps }] = (commitStepSequence as jest.Mock).mock.calls[0]
-        expect(steps.find((step: any) => step.kind === 'transferMembership')).toMatchObject({
-            entityId: 'OBJECT#cup',
-            toHostId: null,
+        expect(steps.find((step: any) => step.kind === 'releasePresenceBinding')).toMatchObject({
+            hostId: 'OBJECT#cup',
+            from: { host: ROOM },
         })
     })
 })

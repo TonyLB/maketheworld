@@ -12,6 +12,7 @@ import type { MutationKernelStep } from '../kernel/kernelStep'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { defaultGetGraph } from '../relational/findRelationalChainsForRemoval'
 import { repairAdministrativeChainDissolve } from './repairAdministrativeChainDissolve'
+import { resolvePresenceMoves } from './resolvePresenceMoves'
 
 export type ExecuteComponentDestructionArgs = {
     objectId: EphemeraObjectId
@@ -34,8 +35,8 @@ const defaultGetMembershipContainers = (id: EphemeraObjectId | EphemeraCharacter
     internalCache.Positions.getMembershipContainers(id)
 
 /**
- * Destroys a component as one kernel commit: the administrative chain sweep, the move to nowhere
- * (skipped for an orphan, which has no containers), then `destroyComponent`, which deletes the host
+ * Destroys a component as one kernel commit: the administrative chain sweep, the release of each of
+ * its bindings (skipped for an orphan, which has none), then `destroyComponent`, which deletes the host
  * row. The one emitter of `destroyComponent`, as `executeComponentCreation` is of `createComponent`.
  * The kernel refuses if the host still holds anything of its own, so contents must be destroyed or
  * moved out first.
@@ -52,7 +53,14 @@ export const executeComponentDestruction = async (
         getMembershipContainers,
         getGraph
     )
-    const moveSteps: MutationKernelStep[] = froms.length === 0
+    const resolved = froms.length === 0
+        ? { ok: true as const, presenceMoves: [] }
+        : await resolvePresenceMoves({ moved: args.objectId, froms, to: null, getGraph })
+    if (!resolved.ok) {
+        console.error(`[mtw.ephemera.positions] executeComponentDestruction refused for ${args.objectId}: ${resolved.errorCode}`)
+        return { ok: false, errorCode: resolved.errorCode, errorMessage: resolved.errorCode }
+    }
+    const moveSteps: MutationKernelStep[] = resolved.presenceMoves.length === 0
         ? []
         : compilePositionKernelOp({
             kind: 'move',
@@ -60,7 +68,7 @@ export const executeComponentDestruction = async (
             froms,
             to: null,
             header: null,
-            presenceMoves: [],
+            presenceMoves: resolved.presenceMoves,
         }).steps.filter(isKernelMutationStep)
 
     const result = await commitStepSequence(

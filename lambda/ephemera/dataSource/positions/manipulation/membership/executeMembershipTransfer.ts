@@ -63,7 +63,7 @@ const defaultGetMembershipContainers = (id: EphemeraObjectId | EphemeraCharacter
  * The committed step sequence is built by the same shared `compilePositionKernelOp` every narrating
  * route already routes through (3e) --- fed a bare `{ kind: 'move', ... }` op literal, since an
  * administrative move has no narration ingredients to carry. `compilePositionKernelOp`'s non-narration
- * branch produces the identical `[transferMembership, ...presencePortSteps]` shape this function used
+ * branch produces the presence-step sequence (membership is theirs) this function used
  * to hand-build directly.
  */
 export const executeMembershipTransfer = async (

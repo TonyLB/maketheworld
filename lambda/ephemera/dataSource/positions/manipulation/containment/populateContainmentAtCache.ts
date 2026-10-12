@@ -81,7 +81,7 @@ export const populateContainmentAtCache = async (
             streamEvent,
             // Every subject/target this batch's establishRelation steps names resolves to the
             // same lock target, `parentId` --- mirrors `applyObjectRelationalChange`'s own
-            // same-host convention. `transferMembership`/`addPresenceBinding` steps don't consult
+            // same-host convention. Presence steps (`addPresenceBinding`/`repairPresenceBinding`) don't consult
             // this resolver at all (their hosts are already explicit fields).
             getCurrentHost: () => parentId,
         }

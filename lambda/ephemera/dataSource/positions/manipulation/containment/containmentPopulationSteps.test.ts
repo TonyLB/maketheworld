@@ -18,14 +18,13 @@ const areaPointer = { host: AREA_ID, presence: areaRoot.universalKey }
 const areaCarveOut = (name = 'binding-1') => presenceBindingNode(name, areaPointer, { members: [] })
 
 describe('containmentPopulationSteps (cache-time containment population)', () => {
-    it('emits all three steps when nothing is populated yet; the room binds into its Area as an empty carve-out naming the Area\'s root', () => {
+    it('emits the binding and edge steps when nothing is populated yet; the room binds into its Area as an empty carve-out naming the Area\'s root (the binding step adds the node)', () => {
         const parentGraph = testLudicGraph(AREA_ID, { nodes: [areaRoot] })
         const childGraph = testLudicGraph(ROOM_ID, { nodes: [] })
 
         const steps = containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)
 
         expect(steps).toEqual([
-            { kind: 'transferMembership', entityId: ROOM_ID, fromHostIds: new Set(), toHostId: AREA_ID },
             { kind: 'addPresenceBinding', hostId: ROOM_ID, fromHostPresence: areaPointer, cover: { members: [] }, presenceUuid: expect.any(String) },
             { kind: 'establishRelation', subjectId: ROOM_ID, targetId: AREA_ID, hostId: AREA_ID, relationKind: 'PartOf' },
         ])
@@ -50,16 +49,20 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding', 'establishRelation'])
     })
 
-    it('emits only the node and edge steps when the presence binding already exists', () => {
+    it('rewrites a correct binding in place when the parent lacks the node (a partially populated state): the step adds the node', () => {
         const parentGraph = testLudicGraph(AREA_ID, { nodes: [areaRoot] })
-        const childGraph = testLudicGraph(ROOM_ID, { nodes: [areaCarveOut()] })
+        const carveOut = areaCarveOut()
+        const childGraph = testLudicGraph(ROOM_ID, { nodes: [carveOut] })
 
         const steps = containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)
 
-        expect(steps.map((step) => step.kind)).toEqual(['transferMembership', 'establishRelation'])
+        expect(steps).toEqual([
+            { kind: 'repairPresenceBinding', hostId: ROOM_ID, presenceId: carveOut.universalKey, fromHostPresence: areaPointer, cover: { members: [] } },
+            { kind: 'establishRelation', subjectId: ROOM_ID, targetId: AREA_ID, hostId: AREA_ID, relationKind: 'PartOf' },
+        ])
     })
 
-    it('emits only the node and presence-binding steps when the containment edge already exists', () => {
+    it('emits only the presence-binding step when the containment edge already exists', () => {
         const parentGraph = testLudicGraph(AREA_ID, {
             nodes: [areaRoot],
             edges: [{ tag: 'Relational', from: ROOM_ID, to: AREA_ID, kind: 'PartOf' }],
@@ -68,7 +71,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
 
         const steps = containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)
 
-        expect(steps.map((step) => step.kind)).toEqual(['transferMembership', 'addPresenceBinding'])
+        expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding'])
     })
 
     it('does not mistake a presence binding from a different parent for this one', () => {
@@ -250,8 +253,8 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
 
             const steps = containmentPopulationSteps(ROOM_ID, OBJECT_ID, parentGraph, childGraph)
 
-            expect(steps.map(({ kind }) => kind)).toEqual(['transferMembership', 'repairPresenceBinding', 'establishRelation'])
-            expect(steps[1]).toEqual(expect.objectContaining({ presenceId: cupRoot.universalKey }))
+            expect(steps.map(({ kind }) => kind)).toEqual(['repairPresenceBinding', 'establishRelation'])
+            expect(steps[0]).toEqual(expect.objectContaining({ presenceId: cupRoot.universalKey }))
         })
 
         it('never re-points a Room\'s remainder: a Room adds its Area carve-out beside it', () => {
@@ -270,12 +273,11 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
     describe('authored Objects: placed In the parent, only if not live anywhere', () => {
         const remainder = presenceBindingNode('room-remainder')
 
-        it('places an Object under a Room: node, binding at the remainder, and an In edge', () => {
+        it('places an Object under a Room: binding at the remainder (which adds the node), and an In edge', () => {
             const parentGraph = testLudicGraph(ROOM_ID, { nodes: [remainder] })
             const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
             expect(containmentPopulationSteps(ROOM_ID, OBJECT_ID, parentGraph, childGraph)).toEqual([
-                { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
                 { kind: 'addPresenceBinding', hostId: OBJECT_ID, fromHostPresence: { host: ROOM_ID, presence: remainder.universalKey }, presenceUuid: expect.any(String) },
                 { kind: 'establishRelation', subjectId: OBJECT_ID, targetId: ROOM_ID, hostId: ROOM_ID, relationKind: 'In' },
             ])
@@ -287,7 +289,6 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
             expect(containmentPopulationSteps(SHELF_ID, OBJECT_ID, parentGraph, childGraph)).toEqual([
-                expect.objectContaining({ kind: 'transferMembership', toHostId: SHELF_ID }),
                 expect.objectContaining({ kind: 'addPresenceBinding', fromHostPresence: { host: SHELF_ID, presence: shelfBinding.universalKey } }),
                 expect.objectContaining({ kind: 'establishRelation', relationKind: 'In', targetId: SHELF_ID }),
             ])
@@ -299,8 +300,8 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
 
             const steps = containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, parentGraph, childGraph)
 
-            expect(steps.map((step) => step.kind)).toEqual(['transferMembership', 'addPresenceBinding', 'establishRelation'])
-            expect(steps[2]).toEqual(expect.objectContaining({ relationKind: 'In', targetId: CHARACTER_ID }))
+            expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding', 'establishRelation'])
+            expect(steps[1]).toEqual(expect.objectContaining({ relationKind: 'In', targetId: CHARACTER_ID }))
         })
 
         it('emits nothing on a rerun over populated state', () => {

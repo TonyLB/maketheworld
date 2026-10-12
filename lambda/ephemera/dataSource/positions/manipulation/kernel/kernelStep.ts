@@ -1,41 +1,22 @@
-import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCrossingPort, EphemeraMetaObject, EphemeraPresenceCover, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { ParentBinding } from '../../ludicGraph/presenceParent'
-import type { TransferMembershipStep } from '../../../actions/enrich/objectManipulation/parsePlanStep'
 import type {
     ExecutorDescribeStep,
     ExecutorDissolveRelationStep,
     ExecutorEstablishRelationStep,
-    ExecutorParsePlanStep,
 } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 /**
  * The kernel-layer step vocabulary --- a deliberately narrow superset of the Synthesize executor's
- * `ExecutorParsePlanStep`. A step transfers exactly one entity: anything it hosts lives in its own
- * shard and travels with it. `entityId` spans four id kinds: `EphemeraObjectId`/`EphemeraCharacterId`
- * for a real player-driven transfer, plus `EphemeraRoomId`/`EphemeraFeatureId` for cache-time
- * containment authoring (Room-in-Area, Feature-in-Room, Feature-in-Feature); the executor's own
- * `TransferMembershipStep` stays object-only, since character movement never goes through
- * Grounding/Expansion/Validation and a Room/Feature never reaches the executor at all.
- * `fromHostIds`/`toHostId` are a plural `froms` set plus a nullable `to`, mirroring `MembershipDiff`'s
- * `{froms: HostId[], to: HostId | null}` shape --- one step kind covers a real transfer (both
- * populated, the only shape the two player routes produce), a pure add (`fromHostIds` empty ---
- * spawn, or a Room/Feature's cache-time parent assignment), and a pure remove (`toHostId` null ---
- * destroy/clear, a stray-room scrub with no consolidation target). A Room/Feature/Area id may only
- * ever appear in the pure-add shape: `applyStepSequenceCore.ts`'s "real transfer" branch
- * (`applyTransfer`) is Object/Character-only, since Room/Feature/Area are hosts that never
- * relocate; a Room/Feature id reaching that branch is a caller bug, rejected there rather than
- * silently mishandled. Relational steps are reused verbatim from the executor's types:
- * `subjectId`/`targetId` are `EphemeraLudicTerminalPrimitive`-typed, since no consumer on the
- * kernel's write path branches on entity kind, so there is nothing to generalize here.
+ * `ExecutorParsePlanStep`. Membership (an entity's node in a host's graph) has no step of its own: it
+ * is a consequence of the mover's presence bindings (a node is in host H iff some binding of it
+ * points at H), applied inside the presence steps below (`addPresenceBinding`,
+ * `movePresenceBinding`, `releasePresenceBinding`, `repairPresenceBinding`) by
+ * `settleMembership.ts`. The executor's own `TransferMembershipStep` is the *action-layer* primitive
+ * a player command plans; `planObjectMoveTransfer` compiles it to presence steps.
  */
-export type MutationKernelTransferStep = {
-    kind: 'transferMembership'
-    entityId: EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId
-    fromHostIds: ReadonlySet<EphemeraMembershipHostId>
-    toHostId: EphemeraMembershipHostId | null
-}
 
 /**
  * Positional capture (normative rules: `dataSource/positions/AGENT.contract.md`, "Capture steps are
@@ -73,6 +54,9 @@ export type MutationKernelCaptureStep = {
  * **Carries no port record (presenceNodes Slice 7a, PN-23).** The presence binding is a NODE
  * (`applyStepSequenceCore.ts`'s handler mints it via `addPresenceNode`). `presenceUuid` is minted
  * fresh per binding and becomes the node's `PRESENCE#{presenceUuid}` key.
+ *
+ * With a parent pointer, it also adds the node to that host if absent (`settleMembership.ts`), so
+ * the pointer's host is in the step's footprint.
  */
 export type MutationKernelAddPresenceBindingStep = {
     kind: 'addPresenceBinding'
@@ -119,7 +103,9 @@ export type MutationKernelDestroyComponentStep = {
  * (so no child pointer is orphaned). The explicit repair path for a binding population would now
  * write differently (a pointer not naming the parent's binding, a room's Area cover with members); a correct binding never
  * emits one, so a rerun of population is a true no-op once repaired. A missing binding is stale,
- * never silently created.
+ * never silently created. A pointer names the host the mover now sits in, so the node is added there
+ * if absent (`settleMembership.ts`); it carries no departure host, and no producer re-parents a
+ * repaired binding to another host.
  */
 export type MutationKernelRepairPresenceBindingStep = {
     kind: 'repairPresenceBinding'
@@ -145,6 +131,10 @@ export type PresenceBindingRef = { host: EphemeraMembershipHostId; presence: Eph
  * producer names both ends, and the handler is `stale` when `presence` or `to.presence` is gone, or
  * when the stored pointer is no longer `from` (an optimistic check against a concurrent writer).
  * `from.host` and `to.host` may be equal: a move between two bindings of one parent.
+ *
+ * It also applies membership (`settleMembership.ts`): the node leaves `from.host` unless another
+ * binding of the mover still points there, and arrives at `to.host` unless it is already there. Both
+ * hosts are in the step's footprint.
  */
 export type MutationKernelMovePresenceBindingStep = {
     kind: 'movePresenceBinding'
@@ -155,14 +145,17 @@ export type MutationKernelMovePresenceBindingStep = {
 }
 
 /**
- * A whole's departure (destroy, disconnect, scrub to nowhere): every binding of `hostId` loses its
- * parent pointer, except that a whole never drops below one binding. Bindings that carry a pointer
- * are removed when a hostless one remains; otherwise the first keeps its id and cover, pointer
- * stripped. Not a move: there is no destination binding to name.
+ * A departure of one binding (destroy, disconnect, scrub to nowhere): `presence`, on `hostId`'s own
+ * graph, stops sitting under `from`. It is removed when another binding of the whole remains;
+ * otherwise it keeps its id and cover with the pointer stripped, so a whole never drops below one
+ * binding. Not a move: there is no destination binding to name. Stale when the binding is gone or no
+ * longer sits under `from`. A whole with several bindings is released by one step per binding.
  */
-export type MutationKernelReleasePresenceBindingsStep = {
-    kind: 'releasePresenceBindings'
+export type MutationKernelReleasePresenceBindingStep = {
+    kind: 'releasePresenceBinding'
     hostId: EphemeraMembershipHostId
+    presence: EphemeraPresenceNodeId
+    from: ParentBinding
 }
 
 /**
@@ -213,7 +206,6 @@ export type MutationKernelRemoveCrossingPortStep = {
 }
 
 export type MutationKernelStep =
-    | MutationKernelTransferStep
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
     | MutationKernelCaptureStep
@@ -221,7 +213,7 @@ export type MutationKernelStep =
     | MutationKernelDestroyComponentStep
     | MutationKernelAddPresenceBindingStep
     | MutationKernelMovePresenceBindingStep
-    | MutationKernelReleasePresenceBindingsStep
+    | MutationKernelReleasePresenceBindingStep
     | MutationKernelSplitPresenceBindingStep
     | MutationKernelJoinPresenceBindingsStep
     | MutationKernelRepairPresenceBindingStep
@@ -354,7 +346,7 @@ export type NarrationSpecification = MembershipNarrationSpec | TemplateNarration
  * the line; someone who left between the beat and the flush not getting it). That collapses the
  * positional/terminal distinction, the same defect class a retired `[room, characterId]` tack-on
  * had from the other end. The captured roster already includes the mover by construction ---
- * capture-from runs before the transfer step, capture-to after --- which is what makes a room
+ * capture-from runs before the presence steps, capture-to after --- which is what makes a room
  * target unnecessary here.
  */
 export type PresentationKernelNarrateStep = {
@@ -372,46 +364,12 @@ export type PresentationKernelNarrateStep = {
 export type PresentationKernelStep = ExecutorDescribeStep | PresentationKernelNarrateStep
 
 /**
- * Adapter from the executor's shipped output shape to the kernel's own step vocabulary. The
- * executor's `TransferMembershipStep` always carries exactly one non-null `fromHostId`/`toHostId`
- * (a real player-command transfer), so this just wraps `fromHostId` in a one-element set --- the
- * object-lifecycle routes' pure-add/pure-remove/multi-host shapes are constructed directly as
- * `MutationKernelTransferStep` literals, not through this adapter, since they never go through the
- * Synthesize executor at all. `describe` steps pass through unchanged, same as the relational kinds.
- *
- * Overloaded (not just declared as `ExecutorParsePlanStep => KernelStep`) so that the ludicGraph
- * kernel's mutation-only call sites --- which only ever pass a `TransferMembershipStep`/relational
- * step, never a `describe` step --- get `MutationKernelStep` back statically, with no cast needed at
- * the call site.
- */
-export function fromExecutorStep(
-    step: TransferMembershipStep | ExecutorEstablishRelationStep | ExecutorDissolveRelationStep
-): MutationKernelStep
-export function fromExecutorStep(step: ExecutorParsePlanStep): KernelStep
-export function fromExecutorStep(step: ExecutorParsePlanStep): KernelStep {
-    return step.kind === 'transferMembership'
-        ? {
-            kind: 'transferMembership',
-            entityId: step.objectId,
-            fromHostIds: new Set([step.fromHostId]),
-            toHostId: step.toHostId,
-        }
-        : step
-}
-
-/**
  * The mutation kernel's own type-guard filter (mirrors the presentation kernel's
- * `describe`-only filter below): overload resolution on `fromExecutorStep`
- * only picks the narrow `MutationKernelStep`-returning signature at direct call sites,
- * not through `Array.prototype.map` (TS resolves the bare function reference against
- * the general signature there, widening the result to `KernelStep[]`). Mutation-route
- * call sites that map an executor step list through `fromExecutorStep` should filter
- * through this guard rather than assume a `describe` step can't appear --- it's the same
- * "shared list, per-kernel filter" discipline the presentation kernel uses, applied on
- * this side too, and self-documents the invariant instead of casting past it.
+ * `describe`-only filter below): pulls the mutation steps out of a shared `KernelStep[]` list ---
+ * the same "shared list, per-kernel filter" discipline the presentation kernel uses, which
+ * self-documents the invariant instead of casting past it.
  */
 export const isKernelMutationStep = (step: KernelStep): step is MutationKernelStep =>
-    step.kind === 'transferMembership' ||
     step.kind === 'establishRelation' ||
     step.kind === 'dissolveRelation' ||
     step.kind === 'capture' ||
@@ -419,7 +377,7 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'destroyComponent' ||
     step.kind === 'addPresenceBinding' ||
     step.kind === 'movePresenceBinding' ||
-    step.kind === 'releasePresenceBindings' ||
+    step.kind === 'releasePresenceBinding' ||
     step.kind === 'splitPresenceBinding' ||
     step.kind === 'joinPresenceBindings' ||
     step.kind === 'repairPresenceBinding' ||

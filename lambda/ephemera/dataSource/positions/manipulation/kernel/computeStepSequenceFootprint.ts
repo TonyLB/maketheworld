@@ -9,10 +9,9 @@ import type { StepSequenceFootprint } from './types'
  * BD-27c's transaction-lock footprint: derives the full set of hosts a grounded step sequence
  * touches, computed once up front from a snapshot --- required, since `MultiKeyUpdate` does exactly
  * one batched fetch per `transactWrite` call and cannot be re-entered mid-reducer to lock a
- * newly-discovered host. `transferMembership` contributes every host in `fromHostIds` plus `toHostId`
- * (if non-null) directly (already fully decided at grounding time, unaffected by BD-36's entity-kind
- * widening or the object-lifecycle Migrate row's plural-`froms`/nullable-`to` widening);
- * `establishRelation`/
+ * newly-discovered host. A presence step contributes the mover's own host plus every host whose
+ * membership it can change (decided at grounding time: a pointer's host, a move's `from` and `to`, a
+ * release's `from`); `establishRelation`/
  * `dissolveRelation` carry no host field (BD-33), so both endpoints' *pre-transaction* current host
  * is derived via the injected resolver. The reducer that actually applies the sequence separately
  * re-verifies each relational step's shared host against the freshly-fetched, locked graphs --- this
@@ -33,26 +32,34 @@ export const computeStepSequenceFootprint = (
             hosts.add(step.hostId)
             continue
         }
-        if (step.kind === 'transferMembership') {
-            for (const fromHostId of step.fromHostIds) {
-                hosts.add(fromHostId)
-            }
-            if (step.toHostId !== null) {
-                hosts.add(step.toHostId)
-            }
-            continue
-        }
-        if (step.kind === 'createComponent' || step.kind === 'destroyComponent' || step.kind === 'addPresenceBinding' || step.kind === 'repairPresenceBinding') {
+        // a presence step names the mover's own graph and every host whose membership it can change: the
+        // host a pointer names (the node is added there), a move's destination (also read, to confirm
+        // the binding the mover will sit under) and the host a move or release leaves.
+        if (step.kind === 'createComponent' || step.kind === 'destroyComponent') {
             hosts.add(step.hostId)
             continue
         }
-        // the destination is read to confirm the binding the mover will sit under.
+        if (step.kind === 'addPresenceBinding' || step.kind === 'repairPresenceBinding') {
+            hosts.add(step.hostId)
+            if (step.fromHostPresence) {
+                hosts.add(step.fromHostPresence.host)
+            }
+            continue
+        }
         if (step.kind === 'movePresenceBinding') {
             hosts.add(step.hostId)
             hosts.add(step.to.host)
+            if (step.from) {
+                hosts.add(step.from.host)
+            }
             continue
         }
-        if (step.kind === 'releasePresenceBindings' || step.kind === 'splitPresenceBinding' || step.kind === 'joinPresenceBindings') {
+        if (step.kind === 'releasePresenceBinding') {
+            hosts.add(step.hostId)
+            hosts.add(step.from.host)
+            continue
+        }
+        if (step.kind === 'splitPresenceBinding' || step.kind === 'joinPresenceBindings') {
             hosts.add(step.hostId)
             continue
         }

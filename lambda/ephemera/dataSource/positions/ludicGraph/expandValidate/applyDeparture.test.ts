@@ -1,26 +1,23 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { applyTransfer } from './applyTransfer'
+import { applyDeparture } from './applyDeparture'
 import { testLudicGraph } from '../testFixtures'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
-const otherRoomId = 'ROOM#Lobby' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
-describe('applyTransfer', () => {
-    it('legal: moves an object with no boundary edges and mutates both graphs', () => {
+describe('applyDeparture', () => {
+    it('legal: removes an object with no boundary edges', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }] })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
-        const outcome = applyTransfer(sourceGraph, destGraph, trayId)
+        const outcome = applyDeparture(sourceGraph, trayId)
 
         expect(outcome.verdict).toBe('legal')
         if (outcome.verdict !== 'legal') return
         expect(outcome.sourceGraph.objectIds.has(trayId)).toBe(false)
-        expect(outcome.destGraph.objectIds.has(trayId)).toBe(true)
     })
 
     it('legal: the object left behind keeps its place once the boundary edge is already explicitly removed', () => {
@@ -32,14 +29,12 @@ describe('applyTransfer', () => {
                 { tag: 'Object', universalKey: tableId },
             ],
         })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
-        const outcome = applyTransfer(sourceGraph, destGraph, trayId)
+        const outcome = applyDeparture(sourceGraph, trayId)
 
         expect(outcome.verdict).toBe('legal')
         if (outcome.verdict !== 'legal') return
         expect(outcome.sourceGraph.objectIds.has(tableId)).toBe(true)
-        expect(outcome.destGraph.objectIds.has(trayId)).toBe(true)
     })
 
     it('repairable/classifyCustomRelation: a Custom boundary edge names the decision it needs, not a severing', () => {
@@ -50,9 +45,8 @@ describe('applyTransfer', () => {
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
         })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
-        const outcome = applyTransfer(sourceGraph, destGraph, trayId)
+        const outcome = applyDeparture(sourceGraph, trayId)
 
         // A discriminated result, not a thrown RelationalEdgeStillReferencedError --- keeps
         // dry-run callers on a discriminated result. Repairable, because a repair exists ---
@@ -76,23 +70,20 @@ describe('applyTransfer', () => {
             ],
             edges: [{ tag: 'Relational', from: tableId, to: trayId, kind: 'Custom', relationLabel: 'against' }],
         })
-        const destGraph = testLudicGraph(characterId, { nodes: [] })
 
-        expect(applyTransfer(sourceGraph, destGraph, trayId)).toMatchObject({
+        expect(applyDeparture(sourceGraph, trayId)).toMatchObject({
             verdict: 'repairable',
             reasonCode: 'undecidableInteractionEdge',
         })
     })
 
-    it('legal: a character dispatches via addCharacter/removeCharacter', () => {
+    it('legal: a character is removed via removeCharacter', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
-        const destGraph = testLudicGraph(otherRoomId, { nodes: [] })
 
-        const outcome = applyTransfer(sourceGraph, destGraph, characterId)
+        const outcome = applyDeparture(sourceGraph, characterId)
 
         expect(outcome.verdict).toBe('legal')
         if (outcome.verdict !== 'legal') return
         expect(outcome.sourceGraph.characterIds.has(characterId)).toBe(false)
-        expect(outcome.destGraph.characterIds.has(characterId)).toBe(true)
     })
 })

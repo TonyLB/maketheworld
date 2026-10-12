@@ -82,9 +82,9 @@ describe('populateContainmentAtCache', () => {
 
         expect(commitStepSequence).toHaveBeenCalledTimes(1)
         const [{ steps }, deps] = (commitStepSequence as jest.Mock).mock.calls[0]
-        expect(steps).toHaveLength(7) // the Area's root, then 3 steps x 2 children
+        expect(steps).toHaveLength(5) // the Area's root, then 2 steps (binding, edge) x 2 children
         expect(steps[0]).toEqual({ kind: 'addPresenceBinding', hostId: AREA_ID, presenceUuid: expect.any(String) })
-        expect(steps.filter((step: any) => step.kind === 'transferMembership')).toHaveLength(2)
+        expect(steps.filter((step: any) => step.kind === 'addPresenceBinding' && step.fromHostPresence)).toHaveLength(2)
         expect(deps.messageBus).toBe(messageBus)
         expect(deps.getCurrentHost()).toBe(AREA_ID)
     })

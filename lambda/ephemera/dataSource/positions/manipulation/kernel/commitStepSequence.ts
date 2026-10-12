@@ -17,9 +17,11 @@ import { streamMembershipFact } from '../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import { computeStepSequenceFootprint, createdHostsOf } from './computeStepSequenceFootprint'
-import { factForRelationalEdge, factsForStep, isFactOfRelationalEdge } from './factsForStep'
+import { factForRelationalEdge, factsForStep, isFactOfRelationalEdge, movedFactsFor } from './factsForStep'
+import { membershipChangesOf } from './membershipChanges'
+import type { MembershipChange } from './membershipChanges'
 import type { RelationalEdgeFactSource } from './factsForStep'
-import type { MutationKernelCreateComponentStep, MutationKernelStep, MutationKernelTransferStep } from './kernelStep'
+import type { MutationKernelCreateComponentStep, MutationKernelStep } from './kernelStep'
 import type { MutationKernelCaptures, MutationKernelCommitResult } from './types'
 
 export type CommitStepSequenceDeps = {
@@ -37,8 +39,7 @@ export type CommitStepSequenceDeps = {
      */
     suppressRelationalFacts?: boolean
     /**
-     * Character-route Migrate row: resolved character display names for any `transferMembership`
-     * step whose `entityId` is a character, so `factsForStep` (synchronous) can build a fully-populated
+     * Character-route Migrate row: resolved character display names for any moved character, so `factsForStep` (synchronous) can build a fully-populated
      * `Character Moved` fact without fetching anything itself. Only `orchestrateCharacterMove.ts`
      * populates this today; every other caller's steps move no character, so it's a no-op.
      */
@@ -74,44 +75,30 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
 }
 
 /**
- * Adjacency rows (`positionAdjacency#<hostId>`) for every entity a `transferMembership` step moves,
- * read from the **committed** graphs rather than from the steps' host sets: membership counts
- * bindings, so a departure host keeps its row while another binding of the mover still holds the
- * node there, and an arrival host's row is written only once the node is there. Plain, unconditioned
- * sibling items, as before; they ride the `MultiKeyUpdate`'s `cascade` because only that sees the
- * reducer's output. A host the outcome no longer holds (destroyed) holds nothing.
+ * Adjacency rows (`positionAdjacency#<hostId>`) for every mover whose membership changed, read from
+ * the sequence's net change (`membershipChangesOf`): a `Delete` for each host it left, a `Put` for each
+ * host it arrived at. Membership counts bindings, so a host that keeps another binding of the mover
+ * keeps its row. Plain, unconditioned sibling items; they ride the `MultiKeyUpdate`'s `cascade`
+ * because only that sees the reducer's output.
  */
-const adjacencyItemsFor = (
-    transferSteps: readonly MutationKernelTransferStep[],
-    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
-): CommitStepSequenceTransactItem[] => transferSteps.flatMap((step) => [
-    ...[...step.fromHostIds]
-        .filter((fromHostId) => !graphs.get(fromHostId)?.nodeIds.has(step.entityId))
-        .map((fromHostId) => ({
-            Delete: { EphemeraId: step.entityId, DataCategory: buildPositionAdjacencyDataCategory(fromHostId) },
-        })),
-    ...(step.toHostId !== null && graphs.get(step.toHostId)?.nodeIds.has(step.entityId)
-        ? [{ Put: { EphemeraId: step.entityId, DataCategory: buildPositionAdjacencyDataCategory(step.toHostId) } }]
-        : []),
+const adjacencyItemsFor = (changes: readonly MembershipChange[]): CommitStepSequenceTransactItem[] => changes.flatMap(({ entityId, left, arrived }) => [
+    ...left.map((hostId) => ({ Delete: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(hostId) } })),
+    ...arrived.map((hostId) => ({ Put: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(hostId) } })),
 ])
 
 /**
- * The hosts the cache should list as an entity's containers after a transfer: every host one of the
- * mover's own committed bindings points at. A mover whose graph is absent or holds no pointer (a
- * hand-built sequence, a hostless whole) falls back to the step's own destination.
+ * The hosts the cache should list as a mover's containers after the sequence: every host one of its
+ * own committed bindings points at (none for a hostless or destroyed whole).
  */
 const containersAfter = (
-    step: MutationKernelTransferStep,
+    entityId: EphemeraMembershipHostId,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
-): EphemeraMembershipHostId[] => {
-    const bound = [...new Set(
-        (graphs.get(step.entityId as EphemeraMembershipHostId)?.presenceNodes ?? []).flatMap((node) => {
-            const host = parentHostOf(node)
-            return host === undefined ? [] : [host]
-        })
-    )]
-    return bound.length > 0 || step.toHostId === null ? bound : [step.toHostId]
-}
+): EphemeraMembershipHostId[] => [...new Set(
+    (graphs.get(entityId)?.presenceNodes ?? []).flatMap((node) => {
+        const host = parentHostOf(node)
+        return host === undefined ? [] : [host]
+    })
+)]
 
 /**
  * BD-27c's unified commit entry point --- one `commitStepSequence` replaces both
@@ -124,7 +111,7 @@ const containersAfter = (
  *
  * BD-31 interim policy: both non-`legal` verdicts from `applyStepSequenceCore`
  * (`repairable`, `stale`) and the structural throws it can raise (BD-33 host mismatch, a
- * Room/Feature id in a real transfer, `RelationalEdgeStillReferencedError`) abort the reducer
+ * Room/Feature departing a host, `RelationalEdgeStillReferencedError`) abort the reducer
  * identically --- collapsed into
  * one generic transact failure, matching today's two live kernels' behavior, until BD-18's
  * backtrack channel lands. The verdicts are distinguishable at the type boundary as of 2026-09-08
@@ -160,7 +147,7 @@ export const commitStepSequence = async (
     const footprint = computeStepSequenceFootprint(steps, deps.getCurrentHost)
     const created = createdHostsOf(steps)
     const createSteps = steps.filter((step): step is MutationKernelCreateComponentStep => step.kind === 'createComponent')
-    const transferSteps = steps.filter((step): step is MutationKernelTransferStep => step.kind === 'transferMembership')
+    const movesMembership = steps.some((step) => step.kind === 'addPresenceBinding' || step.kind === 'movePresenceBinding' || step.kind === 'releasePresenceBinding' || step.kind === 'repairPresenceBinding')
 
     let committedGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
     // Assignment, not append --- the reducer body can run more than once under
@@ -168,7 +155,7 @@ export const commitStepSequence = async (
     // accumulated across attempts.
     let committedCaptures: MutationKernelCaptures | undefined
     // Pre-apply snapshot, captured for fact-building only: a dissolveRelation step's endpoint can be
-    // entirely removed from the footprint by a later pure-remove transferMembership step in the same
+    // entirely removed from the footprint by a later departure (a release, then destroyComponent) in the same
     // sequence (object-lifecycle destroy), leaving it absent from every post-apply graph. `factsForStep`
     // falls back to this snapshot to re-derive that endpoint's host --- the host it actually held the
     // edge on, right before removal --- rather than throwing.
@@ -240,13 +227,13 @@ export const commitStepSequence = async (
                 // draft-backed, so a fresh `Map` copy here is enough --- no per-entry plain-copy needed.
                 committedCaptures = new Map(outcome.captures)
             },
-            ...((createSteps.length > 0 || transferSteps.length > 0 || (args.existenceItems ?? []).length > 0)
+            ...((createSteps.length > 0 || movesMembership || (args.existenceItems ?? []).length > 0)
                 ? {
                     cascade: () => [
                         ...createSteps.map((step) => ({
                             Put: { ...step.meta, ludicGraph: committedGraphs!.get(step.hostId)!.toStored() },
                         })),
-                        ...adjacencyItemsFor(transferSteps, committedGraphs!),
+                        ...adjacencyItemsFor(membershipChangesOf(steps, priorGraphs!, committedGraphs!)),
                         ...(args.existenceItems ?? []),
                     ],
                 }
@@ -288,29 +275,38 @@ export const commitStepSequence = async (
     }
     deps.afterPersist?.()
 
-    for (const step of steps) {
-        if (step.kind !== 'transferMembership') {
-            continue
-        }
+    const changes = membershipChangesOf(steps, priorGraphs!, committedGraphs)
+    for (const { entityId } of changes) {
         internalCache.Positions.setMembershipContainers({
-            componentId: step.entityId,
-            containers: containersAfter(step, committedGraphs),
+            componentId: entityId as Parameters<typeof internalCache.Positions.setMembershipContainers>[0]['componentId'],
+            containers: containersAfter(entityId, committedGraphs),
         })
     }
 
-    for (const step of steps) {
-        for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs, deps.characterNames)) {
-            if (fact.type === 'Object Relation Changed' && (deps.relationalEdges ?? []).some((edge) => isFactOfRelationalEdge(fact, edge))) {
-                continue
-            }
-            if (fact.type === 'Object Moved') {
-                await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
-            }
-            else if (fact.type === 'Character Moved') {
-                await streamMembershipFact(fact, { streamEvent: deps.streamEvent })
-            }
-            else if (!deps.suppressRelationalFacts) {
-                await streamObjectRelationalFact(fact, { streamEvent: deps.streamEvent })
+    const streamFact = async (fact: ReturnType<typeof factsForStep>[number] | ReturnType<typeof movedFactsFor>[number]): Promise<void> => {
+        if (fact.type === 'Object Relation Changed' && (deps.relationalEdges ?? []).some((edge) => isFactOfRelationalEdge(fact, edge))) {
+            return
+        }
+        if (fact.type === 'Object Moved') {
+            await streamObjectMembershipFact(fact, { streamEvent: deps.streamEvent })
+        }
+        else if (fact.type === 'Character Moved') {
+            await streamMembershipFact(fact, { streamEvent: deps.streamEvent })
+        }
+        else if (!deps.suppressRelationalFacts) {
+            await streamObjectRelationalFact(fact, { streamEvent: deps.streamEvent })
+        }
+    }
+
+    // A mover's moved fact streams right after its last presence step: after the dissolve facts that
+    // precede that step (BD-28), before the establish facts that follow it.
+    for (const [index, step] of steps.entries()) {
+        for (const fact of factsForStep(step, committedGraphs, beatAnchorTime, priorGraphs)) {
+            await streamFact(fact)
+        }
+        for (const change of changes.filter(({ anchor }) => anchor === index)) {
+            for (const fact of movedFactsFor(change, beatAnchorTime, deps.characterNames)) {
+                await streamFact(fact)
             }
         }
     }

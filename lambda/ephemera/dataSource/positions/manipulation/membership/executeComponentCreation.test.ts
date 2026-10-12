@@ -23,7 +23,7 @@ describe('executeComponentCreation', () => {
         commitMock.mockResolvedValue({ ok: true, beatAnchorTime: 1, steps: [], captures: new Map() })
     })
 
-    it('commits createComponent followed by the first-placement move, in one sequence', async () => {
+    it('commits createComponent followed by the first-placement move, in one sequence (the move applies membership)', async () => {
         const pairItem = { Put: { EphemeraId: OBJECT_ID, DataCategory: 'ASSET#IMPROVISATION' } } as any
         const afterPersist = jest.fn()
 
@@ -45,7 +45,6 @@ describe('executeComponentCreation', () => {
         expect(args.steps).toEqual([
             { kind: 'createComponent', hostId: OBJECT_ID, presenceUuid: expect.any(String), meta: META },
             { kind: 'movePresenceBinding', hostId: OBJECT_ID, presence: `PRESENCE#${createStep.presenceUuid}`, from: null, to: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) } },
-            { kind: 'transferMembership', entityId: OBJECT_ID, fromHostIds: new Set(), toHostId: ROOM_ID },
         ])
         expect(args.existenceItems).toEqual([pairItem])
         expect(deps.afterPersist).toBe(afterPersist)

@@ -25,8 +25,7 @@ export type MembershipMoveNarrationInput = {
 /**
  * The abstract-op vocabulary the compiler
  * (`compilePositionKernelOp.ts`) expands into `KernelStep[]`. Shaped at the level the instruction
- * planner sees the world --- `moved` generalizes over object/character exactly as
- * `MutationKernelTransferStep` already does (BD-36) --- rather than at the level a player
+ * planner sees the world --- `moved` generalizes over object/character (BD-36) --- rather than at the level a player
  * experiences it (a character-only, room-only "navigate" op sitting one layer above a type that's
  * already general). `Move` is the only member of `PositionKernelOp`; it is a closed union
  * because world operations are genuinely enumerable --- take/drop/give is definitionally a move of
@@ -49,10 +48,17 @@ export type MembershipMoveNarrationInput = {
 export type PositionKernelPresenceMove = {
     /** The mover's own binding, on the mover's graph. */
     presence: EphemeraPresenceNodeId
-    /** The parent binding it sits under now; `null` for a hostless binding (a first placement). */
-    from: ParentBinding | null
-    to: PresenceBindingRef
-}
+} & (
+    {
+        /** The parent binding it sits under now; `null` for a hostless binding (a first placement). */
+        from: ParentBinding | null
+        to: PresenceBindingRef
+    } | {
+        /** A departure: the parent binding it leaves, with no destination (`to: null`). */
+        from: ParentBinding
+        to: null
+    }
+)
 
 export type PositionKernelMoveOp = {
     kind: 'move'
@@ -62,8 +68,8 @@ export type PositionKernelMoveOp = {
     /**
      * The mover's presence writes, one per binding that changes parent, **named by the producer**
      * (`resolvePresenceMoves`) --- the compiler reads nothing. More than one (a multi-`from` scrub)
-     * compiles to a move each, then a join. Empty with `to: null` (a departure compiles to
-     * `releasePresenceBindings`) and for an op that moves no binding.
+     * compiles to a move each, then a join. For an op with `to: null` each entry is a departure
+     * (`to: null`), which compiles to a `releasePresenceBinding`. Empty for an op that moves no binding.
      */
     presenceMoves: readonly PositionKernelPresenceMove[]
     /**

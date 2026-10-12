@@ -84,7 +84,7 @@ export function boundaryEdgeOutcomes(
             continue
         }
         // `edge.from`/`.to` are widened to `EphemeraLudicTerminalPrimitive`, but the mover is
-        // Object-only: `applyTransfer.ts` calls in here only for an object. See
+        // Object-only: `applyDeparture.ts` calls in here only for an object. See
         // `ludicGraph/AGENT.md`'s "Character-relation widening" note.
         const fromIsMover = edge.from === moverId
         const toIsMover = edge.to === moverId

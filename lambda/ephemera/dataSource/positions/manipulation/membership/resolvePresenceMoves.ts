@@ -86,7 +86,9 @@ export const destinationBindingOf = (
  * names every binding the kernel will move (`PositionKernelMoveOp.presenceMoves`). The kernel
  * re-verifies each inside the lock, so a read gone stale is `stale`, not a wrong write.
  *
- * - **A departure** (`to: null`) names nothing: it compiles to `releasePresenceBindings`.
+ * - **A departure** (`to: null`) names every binding of the mover that sits under a `from` host
+ *   (`to: null` on each): they all leave, so there is nothing to tell apart. A mover with none names
+ *   nothing, and any node it holds in those hosts is drift the kernel leaves to the sweeps.
  * - **A mover with a binding under each `from` host** moves those bindings. Several under one
  *   host are told apart by where the mover is seen (`moverGroundedPresence`); still several, or no
  *   such name, is a refusal.
@@ -95,7 +97,11 @@ export const destinationBindingOf = (
  */
 export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Promise<ResolvedPresenceMoves> => {
     if (args.to === null) {
-        return { ok: true, presenceMoves: [] }
+        const departing = (await args.getGraph(args.moved)).presenceNodes.flatMap((node) => {
+            const from = parentOf(node)
+            return from && args.froms.includes(from.host) ? [{ presence: node.universalKey, from, to: null }] : []
+        })
+        return { ok: true, presenceMoves: departing }
     }
     const destination = destinationBindingOf(await args.getGraph(args.to), args.toGroundedPresence)
     if ('errorCode' in destination) {

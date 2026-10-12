@@ -3,7 +3,7 @@ import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonyl
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import type { KernelStep, MutationKernelCaptureStep, MutationKernelTransferStep, NarrationSpecification } from '../kernelStep'
+import type { KernelStep, MutationKernelCaptureStep, NarrationSpecification } from '../kernelStep'
 import type { MembershipMoveNarrationInput } from './positionKernelOp'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 import { presenceBindingStepsForMove } from './presenceBindingStepsForMove'
@@ -32,9 +32,10 @@ const CAPTURE_ID_TO = 'capture:to'
  * routes have no header at all and pass `header: null`; there is deliberately no character-host
  * branch here, because the caller resolving the header is the caller that knows whether one applies.
  *
- * `op.dissolvedEdges` render into `dissolveRelation` steps positioned **ahead of** the transfer, which
+ * `op.dissolvedEdges` render into `dissolveRelation` steps positioned **ahead of** the presence steps, which
  * is what preserves BD-28's ordering guarantee: `factsForStep` streams in step order precisely so a
- * severed relation's fact precedes the moved fact. Expansion classified them; this
+ * severed relation's fact precedes the moved fact (`commitStepSequence` streams that fact after the
+ * mover's last presence step). Expansion classified them; this
  * function only sequences them.
  *
  * When `op.narration` is present (character moves only), capture-from/capture-to steps are built
@@ -50,18 +51,6 @@ const CAPTURE_ID_TO = 'capture:to'
  * creates one.
  */
 export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPositionKernelPlan => {
-    // A move between two bindings of one host changes no membership (a node is a member of a host
-    // while any binding of it sits there), so it compiles to its presence writes alone.
-    const sameHostMove = op.to !== null && op.froms.length === 1 && op.froms[0] === op.to
-    const transferSteps: MutationKernelTransferStep[] = sameHostMove
-        ? []
-        : [{
-            kind: 'transferMembership',
-            entityId: op.moved,
-            fromHostIds: new Set(op.froms),
-            toHostId: op.to,
-        }]
-
     // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed, but this op's only producer
     // (`buildObjectMoveOp`, below) severs the mover's own containment edge, which joins two
     // primitives: a port-qualified edge is a crossing, which Expansion dissolves as its own
@@ -89,8 +78,9 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     }
 
     // establishing the destination-side containment edge only makes sense once the moved
-    // object is actually a node of `toHostId`'s graph, so this runs after `transferStep` ---
-    // placed before it would resolve `findHostOf(primaryMovedId)` against the *old* host.
+    // object is actually a node of `toHostId`'s graph, so this runs after the presence steps (which
+    // apply membership) --- placed before them it would resolve `findHostOf(primaryMovedId)` against
+    // the *old* host.
     const establishSteps: ExecutorEstablishRelationStep[] = op.containment
         ? [{
             kind: 'establishRelation',
@@ -109,13 +99,12 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     // the mover's presence writes, every mover regardless of host kind. Mechanics --- stable bindings
     // re-pointed, kept hostless on a departure to nowhere --- live in `presenceBindingStepsForMove`, of
     // which this is the only caller: `executeMembershipTransfer` reaches it through this
-    // compiler rather than emitting its own steps. They run **ahead of** the transfer, because the
-    // transfer's membership gate reads the bindings as they stand after the move (a host loses the
-    // node only with the mover's last binding there).
+    // compiler rather than emitting its own steps. Membership is not a step of its own: each
+    // presence step applies it (a host loses the node only with the mover's last binding there).
     const presenceBindingSteps = presenceBindingStepsForMove(primaryMovedId, op)
 
     if (!op.narration) {
-        return { steps: [...dissolveSteps, ...presenceBindingSteps, ...transferSteps, ...establishSteps, ...headerSteps] }
+        return { steps: [...dissolveSteps, ...presenceBindingSteps, ...establishSteps, ...headerSteps] }
     }
 
     const { narration } = op
@@ -163,7 +152,6 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             ...captureFromSteps,
             ...dissolveSteps,
             ...presenceBindingSteps,
-            ...transferSteps,
             ...establishSteps,
             ...captureToStep,
             ...narrateLeaveSteps,

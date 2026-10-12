@@ -12,26 +12,6 @@ const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('computeStepSequenceFootprint', () => {
-    it('a transferMembership step contributes every fromHostIds member and toHostId directly', () => {
-        const step: MutationKernelStep = { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId }
-        expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId, characterId]))
-    })
-
-    it('a pure-remove transferMembership step (toHostId null) contributes only its fromHostIds', () => {
-        const step: MutationKernelStep = {
-            kind: 'transferMembership',
-            entityId: trayId,
-            fromHostIds: new Set([roomId, otherRoomId]),
-            toHostId: null,
-        }
-        expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId, otherRoomId]))
-    })
-
-    it('a pure-add transferMembership step (fromHostIds empty) contributes only toHostId', () => {
-        const step: MutationKernelStep = { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set(), toHostId: roomId }
-        expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId]))
-    })
-
     it('a relational step derives both endpoints host via getCurrentHost', () => {
         const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }
         const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => (id === trayId ? roomId : otherRoomId)
@@ -41,10 +21,10 @@ describe('computeStepSequenceFootprint', () => {
     it('unions hosts across a multi-step sequence with no duplicates', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'dissolveRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' },
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
+            { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: roomId }, to: { host: characterId, presence: 'PRESENCE#c' as any } },
         ]
         const getCurrentHost = () => roomId
-        expect(computeStepSequenceFootprint(steps, getCurrentHost)).toEqual(new Set([roomId, characterId]))
+        expect(computeStepSequenceFootprint(steps, getCurrentHost)).toEqual(new Set([roomId, characterId, trayId]))
     })
 
     it('a relational step with a non-Object (Character) subject derives its host via getCurrentHost, no narrow needed', () => {
@@ -71,26 +51,36 @@ describe('computeStepSequenceFootprint', () => {
         expect([...footprint]).toEqual(['OBJECT#Tray'])
     })
 
-    it('presence binding add/repair steps contribute their hostId directly', () => {
+    it('presence binding add/repair steps contribute their hostId and the host their pointer names', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: { host: roomId }, presenceUuid: 'p1' },
             { kind: 'repairPresenceBinding', hostId: otherRoomId, presenceId: 'PRESENCE#p2', cover: { members: [] } },
         ]
-        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, otherRoomId]))
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, roomId, otherRoomId]))
     })
 
-    it('a move step contributes its hostId and its destination (read to confirm the binding), never its departure', () => {
+    it('a pointer-less add contributes only its hostId', () => {
+        const steps: MutationKernelStep[] = [{ kind: 'addPresenceBinding', hostId: roomId, presenceUuid: 'root' }]
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([roomId]))
+    })
+
+    it('a move step contributes its hostId, its destination (read to confirm the binding) and the host it leaves', () => {
         const move: MutationKernelStep = { kind: 'movePresenceBinding', hostId: glassId, presence: 'PRESENCE#p3' as any, from: { host: otherRoomId }, to: { host: roomId, presence: 'PRESENCE#r' as any } }
+        expect(computeStepSequenceFootprint([move], () => undefined)).toEqual(new Set([glassId, roomId, otherRoomId]))
+    })
+
+    it('a first-placement move (from null) contributes its hostId and destination', () => {
+        const move: MutationKernelStep = { kind: 'movePresenceBinding', hostId: glassId, presence: 'PRESENCE#p3' as any, from: null, to: { host: roomId, presence: 'PRESENCE#r' as any } }
         expect(computeStepSequenceFootprint([move], () => undefined)).toEqual(new Set([glassId, roomId]))
     })
 
-    it('release, split and join steps contribute their hostId alone', () => {
+    it('a release contributes its hostId and the host it leaves; split and join contribute their hostId alone', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'releasePresenceBindings', hostId: trayId },
+            { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: otherRoomId } },
             { kind: 'splitPresenceBinding', hostId: glassId, presence: 'PRESENCE#a' as any, results: [] },
             { kind: 'joinPresenceBindings', hostId: roomId, survivor: 'PRESENCE#a' as any, absorbed: 'PRESENCE#b' as any },
         ]
-        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, glassId, roomId]))
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, otherRoomId, glassId, roomId]))
     })
 
     it('a leg with a port-address endpoint resolves its host from the primitive endpoint alone, not both', () => {
@@ -122,9 +112,9 @@ describe('computeStepSequenceFootprint', () => {
 
     it('a capture step contributes its hostId even when no mutation step in the sequence touches that host', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
+            { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: roomId } },
             { kind: 'capture', hostId: otherRoomId, captureId: 'onlooker' },
         ]
-        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([roomId, characterId, otherRoomId]))
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, roomId, otherRoomId]))
     })
 })

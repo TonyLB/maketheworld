@@ -8,18 +8,18 @@ import { boundaryEdgeOutcomes } from './interactionUnderTransfer'
 /**
  * Verdicts partition by *what a caller can do next*, not by how bad the news is --- see
  * [`manipulation/kernel/types.ts`](../../manipulation/kernel/types.ts) for the full statement of
- * the vocabulary this mirrors. Every non-`legal` outcome this function can produce is `repairable`
+ * the vocabulary this mirrors. Every non-`legal` outcome `applyDeparture` can produce is `repairable`
  * and carries the offending `edge`: it is the repair, and discarding it (as this type did until
  * 2026-09-08) is what forced a caller to re-derive from a reason code. No `hostId` here --- this
- * function is handed two graphs and knows neither's id, so the kernel supplies it when re-wrapping.
+ * function is handed one graph and does not know its id, so the kernel supplies it when re-wrapping.
  *
  * `repairKind` is carried rather than derived from `reasonCode`, deliberately. The kernel builds a
  * `MutationKernelRepair` from this, and having it map reason codes back to repair kinds would be the
  * same discard-and-re-derive-at-the-boundary fault the 2026-09-08 rename removed, reintroduced one
  * layer up. The kernel adds the `hostId` and nothing else.
  */
-export type ApplyTransferOutcome =
-    | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph; destGraph: EphemeraLudicGraph }
+export type ApplyDepartureOutcome =
+    | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph }
     | {
         verdict: 'repairable'
         reasonCode: 'unresolvedDissolveEdge' | 'transferInteractionDefer' | 'undecidableInteractionEdge'
@@ -29,41 +29,15 @@ export type ApplyTransferOutcome =
     }
 
 /**
- * BD-27c/BD-33/BD-35 Expand+Validate core for a membership transfer (BD-13) of one entity: anything
- * it hosts lives in its own shard and travels with it, so nothing here widens what moves. Assumes any
- * boundary edge (a relational edge with the mover at one end) that should dissolve has already been
- * severed by an explicit `dissolveRelation` step earlier in the same kernel-apply loop. A
- * `dissolve`-classified boundary edge still present at this point is therefore reported as
- * `repairable` (`unresolvedDissolveEdge`, `authority: 'mechanical'`, carrying the edge), not
- * silently resolved: the repair is to emit the missing `dissolveRelation` step and re-propose.
- *
- * Only [`applyStepSequenceCore.ts`](../../manipulation/kernel/applyStepSequenceCore.ts) calls it.
- */
-export function applyTransfer(
-    sourceGraph: EphemeraLudicGraph,
-    destGraph: EphemeraLudicGraph,
-    // Object | Character, and no wider --- transfer means *changes host*, and Room/Feature/Area
-    // are hosts that never relocate.
-    entityId: EphemeraObjectId | EphemeraCharacterId
-): ApplyTransferOutcome {
-    const departure = applyDeparture(sourceGraph, entityId)
-    if (departure.verdict === 'repairable') {
-        return departure
-    }
-    return {
-        verdict: 'legal',
-        sourceGraph: departure.sourceGraph,
-        destGraph: isEphemeraObjectId(entityId) ? destGraph.addObject(entityId) : destGraph.addCharacter(entityId),
-    }
-}
-
-export type ApplyDepartureOutcome = Exclude<ApplyTransferOutcome, { verdict: 'legal' }> | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph }
-
-/**
- * The departure half of a transfer: the boundary-edge legality check, then the entity's removal from
- * the source host. Split out so a mover leaving a host with its **last** binding there (see
- * `applyStepSequenceCore`'s membership gate) runs exactly the checks a whole transfer would, while a
- * mover that keeps another binding there runs none --- it has not left.
+ * A mover's departure from a host: the boundary-edge legality check, then the entity's removal from
+ * the host (BD-27c/BD-33/BD-35 Expand+Validate core). Anything the entity hosts lives in its own
+ * shard and travels with it, so nothing here widens what leaves. Assumes any boundary edge (a
+ * relational edge with the mover at one end) that should dissolve has already been severed by an
+ * explicit `dissolveRelation` step earlier in the same kernel-apply loop; one still present is
+ * `repairable` (`unresolvedDissolveEdge`, `authority: 'mechanical'`, carrying the edge), not silently
+ * resolved: the repair is to emit the missing `dissolveRelation` step and re-propose. Called only
+ * from `settleMembership`, for a mover leaving a host with its **last** binding there; one that
+ * keeps another binding there has not left and runs no check.
  */
 export function applyDeparture(
     sourceGraph: EphemeraLudicGraph,

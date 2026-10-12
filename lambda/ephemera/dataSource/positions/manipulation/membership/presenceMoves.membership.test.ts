@@ -7,7 +7,8 @@ import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import { applyStepSequenceCore } from '../kernel/applyStepSequenceCore'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
-import { factsForStep } from '../kernel/factsForStep'
+import { movedFactsFor } from '../kernel/factsForStep'
+import { membershipChangesOf } from '../kernel/membershipChanges'
 import { isKernelMutationStep } from '../kernel/kernelStep'
 import type { KernelStep, MutationKernelStep } from '../kernel/kernelStep'
 import { planObjectMoveTransfer } from './planObjectMoveTransfer'
@@ -205,24 +206,40 @@ describe('the moved fact reports only the hosts whose membership changed', () =>
         [plank]: testLudicGraph(plank, { nodes: [{ tag: 'Object', universalKey: plank }, presenceBindingNode('plank-a', roomA), presenceBindingNode('plank-b', roomB)] }),
     })
 
-    it('names a host left with the last binding, and omits one the mover still holds a binding at', async () => {
+    it('names every host left with the last binding, and the host arrived at', async () => {
         const world = before()
-        const steps = await moveOf([roomA, roomB], roomC, world)
+        const steps = (await moveOf([roomA, roomB], roomC, world)).filter(isKernelMutationStep)
         const prior = new Map(Object.entries(world) as [EphemeraMembershipHostId, EphemeraLudicGraph][])
         const final = apply(steps, world)
-        const transfer = steps.filter(isKernelMutationStep).find((step) => step.kind === 'transferMembership')!
 
-        const [fact] = factsForStep(transfer, final, 1, prior)
-        expect(fact).toEqual(expect.objectContaining({ froms: expect.arrayContaining([roomA, roomB]), to: roomC }))
+        const changes = membershipChangesOf(steps, prior, final)
+        expect(changes).toEqual([expect.objectContaining({ entityId: plank, left: [roomA, roomB], arrived: [roomC] })])
+        expect(movedFactsFor(changes[0], 1)).toEqual([expect.objectContaining({ type: 'Object Moved', froms: [roomA, roomB], to: roomC })])
     })
 
-    it('streams no fact for a departure from a host that keeps another binding while the destination is not new', () => {
+    it('omits a host the mover still holds a binding at', async () => {
+        const world = before()
+        const steps = (await moveOf([roomA], roomC, world, [roomA])).filter(isKernelMutationStep)
+        const prior = new Map(Object.entries(world) as [EphemeraMembershipHostId, EphemeraLudicGraph][])
+
+        const [change] = membershipChangesOf(steps, prior, apply(steps, world))
+        expect(change).toEqual(expect.objectContaining({ left: [roomA], arrived: [roomC] }))
+    })
+
+    it('streams no fact for a move between two bindings of one host', () => {
         const prior = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
             [roomA, room(roomA, [plank])],
             [plank, testLudicGraph(plank, { nodes: [{ tag: 'Object', universalKey: plank }, presenceBindingNode('plank-a', roomA), presenceBindingNode('plank-a2', roomA)] })],
         ])
-        const transfer: MutationKernelStep = { kind: 'transferMembership', entityId: plank, fromHostIds: new Set([roomA]), toHostId: roomA }
+        const sameHost: MutationKernelStep = {
+            kind: 'movePresenceBinding',
+            hostId: plank,
+            presence: presence('plank-a'),
+            from: { host: roomA, presence: parentRemainderKey(roomA) },
+            to: { host: roomA, presence: parentRemainderKey(roomA) },
+        }
+        const final = apply([sameHost], Object.fromEntries(prior))
 
-        expect(factsForStep(transfer, prior, 1, prior)).toEqual([])
+        expect(membershipChangesOf([sameHost], prior, final)).toEqual([])
     })
 })

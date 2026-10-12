@@ -51,7 +51,7 @@ describe('planCharacterMoveTransfer', () => {
         expect(result.froms).toEqual([FROM_ROOM])
         expect(result.to).toEqual(TO_ROOM)
         expect(result.plan.steps.map((step) => step.kind)).toEqual([
-            'capture', 'movePresenceBinding', 'transferMembership', 'capture', 'narrate', 'narrate',
+            'capture', 'movePresenceBinding', 'capture', 'narrate', 'narrate',
         ])
         expect(result.plan.steps.find((step) => step.kind === 'movePresenceBinding')).toEqual({
             kind: 'movePresenceBinding',
@@ -115,7 +115,7 @@ describe('planCharacterMoveTransfer', () => {
         expect(result.plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
-    it('a disconnect compiles to a release: there is no destination binding to name', async () => {
+    it('a disconnect compiles to a release of each binding: there is no destination binding to name', async () => {
         const result = await planCharacterMoveTransfer({
             characterId: CHARACTER_ID,
             characterName: 'Test',
@@ -126,7 +126,12 @@ describe('planCharacterMoveTransfer', () => {
         })
 
         if (!result.ok || !result.changed) { throw new Error('expected a changed plan') }
-        expect(result.plan.steps).toContainEqual({ kind: 'releasePresenceBindings', hostId: CHARACTER_ID })
+        expect(result.plan.steps).toContainEqual({
+            kind: 'releasePresenceBinding',
+            hostId: CHARACTER_ID,
+            presence: 'PRESENCE#in-vortex',
+            from: { host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) },
+        })
     })
 
     it('refuses, with no plan, when the destination room holds no remainder to land under', async () => {
@@ -155,7 +160,6 @@ describe('planCharacterMoveTransfer', () => {
         if (!result.ok || !result.changed) { throw new Error('expected a changed plan') }
         const kinds = result.plan.steps.map((step) => step.kind)
         expect(kinds.indexOf('addPresenceBinding')).toBeLessThan(kinds.indexOf('movePresenceBinding'))
-        expect(kinds.indexOf('movePresenceBinding')).toBeLessThan(kinds.indexOf('transferMembership'))
         const mint = result.plan.steps.find((step) => step.kind === 'addPresenceBinding') as { presenceUuid: string }
         expect(result.plan.steps.find((step) => step.kind === 'movePresenceBinding')).toEqual(expect.objectContaining({
             presence: `PRESENCE#${mint.presenceUuid}`,

@@ -492,11 +492,11 @@ export class EphemeraLudicGraph {
     /**
      * Kind-dispatching add/remove, added alongside the four typed methods above rather than
      * replacing them --- a caller that already knows its entity's kind (`addCharacter` in
-     * `seedFromActiveCharacters`, `addObject`/`removeObject` inside `applyTransfer`) keeps
+     * `seedFromActiveCharacters`, `addObject`/`removeObject` inside `applyDeparture`) keeps
      * using the typed form directly, since each kind's method still carries its own distinct
      * behavior (`removeObject`'s extra play-only-edge stripping, in particular). This pair exists
      * for the one caller that doesn't and shouldn't have to know which kind it's holding:
-     * `applyStepSequenceCore.ts`'s `transferMembership` pure-add/remove loop, which used to be
+     * `settleMembership.ts`'s arrival (and population's add before it), which used to be
      * four near-identical loops (one per kind) purely because nothing dispatched generically ---
      * collapsed to one loop over `nodeIds`/`addNode`/`removeNode` instead of kept as four to spell
      * out a distinction nothing downstream needed spelled out. Typed to

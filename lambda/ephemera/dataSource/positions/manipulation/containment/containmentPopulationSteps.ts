@@ -9,7 +9,7 @@ import { ephemeraLudicTerminalsEqual, remainderCover } from '@tonylb/mtw-interfa
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
 import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelStep, MutationKernelTransferStep } from '../kernel/kernelStep'
+import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelStep } from '../kernel/kernelStep'
 
 /**
  * A parent's root binding, the one its children name (`childParentBindingIdOf`). A Room or Area
@@ -47,24 +47,25 @@ export const rootStep = (
  * `Component Updated` ingress section. Takes both graphs
  * already fetched, so the idempotency obligation --- a re-cached parent or a drift-finding heal reruns over
  * state that already reflects a prior write --- is met by checking current state here rather than relying on
- * the reducer to absorb a replay (neither `transferMembership`'s pure-add branch nor
- * `addPresenceBinding` is safe to replay unconditionally --- see this directory's callers).
+ * the reducer to absorb a replay (`addPresenceBinding` is not safe to replay unconditionally --- see this
+ * directory's callers). Membership is not a step of its own: the binding steps below carry the parent
+ * pointer, and applying one adds the child's node to the parent (`settleMembership.ts`), if absent.
  *
- * Three independent checks, not a single all-or-nothing branch, because a cache rerun can land in
- * any partially-populated state (e.g. a prior run committed the node-add but failed before the
- * presence binding, or `cacheAsset` retried after a partial failure):
+ * Independent checks, not a single all-or-nothing branch, because a cache rerun can land in
+ * any partially-populated state (e.g. a prior run committed the binding but not the node, or
+ * `cacheAsset` retried after a partial failure):
  *
- * - **Node membership**: emitted only if `childId` is not already a node of `parentGraph`.
  * - **Presence binding** (three states): absent (no binding of `childGraph` points at `parentId`)
  *   is a first placement --- a child holding a hostless remainder (minted as a parent's root) has
  *   it re-pointed in place (`repairPresenceBinding`, keeping the id), otherwise one is added; a Room
  *   always adds its Area carve-out, since its remainder never moves. Present in the wrong shape (a
  *   pointer not naming the parent's binding, a room's remainder at its Area) emits
- *   `repairPresenceBinding`, in place and keeping the id; correct emits nothing. The parent's own
+ *   `repairPresenceBinding`, in place and keeping the id, as does a correct binding whose node the
+ *   parent lacks; correct, with the node in place, emits nothing. The parent's own
  *   root is `rootStep`'s, minted once per parent before any child is computed.
  * - **Authored Objects** (`positions/AGENT.contract.md`, `Component Updated`): an Object child is skipped outright if its own graph holds any
  *   binding with a parent pointer (it is live somewhere, so a rerun must not move it); otherwise it
- *   goes through the same three checks, with an `In` edge. A live binding of the wrong shape is
+ *   goes through the same checks, with an `In` edge. A live binding of the wrong shape is
  *   therefore not repaired for Objects --- acceptable, since repair would also move a live Object.
  * - **Containment edge**: emitted only if `parentGraph` carries no edge of the child's kind (`PartOf`, or `In` for an Object) from `childId` to
  *   `parentId` already. `establishRelation`'s `op: 'add'` is already idempotent-safe on an existing
@@ -100,16 +101,6 @@ export const containmentPopulationSteps = (
 
     const steps: MutationKernelStep[] = []
 
-    if (!parentGraph.nodeIds.has(childId)) {
-        const nodeStep: MutationKernelTransferStep = {
-            kind: 'transferMembership',
-            entityId: childId,
-            fromHostIds: new Set(),
-            toHostId: parentId,
-        }
-        steps.push(nodeStep)
-    }
-
     // The parent binding children sit under: a Room's or Area's hostless remainder, else the
     // parent's only binding (its root is `rootStep`'s, applied to `parentGraph` by the caller). A
     // parent with several bindings names none (never guessed); the pointer then carries the host alone.
@@ -142,10 +133,13 @@ export const containmentPopulationSteps = (
         steps.push(bindingStep)
     } else if (
         existing.fromHostPresence?.presence !== fromHostPresence.presence ||
-        (wantedCover && existing.cover.members.length > 0)
+        (wantedCover && existing.cover.members.length > 0) ||
+        !parentGraph.nodeIds.has(childId)
     ) {
-        // Wrong shape (a pointer not naming the parent's binding, or a room's remainder at its Area): rewrite in place,
-        // same id, so no child pointer is orphaned. A correct binding falls through and emits nothing.
+        // Wrong shape (a pointer not naming the parent's binding, or a room's remainder at its Area), or a
+        // correct binding whose node the parent lacks (a partially populated state): rewrite in place, same
+        // id, so no child pointer is orphaned; the step settles membership, so the node is added. A correct
+        // binding with its node in place falls through and emits nothing.
         const repairStep: MutationKernelRepairPresenceBindingStep = {
             kind: 'repairPresenceBinding',
             hostId: childId,

@@ -188,14 +188,13 @@ describe('spawnOneImprovisationObject', () => {
 
         it('a placement the commit refuses writes no Meta::Object row and seeds no cache', async () => {
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-            // the Object is already a node of the room, so its placement is stale at commit time
-            const { transactWrite, written, roomGraph } = makeRoomTransactWrite(
-                testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, presenceBindingNode(parentRemainderKey(ROOM_ID))] })
-            )
+            // the room's remainder is gone by commit time (a concurrent write), so the placement is stale
+            const { transactWrite, written } = makeRoomTransactWrite(testLudicGraph(ROOM_ID, { nodes: [] }))
+            const plannedAgainst = testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode(parentRemainderKey(ROOM_ID))] })
 
             const result = await spawnOneImprovisationObject(spawnRow, {
                 ...spawnDeps(),
-                createImpl: (args) => executeComponentCreation({ ...args, getGraph: async () => roomGraph, transactWrite }),
+                createImpl: (args) => executeComponentCreation({ ...args, getGraph: async () => plannedAgainst, transactWrite }),
             })
 
             expect(result.ok).toBe(false)

@@ -1,7 +1,8 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { factForRelationalEdge, factsForStep } from './factsForStep'
+import { factForRelationalEdge, factsForStep, movedFactsFor } from './factsForStep'
+import type { MembershipChange } from './membershipChanges'
 import type { MutationKernelStep } from './kernelStep'
 import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -10,6 +11,7 @@ const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const glassId = 'OBJECT#Glass' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
+const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 const beatAnchorTime = 1_700_000_000_000
 
@@ -18,48 +20,44 @@ const graphsMap = (
 ): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map(entries)
 
 describe('factsForStep', () => {
-    it('transferMembership of an object produces one Object Moved fact', () => {
-        const step: MutationKernelStep = {
-            kind: 'transferMembership',
-            entityId: trayId,
-            fromHostIds: new Set([roomId]),
-            toHostId: characterId,
-        }
-        const facts = factsForStep(step, graphsMap(), beatAnchorTime)
-        expect(facts).toEqual([
+    const change = (entityId: MembershipChange['entityId'], left: MembershipChange['left'], arrived: MembershipChange['arrived']): MembershipChange => ({ entityId, left, arrived, anchor: 0 })
+
+    it('a membership change of an object produces one Object Moved fact', () => {
+        expect(movedFactsFor(change(trayId, [roomId], [characterId]), beatAnchorTime)).toEqual([
             { type: 'Object Moved', objectId: trayId, froms: [roomId], to: characterId, beatAnchorTime },
         ])
     })
 
-    it('transferMembership of a character produces one Character Moved fact (folded in, character-route Migrate row)', () => {
-        const step: MutationKernelStep = {
-            kind: 'transferMembership',
-            entityId: characterId,
-            fromHostIds: new Set([roomId]),
-            toHostId: roomId,
-        }
-        const facts = factsForStep(step, graphsMap(), beatAnchorTime)
-        expect(facts).toEqual([
-            { type: 'Character Moved', characterId, froms: [roomId], to: roomId, beatAnchorTime },
+    it('a membership change of a character produces one Character Moved fact (folded in, character-route Migrate row)', () => {
+        expect(movedFactsFor(change(characterId, [roomId], [otherRoomId]), beatAnchorTime)).toEqual([
+            { type: 'Character Moved', characterId, froms: [roomId], to: otherRoomId, beatAnchorTime },
         ])
     })
 
     it('characterNames resolves the Character Moved fact\'s characterName; unresolved leaves it omitted', () => {
-        const step: MutationKernelStep = {
-            kind: 'transferMembership',
-            entityId: characterId,
-            fromHostIds: new Set([roomId]),
-            toHostId: roomId,
-        }
-        const withName = factsForStep(step, graphsMap(), beatAnchorTime, undefined, new Map([[characterId, 'Alpha']]))
-        expect(withName).toEqual([
-            { type: 'Character Moved', characterId, froms: [roomId], to: roomId, beatAnchorTime, characterName: 'Alpha' },
+        const moved = change(characterId, [roomId], [otherRoomId])
+        expect(movedFactsFor(moved, beatAnchorTime, new Map([[characterId, 'Alpha']]))).toEqual([
+            { type: 'Character Moved', characterId, froms: [roomId], to: otherRoomId, beatAnchorTime, characterName: 'Alpha' },
         ])
+        expect(movedFactsFor(moved, beatAnchorTime)).toEqual([
+            { type: 'Character Moved', characterId, froms: [roomId], to: otherRoomId, beatAnchorTime },
+        ])
+    })
 
-        const withoutName = factsForStep(step, graphsMap(), beatAnchorTime)
-        expect(withoutName).toEqual([
-            { type: 'Character Moved', characterId, froms: [roomId], to: roomId, beatAnchorTime },
+    it('a departure (no arrival): one Object Moved fact with froms from every host left, to: null', () => {
+        expect(movedFactsFor(change(trayId, [roomId, characterId], []), beatAnchorTime)).toEqual([
+            { type: 'Object Moved', objectId: trayId, froms: [roomId, characterId], to: null, beatAnchorTime },
         ])
+    })
+
+    it('a first arrival (nothing left): one Object Moved fact with froms: [], to: the host arrived at', () => {
+        expect(movedFactsFor(change(trayId, [], [roomId]), beatAnchorTime)).toEqual([
+            { type: 'Object Moved', objectId: trayId, froms: [], to: roomId, beatAnchorTime },
+        ])
+    })
+
+    it('a Room or Feature moves no object or character: no moved fact', () => {
+        expect(movedFactsFor(change('FEATURE#Fountain' as any, [], [roomId]), beatAnchorTime)).toEqual([])
     })
 
     it('establishRelation produces one Object Relation Changed fact, host re-derived from finalGraphs', () => {
@@ -130,33 +128,6 @@ describe('factsForStep', () => {
         ])
     })
 
-    it('a multi-step array processed via flatMap preserves output order (dissolve-before-move)', () => {
-        const finalSourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
-        const finalDestGraph = testLudicGraph(characterId, {
-            nodes: [{ tag: 'Object', universalKey: trayId }],
-        })
-        const steps: MutationKernelStep[] = [
-            { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' },
-            { kind: 'transferMembership', entityId: trayId, fromHostIds: new Set([roomId]), toHostId: characterId },
-        ]
-        const finalGraphs = graphsMap([roomId, finalSourceGraph], [characterId, finalDestGraph])
-        const facts = steps.flatMap((step) => factsForStep(step, finalGraphs, beatAnchorTime))
-        expect(facts.map((fact) => fact.type)).toEqual(['Object Relation Changed', 'Object Moved'])
-    })
-
-    it('pure remove (toHostId null): one Object Moved fact with froms from every departure host, to: null', () => {
-        const step: MutationKernelStep = {
-            kind: 'transferMembership',
-            entityId: trayId,
-            fromHostIds: new Set([roomId, characterId]),
-            toHostId: null,
-        }
-        const facts = factsForStep(step, graphsMap(), beatAnchorTime)
-        expect(facts).toEqual([
-            { type: 'Object Moved', objectId: trayId, froms: [roomId, characterId], to: null, beatAnchorTime },
-        ])
-    })
-
     it('dissolveRelation falls back to priorGraphs when the subject was removed entirely (destroy sequence)', () => {
         const finalGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }] })
         const priorGraph = testLudicGraph(roomId, {
@@ -181,19 +152,6 @@ describe('factsForStep', () => {
         ])
     })
 
-    it('pure add (fromHostIds empty): one Object Moved fact per object with froms: [], to: toHostId', () => {
-        const step: MutationKernelStep = {
-            kind: 'transferMembership',
-            entityId: trayId,
-            fromHostIds: new Set(),
-            toHostId: roomId,
-        }
-        const facts = factsForStep(step, graphsMap(), beatAnchorTime)
-        expect(facts).toEqual([
-            { type: 'Object Moved', objectId: trayId, froms: [], to: roomId, beatAnchorTime },
-        ])
-    })
-
     it('a capture step yields no facts --- it is not a world event', () => {
         const step: MutationKernelStep = { kind: 'capture', hostId: roomId, captureId: 'before' }
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
@@ -209,7 +167,7 @@ describe('factsForStep', () => {
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
-    it('a destroyComponent step yields no facts --- the move to nowhere that precedes it announces departure', () => {
+    it('a destroyComponent step yields no facts --- the release that precedes it announces departure', () => {
         const step: MutationKernelStep = { kind: 'destroyComponent', hostId: trayId }
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
     })
@@ -225,14 +183,14 @@ describe('factsForStep', () => {
         expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
-    it('addPresenceBinding/movePresenceBinding/releasePresenceBindings/repairPresenceBinding steps yield no facts --- not a narration channel yet', () => {
+    it('addPresenceBinding/movePresenceBinding/releasePresenceBinding/repairPresenceBinding steps yield no facts --- not a narration channel yet', () => {
         const addStep: MutationKernelStep = {
             kind: 'addPresenceBinding',
             hostId: trayId,
             fromHostPresence: { host: roomId },
             presenceUuid: 'p2',
         }
-        const rehostStep: MutationKernelStep = { kind: 'releasePresenceBindings', hostId: trayId }
+        const rehostStep: MutationKernelStep = { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#p4' as any, from: { host: roomId } }
         const moveStep: MutationKernelStep = { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#p3' as any, from: null, to: { host: roomId, presence: 'PRESENCE#r' as any } }
         expect(factsForStep(moveStep, graphsMap(), beatAnchorTime)).toEqual([])
         expect(factsForStep(addStep, graphsMap(), beatAnchorTime)).toEqual([])

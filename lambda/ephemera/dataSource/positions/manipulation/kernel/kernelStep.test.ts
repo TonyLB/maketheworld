@@ -1,57 +1,19 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { ExecutorParsePlanStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import { fromExecutorStep, isKernelMutationStep } from './kernelStep'
+import { isKernelMutationStep } from './kernelStep'
 import type { KernelStep } from './kernelStep'
 
-const trayId = 'OBJECT#Tray' as EphemeraObjectId
-const glassId = 'OBJECT#Glass' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
-const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
-
-describe('fromExecutorStep', () => {
-    it('converts a TransferMembershipStep to a MutationKernelTransferStep with the same object as entityId', () => {
-        const step: ExecutorParsePlanStep = {
-            kind: 'transferMembership',
-            objectId: trayId,
-            fromHostId: roomId,
-            toHostId: characterId,
-        }
-        expect(fromExecutorStep(step)).toEqual({
-            kind: 'transferMembership',
-            entityId: trayId,
-            fromHostIds: new Set([roomId]),
-            toHostId: characterId,
-        })
-    })
-
-    it('passes an establishRelation step through unchanged', () => {
-        const step: ExecutorParsePlanStep = {
-            kind: 'establishRelation',
-            subjectId: trayId,
-            targetId: glassId,
-            hostId: roomId,
-            relationKind: 'On',
-        }
-        expect(fromExecutorStep(step)).toEqual(step)
-    })
-
-    it('passes a dissolveRelation step through unchanged', () => {
-        const step: ExecutorParsePlanStep = {
-            kind: 'dissolveRelation',
-            subjectId: trayId,
-            targetId: glassId,
-            hostId: roomId,
-            relationKind: 'On',
-        }
-        expect(fromExecutorStep(step)).toEqual(step)
-    })
-})
 
 describe('isKernelMutationStep', () => {
     it('accepts a capture step', () => {
         const step: KernelStep = { kind: 'capture', hostId: roomId, captureId: 'before' }
         expect(isKernelMutationStep(step)).toBe(true)
+    })
+
+    it('accepts the presence steps, including a per-binding release', () => {
+        const release: KernelStep = { kind: 'releasePresenceBinding', hostId: 'OBJECT#Tray' as any, presence: 'PRESENCE#a' as any, from: { host: roomId } }
+        expect(isKernelMutationStep(release)).toBe(true)
     })
 
     it('rejects a describe step', () => {

@@ -140,7 +140,7 @@ describe('executeMembershipTransfer', () => {
         expect(eventTypes).toEqual(['Object Moved'])
 
         // A mover holding no binding at all gets a root minted ahead of its first-placement move, so
-        // the transfer is never a bare transferMembership step: it compiles through
+        // the placement is never a bare host-level write: it compiles through
         // `compilePositionKernelOp`, universal for every mover regardless of host kind.
         const committedOwnGraph = (internalCache.Positions.set as jest.Mock).mock.calls
             .map(([graph]: any[]) => graph)
@@ -153,7 +153,7 @@ describe('executeMembershipTransfer', () => {
     it('clear shape: sweeps every current host (any kind), target null, no arrival row', async () => {
         const roomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
         const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
-        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [] });
+        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [presenceBindingNode('in-room', FROM_ROOM), presenceBindingNode('in-hand', CHARACTER_ID)] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, CHARACTER_ID]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? roomGraph : hostId === CHARACTER_ID ? characterGraph : ownGraph
@@ -177,8 +177,8 @@ describe('executeMembershipTransfer', () => {
             update: expect.objectContaining({ type: 'Object Moved', froms: [FROM_ROOM, CHARACTER_ID], to: null }),
         }))
 
-        // The missing-clear fix: a departure to no host still removes every prior binding, even
-        // though there is no destination to add one for.
+        // The missing-clear fix: a departure to no host still releases every prior binding (the whole
+        // keeps one, hostless), even though there is no destination to add one for.
         const committedOwnGraph = (internalCache.Positions.set as jest.Mock).mock.calls
             .map(([graph]: any[]) => graph)
             .find((graph: EphemeraLudicGraph) => graph.hostId === OBJECT_ID)

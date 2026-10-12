@@ -84,12 +84,11 @@ describe('orchestrateCharacterMove', () => {
         expect(characterMetaGetMock).toHaveBeenCalledWith(CHARACTER_ID)
         expect(commitAndPresentMock).toHaveBeenCalledTimes(1)
 
-        // buildCharacterMoveOp always narrates, so the plan brackets the transfer with captures; the
+        // buildCharacterMoveOp always narrates, so the plan brackets the presence move with captures; the
         // header is a describe step carrying the resolved binding.
         expect(lastPlan().steps).toEqual([
             { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
             { kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex', from: { host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) }, to: { host: TO_ROOM, presence: parentRemainderKey(TO_ROOM) } },
-            { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM]), toHostId: TO_ROOM },
             { kind: 'capture', hostId: TO_ROOM, captureId: 'capture:to' },
             expect.objectContaining({ kind: 'narrate' }),
             { kind: 'describe', referentId: TO_ROOM, referentKind: 'room', header: { perspectiveKey: 'perspective-key', assets: ['primitives', 'TownCenter'] } },
@@ -164,7 +163,6 @@ describe('orchestrateCharacterMove', () => {
         expect(lastPlan().steps).toEqual(expect.arrayContaining([
             { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
             { kind: 'capture', hostId: ROOM_C, captureId: 'capture:from:ROOM#TestThree' },
-            { kind: 'transferMembership', entityId: CHARACTER_ID, fromHostIds: new Set([FROM_ROOM, ROOM_C]), toHostId: TO_ROOM },
             expect.objectContaining({ kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex' }),
             expect.objectContaining({ kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-three' }),
             { kind: 'joinPresenceBindings', hostId: CHARACTER_ID, survivor: 'PRESENCE#in-vortex', absorbed: 'PRESENCE#in-three' },
