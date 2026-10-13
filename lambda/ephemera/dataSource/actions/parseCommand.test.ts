@@ -33,6 +33,7 @@ import {
     objectManipulationErrorMessages,
     parseCommand,
 } from './parseCommand'
+import { parentRemainderKey } from '../positions/ludicGraph/testFixtures'
 
 /** The route's change step: the attempt's first action that changes the world (relation or transfer). */
 const primaryStepOf = (result: unknown): any => {
@@ -2090,7 +2091,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                             nodes: [
                                 { tag: 'Object', universalKey: COIN },
                                 { tag: 'Object', universalKey: POST },
-                                { tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: ROOM }, cover: { members: [{ tag: 'Remainder' }] } },
+                                { tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: ROOM, presence: parentRemainderKey(ROOM) }, cover: { members: [{ tag: 'Remainder' }] } },
                             ],
                             edges: [
                                 { tag: 'Relational', from: COIN, to: TABLE, kind: 'On' },
@@ -2125,8 +2126,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                 [TABLE]: testLudicGraph(TABLE as unknown as EphemeraRoomId, {
                     nodes: [
                         { tag: 'Object', universalKey: TABLE },
-                        { tag: 'Presence', universalKey: tableHere, fromHostPresence: { host: ROOM }, cover: { members: [{ tag: 'Remainder' }] } },
-                        { tag: 'Presence', universalKey: tableThere, fromHostPresence: { host: OTHER_ROOM }, cover: { members: [{ tag: 'Remainder' }] } },
+                        { tag: 'Presence', universalKey: tableHere, fromHostPresence: { host: ROOM, presence: parentRemainderKey(ROOM) }, cover: { members: [{ tag: 'Remainder' }] } },
+                        { tag: 'Presence', universalKey: tableThere, fromHostPresence: { host: OTHER_ROOM, presence: parentRemainderKey(OTHER_ROOM) }, cover: { members: [{ tag: 'Remainder' }] } },
                     ],
                 }),
             }

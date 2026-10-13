@@ -6,6 +6,7 @@ import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraLudicGraph } from './index'
 import { hasPresenceAncestor } from './presenceAncestry'
 import { testLudicGraph } from './testFixtures'
+import { parentRemainderKey } from './testFixtures'
 
 const room = 'ROOM#A' as EphemeraRoomId
 const shelf = 'OBJECT#Shelf' as EphemeraObjectId
@@ -18,7 +19,7 @@ const ball = 'OBJECT#Ball' as EphemeraObjectId
 const presenceAt = (fromHostId: EphemeraMembershipHostId): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: PresenceKey(`${fromHostId.replace('#', '-')}-binding`),
-    fromHostPresence: { host: fromHostId },
+    fromHostPresence: { host: fromHostId, presence: parentRemainderKey(fromHostId) },
     cover: { members: [{ tag: 'Remainder' }] },
 })
 

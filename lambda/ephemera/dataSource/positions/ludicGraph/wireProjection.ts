@@ -122,7 +122,7 @@ const nodeToWire = (node: EphemeraLudicGraphNode): StandardLudicGraphNodeData =>
             tag: 'Presence',
             universalKey: node.universalKey,
             ...(node.fromHostPresence
-                ? { fromHostPresence: { host: ephemeraComponentIdToReferenceData(node.fromHostPresence.host), ...(node.fromHostPresence.presence ? { presence: node.fromHostPresence.presence } : {}) } }
+                ? { fromHostPresence: { host: ephemeraComponentIdToReferenceData(node.fromHostPresence.host), presence: node.fromHostPresence.presence } }
                 : {}),
             cover: coverToWire(node.cover),
         }
@@ -137,7 +137,7 @@ const wireNodeToEphemera = (data: StandardLudicGraphNodeData): EphemeraLudicGrap
                 ? {
                     fromHostPresence: {
                         host: referenceDataToEphemeraComponentId(data.fromHostPresence.host) as EphemeraMembershipHostId,
-                        ...(data.fromHostPresence.presence ? { presence: data.fromHostPresence.presence as EphemeraPresenceNodeId } : {}),
+                        presence: data.fromHostPresence.presence as EphemeraPresenceNodeId,
                     },
                 }
                 : {}),

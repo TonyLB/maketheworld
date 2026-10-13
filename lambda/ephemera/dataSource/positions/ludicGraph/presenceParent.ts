@@ -10,13 +10,11 @@ type GetGraph = (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph
 
 /**
  * The parent a presence binding is present at, read from its stored `fromHostPresence`. `host`
- * names the parent's shard; `presence` names the parent binding this one sits under. `presence`
- * is absent only where the parent has no single binding to name (a host with several bindings);
- * a walker given no `presence` fans out at host grain.
+ * names the parent's shard; `presence` names the parent binding this one sits under.
  */
 export type ParentBinding = {
     host: EphemeraMembershipHostId
-    presence?: EphemeraPresenceNodeId
+    presence: EphemeraPresenceNodeId
 }
 
 export type OwnedParentBinding = {

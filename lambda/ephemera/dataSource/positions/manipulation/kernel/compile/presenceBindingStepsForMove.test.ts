@@ -1,6 +1,7 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { presenceBindingStepsForMove } from './presenceBindingStepsForMove'
+import { parentRemainderKey } from '../../../ludicGraph/testFixtures'
 
 const HOST_ID = 'OBJECT#Tray' as EphemeraObjectId
 const FROM_ROOM = 'ROOM#Departure' as EphemeraRoomId
@@ -45,8 +46,8 @@ describe('presenceBindingStepsForMove', () => {
     it('follows several moves with a join of each extra binding into the first (a multi-from scrub)', () => {
         const steps = presenceBindingStepsForMove(HOST_ID, {
             presenceMoves: [
-                { presence: presence('a'), from: { host: FROM_ROOM }, to: TO },
-                { presence: presence('b'), from: { host: OTHER_FROM }, to: TO, cover: { members: [{ host: FROM_ROOM, presence: presence('c') }] } },
+                { presence: presence('a'), from: { host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) }, to: TO },
+                { presence: presence('b'), from: { host: OTHER_FROM, presence: parentRemainderKey(OTHER_FROM) }, to: TO, cover: { members: [{ host: FROM_ROOM, presence: presence('c') }] } },
             ],
         })
 
@@ -58,13 +59,13 @@ describe('presenceBindingStepsForMove', () => {
         const steps = presenceBindingStepsForMove(HOST_ID, {
             presenceMoves: [
                 { presence: presence('a'), from: { host: FROM_ROOM, presence: presence('from-remainder') }, to: null },
-                { presence: presence('b'), from: { host: OTHER_FROM }, to: null },
+                { presence: presence('b'), from: { host: OTHER_FROM, presence: parentRemainderKey(OTHER_FROM) }, to: null },
             ],
         })
 
         expect(steps).toEqual([
             { kind: 'releasePresenceBinding', hostId: HOST_ID, presence: presence('a'), from: { host: FROM_ROOM, presence: presence('from-remainder') } },
-            { kind: 'releasePresenceBinding', hostId: HOST_ID, presence: presence('b'), from: { host: OTHER_FROM } },
+            { kind: 'releasePresenceBinding', hostId: HOST_ID, presence: presence('b'), from: { host: OTHER_FROM, presence: parentRemainderKey(OTHER_FROM) } },
         ])
     })
 

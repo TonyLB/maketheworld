@@ -9,6 +9,7 @@ import { EphemeraLudicGraph } from '../ludicGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
 import { ludicCacheObjectHandles } from './catalogHandles'
 import { roomsForReferent } from '../ludicGraph/presenceRooms'
+import { parentRemainderKey } from '../ludicGraph/testFixtures'
 
 const makeObjectComponent = (shortName: string) => new StandardObject({ tag: 'Object', shortName })
 
@@ -151,7 +152,7 @@ describe('ludicCacheObjectHandles', () => {
                     { tag: 'Object', universalKey: boxId },
                     { tag: 'Object', universalKey: pebble },
                     { tag: 'Object', universalKey: stone },
-                    ...bindings.map(({ key, from, cover }) => ({ tag: 'Presence' as const, universalKey: key, fromHostPresence: { host: from }, cover: cover ?? { members: [{ tag: 'Remainder' as const }] } })),
+                    ...bindings.map(({ key, from, cover }) => ({ tag: 'Presence' as const, universalKey: key, fromHostPresence: { host: from, presence: parentRemainderKey(from) }, cover: cover ?? { members: [{ tag: 'Remainder' as const }] } })),
                 ],
             })],
             [pebble, testLudicGraph(pebble, { nodes: [{ tag: 'Object', universalKey: pebble }] })],
@@ -197,7 +198,7 @@ describe('ludicCacheObjectHandles', () => {
             graphs.set(pebble, testLudicGraph(pebble, {
                 nodes: [
                     { tag: 'Object', universalKey: pebble },
-                    { tag: 'Presence', universalKey: pebbleInBox, fromHostPresence: { host: boxId }, cover: { members: [{ tag: 'Remainder' }] } },
+                    { tag: 'Presence', universalKey: pebbleInBox, fromHostPresence: { host: boxId, presence: parentRemainderKey(boxId) }, cover: { members: [{ tag: 'Remainder' }] } },
                 ],
             }))
 
@@ -255,7 +256,7 @@ describe('ludicCacheObjectHandles', () => {
                         { tag: 'Room', universalKey: roomA },
                         { tag: 'Object', universalKey: namedId },
                         { tag: 'Presence', universalKey: roomRemainder, cover: { members: [{ tag: 'Remainder' }] } },
-                        { tag: 'Presence', universalKey: roomInTown, fromHostPresence: { host: town }, cover: { members: [] } },
+                        { tag: 'Presence', universalKey: roomInTown, fromHostPresence: { host: town, presence: parentRemainderKey(town) }, cover: { members: [] } },
                     ],
                 })],
                 [namedId, testLudicGraph(namedId, {
@@ -287,7 +288,7 @@ describe('ludicCacheObjectHandles', () => {
                         { tag: 'Room', universalKey: roomA },
                         { tag: 'Object', universalKey: namedId },
                         { tag: 'Presence', universalKey: roomRemainder, cover: { members: [{ tag: 'Remainder' }] } },
-                        { tag: 'Presence', universalKey: roomInTown, fromHostPresence: { host: town }, cover: { members: [] } },
+                        { tag: 'Presence', universalKey: roomInTown, fromHostPresence: { host: town, presence: parentRemainderKey(town) }, cover: { members: [] } },
                     ],
                 })],
                 [namedId, testLudicGraph(namedId, {

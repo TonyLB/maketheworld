@@ -13,7 +13,7 @@ export type PresenceCoverMember = { host: string; presence?: string } | { tag: '
 
 export type PresenceBindingView = {
     universalKey: string
-    fromHostPresence?: { host: string; presence?: string }
+    fromHostPresence?: { host: string; presence: string }
     cover: { members: PresenceCoverMember[] }
 }
 
@@ -88,14 +88,13 @@ export const classifyPresenceCoverDrift = (
         }
         const pointers = graph.presenceNodes
             .map((binding) => binding.fromHostPresence)
-            .filter((pointer): pointer is { host: string; presence?: string } => !!pointer && pointer.host === whole.hostId)
-        const hostGrain = pointers.some((pointer) => pointer.presence === undefined)
+            .filter((pointer): pointer is { host: string; presence: string } => !!pointer && pointer.host === whole.hostId)
         for (const [presence, members] of covered) {
             if (!members.has(member)) {
                 continue
             }
             const count = pointers.filter((pointer) => pointer.presence === presence).length
-            if (count === 0 && !hostGrain) {
+            if (count === 0) {
                 findings.push({ kind: pointers.length === 0 ? 'Unbound' : 'Stale', member, presence })
             }
             else if (count > 1) {
@@ -103,7 +102,7 @@ export const classifyPresenceCoverDrift = (
             }
         }
         for (const pointer of pointers) {
-            if (pointer.presence !== undefined && !covered.get(pointer.presence)?.has(member)) {
+            if (!covered.get(pointer.presence)?.has(member)) {
                 findings.push({ kind: 'Stale', member, presence: pointer.presence })
             }
         }

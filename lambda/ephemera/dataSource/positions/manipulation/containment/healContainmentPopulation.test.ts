@@ -22,6 +22,7 @@ jest.mock('../../../../internalCache', () => ({
 import internalCache from '../../../../internalCache'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import { healContainmentPopulation } from './healContainmentPopulation'
+import { parentRemainderKey } from '../../ludicGraph/testFixtures'
 
 const AREA_ID = 'AREA#Overworld' as EphemeraAreaId
 const ROOM_ID = 'ROOM#Kitchen' as EphemeraRoomId
@@ -54,7 +55,7 @@ describe('healContainmentPopulation', () => {
                 edges: [partOf(FEATURE_ID, ROOM_ID)],
             }),
             [FEATURE_ID]: testLudicGraph(FEATURE_ID, {
-                nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresence: { host: ROOM_ID }, cover: remainderCover() }],
+                nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresence: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }, cover: remainderCover() }],
             }),
         })
 
@@ -80,7 +81,7 @@ describe('healContainmentPopulation', () => {
                 edges: [partOf(ROOM_ID, AREA_ID)],
             }),
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
-                nodes: [presenceBindingNode('kitchen-in-area', { host: AREA_ID })],
+                nodes: [presenceBindingNode('kitchen-in-area', AREA_ID)],
             }),
         })
 

@@ -4,6 +4,7 @@ import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/e
 
 import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
 import type { MutationKernelStep } from './kernelStep'
+import { parentRemainderKey } from '../../ludicGraph/testFixtures'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const glassId = 'OBJECT#Glass' as EphemeraObjectId
@@ -22,7 +23,7 @@ describe('computeStepSequenceFootprint', () => {
     it('unions hosts across a multi-step sequence with no duplicates', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'dissolveRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' },
-            { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: roomId }, to: { host: characterId, presence: 'PRESENCE#c' as any } },
+            { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: roomId, presence: parentRemainderKey(roomId) }, to: { host: characterId, presence: 'PRESENCE#c' as any } },
         ]
         const getCurrentHost = () => roomId
         expect(computeStepSequenceFootprint(steps, getCurrentHost)).toEqual(new Set([roomId, characterId, trayId]))
@@ -54,7 +55,7 @@ describe('computeStepSequenceFootprint', () => {
 
     it('presence binding add/repair steps contribute their hostId and the host their pointer names', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: { host: roomId }, presenceUuid: 'p1' },
+            { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, presenceUuid: 'p1' },
             { kind: 'repairPresenceBinding', hostId: otherRoomId, presenceId: 'PRESENCE#p2', cover: { members: [] } },
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, roomId, otherRoomId]))
@@ -66,7 +67,7 @@ describe('computeStepSequenceFootprint', () => {
     })
 
     it('a move step contributes its hostId, its destination (read to confirm the binding) and the host it leaves', () => {
-        const move: MutationKernelStep = { kind: 'movePresenceBinding', hostId: glassId, presence: 'PRESENCE#p3' as any, from: { host: otherRoomId }, to: { host: roomId, presence: 'PRESENCE#r' as any } }
+        const move: MutationKernelStep = { kind: 'movePresenceBinding', hostId: glassId, presence: 'PRESENCE#p3' as any, from: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }, to: { host: roomId, presence: 'PRESENCE#r' as any } }
         expect(computeStepSequenceFootprint([move], () => undefined)).toEqual(new Set([glassId, roomId, otherRoomId]))
     })
 
@@ -77,7 +78,7 @@ describe('computeStepSequenceFootprint', () => {
 
     it('a release contributes its hostId and the host it leaves; a join contributes its hostId and the children of its absorbed cover', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: otherRoomId } },
+            { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) } },
             { kind: 'joinPresenceBindings', hostId: roomId, survivor: 'PRESENCE#a' as any, absorbed: 'PRESENCE#b' as any, absorbedCover: { members: [{ host: glassId, presence: 'PRESENCE#g' as any }, { tag: 'Remainder' }] } },
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, otherRoomId, roomId, glassId]))
@@ -125,7 +126,7 @@ describe('computeStepSequenceFootprint', () => {
 
     it('a capture step contributes its hostId even when no mutation step in the sequence touches that host', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: roomId } },
+            { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: roomId, presence: parentRemainderKey(roomId) } },
             { kind: 'capture', hostId: otherRoomId, captureId: 'onlooker' },
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, roomId, otherRoomId]))

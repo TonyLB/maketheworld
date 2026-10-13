@@ -17,8 +17,8 @@ const holding = (host: EphemeraRoomId, ...held: EphemeraObjectId[]) => testLudic
 const own = (...parents: EphemeraRoomId[]) => testLudicGraph(tray, {
     nodes: [{ tag: 'Object', universalKey: tray }, ...parents.map((parent, index) => presenceBindingNode(`p${index}`, parent))],
 })
-const release: MutationKernelStep = { kind: 'releasePresenceBinding', hostId: tray, presence: 'PRESENCE#p0' as any, from: { host: roomA } }
-const move: MutationKernelStep = { kind: 'movePresenceBinding', hostId: tray, presence: 'PRESENCE#p0' as any, from: { host: roomA }, to: { host: roomB, presence: parentRemainderKey(roomB) } }
+const release: MutationKernelStep = { kind: 'releasePresenceBinding', hostId: tray, presence: 'PRESENCE#p0' as any, from: { host: roomA, presence: parentRemainderKey(roomA) } }
+const move: MutationKernelStep = { kind: 'movePresenceBinding', hostId: tray, presence: 'PRESENCE#p0' as any, from: { host: roomA, presence: parentRemainderKey(roomA) }, to: { host: roomB, presence: parentRemainderKey(roomB) } }
 
 describe('membershipChangesOf', () => {
     it('reports the hosts a mover left and arrived at, from the graphs alone', () => {

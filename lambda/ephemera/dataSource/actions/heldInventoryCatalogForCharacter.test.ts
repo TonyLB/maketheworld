@@ -5,6 +5,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 
 import { testLudicGraph } from '../positions/ludicGraph/testFixtures'
 import { getHeldInventoryCatalogForCharacter } from './heldInventoryCatalogForCharacter'
+import { parentRemainderKey } from '../positions/ludicGraph/testFixtures'
 
 const characterId = 'CHARACTER#Test' as EphemeraCharacterId
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
@@ -73,7 +74,7 @@ describe('getHeldInventoryCatalogForCharacter', () => {
             getLudicGraph: async () => testLudicGraph(characterId, {
                 nodes: [
                     { tag: 'Object', universalKey: broomId },
-                    { tag: 'Presence', universalKey: characterBinding, fromHostPresence: { host: 'ROOM#Kitchen' }, cover: { members: [{ tag: 'Remainder' }] } },
+                    { tag: 'Presence', universalKey: characterBinding, fromHostPresence: { host: 'ROOM#Kitchen', presence: parentRemainderKey('ROOM#Kitchen') }, cover: { members: [{ tag: 'Remainder' }] } },
                 ],
             }),
             getComponentAggregate: namedComponentAggregate({ [broomId]: 'Broom' }),

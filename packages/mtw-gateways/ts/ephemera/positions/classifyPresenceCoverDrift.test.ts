@@ -4,7 +4,7 @@ import type { PresenceGraphView } from './classifyPresenceCoverDrift'
 const REMAINDER = { members: [{ tag: 'Remainder' as const }] }
 const room = (nodeIds: string[], presenceNodes: PresenceGraphView['presenceNodes']): PresenceGraphView => ({ hostId: 'ROOM#a', nodeIds: ['ROOM#a', ...nodeIds], presenceNodes })
 const child = (hostId: string, presenceNodes: PresenceGraphView['presenceNodes']): PresenceGraphView => ({ hostId, nodeIds: [hostId], presenceNodes })
-const point = (key: string, presence?: string, host = 'ROOM#a') => ({ universalKey: key, fromHostPresence: { host, presence }, cover: REMAINDER })
+const point = (key: string, presence: string, host = 'ROOM#a') => ({ universalKey: key, fromHostPresence: { host, presence }, cover: REMAINDER })
 
 const lookup = (graphs: PresenceGraphView[]) => (id: string) => graphs.find((graph) => graph.hostId === id)
 
@@ -50,9 +50,11 @@ describe('classifyPresenceCoverDrift', () => {
         expect(classifyPresenceCoverDrift(none, lookup([]))).toEqual({ noRemainder: true, findings: [] })
     })
 
-    it('compares a host-only pointer at host grain, never as a count mismatch', () => {
-        const hostOnly = child('FEATURE#x', [point('PRESENCE#f', undefined)])
-        expect(classifyPresenceCoverDrift(whole, lookup([hostOnly])).findings).toEqual([])
+    it('reads a stored host-only pointer (a retired shape) as Stale, not as a match at host grain', () => {
+        const hostOnly = child('FEATURE#x', [{ universalKey: 'PRESENCE#f', fromHostPresence: { host: 'ROOM#a' } as any, cover: REMAINDER }])
+        const findings = classifyPresenceCoverDrift(whole, lookup([hostOnly])).findings
+        expect(findings.length).toBeGreaterThan(0)
+        expect(findings.every(({ kind }) => kind === 'Stale')).toBe(true)
     })
 
     it('skips an unreadable member', () => {

@@ -7,7 +7,6 @@ import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemera
 
 import { graphFromMeta } from '../../ludicGraph'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf } from '../../ludicGraph/presenceParent'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MutationKernelMovePresenceBindingStep, MutationKernelReleasePresenceBindingStep, MutationKernelStep } from './kernelStep'
 import { settleMembership } from './settleMembership'
@@ -25,21 +24,6 @@ import type { MutationKernelApplyOutcome } from './types'
  * particular id happens to be a node of two graphs, only one of which is shared with the other
  * endpoint."
  */
-/**
- * Fills in which of the parent's bindings a new binding sits under, when the step named only the
- * parent host (a move: the compiler has no prior-state read). The parent graph is in the
- * footprint (the step's pointer host is part of its footprint), so the read is free and happens inside the
- * lock; unresolved --- no binding, or several --- leaves `presence` unset rather than guessing.
- */
-const withParentPresence = (
-    pointer: EphemeraPresenceParentPointer,
-    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
-): EphemeraPresenceParentPointer => {
-    const parentGraph = graphs.get(pointer.host)
-    const presence = pointer.presence ?? (parentGraph ? childParentBindingIdOf(parentGraph) : undefined)
-    return presence ? { host: pointer.host, presence } : { host: pointer.host }
-}
-
 /**
  * A move's presence write (`MutationKernelMovePresenceBindingStep`): re-point the named binding at
  * the named destination binding, keeping its id and cover (PR-21(e)). `undefined` is the `stale`
@@ -277,7 +261,7 @@ export const applyStepSequenceCore = (
             const withNode = graph.addPresenceNode({
                 tag: 'Presence',
                 universalKey: PresenceKey(step.presenceUuid),
-                ...(step.fromHostPresence ? { fromHostPresence: withParentPresence(step.fromHostPresence, graphs) } : {}),
+                ...(step.fromHostPresence ? { fromHostPresence: step.fromHostPresence } : {}),
                 cover: step.cover ?? remainderCover(),
             })
             const settled = settleMembership(new Map(graphs).set(step.hostId, withNode), step.hostId, {

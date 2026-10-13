@@ -427,12 +427,8 @@ export const isEphemeraPresenceCoverRemainder = (value: unknown): value is Ephem
  */
 export type EphemeraPresenceParentPointer = {
     host: EphemeraMembershipHostId;
-    /**
-     * The parent binding. Absent only where the parent holds no binding to name: a Room in an Area
-     * (Areas hold none), or a move into a host whose binding is unresolved. Rooms and Features keep
-     * their own bindings, so a child of one always names it.
-     */
-    presence?: EphemeraPresenceNodeId;
+    /** The parent binding this one sits under. Required: a pointer that names only a host is not a stored shape. */
+    presence: EphemeraPresenceNodeId;
 }
 
 export type EphemeraLudicGraphStructureNode = {
@@ -731,16 +727,16 @@ export const isEphemeraLudicGraphStructureNode = (value: unknown): value is Ephe
     if (entry.tag !== 'Presence') {
         return false
     }
-    // A stored host-only `fromHostId` is the retired locator: rejected outright rather than read as
-    // hostless, so a surviving row reports through `LudicGraphStaleStructureSweep` instead of
-    // silently losing its parent.
+    // A stored host-only `fromHostId` is the retired locator, and a `fromHostPresence` with no
+    // `presence` is the same grain: both are rejected outright rather than read as hostless, so a
+    // surviving row reports through `LudicGraphStaleStructureSweep` instead of silently losing its parent.
     return isEphemeraPresenceNodeId(entry.universalKey) &&
         isEphemeraPresenceParentPointerOrAbsent(entry.fromHostPresence) &&
         !('fromHostId' in entry) &&
         isEphemeraPresenceCover(entry.cover)
 }
 
-/** Absent is legal: a hostless remainder has no parent. Present must be a well-formed `{ host, presence }`. */
+/** Absent is legal: a hostless remainder has no parent. Present must be a well-formed `{ host, presence }`, both required. */
 export const isEphemeraPresenceParentPointerOrAbsent = (value: unknown): boolean => {
     if (value === undefined) {
         return true
@@ -749,7 +745,7 @@ export const isEphemeraPresenceParentPointerOrAbsent = (value: unknown): boolean
         return false
     }
     const { host, presence } = value as Partial<EphemeraPresenceParentPointer>
-    return typeof host === 'string' && isEphemeraMembershipHostId(host) && (presence === undefined || (typeof presence === 'string' && isEphemeraPresenceNodeId(presence)))
+    return typeof host === 'string' && isEphemeraMembershipHostId(host) && typeof presence === 'string' && isEphemeraPresenceNodeId(presence)
 }
 
 export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudicGraphNode => {

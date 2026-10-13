@@ -24,7 +24,7 @@ export type RemoveAuthoredObjectDependencies = {
 /**
  * The host each content of the removed Object lands in: the parent host of the Object binding
  * the content's own binding points at, so a multi-host Object empties each binding into its own
- * host. A content whose pointer names no Object binding (a host-only pointer) falls back to the
+ * host. A content whose pointer names no binding of this Object (a stale pointer) falls back to the
  * Object's first host. Pure; `contentGraphs` are the contents' own graphs.
  */
 export const contentDestinations = (
@@ -45,7 +45,7 @@ export const contentDestinations = (
             const pointer = graph.presenceNodes
                 .map(parentOf)
                 .find((parent) => parent?.host === objectId)
-            const destination = (pointer?.presence ? hostByObjectBinding.get(pointer.presence) : undefined) ?? objectHosts[0]
+            const destination = (pointer ? hostByObjectBinding.get(pointer.presence) : undefined) ?? objectHosts[0]
             return destination ? [[contentId, destination] as const] : []
         })
     )

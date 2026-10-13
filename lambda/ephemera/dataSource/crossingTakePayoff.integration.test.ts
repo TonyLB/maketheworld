@@ -34,6 +34,7 @@ import { parseCommand } from './actions/parseCommand'
 import { CommandAttempt, type CommandAttemptData } from './actions/commandAttempt'
 import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { EphemeraLudicGraph } from './positions/ludicGraph'
+import { parentRemainderKey } from './positions/ludicGraph/testFixtures'
 
 const assetDBMock = jest.mocked(assetDB)
 const ephemeraDBMock = jest.mocked(ephemeraDB)
@@ -50,7 +51,7 @@ const HOOK_ID = 'OBJECT#Hook' as EphemeraObjectId
 
 const tied = (from: unknown, to: unknown) => ({ from, to, kind: 'Custom' as const, relationLabel: 'is tied to' }) as never
 const crossingPort = (portId: string, fromHostId: EphemeraRoomId) => ({ portId, fromHostId, kind: 'Custom' as const, exteriorRelationLabel: 'is tied to' })
-const fullBinding = (key: string, parentHost: EphemeraMembershipHostId, parentPresence?: string) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, fromHostPresence: { host: parentHost, ...(parentPresence ? { presence: parentPresence as EphemeraPresenceNodeId } : {}) }, cover: { members: [{ tag: 'Remainder' as const }] } })
+const fullBinding = (key: string, parentHost: EphemeraMembershipHostId, parentPresence?: string) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, fromHostPresence: { host: parentHost, presence: (parentPresence ?? parentRemainderKey(parentHost)) as EphemeraPresenceNodeId }, cover: { members: [{ tag: 'Remainder' as const }] } })
 /** A hostless binding: the root a mover's presence write re-points. */
 const rootBinding = (key: string) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, cover: { members: [{ tag: 'Remainder' as const }] } })
 

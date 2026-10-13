@@ -486,10 +486,14 @@ describe('isEphemeraLudicGraphNode', () => {
         })).toBe(false)
     })
 
-    it('accepts a presence node carrying a parent pointer, with or without the parent binding id', () => {
+    it('accepts a presence node carrying a parent pointer that names the parent binding', () => {
         const remainder = { members: [{ tag: 'Remainder' }] }
         expect(isEphemeraLudicGraphNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostPresence: { host: 'ROOM#A', presence: 'PRESENCE#parent1' }, cover: remainder })).toBe(true)
-        expect(isEphemeraLudicGraphNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostPresence: { host: 'AREA#Town' }, cover: { members: [] } })).toBe(true)
+        expect(isEphemeraLudicGraphNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostPresence: { host: 'AREA#Town', presence: 'PRESENCE#town-remainder' }, cover: { members: [] } })).toBe(true)
+    })
+
+    it('rejects a parent pointer that names only a host', () => {
+        expect(isEphemeraLudicGraphNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostPresence: { host: 'AREA#Town' }, cover: { members: [] } })).toBe(false)
     })
 
     it('accepts a hostless remainder: no parent pointer at all', () => {

@@ -1,6 +1,6 @@
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import { hostlessRemainderOf } from '../../ludicGraph/presenceParent'
 import { containmentPopulationSteps, rootStep } from './containmentPopulationSteps'
 
@@ -77,7 +77,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
     it('does not mistake a presence binding from a different parent for this one', () => {
         const otherAreaId = 'AREA#Elsewhere' as EphemeraAreaId
         const parentGraph = testLudicGraph(AREA_ID, { nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID }] })
-        const childGraph = testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode('binding-1', { host: otherAreaId }, { members: [] })] })
+        const childGraph = testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode('binding-1', otherAreaId, { members: [] })] })
 
         const steps = containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)
 
@@ -152,7 +152,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
                 nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID }],
                 edges: [{ tag: 'Relational', from: FEATURE_ID, to: ROOM_ID, kind: 'PartOf' }],
             })
-            const hostOnly = presenceBindingNode('feature-binding', { host: ROOM_ID })
+            const hostOnly = presenceBindingNode('feature-binding', ROOM_ID)
             const childGraph = testLudicGraph(FEATURE_ID, { nodes: [hostOnly] })
 
             expect(containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph)).toEqual([{
@@ -169,7 +169,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
                 nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID }],
                 edges: [{ tag: 'Relational', from: ROOM_ID, to: AREA_ID, kind: 'PartOf' }],
             })
-            const wrong = presenceBindingNode('binding-1', { host: AREA_ID })
+            const wrong = presenceBindingNode('binding-1', AREA_ID)
             const childGraph = testLudicGraph(ROOM_ID, { nodes: [wrong] })
 
             expect(containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)).toEqual([{
@@ -186,7 +186,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
                 nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID }],
                 edges: [{ tag: 'Relational', from: ROOM_ID, to: AREA_ID, kind: 'PartOf' }],
             })
-            const hostOnly = presenceBindingNode('binding-1', { host: AREA_ID }, { members: [] })
+            const hostOnly = presenceBindingNode('binding-1', AREA_ID, { members: [] })
             const childGraph = testLudicGraph(ROOM_ID, { nodes: [hostOnly] })
 
             expect(containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)).toEqual([{
@@ -204,8 +204,8 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
                 nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID }],
                 edges: [{ tag: 'Relational', from: FEATURE_ID, to: ROOM_ID, kind: 'PartOf' }],
             })
-            const hostOnly = presenceBindingNode('feature-binding', { host: ROOM_ID })
-            const stale = { ...hostOnly, fromHostPresence: { host: ROOM_ID } }
+            const hostOnly = presenceBindingNode('feature-binding', ROOM_ID)
+            const stale = { ...hostOnly, fromHostPresence: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) } }
             const childGraph = testLudicGraph(FEATURE_ID, { nodes: [stale] })
 
             const steps = containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph)
@@ -295,13 +295,23 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         })
 
         it('places an Object under a Character by the same rule, with no character branch', () => {
-            const parentGraph = testLudicGraph(CHARACTER_ID, { nodes: [] })
+            const parentGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')] })
             const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
             const steps = containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, parentGraph, childGraph)
 
             expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding', 'establishRelation'])
             expect(steps[1]).toEqual(expect.objectContaining({ relationKind: 'In', targetId: CHARACTER_ID }))
+        })
+
+        it('refuses a parent with several bindings: nothing written, since the child has no binding to name', () => {
+            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+            const parentGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('a'), presenceBindingNode('b')] })
+            const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
+
+            expect(containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, parentGraph, childGraph)).toEqual([])
+            expect(warn).toHaveBeenCalledTimes(1)
+            warn.mockRestore()
         })
 
         it('emits nothing on a rerun over populated state', () => {

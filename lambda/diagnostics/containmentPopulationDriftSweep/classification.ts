@@ -17,13 +17,10 @@ const isHostlessRemainder = (node: RawPresenceNode): boolean => (
 /**
  * The parents whose cache-time containment population would now write one of `ownerId`'s presence
  * bindings differently. Read from the raw stored row, since this lambda cannot import ephemera's
- * `presenceParent`. A binding is drift when either holds:
+ * `presenceParent`. A binding is drift when it is a Room's binding into an Area whose cover is
+ * anything but an empty-member carve-out (a).
  *
- * - (a) its `fromHostPresence` names no parent binding (every Room and Area keeps a hostless
- *   remainder for its children to name, so a host-only pointer at one is drift);
- * - (b) it is a Room's binding into an Area whose cover is anything but an empty-member carve-out.
- *
- * And one check on the owner itself: (c) a Room or Area with no hostless remainder, the root of its
+ * And one check on the owner itself: (b) a Room or Area with no hostless remainder, the root of its
  * presence tree, which every Room and Area keeps whatever it contains (reported with the owner as
  * the parent, since population mints it for the owner). A row with no stored graph yet counts.
  *
@@ -35,8 +32,8 @@ const isHostlessRemainder = (node: RawPresenceNode): boolean => (
  * positive costs one no-op heal while a false negative would hide drift. Only Room, Feature and
  * Area owners are classified --- the population this finding reruns writes only their bindings
  * (an Area's only its root), so a Character's or Object's binding is outside what the heal can
- * repair. A parent with several bindings is a legitimate host-only case (its children cannot name one) that (a) still
- * reports; the heal reruns and writes nothing.
+ * repair. A pointer naming a host but no binding is not checked here: `presence` is required, so the
+ * stored-row guard rejects it and `LudicGraphStaleStructureSweep` reports it.
  */
 export const containmentDriftParentsOf = (ownerId: string, ludicGraph: unknown): EphemeraMembershipHostId[] => {
     if (!(isEphemeraRoomId(ownerId) || isEphemeraFeatureId(ownerId) || isEphemeraAreaId(ownerId))) {
@@ -56,10 +53,9 @@ export const containmentDriftParentsOf = (ownerId: string, ludicGraph: unknown):
         if (typeof parent !== 'string' || !isEphemeraMembershipHostId(parent)) {
             continue
         }
-        const unnamedParentBinding = node.fromHostPresence?.presence === undefined
         const members = node.cover?.members
         const roomAreaNotCarveOut = isEphemeraRoomId(ownerId) && isEphemeraAreaId(parent) && !(Array.isArray(members) && members.length === 0)
-        if (unnamedParentBinding || roomAreaNotCarveOut) {
+        if (roomAreaNotCarveOut) {
             parents.add(parent)
         }
     }

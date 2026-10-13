@@ -117,11 +117,10 @@ export type MutationKernelRepairPresenceBindingStep = {
 
 /**
  * A binding of a host, as a move names it: the host whose graph holds the binding, and its id there.
- * `ParentBinding` (`presenceParent.ts`) is the same shape with `presence` optional, because a stored
- * `fromHostPresence` may still be host-only until the required-`presence` work lands; a move's
- * destination is never host-only.
+ * The same shape as a stored `fromHostPresence` (`ParentBinding`, `presenceParent.ts`), now that
+ * `presence` is required there.
  */
-export type PresenceBindingRef = { host: EphemeraMembershipHostId; presence: EphemeraPresenceNodeId }
+export type PresenceBindingRef = ParentBinding
 
 /**
  * A move's presence write: re-points one binding of the mover (`presence`, on `hostId`'s own graph)
