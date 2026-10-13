@@ -210,14 +210,14 @@ The result is [`EphemeraLudicCacheData`](ludicCache/types.ts):
 {
   hostId: ROOM#Lab,
   nodes:  [ component nodes + shortName (+ embedding), each carrying its own
-            presenceNodes: [ cover: entries only, plus consolidated: boolean, … ] ],
-  edges:  [ relational edges + supportedBy: [ [ {host, port, presenceBucketIds}, … ], … ] ]
+            presenceNodes: [ cover: entries only, … ] ],
+  edges:  [ plain relational edges ]
 }
 ```
 
-`supportedBy` records **which crossings and bindings justify each composed edge** --- OR over routes, AND over the hops in a route --- so a reader can tell that `Rope -TiedTo-> Cup` came through the box's port and depends on the cup's binding there. That is the evidence-of-crossing the encapsulation rule requires the cache to keep. A same-host edge's `supportedBy` is `[]`: it depends on no crossing.
+A composed edge is a plain relational edge: two crossing ports that collapse to the same `(from, to, kind)` land on one record. The cache keeps **no maintenance state** (which crossings or bindings justify an edge), because a stale cache is rebuilt whole; the shelved design for incremental maintenance is in [`AGENT.implementation.md`](AGENT.implementation.md#shelved-incremental-ludiccache-maintenance).
 
-Presence in the cache: each binding **nests on its owner's cache node** rather than sitting in a separate top-level list --- the cache mirrors the graph side, where the container already names the owner. A folded presence node carries `consolidated: true` and an **enumerated** cover (a `Remainder` is illegal there --- "every unlisted node of the host" has no referent in a merge, so the fold expands it). If a host consolidates one of its bindings it consolidates all of them. A cover entry resolves to a binding **by path**: the member host's own cache node, then the named binding on it; an absent host node, or a named binding not found there, is corruption. An edge or `supportedBy` hop referencing a binding always names its owner alongside the port/binding id, so a bare `PRESENCE#` terminal is itself corruption; an owner-qualified reference to a binding absent from the cache is legal (the binding exists and was not pulled in).
+Presence in the cache: each binding **nests on its owner's cache node** rather than sitting in a separate top-level list --- the cache mirrors the graph side, where the container already names the owner. A folded presence node carries an **enumerated** cover (a `Remainder` is illegal there --- "every unlisted node of the host" has no referent in a merge, so the fold expands it). If a host consolidates one of its bindings it consolidates all of them. A cover entry resolves to a binding **by path**: the member host's own cache node, then the named binding on it; an absent host node, or a named binding not found there, is corruption. An edge referencing a binding always names its owner alongside the port/binding id, so a bare `PRESENCE#` terminal is itself corruption; an owner-qualified reference to a binding absent from the cache is legal (the binding exists and was not pulled in).
 
 **Status.** The cache is a **Prototype** with a named rollback trigger: *a bucket cannot be stated from the hosted thing's own graph plus its bindings.* The pairwise pieces (cut, compose, fold presence nodes, integrity guard) and the **whole-cache rebuild seeded at a host** (`enumerateLudicCacheShards`, `buildLudicCache`) are shipped under [`ludicCache/`](ludicCache/). The cache has **one production consumer**: the command path's referent candidate pool ([`roomObjectCatalogForCharacter.ts`](../actions/roomObjectCatalogForCharacter.ts)), which reaches it only through the thin handle-returning handler [`ludicCacheObjectHandles`](ludicCache/catalogHandles.ts). That handler is exhaustive, not filtered by presence bucket or attention. Every consumption is a **cold rebuild**: the cache is not persisted. Persistence is in flight under [`AGENT.ludicCachePersistence.planning.md`](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCachePersistence.planning.md).
 
@@ -260,7 +260,6 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 | **Apprehension scale** | Whether a thing answers "what is here" at a host's scale; an attention concern of the cache, declared, not yet modelled | [`ludicCache` entry](AGENT.concepts.md#ludiccache-the-attention-scoped-read-structure) |
 | **`ludicCache`** | Derived, attention-scoped, cross-shard read structure; hits return handles | [`ludicCache` entry](AGENT.concepts.md#ludiccache-the-attention-scoped-read-structure), [`ludicCache/types.ts`](ludicCache/types.ts), [persistence plan](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.ludicCachePersistence.planning.md), [rebuild mechanism](AGENT.implementation.md#rebuild-mechanism-findings-the-fold-implements) |
 | **Stub port** | Transient crossing port minted by a cut, never persisted, id-prefixed `STUB-` | [`presenceSubGraph.ts`](ludicGraph/presenceSubGraph.ts) |
-| **`supportedBy`** | A cache edge's record of the crossings and bindings that justify it | [`ludicCache/types.ts`](ludicCache/types.ts) |
 
 ---
 

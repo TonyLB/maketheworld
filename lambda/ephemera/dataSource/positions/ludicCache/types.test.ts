@@ -90,7 +90,6 @@ describe('isEphemeraLudicCacheNode', () => {
                 universalKey: 'PRESENCE#abc123',
                 fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
                 cover: { members: [] },
-                consolidated: true,
             }],
         })).toBe(true)
     })
@@ -104,7 +103,6 @@ describe('isEphemeraLudicCacheNode', () => {
                 universalKey: 'PRESENCE#abc123',
                 fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
                 cover: { members: [{ tag: 'Remainder' }] },
-                consolidated: true,
             }],
         })).toBe(false)
     })
@@ -116,23 +114,20 @@ describe('isEphemeraLudicCacheNode', () => {
             universalKey: 'PRESENCE#abc123',
             fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
             cover: { members: [] },
-            consolidated: false,
         })).toBe(false)
     })
 })
 
 // Structure arm (PN-19, presenceNodes Slice 3): a binding carries none of the cache extras a
 // component node needs --- no shortName --- but does carry `cover` (entries only, the
-// graph's `Remainder` sentinel being unrepresentable in the cache by construction) and `consolidated`
-// (PN-15, a separate boolean beside `cover`).
+// graph's `Remainder` sentinel being unrepresentable in the cache by construction).
 describe('isEphemeraLudicCachePresenceNode', () => {
-    it('accepts a binding with an entries-only cover and a consolidated flag', () => {
+    it('accepts a binding with an entries-only cover', () => {
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
             cover: { members: [] },
-            consolidated: false,
         })).toBe(true)
     })
 
@@ -142,23 +137,12 @@ describe('isEphemeraLudicCachePresenceNode', () => {
             universalKey: 'PRESENCE#abc123',
             fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
             cover: { tag: 'Full' },
-            consolidated: false,
         })).toBe(false)
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
             fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
             cover: { members: [{ tag: 'Remainder' }] },
-            consolidated: false,
-        })).toBe(false)
-    })
-
-    it('rejects a binding missing consolidated', () => {
-        expect(isEphemeraLudicCachePresenceNode({
-            tag: 'Presence',
-            universalKey: 'PRESENCE#abc123',
-            fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
-            cover: { members: [] },
         })).toBe(false)
     })
 
@@ -168,7 +152,6 @@ describe('isEphemeraLudicCachePresenceNode', () => {
             universalKey: 'PRESENCE#abc123',
             fromHostPresence: { host: 'PRESENCE#xyz789', presence: 'PRESENCE#abc123' },
             cover: { members: [] },
-            consolidated: false,
         })).toBe(false)
     })
 
@@ -180,7 +163,6 @@ describe('isEphemeraLudicCachePresenceNode', () => {
             universalKey: 'PRESENCE#abc123',
             fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
             cover: { members: [{ host: 'OBJECT#Z', presence: 'PRESENCE#z_in_x' }, { host: 'OBJECT#W' }] },
-            consolidated: true,
         })).toBe(true)
     })
 
@@ -190,7 +172,6 @@ describe('isEphemeraLudicCachePresenceNode', () => {
             universalKey: 'PRESENCE#abc123',
             fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
             cover: { members: [{ host: 'OBJECT#Z', presence: 'OBJECT#Z' }] },
-            consolidated: true,
         })).toBe(false)
     })
 
@@ -200,67 +181,18 @@ describe('isEphemeraLudicCachePresenceNode', () => {
             universalKey: 'PRESENCE#abc123',
             fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
             cover: { members: [{ host: 'PRESENCE#z_in_x' }] },
-            consolidated: true,
         })).toBe(false)
     })
 })
 
 describe('isEphemeraLudicCacheEdge', () => {
-    it('accepts an edge with an empty supportedBy', () => {
+    it('accepts a plain relational edge', () => {
         expect(isEphemeraLudicCacheEdge({
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'On',
-            supportedBy: [],
         })).toBe(true)
-    })
-
-    it('accepts an edge with one populated route', () => {
-        expect(isEphemeraLudicCacheEdge({
-            tag: 'Relational',
-            from: 'OBJECT#boulder',
-            to: 'OBJECT#ropeEnd',
-            kind: 'Custom',
-            relationLabel: 'TiedTo',
-            supportedBy: [[{ host: 'OBJECT#box', presenceBucketIds: ['PRESENCE#other'], port: 'port_1' }]],
-        })).toBe(true)
-    })
-
-    it('accepts an edge with more than one independently-consolidated route, and a hop with more than one alternative binding', () => {
-        expect(isEphemeraLudicCacheEdge({
-            tag: 'Relational',
-            from: 'OBJECT#boulder',
-            to: 'OBJECT#ropeEnd',
-            kind: 'Custom',
-            relationLabel: 'TiedTo',
-            supportedBy: [
-                [{ host: 'OBJECT#box', presenceBucketIds: ['PRESENCE#other'], port: 'port_1' }],
-                [
-                    { host: 'OBJECT#box', presenceBucketIds: ['PRESENCE#alternate', 'PRESENCE#alternate2'], port: 'port_2' },
-                    { host: 'OBJECT#crate', presenceBucketIds: ['PRESENCE#other'], port: 'port_3' },
-                ],
-            ],
-        })).toBe(true)
-    })
-
-    it('rejects an edge with missing supportedBy', () => {
-        expect(isEphemeraLudicCacheEdge({
-            tag: 'Relational',
-            from: 'OBJECT#boulder',
-            to: 'OBJECT#rope',
-            kind: 'On',
-        })).toBe(false)
-    })
-
-    it('rejects an edge whose hop names a presenceBucketId that is not a presence node id', () => {
-        expect(isEphemeraLudicCacheEdge({
-            tag: 'Relational',
-            from: 'OBJECT#boulder',
-            to: 'OBJECT#rope',
-            kind: 'On',
-            supportedBy: [[{ host: 'OBJECT#box', presenceBucketIds: ['not-an-id'], port: 'port_1' }]],
-        })).toBe(false)
     })
 
     it('rejects an edge whose base shape is invalid', () => {
@@ -269,7 +201,6 @@ describe('isEphemeraLudicCacheEdge', () => {
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'NotAKind',
-            supportedBy: [],
         })).toBe(false)
     })
 })
@@ -286,7 +217,6 @@ describe('isEphemeraLudicCacheData', () => {
         from: 'OBJECT#boulder',
         to: 'OBJECT#rope',
         kind: 'On' as const,
-        supportedBy: [],
     }
 
     it('accepts a well-formed cache', () => {
@@ -352,7 +282,6 @@ describe('isEphemeraLudicCacheData', () => {
             universalKey: 'PRESENCE#box_in_room',
             fromHostPresence: { host: 'ROOM#Test', presence: parentRemainderKey('ROOM#Test') },
             cover: { members },
-            consolidated: true,
         }],
     })
     const helmetBoundIntoBox = {
@@ -362,7 +291,6 @@ describe('isEphemeraLudicCacheData', () => {
             universalKey: 'PRESENCE#helmet_in_box',
             fromHostPresence: { host: 'OBJECT#box', presence: parentRemainderKey('OBJECT#box') },
             cover: { members: [] },
-            consolidated: true,
         }],
     }
 

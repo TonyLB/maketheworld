@@ -29,7 +29,7 @@ import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from '../ludicGraph'
 import { nodesFromPresenceBinding, subGraphFromNodes, unclaimedComponentNodes } from '../ludicGraph/presenceSubGraph'
-import type { EphemeraLudicCacheCoverEntry, EphemeraLudicCacheEdge, EphemeraLudicCachePresenceNode, EphemeraLudicCacheSupportHop } from './types'
+import type { EphemeraLudicCacheCoverEntry, EphemeraLudicCacheEdge, EphemeraLudicCachePresenceNode } from './types'
 
 /**
  * A crossing port **minted by a cut**, as distinct from one **authored on the whole** --- the
@@ -128,6 +128,16 @@ export const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string =
 }
 
 /**
+ * Keeps the first edge of each `collapsedEdgeIdentityKey`, in input order. Order is part of the
+ * contract: a retried rebuild must produce a byte-identical `edges` array (3e). Quadratic in the
+ * edge count, which is small next to the rebuild's I/O; it buys a pure function.
+ */
+export const dedupeEdgesByIdentity = (edges: EphemeraLudicCacheEdge[]): EphemeraLudicCacheEdge[] => {
+    const keys = edges.map(collapsedEdgeIdentityKey)
+    return edges.filter((_, index) => keys.indexOf(keys[index]) === index)
+}
+
+/**
  * Rewrites a bare presence-tagged terminal (`PRESENCE#{uuid}`, legal within the owning graph's own
  * interior storage) to the cache's exterior form `{ owner, port }` --- PNR-2(a), presenceNodes
  * Slice 3. Nesting made a binding's lookup in the cache a path (the owner's node, then that binding
@@ -163,11 +173,10 @@ const liftPresenceTerminal = (terminal: EphemeraLudicTerminalId, owner: Ephemera
  * that share its terminal, asserts they agree on identity fields (a mismatch is a data-integrity
  * break under this uniform-kind model, not a case to paper over --- see `legsAgree`), and
  * produces one collapsed edge: the parent leg with its port terminal rewritten to the child
- * leg's real interior node, carrying a one-hop, one-route `supportedBy` entry
- * (`[[{ presenceBucketIds: [presenceUuid], port: port.portId }]]`). Collapsed edges are then
- * grouped by `collapsedEdgeIdentityKey` --- **two crossing ports can independently collapse to
- * the same final `(from, to, kind)` triple**, and LR-8 requires that land on one record with two
- * routes side by side, never merged or tie-broken.
+ * leg's real interior node. Collapsed edges are then grouped by `collapsedEdgeIdentityKey` ---
+ * **two crossing ports can independently collapse to the same final `(from, to, kind)` triple**,
+ * and those land on one record (the first, by port order). The cache keeps no record of which
+ * crossings justified an edge: a stale cache is rebuilt whole.
  *
  * **A port with no matching leg on one or both sides is incomplete data, not an error.** A
  * merge reducer cannot invent a missing leg (data may legitimately be mid-write), so that port
@@ -175,22 +184,12 @@ const liftPresenceTerminal = (terminal: EphemeraLudicTerminalId, owner: Ephemera
  *
  * Presence is bucket-membership metadata carried on nodes, not ports (`presenceSubGraph.ts`'s
  * own LR-6 note) --- `childGraph.ports` never contains one, so there is nothing to exclude here.
- *
- * **`presenceUuid` (PN-2/D8, presenceNodes Slice 4): the caller tells this function which of
- * `childGraph`'s own bindings it is folding** --- `childGraph` here is one bucket (the cut for one
- * specific presence binding), not the whole child graph, so the binding is context the caller
- * already has and this function cannot derive on its own. It becomes every collapsed hop's own
- * `presenceBucketIds` singleton; a real multi-binding OR only arises once more than one binding's
- * fold is merged into the same route, which is Slice 5/6's cross-host merge orchestration, not
- * built yet.
  */
 export const collapseCrossingPorts = (
     parentGraph: EphemeraLudicGraph,
-    childGraph: EphemeraLudicGraph,
-    presenceUuid: string
+    childGraph: EphemeraLudicGraph
 ): EphemeraLudicCacheEdge[] => {
     const crossingPorts = childGraph.ports
-    const presenceBucketId: EphemeraPresenceNodeId = PresenceKey(presenceUuid)
 
     const collapsedLegs = crossingPorts.reduce<EphemeraLudicCacheEdge[]>((acc, port) => {
         const portTerminal: EphemeraLudicPortAddress = { owner: childGraph.hostId, port: port.portId }
@@ -221,20 +220,11 @@ export const collapseCrossingPorts = (
             to: rewrite(parentLeg.to),
         }
 
-        // `host` names the host whose crossing port this hop travels through (PNR-2(b)) --- the
-        // port id alone is unique only within its own host, so `{ host, port }` is the hop's real
-        // key and exactly the crossing port's own exterior address.
-        const hop: EphemeraLudicCacheSupportHop = { host: childGraph.hostId, presenceBucketIds: [presenceBucketId], port: port.portId }
-        return [...acc, { ...toStoredRelationalEdge(collapsed), supportedBy: [[hop]] }]
+        return [...acc, toStoredRelationalEdge(collapsed)]
     }, [])
 
-    const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
-    collapsedLegs.forEach((edge) => {
-        const key = collapsedEdgeIdentityKey(edge)
-        const existing = byIdentity.get(key)
-        byIdentity.set(key, existing ? { ...existing, supportedBy: [...existing.supportedBy, ...edge.supportedBy] } : edge)
-    })
-    return [...byIdentity.values()]
+    const deduped = dedupeEdgesByIdentity(collapsedLegs)
+    return deduped
 }
 
 /**
@@ -252,10 +242,7 @@ export const collapseCrossingPorts = (
  * authored**, per `isStubPort`; an authored boundary can now legitimately appear in two buckets
  * and must not be spliced --- finds each side's leg touching that port terminal, asserts they agree exactly as
  * `collapseCrossingPorts` does, and rewrites bucket A's leg with bucket B's outer terminal to
- * recover the original edge. `supportedBy` is always `[]` --- this never crosses a membership
- * boundary, so there is no hop to record (D11: a same-host edge's dependence is a membership
- * fact, carried on the node record, not a traversal fact).
- */
+ * recover the original edge. */
 export const collapseSameHostStubs = (
     bucketA: EphemeraLudicGraph,
     bucketB: EphemeraLudicGraph
@@ -289,16 +276,11 @@ export const collapseSameHostStubs = (
             to: rewrite(legA.to),
         }
 
-        return [...acc, { ...toStoredRelationalEdge(collapsed), supportedBy: [] }]
+        return [...acc, toStoredRelationalEdge(collapsed)]
     }, [])
 
-    const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
-    collapsedLegs.forEach((edge) => {
-        const key = collapsedEdgeIdentityKey(edge)
-        const existing = byIdentity.get(key)
-        byIdentity.set(key, existing ? { ...existing, supportedBy: [...existing.supportedBy, ...edge.supportedBy] } : edge)
-    })
-    return [...byIdentity.values()]
+    const deduped = dedupeEdgesByIdentity(collapsedLegs)
+    return deduped
 }
 
 /**
@@ -389,11 +371,10 @@ export const mergeSameHostBucket = (
 
 /**
  * The `EphemeraLudicCachePresenceNode` for each binding folded, one per `presenceUuid`
- * (presenceNodes Slice 4, item 3). `consolidated: true` because a binding only reaches this
- * function by being named in `presenceUuids` --- the set of buckets being pulled --- so every
- * node this produces is by construction one that WAS pulled; `EphemeraLudicCacheData` simply
- * never gets an entry for one that wasn't (PN-15's own "the marker is the node, never which
- * field carries it").
+ * (presenceNodes Slice 4, item 3). A binding only reaches this function by being named in
+ * `presenceUuids` --- the set of buckets being pulled --- so every node this produces is by
+ * construction one that WAS pulled; `EphemeraLudicCacheData` simply never gets an entry for one
+ * that wasn't.
  *
  * `cover` entries name each covered member's OWN binding into this host, never the covering
  * binding (`EphemeraLudicCacheCoverEntry`). A graph-side explicit entry already says so,
@@ -468,7 +449,6 @@ const presenceCacheNodesFromFold = (
             universalKey,
             ...(presenceNode.fromHostPresence ? { fromHostPresence: presenceNode.fromHostPresence } : {}),
             cover: { members },
-            consolidated: true,
         }]
     }, [])
 }
@@ -525,14 +505,8 @@ export const foldSameHostBuckets = (
             ...toStoredRelationalEdge(edge),
             from: liftPresenceTerminal(edge.from, graph.hostId),
             to: liftPresenceTerminal(edge.to, graph.hostId),
-            supportedBy: [] as EphemeraLudicCacheEdge['supportedBy'],
         }))
 
-    const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
-    resolvedLegs.forEach((edge) => {
-        const key = collapsedEdgeIdentityKey(edge)
-        const existing = byIdentity.get(key)
-        byIdentity.set(key, existing ? { ...existing, supportedBy: [...existing.supportedBy, ...edge.supportedBy] } : edge)
-    })
-    return { presenceNodes: presenceCacheNodesFromFold(graph, presenceUuids, memberBindings), edges: [...byIdentity.values()] }
+    const deduped = dedupeEdgesByIdentity(resolvedLegs)
+    return { presenceNodes: presenceCacheNodesFromFold(graph, presenceUuids, memberBindings), edges: deduped }
 }

@@ -135,7 +135,7 @@ describe('buildLudicCache', () => {
         // z_at_x), never the covering binding.
         expect(shortNameDeps.getComponentAggregate).toHaveBeenCalledTimes(6) // roomA, objX, objY, objZ, pebble1, pebble2
         const binding = (uuid: string, parentHost: EphemeraMembershipHostId, members: { host: EphemeraMembershipHostId, presence: string }[]) => ({
-            tag: 'Presence', universalKey: PresenceKey(uuid), fromHostPresence: { host: parentHost, presence: parentRemainderKey(parentHost) }, consolidated: true,
+            tag: 'Presence', universalKey: PresenceKey(uuid), fromHostPresence: { host: parentHost, presence: parentRemainderKey(parentHost) },
             cover: { members },
         })
         expect(cache.nodes).toHaveLength(6)
@@ -161,7 +161,7 @@ describe('buildLudicCache', () => {
         // reassembled by foldSameHostBuckets --- this is what would come back stubbed on both
         // sides if the same-host fold were skipped or misapplied.
         expect(cache.edges).toEqual([
-            { tag: 'Relational', from: pebble1, to: pebble2, kind: 'Custom', relationLabel: 'under', supportedBy: [] },
+            { tag: 'Relational', from: pebble1, to: pebble2, kind: 'Custom', relationLabel: 'under' },
         ])
     })
 
@@ -204,7 +204,7 @@ describe('buildLudicCache', () => {
         const xBinding = cache.nodes.find((node) => node.universalKey === objX)?.presenceNodes
             .find((presenceNode) => presenceNode.universalKey === 'PRESENCE#x_to_room')
         expect(xBinding).toEqual({
-            tag: 'Presence', universalKey: 'PRESENCE#x_to_room', fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) }, consolidated: true,
+            tag: 'Presence', universalKey: 'PRESENCE#x_to_room', fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) },
             cover: {
                 members: expect.arrayContaining([
                     { host: objZ, presence: 'PRESENCE#z_at_x_1' },
@@ -281,8 +281,8 @@ describe('buildLudicCache', () => {
 
         const roomBindings = cache.nodes.find((node) => node.universalKey === roomA)?.presenceNodes ?? []
         expect(roomBindings).toEqual([
-            { tag: 'Presence', universalKey: 'PRESENCE#a_root', consolidated: true, cover: { members: [{ host: objX }] } },
-            { tag: 'Presence', universalKey: 'PRESENCE#a_in_town', fromHostPresence: { host: town, presence: parentRemainderKey(town) }, consolidated: true, cover: { members: [] } },
+            { tag: 'Presence', universalKey: 'PRESENCE#a_root', cover: { members: [{ host: objX }] } },
+            { tag: 'Presence', universalKey: 'PRESENCE#a_in_town', fromHostPresence: { host: town, presence: parentRemainderKey(town) }, cover: { members: [] } },
         ])
         expect(isEphemeraLudicCacheData(cache)).toBe(true)
     })
@@ -319,11 +319,11 @@ describe('buildLudicCache', () => {
                 universalKey: objX,
                 presenceNodes: [
                     {
-                        tag: 'Presence', universalKey: 'PRESENCE#x_to_room_a', fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) }, consolidated: true,
+                        tag: 'Presence', universalKey: 'PRESENCE#x_to_room_a', fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) },
                         cover: { members: [] },
                     },
                     {
-                        tag: 'Presence', universalKey: 'PRESENCE#x_to_room_b', fromHostPresence: { host: roomB, presence: parentRemainderKey(roomB) }, consolidated: true,
+                        tag: 'Presence', universalKey: 'PRESENCE#x_to_room_b', fromHostPresence: { host: roomB, presence: parentRemainderKey(roomB) },
                         cover: { members: [{ host: objZ, presence: 'PRESENCE#z_in_x' }] },
                     },
                 ],
@@ -332,7 +332,7 @@ describe('buildLudicCache', () => {
                 tag: 'Object',
                 universalKey: objZ,
                 presenceNodes: [{
-                    tag: 'Presence', universalKey: 'PRESENCE#z_in_x', fromHostPresence: { host: objX, presence: parentRemainderKey(objX) }, consolidated: true,
+                    tag: 'Presence', universalKey: 'PRESENCE#z_in_x', fromHostPresence: { host: objX, presence: parentRemainderKey(objX) },
                     cover: { members: [] },
                 }],
             },
@@ -342,7 +342,7 @@ describe('buildLudicCache', () => {
 
     // A child bound twice into one host crosses at each binding, never only the first found: the
     // collapsed edge carries one route per binding, side by side (LR-8).
-    it('collapses a crossing once per binding when a child is bound twice into the same host', async () => {
+    it('collapses a crossing to one edge when a child is bound twice into the same host', async () => {
         const roomGraph = testLudicGraph(roomA, {
             nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: boulder }, { tag: 'Object', universalKey: boxId }],
             edges: [{ tag: 'Relational', from: boulder, to: { owner: boxId, port: 'port_1' }, kind: 'On' }],
@@ -372,11 +372,8 @@ describe('buildLudicCache', () => {
 
         const { cache } = await buildLudicCache(roomA, [], { getLudicGraph, ...noShortNameDeps() })
 
-        const crossing = cache.edges.find((edge) => edge.from === boulder && edge.to === pebble)
-        expect(crossing?.supportedBy).toEqual([
-            [{ host: boxId, presenceBucketIds: ['PRESENCE#box_in_a_1'], port: 'port_1' }],
-            [{ host: boxId, presenceBucketIds: ['PRESENCE#box_in_a_2'], port: 'port_1' }],
-        ])
+        // Two routes (one per binding of the box) collapse to one identity, so one edge.
+        expect(cache.edges.filter((edge) => edge.from === boulder && edge.to === pebble)).toHaveLength(1)
     })
 
     // 3b: the one-way-walk failure this exists to rule out --- a crossing port whose matching leg
@@ -461,8 +458,7 @@ describe('buildLudicCache', () => {
     })
 
     // 3e: idempotence/confluence --- a retried rebuild against the same underlying graphs must
-    // not duplicate a node or grow supportedBy. Byte-identical, not merely equal after sorting,
-    // since supportedBy's outer-list order is meaningful (LR-8).
+    // not duplicate a node or an edge. Byte-identical, not merely equal after sorting.
     it('produces a byte-identical cache when run twice against the same graphs', async () => {
         const roomGraph = testLudicGraph(roomA, {
             nodes: [
