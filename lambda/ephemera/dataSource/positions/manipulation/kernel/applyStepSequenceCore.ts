@@ -12,6 +12,7 @@ import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ep
 import type { MutationKernelMovePresenceBindingStep, MutationKernelReleasePresenceBindingStep, MutationKernelStep } from './kernelStep'
 import { settleMembership } from './settleMembership'
 import { splitPresenceBinding } from './splitPresenceBinding'
+import { joinPresenceBindings } from './joinPresenceBindings'
 import type { MutationKernelApplyOutcome } from './types'
 
 /**
@@ -332,9 +333,13 @@ export const applyStepSequenceCore = (
             graphs = split.graphs
             continue
         }
-        // A stub (presenceMoves Slice 4). A join is deliberately a no-op: a multi-binding move
-        // leaves its bindings side by side until it has a body.
         if (step.kind === 'joinPresenceBindings') {
+            // no host's membership changes: two bindings of one whole under one parent become one.
+            const joined = joinPresenceBindings(graphs, step)
+            if ('reasonCode' in joined) {
+                return { verdict: 'stale', reasonCode: joined.reasonCode }
+            }
+            graphs = joined.graphs
             continue
         }
 
@@ -429,6 +434,32 @@ export const applyStepSequenceCore = (
                 )
             }
         })
+
+    // The transient-duplicate invariant (AGENT.presenceMoves.planning.md): two bindings of one whole
+    // under the same parent binding are legal only inside a run (a split produces them, a pair of
+    // moves to one parent produces them before a join), and no run may leave them behind. Checks only
+    // graphs this run wrote, so duplicates already in storage do not make an unrelated run throw. A
+    // pointer with no `presence` is a legacy host-only pointer, which names no binding to collide on.
+    // A violation is a caller bug (a missing join), not a verdict, like the character check above.
+    graphs.forEach((graph, hostId) => {
+        if (graph === initialGraphs.get(hostId)) {
+            return
+        }
+        const presencesByParentHost = graph.presenceNodes.reduce<Record<string, string[]>>((accumulator, { fromHostPresence }) => (
+            fromHostPresence?.presence
+                ? { ...accumulator, [fromHostPresence.host]: [...(accumulator[fromHostPresence.host] ?? []), fromHostPresence.presence] }
+                : accumulator
+        ), {})
+        Object.entries(presencesByParentHost).forEach(([parentHost, presences]) => {
+            const duplicate = presences.find((presence, index) => presences.indexOf(presence) !== index)
+            if (duplicate) {
+                throw new Error(
+                    `applyStepSequenceCore: ${hostId} would carry two bindings under the same parent binding ${duplicate} on ${parentHost} ` +
+                    `--- two bindings of one whole under one parent may exist only inside a run, so a join was missing.`
+                )
+            }
+        })
+    })
 
     return { verdict: 'legal', graphs, captures }
 }

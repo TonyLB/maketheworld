@@ -75,12 +75,12 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint([move], () => undefined)).toEqual(new Set([glassId, roomId]))
     })
 
-    it('a release contributes its hostId and the host it leaves; a join contributes its hostId alone', () => {
+    it('a release contributes its hostId and the host it leaves; a join contributes its hostId and the children of its absorbed cover', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: otherRoomId } },
-            { kind: 'joinPresenceBindings', hostId: roomId, survivor: 'PRESENCE#a' as any, absorbed: 'PRESENCE#b' as any },
+            { kind: 'joinPresenceBindings', hostId: roomId, survivor: 'PRESENCE#a' as any, absorbed: 'PRESENCE#b' as any, absorbedCover: { members: [{ host: glassId, presence: 'PRESENCE#g' as any }, { tag: 'Remainder' }] } },
         ]
-        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, otherRoomId, roomId]))
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, otherRoomId, roomId, glassId]))
     })
 
     it('a split contributes its hostId and the child of every entry that moves to a new binding, not the original binding\'s children', () => {

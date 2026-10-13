@@ -46,12 +46,12 @@ describe('presenceBindingStepsForMove', () => {
         const steps = presenceBindingStepsForMove(HOST_ID, {
             presenceMoves: [
                 { presence: presence('a'), from: { host: FROM_ROOM }, to: TO },
-                { presence: presence('b'), from: { host: OTHER_FROM }, to: TO },
+                { presence: presence('b'), from: { host: OTHER_FROM }, to: TO, cover: { members: [{ host: FROM_ROOM, presence: presence('c') }] } },
             ],
         })
 
         expect(steps.map((step) => step.kind)).toEqual(['movePresenceBinding', 'movePresenceBinding', 'joinPresenceBindings'])
-        expect(steps[2]).toEqual({ kind: 'joinPresenceBindings', hostId: HOST_ID, survivor: presence('a'), absorbed: presence('b') })
+        expect(steps[2]).toEqual({ kind: 'joinPresenceBindings', hostId: HOST_ID, survivor: presence('a'), absorbed: presence('b'), absorbedCover: { members: [{ host: FROM_ROOM, presence: presence('c') }] } })
     })
 
     it('emits one release per departing binding, after any moves', () => {

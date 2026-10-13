@@ -49,6 +49,11 @@ export type MembershipMoveNarrationInput = {
 export type PositionKernelPresenceMove = {
     /** The mover's own binding, on the mover's graph. */
     presence: EphemeraPresenceNodeId
+    /**
+     * That binding's cover as the planner read it. Used only when the move is followed by a join,
+     * where the absorbed binding's cover names the children the join must lock and re-point.
+     */
+    cover?: EphemeraPresenceCover
 } & (
     {
         /** The parent binding it sits under now; `null` for a hostless binding (a first placement). */

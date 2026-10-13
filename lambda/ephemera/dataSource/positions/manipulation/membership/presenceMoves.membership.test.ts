@@ -83,7 +83,9 @@ describe('a move changes a host\'s membership only with the mover\'s first or la
     it('arriving at a host where the mover already has a binding adds nothing and is not refused', async () => {
         const world = { ...twoRooms(), [roomC]: room(roomC, [plank]) }
         world[plank] = testLudicGraph(plank, { nodes: [{ tag: 'Object', universalKey: plank }, presenceBindingNode('plank-a', roomA), presenceBindingNode('plank-c', roomC)] })
-        const steps = await moveOf([roomA], roomC, world)
+        // both bindings end under roomC's one binding, so the run joins them (the transient-duplicate invariant)
+        const join: MutationKernelStep = { kind: 'joinPresenceBindings', hostId: plank, survivor: presence('plank-c'), absorbed: presence('plank-a'), absorbedCover: { members: [{ tag: 'Remainder' }] } }
+        const steps = [...(await moveOf([roomA], roomC, world)), join]
         const after = apply(steps, world)
 
         expect(heldIn(after, roomA)).toBe(false)
@@ -173,10 +175,11 @@ describe('two bindings of one mover under one host', () => {
         })
 
         expect(steps.map((step) => step.kind)).toEqual(['movePresenceBinding'])
-        const after = apply(steps, world)
+        // the move leaves the plank twice under table-2, which a join (a run's last step) folds into one
+        const join: MutationKernelStep = { kind: 'joinPresenceBindings', hostId: plank, survivor: presence('plank-on-2'), absorbed: presence('plank-on-1'), absorbedCover: { members: [{ tag: 'Remainder' }] } }
+        const after = apply([...steps, join], world)
         expect(heldIn(after, table)).toBe(true)
         expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence?.presence])).toEqual([
-            [presence('plank-on-1'), presence('table-2')],
             [presence('plank-on-2'), presence('table-2')],
         ])
     })
@@ -228,15 +231,15 @@ describe('the moved fact reports only the hosts whose membership changed', () =>
 
     it('streams no fact for a move between two bindings of one host', () => {
         const prior = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-            [roomA, room(roomA, [plank])],
-            [plank, testLudicGraph(plank, { nodes: [{ tag: 'Object', universalKey: plank }, presenceBindingNode('plank-a', roomA), presenceBindingNode('plank-a2', roomA)] })],
+            [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Object', universalKey: plank }, presenceBindingNode(parentRemainderKey(roomA)), presenceBindingNode('roomA-other'), presenceBindingNode('roomA-third')] })],
+            [plank, testLudicGraph(plank, { nodes: [{ tag: 'Object', universalKey: plank }, presenceBindingNode('plank-a', roomA), presenceBindingNode('plank-a2', { host: roomA, presence: presence('roomA-other') })] })],
         ])
         const sameHost: MutationKernelStep = {
             kind: 'movePresenceBinding',
             hostId: plank,
             presence: presence('plank-a'),
             from: { host: roomA, presence: parentRemainderKey(roomA) },
-            to: { host: roomA, presence: parentRemainderKey(roomA) },
+            to: { host: roomA, presence: presence('roomA-third') },
         }
         const final = apply([sameHost], Object.fromEntries(prior))
 
