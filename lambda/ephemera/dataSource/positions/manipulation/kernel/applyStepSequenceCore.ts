@@ -419,19 +419,19 @@ export const applyStepSequenceCore = (
             }
         })
 
-    // The transient-duplicate invariant (AGENT.presenceMoves.planning.md): two bindings of one whole
-    // under the same parent binding are legal only inside a run (a split produces them, a pair of
-    // moves to one parent produces them before a join), and no run may leave them behind. Checks only
-    // graphs this run wrote, so duplicates already in storage do not make an unrelated run throw. A
-    // pointer with no `presence` is a legacy host-only pointer, which names no binding to collide on.
+    // The transient-duplicate invariant (AGENT.contract.md, "A binding's id is stable for the whole's
+    // life"): two bindings of one whole under the same parent binding are legal only inside a run (a
+    // split produces them, a pair of moves to one parent produces them before a join), and no run may
+    // leave them behind. Checks only graphs this run wrote, so duplicates already in storage do not
+    // make an unrelated run throw. A hostless binding has no pointer, so names no binding to collide on.
     // A violation is a caller bug (a missing join), not a verdict, like the character check above.
     graphs.forEach((graph, hostId) => {
         if (graph === initialGraphs.get(hostId)) {
             return
         }
         const presencesByParentHost = graph.presenceNodes.reduce<Record<string, string[]>>((accumulator, { fromHostPresence }) => (
-            fromHostPresence?.presence
-                ? { ...accumulator, [fromHostPresence.host]: [...(accumulator[fromHostPresence.host] ?? []), fromHostPresence.presence] }
+            fromHostPresence
+                ?{ ...accumulator, [fromHostPresence.host]: [...(accumulator[fromHostPresence.host] ?? []), fromHostPresence.presence] }
                 : accumulator
         ), {})
         Object.entries(presencesByParentHost).forEach(([parentHost, presences]) => {
