@@ -7,6 +7,7 @@ import type { MutationKernelStep } from './kernelStep'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const glassId = 'OBJECT#Glass' as EphemeraObjectId
+const tableId = 'OBJECT#Table' as EphemeraObjectId
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
 const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
@@ -74,13 +75,25 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint([move], () => undefined)).toEqual(new Set([glassId, roomId]))
     })
 
-    it('a release contributes its hostId and the host it leaves; split and join contribute their hostId alone', () => {
+    it('a release contributes its hostId and the host it leaves; a join contributes its hostId alone', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: otherRoomId } },
-            { kind: 'splitPresenceBinding', hostId: glassId, presence: 'PRESENCE#a' as any, results: [] },
             { kind: 'joinPresenceBindings', hostId: roomId, survivor: 'PRESENCE#a' as any, absorbed: 'PRESENCE#b' as any },
         ]
-        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, otherRoomId, glassId, roomId]))
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, otherRoomId, roomId]))
+    })
+
+    it('a split contributes its hostId and the child of every entry that moves to a new binding, not the original binding\'s children', () => {
+        const split: MutationKernelStep = {
+            kind: 'splitPresenceBinding',
+            hostId: tableId,
+            presence: 'PRESENCE#a' as any,
+            splitInto: [
+                { presence: 'PRESENCE#a' as any, cover: { members: [{ host: glassId, presence: 'PRESENCE#g' as any }, { tag: 'Remainder' }] } },
+                { presence: 'PRESENCE#b' as any, cover: { members: [{ host: trayId, presence: 'PRESENCE#t' as any }] } },
+            ],
+        }
+        expect(computeStepSequenceFootprint([split], () => undefined)).toEqual(new Set([tableId, trayId]))
     })
 
     it('a leg with a port-address endpoint resolves its host from the primitive endpoint alone, not both', () => {

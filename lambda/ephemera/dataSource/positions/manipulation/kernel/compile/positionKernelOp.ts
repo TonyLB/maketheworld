@@ -6,6 +6,7 @@ import type { ExecutorDescribeStep } from '../../../../actions/enrich/objectMani
 import type { MembershipEmissionCopyKind, PresenceBindingRef } from '../kernelStep'
 import type { ParentBinding } from '../../../ludicGraph/presenceParent'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 /** The arrival header's binding, as carried on a `describe` step. */
 export type MoveHeaderBinding = NonNullable<ExecutorDescribeStep['header']>
@@ -27,7 +28,7 @@ export type MembershipMoveNarrationInput = {
  * (`compilePositionKernelOp.ts`) expands into `KernelStep[]`. Shaped at the level the instruction
  * planner sees the world --- `moved` generalizes over object/character (BD-36) --- rather than at the level a player
  * experiences it (a character-only, room-only "navigate" op sitting one layer above a type that's
- * already general). `Move` is the only member of `PositionKernelOp`; it is a closed union
+ * already general). `Move` and `Split` are the members of `PositionKernelOp`; it is a closed union
  * because world operations are genuinely enumerable --- take/drop/give is definitionally a move of
  * an entity between two membership hosts, the same shape as a character moving room to room, so the
  * direction never needed to be an op discriminant, and no sibling `Take`/`Drop` ops exist.
@@ -105,4 +106,20 @@ export type PositionKernelMoveOp = {
     narration?: MembershipMoveNarrationInput
 }
 
-export type PositionKernelOp = PositionKernelMoveOp
+/**
+ * Splits one binding of a whole into several under the same parent (presenceMoves Slice 3). The
+ * whole is the only host written (plus the children whose bindings are re-pointed, which the step
+ * names through its cover entries), so there is no mover, narration, header or dissolved edge: the
+ * op compiles to the one `splitPresenceBinding` step (`presenceBindingStepsForSplit`). `splitInto`
+ * is the finished instruction, **ids minted by the producer** (`resolvePresenceSplit`), because a
+ * later step in the same run (a move of one result to another parent) must name them.
+ */
+export type PositionKernelSplitOp = {
+    kind: 'split'
+    whole: EphemeraMembershipHostId
+    /** The binding being split; it survives as one entry of `splitInto`. */
+    presence: EphemeraPresenceNodeId
+    splitInto: readonly { presence: EphemeraPresenceNodeId; cover: EphemeraPresenceCover }[]
+}
+
+export type PositionKernelOp = PositionKernelMoveOp | PositionKernelSplitOp

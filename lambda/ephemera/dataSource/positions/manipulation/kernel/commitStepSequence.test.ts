@@ -5,6 +5,7 @@ import { commitStepSequence } from './commitStepSequence'
 import type { MutationKernelStep } from './kernelStep'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { graphFromMeta } from '../../ludicGraph'
 
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
@@ -86,6 +87,43 @@ describe('commitStepSequence', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+    })
+
+    describe('a split', () => {
+        const PLANK = 'OBJECT#Plank' as EphemeraObjectId
+        const CUP = 'OBJECT#Cup' as EphemeraObjectId
+        const BOOK = 'OBJECT#Book' as EphemeraObjectId
+
+        it('locks the re-pointed child (not the original binding\'s children) and persists the re-pointed pointer', async () => {
+            const cupEntry = { host: CUP, presence: 'PRESENCE#cup1' as const }
+            const bookEntry = { host: BOOK, presence: 'PRESENCE#book1' as const }
+            const under = { host: PLANK, presence: 'PRESENCE#B' as const }
+            const graphs = {
+                [PLANK]: testLudicGraph(PLANK, { nodes: [{ tag: 'Object', universalKey: PLANK }, presenceBindingNode('B', ROOM_ID, { members: [cupEntry, bookEntry, { tag: 'Remainder' }] })] }),
+                [BOOK]: testLudicGraph(BOOK, { nodes: [presenceBindingNode('book1', under)] }),
+            }
+            const { transactWrite, lastItems, lastDraft } = makeTransactWriteMock(graphs)
+            const steps: MutationKernelStep[] = [{
+                kind: 'splitPresenceBinding',
+                hostId: PLANK,
+                presence: 'PRESENCE#B' as any,
+                splitInto: [
+                    { presence: 'PRESENCE#B' as any, cover: { members: [cupEntry, { tag: 'Remainder' }] } },
+                    { presence: 'PRESENCE#B2' as any, cover: { members: [bookEntry] } },
+                ],
+            }]
+
+            const result = await commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            const locked = lastItems.current!.find((item) => 'MultiKeyUpdate' in item).MultiKeyUpdate.Keys.map((key: { EphemeraId: string }) => key.EphemeraId)
+            expect(new Set(locked)).toEqual(new Set([PLANK, BOOK]))
+            const bookRow = Object.values(lastDraft.current!).find((row: any) => row.EphemeraId === BOOK) as any
+            expect(graphFromMeta(bookRow, BOOK).presenceNodes[0].fromHostPresence).toEqual({ host: PLANK, presence: 'PRESENCE#B2' })
+        })
     })
 
     describe('membership counts bindings', () => {

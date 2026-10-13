@@ -7,9 +7,11 @@ import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import { applyStepSequenceCore } from '../kernel/applyStepSequenceCore'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
+import { presenceBindingStepsForSplit } from '../kernel/compile/presenceBindingStepsForSplit'
 import { isKernelMutationStep } from '../kernel/kernelStep'
 import { planObjectMoveTransfer } from './planObjectMoveTransfer'
 import { resolvePresenceMoves } from './resolvePresenceMoves'
+import { resolvePresenceSplit } from './resolvePresenceSplit'
 
 /**
  * presenceMoves Slice 1's payoffs, run through the real planner and compiler and the real kernel
@@ -153,5 +155,70 @@ describe('the bridge: a multi-from scrub moves each binding and leaves the join 
         expect(classifyPresenceCoverDrift(viewOf(world[plank]), memberGraph(world)).findings).toEqual([finding])
         const { after } = await scrub(world)
         expect(classifyPresenceCoverDrift(viewOf(after.get(plank)!), memberGraph(after)).findings).toEqual([finding])
+    })
+})
+
+describe('a split leaves the cover consistent with every child\'s pointer', () => {
+    const table = 'OBJECT#Table' as EphemeraObjectId
+    const book = 'OBJECT#Book' as EphemeraObjectId
+    const B = presence('plank-B')
+    const under = { host: plank, presence: B }
+    const world = () => ({
+        [roomA]: testLudicGraph(roomA, { nodes: [{ tag: 'Object', universalKey: plank }, { tag: 'Object', universalKey: table }, presenceBindingNode(parentRemainderKey(roomA))] }),
+        [table]: testLudicGraph(table, { nodes: [{ tag: 'Object', universalKey: table }, presenceBindingNode('table-top', roomA)] }),
+        [plank]: testLudicGraph(plank, {
+            nodes: [
+                { tag: 'Object', universalKey: plank },
+                { tag: 'Object', universalKey: cup },
+                { tag: 'Object', universalKey: book },
+                { tag: 'Object', universalKey: ball },
+                presenceBindingNode(B, roomA, { members: [{ host: cup, presence: presence('cup1') }, { host: book, presence: presence('book1') }, { tag: 'Remainder' }] }),
+            ],
+        }),
+        [cup]: testLudicGraph(cup, { nodes: [presenceBindingNode('cup1', under)] }),
+        [book]: testLudicGraph(book, { nodes: [presenceBindingNode('book1', under)] }),
+        // never listed by a binding, so it belongs to the Remainder, which stays on the original
+        [ball]: testLudicGraph(ball, { nodes: [presenceBindingNode('ball1', under)] }),
+    })
+    const verdictOf = (after: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>) => {
+        const memberOf = (id: string) => after.has(id as EphemeraMembershipHostId) ? viewOf(after.get(id as EphemeraMembershipHostId)!) : undefined
+        return {
+            findings: classifyPresenceCoverDrift(viewOf(after.get(plank)!), memberOf).findings,
+            rebuilds: coverRebuildsFor(viewOf(after.get(plank)!), (id) => memberOf(id)!),
+        }
+    }
+    const planSplit = async (graphs: Record<string, EphemeraLudicGraph>) => {
+        const planned = await resolvePresenceSplit({ whole: plank, presence: B, moveOut: [[book]], getGraph: worldOf(graphs) })
+        if (!planned.ok) { throw new Error(`expected a split, got ${planned.errorCode}`) }
+        return planned.op
+    }
+
+    it('reads clean before (the fixture is sound), and after the split', async () => {
+        const graphs = world()
+        expect(verdictOf(new Map(Object.entries(graphs)) as any)).toEqual({ findings: [], rebuilds: [] })
+
+        const op = await planSplit(graphs)
+        const after = applyPlanned(presenceBindingStepsForSplit(op), graphs)
+
+        expect(verdictOf(after)).toEqual({ findings: [], rebuilds: [] })
+        expect(after.get(plank)!.presenceNodes.map(({ universalKey }) => universalKey)).toEqual([B, op.splitInto[1].presence])
+        expect(after.get(book)!.presenceNodes[0].fromHostPresence).toEqual({ host: plank, presence: op.splitInto[1].presence })
+        expect(after.get(cup)!.presenceNodes[0].fromHostPresence).toEqual(under)
+        expect(after.get(ball)!.presenceNodes[0].fromHostPresence).toEqual(under)
+    })
+
+    it('reads clean when a move of the new binding to another parent follows in the same run (the minted id is nameable)', async () => {
+        const graphs = world()
+        const op = await planSplit(graphs)
+        const newId = op.splitInto[1].presence
+        const steps = [
+            ...presenceBindingStepsForSplit(op),
+            { kind: 'movePresenceBinding' as const, hostId: plank, presence: newId, from: { host: roomA, presence: parentRemainderKey(roomA) }, to: { host: table, presence: presence('table-top') } },
+        ]
+
+        const after = applyPlanned(steps, graphs)
+
+        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence?.host])).toEqual([[B, roomA], [newId, table]])
+        expect(verdictOf(after)).toEqual({ findings: [], rebuilds: [] })
     })
 })

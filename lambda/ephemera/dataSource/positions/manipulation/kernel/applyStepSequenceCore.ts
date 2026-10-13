@@ -11,6 +11,7 @@ import { childParentBindingIdOf } from '../../ludicGraph/presenceParent'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MutationKernelMovePresenceBindingStep, MutationKernelReleasePresenceBindingStep, MutationKernelStep } from './kernelStep'
 import { settleMembership } from './settleMembership'
+import { splitPresenceBinding } from './splitPresenceBinding'
 import type { MutationKernelApplyOutcome } from './types'
 
 /**
@@ -322,13 +323,19 @@ export const applyStepSequenceCore = (
             graphs = settled.graphs
             continue
         }
-        // Stubs (presenceMoves Slices 3 and 4). A join is deliberately a no-op: a multi-binding move
+        if (step.kind === 'splitPresenceBinding') {
+            // no host's membership changes: the same nodes, only re-bucketed, so nothing to settle.
+            const split = splitPresenceBinding(graphs, step)
+            if ('reasonCode' in split) {
+                return { verdict: 'stale', reasonCode: split.reasonCode }
+            }
+            graphs = split.graphs
+            continue
+        }
+        // A stub (presenceMoves Slice 4). A join is deliberately a no-op: a multi-binding move
         // leaves its bindings side by side until it has a body.
         if (step.kind === 'joinPresenceBindings') {
             continue
-        }
-        if (step.kind === 'splitPresenceBinding') {
-            return { verdict: 'stale', reasonCode: 'notImplemented' }
         }
 
         if (step.kind === 'repairPresenceBinding') {

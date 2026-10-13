@@ -159,15 +159,24 @@ export type MutationKernelReleasePresenceBindingStep = {
 }
 
 /**
- * Splits one binding of a whole into several under the same parent (presenceMoves Slice 3). A
- * **stub**: the shape is provisional and nothing emits it yet; the handler returns `stale`
- * (`notImplemented`).
+ * Splits one binding `presence` of a whole (`hostId`) into the bindings in `splitInto`, all under
+ * the same parent as the original (presenceMoves Slice 3). Exactly one `splitInto` binding carries
+ * the original's id (so a child naming it is not orphaned); the others carry ids the producer
+ * minted, so a later step in the same run can name them.
+ *
+ * A cover entry is `{ host, presence }`: the child's host and the child's own binding id. So every
+ * entry in a binding other than the original names a child whose binding must now point at that new
+ * binding; the handler re-points it, and the footprint loads the child's graph from the same entry.
+ * Disjoint and never cascading: a member in two results, or an entry the original did not cover, is
+ * `stale`. The `Remainder` stays on the original binding (present there iff the original held it,
+ * and in no other result), so a split moves only explicitly listed entries and an unlisted child
+ * never moves. No host's membership changes.
  */
 export type MutationKernelSplitPresenceBindingStep = {
     kind: 'splitPresenceBinding'
     hostId: EphemeraMembershipHostId
     presence: EphemeraPresenceNodeId
-    results: readonly { presence: EphemeraPresenceNodeId; cover: EphemeraPresenceCover }[]
+    splitInto: readonly { presence: EphemeraPresenceNodeId; cover: EphemeraPresenceCover }[]
 }
 
 /**
