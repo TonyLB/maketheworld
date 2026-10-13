@@ -4,6 +4,7 @@ import type { EphemeraCrossingPort, EphemeraLudicGraphStructureNode } from '@ton
 
 import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import { findRelationalChain, findRelationalChainFromLeg } from './findRelationalChain'
+import { parentRemainderKey } from '../../../../positions/ludicGraph/testFixtures'
 
 const ROOM_ID = 'ROOM#Vortex' as EphemeraRoomId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
@@ -277,7 +278,7 @@ describe('findRelationalChainFromLeg', () => {
         const presenceNode: EphemeraLudicGraphStructureNode = {
             tag: 'Presence',
             universalKey: 'PRESENCE#presence-1' as EphemeraPresenceNodeId,
-            fromHostPresence: { host: ROOM_ID },
+            fromHostPresence: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
             cover: { members: [{ tag: 'Remainder' }] },
         }
         const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PRESENCE#presence-1' }, kind: 'Custom' as const, relationLabel: 'to' }

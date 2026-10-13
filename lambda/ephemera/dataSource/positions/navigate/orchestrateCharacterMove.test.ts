@@ -165,7 +165,7 @@ describe('orchestrateCharacterMove', () => {
             { kind: 'capture', hostId: ROOM_C, captureId: 'capture:from:ROOM#TestThree' },
             expect.objectContaining({ kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex' }),
             expect.objectContaining({ kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-three' }),
-            { kind: 'joinPresenceBindings', hostId: CHARACTER_ID, survivor: 'PRESENCE#in-vortex', absorbed: 'PRESENCE#in-three' },
+            expect.objectContaining({ kind: 'joinPresenceBindings', hostId: CHARACTER_ID, survivor: 'PRESENCE#in-vortex', absorbed: 'PRESENCE#in-three' }),
         ]))
     })
 

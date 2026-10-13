@@ -30,7 +30,7 @@ export type ResolvePresenceMovesArgs = {
 
 export type ResolvedPresenceMoves =
     | { ok: true; presenceMoves: PositionKernelPresenceMove[]; mintedRootUuid?: string }
-    | { ok: false; errorCode: 'destinationBindingMissing' | 'destinationBindingAmbiguous' | 'moverBindingAmbiguous' }
+    | { ok: false; errorCode: 'destinationBindingMissing' | 'destinationBindingAmbiguous' | 'moverBindingAmbiguous' | 'joinChildrenCollide' }
 
 /** Whether a binding's parent pointer names one of the buckets where its whole is seen. */
 const sitsUnderSeenBucket = (
@@ -92,6 +92,8 @@ export const destinationBindingOf = (
  * - **A mover with a binding under each `from` host** moves those bindings. Several under one
  *   host are told apart by where the mover is seen (`moverGroundedPresence`); still several, or no
  *   such name, is a refusal.
+ * - **Several moves** (a scrub) are joined into one binding, so a child listed under two of them
+ *   (it would end holding two bindings under the survivor) is refused as `joinChildrenCollide`.
  * - **A mover with none** (a first placement, a connect, or a legacy whole) moves its hostless
  *   binding, `from: null`; if it holds no hostless binding, a root is minted ahead of the move.
  */
@@ -123,9 +125,16 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
     }
     const named = departing.flatMap((nodes) => nodes)
     if (named.length > 0) {
+        // Several moves are followed by a join, which re-points the absorbed children to the survivor.
+        // A child listed under two of the joined bindings would end holding two under the survivor
+        // (PM-2), so this version refuses to plan it rather than cascade the child's own join.
+        const childHosts = named.flatMap(({ cover }) => cover.members.flatMap((member) => 'host' in member ? [member.host] : []))
+        if (named.length > 1 && new Set(childHosts).size !== childHosts.length) {
+            return { ok: false, errorCode: 'joinChildrenCollide' }
+        }
         return {
             ok: true,
-            presenceMoves: named.map((node) => ({ presence: node.universalKey, from: parentOf(node) ?? null, to })),
+            presenceMoves: named.map((node) => ({ presence: node.universalKey, from: parentOf(node) ?? null, to, cover: node.cover })),
         }
     }
 

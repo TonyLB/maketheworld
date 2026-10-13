@@ -41,7 +41,7 @@ const isStandardLudicGraphPresenceCoverMember = (entry: unknown): boolean => (
 /** Mirrors `EphemeraPresenceParentPointer`: the parent binding (host shard + which of its bindings). */
 export type StandardLudicGraphPresenceParentPointerData = {
     host: StandardReferenceData
-    presence?: string
+    presence: string
 }
 
 export type StandardLudicGraphPresenceNodeData = {
@@ -76,7 +76,7 @@ export const isStandardLudicGraphPresenceNodeData = (arg: unknown): arg is Stand
         (node.fromHostPresence === undefined || (
             typeof node.fromHostPresence === 'object' && node.fromHostPresence !== null &&
             isStandardReferenceData(node.fromHostPresence.host) &&
-            (node.fromHostPresence.presence === undefined || typeof node.fromHostPresence.presence === 'string')
+            typeof node.fromHostPresence.presence === 'string'
         )) &&
         isStandardLudicGraphPresenceCoverData(node.cover) &&
         (node.ref === undefined || typeof node.ref === 'number')

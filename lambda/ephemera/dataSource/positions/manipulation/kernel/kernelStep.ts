@@ -117,11 +117,10 @@ export type MutationKernelRepairPresenceBindingStep = {
 
 /**
  * A binding of a host, as a move names it: the host whose graph holds the binding, and its id there.
- * `ParentBinding` (`presenceParent.ts`) is the same shape with `presence` optional, because a stored
- * `fromHostPresence` may still be host-only until the required-`presence` work lands; a move's
- * destination is never host-only.
+ * The same shape as a stored `fromHostPresence` (`ParentBinding`, `presenceParent.ts`), now that
+ * `presence` is required there.
  */
-export type PresenceBindingRef = { host: EphemeraMembershipHostId; presence: EphemeraPresenceNodeId }
+export type PresenceBindingRef = ParentBinding
 
 /**
  * A move's presence write: re-points one binding of the mover (`presence`, on `hostId`'s own graph)
@@ -180,16 +179,25 @@ export type MutationKernelSplitPresenceBindingStep = {
 }
 
 /**
- * Joins two bindings of one whole under the same parent into one (presenceMoves Slice 4). A
- * **stub**: the handler is a no-op, so a multi-`from` scrub (N moves, then this) leaves N bindings
- * under one parent until Slice 4 gives it a body. Emitted by the move compiler whenever one op
- * moves more than one binding.
+ * Joins two bindings of one whole under the same parent into one (presenceMoves Slice 4). The
+ * survivor keeps its id and takes the absorbed binding's entries (and its `Remainder`, if either
+ * held one); the absorbed node is removed, and each child named in `absorbedCover` has its own
+ * binding re-pointed from the absorbed binding to the survivor. Emitted by the move compiler
+ * whenever one op moves more than one binding.
+ *
+ * `absorbedCover` is the planner's read of the absorbed binding's cover, carried (as a split's
+ * entries are) because the footprint is computed from the steps before any graph loads, and the
+ * children to lock are only named there. The handler checks it against the stored cover, so a cover
+ * that changed since planning is `stale`. A cover is empty when the producer knew of no children.
+ * A child that already holds a binding under each joined binding is left holding two under the
+ * survivor: the handler decides nothing about it, and the end-of-run validator throws (PM-2).
  */
 export type MutationKernelJoinPresenceBindingsStep = {
     kind: 'joinPresenceBindings'
     hostId: EphemeraMembershipHostId
     survivor: EphemeraPresenceNodeId
     absorbed: EphemeraPresenceNodeId
+    absorbedCover: EphemeraPresenceCover
 }
 
 /**

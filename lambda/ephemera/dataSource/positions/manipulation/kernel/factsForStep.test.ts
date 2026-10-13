@@ -6,6 +6,7 @@ import type { MembershipChange } from './membershipChanges'
 import type { MutationKernelStep } from './kernelStep'
 import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { parentRemainderKey } from '../../ludicGraph/testFixtures'
 
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const glassId = 'OBJECT#Glass' as EphemeraObjectId
@@ -187,10 +188,10 @@ describe('factsForStep', () => {
         const addStep: MutationKernelStep = {
             kind: 'addPresenceBinding',
             hostId: trayId,
-            fromHostPresence: { host: roomId },
+            fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
             presenceUuid: 'p2',
         }
-        const rehostStep: MutationKernelStep = { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#p4' as any, from: { host: roomId } }
+        const rehostStep: MutationKernelStep = { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#p4' as any, from: { host: roomId, presence: parentRemainderKey(roomId) } }
         const moveStep: MutationKernelStep = { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#p3' as any, from: null, to: { host: roomId, presence: 'PRESENCE#r' as any } }
         expect(factsForStep(moveStep, graphsMap(), beatAnchorTime)).toEqual([])
         expect(factsForStep(addStep, graphsMap(), beatAnchorTime)).toEqual([])

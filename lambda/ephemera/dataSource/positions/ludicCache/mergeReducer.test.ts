@@ -11,6 +11,7 @@ import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/prese
 import { testLudicGraph } from '../ludicGraph/testFixtures'
 import { collapseCrossingPorts, collapseSameHostStubs, foldSameHostBuckets, mergeSameHostBucket } from './mergeReducer'
 import { isEphemeraLudicCacheEdge } from './types'
+import { parentRemainderKey } from '../ludicGraph/testFixtures'
 
 const roomId = 'ROOM#Root' as EphemeraRoomId
 const boxId = 'OBJECT#Box' as EphemeraObjectId
@@ -42,7 +43,7 @@ const noMemberBindings = () => []
 const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: `PRESENCE#${portId}` as EphemeraPresenceNodeId,
-    fromHostPresence: { host: roomId },
+    fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
     cover,
 })
 
@@ -465,7 +466,7 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_1',
-                fromHostPresence: { host: roomId },
+                fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
                 consolidated: true,
                 cover: {
                     members: expect.arrayContaining([
@@ -478,7 +479,7 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_2',
-                fromHostPresence: { host: roomId },
+                fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
                 consolidated: true,
                 cover: {
                     members: expect.arrayContaining([
@@ -490,7 +491,7 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_3',
-                fromHostPresence: { host: roomId },
+                fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
                 consolidated: true,
                 cover: {
                     members: expect.arrayContaining([

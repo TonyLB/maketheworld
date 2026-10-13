@@ -103,9 +103,14 @@ export const containmentPopulationSteps = (
 
     // The parent binding children sit under: a Room's or Area's hostless remainder, else the
     // parent's only binding (its root is `rootStep`'s, applied to `parentGraph` by the caller). A
-    // parent with several bindings names none (never guessed); the pointer then carries the host alone.
+    // parent with several bindings names none, and authored placement cannot say which the child
+    // sits in (WML names a parent by component key), so population refuses: nothing is written.
     const parentPresence = childParentBindingIdOf(parentGraph)
-    const fromHostPresence: EphemeraPresenceParentPointer = parentPresence ? { host: parentId, presence: parentPresence } : { host: parentId }
+    if (!parentPresence) {
+        console.warn(`[mtw.ephemera.positions] containment population skipped: ${parentId} has ${parentGraph.presenceNodes.length} bindings, none for ${childId} to name`)
+        return []
+    }
+    const fromHostPresence: EphemeraPresenceParentPointer = { host: parentId, presence: parentPresence }
     // A room's binding into its Area is a carve-out with no members, so the bucket is the room itself.
     const wantedCover = isEphemeraRoomId(childId) && isEphemeraAreaId(parentId) ? { members: [] } : undefined
 

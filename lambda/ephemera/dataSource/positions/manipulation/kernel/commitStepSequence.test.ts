@@ -93,6 +93,7 @@ describe('commitStepSequence', () => {
         const PLANK = 'OBJECT#Plank' as EphemeraObjectId
         const CUP = 'OBJECT#Cup' as EphemeraObjectId
         const BOOK = 'OBJECT#Book' as EphemeraObjectId
+        const OTHER_ROOM = 'ROOM#Terrace' as EphemeraRoomId
 
         it('locks the re-pointed child (not the original binding\'s children) and persists the re-pointed pointer', async () => {
             const cupEntry = { host: CUP, presence: 'PRESENCE#cup1' as const }
@@ -101,6 +102,8 @@ describe('commitStepSequence', () => {
             const graphs = {
                 [PLANK]: testLudicGraph(PLANK, { nodes: [{ tag: 'Object', universalKey: PLANK }, presenceBindingNode('B', ROOM_ID, { members: [cupEntry, bookEntry, { tag: 'Remainder' }] })] }),
                 [BOOK]: testLudicGraph(BOOK, { nodes: [presenceBindingNode('book1', under)] }),
+                [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: PLANK }, presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
+                [OTHER_ROOM]: testLudicGraph(OTHER_ROOM, { nodes: [presenceBindingNode(parentRemainderKey(OTHER_ROOM))] }),
             }
             const { transactWrite, lastItems, lastDraft } = makeTransactWriteMock(graphs)
             const steps: MutationKernelStep[] = [{
@@ -111,6 +114,13 @@ describe('commitStepSequence', () => {
                     { presence: 'PRESENCE#B' as any, cover: { members: [cupEntry, { tag: 'Remainder' }] } },
                     { presence: 'PRESENCE#B2' as any, cover: { members: [bookEntry] } },
                 ],
+            }, {
+                // the new binding shares the original's parent, which a run may not leave behind
+                kind: 'movePresenceBinding',
+                hostId: PLANK,
+                presence: 'PRESENCE#B2' as any,
+                from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
+                to: { host: OTHER_ROOM, presence: parentRemainderKey(OTHER_ROOM) },
             }]
 
             const result = await commitStepSequence(
@@ -120,7 +130,7 @@ describe('commitStepSequence', () => {
 
             expect(result.ok).toBe(true)
             const locked = lastItems.current!.find((item) => 'MultiKeyUpdate' in item).MultiKeyUpdate.Keys.map((key: { EphemeraId: string }) => key.EphemeraId)
-            expect(new Set(locked)).toEqual(new Set([PLANK, BOOK]))
+            expect(new Set(locked)).toEqual(new Set([PLANK, BOOK, ROOM_ID, OTHER_ROOM]))
             const bookRow = Object.values(lastDraft.current!).find((row: any) => row.EphemeraId === BOOK) as any
             expect(graphFromMeta(bookRow, BOOK).presenceNodes[0].fromHostPresence).toEqual({ host: PLANK, presence: 'PRESENCE#B2' })
         })

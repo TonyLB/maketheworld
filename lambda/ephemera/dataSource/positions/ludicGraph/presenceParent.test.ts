@@ -48,9 +48,9 @@ describe('parentBindingsOf', () => {
         expect(result.map(({ parent }) => parent.host)).toEqual([area])
     })
 
-    it('reads a pointer naming no parent binding (a Room in an Area) as a parent without a presence', async () => {
-        const result = await parentBindingsOf(roomA, graphsFrom({ [roomA]: [presenceBindingNode('roomA-area', { host: area }, { members: [] })] }))
-        expect(result.map(({ parent }) => parent)).toEqual([{ host: area, presence: undefined }])
+    it('reads a Room\'s pointer into an Area, naming the Area\'s remainder binding', async () => {
+        const result = await parentBindingsOf(roomA, graphsFrom({ [roomA]: [presenceBindingNode('roomA-area', area, { members: [] })] }))
+        expect(result.map(({ parent }) => parent)).toEqual([{ host: area, presence: parentRemainderKey(area) }])
     })
 
     it('returns nothing for a host with no bindings', async () => {

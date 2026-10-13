@@ -10,6 +10,7 @@ import type { EphemeraLudicGraphComponentNode, EphemeraLudicGraphPort, EphemeraL
 
 import { testLudicGraph } from './testFixtures'
 import { nodesFromPresenceBinding, nodesFromPresenceBindings, subGraphFromNodes } from './presenceSubGraph'
+import { parentRemainderKey } from './testFixtures'
 
 const roomId = 'ROOM#Root' as EphemeraRoomId
 const charA = 'CHARACTER#A' as EphemeraCharacterId
@@ -37,7 +38,7 @@ const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey
 const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: `PRESENCE#${portId}` as EphemeraPresenceNodeId,
-    fromHostPresence: { host: roomId },
+    fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
     cover,
 })
 

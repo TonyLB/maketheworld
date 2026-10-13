@@ -6,6 +6,7 @@ import { testLudicGraph, testLudicGraphFromEnvelope } from '../../positions/ludi
 import { attemptActionsFromBoundaryOutcomes, attemptActionsFromTransfer } from './expandBoundaryChallenges'
 import { PositionAttemptAction } from './action'
 import { graphNodeRef } from '../enrich/objectManipulation/plan/planStep'
+import { parentRemainderKey } from '../../positions/ludicGraph/testFixtures'
 
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const ropeId = 'OBJECT#Rope' as EphemeraObjectId
@@ -257,7 +258,7 @@ describe('attemptActionsFromTransfer', () => {
                 ...bindings.map(({ key, members }) => ({
                     tag: 'Presence' as const,
                     universalKey: key,
-                    fromHostPresence: { host: roomId },
+                    fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
                     cover: members === undefined
                         ? { members: [{ tag: 'Remainder' as const }] }
                         : { members: members.map((host) => ({ host, presence: `PRESENCE#${host}-on-board` as EphemeraPresenceNodeId })) },
@@ -320,7 +321,7 @@ describe('attemptActionsFromTransfer: a crossing relation', () => {
     const tableGraph = EphemeraLudicGraph.empty(tableId)
         .addObject(cupId)
         .addPort(port)
-        .addPresenceNode({ tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId }, cover: { members: [{ tag: 'Remainder' }] } })
+        .addPresenceNode({ tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } })
         .addRelationalEdge({ from: portAddress, to: cupId, kind: 'Custom', relationLabel: 'is tied to' })
     const shards = (hostId: EphemeraMembershipHostId) => ({ [roomId]: roomGraph, [tableId]: tableGraph } as Record<string, EphemeraLudicGraph>)[hostId]
     /** The cup is seen through the table's binding, which lives on the table's graph. */

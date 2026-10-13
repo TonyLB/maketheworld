@@ -13,8 +13,8 @@ import type { PositionKernelMoveOp, PositionKernelPresenceMove } from './positio
  * **A move re-points, never remove-then-add**, so the binding's id is stable for the whole's life
  * and a child pointer naming it (an item a character holds names the character's binding) survives
  * (PR-21(e)). **Several moves** (a scrub of an object held by several hosts) are followed by one
- * join each for every binding beyond the first --- a stub until presenceMoves Slice 4, so for now
- * the bindings sit side by side under the destination. **A departure to no host** (destroy,
+ * join each for every binding beyond the first, so the bindings converge to one under the
+ * destination. Each join carries the absorbed move's `cover`. **A departure to no host** (destroy,
  * disconnect, scrub to nowhere) is one `releasePresenceBinding` per binding that leaves: a whole
  * keeps one binding, hostless.
  */
@@ -39,6 +39,7 @@ export const presenceBindingStepsForMove = (
             hostId,
             survivor: survivor.presence,
             absorbed: move.presence,
+            absorbedCover: move.cover ?? { members: [] },
         })),
         ...releases.map(({ presence, from }) => ({
             kind: 'releasePresenceBinding' as const,

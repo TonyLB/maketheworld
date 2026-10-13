@@ -2,6 +2,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { isKernelMutationStep } from './kernelStep'
 import type { KernelStep } from './kernelStep'
+import { parentRemainderKey } from '../../ludicGraph/testFixtures'
 
 const roomId = 'ROOM#Cafe' as EphemeraRoomId
 
@@ -12,7 +13,7 @@ describe('isKernelMutationStep', () => {
     })
 
     it('accepts the presence steps, including a per-binding release', () => {
-        const release: KernelStep = { kind: 'releasePresenceBinding', hostId: 'OBJECT#Tray' as any, presence: 'PRESENCE#a' as any, from: { host: roomId } }
+        const release: KernelStep = { kind: 'releasePresenceBinding', hostId: 'OBJECT#Tray' as any, presence: 'PRESENCE#a' as any, from: { host: roomId, presence: parentRemainderKey(roomId) } }
         expect(isKernelMutationStep(release)).toBe(true)
     })
 

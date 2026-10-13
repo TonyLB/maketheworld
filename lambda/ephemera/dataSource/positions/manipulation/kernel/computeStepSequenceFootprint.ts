@@ -77,6 +77,12 @@ export const computeStepSequenceFootprint = (
         }
         if (step.kind === 'joinPresenceBindings') {
             hosts.add(step.hostId)
+            // every child whose binding is re-pointed to the survivor: the absorbed cover's entries.
+            for (const member of step.absorbedCover.members) {
+                if ('host' in member) {
+                    hosts.add(member.host as EphemeraMembershipHostId)
+                }
+            }
             continue
         }
         if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {

@@ -10,6 +10,7 @@ import {
     getRoomObjectCatalogForCharacter,
     roomObjectLabelsFromCatalog,
 } from './roomObjectCatalogForCharacter'
+import { parentRemainderKey } from '../positions/ludicGraph/testFixtures'
 
 const characterId = 'CHARACTER#Test' as EphemeraCharacterId
 const roomId = 'ROOM#Kitchen' as EphemeraRoomId
@@ -135,7 +136,7 @@ describe('getRoomObjectCatalogForCharacter', () => {
                 [tableId]: testLudicGraph(tableId, {
                     nodes: [
                         { tag: 'Object', universalKey: cupId },
-                        { tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId }, cover: { members: [{ tag: 'Remainder' }] } },
+                        { tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } },
                     ],
                 }),
             }),
