@@ -196,13 +196,11 @@ type EndpointStatus = 'qualified' | 'disqualified' | 'neutral'
  * disqualified and would be excluded rather than minted even without the carve-out. The
  * substantive argument above is untouched by that and is why the carve-out stays: these edges
  * have already been consumed, so they are not content to classify in the first place.)
- * **Deactivated rather than deleted:** whether an interior node's own
- * `Present` edge needs representing again --- e.g. as merge-time provenance, *this node is here
- * because of this binding* --- is an open design question, not this function's to settle; it may
- * return in a different form once that lands. **It is recorded in
- * `AGENT.ludicCacheRebuild.planning.md`'s Recommended order**, as an entry of its own. (This
- * comment previously pointed at *"Slice 2's ludicCache merge design"* --- the numbering of a plan
- * that has since been deleted, landing a reader on the wrong slice of the one that replaced it.)
+ * **Deactivated rather than deleted, and settled:** whether an interior node's own
+ * `Present` edge needs representing again, as merge-time provenance (*this node is here
+ * because of this binding*), was answered in the negative. Provenance is read off the binding's
+ * `cover.members`, never off the node set this cut ranges over (the cover plus the root plus the
+ * presence node id); see `AGENT.contract.md`'s presence-nodes section.
  *
  * Remaining (non-`Present`) content edges are classified by **the status of each endpoint**, not
  * by whether its owning component happens to land in `nodes`. The difference is the whole of this

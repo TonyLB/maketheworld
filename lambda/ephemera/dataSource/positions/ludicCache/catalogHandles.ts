@@ -1,5 +1,5 @@
 /**
- * Slice 4 of `AGENT.ludicCacheRebuild.planning.md`: the first real consumer (CC3), and the first
+ * The first real consumer (CC3), and the first
  * real test of P6 clause 3 --- a hit returns a **handle**, never a subgraph. `buildLudicCache`
  * stays a pure function; this is the thin handler D6 decided on, and the only thing a consumer
  * (`roomObjectCatalogForCharacter.ts`) is allowed to call. Nothing past this function's return

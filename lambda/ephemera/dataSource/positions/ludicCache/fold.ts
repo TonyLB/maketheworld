@@ -1,5 +1,5 @@
 /**
- * Slice 3 (3a/3b/3e) of `AGENT.ludicCacheRebuild.planning.md`: the fold. Composes Slice 2's
+ * The fold. Composes the node enumeration's
  * `enumerateLudicCacheShards` (the cross-host walk, unmodified) with two mechanisms that already
  * shipped separately and don't yet talk to each other in code:
  *
@@ -22,7 +22,7 @@
  * for the cold-rebuild case by this walk alone**, not by new mechanism: every terminal
  * `enumerateLudicCacheShards` visits is resolved here in one pass, so nothing is ever
  * "recovered" because nothing was ever dropped. The warm/incremental case --- a single new
- * binding arriving against an *already-persisted* cache --- is Slice 6/D4's, not this file's.
+ * binding arriving against an *already-persisted* cache --- is not this file's: a stale persisted cache is rebuilt whole (see `AGENT.ludicCachePersistence.planning.md`).
  *
  * **3e (idempotence and confluence, LC2/LC3):** grouping by `collapsedEdgeIdentityKey`
  * (`mergeReducer.ts`) at cache-assembly grain, not only within each `collapseCrossingPorts`/
@@ -36,7 +36,7 @@
  * `{ cache, stats }` rather than a bare `EphemeraLudicCacheData`. `stats` (`shardFetchCount`,
  * `maxDepth`) is threaded straight from `enumerateLudicCacheShards`, which already computed it and
  * previously had it discarded here. It does NOT become a field on `EphemeraLudicCacheData` itself
- * --- that type is the exact shape Slice 6 persists, has its own type guard, and already carries
+ * --- that type is the exact shape persistence stores, has its own type guard, and already carries
  * one documented lesson (`homeShards`, removed 2026-09-10) against denormalizing a derived fact
  * onto it. `stats` stays a sibling of `cache`, not a member of it.
  *
