@@ -64,15 +64,13 @@ export type EphemeraLudicCacheNode = EphemeraLudicGraphComponentNode & {
  * (presenceNodes Slice 3, PN-19 decided (b)): `cover` is
  * entries only --- the graph's `Remainder` sentinel ("every unclaimed node of the host") has no
  * referent in a multi-host merge (loss (A)), so this makes it unrepresentable in the cache
- * *by construction* rather than by a runtime guard someone could forget. `consolidated`
- * stays a separate boolean beside `cover` (PN-15) rather than folding into it --- two facts,
- * not three. Minted by `mergeReducer.ts`'s `foldSameHostBuckets` (via its
- * `presenceCacheNodesFromFold` helper), one per binding folded, `consolidated: true`. Each cover
+ * *by construction* rather than by a runtime guard someone could forget. Minted by
+ * `mergeReducer.ts`'s `foldSameHostBuckets` (via its
+ * `presenceCacheNodesFromFold` helper), one per binding folded. Each cover
  * entry names the member's own binding into this binding's host (`EphemeraLudicCacheCoverEntry`).
  */
 export type EphemeraLudicCachePresenceNode = Omit<EphemeraLudicGraphStructureNode, 'cover'> & {
     cover: { members: EphemeraLudicCacheCoverEntry[] };
-    consolidated: boolean;
 }
 
 /**
@@ -89,61 +87,12 @@ export type EphemeraLudicCacheCoverEntry = Omit<EphemeraPresenceCoverEntry, 'pre
 }
 
 /**
- * One hop of one route through `supportedBy` --- the crossing port this hop travels through
- * (`host` + `port`, "the hop's key for consolidation"), and the set of presence bindings that could
- * independently justify having traveled it (`presenceBucketIds`, OR within the hop: any one of
- * them is enough). Bindings are identified by their own `PRESENCE#` id rather than by the host
- * they bind, since a host may carry more than one binding (PN-22's *one or more* quantifier) and
- * the hop's justification is binding-grained, not host-grained.
- *
- * **`host` (PNR-2(b), presenceNodes Slice 3): the host whose crossing port this hop travels
- * through, named BESIDE `presenceBucketIds`, not instead of it** --- the two are different facts
- * (which crossing vs. which binding justifies it) that happen to share one hop. Minted in
- * `collapseCrossingPorts` as `childGraph.hostId`: the hop's `port` comes from `childGraph.ports`
- * and its binding from `childGraph.presenceNodes`, so one host covers both per hop. `{ host, port
- * }` is exactly that crossing port's own exterior address, closing an ambiguity `port` alone could
- * not: a crossing port's id is unique only within its own host.
+ * Cache edge: a plain relational edge. The cache keeps no maintenance state (which routes
+ * justify a composed edge, which buckets were pulled): a stale cache is rebuilt whole. The
+ * shelved design for incremental maintenance lives in `AGENT.implementation.md`, "Shelved:
+ * incremental `ludicCache` maintenance".
  */
-export type EphemeraLudicCacheSupportHop = {
-    host: EphemeraMembershipHostId;
-    presenceBucketIds: EphemeraPresenceNodeId[];
-    port: string;
-}
-
-/**
- * One independently-consolidated route to an edge identity: an ORDERED list of hops, AND across
- * the route --- every hop must hold for the route itself to hold.
- */
-export type EphemeraLudicCacheSupport = EphemeraLudicCacheSupportHop[]
-
-/**
- * Cache edge: the ludicGraph edge plus `supportedBy`. Required and possibly empty, never
- * optional --- see CC0.
- *
- * `supportedBy: EphemeraLudicCacheSupport[]` --- OR over routes (the outer array), AND across
- * one route's hops, OR within one hop's `presenceBucketIds` (D8, amended 2026-09-16 by PN-2).
- * `[]` means exactly *depends on no binding* and nothing else --- the two-meanings defect the
- * flat predecessor field risked is closed by this element type, not by convention.
- *
- * **Renamed from `chains: EphemeraMembershipHostId[][]` (presenceNodes Slice 4, PN-2/D8).** The
- * old field named one HOST entered per hop; a flat sum-of-products over hosts is a DNF encoding
- * of what is really a product-of-sums over bindings --- *h* hops with *k* alternatives each
- * expand to k^h entries carrying k·h facts under the flat form, tractable only under the nested
- * one. `collapseSameHostStubs`/`foldSameHostBuckets`'s same-host routes still resolve to `[]`
- * (D11: a same-host edge's dependence is a **membership** fact, now carried on the node record,
- * not a traversal fact --- the traversal register is honestly empty for it). **Superseded
- * 2026-09-10:** this field used to carry `EphemeraLudicCacheCrossing[][]`, `EphemeraLudicCacheCrossing`
- * being `{ edgeText: string; into: EphemeraMembershipHostId }`. `edgeText` traced to a 2026-08-06
- * premise --- "edge kinds across a crossing port need not match" --- whose only supporting case (a
- * power cord threading into a flashlight, described differently inside and out) is itself flagged
- * stale (`positions/AGENT.concepts.md`, AB-57). This initiative's own LR-1 instead re-derives the
- * port-qualified-terminal case from a same-kind example (`cup -[TiedTo]-> string`, both legs
- * sharing `kind`), so a hop has no per-leg description left to carry --- only what justifies it.
- * `EphemeraLudicCacheCrossing` and `isEphemeraLudicCacheCrossing` are removed accordingly.
- */
-export type EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData & {
-    supportedBy: EphemeraLudicCacheSupport[];
-}
+export type EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData
 
 export type EphemeraLudicCacheData = {
     hostId: EphemeraMembershipHostId;
@@ -162,12 +111,12 @@ const isEphemeraLudicCacheCoverEntry = (value: unknown): value is EphemeraLudicC
 
 // Checked here rather than through the graph-side structure guard, whose cover check requires
 // `presence` on every entry (see `EphemeraLudicCacheCoverEntry`). A `Remainder` entry or a legacy `tag` is illegal in the
-// cache (PN-19), and `consolidated` is cache-only.
+// cache (PN-19).
 export const isEphemeraLudicCachePresenceNode = (value: unknown): value is EphemeraLudicCachePresenceNode => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const node = value as { tag?: unknown; universalKey?: unknown; fromHostPresence?: unknown; cover?: { tag?: unknown; members?: unknown }; consolidated?: unknown }
+    const node = value as { tag?: unknown; universalKey?: unknown; fromHostPresence?: unknown; cover?: { tag?: unknown; members?: unknown } }
     return node.tag === 'Presence'
         && typeof node.universalKey === 'string' && isEphemeraPresenceNodeId(node.universalKey)
         && isEphemeraPresenceParentPointerOrAbsent(node.fromHostPresence)
@@ -175,8 +124,7 @@ export const isEphemeraLudicCachePresenceNode = (value: unknown): value is Ephem
         && !!node.cover && node.cover.tag === undefined
         && Array.isArray(node.cover.members)
         && node.cover.members.every((entry: unknown) => isEphemeraLudicCacheCoverEntry(entry))
-        && typeof node.consolidated === 'boolean'
-}
+        }
 
 export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudicCacheNode => {
     if (!isEphemeraLudicGraphComponentNode(value)) {
@@ -198,20 +146,6 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
     return true
 }
 
-const isEphemeraLudicCacheSupportHop = (value: unknown): value is EphemeraLudicCacheSupportHop => {
-    if (!value || typeof value !== 'object') {
-        return false
-    }
-    const hop = value as EphemeraLudicCacheSupportHop
-    return typeof hop.host === 'string' && isEphemeraMembershipHostId(hop.host)
-        && typeof hop.port === 'string'
-        && Array.isArray(hop.presenceBucketIds)
-        && hop.presenceBucketIds.every((id) => typeof id === 'string' && isEphemeraPresenceNodeId(id))
-}
-
-const isEphemeraLudicCacheSupport = (value: unknown): value is EphemeraLudicCacheSupport =>
-    Array.isArray(value) && value.every((hop) => isEphemeraLudicCacheSupportHop(hop))
-
 // A bare presence-tagged terminal is illegal on a cache edge (PNR-2(a), Slice 3): nesting made a
 // binding's lookup in the cache a path --- the owner's node, then that binding on it --- so every
 // reference to a binding must carry the owner alongside the port id. `foldSameHostBuckets` and
@@ -225,14 +159,7 @@ export const isEphemeraLudicCacheEdge = (value: unknown): value is EphemeraLudic
     if (!isEphemeraLudicRelationalEdgeData(value)) {
         return false
     }
-    const edge = value as EphemeraLudicCacheEdge
-    if (!isNotBarePresenceTerminal(edge.from) || !isNotBarePresenceTerminal(edge.to)) {
-        return false
-    }
-    if (!Array.isArray(edge.supportedBy) || !edge.supportedBy.every(isEphemeraLudicCacheSupport)) {
-        return false
-    }
-    return true
+    return isNotBarePresenceTerminal(value.from) && isNotBarePresenceTerminal(value.to)
 }
 
 export const isEphemeraLudicCacheData = (value: unknown): value is EphemeraLudicCacheData => {

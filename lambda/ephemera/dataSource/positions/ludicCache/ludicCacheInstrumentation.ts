@@ -1,6 +1,5 @@
 /**
- * Structured CloudWatch logging for `ludicCache` rebuilds --- Slice 5 (PC-3) of
- * `AGENT.ludicCacheRebuild.planning.md`. Filter: `[mtw.ephemera.ludicCache] rebuild`.
+ * Structured CloudWatch logging for `ludicCache` rebuilds (PC-3's instrument). Filter: `[mtw.ephemera.ludicCache] rebuild`.
  *
  * Modeled on `dataSource/catalogHydrateInstrumentation.ts`'s convention (a scoped prefix, one
  * `console.log` call per event, fields as a plain object) rather than folded into that module ---

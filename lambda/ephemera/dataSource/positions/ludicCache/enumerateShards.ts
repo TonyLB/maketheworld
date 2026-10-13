@@ -1,5 +1,5 @@
 /**
- * Slice 2 of `AGENT.ludicCacheRebuild.planning.md`: node enumeration (CC1a), "a read, not a
+ * Node enumeration (CC1a), "a read, not a
  * traversal." Read the seed host's own `ludicGraph`; for every member that itself carries a
  * graph, fetch that shard and read its nodes; recurse. No edge is ever followed to discover a
  * node --- only `EphemeraLudicGraph.nodeIds` is consulted here, never `relationalEdges`/`ports`.
@@ -39,7 +39,7 @@
  * `BatchGetItem`, to test whether a single request scales more favourably than several
  * concurrent ones under an On-Demand table's burst capacity. Live numbers came back slower on
  * average than the concurrent-`getItem` path above, not faster, refuting the hypothesis; removed
- * rather than left disabled-in-place --- see the plan's Slice 5c writeup for the numbers.
+ * rather than left disabled-in-place (live runs averaged about 386ms against about 316ms for the concurrent path).
  */
 import internalCache from '../../../internalCache'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'

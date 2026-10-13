@@ -68,7 +68,7 @@ const childLeg = (portId: string, to: EphemeraLudicRelationalEdgeData['to'], kin
 } as EphemeraLudicRelationalEdgeData)
 
 describe('collapseCrossingPorts', () => {
-    it('collapses a single matched leg pair into one edge with a one-hop, one-route supportedBy', () => {
+    it('collapses a single matched leg pair into one edge with the port terminal rewritten', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
             edges: [parentLeg('port_1')],
@@ -79,18 +79,17 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('port_1')],
         })
 
-        expect(collapseCrossingPorts(parentGraph, childGraph, 'binding_1')).toEqual([
+        expect(collapseCrossingPorts(parentGraph, childGraph)).toEqual([
             {
                 tag: 'Relational',
                 from: boulder,
                 to: pebble,
                 kind: 'On',
-                supportedBy: [[{ host: boxId, presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }]],
             },
         ])
     })
 
-    it('groups two independently-matched leg pairs landing on the same edge identity, without merging their routes', () => {
+    it('groups two independently-matched leg pairs landing on the same edge identity, onto one edge', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
             edges: [parentLeg('port_1'), parentLeg('port_2')],
@@ -101,20 +100,14 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('port_1'), crossingPort('port_2')],
         })
 
-        const result = collapseCrossingPorts(parentGraph, childGraph, 'binding_1')
+        const result = collapseCrossingPorts(parentGraph, childGraph)
         expect(result).toHaveLength(1)
         expect(result[0]).toMatchObject({ from: boulder, to: pebble, kind: 'On' })
-        expect(result[0].supportedBy).toEqual(expect.arrayContaining([
-            [{ host: boxId, presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }],
-            [{ host: boxId, presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_2' }],
-        ]))
-        expect(result[0].supportedBy).toHaveLength(2)
     })
 
     // Slice 3f (ISS8149): `edgeId` used to be missing from the grouping key, so two collapsed
     // edges differing only in `edgeId` merged into one record --- second site of the same defect
-    // `legsAgree`'s test above fixes. They must stay two distinct records, not one with a
-    // concatenated `supportedBy`.
+    // `legsAgree`'s test above fixes. They must stay two distinct records, not one.
     it('does not group two collapsed edges that agree on (from, to, kind) but disagree on edgeId', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
@@ -132,18 +125,15 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('port_1'), crossingPort('port_2')],
         })
 
-        const result = collapseCrossingPorts(parentGraph, childGraph, 'binding_1')
+        const result = collapseCrossingPorts(parentGraph, childGraph)
         expect(result).toHaveLength(2)
-        expect(result.map((edge) => edge.supportedBy)).toEqual(expect.arrayContaining([
-            [[{ host: boxId, presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_1' }]],
-            [[{ host: boxId, presenceBucketIds: ['PRESENCE#binding_1'], port: 'port_2' }]],
-        ]))
+        expect(result.map((edge) => edge.edgeId).sort()).toEqual(['edge_1', 'edge_2'])
     })
 
     // The payoff for tagging the exterior address (PN-24), reversed by PNR-2 (Slice 3). One
     // presence binding has two addresses --- its bare node id, and the exterior
     // `{ owner, port: 'PRESENCE#...' }` form --- so two legs reaching the SAME binding by different
-    // addresses must land on one cache record with two routes, not two records asserting one edge
+    // addresses must land on one cache record, not two records asserting one edge
     // twice. `collapsedEdgeIdentityKey` now normalizes UP to the exterior form (nesting made a
     // binding's cache lookup a path, so the owner must travel with the port id), which is why the
     // surviving record's `to` is the owner-qualified form, not the bare id --- `liftPresenceTerminal`
@@ -163,10 +153,9 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('port_1'), crossingPort('port_2')],
         })
 
-        const result = collapseCrossingPorts(parentGraph, childGraph, 'binding_1')
+        const result = collapseCrossingPorts(parentGraph, childGraph)
         expect(result).toHaveLength(1)
         expect(result[0]).toMatchObject({ from: boulder, to: { owner: boxId, port: binding }, kind: 'On' })
-        expect(result[0].supportedBy).toHaveLength(2)
     })
 
     it('does not collapse two edges that only coincidentally reach the same identity if their kinds disagree', () => {
@@ -180,7 +169,7 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('port_1')],
         })
 
-        expect(() => collapseCrossingPorts(parentGraph, childGraph, 'binding_1')).toThrow(/disagree/)
+        expect(() => collapseCrossingPorts(parentGraph, childGraph)).toThrow(/disagree/)
     })
 
     it('skips a crossing port with no matching leg on the parent side', () => {
@@ -194,7 +183,7 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('port_1')],
         })
 
-        expect(collapseCrossingPorts(parentGraph, childGraph, 'binding_1')).toEqual([])
+        expect(collapseCrossingPorts(parentGraph, childGraph)).toEqual([])
     })
 
     // Slice 3f (ISS8149): `edgeId` used to be invisible to `legsAgree`, so two legs carrying
@@ -212,7 +201,7 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('port_1')],
         })
 
-        expect(() => collapseCrossingPorts(parentGraph, childGraph, 'binding_1')).toThrow(/disagree/)
+        expect(() => collapseCrossingPorts(parentGraph, childGraph)).toThrow(/disagree/)
     })
 })
 
@@ -246,7 +235,7 @@ describe('collapseSameHostStubs', () => {
         expect(bucketB.ports).toHaveLength(1)
 
         expect(collapseSameHostStubs(bucketA, bucketB)).toEqual([
-            { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under', supportedBy: [] },
+            { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under' },
         ])
     })
 
@@ -399,8 +388,8 @@ describe('foldSameHostBuckets', () => {
     })
 
     const expectedEdges = [
-        { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under', supportedBy: [] },
-        { tag: 'Relational', from: objE, to: objF, kind: 'Custom', relationLabel: 'against', supportedBy: [] },
+        { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under' },
+        { tag: 'Relational', from: objE, to: objF, kind: 'Custom', relationLabel: 'against' },
     ]
 
     it('reconstructs both interior edges via the existing pairwise primitive, cutting every bucket up front (two-pass baseline, using only shipped code)', () => {
@@ -454,11 +443,11 @@ describe('foldSameHostBuckets', () => {
         const result = foldSameHostBuckets(bareGraph, ['port_1'], noMemberBindings)
 
         expect(result.edges).toEqual([
-            { tag: 'Relational', from: pebble, to: { owner: boxId, port: 'PRESENCE#port_1' }, kind: 'On', supportedBy: [] },
+            { tag: 'Relational', from: pebble, to: { owner: boxId, port: 'PRESENCE#port_1' }, kind: 'On' },
         ])
     })
 
-    it('mints one consolidated cache binding per binding folded, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
+    it('mints one cache binding per binding folded, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
         const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'], noMemberBindings)
 
         expect(result.presenceNodes).toHaveLength(3)
@@ -467,7 +456,6 @@ describe('foldSameHostBuckets', () => {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_1',
                 fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
-                consolidated: true,
                 cover: {
                     members: expect.arrayContaining([
                         { host: charA, presence: ownBinding(charA) },
@@ -480,7 +468,6 @@ describe('foldSameHostBuckets', () => {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_2',
                 fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
-                consolidated: true,
                 cover: {
                     members: expect.arrayContaining([
                         { host: charB, presence: ownBinding(charB) },
@@ -492,7 +479,6 @@ describe('foldSameHostBuckets', () => {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_3',
                 fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
-                consolidated: true,
                 cover: {
                     members: expect.arrayContaining([
                         { host: charC, presence: ownBinding(charC) },
@@ -569,16 +555,16 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
     const roomGraph = testLudicGraph(roomId, { nodes: roomNodes, edges: roomHostingEdges })
 
     it("produces no join edge for D's hosting from either order, because neither host mints a port for it (LC8 first job, answered in the negative)", () => {
-        const mergeB = collapseCrossingPorts(roomGraph, bGraph, 'binding_B')
-        const mergeC = collapseCrossingPorts(roomGraph, cGraphHostingOnly, 'binding_C')
+        const mergeB = collapseCrossingPorts(roomGraph, bGraph)
+        const mergeC = collapseCrossingPorts(roomGraph, cGraphHostingOnly)
 
         expect(mergeB).toEqual([])
         expect(mergeC).toEqual([])
         // Order variant: running the merges in the other order, against the same unmodified
         // parent, changes nothing either -- there is no accumulated state for a join to depend
         // on, because there was never a crossing port to begin with.
-        expect(collapseCrossingPorts(roomGraph, cGraphHostingOnly, 'binding_C')).toEqual(mergeC)
-        expect(collapseCrossingPorts(roomGraph, bGraph, 'binding_B')).toEqual(mergeB)
+        expect(collapseCrossingPorts(roomGraph, cGraphHostingOnly)).toEqual(mergeC)
+        expect(collapseCrossingPorts(roomGraph, bGraph)).toEqual(mergeB)
     })
 
     // The peer edge, stated at ROOM#A's level as a boundary crossing between B's and C's exterior
@@ -609,7 +595,7 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
     })
 
     it('resolves the bare port-to-port edge via two ordinary sequential merges, the second fed the first\'s result as its parent graph --- no single merge ever joins both ends at once (LC10 first/second job)', () => {
-        const afterB = collapseCrossingPorts(roomGraphWithAgainst, bGraphWithPort, 'binding_B')
+        const afterB = collapseCrossingPorts(roomGraphWithAgainst, bGraphWithPort)
         expect(afterB).toHaveLength(1)
         expect(afterB[0]).toMatchObject({ from: objD, to: { owner: objC, port: 'p_c' }, kind: 'Custom', relationLabel: 'against' })
         // The bare port-to-port edge is representable as a partial occurrence (P8 clause 3(b)):
@@ -620,32 +606,30 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
         // Thread the partial result forward as the next merge's parent graph --- this is the
         // fold's own accumulator step (D1: fold), hand-authored because Slice 3's real walk
         // isn't built yet.
-        const { supportedBy: _droppedB, ...rewrittenAfterB } = afterB[0]
-        const parentAfterB = testLudicGraph(roomId, { nodes: roomNodes, edges: [rewrittenAfterB] })
-        const afterC = collapseCrossingPorts(parentAfterB, cGraphWithPort, 'binding_C')
+        const parentAfterB = testLudicGraph(roomId, { nodes: roomNodes, edges: [afterB[0]] })
+        const afterC = collapseCrossingPorts(parentAfterB, cGraphWithPort)
 
         expect(afterC).toEqual([
-            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', supportedBy: [[{ host: objC, presenceBucketIds: ['PRESENCE#binding_C'], port: 'p_c' }]] },
+            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against' },
         ])
 
         // The order variant: merge C first against the same unmodified parent, then thread that
         // result forward for B. Same final edge either way.
-        const afterCFirst = collapseCrossingPorts(roomGraphWithAgainst, cGraphWithPort, 'binding_C')
+        const afterCFirst = collapseCrossingPorts(roomGraphWithAgainst, cGraphWithPort)
         expect(afterCFirst).toHaveLength(1)
         expect(afterCFirst[0]).toMatchObject({ from: { owner: objB, port: 'p_b' }, to: objE, kind: 'Custom', relationLabel: 'against' })
 
-        const { supportedBy: _droppedC, ...rewrittenAfterC } = afterCFirst[0]
-        const parentAfterC = testLudicGraph(roomId, { nodes: roomNodes, edges: [rewrittenAfterC] })
-        const afterBSecond = collapseCrossingPorts(parentAfterC, bGraphWithPort, 'binding_B')
+        const parentAfterC = testLudicGraph(roomId, { nodes: roomNodes, edges: [afterCFirst[0]] })
+        const afterBSecond = collapseCrossingPorts(parentAfterC, bGraphWithPort)
 
         expect(afterBSecond).toEqual([
-            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', supportedBy: [[{ host: objB, presenceBucketIds: ['PRESENCE#binding_B'], port: 'p_b' }]] },
+            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against' },
         ])
     })
 
     it('does not reconcile two independently-produced partial edges without a shared threaded parent graph --- chain identity, not port matching, is what a join would need, and nothing mints a chainId yet (LC11)', () => {
-        const partialViaB = collapseCrossingPorts(roomGraphWithAgainst, bGraphWithPort, 'binding_B')
-        const partialViaC = collapseCrossingPorts(roomGraphWithAgainst, cGraphWithPort, 'binding_C')
+        const partialViaB = collapseCrossingPorts(roomGraphWithAgainst, bGraphWithPort)
+        const partialViaC = collapseCrossingPorts(roomGraphWithAgainst, cGraphWithPort)
 
         // Run independently against the same unmodified parent (not threaded, as the sequential
         // test above does), the two calls never converge: neither half carries a `chainId`, and

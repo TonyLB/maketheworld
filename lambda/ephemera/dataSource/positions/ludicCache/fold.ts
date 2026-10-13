@@ -1,5 +1,5 @@
 /**
- * Slice 3 (3a/3b/3e) of `AGENT.ludicCacheRebuild.planning.md`: the fold. Composes Slice 2's
+ * The fold. Composes the node enumeration's
  * `enumerateLudicCacheShards` (the cross-host walk, unmodified) with two mechanisms that already
  * shipped separately and don't yet talk to each other in code:
  *
@@ -22,7 +22,7 @@
  * for the cold-rebuild case by this walk alone**, not by new mechanism: every terminal
  * `enumerateLudicCacheShards` visits is resolved here in one pass, so nothing is ever
  * "recovered" because nothing was ever dropped. The warm/incremental case --- a single new
- * binding arriving against an *already-persisted* cache --- is Slice 6/D4's, not this file's.
+ * binding arriving against an *already-persisted* cache --- is not this file's: a stale persisted cache is rebuilt whole (see `AGENT.ludicCachePersistence.planning.md`).
  *
  * **3e (idempotence and confluence, LC2/LC3):** grouping by `collapsedEdgeIdentityKey`
  * (`mergeReducer.ts`) at cache-assembly grain, not only within each `collapseCrossingPorts`/
@@ -36,7 +36,7 @@
  * `{ cache, stats }` rather than a bare `EphemeraLudicCacheData`. `stats` (`shardFetchCount`,
  * `maxDepth`) is threaded straight from `enumerateLudicCacheShards`, which already computed it and
  * previously had it discarded here. It does NOT become a field on `EphemeraLudicCacheData` itself
- * --- that type is the exact shape Slice 6 persists, has its own type guard, and already carries
+ * --- that type is the exact shape persistence stores, has its own type guard, and already carries
  * one documented lesson (`homeShards`, removed 2026-09-10) against denormalizing a derived fact
  * onto it. `stats` stays a sibling of `cache`, not a member of it.
  *
@@ -58,7 +58,7 @@ import { EphemeraLudicGraph, nodeFromId } from '../ludicGraph'
 import { parentHostOf } from '../ludicGraph/presenceParent'
 import { resolveComponentCacheFields } from '../../objects/objectShortName'
 import { enumerateLudicCacheShards, type EnumerateLudicCacheShardsDeps } from './enumerateShards'
-import { collapseCrossingPorts, collapsedEdgeIdentityKey, foldSameHostBuckets } from './mergeReducer'
+import { collapseCrossingPorts, dedupeEdgesByIdentity, foldSameHostBuckets } from './mergeReducer'
 import type { EphemeraLudicCacheData, EphemeraLudicCacheEdge, EphemeraLudicCacheNode, EphemeraLudicCachePresenceNode } from './types'
 
 const presenceUuidFromKey = stripTypedKey('PRESENCE')
@@ -71,14 +71,6 @@ const defaultDeps = (): Required<BuildLudicCacheDeps> => ({
     getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
     getComponentAggregate: (perspectives) => internalCache.ComponentAggregate.get(perspectives),
 })
-
-const addEdges = (byIdentity: Map<string, EphemeraLudicCacheEdge>, edges: EphemeraLudicCacheEdge[]): void => {
-    edges.forEach((edge) => {
-        const key = collapsedEdgeIdentityKey(edge)
-        const existing = byIdentity.get(key)
-        byIdentity.set(key, existing ? { ...existing, supportedBy: [...existing.supportedBy, ...edge.supportedBy] } : edge)
-    })
-}
 
 const componentCacheNode = async (
     hostId: EphemeraMembershipHostId,
@@ -109,11 +101,9 @@ export const buildLudicCache = async (
         hostIds.map((hostId) => componentCacheNode(hostId, assetStack, resolvedDeps))
     )
 
-    // Pass 2: the purely synchronous fold/collapse computation, iterated in hostIds order.
-    const byIdentity = new Map<string, EphemeraLudicCacheEdge>()
-    const bindingsByOwner = new Map<EphemeraMembershipHostId, EphemeraLudicCachePresenceNode[]>()
-
-    for (const hostId of hostIds) {
+    // Pass 2: the purely synchronous fold/collapse computation, one result per host in hostIds
+    // order.
+    const perHost = hostIds.map((hostId) => {
         const graph = graphs.get(hostId) as EphemeraLudicGraph
 
         // Mechanism 1: this host's own same-host presence-bucket straddles, resolved against its
@@ -127,28 +117,24 @@ export const buildLudicCache = async (
             .filter((presenceNode) => parentHostOf(presenceNode) === hostId)
             .map((presenceNode) => presenceNode.universalKey)
         const { presenceNodes, edges: sameHostEdges } = foldSameHostBuckets(graph, presenceUuids, memberBindings)
-        bindingsByOwner.set(hostId, presenceNodes)
-        addEdges(byIdentity, sameHostEdges)
 
         // Mechanism 2: the parent/child crossing-port boundary between this host and every
         // member walked as its own shard. A member with no crossing ports contributes nothing
         // (collapseCrossingPorts's own "incomplete data, not an error" stance), so it costs
         // nothing to attempt this uniformly rather than pre-filtering "true" members.
-        for (const nodeId of graph.nodeIds) {
-            if (nodeId === hostId || !isEphemeraMembershipHostId(nodeId)) {
-                continue
-            }
-            const childGraph = graphs.get(nodeId)
-            if (!childGraph) {
-                continue
-            }
-            // Every binding of the child under this host, never the first of several: a child bound
-            // twice into one host (an Object under two of a Feature's bindings) crosses at each.
-            for (const binding of childGraph.presenceNodes.filter((presenceNode) => parentHostOf(presenceNode) === hostId)) {
-                addEdges(byIdentity, collapseCrossingPorts(graph, childGraph, presenceUuidFromKey(binding.universalKey)))
-            }
-        }
-    }
+        // A child bound twice into one host (an Object under two of a Feature's bindings) crosses
+        // at the same ports either way, so one collapse covers every binding.
+        const crossingEdges = [...graph.nodeIds]
+            .filter((nodeId) => nodeId !== hostId && isEphemeraMembershipHostId(nodeId))
+            .map((nodeId) => graphs.get(nodeId as EphemeraMembershipHostId))
+            .filter((childGraph): childGraph is EphemeraLudicGraph =>
+                !!childGraph && childGraph.presenceNodes.some((presenceNode) => parentHostOf(presenceNode) === hostId))
+            .flatMap((childGraph) => collapseCrossingPorts(graph, childGraph))
+
+        return { hostId, presenceNodes, edges: [...sameHostEdges, ...crossingEdges] }
+    })
+    const bindingsByOwner = new Map(perHost.map(({ hostId, presenceNodes }) => [hostId, presenceNodes]))
+    const edges = dedupeEdgesByIdentity(perHost.flatMap(({ edges }) => edges))
 
     // Each host's own bindings nest on its component node. Pass 1 built one node per hostId, so
     // an owner without one is a bug in this function, not a data shape.
@@ -160,7 +146,7 @@ export const buildLudicCache = async (
     const nestedNodes = nodes.map((node) => ({ ...node, presenceNodes: bindingsByOwner.get(node.universalKey as EphemeraMembershipHostId) ?? [] }))
 
     return {
-        cache: { hostId: seedHostId, nodes: nestedNodes, edges: [...byIdentity.values()] },
+        cache: { hostId: seedHostId, nodes: nestedNodes, edges },
         stats: { shardFetchCount, maxDepth },
     }
 }
