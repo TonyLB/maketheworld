@@ -59,7 +59,23 @@ export const computeStepSequenceFootprint = (
             hosts.add(step.from.host)
             continue
         }
-        if (step.kind === 'splitPresenceBinding' || step.kind === 'joinPresenceBindings') {
+        if (step.kind === 'splitPresenceBinding') {
+            hosts.add(step.hostId)
+            // every child whose binding is re-pointed: the entries of the new bindings. The original's own
+            // entries stay put, so their children are not locked.
+            for (const { presence, cover } of step.splitInto) {
+                if (presence === step.presence) {
+                    continue
+                }
+                for (const member of cover.members) {
+                    if ('host' in member) {
+                        hosts.add(member.host as EphemeraMembershipHostId)
+                    }
+                }
+            }
+            continue
+        }
+        if (step.kind === 'joinPresenceBindings') {
             hosts.add(step.hostId)
             continue
         }
