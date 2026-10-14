@@ -1,8 +1,8 @@
 # Room affordances on `ludicCache`: one level of nested contents
 
-**Status: Slices 0--3 done (D1 re-scoped to a forward read 2026-10-11; `ludicCacheRoomObjectContents` shipped and composed into the room header; room refresh subscribed to `Ludic Cache Invalidated` 2026-10-14). Next step: [Slice 4](#recommended-order).** Branch `iss8260-first-draft-affordance-refactor-design`.
+**Status: Slices 0--4 done (D1 re-scoped to a forward read 2026-10-11; `ludicCacheRoomObjectContents` shipped and composed into the room header; room refresh subscribed to `Ludic Cache Invalidated` 2026-10-14; client formatting 2026-10-14). Next step: [Slice 5](#recommended-order).** Branch `iss8260-first-draft-affordance-refactor-design`.
 
-**Scope in one sentence: build the room-affordance channel's object list from `ludicCache`'s own data (read forward through a purpose-built reader, not the command path's handle function), and show one level of contents beside each room-level object --- `Table (with Red cup)`, `Table (with Red cup, Blue cup)`, and `Table (with several objects)` past three.**
+**Scope in one sentence: build the room-affordance channel's object list from `ludicCache`'s own data (read forward through a purpose-built reader, not the command path's handle function), and show one level of contents beside each room-level object --- `Table (with Red cup)`, `Table (with Red cup, Blue cup)`, and `Table (with several objects)` at three or more.**
 
 This is a standard implementation plan under [`taskPlanning/AGENT.md`](../../../../AGENT.md). Deleted when the work lands; lasting rules move to the durable docs named in [Slice 5](#recommended-order).
 
@@ -87,14 +87,14 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [X] **Tests.** `index.test.ts`: `Object Moved` fans out no room and still bumps non-room catalogs; `Ludic Cache Invalidated` fans out once per room with reason `objects`; an empty `roomIds` payload is a no-op. `subscribedEvents.test.ts`: the guard accepts the new envelope. The occupied-fans-out / empty-room-does-not case is `fanOutAffordanceRefreshForRoom.test.ts`, where the check lives.
   - [X] **Docs.** `affordanceOrchestration/AGENT.md` (Ingress, "room-scoped filter" paragraph, dispatch tables) and `positions/AGENT.contract.md` (consumer bullet, shipped subscriber, second cold-rebuild consumer, async push) are updated; `AGENT.implementation.md` needed no change.
 
-- [ ] **Slice 4. Client formatting.**
-  - [ ] `formatRoomContentsLine` renders each room-level object as `Name` when it hosts nothing, `Name (with A)`, `Name (with A, B)`, `Name (with A, B, C)`, and `Name (with several objects)` at four or more. Contents come from the object stub's `ludicGraph.nonRootComponentRefs`, names from `componentDisplayLabel`, exactly as `formatObjectContentsLine` resolves them; an unresolvable content ref is dropped before counting.
-  - [ ] The outer Oxford join stays: `Contents: Table (with Red cup, Blue cup), Chair, and Lamp`.
-  - [ ] Tests in `roomHeaderContents.test.ts`, built from WML text (match the file's existing style): zero, one, two, three, four contents; a content ref with no stub; two room-level objects with contents.
-  - [ ] **Payoff test at the observable output:** a `RoomDescription` render test asserting the visible `Contents:` line for a room whose table holds a cup, starting from wire WML in the shape Slice 2 emits.
+- [X] **Slice 4. Client formatting.** Done 2026-10-14.
+  - [X] **Done:** `formatRoomContentsLine` renders each room-level object as `Name` when it hosts nothing, `Name (with A)`, `Name (with A, B)`, and `Name (with several objects)` at three or more. Contents come from the object stub's `ludicGraph.nonRootComponentRefs`, names from `componentDisplayLabel`, exactly as `formatObjectContentsLine` resolves them; an unresolvable content ref is dropped before counting.
+  - [X] The outer Oxford join stays: `Contents: Table (with Red cup, Blue cup), Chair, and Lamp`.
+  - [X] Tests in `roomHeaderContents.test.ts`, built from WML text (match the file's existing style): zero, one, two, three (the aggregate threshold), four contents; a content ref with no stub; two room-level objects with contents.
+  - [X] **Payoff test at the observable output (in `RoomDescription.test.tsx`):** a `RoomDescription` render test asserting the visible `Contents:` line for a room whose table holds a cup, starting from wire WML in the shape Slice 2 emits.
 
 - [ ] **Slice 5. Graduate and dispose.**
-  - [ ] Rules to durable docs: how the forward reader derives an object's one-level contents from its bindings' covers in [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) (beside "A catalog handle's `presence`"); object source and one-level contents in [`affordanceCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md) / the gateway doc's Consumers table; client formatting rule in [`charcoal-client/src/components/Message/AGENT.md`](../../../../../charcoal-client/src/components/Message/AGENT.md).
+  - [ ] Rules to durable docs: how the forward reader derives an object's one-level contents from its bindings' covers in [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) (beside "A catalog handle's `presence`"); object source and one-level contents in [`affordanceCache/AGENT.md`](../../../../../lambda/ephemera/dataSource/affordanceCache/AGENT.md) / the gateway doc's Consumers table; client formatting rule in [`charcoal-client/src/components/Message/AGENT.md`](../../../../../charcoal-client/src/components/Message/AGENT.md) (client part written with Slice 4).
   - [ ] Update the primer's cache **Status** paragraph ([`AGENT.ludicNetwork.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md) section 5): two consumers.
   - [X] The staleness section's consumer bullet in [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#ludic-cache-staleness-and-rebuild) now names the shipped subscriber and records the second cold-rebuild consumer and the async-push shape (done with Slice 3; `AGENT.implementation.md` unchanged).
   - [ ] Graduation sweep: grep for inbound links to this file, then delete it.
@@ -104,7 +104,7 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
 | ID | Decision | Blocks | Status |
 | --- | --- | --- | --- |
 | **D1** | **Where does an object's contents come from?** The cache's existing presence data, read **forward**: an object's contents are the covers of its own bindings; the room's direct objects come from the room's own shard. A reverse index (every object's parents) was built and reverted 2026-10-11: it answered a question the header never asks, and the handle surface it extended is the command path's, not this plan's. A separate membership record would duplicate what presence already states. **Slice 0 (2026-10-10): no live placement path leaves an Object unbound** --- all go through `compilePositionKernelOp`; authored Objects never reach a live graph. | Slice 1 | Decided |
-| **D2** | **Threshold and wording.** List up to three contents, aggregate to `several objects` at four or more; comma-separated inside the parentheses, no "and". Taken from the request; the formatter keeps the threshold as one named constant. | Slice 4 | Decided |
+| **D2** | **Threshold and wording.** List one or two contents, aggregate to `several objects` at three or more (revised 2026-10-14 from "up to three"); comma-separated inside the parentheses, no "and". Taken from the request; the formatter keeps the threshold as one named constant (`CONTENTS_AGGREGATE_THRESHOLD` in `roomHeaderContents.ts`). | Slice 4 | Decided |
 | **D3** | **Should authored `<Object>`s reach live graphs?** Slice 0 found that cache-time population ([`populateContainmentAtCache.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/containment/populateContainmentAtCache.ts)) keeps only Room/Feature children, so authored Objects never become live nodes, while [`positions/AGENT.contract.md`'s `Component Updated` rule](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) says "for each child named". **Decided 2026-10-10: yes, they should** --- forwarded to the authoredObjectPopulation plan, which owned the edge kind and the re-cache-versus-player-move question. It landed and was deleted 2026-10-11; its rules are in [`positions/AGENT.contract.md`'s `Component Updated` section](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#component-updated-containment-population-cache-time) (`In`, placed only with no live host). Nothing here depends on it: Slices 1--4 hold either way, and once it ships authored objects appear in the header as a fix, not a regression. | --- | Decided (forwarded) |
 
 ## Verification
@@ -117,7 +117,7 @@ cd charcoal-client && npm run test:single -- src/slices/messages/ src/components
 cd lambda/ephemera && npm run test -- --watchAll=false                                                        # before calling any lambda slice done
 ```
 
-Manual check (the user's): in a dev room, put a cup on a table and see `Table (with Red cup)` in the header without a `look`; add three more and see `several objects`; take one off and see the list return.
+Manual check (the user's): in a dev room, put a cup on a table and see `Table (with Red cup)` in the header without a `look`; add two more (three total) and see `several objects`; take one off and see the list return.
 
 ## Progress
 
@@ -127,5 +127,5 @@ Manual check (the user's): in a dev room, put a cup on a table and see `Table (w
 | 1. Forward reader over the cache | Done (2026-10-11) |
 | 2. Compose from the reader | Done (2026-10-11) |
 | 3. Refresh as an invalidation consumer | Done (2026-10-14) |
-| 4. Client formatting | Not started |
+| 4. Client formatting | Done (2026-10-14) |
 | 5. Graduate and dispose | Not started |
