@@ -183,10 +183,9 @@ describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
         orchestrateSpy.mockRestore()
     })
 
-    it('delegates mtw.ephemera.positions Object Moved to fanOutAffordanceRefreshForRoom', async () => {
+    it('does not fan out a room refresh on Object Moved (rooms refresh on Ludic Cache Invalidated)', async () => {
         const fanOutSpy = jest.spyOn(fanOutAffordanceRefresh, 'fanOutAffordanceRefreshForRoom').mockResolvedValue(undefined)
         const bumpSpy = jest.spyOn(bumpNonRoomHostCatalogs, 'bumpNonRoomHostCatalogsForObjectMoved').mockResolvedValue(undefined)
-        const orchestrateSpy = jest.spyOn(orchestrationHandler, 'orchestrateAffordanceRequest').mockResolvedValue(undefined)
         const payload = {
             type: 'Object Moved' as const,
             objectId: 'OBJECT#skates',
@@ -212,21 +211,65 @@ describe('mtw.ephemera.affordanceOrchestration DataSource', () => {
             streamEnvelope: jest.fn().mockResolvedValue(undefined),
         })
 
-        expect(fanOutSpy).toHaveBeenCalledTimes(2)
-        expect(fanOutSpy).toHaveBeenCalledWith(expect.objectContaining({
-            roomId: 'ROOM#from',
-            reason: 'objects',
-        }))
-        expect(fanOutSpy).toHaveBeenCalledWith(expect.objectContaining({
-            roomId: 'ROOM#obj',
-            reason: 'objects',
-        }))
-        expect(orchestrateSpy).not.toHaveBeenCalled()
-        expect(bumpSpy).toHaveBeenCalledTimes(1)
+        expect(fanOutSpy).not.toHaveBeenCalled()
         expect(bumpSpy).toHaveBeenCalledWith([])
         fanOutSpy.mockRestore()
         bumpSpy.mockRestore()
-        orchestrateSpy.mockRestore()
+    })
+
+    it('fans out a room refresh once per room on mtw.ephemera.positions Ludic Cache Invalidated', async () => {
+        const fanOutSpy = jest.spyOn(fanOutAffordanceRefresh, 'fanOutAffordanceRefreshForRoom').mockResolvedValue(undefined)
+        const events: any[] = [
+            {
+                header: {
+                    dataSourceKey: 'mtw.ephemera.positions',
+                    streamKey: 'ROOM#a',
+                    timestamp: Date.now(),
+                    type: 'Ludic Cache Invalidated',
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Ludic Cache Invalidated',
+                    roomIds: ['ROOM#a', 'ROOM#b'],
+                }),
+            },
+        ]
+
+        await affordanceOrchestrationDataSource.receiveEvents?.({
+            events,
+            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEnvelope: jest.fn().mockResolvedValue(undefined),
+        })
+
+        expect(fanOutSpy).toHaveBeenCalledTimes(2)
+        expect(fanOutSpy.mock.calls.map((c) => c[0])).toEqual([
+            expect.objectContaining({ roomId: 'ROOM#a', reason: 'objects' }),
+            expect.objectContaining({ roomId: 'ROOM#b', reason: 'objects' }),
+        ])
+        fanOutSpy.mockRestore()
+    })
+
+    it('no-ops a malformed Ludic Cache Invalidated payload', async () => {
+        const fanOutSpy = jest.spyOn(fanOutAffordanceRefresh, 'fanOutAffordanceRefreshForRoom').mockResolvedValue(undefined)
+        const events: any[] = [
+            {
+                header: {
+                    dataSourceKey: 'mtw.ephemera.positions',
+                    streamKey: 'ROOM#a',
+                    timestamp: Date.now(),
+                    type: 'Ludic Cache Invalidated',
+                },
+                getContent: () => Promise.resolve({ type: 'Ludic Cache Invalidated', roomIds: [] }),
+            },
+        ]
+
+        await affordanceOrchestrationDataSource.receiveEvents?.({
+            events,
+            streamEvent: jest.fn().mockResolvedValue(undefined),
+            streamEnvelope: jest.fn().mockResolvedValue(undefined),
+        })
+
+        expect(fanOutSpy).not.toHaveBeenCalled()
+        fanOutSpy.mockRestore()
     })
 
     it('bumps non-Room host catalogs on mtw.ephemera.positions Object Moved, alongside room fan-out', async () => {

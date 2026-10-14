@@ -4,7 +4,8 @@
  * Canonical home for affordance-channel orchestration (Area topology exits, M4).
  * See ./AGENT.md for semantics and constraints.
  *
- * Ingress: api.ephemera Affordances Requested; mtw.ephemera.positions Object Moved (fan-out);
+ * Ingress: api.ephemera Affordances Requested; mtw.ephemera.positions Ludic Cache Invalidated (room fan-out)
+ * and Object Moved (non-room catalog bump only);
  * mtw.assets.componentTopology TopologyInvalidated (fan-out, reason: topology).
  * Outbounds: five-type stream on this DataSource via streamEvent (v1-active: Slice Ready, Orchestration Error).
  * replayable: false.
@@ -19,6 +20,7 @@ import {
     isAffordanceOrchestrationIngressEnvelope,
     isAffordanceOrchestrationSubscribedEnvelope,
     isAffordancesRequestedIngressEnvelope,
+    isEphemeraPositionsLudicCacheInvalidatedIngressEnvelope,
     isEphemeraPositionsObjectMovedIngressEnvelope,
     type AffordanceOrchestrationIngressEvent,
     type AffordanceOrchestrationSubscribedContent,
@@ -28,10 +30,9 @@ import { handleTopologyInvalidated } from '../affordanceCache/handleTopologyInva
 import { isAffordancesRequestedCommand } from './localApiEvents'
 import { orchestrateAffordanceRequest } from './orchestrationHandler'
 import { fanOutAffordanceRefreshForRoom } from './fanOutAffordanceRefreshForRoom'
-import { roomsAffectedByObjectMoved } from './roomsAffectedByObjectMoved'
 import { nonRoomHostsAffectedByObjectMoved } from './nonRoomHostsAffectedByObjectMoved'
 import { bumpNonRoomHostCatalogsForObjectMoved } from './bumpNonRoomHostCatalogsForObjectMoved'
-import { isObjectMovedPublishedPayload } from '../positions/publishedEvents'
+import { isLudicCacheInvalidatedPublishedPayload, isObjectMovedPublishedPayload } from '../positions/publishedEvents'
 import type { AffordanceOrchestrationPublishedPayload } from './publishedEvents'
 import messageBus from '../../messageBus'
 
@@ -86,16 +87,20 @@ export const affordanceOrchestrationDataSource = new EphemeraDataSource<
                 if (!isObjectMovedPublishedPayload(raw)) {
                     return
                 }
-                const affectedRooms = roomsAffectedByObjectMoved(raw)
-                const affectedNonRoomHosts = nonRoomHostsAffectedByObjectMoved(raw)
-                await Promise.all([
-                    ...affectedRooms.map((roomId) => fanOutAffordanceRefreshForRoom({
-                        roomId,
-                        reason: 'objects',
-                        streamEvent,
-                    })),
-                    bumpNonRoomHostCatalogsForObjectMoved(affectedNonRoomHosts),
-                ])
+                // Room refresh is driven by `Ludic Cache Invalidated`, not by the move's endpoints.
+                await bumpNonRoomHostCatalogsForObjectMoved(nonRoomHostsAffectedByObjectMoved(raw))
+                return
+            }
+            if (isEphemeraPositionsLudicCacheInvalidatedIngressEnvelope(event)) {
+                const raw = await event.getContent()
+                if (!isLudicCacheInvalidatedPublishedPayload(raw)) {
+                    return
+                }
+                await Promise.all(raw.roomIds.map((roomId) => fanOutAffordanceRefreshForRoom({
+                    roomId,
+                    reason: 'objects',
+                    streamEvent,
+                })))
                 return
             }
             if (isConnectionsCharacterRegisteredEnvelope(event)) {
