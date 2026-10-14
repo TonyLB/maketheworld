@@ -41,8 +41,8 @@ const defaultDeps = (): RoomObjectCatalogDeps => ({
 /**
  * Merged-layer in-room object catalog for classify, enrich, and deterministic resolve (D6).
  *
- * The candidate pool is read from the room's **stored** `ludicCache` (`catalogHandles.ts`,
- * persistence Slice 4), so names are the Canon + Improvisation names every viewer shares (LCP-1):
+ * The candidate pool is read from the room's **stored** `ludicCache` (`catalogHandles.ts`),
+ * so names are the Canon + Improvisation names every viewer shares:
  * a character's own non-Canon assets no longer rename an object here, and no perspective is
  * resolved. See this file's `AGENT.md` "Known gap" paragraph for what is (still, deliberately)
  * exhaustive rather than presence-bucket-filtered about this.

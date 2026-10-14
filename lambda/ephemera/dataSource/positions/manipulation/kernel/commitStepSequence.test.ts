@@ -869,7 +869,7 @@ describe('commitStepSequence', () => {
         })
     })
 
-    describe('stale-marking (LCP-3)', () => {
+    describe('stale-marking', () => {
         const KITCHEN_ID = 'ROOM#Kitchen' as EphemeraRoomId
         const bumpKeys = (items: any[] | undefined) => (items ?? [])
             .filter((item) => 'PrimitiveUpdate' in item)

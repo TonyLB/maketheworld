@@ -1,5 +1,5 @@
 /**
- * ludicCachePersistence Slice 4 payoff, at the observable output: what a player's command resolves.
+ * Stored-cache payoff, at the observable output: what a player's command resolves.
  * A command resolves a nested object by name from the room's stored row with zero graph reads; the
  * object is moved (a kernel commit bumps the room's marker); the next command resolves it in its new
  * place, through a rebuild. The real consumer (`getRoomObjectCatalogForCharacter`) and the real

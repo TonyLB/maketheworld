@@ -22,7 +22,7 @@
  * for the cold-rebuild case by this walk alone**, not by new mechanism: every terminal
  * `enumerateLudicCacheShards` visits is resolved here in one pass, so nothing is ever
  * "recovered" because nothing was ever dropped. The warm/incremental case --- a single new
- * binding arriving against an *already-persisted* cache --- is not this file's: a stale persisted cache is rebuilt whole (see `AGENT.ludicCachePersistence.planning.md`).
+ * binding arriving against an *already-persisted* cache --- is not this file's: a stale persisted cache is rebuilt whole (see `positions/AGENT.contract.md`, Ludic cache staleness and rebuild).
  *
  * **3e (idempotence and confluence, LC2/LC3):** grouping by `collapsedEdgeIdentityKey`
  * (`mergeReducer.ts`) at cache-assembly grain, not only within each `collapseCrossingPorts`/

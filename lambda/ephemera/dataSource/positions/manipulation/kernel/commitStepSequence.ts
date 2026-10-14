@@ -139,7 +139,7 @@ const containersAfter = (
  * step's `meta` plus its committed `ludicGraph`. `existenceItems` (a creating caller's own rows,
  * opaque here) ride the same `cascade`, so creation, its rows and its placement commit together.
  *
- * **Stale-marking (LCP-3).** The `cascade` also carries one marker bump per room whose stored
+ * **Stale-marking.** The `cascade` also carries one marker bump per room whose stored
  * `ludicCache` the sequence can change, so the graph write and its stale-mark commit together or
  * not at all; the same room set is published afterwards as `Ludic Cache Invalidated`. The rooms
  * are resolved *before* the transact (the cascade is synchronous and cannot read ancestor graphs)

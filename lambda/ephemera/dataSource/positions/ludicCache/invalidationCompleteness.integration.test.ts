@@ -566,7 +566,7 @@ describe('invalidation completeness: a read after any change equals a cold rebui
 
     it('a commit confined to a character\'s inventory marks no room', async () => {
         // Alpha carries a pouch and a hat; the hat goes into the pouch. Both sit under Alpha, a
-        // character-hosted shard, which a room's cache never recurses into, so no room is stale (LCP-3).
+        // character-hosted shard, which a room's cache never recurses into, so no room is stale.
         const POUCH = 'OBJECT#Pouch' as EphemeraObjectId
         const HAT = 'OBJECT#Hat' as EphemeraObjectId
         world.names[POUCH] = 'Pouch'

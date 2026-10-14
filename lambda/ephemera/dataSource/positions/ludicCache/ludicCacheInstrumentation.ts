@@ -23,7 +23,7 @@ const LOG_PREFIX = '[mtw.ephemera.ludicCache] rebuild'
  * seed that is not a room and so is rebuilt per request. Hit rate and saved time read straight off this field.
  * `shardFetchCount` and `maxDepth` are the walk's own counts, so a persisted read does not have them (the flight that rebuilt
  * the row may be another invocation's). `storedBytes` is the serialized cache size on a rebuild that wrote a row: the number
- * to set against DynamoDB's 400KB item limit (LCP-6 chose no guard, so this is the only warning).
+ * to set against DynamoDB's 400KB item limit (there is no size guard, so this is the only warning).
  */
 export type LudicCacheRebuildFields = {
     seedHostId: string

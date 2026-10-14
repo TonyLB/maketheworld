@@ -8,7 +8,7 @@
  * graph, root excluded. So a table's contents are what its bindings cover, and a box on the table contributes the box
  * only, since the cup sits in the box's own graph. One level falls out of the data; nothing walks upward.
  *
- * **Structure from the stored row, labels from the viewer (LCP-7).** Which objects exist and what they hold comes from
+ * **Structure from the stored row, labels from the viewer.** Which objects exist and what they hold comes from
  * the room's stored cache (`readLudicCache`, shared by every viewer). The label each is shown under is resolved at read
  * from the viewer's own asset stack, memoized per call, for the room-level objects and one level of contents only. The
  * stored `shortName` is a reasoning name and is never shown as a fallback (reasoning and display names do not cross over).

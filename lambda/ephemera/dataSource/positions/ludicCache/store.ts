@@ -1,6 +1,6 @@
 /**
  * The stored `ludicCache` row, and `readLudicCache`: the one read a room-seeded consumer makes.
- * See `AGENT.ludicCachePersistence.planning.md` (LCP-1, -2, -4, -5) for the decisions this holds.
+ * Rules: `positions/AGENT.contract.md` (Ludic cache staleness and rebuild); mechanism: `positions/AGENT.implementation.md` (Stored row).
  *
  * Two rows per room, on `EphemeraId: <roomId>`:
  * - `LudicCache::`: the full `EphemeraLudicCacheData` plus `builtAtVersion`, the marker version the
@@ -26,7 +26,7 @@
  * collision, so start again from the row read, a bounded number of times.
  *
  * **The persisted path takes only a `roomId`.** The Canon stack is resolved here, never passed in,
- * so a viewer's perspective cannot reach a name written into a row shared by every viewer (LCP-1).
+ * so a viewer's perspective cannot reach a name written into a row shared by every viewer.
  */
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import {
@@ -104,8 +104,8 @@ const MARKER_BUMP_EXPRESSION = 'ADD version :one'
 
 /**
  * One `PrimitiveUpdate` per room, bumping its marker (`ADD` also creates the row at 1), for a
- * kernel transaction to carry so the graph write and its stale-mark commit together or not at all
- * (LCP-3). The rooms are the caller's: see `roomsInvalidatedByHosts`.
+ * kernel transaction to carry so the graph write and its stale-mark commit together or not at all.
+ * The rooms are the caller's: see `roomsInvalidatedByHosts`.
  */
 export const ludicCacheMarkerBumpItems = (roomIds: readonly EphemeraRoomId[]) => roomIds.map((roomId) => ({
     PrimitiveUpdate: {
@@ -119,7 +119,7 @@ export const ludicCacheMarkerBumpItems = (roomIds: readonly EphemeraRoomId[]) =>
 /**
  * The same bump as plain concurrent `UpdateItem`s, for the writers that cannot ride a kernel
  * transaction (asset-side name changes, the diagnostics heals, the Coyote clear). Each is marked
- * right after its own write, so a short window is accepted (LCP-4). A failed bump is thrown, never
+ * right after its own write, so a short window is accepted. A failed bump is thrown, never
  * suppressed: an unwritten marker would leave a wrong row reading as a hit.
  */
 export const markLudicCacheStale = async (roomIds: readonly EphemeraRoomId[]): Promise<void> => {

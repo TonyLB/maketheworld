@@ -21,7 +21,7 @@
  * seen in the room without one). Still flat scalars, and still not
  * a filter: this records where each thing is seen and drops nothing.
  *
- * **Room seeds read the stored row** (`ludicCacheRoomObjectHandles`, persistence Slice 4); `ludicCacheObjectHandles` is the per-request rebuild for any other seed.
+ * **Room seeds read the stored row** (`ludicCacheRoomObjectHandles`); `ludicCacheObjectHandles` is the per-request rebuild for any other seed.
  *
  * **Slice 5 (PC-3): this is also the instrumentation boundary.** `buildLudicCache` and
  * `enumerateLudicCacheShards` stay pure, so wall time is timed here, around the one call this
@@ -99,7 +99,7 @@ const handlesFromCache = (
 
 /**
  * A room's handles from its **stored** cache (`readLudicCache`): no asset stack, because the row is shared by every viewer and
- * carries Canon + Improvisation names (LCP-1). A seed that is not a room has no stored row and takes
+ * carries Canon + Improvisation names. A seed that is not a room has no stored row and takes
  * {@link ludicCacheObjectHandles}'s per-request rebuild.
  */
 export type RoomObjectHandlesDeps = { readLudicCache?: typeof readLudicCacheWithOutcome }
