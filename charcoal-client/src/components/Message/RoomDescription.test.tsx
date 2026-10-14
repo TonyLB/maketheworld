@@ -293,6 +293,32 @@ describe('RoomDescription', () => {
             characters.forEach((node) => expect(node).toHaveAttribute('data-inactive', 'false'))
         })
 
+        it('shows one level of contents beside a room-level object in the header Contents line', () => {
+            const wml = deIndentWML(`
+                <Asset uuid=(Test)>
+                    <Room key=(main) uuid=(ROOM#main)>
+                        <Object uuid=(OBJECT#table)>
+                            <ShortName>Table</ShortName>
+                            <Object uuid=(OBJECT#cup)><ShortName>Red cup</ShortName></Object>
+                        </Object>
+                    </Room>
+                </Asset>
+            `)
+            const parsedWML = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+            const metaData: PerceptionRoomMetaData = {
+                componentUUID: 'ROOM#main',
+                displayMode: 'header'
+            }
+
+            render(
+                <Provider store={store}>
+                    <RoomDescription parsedWML={parsedWML} metaData={metaData} header currentHeader />
+                </Provider>
+            )
+
+            expect(screen.getByText('Contents: Table (with Red cup)')).toBeDefined()
+        })
+
         it('marks affordances inactive when header is rendered without currentHeader (historical)', () => {
             const parsedWML = new StandardForm(deIndentWML(wmlWithAffordances), { standardizeMode: 'ephemeraWire' })
             const metaData: PerceptionRoomMetaData = {

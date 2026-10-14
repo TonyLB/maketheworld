@@ -1,6 +1,7 @@
 import { ComponentUUID } from '@tonylb/mtw-base/ts/schema'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
+import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import { componentDisplayLabel } from '../../lib/componentDisplayLabel'
 
@@ -35,7 +36,38 @@ export function formatContentsLine(names: string[]): string | null {
     return `Contents: ${rest}, and ${last}`
 }
 
-/** Oxford-style English list for room object shortNames; null when there are no objects to show. */
+/** At this many resolved contents, a room-level object's label aggregates to `(with several objects)`. */
+const CONTENTS_AGGREGATE_THRESHOLD = 3
+
+type LudicRefs = StandardObject['ludicGraph']['nonRootComponentRefs']
+
+/** Names for a list of ludicGraph refs, resolved through the sibling stubs; unresolvable refs are dropped. */
+function resolvedNames(parsedWML: StandardForm, refs: LudicRefs): string[] {
+    return refs.payload
+        .map((ref) => (ref.universalKey ? parsedWML.byUniversalId[ref.universalKey] : undefined))
+        .filter((c): c is NonNullable<typeof c> => Boolean(c))
+        .map((c) => componentDisplayLabel(c))
+        .filter((name): name is string => Boolean(name))
+}
+
+/** `Name`, `Name (with A)`, `Name (with A, B)`, or `Name (with several objects)` for one room-level object. */
+function roomObjectLabel(parsedWML: StandardForm, object: StandardComponent): string | undefined {
+    const name = componentDisplayLabel(object)
+    if (!name) {
+        return undefined
+    }
+    const contents = object instanceof StandardObject
+        ? resolvedNames(parsedWML, object.ludicGraph.nonRootComponentRefs)
+        : []
+    if (contents.length === 0) {
+        return name
+    }
+    return contents.length >= CONTENTS_AGGREGATE_THRESHOLD
+        ? `${name} (with several objects)`
+        : `${name} (with ${contents.join(', ')})`
+}
+
+/** Oxford-style English list for room objects, each with its one level of contents; null when there are no objects to show. */
 export function formatRoomContentsLine(parsedWML: StandardForm | undefined, componentUUID: string): string | null {
     if (!parsedWML) {
         return null
@@ -51,7 +83,7 @@ export function formatRoomContentsLine(parsedWML: StandardForm | undefined, comp
     const names = objectRefs.payload
         .map((ref) => (ref.universalKey ? parsedWML.byUniversalId[ref.universalKey] : undefined))
         .filter((c): c is NonNullable<typeof c> => Boolean(c))
-        .map((c) => componentDisplayLabel(c))
+        .map((c) => roomObjectLabel(parsedWML, c))
         .filter((name): name is string => Boolean(name))
     return formatContentsLine(names)
 }
@@ -75,10 +107,5 @@ export function formatObjectContentsLine(parsedWML: StandardForm | undefined, co
     if (!hostedRefs.payload.length) {
         return null
     }
-    const names = hostedRefs.payload
-        .map((ref) => (ref.universalKey ? parsedWML.byUniversalId[ref.universalKey] : undefined))
-        .filter((c): c is NonNullable<typeof c> => Boolean(c))
-        .map((c) => componentDisplayLabel(c))
-        .filter((name): name is string => Boolean(name))
-    return formatContentsLine(names)
+    return formatContentsLine(resolvedNames(parsedWML, hostedRefs))
 }
