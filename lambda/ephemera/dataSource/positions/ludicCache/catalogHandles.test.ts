@@ -7,7 +7,8 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 
 import { EphemeraLudicGraph } from '../ludicGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
-import { ludicCacheObjectHandles } from './catalogHandles'
+import { ludicCacheObjectHandles, ludicCacheRoomObjectHandles } from './catalogHandles'
+import { buildLudicCache } from './fold'
 import { roomsForReferent } from '../ludicGraph/presenceRooms'
 import { parentRemainderKey } from '../ludicGraph/testFixtures'
 
@@ -308,5 +309,47 @@ describe('ludicCacheObjectHandles', () => {
             expect(handles).toHaveLength(1)
             await expect(roomsForReferent(namedId, handles[0].presence as never, getGraph)).resolves.toEqual(new Set([roomA]))
         })
+    })
+})
+
+describe('ludicCacheRoomObjectHandles', () => {
+    const roomWithNamed = async () => {
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: namedId }] })],
+            [namedId, testLudicGraph(namedId, { nodes: [{ tag: 'Object', universalKey: namedId }] })],
+        ])
+        return (await buildLudicCache(roomA, [], { ...graphsAsDeps(graphs), ...namedShortNameDeps({ [namedId]: 'Named Thing' }) })).cache
+    }
+
+    it('returns the same handles from a stored cache as a cold rebuild does', async () => {
+        const cache = await roomWithNamed()
+
+        const handles = await ludicCacheRoomObjectHandles(roomA, { readLudicCache: async () => ({ cache, outcome: 'hit' }) })
+
+        expect(handles).toEqual([{ objectId: namedId, shortName: 'Named Thing', presence: [roomA] }])
+    })
+
+    it('logs the outcome, with the stored size on a rebuild and none on a hit', async () => {
+        const cache = await roomWithNamed()
+        const spy = jest.spyOn(console, 'log').mockImplementation(() => {})
+
+        await ludicCacheRoomObjectHandles(roomA, { readLudicCache: async () => ({ cache, outcome: 'hit' }) })
+        await ludicCacheRoomObjectHandles(roomA, { readLudicCache: async () => ({ cache, outcome: 'stale' }) })
+
+        const [hit, stale] = spy.mock.calls.map(([, fields]) => fields as Record<string, unknown>)
+        expect(hit).toMatchObject({ seedHostId: roomA, outcome: 'hit', objectCount: 1 })
+        expect(hit).not.toHaveProperty('storedBytes')
+        expect(stale).toMatchObject({ outcome: 'stale', storedBytes: Buffer.byteLength(JSON.stringify(cache)) })
+        spy.mockRestore()
+    })
+
+    it('tags a per-request rebuild as cold', async () => {
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[roomA, testLudicGraph(roomA)]])
+        const spy = jest.spyOn(console, 'log').mockImplementation(() => {})
+
+        await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(graphs), ...noShortNameDeps() })
+
+        expect(spy.mock.calls[0][1]).toMatchObject({ outcome: 'cold' })
+        spy.mockRestore()
     })
 })

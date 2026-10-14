@@ -26,6 +26,7 @@ import {
     ludicCacheMarkerBumpItems,
     markLudicCacheStale,
     readLudicCache,
+    readLudicCacheWithOutcome,
     type LudicCacheRow,
     type ReadLudicCacheDeps,
 } from './store'
@@ -107,6 +108,25 @@ describe('readLudicCache', () => {
         expect(getComponentAggregate).not.toHaveBeenCalled()
         expect(runSingleFlight).not.toHaveBeenCalled()
         expect(store.writeRow).not.toHaveBeenCalled()
+    })
+
+    it('reports how the first read found the row: hit, stale, absent', async () => {
+        const hit = makeStore({ version: 2, row: { builtAtVersion: 2, cache: emptyCache('stored') } })
+        const stale = makeStore({ version: 3, row: { builtAtVersion: 2, cache: emptyCache('old') } })
+        const absent = makeStore()
+
+        await expect(readLudicCacheWithOutcome(roomA, baseDeps(hit))).resolves.toMatchObject({ outcome: 'hit' })
+        await expect(readLudicCacheWithOutcome(roomA, baseDeps(stale))).resolves.toMatchObject({ outcome: 'stale' })
+        await expect(readLudicCacheWithOutcome(roomA, baseDeps(absent))).resolves.toMatchObject({ outcome: 'absent' })
+    })
+
+    it('reports a row that fails its guard as malformed, not absent', async () => {
+        const malformed = { ...makeStore({ version: 1 }), readRows: jest.fn(async () => ({ version: 1, malformed: true })) }
+        const store = makeStore({ version: 1 })
+
+        const result = await readLudicCacheWithOutcome(roomA, baseDeps(store, { readRows: malformed.readRows }))
+
+        expect(result.outcome).toBe('malformed')
     })
 
     it('rebuilds and writes an absent row, labelled with the marker version (absent marker is 0)', async () => {

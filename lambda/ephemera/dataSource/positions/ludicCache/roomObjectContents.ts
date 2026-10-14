@@ -8,14 +8,20 @@
  * graph, root excluded. So a table's contents are what its bindings cover, and a box on the table contributes the box
  * only, since the cup sits in the box's own graph. One level falls out of the data; nothing walks upward.
  *
- * An object whose `shortName` never resolved is dropped at both levels, as `catalogHandles.ts` does. Nothing past this
- * function's return type is cache-shaped.
+ * **Structure from the stored row, labels from the viewer (LCP-7).** Which objects exist and what they hold comes from
+ * the room's stored cache (`readLudicCache`, shared by every viewer). The label each is shown under is resolved at read
+ * from the viewer's own asset stack, memoized per call, for the room-level objects and one level of contents only. The
+ * stored `shortName` is a reasoning name and is never shown as a fallback (reasoning and display names do not cross over).
+ * An object is dropped at both levels when its stored node has no `shortName` (it is not named in the reasoning world) or
+ * the viewer's label does not resolve. Nothing past this function's return type is cache-shaped.
  */
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 
-import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
+import internalCache from '../../../internalCache'
+import { resolveComponentShortName } from '../../objects/objectShortName'
+import { readLudicCache } from './store'
 
 export type RoomObjectContent = {
     objectId: EphemeraObjectId
@@ -26,24 +32,42 @@ export type RoomObjectWithContents = RoomObjectContent & {
     contents: RoomObjectContent[]
 }
 
+export type RoomObjectContentsDeps = {
+    readLudicCache?: typeof readLudicCache
+    getComponentAggregate?: ComponentAggregateMergedCache['get']
+}
+
 export const ludicCacheRoomObjectContents = async (
-    seedHostId: EphemeraMembershipHostId,
+    roomId: EphemeraRoomId,
     roomObjectIds: readonly EphemeraObjectId[],
     assetStack: readonly string[],
-    deps: BuildLudicCacheDeps = {}
+    deps: RoomObjectContentsDeps = {}
 ): Promise<RoomObjectWithContents[]> => {
-    const { cache } = await buildLudicCache(seedHostId, assetStack, deps)
+    const cache = await (deps.readLudicCache ?? readLudicCache)(roomId)
+    const getComponentAggregate = deps.getComponentAggregate ?? ((perspectives) => internalCache.ComponentAggregate.get(perspectives))
     const nodeById = new Map(cache.nodes.map((node) => [node.universalKey as string, node]))
-    const named = (objectId: string): RoomObjectContent | undefined => {
-        const shortName = nodeById.get(objectId)?.shortName
-        return isEphemeraObjectId(objectId) && shortName !== undefined ? { objectId, shortName } : undefined
-    }
-    const contentsOf = (objectId: EphemeraObjectId): RoomObjectContent[] => (nodeById.get(objectId)?.presenceNodes ?? [])
+
+    const contentsIdsOf = (objectId: EphemeraObjectId): EphemeraObjectId[] => (nodeById.get(objectId)?.presenceNodes ?? [])
         .flatMap((binding) => binding.cover.members.map(({ host }) => host as string))
         .filter((host, index, hosts) => hosts.indexOf(host) === index)
-        .flatMap((host) => named(host) ?? [])
-    return roomObjectIds.flatMap((objectId) => {
-        const object = named(objectId)
-        return object ? [{ ...object, contents: contentsOf(objectId) }] : []
+        .filter((host): host is EphemeraObjectId => isEphemeraObjectId(host) && nodeById.get(host)?.shortName !== undefined)
+
+    const structured = roomObjectIds
+        .filter((objectId) => nodeById.get(objectId)?.shortName !== undefined)
+        .map((objectId) => ({ objectId, contents: contentsIdsOf(objectId) }))
+
+    // One label read per distinct displayed object, in parallel.
+    const displayed = [...new Set(structured.flatMap(({ objectId, contents }) => [objectId, ...contents]))]
+    const labels = new Map(await Promise.all(displayed.map(async (objectId) =>
+        [objectId, await resolveComponentShortName(objectId, assetStack, { getComponentAggregate })] as const
+    )))
+    const labelled = (objectId: EphemeraObjectId): RoomObjectContent | undefined => {
+        const shortName = labels.get(objectId)
+        return shortName !== undefined ? { objectId, shortName } : undefined
+    }
+
+    return structured.flatMap(({ objectId, contents }) => {
+        const object = labelled(objectId)
+        return object ? [{ ...object, contents: contents.flatMap((content) => labelled(content) ?? []) }] : []
     })
 }

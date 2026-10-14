@@ -3,7 +3,8 @@ import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
 import { testLudicGraph } from '../positions/ludicGraph/testFixtures'
-import { getRoomObjectLabelsForCharacter } from './roomObjectLabelsForCharacter'
+import { getRoomObjectLabelsForCharacter as getLabelsFromStoredCache } from './roomObjectLabelsForCharacter'
+import { catalogDepsFromColdBuild } from './roomObjectCatalogTestDeps'
 
 const characterId = 'CHARACTER#Test' as EphemeraCharacterId
 const roomId = 'ROOM#Kitchen' as EphemeraRoomId
@@ -16,11 +17,10 @@ const makeObjectComponent = (shortName: string) => new StandardObject({
     shortName,
 })
 
-const catalogPerspectiveDeps = {
-    getCharacterAssets: async () => ['ASSET#Test'],
-    resolvePerspective: async () => ({ assetStack: ['ASSET#Test'] }),
-    getComponentAggregate: async () => [],
-}
+const catalogPerspectiveDeps = {}
+
+const getRoomObjectLabelsForCharacter = (characterId: EphemeraCharacterId, deps: Parameters<typeof catalogDepsFromColdBuild>[0]) =>
+    getLabelsFromStoredCache(characterId, catalogDepsFromColdBuild(deps))
 
 /** Resolves each host's shortName from `names` via a mocked merged aggregate, matching the real
  * per-host `getComponentAggregate([perspective])` call shape. */

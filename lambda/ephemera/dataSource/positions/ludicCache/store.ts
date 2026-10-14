@@ -79,7 +79,12 @@ type StoredRows = {
     version: number
     /** The cache row, only when it passes its guard: a malformed row reads as absent. */
     row?: LabelledLudicCache
+    /** A cache row was stored but failed its guard (reported only for the `outcome` log). */
+    malformed?: boolean
 }
+
+/** How a read found the stored row: `hit` is the only one that cost no rebuild. */
+export type LudicCacheReadOutcome = 'hit' | 'stale' | 'absent' | 'malformed'
 
 export type RunWithSingleFlightLudicCacheRebuild = <T>(params: SingleFlightParams<T>) => Promise<T>
 
@@ -160,6 +165,7 @@ const defaultReadRows = async (roomId: EphemeraRoomId): Promise<StoredRows> => {
     return {
         version: typeof marker?.version === 'number' ? marker.version : 0,
         row: labelFromRow(stored),
+        ...(stored !== undefined && labelFromRow(stored) === undefined ? { malformed: true } : {}),
     }
 }
 
@@ -216,10 +222,21 @@ const rebuild = async (
     return row ?? { builtAtVersion: version, cache }
 }
 
+export type LudicCacheRead = {
+    cache: EphemeraLudicCacheData
+    /** What the first row read found, so the consumers' log line reads hit rate straight off CloudWatch. */
+    outcome: LudicCacheReadOutcome
+}
+
 export const readLudicCache = async (
     roomId: EphemeraRoomId,
     deps: ReadLudicCacheDeps = {}
-): Promise<EphemeraLudicCacheData> => {
+): Promise<EphemeraLudicCacheData> => (await readLudicCacheWithOutcome(roomId, deps)).cache
+
+export const readLudicCacheWithOutcome = async (
+    roomId: EphemeraRoomId,
+    deps: ReadLudicCacheDeps = {}
+): Promise<LudicCacheRead> => {
     const resolved = {
         readRows: deps.readRows ?? defaultReadRows,
         writeRow: deps.writeRow ?? defaultWriteRow,
@@ -232,11 +249,13 @@ export const readLudicCache = async (
     const runSingleFlight = deps.runSingleFlight ?? defaultRunWithSingleFlight
 
     let carried: unknown
+    let outcome: LudicCacheReadOutcome | undefined
     for (let attempt = 0; attempt < LUDIC_CACHE_READ_MAX_ATTEMPTS; attempt++) {
-        const { version, row } = await resolved.readRows(roomId)
+        const { version, row, malformed } = await resolved.readRows(roomId)
         if (row && row.builtAtVersion === version) {
-            return row.cache
+            return { cache: row.cache, outcome: outcome ?? 'hit' }
         }
+        outcome = outcome ?? (row ? 'stale' : malformed ? 'malformed' : 'absent')
         try {
             const flight = await runSingleFlight<LabelledLudicCache>({
                 category: LUDIC_CACHE_REBUILD_SINGLE_FLIGHT_CATEGORY,
@@ -249,7 +268,7 @@ export const readLudicCache = async (
                 },
             })
             if (flight.builtAtVersion === version) {
-                return flight.cache
+                return { cache: flight.cache, outcome }
             }
             carried = undefined
         }

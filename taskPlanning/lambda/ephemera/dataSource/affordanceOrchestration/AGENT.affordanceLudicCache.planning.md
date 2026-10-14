@@ -33,7 +33,7 @@ cd charcoal-client && npm run test:single -- src/slices/messages/roomHeaderConte
 - **No `On`/`In` differentiation, no attention scoping.** The cache stays exhaustive (clause 2 deferred, as chosen). A cup in a closed box on the floor shows as `Box (with Cup)`. Known and accepted for this draft.
 - **One level only.** The cup in the box on the table does not appear; `Table (with Box)` is the whole story. Contents on `look table` is a later step.
 - **Exits and the character roster** stay on their current sources (`Affordance::` row, `getRoomCharacterList`). The cache does not model exits.
-- **Persistence** ([`AGENT.ludicCachePersistence.planning.md`](../positions/AGENT.ludicCachePersistence.planning.md)). This plan adds a second cold-rebuild consumer and builds the invalidation seam persistence will drop stored state behind ([Slice 3](#recommended-order)); it stores nothing.
+- **Persistence** ([`AGENT.ludicCachePersistence.planning.md`](../positions/AGENT.ludicCachePersistence.planning.md)). The room header's reader (`ludicCacheRoomObjectContents`) now reads the room's **stored** row, with display labels resolved per viewer (persistence Slice 4, 2026-10-14); this plan's [Slice 3](#recommended-order) subscribes to `Ludic Cache Invalidated` and stores nothing itself.
 - **Held inventory.** The cache walk never recurses into a character-hosted shard except as seed; characters' holdings stay out of the room header.
 
 ## Recommended order

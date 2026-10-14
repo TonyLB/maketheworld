@@ -34,6 +34,7 @@ import {
     parseCommand,
 } from './parseCommand'
 import { parentRemainderKey } from '../positions/ludicGraph/testFixtures'
+import { catalogDepsFromColdBuild } from './roomObjectCatalogTestDeps'
 
 /** The route's change step: the attempt's first action that changes the world (relation or transfer). */
 const primaryStepOf = (result: unknown): any => {
@@ -2131,11 +2132,9 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                     ],
                 }),
             }
-            const { entries } = await getRoomObjectCatalogForCharacter(CHARACTER, {
+            const { entries } = await getRoomObjectCatalogForCharacter(CHARACTER, catalogDepsFromColdBuild({
                 getMembershipContainers: async () => [ROOM],
                 getLudicGraph: async (hostId) => graphs[hostId] ?? testLudicGraph(hostId as EphemeraRoomId),
-                getCharacterAssets: async () => ['ASSET#Test'],
-                resolvePerspective: async () => ({ assetStack: ['ASSET#Test'] }),
                 getComponentAggregate: (async ([perspective]: { universalKey: string, mergeParticipationOrder: readonly `ASSET#${string}`[] }[]) => (
                     perspective.universalKey === TABLE
                         ? [mergedComponentResult({
@@ -2145,7 +2144,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                         })]
                         : []
                 )) as any,
-            })
+            }))
             expect(entries).toEqual([{ objectId: TABLE, normalizedShortName: 'table', presence: [{ host: TABLE, presence: tableHere }, { host: TABLE, presence: tableThere }] }])
 
             const { result } = await run(

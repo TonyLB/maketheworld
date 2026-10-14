@@ -1,18 +1,14 @@
-import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import {
     EphemeraCharacterId,
     EphemeraObjectId,
     EphemeraRoomId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import internalCache from '../../internalCache'
-import type { EphemeraLudicGraph } from '../positions/ludicGraph'
-import { ludicCacheObjectHandles } from '../positions/ludicCache/catalogHandles'
-import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
+import { ludicCacheRoomObjectHandles, type RoomObjectHandlesDeps } from '../positions/ludicCache/catalogHandles'
 import { normalizeExitName } from './roomExitTargetsForCharacter'
 import type { GroundedPresence } from './enrich/objectManipulation/plan/planStep'
 
@@ -34,42 +30,22 @@ export type RoomObjectCatalogForCharacter = {
 
 export type RoomObjectCatalogDeps = {
     getMembershipContainers: (characterId: EphemeraCharacterId) => Promise<string[]>
-    /** Passed straight through to `ludicCacheObjectHandles` --- any host in the rebuild's walk, not just the seed room. */
-    getLudicGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
-    getCharacterAssets: (characterId: EphemeraCharacterId) => Promise<readonly string[]>
-    resolvePerspective: (
-        roomId: EphemeraRoomId,
-        characterAssets: readonly string[]
-    ) => Promise<{ assetStack: readonly string[] } | null>
-    getComponentAggregate: ComponentAggregateMergedCache['get']
+    /** Passed straight through to `ludicCacheRoomObjectHandles` (the stored-row read). */
+    readLudicCache?: RoomObjectHandlesDeps['readLudicCache']
 }
 
 const defaultDeps = (): RoomObjectCatalogDeps => ({
     getMembershipContainers: (characterId) => internalCache.Positions.getMembershipContainers(characterId),
-    getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
-    getCharacterAssets: async (characterId) => {
-        const characterMeta = await internalCache.CharacterMeta.get(characterId)
-        return characterMeta?.assets ?? []
-    },
-    resolvePerspective: async (roomId, characterAssets) => {
-        const resolved = await resolveCharacterRoomPerspectiveForRoom(roomId, characterAssets)
-        if (resolved === null) {
-            return null
-        }
-        return { assetStack: resolved.perspective.assetStack }
-    },
-    getComponentAggregate: (perspectives) => internalCache.ComponentAggregate.get(perspectives),
 })
 
 /**
  * Merged-layer in-room object catalog for classify, enrich, and deterministic resolve (D6).
  *
- * **Rebuild Slice 4:** the candidate pool is now built from `ludicCache` (`catalogHandles.ts`)
- * rather than a flat `collectNestedObjectIds` walk --- see this file's `AGENT.md` "Known gap"
- * paragraph for what is (still, deliberately) exhaustive rather than presence-bucket-filtered
- * about this. `assetStack` must be resolved before the cache walk, since `buildLudicCache` needs
- * it to resolve object shortNames inline --- unlike the old flat walk, there is no way to learn
- * whether the room has any objects before knowing the character's perspective.
+ * The candidate pool is read from the room's **stored** `ludicCache` (`catalogHandles.ts`,
+ * persistence Slice 4), so names are the Canon + Improvisation names every viewer shares (LCP-1):
+ * a character's own non-Canon assets no longer rename an object here, and no perspective is
+ * resolved. See this file's `AGENT.md` "Known gap" paragraph for what is (still, deliberately)
+ * exhaustive rather than presence-bucket-filtered about this.
  */
 export async function getRoomObjectCatalogForCharacter(
     characterId: EphemeraCharacterId,
@@ -82,17 +58,7 @@ export async function getRoomObjectCatalogForCharacter(
         return { roomId: null, entries: [] }
     }
 
-    const characterAssets = await deps.getCharacterAssets(characterId)
-    const resolvedPerspective = await deps.resolvePerspective(roomId, characterAssets)
-    if (resolvedPerspective === null) {
-        return { roomId, entries: [] }
-    }
-
-    const { assetStack } = resolvedPerspective
-    const handles = await ludicCacheObjectHandles(roomId, assetStack, {
-        getLudicGraph: deps.getLudicGraph,
-        getComponentAggregate: deps.getComponentAggregate,
-    })
+    const handles = await ludicCacheRoomObjectHandles(roomId, { readLudicCache: deps.readLudicCache })
 
     const entries = handles
         .map(({ objectId, shortName, gloss, presence }): RoomInPlayObjectCatalogEntry | undefined => {
