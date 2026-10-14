@@ -23,8 +23,11 @@ import {
     isConnectionsCharacterRegisteredEnvelope,
     type ConnectionsCharacterRegisteredSubscribedContent,
 } from '../connectionsCharacterRegistered/subscribedEvents'
-import type { ObjectMovedPublishedPayload } from '../positions/publishedEvents'
-import { isEphemeraPositionsObjectMovedEnvelope } from '../positions/publishedEvents'
+import type { LudicCacheInvalidatedPublishedPayload, ObjectMovedPublishedPayload } from '../positions/publishedEvents'
+import {
+    isEphemeraPositionsLudicCacheInvalidatedEnvelope,
+    isEphemeraPositionsObjectMovedEnvelope,
+} from '../positions/publishedEvents'
 
 export type AffordanceOrchestrationIngressHeader =
     StreamingEventHeader & { dataSourceKey: 'api.ephemera'; type: 'Affordances Requested' }
@@ -63,9 +66,12 @@ export type EphemeraPositionsObjectMovedIngressHeader =
 
 export const isEphemeraPositionsObjectMovedIngressEnvelope = isEphemeraPositionsObjectMovedEnvelope
 
+export const isEphemeraPositionsLudicCacheInvalidatedIngressEnvelope = isEphemeraPositionsLudicCacheInvalidatedEnvelope
+
 export type AffordanceOrchestrationSubscribedContent =
     | AffordanceOrchestrationIngressCommand
     | ObjectMovedPublishedPayload
+    | LudicCacheInvalidatedPublishedPayload
     | ComponentTopologyInvalidatedEvent
     | ConnectionsCharacterRegisteredSubscribedContent
 
@@ -74,6 +80,7 @@ export const isAffordanceOrchestrationSubscribedEnvelope = (
 ): envelope is StreamingEventEnvelope<AffordanceOrchestrationSubscribedContent> => (
     isAffordanceOrchestrationIngressEnvelope(envelope)
         || isEphemeraPositionsObjectMovedIngressEnvelope(envelope)
+        || isEphemeraPositionsLudicCacheInvalidatedIngressEnvelope(envelope)
         || isComponentTopologyInvalidatedEnvelope(envelope)
         || isConnectionsCharacterRegisteredEnvelope(envelope)
 )

@@ -2,7 +2,7 @@
 
 ## Status
 
-**M4 orchestration + cache + perception terminal (landed).** Pass-through migration to **`publish`** + boundary **`flushAndSettle`** is complete (P3). This directory is the canonical home for the `mtw.ephemera.affordanceOrchestration` DataSource. Production adapters from **`RoomUpdate`** (reason: **`roster`**), **`mtw.ephemera.objects` `Objects Changed`** (reason: **`objects`**), and **`mtw.assets.componentTopology` `TopologyInvalidated`** (reason: **`topology`**) are wired. **`orchestrateAffordanceRequest`** calls **`ensureAffordanceTopology`** when needed and emits **`Slice Ready`** / **`Orchestration Error`**. Terminal **`PublishMessage`** is emitted by **`mtw.ephemera.perception`** on **`Affordances Pertain`** (**D38**, [`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts)).
+**M4 orchestration + cache + perception terminal (landed).** Pass-through migration to **`publish`** + boundary **`flushAndSettle`** is complete (P3). This directory is the canonical home for the `mtw.ephemera.affordanceOrchestration` DataSource. Production adapters from **`RoomUpdate`** (reason: **`roster`**), **`mtw.ephemera.positions` `Ludic Cache Invalidated`** (reason: **`objects`**), and **`mtw.assets.componentTopology` `TopologyInvalidated`** (reason: **`topology`**) are wired. **`orchestrateAffordanceRequest`** calls **`ensureAffordanceTopology`** when needed and emits **`Slice Ready`** / **`Orchestration Error`**. Terminal **`PublishMessage`** is emitted by **`mtw.ephemera.perception`** on **`Affordances Pertain`** (**D38**, [`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts)).
 
 **Steady-state docs:** [`../affordanceCache/AGENT.md`](../affordanceCache/AGENT.md), [`../../internalCache/AGENT.md`](../../internalCache/AGENT.md) (**Area topology and affordance exits**), [`packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md). **Precedent:** [`../renderOrchestration/AGENT.md`](../renderOrchestration/AGENT.md) (pass-through orchestration layer).
 
@@ -23,7 +23,7 @@
 ## What this layer does today
 
 1. Subscribes to internal **`api.ephemera`** streaming envelopes with header type **`Affordances Requested`** (`sendAffordancesRequested` -> **`publish`** in [`subscribedEvents.ts`](subscribedEvents.ts)).
-2. Subscribes to **`mtw.ephemera.objects` `Objects Changed`** and fans out via [`fanOutAffordanceRefreshForRoom.ts`](fanOutAffordanceRefreshForRoom.ts) (direct **`orchestrateAffordanceRequest`**, mirror render **`State Changed`**).
+2. Subscribes to **`mtw.ephemera.positions` `Ludic Cache Invalidated`** and fans out via [`fanOutAffordanceRefreshForRoom.ts`](fanOutAffordanceRefreshForRoom.ts) (direct **`orchestrateAffordanceRequest`**, mirror render **`State Changed`**), reason **`objects`**. This is the room live-update trigger; `Object Moved` no longer fans out rooms (it only bumps non-room catalogs, below).
 3. Subscribes to **`mtw.assets.componentTopology` `TopologyInvalidated`** (room-scoped only): **`await handleTopologyInvalidated`** (AFF-CACHE-4), then **`fanOutAffordanceRefreshForRoom`** with reason **`topology`** (area-scoped v1 no-op).
 4. Subscribes to **`mtw.connections` `Character Registered`** (session orientation affordance channel: [`../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts`](../connectionsCharacterRegistered/handleCharacterRegisteredOrientation.ts) registers **`sessionOrientationAffordances`**, then **`await orchestrateAffordanceRequest`** in the same `receiveEvents` invocation; guards in [`../connectionsCharacterRegistered/subscribedEvents.ts`](../connectionsCharacterRegistered/subscribedEvents.ts)).
 5. Maps **`Affordances Requested`** ingress to **`AffordancesRequested`** and calls **`orchestrateAffordanceRequest`** ([`orchestrationHandler.ts`](orchestrationHandler.ts)) --- **`ensureAffordanceTopology`** when catalog stale or reason **`topology`**; emits **`Slice Ready`** / **`Orchestration Error`** via **`streamEvent`**.
@@ -33,7 +33,7 @@
 
 | Style | When | Examples |
 | --- | --- | --- |
-| **Direct `orchestrateAffordanceRequest`** | Producer is already inside affordanceOrchestration `receiveEvents` (or shares `streamEvent` in the same invocation) | Session orientation affordances, Objects Changed fan-out, TopologyInvalidated fan-out, Object Moved fan-out |
+| **Direct `orchestrateAffordanceRequest`** | Producer is already inside affordanceOrchestration `receiveEvents` (or shares `streamEvent` in the same invocation) | Session orientation affordances, Ludic Cache Invalidated fan-out, TopologyInvalidated fan-out |
 | **Bus `Affordances Requested` kick** (`sendAffordancesRequested` -> `publish`) | External or cross-module producers not already in the orchestration handler graph | `RoomUpdate` / `sendAffordanceRefreshRequestedForRoom`, integration harnesses |
 
 **External adapters (outside this DataSource):**
@@ -55,17 +55,15 @@ Wiring: [`app.ts`](../../app.ts) side-effect imports `./dataSource/affordanceOrc
 | `perspective` | `Perspective` |
 | `reason` | `'roster' \| 'objects' \| 'topology'` |
 
-### `mtw.ephemera.objects` **`Objects Changed`**
+### `mtw.ephemera.positions` **`Ludic Cache Invalidated`**
 
-Handled in [`index.ts`](index.ts) **`receiveEvents`**: **`fanOutAffordanceRefreshForRoom`** with reason **`objects`** (one **`orchestrateAffordanceRequest`** per distinct occupant perspective).
+Handled in [`index.ts`](index.ts) **`receiveEvents`**: **`fanOutAffordanceRefreshForRoom`** with reason **`objects`** for each id in `roomIds` (one **`orchestrateAffordanceRequest`** per distinct occupant perspective). **The rule: when a room's `ludicCache` is invalidated, an occupied room rebuilds and re-renders its affordances.** The occupancy check lives in `resolveAffordanceRefreshGroupsForRoom` (an empty room yields no groups, so no rebuild). The room set is the cache's own invalidation set (`roomsInvalidatedByHosts`: every room reachable upward from each written host), so a deep move, a rename or a relational change refreshes the room too, not only the move's endpoints. The fact is published after the stored marker is bumped, so the header's read of the stored row always finds it stale and rebuilds; this consumer is an async push, off any command's response path. Rules: [`positions/AGENT.contract.md` --- Ludic cache staleness and rebuild](../positions/AGENT.contract.md#ludic-cache-staleness-and-rebuild).
 
 ### `mtw.ephemera.positions` **`Object Moved`**
 
-Handled in [`index.ts`](index.ts) **`receiveEvents`**: [`roomsAffectedByObjectMoved`](roomsAffectedByObjectMoved.ts) reduces the published `froms`/`to` (`EphemeraMembershipHostId[]`/`EphemeraMembershipHostId | null`) down to the `EphemeraRoomId`s among them (`isEphemeraRoomId` filter), and **`fanOutAffordanceRefreshForRoom`** runs with reason **`objects`** for each.
+**Rooms no longer refresh from this event.** A room refresh is driven by its cache's invalidation (above), not by the move's `froms`/`to`; `Object Moved` is kept here only for the non-room catalog bump below. **Rooms are still the only host kind with a live-update channel**: Feature/Character/Object are pull, not push --- a player sees their render only by looking, and gets no standing subscription to changes thereafter (this module's whole job is the room live-update channel; it has no analogue for the other three kinds and should not grow one for this).
 
-**This is a room-scoped filter by design, not an oversight: Rooms are the only host kind with a live-update channel.** Feature/Character/Object are pull, not push --- a player sees their render only by looking, and gets no standing subscription to changes thereafter (this module's whole job is the room live-update channel; it has no analogue for the other three kinds and should not grow one for this).
-
-**The pull-side gap is closed (nestedObjectLook, shipped 2026-09-22).** [`nonRoomHostsAffectedByObjectMoved.ts`](nonRoomHostsAffectedByObjectMoved.ts) reduces the same published `froms`/`to` down to the non-Room hostable kinds among them (`EphemeraObjectId | EphemeraFeatureId | EphemeraCharacterId`), and [`bumpNonRoomHostCatalogsForObjectMoved.ts`](bumpNonRoomHostCatalogsForObjectMoved.ts) bumps each affected host's `Cache::${perspectiveKey}` catalog rows --- reusing `renderCache`'s own `conditionalInvalidateCatalogRow`/`queryCatalogRowsForComponent`, mirroring [`handleExampleInvalidated.ts`](../renderCache/handleExampleInvalidated.ts)'s bump-only/no-push shape (see [`renderCache/AGENT.md`](../renderCache/AGENT.md) for the producer-side symmetry). This runs in [`index.ts`](index.ts) as a **sibling** effect alongside --- not inside --- `fanOutAffordanceRefreshForRoom`: two independent reactions to the same `Object Moved` event, not one absorbing the other. A cached `look <object>` no longer serves stale nested contents across repeated looks after a hosted member moves in or out.
+**The pull-side gap is closed (nestedObjectLook, shipped 2026-09-22).** [`nonRoomHostsAffectedByObjectMoved.ts`](nonRoomHostsAffectedByObjectMoved.ts) reduces the same published `froms`/`to` down to the non-Room hostable kinds among them (`EphemeraObjectId | EphemeraFeatureId | EphemeraCharacterId`), and [`bumpNonRoomHostCatalogsForObjectMoved.ts`](bumpNonRoomHostCatalogsForObjectMoved.ts) bumps each affected host's `Cache::${perspectiveKey}` catalog rows --- reusing `renderCache`'s own `conditionalInvalidateCatalogRow`/`queryCatalogRowsForComponent`, mirroring [`handleExampleInvalidated.ts`](../renderCache/handleExampleInvalidated.ts)'s bump-only/no-push shape (see [`renderCache/AGENT.md`](../renderCache/AGENT.md) for the producer-side symmetry). This is the whole of the `Object Moved` branch in [`index.ts`](index.ts); the room refresh is a separate reaction to a different fact (`Ludic Cache Invalidated`). A cached `look <object>` no longer serves stale nested contents across repeated looks after a hosted member moves in or out.
 
 ### `mtw.assets.componentTopology` **`TopologyInvalidated`**
 
@@ -115,10 +113,10 @@ npm test -- --watchAll=false dataSource/affordanceOrchestration/
 | --- | --- | --- |
 | **`topology`** | Run when catalog stale | Yes --- exits may have changed |
 | **`roster`** | Skip when catalog already hydrated | Yes --- roster changed |
-| **`objects`** | Skip when catalog already hydrated | Yes --- **`objects`** changed |
+| **`objects`** | Skip when catalog already hydrated | Yes --- the room's `ludicCache` was invalidated |
 
 - **`AffordanceRoomDeliverable`** is **not** an ingress center --- terminal compose runs in perception on **`Affordances Pertain`** only ([`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts)).
-- **Two dispatch paths:** external triggers (**`RoomUpdate`**) enqueue **`Affordances Requested`**; in-DS subscribers (**`Objects Changed`**, **`TopologyInvalidated`**) call **`fanOutAffordanceRefreshForRoom`** -> **`orchestrateAffordanceRequest`** directly (mirror render **`State Changed`**).
+- **Two dispatch paths:** external triggers (**`RoomUpdate`**) enqueue **`Affordances Requested`**; in-DS subscribers (**`Ludic Cache Invalidated`**, **`TopologyInvalidated`**) call **`fanOutAffordanceRefreshForRoom`** -> **`orchestrateAffordanceRequest`** directly (mirror render **`State Changed`**).
 - **Outgoing types:** [`publishedEvents.ts`](publishedEvents.ts) (**`publisherStrategy: 'busOnly'`**); ephemera-local until a client boundary needs **`mtw-interfaces`**.
 
 ## Current constraints

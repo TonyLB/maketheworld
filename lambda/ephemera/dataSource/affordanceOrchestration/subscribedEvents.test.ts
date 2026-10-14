@@ -75,6 +75,20 @@ describe('affordanceOrchestration subscribedEvents', () => {
         expect(
             isAffordanceOrchestrationSubscribedEnvelope({
                 header: {
+                    dataSourceKey: 'mtw.ephemera.positions',
+                    streamKey: 'ROOM#a',
+                    timestamp: Date.now(),
+                    type: 'Ludic Cache Invalidated',
+                },
+                getContent: () => Promise.resolve({
+                    type: 'Ludic Cache Invalidated',
+                    roomIds: ['ROOM#a'],
+                }),
+            } as any)
+        ).toBe(true)
+        expect(
+            isAffordanceOrchestrationSubscribedEnvelope({
+                header: {
                     dataSourceKey: 'mtw.assets.componentTopology',
                     streamKey: 'ROOM#one',
                     timestamp: Date.now(),
