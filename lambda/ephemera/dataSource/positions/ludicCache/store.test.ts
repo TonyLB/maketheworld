@@ -26,6 +26,7 @@ import {
     ludicCacheMarkerBumpItems,
     markLudicCacheStale,
     readLudicCache,
+    readLudicCacheWithOutcome,
     type LudicCacheRow,
     type ReadLudicCacheDeps,
 } from './store'
@@ -107,6 +108,80 @@ describe('readLudicCache', () => {
         expect(getComponentAggregate).not.toHaveBeenCalled()
         expect(runSingleFlight).not.toHaveBeenCalled()
         expect(store.writeRow).not.toHaveBeenCalled()
+    })
+
+    it('reports how the first read found the row: hit, stale, absent', async () => {
+        const hit = makeStore({ version: 2, row: { builtAtVersion: 2, cache: emptyCache('stored') } })
+        const stale = makeStore({ version: 3, row: { builtAtVersion: 2, cache: emptyCache('old') } })
+        const absent = makeStore()
+
+        await expect(readLudicCacheWithOutcome(roomA, baseDeps(hit))).resolves.toMatchObject({ outcome: 'hit' })
+        await expect(readLudicCacheWithOutcome(roomA, baseDeps(stale))).resolves.toMatchObject({ outcome: 'stale' })
+        await expect(readLudicCacheWithOutcome(roomA, baseDeps(absent))).resolves.toMatchObject({ outcome: 'absent' })
+    })
+
+    it('reports a row that fails its guard as malformed, not absent', async () => {
+        const malformed = { ...makeStore({ version: 1 }), readRows: jest.fn(async () => ({ version: 1, malformed: true })) }
+        const store = makeStore({ version: 1 })
+
+        const result = await readLudicCacheWithOutcome(roomA, baseDeps(store, { readRows: malformed.readRows }))
+
+        expect(result.outcome).toBe('malformed')
+    })
+
+    describe('the rebuild log line', () => {
+        const storedRebuilds = (spy: jest.SpyInstance) => spy.mock.calls.filter(([, fields]) => fields?.event === 'stored-rebuild')
+
+        it('is written by the read that rebuilds, whichever consumer it is, saying who paid and why', async () => {
+            const spy = jest.spyOn(console, 'log').mockImplementation(() => {})
+            const store = makeStore({ version: 3, row: { builtAtVersion: 2, cache: emptyCache('old') } })
+
+            await readLudicCache(roomA, { ...baseDeps(store), reader: 'header' })
+
+            expect(storedRebuilds(spy)).toEqual([[
+                '[mtw.ephemera.ludicCache] rebuild',
+                expect.objectContaining({
+                    event: 'stored-rebuild',
+                    seedHostId: roomA,
+                    reader: 'header',
+                    cause: 'stale',
+                    builtAtVersion: 3,
+                    objectCount: 1,
+                    shardFetchCount: 2,
+                    maxDepth: 1,
+                    wrote: true,
+                    storedBytes: expect.any(Number),
+                    wallTimeMs: expect.any(Number),
+                }),
+            ]])
+            spy.mockRestore()
+        })
+
+        it('is not written by a hit, and the next reader then finds a hit', async () => {
+            const spy = jest.spyOn(console, 'log').mockImplementation(() => {})
+            const store = makeStore({ version: 3, row: { builtAtVersion: 2, cache: emptyCache('old') } })
+            await readLudicCache(roomA, { ...baseDeps(store), reader: 'header' })
+            spy.mockClear()
+
+            await expect(readLudicCacheWithOutcome(roomA, { ...baseDeps(store), reader: 'command' })).resolves.toMatchObject({ outcome: 'hit' })
+
+            expect(storedRebuilds(spy)).toEqual([])
+            spy.mockRestore()
+        })
+
+        it('says the write was refused when a newer row was already there', async () => {
+            const spy = jest.spyOn(console, 'log').mockImplementation(() => {})
+            const store = makeStore({ version: 1 })
+            store.writeRow.mockImplementationOnce(async () => {
+                store.state.row = { builtAtVersion: 2, cache: emptyCache('newer') }
+                return false
+            })
+
+            await readLudicCache(roomA, { ...baseDeps(store), reader: 'command' }).catch(() => undefined)
+
+            expect(storedRebuilds(spy)[0][1]).toMatchObject({ reader: 'command', cause: 'absent', wrote: false })
+            spy.mockRestore()
+        })
     })
 
     it('rebuilds and writes an absent row, labelled with the marker version (absent marker is 0)', async () => {

@@ -42,7 +42,7 @@ const defaultWriteHealedLudicGraph = async (
             draft.ludicGraph = payload
         },
     })
-    // A heal is not a kernel commit: mark the host's rooms right after its own write (LCP-3).
+    // A heal is not a kernel commit: mark the host's rooms right after its own write.
     await markHostsStale([ephemeraId])
 }
 

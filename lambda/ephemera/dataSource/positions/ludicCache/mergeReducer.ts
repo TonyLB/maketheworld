@@ -415,6 +415,19 @@ const assertZeroOrAllPresenceBindings = (graph: EphemeraLudicGraph, presenceUuid
  */
 export type MemberBindingsLookup = (member: EphemeraLudicCacheCoverEntry['host']) => EphemeraPresenceNodeId[]
 
+/**
+ * A present character's bindings as the room's cache holds them: the binding ids and parent pointers
+ * the room's cover entries resolve against, and an empty cover. A character binding's cover is the
+ * character's inventory, which a room's cache never holds (`enumerateShards.ts`), so it is left out
+ * here rather than listed as members with no nodes.
+ */
+export const leafPresenceCacheNodes = (graph: EphemeraLudicGraph): EphemeraLudicCachePresenceNode[] => graph.presenceNodes.map((node) => ({
+    tag: 'Presence' as const,
+    universalKey: node.universalKey,
+    ...(node.fromHostPresence ? { fromHostPresence: node.fromHostPresence } : {}),
+    cover: { members: [] },
+}))
+
 const presenceCacheNodesFromFold = (
     graph: EphemeraLudicGraph,
     presenceUuids: string[],

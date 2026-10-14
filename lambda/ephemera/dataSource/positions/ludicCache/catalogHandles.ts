@@ -21,6 +21,8 @@
  * seen in the room without one). Still flat scalars, and still not
  * a filter: this records where each thing is seen and drops nothing.
  *
+ * **Room seeds read the stored row** (`ludicCacheRoomObjectHandles`); `ludicCacheObjectHandles` is the per-request rebuild for any other seed.
+ *
  * **Slice 5 (PC-3): this is also the instrumentation boundary.** `buildLudicCache` and
  * `enumerateLudicCacheShards` stay pure, so wall time is timed here, around the one call this
  * handler already makes, and `objectCount` is a byproduct of the loop this handler already runs
@@ -28,11 +30,13 @@
  * `cache.nodes`/`edges` --- so it does not reopen the P6-clause-3 boundary this file exists to hold.
  */
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
 import { logLudicCacheRebuild } from './ludicCacheInstrumentation'
+import { readLudicCacheWithOutcome } from './store'
 import type { EphemeraLudicCacheData } from './types'
 import type { GroundedPresence, GroundedPresenceBinding } from '../../actions/enrich/objectManipulation/plan/planStep'
 
@@ -66,13 +70,10 @@ const bucketsByMember = (cache: EphemeraLudicCacheData): Map<string, GroundedPre
     )
 }
 
-export const ludicCacheObjectHandles = async (
-    seedHostId: EphemeraMembershipHostId,
-    assetStack: readonly string[],
-    deps: BuildLudicCacheDeps = {}
-): Promise<LudicCacheObjectHandle[]> => {
-    const startedAt = Date.now()
-    const { cache, stats } = await buildLudicCache(seedHostId, assetStack, deps)
+const handlesFromCache = (
+    cache: EphemeraLudicCacheData,
+    seedHostId: EphemeraMembershipHostId
+): { handles: LudicCacheObjectHandle[]; objectCount: number } => {
     const handles: LudicCacheObjectHandle[] = []
     const buckets = bucketsByMember(cache)
     const seedRoom = isEphemeraRoomId(seedHostId) ? seedHostId : undefined
@@ -93,12 +94,48 @@ export const ludicCacheObjectHandles = async (
             ...(presence !== undefined ? { presence } : {}),
         })
     }
+    return { handles, objectCount }
+}
+
+/**
+ * A room's handles from its **stored** cache (`readLudicCache`): no asset stack, because the row is shared by every viewer and
+ * carries Canon + Improvisation names. A seed that is not a room has no stored row and takes
+ * {@link ludicCacheObjectHandles}'s per-request rebuild.
+ */
+export type RoomObjectHandlesDeps = { readLudicCache?: typeof readLudicCacheWithOutcome }
+
+export const ludicCacheRoomObjectHandles = async (
+    roomId: EphemeraRoomId,
+    deps: RoomObjectHandlesDeps = {}
+): Promise<LudicCacheObjectHandle[]> => {
+    const startedAt = Date.now()
+    const { cache, outcome } = await (deps.readLudicCache ?? readLudicCacheWithOutcome)(roomId, { reader: 'command' })
+    const { handles, objectCount } = handlesFromCache(cache, roomId)
+    logLudicCacheRebuild({
+        seedHostId: roomId,
+        objectCount,
+        wallTimeMs: Date.now() - startedAt,
+        outcome,
+        ...(outcome === 'hit' ? {} : { storedBytes: Buffer.byteLength(JSON.stringify(cache)) }),
+    })
+    return handles
+}
+
+export const ludicCacheObjectHandles = async (
+    seedHostId: EphemeraMembershipHostId,
+    assetStack: readonly string[],
+    deps: BuildLudicCacheDeps = {}
+): Promise<LudicCacheObjectHandle[]> => {
+    const startedAt = Date.now()
+    const { cache, stats } = await buildLudicCache(seedHostId, assetStack, deps)
+    const { handles, objectCount } = handlesFromCache(cache, seedHostId)
     logLudicCacheRebuild({
         seedHostId,
         shardFetchCount: stats.shardFetchCount,
         maxDepth: stats.maxDepth,
         objectCount,
         wallTimeMs: Date.now() - startedAt,
+        outcome: 'cold',
     })
     return handles
 }

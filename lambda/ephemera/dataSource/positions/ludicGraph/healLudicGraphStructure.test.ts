@@ -223,7 +223,7 @@ describe('healLudicGraphStructure', () => {
         expect(writeHealedLudicGraph).not.toHaveBeenCalled()
     })
 
-    describe('stale-marking after the real write (LCP-3)', () => {
+    describe('stale-marking after the real write', () => {
         const optimisticUpdate = jest.spyOn(ephemeraDB, 'optimisticUpdate')
         const markHostsStale = jest.spyOn(markStale, 'markHostsStale')
 

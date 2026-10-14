@@ -63,7 +63,7 @@ export const persistClearStoredLudicGraphs = async (
         for (const characterId of characterIds) {
             await clearCharacterLudicGraph(characterId)
         }
-        // Not a kernel commit: mark right after the writes (LCP-3). A character shard is never inside a
+        // Not a kernel commit: mark right after the writes. A character shard is never inside a
         // room's cache, so only the rooms whose own graph was cleared are marked.
         await markStale(roomIds)
 

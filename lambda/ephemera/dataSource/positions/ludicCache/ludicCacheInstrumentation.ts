@@ -18,14 +18,48 @@
 
 const LOG_PREFIX = '[mtw.ephemera.ludicCache] rebuild'
 
+/**
+ * `outcome` is how a consumer's read found the room's stored row (`hit`, `stale`, `absent`, `malformed`), or `cold` for a
+ * seed that is not a room and so is rebuilt per request. Hit rate and saved time read straight off this field.
+ * `shardFetchCount` and `maxDepth` are the walk's own counts, so a persisted read does not have them (the flight that rebuilt
+ * the row may be another invocation's). `storedBytes` is the serialized cache size on a rebuild that wrote a row: the number
+ * to set against DynamoDB's 400KB item limit (there is no size guard, so this is the only warning).
+ */
 export type LudicCacheRebuildFields = {
     seedHostId: string
-    shardFetchCount: number
-    maxDepth: number
+    shardFetchCount?: number
+    maxDepth?: number
     objectCount: number
     wallTimeMs: number
+    outcome?: 'hit' | 'stale' | 'absent' | 'malformed' | 'cold'
+    storedBytes?: number
 }
 
 export const logLudicCacheRebuild = (fields: LudicCacheRebuildFields): void => {
     console.log(LOG_PREFIX, { event: 'rebuild', ...fields })
+}
+
+/**
+ * One line per rebuild the stored read actually runs (the single-flight lead, never a follower), whichever
+ * consumer triggered it. A consumer's own `rebuild` line cannot show this: the room header reader and the
+ * command path share one stored row, so whichever reads first after a change does the rebuild, and the
+ * other then logs a `hit`. `reader` says which consumer paid; `cause` is what that read found (`stale`,
+ * `absent` or `malformed`); `wallTimeMs` is the build plus the write; `wrote` is false when a newer row
+ * was already there.
+ */
+export type LudicCacheStoredRebuildFields = {
+    seedHostId: string
+    reader: string
+    cause: 'stale' | 'absent' | 'malformed'
+    builtAtVersion: number
+    objectCount: number
+    shardFetchCount: number
+    maxDepth: number
+    wallTimeMs: number
+    storedBytes: number
+    wrote: boolean
+}
+
+export const logLudicCacheStoredRebuild = (fields: LudicCacheStoredRebuildFields): void => {
+    console.log(LOG_PREFIX, { event: 'stored-rebuild', ...fields })
 }

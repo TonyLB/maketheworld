@@ -550,6 +550,85 @@ describe('buildLudicCache', () => {
     // The seed itself is always walked regardless of kind (`enumerateShards.ts`'s exemption for
     // the seed from the character-recursion guard), so a character-seeded cache --- the shape a
     // future held-inventory-style cache would build --- resolves the character's own shortName.
+    describe('a present character', () => {
+        const alpha = 'CHARACTER#Alpha' as EphemeraCharacterId
+        const heldHat = 'OBJECT#Hat' as EphemeraObjectId
+        const heldPouch = 'OBJECT#Pouch' as EphemeraObjectId
+        const alphaBinding = 'PRESENCE#alpha1' as EphemeraPresenceNodeId
+
+        const world = () => new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, testLudicGraph(roomA, {
+                nodes: [
+                    { tag: 'Room', universalKey: roomA },
+                    { tag: 'Object', universalKey: objX },
+                    { tag: 'Character', universalKey: alpha },
+                    { tag: 'Presence', universalKey: parentRemainderKey(roomA), cover: { members: [{ tag: 'Remainder' }] } },
+                ],
+            })],
+            [objX, testLudicGraph(objX, { nodes: [{ tag: 'Object', universalKey: objX }, presenceNode('x_in_room', roomA, enumeratedCover())] })],
+            // Alpha carries a hat in a pouch, with a relation between them: none of it belongs in the room's cache.
+            [alpha, testLudicGraph(alpha, {
+                nodes: [
+                    { tag: 'Character', universalKey: alpha },
+                    { tag: 'Object', universalKey: heldHat },
+                    { tag: 'Object', universalKey: heldPouch },
+                    { tag: 'Presence', universalKey: alphaBinding, fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) }, cover: { members: [{ tag: 'Remainder' }] } },
+                ],
+                edges: [{ tag: 'Relational', from: heldHat, to: heldPouch, kind: 'In' }],
+            })],
+        ])
+        const build = (graphs = world()) => buildLudicCache(roomA, [testAssetUUID], {
+            getLudicGraph: async (hostId) => graphs.get(hostId) as EphemeraLudicGraph,
+            getComponentAggregate: async ([perspective]) => perspective.universalKey === alpha
+                ? [mergedComponentResult({
+                    universalKey: alpha,
+                    merged: new StandardCharacter({ tag: 'Character', shortName: 'Alpha' }),
+                    mergeParticipationOrderApplied: perspective.mergeParticipationOrder,
+                })]
+                : [],
+        })
+
+        it('is a node with its own bindings and an empty cover, and the room\'s cover names that binding', async () => {
+            const { cache } = await build()
+
+            const node = cache.nodes.find(({ universalKey }) => universalKey === alpha)
+            expect(node).toEqual({
+                tag: 'Character',
+                universalKey: alpha,
+                shortName: 'Alpha',
+                presenceNodes: [{
+                    tag: 'Presence',
+                    universalKey: alphaBinding,
+                    fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) },
+                    cover: { members: [] },
+                }],
+            })
+            const roomCover = cache.nodes.find(({ universalKey }) => universalKey === roomA)?.presenceNodes.flatMap(({ cover }) => cover.members)
+            expect(roomCover).toContainEqual({ host: alpha, presence: alphaBinding })
+            expect(isEphemeraLudicCacheData(cache)).toBe(true)
+        })
+
+        it('does not bring the character\'s inventory, or the relations among it, into the room\'s cache', async () => {
+            const { cache, stats } = await build()
+
+            expect(cache.nodes.map(({ universalKey }) => universalKey).sort()).toEqual([alpha, objX, roomA].sort())
+            expect(cache.edges).toEqual([])
+            expect(stats.shardFetchCount).toBe(3)
+        })
+
+        it('is unchanged by what the character carries', async () => {
+            const bare = world()
+            bare.set(alpha, testLudicGraph(alpha, {
+                nodes: [
+                    { tag: 'Character', universalKey: alpha },
+                    { tag: 'Presence', universalKey: alphaBinding, fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) }, cover: { members: [{ tag: 'Remainder' }] } },
+                ],
+            }))
+
+            expect((await build(bare)).cache).toEqual((await build()).cache)
+        })
+    })
+
     it('resolves shortName for a character-seeded cache', async () => {
         const characterId = 'CHARACTER#Guide' as EphemeraCharacterId
         const characterGraph = testLudicGraph(characterId, { nodes: [{ tag: 'Character', universalKey: characterId }] })

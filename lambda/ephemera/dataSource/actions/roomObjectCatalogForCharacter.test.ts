@@ -6,8 +6,9 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 
 import type { EphemeraLudicGraph } from '../../dataSource/positions/ludicGraph'
 import { testLudicGraph } from '../../dataSource/positions/ludicGraph/testFixtures'
+import { catalogDepsFromColdBuild } from './roomObjectCatalogTestDeps'
 import {
-    getRoomObjectCatalogForCharacter,
+    getRoomObjectCatalogForCharacter as getCatalogFromStoredCache,
     roomObjectLabelsFromCatalog,
 } from './roomObjectCatalogForCharacter'
 import { parentRemainderKey } from '../positions/ludicGraph/testFixtures'
@@ -28,11 +29,9 @@ const makeObjectComponent = (shortName: string) => new StandardObject({
 const getLudicGraphFromMap = (graphs: Record<string, EphemeraLudicGraph>) => async (hostId: EphemeraMembershipHostId) =>
     graphs[hostId] ?? testLudicGraph(hostId as EphemeraObjectId)
 
-const catalogPerspectiveDeps = {
-    getCharacterAssets: async () => ['ASSET#Test'],
-    resolvePerspective: async () => ({ assetStack: ['ASSET#Test'] }),
-    getComponentAggregate: async () => [],
-}
+const catalogPerspectiveDeps = {}
+const getRoomObjectCatalogForCharacter = (characterId: EphemeraCharacterId, deps: Parameters<typeof catalogDepsFromColdBuild>[0]) =>
+    getCatalogFromStoredCache(characterId, catalogDepsFromColdBuild(deps))
 
 /** Resolves each host's shortName from `names` via a mocked merged aggregate, matching the real
  * per-host `getComponentAggregate([perspective])` call shape. */

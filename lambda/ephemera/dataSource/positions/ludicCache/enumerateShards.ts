@@ -8,15 +8,18 @@
  * `cover`, no edges) --- that is Slice 3's fold. This hands the fold the per-shard graphs it
  * needs, in walk order, already deduplicated.
  *
- * **A character member is never recursed into (Slice 4 bugfix, 2026-09-18).** `EphemeraCharacterId`
- * is itself an `EphemeraMembershipHostId`, so a naive walk over `graph.nodeIds` would fetch every
- * present character's own shard and pull their held inventory in as nodes of the *seed's* cache
+ * **A present character is fetched as a leaf, never expanded (Slice 4 bugfix 2026-09-18; leaf form 2026-10-14).**
+ * `EphemeraCharacterId` is itself an `EphemeraMembershipHostId`, so a naive walk over `graph.nodeIds` would
+ * fetch every present character's own shard and pull their held inventory in as nodes of the *seed's* cache
  * --- observed as a real regression via `catalogHandles.ts`: a room's cache re-absorbed an object
  * a character had just picked up, since the walk passed straight through the character who now
  * held it. `collectNestedObjectIds` (the mechanism this cache replaces) never had this problem
- * because it only ever recursed through `EphemeraObjectId`s. The seed itself is exempt from this
- * guard --- it is queued unconditionally before the loop below runs --- so a future
- * character-seeded walk (e.g. a held-inventory cache) still sees its own contents.
+ * because it only ever recursed through `EphemeraObjectId`s. So a character's graph is read, for its
+ * own node and bindings, and its `nodeIds` are never queued; the host lands in `leafHostIds` so the fold
+ * keeps its bindings and drops everything it covers. (The first form skipped the character entirely, which
+ * left the room's cover naming a character with no node.) The seed itself is exempt --- it is queued
+ * unconditionally before the loop below runs --- so a character-seeded walk (e.g. a held-inventory cache)
+ * still sees its own contents.
  *
  * **`maxDepth` (Slice 5, PC-3's instrument).** The highest BFS level actually visited --- the
  * seed is depth 0. A returned statistic, same convention as `shardFetchCount`: PC-3 needs reads
@@ -55,6 +58,8 @@ export type EnumerateLudicCacheShardsResult = {
     /** Walk order, seed host first. Each id appears exactly once. */
     hostIds: EphemeraMembershipHostId[]
     graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>
+    /** Hosts fetched but not expanded: a present character other than the seed. Their members are not in `hostIds`. */
+    leafHostIds: ReadonlySet<EphemeraMembershipHostId>
     /** One increment per host actually fetched --- a returned statistic, not a log line. */
     shardFetchCount: number
     /** The highest BFS level dequeued, seed at 0 --- a returned statistic, not a log line. */
@@ -79,6 +84,7 @@ export async function enumerateLudicCacheShards(
     const hostIds: EphemeraMembershipHostId[] = []
     const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>()
     const queued = new Set<EphemeraMembershipHostId>([seedHostId])
+    const leafHostIds = new Set<EphemeraMembershipHostId>()
 
     let shardFetchCount = 0
     let maxDepth = 0
@@ -94,18 +100,21 @@ export async function enumerateLudicCacheShards(
             shardFetchCount += 1
             hostIds.push(currentHostId)
             graphs.set(currentHostId, graph)
+            if (leafHostIds.has(currentHostId)) {
+                return
+            }
 
             for (const nodeId of graph.nodeIds) {
                 if (!isEphemeraMembershipHostId(nodeId)) {
-                    continue
-                }
-                if (isEphemeraCharacterId(nodeId)) {
                     continue
                 }
                 if (queued.has(nodeId)) {
                     continue
                 }
                 queued.add(nodeId)
+                if (isEphemeraCharacterId(nodeId)) {
+                    leafHostIds.add(nodeId)
+                }
                 nextFrontier.push(nodeId)
             }
         })
@@ -114,5 +123,5 @@ export async function enumerateLudicCacheShards(
         depth += 1
     }
 
-    return { hostIds, graphs, shardFetchCount, maxDepth }
+    return { hostIds, graphs, leafHostIds, shardFetchCount, maxDepth }
 }

@@ -1,6 +1,6 @@
 /**
  * The stored `ludicCache` row, and `readLudicCache`: the one read a room-seeded consumer makes.
- * See `AGENT.ludicCachePersistence.planning.md` (LCP-1, -2, -4, -5) for the decisions this holds.
+ * Rules: `positions/AGENT.contract.md` (Ludic cache staleness and rebuild); mechanism: `positions/AGENT.implementation.md` (Stored row).
  *
  * Two rows per room, on `EphemeraId: <roomId>`:
  * - `LudicCache::`: the full `EphemeraLudicCacheData` plus `builtAtVersion`, the marker version the
@@ -26,7 +26,7 @@
  * collision, so start again from the row read, a bounded number of times.
  *
  * **The persisted path takes only a `roomId`.** The Canon stack is resolved here, never passed in,
- * so a viewer's perspective cannot reach a name written into a row shared by every viewer (LCP-1).
+ * so a viewer's perspective cannot reach a name written into a row shared by every viewer.
  */
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import {
@@ -37,12 +37,14 @@ import {
 import { normalizeStoredLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/factory'
 import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import internalCache from '../../../internalCache'
 import { resolveCanonAssetStackForRoom } from '../../state/resolveAssetStackForRoom'
 import { EphemeraLudicGraph, hostDataCategory, nodeFromId } from '../ludicGraph'
 import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
+import { logLudicCacheStoredRebuild } from './ludicCacheInstrumentation'
 import { isEphemeraLudicCacheData, type EphemeraLudicCacheData } from './types'
 
 export const LUDIC_CACHE_DATA_CATEGORY = 'LudicCache::' as const
@@ -79,7 +81,12 @@ type StoredRows = {
     version: number
     /** The cache row, only when it passes its guard: a malformed row reads as absent. */
     row?: LabelledLudicCache
+    /** A cache row was stored but failed its guard (reported only for the `outcome` log). */
+    malformed?: boolean
 }
+
+/** How a read found the stored row: `hit` is the only one that cost no rebuild. */
+export type LudicCacheReadOutcome = 'hit' | 'stale' | 'absent' | 'malformed'
 
 export type RunWithSingleFlightLudicCacheRebuild = <T>(params: SingleFlightParams<T>) => Promise<T>
 
@@ -97,8 +104,8 @@ const MARKER_BUMP_EXPRESSION = 'ADD version :one'
 
 /**
  * One `PrimitiveUpdate` per room, bumping its marker (`ADD` also creates the row at 1), for a
- * kernel transaction to carry so the graph write and its stale-mark commit together or not at all
- * (LCP-3). The rooms are the caller's: see `roomsInvalidatedByHosts`.
+ * kernel transaction to carry so the graph write and its stale-mark commit together or not at all.
+ * The rooms are the caller's: see `roomsInvalidatedByHosts`.
  */
 export const ludicCacheMarkerBumpItems = (roomIds: readonly EphemeraRoomId[]) => roomIds.map((roomId) => ({
     PrimitiveUpdate: {
@@ -112,7 +119,7 @@ export const ludicCacheMarkerBumpItems = (roomIds: readonly EphemeraRoomId[]) =>
 /**
  * The same bump as plain concurrent `UpdateItem`s, for the writers that cannot ride a kernel
  * transaction (asset-side name changes, the diagnostics heals, the Coyote clear). Each is marked
- * right after its own write, so a short window is accepted (LCP-4). A failed bump is thrown, never
+ * right after its own write, so a short window is accepted. A failed bump is thrown, never
  * suppressed: an unwritten marker would leave a wrong row reading as a hit.
  */
 export const markLudicCacheStale = async (roomIds: readonly EphemeraRoomId[]): Promise<void> => {
@@ -133,6 +140,8 @@ export type ReadLudicCacheDeps = {
     buildDeps?: Omit<BuildLudicCacheDeps, 'getLudicGraph'>
     runSingleFlight?: RunWithSingleFlightLudicCacheRebuild
     clearNameMemos?: () => void
+    /** Which consumer is reading, for the rebuild log (`command`, `header`). */
+    reader?: string
 }
 
 const labelFromRow = (row: Partial<LudicCacheRow> | undefined): LabelledLudicCache | undefined => (
@@ -160,6 +169,7 @@ const defaultReadRows = async (roomId: EphemeraRoomId): Promise<StoredRows> => {
     return {
         version: typeof marker?.version === 'number' ? marker.version : 0,
         row: labelFromRow(stored),
+        ...(stored !== undefined && labelFromRow(stored) === undefined ? { malformed: true } : {}),
     }
 }
 
@@ -201,12 +211,26 @@ const clearNameMemos = (): void => {
 const rebuild = async (
     roomId: EphemeraRoomId,
     version: number,
-    deps: Required<Pick<ReadLudicCacheDeps, 'readRows' | 'writeRow' | 'getFreshLudicGraph' | 'resolveCanonStack' | 'build' | 'clearNameMemos'>> & Pick<ReadLudicCacheDeps, 'buildDeps'>
+    deps: Required<Pick<ReadLudicCacheDeps, 'readRows' | 'writeRow' | 'getFreshLudicGraph' | 'resolveCanonStack' | 'build' | 'clearNameMemos'>> & Pick<ReadLudicCacheDeps, 'buildDeps' | 'reader'>,
+    cause: Exclude<LudicCacheReadOutcome, 'hit'>
 ): Promise<LabelledLudicCache> => {
+    const startedAt = Date.now()
     deps.clearNameMemos()
     const assetStack = await deps.resolveCanonStack(roomId)
-    const { cache } = await deps.build(roomId, assetStack, { ...deps.buildDeps, getLudicGraph: deps.getFreshLudicGraph })
+    const { cache, stats } = await deps.build(roomId, assetStack, { ...deps.buildDeps, getLudicGraph: deps.getFreshLudicGraph })
     const wrote = await deps.writeRow({ EphemeraId: roomId, DataCategory: LUDIC_CACHE_DATA_CATEGORY, cache, builtAtVersion: version })
+    logLudicCacheStoredRebuild({
+        seedHostId: roomId,
+        reader: deps.reader ?? 'unknown',
+        cause,
+        builtAtVersion: version,
+        objectCount: cache.nodes.filter(({ universalKey }) => isEphemeraObjectId(universalKey)).length,
+        shardFetchCount: stats.shardFetchCount,
+        maxDepth: stats.maxDepth,
+        wallTimeMs: Date.now() - startedAt,
+        storedBytes: Buffer.byteLength(JSON.stringify(cache)),
+        wrote,
+    })
     if (wrote) {
         return { builtAtVersion: version, cache }
     }
@@ -216,10 +240,21 @@ const rebuild = async (
     return row ?? { builtAtVersion: version, cache }
 }
 
+export type LudicCacheRead = {
+    cache: EphemeraLudicCacheData
+    /** What the first row read found, so the consumers' log line reads hit rate straight off CloudWatch. */
+    outcome: LudicCacheReadOutcome
+}
+
 export const readLudicCache = async (
     roomId: EphemeraRoomId,
     deps: ReadLudicCacheDeps = {}
-): Promise<EphemeraLudicCacheData> => {
+): Promise<EphemeraLudicCacheData> => (await readLudicCacheWithOutcome(roomId, deps)).cache
+
+export const readLudicCacheWithOutcome = async (
+    roomId: EphemeraRoomId,
+    deps: ReadLudicCacheDeps = {}
+): Promise<LudicCacheRead> => {
     const resolved = {
         readRows: deps.readRows ?? defaultReadRows,
         writeRow: deps.writeRow ?? defaultWriteRow,
@@ -228,20 +263,25 @@ export const readLudicCache = async (
         build: deps.build ?? buildLudicCache,
         clearNameMemos: deps.clearNameMemos ?? clearNameMemos,
         buildDeps: deps.buildDeps,
+        reader: deps.reader,
     }
     const runSingleFlight = deps.runSingleFlight ?? defaultRunWithSingleFlight
 
     let carried: unknown
+    let outcome: LudicCacheReadOutcome | undefined
     for (let attempt = 0; attempt < LUDIC_CACHE_READ_MAX_ATTEMPTS; attempt++) {
-        const { version, row } = await resolved.readRows(roomId)
+        const { version, row, malformed } = await resolved.readRows(roomId)
         if (row && row.builtAtVersion === version) {
-            return row.cache
+            return { cache: row.cache, outcome: outcome ?? 'hit' }
         }
+        // what this attempt found (a retry after a lost race may find something else than the first read did)
+        const cause = row ? 'stale' : malformed ? 'malformed' : 'absent'
+        outcome = outcome ?? cause
         try {
             const flight = await runSingleFlight<LabelledLudicCache>({
                 category: LUDIC_CACHE_REBUILD_SINGLE_FLIGHT_CATEGORY,
                 argumentHash: `${roomId}::${version}`,
-                computation: () => rebuild(roomId, version, resolved),
+                computation: () => rebuild(roomId, version, resolved, cause),
                 retrieval: async () => {
                     const { row: found } = await resolved.readRows(roomId)
                     // Nothing (or a malformed row) to retrieve is not a result: label it so the rule below retries.
@@ -249,7 +289,7 @@ export const readLudicCache = async (
                 },
             })
             if (flight.builtAtVersion === version) {
-                return flight.cache
+                return { cache: flight.cache, outcome }
             }
             carried = undefined
         }

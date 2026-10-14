@@ -139,7 +139,7 @@ const containersAfter = (
  * step's `meta` plus its committed `ludicGraph`. `existenceItems` (a creating caller's own rows,
  * opaque here) ride the same `cascade`, so creation, its rows and its placement commit together.
  *
- * **Stale-marking (LCP-3).** The `cascade` also carries one marker bump per room whose stored
+ * **Stale-marking.** The `cascade` also carries one marker bump per room whose stored
  * `ludicCache` the sequence can change, so the graph write and its stale-mark commit together or
  * not at all; the same room set is published afterwards as `Ludic Cache Invalidated`. The rooms
  * are resolved *before* the transact (the cascade is synchronous and cannot read ancestor graphs)
@@ -147,7 +147,7 @@ const containersAfter = (
  * footprint already holds every host a move leaves or arrives at, and a destroyed host's pre-commit
  * graph still walks up to its former parents. A container moved between that resolution and the
  * commit gives a slightly wrong set: over-marking is harmless, and a missed room is what
- * `AGENT.ludicCachePersistence.planning.md`'s Slice 5 property test watches for.
+ * `ludicCache/invalidationCompleteness.integration.test.ts` watches for.
  */
 export const commitStepSequence = async (
     args: { steps: readonly MutationKernelStep[]; existenceItems?: readonly CommitStepSequenceTransactItem[] },

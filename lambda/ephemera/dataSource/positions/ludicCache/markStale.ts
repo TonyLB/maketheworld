@@ -20,7 +20,7 @@ export type MarkStaleDeps = {
  * Marks rooms' stored `ludicCache` stale outside a kernel transaction, then publishes
  * `Ludic Cache Invalidated`. For the writers that cannot ride `commitStepSequence`'s transaction
  * (asset-side name changes, the diagnostics heals, the Coyote clear): each marks right after its own
- * write, so a short window is accepted (LCP-4). The mark is written before the fact is published, so
+ * write, so a short window is accepted. The mark is written before the fact is published, so
  * a consumer woken by the fact never reads the old marker. Returns the rooms marked.
  */
 export const markRoomsStale = async (
