@@ -35,6 +35,61 @@ describe('withPrimitives', () => {
 
     })
 
+    describe('conditionalPutItem', () => {
+        const condition = {
+            ConditionExpression: 'attribute_not_exists(builtAtVersion) OR builtAtVersion < :n',
+            ExpressionAttributeValues: { ':n': 3 }
+        }
+
+        it('should remap the key, marshall the values and report a write', async () => {
+            dbMock.send.mockResolvedValueOnce({})
+            await expect(dbHandler.conditionalPutItem({ PrimaryKey: 'TestOne', DataCategory: 'DC1' }, condition)).resolves.toBe(true)
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Item: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1' }),
+                TableName: 'Ephemera',
+                ConditionExpression: condition.ConditionExpression,
+                ExpressionAttributeValues: marshall({ ':n': 3 })
+            })
+        })
+
+        it('should return false when the condition fails, whether the SDK sets name or code', async () => {
+            dbMock.send.mockRejectedValueOnce(Object.assign(new Error('refused'), { name: 'ConditionalCheckFailedException' }))
+            await expect(dbHandler.conditionalPutItem({ PrimaryKey: 'TestOne', DataCategory: 'DC1' }, condition)).resolves.toBe(false)
+            dbMock.send.mockRejectedValueOnce(Object.assign(new Error('refused'), { code: 'ConditionalCheckFailedException' }))
+            await expect(dbHandler.conditionalPutItem({ PrimaryKey: 'TestOne', DataCategory: 'DC1' }, condition)).resolves.toBe(false)
+        })
+
+        it('should throw any other failure', async () => {
+            dbMock.send.mockRejectedValueOnce(Object.assign(new Error('slow down'), { name: 'ProvisionedThroughputExceededException' }))
+            await expect(dbHandler.conditionalPutItem({ PrimaryKey: 'TestOne', DataCategory: 'DC1' }, condition)).rejects.toThrow('slow down')
+        })
+    })
+
+    describe('strictPrimitiveUpdate', () => {
+        it('should remap the key and pass the update through', async () => {
+            dbMock.send.mockResolvedValueOnce({})
+            await dbHandler.strictPrimitiveUpdate({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1' },
+                UpdateExpression: 'ADD version :one',
+                ExpressionAttributeValues: marshall({ ':one': 1 })
+            })
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1' }),
+                TableName: 'Ephemera',
+                UpdateExpression: 'ADD version :one',
+                ExpressionAttributeValues: marshall({ ':one': 1 })
+            })
+        })
+
+        it('should throw a failure rather than suppress it', async () => {
+            dbMock.send.mockRejectedValueOnce(Object.assign(new Error('slow down'), { name: 'ProvisionedThroughputExceededException' }))
+            await expect(dbHandler.strictPrimitiveUpdate({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1' },
+                UpdateExpression: 'ADD version :one'
+            })).rejects.toThrow('slow down')
+        })
+    })
+
     describe('deleteItem', () => {
 
         it('should remap incoming primary key', async () => {

@@ -49,10 +49,21 @@ export type ObjectRelationChangedPublishedPayload = {
 // published-vocabulary break for any consumer outside lambda/ephemera/dataSource.
 const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Custom', 'In', 'PartOf'])
 
+/**
+ * The rooms whose stored `ludicCache` was just marked stale (its marker bumped), whatever the
+ * cause: a graph commit, a name change, a heal. A consumer that acts on a cache change subscribes
+ * to this rather than inferring one from `Object Moved`.
+ */
+export type LudicCacheInvalidatedPublishedPayload = {
+    type: 'Ludic Cache Invalidated';
+    roomIds: EphemeraRoomId[];
+}
+
 export type PositionsPublishedPayload =
     | CharacterMovedPublishedPayload
     | ObjectMovedPublishedPayload
     | ObjectRelationChangedPublishedPayload
+    | LudicCacheInvalidatedPublishedPayload
 
 const isRoomMembershipEndpoint = (value: unknown): value is EphemeraRoomId | null => (
     value === null || (typeof value === 'string' && isEphemeraRoomId(value))
@@ -165,12 +176,26 @@ export const isObjectRelationChangedPublishedPayload = (
     return true
 }
 
+export const isLudicCacheInvalidatedPublishedPayload = (
+    value: unknown
+): value is LudicCacheInvalidatedPublishedPayload => {
+    if (!value || typeof value !== 'object') {
+        return false
+    }
+    const v = value as Record<string, unknown>
+    return v.type === 'Ludic Cache Invalidated'
+        && Array.isArray(v.roomIds)
+        && v.roomIds.length > 0
+        && v.roomIds.every((entry) => typeof entry === 'string' && isEphemeraRoomId(entry))
+}
+
 export const isPositionsPublishedPayload = (
     value: unknown
 ): value is PositionsPublishedPayload =>
     isCharacterMovedPublishedPayload(value)
     || isObjectMovedPublishedPayload(value)
     || isObjectRelationChangedPublishedPayload(value)
+    || isLudicCacheInvalidatedPublishedPayload(value)
 
 export type EphemeraPositionsCharacterMovedHeader =
     StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Character Moved' }
@@ -180,6 +205,9 @@ export type EphemeraPositionsObjectMovedHeader =
 
 export type EphemeraPositionsObjectRelationChangedHeader =
     StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Object Relation Changed' }
+
+export type EphemeraPositionsLudicCacheInvalidatedHeader =
+    StreamingEventHeader & { dataSourceKey: typeof EPHEMERA_POSITIONS_DATA_SOURCE_KEY; type: 'Ludic Cache Invalidated' }
 
 const isEphemeraPositionsCharacterMovedHeader: HeaderGuard<EphemeraPositionsCharacterMovedHeader> = (
     h
@@ -198,6 +226,17 @@ const isEphemeraPositionsObjectRelationChangedHeader: HeaderGuard<EphemeraPositi
 ): h is EphemeraPositionsObjectRelationChangedHeader => (
     h.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY && h.type === 'Object Relation Changed'
 )
+
+const isEphemeraPositionsLudicCacheInvalidatedHeader: HeaderGuard<EphemeraPositionsLudicCacheInvalidatedHeader> = (
+    h
+): h is EphemeraPositionsLudicCacheInvalidatedHeader => (
+    h.dataSourceKey === EPHEMERA_POSITIONS_DATA_SOURCE_KEY && h.type === 'Ludic Cache Invalidated'
+)
+
+export const isEphemeraPositionsLudicCacheInvalidatedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    LudicCacheInvalidatedPublishedPayload,
+    EphemeraPositionsLudicCacheInvalidatedHeader
+>(isEphemeraPositionsLudicCacheInvalidatedHeader)
 
 export const isEphemeraPositionsCharacterMovedEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     CharacterMovedPublishedPayload,
@@ -220,6 +259,7 @@ export const isEphemeraPositionsOutboundEnvelope = (
     isEphemeraPositionsObjectMovedEnvelope(envelope)
     || isEphemeraPositionsObjectRelationChangedEnvelope(envelope)
     || isEphemeraPositionsCharacterMovedEnvelope(envelope)
+    || isEphemeraPositionsLudicCacheInvalidatedEnvelope(envelope)
 )
 
 type PublishBus = Pick<MessageBus, 'publish'>
@@ -255,6 +295,17 @@ export async function publishObjectRelationChangedStreamEvent(
     })
 }
 
+export async function publishLudicCacheInvalidatedStreamEvent(
+    streamEvent: StreamEventFunction<PositionsPublishedPayload>,
+    content: LudicCacheInvalidatedPublishedPayload,
+): Promise<void> {
+    await streamEvent({
+        update: content,
+        streamKey: content.roomIds[0],
+        header: { type: 'Ludic Cache Invalidated' },
+    })
+}
+
 export async function publishCharacterMovedStreamEvent(
     streamEvent: StreamEventFunction<PositionsPublishedPayload>,
     streamKey: string,
@@ -279,6 +330,10 @@ export function streamEventFromMessageBus(bus: PublishBus): StreamEventFunction<
         }
         if (params.update.type === 'Object Relation Changed') {
             sendObjectRelationChangedPublish(bus, params.streamKey, params.update)
+            return
+        }
+        if (params.update.type === 'Ludic Cache Invalidated') {
+            sendLudicCacheInvalidatedPublish(bus, params.streamKey, params.update)
             return
         }
         sendCharacterMovedPublish(bus, params.streamKey, params.update)
@@ -344,6 +399,30 @@ export function sendObjectRelationChangedPublish(
         streamKey,
         timestamp,
         type: 'Object Relation Changed',
+    }
+    const envelope = createInternalOriginEnvelope(header, content, positionsPublishSerializer)
+    const message: StreamingEventMessage = {
+        type: 'StreamingEvent',
+        dataSourceKey: EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
+        streamKey,
+        header: envelope.header,
+        getContent: envelope.getContent,
+        timestamp,
+    }
+    bus.publish(message)
+}
+
+export function sendLudicCacheInvalidatedPublish(
+    bus: PublishBus,
+    streamKey: string,
+    content: LudicCacheInvalidatedPublishedPayload,
+): void {
+    const timestamp = Date.now()
+    const header: StreamingEventHeader = {
+        dataSourceKey: EPHEMERA_POSITIONS_DATA_SOURCE_KEY,
+        streamKey,
+        timestamp,
+        type: 'Ludic Cache Invalidated',
     }
     const envelope = createInternalOriginEnvelope(header, content, positionsPublishSerializer)
     const message: StreamingEventMessage = {

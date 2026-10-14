@@ -1,6 +1,8 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicGraphPort, RelationalEdgeKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { healLudicGraphPortMismatch } from './healLudicGraphPortMismatch'
+import * as markStale from '../ludicCache/markStale'
 
 const OBJECT_ID = 'OBJECT#Rope' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Kitchen' as EphemeraRoomId
@@ -205,5 +207,37 @@ describe('healLudicGraphPortMismatch', () => {
         expect(first).toMatchObject({ stale: true, healable: true, applied: true })
         expect(second).toEqual({ stale: false })
         expect(writeHealedLudicGraph).toHaveBeenCalledTimes(1)
+    })
+
+    describe('stale-marking after the real write (LCP-3)', () => {
+        const optimisticUpdate = jest.spyOn(ephemeraDB, 'optimisticUpdate')
+        const markHostsStale = jest.spyOn(markStale, 'markHostsStale')
+
+        beforeEach(() => {
+            optimisticUpdate.mockReset().mockResolvedValue(undefined as any)
+            markHostsStale.mockReset().mockResolvedValue([])
+        })
+
+        afterAll(() => {
+            optimisticUpdate.mockRestore()
+            markHostsStale.mockRestore()
+        })
+
+        const mismatched = readerFor({
+            [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'In' }]),
+            [ROOM_ID]: roomGraph([{ kind: 'On' }]),
+        })
+
+        it('marks the healed host\'s rooms right after its own write', async () => {
+            const outcome = await healLudicGraphPortMismatch(OBJECT_ID, PORT_ID, { dryRun: false }, { getStoredLudicGraph: mismatched })
+            expect(outcome).toMatchObject({ stale: true, healable: true, applied: true })
+            expect(markHostsStale).toHaveBeenCalledWith([OBJECT_ID])
+            expect(optimisticUpdate.mock.invocationCallOrder[0]).toBeLessThan(markHostsStale.mock.invocationCallOrder[0])
+        })
+
+        it('marks nothing on a dry run', async () => {
+            await healLudicGraphPortMismatch(OBJECT_ID, PORT_ID, { dryRun: true }, { getStoredLudicGraph: mismatched })
+            expect(markHostsStale).not.toHaveBeenCalled()
+        })
     })
 })

@@ -63,6 +63,8 @@ When a process finds an earlier instance that has exceeded its `expiresAt` timeo
 **4. Independent Execution**
 Once no earlier instances are `IN_PROGRESS`, the process executes its computation independently and marks its instance as `COMPLETED` (or `FAILED` on error).
 
+**Coalesce-mode build errors.** In `coalesce` mode only instance creation sits inside the lost-race `try`, so a `ConditionalCheckFailedException` thrown by the computation itself is the computation's error, never read as a lost creation race. A computation error marks the instance `FAILED` with an `error` summary (best-effort: a failing mark never masks the computation's own error, which is rethrown), so a follower fails fast with a `SingleFlightFailedError` carrying that summary instead of polling to the timeout. Condition failures are matched on the SDK's `name` as well as `code`.
+
 **Purpose**: Allow each process to produce its own result without result sharing.
 
 ### Data Storage Strategy
@@ -78,6 +80,7 @@ Each singleFlight implementation relies upon a local DynamoDB table for distribu
   - **Status**: Current state of this instance (`IN_PROGRESS`, `COMPLETED`, `FAILED`)
   - **createdAt**: Start epoch-moment for this instance
   - **expiresAt**: Timeout epoch-moment for this instance
+  - **error** (optional): A short summary of the lead's error, written with the `FAILED` mark so followers can report it
 
 ## Integration Points
 

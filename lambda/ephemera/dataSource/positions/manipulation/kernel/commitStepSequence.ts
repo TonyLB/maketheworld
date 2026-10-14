@@ -1,5 +1,5 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
-import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -9,7 +9,9 @@ import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/
 import internalCache from '../../../../internalCache'
 import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
-import type { PositionsPublishedPayload } from '../../publishedEvents'
+import { publishLudicCacheInvalidatedStreamEvent, type PositionsPublishedPayload } from '../../publishedEvents'
+import { roomsInvalidatedByHosts } from '../../ludicCache/roomsInvalidatedByHosts'
+import { ludicCacheMarkerBumpItems } from '../../ludicCache/store'
 import { EphemeraLudicGraph, graphFromMeta, hostDataCategory } from '../../ludicGraph'
 import { parentHostOf } from '../../ludicGraph/presenceParent'
 import { streamObjectMembershipFact } from '../membership/streamObjectMembershipFact'
@@ -61,6 +63,9 @@ export type CommitStepSequenceDeps = {
      */
     afterPersist?: () => void
 }
+
+/** DynamoDB's cap on actions in one `TransactWriteItems` call. */
+const TRANSACT_ACTION_LIMIT = 100
 
 export type CommitStepSequenceTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
 
@@ -133,6 +138,16 @@ const containersAfter = (
  * runs after the reducer, in the same `TransactWriteItems` call) writes each as a `Put` of the
  * step's `meta` plus its committed `ludicGraph`. `existenceItems` (a creating caller's own rows,
  * opaque here) ride the same `cascade`, so creation, its rows and its placement commit together.
+ *
+ * **Stale-marking (LCP-3).** The `cascade` also carries one marker bump per room whose stored
+ * `ludicCache` the sequence can change, so the graph write and its stale-mark commit together or
+ * not at all; the same room set is published afterwards as `Ludic Cache Invalidated`. The rooms
+ * are resolved *before* the transact (the cascade is synchronous and cannot read ancestor graphs)
+ * from the hosts the sequence writes (a capture only reads), against the pre-commit graphs. The
+ * footprint already holds every host a move leaves or arrives at, and a destroyed host's pre-commit
+ * graph still walks up to its former parents. A container moved between that resolution and the
+ * commit gives a slightly wrong set: over-marking is harmless, and a missed room is what
+ * `AGENT.ludicCachePersistence.planning.md`'s Slice 5 property test watches for.
  */
 export const commitStepSequence = async (
     args: { steps: readonly MutationKernelStep[]; existenceItems?: readonly CommitStepSequenceTransactItem[] },
@@ -147,6 +162,20 @@ export const commitStepSequence = async (
     const footprint = computeStepSequenceFootprint(steps, deps.getCurrentHost)
     const created = createdHostsOf(steps)
     const createSteps = steps.filter((step): step is MutationKernelCreateComponentStep => step.kind === 'createComponent')
+    const writtenHosts = computeStepSequenceFootprint(steps.filter((step) => step.kind !== 'capture'), deps.getCurrentHost)
+    let invalidatedRooms: EphemeraRoomId[]
+    try {
+        invalidatedRooms = await roomsInvalidatedByHosts(
+            [...writtenHosts].filter((hostId) => !created.has(hostId)),
+            (hostId) => internalCache.Positions.getLudicGraph(hostId as Parameters<typeof internalCache.Positions.getLudicGraph>[0])
+        )
+    }
+    catch (error) {
+        // A commit that cannot say which caches it stales must not commit.
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(`[mtw.ephemera.positions] commitStepSequence could not resolve invalidated rooms: ${message}`)
+        return { ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage: message }
+    }
     const movesMembership = steps.some((step) => step.kind === 'addPresenceBinding' || step.kind === 'movePresenceBinding' || step.kind === 'releasePresenceBinding' || step.kind === 'repairPresenceBinding')
 
     let committedGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
@@ -227,15 +256,23 @@ export const commitStepSequence = async (
                 // draft-backed, so a fresh `Map` copy here is enough --- no per-entry plain-copy needed.
                 committedCaptures = new Map(outcome.captures)
             },
-            ...((createSteps.length > 0 || movesMembership || (args.existenceItems ?? []).length > 0)
+            ...((createSteps.length > 0 || movesMembership || (args.existenceItems ?? []).length > 0 || invalidatedRooms.length > 0)
                 ? {
-                    cascade: () => [
-                        ...createSteps.map((step) => ({
-                            Put: { ...step.meta, ludicGraph: committedGraphs!.get(step.hostId)!.toStored() },
-                        })),
-                        ...adjacencyItemsFor(membershipChangesOf(steps, priorGraphs!, committedGraphs!)),
-                        ...(args.existenceItems ?? []),
-                    ],
+                    cascade: () => {
+                        const items = [
+                            ...createSteps.map((step) => ({
+                                Put: { ...step.meta, ludicGraph: committedGraphs!.get(step.hostId)!.toStored() },
+                            })),
+                            ...adjacencyItemsFor(membershipChangesOf(steps, priorGraphs!, committedGraphs!)),
+                            ...(args.existenceItems ?? []),
+                            ...ludicCacheMarkerBumpItems(invalidatedRooms),
+                        ]
+                        const actions = items.length + footprint.size - created.size
+                        if (actions > TRANSACT_ACTION_LIMIT) {
+                            throw new Error(`commitStepSequence: ${actions} transact actions exceed DynamoDB's limit of ${TRANSACT_ACTION_LIMIT}`)
+                        }
+                        return items
+                    },
                 }
                 : {}),
         },
@@ -318,6 +355,10 @@ export const commitStepSequence = async (
                 { streamEvent: deps.streamEvent }
             )
         }
+    }
+
+    if (invalidatedRooms.length > 0) {
+        await publishLudicCacheInvalidatedStreamEvent(deps.streamEvent, { type: 'Ludic Cache Invalidated', roomIds: invalidatedRooms })
     }
 
     for (const hostId of footprint) {

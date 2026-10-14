@@ -20,6 +20,11 @@ jest.mock('../coyoteGame/utilities/collectActiveCharactersInCoyoteRooms', () => 
     collectActiveCharactersInCoyoteRooms: (...args: unknown[]) => collectActiveCharactersInCoyoteRoomsMock(...args),
 }))
 
+const markRoomsStaleMock = jest.fn()
+jest.mock('../positions/ludicCache/markStale', () => ({
+    markRoomsStale: (...args: unknown[]) => markRoomsStaleMock(...args),
+}))
+
 import { persistClearStoredLudicGraphs } from './persistClearStoredLudicGraphs'
 
 describe('persistClearStoredLudicGraphs', () => {
@@ -107,5 +112,29 @@ describe('persistClearStoredLudicGraphs', () => {
         expect(coyoteGameGetMock).not.toHaveBeenCalled()
         expect(collectActiveCharactersInCoyoteRoomsMock).not.toHaveBeenCalled()
         expect(optimisticUpdateMock).not.toHaveBeenCalled()
+    })
+
+    it('marks the cleared rooms stale once, after the clears, and not the characters', async () => {
+        coyoteGameGetMock.mockResolvedValue(['VORTEX', 'CORNER'])
+        collectActiveCharactersInCoyoteRoomsMock.mockResolvedValue(['CHARACTER#Alice'])
+        optimisticUpdateMock.mockResolvedValue(undefined)
+
+        await persistClearStoredLudicGraphs()
+
+        expect(markRoomsStaleMock).toHaveBeenCalledTimes(1)
+        expect(markRoomsStaleMock).toHaveBeenCalledWith(['ROOM#VORTEX', 'ROOM#CORNER'])
+        const lastClear = Math.max(...optimisticUpdateMock.mock.invocationCallOrder)
+        expect(markRoomsStaleMock.mock.invocationCallOrder[0]).toBeGreaterThan(lastClear)
+    })
+
+    it('does not mark when a clear fails', async () => {
+        coyoteGameGetMock.mockResolvedValue(['VORTEX'])
+        collectActiveCharactersInCoyoteRoomsMock.mockResolvedValue([])
+        optimisticUpdateMock.mockRejectedValue(new Error('boom'))
+
+        const result = await persistClearStoredLudicGraphs()
+
+        expect(result).toEqual({ ok: false, errorMessage: 'boom' })
+        expect(markRoomsStaleMock).not.toHaveBeenCalled()
     })
 })

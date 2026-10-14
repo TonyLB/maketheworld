@@ -9,6 +9,7 @@ import {
     isEphemeraLudicTerminalPrimitive,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
+import { markHostsStale } from '../ludicCache/markStale'
 import { hostDataCategory, nodeFromId } from './index'
 
 type StoredHostMeta = { ludicGraph?: unknown }
@@ -45,6 +46,8 @@ const defaultWriteHealedLudicGraph = async (
             draft.ludicGraph = payload
         },
     })
+    // A heal is not a kernel commit: mark the host's rooms right after its own write (LCP-3).
+    await markHostsStale([ephemeraId])
 }
 
 /**

@@ -16,6 +16,7 @@ jest.mock('../../../../internalCache', () => ({
             set: jest.fn(),
             invalidate: jest.fn(),
             setMembershipContainers: jest.fn(),
+            getLudicGraph: jest.fn(),
         },
     },
 }))
@@ -32,6 +33,11 @@ const GLASS_ID = 'OBJECT#Glass' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Cafe' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
+
+/** The facts a step sequence streams, leaving out the `Ludic Cache Invalidated` the commit adds (tested on its own). */
+const stepFactCalls = (streamEvent: jest.Mock): any[][] => streamEvent.mock.calls.filter(([payload]: any[]) => payload.header.type !== 'Ludic Cache Invalidated')
+/** The cascade's rows beyond the room markers' bumps. */
+const withoutMarkerBumps = (items: any[] | undefined) => items?.filter((item) => !('PrimitiveUpdate' in item))
 
 const remainder = (host: EphemeraMembershipHostId) => ({ host, presence: parentRemainderKey(host) })
 /** A binding move of `mover`'s binding `name` between hosts (`from: null` is a first placement). */
@@ -53,6 +59,10 @@ const withRemainder = (host: EphemeraMembershipHostId, ...held: any[]) => testLu
  * whatever is actually in the database at the moment of commit.
  */
 const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => {
+    // the pre-commit graphs the kernel reads to resolve the rooms it stales; a host with no entry holds nothing
+    ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(
+        async (hostId: EphemeraMembershipHostId) => graphsByHost[hostId] ?? testLudicGraph(hostId, { nodes: [] })
+    )
     const lastItems: { current: any[] | undefined } = { current: undefined }
     // what the wrapper's `cascade` hook returned, i.e. the extra items it would append to the call
     const cascadeItems: { current: any[] | undefined } = { current: undefined }
@@ -158,7 +168,7 @@ describe('commitStepSequence', () => {
             )
 
             expect(result.ok).toBe(true)
-            expect(cascadeItems.current).toEqual([
+            expect(withoutMarkerBumps(cascadeItems.current)).toEqual([
                 { Delete: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } },
                 { Put: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(DEST_ROOM) } },
             ])
@@ -185,7 +195,7 @@ describe('commitStepSequence', () => {
                 { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite }
             )
 
-            expect(cascadeItems.current).toEqual([
+            expect(withoutMarkerBumps(cascadeItems.current)).toEqual([
                 { Put: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(DEST_ROOM) } },
             ])
         })
@@ -217,7 +227,7 @@ describe('commitStepSequence', () => {
             ]))
             expect(Object.keys(lastDraft.current!)).toEqual([`${ROOM_ID}#Meta::Room`])
             // adjacency row for the departure rides along; the host's own memo is dropped
-            expect(cascadeItems.current).toEqual([
+            expect(withoutMarkerBumps(cascadeItems.current)).toEqual([
                 { Delete: { EphemeraId: TRAY_ID, DataCategory: expect.stringContaining(ROOM_ID) } },
                 pairDelete,
             ])
@@ -283,7 +293,7 @@ describe('commitStepSequence', () => {
             expect(transactWrite).toHaveBeenCalledTimes(1)
             const multiKeyItem = lastItems.current!.find((item) => 'MultiKeyUpdate' in item).MultiKeyUpdate
             expect(multiKeyItem.Keys).toEqual([{ EphemeraId: ROOM_ID, DataCategory: 'Meta::Room' }])
-            expect(cascadeItems.current).toEqual([
+            expect(withoutMarkerBumps(cascadeItems.current)).toEqual([
                 {
                     Put: {
                         EphemeraId: TRAY_ID,
@@ -363,7 +373,7 @@ describe('commitStepSequence', () => {
         expect(result.ok).toBe(true)
         expect(internalCache.Positions.set).toHaveBeenCalled()
 
-        const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
+        const eventTypes = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.header.type)
         expect(eventTypes).toEqual(['Object Relation Changed', 'Object Moved'])
 
         expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: ROOM_ID })
@@ -522,10 +532,10 @@ describe('commitStepSequence', () => {
 
             expect(result.ok).toBe(true)
 
-            const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
+            const eventTypes = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.header.type)
             expect(eventTypes).toEqual(['Object Relation Changed', 'Object Moved'])
 
-            const movedUpdate = streamEvent.mock.calls.map(([payload]: any[]) => payload.update)
+            const movedUpdate = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.update)
                 .find((update: any) => update.type === 'Object Moved')
             expect(movedUpdate).toEqual(
                 expect.objectContaining({ objectId: TRAY_ID, froms: [ROOM_ID], to: null })
@@ -563,7 +573,7 @@ describe('commitStepSequence', () => {
             )
 
             expect(result.ok).toBe(true)
-            const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
+            const eventTypes = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.header.type)
             expect(eventTypes).toEqual(['Object Moved'])
         })
 
@@ -669,7 +679,7 @@ describe('commitStepSequence', () => {
             )
 
             expect(result).toEqual(expect.objectContaining({ ok: true }))
-            const updates = streamEvent.mock.calls.map(([payload]: any[]) => payload.update)
+            const updates = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.update)
             expect(updates).toEqual([
                 expect.objectContaining({
                     type: 'Object Relation Changed',
@@ -703,7 +713,7 @@ describe('commitStepSequence', () => {
             )
 
             expect(result.ok).toBe(true)
-            const updates = streamEvent.mock.calls.map(([payload]: any[]) => payload.update)
+            const updates = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.update)
             expect(updates).toEqual([
                 expect.objectContaining({ type: 'Object Relation Changed', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID }),
             ])
@@ -729,7 +739,7 @@ describe('commitStepSequence', () => {
             )
 
             expect(result.ok).toBe(true)
-            const updates = streamEvent.mock.calls.map(([payload]: any[]) => payload.update)
+            const updates = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.update)
             expect(updates).toEqual([
                 expect.objectContaining({ type: 'Object Relation Changed', subjectId: CUP_ID, targetId: TABLE_ID, relationKind: 'On' }),
                 expect.objectContaining({ type: 'Object Relation Changed', subjectId: STRING_ID, targetId: CUP_ID, ...tie }),
@@ -752,7 +762,7 @@ describe('commitStepSequence', () => {
             )
 
             expect(result.ok).toBe(true)
-            expect(streamEvent).not.toHaveBeenCalled()
+            expect(stepFactCalls(streamEvent)).toEqual([])
         })
     })
 
@@ -856,6 +866,167 @@ describe('commitStepSequence', () => {
             if (!result.ok) return
             expect(result.captures.size).toBe(1)
             expect(result.captures.get('before')).toEqual([CHARACTER_ID])
+        })
+    })
+
+    describe('stale-marking (LCP-3)', () => {
+        const KITCHEN_ID = 'ROOM#Kitchen' as EphemeraRoomId
+        const bumpKeys = (items: any[] | undefined) => (items ?? [])
+            .filter((item) => 'PrimitiveUpdate' in item)
+            .map((item) => item.PrimitiveUpdate.Key)
+        const invalidations = () => streamEvent.mock.calls
+            .map(([payload]: any[]) => payload)
+            .filter((payload: any) => payload.header.type === 'Ludic Cache Invalidated')
+            .map((payload: any) => payload.update.roomIds)
+
+        it('bumps the marker of a moved object\'s two rooms in the same transact call as the graph rows, then publishes the fact once', async () => {
+            const graphs = {
+                [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
+                [KITCHEN_ID]: withRemainder(KITCHEN_ID),
+                [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID),
+            }
+            const { transactWrite, lastItems, cascadeItems } = makeTransactWriteMock(graphs)
+
+            const result = await commitStepSequence(
+                { steps: [move(TRAY_ID, 'p1', ROOM_ID, KITCHEN_ID)] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            expect(transactWrite).toHaveBeenCalledTimes(1)
+            expect(lastItems.current!.filter((item) => 'MultiKeyUpdate' in item)).toHaveLength(1)
+            expect(bumpKeys(cascadeItems.current)).toEqual(expect.arrayContaining([
+                { EphemeraId: ROOM_ID, DataCategory: 'LudicCacheVersion::' },
+                { EphemeraId: KITCHEN_ID, DataCategory: 'LudicCacheVersion::' },
+            ]))
+            expect(bumpKeys(cascadeItems.current)).toHaveLength(2)
+            expect(cascadeItems.current).toContainEqual({
+                PrimitiveUpdate: expect.objectContaining({ UpdateExpression: 'ADD version :one', ExpressionAttributeValues: { ':one': 1 } }),
+            })
+            expect(invalidations()).toHaveLength(1)
+            expect(new Set(invalidations()[0])).toEqual(new Set([ROOM_ID, KITCHEN_ID]))
+        })
+
+        it('marks both rooms for a character move, though a character shard is never a seed', async () => {
+            const graphs = {
+                [ROOM_ID]: withRemainder(ROOM_ID, { tag: 'Character', universalKey: CHARACTER_ID }),
+                [KITCHEN_ID]: withRemainder(KITCHEN_ID),
+                [CHARACTER_ID]: moverGraph(CHARACTER_ID, ROOM_ID),
+            }
+            const { transactWrite, cascadeItems } = makeTransactWriteMock(graphs)
+
+            await commitStepSequence(
+                { steps: [move(CHARACTER_ID, 'p1', ROOM_ID, KITCHEN_ID)] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(new Set(bumpKeys(cascadeItems.current).map((key: any) => key.EphemeraId))).toEqual(new Set([ROOM_ID, KITCHEN_ID]))
+        })
+
+        it('marks the room of a destroyed component, resolved from its pre-commit graph', async () => {
+            const graphs = {
+                [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
+                [TRAY_ID]: testLudicGraph(TRAY_ID, { nodes: [presenceBindingNode('p1', ROOM_ID)] }),
+            }
+            const { transactWrite, cascadeItems } = makeTransactWriteMock(graphs)
+
+            const result = await commitStepSequence(
+                { steps: [release(TRAY_ID, 'p1', ROOM_ID), { kind: 'destroyComponent', hostId: TRAY_ID }] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            expect(bumpKeys(cascadeItems.current)).toEqual([{ EphemeraId: ROOM_ID, DataCategory: 'LudicCacheVersion::' }])
+            expect(invalidations()).toEqual([[ROOM_ID]])
+        })
+
+        it('marks the room of a relational change', async () => {
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: GLASS_ID }] })
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+
+            await commitStepSequence(
+                { steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, hostId: ROOM_ID, relationKind: 'On' }] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(bumpKeys(cascadeItems.current)).toEqual([{ EphemeraId: ROOM_ID, DataCategory: 'LudicCacheVersion::' }])
+            expect(invalidations()).toEqual([[ROOM_ID]])
+        })
+
+        it('adds no bump and publishes no fact when the sequence writes no room\'s cache (an orphan, a capture)', async () => {
+            const orphan = makeTransactWriteMock({ [TRAY_ID]: testLudicGraph(TRAY_ID, { nodes: [presenceBindingNode('born')] }) })
+            await commitStepSequence(
+                { steps: [{ kind: 'destroyComponent', hostId: TRAY_ID }] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite: orphan.transactWrite }
+            )
+            expect(bumpKeys(orphan.cascadeItems.current)).toEqual([])
+
+            const capture = makeTransactWriteMock({ [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] }) })
+            await commitStepSequence(
+                { steps: [{ kind: 'capture', hostId: ROOM_ID, captureId: 'before' }] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite: capture.transactWrite }
+            )
+            expect(bumpKeys(capture.cascadeItems.current)).toEqual([])
+            expect(invalidations()).toEqual([])
+        })
+
+        it('bumps nothing and publishes nothing when the transact fails', async () => {
+            const roomGraph = withRemainder(ROOM_ID) // stale: tray not actually present
+            const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: withRemainder(CHARACTER_ID), [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+
+            const result = await commitStepSequence(
+                { steps: [move(TRAY_ID, 'p1', ROOM_ID, CHARACTER_ID)] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(result.ok).toBe(false)
+            expect(cascadeItems.current).toBeUndefined()
+            expect(invalidations()).toEqual([])
+            consoleSpy.mockRestore()
+        })
+
+        it('retries an SDK-shaped TransactionCanceledException, and publishes the fact once', async () => {
+            const graphs = {
+                [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
+                [KITCHEN_ID]: withRemainder(KITCHEN_ID),
+                [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID),
+            }
+            const { transactWrite: inner } = makeTransactWriteMock(graphs)
+            let attempt = 0
+            const transactWrite: any = jest.fn(async (items: any[]) => {
+                await inner(items)
+                attempt += 1
+                if (attempt === 1) {
+                    throw Object.assign(new Error('transaction conflict'), { name: 'TransactionCanceledException' })
+                }
+            })
+
+            const result = await commitStepSequence(
+                { steps: [move(TRAY_ID, 'p1', ROOM_ID, KITCHEN_ID)] },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(result.ok).toBe(true)
+            expect(transactWrite).toHaveBeenCalledTimes(2)
+            expect(invalidations()).toHaveLength(1)
+        })
+
+        it('refuses a transact that would exceed the 100-action limit rather than sending it', async () => {
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: GLASS_ID }] })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
+            const existenceItems = Array.from({ length: 100 }, (_, index) => ({ Put: { EphemeraId: `OBJECT#Extra${index}`, DataCategory: 'ASSET#IMPROVISATION' } }))
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+
+            const result = await commitStepSequence(
+                { steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, hostId: ROOM_ID, relationKind: 'On' }], existenceItems },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            )
+
+            expect(result.ok).toBe(false)
+            if (result.ok) return
+            expect(result.errorMessage).toMatch(/exceed DynamoDB's limit/)
+            consoleSpy.mockRestore()
         })
     })
 })

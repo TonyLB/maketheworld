@@ -22,6 +22,26 @@ export interface SingleFlightInstance {
     Status: 'QUEUED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
     createdAt: number
     expiresAt: number
+    /** Written with the `FAILED` mark: a short summary of the lead's error, so followers can report it. */
+    error?: string
+}
+
+/**
+ * Thrown to a follower whose lead failed. The coordination record carries the failure, not the
+ * original error object, so `summary` is a string.
+ */
+export class SingleFlightFailedError extends Error {
+    readonly summary?: string
+    constructor(summary?: string) {
+        super(summary ? `Computation failed: ${summary}` : 'Computation failed')
+        this.name = 'SingleFlightFailedError'
+        this.summary = summary
+    }
+}
+
+const errorSummary = (error: unknown): string => {
+    const text = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+    return text.slice(0, 500)
 }
 
 export type SingleFlightRecord<KInternal extends string = string, KeyType extends string = string> = 
@@ -95,30 +115,20 @@ export const singleFlightFactory = <T>(config: SingleFlightConfig) => {
                 timeoutMs
             )
         } else {
-            // Step 4: Try to create new instance and become leader
+            // Step 4: Try to create new instance and become leader. The `try` covers instance
+            // creation only: an error from the computation itself (a `ConditionalCheckFailedException`
+            // included) is the computation's, never a lost creation race.
+            let newInstance: SingleFlightInstance
             try {
-                const newInstance = await createNewInstance(
+                newInstance = await createNewInstance(
                     config,
                     primaryKey,
                     argumentHash,
                     existingRecord,
                     timeoutMs
                 )
-                
-                // Step 5: Perform computation as leader
-                const result = await computation()
-                
-                // Step 6: Mark instance as completed
-                await markInstanceCompleted(
-                    config,
-                    primaryKey,
-                    argumentHash,
-                    newInstance.UUID
-                )
-                
-                return result
             } catch (error: any) {
-                if (error.code === 'ConditionalCheckFailedException') {
+                if (isConditionalCheckFailure(error)) {
                     // Race condition - fall back to polling
                     const currentRecord = await config.getItemFunction({
                         Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
@@ -142,8 +152,40 @@ export const singleFlightFactory = <T>(config: SingleFlightConfig) => {
                 }
                 throw error
             }
+
+            // Step 5: Perform computation as leader, then mark the instance completed (or failed)
+            return await runAsLeader(config, primaryKey, argumentHash, newInstance.UUID, computation)
         }
     }
+}
+
+// The SDK sets `name` on its errors; `code` is what older callers and the tests set.
+const isConditionalCheckFailure = (error: any): boolean =>
+    error?.name === 'ConditionalCheckFailedException' || error?.code === 'ConditionalCheckFailedException'
+
+// Run the computation as the instance's leader. A build error marks the instance FAILED (with a
+// summary, best-effort: a failing mark never masks the build's own error) before it is rethrown,
+// so followers fail fast instead of polling to the timeout.
+async function runAsLeader<T>(
+    config: SingleFlightConfig,
+    primaryKey: string,
+    argumentHash: string,
+    instanceUUID: string,
+    computation: () => Promise<T>
+): Promise<T> {
+    let result: T
+    try {
+        result = await computation()
+    } catch (error) {
+        try {
+            await markInstanceFailed(config, primaryKey, argumentHash, instanceUUID, undefined, errorSummary(error))
+        } catch {
+            // Best-effort: the lead's own error is the one that matters.
+        }
+        throw error
+    }
+    await markInstanceCompleted(config, primaryKey, argumentHash, instanceUUID)
+    return result
 }
 
 // Helper function to execute in sequential mode
@@ -406,7 +448,7 @@ async function pollForCompletion<T>(
         }
         
         if (currentInstance.Status === 'FAILED') {
-            throw new Error('Computation failed')
+            throw new SingleFlightFailedError(currentInstance.error)
         }
         
         // Check if instance has expired (using current time and the instance's expiresAt)
@@ -462,12 +504,7 @@ async function selfPromote<T>(
     })
     
     // Perform computation as new leader
-    const result = await computation()
-    
-    // Mark as completed
-    await markInstanceCompleted(config, primaryKey, argumentHash, expiredInstance.UUID)
-    
-    return result
+    return await runAsLeader(config, primaryKey, argumentHash, expiredInstance.UUID, computation)
 }
 
 // Helper function to mark instance as completed
@@ -504,7 +541,8 @@ async function markInstanceFailed(
     primaryKey: string,
     argumentHash: string,
     instanceUUID: string,
-    priorFetch?: SingleFlightRecord<any, any>
+    priorFetch?: SingleFlightRecord<any, any>,
+    error?: string
 ): Promise<void> {
     await config.optimisticUpdateFunction({
         Key: { [config.primaryKey]: primaryKey, DataCategory: argumentHash },
@@ -522,6 +560,9 @@ async function markInstanceFailed(
                 throw new Error(`Instance with UUID ${instanceUUID} not found during failure marking`)
             }
             draft.Instances[instanceIndex].Status = 'FAILED'
+            if (error !== undefined) {
+                draft.Instances[instanceIndex].error = error
+            }
         },
         priorFetch,  // Use priorFetch if provided to avoid redundant getItem
         maxRetries: 0
