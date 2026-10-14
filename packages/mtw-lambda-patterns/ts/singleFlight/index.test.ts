@@ -1,4 +1,4 @@
-import { singleFlightFactory, SingleFlightConfig, SingleFlightParams } from './index'
+import { singleFlightFactory, SingleFlightConfig, SingleFlightParams, SingleFlightFailedError } from './index'
 import { delayPromise } from '@tonylb/mtw-utilities/ts/dynamoDB/delayPromise'
 import { getCurrentTimestamp } from '../internalUtils/dateUtil'
 import { produce } from 'immer'
@@ -1471,6 +1471,79 @@ describe('singleFlightFactory', () => {
                 expect(resultDraft2.Instances.find((inst: any) => inst.UUID === 'recent-completed')).toBeDefined()
                 expect(resultDraft2.Instances.find((inst: any) => inst.UUID === 'active-instance')).toBeDefined()
             })
+        })
+    })
+    describe('coalesce-mode build errors', () => {
+        const params = (computation: () => Promise<string>): SingleFlightParams<string> => ({
+            category: 'test-category',
+            argumentHash: 'test-hash',
+            computation,
+            retrieval: jest.fn()
+        })
+        const failedMarkCall = () => mockOptimisticUpdate.mock.calls.slice(1).find(call => {
+            const draft: any = { Instances: [{ UUID: 'test-uuid-123', Status: 'IN_PROGRESS' }] }
+            try {
+                call[0].updateReducer(draft)
+                return draft.Instances[0].Status === 'FAILED' ? draft.Instances[0] : false
+            } catch {
+                return false
+            }
+        })
+
+        it('does not read a build ConditionalCheckFailedException as a lost creation race', async () => {
+            mockGetItem.mockResolvedValueOnce(undefined)
+            mockOptimisticUpdate.mockResolvedValue({})
+            const conditionFailure = Object.assign(new Error('refused'), { name: 'ConditionalCheckFailedException' })
+
+            await expect(singleFlight(params(jest.fn().mockRejectedValue(conditionFailure)))).rejects.toBe(conditionFailure)
+
+            // Creation + FAILED mark; never a second getItem to poll its own instance
+            expect(mockGetItem).toHaveBeenCalledTimes(1)
+            expect(failedMarkCall()).toBeDefined()
+        })
+
+        it('still treats a creation ConditionalCheckFailedException (by name) as a lost race', async () => {
+            mockGetItem.mockResolvedValueOnce(undefined)
+            mockOptimisticUpdate.mockRejectedValueOnce(Object.assign(new Error('refused'), { name: 'ConditionalCheckFailedException' }))
+            mockGetItem.mockResolvedValueOnce({ Instances: [{ UUID: 'other', Status: 'IN_PROGRESS', createdAt: 100000000, expiresAt: 100030000 }] })
+            mockGetItem.mockResolvedValueOnce({ Instances: [{ UUID: 'other', Status: 'COMPLETED', createdAt: 100000000, expiresAt: 100030000 }] })
+            const computation = jest.fn()
+            const retrieval = jest.fn().mockResolvedValue('theirs')
+
+            await expect(singleFlight({ category: 'test-category', argumentHash: 'test-hash', computation, retrieval })).resolves.toBe('theirs')
+            expect(computation).not.toHaveBeenCalled()
+        })
+
+        it('marks the instance FAILED with an error summary before rethrowing', async () => {
+            mockGetItem.mockResolvedValueOnce(undefined)
+            mockOptimisticUpdate.mockResolvedValue({})
+
+            await expect(singleFlight(params(jest.fn().mockRejectedValue(new Error('throttled'))))).rejects.toThrow('throttled')
+
+            const mark = failedMarkCall()
+            expect(mark).toBeDefined()
+            const draft: any = { Instances: [{ UUID: 'test-uuid-123', Status: 'IN_PROGRESS' }] }
+            mark![0].updateReducer(draft)
+            expect(draft.Instances[0].error).toBe('Error: throttled')
+        })
+
+        it('does not let a failing FAILED mark mask the build error', async () => {
+            mockGetItem.mockResolvedValueOnce(undefined)
+            mockOptimisticUpdate.mockResolvedValueOnce({})
+            mockOptimisticUpdate.mockRejectedValueOnce(new Error('mark failed'))
+            const buildError = new Error('the build error')
+
+            await expect(singleFlight(params(jest.fn().mockRejectedValue(buildError)))).rejects.toBe(buildError)
+        })
+
+        it('throws a follower the typed error carrying the lead\'s summary', async () => {
+            mockGetItem.mockResolvedValueOnce({ Instances: [{ UUID: 'lead', Status: 'IN_PROGRESS', createdAt: 100000000, expiresAt: 100030000 }] })
+            mockGetItem.mockResolvedValueOnce({ Instances: [{ UUID: 'lead', Status: 'FAILED', createdAt: 100000000, expiresAt: 100030000, error: 'Error: throttled' }] })
+
+            const rejection: any = await singleFlight(params(jest.fn())).catch((error) => error)
+            expect(rejection).toBeInstanceOf(SingleFlightFailedError)
+            expect(rejection.summary).toBe('Error: throttled')
+            expect(rejection.message).toContain('Computation failed')
         })
     })
 })

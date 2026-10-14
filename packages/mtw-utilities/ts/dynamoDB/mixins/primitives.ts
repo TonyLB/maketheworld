@@ -27,6 +27,34 @@ export const withPrimitives = <KIncoming extends DBHandlerLegalKey, T extends st
             return returnValue
         }
 
+        /**
+         * A `Put` under a caller-supplied condition whose failure is the answer, not an error:
+         * returns `false` on `ConditionalCheckFailedException` and `true` on a write. Any other
+         * failure is thrown, never suppressed (unlike `putItem`), so a caller can tell "refused by
+         * the condition" from "did not write".
+         */
+        async conditionalPutItem(
+            item: DBHandlerItem<KIncoming, T>,
+            condition: { ConditionExpression: string; ExpressionAttributeNames?: Record<string, string>; ExpressionAttributeValues?: Record<string, any> }
+        ): Promise<boolean> {
+            const { ExpressionAttributeValues, ...rest } = condition
+            try {
+                await this._client.send(new PutItemCommand({
+                    TableName: this._tableName,
+                    Item: marshall(this._remapIncomingObject(item), { removeUndefinedValues: true }),
+                    ...rest,
+                    ...(ExpressionAttributeValues ? { ExpressionAttributeValues: marshall(ExpressionAttributeValues, { removeUndefinedValues: true }) } : {})
+                }))
+                return true
+            }
+            catch (err: any) {
+                if (err?.name === 'ConditionalCheckFailedException' || err?.code === 'ConditionalCheckFailedException') {
+                    return false
+                }
+                throw err
+            }
+        }
+
         async deleteItem(key: DBHandlerKey<KIncoming, T>): Promise<void> {
             return await asyncSuppressExceptions(async () => {
                 await this._client.send(new DeleteItemCommand({
