@@ -56,6 +56,12 @@ describe('roomsForHost', () => {
         await expect(roomsForHost(box, getGraph)).resolves.toEqual(new Set())
     })
 
+    it('does not enter a parent that stopAt names, so the walk never reaches the rooms beyond it', async () => {
+        const getGraph = graphsFrom({ [cup]: [presenceAt(box)], [box]: [presenceAt(roomA)] })
+        await expect(roomsForHost(cup, getGraph, (hostId) => hostId === box)).resolves.toEqual(new Set())
+        expect(getGraph).not.toHaveBeenCalledWith(box)
+    })
+
     it('fetches a shared ancestor once, however many paths reach it', async () => {
         const getGraph = graphsFrom({
             [ball]: [presenceAt(box, 'ball-box'), presenceAt(shelf, 'ball-shelf')],

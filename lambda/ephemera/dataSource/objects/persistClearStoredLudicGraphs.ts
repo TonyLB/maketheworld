@@ -4,6 +4,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../internalCache'
+import { markRoomsStale } from '../positions/ludicCache/markStale'
 import { collectActiveCharactersInCoyoteRooms } from '../coyoteGame/utilities/collectActiveCharactersInCoyoteRooms'
 
 export type PersistClearStoredLudicGraphsDependencies = {
@@ -11,6 +12,7 @@ export type PersistClearStoredLudicGraphsDependencies = {
     getActiveCharactersInCoyoteRooms?: () => Promise<EphemeraCharacterId[]>;
     clearRoomLudicGraph?: (roomId: EphemeraRoomId) => Promise<void>;
     clearCharacterLudicGraph?: (characterId: EphemeraCharacterId) => Promise<void>;
+    markRoomsStale?: (roomIds: EphemeraRoomId[]) => Promise<unknown>;
 }
 
 const defaultClearRoomLudicGraph = async (roomId: EphemeraRoomId): Promise<void> => {
@@ -48,6 +50,7 @@ export const persistClearStoredLudicGraphs = async (
     const getActiveCharactersInCoyoteRooms = deps.getActiveCharactersInCoyoteRooms ?? collectActiveCharactersInCoyoteRooms
     const clearRoomLudicGraph = deps.clearRoomLudicGraph ?? defaultClearRoomLudicGraph
     const clearCharacterLudicGraph = deps.clearCharacterLudicGraph ?? defaultClearCharacterLudicGraph
+    const markStale = deps.markRoomsStale ?? markRoomsStale
 
     try {
         const gameRooms = await getGameRooms()
@@ -60,6 +63,9 @@ export const persistClearStoredLudicGraphs = async (
         for (const characterId of characterIds) {
             await clearCharacterLudicGraph(characterId)
         }
+        // Not a kernel commit: mark right after the writes (LCP-3). A character shard is never inside a
+        // room's cache, so only the rooms whose own graph was cleared are marked.
+        await markStale(roomIds)
 
         return { ok: true, clearedRoomIds: roomIds, clearedCharacterIds: characterIds }
     }

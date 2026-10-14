@@ -10,7 +10,7 @@ Play membership persistence uses **`Meta::<Kind>.ludicGraph`** (forward; Room / 
 
 - **`dataSourceKey`** must be `mtw.ephemera.positions`.
 - **`replayable`** is `false` for v1.
-- **`publisherStrategy`** is `busOnly` (outbound **`Character Moved`**, **`Object Moved`** and **`Object Relation Changed`** on internal bus).
+- **`publisherStrategy`** is `busOnly` (outbound **`Character Moved`**, **`Object Moved`**, **`Object Relation Changed`** and **`Ludic Cache Invalidated`** on internal bus).
 - Subscription guards live in [`subscribedEvents.ts`](subscribedEvents.ts); new ingress types must register a header guard there (not a separate DataSource module).
 
 ---

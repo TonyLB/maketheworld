@@ -1,0 +1,29 @@
+import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+
+import type { EphemeraLudicGraph } from '../ludicGraph'
+import { roomsForHost } from '../ludicGraph/presenceRooms'
+
+/**
+ * Every room whose stored `ludicCache` a write to these hosts can change: the rooms reachable
+ * upward from each host, deduplicated.
+ *
+ * A character-hosted shard is skipped as a starting point, because a room's cache never recurses
+ * into one (a commit that touches only a character's inventory changes no room cache). A character
+ * that moves still marks its rooms: the hosts it leaves and arrives at are written hosts of their
+ * own, and are passed in alongside it. For the same reason the walk stops at a character-hosted
+ * parent: an object handed from one character to another changes no room's cache.
+ *
+ * `includeCharacterStarts` is for a change to the host's *own* name rather than to a graph: a renamed
+ * character shows under its name in the room it stands in, so it is walked up to that room.
+ */
+export const roomsInvalidatedByHosts = async (
+    hostIds: Iterable<EphemeraMembershipHostId>,
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
+    options: { includeCharacterStarts?: boolean } = {}
+): Promise<EphemeraRoomId[]> => {
+    const starts = [...new Set(hostIds)].filter((hostId) => options.includeCharacterStarts || !isEphemeraCharacterId(hostId))
+    const perHost = await Promise.all(starts.map((hostId) => roomsForHost(hostId, getGraph, isEphemeraCharacterId)))
+    return [...new Set(perHost.flatMap((rooms) => [...rooms]))]
+}

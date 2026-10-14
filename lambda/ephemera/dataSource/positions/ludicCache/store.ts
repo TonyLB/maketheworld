@@ -93,6 +93,36 @@ const defaultRunWithSingleFlight: RunWithSingleFlightLudicCacheRebuild = <T>(par
     })(params)
 )
 
+const MARKER_BUMP_EXPRESSION = 'ADD version :one'
+
+/**
+ * One `PrimitiveUpdate` per room, bumping its marker (`ADD` also creates the row at 1), for a
+ * kernel transaction to carry so the graph write and its stale-mark commit together or not at all
+ * (LCP-3). The rooms are the caller's: see `roomsInvalidatedByHosts`.
+ */
+export const ludicCacheMarkerBumpItems = (roomIds: readonly EphemeraRoomId[]) => roomIds.map((roomId) => ({
+    PrimitiveUpdate: {
+        Key: { EphemeraId: roomId, DataCategory: LUDIC_CACHE_VERSION_DATA_CATEGORY },
+        ProjectionFields: ['version'],
+        UpdateExpression: MARKER_BUMP_EXPRESSION,
+        ExpressionAttributeValues: { ':one': 1 },
+    },
+}))
+
+/**
+ * The same bump as plain concurrent `UpdateItem`s, for the writers that cannot ride a kernel
+ * transaction (asset-side name changes, the diagnostics heals, the Coyote clear). Each is marked
+ * right after its own write, so a short window is accepted (LCP-4). A failed bump is thrown, never
+ * suppressed: an unwritten marker would leave a wrong row reading as a hit.
+ */
+export const markLudicCacheStale = async (roomIds: readonly EphemeraRoomId[]): Promise<void> => {
+    await Promise.all([...new Set(roomIds)].map((roomId) => ephemeraDB.strictPrimitiveUpdate({
+        Key: { EphemeraId: roomId, DataCategory: LUDIC_CACHE_VERSION_DATA_CATEGORY },
+        UpdateExpression: MARKER_BUMP_EXPRESSION,
+        ExpressionAttributeValues: { ':one': { N: '1' } },
+    })))
+}
+
 export type ReadLudicCacheDeps = {
     readRows?: (roomId: EphemeraRoomId) => Promise<StoredRows>
     /** The monotonic write; `false` when a row labelled this version or newer is already there. */
@@ -102,6 +132,7 @@ export type ReadLudicCacheDeps = {
     build?: typeof buildLudicCache
     buildDeps?: Omit<BuildLudicCacheDeps, 'getLudicGraph'>
     runSingleFlight?: RunWithSingleFlightLudicCacheRebuild
+    clearNameMemos?: () => void
 }
 
 const labelFromRow = (row: Partial<LudicCacheRow> | undefined): LabelledLudicCache | undefined => (
@@ -152,11 +183,27 @@ export const getFreshLudicGraph = async (hostId: EphemeraMembershipHostId): Prom
     return EphemeraLudicGraph.fromFieldPayload(hostId, normalizeStoredLudicGraph(row?.ludicGraph, hostId, nodeFromId(hostId).tag as Exclude<ReturnType<typeof nodeFromId>['tag'], 'Presence'>))
 }
 
+/**
+ * Drops every per-invocation memo a stored name is read through: the Canon stack (`RoomAssets`,
+ * `AssetMetaData`) and the component data the names come from. The same hazard `getFreshLudicGraph`
+ * closes for graphs: a memo filled before another invocation's rename bump would otherwise build an
+ * old name and label it with the new version, a persistent wrong hit. Rebuild-only, and called
+ * after the marker is read, so whatever is fetched next is no older than the label.
+ */
+const clearNameMemos = (): void => {
+    internalCache.RoomAssets.clear()
+    internalCache.AssetMetaData.clear()
+    internalCache.ComponentData.clear()
+    internalCache.ComponentVerticals.clear()
+    internalCache.ComponentAggregate.clear()
+}
+
 const rebuild = async (
     roomId: EphemeraRoomId,
     version: number,
-    deps: Required<Pick<ReadLudicCacheDeps, 'readRows' | 'writeRow' | 'getFreshLudicGraph' | 'resolveCanonStack' | 'build'>> & Pick<ReadLudicCacheDeps, 'buildDeps'>
+    deps: Required<Pick<ReadLudicCacheDeps, 'readRows' | 'writeRow' | 'getFreshLudicGraph' | 'resolveCanonStack' | 'build' | 'clearNameMemos'>> & Pick<ReadLudicCacheDeps, 'buildDeps'>
 ): Promise<LabelledLudicCache> => {
+    deps.clearNameMemos()
     const assetStack = await deps.resolveCanonStack(roomId)
     const { cache } = await deps.build(roomId, assetStack, { ...deps.buildDeps, getLudicGraph: deps.getFreshLudicGraph })
     const wrote = await deps.writeRow({ EphemeraId: roomId, DataCategory: LUDIC_CACHE_DATA_CATEGORY, cache, builtAtVersion: version })
@@ -179,6 +226,7 @@ export const readLudicCache = async (
         getFreshLudicGraph: deps.getFreshLudicGraph ?? getFreshLudicGraph,
         resolveCanonStack: deps.resolveCanonStack ?? ((id: EphemeraRoomId) => resolveCanonAssetStackForRoom(id, internalCache)),
         build: deps.build ?? buildLudicCache,
+        clearNameMemos: deps.clearNameMemos ?? clearNameMemos,
         buildDeps: deps.buildDeps,
     }
     const runSingleFlight = deps.runSingleFlight ?? defaultRunWithSingleFlight

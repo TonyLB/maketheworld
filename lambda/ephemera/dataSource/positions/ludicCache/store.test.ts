@@ -23,6 +23,8 @@ import {
     LUDIC_CACHE_READ_MAX_ATTEMPTS,
     LUDIC_CACHE_VERSION_DATA_CATEGORY,
     getFreshLudicGraph,
+    ludicCacheMarkerBumpItems,
+    markLudicCacheStale,
     readLudicCache,
     type LudicCacheRow,
     type ReadLudicCacheDeps,
@@ -80,6 +82,7 @@ const baseDeps = (store: ReturnType<typeof makeStore>, overrides: ReadLudicCache
     writeRow: store.writeRow,
     getFreshLudicGraph: freshGraph(),
     resolveCanonStack: jest.fn(async () => canonStack),
+    clearNameMemos: jest.fn(),
     buildDeps: { getComponentAggregate },
     runSingleFlight: leader,
     ...overrides,
@@ -286,6 +289,38 @@ describe('readLudicCache', () => {
     })
 })
 
+describe('name memos on a rebuild', () => {
+    it('are dropped after the marker is read and before the Canon stack or any name is, and not at all on a hit', async () => {
+        const order: string[] = []
+        const store = makeStore({ version: 3 })
+        store.readRows.mockImplementation(async () => { order.push('marker'); return { version: store.state.version, row: store.state.row } })
+        const deps = baseDeps(store, {
+            clearNameMemos: jest.fn(() => { order.push('clear') }),
+            resolveCanonStack: jest.fn(async () => { order.push('stack'); return canonStack }),
+            build: (async () => { order.push('build'); return { cache: emptyCache('built'), stats: { shardFetchCount: 1, maxDepth: 0 } } }) as any,
+        })
+
+        await readLudicCache(roomA, deps)
+        expect(order).toEqual(['marker', 'clear', 'stack', 'build'])
+
+        order.length = 0
+        store.state.version = 3
+        await readLudicCache(roomA, deps)
+        expect(order).toEqual(['marker'])
+    })
+
+    it('by default clear every per-invocation memo a stored name is read through', async () => {
+        const memos = [internalCache.RoomAssets, internalCache.AssetMetaData, internalCache.ComponentData, internalCache.ComponentVerticals, internalCache.ComponentAggregate]
+        const spies = memos.map((memo) => jest.spyOn(memo, 'clear').mockImplementation(() => undefined))
+        const { clearNameMemos: _unused, ...deps } = baseDeps(makeStore({ version: 1 }))
+
+        await readLudicCache(roomA, deps)
+
+        spies.forEach((spy) => expect(spy).toHaveBeenCalledTimes(1))
+        spies.forEach((spy) => spy.mockRestore())
+    })
+})
+
 describe('the stored rows against Dynamo', () => {
     const mockedDB = {
         getItems: jest.spyOn(ephemeraDB, 'getItems') as unknown as jest.Mock,
@@ -366,5 +401,49 @@ describe('the stored rows against Dynamo', () => {
             ConsistentRead: true,
         })
         expect([...graph.nodeIds]).toEqual([boxId])
+    })
+
+    it('ludicCacheMarkerBumpItems is one ADD per room on the marker row', () => {
+        expect(ludicCacheMarkerBumpItems([roomA])).toEqual([{
+            PrimitiveUpdate: {
+                Key: { EphemeraId: roomA, DataCategory: LUDIC_CACHE_VERSION_DATA_CATEGORY },
+                ProjectionFields: ['version'],
+                UpdateExpression: 'ADD version :one',
+                ExpressionAttributeValues: { ':one': 1 },
+            },
+        }])
+        expect(ludicCacheMarkerBumpItems([])).toEqual([])
+    })
+
+    describe('markLudicCacheStale', () => {
+        const strictUpdate = jest.spyOn(ephemeraDB, 'strictPrimitiveUpdate') as unknown as jest.Mock
+
+        beforeEach(() => { strictUpdate.mockReset() })
+        afterAll(() => { strictUpdate.mockRestore() })
+
+        it('bumps each distinct room once, on the marker row', async () => {
+            strictUpdate.mockResolvedValue(undefined)
+            await markLudicCacheStale([roomA, roomA])
+            expect(strictUpdate).toHaveBeenCalledTimes(1)
+            expect(strictUpdate).toHaveBeenCalledWith({
+                Key: { EphemeraId: roomA, DataCategory: LUDIC_CACHE_VERSION_DATA_CATEGORY },
+                UpdateExpression: 'ADD version :one',
+                ExpressionAttributeValues: { ':one': { N: '1' } },
+            })
+        })
+
+        it('throws a failed bump rather than leaving a wrong row reading as a hit', async () => {
+            strictUpdate.mockRejectedValue(new Error('slow down'))
+            await expect(markLudicCacheStale([roomA])).rejects.toThrow('slow down')
+        })
+
+        it('makes the next read stale: a row labelled with the old version is rebuilt', async () => {
+            const stored = emptyCache('stored')
+            mockedDB.getItems.mockResolvedValue([marker(5), row(4, stored)])
+            mockedDB.conditionalPutItem.mockResolvedValue(true)
+            const build = jest.fn(async () => ({ cache: emptyCache('rebuilt'), stats: { shardFetchCount: 1, maxDepth: 0 } }))
+            const result = await readLudicCache(roomA, { resolveCanonStack: async () => canonStack, build: build as any, runSingleFlight: leader })
+            expect(result.nodes[0].shortName).toBe('rebuilt')
+        })
     })
 })

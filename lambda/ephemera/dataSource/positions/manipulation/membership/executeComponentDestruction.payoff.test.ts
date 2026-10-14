@@ -5,13 +5,14 @@ import { objectNode } from '../../ludicGraph'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import { executeComponentDestruction } from './executeComponentDestruction'
+import internalCache from '../../../../internalCache'
 
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
     default: {
         ComponentEphemeraMeta: { invalidate: jest.fn() },
         AffordanceRoomDeliverable: { invalidate: jest.fn() },
-        Positions: { set: jest.fn(), invalidate: jest.fn(), setMembershipContainers: jest.fn(), getMembershipContainers: jest.fn() },
+        Positions: { set: jest.fn(), invalidate: jest.fn(), setMembershipContainers: jest.fn(), getMembershipContainers: jest.fn(), getLudicGraph: jest.fn() },
     },
 }))
 
@@ -51,6 +52,7 @@ const makeWorld = (graphs: Record<string, EphemeraLudicGraph>) => {
         const { EphemeraLudicGraph: Graph } = jest.requireActual('../../ludicGraph')
         return Graph.fromFieldPayload(hostId, rows[hostId].ludicGraph)
     }
+    ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(getGraph)
     return { rows, transactWrite, getGraph }
 }
 

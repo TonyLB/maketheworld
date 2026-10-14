@@ -55,6 +55,23 @@ export const withPrimitives = <KIncoming extends DBHandlerLegalKey, T extends st
             }
         }
 
+        /**
+         * An `UpdateItem` whose failure is thrown, never suppressed (unlike `primitiveUpdate`), for a
+         * caller whose write is a correctness marker: a swallowed failure would leave it unwritten
+         * with nothing to say so.
+         */
+        async strictPrimitiveUpdate(props: {
+            Key: DBHandlerKey<KIncoming, T>
+        } & Omit<UpdateItemCommandInput, 'TableName' | 'Key'>): Promise<void> {
+            const { Key, ExpressionAttributeValues, ...rest } = props
+            await this._client.send(new UpdateItemCommand({
+                TableName: this._tableName,
+                Key: marshall(this._remapIncomingObject(Key), { removeUndefinedValues: true }),
+                ...rest,
+                ...(ExpressionAttributeValues ? { ExpressionAttributeValues } : {})
+            }))
+        }
+
         async deleteItem(key: DBHandlerKey<KIncoming, T>): Promise<void> {
             return await asyncSuppressExceptions(async () => {
                 await this._client.send(new DeleteItemCommand({

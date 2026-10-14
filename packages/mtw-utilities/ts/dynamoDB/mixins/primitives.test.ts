@@ -65,6 +65,31 @@ describe('withPrimitives', () => {
         })
     })
 
+    describe('strictPrimitiveUpdate', () => {
+        it('should remap the key and pass the update through', async () => {
+            dbMock.send.mockResolvedValueOnce({})
+            await dbHandler.strictPrimitiveUpdate({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1' },
+                UpdateExpression: 'ADD version :one',
+                ExpressionAttributeValues: marshall({ ':one': 1 })
+            })
+            expect(dbMock.send.mock.calls[0][0].input).toEqual({
+                Key: marshall({ EphemeraId: 'TestOne', DataCategory: 'DC1' }),
+                TableName: 'Ephemera',
+                UpdateExpression: 'ADD version :one',
+                ExpressionAttributeValues: marshall({ ':one': 1 })
+            })
+        })
+
+        it('should throw a failure rather than suppress it', async () => {
+            dbMock.send.mockRejectedValueOnce(Object.assign(new Error('slow down'), { name: 'ProvisionedThroughputExceededException' }))
+            await expect(dbHandler.strictPrimitiveUpdate({
+                Key: { PrimaryKey: 'TestOne', DataCategory: 'DC1' },
+                UpdateExpression: 'ADD version :one'
+            })).rejects.toThrow('slow down')
+        })
+    })
+
     describe('deleteItem', () => {
 
         it('should remap incoming primary key', async () => {

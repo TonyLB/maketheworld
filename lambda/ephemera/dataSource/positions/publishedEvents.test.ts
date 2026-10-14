@@ -1,5 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isCharacterMovedPublishedPayload, isEphemeraPositionsCharacterMovedEnvelope, isEphemeraPositionsOutboundEnvelope, isObjectMovedPublishedPayload, isObjectRelationChangedPublishedPayload, sendCharacterMovedPublish, sendObjectMovedPublish, streamEventFromMessageBus } from './publishedEvents'
+import { isCharacterMovedPublishedPayload, isLudicCacheInvalidatedPublishedPayload, isEphemeraPositionsLudicCacheInvalidatedEnvelope, sendLudicCacheInvalidatedPublish, isEphemeraPositionsCharacterMovedEnvelope, isEphemeraPositionsOutboundEnvelope, isObjectMovedPublishedPayload, isObjectRelationChangedPublishedPayload, sendCharacterMovedPublish, sendObjectMovedPublish, streamEventFromMessageBus } from './publishedEvents'
 
 describe('isCharacterMovedPublishedPayload', () => {
     const minimal = {
@@ -258,5 +258,29 @@ describe('isEphemeraPositionsCharacterMovedEnvelope', () => {
     it('rejects other positions facts and other DataSources', () => {
         expect(isEphemeraPositionsCharacterMovedEnvelope(envelopeFor('mtw.ephemera.positions', 'Object Moved'))).toBe(false)
         expect(isEphemeraPositionsCharacterMovedEnvelope(envelopeFor('mtw.ephemera.actions', 'Character Moved'))).toBe(false)
+    })
+})
+
+describe('Ludic Cache Invalidated', () => {
+    it('accepts a payload naming one or more rooms and rejects anything else', () => {
+        expect(isLudicCacheInvalidatedPublishedPayload({ type: 'Ludic Cache Invalidated', roomIds: ['ROOM#a', 'ROOM#b'] })).toBe(true)
+        expect(isLudicCacheInvalidatedPublishedPayload({ type: 'Ludic Cache Invalidated', roomIds: [] })).toBe(false)
+        expect(isLudicCacheInvalidatedPublishedPayload({ type: 'Ludic Cache Invalidated', roomIds: ['OBJECT#cup'] })).toBe(false)
+        expect(isLudicCacheInvalidatedPublishedPayload({ type: 'Object Moved', roomIds: ['ROOM#a'] })).toBe(false)
+    })
+
+    it('publishes a StreamingEvent that the outbound envelope guards recognize', async () => {
+        const publish = jest.fn()
+        await streamEventFromMessageBus({ publish } as any)({
+            update: { type: 'Ludic Cache Invalidated', roomIds: ['ROOM#a' as EphemeraRoomId] },
+            streamKey: 'ROOM#a',
+            header: { type: 'Ludic Cache Invalidated' },
+        })
+        expect(publish).toHaveBeenCalledTimes(1)
+        const message = publish.mock.calls[0][0]
+        expect(message).toMatchObject({ type: 'StreamingEvent', dataSourceKey: 'mtw.ephemera.positions', streamKey: 'ROOM#a' })
+        expect(isEphemeraPositionsLudicCacheInvalidatedEnvelope(message)).toBe(true)
+        expect(isEphemeraPositionsOutboundEnvelope(message)).toBe(true)
+        await expect(message.getContent()).resolves.toEqual({ type: 'Ludic Cache Invalidated', roomIds: ['ROOM#a'] })
     })
 })

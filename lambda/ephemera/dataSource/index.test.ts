@@ -26,6 +26,13 @@ jest.mock('./positions/manipulation/containment/removeAuthoredObject', () => ({
     removeAuthoredObject: jest.fn().mockResolvedValue(undefined),
 }))
 
+jest.mock('./positions/ludicCache/markStale', () => ({
+    markHostsStale: jest.fn().mockResolvedValue([]),
+    markRoomsStale: jest.fn().mockResolvedValue([]),
+}))
+
+import { markHostsStale, markRoomsStale } from './positions/ludicCache/markStale'
+import internalCache from '../internalCache'
 import { removeAuthoredObject } from './positions/manipulation/containment/removeAuthoredObject'
 import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroadcast'
 import { populateContainmentAtCache } from './positions/manipulation/containment/populateContainmentAtCache'
@@ -45,6 +52,12 @@ describe('Ephemera DataSource receiveEvents', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         getCurrentTimestampMock.mockReturnValue(FIXED_TS)
+        // No test here reads Dynamo: a zone change finds the asset in no room unless a test says otherwise.
+        jest.spyOn(internalCache.AssetRooms, 'get').mockResolvedValue({ EphemeraId: 'ASSET#test-asset', rooms: [] } as any)
+    })
+
+    afterAll(() => {
+        jest.restoreAllMocks()
     })
 
     describe('Component Updated Events', () => {
@@ -133,6 +146,33 @@ describe('Ephemera DataSource receiveEvents', () => {
             await ephemeraDataSource.receiveEvents?.({ events, streamEvent: mockStreamEvent, streamEnvelope: jest.fn().mockResolvedValue(undefined) })
 
             expect(mockMessageBus.publish).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('Component Updated Events: stale-marking', () => {
+        const componentEvent = (component: any) => [{
+            header: { dataSourceKey: 'mtw.assets' as const, streamKey: 'ASSET#test-asset', timestamp: getCurrentTimestamp(), type: 'Component Updated' },
+            getContent: () => Promise.resolve({ type: 'Component Updated' as const, component }),
+        }]
+        const receive = (events: any[]) => ephemeraDataSource.receiveEvents?.({ events, streamEvent: jest.fn().mockResolvedValue(undefined), streamEnvelope: jest.fn().mockResolvedValue(undefined) })
+
+        it('marks the rooms showing an edited room, before its header is kicked (a room whose participating assets changed arrives here too)', async () => {
+            const room = new StandardRoom(deIndentWML(`<Room uuid=(test-room)><ShortName>Test Room</ShortName></Room>`))
+            await receive(componentEvent(room))
+            expect(markHostsStale).toHaveBeenCalledWith(['ROOM#test-room'], { includeCharacterStarts: true })
+            expect((markHostsStale as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan((kickRoomHeaderBroadcastForRoom as jest.Mock).mock.invocationCallOrder[0])
+        })
+
+        it('marks the room a renamed character stands in', async () => {
+            const character = new StandardCharacter(deIndentWML(`<Character uuid=(test-character)><ShortName>Test Character</ShortName></Character>`))
+            await receive(componentEvent(character))
+            expect(markHostsStale).toHaveBeenCalledWith(['CHARACTER#test-character'], { includeCharacterStarts: true })
+        })
+
+        it('marks nothing for a component with no universalKey', async () => {
+            const room = new StandardRoom(deIndentWML(`<Room key=(testRoom)><ShortName>Test Room</ShortName></Room>`))
+            await receive(componentEvent(room))
+            expect(markHostsStale).not.toHaveBeenCalled()
         })
     })
 
@@ -353,6 +393,50 @@ describe('Ephemera DataSource receiveEvents', () => {
                 type: 'CanonSet',
                 assetIds: []
             })
+        })
+    })
+
+    describe('Zone Updated Events: stale-marking', () => {
+        const assetRooms = () => internalCache.AssetRooms.get as unknown as jest.Mock
+        const zoneEvent = (fromZone: string, toZone: string) => [{
+            header: { dataSourceKey: 'mtw.assets' as const, streamKey: 'ASSET#test-asset', timestamp: getCurrentTimestamp(), type: 'Zone Updated' },
+            getContent: () => Promise.resolve({ type: 'Zone Updated' as const, fromZone, toZone }),
+        }]
+        const receive = (events: any[]) => ephemeraDataSource.receiveEvents?.({ events, streamEvent: jest.fn().mockResolvedValue(undefined), streamEnvelope: jest.fn().mockResolvedValue(undefined) })
+
+        beforeEach(() => {
+            assetRooms().mockReset()
+            assetRooms().mockResolvedValue({ EphemeraId: 'ASSET#test-asset', rooms: ['ROOM#a', 'ROOM#b'] } as any)
+        })
+
+        it('marks every room using an asset that enters Canon', async () => {
+            await receive(zoneEvent('Library', 'Canon'))
+            expect(assetRooms()).toHaveBeenCalledWith('ASSET#test-asset')
+            expect(markRoomsStale).toHaveBeenCalledWith(['ROOM#a', 'ROOM#b'])
+        })
+
+        it('marks every room using an asset that leaves Canon', async () => {
+            await receive(zoneEvent('Canon', 'Library'))
+            expect(markRoomsStale).toHaveBeenCalledWith(['ROOM#a', 'ROOM#b'])
+        })
+
+        it('marks nothing for a zone change that does not touch Canon', async () => {
+            await receive(zoneEvent('Library', 'Personal'))
+            expect(markRoomsStale).not.toHaveBeenCalled()
+        })
+
+        it('marks nothing for an asset no room uses', async () => {
+            assetRooms().mockResolvedValue(undefined)
+            await receive(zoneEvent('Library', 'Canon'))
+            expect(markRoomsStale).toHaveBeenCalledWith([])
+        })
+
+        it('marks nothing on Canon Updated alone: the global order is not read by any room stack', async () => {
+            await receive([{
+                header: { dataSourceKey: 'mtw.assets' as const, streamKey: 'canon-global', timestamp: getCurrentTimestamp(), type: 'Canon Updated' },
+                getContent: () => Promise.resolve({ type: 'Canon Updated' as const, assetIds: ['ASSET#test-asset'] }),
+            }])
+            expect(markRoomsStale).not.toHaveBeenCalled()
         })
     })
 

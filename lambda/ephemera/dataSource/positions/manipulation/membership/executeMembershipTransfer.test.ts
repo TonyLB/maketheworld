@@ -10,6 +10,9 @@ jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     exponentialBackoffWrapper: jest.fn(async (fn: () => Promise<unknown>) => { await fn() }),
 }))
 
+/** The facts a transfer streams, leaving out the `Ludic Cache Invalidated` the commit adds (tested in commitStepSequence). */
+const stepFactCalls = (streamEvent: jest.Mock): any[][] => streamEvent.mock.calls.filter(([payload]: any[]) => payload.header.type !== 'Ludic Cache Invalidated')
+
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
     default: {
@@ -113,7 +116,7 @@ describe('executeMembershipTransfer', () => {
             changed: true,
             beatAnchorTime: 1_700_000_000_000,
         }))
-        const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
+        const eventTypes = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.header.type)
         expect(eventTypes).toEqual(['Object Relation Changed', 'Object Moved'])
         expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: FROM_ROOM })
         expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: TO_ROOM })
@@ -136,7 +139,7 @@ describe('executeMembershipTransfer', () => {
         })
 
         expect(result).toEqual(expect.objectContaining({ ok: true, froms: [], to: TO_ROOM, changed: true }))
-        const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
+        const eventTypes = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.header.type)
         expect(eventTypes).toEqual(['Object Moved'])
 
         // A mover holding no binding at all gets a root minted ahead of its first-placement move, so
@@ -210,7 +213,7 @@ describe('executeMembershipTransfer', () => {
         })
 
         expect(result.ok).toBe(true)
-        const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
+        const eventTypes = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.header.type)
         expect(eventTypes).toEqual(['Object Moved'])
     })
 
@@ -234,7 +237,7 @@ describe('executeMembershipTransfer', () => {
 
         expect(result.ok).toBe(true)
         expect(internalCache.Positions.getLudicGraph).not.toHaveBeenCalledWith(FROM_ROOM)
-        const eventTypes = streamEvent.mock.calls.map(([payload]: any[]) => payload.header.type)
+        const eventTypes = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.header.type)
         expect(eventTypes).toEqual(['Character Moved'])
     })
 

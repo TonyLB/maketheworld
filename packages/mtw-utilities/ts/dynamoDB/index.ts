@@ -42,7 +42,8 @@ export const exponentialBackoffWrapper = async <T>(tryClause: () => Promise<T>, 
             return await tryClause()
         }
         catch (err: any) {
-            if ((options?.retryErrors || ['ConditionalCheckFailedException']).includes(err.errorType)) {
+            // AWS SDK v3 errors carry `name`; `errorType` is only set by the Lambda runtime (and test doubles).
+            if ((options?.retryErrors || ['ConditionalCheckFailedException']).includes(err.errorType ?? err.name)) {
                 await Promise.all([
                     delayPromise(exponentialBackoff),
                     ...(options.retryCallback ? [options.retryCallback()] : [])

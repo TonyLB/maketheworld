@@ -1,5 +1,7 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { healLudicGraphStructure } from './healLudicGraphStructure'
+import * as markStale from '../ludicCache/markStale'
 
 const ROOM_ID = 'ROOM#Kitchen' as EphemeraRoomId
 
@@ -219,5 +221,35 @@ describe('healLudicGraphStructure', () => {
         })
         expect(outcome).toEqual({ stale: true, healable: false, applied: false })
         expect(writeHealedLudicGraph).not.toHaveBeenCalled()
+    })
+
+    describe('stale-marking after the real write (LCP-3)', () => {
+        const optimisticUpdate = jest.spyOn(ephemeraDB, 'optimisticUpdate')
+        const markHostsStale = jest.spyOn(markStale, 'markHostsStale')
+
+        beforeEach(() => {
+            optimisticUpdate.mockReset().mockResolvedValue(undefined as any)
+            markHostsStale.mockReset().mockResolvedValue([])
+        })
+
+        afterAll(() => {
+            optimisticUpdate.mockRestore()
+            markHostsStale.mockRestore()
+        })
+
+        const staleGraph = { rootId: ROOM_ID, nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }], ports: [] }
+
+        it('marks the healed host\'s rooms right after its own write', async () => {
+            await healLudicGraphStructure(ROOM_ID, { dryRun: false }, { getStoredLudicGraph: async () => staleGraph })
+            expect(optimisticUpdate).toHaveBeenCalledTimes(1)
+            expect(markHostsStale).toHaveBeenCalledWith([ROOM_ID])
+            expect(optimisticUpdate.mock.invocationCallOrder[0]).toBeLessThan(markHostsStale.mock.invocationCallOrder[0])
+        })
+
+        it('marks nothing on a dry run or a graph that is not stale', async () => {
+            await healLudicGraphStructure(ROOM_ID, { dryRun: true }, { getStoredLudicGraph: async () => staleGraph })
+            await healLudicGraphStructure(ROOM_ID, { dryRun: false }, { getStoredLudicGraph: async () => undefined })
+            expect(markHostsStale).not.toHaveBeenCalled()
+        })
     })
 })

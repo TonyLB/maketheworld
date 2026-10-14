@@ -21,10 +21,15 @@ import { parentBinding, parentBindingsOf } from './presenceParent'
  * A host with no presence binding and no Room id is a dead end, not a room: it contributes nothing,
  * the same false-negative-never-false-positive acceptance `hasPresenceAncestor` documents for a
  * missing binding.
+ *
+ * `stopAt`, when given, names parents the walk does not enter: a stopped parent contributes nothing
+ * (the start itself is never tested). A caller whose question is narrower than "every room this host
+ * is seen in" uses it to say where its own boundary lies.
  */
 export const roomsForHost = async (
     startId: EphemeraMembershipHostId,
-    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
+    stopAt?: (hostId: EphemeraMembershipHostId) => boolean
 ): Promise<Set<EphemeraRoomId>> => {
     if (isEphemeraRoomId(startId)) {
         return new Set([startId])
@@ -41,7 +46,7 @@ export const roomsForHost = async (
                     rooms.add(host)
                     continue
                 }
-                if (!visited.has(host)) {
+                if (!visited.has(host) && !stopAt?.(host)) {
                     visited.add(host)
                     next.push(host)
                 }

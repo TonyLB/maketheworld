@@ -16,11 +16,19 @@ import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroad
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { populateContainmentAtCache } from './positions/manipulation/containment/populateContainmentAtCache'
 import { removeAuthoredObject } from './positions/manipulation/containment/removeAuthoredObject'
+import { markHostsStale, markRoomsStale } from './positions/ludicCache/markStale'
+import internalCache from '../internalCache'
 
 const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Component Updated' } }>): Promise<void> => {
     const content = await evt.getContent()
     if (!content) return
     const componentId = content.component.universalKey || ''
+    // A component edit can rename what a stored `ludicCache` holds, and gains or loses a room's
+    // participating asset (`cacheAsset`/`decacheAsset` stream this for the room itself too): mark
+    // the rooms that show this component stale before anything below reads a cache.
+    if (isEphemeraMembershipHostId(componentId)) {
+        await markHostsStale([componentId], { includeCharacterStarts: true })
+    }
     if (isEphemeraRoomId(componentId)) {
         await kickRoomHeaderBroadcastForRoom({ roomId: componentId, messageBus })
     }
@@ -65,10 +73,19 @@ const processZoneUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: 
     const { fromZone, toZone } = content
     const assetId = evt.header.streamKey as string
     if (isEphemeraAssetId(assetId)) {
-        if (toZone === 'Canon' && fromZone !== 'Canon') {
+        const enteredCanon = toZone === 'Canon' && fromZone !== 'Canon'
+        const leftCanon = fromZone === 'Canon' && toZone !== 'Canon'
+        if (enteredCanon) {
             messageBus.publish({ type: 'CanonAdd', assetId })
-        } else if (fromZone === 'Canon' && toZone !== 'Canon') {
+        } else if (leftCanon) {
             messageBus.publish({ type: 'CanonRemove', assetId })
+        }
+        if (enteredCanon || leftCanon) {
+            // A room's stored names resolve against its Canon stack, so every room using this asset
+            // changes. `Canon Updated` (CanonSet) accompanies the same zone change but only reorders
+            // the global Canon list, which the room stacks do not read, so it marks nothing.
+            const assetRooms = await internalCache.AssetRooms.get(assetId)
+            await markRoomsStale(assetRooms?.rooms ?? [])
         }
     }
 }
