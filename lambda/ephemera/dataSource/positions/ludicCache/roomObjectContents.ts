@@ -1,5 +1,5 @@
 /**
- * `AGENT.affordanceLudicCache.planning.md` Slice 1: the room affordance header's reader over the cache. A sibling of
+ * The room affordance header's reader over the cache. A sibling of
  * `catalogHandles.ts`, not an extension of it --- that file is the command path's flat referent pool, and this one
  * answers a different question: *what does each of the room's direct objects directly hold?*
  *

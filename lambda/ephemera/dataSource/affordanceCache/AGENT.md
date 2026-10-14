@@ -35,7 +35,7 @@ Catalog hydrate preflight logs structured lines filterable as **`[mtw.ephemera.a
 | Hydrate preflight | **`ensureAffordanceTopology`** (orchestration + nav **D34**) |
 | Pull assembly | **`internalCache.ComponentTopology.get`** inside hydrate leader only |
 | Invalidation receive | **`handleTopologyInvalidated`** --- catalog bump only (**D35**); no hydrate |
-| Compose reads | **`AffordanceRoomDeliverable.get(roomId, perspectiveKey)`** --- row supplies **`assetStack`** + **`topology.exits`** for terminal compose |
+| Compose reads | **`AffordanceRoomDeliverable.get(roomId, perspectiveKey)`** --- row supplies **`assetStack`** + **`topology.exits`** for terminal compose; the object list and each object's one level of contents come from **`ludicCacheRoomObjectContents`**, not the row (the `Affordance::` row stays exits-only) |
 | Terminal publish | **`perception`** on **`Affordances Pertain`** via [`handleAffordancesPertain`](../perception/handleAffordancesPertain.ts) (**D38**, shipped) |
 
 ## Subscriptions
