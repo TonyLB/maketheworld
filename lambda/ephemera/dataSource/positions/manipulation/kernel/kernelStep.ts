@@ -238,6 +238,27 @@ export type MutationKernelStep =
     | MutationKernelRemoveCrossingPortStep
 
 /**
+ * Every `MutationKernelStep` kind, as a record so adding a kind to the union without listing it here
+ * fails to compile. Read by `ludicCache/invalidationCompleteness.integration.test.ts`, which must
+ * carry a case for each kind that writes a graph.
+ */
+export const mutationKernelStepKinds = {
+    establishRelation: true,
+    dissolveRelation: true,
+    capture: true,
+    createComponent: true,
+    destroyComponent: true,
+    addPresenceBinding: true,
+    movePresenceBinding: true,
+    releasePresenceBinding: true,
+    splitPresenceBinding: true,
+    joinPresenceBindings: true,
+    repairPresenceBinding: true,
+    addCrossingPort: true,
+    removeCrossingPort: true,
+} as const satisfies Record<MutationKernelStep['kind'], true>
+
+/**
  * The shared, already-grounded instruction list's step vocabulary: `MutationKernelStep`, the
  * presentation kernel's read-only `ExecutorDescribeStep` (reused verbatim from the executor's own
  * types), and `PresentationKernelNarrateStep`. Each kernel filters this shared list down to the
