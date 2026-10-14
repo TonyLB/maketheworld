@@ -172,4 +172,12 @@ describe('ludicCacheRoomObjectContents', () => {
         const labelled = viewer.getComponentAggregate.mock.calls.map(([[perspective]]) => perspective.universalKey).sort()
         expect(labelled).toEqual([box, table])
     })
+
+    it('reads the stored row as the header reader, so a rebuild it pays for is logged under that name', async () => {
+        const readLudicCache = jest.fn(async () => ({ hostId: roomA, nodes: [], edges: [] }) as any)
+
+        await ludicCacheRoomObjectContents(roomA, [], ['ASSET#viewer'], { readLudicCache, getComponentAggregate: async () => [] })
+
+        expect(readLudicCache).toHaveBeenCalledWith(roomA, { reader: 'header' })
+    })
 })

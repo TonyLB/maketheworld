@@ -327,6 +327,36 @@ describe('isEphemeraLudicCacheData', () => {
         })).toBe(true)
     })
 
+    // A present character is in the cache as a leaf node (its bindings, none of its inventory), so a room's cover
+    // entry for it resolves like any other. The guard once exempted a host-only character entry that had no node;
+    // that shape is rejected again.
+    const characterLeaf = {
+        tag: 'Character' as const,
+        universalKey: 'CHARACTER#alpha',
+        presenceNodes: [{
+            tag: 'Presence' as const,
+            universalKey: 'PRESENCE#alpha1',
+            fromHostPresence: { host: 'ROOM#Test', presence: parentRemainderKey('ROOM#Test') },
+            cover: { members: [] },
+        }],
+    }
+
+    it('rejects a cover entry naming a character the cache holds no node for', () => {
+        expect(isEphemeraLudicCacheData({
+            hostId: 'ROOM#Test',
+            nodes: [boxBoundIntoRoom([{ host: 'CHARACTER#alpha' }])],
+            edges: [],
+        })).toBe(false)
+    })
+
+    it('accepts a cover entry naming a present character\'s binding when the cache holds its leaf node', () => {
+        expect(isEphemeraLudicCacheData({
+            hostId: 'ROOM#Test',
+            nodes: [boxBoundIntoRoom([{ host: 'CHARACTER#alpha', presence: 'PRESENCE#alpha1' }]), characterLeaf],
+            edges: [],
+        })).toBe(true)
+    })
+
     it('rejects a cover entry without a binding when its host is absent', () => {
         expect(isEphemeraLudicCacheData({
             hostId: 'ROOM#Test',

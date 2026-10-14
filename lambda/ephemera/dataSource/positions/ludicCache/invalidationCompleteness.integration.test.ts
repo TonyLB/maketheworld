@@ -51,6 +51,7 @@ import { mutationKernelStepKinds, type MutationKernelStep } from '../manipulatio
 import { populateContainmentAtCache } from '../manipulation/containment/populateContainmentAtCache'
 import { persistClearStoredLudicGraphs } from '../../objects/persistClearStoredLudicGraphs'
 import { buildLudicCache } from './fold'
+import { isEphemeraLudicCacheData } from './types'
 import {
     LUDIC_CACHE_VERSION_DATA_CATEGORY,
     readLudicCacheWithOutcome,
@@ -219,7 +220,12 @@ const applyOptimisticUpdate = async ({ Key, updateReducer }: any): Promise<void>
 }
 
 const readDeps = () => ({
-    readRows: async (roomId: EphemeraRoomId) => ({ version: world.markers.get(roomId) ?? 0, row: structuredClone(world.rows.get(roomId)) }),
+    // As the real read does: a stored cache that fails its guard is malformed, never a hit.
+    readRows: async (roomId: EphemeraRoomId) => {
+        const stored = structuredClone(world.rows.get(roomId))
+        const valid = stored !== undefined && isEphemeraLudicCacheData(stored.cache)
+        return { version: world.markers.get(roomId) ?? 0, row: valid ? stored : undefined, ...(stored !== undefined && !valid ? { malformed: true } : {}) }
+    },
     writeRow: async (row: LudicCacheRow) => {
         const existing = world.rows.get(row.EphemeraId)
         if (existing && existing.builtAtVersion >= row.builtAtVersion) {
@@ -432,6 +438,28 @@ const cases: Case[] = [
         }),
     },
     {
+        name: 'a character disconnects (its binding is released from the room)',
+        kinds: ['releasePresenceBinding'],
+        rooms: [R1],
+        changesCache: true,
+        act: () => commit([{ kind: 'releasePresenceBinding', hostId: ALPHA, presence: 'PRESENCE#alpha1' as any, from: remainder(R1) }]),
+    },
+    {
+        name: 'a character connects (its hostless binding is placed in the room)',
+        kinds: ['movePresenceBinding'],
+        world: () => {
+            const base = freshWorld()
+            base.graphs.set(R1, testLudicGraph(R1, {
+                nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
+            }))
+            base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('alpha1')] }))
+            return base
+        },
+        rooms: [R1],
+        changesCache: true,
+        act: () => commit([move(ALPHA, 'alpha1', null, remainder(R1))]),
+    },
+    {
         name: 'an object is renamed',
         rooms: [R1],
         changesCache: true,
@@ -443,7 +471,7 @@ const cases: Case[] = [
     {
         name: 'a character is renamed',
         rooms: [R1],
-        changesCache: false,
+        changesCache: true,
         act: async () => {
             world.names[ALPHA] = 'Alpha Prime'
             await receive(componentUpdated(componentOf(ALPHA)))
@@ -551,6 +579,31 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         await stored(R1)
         const before = world.markers.get(R1) ?? 0
         await commit([move(HAT, 'hat1', ref(ALPHA as any, 'PRESENCE#alpha1'), ref(POUCH, 'PRESENCE#pch1'))])
+        expect(world.markers.get(R1) ?? 0).toBe(before)
+        const read = await stored(R1)
+        expect(read.outcome).toBe('hit')
+        expect(read.cache).toEqual(await cold(R1))
+        // the character is in the room's cache (as a leaf), and what it carries is not
+        const held = read.cache.nodes.map(({ universalKey }) => universalKey)
+        expect(held).toContain(ALPHA)
+        expect(held).not.toContain(POUCH)
+        expect(held).not.toContain(HAT)
+    })
+
+    it('an object handed from one character to another in the same room marks no room', async () => {
+        const BETA = 'CHARACTER#Beta' as EphemeraCharacterId
+        const POUCH = 'OBJECT#Pouch' as EphemeraObjectId
+        world.names[POUCH] = 'Pouch'
+        world.names[BETA] = 'Beta'
+        world.graphs.set(R1, testLudicGraph(R1, {
+            nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, { tag: 'Character', universalKey: ALPHA }, { tag: 'Character', universalKey: BETA }, presenceBindingNode(parentRemainderKey(R1))],
+        }))
+        world.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('alpha1', R1, [entry(POUCH, 'PRESENCE#pch1')])] }))
+        world.graphs.set(BETA as any, testLudicGraph(BETA as any, { nodes: [hostBinding('beta1', R1)] }))
+        world.graphs.set(POUCH, testLudicGraph(POUCH, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('pch1', ref(ALPHA as any, 'PRESENCE#alpha1'))] }))
+        await stored(R1)
+        const before = world.markers.get(R1) ?? 0
+        await commit([move(POUCH, 'pch1', ref(ALPHA as any, 'PRESENCE#alpha1'), ref(BETA as any, 'PRESENCE#beta1'))])
         expect(world.markers.get(R1) ?? 0).toBe(before)
         const read = await stored(R1)
         expect(read.outcome).toBe('hit')

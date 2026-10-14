@@ -37,12 +37,14 @@ import {
 import { normalizeStoredLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/factory'
 import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import internalCache from '../../../internalCache'
 import { resolveCanonAssetStackForRoom } from '../../state/resolveAssetStackForRoom'
 import { EphemeraLudicGraph, hostDataCategory, nodeFromId } from '../ludicGraph'
 import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
+import { logLudicCacheStoredRebuild } from './ludicCacheInstrumentation'
 import { isEphemeraLudicCacheData, type EphemeraLudicCacheData } from './types'
 
 export const LUDIC_CACHE_DATA_CATEGORY = 'LudicCache::' as const
@@ -138,6 +140,8 @@ export type ReadLudicCacheDeps = {
     buildDeps?: Omit<BuildLudicCacheDeps, 'getLudicGraph'>
     runSingleFlight?: RunWithSingleFlightLudicCacheRebuild
     clearNameMemos?: () => void
+    /** Which consumer is reading, for the rebuild log (`command`, `header`). */
+    reader?: string
 }
 
 const labelFromRow = (row: Partial<LudicCacheRow> | undefined): LabelledLudicCache | undefined => (
@@ -207,12 +211,26 @@ const clearNameMemos = (): void => {
 const rebuild = async (
     roomId: EphemeraRoomId,
     version: number,
-    deps: Required<Pick<ReadLudicCacheDeps, 'readRows' | 'writeRow' | 'getFreshLudicGraph' | 'resolveCanonStack' | 'build' | 'clearNameMemos'>> & Pick<ReadLudicCacheDeps, 'buildDeps'>
+    deps: Required<Pick<ReadLudicCacheDeps, 'readRows' | 'writeRow' | 'getFreshLudicGraph' | 'resolveCanonStack' | 'build' | 'clearNameMemos'>> & Pick<ReadLudicCacheDeps, 'buildDeps' | 'reader'>,
+    cause: Exclude<LudicCacheReadOutcome, 'hit'>
 ): Promise<LabelledLudicCache> => {
+    const startedAt = Date.now()
     deps.clearNameMemos()
     const assetStack = await deps.resolveCanonStack(roomId)
-    const { cache } = await deps.build(roomId, assetStack, { ...deps.buildDeps, getLudicGraph: deps.getFreshLudicGraph })
+    const { cache, stats } = await deps.build(roomId, assetStack, { ...deps.buildDeps, getLudicGraph: deps.getFreshLudicGraph })
     const wrote = await deps.writeRow({ EphemeraId: roomId, DataCategory: LUDIC_CACHE_DATA_CATEGORY, cache, builtAtVersion: version })
+    logLudicCacheStoredRebuild({
+        seedHostId: roomId,
+        reader: deps.reader ?? 'unknown',
+        cause,
+        builtAtVersion: version,
+        objectCount: cache.nodes.filter(({ universalKey }) => isEphemeraObjectId(universalKey)).length,
+        shardFetchCount: stats.shardFetchCount,
+        maxDepth: stats.maxDepth,
+        wallTimeMs: Date.now() - startedAt,
+        storedBytes: Buffer.byteLength(JSON.stringify(cache)),
+        wrote,
+    })
     if (wrote) {
         return { builtAtVersion: version, cache }
     }
@@ -245,6 +263,7 @@ export const readLudicCacheWithOutcome = async (
         build: deps.build ?? buildLudicCache,
         clearNameMemos: deps.clearNameMemos ?? clearNameMemos,
         buildDeps: deps.buildDeps,
+        reader: deps.reader,
     }
     const runSingleFlight = deps.runSingleFlight ?? defaultRunWithSingleFlight
 
@@ -255,12 +274,14 @@ export const readLudicCacheWithOutcome = async (
         if (row && row.builtAtVersion === version) {
             return { cache: row.cache, outcome: outcome ?? 'hit' }
         }
-        outcome = outcome ?? (row ? 'stale' : malformed ? 'malformed' : 'absent')
+        // what this attempt found (a retry after a lost race may find something else than the first read did)
+        const cause = row ? 'stale' : malformed ? 'malformed' : 'absent'
+        outcome = outcome ?? cause
         try {
             const flight = await runSingleFlight<LabelledLudicCache>({
                 category: LUDIC_CACHE_REBUILD_SINGLE_FLIGHT_CATEGORY,
                 argumentHash: `${roomId}::${version}`,
-                computation: () => rebuild(roomId, version, resolved),
+                computation: () => rebuild(roomId, version, resolved, cause),
                 retrieval: async () => {
                     const { row: found } = await resolved.readRows(roomId)
                     // Nothing (or a malformed row) to retrieve is not a result: label it so the rule below retries.

@@ -109,7 +109,7 @@ export const ludicCacheRoomObjectHandles = async (
     deps: RoomObjectHandlesDeps = {}
 ): Promise<LudicCacheObjectHandle[]> => {
     const startedAt = Date.now()
-    const { cache, outcome } = await (deps.readLudicCache ?? readLudicCacheWithOutcome)(roomId)
+    const { cache, outcome } = await (deps.readLudicCache ?? readLudicCacheWithOutcome)(roomId, { reader: 'command' })
     const { handles, objectCount } = handlesFromCache(cache, roomId)
     logLudicCacheRebuild({
         seedHostId: roomId,

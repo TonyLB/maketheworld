@@ -21,10 +21,13 @@ const characterId = 'CHARACTER#Test' as EphemeraCharacterId
 const roomId = 'ROOM#Kitchen' as EphemeraRoomId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
+const alphaId = 'CHARACTER#Alpha' as EphemeraCharacterId
+const hatId = 'OBJECT#Hat' as EphemeraObjectId
+const alphaBinding = PresenceKey('alpha-in-kitchen')
 const tableBinding = PresenceKey('table-in-kitchen')
 
 const graphsBeforeMove = (): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-    [roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }] })],
+    [roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }, { tag: 'Character', universalKey: alphaId }] })],
     [tableId, testLudicGraph(tableId, {
         nodes: [
             { tag: 'Object', universalKey: cupId },
@@ -32,20 +35,34 @@ const graphsBeforeMove = (): Map<EphemeraMembershipHostId, EphemeraLudicGraph> =
         ],
     })],
     [cupId, testLudicGraph(cupId, { nodes: [{ tag: 'Object', universalKey: cupId }] })],
+    // Alpha stands in the room carrying a hat: Alpha is in the room's cache, the hat is not
+    [alphaId, testLudicGraph(alphaId, {
+        nodes: [
+            { tag: 'Object', universalKey: hatId },
+            { tag: 'Presence', universalKey: alphaBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } },
+        ],
+    })],
 ])
 
 /** The cup picked off the table and put on the floor. */
 const graphsAfterMove = (): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-    [roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }, { tag: 'Object', universalKey: cupId }] })],
+    [roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }, { tag: 'Object', universalKey: cupId }, { tag: 'Character', universalKey: alphaId }] })],
     [tableId, testLudicGraph(tableId, {
         nodes: [
             { tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } },
         ],
     })],
     [cupId, testLudicGraph(cupId, { nodes: [{ tag: 'Object', universalKey: cupId }] })],
+    // Alpha stands in the room carrying a hat: Alpha is in the room's cache, the hat is not
+    [alphaId, testLudicGraph(alphaId, {
+        nodes: [
+            { tag: 'Object', universalKey: hatId },
+            { tag: 'Presence', universalKey: alphaBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } },
+        ],
+    })],
 ])
 
-const names: Record<string, string> = { [tableId]: 'Table', [cupId]: 'Cup' }
+const names: Record<string, string> = { [tableId]: 'Table', [cupId]: 'Cup', [alphaId]: 'Alpha', [hatId]: 'Hat' }
 const getComponentAggregate = async ([perspective]: { universalKey: string, mergeParticipationOrder: readonly `ASSET#${string}`[] }[]) => (
     names[perspective.universalKey]
         ? [mergedComponentResult({
@@ -100,6 +117,10 @@ describe('a player command resolving a nested object from the stored cache', () 
         // Next command: the row is stale, rebuilt, and the cup resolves in its new place.
         expect(cupEntry((await catalog()).entries)).toEqual({ objectId: cupId, normalizedShortName: 'cup', presence: [roomId] })
         expect(outcomes).toEqual(['absent', 'hit', 'stale'])
+        // a present character is no referent, and what it carries is not in the room
+        const referents = (await catalog()).entries.map(({ objectId }) => objectId)
+        expect(referents).not.toContain(alphaId)
+        expect(referents).not.toContain(hatId)
         log.mockRestore()
     })
 })

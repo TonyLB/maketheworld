@@ -43,7 +43,7 @@ export const ludicCacheRoomObjectContents = async (
     assetStack: readonly string[],
     deps: RoomObjectContentsDeps = {}
 ): Promise<RoomObjectWithContents[]> => {
-    const cache = await (deps.readLudicCache ?? readLudicCache)(roomId)
+    const cache = await (deps.readLudicCache ?? readLudicCache)(roomId, { reader: 'header' })
     const getComponentAggregate = deps.getComponentAggregate ?? ((perspectives) => internalCache.ComponentAggregate.get(perspectives))
     const nodeById = new Map(cache.nodes.map((node) => [node.universalKey as string, node]))
 

@@ -313,6 +313,14 @@ describe('ludicCacheObjectHandles', () => {
 })
 
 describe('ludicCacheRoomObjectHandles', () => {
+    it('reads the stored row as the command reader, so a rebuild it pays for is logged under that name', async () => {
+        const readLudicCache = jest.fn(async () => ({ cache: { hostId: roomA, nodes: [], edges: [] }, outcome: 'hit' as const }))
+
+        await ludicCacheRoomObjectHandles(roomA, { readLudicCache })
+
+        expect(readLudicCache).toHaveBeenCalledWith(roomA, { reader: 'command' })
+    })
+
     const roomWithNamed = async () => {
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
             [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: namedId }] })],

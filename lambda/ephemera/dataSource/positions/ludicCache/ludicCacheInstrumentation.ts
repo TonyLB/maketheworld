@@ -38,3 +38,28 @@ export type LudicCacheRebuildFields = {
 export const logLudicCacheRebuild = (fields: LudicCacheRebuildFields): void => {
     console.log(LOG_PREFIX, { event: 'rebuild', ...fields })
 }
+
+/**
+ * One line per rebuild the stored read actually runs (the single-flight lead, never a follower), whichever
+ * consumer triggered it. A consumer's own `rebuild` line cannot show this: the room header reader and the
+ * command path share one stored row, so whichever reads first after a change does the rebuild, and the
+ * other then logs a `hit`. `reader` says which consumer paid; `cause` is what that read found (`stale`,
+ * `absent` or `malformed`); `wallTimeMs` is the build plus the write; `wrote` is false when a newer row
+ * was already there.
+ */
+export type LudicCacheStoredRebuildFields = {
+    seedHostId: string
+    reader: string
+    cause: 'stale' | 'absent' | 'malformed'
+    builtAtVersion: number
+    objectCount: number
+    shardFetchCount: number
+    maxDepth: number
+    wallTimeMs: number
+    storedBytes: number
+    wrote: boolean
+}
+
+export const logLudicCacheStoredRebuild = (fields: LudicCacheStoredRebuildFields): void => {
+    console.log(LOG_PREFIX, { event: 'stored-rebuild', ...fields })
+}
