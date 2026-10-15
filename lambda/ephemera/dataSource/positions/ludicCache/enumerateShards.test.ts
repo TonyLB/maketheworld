@@ -119,30 +119,21 @@ describe('enumerateLudicCacheShards', () => {
         expect(result.hostIds).toEqual([roomA, objB])
     })
 
-    it('fetches a present character as a leaf: its graph is read, its held inventory is not (a room seed does not absorb it)', async () => {
+    it('never meets a character from a room seed: a bystander is in the characters row, not the room graph', async () => {
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-            [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Character', universalKey: characterBob }] })],
-            [characterBob, testLudicGraph(characterBob, { nodes: [{ tag: 'Character', universalKey: characterBob }, { tag: 'Object', universalKey: heldCup }] })],
+            [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: objB }] })],
+            [objB, testLudicGraph(objB, { nodes: [{ tag: 'Object', universalKey: objB }] })],
         ])
         const fetched: EphemeraMembershipHostId[] = []
         const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
             fetched.push(hostId)
-            const graph = graphs.get(hostId)
-            if (!graph) {
-                throw new Error(`No fixture graph for ${hostId}`)
-            }
-            return graph
+            return graphs.get(hostId)!
         }
 
         const result = await enumerateLudicCacheShards(roomA, { getLudicGraph })
 
-        expect(result.hostIds).toEqual([roomA, characterBob])
-        expect([...result.leafHostIds]).toEqual([characterBob])
-        expect(result.graphs.has(characterBob)).toBe(true)
-        expect(fetched).toEqual([roomA, characterBob])
-        expect(fetched).not.toContain(heldCup)
-        expect(result.shardFetchCount).toBe(2)
-        expect(result.maxDepth).toBe(1)
+        expect(result.hostIds).toEqual([roomA, objB])
+        expect(fetched).not.toContain(characterBob)
     })
 
     it('still walks a character seed\'s own held members', async () => {
@@ -162,7 +153,6 @@ describe('enumerateLudicCacheShards', () => {
 
         expect(result.hostIds).toEqual([characterBob, heldCup])
         expect(result.maxDepth).toBe(1)
-        expect(result.leafHostIds.size).toBe(0)
     })
 
     it('defaults to internalCache.Positions.getLudicGraph when no deps are supplied', async () => {

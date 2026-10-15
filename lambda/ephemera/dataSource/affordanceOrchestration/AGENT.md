@@ -117,6 +117,8 @@ npm test -- --watchAll=false dataSource/affordanceOrchestration/
 
 - **`AffordanceRoomDeliverable`** is **not** an ingress center --- terminal compose runs in perception on **`Affordances Pertain`** only ([`../perception/handleAffordancesPertain.ts`](../perception/handleAffordancesPertain.ts)).
 - **Two dispatch paths:** external triggers (**`RoomUpdate`**) enqueue **`Affordances Requested`**; in-DS subscribers (**`Ludic Cache Invalidated`**, **`TopologyInvalidated`**) call **`fanOutAffordanceRefreshForRoom`** -> **`orchestrateAffordanceRequest`** directly (mirror render **`State Changed`**).
+- **A roster change refreshes on `RoomUpdate` and never on `Ludic Cache Invalidated`, deliberately.** A bystander move (arrival, departure, connect, disconnect) writes no room graph and bumps no cache marker, because the room's cache holds no character; `RoomUpdate` (reason **`roster`**) is the only signal. A character rename takes the same path (`dataSource/characterComponentUpdated.ts` invalidates `CharacterMeta` and the room memos, then publishes `RoomUpdate` per room the character stands in). `Ludic Cache Invalidated` (reason **`objects`**) means the room's structure or an object's name changed.
+- **What the header reads:** the three cache rows in one `getItems` (`LudicCache::`, `LudicCacheVersion::`, and `LudicCache::Characters` via `withCharacters: true`), then per-character `CharacterMeta` and `CharacterSessions` to hydrate the roster. The header reads no `Meta::Room`.
 - **Outgoing types:** [`publishedEvents.ts`](publishedEvents.ts) (**`publisherStrategy: 'busOnly'`**); ephemera-local until a client boundary needs **`mtw-interfaces`**.
 
 ## Current constraints

@@ -1,7 +1,6 @@
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB/index')
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB/index'
 
-import { testLudicGraph } from '../dataSource/positions/ludicGraph/testFixtures'
 import internalCache from "."
 import { getRoomCharacterList } from './hydrateRoomRoster'
 
@@ -52,7 +51,7 @@ describe('InternalCache', () => {
         expect(internalCache.PerceptionThreads.list('ROOM#C', 'p')).toHaveLength(0)
     })
 
-    it('getRoomCharacterList derives roster from Positions.getLudicGraph on each call', async () => {
+    it('getRoomCharacterList derives roster from the LudicCache::Characters row on each call', async () => {
         const expectedOutput = [
             {
                 EphemeraId: 'CHARACTER#123' as const,
@@ -68,12 +67,13 @@ describe('InternalCache', () => {
             },
         ]
         const getLudicGraphSpy = jest.spyOn(internalCache.Positions, 'getLudicGraph')
-            .mockResolvedValue(testLudicGraph('ROOM#1234', {
-                nodes: [
-                    { tag: 'Character', universalKey: 'CHARACTER#123' },
-                    { tag: 'Character', universalKey: 'CHARACTER#456' },
-                ],
-            }))
+        ephemeraMock.getItem.mockResolvedValue({
+            EphemeraId: 'ROOM#1234',
+            DataCategory: 'LudicCache::Characters',
+            complete: true,
+            'CHARACTER#123': ['PRESENCE#a'],
+            'CHARACTER#456': ['PRESENCE#b'],
+        })
         jest.spyOn(internalCache.CharacterMeta, 'get').mockImplementation(async (characterId) => {
             if (characterId === 'CHARACTER#123') {
                 return {
@@ -102,10 +102,13 @@ describe('InternalCache', () => {
         })
 
         expect(await getRoomCharacterList('ROOM#1234')).toEqual(expectedOutput)
-        expect(getLudicGraphSpy).toHaveBeenCalledTimes(1)
-        expect(getLudicGraphSpy).toHaveBeenCalledWith('ROOM#1234')
+        expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
+        expect(ephemeraMock.getItem).toHaveBeenCalledWith(expect.objectContaining({
+            Key: { EphemeraId: 'ROOM#1234', DataCategory: 'LudicCache::Characters' },
+        }))
         expect(await getRoomCharacterList('ROOM#1234')).toEqual(expectedOutput)
-        expect(getLudicGraphSpy).toHaveBeenCalledTimes(2)
+        expect(ephemeraMock.getItem).toHaveBeenCalledTimes(2)
+        expect(getLudicGraphSpy).not.toHaveBeenCalled()
 
         getLudicGraphSpy.mockRestore()
     })

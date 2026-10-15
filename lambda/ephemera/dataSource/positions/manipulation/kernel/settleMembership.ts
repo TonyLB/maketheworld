@@ -5,6 +5,7 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyDeparture } from '../../ludicGraph/expandValidate/applyDeparture'
 import { parentHostOf } from '../../ludicGraph/presenceParent'
+import { isBystanderMove } from './bystander'
 import type { MutationKernelApplyOutcome } from './types'
 
 type Graphs = ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
@@ -32,6 +33,10 @@ export type SettleMembershipOutcome =
  * - **Arrival at `arrived`**: adds the node only if it is not already there, so arriving where the
  *   mover already holds a binding adds nothing, and a replayed population step is harmless.
  *
+ * **A bystander** (`isBystanderMove`: a character at a Room) is not a node of the room's graph: neither
+ * departure nor arrival touches it, and the room need not be in `graphs`. The room's characters row
+ * indexes the bystander, and the mover's own binding checks have already vouched for the move.
+ *
  * A node held in a host that no binding names is drift this does not touch: the drift sweeps heal it.
  * Pure over `graphs`; the returned map is a copy.
  */
@@ -42,7 +47,7 @@ export const settleMembership = (
 ): SettleMembershipOutcome => {
     const next = new Map(graphs)
 
-    if (left !== undefined && left !== arrived && !bindingPointsAt(moverId, left, graphs)) {
+    if (left !== undefined && left !== arrived && !isBystanderMove(moverId, left) && !bindingPointsAt(moverId, left, graphs)) {
         if (isEphemeraRoomId(moverId) || isEphemeraFeatureId(moverId)) {
             throw new Error(
                 `settleMembership: ${moverId} departs ${left} --- structural invariant violated (Room/Feature/Area are hosts that never relocate)`
@@ -69,7 +74,7 @@ export const settleMembership = (
         next.set(left, departure.sourceGraph)
     }
 
-    if (arrived !== undefined) {
+    if (arrived !== undefined && !isBystanderMove(moverId, arrived)) {
         const destGraph = next.get(arrived)
         if (!destGraph) {
             return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }

@@ -124,11 +124,21 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId]))
     })
 
-    it('a capture step contributes its hostId even when no mutation step in the sequence touches that host', () => {
+    it('a capture step contributes nothing: a room\'s occupants are resolved before the transact', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: roomId, presence: parentRemainderKey(roomId) } },
             { kind: 'capture', hostId: otherRoomId, captureId: 'onlooker' },
         ]
-        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, roomId, otherRoomId]))
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, roomId]))
+    })
+
+    it('a bystander move contributes only the character: the rooms it leaves and arrives at are indexed by the characters row', () => {
+        const characterId = 'CHARACTER#Alpha' as any
+        const steps: MutationKernelStep[] = [
+            { kind: 'movePresenceBinding', hostId: characterId, presence: 'PRESENCE#p' as any, from: { host: roomId, presence: parentRemainderKey(roomId) }, to: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) } } as any,
+            { kind: 'releasePresenceBinding', hostId: characterId, presence: 'PRESENCE#q' as any, from: { host: roomId, presence: parentRemainderKey(roomId) } },
+            { kind: 'addPresenceBinding', hostId: characterId, presenceUuid: 'u', fromHostPresence: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) } } as any,
+        ]
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([characterId]))
     })
 })

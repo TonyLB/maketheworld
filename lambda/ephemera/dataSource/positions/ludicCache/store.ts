@@ -2,7 +2,8 @@
  * The stored `ludicCache` row, and `readLudicCache`: the one read a room-seeded consumer makes.
  * Rules: `positions/AGENT.contract.md` (Ludic cache staleness and rebuild); mechanism: `positions/AGENT.implementation.md` (Stored row).
  *
- * Two rows per room, on `EphemeraId: <roomId>`:
+ * Two rows per room, on `EphemeraId: <roomId>` (a third, `LudicCache::Characters`, is read in the same
+ * `getItems` only when the caller asks for it: see `charactersRow.ts`):
  * - `LudicCache::`: the full `EphemeraLudicCacheData` plus `builtAtVersion`, the marker version the
  *   build read first.
  * - `LudicCacheVersion::`: the marker, `version`, bumped by whatever changes a graph or a name
@@ -44,6 +45,7 @@ import internalCache from '../../../internalCache'
 import { resolveCanonAssetStackForRoom } from '../../state/resolveAssetStackForRoom'
 import { EphemeraLudicGraph, hostDataCategory, nodeFromId } from '../ludicGraph'
 import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
+import { LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, type LudicCacheCharactersRow } from './charactersRowShape'
 import { logLudicCacheStoredRebuild } from './ludicCacheInstrumentation'
 import { isEphemeraLudicCacheData, type EphemeraLudicCacheData } from './types'
 
@@ -83,7 +85,12 @@ type StoredRows = {
     row?: LabelledLudicCache
     /** A cache row was stored but failed its guard (reported only for the `outcome` log). */
     malformed?: boolean
+    /** The characters row as stored (possibly partial), only when the read asked for it and the row exists. */
+    characters?: Partial<LudicCacheCharactersRow>
 }
+
+/** `withCharacters` adds the room's `LudicCache::Characters` row to the one `getItems`: asked for by the header, which needs the roster; the command path does not pay for it. */
+export type ReadRowsOptions = { withCharacters?: boolean }
 
 /** How a read found the stored row: `hit` is the only one that cost no rebuild. */
 export type LudicCacheReadOutcome = 'hit' | 'stale' | 'absent' | 'malformed'
@@ -131,7 +138,7 @@ export const markLudicCacheStale = async (roomIds: readonly EphemeraRoomId[]): P
 }
 
 export type ReadLudicCacheDeps = {
-    readRows?: (roomId: EphemeraRoomId) => Promise<StoredRows>
+    readRows?: (roomId: EphemeraRoomId, options?: ReadRowsOptions) => Promise<StoredRows>
     /** The monotonic write; `false` when a row labelled this version or newer is already there. */
     writeRow?: (row: LudicCacheRow) => Promise<boolean>
     getFreshLudicGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
@@ -142,6 +149,8 @@ export type ReadLudicCacheDeps = {
     clearNameMemos?: () => void
     /** Which consumer is reading, for the rebuild log (`command`, `header`). */
     reader?: string
+    /** Also read the characters row in the same `getItems`; it comes back as `LudicCacheRead.characters`. */
+    withCharacters?: boolean
 }
 
 const labelFromRow = (row: Partial<LudicCacheRow> | undefined): LabelledLudicCache | undefined => (
@@ -151,25 +160,28 @@ const labelFromRow = (row: Partial<LudicCacheRow> | undefined): LabelledLudicCac
 )
 
 /**
- * One consistent `getItems` over the two exact keys. Rows come back unordered, so they are told
+ * One consistent `getItems` over the two exact keys (three with `withCharacters`). Rows come back unordered, so they are told
  * apart by `DataCategory`; `getItems` does not retry `UnprocessedKeys`, so a throttled key is simply
  * absent, which reads as an absent or stale row and is rebuilt (slower, never wrong).
  */
-const defaultReadRows = async (roomId: EphemeraRoomId): Promise<StoredRows> => {
-    const items = await ephemeraDB.getItems<Partial<LudicCacheRow> & Partial<LudicCacheVersionRow>>({
+const defaultReadRows = async (roomId: EphemeraRoomId, options: ReadRowsOptions = {}): Promise<StoredRows> => {
+    const items = await ephemeraDB.getItems<Partial<LudicCacheRow> & Partial<LudicCacheVersionRow> & Partial<LudicCacheCharactersRow>>({
         Keys: [
             { EphemeraId: roomId, DataCategory: LUDIC_CACHE_DATA_CATEGORY },
             { EphemeraId: roomId, DataCategory: LUDIC_CACHE_VERSION_DATA_CATEGORY },
+            ...(options.withCharacters ? [{ EphemeraId: roomId, DataCategory: LUDIC_CACHE_CHARACTERS_DATA_CATEGORY }] : []),
         ],
         ConsistentRead: true,
         getAllFields: true,
     })
     const marker = items.find((item) => item.DataCategory === LUDIC_CACHE_VERSION_DATA_CATEGORY)
     const stored = items.find((item) => item.DataCategory === LUDIC_CACHE_DATA_CATEGORY)
+    const characters = options.withCharacters ? items.find((item) => item.DataCategory === LUDIC_CACHE_CHARACTERS_DATA_CATEGORY) : undefined
     return {
         version: typeof marker?.version === 'number' ? marker.version : 0,
         row: labelFromRow(stored),
         ...(stored !== undefined && labelFromRow(stored) === undefined ? { malformed: true } : {}),
+        ...(characters !== undefined ? { characters } : {}),
     }
 }
 
@@ -244,6 +256,11 @@ export type LudicCacheRead = {
     cache: EphemeraLudicCacheData
     /** What the first row read found, so the consumers' log line reads hit rate straight off CloudWatch. */
     outcome: LudicCacheReadOutcome
+    /**
+     * The characters row, when `withCharacters` was set and it exists: as stored by the read that found the
+     * cache current (or the last read, on a rebuild), `undefined` when the room has no row (nobody has entered it).
+     */
+    characters?: Partial<LudicCacheCharactersRow>
 }
 
 export const readLudicCache = async (
@@ -269,10 +286,12 @@ export const readLudicCacheWithOutcome = async (
 
     let carried: unknown
     let outcome: LudicCacheReadOutcome | undefined
+    let characters: Partial<LudicCacheCharactersRow> | undefined
     for (let attempt = 0; attempt < LUDIC_CACHE_READ_MAX_ATTEMPTS; attempt++) {
-        const { version, row, malformed } = await resolved.readRows(roomId)
+        const { version, row, malformed, characters: storedCharacters } = await resolved.readRows(roomId, { withCharacters: deps.withCharacters })
+        characters = storedCharacters
         if (row && row.builtAtVersion === version) {
-            return { cache: row.cache, outcome: outcome ?? 'hit' }
+            return { cache: row.cache, outcome: outcome ?? 'hit', ...(characters ? { characters } : {}) }
         }
         // what this attempt found (a retry after a lost race may find something else than the first read did)
         const cause = row ? 'stale' : malformed ? 'malformed' : 'absent'
@@ -289,7 +308,7 @@ export const readLudicCacheWithOutcome = async (
                 },
             })
             if (flight.builtAtVersion === version) {
-                return { cache: flight.cache, outcome }
+                return { cache: flight.cache, outcome, ...(characters ? { characters } : {}) }
             }
             carried = undefined
         }

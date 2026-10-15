@@ -528,6 +528,7 @@ async function resolveHostedNodeWmlData(
 ): Promise<{ ludicGraph?: StandardLudicGraphData; hostedNodeNameStubs: (StandardObjectData | StandardCharacterData | StandardFeatureData | StandardRoomData)[] }> {
     const graph = await internalCache.Positions.getLudicGraph(componentId)
     const hostedObjectIds = [...graph.objectIds].filter((id) => id !== componentId)
+    // Stays on the graph: `componentId` is an object host, never a room, so the room-keyed characters row has nothing to say about it.
     const hostedCharacterIds = [...graph.characterIds]
     const hostedFeatureIds = [...graph.featureIds]
     const hostedRoomIds = [...graph.roomIds]

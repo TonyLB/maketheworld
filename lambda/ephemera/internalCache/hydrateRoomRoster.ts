@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { RoomCharacterListItem } from './baseClasses'
+import { readRoomCharacters } from '../dataSource/positions/ludicCache/charactersRow'
 import internalCache from './index'
 
 export async function hydrateRoomRosterFromCharacterIds(
@@ -30,11 +31,12 @@ export async function hydrateRoomRosterFromCharacterIds(
     return entries.filter((entry): entry is RoomCharacterListItem => entry !== undefined)
 }
 
-/** Derive hydrated room occupants in ephemera wire shape (no per-room memo). */
+/**
+ * Derive hydrated room occupants in ephemera wire shape (no per-room memo). Membership comes from the
+ * room's `LudicCache::Characters` row, never from the room graph; `CharacterMeta` and sessions hydrate it.
+ */
 export async function getRoomCharacterList(
     roomId: EphemeraRoomId
 ): Promise<RoomCharacterListItem[]> {
-    const graph = await internalCache.Positions.getLudicGraph(roomId)
-    const characterIds = [...graph.characterIds]
-    return hydrateRoomRosterFromCharacterIds(characterIds)
+    return hydrateRoomRosterFromCharacterIds(await readRoomCharacters(roomId))
 }

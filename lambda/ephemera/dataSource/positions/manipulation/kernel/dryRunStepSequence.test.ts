@@ -131,7 +131,7 @@ describe('dryRunStepSequence', () => {
             moveTrayOut(tableId),
         ]
 
-        const outcome = await dryRunStepSequence(steps, { getCurrentHost: () => undefined, getGraph })
+        const outcome = await dryRunStepSequence(steps, { getCurrentHost: () => undefined, getGraph, getRoomCharacters: async () => [] })
 
         expect(outcome.verdict).toBe('legal')
         expect(getGraph).toHaveBeenCalledTimes(4)

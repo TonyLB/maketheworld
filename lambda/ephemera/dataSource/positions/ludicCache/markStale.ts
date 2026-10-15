@@ -12,8 +12,6 @@ import { markLudicCacheStale } from './store'
 export type MarkStaleDeps = {
     messageBus?: Pick<MessageBus, 'publish'>
     getGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
-    /** For a change to the hosts' own names, not their graphs: see `roomsInvalidatedByHosts`. */
-    includeCharacterStarts?: boolean
 }
 
 /**
@@ -43,8 +41,7 @@ export const markHostsStale = async (
 ): Promise<EphemeraRoomId[]> => markRoomsStale(
     await roomsInvalidatedByHosts(
         hostIds,
-        deps.getGraph ?? ((hostId) => internalCache.Positions.getLudicGraph(hostId as Parameters<typeof internalCache.Positions.getLudicGraph>[0])),
-        { includeCharacterStarts: deps.includeCharacterStarts }
+        deps.getGraph ?? ((hostId) => internalCache.Positions.getLudicGraph(hostId as Parameters<typeof internalCache.Positions.getLudicGraph>[0]))
     ),
     deps
 )

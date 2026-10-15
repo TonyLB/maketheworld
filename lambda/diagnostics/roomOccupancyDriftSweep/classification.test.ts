@@ -1,6 +1,7 @@
 import { describe, it, expect } from '@jest/globals'
 import {
     listGraphCharacterIds,
+    listRowCharacterIds,
     roomHasOccupancyDrift,
 } from './classification'
 
@@ -28,30 +29,51 @@ describe('listGraphCharacterIds', () => {
     })
 })
 
+describe('listRowCharacterIds', () => {
+    it('lists the characters a characters row holds, ignoring key attributes', () => {
+        expect(listRowCharacterIds({ EphemeraId: roomId, DataCategory: 'LudicCache::Characters', [characterId]: ['PRESENCE#a'], 'CHARACTER#two': [] })).toEqual([characterId, 'CHARACTER#two'])
+    })
+
+    it('returns empty for a missing or malformed row', () => {
+        expect(listRowCharacterIds(undefined)).toEqual([])
+        expect(listRowCharacterIds({ [characterId]: 'not a list' })).toEqual([])
+    })
+})
+
 describe('roomHasOccupancyDrift', () => {
-    it('flags drift when a graph character has no live sessions (ghost on graph)', () => {
+    it('flags a room whose stored graph still names a character, though everything else aligns (needs migration)', () => {
         expect(roomHasOccupancyDrift({
             roomId,
-            graphCharacterIds: [characterId],
+            rowCharacterIds: [characterId],
+            legacyGraphCharacterIds: [characterId],
+            adjacencySessionsByCharacter: new Map([[characterId, new Set(['sess-1'])]]),
+            membershipContainersByCharacter: new Map([[characterId, [roomId]]]),
+        })).toBe(true)
+    })
+
+    it('flags drift when a row character has no live sessions (ghost on the row)', () => {
+        expect(roomHasOccupancyDrift({
+            roomId,
+            rowCharacterIds: [characterId],
             adjacencySessionsByCharacter: new Map(),
             membershipContainersByCharacter: new Map(),
         })).toBe(true)
     })
 
-    it('flags drift when in-play graph character is missing roomId in membership adjacency', () => {
+    it('flags drift when in-play row character is missing roomId in membership adjacency', () => {
         const adjacencySessionsByCharacter = new Map<string, Set<string>>([
             [characterId, new Set(['sess-1'])],
         ])
         expect(roomHasOccupancyDrift({
             roomId,
-            graphCharacterIds: [characterId],
+            rowCharacterIds: [characterId],
             adjacencySessionsByCharacter,
             membershipContainersByCharacter: new Map([[characterId, []]]),
         })).toBe(true)
 
         expect(roomHasOccupancyDrift({
             roomId,
-            graphCharacterIds: [characterId],
+            rowCharacterIds: [characterId],
             adjacencySessionsByCharacter,
             membershipContainersByCharacter: new Map([[characterId, ['ROOM#other']]]),
         })).toBe(true)
@@ -63,26 +85,26 @@ describe('roomHasOccupancyDrift', () => {
         ])
         expect(roomHasOccupancyDrift({
             roomId,
-            graphCharacterIds: [characterId],
+            rowCharacterIds: [characterId],
             adjacencySessionsByCharacter,
             membershipContainersByCharacter: new Map([[characterId, [roomId]]]),
         })).toBe(false)
     })
 
-    it('returns false when the room graph has no character nodes', () => {
+    it('returns false when the row lists no character', () => {
         expect(roomHasOccupancyDrift({
             roomId,
-            graphCharacterIds: [],
+            rowCharacterIds: [],
             adjacencySessionsByCharacter: new Map([[characterId, new Set(['sess-1'])]]),
             membershipContainersByCharacter: new Map([[characterId, [roomId]]]),
         })).toBe(false)
     })
 
-    it('explicit gap: stale adjacency without graph node is not visible to room-forward scan', () => {
+    it('explicit gap: stale adjacency without a row entry is not visible to room-forward scan', () => {
         // Orphan reverse index for roomId would not be visited when graphCharacterIds is empty.
         expect(roomHasOccupancyDrift({
             roomId,
-            graphCharacterIds: [],
+            rowCharacterIds: [],
             adjacencySessionsByCharacter: new Map(),
             membershipContainersByCharacter: new Map(),
         })).toBe(false)

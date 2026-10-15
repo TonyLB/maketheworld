@@ -105,6 +105,10 @@ describe('crossing take payoff (integration)', () => {
         ephemeraDBMock.getItems.mockResolvedValue([] as any)
         ephemeraDBMock.getItem.mockImplementation(async ({ Key }: any) => {
             const graph = world.graphs[Key.EphemeraId]
+            // the room's characters row, standing in for what the fixtures' room graphs name
+            if (graph && Key.DataCategory === 'LudicCache::Characters') {
+                return Object.fromEntries([...graph.characterIds].map((characterId) => [characterId, []]))
+            }
             if (graph && ['Meta::Room', 'Meta::Object', 'Meta::Character'].includes(Key.DataCategory)) {
                 return { ludicGraph: graph.toStored() }
             }

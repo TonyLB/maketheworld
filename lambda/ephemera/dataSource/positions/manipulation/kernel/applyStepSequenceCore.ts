@@ -9,7 +9,8 @@ import { graphFromMeta } from '../../ludicGraph'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MutationKernelMovePresenceBindingStep, MutationKernelReleasePresenceBindingStep, MutationKernelStep } from './kernelStep'
-import { settleMembership } from './settleMembership'
+import { isBystanderMove } from './bystander'
+import { bindingPointsAt, settleMembership } from './settleMembership'
 import { splitPresenceBinding } from './splitPresenceBinding'
 import { joinPresenceBindings } from './joinPresenceBindings'
 import type { MutationKernelApplyOutcome } from './types'
@@ -45,12 +46,16 @@ const movePresenceBinding = (
     if (!sitsUnderFrom) {
         return { reasonCode: 'presenceBindingMoved' }
     }
-    const destination = graphs.get(step.to.host)
-    if (!destination) {
-        return { reasonCode: 'hostNotInFootprint' }
-    }
-    if (!destination.presenceNodes.some(({ universalKey }) => universalKey === step.to.presence)) {
-        return { reasonCode: 'destinationBindingMissing' }
+    // A bystander's room is not in the footprint (pointers govern; a dangling destination binding is
+    // healed by the drift sweep), so there is no destination graph to confirm against.
+    if (!isBystanderMove(step.hostId, step.to.host)) {
+        const destination = graphs.get(step.to.host)
+        if (!destination) {
+            return { reasonCode: 'hostNotInFootprint' }
+        }
+        if (!destination.presenceNodes.some(({ universalKey }) => universalKey === step.to.presence)) {
+            return { reasonCode: 'destinationBindingMissing' }
+        }
     }
     return {
         graph: graph.replacePresenceNode({
@@ -186,7 +191,7 @@ const confirmCarriedHost = (
  * `destroyComponent`: drops the host from the outcome, so `commitStepSequence` deletes its row.
  * Throws if the host's graph still holds anything but its own root and its own presence bindings.
  *
- * `capture`: snapshots `graphs.get(hostId).characterIds` into the returned `captures` map and
+ * `capture`: snapshots the host's occupants (`initialOccupants`, moved by the bystander steps so far) into the returned `captures` map and
  * moves on --- the one step kind that never touches `graphs`. Reading the map at the step's own
  * position (not resorted, same as every other step here) is what makes the snapshot positional rather
  * than terminal. A host missing from the map --- not locked into the footprint --- is the same
@@ -194,19 +199,34 @@ const confirmCarriedHost = (
  */
 export const applyStepSequenceCore = (
     steps: readonly MutationKernelStep[],
-    initialGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
+    initialGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>,
+    initialOccupants: ReadonlyMap<EphemeraMembershipHostId, readonly EphemeraCharacterId[]> = new Map()
 ): MutationKernelApplyOutcome => {
     let graphs = new Map(initialGraphs)
     const captures = new Map<string, readonly EphemeraCharacterId[]>()
+    // Bystanders are not in their room's graph, so a capture's roster is the caller's pre-commit occupants
+    // of the host, moved positionally by each bystander presence step below.
+    const occupants = new Map([...initialOccupants].map(([hostId, ids]) => [hostId, new Set(ids)]))
+    const settleOccupants = (moverId: EphemeraMembershipHostId, { left, arrived }: { left?: EphemeraMembershipHostId; arrived?: EphemeraMembershipHostId }): void => {
+        if (!isEphemeraCharacterId(moverId)) {
+            return
+        }
+        if (left !== undefined && left !== arrived && isBystanderMove(moverId, left) && !bindingPointsAt(moverId, left, graphs)) {
+            occupants.get(left)?.delete(moverId)
+        }
+        if (arrived !== undefined && isBystanderMove(moverId, arrived)) {
+            occupants.get(arrived)?.add(moverId)
+        }
+    }
 
     for (const step of steps) {
         if (step.kind === 'capture') {
-            const hostGraph = graphs.get(step.hostId)
-            if (!hostGraph) {
-                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
+            const hostOccupants = occupants.get(step.hostId)
+            if (hostOccupants) {
+                captures.set(step.captureId, [...hostOccupants])
+                continue
             }
-            captures.set(step.captureId, [...hostGraph.characterIds])
-            continue
+            return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
         }
 
         if (step.kind === 'createComponent') {
@@ -271,6 +291,7 @@ export const applyStepSequenceCore = (
                 return settled
             }
             graphs = settled.graphs
+            settleOccupants(step.hostId, { ...(step.fromHostPresence ? { arrived: step.fromHostPresence.host } : {}) })
             continue
         }
         if (step.kind === 'movePresenceBinding') {
@@ -290,6 +311,7 @@ export const applyStepSequenceCore = (
                 return settled
             }
             graphs = settled.graphs
+            settleOccupants(step.hostId, { ...(step.from ? { left: step.from.host } : {}), arrived: step.to.host })
             continue
         }
         if (step.kind === 'releasePresenceBinding') {
@@ -306,6 +328,7 @@ export const applyStepSequenceCore = (
                 return settled
             }
             graphs = settled.graphs
+            settleOccupants(step.hostId, { left: step.from.host })
             continue
         }
         if (step.kind === 'splitPresenceBinding') {
@@ -347,6 +370,7 @@ export const applyStepSequenceCore = (
                 return settled
             }
             graphs = settled.graphs
+            settleOccupants(step.hostId, { ...(step.fromHostPresence ? { arrived: step.fromHostPresence.host } : {}) })
             continue
         }
 

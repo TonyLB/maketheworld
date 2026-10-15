@@ -7,7 +7,6 @@ jest.mock('./syncMembershipAdjacency', () => ({
 }))
 
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { testLudicGraph } from '../../ludicGraph/testFixtures'
 import { orchestrateCharacterMove } from '../../navigate/orchestrateCharacterMove'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 import { repairRoomOccupancyDrift } from './repairRoomOccupancyDrift'
@@ -16,28 +15,24 @@ const ROOM_ID = 'ROOM#alpha' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#one' as EphemeraCharacterId
 const OTHER_ROOM = 'ROOM#other' as EphemeraRoomId
 
-const graphWithCharacter = testLudicGraph(ROOM_ID, {
-    nodes: [{ tag: 'Character' as const, universalKey: CHARACTER_ID }],
-})
-
 describe('repairRoomOccupancyDrift', () => {
     const messageBus = { publish: jest.fn() }
     const streamEvent = jest.fn().mockResolvedValue(undefined)
     const applyMembershipMock = orchestrateCharacterMove as jest.MockedFunction<typeof orchestrateCharacterMove>
     const syncAdjacencyMock = syncMembershipAdjacencyToRoom as jest.MockedFunction<typeof syncMembershipAdjacencyToRoom>
 
-    const getLudicGraph = jest.fn()
+    const getRoomCharacters = jest.fn()
     const getCharacterSessions = jest.fn()
     const getMembershipContainers = jest.fn()
 
     const runRepair = () => repairRoomOccupancyDrift(
         { roomId: ROOM_ID, messageBus: messageBus as any, streamEvent },
-        { getLudicGraph, getCharacterSessions, getMembershipContainers }
+        { getRoomCharacters, getCharacterSessions, getMembershipContainers, migrateBystanders: async () => 0 }
     )
 
     beforeEach(() => {
         jest.clearAllMocks()
-        getLudicGraph.mockResolvedValue(graphWithCharacter)
+        getRoomCharacters.mockResolvedValue([CHARACTER_ID])
     })
 
     it('purges ghost characters with no live sessions via disconnect apply', async () => {
@@ -106,7 +101,7 @@ describe('repairRoomOccupancyDrift', () => {
     })
 
     it('does nothing for a clean room', async () => {
-        getLudicGraph.mockResolvedValue(graphWithCharacter)
+        getRoomCharacters.mockResolvedValue([CHARACTER_ID])
         getCharacterSessions.mockResolvedValue(['sess-1'])
         getMembershipContainers.mockResolvedValue([ROOM_ID])
 
@@ -117,8 +112,8 @@ describe('repairRoomOccupancyDrift', () => {
         expect(syncAdjacencyMock).not.toHaveBeenCalled()
     })
 
-    it('does nothing when room graph has no character nodes', async () => {
-        getLudicGraph.mockResolvedValue(testLudicGraph(ROOM_ID))
+    it('does nothing when the characters row lists nobody', async () => {
+        getRoomCharacters.mockResolvedValue([])
 
         const result = await runRepair()
 

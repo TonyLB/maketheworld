@@ -433,6 +433,33 @@ describe('the stored rows against Dynamo', () => {
         })
     })
 
+    it('reads the characters row in the same getItems only when asked, and returns it with the cache', async () => {
+        const stored = emptyCache('stored')
+        const characters = { EphemeraId: roomA, DataCategory: 'LudicCache::Characters', complete: true, 'CHARACTER#Tess': ['PRESENCE#a'] }
+        mockedDB.getItems.mockResolvedValueOnce([characters, marker(4), row(4, stored)])
+
+        const asked = await readLudicCacheWithOutcome(roomA, { withCharacters: true })
+
+        expect(mockedDB.getItems).toHaveBeenCalledTimes(1)
+        expect(mockedDB.getItems.mock.calls[0][0].Keys).toEqual([
+            { EphemeraId: roomA, DataCategory: LUDIC_CACHE_DATA_CATEGORY },
+            { EphemeraId: roomA, DataCategory: LUDIC_CACHE_VERSION_DATA_CATEGORY },
+            { EphemeraId: roomA, DataCategory: 'LudicCache::Characters' },
+        ])
+        expect(asked).toEqual({ cache: stored, outcome: 'hit', characters })
+
+        mockedDB.getItems.mockResolvedValueOnce([marker(4), row(4, stored)])
+        const notAsked = await readLudicCacheWithOutcome(roomA)
+        expect(mockedDB.getItems.mock.calls[1][0].Keys).toHaveLength(2)
+        expect(notAsked).not.toHaveProperty('characters')
+    })
+
+    it('returns no characters when the row is absent', async () => {
+        mockedDB.getItems.mockResolvedValueOnce([marker(4), row(4, emptyCache('stored'))])
+
+        expect(await readLudicCacheWithOutcome(roomA, { withCharacters: true })).not.toHaveProperty('characters')
+    })
+
     it('treats a malformed row as absent and rebuilds it, never throwing', async () => {
         // First read: marker 2 beside a row that fails its guard. A flight (leader) then rebuilds.
         mockedDB.getItems.mockResolvedValue([marker(2), row(2, { hostId: 'not-a-host', nodes: 'nope' })])

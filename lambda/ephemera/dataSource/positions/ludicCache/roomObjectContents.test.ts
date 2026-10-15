@@ -45,7 +45,11 @@ const graphsAsDeps = (graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>)
 type Node = NonNullable<Parameters<typeof testLudicGraph>[1]>['nodes']
 const objectGraph = (id: EphemeraObjectId, extra: Node = []) => testLudicGraph(id, { nodes: [{ tag: 'Object', universalKey: id }, ...extra] })
 const roomGraph = (...objects: EphemeraObjectId[]) =>
-    testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, ...objects.map((universalKey) => ({ tag: 'Object' as const, universalKey }))] })
+    testLudicGraph(roomA, { nodes: [
+        { tag: 'Room', universalKey: roomA },
+        ...objects.map((universalKey) => ({ tag: 'Object' as const, universalKey })),
+        { tag: 'Presence' as const, universalKey: PresenceKey('a_root'), cover: { members: [{ tag: 'Remainder' as const }] } },
+    ] })
 const binding = (key: string, from: EphemeraMembershipHostId, cover: EphemeraPresenceCover = { members: [{ tag: 'Remainder' }] }) =>
     ({ tag: 'Presence' as const, universalKey: PresenceKey(key), fromHostPresence: { host: from, presence: parentRemainderKey(from) }, cover })
 
@@ -54,10 +58,9 @@ const names = namedShortNameDeps({ [table]: 'Table', [box]: 'Box', [cup]: 'Cup',
 /** The stored row, stood in for by a cold build with the stored (Canon) names; labels come from `viewerNames`. */
 const contentsFor = async (
     graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>,
-    roomObjectIds: EphemeraObjectId[],
     { storedNames = names, viewerNames = names }: { storedNames?: typeof names, viewerNames?: typeof names } = {}
-) => ludicCacheRoomObjectContents(roomA, roomObjectIds, ['ASSET#viewer'], {
-    readLudicCache: async (roomId) => (await buildLudicCache(roomId, [], { ...graphsAsDeps(graphs), ...storedNames })).cache,
+) => ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], {
+    readLudicCache: async (roomId) => ({ cache: (await buildLudicCache(roomId, [], { ...graphsAsDeps(graphs), ...storedNames })).cache, outcome: 'hit' as const }),
     ...viewerNames,
 })
 
@@ -65,7 +68,7 @@ describe('ludicCacheRoomObjectContents', () => {
     it('returns an object on the floor with no contents', async () => {
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[roomA, roomGraph(cup)], [cup, objectGraph(cup)]])
 
-        const result = await contentsFor(graphs, [cup])
+        const { objects: result } = await contentsFor(graphs)
 
         expect(result).toEqual([{ objectId: cup, shortName: 'Cup', contents: [] }])
     })
@@ -80,7 +83,7 @@ describe('ludicCacheRoomObjectContents', () => {
             [cup, objectGraph(cup, [binding('cup-on-table', table)])],
         ])
 
-        const result = await contentsFor(graphs, [table])
+        const { objects: result } = await contentsFor(graphs)
 
         expect(result).toEqual([{ objectId: table, shortName: 'Table', contents: [{ objectId: cup, shortName: 'Cup' }] }])
     })
@@ -98,7 +101,7 @@ describe('ludicCacheRoomObjectContents', () => {
             [mug, objectGraph(mug)],
         ])
 
-        const result = await contentsFor(graphs, [table])
+        const { objects: result } = await contentsFor(graphs)
 
         expect(result[0].contents).toEqual([{ objectId: cup, shortName: 'Cup' }, { objectId: mug, shortName: 'Mug' }])
     })
@@ -111,7 +114,7 @@ describe('ludicCacheRoomObjectContents', () => {
             [cup, objectGraph(cup, [binding('cup-in-box', box)])],
         ])
 
-        const result = await contentsFor(graphs, [table])
+        const { objects: result } = await contentsFor(graphs)
 
         expect(result).toEqual([{ objectId: table, shortName: 'Table', contents: [{ objectId: box, shortName: 'Box' }] }])
     })
@@ -128,7 +131,7 @@ describe('ludicCacheRoomObjectContents', () => {
             [nameless, objectGraph(nameless)],
         ])
 
-        const result = await contentsFor(graphs, [table, nameless])
+        const { objects: result } = await contentsFor(graphs)
 
         expect(result).toEqual([{ objectId: table, shortName: 'Table', contents: [{ objectId: cup, shortName: 'Cup' }] }])
     })
@@ -140,7 +143,7 @@ describe('ludicCacheRoomObjectContents', () => {
             [cup, objectGraph(cup)],
         ])
 
-        const result = await contentsFor(graphs, [table], { viewerNames: namedShortNameDeps({ [table]: 'Altar', [cup]: 'Chalice' }) })
+        const { objects: result } = await contentsFor(graphs, { viewerNames: namedShortNameDeps({ [table]: 'Altar', [cup]: 'Chalice' }) })
 
         expect(result).toEqual([{ objectId: table, shortName: 'Altar', contents: [{ objectId: cup, shortName: 'Chalice' }] }])
     })
@@ -152,12 +155,12 @@ describe('ludicCacheRoomObjectContents', () => {
             [cup, objectGraph(cup)],
         ])
 
-        const result = await contentsFor(graphs, [table], { viewerNames: namedShortNameDeps({ [table]: 'Table' }) })
+        const { objects: result } = await contentsFor(graphs, { viewerNames: namedShortNameDeps({ [table]: 'Table' }) })
 
         expect(result).toEqual([{ objectId: table, shortName: 'Table', contents: [] }])
     })
 
-    it('reads no graph itself: structure comes from the stored cache, and only displayed objects are labelled', async () => {
+    it('reads no graph itself: structure comes from the stored cache, and only the room level plus one level of contents is labelled', async () => {
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
             [roomA, roomGraph(table, mug)],
             [table, objectGraph(table, [{ tag: 'Object', universalKey: box }, binding('table-in-a', roomA)])],
@@ -167,17 +170,64 @@ describe('ludicCacheRoomObjectContents', () => {
         const { cache } = await buildLudicCache(roomA, [], { ...graphsAsDeps(graphs), ...names })
         const viewer = namedShortNameDeps({ [table]: 'Table', [box]: 'Box' })
 
-        await ludicCacheRoomObjectContents(roomA, [table], ['ASSET#viewer'], { readLudicCache: async () => cache, ...viewer })
+        await ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], { readLudicCache: async () => ({ cache, outcome: 'hit' }), ...viewer })
 
         const labelled = viewer.getComponentAggregate.mock.calls.map(([[perspective]]) => perspective.universalKey).sort()
-        expect(labelled).toEqual([box, table])
+        expect(labelled).toEqual([box, mug, table])
+    })
+
+    it('derives the room level from the cache: every named direct Object, none for a character or an unnamed object', async () => {
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: cup }, { tag: 'Object', universalKey: nameless }, { tag: 'Character', universalKey: 'CHARACTER#Tess' as any }, { tag: 'Presence', universalKey: PresenceKey('a_root'), cover: { members: [{ tag: 'Remainder' }] } }] })],
+            [cup, objectGraph(cup)],
+            [nameless, objectGraph(nameless)],
+            ['CHARACTER#Tess' as any, testLudicGraph('CHARACTER#Tess' as any, { nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Tess' as any }] })],
+        ])
+
+        const { objectIds } = await contentsFor(graphs, { storedNames: namedShortNameDeps({ [cup]: 'Cup' }) as any })
+
+        expect(objectIds).toEqual([cup])
+    })
+
+    it('unions the room node\'s covers across all its bindings', async () => {
+        const stored = { nodes: [
+            { universalKey: roomA, presenceNodes: [{ cover: { members: [{ host: cup }] } }, { cover: { members: [{ host: mug }, { host: cup }] } }] },
+            { universalKey: cup, shortName: 'Cup' },
+            { universalKey: mug, shortName: 'Mug' },
+        ], edges: [] } as any
+
+        const { objectIds } = await ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], { readLudicCache: async () => ({ cache: stored, outcome: 'hit' }), getComponentAggregate: async () => [] })
+
+        expect(objectIds).toEqual([cup, mug])
     })
 
     it('reads the stored row as the header reader, so a rebuild it pays for is logged under that name', async () => {
-        const readLudicCache = jest.fn(async () => ({ hostId: roomA, nodes: [], edges: [] }) as any)
+        const readLudicCache = jest.fn(async () => ({ cache: { hostId: roomA, nodes: [], edges: [] } as any, outcome: 'hit' as const }))
 
-        await ludicCacheRoomObjectContents(roomA, [], ['ASSET#viewer'], { readLudicCache, getComponentAggregate: async () => [] })
+        await ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], { readLudicCache, getComponentAggregate: async () => [] })
 
-        expect(readLudicCache).toHaveBeenCalledWith(roomA, { reader: 'header' })
+        expect(readLudicCache).toHaveBeenCalledWith(roomA, { reader: 'header', withCharacters: true })
+    })
+
+    describe('the roster from the characters row', () => {
+        const emptyCache = { hostId: roomA, nodes: [], edges: [] } as any
+        const readWith = (characters?: any) => ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], {
+            readLudicCache: async () => ({ cache: emptyCache, outcome: 'hit', ...(characters ? { characters } : {}) }),
+            getComponentAggregate: async () => [],
+        })
+
+        it('returns the characters of the row', async () => {
+            const { characterIds } = await readWith({ 'CHARACTER#Tess': ['PRESENCE#a'], 'CHARACTER#Ava': ['PRESENCE#b'] })
+
+            expect(characterIds).toEqual(['CHARACTER#Tess', 'CHARACTER#Ava'])
+        })
+
+        it('returns an empty roster for a row with nobody in it', async () => {
+            expect((await readWith({})).characterIds).toEqual([])
+        })
+
+        it('returns an empty roster when the room has no row (nobody has entered it)', async () => {
+            expect((await readWith(undefined)).characterIds).toEqual([])
+        })
     })
 })

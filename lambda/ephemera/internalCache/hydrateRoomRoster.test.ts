@@ -132,27 +132,24 @@ describe('getRoomCharacterList', () => {
         internalCache.clear()
     })
 
-    it('hydrates roster from stored ludicGraph without activeCharacters Dynamo read', async () => {
-        ephemeraMock.getItem.mockImplementation(async ({ ProjectionFields }) => {
-            if (ProjectionFields?.includes('ludicGraph')) {
-                return {
-                    ludicGraph: {
-                        nodes: [{ tag: 'Character', universalKey: CHARACTER_A }],
-                    },
-                }
-            }
-            throw new Error(`Unexpected Dynamo projection: ${ProjectionFields?.join(',')}`)
-        })
+    const alphaMeta: Awaited<ReturnType<typeof internalCache.CharacterMeta.get>> = {
+        EphemeraId: CHARACTER_A,
+        Name: 'Alpha',
+        RoomStack: [],
+        HomeId: 'ROOM#Home',
+        assets: [],
+        Color: 'blue',
+        fileURL: 'https://example.com/alpha.png',
+    }
 
-        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
-            EphemeraId: CHARACTER_A,
-            Name: 'Alpha',
-            RoomStack: [],
-            HomeId: 'ROOM#Home',
-            assets: [],
-            Color: 'blue',
-            fileURL: 'https://example.com/alpha.png',
+    it('hydrates the roster from the characters row, reading no room graph', async () => {
+        ephemeraMock.getItem.mockImplementation(async ({ Key }) => {
+            if (Key.DataCategory === 'LudicCache::Characters') {
+                return { EphemeraId: TOWN_SQUARE, DataCategory: 'LudicCache::Characters', [CHARACTER_A]: ['PRESENCE#a1'] }
+            }
+            throw new Error(`Unexpected Dynamo read: ${Key.DataCategory}`)
         })
+        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue(alphaMeta)
         jest.spyOn(internalCache.CharacterSessions, 'get').mockResolvedValue(['sess-1'])
 
         await expect(getRoomCharacterList(TOWN_SQUARE)).resolves.toEqual([
@@ -166,47 +163,34 @@ describe('getRoomCharacterList', () => {
         ])
 
         expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
-        expect(ephemeraMock.getItem).toHaveBeenCalledWith(
-            expect.objectContaining({
-                ProjectionFields: ['ludicGraph'],
-            })
-        )
+        expect(ephemeraMock.getItem).toHaveBeenCalledWith(expect.objectContaining({
+            Key: { EphemeraId: TOWN_SQUARE, DataCategory: 'LudicCache::Characters' },
+            ConsistentRead: true,
+        }))
     })
 
-    it('uses memo-patched graph without Dynamo read', async () => {
+    it('ignores the memo-patched room graph', async () => {
         internalCache.Positions.set(
             testLudicGraph(TOWN_SQUARE, {
-                nodes: [{ tag: 'Character', universalKey: CHARACTER_A }],
+                nodes: [{ tag: 'Character', universalKey: CHARACTER_B }],
             })
         )
-
-        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({
-            EphemeraId: CHARACTER_A,
-            Name: 'Alpha',
-            RoomStack: [],
-            HomeId: 'ROOM#Home',
-            assets: [],
-        })
+        ephemeraMock.getItem.mockResolvedValue({ [CHARACTER_A]: ['PRESENCE#a1'] })
+        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue(alphaMeta)
         jest.spyOn(internalCache.CharacterSessions, 'get').mockResolvedValue(['sess-1'])
 
-        await expect(getRoomCharacterList(TOWN_SQUARE)).resolves.toEqual([{
-            EphemeraId: CHARACTER_A,
-            DisplayName: 'Alpha',
-            SessionIds: ['sess-1'],
-        }])
-
-        expect(ephemeraMock.getItem).not.toHaveBeenCalled()
+        const roster = await getRoomCharacterList(TOWN_SQUARE)
+        expect(roster.map(({ EphemeraId }) => EphemeraId)).toEqual([CHARACTER_A])
     })
 
-    it('returns empty roster when stored ludicGraph is absent', async () => {
-        ephemeraMock.getItem.mockImplementation(async ({ ProjectionFields }) => {
-            if (ProjectionFields?.includes('ludicGraph')) {
-                return {}
+    it('answers an absent row as an empty room, without a rebuild', async () => {
+        ephemeraMock.getItem.mockImplementation(async ({ Key }) => {
+            if (Key.DataCategory === 'LudicCache::Characters') {
+                return undefined
             }
-            throw new Error(`Unexpected Dynamo projection: ${ProjectionFields?.join(',')}`)
+            throw new Error(`Unexpected Dynamo read: ${Key.DataCategory}`)
         })
 
         await expect(getRoomCharacterList(TOWN_SQUARE)).resolves.toEqual([])
-        expect(ephemeraMock.getItem).toHaveBeenCalledTimes(1)
     })
 })

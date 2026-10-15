@@ -11,6 +11,7 @@ import type { QueryPageEnvelope } from '@tonylb/mtw-utilities/ts/dynamoDB/mixins
 import type { DBHandlerItem } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses'
 import {
     listGraphCharacterIds,
+    listRowCharacterIds,
     normalizeRoomId,
     roomHasOccupancyDrift,
 } from './classification'
@@ -19,6 +20,8 @@ type MetaSessionRow = {
     ConnectionId: string
     DataCategory: string
 }
+
+type CharactersRow = { EphemeraId: string; DataCategory: string; [characterId: string]: unknown }
 
 type RoomMetaRow = {
     EphemeraId: string
@@ -58,16 +61,17 @@ const queryAllMetaSessionRows = async (): Promise<MetaSessionRow[]> => {
 
 const queryAllEphemeraRowsByDataCategory = async <T extends DBHandlerItem<'EphemeraId'>>(args: {
     dataCategory: string
-    projectionFields: string[]
+    /** Omit to read every attribute (a characters row's attributes are character ids, which cannot be listed). */
+    projectionFields?: string[]
 }): Promise<T[]> => {
     const firstPage = await ephemeraDB.query<T>({
         IndexName: 'DataCategoryIndex',
         Key: {
             DataCategory: args.dataCategory
         },
-        ProjectionFields: args.projectionFields,
+        ...(args.projectionFields ? { ProjectionFields: args.projectionFields } : { allFields: true }),
         pagination: true
-    }) as unknown as QueryPageEnvelope<T>
+    } as Parameters<typeof ephemeraDB.query>[0]) as unknown as QueryPageEnvelope<T>
     return await unfoldPages<T>(firstPage)
 }
 
@@ -84,9 +88,11 @@ const adjacencyCharactersForSession = async (sessionId: string): Promise<string[
 }
 
 /**
- * Read-only diagnostics sweep for room occupancy drift (graph-forward, S2-6-DR).
- * Compares Meta::Room.ludicGraph character nodes against connections session adjacency
- * and membership adjacency reverse index. Does not detect stale adjacency without a graph node.
+ * Read-only diagnostics sweep for room occupancy drift (S2-6-DR). Row-forward: compares each room's
+ * `LudicCache::Characters` row against connections session adjacency and the membership adjacency
+ * reverse index (the character's own pointer governs the row). It also flags a room whose stored graph
+ * still names a character (data from before bystanders left room graphs), which the heal migrates to the row.
+ * Does not detect stale adjacency without a row entry.
  */
 export const roomOccupancyDriftSweep = async (params?: {
     diagnosticRunId?: string
@@ -105,12 +111,13 @@ export const roomOccupancyDriftSweep = async (params?: {
     const diagnosticRunId = params?.diagnosticRunId ?? uuidv4()
     const serializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
 
-    const [metaSessionRows, roomMetaRows] = await Promise.all([
+    const [metaSessionRows, roomMetaRows, characterRows] = await Promise.all([
         queryAllMetaSessionRows(),
         queryAllEphemeraRowsByDataCategory<RoomMetaRow>({
             dataCategory: 'Meta::Room',
             projectionFields: ['EphemeraId', 'DataCategory', 'ludicGraph']
-        })
+        }),
+        queryAllEphemeraRowsByDataCategory<CharactersRow>({ dataCategory: 'LudicCache::Characters' })
     ])
 
     const sessionIds = metaSessionRows
@@ -128,32 +135,45 @@ export const roomOccupancyDriftSweep = async (params?: {
         }
     }))
 
-    const graphCharacterIds = new Set<EphemeraCharacterId>()
+    const rowCharactersByRoom = new Map<string, string[]>()
+    for (const row of characterRows) {
+        const roomId = normalizeRoomId(row.EphemeraId)
+        if (roomId) {
+            rowCharactersByRoom.set(roomId, listRowCharacterIds(row))
+        }
+    }
+    // A character still named by a stored room graph predates bystanders leaving it: always drift (the heal migrates it).
+    const legacyGraphCharactersByRoom = new Map<string, string[]>()
     for (const room of roomMetaRows) {
-        for (const characterId of listGraphCharacterIds(room.ludicGraph)) {
+        const roomId = normalizeRoomId(room.EphemeraId)
+        const legacy = listGraphCharacterIds(room.ludicGraph)
+        if (roomId && legacy.length > 0) {
+            legacyGraphCharactersByRoom.set(roomId, legacy)
+        }
+    }
+
+    const characterIdsToCheck = new Set<EphemeraCharacterId>()
+    for (const characterIds of rowCharactersByRoom.values()) {
+        for (const characterId of characterIds) {
             if (isEphemeraCharacterId(characterId)) {
-                graphCharacterIds.add(characterId)
+                characterIdsToCheck.add(characterId)
             }
         }
     }
 
     const membershipContainersByCharacter = new Map<string, string[]>()
-    await Promise.all([...graphCharacterIds].map(async (characterId) => {
+    await Promise.all([...characterIdsToCheck].map(async (characterId) => {
         const containers = await queryMembershipContainersFromDynamo(ephemeraDB, characterId)
         membershipContainersByCharacter.set(characterId, containers)
     }))
 
     const driftRoomIds = new Set<string>()
 
-    for (const room of roomMetaRows) {
-        const roomId = normalizeRoomId(room.EphemeraId)
-        if (!roomId) {
-            continue
-        }
-        const characterIdsOnGraph = listGraphCharacterIds(room.ludicGraph)
+    for (const roomId of new Set([...rowCharactersByRoom.keys(), ...legacyGraphCharactersByRoom.keys()])) {
         const drift = roomHasOccupancyDrift({
             roomId,
-            graphCharacterIds: characterIdsOnGraph,
+            rowCharacterIds: rowCharactersByRoom.get(roomId) ?? [],
+            legacyGraphCharacterIds: legacyGraphCharactersByRoom.get(roomId) ?? [],
             adjacencySessionsByCharacter,
             membershipContainersByCharacter,
         })

@@ -2,6 +2,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
+import { isBystanderMove } from './bystander'
 import type { MutationKernelStep } from './kernelStep'
 import type { StepSequenceFootprint } from './types'
 
@@ -17,19 +18,27 @@ import type { StepSequenceFootprint } from './types'
  * re-verifies each relational step's shared host against the freshly-fetched, locked graphs --- this
  * function never is trusted as ground truth by itself, only as the lock-set declaration.
  *
- * `capture` contributes its `hostId` unconditionally --- the decisive reason capture had to
- * become a walk step rather than a side-table: `MultiKeyUpdate` cannot lock a newly-discovered host
- * mid-reducer, so a capture against a host no mutation step in the same sequence touches would
- * otherwise see `graphs.get(hostId)` come back `undefined` inside `applyStepSequenceCore`.
+ * A **bystander** (`isBystanderMove`) contributes only its own host: the Room it leaves or arrives at is
+ * indexed by the characters row, so it is not fetched, locked or written.
+ *
+ * `capture` contributes nothing: a room's occupants are no longer in its graph, so the commit resolves
+ * them before the transact (`initialOccupants`) and the capture is a positional walk step over that set.
  */
 export const computeStepSequenceFootprint = (
     steps: readonly MutationKernelStep[],
     getCurrentHost: (id: EphemeraLudicTerminalPrimitive) => EphemeraMembershipHostId | undefined
 ): StepSequenceFootprint => {
     const hosts = new Set<EphemeraMembershipHostId>()
+    // A bystander's room is indexed by the characters row, not the room's graph: it is neither fetched
+    // nor locked, so a character-only commit never touches `Meta::Room`.
+    const addHostOf = (moverId: EphemeraMembershipHostId, hostId: EphemeraMembershipHostId): void => {
+        if (!isBystanderMove(moverId, hostId)) {
+            hosts.add(hostId)
+        }
+    }
     for (const step of steps) {
         if (step.kind === 'capture') {
-            hosts.add(step.hostId)
+            // reads no graph: the commit resolves the host's occupants before the transact.
             continue
         }
         // a presence step names the mover's own graph and every host whose membership it can change: the
@@ -42,21 +51,21 @@ export const computeStepSequenceFootprint = (
         if (step.kind === 'addPresenceBinding' || step.kind === 'repairPresenceBinding') {
             hosts.add(step.hostId)
             if (step.fromHostPresence) {
-                hosts.add(step.fromHostPresence.host)
+                addHostOf(step.hostId, step.fromHostPresence.host)
             }
             continue
         }
         if (step.kind === 'movePresenceBinding') {
             hosts.add(step.hostId)
-            hosts.add(step.to.host)
+            addHostOf(step.hostId, step.to.host)
             if (step.from) {
-                hosts.add(step.from.host)
+                addHostOf(step.hostId, step.from.host)
             }
             continue
         }
         if (step.kind === 'releasePresenceBinding') {
             hosts.add(step.hostId)
-            hosts.add(step.from.host)
+            addHostOf(step.hostId, step.from.host)
             continue
         }
         if (step.kind === 'splitPresenceBinding') {

@@ -58,7 +58,7 @@ import { EphemeraLudicGraph, nodeFromId } from '../ludicGraph'
 import { parentHostOf } from '../ludicGraph/presenceParent'
 import { resolveComponentCacheFields } from '../../objects/objectShortName'
 import { enumerateLudicCacheShards, type EnumerateLudicCacheShardsDeps } from './enumerateShards'
-import { collapseCrossingPorts, dedupeEdgesByIdentity, foldSameHostBuckets, leafPresenceCacheNodes } from './mergeReducer'
+import { collapseCrossingPorts, dedupeEdgesByIdentity, foldSameHostBuckets } from './mergeReducer'
 import type { EphemeraLudicCacheData, EphemeraLudicCacheEdge, EphemeraLudicCacheNode, EphemeraLudicCachePresenceNode } from './types'
 
 const presenceUuidFromKey = stripTypedKey('PRESENCE')
@@ -93,7 +93,7 @@ export const buildLudicCache = async (
     deps: BuildLudicCacheDeps = {}
 ): Promise<{ cache: EphemeraLudicCacheData; stats: BuildLudicCacheStats }> => {
     const resolvedDeps = { ...defaultDeps(), ...deps }
-    const { hostIds, graphs, leafHostIds, shardFetchCount, maxDepth } = await enumerateLudicCacheShards(seedHostId, resolvedDeps)
+    const { hostIds, graphs, shardFetchCount, maxDepth } = await enumerateLudicCacheShards(seedHostId, resolvedDeps)
 
     // Pass 1: the only I/O in this loop (resolveComponentCacheFields, via componentCacheNode), run
     // concurrently across every host --- no data dependency between them.
@@ -105,12 +105,6 @@ export const buildLudicCache = async (
     // order.
     const perHost = hostIds.map((hostId) => {
         const graph = graphs.get(hostId) as EphemeraLudicGraph
-
-        // A present character is a leaf: its node and bindings, none of what it covers or relates
-        // (its inventory is not in this cache, so neither its cover nor its edges can be).
-        if (leafHostIds.has(hostId)) {
-            return { hostId, presenceNodes: leafPresenceCacheNodes(graph), edges: [] as EphemeraLudicCacheEdge[] }
-        }
 
         // Mechanism 1: this host's own same-host presence-bucket straddles, resolved against its
         // own raw graph. `presenceUuids` is the FULL set of this host's own bindings (never a
@@ -134,7 +128,7 @@ export const buildLudicCache = async (
             .filter((nodeId) => nodeId !== hostId && isEphemeraMembershipHostId(nodeId))
             .map((nodeId) => graphs.get(nodeId as EphemeraMembershipHostId))
             .filter((childGraph): childGraph is EphemeraLudicGraph =>
-                !!childGraph && !leafHostIds.has(childGraph.hostId) && childGraph.presenceNodes.some((presenceNode) => parentHostOf(presenceNode) === hostId))
+                !!childGraph && childGraph.presenceNodes.some((presenceNode) => parentHostOf(presenceNode) === hostId))
             .flatMap((childGraph) => collapseCrossingPorts(graph, childGraph))
 
         return { hostId, presenceNodes, edges: [...sameHostEdges, ...crossingEdges] }

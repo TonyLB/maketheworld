@@ -10,6 +10,7 @@ import internalCache from '../../../../internalCache'
 import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import { publishLudicCacheInvalidatedStreamEvent, type PositionsPublishedPayload } from '../../publishedEvents'
+import { charactersRowItemsFor } from '../../ludicCache/charactersRow'
 import { roomsInvalidatedByHosts } from '../../ludicCache/roomsInvalidatedByHosts'
 import { ludicCacheMarkerBumpItems } from '../../ludicCache/store'
 import { EphemeraLudicGraph, graphFromMeta, hostDataCategory } from '../../ludicGraph'
@@ -18,7 +19,9 @@ import { streamObjectMembershipFact } from '../membership/streamObjectMembership
 import { streamMembershipFact } from '../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
 import { applyStepSequenceCore } from './applyStepSequenceCore'
+import { resolveCaptureOccupants } from './captureOccupants'
 import { computeStepSequenceFootprint, createdHostsOf } from './computeStepSequenceFootprint'
+import { invalidateRoomMemos } from './invalidateRoomMemos'
 import { factForRelationalEdge, factsForStep, isFactOfRelationalEdge, movedFactsFor } from './factsForStep'
 import { membershipChangesOf } from './membershipChanges'
 import type { MembershipChange } from './membershipChanges'
@@ -31,6 +34,8 @@ export type CommitStepSequenceDeps = {
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
     getCurrentHost: (id: EphemeraLudicTerminalPrimitive) => EphemeraMembershipHostId | undefined
     transactWrite?: typeof ephemeraDB.transactWrite
+    /** The room's present characters, for `capture` steps (default: the room's characters row). */
+    getRoomCharacters?: Parameters<typeof resolveCaptureOccupants>[1]
     /**
      * Object-lifecycle Migrate row: gates only the `Object Relation Changed` half of the
      * fact-streaming loop below (`Object Moved` is unaffected either way). Default `false` (facts
@@ -72,8 +77,7 @@ export type CommitStepSequenceTransactItem = Parameters<typeof ephemeraDB.transa
 const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
     for (const graph of graphs) {
         if (isEphemeraRoomId(graph.hostId)) {
-            internalCache.ComponentEphemeraMeta.invalidate(graph.hostId)
-            internalCache.AffordanceRoomDeliverable.invalidate(graph.hostId)
+            invalidateRoomMemos(graph.hostId)
         }
         internalCache.Positions.set(graph)
     }
@@ -84,7 +88,8 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * the sequence's net change (`membershipChangesOf`): a `Delete` for each host it left, a `Put` for each
  * host it arrived at. Membership counts bindings, so a host that keeps another binding of the mover
  * keeps its row. Plain, unconditioned sibling items; they ride the `MultiKeyUpdate`'s `cascade`
- * because only that sees the reducer's output.
+ * because only that sees the reducer's output. The same change list drives the rooms' `LudicCache::Characters`
+ * rows (`charactersRowItemsFor`), dual-written beside the room graph.
  */
 const adjacencyItemsFor = (changes: readonly MembershipChange[]): CommitStepSequenceTransactItem[] => changes.flatMap(({ entityId, left, arrived }) => [
     ...left.map((hostId) => ({ Delete: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(hostId) } })),
@@ -164,7 +169,9 @@ export const commitStepSequence = async (
     const createSteps = steps.filter((step): step is MutationKernelCreateComponentStep => step.kind === 'createComponent')
     const writtenHosts = computeStepSequenceFootprint(steps.filter((step) => step.kind !== 'capture'), deps.getCurrentHost)
     let invalidatedRooms: EphemeraRoomId[]
+    let initialOccupants: Awaited<ReturnType<typeof resolveCaptureOccupants>>
     try {
+        initialOccupants = await resolveCaptureOccupants(steps, deps.getRoomCharacters)
         invalidatedRooms = await roomsInvalidatedByHosts(
             [...writtenHosts].filter((hostId) => !created.has(hostId)),
             (hostId) => internalCache.Positions.getLudicGraph(hostId as Parameters<typeof internalCache.Positions.getLudicGraph>[0])
@@ -210,12 +217,14 @@ export const commitStepSequence = async (
                     if (!entry) {
                         throw new Error(`commitStepSequence: MultiKeyUpdate fetch missing footprint host ${hostId}`)
                     }
-                    graphs.set(hostId, graphFromMeta(entry, hostId))
+                    // Plain copy: `priorGraphs` and `committedGraphs` outlive this reducer (the cascade and the
+                    // post-persist code read their bindings), and Immer revokes every draft proxy when it returns.
+                    graphs.set(hostId, graphFromMeta(JSON.parse(JSON.stringify(entry)), hostId))
                 }
                 priorGraphs = graphs
                 destroyedHosts = []
 
-                const outcome = applyStepSequenceCore(steps, graphs)
+                const outcome = applyStepSequenceCore(steps, graphs, initialOccupants)
                 if (outcome.verdict !== 'legal') {
                     // BD-31 interim: collapse repairable/stale into one generic abort. Note that
                     // this makes a `stale` verdict *terminal* --- the throw is not a
@@ -259,11 +268,13 @@ export const commitStepSequence = async (
             ...((createSteps.length > 0 || movesMembership || (args.existenceItems ?? []).length > 0 || invalidatedRooms.length > 0)
                 ? {
                     cascade: () => {
+                        const changes = membershipChangesOf(steps, priorGraphs!, committedGraphs!)
                         const items = [
                             ...createSteps.map((step) => ({
                                 Put: { ...step.meta, ludicGraph: committedGraphs!.get(step.hostId)!.toStored() },
                             })),
-                            ...adjacencyItemsFor(membershipChangesOf(steps, priorGraphs!, committedGraphs!)),
+                            ...adjacencyItemsFor(changes),
+                            ...charactersRowItemsFor(changes, committedGraphs!),
                             ...(args.existenceItems ?? []),
                             ...ludicCacheMarkerBumpItems(invalidatedRooms),
                         ]
@@ -313,6 +324,12 @@ export const commitStepSequence = async (
     deps.afterPersist?.()
 
     const changes = membershipChangesOf(steps, priorGraphs!, committedGraphs)
+    // The memoised header roster of a room whose graph this commit did not write.
+    for (const { left, arrived } of changes) {
+        for (const roomId of [...left, ...arrived].filter(isEphemeraRoomId)) {
+            invalidateRoomMemos(roomId)
+        }
+    }
     for (const { entityId } of changes) {
         internalCache.Positions.setMembershipContainers({
             componentId: entityId as Parameters<typeof internalCache.Positions.setMembershipContainers>[0]['componentId'],
@@ -361,10 +378,14 @@ export const commitStepSequence = async (
         await publishLudicCacheInvalidatedStreamEvent(deps.streamEvent, { type: 'Ludic Cache Invalidated', roomIds: invalidatedRooms })
     }
 
-    for (const hostId of footprint) {
-        if (isEphemeraRoomId(hostId)) {
-            deps.messageBus.publish({ type: 'RoomUpdate', roomId: hostId })
-        }
+    // A bystander's room is not in the footprint, so its roster change is announced from the net membership
+    // change. The header refresh follows `RoomUpdate` (never `Ludic Cache Invalidated`) on a roster change.
+    const updatedRooms = new Set<EphemeraRoomId>([
+        ...[...footprint].filter(isEphemeraRoomId),
+        ...changes.flatMap(({ left, arrived }) => [...left, ...arrived].filter(isEphemeraRoomId)),
+    ])
+    for (const roomId of updatedRooms) {
+        deps.messageBus.publish({ type: 'RoomUpdate', roomId })
     }
 
     return { ok: true, beatAnchorTime, steps, captures: committedCaptures }

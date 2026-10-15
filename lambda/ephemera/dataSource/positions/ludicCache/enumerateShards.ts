@@ -8,18 +8,13 @@
  * `cover`, no edges) --- that is Slice 3's fold. This hands the fold the per-shard graphs it
  * needs, in walk order, already deduplicated.
  *
- * **A present character is fetched as a leaf, never expanded (Slice 4 bugfix 2026-09-18; leaf form 2026-10-14).**
- * `EphemeraCharacterId` is itself an `EphemeraMembershipHostId`, so a naive walk over `graph.nodeIds` would
- * fetch every present character's own shard and pull their held inventory in as nodes of the *seed's* cache
- * --- observed as a real regression via `catalogHandles.ts`: a room's cache re-absorbed an object
- * a character had just picked up, since the walk passed straight through the character who now
- * held it. `collectNestedObjectIds` (the mechanism this cache replaces) never had this problem
- * because it only ever recursed through `EphemeraObjectId`s. So a character's graph is read, for its
- * own node and bindings, and its `nodeIds` are never queued; the host lands in `leafHostIds` so the fold
- * keeps its bindings and drops everything it covers. (The first form skipped the character entirely, which
- * left the room's cover naming a character with no node.) The seed itself is exempt --- it is queued
- * unconditionally before the loop below runs --- so a character-seeded walk (e.g. a held-inventory cache)
- * still sees its own contents.
+ * **A room's graph holds no character.** A bystander (a present character) is indexed by the room's
+ * `LudicCache::Characters` row, never by the room's graph, so this walk never meets one except as the
+ * seed. That is what keeps a room's cache from re-absorbing an object a character has just picked up
+ * (`catalogHandles.ts`): the walk cannot pass through a character into its inventory. A character-seeded
+ * walk (e.g. a held-inventory cache) still sees its own contents, because the seed is queued
+ * unconditionally before the loop below runs. (Rule: `positions/AGENT.contract.md`, "A bystander is not in
+ * its room's graph or cache".)
  *
  * **`maxDepth` (Slice 5, PC-3's instrument).** The highest BFS level actually visited --- the
  * seed is depth 0. A returned statistic, same convention as `shardFetchCount`: PC-3 needs reads
@@ -45,7 +40,6 @@
  * rather than left disabled-in-place (live runs averaged about 386ms against about 316ms for the concurrent path).
  */
 import internalCache from '../../../internalCache'
-import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMembershipHostId, type EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { EphemeraLudicGraph } from '../ludicGraph'
@@ -59,7 +53,6 @@ export type EnumerateLudicCacheShardsResult = {
     hostIds: EphemeraMembershipHostId[]
     graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>
     /** Hosts fetched but not expanded: a present character other than the seed. Their members are not in `hostIds`. */
-    leafHostIds: ReadonlySet<EphemeraMembershipHostId>
     /** One increment per host actually fetched --- a returned statistic, not a log line. */
     shardFetchCount: number
     /** The highest BFS level dequeued, seed at 0 --- a returned statistic, not a log line. */
@@ -84,7 +77,6 @@ export async function enumerateLudicCacheShards(
     const hostIds: EphemeraMembershipHostId[] = []
     const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>()
     const queued = new Set<EphemeraMembershipHostId>([seedHostId])
-    const leafHostIds = new Set<EphemeraMembershipHostId>()
 
     let shardFetchCount = 0
     let maxDepth = 0
@@ -100,10 +92,6 @@ export async function enumerateLudicCacheShards(
             shardFetchCount += 1
             hostIds.push(currentHostId)
             graphs.set(currentHostId, graph)
-            if (leafHostIds.has(currentHostId)) {
-                return
-            }
-
             for (const nodeId of graph.nodeIds) {
                 if (!isEphemeraMembershipHostId(nodeId)) {
                     continue
@@ -112,9 +100,6 @@ export async function enumerateLudicCacheShards(
                     continue
                 }
                 queued.add(nodeId)
-                if (isEphemeraCharacterId(nodeId)) {
-                    leafHostIds.add(nodeId)
-                }
                 nextFrontier.push(nodeId)
             }
         })
@@ -123,5 +108,5 @@ export async function enumerateLudicCacheShards(
         depth += 1
     }
 
-    return { hostIds, graphs, leafHostIds, shardFetchCount, maxDepth }
+    return { hostIds, graphs, shardFetchCount, maxDepth }
 }

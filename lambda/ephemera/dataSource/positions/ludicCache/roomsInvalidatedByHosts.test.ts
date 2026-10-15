@@ -66,11 +66,6 @@ describe('roomsInvalidatedByHosts', () => {
         expect(getGraph).not.toHaveBeenCalled()
     })
 
-    it('walks a character start up to its room when asked (a renamed character)', async () => {
-        const getGraph = graphsFrom({ [hero]: roomA })
-        await expect(roomsInvalidatedByHosts([hero], getGraph, { includeCharacterStarts: true })).resolves.toEqual([roomA])
-    })
-
     it('still marks the rooms a moving character leaves and arrives at', async () => {
         const getGraph = graphsFrom({ [hero]: roomB })
         await expect(roomsInvalidatedByHosts([hero, roomA, roomB], getGraph)).resolves.toEqual([roomA, roomB])

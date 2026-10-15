@@ -26,6 +26,9 @@ jest.mock('./positions/manipulation/containment/removeAuthoredObject', () => ({
     removeAuthoredObject: jest.fn().mockResolvedValue(undefined),
 }))
 
+jest.mock('./characterComponentUpdated', () => ({
+    onCharacterComponentUpdated: jest.fn().mockResolvedValue(undefined)
+}))
 jest.mock('./positions/ludicCache/markStale', () => ({
     markHostsStale: jest.fn().mockResolvedValue([]),
     markRoomsStale: jest.fn().mockResolvedValue([]),
@@ -33,6 +36,7 @@ jest.mock('./positions/ludicCache/markStale', () => ({
 
 import { markHostsStale, markRoomsStale } from './positions/ludicCache/markStale'
 import internalCache from '../internalCache'
+import { onCharacterComponentUpdated } from './characterComponentUpdated'
 import { removeAuthoredObject } from './positions/manipulation/containment/removeAuthoredObject'
 import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroadcast'
 import { populateContainmentAtCache } from './positions/manipulation/containment/populateContainmentAtCache'
@@ -159,14 +163,15 @@ describe('Ephemera DataSource receiveEvents', () => {
         it('marks the rooms showing an edited room, before its header is kicked (a room whose participating assets changed arrives here too)', async () => {
             const room = new StandardRoom(deIndentWML(`<Room uuid=(test-room)><ShortName>Test Room</ShortName></Room>`))
             await receive(componentEvent(room))
-            expect(markHostsStale).toHaveBeenCalledWith(['ROOM#test-room'], { includeCharacterStarts: true })
+            expect(markHostsStale).toHaveBeenCalledWith(['ROOM#test-room'])
             expect((markHostsStale as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan((kickRoomHeaderBroadcastForRoom as jest.Mock).mock.invocationCallOrder[0])
         })
 
-        it('marks the room a renamed character stands in', async () => {
+        it('marks nothing for an edited character, and refreshes its rooms instead', async () => {
             const character = new StandardCharacter(deIndentWML(`<Character uuid=(test-character)><ShortName>Test Character</ShortName></Character>`))
             await receive(componentEvent(character))
-            expect(markHostsStale).toHaveBeenCalledWith(['CHARACTER#test-character'], { includeCharacterStarts: true })
+            expect(markHostsStale).not.toHaveBeenCalled()
+            expect(onCharacterComponentUpdated).toHaveBeenCalledWith('CHARACTER#test-character')
         })
 
         it('marks nothing for a component with no universalKey', async () => {

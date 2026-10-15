@@ -51,6 +51,8 @@ import { mutationKernelStepKinds, type MutationKernelStep } from '../manipulatio
 import { populateContainmentAtCache } from '../manipulation/containment/populateContainmentAtCache'
 import { persistClearStoredLudicGraphs } from '../../objects/persistClearStoredLudicGraphs'
 import { buildLudicCache } from './fold'
+import { LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, bindingIdsInto, readRoomCharacters } from './charactersRow'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraLudicCacheData } from './types'
 import {
     LUDIC_CACHE_VERSION_DATA_CATEGORY,
@@ -80,6 +82,8 @@ type World = {
     graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>
     markers: Map<EphemeraRoomId, number>
     rows: Map<EphemeraRoomId, { builtAtVersion: number; cache: LudicCacheRow['cache'] }>
+    /** Each room's `LudicCache::Characters` row (one membership attribute per present character). */
+    characterRows: Map<EphemeraRoomId, Record<string, unknown>>
     names: Record<string, string>
     /** Which rooms the asset (by id) is used by, for a zone change. */
     assetRooms: Record<string, EphemeraRoomId[]>
@@ -96,7 +100,7 @@ const hostBinding = (name: string, parent: EphemeraMembershipHostId | ReturnType
 const freshWorld = (): World => {
     const room = (id: EphemeraRoomId, ...nodes: any[]) => testLudicGraph(id, { nodes: [{ tag: 'Room', universalKey: id }, ...nodes, presenceBindingNode(parentRemainderKey(id))] })
     const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-        [R1, room(R1, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, { tag: 'Character', universalKey: ALPHA })],
+        [R1, room(R1, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX })],
         [R2, room(R2)],
         [TABLE, testLudicGraph(TABLE, {
             nodes: [
@@ -116,6 +120,10 @@ const freshWorld = (): World => {
         graphs,
         markers: new Map(),
         rows: new Map(),
+        characterRows: new Map<EphemeraRoomId, Record<string, unknown>>([
+            [R1, { [ALPHA]: ['PRESENCE#alpha1'] }],
+            [R2, {}],
+        ]),
         names: { [TABLE]: 'Table', [CUP]: 'Cup', [SAUCER]: 'Saucer', [BOX]: 'Box', [LAMP]: 'Lamp', [MUG]: 'Mug', [R1]: 'Cafe', [R2]: 'Terrace', [ALPHA]: 'Alpha' },
         assetRooms: { 'ASSET#test-asset': [R1, R2] },
     }
@@ -168,6 +176,39 @@ const applyPrimitiveUpdate = (update: { Key: { EphemeraId: string; DataCategory:
     bump(update.Key.EphemeraId as EphemeraRoomId)
 }
 
+/**
+ * A kernel cascade's `LudicCache::Characters` write, applied the way DynamoDB would: parses the real
+ * `SET #cN = :bN, ... REMOVE #rN, ...` through the item's own placeholders, and throws on anything
+ * it cannot account for, so a malformed expression cannot pass by being ignored. A `SET` on an absent
+ * row creates it *without* `complete`, as DynamoDB does.
+ */
+const applyCharactersRowUpdate = (update: { Key: { EphemeraId: string }; UpdateExpression: string; ExpressionAttributeNames?: Record<string, string>; ExpressionAttributeValues?: Record<string, unknown> }) => {
+    const roomId = update.Key.EphemeraId as EphemeraRoomId
+    const names = update.ExpressionAttributeNames ?? {}
+    const values = update.ExpressionAttributeValues ?? {}
+    const [setPart, removePart] = update.UpdateExpression.split(' REMOVE ')
+    const setClauses = setPart.startsWith('SET ') ? setPart.slice(4).split(', ') : []
+    const removeClauses = removePart !== undefined ? removePart.split(', ') : setPart.startsWith('REMOVE ') ? setPart.slice(7).split(', ') : []
+    if (setClauses.length + removeClauses.length === 0) {
+        throw new Error(`unparseable characters-row update: ${update.UpdateExpression}`)
+    }
+    const row = { ...(world.characterRows.get(roomId) ?? {}) }
+    for (const clause of setClauses) {
+        const [, name, value] = /^(#c\d+) = (:b\d+)$/.exec(clause) ?? []
+        if (!name || !(name in names) || !(value in values)) {
+            throw new Error(`unparseable characters-row SET clause: ${clause}`)
+        }
+        row[names[name]] = structuredClone(values[value])
+    }
+    for (const clause of removeClauses) {
+        if (!/^#r\d+$/.test(clause) || !(clause in names)) {
+            throw new Error(`unparseable characters-row REMOVE clause: ${clause}`)
+        }
+        delete row[names[clause]]
+    }
+    world.characterRows.set(roomId, row)
+}
+
 /** `transactWrite`'s `MultiKeyUpdate`: fetch the keys, run the reducer, write back, then the cascade. */
 const applyTransact = async (items: any[]): Promise<void> => {
     for (const item of items) {
@@ -196,7 +237,10 @@ const applyTransact = async (items: any[]): Promise<void> => {
             }
         }
         for (const extra of cascade) {
-            if (extra.PrimitiveUpdate) {
+            if (extra.PrimitiveUpdate?.Key.DataCategory === LUDIC_CACHE_CHARACTERS_DATA_CATEGORY) {
+                applyCharactersRowUpdate(extra.PrimitiveUpdate)
+            }
+            else if (extra.PrimitiveUpdate) {
                 applyPrimitiveUpdate(extra.PrimitiveUpdate)
             }
             else if (extra.Put && 'ludicGraph' in extra.Put) {
@@ -240,6 +284,28 @@ const readDeps = () => ({
     buildDeps: { getComponentAggregate },
     runSingleFlight: async ({ computation }: any) => computation(),
 })
+
+/** The characters row's leaf, held in memory. */
+const charactersRowDeps = () => ({
+    getRow: async (roomId: EphemeraRoomId) => structuredClone(world.characterRows.get(roomId)) as any,
+})
+
+/**
+ * The dual-index invariant (bystander separation): a room's characters row names exactly the characters
+ * whose own bindings point at the room, each with those binding ids. The character's pointer governs,
+ * so this is the row's correctness condition after every change. Room graphs hold no character.
+ */
+const expectCharactersRowToMatchPointers = async (roomId: EphemeraRoomId) => {
+    const present = [...world.graphs.keys()]
+        .filter((hostId): hostId is EphemeraCharacterId => isEphemeraCharacterId(hostId))
+        .filter((characterId) => bindingIdsInto(world.graphs.get(characterId)!, roomId).length > 0)
+        .sort()
+    expect([...await readRoomCharacters(roomId, charactersRowDeps())].sort()).toEqual(present)
+    for (const characterId of present) {
+        expect(world.characterRows.get(roomId)?.[characterId]).toEqual(bindingIdsInto(world.graphs.get(characterId)!, roomId))
+    }
+    expect([...(world.graphs.get(roomId)?.characterIds ?? [])]).toEqual([])
+}
 
 const stored = (roomId: EphemeraRoomId) => readLudicCacheWithOutcome(roomId, readDeps())
 const cold = async (roomId: EphemeraRoomId) => (await buildLudicCache(roomId, CANON_STACK, { getLudicGraph: freshGraph, getComponentAggregate })).cache
@@ -288,6 +354,8 @@ type Case = {
     rooms: EphemeraRoomId[]
     /** The change shows in the cache itself, not just the marker (proves the case is not vacuous). */
     changesCache: boolean
+    /** A bystander-only change: no room marker moves at all. */
+    marksNothing?: boolean
     act: () => Promise<unknown>
 }
 
@@ -300,10 +368,11 @@ const cases: Case[] = [
         act: () => commit([move(CUP, 'cup1', ref(TABLE, 'PRESENCE#tbl'), remainder(R1))]),
     },
     {
-        name: 'a character moves between rooms',
+        name: 'a character moves between rooms (a bystander: no room is marked)',
         kinds: ['movePresenceBinding'],
-        rooms: [R1, R2],
-        changesCache: true,
+        rooms: [],
+        changesCache: false,
+        marksNothing: true,
         act: () => commit([move(ALPHA, 'alpha1', remainder(R1), remainder(R2))]),
     },
     {
@@ -392,7 +461,7 @@ const cases: Case[] = [
         world: () => {
             const base = freshWorld()
             base.graphs.set(R1, testLudicGraph(R1, {
-                nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, { tag: 'Character', universalKey: ALPHA }, presenceBindingNode(parentRemainderKey(R1))],
+                nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
                 edges: [{ tag: 'Relational', from: BOX, to: TABLE, kind: 'Custom', relationLabel: 'tied to' }],
             }))
             return base
@@ -434,14 +503,31 @@ const cases: Case[] = [
         changesCache: true,
         act: () => persistClearStoredLudicGraphs({
             getGameRooms: async () => ['Cafe'],
-            getActiveCharactersInCoyoteRooms: async () => [],
+            getActiveCharactersInCoyoteRooms: async () => [ALPHA],
         }),
+    },
+    {
+        name: 'a character arrives in the same commit that moves an object in the room (the object marks the room)',
+        kinds: ['movePresenceBinding'],
+        world: () => {
+            const base = freshWorld()
+            base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('alpha1')] }))
+            base.characterRows.set(R1, {})
+            return base
+        },
+        rooms: [R1],
+        changesCache: true,
+        act: () => commit([
+            move(ALPHA, 'alpha1', null, remainder(R1)),
+            move(CUP, 'cup1', ref(TABLE, 'PRESENCE#tbl'), remainder(R1)),
+        ]),
     },
     {
         name: 'a character disconnects (its binding is released from the room)',
         kinds: ['releasePresenceBinding'],
-        rooms: [R1],
-        changesCache: true,
+        rooms: [],
+        changesCache: false,
+        marksNothing: true,
         act: () => commit([{ kind: 'releasePresenceBinding', hostId: ALPHA, presence: 'PRESENCE#alpha1' as any, from: remainder(R1) }]),
     },
     {
@@ -453,10 +539,12 @@ const cases: Case[] = [
                 nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
             }))
             base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('alpha1')] }))
+            base.characterRows.set(R1, {})
             return base
         },
-        rooms: [R1],
-        changesCache: true,
+        rooms: [],
+        changesCache: false,
+        marksNothing: true,
         act: () => commit([move(ALPHA, 'alpha1', null, remainder(R1))]),
     },
     {
@@ -470,8 +558,10 @@ const cases: Case[] = [
     },
     {
         name: 'a character is renamed',
-        rooms: [R1],
-        changesCache: true,
+        rooms: [],
+        // the cache holds no character: a rename refreshes rosters on `RoomUpdate` and marks no room
+        changesCache: false,
+        marksNothing: true,
         act: async () => {
             world.names[ALPHA] = 'Alpha Prime'
             await receive(componentUpdated(componentOf(ALPHA)))
@@ -511,6 +601,11 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
         jest.mocked(ephemeraDB.transactWrite).mockImplementation(applyTransact as any)
         jest.mocked(ephemeraDB.optimisticUpdate).mockImplementation(applyOptimisticUpdate as any)
+        jest.mocked(ephemeraDB.deleteItem).mockImplementation((async ({ EphemeraId, DataCategory }: any) => {
+            if (DataCategory === LUDIC_CACHE_CHARACTERS_DATA_CATEGORY) {
+                world.characterRows.delete(EphemeraId)
+            }
+        }) as any)
         // the package's manual mock predates `strictPrimitiveUpdate`
         ;(ephemeraDB as any).strictPrimitiveUpdate = jest.fn(async (args: any) => {
             applyPrimitiveUpdate({ Key: args.Key, UpdateExpression: args.UpdateExpression })
@@ -547,6 +642,9 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         for (const roomId of testCase.rooms) {
             expect(world.markers.get(roomId) ?? 0).toBeGreaterThan(markersBefore.get(roomId) ?? 0)
         }
+        if (testCase.marksNothing) {
+            expect(world.markers).toEqual(markersBefore)
+        }
         for (const roomId of [R1, R2]) {
             const read = await stored(roomId)
             expect(read.cache).toEqual(await cold(roomId))
@@ -556,6 +654,7 @@ describe('invalidation completeness: a read after any change equals a cold rebui
                     expect(read.cache).not.toEqual(before.get(roomId))
                 }
             }
+            await expectCharactersRowToMatchPointers(roomId)
         }
     })
 
@@ -583,9 +682,9 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         const read = await stored(R1)
         expect(read.outcome).toBe('hit')
         expect(read.cache).toEqual(await cold(R1))
-        // the character is in the room's cache (as a leaf), and what it carries is not
+        // neither the character (a bystander is in the characters row, not the cache) nor what it carries is in the room's cache
         const held = read.cache.nodes.map(({ universalKey }) => universalKey)
-        expect(held).toContain(ALPHA)
+        expect(held).not.toContain(ALPHA)
         expect(held).not.toContain(POUCH)
         expect(held).not.toContain(HAT)
     })
@@ -596,7 +695,7 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         world.names[POUCH] = 'Pouch'
         world.names[BETA] = 'Beta'
         world.graphs.set(R1, testLudicGraph(R1, {
-            nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, { tag: 'Character', universalKey: ALPHA }, { tag: 'Character', universalKey: BETA }, presenceBindingNode(parentRemainderKey(R1))],
+            nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
         }))
         world.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('alpha1', R1, [entry(POUCH, 'PRESENCE#pch1')])] }))
         world.graphs.set(BETA as any, testLudicGraph(BETA as any, { nodes: [hostBinding('beta1', R1)] }))
