@@ -1,6 +1,6 @@
 # Bystander separation: character moves stop writing room graphs
 
-**Status: Slices 0, 1 and 1b done. Next step: [Slice 2](#recommended-order).** Branch `iss8291-separate-bystander-storage`.
+**Status: Slices 0, 1, 1b and 2 done. Next step: [Slice 3](#recommended-order).** Branch `iss8291-separate-bystander-storage`.
 
 **Scope in one sentence: move a room's record of its **bystanders** (present characters not entangled with the room; today, every present character) out of the room's `ludicGraph` and into a small `LudicCache::Characters` row on the room that lists every present character ([BS-6](#open-decisions-implementation--plan-only)), so that a character's arrival or departure writes the character's own graph, its adjacency row and the characters row --- never `Meta::Room`, never a cache marker, never the `LudicCache::` row --- and the room header reads its structure from one consistent `getItems` over the cache rows.**
 
@@ -87,28 +87,28 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [X] Tests: the deliverable reads no graph (no `getLudicGraph` dependency left to mock), and the room's wire graph lists exactly the labelled room-level objects in reader order. `roomHeaderContents.test.ts` already builds room-nested Object refs, so it covers the new shape unchanged.
   - [X] `AGENT.contract.md` L651: the wire `ludicGraph` is projected from the reader; the stored graph is read only for the roster.
 
-- [ ] **Slice 2. The characters row, written alongside the room graph.** This is a dual write: the room graph still holds character nodes, so nothing that reads them changes yet.
-  - [ ] **Shape ([BS-5](#open-decisions-implementation--plan-only)):**
+- [X] **Slice 2. The characters row, written alongside the room graph.** Done; suite green (full `ephemera`, `mtw-utilities`). This is a dual write: the room graph still holds character nodes, so nothing that reads them changes yet. Code: `ludicCache/charactersRow.ts`.
+  - [X] **Shape ([BS-5](#open-decisions-implementation--plan-only)):** as written below (`bindingIdsInto` reads the ids from the character's own graph: bindings whose parent host is the room).
     - `EphemeraId: <roomId>`, `DataCategory: 'LudicCache::Characters'`;
     - one top-level attribute per present character, keyed by its id and holding its binding ids into the room;
     - plus `complete: true`, set by a rebuild.
     
     Top-level attributes because a `SET` on a path into a missing map attribute fails, while `SET #id` creates the item.
-  - [ ] **Written in the kernel's `cascade`,** from `membershipChangesOf`, for every room in a character's `left` or `arrived`: `REMOVE #id` or `SET #id = :bindings`.
+  - [X] **Written in the kernel's `cascade`,** from `membershipChangesOf`, for every room in a character's `left` or `arrived`: `REMOVE #id` or `SET #id = :bindings`. **Two things the plan didn't foresee, both fixed:** (1) `PrimitiveUpdate` could carry no attribute names beyond reserved-word projections, and an id like `CHARACTER#Alpha` needs a `#` placeholder, so `PrimitiveUpdate` gained an optional `ExpressionAttributeNames` (`mtw-utilities` `mixins/transact.ts`, merged with the projected ones); (2) a transaction may not name one item twice, and two characters can pass through one room in one commit, so `charactersRowItemsFor` writes **one item per room** with numbered placeholders. **Premise checked, by inspection:** a character holds one binding per room (the only producers of an extra binding, split and containment population, act on object and container wholes), so `membershipChangesOf`'s net node change is enough; the row's binding ids never go stale inside a room.
     - Unconditioned: the character's own graph, which is in the `MultiKeyUpdate`, serializes moves of that character.
     - Count the items against `TRANSACT_ACTION_LIMIT` with the rest.
-  - [ ] **Absent or incomplete row.** The reader rebuilds the row from the room graph's `characterIds` and each character's bindings. It writes the row with `complete: true`, conditioned on `attribute_not_exists(complete)`, so the rebuild never overwrites a row the kernel already completed.
-    - **What to check before accepting:** a kernel `SET` on an absent row creates an incomplete row, so an arrival that lands before the first rebuild leaves a partial row. The rebuild then reads the graph, which already holds the arrival. That ordering is the thing to prove in tests.
+  - [X] **Absent or incomplete row.** The reader rebuilds the row from the room graph's `characterIds` and each character's bindings, with `complete: true`, conditioned on `attribute_not_exists(complete)`. **The write is an `UpdateItem` with `if_not_exists` per character, not a `Put`:** a `Put` would pass the condition on a kernel-created partial row and overwrite an arrival that landed between the rebuild's graph read and its write. **Residual, accepted:** a *departure* landing in that same window is undone (the rebuild writes the id back) until the occupancy drift sweep heals it from the pointer ([BS-5](#open-decisions-implementation--plan-only)). After the write the rebuild re-reads the row and returns what is stored.
+    - **What to check before accepting (proved):** a kernel `SET` on an absent row creates an incomplete row, so an arrival that lands before the first rebuild leaves a partial row. `charactersRow.test.ts` proves a partial row reads as incomplete and is completed without losing the arrival, and that the real rebuild expression is `if_not_exists` under the condition.
     - Once Slice 4 removes characters from the graph, the rebuild source changes. See Slice 4.
-  - [ ] **Read:** `store.ts`'s `getItems` fetches the three rows together. A `readRoomCharacters(roomId)` is exported for readers that don't need the cache.
-  - [ ] Tests:
+  - [X] **Read:** `readRoomCharacters(roomId)` is exported from `charactersRow.ts` (a strongly consistent `getItem`; an absent or incomplete row is rebuilt, never answered as empty). **Deviation:** `store.ts`'s `getItems` stays at two keys in this slice, since nothing reads the row from the cache path yet and a third key would cost every cache read an item for no reader. **Slice 3 adds the third key** when the header becomes its consumer.
+  - [X] Tests (`charactersRow.test.ts`, `commitStepSequence.test.ts`, `invalidationCompleteness.integration.test.ts`, `persistClearStoredLudicGraphs.test.ts`):
     - each membership change (arrive, depart, connect, disconnect, room to room) writes the expected `SET`/`REMOVE`;
     - an absent row rebuilds;
     - a partial row is completed and nothing is lost;
-    - the row equals the graph's `characterIds` after every completeness-test case. This is the dual-write invariant, and it is the safety net for Slice 3.
+    - the row equals the graph's `characterIds` after every completeness-test case. This is the dual-write invariant, and it is the safety net for Slice 3. **It found a writer:** the Coyote clear removes a room's graph, character nodes included, outside the kernel. It now also deletes each cleared room's characters row (an absent row rebuilds from the graph on next read). The completeness test's fake parses the real `SET`/`REMOVE` expressions, and was checked non-vacuous by disabling the cascade write (the move and disconnect cases fail). **For Slice 3's census:** any other writer that adds or removes a character node in a room graph outside the kernel must update the row; the heals were checked and don't (they rewrite structure, not membership).
 
 - [ ] **Slice 3. Readers move to the row.** Work through Slice 0's census, one file at a time, header roster first.
-  - [ ] `getRoomCharacterList` reads `readRoomCharacters`, so the roster no longer reads `Meta::Room`. With Slice 1b done, the header as a whole then reads no `Meta::Room`; assert that in the deliverable's suite.
+  - [ ] `getRoomCharacterList` reads `readRoomCharacters`, so the roster no longer reads `Meta::Room`. Add the characters row as a third key to `store.ts`'s `getItems` here, so the header's reads travel in one call (Slice 2 left it at two). With Slice 1b done, the header as a whole then reads no `Meta::Room`; assert that in the deliverable's suite.
   - [ ] Each remaining reader in the census either moves to the row, or is recorded inline here with the reason it needs the graph. A reader in `connections` or `diagnostics` reads the row through a gateway in `mtw-gateways`, not by importing from ephemera.
   - [ ] Add the five readers Slice 0 found missing from the census, and settle `resolveHostedNodeWmlData` (reads `characterIds` of any host, not only rooms).
   - [ ] When this slice is done, no production code outside `ludicGraph/index.ts` (the graph's own getter) and the kernel reads a room graph's `characterIds`. Verify that with a grep.
@@ -162,7 +162,7 @@ Plan-only: decisions made in order to implement the next slices. When one ships,
 | **BS-1** | **Build a `LudicCache::Characters` row?** Yes. With Slice 1 moving the room-level ids onto the cache, the row replaces the header's only remaining `Meta::Room` read. All three structural rows then travel in one `getItems`. Taking characters out of the room graph (Slice 4) also needs the row as the room-side index. | Slice 2 | Decided (2026-10-14) |
 | **BS-3** | **Does a character rename still mark a room?** After Slice 4, the cache holds no character name, so `includeCharacterStarts` marks a row whose content can't have changed. It exists only so the room header refreshes the renamed character's roster entry. Slice 0 found no other path; Slice 5 acts on the answer. | Slice 5 | Open. Slice 0: the only refresh path is `Ludic Cache Invalidated`; recommendation is to publish the header refresh without the marker bump |
 | **BS-4** | **Characters row, or query the existing adjacency rows?** Every character move already writes `positionAdjacency#<roomId>` on the character, in the same transaction. Querying `DataCategoryIndex` for a room's `CHARACTER#` rows would give the roster with no new write. **Rejected for the live read:** a GSI can't be read with strong consistency, and the header refresh fires straight after the commit, so it could miss the arrival that triggered it. It also costs a query per header instead of riding the cache rows' `getItems`. It is still a candidate rebuild source once the graph no longer holds characters (Slice 4). | Slice 2 | Decided (2026-10-14, recommendation; revisit if the per-move write proves costly) |
-| **BS-5** | **What the row holds, and its authority.** It holds membership only: character id mapped to its binding ids into the room, plus `complete`. It holds no name, color or session. **It is an index, not an authority:** the character's own binding pointer governs, as with covers ("Pointers govern; the cover is their stored index"). So drift between the two is healed from the pointer, by the occupancy drift sweep. | Slice 2 | Proposed |
+| **BS-5** | **What the row holds, and its authority.** It holds membership only: character id mapped to its binding ids into the room, plus `complete`. It holds no name, color or session. **It is an index, not an authority:** the character's own binding pointer governs, as with covers ("Pointers govern; the cover is their stored index"). So drift between the two is healed from the pointer, by the occupancy drift sweep. **Built in Slice 2;** the rebuild's departure-race residual is accepted on this basis. | Slice 2 | Decided (2026-10-15, built) |
 | **BS-6** | **Does the row list every present character, or only bystanders?** **Recommendation: every present character.** A future participant is then in both the row and the room graph, with the graph adding its entanglement edges, and the roster stays on one source. Listing only bystanders would make every roster reader merge the row with the graph's participants. The row is named for what it lists: `LudicCache::Characters`. Moot until participants exist, but it fixes what Slice 2's row means. | Slice 2 | Decided (2026-10-14): every present character; row named `LudicCache::Characters` |
 
 ## Verification
@@ -170,7 +170,8 @@ Plan-only: decisions made in order to implement the next slices. When one ships,
 ```bash
 cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/ludicCache/ internalCache/ dataSource/actions/                    # Slices 1, 1b (done)
 cd charcoal-client && npm run test -- roomHeaderContents                                                                                    # Slice 1b (confirm the runner in charcoal-client's AGENT.md)
-cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/ internalCache/                                                 # Slice 2
+cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/ internalCache/                                                 # Slice 2 (done)
+cd packages/mtw-utilities && npx jest                                                                                                     # Slice 2 (the `PrimitiveUpdate` names; done)
 cd lambda/ephemera && npm run test -- --watchAll=false                                                                                     # Slices 3-6, and before calling any slice done
 cd lambda/connections && npm run test -- --watchAll=false                                                                                  # Slice 3 (census readers there)
 cd lambda/diagnostics && npm run test -- --watchAll=false                                                                                  # Slices 3-4 (occupancy sweep)
@@ -194,8 +195,8 @@ Confirm each package's runner in its `AGENT.testing.md` / `AGENT.md` before trus
 | 0. Verify premises | Done (pinning test in `fold.test.ts`; dev-room check is the user's) |
 | 1. Header room-level ids from the cache | Done |
 | 1b. Room wire `ludicGraph` from the cache read | Done (header reads `Meta::Room` only for the roster) |
-| 2. Characters row (dual write) | Not started (unblocked) |
-| 3. Readers move to the row | Not started |
+| 2. Characters row (dual write) | Done (`charactersRow.ts`; Coyote clear also deletes the row; `getItems` third key deferred to Slice 3) |
+| 3. Readers move to the row | Not started (unblocked) |
 | 4. Bystanders leave room graphs | Not started |
 | 5. Character renames | Not started (BS-3, recommendation recorded) |
 | 6. Graduate and dispose | Not started |

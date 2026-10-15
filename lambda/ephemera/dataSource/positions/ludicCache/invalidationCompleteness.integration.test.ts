@@ -51,6 +51,7 @@ import { mutationKernelStepKinds, type MutationKernelStep } from '../manipulatio
 import { populateContainmentAtCache } from '../manipulation/containment/populateContainmentAtCache'
 import { persistClearStoredLudicGraphs } from '../../objects/persistClearStoredLudicGraphs'
 import { buildLudicCache } from './fold'
+import { LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, bindingIdsInto, readRoomCharacters } from './charactersRow'
 import { isEphemeraLudicCacheData } from './types'
 import {
     LUDIC_CACHE_VERSION_DATA_CATEGORY,
@@ -80,6 +81,8 @@ type World = {
     graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>
     markers: Map<EphemeraRoomId, number>
     rows: Map<EphemeraRoomId, { builtAtVersion: number; cache: LudicCacheRow['cache'] }>
+    /** Each room's `LudicCache::Characters` row (membership attributes and `complete`), as a rebuild would have left it. */
+    characterRows: Map<EphemeraRoomId, Record<string, unknown>>
     names: Record<string, string>
     /** Which rooms the asset (by id) is used by, for a zone change. */
     assetRooms: Record<string, EphemeraRoomId[]>
@@ -116,6 +119,10 @@ const freshWorld = (): World => {
         graphs,
         markers: new Map(),
         rows: new Map(),
+        characterRows: new Map<EphemeraRoomId, Record<string, unknown>>([
+            [R1, { complete: true, [ALPHA]: ['PRESENCE#alpha1'] }],
+            [R2, { complete: true }],
+        ]),
         names: { [TABLE]: 'Table', [CUP]: 'Cup', [SAUCER]: 'Saucer', [BOX]: 'Box', [LAMP]: 'Lamp', [MUG]: 'Mug', [R1]: 'Cafe', [R2]: 'Terrace', [ALPHA]: 'Alpha' },
         assetRooms: { 'ASSET#test-asset': [R1, R2] },
     }
@@ -168,6 +175,39 @@ const applyPrimitiveUpdate = (update: { Key: { EphemeraId: string; DataCategory:
     bump(update.Key.EphemeraId as EphemeraRoomId)
 }
 
+/**
+ * A kernel cascade's `LudicCache::Characters` write, applied the way DynamoDB would: parses the real
+ * `SET #cN = :bN, ... REMOVE #rN, ...` through the item's own placeholders, and throws on anything
+ * it cannot account for, so a malformed expression cannot pass by being ignored. A `SET` on an absent
+ * row creates it *without* `complete`, as DynamoDB does.
+ */
+const applyCharactersRowUpdate = (update: { Key: { EphemeraId: string }; UpdateExpression: string; ExpressionAttributeNames?: Record<string, string>; ExpressionAttributeValues?: Record<string, unknown> }) => {
+    const roomId = update.Key.EphemeraId as EphemeraRoomId
+    const names = update.ExpressionAttributeNames ?? {}
+    const values = update.ExpressionAttributeValues ?? {}
+    const [setPart, removePart] = update.UpdateExpression.split(' REMOVE ')
+    const setClauses = setPart.startsWith('SET ') ? setPart.slice(4).split(', ') : []
+    const removeClauses = removePart !== undefined ? removePart.split(', ') : setPart.startsWith('REMOVE ') ? setPart.slice(7).split(', ') : []
+    if (setClauses.length + removeClauses.length === 0) {
+        throw new Error(`unparseable characters-row update: ${update.UpdateExpression}`)
+    }
+    const row = { ...(world.characterRows.get(roomId) ?? {}) }
+    for (const clause of setClauses) {
+        const [, name, value] = /^(#c\d+) = (:b\d+)$/.exec(clause) ?? []
+        if (!name || !(name in names) || !(value in values)) {
+            throw new Error(`unparseable characters-row SET clause: ${clause}`)
+        }
+        row[names[name]] = structuredClone(values[value])
+    }
+    for (const clause of removeClauses) {
+        if (!/^#r\d+$/.test(clause) || !(clause in names)) {
+            throw new Error(`unparseable characters-row REMOVE clause: ${clause}`)
+        }
+        delete row[names[clause]]
+    }
+    world.characterRows.set(roomId, row)
+}
+
 /** `transactWrite`'s `MultiKeyUpdate`: fetch the keys, run the reducer, write back, then the cascade. */
 const applyTransact = async (items: any[]): Promise<void> => {
     for (const item of items) {
@@ -196,7 +236,10 @@ const applyTransact = async (items: any[]): Promise<void> => {
             }
         }
         for (const extra of cascade) {
-            if (extra.PrimitiveUpdate) {
+            if (extra.PrimitiveUpdate?.Key.DataCategory === LUDIC_CACHE_CHARACTERS_DATA_CATEGORY) {
+                applyCharactersRowUpdate(extra.PrimitiveUpdate)
+            }
+            else if (extra.PrimitiveUpdate) {
                 applyPrimitiveUpdate(extra.PrimitiveUpdate)
             }
             else if (extra.Put && 'ludicGraph' in extra.Put) {
@@ -240,6 +283,42 @@ const readDeps = () => ({
     buildDeps: { getComponentAggregate },
     runSingleFlight: async ({ computation }: any) => computation(),
 })
+
+/** The characters row's leaf, held in memory: the rebuild's `if_not_exists` write applied as DynamoDB would. */
+const charactersRowDeps = () => ({
+    getRow: async (roomId: EphemeraRoomId) => structuredClone(world.characterRows.get(roomId)) as any,
+    getFreshLudicGraph: freshGraph,
+    writeRebuild: async (roomId: EphemeraRoomId, membership: ReadonlyMap<EphemeraCharacterId, string[]>) => {
+        const row = { ...(world.characterRows.get(roomId) ?? {}) }
+        if (row.complete === true) {
+            return false
+        }
+        for (const [characterId, bindingIds] of membership) {
+            if (!(characterId in row)) {
+                row[characterId] = bindingIds
+            }
+        }
+        row.complete = true
+        world.characterRows.set(roomId, row)
+        return true
+    },
+})
+
+/**
+ * The dual-write invariant (bystander separation, Slice 2): read the way a reader does (an absent row
+ * is rebuilt), a room's characters row names exactly the characters its graph holds, each with its
+ * own bindings into the room. This is the safety net under Slice 3 moving readers onto the row.
+ */
+const expectCharactersRowToEqualGraph = async (roomId: EphemeraRoomId) => {
+    const inGraph = [...(world.graphs.get(roomId)?.characterIds ?? [])].sort()
+    expect([...await readRoomCharacters(roomId, charactersRowDeps())].sort()).toEqual(inGraph)
+    const { complete, ...members } = world.characterRows.get(roomId) ?? {}
+    expect(complete).toBe(true)
+    expect(Object.keys(members).sort()).toEqual(inGraph)
+    for (const characterId of inGraph) {
+        expect(members[characterId]).toEqual(bindingIdsInto(world.graphs.get(characterId as any)!, roomId))
+    }
+}
 
 const stored = (roomId: EphemeraRoomId) => readLudicCacheWithOutcome(roomId, readDeps())
 const cold = async (roomId: EphemeraRoomId) => (await buildLudicCache(roomId, CANON_STACK, { getLudicGraph: freshGraph, getComponentAggregate })).cache
@@ -453,6 +532,7 @@ const cases: Case[] = [
                 nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
             }))
             base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('alpha1')] }))
+            base.characterRows.set(R1, { complete: true })
             return base
         },
         rooms: [R1],
@@ -511,6 +591,11 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
         jest.mocked(ephemeraDB.transactWrite).mockImplementation(applyTransact as any)
         jest.mocked(ephemeraDB.optimisticUpdate).mockImplementation(applyOptimisticUpdate as any)
+        jest.mocked(ephemeraDB.deleteItem).mockImplementation((async ({ EphemeraId, DataCategory }: any) => {
+            if (DataCategory === LUDIC_CACHE_CHARACTERS_DATA_CATEGORY) {
+                world.characterRows.delete(EphemeraId)
+            }
+        }) as any)
         // the package's manual mock predates `strictPrimitiveUpdate`
         ;(ephemeraDB as any).strictPrimitiveUpdate = jest.fn(async (args: any) => {
             applyPrimitiveUpdate({ Key: args.Key, UpdateExpression: args.UpdateExpression })
@@ -556,6 +641,7 @@ describe('invalidation completeness: a read after any change equals a cold rebui
                     expect(read.cache).not.toEqual(before.get(roomId))
                 }
             }
+            await expectCharactersRowToEqualGraph(roomId)
         }
     })
 

@@ -431,6 +431,80 @@ describe('commitStepSequence', () => {
         expect(streamEvent).not.toHaveBeenCalled()
     })
 
+    describe('the rooms\' characters rows', () => {
+        const KITCHEN = 'ROOM#Kitchen' as EphemeraRoomId
+        const BETA_ID = 'CHARACTER#Beta' as EphemeraCharacterId
+        const charactersRowItems = (items: any[] | undefined) => items?.filter((item) => item.PrimitiveUpdate?.Key.DataCategory === 'LudicCache::Characters').map((item) => item.PrimitiveUpdate)
+        const commit = (steps: MutationKernelStep[], graphs: Record<string, EphemeraLudicGraph>) => {
+            const { transactWrite, cascadeItems } = makeTransactWriteMock(graphs)
+            return commitStepSequence(
+                { steps },
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+            ).then((result) => ({ result, cascadeItems }))
+        }
+
+        it('removes the character from the room it left and sets it, with its own binding ids, in the room it arrived at', async () => {
+            const { result, cascadeItems } = await commit([move(CHARACTER_ID, 'p1', ROOM_ID, KITCHEN)], {
+                [ROOM_ID]: withRemainder(ROOM_ID, { tag: 'Character', universalKey: CHARACTER_ID }),
+                [KITCHEN]: withRemainder(KITCHEN),
+                [CHARACTER_ID]: moverGraph(CHARACTER_ID, ROOM_ID),
+            })
+
+            expect(result.ok).toBe(true)
+            expect(charactersRowItems(cascadeItems.current)).toEqual([
+                {
+                    Key: { EphemeraId: ROOM_ID, DataCategory: 'LudicCache::Characters' },
+                    ProjectionFields: [],
+                    UpdateExpression: 'REMOVE #r0',
+                    ExpressionAttributeNames: { '#r0': CHARACTER_ID },
+                },
+                {
+                    Key: { EphemeraId: KITCHEN, DataCategory: 'LudicCache::Characters' },
+                    ProjectionFields: [],
+                    UpdateExpression: 'SET #c0 = :b0',
+                    ExpressionAttributeNames: { '#c0': CHARACTER_ID },
+                    ExpressionAttributeValues: { ':b0': ['PRESENCE#p1'] },
+                },
+            ])
+        })
+
+        it('writes one item per room even when two characters pass through it in one commit', async () => {
+            const { result, cascadeItems } = await commit([
+                move(CHARACTER_ID, 'p1', ROOM_ID, KITCHEN),
+                move(BETA_ID, 'p2', ROOM_ID, KITCHEN),
+            ], {
+                [ROOM_ID]: withRemainder(ROOM_ID, { tag: 'Character', universalKey: CHARACTER_ID }, { tag: 'Character', universalKey: BETA_ID }),
+                [KITCHEN]: withRemainder(KITCHEN),
+                [CHARACTER_ID]: moverGraph(CHARACTER_ID, ROOM_ID, 'p1'),
+                [BETA_ID]: moverGraph(BETA_ID, ROOM_ID, 'p2'),
+            })
+
+            expect(result.ok).toBe(true)
+            const items = charactersRowItems(cascadeItems.current)!
+            // a transaction may not name one item twice
+            expect(items.map(({ Key }) => Key.EphemeraId).sort()).toEqual([KITCHEN, ROOM_ID].sort())
+            expect(items.find(({ Key }) => Key.EphemeraId === ROOM_ID)).toEqual(expect.objectContaining({
+                UpdateExpression: 'REMOVE #r0, #r1',
+                ExpressionAttributeNames: { '#r0': CHARACTER_ID, '#r1': BETA_ID },
+            }))
+            expect(items.find(({ Key }) => Key.EphemeraId === KITCHEN)).toEqual(expect.objectContaining({
+                UpdateExpression: 'SET #c0 = :b0, #c1 = :b1',
+                ExpressionAttributeNames: { '#c0': CHARACTER_ID, '#c1': BETA_ID },
+                ExpressionAttributeValues: { ':b0': ['PRESENCE#p1'], ':b1': ['PRESENCE#p2'] },
+            }))
+        })
+
+        it('writes no characters row for an object move', async () => {
+            const { cascadeItems } = await commit([move(TRAY_ID, 'p1', ROOM_ID, KITCHEN)], {
+                [ROOM_ID]: withRemainder(ROOM_ID, { tag: 'Object', universalKey: TRAY_ID }),
+                [KITCHEN]: withRemainder(KITCHEN),
+                [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID),
+            })
+
+            expect(charactersRowItems(cascadeItems.current)).toEqual([])
+        })
+    })
+
     it('a character move commits correctly and streams a Character Moved fact for the character subset', async () => {
         const roomGraph = withRemainder(ROOM_ID, { tag: 'Character', universalKey: CHARACTER_ID })
         const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId

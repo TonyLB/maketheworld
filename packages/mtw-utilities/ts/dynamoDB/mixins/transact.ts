@@ -38,6 +38,12 @@ export type TransactionRequestPrimitiveUpdate<KIncoming extends DBHandlerLegalKe
     ProjectionFields: string[];
     UpdateExpression: string;
     ConditionExpression?: string;
+    /**
+     * Placeholders (`#name` → attribute name) the expressions use directly, for attribute names that
+     * `ProjectionFields` cannot express (a top-level attribute keyed by an id such as `CHARACTER#Alpha`).
+     * Merged with the placeholders derived from `ProjectionFields`.
+     */
+    ExpressionAttributeNames?: Record<string, string>;
     ExpressionAttributeValues?: Record<string, any>;
 }
 
@@ -272,8 +278,8 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                 }] }
             }
             if ('PrimitiveUpdate' in item) {
-                const { ExpressionAttributeNames } = mapProjectionFields(item.PrimitiveUpdate.ProjectionFields)
-                const translateToExpressionAttributeNames = Object.entries(ExpressionAttributeNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})
+                const { ExpressionAttributeNames: projectedNames } = mapProjectionFields(item.PrimitiveUpdate.ProjectionFields)
+                const translateToExpressionAttributeNames = Object.entries(projectedNames).reduce<Record<string, string>>((previous, [key, value]) => ({ ...previous, [value]: key }), {})
                 const replaceAttributeNames = (incoming: string): string => (
                     Object.entries(translateToExpressionAttributeNames).reduce<string>(
                         (previous, [key, translated]) => {
@@ -282,6 +288,8 @@ export const withTransaction = <KIncoming extends DBHandlerLegalKey, T extends s
                         incoming
                     )
                 )
+                // Explicit placeholders are already in the expression's final form: only merged, never substituted.
+                const ExpressionAttributeNames = { ...projectedNames, ...(item.PrimitiveUpdate.ExpressionAttributeNames ?? {}) }
                 return { ...none, items: [{
                     Update: {
                         TableName: this._tableName,

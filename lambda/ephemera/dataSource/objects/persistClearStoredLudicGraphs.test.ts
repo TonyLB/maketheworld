@@ -1,7 +1,9 @@
 const optimisticUpdateMock = jest.fn()
+const deleteItemMock = jest.fn()
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({
     ephemeraDB: {
         optimisticUpdate: (...args: unknown[]) => optimisticUpdateMock(...args),
+        deleteItem: (...args: unknown[]) => deleteItemMock(...args),
     },
 }))
 
@@ -67,6 +69,18 @@ describe('persistClearStoredLudicGraphs', () => {
         expect(draft.ludicGraph).toBeUndefined()
     })
 
+    it('deletes each cleared room\'s characters row (the graph that indexed it is gone), and no character\'s', async () => {
+        coyoteGameGetMock.mockResolvedValue(['VORTEX', 'CORNER'])
+        collectActiveCharactersInCoyoteRoomsMock.mockResolvedValue(['CHARACTER#Alice'])
+        optimisticUpdateMock.mockResolvedValue(undefined)
+
+        await persistClearStoredLudicGraphs()
+
+        expect(deleteItemMock).toHaveBeenCalledTimes(2)
+        expect(deleteItemMock).toHaveBeenCalledWith({ EphemeraId: 'ROOM#VORTEX', DataCategory: 'LudicCache::Characters' })
+        expect(deleteItemMock).toHaveBeenCalledWith({ EphemeraId: 'ROOM#CORNER', DataCategory: 'LudicCache::Characters' })
+    })
+
     it('is a no-op when there are no game rooms and no active characters', async () => {
         coyoteGameGetMock.mockResolvedValue([])
         collectActiveCharactersInCoyoteRoomsMock.mockResolvedValue([])
@@ -94,12 +108,14 @@ describe('persistClearStoredLudicGraphs', () => {
     it('accepts injected dependencies without touching the real cache or table', async () => {
         const clearRoomLudicGraph = jest.fn().mockResolvedValue(undefined)
         const clearCharacterLudicGraph = jest.fn().mockResolvedValue(undefined)
+        const clearRoomCharactersRow = jest.fn().mockResolvedValue(undefined)
 
         const result = await persistClearStoredLudicGraphs({
             getGameRooms: async () => ['BRIDGE'],
             getActiveCharactersInCoyoteRooms: async () => ['CHARACTER#Coyote'],
             clearRoomLudicGraph,
             clearCharacterLudicGraph,
+            clearRoomCharactersRow,
         })
 
         expect(result).toEqual({
@@ -109,6 +125,8 @@ describe('persistClearStoredLudicGraphs', () => {
         })
         expect(clearRoomLudicGraph).toHaveBeenCalledWith('ROOM#BRIDGE')
         expect(clearCharacterLudicGraph).toHaveBeenCalledWith('CHARACTER#Coyote')
+        expect(clearRoomCharactersRow).toHaveBeenCalledWith('ROOM#BRIDGE')
+        expect(deleteItemMock).not.toHaveBeenCalled()
         expect(coyoteGameGetMock).not.toHaveBeenCalled()
         expect(collectActiveCharactersInCoyoteRoomsMock).not.toHaveBeenCalled()
         expect(optimisticUpdateMock).not.toHaveBeenCalled()

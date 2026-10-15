@@ -108,6 +108,31 @@ describe('withTransactions', () => {
         ]})
     })
 
+    it('should merge explicit PrimitiveUpdate ExpressionAttributeNames with projected ones', async () => {
+        await dbHandler.transactWrite([
+            {
+                PrimitiveUpdate: {
+                    Key: { PrimaryKey: 'TestPrimitiveUpdate', DataCategory: 'PrimitiveUpdate' },
+                    UpdateExpression: 'SET #member0 = :member0, value = :done REMOVE #member1',
+                    ConditionExpression: 'attribute_not_exists(value)',
+                    ProjectionFields: ['value'],
+                    ExpressionAttributeNames: { '#member0': 'CHARACTER#Alpha', '#member1': 'CHARACTER#Beta' },
+                    ExpressionAttributeValues: { ':member0': ['PRESENCE#a1'], ':done': true }
+                }
+            }
+        ])
+        expect(dbMock.send.mock.calls[0][0].input).toEqual({ TransactItems: [
+            { Update: {
+                TableName: 'Ephemera',
+                Key: marshall({ EphemeraId: 'TestPrimitiveUpdate', DataCategory: 'PrimitiveUpdate' }),
+                UpdateExpression: 'SET #member0 = :member0, #value = :done REMOVE #member1',
+                ConditionExpression: 'attribute_not_exists(#value)',
+                ExpressionAttributeNames: { '#value': 'value', '#member0': 'CHARACTER#Alpha', '#member1': 'CHARACTER#Beta' },
+                ExpressionAttributeValues: marshall({ ':member0': ['PRESENCE#a1'], ':done': true })
+            }}
+        ]})
+    })
+
     it('should assign ExpressionAttributeName values correctly', async () => {
         getItemsMock.mockResolvedValueOnce([{ PrimaryKey: 'TestUpdate', DataCategory: 'Update' }])
         await dbHandler.transactWrite([

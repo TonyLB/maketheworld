@@ -10,6 +10,7 @@ import internalCache from '../../../../internalCache'
 import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import { publishLudicCacheInvalidatedStreamEvent, type PositionsPublishedPayload } from '../../publishedEvents'
+import { charactersRowItemsFor } from '../../ludicCache/charactersRow'
 import { roomsInvalidatedByHosts } from '../../ludicCache/roomsInvalidatedByHosts'
 import { ludicCacheMarkerBumpItems } from '../../ludicCache/store'
 import { EphemeraLudicGraph, graphFromMeta, hostDataCategory } from '../../ludicGraph'
@@ -84,7 +85,8 @@ const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
  * the sequence's net change (`membershipChangesOf`): a `Delete` for each host it left, a `Put` for each
  * host it arrived at. Membership counts bindings, so a host that keeps another binding of the mover
  * keeps its row. Plain, unconditioned sibling items; they ride the `MultiKeyUpdate`'s `cascade`
- * because only that sees the reducer's output.
+ * because only that sees the reducer's output. The same change list drives the rooms' `LudicCache::Characters`
+ * rows (`charactersRowItemsFor`), dual-written beside the room graph.
  */
 const adjacencyItemsFor = (changes: readonly MembershipChange[]): CommitStepSequenceTransactItem[] => changes.flatMap(({ entityId, left, arrived }) => [
     ...left.map((hostId) => ({ Delete: { EphemeraId: entityId, DataCategory: buildPositionAdjacencyDataCategory(hostId) } })),
@@ -259,11 +261,13 @@ export const commitStepSequence = async (
             ...((createSteps.length > 0 || movesMembership || (args.existenceItems ?? []).length > 0 || invalidatedRooms.length > 0)
                 ? {
                     cascade: () => {
+                        const changes = membershipChangesOf(steps, priorGraphs!, committedGraphs!)
                         const items = [
                             ...createSteps.map((step) => ({
                                 Put: { ...step.meta, ludicGraph: committedGraphs!.get(step.hostId)!.toStored() },
                             })),
-                            ...adjacencyItemsFor(membershipChangesOf(steps, priorGraphs!, committedGraphs!)),
+                            ...adjacencyItemsFor(changes),
+                            ...charactersRowItemsFor(changes, committedGraphs!),
                             ...(args.existenceItems ?? []),
                             ...ludicCacheMarkerBumpItems(invalidatedRooms),
                         ]

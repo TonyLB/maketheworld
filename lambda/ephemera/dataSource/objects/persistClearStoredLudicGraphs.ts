@@ -4,6 +4,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { RoomKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../internalCache'
+import { LUDIC_CACHE_CHARACTERS_DATA_CATEGORY } from '../positions/ludicCache/charactersRow'
 import { markRoomsStale } from '../positions/ludicCache/markStale'
 import { collectActiveCharactersInCoyoteRooms } from '../coyoteGame/utilities/collectActiveCharactersInCoyoteRooms'
 
@@ -12,6 +13,7 @@ export type PersistClearStoredLudicGraphsDependencies = {
     getActiveCharactersInCoyoteRooms?: () => Promise<EphemeraCharacterId[]>;
     clearRoomLudicGraph?: (roomId: EphemeraRoomId) => Promise<void>;
     clearCharacterLudicGraph?: (characterId: EphemeraCharacterId) => Promise<void>;
+    clearRoomCharactersRow?: (roomId: EphemeraRoomId) => Promise<void>;
     markRoomsStale?: (roomIds: EphemeraRoomId[]) => Promise<unknown>;
 }
 
@@ -23,6 +25,14 @@ const defaultClearRoomLudicGraph = async (roomId: EphemeraRoomId): Promise<void>
             delete draft.ludicGraph
         },
     })
+}
+
+/**
+ * The room's `LudicCache::Characters` row indexes the characters its graph holds, and the graph
+ * just lost them outside the kernel. An absent row is rebuilt from the graph on its next read.
+ */
+const defaultClearRoomCharactersRow = async (roomId: EphemeraRoomId): Promise<void> => {
+    await ephemeraDB.deleteItem({ EphemeraId: roomId, DataCategory: LUDIC_CACHE_CHARACTERS_DATA_CATEGORY })
 }
 
 const defaultClearCharacterLudicGraph = async (characterId: EphemeraCharacterId): Promise<void> => {
@@ -50,6 +60,7 @@ export const persistClearStoredLudicGraphs = async (
     const getActiveCharactersInCoyoteRooms = deps.getActiveCharactersInCoyoteRooms ?? collectActiveCharactersInCoyoteRooms
     const clearRoomLudicGraph = deps.clearRoomLudicGraph ?? defaultClearRoomLudicGraph
     const clearCharacterLudicGraph = deps.clearCharacterLudicGraph ?? defaultClearCharacterLudicGraph
+    const clearRoomCharactersRow = deps.clearRoomCharactersRow ?? defaultClearRoomCharactersRow
     const markStale = deps.markRoomsStale ?? markRoomsStale
 
     try {
@@ -59,6 +70,7 @@ export const persistClearStoredLudicGraphs = async (
 
         for (const roomId of roomIds) {
             await clearRoomLudicGraph(roomId)
+            await clearRoomCharactersRow(roomId)
         }
         for (const characterId of characterIds) {
             await clearCharacterLudicGraph(characterId)
