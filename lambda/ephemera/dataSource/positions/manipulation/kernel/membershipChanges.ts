@@ -1,6 +1,8 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { parentHostOf } from '../../ludicGraph/presenceParent'
+import { isBystanderMove } from './bystander'
 import type { MutationKernelStep } from './kernelStep'
 
 type Graphs = ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
@@ -29,6 +31,8 @@ const isPresenceWrite = (step: MutationKernelStep): step is Extract<MutationKern
  * before and after. Adjacency rows, the cache's containers and the moved fact all derive from this one
  * answer. A host is compared only to the movers it is not itself (a graph also holds its own root),
  * and a mover whose own graph was created or destroyed in the sequence compares like any other.
+ * **A bystander's Rooms are read from its own bindings** (the parent hosts its presence nodes point at),
+ * since a room's graph holds no node for it.
  * Movers with no net change are omitted.
  */
 export const membershipChangesOf = (
@@ -44,7 +48,13 @@ export const membershipChangesOf = (
     })
     const hostIds = [...new Set([...priorGraphs.keys(), ...committedGraphs.keys()])]
     return [...anchors].flatMap(([entityId, anchor]) => {
-        const heldIn = (graphs: Graphs) => new Set(hostIds.filter((hostId) => hostId !== entityId && graphs.get(hostId)?.nodeIds.has(entityId)))
+        const heldIn = (graphs: Graphs) => new Set([
+            ...hostIds.filter((hostId) => hostId !== entityId && !isBystanderMove(entityId, hostId) && graphs.get(hostId)?.nodeIds.has(entityId)),
+            ...(graphs.get(entityId)?.presenceNodes ?? []).flatMap((node) => {
+                const hostId = parentHostOf(node)
+                return hostId !== undefined && isBystanderMove(entityId, hostId) ? [hostId] : []
+            }),
+        ])
         const before = heldIn(priorGraphs)
         const after = heldIn(committedGraphs)
         const left = [...before].filter((hostId) => !after.has(hostId))

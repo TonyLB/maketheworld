@@ -6,6 +6,7 @@ import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { orchestrateCharacterMove } from '../../navigate/orchestrateCharacterMove'
 import { readRoomCharacters } from '../../ludicCache/charactersRow'
+import { migrateRoomBystanders } from './migrateRoomBystanders'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 
 export type RepairRoomOccupancyDriftArgs = {
@@ -20,6 +21,7 @@ export type RepairRoomOccupancyDriftDependencies = {
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
     applyMembership?: typeof orchestrateCharacterMove;
     syncAdjacency?: typeof syncMembershipAdjacencyToRoom;
+    migrateBystanders?: typeof migrateRoomBystanders;
 }
 
 const containersIncludeRoom = (containers: EphemeraRoomId[], roomId: EphemeraRoomId): boolean =>
@@ -43,6 +45,9 @@ export const repairRoomOccupancyDrift = async (
         })
     const applyMembership = deps?.applyMembership ?? orchestrateCharacterMove
     const syncAdjacency = deps?.syncAdjacency ?? syncMembershipAdjacencyToRoom
+
+    // A room graph written before bystanders left it still names its characters: hand them to the row first.
+    await (deps?.migrateBystanders ?? migrateRoomBystanders)(args.roomId)
 
     const characterIds = await (deps?.getRoomCharacters ?? readRoomCharacters)(args.roomId)
     let ghostsPurged = 0

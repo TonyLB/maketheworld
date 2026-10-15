@@ -183,6 +183,10 @@ describe('object containment In payoff (integration)', () => {
 
         ephemeraDBMock.getItem.mockImplementation(async ({ Key }: any) => {
             const graph = initialGraphsByHost[Key.EphemeraId]
+            // the room's characters row, standing in for what the fixtures' room graphs name
+            if (graph && Key.DataCategory === 'LudicCache::Characters') {
+                return Object.fromEntries([...graph.characterIds].map((characterId) => [characterId, []]))
+            }
             if (graph && (Key.DataCategory === 'Meta::Room' || Key.DataCategory === 'Meta::Object')) {
                 return { ludicGraph: graph.toStored() }
             }

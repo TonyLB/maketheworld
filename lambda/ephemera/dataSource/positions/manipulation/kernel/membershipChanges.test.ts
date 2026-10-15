@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -56,5 +56,33 @@ describe('membershipChangesOf', () => {
         expect(membershipChangesOf([release, { kind: 'destroyComponent', hostId: tray }], prior, after)).toEqual([
             { entityId: tray, left: [roomA], arrived: [], anchor: 0 },
         ])
+    })
+
+    describe('a bystander (a character at a Room)', () => {
+        const alpha = 'CHARACTER#Alpha' as EphemeraCharacterId
+        const ownAlpha = (...parents: EphemeraRoomId[]) => testLudicGraph(alpha as any, { nodes: parents.map((parent, index) => presenceBindingNode(`a${index}`, parent)) })
+        const alphaMove: MutationKernelStep = { kind: 'movePresenceBinding', hostId: alpha, presence: 'PRESENCE#a0' as any, from: { host: roomA, presence: parentRemainderKey(roomA) }, to: { host: roomB, presence: parentRemainderKey(roomB) } }
+
+        it('reads the rooms from its own bindings: the room graphs hold no node for it', () => {
+            const prior = graphs([alpha as any, ownAlpha(roomA)])
+            const after = graphs([alpha as any, ownAlpha(roomB)])
+
+            expect(membershipChangesOf([alphaMove], prior, after)).toEqual([{ entityId: alpha, left: [roomA], arrived: [roomB], anchor: 0 }])
+        })
+
+        it('reports a connect (a hostless binding placed in a room) as an arrival only', () => {
+            const hostless = testLudicGraph(alpha as any, { nodes: [presenceBindingNode('a0')] })
+            const connect: MutationKernelStep = { ...alphaMove, from: null } as MutationKernelStep
+
+            expect(membershipChangesOf([connect], graphs([alpha as any, hostless]), graphs([alpha as any, ownAlpha(roomB)]))).toEqual([
+                { entityId: alpha, left: [], arrived: [roomB], anchor: 0 },
+            ])
+        })
+
+        it('omits a bystander whose binding did not change room', () => {
+            const same = graphs([alpha as any, ownAlpha(roomA)])
+
+            expect(membershipChangesOf([alphaMove], same, same)).toEqual([])
+        })
     })
 })

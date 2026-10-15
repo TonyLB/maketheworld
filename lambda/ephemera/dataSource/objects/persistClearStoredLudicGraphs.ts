@@ -28,8 +28,8 @@ const defaultClearRoomLudicGraph = async (roomId: EphemeraRoomId): Promise<void>
 }
 
 /**
- * The room's `LudicCache::Characters` row indexes the characters its graph holds, and the graph
- * just lost them outside the kernel. An absent row is rebuilt from the graph on its next read.
+ * The room's `LudicCache::Characters` row indexes the characters present, and this reset disconnects them
+ * outside the kernel. An absent row is an empty room.
  */
 const defaultClearRoomCharactersRow = async (roomId: EphemeraRoomId): Promise<void> => {
     await ephemeraDB.deleteItem({ EphemeraId: roomId, DataCategory: LUDIC_CACHE_CHARACTERS_DATA_CATEGORY })

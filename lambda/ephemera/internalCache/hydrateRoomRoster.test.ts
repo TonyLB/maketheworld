@@ -142,10 +142,10 @@ describe('getRoomCharacterList', () => {
         fileURL: 'https://example.com/alpha.png',
     }
 
-    it('hydrates the roster from the complete characters row, reading no room graph', async () => {
+    it('hydrates the roster from the characters row, reading no room graph', async () => {
         ephemeraMock.getItem.mockImplementation(async ({ Key }) => {
             if (Key.DataCategory === 'LudicCache::Characters') {
-                return { EphemeraId: TOWN_SQUARE, DataCategory: 'LudicCache::Characters', complete: true, [CHARACTER_A]: ['PRESENCE#a1'] }
+                return { EphemeraId: TOWN_SQUARE, DataCategory: 'LudicCache::Characters', [CHARACTER_A]: ['PRESENCE#a1'] }
             }
             throw new Error(`Unexpected Dynamo read: ${Key.DataCategory}`)
         })
@@ -175,7 +175,7 @@ describe('getRoomCharacterList', () => {
                 nodes: [{ tag: 'Character', universalKey: CHARACTER_B }],
             })
         )
-        ephemeraMock.getItem.mockResolvedValue({ complete: true, [CHARACTER_A]: ['PRESENCE#a1'] })
+        ephemeraMock.getItem.mockResolvedValue({ [CHARACTER_A]: ['PRESENCE#a1'] })
         jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue(alphaMeta)
         jest.spyOn(internalCache.CharacterSessions, 'get').mockResolvedValue(['sess-1'])
 
@@ -183,24 +183,14 @@ describe('getRoomCharacterList', () => {
         expect(roster.map(({ EphemeraId }) => EphemeraId)).toEqual([CHARACTER_A])
     })
 
-    it('rebuilds an absent row from the room graph rather than answering empty', async () => {
-        ephemeraMock.getItem.mockImplementation(async ({ Key, ProjectionFields }) => {
+    it('answers an absent row as an empty room, without a rebuild', async () => {
+        ephemeraMock.getItem.mockImplementation(async ({ Key }) => {
             if (Key.DataCategory === 'LudicCache::Characters') {
                 return undefined
             }
-            if (ProjectionFields?.includes('ludicGraph')) {
-                return Key.EphemeraId === TOWN_SQUARE
-                    ? { ludicGraph: { nodes: [{ tag: 'Character', universalKey: CHARACTER_A }] } }
-                    : {}
-            }
             throw new Error(`Unexpected Dynamo read: ${Key.DataCategory}`)
         })
-        // the shared dynamoDB mock predates `strictPrimitiveUpdate`; the rebuild's completing write is a no-op here
-        ;(ephemeraMock as any).strictPrimitiveUpdate = jest.fn().mockResolvedValue(undefined)
-        jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue(alphaMeta)
-        jest.spyOn(internalCache.CharacterSessions, 'get').mockResolvedValue(['sess-1'])
 
-        const roster = await getRoomCharacterList(TOWN_SQUARE)
-        expect(roster.map(({ EphemeraId }) => EphemeraId)).toEqual([CHARACTER_A])
+        await expect(getRoomCharacterList(TOWN_SQUARE)).resolves.toEqual([])
     })
 })

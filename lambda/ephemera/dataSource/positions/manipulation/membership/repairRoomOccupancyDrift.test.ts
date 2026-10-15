@@ -27,7 +27,7 @@ describe('repairRoomOccupancyDrift', () => {
 
     const runRepair = () => repairRoomOccupancyDrift(
         { roomId: ROOM_ID, messageBus: messageBus as any, streamEvent },
-        { getRoomCharacters, getCharacterSessions, getMembershipContainers }
+        { getRoomCharacters, getCharacterSessions, getMembershipContainers, migrateBystanders: async () => 0 }
     )
 
     beforeEach(() => {

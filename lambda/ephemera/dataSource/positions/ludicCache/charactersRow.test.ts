@@ -13,7 +13,6 @@ import {
     bindingIdsInto,
     charactersRowItemsFor,
     readRoomCharacters,
-    rebuildCharactersRow,
 } from './charactersRow'
 
 const R1 = 'ROOM#Cafe' as EphemeraRoomId
@@ -77,78 +76,15 @@ describe('charactersRowItemsFor', () => {
 describe('readRoomCharacters', () => {
     const rows = (row: Record<string, unknown> | undefined) => ({ getRow: jest.fn(async () => row as any) })
 
-    it('reads a complete row without a rebuild', async () => {
-        const writeRebuild = jest.fn()
-        const getFreshLudicGraph = jest.fn()
-        expect(await readRoomCharacters(R1, { ...rows({ complete: true, [ALPHA]: ['PRESENCE#a1'], [BETA]: [] }), writeRebuild, getFreshLudicGraph })).toEqual([ALPHA, BETA])
-        expect(writeRebuild).not.toHaveBeenCalled()
-        expect(getFreshLudicGraph).not.toHaveBeenCalled()
+    it('lists the characters the row holds', async () => {
+        expect(await readRoomCharacters(R1, rows({ [ALPHA]: ['PRESENCE#a1'], [BETA]: [] }))).toEqual([ALPHA, BETA])
     })
 
-    it('rebuilds an absent row from the room graph and each character\'s bindings, never answering "nobody here"', async () => {
-        const graphs = graphsOf(roomGraph(R1, ALPHA, BETA), characterGraph(ALPHA, ['a1', R1]), characterGraph(BETA, ['b1', R1], ['b2', R2]))
-        const writeRebuild = jest.fn(async () => true)
-        const getRow = jest.fn()
-            .mockResolvedValueOnce(undefined)
-            .mockResolvedValueOnce({ complete: true, [ALPHA]: ['PRESENCE#a1'], [BETA]: ['PRESENCE#b1'] })
-        const ids = await readRoomCharacters(R1, { getRow, writeRebuild, getFreshLudicGraph: async (hostId) => graphs.get(hostId)! })
-        expect(ids).toEqual([ALPHA, BETA])
-        expect(writeRebuild).toHaveBeenCalledWith(R1, new Map([[ALPHA, ['PRESENCE#a1']], [BETA, ['PRESENCE#b1']]]))
+    it('an absent row is an empty room (the first arrival creates it): nothing is rebuilt', async () => {
+        expect(await readRoomCharacters(R1, rows(undefined))).toEqual([])
     })
 
-    it('treats a partial row (a kernel write beat the rebuild) as incomplete, and returns what the row holds once completed', async () => {
-        const graphs = graphsOf(roomGraph(R1, ALPHA, BETA), characterGraph(ALPHA, ['a1', R1]), characterGraph(BETA, ['b1', R1]))
-        const getRow = jest.fn()
-            .mockResolvedValueOnce({ [ALPHA]: ['PRESENCE#a1'] })
-            .mockResolvedValueOnce({ complete: true, [ALPHA]: ['PRESENCE#a1'], [BETA]: ['PRESENCE#b1'] })
-        const writeRebuild = jest.fn(async () => true)
-        expect(await readRoomCharacters(R1, { getRow, writeRebuild, getFreshLudicGraph: async (hostId) => graphs.get(hostId)! })).toEqual([ALPHA, BETA])
-        expect(writeRebuild).toHaveBeenCalledTimes(1)
-    })
-
-    it('returns an entry the kernel wrote after the rebuild read the graph (the re-read is of the stored row)', async () => {
-        const graphs = graphsOf(roomGraph(R1))
-        const getRow = jest.fn().mockResolvedValue({ complete: true, [ALPHA]: ['PRESENCE#a1'] })
-        expect(await rebuildCharactersRow(R1, { getRow, writeRebuild: async () => true, getFreshLudicGraph: async (hostId) => graphs.get(hostId)! })).toEqual([ALPHA])
-    })
-
-    it('an empty room rebuilds to a complete row with no characters', async () => {
-        const graphs = graphsOf(roomGraph(R1))
-        const writeRebuild = jest.fn(async () => true)
-        const getRow = jest.fn().mockResolvedValueOnce(undefined).mockResolvedValueOnce({ complete: true })
-        expect(await readRoomCharacters(R1, { getRow, writeRebuild, getFreshLudicGraph: async (hostId) => graphs.get(hostId)! })).toEqual([])
-        expect(writeRebuild).toHaveBeenCalledWith(R1, new Map())
-    })
-})
-
-describe('the rebuild write', () => {
-    const graphs = graphsOf(roomGraph(R1, ALPHA), characterGraph(ALPHA, ['a1', R1]))
-    const getFreshLudicGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId)!
-
-    beforeEach(() => {
-        jest.clearAllMocks()
-        ;(ephemeraDB as any).strictPrimitiveUpdate = jest.fn().mockResolvedValue(undefined)
-        jest.mocked(ephemeraDB.getItem).mockResolvedValue({ EphemeraId: R1, DataCategory: LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, complete: true, [ALPHA]: ['PRESENCE#a1'] } as any)
-    })
-
-    it('completes the row with if_not_exists per character, only while it is incomplete, so a concurrent kernel SET survives', async () => {
-        expect(await rebuildCharactersRow(R1, { getFreshLudicGraph })).toEqual([ALPHA])
-        expect((ephemeraDB as any).strictPrimitiveUpdate).toHaveBeenCalledWith({
-            Key: { EphemeraId: R1, DataCategory: LUDIC_CACHE_CHARACTERS_DATA_CATEGORY },
-            UpdateExpression: 'SET #complete = :complete, #c0 = if_not_exists(#c0, :b0)',
-            ConditionExpression: 'attribute_not_exists(#complete)',
-            ExpressionAttributeNames: { '#complete': 'complete', '#c0': ALPHA },
-            ExpressionAttributeValues: { ':complete': { BOOL: true }, ':b0': { L: [{ S: 'PRESENCE#a1' }] } },
-        })
-    })
-
-    it('is not an error when the row was completed first: it reads what is there', async () => {
-        ;(ephemeraDB as any).strictPrimitiveUpdate.mockRejectedValue(Object.assign(new Error('refused'), { name: 'ConditionalCheckFailedException' }))
-        expect(await rebuildCharactersRow(R1, { getFreshLudicGraph })).toEqual([ALPHA])
-    })
-
-    it('throws any other failure rather than answering from an unwritten row', async () => {
-        ;(ephemeraDB as any).strictPrimitiveUpdate.mockRejectedValue(new Error('throttled'))
-        await expect(rebuildCharactersRow(R1, { getFreshLudicGraph })).rejects.toThrow('throttled')
+    it('ignores the row\'s key attributes', async () => {
+        expect(await readRoomCharacters(R1, rows({ EphemeraId: R1, DataCategory: LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, [ALPHA]: ['PRESENCE#a1'] }))).toEqual([ALPHA])
     })
 })

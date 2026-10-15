@@ -258,7 +258,7 @@ export type LudicCacheRead = {
     outcome: LudicCacheReadOutcome
     /**
      * The characters row, when `withCharacters` was set and it exists: as stored by the read that found the
-     * cache current (or the last read, on a rebuild), so it may be partial; check `isCompleteCharactersRow`.
+     * cache current (or the last read, on a rebuild), `undefined` when the room has no row (nobody has entered it).
      */
     characters?: Partial<LudicCacheCharactersRow>
 }

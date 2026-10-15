@@ -257,79 +257,67 @@ describe('applyStepSequenceCore', () => {
         })
     })
 
-    describe('BD-36 entity-kind split', () => {
-        it('a character move: legal via addCharacter/removeCharacter, no boundary-edge involvement', () => {
-            const sourceGraph = hostHolding(roomId, character(characterId))
-            const destGraph = hostHolding(otherRoomId)
+    describe('bystanders (a character at a Room)', () => {
+        it('a character move writes the mover only: neither room graph changes, and neither need be in the footprint', () => {
             const steps: MutationKernelStep[] = [
                 moveStep(characterId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(otherRoomId)),
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, destGraph], [characterId, moverAt(characterId, roomId)]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([characterId, moverAt(characterId, roomId)]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(roomId)!.characterIds.has(characterId)).toBe(false)
-            expect(outcome.graphs.get(otherRoomId)!.characterIds.has(characterId)).toBe(true)
+            expect([...outcome.graphs.keys()]).toEqual([characterId])
+            expect(outcome.graphs.get(characterId)!.presenceNodes).toEqual([presenceBindingNode('p1', otherRoomId)])
         })
 
-        it('stale character candidate: character absent from the host it leaves', () => {
+        it('a character move does not confirm the destination binding (pointers govern)', () => {
             const steps: MutationKernelStep[] = [
                 moveStep(characterId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(otherRoomId)),
             ]
-            expect(applyStepSequenceCore(steps, graphsMap([roomId, hostHolding(roomId)], [otherRoomId, hostHolding(otherRoomId)], [characterId, moverAt(characterId, roomId)]))).toEqual({
+
+            const outcome = applyStepSequenceCore(steps, graphsMap([characterId, moverAt(characterId, roomId)], [otherRoomId, testLudicGraph(otherRoomId, { nodes: [] })]))
+
+            expect(outcome.verdict).toBe('legal')
+        })
+
+        it("the mover's own binding check still gates a move: a binding that no longer sits under `from` is stale", () => {
+            const steps: MutationKernelStep[] = [
+                moveStep(characterId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(otherRoomId)),
+            ]
+
+            expect(applyStepSequenceCore(steps, graphsMap([characterId, moverAt(characterId, otherRoomId)]))).toEqual({
                 verdict: 'stale',
-                reasonCode: 'staleTransferCandidate',
+                reasonCode: 'presenceBindingMoved',
             })
         })
 
-        it("removeCharacter's vacuous assert never spuriously fires on an unrelated object-object edge", () => {
-            const sourceGraph = testLudicGraph(roomId, {
-                nodes: [
-                    { tag: 'Character', universalKey: characterId },
-                    { tag: 'Object', universalKey: trayId },
-                    { tag: 'Object', universalKey: tableId },
-                ],
-                edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
-            })
-            const steps: MutationKernelStep[] = [
-                moveStep(characterId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(otherRoomId)),
-            ]
-
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, hostHolding(otherRoomId)], [characterId, moverAt(characterId, roomId)]))
-
-            expect(outcome.verdict).toBe('legal')
-            if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(roomId)!.relationalEdges).toEqual([{ from: trayId, to: tableId, kind: 'On' }])
-            expect(outcome.graphs.get(otherRoomId)!.characterIds.has(characterId)).toBe(true)
-        })
-
-        it('a character release (disconnect-shaped): leaves the room, keeping its binding hostless', () => {
+        it('a character release (disconnect-shaped) keeps its binding hostless and writes no room graph', () => {
             const steps: MutationKernelStep[] = [releaseStep(characterId, 'PRESENCE#p1', remainderOf(roomId))]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, hostHolding(roomId, character(characterId))], [characterId, moverAt(characterId, roomId)]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([characterId, moverAt(characterId, roomId)]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(roomId)!.characterIds.has(characterId)).toBe(false)
             expect(outcome.graphs.get(characterId)!.presenceNodes).toEqual([presenceBindingNode('p1')])
         })
 
-        it('a first placement (from: null, connect-shaped): adds the character to the destination only', () => {
+        it('a first placement (from: null, connect-shaped) writes the mover only', () => {
             const steps: MutationKernelStep[] = [moveStep(characterId, 'PRESENCE#p1', null, remainderOf(roomId))]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, hostHolding(roomId)], [characterId, testLudicGraph(characterId, { nodes: [presenceBindingNode('p1')] })]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([characterId, testLudicGraph(characterId, { nodes: [presenceBindingNode('p1')] })]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(roomId)!.characterIds.has(characterId)).toBe(true)
+            expect([...outcome.graphs.keys()]).toEqual([characterId])
+            expect(outcome.graphs.get(characterId)!.presenceNodes).toEqual([presenceBindingNode('p1', roomId)])
         })
 
-        it('a character release is stale (staleTransferCandidate) when the character is already absent from the host', () => {
+        it('a character release is stale (presenceBindingMoved) when the binding no longer sits under the room', () => {
             const steps: MutationKernelStep[] = [releaseStep(characterId, 'PRESENCE#p1', remainderOf(roomId))]
-            expect(applyStepSequenceCore(steps, graphsMap([roomId, hostHolding(roomId)], [characterId, moverAt(characterId, roomId)]))).toEqual({
+            expect(applyStepSequenceCore(steps, graphsMap([characterId, moverAt(characterId, otherRoomId)]))).toEqual({
                 verdict: 'stale',
-                reasonCode: 'staleTransferCandidate',
+                reasonCode: 'presenceBindingMoved',
             })
         })
     })
@@ -617,41 +605,41 @@ describe('applyStepSequenceCore', () => {
     })
 
     describe('capture step', () => {
+        const occupantsOf = (...entries: [EphemeraMembershipHostId, EphemeraCharacterId[]][]) => new Map(entries)
+
         it('a capture before a mutation step snapshots the entity as still present', () => {
-            const roomGraph = hostHolding(roomId, character(characterId))
-            const otherRoomGraph = hostHolding(otherRoomId)
             const steps: MutationKernelStep[] = [
                 { kind: 'capture', hostId: roomId, captureId: 'before' },
                 moveStep(characterId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(otherRoomId)),
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph], [characterId, moverAt(characterId, roomId)]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([characterId, moverAt(characterId, roomId)]), occupantsOf([roomId, [characterId]], [otherRoomId, []]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.captures.get('before')).toEqual([characterId])
         })
 
-        it('the same capture placed after the mutation does not see the entity', () => {
-            const roomGraph = hostHolding(roomId, character(characterId))
-            const otherRoomGraph = hostHolding(otherRoomId)
+        it('the same capture placed after the mutation does not see the entity, and the destination does', () => {
             const steps: MutationKernelStep[] = [
                 moveStep(characterId, 'PRESENCE#p1', remainderOf(roomId), remainderOf(otherRoomId)),
                 { kind: 'capture', hostId: roomId, captureId: 'after' },
+                { kind: 'capture', hostId: otherRoomId, captureId: 'arrived' },
             ]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [otherRoomId, otherRoomGraph], [characterId, moverAt(characterId, roomId)]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([characterId, moverAt(characterId, roomId)]), occupantsOf([roomId, [characterId]], [otherRoomId, []]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.captures.get('after')).toEqual([])
+            expect(outcome.captures.get('arrived')).toEqual([characterId])
         })
 
-        it('a capture naming a host absent from the graphs map is illegal (hostNotInFootprint)', () => {
+        it('a capture naming a host with no resolved occupants is illegal (hostNotInFootprint)', () => {
             const roomGraph = testLudicGraph(roomId, { nodes: [] })
             const steps: MutationKernelStep[] = [{ kind: 'capture', hostId: otherRoomId, captureId: 'missing' }]
 
-            expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))).toEqual({
+            expect(applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]), occupantsOf([roomId, []]))).toEqual({
                 verdict: 'stale',
                 reasonCode: 'hostNotInFootprint',
             })
@@ -661,7 +649,7 @@ describe('applyStepSequenceCore', () => {
             const roomGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Character', universalKey: characterId }] })
             const steps: MutationKernelStep[] = [{ kind: 'capture', hostId: roomId, captureId: 'only' }]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph]), occupantsOf([roomId, []]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
@@ -1040,7 +1028,7 @@ describe('applyStepSequenceCore', () => {
             it('leaves alone a graph the run did not write, even if storage already held the duplicate', () => {
                 const world = graphsMap([trayId, twoUnderOneParent()], [roomId, hostHolding(roomId, object(trayId))])
 
-                expect(applyStepSequenceCore([{ kind: 'capture', hostId: roomId, captureId: 'c' } as MutationKernelStep], world).verdict).toBe('legal')
+                expect(applyStepSequenceCore([{ kind: 'capture', hostId: roomId, captureId: 'c' } as MutationKernelStep], world, new Map([[roomId, []]])).verdict).toBe('legal')
             })
         })
 

@@ -27,7 +27,7 @@ const alphaBinding = PresenceKey('alpha-in-kitchen')
 const tableBinding = PresenceKey('table-in-kitchen')
 
 const graphsBeforeMove = (): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-    [roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }, { tag: 'Character', universalKey: alphaId }] })],
+    [roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }] })],
     [tableId, testLudicGraph(tableId, {
         nodes: [
             { tag: 'Object', universalKey: cupId },
@@ -46,7 +46,7 @@ const graphsBeforeMove = (): Map<EphemeraMembershipHostId, EphemeraLudicGraph> =
 
 /** The cup picked off the table and put on the floor. */
 const graphsAfterMove = (): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-    [roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }, { tag: 'Object', universalKey: cupId }, { tag: 'Character', universalKey: alphaId }] })],
+    [roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }, { tag: 'Object', universalKey: cupId }] })],
     [tableId, testLudicGraph(tableId, {
         nodes: [
             { tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } },

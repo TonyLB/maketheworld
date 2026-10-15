@@ -36,7 +36,7 @@ const mockAffordanceRow = (
 }
 
 const mockRoomObjectContents = (rows: RoomObjectWithContents[], objectIds: string[] = rows.map(({ objectId }) => objectId)) => {
-    const reader = jest.fn().mockResolvedValue({ objectIds, objects: rows })
+    const reader = jest.fn().mockResolvedValue({ objectIds, objects: rows, characterIds: [] })
     ;(internalCache.AffordanceRoomDeliverable as any)._objectReads.getRoomObjectContents = reader
     return reader
 }
@@ -73,7 +73,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
             mockAffordanceRow('ROOM#ParityOne', assetStack, [])
         )
-        jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([
+        jest.spyOn(hydrateRoomRosterModule, 'hydrateRoomRosterFromCharacterIds').mockResolvedValue([
             { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', Color: 'purple', SessionIds: [] },
         ])
 
@@ -103,10 +103,15 @@ describe('AffordanceRoomDeliverable cache handler', () => {
                 },
             ])
             jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(mockAffordanceRow(roomId, assetStack, []))
-            const reader = jest.fn().mockResolvedValue({ objectIds: [], objects: [], ...readerResult })
+            const reader = jest.fn().mockResolvedValue({ objectIds: [], objects: [], characterIds: [], ...readerResult })
             ;(internalCache.AffordanceRoomDeliverable as any)._objectReads.getRoomObjectContents = reader
             return getForStack(roomId, assetStack)
         }
+
+        // earlier tests stub the hydration; these exercise the real one
+        beforeEach(() => {
+            jest.spyOn(hydrateRoomRosterModule, 'hydrateRoomRosterFromCharacterIds').mockRestore()
+        })
 
         it('comes from the characters row the cache reader returned, reading no room graph', async () => {
             const rosterSpy = jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList')
@@ -120,18 +125,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
             expect(getLudicGraphSpy).not.toHaveBeenCalled()
         })
 
-        it('falls back to the roster read (which rebuilds the row) when the reader returned none', async () => {
-            const rosterSpy = jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([
-                { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', SessionIds: [] },
-            ])
-
-            const merged = await setup('ROOM#RosterFallback', {})
-
-            expect(rosterSpy).toHaveBeenCalledWith('ROOM#RosterFallback')
-            expect(schemaToWML([merged.schema])).toContain('<Character uuid=(TESS) />')
-        })
-
-        it('is empty, not rebuilt, when the row is complete with nobody in it', async () => {
+        it('is empty when the row lists nobody', async () => {
             const rosterSpy = jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList')
 
             const merged = await setup('ROOM#RosterEmpty', { characterIds: [] })
@@ -167,7 +161,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
                 },
             ])
         )
-        jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
+        jest.spyOn(hydrateRoomRosterModule, 'hydrateRoomRosterFromCharacterIds').mockResolvedValue([])
 
         const merged = await getForStack('ROOM#MergeTwo', assetStack)
 
@@ -203,7 +197,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
             mockAffordanceRow(roomId, assetStack, [])
         )
-        jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
+        jest.spyOn(hydrateRoomRosterModule, 'hydrateRoomRosterFromCharacterIds').mockResolvedValue([])
 
         await internalCache.AffordanceRoomDeliverable.get(roomId, perspectiveKey)
 
@@ -234,7 +228,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
             mockAffordanceRow(roomId, assetStack, [])
         )
-        jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
+        jest.spyOn(hydrateRoomRosterModule, 'hydrateRoomRosterFromCharacterIds').mockResolvedValue([])
 
         await internalCache.AffordanceRoomDeliverable.get(roomId, perspectiveKey)
         await internalCache.AffordanceRoomDeliverable.get(roomId, perspectiveKey)
@@ -292,7 +286,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
                 },
             ])
         )
-        jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
+        jest.spyOn(hydrateRoomRosterModule, 'hydrateRoomRosterFromCharacterIds').mockResolvedValue([])
 
         const merged = await getForStack(roomId, assetStack)
         const wml = schemaToWML([merged.schema])
@@ -319,7 +313,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
             mockAffordanceRow('ROOM#ObjRoom', assetStack, [])
         )
-        jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
+        jest.spyOn(hydrateRoomRosterModule, 'hydrateRoomRosterFromCharacterIds').mockResolvedValue([])
         mockRoomObjectContents([{ objectId: 'OBJECT#foo', shortName: 'A lamp', contents: [] }])
 
         const merged = await getForStack('ROOM#ObjRoom', assetStack)
@@ -339,7 +333,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
             },
         ])
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(mockAffordanceRow('ROOM#ObjRoom', assetStack, []))
-        jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
+        jest.spyOn(hydrateRoomRosterModule, 'hydrateRoomRosterFromCharacterIds').mockResolvedValue([])
         mockRoomObjectContents([], [])
 
         await getForStack('ROOM#ObjRoom', assetStack)
@@ -366,7 +360,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
             jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(
                 mockAffordanceRow('ROOM#ObjRoom', assetStack, [])
             )
-            jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
+            jest.spyOn(hydrateRoomRosterModule, 'hydrateRoomRosterFromCharacterIds').mockResolvedValue([])
             const reader = mockRoomObjectContents(rows, objectIds)
             const merged = await getForStack('ROOM#ObjRoom', assetStack)
             // Reparse as the client does: the printed form, not the built one.
@@ -436,7 +430,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         const roomId = 'ROOM#Missing' as const
         const perspectiveKey = computePerspectiveKey(['ASSET#Base'])
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(undefined)
-        jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
+        jest.spyOn(hydrateRoomRosterModule, 'hydrateRoomRosterFromCharacterIds').mockResolvedValue([])
 
         await expect(
             (internalCache.AffordanceRoomDeliverable as any)._getPromiseFactory(roomId, perspectiveKey)
@@ -466,7 +460,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockImplementation(
             async (roomId, _perspectiveKey) => mockAffordanceRow(roomId, assetStack, [])
         )
-        jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
+        jest.spyOn(hydrateRoomRosterModule, 'hydrateRoomRosterFromCharacterIds').mockResolvedValue([])
 
         await internalCache.AffordanceRoomDeliverable.get(roomA, perspectiveKey)
         await internalCache.AffordanceRoomDeliverable.get(roomB, perspectiveKey)

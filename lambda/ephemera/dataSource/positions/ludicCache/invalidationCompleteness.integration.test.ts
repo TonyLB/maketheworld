@@ -52,6 +52,7 @@ import { populateContainmentAtCache } from '../manipulation/containment/populate
 import { persistClearStoredLudicGraphs } from '../../objects/persistClearStoredLudicGraphs'
 import { buildLudicCache } from './fold'
 import { LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, bindingIdsInto, readRoomCharacters } from './charactersRow'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraLudicCacheData } from './types'
 import {
     LUDIC_CACHE_VERSION_DATA_CATEGORY,
@@ -81,7 +82,7 @@ type World = {
     graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>
     markers: Map<EphemeraRoomId, number>
     rows: Map<EphemeraRoomId, { builtAtVersion: number; cache: LudicCacheRow['cache'] }>
-    /** Each room's `LudicCache::Characters` row (membership attributes and `complete`), as a rebuild would have left it. */
+    /** Each room's `LudicCache::Characters` row (one membership attribute per present character). */
     characterRows: Map<EphemeraRoomId, Record<string, unknown>>
     names: Record<string, string>
     /** Which rooms the asset (by id) is used by, for a zone change. */
@@ -99,7 +100,7 @@ const hostBinding = (name: string, parent: EphemeraMembershipHostId | ReturnType
 const freshWorld = (): World => {
     const room = (id: EphemeraRoomId, ...nodes: any[]) => testLudicGraph(id, { nodes: [{ tag: 'Room', universalKey: id }, ...nodes, presenceBindingNode(parentRemainderKey(id))] })
     const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-        [R1, room(R1, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, { tag: 'Character', universalKey: ALPHA })],
+        [R1, room(R1, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX })],
         [R2, room(R2)],
         [TABLE, testLudicGraph(TABLE, {
             nodes: [
@@ -120,8 +121,8 @@ const freshWorld = (): World => {
         markers: new Map(),
         rows: new Map(),
         characterRows: new Map<EphemeraRoomId, Record<string, unknown>>([
-            [R1, { complete: true, [ALPHA]: ['PRESENCE#alpha1'] }],
-            [R2, { complete: true }],
+            [R1, { [ALPHA]: ['PRESENCE#alpha1'] }],
+            [R2, {}],
         ]),
         names: { [TABLE]: 'Table', [CUP]: 'Cup', [SAUCER]: 'Saucer', [BOX]: 'Box', [LAMP]: 'Lamp', [MUG]: 'Mug', [R1]: 'Cafe', [R2]: 'Terrace', [ALPHA]: 'Alpha' },
         assetRooms: { 'ASSET#test-asset': [R1, R2] },
@@ -284,40 +285,26 @@ const readDeps = () => ({
     runSingleFlight: async ({ computation }: any) => computation(),
 })
 
-/** The characters row's leaf, held in memory: the rebuild's `if_not_exists` write applied as DynamoDB would. */
+/** The characters row's leaf, held in memory. */
 const charactersRowDeps = () => ({
     getRow: async (roomId: EphemeraRoomId) => structuredClone(world.characterRows.get(roomId)) as any,
-    getFreshLudicGraph: freshGraph,
-    writeRebuild: async (roomId: EphemeraRoomId, membership: ReadonlyMap<EphemeraCharacterId, string[]>) => {
-        const row = { ...(world.characterRows.get(roomId) ?? {}) }
-        if (row.complete === true) {
-            return false
-        }
-        for (const [characterId, bindingIds] of membership) {
-            if (!(characterId in row)) {
-                row[characterId] = bindingIds
-            }
-        }
-        row.complete = true
-        world.characterRows.set(roomId, row)
-        return true
-    },
 })
 
 /**
- * The dual-write invariant (bystander separation, Slice 2): read the way a reader does (an absent row
- * is rebuilt), a room's characters row names exactly the characters its graph holds, each with its
- * own bindings into the room. This is the safety net under Slice 3 moving readers onto the row.
+ * The dual-index invariant (bystander separation): a room's characters row names exactly the characters
+ * whose own bindings point at the room, each with those binding ids. The character's pointer governs,
+ * so this is the row's correctness condition after every change. Room graphs hold no character.
  */
-const expectCharactersRowToEqualGraph = async (roomId: EphemeraRoomId) => {
-    const inGraph = [...(world.graphs.get(roomId)?.characterIds ?? [])].sort()
-    expect([...await readRoomCharacters(roomId, charactersRowDeps())].sort()).toEqual(inGraph)
-    const { complete, ...members } = world.characterRows.get(roomId) ?? {}
-    expect(complete).toBe(true)
-    expect(Object.keys(members).sort()).toEqual(inGraph)
-    for (const characterId of inGraph) {
-        expect(members[characterId]).toEqual(bindingIdsInto(world.graphs.get(characterId as any)!, roomId))
+const expectCharactersRowToMatchPointers = async (roomId: EphemeraRoomId) => {
+    const present = [...world.graphs.keys()]
+        .filter((hostId): hostId is EphemeraCharacterId => isEphemeraCharacterId(hostId))
+        .filter((characterId) => bindingIdsInto(world.graphs.get(characterId)!, roomId).length > 0)
+        .sort()
+    expect([...await readRoomCharacters(roomId, charactersRowDeps())].sort()).toEqual(present)
+    for (const characterId of present) {
+        expect(world.characterRows.get(roomId)?.[characterId]).toEqual(bindingIdsInto(world.graphs.get(characterId)!, roomId))
     }
+    expect([...(world.graphs.get(roomId)?.characterIds ?? [])]).toEqual([])
 }
 
 const stored = (roomId: EphemeraRoomId) => readLudicCacheWithOutcome(roomId, readDeps())
@@ -367,6 +354,8 @@ type Case = {
     rooms: EphemeraRoomId[]
     /** The change shows in the cache itself, not just the marker (proves the case is not vacuous). */
     changesCache: boolean
+    /** A bystander-only change: no room marker moves at all. */
+    marksNothing?: boolean
     act: () => Promise<unknown>
 }
 
@@ -379,10 +368,11 @@ const cases: Case[] = [
         act: () => commit([move(CUP, 'cup1', ref(TABLE, 'PRESENCE#tbl'), remainder(R1))]),
     },
     {
-        name: 'a character moves between rooms',
+        name: 'a character moves between rooms (a bystander: no room is marked)',
         kinds: ['movePresenceBinding'],
-        rooms: [R1, R2],
-        changesCache: true,
+        rooms: [],
+        changesCache: false,
+        marksNothing: true,
         act: () => commit([move(ALPHA, 'alpha1', remainder(R1), remainder(R2))]),
     },
     {
@@ -471,7 +461,7 @@ const cases: Case[] = [
         world: () => {
             const base = freshWorld()
             base.graphs.set(R1, testLudicGraph(R1, {
-                nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, { tag: 'Character', universalKey: ALPHA }, presenceBindingNode(parentRemainderKey(R1))],
+                nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
                 edges: [{ tag: 'Relational', from: BOX, to: TABLE, kind: 'Custom', relationLabel: 'tied to' }],
             }))
             return base
@@ -513,14 +503,31 @@ const cases: Case[] = [
         changesCache: true,
         act: () => persistClearStoredLudicGraphs({
             getGameRooms: async () => ['Cafe'],
-            getActiveCharactersInCoyoteRooms: async () => [],
+            getActiveCharactersInCoyoteRooms: async () => [ALPHA],
         }),
+    },
+    {
+        name: 'a character arrives in the same commit that moves an object in the room (the object marks the room)',
+        kinds: ['movePresenceBinding'],
+        world: () => {
+            const base = freshWorld()
+            base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('alpha1')] }))
+            base.characterRows.set(R1, {})
+            return base
+        },
+        rooms: [R1],
+        changesCache: true,
+        act: () => commit([
+            move(ALPHA, 'alpha1', null, remainder(R1)),
+            move(CUP, 'cup1', ref(TABLE, 'PRESENCE#tbl'), remainder(R1)),
+        ]),
     },
     {
         name: 'a character disconnects (its binding is released from the room)',
         kinds: ['releasePresenceBinding'],
-        rooms: [R1],
-        changesCache: true,
+        rooms: [],
+        changesCache: false,
+        marksNothing: true,
         act: () => commit([{ kind: 'releasePresenceBinding', hostId: ALPHA, presence: 'PRESENCE#alpha1' as any, from: remainder(R1) }]),
     },
     {
@@ -532,11 +539,12 @@ const cases: Case[] = [
                 nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
             }))
             base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('alpha1')] }))
-            base.characterRows.set(R1, { complete: true })
+            base.characterRows.set(R1, {})
             return base
         },
-        rooms: [R1],
-        changesCache: true,
+        rooms: [],
+        changesCache: false,
+        marksNothing: true,
         act: () => commit([move(ALPHA, 'alpha1', null, remainder(R1))]),
     },
     {
@@ -551,7 +559,8 @@ const cases: Case[] = [
     {
         name: 'a character is renamed',
         rooms: [R1],
-        changesCache: true,
+        // the cache holds no character any more; the room is still marked until Slice 5 (BS-3) so the header refreshes
+        changesCache: false,
         act: async () => {
             world.names[ALPHA] = 'Alpha Prime'
             await receive(componentUpdated(componentOf(ALPHA)))
@@ -632,6 +641,9 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         for (const roomId of testCase.rooms) {
             expect(world.markers.get(roomId) ?? 0).toBeGreaterThan(markersBefore.get(roomId) ?? 0)
         }
+        if (testCase.marksNothing) {
+            expect(world.markers).toEqual(markersBefore)
+        }
         for (const roomId of [R1, R2]) {
             const read = await stored(roomId)
             expect(read.cache).toEqual(await cold(roomId))
@@ -641,7 +653,7 @@ describe('invalidation completeness: a read after any change equals a cold rebui
                     expect(read.cache).not.toEqual(before.get(roomId))
                 }
             }
-            await expectCharactersRowToEqualGraph(roomId)
+            await expectCharactersRowToMatchPointers(roomId)
         }
     })
 
@@ -669,9 +681,9 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         const read = await stored(R1)
         expect(read.outcome).toBe('hit')
         expect(read.cache).toEqual(await cold(R1))
-        // the character is in the room's cache (as a leaf), and what it carries is not
+        // neither the character (a bystander is in the characters row, not the cache) nor what it carries is in the room's cache
         const held = read.cache.nodes.map(({ universalKey }) => universalKey)
-        expect(held).toContain(ALPHA)
+        expect(held).not.toContain(ALPHA)
         expect(held).not.toContain(POUCH)
         expect(held).not.toContain(HAT)
     })
@@ -682,7 +694,7 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         world.names[POUCH] = 'Pouch'
         world.names[BETA] = 'Beta'
         world.graphs.set(R1, testLudicGraph(R1, {
-            nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, { tag: 'Character', universalKey: ALPHA }, { tag: 'Character', universalKey: BETA }, presenceBindingNode(parentRemainderKey(R1))],
+            nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
         }))
         world.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('alpha1', R1, [entry(POUCH, 'PRESENCE#pch1')])] }))
         world.graphs.set(BETA as any, testLudicGraph(BETA as any, { nodes: [hostBinding('beta1', R1)] }))

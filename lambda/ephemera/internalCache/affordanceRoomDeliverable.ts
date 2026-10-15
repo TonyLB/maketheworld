@@ -12,7 +12,7 @@ import { appendImprovisationToPerspective } from '@tonylb/mtw-interfaces/ts/pers
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
-import { getRoomCharacterList, hydrateRoomRosterFromCharacterIds } from './hydrateRoomRoster'
+import { hydrateRoomRosterFromCharacterIds } from './hydrateRoomRoster'
 import { roomCharacterListToStandardCharacterData } from './roomWireMergeHelpers'
 import type { StandardObjectData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/object'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
@@ -101,9 +101,8 @@ export class AffordanceRoomDeliverableData {
         }
 
         // The structural rows (cache, and the characters row for the roster) travel in one `getItems`, so the header reads no `Meta::Room`.
-        // A missing or incomplete characters row comes back without a roster: `getRoomCharacterList` then rebuilds it.
         const { objectIds, objects: roomObjects, characterIds } = await this._objectReads.getRoomObjectContents(roomId, affordanceRow.assetStack)
-        const roomCharacterList = await (characterIds ? hydrateRoomRosterFromCharacterIds(characterIds) : getRoomCharacterList(roomId))
+        const roomCharacterList = await hydrateRoomRosterFromCharacterIds(characterIds)
         const mergeParticipationOrder = appendImprovisationToPerspective(
             affordanceRow.assetStack,
             objectIds

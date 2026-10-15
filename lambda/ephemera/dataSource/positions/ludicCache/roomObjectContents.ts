@@ -22,7 +22,7 @@ import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/asse
 
 import internalCache from '../../../internalCache'
 import { resolveComponentShortName } from '../../objects/objectShortName'
-import { characterIdsOf, isCompleteCharactersRow } from './charactersRowShape'
+import { characterIdsOf } from './charactersRowShape'
 import { readLudicCacheWithOutcome } from './store'
 
 export type RoomObjectContent = {
@@ -38,11 +38,8 @@ export type RoomObjectsRead = {
     /** Every room-level Object with a stored `shortName`, before any viewer label is resolved (the improvisation order's input). */
     objectIds: EphemeraObjectId[]
     objects: RoomObjectWithContents[]
-    /**
-     * The room's present characters, from the characters row read in the same `getItems` as the cache. Absent when
-     * the row was missing or not yet complete: the caller then falls back to `readRoomCharacters`, which rebuilds it.
-     */
-    characterIds?: EphemeraCharacterId[]
+    /** The room's present characters, from the characters row read in the same `getItems` as the cache (no row: nobody here). */
+    characterIds: EphemeraCharacterId[]
 }
 
 export type RoomObjectContentsDeps = {
@@ -86,5 +83,5 @@ export const ludicCacheRoomObjectContents = async (
         const object = labelled(objectId)
         return object ? [{ ...object, contents: contents.flatMap((content) => labelled(content) ?? []) }] : []
     })
-    return { objectIds: roomObjectIds, objects, ...(isCompleteCharactersRow(characters) ? { characterIds: characterIdsOf(characters) } : {}) }
+    return { objectIds: roomObjectIds, objects, characterIds: characterIdsOf(characters ?? {}) }
 }

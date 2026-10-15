@@ -26,22 +26,41 @@ export const listGraphCharacterIds = (ludicGraph: unknown): string[] => {
 }
 
 /**
- * Graph-forward occupancy drift for one room.
- * Per character node on the room ludicGraph:
- * - drift when no live sessions (ghost on graph), or
+ * The characters a `LudicCache::Characters` row lists: one top-level attribute per present character,
+ * keyed by its id and holding its binding ids. Key attributes and anything else are ignored.
+ */
+export const listRowCharacterIds = (row: unknown): string[] => (
+    row !== null && typeof row === 'object'
+        ? Object.entries(row as Record<string, unknown>)
+            .filter(([key, value]) => isEphemeraCharacterId(key) && Array.isArray(value))
+            .map(([key]) => key)
+        : []
+)
+
+/**
+ * Row-forward occupancy drift for one room. The room's `LudicCache::Characters` row is the index; each
+ * character's own binding pointer governs it (bystanderSeparation BS-5), so this compares the row against
+ * what the character's side says. Per character on the row:
+ * - drift when no live sessions (ghost on the row), or
  * - drift when in-play but membership adjacency does not list this roomId.
  *
- * Stale adjacency without a graph node is not visible to this room-forward scan (explicit gap).
+ * Any character still named by the room's *stored graph* (`legacyGraphCharacterIds`) is drift too: bystanders
+ * left room graphs in Slice 4, so such a node predates it and is handed to the row by the heal
+ * (`migrateRoomBystanders`). Once the data is clean this input is always empty.
+ *
+ * Stale adjacency without a row entry is not visible to this room-forward scan (explicit gap).
  */
 export const roomHasOccupancyDrift = (args: {
     roomId: string
-    graphCharacterIds: string[]
+    rowCharacterIds: string[]
+    legacyGraphCharacterIds?: string[]
     adjacencySessionsByCharacter: Map<string, Set<string>>
     membershipContainersByCharacter: Map<string, string[]>
 }): boolean => {
     const {
         roomId,
-        graphCharacterIds,
+        rowCharacterIds,
+        legacyGraphCharacterIds = [],
         adjacencySessionsByCharacter,
         membershipContainersByCharacter,
     } = args
@@ -49,8 +68,11 @@ export const roomHasOccupancyDrift = (args: {
     if (!normalizedRoomId) {
         return false
     }
+    if (legacyGraphCharacterIds.length > 0) {
+        return true
+    }
 
-    for (const characterId of graphCharacterIds) {
+    for (const characterId of rowCharacterIds) {
         if (!isEphemeraCharacterId(characterId)) {
             continue
         }

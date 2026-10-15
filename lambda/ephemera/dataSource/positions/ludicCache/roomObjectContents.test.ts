@@ -216,21 +216,18 @@ describe('ludicCacheRoomObjectContents', () => {
             getComponentAggregate: async () => [],
         })
 
-        it('returns the characters of a complete row', async () => {
-            const { characterIds } = await readWith({ complete: true, 'CHARACTER#Tess': ['PRESENCE#a'], 'CHARACTER#Ava': ['PRESENCE#b'] })
+        it('returns the characters of the row', async () => {
+            const { characterIds } = await readWith({ 'CHARACTER#Tess': ['PRESENCE#a'], 'CHARACTER#Ava': ['PRESENCE#b'] })
 
             expect(characterIds).toEqual(['CHARACTER#Tess', 'CHARACTER#Ava'])
         })
 
-        it('returns an empty roster for a complete row with nobody in it', async () => {
-            expect((await readWith({ complete: true })).characterIds).toEqual([])
+        it('returns an empty roster for a row with nobody in it', async () => {
+            expect((await readWith({})).characterIds).toEqual([])
         })
 
-        it.each([
-            ['absent', undefined],
-            ['incomplete', { 'CHARACTER#Tess': ['PRESENCE#a'] }],
-        ])('returns no roster when the row is %s, so the caller rebuilds rather than answering empty', async (_label, characters) => {
-            expect(await readWith(characters)).not.toHaveProperty('characterIds')
+        it('returns an empty roster when the room has no row (nobody has entered it)', async () => {
+            expect((await readWith(undefined)).characterIds).toEqual([])
         })
     })
 })

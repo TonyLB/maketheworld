@@ -1,3 +1,4 @@
+import { produce } from 'immer'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
@@ -84,9 +85,11 @@ const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>)
             }
         })
         const prior = structuredClone(draft)
-        multiKeyItem.reducer(draft)
-        lastDraft.current = draft
-        cascadeItems.current = multiKeyItem.cascade?.(prior, draft)
+        // real Immer, as the wrapper runs it: every draft proxy is revoked when the reducer returns, so anything the
+        // reducer retains for the cascade or the post-persist code must be plain
+        const next = produce(draft, multiKeyItem.reducer)
+        lastDraft.current = next
+        cascadeItems.current = multiKeyItem.cascade?.(prior, next)
     })
     return { transactWrite, lastItems, cascadeItems, lastDraft }
 }
@@ -854,7 +857,7 @@ describe('commitStepSequence', () => {
 
             const result = await commitStepSequence(
                 { steps },
-                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite, getRoomCharacters: async () => [CHARACTER_ID] }
             )
 
             expect(result.ok).toBe(true)
@@ -862,11 +865,11 @@ describe('commitStepSequence', () => {
             expect(result.captures.get('departure')).toEqual([CHARACTER_ID])
         })
 
-        it('a capture naming a host no mutation step touches still locks that host into the footprint', async () => {
+        it('a capture naming a host no mutation step touches reads the resolved occupants and locks nothing', async () => {
             const roomGraph = withRemainder(ROOM_ID, { tag: 'Object', universalKey: TRAY_ID })
             const otherRoomId = 'ROOM#Kitchen' as EphemeraRoomId
-            const otherRoomGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
-            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [otherRoomId]: otherRoomGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
+            const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
+            const getRoomCharacters = jest.fn(async () => [CHARACTER_ID])
 
             const steps: MutationKernelStep[] = [
                 { kind: 'capture', hostId: otherRoomId, captureId: 'onlooker' },
@@ -875,17 +878,18 @@ describe('commitStepSequence', () => {
 
             const result = await commitStepSequence(
                 { steps },
-                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite, getRoomCharacters }
             )
 
             expect(result.ok).toBe(true)
             if (!result.ok) return
             expect(result.captures.get('onlooker')).toEqual([CHARACTER_ID])
+            expect(getRoomCharacters).toHaveBeenCalledWith(otherRoomId)
 
             const items = transactWrite.mock.calls[0][0]
             const multiKeyItem = items.find((item: any) => 'MultiKeyUpdate' in item).MultiKeyUpdate
             const keyedHosts = new Set(multiKeyItem.Keys.map((key: any) => key.EphemeraId))
-            expect(keyedHosts).toEqual(new Set([TRAY_ID, ROOM_ID, otherRoomId]))
+            expect(keyedHosts).toEqual(new Set([TRAY_ID, ROOM_ID]))
         })
 
         it('an illegal commit discards captures entirely', async () => {
@@ -907,7 +911,7 @@ describe('commitStepSequence', () => {
         })
 
         it('a forced reducer retry does not duplicate the captured roster', async () => {
-            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [] })
             let attempt = 0
             const transactWrite: any = jest.fn(async (items: any[]) => {
                 const multiKeyItem = items.find((item) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
@@ -932,7 +936,7 @@ describe('commitStepSequence', () => {
 
             const result = await commitStepSequence(
                 { steps },
-                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
+                { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite, getRoomCharacters: async () => [CHARACTER_ID] }
             )
 
             expect(transactWrite).toHaveBeenCalledTimes(2)
@@ -981,20 +985,28 @@ describe('commitStepSequence', () => {
             expect(new Set(invalidations()[0])).toEqual(new Set([ROOM_ID, KITCHEN_ID]))
         })
 
-        it('marks both rooms for a character move, though a character shard is never a seed', async () => {
+        it('a character-only move writes no room graph and marks nothing, yet updates the characters rows and both rooms', async () => {
             const graphs = {
-                [ROOM_ID]: withRemainder(ROOM_ID, { tag: 'Character', universalKey: CHARACTER_ID }),
+                [ROOM_ID]: withRemainder(ROOM_ID),
                 [KITCHEN_ID]: withRemainder(KITCHEN_ID),
                 [CHARACTER_ID]: moverGraph(CHARACTER_ID, ROOM_ID),
             }
-            const { transactWrite, cascadeItems } = makeTransactWriteMock(graphs)
+            const { transactWrite, lastItems, cascadeItems } = makeTransactWriteMock(graphs)
 
-            await commitStepSequence(
+            const result = await commitStepSequence(
                 { steps: [move(CHARACTER_ID, 'p1', ROOM_ID, KITCHEN_ID)] },
                 { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
             )
 
-            expect(new Set(bumpKeys(cascadeItems.current).map((key: any) => key.EphemeraId))).toEqual(new Set([ROOM_ID, KITCHEN_ID]))
+            expect(result.ok).toBe(true)
+            const multiKey = lastItems.current!.find((item) => 'MultiKeyUpdate' in item).MultiKeyUpdate
+            expect(multiKey.Keys.map((key: any) => key.EphemeraId)).toEqual([CHARACTER_ID])
+            expect(bumpKeys(cascadeItems.current).filter((key: any) => key.DataCategory === 'LudicCacheVersion::')).toEqual([])
+            expect(bumpKeys(cascadeItems.current).filter((key: any) => key.DataCategory === 'LudicCache::Characters').map((key: any) => key.EphemeraId).sort())
+                .toEqual([KITCHEN_ID, ROOM_ID].sort())
+            expect(invalidations()).toEqual([])
+            expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: ROOM_ID })
+            expect(messageBus.publish).toHaveBeenCalledWith({ type: 'RoomUpdate', roomId: KITCHEN_ID })
         })
 
         it('marks the room of a destroyed component, resolved from its pre-commit graph', async () => {
