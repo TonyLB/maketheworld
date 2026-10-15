@@ -1,5 +1,5 @@
 /**
- * One-time migration for bystanderSeparation Slice 4: a stored room graph that still holds character
+ * One-time migration for bystanders leaving room graphs: a stored room graph that still holds character
  * nodes (written before bystanders left room graphs) gives them up to the room's `LudicCache::Characters`
  * row. Run per room from the occupancy drift heal (`repairRoomOccupancyDrift`), which the diagnostics
  * sweep triggers for any room whose graph still names a character. A room with no such node is a no-op,
@@ -10,7 +10,7 @@
  * a graph node with no pointer is a ghost and is dropped, not indexed), `if_not_exists` so a kernel
  * write that landed meanwhile survives; (2) the graph row loses the nodes, in a `MultiKeyUpdate` that
  * conditions on the graph it read and bumps the room's cache marker (the cache held the characters as
- * leaves). Residual, accepted (BS-5): a departure that lands between the two re-appears in the row until
+ * leaves). Residual, accepted: a departure that lands between the two re-appears in the row until
  * the occupancy sweep heals it from the pointer.
  */
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'

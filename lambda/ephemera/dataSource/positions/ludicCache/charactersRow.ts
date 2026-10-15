@@ -1,14 +1,14 @@
 /**
  * The `LudicCache::Characters` row: a room's index of its present characters (bystanders: characters are
  * not in their room's graph, so this row is the room-side record of who is present).
- * Plan: `taskPlanning/.../positions/AGENT.bystanderSeparation.planning.md` (BS-1, BS-5, BS-6, BS-9).
+ * Rules: `positions/AGENT.contract.md` (Ludic cache staleness and rebuild); mechanism: `AGENT.implementation.md` (Stored row).
  *
  * One row per room, on `EphemeraId: <roomId>`, one top-level attribute per present character keyed by
  * its id and holding the ids of the character's own bindings into the room. Top-level attributes (not a
  * map) because a `SET` on a path into a missing map attribute fails, while `SET #id` creates the item.
  *
  * **The row is the authority for who is present; the character's own binding pointer governs the row**
- * (BS-5): drift between the two is healed from the pointer by the occupancy drift sweep. There is no
+ * (the pointer governs): drift between the two is healed from the pointer by the occupancy drift sweep. There is no
  * rebuild: an absent row is an empty room (the first arrival creates it), and the one-time migration
  * (`migrateBystandersToCharactersRow`) wrote every existing room's row before characters left the graphs.
  *

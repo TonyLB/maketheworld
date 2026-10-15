@@ -145,7 +145,7 @@ export class AffordanceRoomDeliverableData {
             ...(exits.length ? { exits } : {}),
             characters: roomCharacterList.map((char) => char.EphemeraId),
             shortName: shortNameLiteral?.toJSON(),
-            // The client reads only the room's Object refs, in order, so the wire graph is projected from the cache read (BS-7).
+            // The client reads only the room's Object refs, in order, so the wire graph is projected from the cache read.
             ...(roomObjects.length
                 ? { ludicGraph: { rootId: roomId as unknown as StandardReferenceData, nodes: [roomId, ...roomObjects.map(({ objectId }) => objectId)] as unknown as StandardReferenceData[] } }
                 : {}),

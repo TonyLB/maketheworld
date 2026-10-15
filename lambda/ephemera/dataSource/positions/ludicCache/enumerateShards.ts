@@ -13,8 +13,8 @@
  * seed. That is what keeps a room's cache from re-absorbing an object a character has just picked up
  * (`catalogHandles.ts`): the walk cannot pass through a character into its inventory. A character-seeded
  * walk (e.g. a held-inventory cache) still sees its own contents, because the seed is queued
- * unconditionally before the loop below runs. (Until bystanderSeparation Slice 4, a character in a room
- * graph was fetched as a leaf: node and bindings, never expanded.)
+ * unconditionally before the loop below runs. (Rule: `positions/AGENT.contract.md`, "A bystander is not in
+ * its room's graph or cache".)
  *
  * **`maxDepth` (Slice 5, PC-3's instrument).** The highest BFS level actually visited --- the
  * seed is depth 0. A returned statistic, same convention as `shardFetchCount`: PC-3 needs reads

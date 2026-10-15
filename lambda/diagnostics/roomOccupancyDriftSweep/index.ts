@@ -91,7 +91,7 @@ const adjacencyCharactersForSession = async (sessionId: string): Promise<string[
  * Read-only diagnostics sweep for room occupancy drift (S2-6-DR). Row-forward: compares each room's
  * `LudicCache::Characters` row against connections session adjacency and the membership adjacency
  * reverse index (the character's own pointer governs the row). It also flags a room whose stored graph
- * still names a character (pre-bystanderSeparation data), which the heal migrates to the row.
+ * still names a character (data from before bystanders left room graphs), which the heal migrates to the row.
  * Does not detect stale adjacency without a row entry.
  */
 export const roomOccupancyDriftSweep = async (params?: {

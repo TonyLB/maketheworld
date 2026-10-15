@@ -39,7 +39,7 @@ export const listRowCharacterIds = (row: unknown): string[] => (
 
 /**
  * Row-forward occupancy drift for one room. The room's `LudicCache::Characters` row is the index; each
- * character's own binding pointer governs it (bystanderSeparation BS-5), so this compares the row against
+ * character's own binding pointer governs it (a pointer governs its index), so this compares the row against
  * what the character's side says. Per character on the row:
  * - drift when no live sessions (ghost on the row), or
  * - drift when in-play but membership adjacency does not list this roomId.

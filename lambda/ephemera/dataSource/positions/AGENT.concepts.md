@@ -22,7 +22,7 @@ This file records **mental models and vocabulary** for `mtw.ephemera.positions` 
 | **Projection** | A **read model** derived from a graph for one consumer (exits for nav, roster for affordance WML). Projections are filters, not the graph |
 | **Positions lane** | `mtw.ephemera.positions` --- ephemera authority for **play-time** position truth and the mutations that maintain it |
 | **Character presence** | At play time, which **room** a character occupies and who shares that room --- distinct from Area **authored** participation or exit topology |
-| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster): a **Character node** in that room's `ludicGraph`, with a reverse **adjacency** row. Roster display hydrates at read time |
+| **Room membership** | The play-time fact that a character is **in** a room (and appears on that room's roster): an entry in that room's **characters row** (`LudicCache::Characters`), with a reverse **adjacency** row; a bystander has no node in the room's `ludicGraph`. Roster display hydrates at read time |
 | **Eviction ladder** (`RoomStack`) | Character-local **`{ asset, room }` frames** used to resolve **legal in-play placement** under current asset access. Owned by `mtw.ephemera.characters` --- see [Eviction ladder](../characters/AGENT.md#eviction-ladder) |
 | **Room asset stack** | Which assets **participate in composing** a room's WML at render time (participation order on `Meta::Room`). Answers a **render merge** question --- not where the character **is**, and not the eviction ladder |
 | **`EphemeraLudicGraph`** | The host-bound, immutable in-memory model of one ludic graph; the sole ephemera primitive for simulating membership and relational change |
@@ -72,16 +72,16 @@ What is stored and what it means. Read this before [Process](#process).
 
 ### Room play graph + adjacency reverse index
 
-**The stance:** the room play graph and its reverse adjacency index are the **sole authority** for play membership. The legacy projections --- `Meta::Room.activeCharacters` and `Meta::Character.RoomId` --- are neither written nor read as truth. Anything that needs "who is in this room" derives it from the graph; anything that needs "what room is this character in" reads adjacency. Nothing reconstructs membership from a stored projection, and nothing writes one back.
+**The stance:** the room play graph (for objects), the room's characters row (for characters) and the reverse adjacency index are the **sole authority** for play membership. The legacy projections --- `Meta::Room.activeCharacters` and `Meta::Character.RoomId` --- are neither written nor read as truth. Anything that needs "who is in this room" derives it from the room's graph and characters row; anything that needs "what room is this character in" reads adjacency. Nothing reconstructs membership from a stored projection, and nothing writes one back.
 
 This is why several contract rules look redundant but are not: forward reads return empty topology rather than fall back to `activeCharacters`, reverse reads consult adjacency rather than a stored `RoomId`, and roster *display* fields hydrate at read time rather than persist alongside membership. Each is the same stance applied at a different surface.
 
-- Each room hosts `Meta::Room.ludicGraph` --- character and object **nodes**, plus in-host **relational edges**. `HostRelationalEdgeKind` has four values: the hosting kinds `On`, `In`, `PartOf`, and the peer kind `Custom` (see *Hosting kind / peer kind* under [Wholes, parts, and ports](#wholes-parts-and-ports)). A presence binding is a node, never an edge kind ([Presence as a cover](#presence-as-a-cover)).
+- Each room hosts `Meta::Room.ludicGraph` --- object **nodes** (a bystander character is not one; the characters row indexes it), plus in-host **relational edges**. `HostRelationalEdgeKind` has four values: the hosting kinds `On`, `In`, `PartOf`, and the peer kind `Custom` (see *Hosting kind / peer kind* under [Wholes, parts, and ports](#wholes-parts-and-ports)). A presence binding is a node, never an edge kind ([Presence as a cover](#presence-as-a-cover)).
 - Each character and each placed object has **adjacency rows** (`CHARACTER#` / `OBJECT#` PK, `POSITION#<host>` SK) pointing at its host(s).
 
 **Room is the worked example, not the only host.** The same forward-graph shape is stored on every host kind as `Meta::<Kind>.ludicGraph`, through one shared serde --- see [Host storage](AGENT.contract.md#host-storage-one-shared-serde-one-documented-exception). **This says nothing about which kinds are levels in a part-of ladder**: that a kind can host a graph is an inventory fact, not a structure claim (see the room's place in the ladder under [Wholes, parts, and ports](#wholes-parts-and-ports)).
 
-A character appears in **at most one** room graph at steady state; duplicate membership (drift) is **visible** in the adjacency rows and repaired by an end-state move. Objects follow the same steady-state rule; multi-room object adjacency is drift.
+A character appears in **at most one** room's characters row at steady state; duplicate membership (drift) is **visible** in the adjacency rows and repaired by an end-state move. Objects follow the same steady-state rule; multi-room object adjacency is drift.
 
 **WML's authoring layer has a narrower two-lists question of its own.** `StandardRoom` derives object membership from its `ludicGraph`, but still carries an authored character reference list independent of the graph's `CHARACTER#` nodes. Whether that authored/runtime asymmetry is intentional is open.
 

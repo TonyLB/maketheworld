@@ -559,7 +559,7 @@ const cases: Case[] = [
     {
         name: 'a character is renamed',
         rooms: [],
-        // the cache holds no character: a rename refreshes rosters on `RoomUpdate` and marks no room (BS-3)
+        // the cache holds no character: a rename refreshes rosters on `RoomUpdate` and marks no room
         changesCache: false,
         marksNothing: true,
         act: async () => {
