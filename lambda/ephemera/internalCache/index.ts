@@ -170,9 +170,9 @@ export class InternalCache {
             (roomId) => this.ComponentEphemeraMeta.get(roomId),
             {
                 getLudicGraph: (roomId) => this.Positions.getLudicGraph(roomId),
-                getRoomObjectContents: (roomId, objectIds, assetStack) => {
+                getRoomObjectContents: (roomId, assetStack) => {
                     const { ludicCacheRoomObjectContents } = require('../dataSource/positions/ludicCache/roomObjectContents') as typeof import('../dataSource/positions/ludicCache/roomObjectContents')
-                    return ludicCacheRoomObjectContents(roomId, objectIds, assetStack)
+                    return ludicCacheRoomObjectContents(roomId, assetStack)
                 },
             }
         )

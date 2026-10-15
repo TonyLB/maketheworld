@@ -6,7 +6,7 @@ import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/asse
 import { aggregatePerspectiveExplicit } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import type { AffordanceCacheData } from './affordanceCache'
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
-import { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { appendImprovisationToPerspective } from '@tonylb/mtw-interfaces/ts/perspective'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
@@ -18,7 +18,7 @@ import type { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 import { toWireLudicGraphFull } from '../dataSource/positions/ludicGraph/wireProjection'
 import type { StandardObjectData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/object'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
-import type { RoomObjectWithContents } from '../dataSource/positions/ludicCache/roomObjectContents'
+import type { RoomObjectsRead } from '../dataSource/positions/ludicCache/roomObjectContents'
 
 /** Cache key for AffordanceRoomDeliverable (roomId, perspectiveKey). */
 export function generateAffordanceRoomDeliverableCacheKey(
@@ -35,12 +35,11 @@ export function affordanceRoomDeliverableCacheKeyForRoom(cacheKey: string, roomI
 
 export type AffordanceRoomDeliverableObjectReads = {
     getLudicGraph: (roomId: EphemeraRoomId) => Promise<EphemeraLudicGraph>
-    /** One level of contents per room-level object, read forward from `ludicCache` (`ludicCacheRoomObjectContents`). */
+    /** The room-level objects and one level of contents each, read forward from `ludicCache` (`ludicCacheRoomObjectContents`). */
     getRoomObjectContents: (
         roomId: EphemeraRoomId,
-        objectIds: readonly EphemeraObjectId[],
         assetStack: readonly string[]
-    ) => Promise<RoomObjectWithContents[]>
+    ) => Promise<RoomObjectsRead>
 }
 
 /**
@@ -108,7 +107,7 @@ export class AffordanceRoomDeliverableData {
             )
         }
 
-        const objectIds = [...ludicGraph.objectIds]
+        const { objectIds, objects: roomObjects } = await this._objectReads.getRoomObjectContents(roomId, affordanceRow.assetStack)
         const mergeParticipationOrder = appendImprovisationToPerspective(
             affordanceRow.assetStack,
             objectIds
@@ -126,7 +125,6 @@ export class AffordanceRoomDeliverableData {
             throw new Error(`ComponentAggregate did not return StandardRoom for ${roomId}`)
         }
 
-        const roomObjects = await this._objectReads.getRoomObjectContents(roomId, objectIds, affordanceRow.assetStack)
         const roomLevelIds = new Set<string>(roomObjects.map(({ objectId }) => objectId))
         // Look-path shape: the object's contents are bare references in its own `ludicGraph`, and each content's
         // name travels as a sibling stub (a content that is also room-level keeps its one room-level stub).
@@ -152,6 +150,7 @@ export class AffordanceRoomDeliverableData {
             ...(exits.length ? { exits } : {}),
             characters: roomCharacterList.map((char) => char.EphemeraId),
             shortName: shortNameLiteral?.toJSON(),
+            // Still the room's stored graph: the wire projection is not yet derivable from the cache rows (BS-7).
             ludicGraph: toWireLudicGraphFull(ludicGraph),
         }
 

@@ -289,6 +289,39 @@ describe('buildLudicCache', () => {
 
     // A non-room seed: the seed's own bindings nest on the seed's node, like any walked host's.
     // A binding whose cover holds nothing still names its owner --- the node it sits on.
+    // Pins the premise that the room node's own binding covers can stand in for `graph.objectIds`:
+    // the union over ALL the room's bindings (not just the Remainder), Objects only, equals it. A
+    // character in the room is covered too, but is not an Object.
+    it('covers every direct Object of a room across its bindings, so the covers can stand in for objectIds', async () => {
+        const town = 'AREA#Town' as EphemeraAreaId
+        const alpha = 'CHARACTER#Alpha' as EphemeraCharacterId
+        const roomGraph = testLudicGraph(roomA, {
+            nodes: [
+                { tag: 'Room', universalKey: roomA },
+                { tag: 'Object', universalKey: objX },
+                { tag: 'Object', universalKey: objY },
+                { tag: 'Character', universalKey: alpha },
+                { tag: 'Presence', universalKey: PresenceKey('a_root'), cover: { members: [{ tag: 'Remainder' }] } },
+                presenceNode('a_in_town', town, { members: [] }),
+            ],
+        })
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, roomGraph],
+            [objX, testLudicGraph(objX, { nodes: [{ tag: 'Object', universalKey: objX }] })],
+            [objY, testLudicGraph(objY, { nodes: [{ tag: 'Object', universalKey: objY }] })],
+            [alpha, testLudicGraph(alpha, { nodes: [{ tag: 'Character', universalKey: alpha }] })],
+        ])
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) as EphemeraLudicGraph
+
+        const { cache } = await buildLudicCache(roomA, [testAssetUUID], { getLudicGraph, ...noShortNameDeps() })
+
+        const covered = (cache.nodes.find((node) => node.universalKey === roomA)?.presenceNodes ?? [])
+            .flatMap((binding) => binding.cover.members)
+            .flatMap((member) => 'host' in member ? [member.host] : [])
+        expect(covered.filter((host) => host.startsWith('OBJECT#')).sort()).toEqual([...roomGraph.objectIds].sort())
+        expect(covered).toContain(alpha)
+    })
+
     it('nests an object seed\'s own bindings on the seed node, including one with an empty cover', async () => {
         const roomB = 'ROOM#B' as EphemeraRoomId
         const xGraph = testLudicGraph(objX, {

@@ -3,8 +3,9 @@
  * `catalogHandles.ts`, not an extension of it --- that file is the command path's flat referent pool, and this one
  * answers a different question: *what does each of the room's direct objects directly hold?*
  *
- * **Read forward, no reverse index.** The caller states the room level (the room's own shard, which names its direct
- * objects). An object's contents are the `cover.members` of its own bindings: a binding's cover is the owner's own
+ * **Read forward, no reverse index.** The room level is the union of the covers of the room node's bindings (the room's
+ * hostless `Remainder` covers every direct member; an explicit claim by another binding moves a member out of it, so
+ * all bindings are read). An object's contents are the `cover.members` of its own bindings: a binding's cover is the owner's own
  * graph, root excluded. So a table's contents are what its bindings cover, and a box on the table contributes the box
  * only, since the cup sits in the box's own graph. One level falls out of the data; nothing walks upward.
  *
@@ -32,6 +33,12 @@ export type RoomObjectWithContents = RoomObjectContent & {
     contents: RoomObjectContent[]
 }
 
+export type RoomObjectsRead = {
+    /** Every room-level Object with a stored `shortName`, before any viewer label is resolved (the improvisation order's input). */
+    objectIds: EphemeraObjectId[]
+    objects: RoomObjectWithContents[]
+}
+
 export type RoomObjectContentsDeps = {
     readLudicCache?: typeof readLudicCache
     getComponentAggregate?: ComponentAggregateMergedCache['get']
@@ -39,10 +46,9 @@ export type RoomObjectContentsDeps = {
 
 export const ludicCacheRoomObjectContents = async (
     roomId: EphemeraRoomId,
-    roomObjectIds: readonly EphemeraObjectId[],
     assetStack: readonly string[],
     deps: RoomObjectContentsDeps = {}
-): Promise<RoomObjectWithContents[]> => {
+): Promise<RoomObjectsRead> => {
     const cache = await (deps.readLudicCache ?? readLudicCache)(roomId, { reader: 'header' })
     const getComponentAggregate = deps.getComponentAggregate ?? ((perspectives) => internalCache.ComponentAggregate.get(perspectives))
     const nodeById = new Map(cache.nodes.map((node) => [node.universalKey as string, node]))
@@ -52,8 +58,12 @@ export const ludicCacheRoomObjectContents = async (
         .filter((host, index, hosts) => hosts.indexOf(host) === index)
         .filter((host): host is EphemeraObjectId => isEphemeraObjectId(host) && nodeById.get(host)?.shortName !== undefined)
 
+    const roomObjectIds = (nodeById.get(roomId)?.presenceNodes ?? [])
+        .flatMap((binding) => binding.cover.members.map(({ host }) => host as string))
+        .filter((host, index, hosts) => hosts.indexOf(host) === index)
+        .filter((host): host is EphemeraObjectId => isEphemeraObjectId(host) && nodeById.get(host)?.shortName !== undefined)
+
     const structured = roomObjectIds
-        .filter((objectId) => nodeById.get(objectId)?.shortName !== undefined)
         .map((objectId) => ({ objectId, contents: contentsIdsOf(objectId) }))
 
     // One label read per distinct displayed object, in parallel.
@@ -66,8 +76,9 @@ export const ludicCacheRoomObjectContents = async (
         return shortName !== undefined ? { objectId, shortName } : undefined
     }
 
-    return structured.flatMap(({ objectId, contents }) => {
+    const objects = structured.flatMap(({ objectId, contents }) => {
         const object = labelled(objectId)
         return object ? [{ ...object, contents: contents.flatMap((content) => labelled(content) ?? []) }] : []
     })
+    return { objectIds: roomObjectIds, objects }
 }

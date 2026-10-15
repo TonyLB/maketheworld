@@ -36,8 +36,8 @@ const mockAffordanceRow = (
     })
 }
 
-const mockRoomObjectContents = (rows: RoomObjectWithContents[]) => {
-    const reader = jest.fn().mockResolvedValue(rows)
+const mockRoomObjectContents = (rows: RoomObjectWithContents[], objectIds: string[] = rows.map(({ objectId }) => objectId)) => {
+    const reader = jest.fn().mockResolvedValue({ objectIds, objects: rows })
     ;(internalCache.AffordanceRoomDeliverable as any)._objectReads.getRoomObjectContents = reader
     return reader
 }
@@ -285,6 +285,33 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         expect(wml).toContain('A lamp')
     })
 
+    it('takes the room-level object ids from the cache reader, not the room graph (improvisation only when the reader names objects)', async () => {
+        const assetStack: AssetUUID[] = ['ASSET#Base']
+        const aggregateGet = jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
+            {
+                universalKey: 'ROOM#ObjRoom',
+                merged: new StandardRoom({ universalKey: 'ROOM#ObjRoom', tag: 'Room', shortName: 'Hall', exits: [] }),
+                mergeParticipationOrderApplied: assetStack,
+            },
+        ])
+        jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(mockAffordanceRow('ROOM#ObjRoom', assetStack, []))
+        jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
+        jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(
+            testLudicGraph('ROOM#ObjRoom', { nodes: [{ tag: 'Object', universalKey: 'OBJECT#graphOnly' as any }] })
+        )
+        mockRoomObjectContents([], [])
+
+        await getForStack('ROOM#ObjRoom', assetStack)
+
+        expect(aggregateGet.mock.calls[0][0][0].mergeParticipationOrder).toEqual(assetStack)
+
+        internalCache.clear()
+        mockRoomObjectContents([], ['OBJECT#cached'])
+        await getForStack('ROOM#ObjRoom', assetStack)
+
+        expect(aggregateGet.mock.calls[1][0][0].mergeParticipationOrder).toEqual([...assetStack, 'ASSET#IMPROVISATION'])
+    })
+
     describe('one level of object contents', () => {
         const setup = async (rows: RoomObjectWithContents[], objectIds: string[]) => {
             const assetStack: AssetUUID[] = ['ASSET#Base']
@@ -304,7 +331,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
                     nodes: objectIds.map((universalKey) => ({ tag: 'Object' as const, universalKey: universalKey as any })),
                 })
             )
-            const reader = mockRoomObjectContents(rows)
+            const reader = mockRoomObjectContents(rows, objectIds)
             const merged = await getForStack('ROOM#ObjRoom', assetStack)
             // Reparse as the client does: the printed form, not the built one.
             const parsed = new StandardForm(schemaToWML([merged.schema]), { standardizeMode: 'ephemeraWire' })
@@ -330,7 +357,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
                     ],
                 },
             ], ['OBJECT#table'])
-            expect(reader).toHaveBeenCalledWith('ROOM#ObjRoom', ['OBJECT#table'], assetStack)
+            expect(reader).toHaveBeenCalledWith('ROOM#ObjRoom', assetStack)
             const table = parsed.byUniversalId['OBJECT#table'] as StandardObject
             expect(refsOf(table)).toEqual(['OBJECT#cup', 'OBJECT#mug'])
             expect((parsed.byUniversalId['OBJECT#cup'] as StandardObject).shortName?._payload?.plain?.toJSON()).toBe('Red cup')
