@@ -60,7 +60,7 @@ const contentsFor = async (
     graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>,
     { storedNames = names, viewerNames = names }: { storedNames?: typeof names, viewerNames?: typeof names } = {}
 ) => ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], {
-    readLudicCache: async (roomId) => (await buildLudicCache(roomId, [], { ...graphsAsDeps(graphs), ...storedNames })).cache,
+    readLudicCache: async (roomId) => ({ cache: (await buildLudicCache(roomId, [], { ...graphsAsDeps(graphs), ...storedNames })).cache, outcome: 'hit' as const }),
     ...viewerNames,
 })
 
@@ -170,7 +170,7 @@ describe('ludicCacheRoomObjectContents', () => {
         const { cache } = await buildLudicCache(roomA, [], { ...graphsAsDeps(graphs), ...names })
         const viewer = namedShortNameDeps({ [table]: 'Table', [box]: 'Box' })
 
-        await ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], { readLudicCache: async () => cache, ...viewer })
+        await ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], { readLudicCache: async () => ({ cache, outcome: 'hit' }), ...viewer })
 
         const labelled = viewer.getComponentAggregate.mock.calls.map(([[perspective]]) => perspective.universalKey).sort()
         expect(labelled).toEqual([box, mug, table])
@@ -196,16 +196,41 @@ describe('ludicCacheRoomObjectContents', () => {
             { universalKey: mug, shortName: 'Mug' },
         ], edges: [] } as any
 
-        const { objectIds } = await ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], { readLudicCache: async () => stored, getComponentAggregate: async () => [] })
+        const { objectIds } = await ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], { readLudicCache: async () => ({ cache: stored, outcome: 'hit' }), getComponentAggregate: async () => [] })
 
         expect(objectIds).toEqual([cup, mug])
     })
 
     it('reads the stored row as the header reader, so a rebuild it pays for is logged under that name', async () => {
-        const readLudicCache = jest.fn(async () => ({ hostId: roomA, nodes: [], edges: [] }) as any)
+        const readLudicCache = jest.fn(async () => ({ cache: { hostId: roomA, nodes: [], edges: [] } as any, outcome: 'hit' as const }))
 
         await ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], { readLudicCache, getComponentAggregate: async () => [] })
 
-        expect(readLudicCache).toHaveBeenCalledWith(roomA, { reader: 'header' })
+        expect(readLudicCache).toHaveBeenCalledWith(roomA, { reader: 'header', withCharacters: true })
+    })
+
+    describe('the roster from the characters row', () => {
+        const emptyCache = { hostId: roomA, nodes: [], edges: [] } as any
+        const readWith = (characters?: any) => ludicCacheRoomObjectContents(roomA, ['ASSET#viewer'], {
+            readLudicCache: async () => ({ cache: emptyCache, outcome: 'hit', ...(characters ? { characters } : {}) }),
+            getComponentAggregate: async () => [],
+        })
+
+        it('returns the characters of a complete row', async () => {
+            const { characterIds } = await readWith({ complete: true, 'CHARACTER#Tess': ['PRESENCE#a'], 'CHARACTER#Ava': ['PRESENCE#b'] })
+
+            expect(characterIds).toEqual(['CHARACTER#Tess', 'CHARACTER#Ava'])
+        })
+
+        it('returns an empty roster for a complete row with nobody in it', async () => {
+            expect((await readWith({ complete: true })).characterIds).toEqual([])
+        })
+
+        it.each([
+            ['absent', undefined],
+            ['incomplete', { 'CHARACTER#Tess': ['PRESENCE#a'] }],
+        ])('returns no roster when the row is %s, so the caller rebuilds rather than answering empty', async (_label, characters) => {
+            expect(await readWith(characters)).not.toHaveProperty('characterIds')
+        })
     })
 })

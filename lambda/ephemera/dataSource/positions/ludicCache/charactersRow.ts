@@ -28,17 +28,11 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { EphemeraLudicGraph } from '../ludicGraph'
 import { parentHostOf } from '../ludicGraph/presenceParent'
 import type { MembershipChange } from '../manipulation/kernel/membershipChanges'
+import { characterIdsOf, isCompleteCharactersRow, LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, type LudicCacheCharactersRow } from './charactersRowShape'
 import { getFreshLudicGraph } from './store'
 
-export const LUDIC_CACHE_CHARACTERS_DATA_CATEGORY = 'LudicCache::Characters' as const
-
-/** `Partial` because a kernel write can create the row before any rebuild has completed it. */
-export type LudicCacheCharactersRow = {
-    EphemeraId: EphemeraRoomId
-    DataCategory: typeof LUDIC_CACHE_CHARACTERS_DATA_CATEGORY
-    complete?: true
-    [characterId: string]: unknown
-}
+export { LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, characterIdsOf, isCompleteCharactersRow } from './charactersRowShape'
+export type { LudicCacheCharactersRow } from './charactersRowShape'
 
 /** The ids of the character's own bindings that point at `roomId`, from the character's graph. */
 export const bindingIdsInto = (graph: EphemeraLudicGraph, roomId: EphemeraMembershipHostId): string[] => (
@@ -146,10 +140,6 @@ const defaultWriteRebuild = async (roomId: EphemeraRoomId, membership: ReadonlyM
     }
 }
 
-const characterIdsOf = (row: Partial<LudicCacheCharactersRow>): EphemeraCharacterId[] => (
-    Object.keys(row).filter((key): key is EphemeraCharacterId => isEphemeraCharacterId(key) && Array.isArray(row[key]))
-)
-
 /**
  * Rebuilds a room's row from its graph's `characterIds` and each character's own bindings into the
  * room (Slice 4 changes the source: see the plan), then returns the row as stored afterwards, so an
@@ -165,7 +155,7 @@ export const rebuildCharactersRow = async (roomId: EphemeraRoomId, deps: ReadRoo
     )
     await (deps.writeRebuild ?? defaultWriteRebuild)(roomId, membership)
     const stored = await (deps.getRow ?? defaultGetRow)(roomId)
-    return stored?.complete === true ? characterIdsOf(stored) : [...membership.keys()]
+    return isCompleteCharactersRow(stored) ? characterIdsOf(stored) : [...membership.keys()]
 }
 
 /**
@@ -174,5 +164,5 @@ export const rebuildCharactersRow = async (roomId: EphemeraRoomId, deps: ReadRoo
  */
 export const readRoomCharacters = async (roomId: EphemeraRoomId, deps: ReadRoomCharactersDeps = {}): Promise<EphemeraCharacterId[]> => {
     const row = await (deps.getRow ?? defaultGetRow)(roomId)
-    return row?.complete === true ? characterIdsOf(row) : rebuildCharactersRow(roomId, deps)
+    return isCompleteCharactersRow(row) ? characterIdsOf(row) : rebuildCharactersRow(roomId, deps)
 }

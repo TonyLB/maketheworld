@@ -10,19 +10,20 @@
  * only, since the cup sits in the box's own graph. One level falls out of the data; nothing walks upward.
  *
  * **Structure from the stored row, labels from the viewer.** Which objects exist and what they hold comes from
- * the room's stored cache (`readLudicCache`, shared by every viewer). The label each is shown under is resolved at read
+ * the room's stored cache (`readLudicCacheWithOutcome`, shared by every viewer). The label each is shown under is resolved at read
  * from the viewer's own asset stack, memoized per call, for the room-level objects and one level of contents only. The
  * stored `shortName` is a reasoning name and is never shown as a fallback (reasoning and display names do not cross over).
  * An object is dropped at both levels when its stored node has no `shortName` (it is not named in the reasoning world) or
  * the viewer's label does not resolve. Nothing past this function's return type is cache-shaped.
  */
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 
 import internalCache from '../../../internalCache'
 import { resolveComponentShortName } from '../../objects/objectShortName'
-import { readLudicCache } from './store'
+import { characterIdsOf, isCompleteCharactersRow } from './charactersRowShape'
+import { readLudicCacheWithOutcome } from './store'
 
 export type RoomObjectContent = {
     objectId: EphemeraObjectId
@@ -37,10 +38,15 @@ export type RoomObjectsRead = {
     /** Every room-level Object with a stored `shortName`, before any viewer label is resolved (the improvisation order's input). */
     objectIds: EphemeraObjectId[]
     objects: RoomObjectWithContents[]
+    /**
+     * The room's present characters, from the characters row read in the same `getItems` as the cache. Absent when
+     * the row was missing or not yet complete: the caller then falls back to `readRoomCharacters`, which rebuilds it.
+     */
+    characterIds?: EphemeraCharacterId[]
 }
 
 export type RoomObjectContentsDeps = {
-    readLudicCache?: typeof readLudicCache
+    readLudicCache?: typeof readLudicCacheWithOutcome
     getComponentAggregate?: ComponentAggregateMergedCache['get']
 }
 
@@ -49,7 +55,7 @@ export const ludicCacheRoomObjectContents = async (
     assetStack: readonly string[],
     deps: RoomObjectContentsDeps = {}
 ): Promise<RoomObjectsRead> => {
-    const cache = await (deps.readLudicCache ?? readLudicCache)(roomId, { reader: 'header' })
+    const { cache, characters } = await (deps.readLudicCache ?? readLudicCacheWithOutcome)(roomId, { reader: 'header', withCharacters: true })
     const getComponentAggregate = deps.getComponentAggregate ?? ((perspectives) => internalCache.ComponentAggregate.get(perspectives))
     const nodeById = new Map(cache.nodes.map((node) => [node.universalKey as string, node]))
 
@@ -80,5 +86,5 @@ export const ludicCacheRoomObjectContents = async (
         const object = labelled(objectId)
         return object ? [{ ...object, contents: contents.flatMap((content) => labelled(content) ?? []) }] : []
     })
-    return { objectIds: roomObjectIds, objects }
+    return { objectIds: roomObjectIds, objects, ...(isCompleteCharactersRow(characters) ? { characterIds: characterIdsOf(characters) } : {}) }
 }

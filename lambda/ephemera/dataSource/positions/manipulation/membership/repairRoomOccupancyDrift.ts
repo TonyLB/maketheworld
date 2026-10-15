@@ -1,10 +1,11 @@
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../../internalCache'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { orchestrateCharacterMove } from '../../navigate/orchestrateCharacterMove'
+import { readRoomCharacters } from '../../ludicCache/charactersRow'
 import { syncMembershipAdjacencyToRoom } from './syncMembershipAdjacency'
 
 export type RepairRoomOccupancyDriftArgs = {
@@ -14,28 +15,20 @@ export type RepairRoomOccupancyDriftArgs = {
 }
 
 export type RepairRoomOccupancyDriftDependencies = {
-    getLudicGraph?: (roomId: EphemeraRoomId) => ReturnType<typeof internalCache.Positions.getLudicGraph>;
+    getRoomCharacters?: (roomId: EphemeraRoomId) => Promise<EphemeraCharacterId[]>;
     getCharacterSessions?: (characterId: EphemeraCharacterId) => Promise<string[]>;
     getMembershipContainers?: (characterId: EphemeraCharacterId) => Promise<EphemeraRoomId[]>;
     applyMembership?: typeof orchestrateCharacterMove;
     syncAdjacency?: typeof syncMembershipAdjacencyToRoom;
 }
 
-const listGraphCharacterIds = async (
-    roomId: EphemeraRoomId,
-    getLudicGraph: RepairRoomOccupancyDriftDependencies['getLudicGraph']
-): Promise<EphemeraCharacterId[]> => {
-    const loader = getLudicGraph ?? ((id) => internalCache.Positions.getLudicGraph(id))
-    const ludicGraph = await loader(roomId)
-    return [...ludicGraph.characterIds].filter(isEphemeraCharacterId)
-}
-
 const containersIncludeRoom = (containers: EphemeraRoomId[], roomId: EphemeraRoomId): boolean =>
     containers.includes(roomId)
 
 /**
- * Graph-forward occupancy drift repair for one room (S2-6-DR).
- * Sessions gate disconnect; in-play graph syncs adjacency only.
+ * Roster-forward occupancy drift repair for one room (S2-6-DR). The room's characters come from its
+ * `LudicCache::Characters` row (an index; each character's own pointer governs, so this heals the drift).
+ * Sessions gate disconnect; in-play roster syncs adjacency only.
  */
 export const repairRoomOccupancyDrift = async (
     args: RepairRoomOccupancyDriftArgs,
@@ -51,7 +44,7 @@ export const repairRoomOccupancyDrift = async (
     const applyMembership = deps?.applyMembership ?? orchestrateCharacterMove
     const syncAdjacency = deps?.syncAdjacency ?? syncMembershipAdjacencyToRoom
 
-    const characterIds = await listGraphCharacterIds(args.roomId, deps?.getLudicGraph)
+    const characterIds = await (deps?.getRoomCharacters ?? readRoomCharacters)(args.roomId)
     let ghostsPurged = 0
     let adjacencySynced = 0
 

@@ -92,6 +92,55 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         )
     })
 
+    describe('the roster', () => {
+        const assetStack: AssetUUID[] = ['ASSET#Base']
+        const setup = (roomId: EphemeraRoomId, readerResult: Record<string, unknown>) => {
+            jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
+                {
+                    universalKey: roomId,
+                    merged: new StandardRoom({ universalKey: roomId, tag: 'Room', shortName: 'Hall', exits: [] }),
+                    mergeParticipationOrderApplied: assetStack,
+                },
+            ])
+            jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(mockAffordanceRow(roomId, assetStack, []))
+            const reader = jest.fn().mockResolvedValue({ objectIds: [], objects: [], ...readerResult })
+            ;(internalCache.AffordanceRoomDeliverable as any)._objectReads.getRoomObjectContents = reader
+            return getForStack(roomId, assetStack)
+        }
+
+        it('comes from the characters row the cache reader returned, reading no room graph', async () => {
+            const rosterSpy = jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList')
+            jest.spyOn(internalCache.CharacterMeta, 'get').mockResolvedValue({ EphemeraId: 'CHARACTER#TESS', Name: 'Tess', RoomStack: [], HomeId: 'ROOM#Home', assets: [] })
+            jest.spyOn(internalCache.CharacterSessions, 'get').mockResolvedValue([])
+
+            const merged = await setup('ROOM#RosterRow', { characterIds: ['CHARACTER#TESS'] })
+
+            expect(schemaToWML([merged.schema])).toContain('<Character uuid=(TESS) />')
+            expect(rosterSpy).not.toHaveBeenCalled()
+            expect(getLudicGraphSpy).not.toHaveBeenCalled()
+        })
+
+        it('falls back to the roster read (which rebuilds the row) when the reader returned none', async () => {
+            const rosterSpy = jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([
+                { EphemeraId: 'CHARACTER#TESS', DisplayName: 'Tess', SessionIds: [] },
+            ])
+
+            const merged = await setup('ROOM#RosterFallback', {})
+
+            expect(rosterSpy).toHaveBeenCalledWith('ROOM#RosterFallback')
+            expect(schemaToWML([merged.schema])).toContain('<Character uuid=(TESS) />')
+        })
+
+        it('is empty, not rebuilt, when the row is complete with nobody in it', async () => {
+            const rosterSpy = jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList')
+
+            const merged = await setup('ROOM#RosterEmpty', { characterIds: [] })
+
+            expect(rosterSpy).not.toHaveBeenCalled()
+            expect(schemaToWML([merged.schema])).not.toContain('<Character')
+        })
+    })
+
     it('merges shortName via ComponentAggregate and exits from AffordanceCache across two assets', async () => {
         const assetStack: AssetUUID[] = ['ASSET#Base', 'ASSET#Personal']
         jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([

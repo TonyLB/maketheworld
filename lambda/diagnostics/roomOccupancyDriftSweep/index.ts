@@ -128,6 +128,8 @@ export const roomOccupancyDriftSweep = async (params?: {
         }
     }))
 
+    // Reads the stored room graph on purpose: the sweep looks for drift, so it stays an independent check on the characters row
+    // until bystanders leave room graphs (bystanderSeparation Slice 4 rewrites it against the row).
     const graphCharacterIds = new Set<EphemeraCharacterId>()
     for (const room of roomMetaRows) {
         for (const characterId of listGraphCharacterIds(room.ludicGraph)) {
