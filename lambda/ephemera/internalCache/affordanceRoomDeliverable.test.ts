@@ -1,6 +1,5 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMetaRoom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { testLudicGraph } from '../dataSource/positions/ludicGraph/testFixtures'
 import internalCache from '../internalCache'
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
@@ -47,13 +46,14 @@ const getForStack = async (roomId: EphemeraRoomId, assetStack: AssetUUID[]) => (
 )
 
 describe('AffordanceRoomDeliverable cache handler', () => {
+    let getLudicGraphSpy: jest.SpyInstance
     beforeEach(() => {
         jest.clearAllMocks()
         jest.resetAllMocks()
         internalCache.clear()
         mockRoomObjectContents([])
         jest.spyOn(internalCache.ComponentEphemeraMeta, 'get').mockResolvedValue(undefined)
-        jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(testLudicGraph('ROOM#ParityOne'))
+        getLudicGraphSpy = jest.spyOn(internalCache.Positions, 'getLudicGraph')
     })
 
     it('builds structural room WML from aggregate shortName, affordance topology, and roster', async () => {
@@ -271,11 +271,6 @@ describe('AffordanceRoomDeliverable cache handler', () => {
             mockAffordanceRow('ROOM#ObjRoom', assetStack, [])
         )
         jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
-        jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(
-            testLudicGraph('ROOM#ObjRoom', {
-                nodes: [{ tag: 'Object', universalKey: 'OBJECT#foo' }],
-            })
-        )
         mockRoomObjectContents([{ objectId: 'OBJECT#foo', shortName: 'A lamp', contents: [] }])
 
         const merged = await getForStack('ROOM#ObjRoom', assetStack)
@@ -285,7 +280,7 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         expect(wml).toContain('A lamp')
     })
 
-    it('takes the room-level object ids from the cache reader, not the room graph (improvisation only when the reader names objects)', async () => {
+    it('takes the room-level object ids from the cache reader (improvisation only when the reader names objects)', async () => {
         const assetStack: AssetUUID[] = ['ASSET#Base']
         const aggregateGet = jest.spyOn(internalCache.ComponentAggregate, 'get').mockResolvedValue([
             {
@@ -296,9 +291,6 @@ describe('AffordanceRoomDeliverable cache handler', () => {
         ])
         jest.spyOn(internalCache.AffordanceCache, 'getAffordanceRow').mockResolvedValue(mockAffordanceRow('ROOM#ObjRoom', assetStack, []))
         jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
-        jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(
-            testLudicGraph('ROOM#ObjRoom', { nodes: [{ tag: 'Object', universalKey: 'OBJECT#graphOnly' as any }] })
-        )
         mockRoomObjectContents([], [])
 
         await getForStack('ROOM#ObjRoom', assetStack)
@@ -326,11 +318,6 @@ describe('AffordanceRoomDeliverable cache handler', () => {
                 mockAffordanceRow('ROOM#ObjRoom', assetStack, [])
             )
             jest.spyOn(hydrateRoomRosterModule, 'getRoomCharacterList').mockResolvedValue([])
-            jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(
-                testLudicGraph('ROOM#ObjRoom', {
-                    nodes: objectIds.map((universalKey) => ({ tag: 'Object' as const, universalKey: universalKey as any })),
-                })
-            )
             const reader = mockRoomObjectContents(rows, objectIds)
             const merged = await getForStack('ROOM#ObjRoom', assetStack)
             // Reparse as the client does: the printed form, not the built one.
@@ -373,6 +360,21 @@ describe('AffordanceRoomDeliverable cache handler', () => {
             ], ['OBJECT#table', 'OBJECT#box'])
             expect(refsOf(parsed.byUniversalId['OBJECT#table'])).toEqual(['OBJECT#box'])
             expect(parsed.byUniversalId['OBJECT#cup']).toBeUndefined()
+        })
+
+        it('lists exactly the room-level objects, in reader order, in the room\'s wire graph and reads no room graph', async () => {
+            const { parsed } = await setup([
+                { objectId: 'OBJECT#table', shortName: 'Table', contents: [] },
+                { objectId: 'OBJECT#lamp', shortName: 'Lamp', contents: [] },
+            ], ['OBJECT#table', 'OBJECT#lamp'])
+            expect(refsOf(parsed.byUniversalId['ROOM#ObjRoom'])).toEqual(['OBJECT#table', 'OBJECT#lamp'])
+            expect(getLudicGraphSpy).not.toHaveBeenCalled()
+        })
+
+        it('gives a room with no objects no ludicGraph', async () => {
+            const { parsed } = await setup([], [])
+            expect(refsOf(parsed.byUniversalId['ROOM#ObjRoom'])).toEqual([])
+            expect(getLudicGraphSpy).not.toHaveBeenCalled()
         })
 
         it('drops an object the reader could not name', async () => {

@@ -1,6 +1,6 @@
 # Bystander separation: character moves stop writing room graphs
 
-**Status: Slices 0 and 1 done. [BS-7](#open-decisions-implementation--plan-only) decided: the room's wire `ludicGraph` is projected from the cache read. Next step: [Slice 1b](#recommended-order) (then Slice 2).** Branch `iss8291-separate-bystander-storage`.
+**Status: Slices 0, 1 and 1b done. Next step: [Slice 2](#recommended-order).** Branch `iss8291-separate-bystander-storage`.
 
 **Scope in one sentence: move a room's record of its **bystanders** (present characters not entangled with the room; today, every present character) out of the room's `ludicGraph` and into a small `LudicCache::Characters` row on the room that lists every present character ([BS-6](#open-decisions-implementation--plan-only)), so that a character's arrival or departure writes the character's own graph, its adjacency row and the characters row --- never `Meta::Room`, never a cache marker, never the `LudicCache::` row --- and the room header reads its structure from one consistent `getItems` over the cache rows.**
 
@@ -23,7 +23,7 @@ Character movement is the most frequent change a room sees, and today every arri
 
 An earlier draft of this plan kept characters in the graph and projected them out in both the fold and the kernel. That stopped the invalidation but not the `Meta::Room` write, so it was dropped.
 
-**The header's reads.** Today [`affordanceRoomDeliverable.ts`](../../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) reads the room graph for two things: the roster (`getRoomCharacterList`, via `characterIds`) and the room-level object ids (`objectIds`). It also reads the two cache rows. After [Slice 1](#recommended-order) the object ids come from the cache, and after [Slice 3](#recommended-order) the roster comes from the characters row. All three rows then travel in one `getItems`. The room's wire `ludicGraph`, also built from the whole room graph today, is projected from the cache read in [Slice 1b](#recommended-order) ([BS-7](#open-decisions-implementation--plan-only)), so after Slice 3 the header reads no `Meta::Room`. The per-character `CharacterMeta` and session reads that hydrate the roster are unchanged.
+**The header's reads.** Today [`affordanceRoomDeliverable.ts`](../../../../../lambda/ephemera/internalCache/affordanceRoomDeliverable.ts) reads the room graph for two things: the roster (`getRoomCharacterList`, via `characterIds`) and the room-level object ids (`objectIds`). It also reads the two cache rows. After [Slice 1](#recommended-order) the object ids come from the cache, and after [Slice 3](#recommended-order) the roster comes from the characters row. All three rows then travel in one `getItems`. The room's wire `ludicGraph`, also built from the whole room graph today, is projected from the cache read (Slice 1b), so after Slice 3 the header reads no `Meta::Room`. The per-character `CharacterMeta` and session reads that hydrate the roster are unchanged.
 
 ## Getting Started
 
@@ -78,14 +78,14 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
 
 - [X] **Slice 1. Header room-level ids from the cache.** Done; suite green (`ludicCache/`, `internalCache/`, full `ephemera`).
   - [X] `ludicCacheRoomObjectContents(roomId, assetStack, deps)` derives the room-level ids from the union of covers over *all* the room node's bindings, filtered to Objects with a stored `shortName`. It returns `{ objectIds, objects }`; `objectIds` is the stored-name-filtered set (not viewer-label-filtered) that feeds `appendImprovisationToPerspective`.
-  - [X] `AffordanceRoomDeliverableData` takes `objectIds` from the reader (called right after the affordance row, before the aggregate call). **It still calls `getLudicGraph(roomId)`,** for the roster-adjacent wire projection `roomRow.ludicGraph = toWireLudicGraphFull(graph)` (the room's whole stored graph), so the header still reads `Meta::Room` until Slice 1b ([BS-7](#open-decisions-implementation--plan-only)).
+  - [X] `AffordanceRoomDeliverableData` takes `objectIds` from the reader (called right after the affordance row, before the aggregate call). The wire `ludicGraph` was still the room's stored graph until Slice 1b.
   - [X] Tests: `roomObjectContents.test.ts` (fixture room graphs now carry the hostless `Remainder`, as real ones do; new cases for the multi-binding union and for character/unnamed exclusion); `affordanceRoomDeliverable.test.ts` (ids follow the reader, not the graph). Behavior change: object order now follows cover order, not `graph.objectIds` order.
   - [X] `AGENT.contract.md` L629/L651 corrected now (L651 said the compose "must" use `graph.objectIds`); the rest of the contract rewrite stays in Slice 6.
 
-- [ ] **Slice 1b. The room's wire `ludicGraph` from the cache read ([BS-7](#open-decisions-implementation--plan-only)).** After this slice the header reads no `ludicGraph`.
-  - [ ] `AffordanceRoomDeliverableData` sets `roomRow.ludicGraph` to `{ rootId: roomId, nodes: [roomId, ...objects.map(({ objectId }) => objectId)] }` and only when there are objects, matching the object stubs' contents graphs. It drops `getLudicGraph` from `AffordanceRoomDeliverableObjectReads` and from the adapter in `internalCache/index.ts`.
-  - [ ] Tests: the deliverable reads no graph (no `getLudicGraph` dependency left to mock), and the room's wire graph lists exactly the labelled room-level objects in reader order. Confirm a `charcoal-client` test round-trips `formatRoomContentsLine` over the new shape.
-  - [ ] `AGENT.contract.md` room-header bullet (~L651): the stored graph is no longer read for the wire `ludicGraph`.
+- [X] **Slice 1b. The room's wire `ludicGraph` from the cache read (BS-7).** Done; suite green (`internalCache/`, full `ephemera`, `charcoal-client` `roomHeaderContents`). The header reads no `ludicGraph`.
+  - [X] `AffordanceRoomDeliverableData` sets `roomRow.ludicGraph` to `{ rootId: roomId, nodes: [roomId, ...objects.map(({ objectId }) => objectId)] }` and only when there are objects, matching the object stubs' contents graphs. It drops `getLudicGraph` from `AffordanceRoomDeliverableObjectReads` and from the adapter in `internalCache/index.ts`.
+  - [X] Tests: the deliverable reads no graph (no `getLudicGraph` dependency left to mock), and the room's wire graph lists exactly the labelled room-level objects in reader order. `roomHeaderContents.test.ts` already builds room-nested Object refs, so it covers the new shape unchanged.
+  - [X] `AGENT.contract.md` L651: the wire `ludicGraph` is projected from the reader; the stored graph is read only for the roster.
 
 - [ ] **Slice 2. The characters row, written alongside the room graph.** This is a dual write: the room graph still holds character nodes, so nothing that reads them changes yet.
   - [ ] **Shape ([BS-5](#open-decisions-implementation--plan-only)):**
@@ -142,7 +142,7 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
     - replace the leaf-node bullet with "a bystander (a present character other than the seed and not a participant) is not in its room's graph or cache; the characters row indexes it";
     - in the presence section, state that a Room's character membership is indexed by the characters row, and that a bystander is not in the room's graph (pointers still govern);
     - add to the move bundle that `RoomUpdate` follows membership changes, not only the footprint.
-  - [ ] **[`positions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md):** update the rows for the walk, the store and the kernel cascade. Also shelve the object look path's version of BS-7: `resolveHostedNodeWmlData` (`perception/orchestrate.ts`) still ships `toWireLudicGraphFull` of the object's own graph. It can't simply read the room's cache row, because a held object sits in a character shard, which the room walk doesn't enter.
+  - [ ] **[`positions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md):** update the rows for the walk, the store and the kernel cascade. Also shelve the object look path's version of the wire-graph projection (Slice 1b): `resolveHostedNodeWmlData` (`perception/orchestrate.ts`) still ships `toWireLudicGraphFull` of the object's own graph. It can't simply read the room's cache row, because a held object sits in a character shard, which the room walk doesn't enter.
   - [ ] **A shelved section in `AGENT.implementation.md`, "Shelved: participant characters"**, recording the design sketched so far:
     - **Status from the graph.** A participant is a character whose shard holds a crossing or boundary edge to a host outside its own subtree.
     - **Room-side representation.** A participant's node returns to the room graph, which carries its entanglement edges. Becoming a participant writes the room graph and marks the room; ceasing to be one removes the node.
@@ -164,12 +164,11 @@ Plan-only: decisions made in order to implement the next slices. When one ships,
 | **BS-4** | **Characters row, or query the existing adjacency rows?** Every character move already writes `positionAdjacency#<roomId>` on the character, in the same transaction. Querying `DataCategoryIndex` for a room's `CHARACTER#` rows would give the roster with no new write. **Rejected for the live read:** a GSI can't be read with strong consistency, and the header refresh fires straight after the commit, so it could miss the arrival that triggered it. It also costs a query per header instead of riding the cache rows' `getItems`. It is still a candidate rebuild source once the graph no longer holds characters (Slice 4). | Slice 2 | Decided (2026-10-14, recommendation; revisit if the per-move write proves costly) |
 | **BS-5** | **What the row holds, and its authority.** It holds membership only: character id mapped to its binding ids into the room, plus `complete`. It holds no name, color or session. **It is an index, not an authority:** the character's own binding pointer governs, as with covers ("Pointers govern; the cover is their stored index"). So drift between the two is healed from the pointer, by the occupancy drift sweep. | Slice 2 | Proposed |
 | **BS-6** | **Does the row list every present character, or only bystanders?** **Recommendation: every present character.** A future participant is then in both the row and the room graph, with the graph adding its entanglement edges, and the roster stays on one source. Listing only bystanders would make every roster reader merge the row with the graph's participants. The row is named for what it lists: `LudicCache::Characters`. Moot until participants exist, but it fixes what Slice 2's row means. | Slice 2 | Decided (2026-10-14): every present character; row named `LudicCache::Characters` |
-| **BS-7** | **Where does the room's wire `ludicGraph` come from?** `roomRow.ludicGraph = toWireLudicGraphFull(graph)` ships the room's whole stored graph (nodes incl. characters, edges, ports) and is the header's last `Meta::Room` read. **Decided: project it from the cache read.** The client reads only the Object refs, in order (`formatRoomContentsLine` in `roomHeaderContents.ts`, `nodesByTag('Object')`; the roster comes from `characters`). The render channel's room form carries no `ludicGraph`, so nothing merges one back in. `ludicCacheRoomObjectContents` is already the cache-to-wire projection, so the deliverable builds `{ rootId: roomId, nodes: [roomId, ...objectIds] }` from its `objects` (the same shape each object's contents already ship in) and drops `getLudicGraph`. The cache row itself is not sent: its names are reasoning names, and its bindings, edges and character leaves are internal. Slice 4's character removal then never reaches the wire. | Slice 3's "no `Meta::Room` read" | Decided (2026-10-15): project from the cache read; [Slice 1b](#recommended-order) |
 
 ## Verification
 
 ```bash
-cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/ludicCache/ internalCache/ dataSource/actions/                    # Slices 1, 1b
+cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/ludicCache/ internalCache/ dataSource/actions/                    # Slices 1, 1b (done)
 cd charcoal-client && npm run test -- roomHeaderContents                                                                                    # Slice 1b (confirm the runner in charcoal-client's AGENT.md)
 cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/ internalCache/                                                 # Slice 2
 cd lambda/ephemera && npm run test -- --watchAll=false                                                                                     # Slices 3-6, and before calling any slice done
@@ -193,8 +192,8 @@ Confirm each package's runner in its `AGENT.testing.md` / `AGENT.md` before trus
 | Slice | Status |
 | --- | --- |
 | 0. Verify premises | Done (pinning test in `fold.test.ts`; dev-room check is the user's) |
-| 1. Header room-level ids from the cache | Done (header still reads the room graph for the wire `ludicGraph`: BS-7) |
-| 1b. Room wire `ludicGraph` from the cache read | Not started (BS-7 decided) |
+| 1. Header room-level ids from the cache | Done |
+| 1b. Room wire `ludicGraph` from the cache read | Done (header reads `Meta::Room` only for the roster) |
 | 2. Characters row (dual write) | Not started (unblocked) |
 | 3. Readers move to the row | Not started |
 | 4. Bystanders leave room graphs | Not started |

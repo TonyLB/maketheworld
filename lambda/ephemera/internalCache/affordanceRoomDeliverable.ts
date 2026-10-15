@@ -14,8 +14,6 @@ import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import { StandardRoomData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/room'
 import { getRoomCharacterList } from './hydrateRoomRoster'
 import { roomCharacterListToStandardCharacterData } from './roomWireMergeHelpers'
-import type { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
-import { toWireLudicGraphFull } from '../dataSource/positions/ludicGraph/wireProjection'
 import type { StandardObjectData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/object'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 import type { RoomObjectsRead } from '../dataSource/positions/ludicCache/roomObjectContents'
@@ -34,7 +32,6 @@ export function affordanceRoomDeliverableCacheKeyForRoom(cacheKey: string, roomI
 }
 
 export type AffordanceRoomDeliverableObjectReads = {
-    getLudicGraph: (roomId: EphemeraRoomId) => Promise<EphemeraLudicGraph>
     /** The room-level objects and one level of contents each, read forward from `ludicCache` (`ludicCacheRoomObjectContents`). */
     getRoomObjectContents: (
         roomId: EphemeraRoomId,
@@ -45,7 +42,7 @@ export type AffordanceRoomDeliverableObjectReads = {
 /**
  * Per-invocation compose memo keyed by (roomId, perspectiveKey): builds affordance-channel
  * room header StandardForm (shortName via ComponentAggregate, exits via AffordanceCache,
- * roster via graph, room-level objects via ludicGraph, each with one level of contents from ludicCache). Called from perception on Affordances Pertain only.
+ * roster via the room roster, room-level objects and the wire ludicGraph from ludicCache, each object with one level of contents). Called from perception on Affordances Pertain only.
  */
 export class AffordanceRoomDeliverableData {
     _componentAggregate: ComponentAggregateMergedCache
@@ -95,10 +92,9 @@ export class AffordanceRoomDeliverableData {
         roomId: EphemeraRoomId,
         perspectiveKey: string
     ): Promise<StandardForm> {
-        const [affordanceRow, roomCharacterList, ludicGraph] = await Promise.all([
+        const [affordanceRow, roomCharacterList] = await Promise.all([
             this._affordanceCache.getAffordanceRow(roomId, perspectiveKey),
             getRoomCharacterList(roomId),
-            this._objectReads.getLudicGraph(roomId),
         ])
 
         if (affordanceRow === undefined) {
@@ -150,8 +146,10 @@ export class AffordanceRoomDeliverableData {
             ...(exits.length ? { exits } : {}),
             characters: roomCharacterList.map((char) => char.EphemeraId),
             shortName: shortNameLiteral?.toJSON(),
-            // Still the room's stored graph: the wire projection is not yet derivable from the cache rows (BS-7).
-            ludicGraph: toWireLudicGraphFull(ludicGraph),
+            // The client reads only the room's Object refs, in order, so the wire graph is projected from the cache read (BS-7).
+            ...(roomObjects.length
+                ? { ludicGraph: { rootId: roomId as unknown as StandardReferenceData, nodes: [roomId, ...roomObjects.map(({ objectId }) => objectId)] as unknown as StandardReferenceData[] } }
+                : {}),
         }
 
         const characterComponents = roomCharacterListToStandardCharacterData(roomCharacterList)
