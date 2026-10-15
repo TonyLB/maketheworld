@@ -2,7 +2,7 @@ import EphemeraDataSource from './abstract'
 import { EphemeraEventSerializer } from '@tonylb/mtw-interfaces/ts/eventBridge/ephemera'
 import { AssetsEventUpdate } from '@tonylb/mtw-interfaces/ts/eventBridge/assets'
 import messageBus from '../messageBus'
-import { isEphemeraAreaId, isEphemeraRoomId, isEphemeraAssetId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraRoomId, isEphemeraAssetId, isEphemeraObjectId, isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     EphemeraIncomingEvent,
     EphemeraSubscribedContent,
@@ -18,6 +18,7 @@ import { populateContainmentAtCache } from './positions/manipulation/containment
 import { removeAuthoredObject } from './positions/manipulation/containment/removeAuthoredObject'
 import { markHostsStale, markRoomsStale } from './positions/ludicCache/markStale'
 import internalCache from '../internalCache'
+import { onCharacterComponentUpdated } from './characterComponentUpdated'
 
 const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { header: { type: 'Component Updated' } }>): Promise<void> => {
     const content = await evt.getContent()
@@ -26,8 +27,11 @@ const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { hea
     // A component edit can rename what a stored `ludicCache` holds, and gains or loses a room's
     // participating asset (`cacheAsset`/`decacheAsset` stream this for the room itself too): mark
     // the rooms that show this component stale before anything below reads a cache.
-    if (isEphemeraMembershipHostId(componentId)) {
-        await markHostsStale([componentId], { includeCharacterStarts: true })
+    // A character's cache shows none of its data, so an edit to it marks nothing: its rooms refresh their rosters.
+    if (isEphemeraCharacterId(componentId)) {
+        await onCharacterComponentUpdated(componentId)
+    } else if (isEphemeraMembershipHostId(componentId)) {
+        await markHostsStale([componentId])
     }
     if (isEphemeraRoomId(componentId)) {
         await kickRoomHeaderBroadcastForRoom({ roomId: componentId, messageBus })

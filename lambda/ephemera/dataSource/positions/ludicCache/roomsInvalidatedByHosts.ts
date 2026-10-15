@@ -15,16 +15,12 @@ import { roomsForHost } from '../ludicGraph/presenceRooms'
  * that moves still marks its rooms: the hosts it leaves and arrives at are written hosts of their
  * own, and are passed in alongside it. For the same reason the walk stops at a character-hosted
  * parent: an object handed from one character to another changes no room's cache.
- *
- * `includeCharacterStarts` is for a change to the host's *own* name rather than to a graph: a renamed
- * character shows under its name in the room it stands in, so it is walked up to that room.
  */
 export const roomsInvalidatedByHosts = async (
     hostIds: Iterable<EphemeraMembershipHostId>,
-    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
-    options: { includeCharacterStarts?: boolean } = {}
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 ): Promise<EphemeraRoomId[]> => {
-    const starts = [...new Set(hostIds)].filter((hostId) => options.includeCharacterStarts || !isEphemeraCharacterId(hostId))
+    const starts = [...new Set(hostIds)].filter((hostId) => !isEphemeraCharacterId(hostId))
     const perHost = await Promise.all(starts.map((hostId) => roomsForHost(hostId, getGraph, isEphemeraCharacterId)))
     return [...new Set(perHost.flatMap((rooms) => [...rooms]))]
 }

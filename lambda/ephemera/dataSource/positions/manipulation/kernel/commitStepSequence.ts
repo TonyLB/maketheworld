@@ -21,6 +21,7 @@ import { streamObjectRelationalFact } from '../relational/streamObjectRelational
 import { applyStepSequenceCore } from './applyStepSequenceCore'
 import { resolveCaptureOccupants } from './captureOccupants'
 import { computeStepSequenceFootprint, createdHostsOf } from './computeStepSequenceFootprint'
+import { invalidateRoomMemos } from './invalidateRoomMemos'
 import { factForRelationalEdge, factsForStep, isFactOfRelationalEdge, movedFactsFor } from './factsForStep'
 import { membershipChangesOf } from './membershipChanges'
 import type { MembershipChange } from './membershipChanges'
@@ -72,11 +73,6 @@ export type CommitStepSequenceDeps = {
 const TRANSACT_ACTION_LIMIT = 100
 
 export type CommitStepSequenceTransactItem = Parameters<typeof ephemeraDB.transactWrite>[0][number]
-
-const invalidateRoomMemos = (roomId: EphemeraRoomId): void => {
-    internalCache.ComponentEphemeraMeta.invalidate(roomId)
-    internalCache.AffordanceRoomDeliverable.invalidate(roomId)
-}
 
 const seedGraphMemos = (graphs: EphemeraLudicGraph[]): void => {
     for (const graph of graphs) {

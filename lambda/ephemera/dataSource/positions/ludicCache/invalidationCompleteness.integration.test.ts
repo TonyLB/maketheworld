@@ -558,9 +558,10 @@ const cases: Case[] = [
     },
     {
         name: 'a character is renamed',
-        rooms: [R1],
-        // the cache holds no character any more; the room is still marked until Slice 5 (BS-3) so the header refreshes
+        rooms: [],
+        // the cache holds no character: a rename refreshes rosters on `RoomUpdate` and marks no room (BS-3)
         changesCache: false,
+        marksNothing: true,
         act: async () => {
             world.names[ALPHA] = 'Alpha Prime'
             await receive(componentUpdated(componentOf(ALPHA)))
