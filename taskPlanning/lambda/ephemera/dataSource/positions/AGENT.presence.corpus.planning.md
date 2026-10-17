@@ -324,3 +324,45 @@ Each root is in every bucket of its own graph by definition, per PR-9's point (4
 **What this case does not grade.** Whether the order pipeline should build the crate as a container at all --- that is the Acme interpretation's call, and the harness currently counts *"over-index on crate packaging"* as an error.
 
 **Rows graded:** [PR-1](AGENT.presence.planning.md#settled-register) (requirement survives; representation restated), PR-21 (hostless remainder and stable remainder id: survive), [PR-9](AGENT.presence.planning.md#settled-register) (its domain clause: hostless wholes are now inside the invariant).
+
+### PR-C5. The steamer chest in the attic, and the backgammon set inherited twice
+
+**Origin:** supplied by the user 2026-10-17, to ground [PR-25](AGENT.presence.planning.md#open-decisions-design--plan-only). **It tries to falsify two things:** PR-25 as first worded, *a thing that is the same thing under several parents should have one binding*; and inherited arity as it follows from [PR-21](AGENT.presence.planning.md#settled-register)(c), *a binding has one parent pointer, so a node gets one binding per covering parent binding.*
+
+**The setup.** `ROOM#Attic`. Two abstractions are multi-parented into it: `OBJECT#InheritedFurniture`, and `OBJECT#Boardgames`, a huge assortment of variously stored board games. `OBJECT#SteamerChest` is a member of both, and it is in the attic **only through them**: it has no binding of its own directly into the attic. The chest holds many board games. In the second beat, one of them, `OBJECT#Backgammon`, is inherited too; its members are all its tokens and dice.
+
+**Levels staged:** the room; the two abstractions over it; the chest; the chest's contents; Backgammon's own members. Node granularity is held fixed. The case varies only bindings and covers.
+
+**Beat 1: the chest is furniture, and it is storage.** Inherited Furniture holds the chest itself, not what is in it. Boardgames holds the chest *and* its contents. Both facts are literal and explicit:
+
+- Inherited Furniture contains `CHEST#presenceA`, whose cover (inside the chest's graph) is `[]`.
+- Boardgames contains `CHEST#presenceB`, whose cover lists every game in the chest.
+
+| Reading | `CHEST#presenceA` (Inherited Furniture) | `CHEST#presenceB` (Boardgames) |
+| --- | --- | --- |
+| **Default `Remainder`** (today, [PR-21](AGENT.presence.planning.md#settled-register)(a)) | Takes a `Remainder` unless something writes otherwise, so it covers every game: the games become inherited furniture | Lists the games, or holds the `Remainder` instead; either way the two covers are not independent |
+| **PR-25 as first worded** (one binding, because it is one chest) | One cover for both parents. Whatever Boardgames reaches through the chest, Inherited Furniture reaches too | --- |
+| **Monotone covers** ([PR-24](AGENT.presence.planning.md#open-decisions-design--plan-only)) | `[]` | Every game |
+
+**Finding 1: a binding is identified by what it covers, not by the thing it belongs to.** The chest is the same chest in both abstractions and still needs two bindings, because the two parents see different contents. **PR-25 as first worded fails.** The case is expressible only under monotone covers: coverage holds because presenceB covers every game, and presenceA's empty cover means "the chest, nothing inside it" rather than "everything nobody else listed."
+
+**The chest is present in the attic twice**, once through each abstraction's binding. Under PR-24 covers may overlap, so that is legal and needs no rule.
+
+**Beat 2: the backgammon set is inherited.** Now `CHEST#presenceA` covers `[Backgammon]`, and `CHEST#presenceB` still covers every game, Backgammon included. The covers overlap. Backgammon's own cover is the same under both: all the tokens and dice.
+
+| Reading | The chest | Backgammon | Its tokens and dice | Replacing a lost die | "What is in the attic?" |
+| --- | --- | --- | --- | --- | --- |
+| **One parent pointer, inherited arity** (today: [`fromHostPresence`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) is a single `EphemeraPresenceParentPointer`) | Two bindings | **Two bindings with identical covers**, one under each chest binding | Two each; a third overlapping abstraction above makes it three | Written twice. A missed write makes the copies differ for no fictional reason | Reaches Backgammon twice, so every reader must collapse duplicates at read time |
+| **Parent set** (PR-25 candidate (a)) | Two bindings: their covers differ | **One binding, parents `{CHEST#presenceA, CHEST#presenceB}`** | One each | One write, seen from both parents | Reaches Backgammon once |
+
+**Finding 2: inherited arity, as stated, multiplies bindings that mean the same thing.** Nothing in the fiction distinguishes "the backgammon set as Inherited Furniture sees it" from "the backgammon set as Boardgames sees it." The copies multiply down the hierarchy with every overlapping abstraction, and keeping them equal is a write-time obligation with no fictional content. Collapsing them on read is a read-time inference, the hazard PR-24 removes.
+
+**The rule the case leaves standing**, a positive form of inherited arity checkable at write time:
+
+> For every parent binding whose cover lists a node, exactly one of that node's bindings has that parent binding in its parent set.
+
+Today's rule is the special case where every parent set has one member. The chest satisfies it with two bindings, the Backgammon set with one. **Sharing is stored, never inferred:** two bindings with equal covers are not thereby one binding. If a shared binding's covers later need to differ by parent, separating it is an explicit write, as Split is today.
+
+**What this case does not grade.** Where a context-free add to the chest lands (an heirloom quilt put in with no context): the chest has no hostless binding, which is [MC-1](AGENT.monotoneCovers.planning.md#open-decisions-implementation--plan-only)'s question with a concrete instance. How audience resolution ([PR-21](AGENT.presence.planning.md#settled-register)(e), (g)) walks a binding with several parents.
+
+**Rows graded:** [PR-25](AGENT.presence.planning.md#open-decisions-design--plan-only) (first wording: fails; candidate (a): survives, with the rule above; (b) is what differing covers produce, with no "same as" needed; (c) is unneeded); [PR-24](AGENT.presence.planning.md#open-decisions-design--plan-only) (monotone covers: required by beat 1; overlapping covers: legal); [PR-21](AGENT.presence.planning.md#settled-register)(c) (one parent pointer per binding: does not survive beat 2).
