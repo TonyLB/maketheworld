@@ -62,21 +62,25 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [ ] **(d) Id-shape assumptions.** Find anything that parses the value after `PRESENCE#` as a uuid or derives other ids from it, such as `stubPortIdFromEdge` in `presenceSubGraph.ts`, validators, or regexes.
   - [ ] **(e) Stored data.** A read-only count of dev-world presence nodes holding a `Remainder`, and of wholes with more than one holder. Running it is the user's call.
 - [ ] **Slice 1. The sentinel and its invariant.**
-  - [ ] Add one constant to `ephemeraMeta.ts` (spelling per RI-1) and a helper that builds the remainder binding's key.
+  - [ ] Add one constant to `ephemeraMeta.ts`, `PRESENCE#REMAINDER` (RI-1) and a helper that builds the remainder binding's key.
   - [ ] The invariant: a binding holds the `Remainder` if and only if its key is the sentinel, and every whole has exactly one. Check it at the end-of-run validator in `applyStepSequenceCore` (beside PM-2's collision check) and in the graph guard.
   - [ ] Unit tests: the guard rejects a sentinel-keyed binding without a `Remainder`, a `Remainder` on a non-sentinel key, and two holders.
 - [ ] **Slice 2. Producers mint the sentinel.**
   - [ ] Every mint site from Getting Started step 3 mints the sentinel for a remainder. Split is unchanged.
-  - [ ] Join follows RI-2.
+  - [ ] Join follows RI-2 (a): the producer orders the Remainder holder first so it survives, and `joinPresenceBindings` refuses a join whose absorbed binding holds the Remainder (`joinRemainderAbsorbed`). Test both: a two-binding move where the holder is not first in `presenceMoves` still keeps `PRESENCE#REMAINDER`, and a hand-built step absorbing the holder is refused.
   - [ ] **Payoff test**, through `compilePositionKernelOp`: create a component, place it, move it, split it, join it back, disconnect it. After every step, exactly one binding holds the `Remainder`, it is keyed by the sentinel, and every child pointer naming it still resolves.
 - [ ] **Slice 3. Uniqueness fixes** from Slice 0(b). Each fix qualifies the key by host and gets a test where two hosts' remainders meet in one structure (for example, a fold over a room holding a box, both with sentinel remainders).
-- [ ] **Slice 4. Migrate stored data** (per RI-3). Renaming a whole's remainder key also rewrites:
-  - children's `fromHostPresence.presence` that names it;
-  - parent cover entries `{ host: <whole>, presence: <old> }`;
-  - edges ending at it (`{ owner, port: 'PRESENCE#<old>' }`);
-  - cached `ludicCache` rows.
+- [ ] **Slice 4. Migrate stored data** (RI-3: population renames, the existing drift sweep triggers it).
+  - [ ] **The rename.** Renaming a whole's remainder key also rewrites:
+    - children's `fromHostPresence.presence` that names it;
+    - parent cover entries `{ host: <whole>, presence: <old> }`;
+    - edges ending at it (`{ owner, port: 'PRESENCE#<old>' }`);
+    - cached `ludicCache` rows.
 
-  The deploy gate is the user's.
+    No kernel step renames a binding today: `repairPresenceBinding` rewrites a pointer and cover but keeps `universalKey`. Use either a new rename step, or existing steps committed as one sequence: mint the sentinel, repair each child to name it, remove the old binding. Decide which when the slice starts.
+  - [ ] **Population.** `rootStep` (and the non-room branch's root check) treats a remainder not keyed `PRESENCE#REMAINDER` as drift and emits the rename. A correct root still emits nothing, so a clean rerun commits no transaction.
+  - [ ] **Classifier.** `lambda/diagnostics/containmentPopulationDriftSweep/classification.ts` flags such a parent, so `healContainmentPopulation` reaches it.
+  - [ ] **Preconditions and deploy gate (the user's):** clear improvised Objects and players; deploy; run `{ type: 'ContainmentPopulationDriftSweep' }` twice, the second reading `emittedCount: 0`. Slice 0(e)'s count says whether anything outside population's reach (a character's own remainder, say) is left holding an old id.
 - [ ] **Slice 5. Docs and graduation.**
   - [ ] Contract: the `cover` clause (exactly one `Remainder`), the stable-id clause (a remainder's id is the sentinel), and the "nothing guesses" wording.
   - [ ] `AGENT.implementation.md`: the mint sites.
@@ -90,9 +94,9 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| **RI-1** | **The sentinel's spelling.** `PRESENCE#REMAINDER` keeps the existing tag, so `isEphemeraPresenceNodeId` and `isPresenceTaggedPortId` accept it unchanged, and it can't collide with a uuid. The WML key form (the WML plan's Slice 1 check (b)) follows whatever is chosen. | 1 | Open; leans `PRESENCE#REMAINDER` |
-| **RI-2** | **A join whose absorbed binding holds the Remainder.** Today the survivor takes the Remainder and keeps its own id, so the role would leave the sentinel key. (a) **Refuse** (`joinRemainderAbsorbed`) and have the producer make the Remainder holder the survivor. This mirrors split's `splitRemainderMoved` (the user's 2026-10-12 ruling). (b) **Let the kernel swap roles** so the sentinel key survives. This changes the survivor's id, and every child pointer naming it must be re-pointed, which PR-21(e) forbids. (a) is the only option that keeps every id stable. | 2 | Open; the user's call |
-| **RI-3** | **How stored remainder ids migrate.** (a) A drift sweep plus heal, following `ContainmentPopulationDriftSweep`'s precedent: it reports a whole whose remainder isn't sentinel-keyed and rewrites the references Slice 4 lists in one transaction. (b) Clear the dev world's presence data and re-cache, since nothing is rolled out. (b) is cheaper; (a) leaves a sweep that keeps detecting drift afterwards. | 4 | Open; the user's call |
+| **RI-1** | **The sentinel's spelling.** `PRESENCE#REMAINDER` keeps the existing tag, so `isEphemeraPresenceNodeId` and `isPresenceTaggedPortId` accept it unchanged, and it can't collide with a uuid. The WML key form (the WML plan's Slice 1 check (b)) follows whatever is chosen. | 1 | **Decided 2026-10-17 (the user): `PRESENCE#REMAINDER`.** |
+| **RI-2** | **Which binding survives a join when the Remainder holder is not the first move.** Join absorbs one binding: its id ends, its children are re-pointed, and the survivor keeps its id. Either choice of survivor satisfies PR-21(e) (corrected 2026-10-17: an earlier draft said swapping roles breaks PR-21(e); it doesn't, because nothing is renamed). Under the sentinel, though, the Remainder holder must be the survivor, or the merged Remainder would sit on a non-sentinel key. Today `presenceBindingStepsForMove` makes the first move's binding the survivor, in `presenceMoves` order. (a) **The producer picks the Remainder holder** as survivor (the resolver or compiler orders it first), and the kernel refuses a join whose absorbed binding holds the Remainder (`joinRemainderAbsorbed`, mirroring split's `splitRemainderMoved`). (b) **The kernel picks**: it ignores the step's order and keeps whichever binding holds the Remainder. (b) silently overrides the producer, so any later step in the same sequence that names the producer's survivor goes stale. | 2 | **Decided 2026-10-17 (the user): (a).** |
+| **RI-3** | **How stored remainder ids migrate.** **Population learns the rename, and the existing `ContainmentPopulationDriftSweep` triggers it.** Wiping is ruled out for authored wholes, since Rooms can't be cleared without destroying the CoyoteGame setting; Objects and players can be (the user, 2026-10-17). A re-cache can't do it: `cacheAsset` emits `Component Updated` only for components in its diff (`cacheAsset.ts:59`), so an unchanged room never reaches population. And today's `rootStep` accepts any hostless remainder as a room's root, so even a forced re-cache would commit nothing. **So:** (1) before deploy, the user clears improvised Objects and players; (2) population treats a remainder not keyed `PRESENCE#REMAINDER` as drift and renames it (Slice 4's rename); (3) the drift classifier gains that check, so the existing sweep, which already reaches every Room, Area and Feature parent, finds each one and heals it through population. No new sweep, and no change to `cacheAsset`. | 4 | **Decided 2026-10-17 (the user).** |
 
 ## Verification
 
@@ -106,7 +110,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | --- | --- |
 | 0. Verify premises | Not started |
 | 1. Sentinel and invariant | Waiting on PR-23 |
-| 2. Producers | Waiting on PR-23, RI-2 |
+| 2. Producers | Waiting on PR-23 |
 | 3. Uniqueness fixes | Waiting on Slice 0(b) |
-| 4. Migration | Waiting on RI-3 |
+| 4. Migration | Waiting on Slice 2 |
 | 5. Docs and graduation | Not started |
