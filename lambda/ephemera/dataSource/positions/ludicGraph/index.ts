@@ -364,7 +364,7 @@ export class EphemeraLudicGraph {
         if (this.hostId !== other.hostId) {
             return false
         }
-        if (!ephemeraLudicTerminalsEqual(this.rootId, other.rootId)) {
+        if (!ephemeraLudicTerminalsEqual(this.rootId, other.rootId, this.hostId)) {
             return false
         }
         const a = this.toStored()
@@ -388,8 +388,8 @@ export class EphemeraLudicGraph {
             const left = aEdges[index]
             const right = bEdges[index]
             if (
-                !ephemeraLudicTerminalsEqual(left.from, right.from)
-                || !ephemeraLudicTerminalsEqual(left.to, right.to)
+                !ephemeraLudicTerminalsEqual(left.from, right.from, this.hostId)
+                || !ephemeraLudicTerminalsEqual(left.to, right.to, this.hostId)
                 || left.kind !== right.kind
             ) {
                 return false

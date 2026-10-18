@@ -35,6 +35,8 @@ export type PresenceCoverDriftFinding =
     | { kind: 'Uncovered'; member: string }
     /** A binding with no parent pointer beyond the first: a whole has at most one hostless binding. */
     | { kind: 'SecondHostless'; presence: string }
+    /** An `Unplaced` binding that holds a parent pointer, or that exists while `Base` is hostless or absent. */
+    | { kind: 'BadUnplaced'; presence: string }
 
 export type PresenceCoverDriftVerdict = {
     /** The whole holds no remainder: legal only while every member is listed explicitly. */
@@ -52,6 +54,9 @@ const listedHosts = (binding: PresenceBindingView): string[] => (
 )
 
 /** The component nodes of the whole that are members: everything but the root (in every bucket) and presence nodes. */
+const BASE_ID = 'PRESENCE#Base'
+const UNPLACED_ID = 'PRESENCE#Unplaced'
+
 export const wholeMembersOf = (whole: PresenceGraphView): string[] => (
     [...new Set(whole.nodeIds)].filter((id) => isComponentId(id) && id !== whole.hostId)
 )
@@ -76,12 +81,15 @@ export const coveredByBinding = (whole: PresenceGraphView): Map<string, Set<stri
  * whole has at most one hostless binding, meaning one with no parent pointer. `hostlessBindings`
  * lists every hostless binding's key, and only when there is more than one.
  */
-export const coverageViolationsOf = (whole: PresenceGraphView): { uncovered: string[]; hostlessBindings: string[] } => {
+export const coverageViolationsOf = (whole: PresenceGraphView): { uncovered: string[]; hostlessBindings: string[]; badUnplaced: string[] } => {
     const covered = new Set([...coveredByBinding(whole).values()].flatMap((members) => [...members]))
     const hostless = whole.presenceNodes.filter((binding) => !binding.fromHostPresence).map((binding) => binding.universalKey)
+    const base = whole.presenceNodes.find((binding) => binding.universalKey === BASE_ID)
+    const unplaced = whole.presenceNodes.find((binding) => binding.universalKey === UNPLACED_ID)
     return {
         uncovered: wholeMembersOf(whole).filter((member) => !covered.has(member)),
         hostlessBindings: hostless.length > 1 ? hostless : [],
+        badUnplaced: unplaced && (unplaced.fromHostPresence || !base?.fromHostPresence) ? [unplaced.universalKey] : [],
     }
 }
 
@@ -133,6 +141,7 @@ export const classifyPresenceCoverDrift = (
             ...findings,
             ...violations.uncovered.map((member): PresenceCoverDriftFinding => ({ kind: 'Uncovered', member })),
             ...violations.hostlessBindings.slice(1).map((presence): PresenceCoverDriftFinding => ({ kind: 'SecondHostless', presence })),
+            ...violations.badUnplaced.map((presence): PresenceCoverDriftFinding => ({ kind: 'BadUnplaced', presence })),
         ],
     }
 }

@@ -308,6 +308,15 @@ describe('ephemeraLudicTerminalsEqual / ephemeraLudicTerminalRefersTo', () => {
         expect(ephemeraLudicTerminalsEqual(address, primitive)).toBe(true)
     })
 
+    it('with a bare owner, a fixed-id presence node equals only an address owned by that graph (PRESENCE#Base is per whole)', () => {
+        const base = 'PRESENCE#Base' as const
+        const mine = { owner: 'ROOM#A' as const, port: 'PRESENCE#Base' }
+        const theirs = { owner: 'OBJECT#BOX' as const, port: 'PRESENCE#Base' }
+        expect(ephemeraLudicTerminalsEqual(base, mine, 'ROOM#A')).toBe(true)
+        expect(ephemeraLudicTerminalsEqual(base, theirs, 'ROOM#A')).toBe(false)
+        expect(ephemeraLudicTerminalsEqual(theirs, base, 'ROOM#A')).toBe(false)
+    })
+
     it('treats a presence node id and a tagged port address naming a different binding as unequal', () => {
         const primitive = 'PRESENCE#presence-1' as const
         const address = { owner: 'ROOM#TABLE' as const, port: 'PRESENCE#presence-2' }

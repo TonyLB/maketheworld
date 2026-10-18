@@ -317,18 +317,23 @@ export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): E
  * so the qualifying `owner` on that address carries no information the id does not, and identity
  * may drop it.
  *
+ * **Fixed ids break that uniqueness** (monotoneCovers Slice 4): every whole holds a `PRESENCE#Base`,
+ * so a bare presence id names a binding only on the graph it sits in. A caller comparing terminals of
+ * one graph passes that graph's host as `bareOwner`, and the exception then also requires the address
+ * to be owned by it. Omitted, the owner is ignored, which is sound only for ids that are still unique.
+ *
  * Scoped by the port address's DECLARED TAG (`isPresenceTaggedPortId`), which under PN-24 is
  * carried on the value itself --- a crossing port's id is bare, so it can never satisfy this test
  * and every non-presence pair is unaffected, including same-owner ones. Both sides carry the tag,
  * so this is a plain equality; do NOT reintroduce a `PRESENCE#${...}` reconstruction here, which
  * is what this comparison looked like while `.port` was bare and would now double-prefix. */
-export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: EphemeraLudicTerminalId): boolean => {
+export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: EphemeraLudicTerminalId, bareOwner?: string): boolean => {
     if (typeof a === 'string' && typeof b === 'string') {
         return a === b
     }
     if (typeof a === 'string' || typeof b === 'string') {
         const [primitive, address] = typeof a === 'string' ? [a, b as EphemeraLudicPortAddress] : [b as EphemeraLudicTerminalPrimitive, a as EphemeraLudicPortAddress]
-        return isPresenceTaggedPortId(address.port) && primitive === address.port
+        return isPresenceTaggedPortId(address.port) && primitive === address.port && (bareOwner === undefined || address.owner === bareOwner)
     }
     return a.owner === b.owner && a.port === b.port
 }
@@ -407,6 +412,15 @@ export type EphemeraPresenceCover = {
 
 /** A fresh sole-remainder cover each call (never a shared object a reducer could freeze or mutate). */
 export const remainderCover = (): EphemeraPresenceCover => ({ members: [{ tag: 'Remainder' }] })
+
+/**
+ * The fixed ids of a whole's root bindings (monotoneCovers MC-2). Base always exists and takes every
+ * context-free add; Unplaced exists only while Base has a parent pointer, and holds contents
+ * explicitly unplaced. Each is unique per whole (never across wholes), so a reference to either is
+ * host-qualified.
+ */
+export const BASE_PRESENCE_ID = 'PRESENCE#Base' as EphemeraPresenceNodeId
+export const UNPLACED_PRESENCE_ID = 'PRESENCE#Unplaced' as EphemeraPresenceNodeId
 
 export const isEphemeraPresenceCoverRemainder = (value: unknown): value is EphemeraPresenceCoverRemainder => (
     !!value && typeof value === 'object' && (value as { tag?: unknown }).tag === 'Remainder'

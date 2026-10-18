@@ -87,7 +87,7 @@ describe('coverageViolationsOf', () => {
 
     it('reports a member no binding covers, and none when a Remainder covers it', () => {
         const bare = room(['FEATURE#x', 'FEATURE#y'], [{ universalKey: 'PRESENCE#root', cover: { members: [{ host: 'FEATURE#x', presence: 'PRESENCE#f' }] } }])
-        expect(coverageViolationsOf(bare)).toEqual({ uncovered: ['FEATURE#y'], hostlessBindings: [] })
+        expect(coverageViolationsOf(bare)).toEqual({ uncovered: ['FEATURE#y'], hostlessBindings: [], badUnplaced: [] })
         expect(coverageViolationsOf(room(['FEATURE#x', 'FEATURE#y'], [{ universalKey: 'PRESENCE#root', cover: REMAINDER }])).uncovered).toEqual([])
     })
 
@@ -113,5 +113,31 @@ describe('classifyPresenceCoverDrift: the coverage invariant', () => {
             { kind: 'Uncovered', member: 'FEATURE#x' },
             { kind: 'SecondHostless', presence: 'PRESENCE#b' },
         ])
+    })
+})
+
+describe('the Unplaced fixed id', () => {
+    const base = { universalKey: 'PRESENCE#Base', cover: { members: [] } }
+    const placedBase = { ...base, fromHostPresence: { host: 'ROOM#b', presence: 'PRESENCE#Base' } }
+    const unplaced = { universalKey: 'PRESENCE#Unplaced', cover: { members: [] } }
+
+    it('accepts Unplaced while Base has a parent pointer', () => {
+        expect(coverageViolationsOf(room([], [placedBase, unplaced])).badUnplaced).toEqual([])
+    })
+
+    it('rejects Unplaced beside a hostless Base (and reports the second hostless binding too)', () => {
+        const verdict = coverageViolationsOf(room([], [base, unplaced]))
+        expect(verdict.badUnplaced).toEqual(['PRESENCE#Unplaced'])
+        expect(verdict.hostlessBindings).toEqual(['PRESENCE#Base', 'PRESENCE#Unplaced'])
+    })
+
+    it('rejects Unplaced with no Base at all, and Unplaced that holds a parent pointer', () => {
+        expect(coverageViolationsOf(room([], [unplaced])).badUnplaced).toEqual(['PRESENCE#Unplaced'])
+        expect(coverageViolationsOf(room([], [placedBase, { ...unplaced, fromHostPresence: { host: 'ROOM#c', presence: 'PRESENCE#Base' } }])).badUnplaced)
+            .toEqual(['PRESENCE#Unplaced'])
+    })
+
+    it('reports BadUnplaced as a finding', () => {
+        expect(classifyPresenceCoverDrift(room([], [base, unplaced]), () => undefined).findings).toContainEqual({ kind: 'BadUnplaced', presence: 'PRESENCE#Unplaced' })
     })
 })

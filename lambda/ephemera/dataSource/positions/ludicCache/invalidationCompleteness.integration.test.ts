@@ -402,8 +402,8 @@ const cases: Case[] = [
         rooms: [R1],
         changesCache: true,
         act: () => commit([
-            { kind: 'createComponent', hostId: MUG, presenceUuid: 'mug1', meta: { EphemeraId: MUG, DataCategory: 'Meta::Object' } as any },
-            move(MUG, 'mug1', null, remainder(R1)),
+            { kind: 'createComponent', hostId: MUG, meta: { EphemeraId: MUG, DataCategory: 'Meta::Object' } as any },
+            move(MUG, 'Base', null, remainder(R1)),
         ]),
     },
     {

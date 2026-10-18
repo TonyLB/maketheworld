@@ -69,7 +69,7 @@ export type MutationKernelAddPresenceBindingStep = {
 }
 
 /**
- * Creates a component's host row, born holding one hostless remainder (`PRESENCE#{presenceUuid}`,
+ * Creates a component's host row, born holding one hostless remainder (`PRESENCE#Base`,
  * no parent pointer), so a component never exists without a binding. Birth is a binding's proper
  * origin; `containmentPopulationSteps.ts`'s `rootStep` is the late catch-up for components created
  * outside the kernel. A placement later in the same sequence re-points this remainder
@@ -82,7 +82,6 @@ export type MutationKernelAddPresenceBindingStep = {
 export type MutationKernelCreateComponentStep = {
     kind: 'createComponent'
     hostId: EphemeraObjectId
-    presenceUuid: string
     meta: Omit<EphemeraMetaObject, 'ludicGraph'>
 }
 

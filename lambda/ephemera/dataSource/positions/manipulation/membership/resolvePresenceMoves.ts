@@ -62,8 +62,8 @@ export const destinationBindingOf = (
     seen: readonly GroundedPresence[] | undefined
 ): { presence: EphemeraPresenceNodeId } | { errorCode: 'destinationBindingMissing' | 'destinationBindingAmbiguous' } => {
     if (isEphemeraRoomId(destGraph.hostId) || isEphemeraAreaId(destGraph.hostId)) {
-        const remainder = hostlessRemainderOf(destGraph)
-        return remainder ? { presence: remainder.universalKey } : { errorCode: 'destinationBindingMissing' }
+        const base = childParentBindingIdOf(destGraph)
+        return base ? { presence: base } : { errorCode: 'destinationBindingMissing' }
     }
     if (seen && seen.length > 0) {
         const matches = bindingsUnderSeenBuckets(destGraph, seen)

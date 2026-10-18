@@ -46,8 +46,8 @@ describe('dryRunStepSequence', () => {
             return roomGraph
         })
         const steps: MutationKernelStep[] = [
-            { kind: 'createComponent', hostId: trayId, presenceUuid: 'born', meta: { EphemeraId: trayId, DataCategory: 'Meta::Object', stableKey: 'tray' } },
-            { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#born' as any, from: null, to: { host: roomId, presence: parentRemainderKey(roomId) } },
+            { kind: 'createComponent', hostId: trayId, meta: { EphemeraId: trayId, DataCategory: 'Meta::Object', stableKey: 'tray' } },
+            { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#Base' as any, from: null, to: { host: roomId, presence: parentRemainderKey(roomId) } },
         ]
 
         const outcome = await dryRunStepSequence(steps, { getCurrentHost: () => undefined, getGraph })

@@ -56,7 +56,7 @@ export type LudicCacheObjectHandle = {
 const bucketsByMember = (cache: EphemeraLudicCacheData): Map<string, GroundedPresenceBinding[]> => {
     const addBucket = (buckets: Map<string, GroundedPresenceBinding[]>, host: string, bucket: GroundedPresenceBinding) => {
         const held = buckets.get(host) ?? []
-        return held.some(({ presence }) => presence === bucket.presence) ? buckets : new Map(buckets).set(host, [...held, bucket])
+        return held.some(({ host: owner, presence }) => owner === bucket.host && presence === bucket.presence) ? buckets : new Map(buckets).set(host, [...held, bucket])
     }
     return cache.nodes.reduce(
         (byNode, node) => node.presenceNodes.reduce(

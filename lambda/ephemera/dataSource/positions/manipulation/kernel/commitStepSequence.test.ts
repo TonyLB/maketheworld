@@ -239,7 +239,7 @@ describe('commitStepSequence', () => {
         })
 
         it('an orphan (no move) is destroyed alone, and afterPersist runs before any fact streams', async () => {
-            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [presenceBindingNode('born')] })
+            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [presenceBindingNode('Base')] })
             const { transactWrite, lastDraft } = makeTransactWriteMock({ [TRAY_ID]: trayGraph })
             const afterPersist = jest.fn()
 
@@ -255,7 +255,7 @@ describe('commitStepSequence', () => {
         })
 
         it('a host still holding an Object aborts the commit: nothing is deleted and afterPersist never runs', async () => {
-            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [{ tag: 'Object', universalKey: GLASS_ID }, presenceBindingNode('born')] })
+            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [{ tag: 'Object', universalKey: GLASS_ID }, presenceBindingNode('Base')] })
             const { transactWrite, cascadeItems } = makeTransactWriteMock({ [TRAY_ID]: trayGraph })
             const afterPersist = jest.fn()
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
@@ -277,10 +277,9 @@ describe('commitStepSequence', () => {
         const createTray: MutationKernelStep = {
             kind: 'createComponent',
             hostId: TRAY_ID,
-            presenceUuid: 'born',
             meta: { EphemeraId: TRAY_ID, DataCategory: 'Meta::Object', stableKey: 'tray' },
         }
-        const placeTray: MutationKernelStep[] = [move(TRAY_ID, 'born', null, ROOM_ID)]
+        const placeTray: MutationKernelStep[] = [move(TRAY_ID, 'Base', null, ROOM_ID)]
         const pairItem = { Put: { EphemeraId: TRAY_ID, DataCategory: 'ASSET#IMPROVISATION', tag: 'Object', shortName: 'tray' } }
 
         it('leaves the created host out of the fetched keys and writes it, with existenceItems, through cascade', async () => {
@@ -303,7 +302,7 @@ describe('commitStepSequence', () => {
                         DataCategory: 'Meta::Object',
                         stableKey: 'tray',
                         ludicGraph: expect.objectContaining({
-                            nodes: expect.arrayContaining([presenceBindingNode('born', ROOM_ID)]),
+                            nodes: expect.arrayContaining([presenceBindingNode('Base', ROOM_ID)]),
                         }),
                     },
                 },
@@ -1046,7 +1045,7 @@ describe('commitStepSequence', () => {
         })
 
         it('adds no bump and publishes no fact when the sequence writes no room\'s cache (an orphan, a capture)', async () => {
-            const orphan = makeTransactWriteMock({ [TRAY_ID]: testLudicGraph(TRAY_ID, { nodes: [presenceBindingNode('born')] }) })
+            const orphan = makeTransactWriteMock({ [TRAY_ID]: testLudicGraph(TRAY_ID, { nodes: [presenceBindingNode('Base')] }) })
             await commitStepSequence(
                 { steps: [{ kind: 'destroyComponent', hostId: TRAY_ID }] },
                 { messageBus: messageBus as any, streamEvent, getCurrentHost: () => undefined, transactWrite: orphan.transactWrite }

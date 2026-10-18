@@ -1,10 +1,9 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraAreaId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalsEqual, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID, ephemeraLudicTerminalsEqual, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
@@ -25,17 +24,16 @@ export const rootStep = (
     parentGraph: EphemeraLudicGraph
 ): { step?: MutationKernelAddPresenceBindingStep; graph: EphemeraLudicGraph } => {
     const hasRoot = isEphemeraRoomId(parentId) || isEphemeraAreaId(parentId)
-        ? Boolean(hostlessRemainderOf(parentGraph))
+        ? Boolean(childParentBindingIdOf(parentGraph))
         : parentGraph.presenceNodes.length > 0
     if (hasRoot) {
         return { graph: parentGraph }
     }
-    const presenceUuid = uuidv4()
     return {
-        step: { kind: 'addPresenceBinding', hostId: parentId, presenceUuid },
+        step: { kind: 'addPresenceBinding', hostId: parentId, presenceUuid: 'Base' },
         graph: parentGraph.addPresenceNode({
             tag: 'Presence',
-            universalKey: PresenceKey(presenceUuid) as EphemeraPresenceNodeId,
+            universalKey: BASE_PRESENCE_ID,
             cover: remainderCover(),
         }),
     }

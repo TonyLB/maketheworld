@@ -1,4 +1,4 @@
-import { edgeKindAndLabelFrom, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID, edgeKindAndLabelFrom, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { coverageViolationsOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
@@ -240,7 +240,7 @@ export const applyStepSequenceCore = (
             }
             graphs.set(step.hostId, graphFromMeta({}, step.hostId).addPresenceNode({
                 tag: 'Presence',
-                universalKey: PresenceKey(step.presenceUuid),
+                universalKey: BASE_PRESENCE_ID,
                 cover: remainderCover(),
             }))
             continue
@@ -272,6 +272,14 @@ export const applyStepSequenceCore = (
             const graph = graphs.get(step.hostId)
             if (!graph) {
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
+            }
+            // `addPresenceNode` returns silently on a duplicate key, which for a fixed id would hide a
+            // second mint of Base or Unplaced; a whole holds each at most once.
+            const mintedId = PresenceKey(step.presenceUuid)
+            if ((mintedId === BASE_PRESENCE_ID || mintedId === UNPLACED_PRESENCE_ID) && graph.presenceNodes.some((node) => node.universalKey === mintedId)) {
+                throw new Error(
+                    `addPresenceBinding: ${step.hostId} already holds ${mintedId} --- structural invariant violated (a whole holds each fixed root binding once)`
+                )
             }
             // presenceNodes Slice 7a (PN-23): mints the presence node directly, with no port
             // record --- `EphemeraPresencePort` is retired, and `presenceUuid` (minted at
@@ -458,7 +466,7 @@ export const applyStepSequenceCore = (
         if (graph === initialGraphs.get(hostId)) {
             return
         }
-        const { uncovered, hostlessBindings } = coverageViolationsOf({
+        const { uncovered, hostlessBindings, badUnplaced } = coverageViolationsOf({
             hostId,
             nodeIds: [...graph.nodeIds],
             presenceNodes: graph.presenceNodes,
@@ -473,6 +481,12 @@ export const applyStepSequenceCore = (
             throw new Error(
                 `applyStepSequenceCore: ${hostId} would carry ${hostlessBindings.length} hostless bindings (${hostlessBindings.join(', ')}) --- ` +
                 `a whole has at most one binding with no parent.`
+            )
+        }
+        if (badUnplaced.length) {
+            throw new Error(
+                `applyStepSequenceCore: ${hostId} would carry ${badUnplaced.join(', ')} --- ` +
+                `Unplaced has no parent and exists only while Base has one.`
             )
         }
         const presencesByParentHost = graph.presenceNodes.reduce<Record<string, string[]>>((accumulator, { fromHostPresence }) => (

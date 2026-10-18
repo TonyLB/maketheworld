@@ -92,6 +92,14 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             expect(hostlessRemainderOf(graph)?.universalKey).toBe(`PRESENCE#${step!.presenceUuid}`)
         })
 
+        it('rootStep mints the fixed PRESENCE#Base, and treats a legacy uuid-named hostless remainder as already rooted', () => {
+            const { step, graph } = rootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [] }))
+            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, presenceUuid: 'Base' })
+            expect(graph.presenceNodes.map((node) => node.universalKey)).toEqual(['PRESENCE#Base'])
+
+            expect(rootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode('legacy-uuid')] })).step).toBeUndefined()
+        })
+
         it('rootStep mints a room\'s remainder even when the room already holds its Area carve-out', () => {
             const { step } = rootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [areaCarveOut()] }))
 

@@ -162,7 +162,6 @@ describe('factsForStep', () => {
         const step: MutationKernelStep = {
             kind: 'createComponent',
             hostId: trayId,
-            presenceUuid: 'born',
             meta: { EphemeraId: trayId, DataCategory: 'Meta::Object', stableKey: 'tray' },
         }
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])

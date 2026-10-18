@@ -107,6 +107,39 @@ describe('ludicCacheObjectHandles', () => {
         expect(handles.map(({ objectId }) => objectId).sort()).toEqual([boxId, pebble].sort())
     })
 
+    // monotoneCovers Slice 4: every whole's root binding is `PRESENCE#Base`, so a box in a room meets
+    // two bindings with one bare id. Buckets are told apart by owner.
+    it('keeps the room\'s Base and the box\'s own Base as two buckets for the box', async () => {
+        const base = 'PRESENCE#Base' as const
+        const roomGraph = testLudicGraph(roomA, {
+            nodes: [
+                { tag: 'Room', universalKey: roomA },
+                { tag: 'Object', universalKey: boxId },
+                { tag: 'Presence', universalKey: base, cover: { members: [{ host: boxId, presence: base }] } },
+            ],
+        })
+        const boxGraph = testLudicGraph(boxId, {
+            nodes: [
+                { tag: 'Object', universalKey: boxId },
+                { tag: 'Object', universalKey: pebble },
+                { tag: 'Presence', universalKey: base, fromHostPresence: { host: roomA, presence: base }, cover: { members: [{ host: pebble, presence: base }] } },
+            ],
+        })
+        const pebbleGraph = testLudicGraph(pebble, {
+            nodes: [{ tag: 'Object', universalKey: pebble }, { tag: 'Presence', universalKey: base, fromHostPresence: { host: boxId, presence: base }, cover: { members: [] } }],
+        })
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[roomA, roomGraph], [boxId, boxGraph], [pebble, pebbleGraph]])
+
+        const handles = await ludicCacheObjectHandles(roomA, [], {
+            ...graphsAsDeps(graphs),
+            ...namedShortNameDeps({ [boxId]: 'Box', [pebble]: 'Pebble' }),
+        })
+
+        const box = handles.find(({ objectId }) => objectId === boxId)
+        expect(box?.presence?.map((bucket) => (bucket as any).host ?? bucket)).toEqual(expect.arrayContaining([roomA, boxId]))
+        expect(box?.presence).toHaveLength(2)
+    })
+
     // Slice 5 (PC-3): the handler is the instrumentation boundary --- buildLudicCache/
     // enumerateLudicCacheShards stay pure, so this is the only place that can time a rebuild or
     // count its objects. Assert the log fires with the right counts, not that behavior changed.
