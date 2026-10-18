@@ -38,7 +38,7 @@ describe('Component Removed for an authored Object', () => {
         )
     })
 
-    it('reaches the real handler off the wire and commits a release of the Object\'s binding', async () => {
+    it('reaches the real handler off the wire and commits a departure of the Object\'s binding', async () => {
         const serializer = new EphemeraEventSerializer()
         const component = new StandardObject('OBJECT#cup' as any)
         const wire = JSON.parse(JSON.stringify(serializer.serialize({
@@ -54,7 +54,8 @@ describe('Component Removed for an authored Object', () => {
 
         expect(commitStepSequence).toHaveBeenCalledTimes(1)
         const [{ steps }] = (commitStepSequence as jest.Mock).mock.calls[0]
-        expect(steps.find((step: any) => step.kind === 'releasePresenceBinding')).toMatchObject({
+        expect(steps.find((step: any) => step.kind === 'movePresenceBinding')).toMatchObject({
+            to: null,
             hostId: 'OBJECT#cup',
             from: { host: ROOM },
         })

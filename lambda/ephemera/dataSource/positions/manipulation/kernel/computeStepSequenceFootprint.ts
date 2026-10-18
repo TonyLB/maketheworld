@@ -11,8 +11,7 @@ import type { StepSequenceFootprint } from './types'
  * touches, computed once up front from a snapshot --- required, since `MultiKeyUpdate` does exactly
  * one batched fetch per `transactWrite` call and cannot be re-entered mid-reducer to lock a
  * newly-discovered host. A presence step contributes the mover's own host plus every host whose
- * membership it can change (decided at grounding time: a pointer's host, a move's `from` and `to`, a
- * release's `from`); `establishRelation`/
+ * membership it can change (decided at grounding time: a pointer's host, a move's `from` and `to`); `establishRelation`/
  * `dissolveRelation` carry no host field (BD-33), so both endpoints' *pre-transaction* current host
  * is derived via the injected resolver. The reducer that actually applies the sequence separately
  * re-verifies each relational step's shared host against the freshly-fetched, locked graphs --- this
@@ -43,7 +42,7 @@ export const computeStepSequenceFootprint = (
         }
         // a presence step names the mover's own graph and every host whose membership it can change: the
         // host a pointer names (the node is added there), a move's destination (also read, to confirm
-        // the binding the mover will sit under) and the host a move or release leaves.
+        // the binding the mover will sit under) and the host a move leaves.
         if (step.kind === 'createComponent' || step.kind === 'destroyComponent') {
             hosts.add(step.hostId)
             continue
@@ -72,37 +71,6 @@ export const computeStepSequenceFootprint = (
             }
             for (const host of step.cascadeHosts ?? []) {
                 hosts.add(host)
-            }
-            continue
-        }
-        if (step.kind === 'releasePresenceBinding') {
-            hosts.add(step.hostId)
-            addHostOf(step.hostId, step.from.host)
-            continue
-        }
-        if (step.kind === 'splitPresenceBinding') {
-            hosts.add(step.hostId)
-            // every child whose binding is re-pointed: the entries of the new bindings. The original's own
-            // entries stay put, so their children are not locked.
-            for (const { presence, cover } of step.splitInto) {
-                if (presence === step.presence) {
-                    continue
-                }
-                for (const member of cover.members) {
-                    if ('host' in member) {
-                        hosts.add(member.host as EphemeraMembershipHostId)
-                    }
-                }
-            }
-            continue
-        }
-        if (step.kind === 'joinPresenceBindings') {
-            hosts.add(step.hostId)
-            // every child whose binding is re-pointed to the survivor: the absorbed cover's entries.
-            for (const member of step.absorbedCover.members) {
-                if ('host' in member) {
-                    hosts.add(member.host as EphemeraMembershipHostId)
-                }
             }
             continue
         }

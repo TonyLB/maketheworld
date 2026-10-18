@@ -26,7 +26,7 @@ describe('executeComponentDestruction', () => {
         commitMock.mockResolvedValue({ ok: true, beatAnchorTime: 1, steps: [], captures: new Map() })
     })
 
-    it('commits a release per binding and destroyComponent in one sequence, handing afterPersist the hosts left', async () => {
+    it('commits a departure per binding and destroyComponent in one sequence, handing afterPersist the hosts left', async () => {
         const rowItem = { Delete: { EphemeraId: OBJECT_ID, DataCategory: 'ASSET#IMPROVISATION' } } as any
         const afterPersist = jest.fn()
 
@@ -44,7 +44,7 @@ describe('executeComponentDestruction', () => {
         expect(commitMock).toHaveBeenCalledTimes(1)
         const [args, deps] = commitMock.mock.calls[0]
         expect(args.steps).toEqual([
-            { kind: 'releasePresenceBinding', hostId: OBJECT_ID, presence: 'PRESENCE#p1', from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) } },
+            { kind: 'movePresenceBinding', to: null, hostId: OBJECT_ID, presence: 'PRESENCE#p1', from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }, cover: expect.any(Object) },
             { kind: 'destroyComponent', hostId: OBJECT_ID },
         ])
         expect(args.existenceItems).toEqual([rowItem])
@@ -52,7 +52,7 @@ describe('executeComponentDestruction', () => {
         expect(afterPersist).toHaveBeenCalledWith([ROOM_ID])
     })
 
-    it('an orphan (no containers) is destroyed with no release at all', async () => {
+    it('an orphan (no containers) is destroyed with no departure at all', async () => {
         await executeComponentDestruction({
             objectId: OBJECT_ID,
             messageBus: messageBus as any,

@@ -6,7 +6,7 @@ import type { PositionKernelMoveOp, PositionKernelPresenceMove } from './positio
 /**
  * The mover's presence writes for one op, for every mover of any host kind. Depends on nothing but
  * the op --- the producer named every binding (`resolvePresenceMoves`), so there is no prior-state
- * read and no guess. The only emitter of `movePresenceBinding` and `releasePresenceBinding`: `executeMembershipTransfer` and the rest reach it through
+ * read and no guess. The only emitter of `movePresenceBinding`: `executeMembershipTransfer` and the rest reach it through
  * `compilePositionKernelOp`.
  *
  * **A move re-points, never remove-then-add**, so the binding's id is stable for the whole's life
@@ -14,8 +14,9 @@ import type { PositionKernelMoveOp, PositionKernelPresenceMove } from './positio
  * (PR-21(e)). **Several moves** (a scrub of an object held by several hosts) converge to one binding
  * under the destination without a join step: a move into a parent where the mover already holds a
  * binding joins it (MC-3). Each move after the first carries its `cover`. **A departure to no host** (destroy,
- * disconnect, scrub to nowhere) is one `releasePresenceBinding` per binding that leaves: a whole
- * keeps one binding, hostless.
+ * disconnect, scrub to nowhere) is one move to no parent (`to: null`) per binding that leaves: it
+ * lands in Base if Base is hostless, else in Unplaced (MC-3). Each carries its `cover`, because the
+ * entries re-point to the binding that receives them and the footprint must lock their hosts.
  */
 export const presenceBindingStepsForMove = (
     hostId: EphemeraMembershipHostId,
@@ -28,19 +29,23 @@ export const presenceBindingStepsForMove = (
         // Several moves into one destination converge by themselves: the first re-points its binding, and
         // each later one finds the mover's binding already there and joins it. A later move carries its
         // planner-read `cover`, so the footprint can lock the children it re-points.
-        ...moves.map(({ presence, from, to, cover }, index) => ({
+        ...moves.map(({ presence, from, to, cover, cascadeHosts }, index) => ({
             kind: 'movePresenceBinding' as const,
             hostId,
             presence,
             from,
             to,
             ...(index > 0 ? { cover: cover ?? { members: [] } } : {}),
+            ...(cascadeHosts ? { cascadeHosts } : {}),
         })),
-        ...releases.map(({ presence, from }) => ({
-            kind: 'releasePresenceBinding' as const,
+        ...releases.map(({ presence, from, cover, cascadeHosts }) => ({
+            kind: 'movePresenceBinding' as const,
             hostId,
             presence,
             from,
+            to: null,
+            ...(cover ? { cover } : {}),
+            ...(cascadeHosts ? { cascadeHosts } : {}),
         })),
     ]
 }

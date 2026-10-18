@@ -183,14 +183,14 @@ describe('factsForStep', () => {
         expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
     })
 
-    it('addPresenceBinding/movePresenceBinding/releasePresenceBinding/repairPresenceBinding steps yield no facts --- not a narration channel yet', () => {
+    it('addPresenceBinding/movePresenceBinding/repairPresenceBinding steps yield no facts --- not a narration channel yet', () => {
         const addStep: MutationKernelStep = {
             kind: 'addPresenceBinding',
             hostId: trayId,
             fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
             presenceUuid: 'p2',
         }
-        const rehostStep: MutationKernelStep = { kind: 'releasePresenceBinding', hostId: trayId, presence: 'PRESENCE#p4' as any, from: { host: roomId, presence: parentRemainderKey(roomId) } }
+        const rehostStep: MutationKernelStep = { kind: 'movePresenceBinding', to: null, hostId: trayId, presence: 'PRESENCE#p4' as any, from: { host: roomId, presence: parentRemainderKey(roomId) } }
         const moveStep: MutationKernelStep = { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#p3' as any, from: null, to: { host: roomId, presence: 'PRESENCE#r' as any } }
         expect(factsForStep(moveStep, graphsMap(), beatAnchorTime)).toEqual([])
         expect(factsForStep(addStep, graphsMap(), beatAnchorTime)).toEqual([])

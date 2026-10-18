@@ -115,7 +115,7 @@ describe('planCharacterMoveTransfer', () => {
         expect(result.plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
-    it('a disconnect compiles to a release of each binding: there is no destination binding to name', async () => {
+    it('a disconnect compiles to a move to no parent for each binding: there is no destination binding to name', async () => {
         const result = await planCharacterMoveTransfer({
             characterId: CHARACTER_ID,
             characterName: 'Test',
@@ -127,10 +127,11 @@ describe('planCharacterMoveTransfer', () => {
 
         if (!result.ok || !result.changed) { throw new Error('expected a changed plan') }
         expect(result.plan.steps).toContainEqual({
-            kind: 'releasePresenceBinding',
+            kind: 'movePresenceBinding', to: null,
             hostId: CHARACTER_ID,
             presence: 'PRESENCE#in-vortex',
             from: { host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) },
+            cover: expect.any(Object),
         })
     })
 

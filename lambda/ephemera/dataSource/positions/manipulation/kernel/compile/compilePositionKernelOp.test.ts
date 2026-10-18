@@ -243,7 +243,7 @@ describe('compilePositionKernelOp --- object moves', () => {
                 presenceMoves: [{ presence: 'PRESENCE#tray' as EphemeraPresenceNodeId, from: { host: FROM_ROOM, presence: 'PRESENCE#room-root' as EphemeraPresenceNodeId }, to: null }],
             }))
             expect(departing.steps).toEqual([{
-                kind: 'releasePresenceBinding',
+                kind: 'movePresenceBinding', to: null,
                 hostId: TRAY,
                 presence: 'PRESENCE#tray',
                 from: { host: FROM_ROOM, presence: 'PRESENCE#room-root' },

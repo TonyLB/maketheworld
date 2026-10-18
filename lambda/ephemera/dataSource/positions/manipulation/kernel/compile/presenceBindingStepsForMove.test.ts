@@ -65,8 +65,8 @@ describe('presenceBindingStepsForMove', () => {
         })
 
         expect(steps).toEqual([
-            { kind: 'releasePresenceBinding', hostId: HOST_ID, presence: presence('a'), from: { host: FROM_ROOM, presence: presence('from-remainder') } },
-            { kind: 'releasePresenceBinding', hostId: HOST_ID, presence: presence('b'), from: { host: OTHER_FROM, presence: parentRemainderKey(OTHER_FROM) } },
+            { kind: 'movePresenceBinding', to: null, hostId: HOST_ID, presence: presence('a'), from: { host: FROM_ROOM, presence: presence('from-remainder') } },
+            { kind: 'movePresenceBinding', to: null, hostId: HOST_ID, presence: presence('b'), from: { host: OTHER_FROM, presence: parentRemainderKey(OTHER_FROM) } },
         ])
     })
 

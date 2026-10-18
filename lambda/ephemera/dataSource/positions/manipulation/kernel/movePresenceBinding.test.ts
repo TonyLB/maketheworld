@@ -231,6 +231,20 @@ describe('movePresenceBinding', () => {
             expect(bindingOf(after, table, 'legacy')).toEqual(presenceBindingNode('legacy', undefined, cover(entry(tray, 'tray-1'))))
             expect(bindingOf(after, roomA, BASE_PRESENCE_ID)!.cover).toEqual(cover())
         })
+
+        it('folds into the whole\'s hostless binding when it holds no Base (unmigrated data)', () => {
+            const legacy = worldOf(
+                roomBase(roomA, entry(table, 'legacy')),
+                testLudicGraph(table, { nodes: [presenceBindingNode('root', undefined, cover()), presenceBindingNode('legacy', under(roomA), cover(entry(tray, 'tray-1')))] }),
+                testLudicGraph(tray, { nodes: [presenceBindingNode('tray-1', under(table, id('legacy')), cover())] })
+            )
+
+            const after = run(legacy, move({ hostId: table, presence: id('legacy'), from: under(roomA), to: null }))
+
+            expect(bindingsOf(after, table).map(({ universalKey }) => universalKey)).toEqual([id('root')])
+            expect(bindingOf(after, table, 'root')!.cover).toEqual(cover(entry(tray, 'tray-1')))
+            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresence).toEqual(under(table, id('root')))
+        })
     })
 
     describe('a bystander', () => {

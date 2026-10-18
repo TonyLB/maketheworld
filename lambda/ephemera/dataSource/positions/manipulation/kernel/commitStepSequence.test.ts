@@ -46,7 +46,7 @@ const move = (mover: EphemeraMembershipHostId, name: string, from: EphemeraMembe
     { kind: 'movePresenceBinding', hostId: mover, presence: `PRESENCE#${name}` as any, from: from ? remainder(from) : null, to: remainder(to) }
 )
 const release = (mover: EphemeraMembershipHostId, name: string, from: EphemeraMembershipHostId): MutationKernelStep => (
-    { kind: 'releasePresenceBinding', hostId: mover, presence: `PRESENCE#${name}` as any, from: remainder(from) }
+    { kind: 'movePresenceBinding', to: null, hostId: mover, presence: `PRESENCE#${name}` as any, from: remainder(from) }
 )
 /** The mover's own graph, holding one binding `name` under `host` (hostless without one). */
 const moverGraph = (mover: EphemeraMembershipHostId, host?: EphemeraMembershipHostId, name = 'p1') => (
@@ -102,13 +102,13 @@ describe('commitStepSequence', () => {
         jest.clearAllMocks()
     })
 
-    describe('a split', () => {
+    describe('a part move', () => {
         const PLANK = 'OBJECT#Plank' as EphemeraObjectId
         const CUP = 'OBJECT#Cup' as EphemeraObjectId
         const BOOK = 'OBJECT#Book' as EphemeraObjectId
         const OTHER_ROOM = 'ROOM#Terrace' as EphemeraRoomId
 
-        it('locks the re-pointed child (not the original binding\'s children) and persists the re-pointed pointer', async () => {
+        it('locks the re-pointed child (not the rest of the source binding\'s children) and persists the re-pointed pointer', async () => {
             const cupEntry = { host: CUP, presence: 'PRESENCE#cup1' as const }
             const bookEntry = { host: BOOK, presence: 'PRESENCE#book1' as const }
             const under = { host: PLANK, presence: 'PRESENCE#B' as const }
@@ -120,20 +120,13 @@ describe('commitStepSequence', () => {
             }
             const { transactWrite, lastItems, lastDraft } = makeTransactWriteMock(graphs)
             const steps: MutationKernelStep[] = [{
-                kind: 'splitPresenceBinding',
-                hostId: PLANK,
-                presence: 'PRESENCE#B' as any,
-                splitInto: [
-                    { presence: 'PRESENCE#B' as any, cover: { members: [cupEntry, { tag: 'Remainder' }] } },
-                    { presence: 'PRESENCE#B2' as any, cover: { members: [bookEntry] } },
-                ],
-            }, {
-                // the new binding shares the original's parent, which a run may not leave behind
                 kind: 'movePresenceBinding',
                 hostId: PLANK,
-                presence: 'PRESENCE#B2' as any,
+                presence: 'PRESENCE#B' as any,
                 from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
                 to: { host: OTHER_ROOM, presence: parentRemainderKey(OTHER_ROOM) },
+                subCover: [bookEntry],
+                mintedPresence: 'PRESENCE#B2' as any,
             }]
 
             const result = await commitStepSequence(

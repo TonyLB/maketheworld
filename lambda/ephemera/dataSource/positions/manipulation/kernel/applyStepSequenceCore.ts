@@ -9,12 +9,10 @@ import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemera
 import { graphFromMeta } from '../../ludicGraph'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { MutationKernelReleasePresenceBindingStep, MutationKernelStep } from './kernelStep'
+import type { MutationKernelStep } from './kernelStep'
 import { isBystanderMove } from './bystander'
 import { bindingPointsAt, settleMembership } from './settleMembership'
 import { movePresenceBinding } from './movePresenceBinding'
-import { splitPresenceBinding } from './splitPresenceBinding'
-import { joinPresenceBindings } from './joinPresenceBindings'
 import type { MutationKernelApplyOutcome } from './types'
 
 /**
@@ -27,30 +25,6 @@ import type { MutationKernelApplyOutcome } from './types'
  * particular id happens to be a node of two graphs, only one of which is shared with the other
  * endpoint."
  */
-/**
- * One binding's departure (`MutationKernelReleasePresenceBindingStep`): removed when another binding
- * of the whole remains, else its pointer is stripped, so a whole never drops below one binding.
- * `undefined` is the `stale` reason: the binding is gone or no longer sits under `from`.
- */
-const releasePresenceBinding = (
-    graph: EphemeraLudicGraph,
-    step: MutationKernelReleasePresenceBindingStep
-): { graph: EphemeraLudicGraph } | { reasonCode: string } => {
-    const node = graph.presenceNodes.find(({ universalKey }) => universalKey === step.presence)
-    if (!node) {
-        return { reasonCode: 'presenceBindingMissing' }
-    }
-    const stored = node.fromHostPresence
-    if (stored?.host !== step.from.host || stored.presence !== step.from.presence) {
-        return { reasonCode: 'presenceBindingMoved' }
-    }
-    if (graph.presenceNodes.length > 1) {
-        return { graph: graph.removePresenceNode(node.universalKey) }
-    }
-    const { fromHostPresence: _departed, ...hostless } = node
-    return { graph: graph.replacePresenceNode(hostless) }
-}
-
 const hostsOf = (
     id: EphemeraLudicTerminalId,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
@@ -127,7 +101,7 @@ const confirmCarriedHost = (
  *
  * **Membership is applied by the presence steps** (`settleMembership.ts`): `addPresenceBinding` and
  * `repairPresenceBinding` (with a parent pointer) add the node at the pointer's host, `movePresenceBinding`
- * departs `from.host` and arrives at `to.host`, `releasePresenceBinding` departs `from.host`. A node
+ * departs `from.host` and arrives at `to.host`. A node
  * leaves a host only with the mover's last binding there and arrives only if absent.
  *
  * `establishRelation`/`dissolveRelation`: confirms the step's own carried `hostId` 
@@ -143,7 +117,7 @@ const confirmCarriedHost = (
  * This function has no verdict meaning "the world forbids this" because it makes no such judgment
  * --- it checks mechanism, and legality is the enrich tier's question. See `types.ts`.
  *
- * `addPresenceBinding`/`movePresenceBinding`/`releasePresenceBinding`/`repairPresenceBinding`: a host's own presence
+ * `addPresenceBinding`/`movePresenceBinding`/`repairPresenceBinding`: a host's own presence
  * bindings --- population's mint, a move's re-point (`movePresenceBinding`, above), a departure, and
  * population's in-place repair. See `kernelStep.ts`'s doc comments.
  *
@@ -280,42 +254,6 @@ export const applyStepSequenceCore = (
             settleOccupants(step.hostId, { ...(step.from ? { left: step.from.host } : {}), ...(step.to ? { arrived: step.to.host } : {}) })
             continue
         }
-        if (step.kind === 'releasePresenceBinding') {
-            const graph = graphs.get(step.hostId)
-            if (!graph) {
-                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
-            }
-            const released = releasePresenceBinding(graph, step)
-            if ('reasonCode' in released) {
-                return { verdict: 'stale', reasonCode: released.reasonCode }
-            }
-            const settled = settleMembership(new Map(graphs).set(step.hostId, released.graph), step.hostId, { left: step.from.host })
-            if (settled.verdict !== 'legal') {
-                return settled
-            }
-            graphs = settled.graphs
-            settleOccupants(step.hostId, { left: step.from.host })
-            continue
-        }
-        if (step.kind === 'splitPresenceBinding') {
-            // no host's membership changes: the same nodes, only re-bucketed, so nothing to settle.
-            const split = splitPresenceBinding(graphs, step)
-            if ('reasonCode' in split) {
-                return { verdict: 'stale', reasonCode: split.reasonCode }
-            }
-            graphs = split.graphs
-            continue
-        }
-        if (step.kind === 'joinPresenceBindings') {
-            // no host's membership changes: two bindings of one whole under one parent become one.
-            const joined = joinPresenceBindings(graphs, step)
-            if ('reasonCode' in joined) {
-                return { verdict: 'stale', reasonCode: joined.reasonCode }
-            }
-            graphs = joined.graphs
-            continue
-        }
-
         if (step.kind === 'repairPresenceBinding') {
             const graph = graphs.get(step.hostId)
             if (!graph) {

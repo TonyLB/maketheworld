@@ -46,19 +46,14 @@ Per-operator coordinators       membership fact projection consumption, cache/bu
 
 ```typescript
 /** A presence step names the mover's own graph (`hostId`) and one of its bindings; each also applies membership. */
-type MutationKernelMovePresenceBindingStep = { kind: 'movePresenceBinding'; hostId; presence; from: ParentBinding | null; to: PresenceBindingRef }
-type MutationKernelReleasePresenceBindingStep = { kind: 'releasePresenceBinding'; hostId; presence; from: ParentBinding }
-/** Splits one binding of a whole into `splitInto` under the same parent; each entry in a non-original result is a child whose own binding is re-pointed. */
-type MutationKernelSplitPresenceBindingStep = { kind: 'splitPresenceBinding'; hostId; presence; splitInto: { presence; cover }[] }
-/** Folds `absorbed` into `survivor` (two bindings of one whole under one parent); `absorbedCover` names the children to re-point, so the footprint can lock them. */
-type MutationKernelJoinPresenceBindingsStep = { kind: 'joinPresenceBindings'; hostId; survivor; absorbed; absorbedCover }
+type MutationKernelMovePresenceBindingStep = { kind: 'movePresenceBinding'; hostId; presence; from: ParentBinding | null; to: PresenceBindingRef | null; subCover?; mintedPresence?; cover?; cascadeHosts? }
 // ...and addPresenceBinding / repairPresenceBinding (population), createComponent / destroyComponent
 
 /** Read-only: `hostId` + `captureId` and no write payload. That shape is what makes it safe in the walk. */
 type MutationKernelCaptureStep = { kind: 'capture'; hostId: EphemeraMembershipHostId; captureId: string }
 
 type MutationKernelStep =
-    | MutationKernelPresenceStep   // add / move / release / repair / split / join
+    | MutationKernelPresenceStep   // add / move / repair
     | MutationKernelCaptureStep
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
@@ -74,11 +69,8 @@ type KernelStep = MutationKernelStep | ExecutorDescribeStep | PresentationKernel
 
 | Step | Membership effect | Footprint (beyond the mover's own host) |
 | --- | --- | --- |
-| `movePresenceBinding` | leaves `from.host` unless another binding of the mover still points there; arrives at `to.host` unless already there | `from.host`, `to.host` |
-| `releasePresenceBinding` (one per binding) | leaves `from.host` unless another binding still points there | `from.host` |
+| `movePresenceBinding` (a whole binding, a `subCover` part, or to no parent) | leaves `from.host` unless another binding of the mover still points there; arrives at `to.host` unless already there; also writes the parents' covers and re-points the moved entries' children | `from.host`, `to.host`, the host of every entry in `cover`/`subCover`, and `cascadeHosts` |
 | `addPresenceBinding` / `repairPresenceBinding` with a parent pointer (cache-time population) | arrives at the pointer's host unless already there | the pointer's host |
-| `splitPresenceBinding` | none: the same nodes, re-bucketed under one parent | the host of every entry in a result other than the original (its child's graph is written) |
-| `joinPresenceBindings` | none: the same nodes, one bucket fewer | the host of every entry in `absorbedCover` (its child's graph is written) |
 
 A departure runs the boundary-edge legality check (`applyDeparture`); a node absent from the host it leaves is `stale` (`staleTransferCandidate`); a Room or Feature departing a host, or an Area arriving anywhere, throws (they never relocate or nest). Arrival is idempotent, which is what lets a replayed population step be harmless. A node held in a host that no binding names is drift the kernel leaves to the sweeps. A move is one entity: anything it hosts lives in its own shard and travels with it. Players' `transferMembership` (the *action-layer* primitive in `actions/`) compiles to these steps in [`planObjectMoveTransfer`](membership/planObjectMoveTransfer.ts).
 
@@ -97,9 +89,8 @@ Call sites do not hand-build step lists. They emit an **abstract op** and [`comp
 | File | Role |
 | --- | --- |
 | [`kernel/compile/positionKernelOp.ts`](kernel/compile/positionKernelOp.ts) | `PositionKernelMoveOp`: `moved` (a bare entity id), `froms`, `to`, `presenceMoves` (the bindings to re-point, named by the producer), optional `mintedRootUuid`, `header` (a `describe` header binding, or `null`), optional `dissolvedEdges`, optional `narration` (`membershipMove` ingredients; character moves only --- an object move carries none) |
-| [`kernel/compile/positionKernelOp.ts`](kernel/compile/positionKernelOp.ts) (`PositionKernelSplitOp`) | `{ kind: 'split', whole, presence, splitInto }`: the finished split, ids minted by the producer. Compiles by [`presenceBindingStepsForSplit`](kernel/compile/presenceBindingStepsForSplit.ts) to one `splitPresenceBinding` step; it does not pass through `compilePositionKernelOp`, which brackets a *move* (captures, narration, dissolved edges). The planner is [`membership/resolvePresenceSplit.ts`](membership/resolvePresenceSplit.ts): `moveOut` groups of member hosts become new bindings, and the original keeps every unnamed entry and the `Remainder`; refuses an uncovered or doubly named member, an empty group, and a child that no longer sits under the split binding. No live producer yet |
 | [`kernel/compile/compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) | op -> `CompiledPositionKernelPlan { steps }`. Owns bracket shape, capture-id generation, dissolve sequencing, and presentation order (leave, header, arrive). Builds no object-family copy |
-| [`kernel/compile/presenceBindingStepsForMove.ts`](kernel/compile/presenceBindingStepsForMove.ts) | `(movedId, op)` -> the mover's presence steps: one `movePresenceBinding` per binding the producer named in `op.presenceMoves` (preceded by an `addPresenceBinding` root when `op.mintedRootUuid` is set), a `joinPresenceBindings` for each extra binding (carrying the absorbed move's `cover` as `absorbedCover`), or one `releasePresenceBinding` per binding a departure to no host leaves. Reads nothing: the planner ([`membership/resolvePresenceMoves.ts`](membership/resolvePresenceMoves.ts)) names every binding. **Renamed from `presencePortStepsForMove` in `42b1683e5`** (presenceNodes Slice 7a, PN-23). **`compilePositionKernelOp` is its only caller** --- extracted so that every membership-moving route populates presence bindings through one emitter, not per-caller. **Single-level by construction:** it addresses the mover's own host id and never descends into composition |
+| [`kernel/compile/presenceBindingStepsForMove.ts`](kernel/compile/presenceBindingStepsForMove.ts) | `(movedId, op)` -> the mover's presence steps: one `movePresenceBinding` per binding the producer named in `op.presenceMoves` (preceded by an `addPresenceBinding` root when `op.mintedRootUuid` is set); each move after the first, and each departure (`to: null`), carries the planner's `cover`, and any `cascadeHosts`, so the footprint can lock the children. A move into a parent where the mover already holds a binding joins it, so there is no join step. Reads nothing: the planner ([`membership/resolvePresenceMoves.ts`](membership/resolvePresenceMoves.ts)) names every binding. **Renamed from `presencePortStepsForMove` in `42b1683e5`** (presenceNodes Slice 7a, PN-23). **`compilePositionKernelOp` is its only caller** --- extracted so that every membership-moving route populates presence bindings through one emitter, not per-caller. **Single-level by construction:** it addresses the mover's own host id and never descends into composition |
 
 Emitted step order is `[...captureFrom, ...dissolves, transfer, ...establishRelation, ...presencePortSteps, ...captureTo, ...narrateLeave, ...narrateArrive]`; the non-narrating branch (every object move) emits the same spine without the capture and narrate steps. **`establishRelation` runs *after* the transfer deliberately** --- placed before it, `findHostOf(moved)` would resolve against the old host. Two properties of this function are load-bearing and each is pinned by a test:
 
@@ -368,8 +359,6 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 | Path | Role |
 | --- | --- |
 | [`kernel/kernelStep.ts`](kernel/kernelStep.ts) | Step vocabulary (mutation, capture, describe, narrate); `NarrationSpecification` (`membershipMove` \| `template`) + `TemplateNarrationSpec` / `NarrationPart` + its escalation-trigger doc comment; `isKernelMutationStep` / `isDescribeStep` / `isNarrateStep` filters |
-| [`kernel/joinPresenceBindings.ts`](kernel/joinPresenceBindings.ts) | Pure join handler: the survivor takes the absorbed binding's entries (one merged `Remainder` if either held it), the absorbed node is removed, each child in `absorbedCover` is re-pointed to the survivor. Refuses (`stale`) `joinParentsDiffer`, `joinCoverChanged`, plus the usual `hostNotInFootprint` / `presenceBindingMissing` / `presenceBindingMoved`. Decides nothing about a child listed under both bindings: the planner refuses that (`joinChildrenCollide`) and the end-of-run validator throws on it |
-| [`kernel/splitPresenceBinding.ts`](kernel/splitPresenceBinding.ts) | Pure split handler: replaces the original binding with its `splitInto` entry, adds the others under the same parent, re-points each moved child's binding. Refuses (`stale`) `splitIdCollision`, `splitRemainderMoved`, `splitEntryNotCovered`, `splitNotDisjoint`, `splitMemberLost`, plus the usual `hostNotInFootprint` / `presenceBindingMissing` / `presenceBindingMoved` |
 | [`kernel/settleMembership.ts`](kernel/settleMembership.ts) | Pure `settleMembership(graphs, moverId, { left, arrived })`: the node leaves a host only with the mover's last binding there (through `applyDeparture`) and arrives only if absent. Called by `applyStepSequenceCore` after each presence step writes a pointer |
 | [`kernel/membershipChanges.ts`](kernel/membershipChanges.ts) | `membershipChangesOf(steps, priorGraphs, committedGraphs)`: per mover, the hosts left and arrived at, and the index of its last presence step. The one source for adjacency rows, cache containers and the moved fact in `commitStepSequence` |
 | [`kernel/narrationTemplate.ts`](kernel/narrationTemplate.ts) | The flush-time template fill (`fillNarrationTemplate`, shared by `presentStepSequence` and `deliverNarrationUnits`: `'Someone'` actor fallback; a `ref` with no label throws) |
