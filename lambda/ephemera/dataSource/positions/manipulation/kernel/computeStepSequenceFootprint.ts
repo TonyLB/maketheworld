@@ -57,9 +57,21 @@ export const computeStepSequenceFootprint = (
         }
         if (step.kind === 'movePresenceBinding') {
             hosts.add(step.hostId)
-            addHostOf(step.hostId, step.to.host)
+            if (step.to) {
+                addHostOf(step.hostId, step.to.host)
+            }
             if (step.from) {
                 addHostOf(step.hostId, step.from.host)
+            }
+            // every child whose binding is re-pointed to the receiving binding, and the hosts of any
+            // children the planner found would collide there (their merge re-points their own children).
+            for (const member of step.subCover ?? step.cover?.members ?? []) {
+                if ('host' in member) {
+                    hosts.add(member.host as EphemeraMembershipHostId)
+                }
+            }
+            for (const host of step.cascadeHosts ?? []) {
+                hosts.add(host)
             }
             continue
         }

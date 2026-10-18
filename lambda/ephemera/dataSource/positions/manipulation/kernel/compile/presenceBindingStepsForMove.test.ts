@@ -43,7 +43,7 @@ describe('presenceBindingStepsForMove', () => {
         expect(steps[0]).toEqual({ kind: 'addPresenceBinding', hostId: HOST_ID, presenceUuid: 'fresh' })
     })
 
-    it('follows several moves with a join of each extra binding into the first (a multi-from scrub)', () => {
+    it('emits one move per binding, each after the first carrying its cover, with no join (a multi-from scrub)', () => {
         const steps = presenceBindingStepsForMove(HOST_ID, {
             presenceMoves: [
                 { presence: presence('a'), from: { host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) }, to: TO },
@@ -51,8 +51,9 @@ describe('presenceBindingStepsForMove', () => {
             ],
         })
 
-        expect(steps.map((step) => step.kind)).toEqual(['movePresenceBinding', 'movePresenceBinding', 'joinPresenceBindings'])
-        expect(steps[2]).toEqual({ kind: 'joinPresenceBindings', hostId: HOST_ID, survivor: presence('a'), absorbed: presence('b'), absorbedCover: { members: [{ host: FROM_ROOM, presence: presence('c') }] } })
+        expect(steps.map((step) => step.kind)).toEqual(['movePresenceBinding', 'movePresenceBinding'])
+        expect(steps[0]).not.toHaveProperty('cover')
+        expect(steps[1]).toEqual(expect.objectContaining({ presence: presence('b'), cover: { members: [{ host: FROM_ROOM, presence: presence('c') }] } }))
     })
 
     it('emits one release per departing binding, after any moves', () => {

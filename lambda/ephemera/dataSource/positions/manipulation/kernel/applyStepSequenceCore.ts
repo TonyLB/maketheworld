@@ -9,9 +9,10 @@ import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemera
 import { graphFromMeta } from '../../ludicGraph'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { MutationKernelMovePresenceBindingStep, MutationKernelReleasePresenceBindingStep, MutationKernelStep } from './kernelStep'
+import type { MutationKernelReleasePresenceBindingStep, MutationKernelStep } from './kernelStep'
 import { isBystanderMove } from './bystander'
 import { bindingPointsAt, settleMembership } from './settleMembership'
+import { movePresenceBinding } from './movePresenceBinding'
 import { splitPresenceBinding } from './splitPresenceBinding'
 import { joinPresenceBindings } from './joinPresenceBindings'
 import type { MutationKernelApplyOutcome } from './types'
@@ -26,46 +27,6 @@ import type { MutationKernelApplyOutcome } from './types'
  * particular id happens to be a node of two graphs, only one of which is shared with the other
  * endpoint."
  */
-/**
- * A move's presence write (`MutationKernelMovePresenceBindingStep`): re-point the named binding at
- * the named destination binding, keeping its id and cover (PR-21(e)). `undefined` is the `stale`
- * reason: the binding is gone, no longer sits under `from`, or the destination binding is gone.
- */
-const movePresenceBinding = (
-    graph: EphemeraLudicGraph,
-    step: MutationKernelMovePresenceBindingStep,
-    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
-): { graph: EphemeraLudicGraph } | { reasonCode: string } => {
-    const node = graph.presenceNodes.find(({ universalKey }) => universalKey === step.presence)
-    if (!node) {
-        return { reasonCode: 'presenceBindingMissing' }
-    }
-    const stored = node.fromHostPresence
-    const sitsUnderFrom = step.from === null
-        ? !stored
-        : stored?.host === step.from.host && stored.presence === step.from.presence
-    if (!sitsUnderFrom) {
-        return { reasonCode: 'presenceBindingMoved' }
-    }
-    // A bystander's room is not in the footprint (pointers govern; a dangling destination binding is
-    // healed by the drift sweep), so there is no destination graph to confirm against.
-    if (!isBystanderMove(step.hostId, step.to.host)) {
-        const destination = graphs.get(step.to.host)
-        if (!destination) {
-            return { reasonCode: 'hostNotInFootprint' }
-        }
-        if (!destination.presenceNodes.some(({ universalKey }) => universalKey === step.to.presence)) {
-            return { reasonCode: 'destinationBindingMissing' }
-        }
-    }
-    return {
-        graph: graph.replacePresenceNode({
-            ...node,
-            fromHostPresence: { host: step.to.host, presence: step.to.presence },
-        }),
-    }
-}
-
 /**
  * One binding's departure (`MutationKernelReleasePresenceBindingStep`): removed when another binding
  * of the whole remains, else its pointer is stripped, so a whole never drops below one binding.
@@ -304,23 +265,19 @@ export const applyStepSequenceCore = (
             continue
         }
         if (step.kind === 'movePresenceBinding') {
-            const graph = graphs.get(step.hostId)
-            if (!graph) {
-                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
-            }
-            const moved = movePresenceBinding(graph, step, graphs)
+            const moved = movePresenceBinding(graphs, step)
             if ('reasonCode' in moved) {
                 return { verdict: 'stale', reasonCode: moved.reasonCode }
             }
-            const settled = settleMembership(new Map(graphs).set(step.hostId, moved.graph), step.hostId, {
+            const settled = settleMembership(moved.graphs, step.hostId, {
                 ...(step.from ? { left: step.from.host } : {}),
-                arrived: step.to.host,
+                ...(step.to ? { arrived: step.to.host } : {}),
             })
             if (settled.verdict !== 'legal') {
                 return settled
             }
             graphs = settled.graphs
-            settleOccupants(step.hostId, { ...(step.from ? { left: step.from.host } : {}), arrived: step.to.host })
+            settleOccupants(step.hostId, { ...(step.from ? { left: step.from.host } : {}), ...(step.to ? { arrived: step.to.host } : {}) })
             continue
         }
         if (step.kind === 'releasePresenceBinding') {

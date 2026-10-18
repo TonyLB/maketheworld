@@ -237,7 +237,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             })
         })
 
-        it('compiles each departing binding to a release, and a multi-binding move to moves followed by a join', () => {
+        it('compiles each departing binding to a release, and a multi-binding move to one move per binding', () => {
             const departing = compilePositionKernelOp(objectOp({
                 to: null,
                 presenceMoves: [{ presence: 'PRESENCE#tray' as EphemeraPresenceNodeId, from: { host: FROM_ROOM, presence: 'PRESENCE#room-root' as EphemeraPresenceNodeId }, to: null }],
@@ -256,7 +256,7 @@ describe('compilePositionKernelOp --- object moves', () => {
                     ...presenceMovesFrom('b', { host: 'ROOM#Third' as EphemeraRoomId }),
                 ],
             }))
-            expect(scrub.steps.map((step) => step.kind)).toEqual(['movePresenceBinding', 'movePresenceBinding', 'joinPresenceBindings'])
+            expect(scrub.steps.map((step) => step.kind)).toEqual(['movePresenceBinding', 'movePresenceBinding'])
         })
 
         it('throws when containment is set with no destination', () => {

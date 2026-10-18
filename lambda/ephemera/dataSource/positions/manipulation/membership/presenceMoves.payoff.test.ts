@@ -108,7 +108,7 @@ describe('a move lands under the destination binding it names', () => {
     })
 })
 
-describe('a multi-from scrub moves each binding and joins them into one', () => {
+describe('a multi-from scrub moves each binding, and they converge to one', () => {
     const scrub = async (graphs: Record<string, EphemeraLudicGraph>) => {
         const resolved = await resolvePresenceMoves({ moved: plank, froms: [roomA, roomB], to: roomC, getGraph: worldOf(graphs) })
         if (!resolved.ok) { throw new Error(`expected moves, got ${resolved.errorCode}`) }
@@ -124,10 +124,10 @@ describe('a multi-from scrub moves each binding and joins them into one', () => 
         }),
     })
 
-    it('compiles to one move per binding followed by a join, and one binding ends under the destination', async () => {
+    it('compiles to one move per binding, and one binding ends under the destination', async () => {
         const { steps, after } = await scrub(roomsAndPlank())
 
-        expect(steps.map((step) => step.kind)).toEqual(['movePresenceBinding', 'movePresenceBinding', 'joinPresenceBindings'])
+        expect(steps.map((step) => step.kind)).toEqual(['movePresenceBinding', 'movePresenceBinding'])
         expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence])).toEqual([
             [presence('plank-a'), { host: roomC, presence: parentRemainderKey(roomC) }],
         ])

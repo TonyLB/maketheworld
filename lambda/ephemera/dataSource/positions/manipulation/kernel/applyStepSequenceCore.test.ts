@@ -411,10 +411,8 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('arriving where the mover already holds a node is harmless: nothing is added twice', () => {
-            const steps: MutationKernelStep[] = [
-                moveStep(trayId, 'PRESENCE#a', remainderOf(roomId), remainderOf(otherRoomId)),
-                { kind: 'joinPresenceBindings', hostId: trayId, survivor: 'PRESENCE#a' as any, absorbed: 'PRESENCE#b' as any, absorbedCover: { members: [{ tag: 'Remainder' }] } },
-            ]
+            // 'b' already sits under the destination, so the move joins 'a' into it (MC-3)
+            const steps: MutationKernelStep[] = [moveStep(trayId, 'PRESENCE#a', remainderOf(roomId), remainderOf(otherRoomId))]
 
             const outcome = applyStepSequenceCore(steps, twoRooms())
 
@@ -853,7 +851,8 @@ describe('applyStepSequenceCore', () => {
 
         it('a move between two bindings of one parent changes the pointer and nothing else', () => {
             const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('p1', { host: tableId, presence: 'PRESENCE#left' as any })] })
-            const tableGraph = testLudicGraph(tableId, { nodes: [{ tag: 'Object', universalKey: trayId }, presenceBindingNode('left', roomId), presenceBindingNode('right', roomId)] })
+            const trayEntry = { host: trayId, presence: 'PRESENCE#p1' as any }
+            const tableGraph = testLudicGraph(tableId, { nodes: [{ tag: 'Object', universalKey: trayId }, presenceBindingNode('left', roomId, { members: [trayEntry] }), presenceBindingNode('right', otherRoomId, { members: [] })] })
             const steps = [moveStep(trayId, 'PRESENCE#p1', { host: tableId, presence: 'PRESENCE#left' }, { host: tableId, presence: 'PRESENCE#right' })]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [tableId, tableGraph]))
@@ -861,7 +860,11 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(trayId)!.presenceNodes).toEqual([presenceBindingNode('p1', { host: tableId, presence: 'PRESENCE#right' as any })])
-            expect(outcome.graphs.get(tableId)).toBe(tableGraph)
+            // the cover index follows: the entry leaves `left`'s cover and arrives in `right`'s
+            expect(outcome.graphs.get(tableId)!.presenceNodes).toEqual([
+                presenceBindingNode('left', roomId, { members: [] }),
+                presenceBindingNode('right', otherRoomId, { members: [trayEntry] }),
+            ])
         })
 
         it.each([
@@ -1036,14 +1039,15 @@ describe('applyStepSequenceCore', () => {
             const twoUnderOneParent = () => testLudicGraph(trayId, { nodes: [presenceBindingNode('a', parent), presenceBindingNode('b', parent)] })
 
             it('throws when a run leaves two bindings of one whole under the same parent binding', () => {
-                const moveB: MutationKernelStep = { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#b' as any, from: remainderOf(otherRoomId), to: parent as any }
+                // a move into a parent where the mover already holds a binding joins (MC-3), so the way left to
+                // leave two is a mint under that parent
+                const addB: MutationKernelStep = { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: parent, presenceUuid: 'b' } as MutationKernelStep
                 const world = graphsMap(
-                    [trayId, testLudicGraph(trayId, { nodes: [presenceBindingNode('a', parent), presenceBindingNode('b', remainderOf(otherRoomId))] })],
-                    [roomId, hostHolding(roomId, object(trayId))],
-                    [otherRoomId, hostHolding(otherRoomId, object(trayId))]
+                    [trayId, testLudicGraph(trayId, { nodes: [presenceBindingNode('a', parent)] })],
+                    [roomId, hostHolding(roomId, object(trayId))]
                 )
 
-                expect(() => applyStepSequenceCore([moveB], world)).toThrow(/under the same parent binding/)
+                expect(() => applyStepSequenceCore([addB], world)).toThrow(/under the same parent binding/)
             })
 
             it('leaves alone a graph the run did not write, even if storage already held the duplicate', () => {

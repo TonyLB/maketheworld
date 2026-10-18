@@ -1,6 +1,6 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraCrossingPort, EphemeraMetaObject, EphemeraPresenceCover, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPort, EphemeraMetaObject, EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { ParentBinding } from '../../ludicGraph/presenceParent'
 import type {
@@ -122,24 +122,51 @@ export type MutationKernelRepairPresenceBindingStep = {
 export type PresenceBindingRef = ParentBinding
 
 /**
- * A move's presence write: re-points one binding of the mover (`presence`, on `hostId`'s own graph)
- * from the parent binding it sits under now (`from`; `null` for a hostless binding, a first
- * placement) to the one it will sit under (`to`). The binding keeps its id and cover, so no child
- * pointer naming it is orphaned (PR-21(e)). Nothing is resolved by host and nothing is guessed: the
- * producer names both ends, and the handler is `stale` when `presence` or `to.presence` is gone, or
- * when the stored pointer is no longer `from` (an optimistic check against a concurrent writer).
- * `from.host` and `to.host` may be equal: a move between two bindings of one parent.
+ * A move's presence write (monotoneCovers MC-3): takes one binding of the mover (`presence`, on
+ * `hostId`'s own graph), or the `subCover` part of its cover, from the parent binding it sits under
+ * now (`from`; `null` for a hostless binding, a first placement) to the parent binding `to`, or to
+ * no parent (`to: null`). Nothing is resolved by host and nothing is guessed: the producer names
+ * both ends, and the handler is `stale` when `presence` or `to.presence` is gone, or when the stored
+ * pointer is no longer `from` (an optimistic check against a concurrent writer). `from.host` and
+ * `to.host` may be equal: a move between two bindings of one parent.
+ *
+ * - **A whole binding** (no `subCover`): if the mover holds no binding under `to`, the binding is
+ *   re-pointed and keeps its id and cover, so no child pointer naming it is orphaned (PR-21(e)). If
+ *   it already holds one there, the moved entries join it and the moved binding is removed.
+ * - **A `subCover` part**: only those entries move, to the mover's binding under `to` or to a new one
+ *   (`mintedPresence`, minted by the producer so a later step can name it). The source binding stays,
+ *   even with an empty cover. Every entry must be listed by the source's cover.
+ * - **To no parent**: the entries land in `PRESENCE#Base` if it is hostless, else in
+ *   `PRESENCE#Unplaced` (minted if absent). Base moved to no parent absorbs Unplaced. A whole holding
+ *   no Base (unmigrated data, monotoneCovers Slice 5) has the moved binding's pointer stripped in
+ *   place, as a release did.
+ * - **Children re-point, and collisions merge.** Each moved entry is a child's binding, re-pointed to
+ *   the binding that now covers it; a child left holding two bindings under it has them merged by
+ *   this same move one level down.
+ * - **The cover index.** The same step writes the parent covers: an entry onto `to`'s binding when a
+ *   binding arrives there and off `from`'s when one leaves. A bystander never touches a room graph,
+ *   so its parent covers are not written.
  *
  * It also applies membership (`settleMembership.ts`): the node leaves `from.host` unless another
  * binding of the mover still points there, and arrives at `to.host` unless it is already there. Both
  * hosts are in the step's footprint.
+ *
+ * `cover` is the planner's read of the moved binding's cover (whole moves), carried because the
+ * footprint is computed from the steps before any graph loads, and the children to lock are only
+ * named there (as a join's `absorbedCover` was); the handler checks it against the stored cover, so
+ * one that changed since planning is `stale`. `cascadeHosts` names the hosts of any child bindings
+ * the planner found would collide, so their merge's own children are locked too.
  */
 export type MutationKernelMovePresenceBindingStep = {
     kind: 'movePresenceBinding'
     hostId: EphemeraMembershipHostId
     presence: EphemeraPresenceNodeId
     from: ParentBinding | null
-    to: PresenceBindingRef
+    to: PresenceBindingRef | null
+    subCover?: readonly EphemeraPresenceCoverEntry[]
+    mintedPresence?: EphemeraPresenceNodeId
+    cover?: EphemeraPresenceCover
+    cascadeHosts?: readonly EphemeraMembershipHostId[]
 }
 
 /**

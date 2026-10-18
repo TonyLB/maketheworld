@@ -149,7 +149,7 @@ describe('orchestrateCharacterMove', () => {
         expect(lastPlan().steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
-    it('drift scrub: captures every prior container, moves each binding to the destination and joins them', async () => {
+    it('drift scrub: captures every prior container, moves each binding to the destination', async () => {
         getMembershipContainersMock.mockResolvedValue([FROM_ROOM, ROOM_C])
 
         await orchestrateCharacterMove({
@@ -165,7 +165,6 @@ describe('orchestrateCharacterMove', () => {
             { kind: 'capture', hostId: ROOM_C, captureId: 'capture:from:ROOM#TestThree' },
             expect.objectContaining({ kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex' }),
             expect.objectContaining({ kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-three' }),
-            expect.objectContaining({ kind: 'joinPresenceBindings', hostId: CHARACTER_ID, survivor: 'PRESENCE#in-vortex', absorbed: 'PRESENCE#in-three' }),
         ]))
     })
 
