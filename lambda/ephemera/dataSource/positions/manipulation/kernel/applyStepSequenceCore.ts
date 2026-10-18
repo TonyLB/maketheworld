@@ -1,6 +1,7 @@
 import { edgeKindAndLabelFrom, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { coverageViolationsOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -447,11 +448,32 @@ export const applyStepSequenceCore = (
     // life"): two bindings of one whole under the same parent binding are legal only inside a run (a
     // split produces them, a pair of moves to one parent produces them before a join), and no run may
     // leave them behind. Checks only graphs this run wrote, so duplicates already in storage do not
-    // make an unrelated run throw. A hostless binding has no pointer, so names no binding to collide on.
+    // make an unrelated run throw. A hostless binding has no pointer, so names no binding to collide on
+    // here; the coverage invariant below is its case (a whole has at most one binding under "no parent").
     // A violation is a caller bug (a missing join), not a verdict, like the character check above.
+    // Also at the end of the run, because a split of a hostless binding passes through two hostless
+    // bindings. Coverage counts a `Remainder` as covering every unlisted member, so it adds nothing
+    // for a whole that still holds one (monotoneCovers Slice 1).
     graphs.forEach((graph, hostId) => {
         if (graph === initialGraphs.get(hostId)) {
             return
+        }
+        const { uncovered, hostlessBindings } = coverageViolationsOf({
+            hostId,
+            nodeIds: [...graph.nodeIds],
+            presenceNodes: graph.presenceNodes,
+        })
+        if (uncovered.length) {
+            throw new Error(
+                `applyStepSequenceCore: ${hostId} would leave ${uncovered.join(', ')} covered by none of its bindings --- ` +
+                `every component node must be listed by at least one binding's cover.`
+            )
+        }
+        if (hostlessBindings.length) {
+            throw new Error(
+                `applyStepSequenceCore: ${hostId} would carry ${hostlessBindings.length} hostless bindings (${hostlessBindings.join(', ')}) --- ` +
+                `a whole has at most one binding with no parent.`
+            )
         }
         const presencesByParentHost = graph.presenceNodes.reduce<Record<string, string[]>>((accumulator, { fromHostPresence }) => (
             fromHostPresence

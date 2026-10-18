@@ -355,6 +355,7 @@ describe('commitStepSequence', () => {
             nodes: [
                 { tag: 'Object', universalKey: TRAY_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
+                presenceBindingNode(parentRemainderKey(ROOM_ID)),
             ],
             edges: [
                 { tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'tied to' },
@@ -405,9 +406,9 @@ describe('commitStepSequence', () => {
     })
 
     it('a structural-invariant throw (BD-33 host mismatch) aborts identically to a verdict failure', async () => {
-        const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }] })
+        const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode(parentRemainderKey(ROOM_ID))] })
         const otherRoomGraph = testLudicGraph('ROOM#Kitchen' as EphemeraRoomId, {
-            nodes: [{ tag: 'Object', universalKey: GLASS_ID }],
+            nodes: [{ tag: 'Object', universalKey: GLASS_ID }, presenceBindingNode(parentRemainderKey('ROOM#Kitchen' as EphemeraRoomId))],
         })
         const { transactWrite } = makeTransactWriteMock({
             [ROOM_ID]: roomGraph,
@@ -592,6 +593,7 @@ describe('commitStepSequence', () => {
                 nodes: [
                     { tag: 'Object', universalKey: TRAY_ID },
                     { tag: 'Object', universalKey: TABLE_ID },
+                    presenceBindingNode(parentRemainderKey(ROOM_ID)),
                 ],
                 edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' }],
             })
@@ -628,6 +630,7 @@ describe('commitStepSequence', () => {
                 nodes: [
                     { tag: 'Object', universalKey: TRAY_ID },
                     { tag: 'Object', universalKey: TABLE_ID },
+                    presenceBindingNode(parentRemainderKey(ROOM_ID)),
                 ],
                 edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' }],
             })
@@ -730,12 +733,14 @@ describe('commitStepSequence', () => {
                 nodes: [
                     { tag: 'Object', universalKey: STRING_ID },
                     { tag: 'Object', universalKey: TABLE_ID },
+                    presenceBindingNode(parentRemainderKey(ROOM_ID)),
                 ],
             }),
             [TABLE_ID]: testLudicGraph(TABLE_ID, {
                 nodes: [
                     { tag: 'Object', universalKey: TABLE_ID },
                     { tag: 'Object', universalKey: CUP_ID },
+                    presenceBindingNode(parentRemainderKey(TABLE_ID)),
                 ],
             }),
         })
@@ -774,6 +779,7 @@ describe('commitStepSequence', () => {
                 nodes: [
                     { tag: 'Object', universalKey: TRAY_ID },
                     { tag: 'Object', universalKey: TABLE_ID },
+                    presenceBindingNode(parentRemainderKey(ROOM_ID)),
                 ],
             })
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
@@ -1027,7 +1033,7 @@ describe('commitStepSequence', () => {
         })
 
         it('marks the room of a relational change', async () => {
-            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: GLASS_ID }] })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: GLASS_ID }, presenceBindingNode(parentRemainderKey(ROOM_ID))] })
             const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
             await commitStepSequence(
@@ -1047,7 +1053,7 @@ describe('commitStepSequence', () => {
             )
             expect(bumpKeys(orphan.cascadeItems.current)).toEqual([])
 
-            const capture = makeTransactWriteMock({ [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] }) })
+            const capture = makeTransactWriteMock({ [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }, presenceBindingNode(parentRemainderKey(ROOM_ID))] }) })
             await commitStepSequence(
                 { steps: [{ kind: 'capture', hostId: ROOM_ID, captureId: 'before' }] },
                 { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite: capture.transactWrite }
@@ -1099,7 +1105,7 @@ describe('commitStepSequence', () => {
         })
 
         it('refuses a transact that would exceed the 100-action limit rather than sending it', async () => {
-            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: GLASS_ID }] })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: GLASS_ID }, presenceBindingNode(parentRemainderKey(ROOM_ID))] })
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
             const existenceItems = Array.from({ length: 100 }, (_, index) => ({ Put: { EphemeraId: `OBJECT#Extra${index}`, DataCategory: 'ASSET#IMPROVISATION' } }))
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined)

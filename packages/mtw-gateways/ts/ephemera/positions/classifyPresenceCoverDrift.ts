@@ -31,6 +31,10 @@ export type PresenceCoverDriftFinding =
     | { kind: 'Duplicate'; member: string; presence: string }
     /** A member binding names a whole binding that is absent, or whose cover does not include the member. */
     | { kind: 'Stale'; member: string; presence?: string }
+    /** A component node of the whole that no binding covers (the coverage invariant). */
+    | { kind: 'Uncovered'; member: string }
+    /** A binding with no parent pointer beyond the first: a whole has at most one hostless binding. */
+    | { kind: 'SecondHostless'; presence: string }
 
 export type PresenceCoverDriftVerdict = {
     /** The whole holds no remainder: legal only while every member is listed explicitly. */
@@ -67,6 +71,21 @@ export const coveredByBinding = (whole: PresenceGraphView): Map<string, Set<stri
 }
 
 /**
+ * The coverage invariant, judged on the whole's own graph: every member is covered by at least one
+ * binding (a `Remainder` covers every unlisted member, so it satisfies this while it exists), and a
+ * whole has at most one hostless binding, meaning one with no parent pointer. `hostlessBindings`
+ * lists every hostless binding's key, and only when there is more than one.
+ */
+export const coverageViolationsOf = (whole: PresenceGraphView): { uncovered: string[]; hostlessBindings: string[] } => {
+    const covered = new Set([...coveredByBinding(whole).values()].flatMap((members) => [...members]))
+    const hostless = whole.presenceNodes.filter((binding) => !binding.fromHostPresence).map((binding) => binding.universalKey)
+    return {
+        uncovered: wholeMembersOf(whole).filter((member) => !covered.has(member)),
+        hostlessBindings: hostless.length > 1 ? hostless : [],
+    }
+}
+
+/**
  * `memberGraph` returns a member's own graph view, or `undefined` when it cannot be read; an
  * unreadable member is skipped (its absence is not drift this comparison can see).
  *
@@ -80,6 +99,7 @@ export const classifyPresenceCoverDrift = (
     const covered = coveredByBinding(whole)
     const noRemainder = !whole.presenceNodes.some((binding) => binding.cover.members.some(isRemainder))
     const findings: PresenceCoverDriftFinding[] = []
+    const violations = coverageViolationsOf(whole)
 
     for (const member of wholeMembersOf(whole)) {
         const graph = memberGraph(member)
@@ -107,7 +127,14 @@ export const classifyPresenceCoverDrift = (
             }
         }
     }
-    return { noRemainder, findings }
+    return {
+        noRemainder,
+        findings: [
+            ...findings,
+            ...violations.uncovered.map((member): PresenceCoverDriftFinding => ({ kind: 'Uncovered', member })),
+            ...violations.hostlessBindings.slice(1).map((presence): PresenceCoverDriftFinding => ({ kind: 'SecondHostless', presence })),
+        ],
+    }
 }
 
 /**

@@ -4,7 +4,7 @@ import { presenceCoverDriftSweep } from './index'
 const remainder = { members: [{ tag: 'Remainder' }] }
 const row = (id: string, category: string, ...nodes: object[]) => ({ EphemeraId: id, DataCategory: category, ludicGraph: { nodes: [{ tag: category.slice(6), universalKey: id }, ...nodes] } })
 const root = { tag: 'Presence', universalKey: 'PRESENCE#root', cover: remainder }
-const carve = (members: object[]) => ({ tag: 'Presence', universalKey: 'PRESENCE#carve', cover: { members } })
+const carve = (members: object[]) => ({ tag: 'Presence', universalKey: 'PRESENCE#carve', fromHostPresence: { host: 'AREA#Town', presence: 'PRESENCE#top' }, cover: { members } })
 const pointer = (key: string, presence: string) => ({ tag: 'Presence', universalKey: key, fromHostPresence: { host: 'ROOM#Kitchen', presence }, cover: remainder })
 const feature = { tag: 'Feature', universalKey: 'FEATURE#Stove' }
 
@@ -57,5 +57,15 @@ describe('presenceCoverDriftSweep', () => {
     it('throws without EVENT_BUS_NAME', async () => {
         delete process.env.EVENT_BUS_NAME
         await expect(presenceCoverDriftSweep({}, { listCandidateRows: async () => [], emitFinding })).rejects.toThrow('EVENT_BUS_NAME')
+    })
+
+    it('reports a second hostless binding as unrepairable, never as a healable finding', async () => {
+        const second = { tag: 'Presence', universalKey: 'PRESENCE#second', cover: { members: [] } }
+        const result = await presenceCoverDriftSweep({}, {
+            listCandidateRows: async () => [row('ROOM#Kitchen', 'Meta::Room', root, second)],
+            emitFinding,
+        })
+        expect(result).toMatchObject({ emittedCount: 0, unrepairable: [{ ephemeraId: 'ROOM#Kitchen', findings: [{ kind: 'SecondHostless', presence: 'PRESENCE#second' }] }] })
+        expect(emitFinding).not.toHaveBeenCalled()
     })
 })

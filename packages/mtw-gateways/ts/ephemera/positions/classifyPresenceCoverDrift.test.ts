@@ -1,4 +1,4 @@
-import { classifyPresenceCoverDrift, coverRebuildsFor, rebuiltCoverEntries } from './classifyPresenceCoverDrift'
+import { classifyPresenceCoverDrift, coverRebuildsFor, coverageViolationsOf, rebuiltCoverEntries } from './classifyPresenceCoverDrift'
 import type { PresenceGraphView } from './classifyPresenceCoverDrift'
 
 const REMAINDER = { members: [{ tag: 'Remainder' as const }] }
@@ -34,7 +34,7 @@ describe('classifyPresenceCoverDrift', () => {
     it('holds a listed member to its listing binding only, not the remainder', () => {
         const split = room(['FEATURE#x', 'FEATURE#y'], [
             { universalKey: 'PRESENCE#root', cover: REMAINDER },
-            { universalKey: 'PRESENCE#carve', cover: { members: [{ host: 'FEATURE#x', presence: 'PRESENCE#f' }] } },
+            { universalKey: 'PRESENCE#carve', fromHostPresence: { host: 'AREA#up', presence: 'PRESENCE#top' }, cover: { members: [{ host: 'FEATURE#x', presence: 'PRESENCE#f' }] } },
         ])
         const graphs = [
             child('FEATURE#x', [point('PRESENCE#f', 'PRESENCE#carve')]),
@@ -71,7 +71,7 @@ describe('rebuiltCoverEntries', () => {
 })
 
 describe('coverRebuildsFor', () => {
-    const carve = { universalKey: 'PRESENCE#carve', cover: { members: [] as { host: string; presence: string }[] } }
+    const carve = { universalKey: 'PRESENCE#carve', fromHostPresence: { host: 'AREA#up', presence: 'PRESENCE#top' }, cover: { members: [] as { host: string; presence: string }[] } }
     it('rewrites only remainder-free covers that disagree with the pointers, and reads clean after', () => {
         const whole = room(['FEATURE#x'], [{ universalKey: 'PRESENCE#root', cover: REMAINDER }, carve])
         const graphs = [child('FEATURE#x', [point('PRESENCE#f', 'PRESENCE#carve')])]
@@ -79,5 +79,39 @@ describe('coverRebuildsFor', () => {
         const healed = room(['FEATURE#x'], [whole.presenceNodes[0], { ...carve, cover: { members: [{ host: 'FEATURE#x', presence: 'PRESENCE#f' }] } }])
         expect(coverRebuildsFor(healed, lookup(graphs))).toEqual([])
         expect(classifyPresenceCoverDrift(healed, lookup(graphs)).findings).toEqual([])
+    })
+})
+
+describe('coverageViolationsOf', () => {
+    const empty = { members: [] as { host: string; presence: string }[] }
+
+    it('reports a member no binding covers, and none when a Remainder covers it', () => {
+        const bare = room(['FEATURE#x', 'FEATURE#y'], [{ universalKey: 'PRESENCE#root', cover: { members: [{ host: 'FEATURE#x', presence: 'PRESENCE#f' }] } }])
+        expect(coverageViolationsOf(bare)).toEqual({ uncovered: ['FEATURE#y'], hostlessBindings: [] })
+        expect(coverageViolationsOf(room(['FEATURE#x', 'FEATURE#y'], [{ universalKey: 'PRESENCE#root', cover: REMAINDER }])).uncovered).toEqual([])
+    })
+
+    it('reports a whole with members and no binding at all', () => {
+        expect(coverageViolationsOf(room(['FEATURE#x'], [])).uncovered).toEqual(['FEATURE#x'])
+    })
+
+    it('lists every hostless binding when there is more than one, remainder or not', () => {
+        const two = room([], [{ universalKey: 'PRESENCE#a', cover: REMAINDER }, { universalKey: 'PRESENCE#b', cover: empty }])
+        expect(coverageViolationsOf(two).hostlessBindings).toEqual(['PRESENCE#a', 'PRESENCE#b'])
+        const one = room([], [{ universalKey: 'PRESENCE#a', cover: empty }, point('PRESENCE#b', 'PRESENCE#up', 'AREA#z')])
+        expect(coverageViolationsOf(one).hostlessBindings).toEqual([])
+    })
+})
+
+describe('classifyPresenceCoverDrift: the coverage invariant', () => {
+    it('reports Uncovered and SecondHostless as findings', () => {
+        const whole = room(['FEATURE#x'], [
+            { universalKey: 'PRESENCE#a', cover: { members: [] } },
+            { universalKey: 'PRESENCE#b', cover: { members: [] } },
+        ])
+        expect(classifyPresenceCoverDrift(whole, () => undefined).findings).toEqual([
+            { kind: 'Uncovered', member: 'FEATURE#x' },
+            { kind: 'SecondHostless', presence: 'PRESENCE#b' },
+        ])
     })
 })

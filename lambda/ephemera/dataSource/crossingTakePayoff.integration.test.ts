@@ -176,6 +176,7 @@ describe('crossing take payoff (integration)', () => {
         seed({
             graphs: {
                 [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
+                    .addPresenceNode(rootBinding(parentRemainderKey(ROOM_ID)))
                     .addCharacter(CHARACTER_ID)
                     .addObject(STRING_ID)
                     .addObject(TABLE_ID)
@@ -221,11 +222,13 @@ describe('crossing take payoff (integration)', () => {
         seed({
             graphs: {
                 [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
+                    .addPresenceNode(rootBinding(parentRemainderKey(ROOM_ID)))
                     .addCharacter(CHARACTER_ID)
                     .addObject(STRING_ID)
                     .addObject(WALL_ID)
                     .addRelationalEdge(tied(STRING_ID, wallPort)),
                 [OTHER_ROOM_ID]: EphemeraLudicGraph.empty(OTHER_ROOM_ID)
+                    .addPresenceNode(rootBinding(parentRemainderKey(OTHER_ROOM_ID)))
                     .addCharacter(ONLOOKER_ID)
                     .addObject(WALL_ID),
                 [WALL_ID]: EphemeraLudicGraph.empty(WALL_ID)

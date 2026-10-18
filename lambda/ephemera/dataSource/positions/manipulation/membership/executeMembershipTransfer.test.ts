@@ -91,6 +91,7 @@ describe('executeMembershipTransfer', () => {
             nodes: [
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
+                presenceBindingNode(parentRemainderKey(FROM_ROOM)),
             ],
             edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'against' }],
         })
@@ -154,8 +155,8 @@ describe('executeMembershipTransfer', () => {
     })
 
     it('clear shape: sweeps every current host (any kind), target null, no arrival row', async () => {
-        const roomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
-        const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }] })
+        const roomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, presenceBindingNode(parentRemainderKey(FROM_ROOM))] })
+        const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, presenceBindingNode(parentRemainderKey(CHARACTER_ID))] })
         const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [presenceBindingNode('in-room', FROM_ROOM), presenceBindingNode('in-hand', CHARACTER_ID)] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, CHARACTER_ID]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
@@ -193,6 +194,7 @@ describe('executeMembershipTransfer', () => {
             nodes: [
                 { tag: 'Object', universalKey: OBJECT_ID },
                 { tag: 'Object', universalKey: TABLE_ID },
+                presenceBindingNode(parentRemainderKey(FROM_ROOM)),
             ],
             edges: [{ tag: 'Relational', from: OBJECT_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'against' }],
         })
@@ -218,7 +220,7 @@ describe('executeMembershipTransfer', () => {
     })
 
     it('character entity: never runs the boundary sweep (no departure-graph fetch), only Character Moved streams', async () => {
-        const fromRoomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }] })
+        const fromRoomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Character', universalKey: CHARACTER_ID }, presenceBindingNode(parentRemainderKey(FROM_ROOM))] })
         const toRoomGraph = testLudicGraph(TO_ROOM, { nodes: [presenceBindingNode(parentRemainderKey(TO_ROOM))] })
         const ownGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('alpha', FROM_ROOM)] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM]);
@@ -244,11 +246,11 @@ describe('executeMembershipTransfer', () => {
     it("removing the interior (port-owning) side of a crossing dissolves both legs and the port in one transact --- the 'silent orphan' failure mode this row fixes", async () => {
         const port = { portId: 'port-1', fromHostId: FROM_ROOM, kind: 'Custom' as const, exteriorRelationLabel: 'to' }
         const roomGraph = testLudicGraph(FROM_ROOM, {
-            nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, { tag: 'Object', universalKey: TABLE_ID }],
+            nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, { tag: 'Object', universalKey: TABLE_ID }, presenceBindingNode(parentRemainderKey(FROM_ROOM))],
             edges: [{ tag: 'Relational', from: OBJECT_ID, to: { owner: TABLE_ID, port: 'port-1' } as any, kind: 'Custom', relationLabel: 'to' }],
         })
         const tableGraph = testLudicGraph(TABLE_ID, {
-            nodes: [{ tag: 'Object', universalKey: TABLE_ID }, { tag: 'Object', universalKey: 'OBJECT#Cup' as EphemeraObjectId }],
+            nodes: [{ tag: 'Object', universalKey: TABLE_ID }, { tag: 'Object', universalKey: 'OBJECT#Cup' as EphemeraObjectId }, presenceBindingNode(parentRemainderKey(TABLE_ID))],
             edges: [{ tag: 'Relational', from: { owner: TABLE_ID, port: 'port-1' } as any, to: 'OBJECT#Cup' as EphemeraObjectId, kind: 'Custom', relationLabel: 'to' }],
             ports: [port],
         } as any);
@@ -281,11 +283,11 @@ describe('executeMembershipTransfer', () => {
     it("removing the exterior (primitive-endpoint) side of a crossing dissolves both legs and the port too --- the fail-closed batch-breaking failure mode this row fixes", async () => {
         const port = { portId: 'port-1', fromHostId: FROM_ROOM, kind: 'Custom' as const, exteriorRelationLabel: 'to' }
         const roomGraph = testLudicGraph(FROM_ROOM, {
-            nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, { tag: 'Object', universalKey: TABLE_ID }],
+            nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, { tag: 'Object', universalKey: TABLE_ID }, presenceBindingNode(parentRemainderKey(FROM_ROOM))],
             edges: [{ tag: 'Relational', from: OBJECT_ID, to: { owner: TABLE_ID, port: 'port-1' } as any, kind: 'Custom', relationLabel: 'to' }],
         })
         const tableGraph = testLudicGraph(TABLE_ID, {
-            nodes: [{ tag: 'Object', universalKey: TABLE_ID }, { tag: 'Object', universalKey: 'OBJECT#Cup' as EphemeraObjectId }],
+            nodes: [{ tag: 'Object', universalKey: TABLE_ID }, { tag: 'Object', universalKey: 'OBJECT#Cup' as EphemeraObjectId }, presenceBindingNode(parentRemainderKey(TABLE_ID))],
             edges: [{ tag: 'Relational', from: { owner: TABLE_ID, port: 'port-1' } as any, to: 'OBJECT#Cup' as EphemeraObjectId, kind: 'Custom', relationLabel: 'to' }],
             ports: [port],
         } as any);
