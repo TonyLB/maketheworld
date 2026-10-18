@@ -94,6 +94,39 @@ export const coverageViolationsOf = (whole: PresenceGraphView): { uncovered: str
 }
 
 /**
+ * The binding the Base migration works on: `PRESENCE#Base` if the whole has one; otherwise a Room's
+ * or Area's hostless binding, else any other whole's only binding. Never guesses: no binding, or
+ * several with none to pick, is `undefined` (the whole is unmigratable and is reported, not healed).
+ */
+export const baseMigrationHolderOf = (whole: PresenceGraphView): PresenceBindingView | undefined => {
+    const base = whole.presenceNodes.find((binding) => binding.universalKey === BASE_ID)
+    if (base) {
+        return base
+    }
+    if (whole.hostId.startsWith('ROOM#') || whole.hostId.startsWith('AREA#')) {
+        return whole.presenceNodes.find((binding) => !binding.fromHostPresence)
+    }
+    return whole.presenceNodes.length === 1 ? whole.presenceNodes[0] : undefined
+}
+
+/**
+ * Stored data that predates monotone covers, judged on the whole's own graph through its migration
+ * holder: the holder is not named `PRESENCE#Base` (`NoBase`, the missing-Base finding), or its cover
+ * holds a `Remainder`. Kept apart from `classifyPresenceCoverDrift`'s findings, which the cover-drift
+ * sweep reports on every whole: this is the containment sweep's trigger for the migration, and it
+ * clears once the whole is migrated. A whole with no holder yields none.
+ */
+export type PresenceBaseMigrationDrift = 'RemainderCover' | 'NoBase'
+
+export const baseMigrationDriftOf = (whole: PresenceGraphView): PresenceBaseMigrationDrift[] => {
+    const holder = baseMigrationHolderOf(whole)
+    return holder ? [
+        ...(holder.universalKey !== BASE_ID ? ['NoBase' as const] : []),
+        ...(holder.cover.members.some(isRemainder) ? ['RemainderCover' as const] : []),
+    ] : []
+}
+
+/**
  * `memberGraph` returns a member's own graph view, or `undefined` when it cannot be read; an
  * unreadable member is skipped (its absence is not drift this comparison can see).
  *

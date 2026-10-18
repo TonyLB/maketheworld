@@ -10,7 +10,7 @@ import internalCache from '../../../../internalCache'
 import getCurrentTimestamp from '../../../../internalUtils/dateUtil'
 import type { MessageBus } from '../../../../messageBus/baseClasses'
 import { publishLudicCacheInvalidatedStreamEvent, type PositionsPublishedPayload } from '../../publishedEvents'
-import { charactersRowItemsFor } from '../../ludicCache/charactersRow'
+import { charactersRowItemsFor, charactersRowRenameItemsFor } from '../../ludicCache/charactersRow'
 import { roomsInvalidatedByHosts } from '../../ludicCache/roomsInvalidatedByHosts'
 import { ludicCacheMarkerBumpItems } from '../../ludicCache/store'
 import { EphemeraLudicGraph, graphFromMeta, hostDataCategory } from '../../ludicGraph'
@@ -265,7 +265,7 @@ export const commitStepSequence = async (
                 // draft-backed, so a fresh `Map` copy here is enough --- no per-entry plain-copy needed.
                 committedCaptures = new Map(outcome.captures)
             },
-            ...((createSteps.length > 0 || movesMembership || (args.existenceItems ?? []).length > 0 || invalidatedRooms.length > 0)
+            ...((createSteps.length > 0 || movesMembership || steps.some((step) => step.kind === 'renamePresenceBinding') || (args.existenceItems ?? []).length > 0 || invalidatedRooms.length > 0)
                 ? {
                     cascade: () => {
                         const changes = membershipChangesOf(steps, priorGraphs!, committedGraphs!)
@@ -275,6 +275,7 @@ export const commitStepSequence = async (
                             })),
                             ...adjacencyItemsFor(changes),
                             ...charactersRowItemsFor(changes, committedGraphs!),
+                            ...charactersRowRenameItemsFor(steps, committedGraphs!),
                             ...(args.existenceItems ?? []),
                             ...ludicCacheMarkerBumpItems(invalidatedRooms),
                         ]

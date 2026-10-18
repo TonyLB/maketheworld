@@ -581,6 +581,13 @@ export class EphemeraLudicGraph {
         )
     }
 
+    /** The binding `from` under the id `to` (and `cover`, if given), in the same position; absent `from`: unchanged. Writes this graph's node only. */
+    renamePresenceNode(from: EphemeraPresenceNodeId, to: EphemeraPresenceNodeId, cover?: EphemeraLudicGraphStructureNode['cover']): EphemeraLudicGraph {
+        return this.withNodes(
+            this._nodes.map((existing) => existing.tag === 'Presence' && existing.universalKey === from ? { ...existing, universalKey: to, ...(cover ? { cover } : {}) } : existing)
+        )
+    }
+
     removePresenceNode(universalKey: EphemeraPresenceNodeId): EphemeraLudicGraph {
         return this.withNodes(
             this._nodes.filter((node) => !(node.tag === 'Presence' && node.universalKey === universalKey))

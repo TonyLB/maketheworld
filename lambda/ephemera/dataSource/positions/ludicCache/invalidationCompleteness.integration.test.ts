@@ -112,8 +112,8 @@ const freshWorld = (): World => {
         })],
         [CUP, testLudicGraph(CUP, { nodes: [{ tag: 'Object', universalKey: CUP }, hostBinding('cup1', ref(TABLE, 'PRESENCE#tbl'))] })],
         [SAUCER, testLudicGraph(SAUCER, { nodes: [{ tag: 'Object', universalKey: SAUCER }, hostBinding('sau1', ref(TABLE, 'PRESENCE#tbl'))] })],
-        [BOX, testLudicGraph(BOX, { nodes: [{ tag: 'Object', universalKey: BOX }, hostBinding('box1', R1)] })],
-        [ALPHA, testLudicGraph(ALPHA as any, { nodes: [hostBinding('alpha1', R1)] })],
+        [BOX, testLudicGraph(BOX, { nodes: [{ tag: 'Object', universalKey: BOX }, hostBinding('Base', R1)] })],
+        [ALPHA, testLudicGraph(ALPHA as any, { nodes: [hostBinding('Base', R1)] })],
         [LAMP, testLudicGraph(LAMP, { nodes: [{ tag: 'Object', universalKey: LAMP }, presenceBindingNode('lamp1')] })],
     ])
     return {
@@ -121,7 +121,7 @@ const freshWorld = (): World => {
         markers: new Map(),
         rows: new Map(),
         characterRows: new Map<EphemeraRoomId, Record<string, unknown>>([
-            [R1, { [ALPHA]: ['PRESENCE#alpha1'] }],
+            [R1, { [ALPHA]: ['PRESENCE#Base'] }],
             [R2, {}],
         ]),
         names: { [TABLE]: 'Table', [CUP]: 'Cup', [SAUCER]: 'Saucer', [BOX]: 'Box', [LAMP]: 'Lamp', [MUG]: 'Mug', [R1]: 'Cafe', [R2]: 'Terrace', [ALPHA]: 'Alpha' },
@@ -373,14 +373,14 @@ const cases: Case[] = [
         rooms: [],
         changesCache: false,
         marksNothing: true,
-        act: () => commit([move(ALPHA, 'alpha1', remainder(R1), remainder(R2))]),
+        act: () => commit([move(ALPHA, 'Base', remainder(R1), remainder(R2))]),
     },
     {
         name: 'an object is released from where it sat',
         kinds: ['movePresenceBinding'],
         rooms: [R1],
         changesCache: true,
-        act: () => commit([{ kind: 'movePresenceBinding', to: null, hostId: BOX, presence: 'PRESENCE#box1' as any, from: remainder(R1) }]),
+        act: () => commit([{ kind: 'movePresenceBinding', to: null, hostId: BOX, presence: 'PRESENCE#Base' as any, from: remainder(R1) }]),
     },
     {
         name: 'an object gains a second binding in another room',
@@ -394,7 +394,27 @@ const cases: Case[] = [
         kinds: ['repairPresenceBinding'],
         rooms: [R1, R2],
         changesCache: true,
-        act: () => commit([{ kind: 'repairPresenceBinding', hostId: BOX, presenceId: 'PRESENCE#box1' as any, fromHostPresence: remainder(R2), previousParent: remainder(R1), cover: remainderCover() }]),
+        act: () => commit([{ kind: 'repairPresenceBinding', hostId: BOX, presenceId: 'PRESENCE#Base' as any, fromHostPresence: remainder(R2), previousParent: remainder(R1), cover: remainderCover() }]),
+    },
+    {
+        name: 'a binding with children is renamed to Base',
+        kinds: ['renamePresenceBinding'],
+        rooms: [R1],
+        changesCache: true,
+        act: () => commit([{ kind: 'renamePresenceBinding', hostId: TABLE, from: 'PRESENCE#tbl' as any, to: 'PRESENCE#Base' as any, parent: remainder(R1), childHosts: [CUP, SAUCER] }]),
+    },
+    {
+        name: 'a bystander character\'s binding is renamed to Base (no room is marked)',
+        kinds: ['renamePresenceBinding'],
+        rooms: [],
+        changesCache: false,
+        marksNothing: true,
+        act: () => {
+            // Alpha holds an old-shaped binding, and the characters row names it.
+            world.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [hostBinding('alpha-old', R1)] }))
+            world.characterRows.set(R1, { [ALPHA]: ['PRESENCE#alpha-old'] })
+            return commit([{ kind: 'renamePresenceBinding', hostId: ALPHA, from: 'PRESENCE#alpha-old' as any, to: 'PRESENCE#Base' as any, parent: remainder(R1), childHosts: [] }])
+        },
     },
     {
         name: 'an improvised object is created and placed',
@@ -412,7 +432,7 @@ const cases: Case[] = [
         rooms: [R1],
         changesCache: true,
         act: () => commit([
-            { kind: 'movePresenceBinding', to: null, hostId: BOX, presence: 'PRESENCE#box1' as any, from: remainder(R1) },
+            { kind: 'movePresenceBinding', to: null, hostId: BOX, presence: 'PRESENCE#Base' as any, from: remainder(R1) },
             { kind: 'destroyComponent', hostId: BOX },
         ]),
     },
@@ -509,14 +529,14 @@ const cases: Case[] = [
         kinds: ['movePresenceBinding'],
         world: () => {
             const base = freshWorld()
-            base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('alpha1')] }))
+            base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('Base')] }))
             base.characterRows.set(R1, {})
             return base
         },
         rooms: [R1],
         changesCache: true,
         act: () => commit([
-            move(ALPHA, 'alpha1', null, remainder(R1)),
+            move(ALPHA, 'Base', null, remainder(R1)),
             move(CUP, 'cup1', ref(TABLE, 'PRESENCE#tbl'), remainder(R1)),
         ]),
     },
@@ -526,7 +546,7 @@ const cases: Case[] = [
         rooms: [],
         changesCache: false,
         marksNothing: true,
-        act: () => commit([{ kind: 'movePresenceBinding', to: null, hostId: ALPHA, presence: 'PRESENCE#alpha1' as any, from: remainder(R1) }]),
+        act: () => commit([{ kind: 'movePresenceBinding', to: null, hostId: ALPHA, presence: 'PRESENCE#Base' as any, from: remainder(R1) }]),
     },
     {
         name: 'a character connects (its hostless binding is placed in the room)',
@@ -536,14 +556,14 @@ const cases: Case[] = [
             base.graphs.set(R1, testLudicGraph(R1, {
                 nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
             }))
-            base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('alpha1')] }))
+            base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('Base')] }))
             base.characterRows.set(R1, {})
             return base
         },
         rooms: [],
         changesCache: false,
         marksNothing: true,
-        act: () => commit([move(ALPHA, 'alpha1', null, remainder(R1))]),
+        act: () => commit([move(ALPHA, 'Base', null, remainder(R1))]),
     },
     {
         name: 'an object is renamed',
@@ -669,13 +689,13 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         world.names[POUCH] = 'Pouch'
         world.names[HAT] = 'Hat'
         world.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, {
-            nodes: [{ tag: 'Object', universalKey: POUCH }, { tag: 'Object', universalKey: HAT }, hostBinding('alpha1', R1, [entry(POUCH, 'PRESENCE#pch1'), entry(HAT, 'PRESENCE#hat1'), { tag: 'Remainder' }])],
+            nodes: [{ tag: 'Object', universalKey: POUCH }, { tag: 'Object', universalKey: HAT }, hostBinding('Base', R1, [entry(POUCH, 'PRESENCE#pch1'), entry(HAT, 'PRESENCE#hat1'), { tag: 'Remainder' }])],
         }))
-        world.graphs.set(POUCH, testLudicGraph(POUCH, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('pch1', ref(ALPHA as any, 'PRESENCE#alpha1'))] }))
-        world.graphs.set(HAT, testLudicGraph(HAT, { nodes: [{ tag: 'Object', universalKey: HAT }, hostBinding('hat1', ref(ALPHA as any, 'PRESENCE#alpha1'))] }))
+        world.graphs.set(POUCH, testLudicGraph(POUCH, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('pch1', ref(ALPHA as any, 'PRESENCE#Base'))] }))
+        world.graphs.set(HAT, testLudicGraph(HAT, { nodes: [{ tag: 'Object', universalKey: HAT }, hostBinding('hat1', ref(ALPHA as any, 'PRESENCE#Base'))] }))
         await stored(R1)
         const before = world.markers.get(R1) ?? 0
-        await commit([move(HAT, 'hat1', ref(ALPHA as any, 'PRESENCE#alpha1'), ref(POUCH, 'PRESENCE#pch1'))])
+        await commit([move(HAT, 'hat1', ref(ALPHA as any, 'PRESENCE#Base'), ref(POUCH, 'PRESENCE#pch1'))])
         expect(world.markers.get(R1) ?? 0).toBe(before)
         const read = await stored(R1)
         expect(read.outcome).toBe('hit')
@@ -695,12 +715,12 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         world.graphs.set(R1, testLudicGraph(R1, {
             nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
         }))
-        world.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('alpha1', R1, [entry(POUCH, 'PRESENCE#pch1')])] }))
+        world.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('Base', R1, [entry(POUCH, 'PRESENCE#pch1')])] }))
         world.graphs.set(BETA as any, testLudicGraph(BETA as any, { nodes: [hostBinding('beta1', R1)] }))
-        world.graphs.set(POUCH, testLudicGraph(POUCH, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('pch1', ref(ALPHA as any, 'PRESENCE#alpha1'))] }))
+        world.graphs.set(POUCH, testLudicGraph(POUCH, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('pch1', ref(ALPHA as any, 'PRESENCE#Base'))] }))
         await stored(R1)
         const before = world.markers.get(R1) ?? 0
-        await commit([move(POUCH, 'pch1', ref(ALPHA as any, 'PRESENCE#alpha1'), ref(BETA as any, 'PRESENCE#beta1'))])
+        await commit([move(POUCH, 'pch1', ref(ALPHA as any, 'PRESENCE#Base'), ref(BETA as any, 'PRESENCE#beta1'))])
         expect(world.markers.get(R1) ?? 0).toBe(before)
         const read = await stored(R1)
         expect(read.outcome).toBe('hit')

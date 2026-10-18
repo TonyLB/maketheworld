@@ -1,4 +1,4 @@
-import { classifyPresenceCoverDrift, coverRebuildsFor, coverageViolationsOf, rebuiltCoverEntries } from './classifyPresenceCoverDrift'
+import { baseMigrationDriftOf, baseMigrationHolderOf, classifyPresenceCoverDrift, coverRebuildsFor, coverageViolationsOf, rebuiltCoverEntries } from './classifyPresenceCoverDrift'
 import type { PresenceGraphView } from './classifyPresenceCoverDrift'
 
 const REMAINDER = { members: [{ tag: 'Remainder' as const }] }
@@ -95,6 +95,13 @@ describe('coverageViolationsOf', () => {
         expect(coverageViolationsOf(room(['FEATURE#x'], [])).uncovered).toEqual(['FEATURE#x'])
     })
 
+    it('leaves bystanders outside the invariant: a room is covered by its entries, and its characters row is not a graph node', () => {
+        // A bystander is indexed by the characters row, never by the room's graph (rule 5), so a Room whose
+        // Base lists one feature and whose graph holds no character reads clean.
+        const base = { universalKey: 'PRESENCE#Base', cover: { members: [{ host: 'FEATURE#x', presence: 'PRESENCE#f' }] } }
+        expect(coverageViolationsOf(room(['FEATURE#x'], [base]))).toEqual({ uncovered: [], hostlessBindings: [], badUnplaced: [] })
+    })
+
     it('lists every hostless binding when there is more than one, remainder or not', () => {
         const two = room([], [{ universalKey: 'PRESENCE#a', cover: REMAINDER }, { universalKey: 'PRESENCE#b', cover: empty }])
         expect(coverageViolationsOf(two).hostlessBindings).toEqual(['PRESENCE#a', 'PRESENCE#b'])
@@ -139,5 +146,38 @@ describe('the Unplaced fixed id', () => {
 
     it('reports BadUnplaced as a finding', () => {
         expect(classifyPresenceCoverDrift(room([], [base, unplaced]), () => undefined).findings).toContainEqual({ kind: 'BadUnplaced', presence: 'PRESENCE#Unplaced' })
+    })
+})
+
+describe('baseMigrationDriftOf', () => {
+    const rooted = (hostId: string, presenceNodes: PresenceGraphView['presenceNodes']): PresenceGraphView => ({ hostId, nodeIds: [hostId], presenceNodes })
+    const pointed = { fromHostPresence: { host: 'ROOM#a', presence: 'PRESENCE#Base' } }
+
+    it('flags a Room whose hostless binding is not Base, and its Remainder', () => {
+        expect(baseMigrationDriftOf(rooted('ROOM#a', [{ universalKey: 'PRESENCE#root', cover: REMAINDER }]))).toEqual(['NoBase', 'RemainderCover'])
+        expect(baseMigrationDriftOf(rooted('ROOM#a', [{ universalKey: 'PRESENCE#root', cover: { members: [] } }]))).toEqual(['NoBase'])
+    })
+
+    it('flags a migrated Base only for a lingering Remainder, and a whole with no binding never', () => {
+        expect(baseMigrationDriftOf(rooted('ROOM#a', [{ universalKey: 'PRESENCE#Base', cover: REMAINDER }]))).toEqual(['RemainderCover'])
+        expect(baseMigrationDriftOf(rooted('ROOM#a', [{ universalKey: 'PRESENCE#Base', cover: { members: [] } }]))).toEqual([])
+        expect(baseMigrationDriftOf(rooted('FEATURE#x', []))).toEqual([])
+    })
+
+    it('picks a non-room whole\'s only binding, and leaves an ambiguous one alone', () => {
+        const only = rooted('FEATURE#x', [{ universalKey: 'PRESENCE#f', ...pointed, cover: REMAINDER }])
+        expect(baseMigrationHolderOf(only)?.universalKey).toBe('PRESENCE#f')
+        expect(baseMigrationDriftOf(only)).toEqual(['NoBase', 'RemainderCover'])
+        const two = rooted('FEATURE#x', [{ universalKey: 'PRESENCE#f', ...pointed, cover: REMAINDER }, { universalKey: 'PRESENCE#g', ...pointed, cover: REMAINDER }])
+        expect(baseMigrationHolderOf(two)).toBeUndefined()
+        expect(baseMigrationDriftOf(two)).toEqual([])
+    })
+
+    it('picks a Room\'s hostless binding over its Area binding', () => {
+        const room = rooted('ROOM#a', [
+            { universalKey: 'PRESENCE#up', fromHostPresence: { host: 'AREA#z', presence: 'PRESENCE#Base' }, cover: { members: [] } },
+            { universalKey: 'PRESENCE#root', cover: REMAINDER },
+        ])
+        expect(baseMigrationHolderOf(room)?.universalKey).toBe('PRESENCE#root')
     })
 })

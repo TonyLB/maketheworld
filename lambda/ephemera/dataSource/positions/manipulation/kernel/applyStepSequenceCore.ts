@@ -13,6 +13,7 @@ import type { MutationKernelStep } from './kernelStep'
 import { isBystanderMove } from './bystander'
 import { bindingPointsAt, settleMembership } from './settleMembership'
 import { movePresenceBinding, withEntries, withoutEntries } from './movePresenceBinding'
+import { renamePresenceBinding } from './renamePresenceBinding'
 import type { MutationKernelApplyOutcome } from './types'
 
 /**
@@ -289,6 +290,15 @@ export const applyStepSequenceCore = (
             }
             graphs = settled.graphs
             settleOccupants(step.hostId, { ...(step.from ? { left: step.from.host } : {}), ...(step.to ? { arrived: step.to.host } : {}) })
+            continue
+        }
+        if (step.kind === 'renamePresenceBinding') {
+            // Membership does not change: the same bindings point at the same parents.
+            const renamed = renamePresenceBinding(graphs, step)
+            if ('reasonCode' in renamed) {
+                return { verdict: 'stale', reasonCode: renamed.reasonCode }
+            }
+            graphs = renamed.graphs
             continue
         }
         if (step.kind === 'repairPresenceBinding') {

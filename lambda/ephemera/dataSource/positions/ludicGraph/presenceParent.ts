@@ -1,4 +1,3 @@
-import { isEphemeraAreaId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -72,15 +71,10 @@ export const unpointedBindingOf = (graph: EphemeraLudicGraph): EphemeraLudicGrap
 )
 
 /**
- * The binding of `parentGraph`'s host that its children sit under, when the data names one
- * unambiguously: the host's `PRESENCE#Base`; until stored data is migrated (monotoneCovers Slice 5),
- * a Room's or Area's hostless remainder, else the host's only binding. Never
- * guesses --- no binding, or several (the caller must name which), is `undefined`.
+ * The binding of `parentGraph`'s host that its children sit under: its `PRESENCE#Base`, which every
+ * whole holds (monotoneCovers MC-1), or `undefined` when the host has none yet (population mints it
+ * for a Room or Area; a missing one anywhere else is drift the Base migration owns). Never guesses.
  */
-export const childParentBindingIdOf = (parentGraph: EphemeraLudicGraph): EphemeraPresenceNodeId | undefined => {
-    if (isEphemeraRoomId(parentGraph.hostId) || isEphemeraAreaId(parentGraph.hostId)) {
-        return (parentGraph.presenceNodes.find((node) => node.universalKey === BASE_PRESENCE_ID) ?? unpointedBindingOf(parentGraph))?.universalKey
-    }
-    const { presenceNodes } = parentGraph
-    return (presenceNodes.find((node) => node.universalKey === BASE_PRESENCE_ID) ?? (presenceNodes.length === 1 ? presenceNodes[0] : undefined))?.universalKey
-}
+export const childParentBindingIdOf = (parentGraph: EphemeraLudicGraph): EphemeraPresenceNodeId | undefined => (
+    parentGraph.presenceNodes.find((node) => node.universalKey === BASE_PRESENCE_ID)?.universalKey
+)

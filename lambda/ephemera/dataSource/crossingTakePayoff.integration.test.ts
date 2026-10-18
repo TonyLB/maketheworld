@@ -187,7 +187,7 @@ describe('crossing take payoff (integration)', () => {
                     .addPresenceNode(fullBinding('PRESENCE#table-in-bridge', ROOM_ID))
                     .addRelationalEdge({ from: CUP_ID, to: TABLE_ID, kind: 'On' })
                     .addRelationalEdge(tied(tablePort, CUP_ID)),
-                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#character-root')),
+                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
                 [CUP_ID]: EphemeraLudicGraph.empty(CUP_ID).addPresenceNode(fullBinding('PRESENCE#cup-on-table', TABLE_ID, 'PRESENCE#table-in-bridge')),
                 [STRING_ID]: EphemeraLudicGraph.empty(STRING_ID).addPresenceNode(fullBinding('PRESENCE#string-in-bridge', ROOM_ID)),
             },
@@ -237,7 +237,7 @@ describe('crossing take payoff (integration)', () => {
                     .addPresenceNode(fullBinding('PRESENCE#wall-in-bridge', ROOM_ID))
                     .addPresenceNode(fullBinding('PRESENCE#wall-in-galley', OTHER_ROOM_ID))
                     .addRelationalEdge(tied(wallPort, HOOK_ID)),
-                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#character-root')),
+                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
                 [STRING_ID]: EphemeraLudicGraph.empty(STRING_ID).addPresenceNode(fullBinding('PRESENCE#string-in-bridge', ROOM_ID)),
                 [HOOK_ID]: EphemeraLudicGraph.empty(HOOK_ID),
             },

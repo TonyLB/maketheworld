@@ -15,7 +15,10 @@ import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresence
  * keeps exactly one hostless remainder for good (the room rule, PR-21(f), extended to Areas),
  * whether or not anything is contained in it. Any other parent (a Feature, an authored Object) with
  * no binding at all gets a hostless remainder too, which its own placement later re-points rather
- * than re-mints, so its children's pointers stay valid. Returns the step that mints it and the
+ * than re-mints, so its children's pointers stay valid. A whole holding a hostless binding that is not
+ * named Base (stored data from before monotone covers) mints nothing, since a second hostless binding is
+ * illegal: `migrateBaseBinding` gives it its Base, and until then its children cannot name a binding and
+ * are skipped. Returns the step that mints it and the
  * graph as it will read once minted, so the parent's children (computed against that graph) point
  * at the same root; a parent that already has one is unchanged.
  */
@@ -24,7 +27,7 @@ export const rootStep = (
     parentGraph: EphemeraLudicGraph
 ): { step?: MutationKernelAddPresenceBindingStep; graph: EphemeraLudicGraph } => {
     const hasRoot = isEphemeraRoomId(parentId) || isEphemeraAreaId(parentId)
-        ? Boolean(childParentBindingIdOf(parentGraph))
+        ? Boolean(childParentBindingIdOf(parentGraph) ?? unpointedBindingOf(parentGraph))
         : parentGraph.presenceNodes.length > 0
     if (hasRoot) {
         return { graph: parentGraph }
@@ -131,7 +134,8 @@ export const containmentPopulationSteps = (
             hostId: childId,
             fromHostPresence,
             ...(wantedCover ? { cover: wantedCover } : {}),
-            presenceUuid: uuidv4(),
+            // a child holding no binding yet gets its Base placed (every whole holds one); a further binding is a new id
+            presenceUuid: childGraph.presenceNodes.length === 0 ? 'Base' : uuidv4(),
         }
         steps.push(bindingStep)
     } else if (

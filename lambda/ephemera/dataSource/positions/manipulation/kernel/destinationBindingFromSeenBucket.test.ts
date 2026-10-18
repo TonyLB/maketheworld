@@ -80,7 +80,7 @@ describe('a destination binding from its seen bucket', () => {
 
     it('is unique for an object held by a character', () => {
         const characterGraph = testLudicGraph(characterId, {
-            nodes: [{ tag: 'Object', universalKey: tableId }, presenceBindingNode('c1', roomId)],
+            nodes: [{ tag: 'Object', universalKey: tableId }, presenceBindingNode('Base', roomId)],
         })
         const tableGraph = placeThroughKernel(characterGraph, tableId)
 
@@ -92,7 +92,7 @@ describe('a destination binding from its seen bucket', () => {
 
     it('is unique for an object nested in another object', () => {
         const rugGraph = testLudicGraph(rugId, {
-            nodes: [{ tag: 'Object', universalKey: tableId }, presenceBindingNode('r1', roomId)],
+            nodes: [{ tag: 'Object', universalKey: tableId }, presenceBindingNode('Base', roomId)],
         })
         const tableGraph = placeThroughKernel(rugGraph, tableId)
 

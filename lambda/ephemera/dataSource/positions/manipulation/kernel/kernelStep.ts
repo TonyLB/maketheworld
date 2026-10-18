@@ -117,6 +117,32 @@ export type MutationKernelRepairPresenceBindingStep = {
 }
 
 /**
+ * Renames a binding (`from` to `to`, on `hostId`'s own graph) and every stored reference to it, in one
+ * write: the node's key, each child's `fromHostPresence.presence`, and the parent's cover entry for it.
+ * Used once, by the Base migration (monotoneCovers Slice 5), to give a whole's original binding the
+ * fixed id `PRESENCE#Base`. Nothing else changes: the pointer and the position stay. The cover stays
+ * too unless `cover` is given, which replaces it in the same write (the migration's `Remainder`,
+ * expanded to the entries it stood for).
+ *
+ * `childHosts` names every host holding a binding that points at `from`, because the footprint is
+ * computed from the steps before any graph loads: the hosts of the node's cover entries, plus a room's
+ * bystander characters (which no cover lists). `parent` is the node's stored pointer as read at
+ * planning time, so its host is locked and its cover entry rewritten. The handler is `stale` when `from`
+ * is gone or `to` is taken, when the stored pointer is no longer `parent`, when an entry of the resulting cover
+ * names a host missing from `childHosts`, and when a relational edge ends at `from` (none is written today; this is a
+ * guard, not a rewrite). A bystander character's rename also rewrites its room's characters row.
+ */
+export type MutationKernelRenamePresenceBindingStep = {
+    kind: 'renamePresenceBinding'
+    hostId: EphemeraMembershipHostId
+    from: EphemeraPresenceNodeId
+    to: EphemeraPresenceNodeId
+    parent?: ParentBinding
+    cover?: EphemeraPresenceCover
+    childHosts: readonly EphemeraMembershipHostId[]
+}
+
+/**
  * A binding of a host, as a move names it: the host whose graph holds the binding, and its id there.
  * The same shape as a stored `fromHostPresence` (`ParentBinding`, `presenceParent.ts`), now that
  * `presence` is required there.
@@ -140,8 +166,8 @@ export type PresenceBindingRef = ParentBinding
  *   even with an empty cover. Every entry must be listed by the source's cover.
  * - **To no parent**: the entries land in `PRESENCE#Base` if it is hostless, else in
  *   `PRESENCE#Unplaced` (minted if absent). Base moved to no parent absorbs Unplaced. A whole holding
- *   no Base (unmigrated data, monotoneCovers Slice 5) has the moved binding's pointer stripped in
- *   place, as a release did.
+ *   no Base is `stale` (`baseMissing`): every whole holds Base from creation on, and stored data was
+ *   migrated to it (monotoneCovers Slice 5).
  * - **Children re-point, and collisions merge.** Each moved entry is a child's binding, re-pointed to
  *   the binding that now covers it; a child left holding two bindings under it has them merged by
  *   this same move one level down.
@@ -202,6 +228,7 @@ export type MutationKernelStep =
     | MutationKernelAddPresenceBindingStep
     | MutationKernelMovePresenceBindingStep
     | MutationKernelRepairPresenceBindingStep
+    | MutationKernelRenamePresenceBindingStep
     | MutationKernelAddCrossingPortStep
     | MutationKernelRemoveCrossingPortStep
 
@@ -219,6 +246,7 @@ export const mutationKernelStepKinds = {
     addPresenceBinding: true,
     movePresenceBinding: true,
     repairPresenceBinding: true,
+    renamePresenceBinding: true,
     addCrossingPort: true,
     removeCrossingPort: true,
 } as const satisfies Record<MutationKernelStep['kind'], true>

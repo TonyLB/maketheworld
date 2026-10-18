@@ -177,8 +177,8 @@ describe('object containment In payoff (integration)', () => {
             // normalization. Required here because `establishRelation`'s target is the box
             // itself (`In`'s containment edge targets its own host): `confirmCarriedHost` checks
             // that the box is a member of its own graph.
-            [BOX_ID]: testLudicGraph(BOX_ID, { nodes: [{ tag: 'Object', universalKey: BOX_ID }, presenceBindingNode('box-in-room', ROOM_ID)] }),
-            [BALL_ID]: testLudicGraph(BALL_ID, { nodes: [{ tag: 'Object', universalKey: BALL_ID }, presenceBindingNode('ball-in-room', ROOM_ID)] }),
+            [BOX_ID]: testLudicGraph(BOX_ID, { nodes: [{ tag: 'Object', universalKey: BOX_ID }, presenceBindingNode('Base', ROOM_ID)] }),
+            [BALL_ID]: testLudicGraph(BALL_ID, { nodes: [{ tag: 'Object', universalKey: BALL_ID }, presenceBindingNode('Base', ROOM_ID)] }),
         }
 
         ephemeraDBMock.getItem.mockImplementation(async ({ Key }: any) => {

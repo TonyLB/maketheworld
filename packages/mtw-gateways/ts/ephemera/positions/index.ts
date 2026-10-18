@@ -50,6 +50,8 @@ export type {
 } from './classifyLudicGraphPortMismatch'
 
 export {
+    baseMigrationDriftOf,
+    baseMigrationHolderOf,
     classifyPresenceCoverDrift,
     coverRebuildsFor,
     coveredByBinding,
@@ -58,6 +60,7 @@ export {
     wholeMembersOf,
 } from './classifyPresenceCoverDrift'
 export type {
+    PresenceBaseMigrationDrift,
     PresenceBindingView,
     PresenceCoverDriftFinding,
     PresenceCoverDriftVerdict,

@@ -102,6 +102,8 @@ describe('a move changes a host\'s membership only with the mover\'s first or la
 
     it('a departure to no host removes the node from every host it was in', async () => {
         const world = twoRooms()
+        // a departure lands in the whole's Base, so the plank holds one
+        world[plank] = testLudicGraph(plank, { nodes: [{ tag: 'Object', universalKey: plank }, presenceBindingNode('Base', roomA), presenceBindingNode('plank-b', roomB)] })
         const after = apply(await moveOf([roomA, roomB], null, world), world)
 
         expect(heldIn(after, roomA)).toBe(false)

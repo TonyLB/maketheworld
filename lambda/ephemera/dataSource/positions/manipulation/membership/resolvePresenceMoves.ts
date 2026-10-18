@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import { isEphemeraAreaId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -177,7 +176,9 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
     if (hostless) {
         return { ok: true, presenceMoves: [{ presence: hostless.universalKey, from: null, to }] }
     }
-    const mintedRootUuid = uuidv4()
+    // A mover holding no binding at all has no Base yet (a whole holds Base from creation on), so the root it
+    // is placed from is its Base.
+    const mintedRootUuid = 'Base'
     return {
         ok: true,
         presenceMoves: [{ presence: PresenceKey(mintedRootUuid) as EphemeraPresenceNodeId, from: null, to }],

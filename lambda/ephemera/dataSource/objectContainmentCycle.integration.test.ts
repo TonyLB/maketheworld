@@ -118,8 +118,8 @@ describe('object containment cycle (AB-63)', () => {
                 ],
                 edges: [],
             }).toStored(),
-            [BOX_ID]: testLudicGraph(BOX_ID, { nodes: [{ tag: 'Object', universalKey: BOX_ID }, presenceBindingNode('box-in-room', ROOM_ID)] }).toStored(),
-            [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }, presenceBindingNode('cup-in-room', ROOM_ID)] }).toStored(),
+            [BOX_ID]: testLudicGraph(BOX_ID, { nodes: [{ tag: 'Object', universalKey: BOX_ID }, presenceBindingNode('Base', ROOM_ID)] }).toStored(),
+            [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }, presenceBindingNode('Base', ROOM_ID)] }).toStored(),
         }
         ephemeraDBMock.getItem.mockImplementation(async ({ Key }: any) => {
             const stored = storedByHost[Key.EphemeraId]

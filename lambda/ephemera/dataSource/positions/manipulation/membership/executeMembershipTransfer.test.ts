@@ -157,7 +157,7 @@ describe('executeMembershipTransfer', () => {
     it('clear shape: sweeps every current host (any kind), target null, no arrival row', async () => {
         const roomGraph = testLudicGraph(FROM_ROOM, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, presenceBindingNode(parentRemainderKey(FROM_ROOM))] })
         const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, presenceBindingNode(parentRemainderKey(CHARACTER_ID))] })
-        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [presenceBindingNode('in-room', FROM_ROOM), presenceBindingNode('in-hand', CHARACTER_ID)] });
+        const ownGraph = testLudicGraph(OBJECT_ID, { nodes: [presenceBindingNode('Base', FROM_ROOM), presenceBindingNode('in-hand', CHARACTER_ID)] });
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockResolvedValue([FROM_ROOM, CHARACTER_ID]);
         (internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === FROM_ROOM ? roomGraph : hostId === CHARACTER_ID ? characterGraph : ownGraph

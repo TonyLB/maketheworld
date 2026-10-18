@@ -1,7 +1,7 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicGraphFieldPayload, EphemeraLudicGraphStructureNode, EphemeraPresenceCover, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { PlayLudicGraph } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
 
@@ -22,8 +22,8 @@ export const testLudicGraphFromEnvelope = (
     envelope: PlayLudicGraph = { nodes: [] }
 ): EphemeraLudicGraph => EphemeraLudicGraph.fromPlayEnvelope(hostId, envelope)
 
-/** Test convention: a parent host's conventional remainder binding id, when a fixture names only the host. */
-export const parentRemainderKey = (host: EphemeraMembershipHostId): EphemeraPresenceNodeId => PresenceKey(`${host.replace('#', '-')}-remainder`) as EphemeraPresenceNodeId
+/** Test convention: a parent host's root binding id, when a fixture names only the host. Every whole's is `PRESENCE#Base` (monotoneCovers MC-2). */
+export const parentRemainderKey = (_host: EphemeraMembershipHostId): EphemeraPresenceNodeId => BASE_PRESENCE_ID
 
 /**
  * Test helper: a presence binding. `parent` is a `{ host, presence }` pointer, a bare host (pointing

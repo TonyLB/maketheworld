@@ -80,12 +80,9 @@ describe('childParentBindingIdOf (Base)', () => {
         expect(childParentBindingIdOf(graph)).toBe('PRESENCE#Base')
     })
 
-    it('reads a legacy random-uuid hostless remainder as the Room\'s Base', () => {
-        expect(childParentBindingIdOf(testLudicGraph(roomA, { nodes: [presenceBindingNode('legacy-uuid')] }))).toBe('PRESENCE#legacy-uuid')
-    })
-
-    it('reads a non-room whole\'s only binding as Base, and refuses several unnamed bindings', () => {
-        expect(childParentBindingIdOf(testLudicGraph(shelf, { nodes: [presenceBindingNode('legacy', roomA)] }))).toBe('PRESENCE#legacy')
-        expect(childParentBindingIdOf(testLudicGraph(shelf, { nodes: [presenceBindingNode('a', roomA), presenceBindingNode('b', roomB)] }))).toBeUndefined()
+    it('names nothing for a whole with no Base: no guess from a hostless or only binding (the Base migration owns it)', () => {
+        expect(childParentBindingIdOf(testLudicGraph(roomA, { nodes: [presenceBindingNode('legacy-uuid')] }))).toBeUndefined()
+        expect(childParentBindingIdOf(testLudicGraph(shelf, { nodes: [presenceBindingNode('legacy', roomA)] }))).toBeUndefined()
+        expect(childParentBindingIdOf(testLudicGraph(shelf, { nodes: [] }))).toBeUndefined()
     })
 })

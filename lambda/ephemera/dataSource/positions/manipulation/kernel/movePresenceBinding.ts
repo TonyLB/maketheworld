@@ -129,23 +129,11 @@ export const movePresenceBinding = (
         const base = graph.presenceNodes.find(({ universalKey }) => universalKey === BASE_PRESENCE_ID)
         const unplaced = graph.presenceNodes.find(({ universalKey }) => universalKey === UNPLACED_PRESENCE_ID)
         if (!base) {
-            // Unmigrated data (monotoneCovers Slice 5): no Base to land in, so the pointer is stripped in
-            // place (or the binding folds into the whole's hostless one), as a release did.
-            if (!wholeMove) {
-                return { reasonCode: 'baseMissing' }
-            }
-            // A whole that already holds a hostless binding folds the departing one into it, so a scrub of
-            // several bindings still ends with one binding with no parent.
-            const otherHostless = graph.presenceNodes.find((candidate) => candidate.universalKey !== node.universalKey && !candidate.fromHostPresence)
-            if (otherHostless) {
-                target = otherHostless
-            }
-            else {
-                const { fromHostPresence: _departed, ...hostless } = node
-                target = hostless
-            }
+            // A whole holds Base from creation on (stored data was migrated, monotoneCovers Slice 5); a move to no
+            // parent has nowhere to land without one, so the producer's read is stale.
+            return { reasonCode: 'baseMissing' }
         }
-        else if (node.universalKey === BASE_PRESENCE_ID) {
+        if (node.universalKey === BASE_PRESENCE_ID) {
             if (!wholeMove) {
                 // Part of a hostless Base moved to no parent is where it already is.
                 return { graphs: new Map(graphs) }

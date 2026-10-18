@@ -179,8 +179,9 @@ export const isEphemeraLudicCacheData = (value: unknown): value is EphemeraLudic
     // Referential integrity (rebuild 3d, presenceNodes Slice 6/PN-12): a cover entry resolves by
     // path --- the host's node, then that binding on it --- and an entry whose host has no node,
     // or whose named binding is not on that node, is internal inconsistency and FAILS. The walk
-    // reaches every member, a present character included (as a leaf: its node and bindings, none of
-    // its inventory), so an absent host cannot be a legitimate omission.
+    // reaches every member of the graphs it enumerates, so an absent host cannot be a legitimate
+    // omission. A room-seeded walk meets no bystander (the characters row indexes it, and the room's
+    // graph holds no node for it); a character-seeded walk expands its own seed.
     // An entry with `presence` absent (the fold could not find that binding) checks the host step
     // only. An edge terminating at an absent presence node is a different, legal shape (the
     // binding exists and was not pulled into this cache, PR-15) and is deliberately NOT checked
