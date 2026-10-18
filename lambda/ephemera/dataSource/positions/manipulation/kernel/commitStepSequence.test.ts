@@ -295,7 +295,7 @@ describe('commitStepSequence', () => {
                         DataCategory: 'Meta::Object',
                         stableKey: 'tray',
                         ludicGraph: expect.objectContaining({
-                            nodes: expect.arrayContaining([presenceBindingNode('Base', ROOM_ID)]),
+                            nodes: expect.arrayContaining([presenceBindingNode('Base', ROOM_ID, { members: [] })]),
                         }),
                     },
                 },

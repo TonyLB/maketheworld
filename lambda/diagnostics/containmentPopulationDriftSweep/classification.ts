@@ -8,11 +8,7 @@ type RawPresenceNode = {
     cover?: { members?: unknown }
 }
 
-const isHostlessRemainder = (node: RawPresenceNode): boolean => (
-    !node.fromHostPresence &&
-    Array.isArray(node.cover?.members) &&
-    (node.cover.members as unknown[]).some((member) => (member as { tag?: unknown } | null)?.tag === 'Remainder')
-)
+const hasNoParentPointer = (node: RawPresenceNode): boolean => !node.fromHostPresence
 
 /**
  * The parents whose cache-time containment population would now write one of `ownerId`'s presence
@@ -20,7 +16,7 @@ const isHostlessRemainder = (node: RawPresenceNode): boolean => (
  * `presenceParent`. A binding is drift when it is a Room's binding into an Area whose cover is
  * anything but an empty-member carve-out (a).
  *
- * And one check on the owner itself: (b) a Room or Area with no hostless remainder, the root of its
+ * And one check on the owner itself: (b) a Room or Area with no binding lacking a parent pointer, the root of its
  * presence tree, which every Room and Area keeps whatever it contains (reported with the owner as
  * the parent, since population mints it for the owner). A row with no stored graph yet counts.
  *
@@ -42,7 +38,7 @@ export const containmentDriftParentsOf = (ownerId: string, ludicGraph: unknown):
     const storedNodes = (ludicGraph as { nodes?: unknown } | undefined)?.nodes
     const nodes = (Array.isArray(storedNodes) ? storedNodes : []) as RawPresenceNode[]
     const parents = new Set<EphemeraMembershipHostId>()
-    if ((isEphemeraRoomId(ownerId) || isEphemeraAreaId(ownerId)) && !nodes.some((node) => node?.tag === 'Presence' && isHostlessRemainder(node))) {
+    if ((isEphemeraRoomId(ownerId) || isEphemeraAreaId(ownerId)) && !nodes.some((node) => node?.tag === 'Presence' && hasNoParentPointer(node))) {
         parents.add(ownerId)
     }
     for (const node of nodes) {

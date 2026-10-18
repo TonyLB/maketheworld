@@ -103,14 +103,16 @@ export type MutationKernelDestroyComponentStep = {
  * write differently (a pointer not naming the parent's binding, a room's Area cover with members); a correct binding never
  * emits one, so a rerun of population is a true no-op once repaired. A missing binding is stale,
  * never silently created. A pointer names the host the mover now sits in, so the node is added there
- * if absent (`settleMembership.ts`); it carries no departure host, and no producer re-parents a
- * repaired binding to another host.
+ * if absent (`settleMembership.ts`). Every present producer repairs within one host; a repair that
+ * leaves another host names the binding it leaves in `previousParent`, so the footprint locks that
+ * host and its cover entry and node go with the move.
  */
 export type MutationKernelRepairPresenceBindingStep = {
     kind: 'repairPresenceBinding'
     hostId: EphemeraMembershipHostId
     presenceId: EphemeraPresenceNodeId
     fromHostPresence?: EphemeraPresenceParentPointer
+    previousParent?: EphemeraPresenceParentPointer
     cover: EphemeraPresenceCover
 }
 

@@ -394,7 +394,7 @@ const cases: Case[] = [
         kinds: ['repairPresenceBinding'],
         rooms: [R1, R2],
         changesCache: true,
-        act: () => commit([{ kind: 'repairPresenceBinding', hostId: BOX, presenceId: 'PRESENCE#box1' as any, fromHostPresence: remainder(R2), cover: remainderCover() }]),
+        act: () => commit([{ kind: 'repairPresenceBinding', hostId: BOX, presenceId: 'PRESENCE#box1' as any, fromHostPresence: remainder(R2), previousParent: remainder(R1), cover: remainderCover() }]),
     },
     {
         name: 'an improvised object is created and placed',

@@ -1,7 +1,7 @@
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
-import { hostlessRemainderOf } from '../../ludicGraph/presenceParent'
+import { unpointedBindingOf } from '../../ludicGraph/presenceParent'
 import { containmentPopulationSteps, rootStep } from './containmentPopulationSteps'
 
 const AREA_ID = 'AREA#Overworld' as EphemeraAreaId
@@ -89,7 +89,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             const { step, graph } = rootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [] }))
 
             expect(step).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, presenceUuid: expect.any(String) })
-            expect(hostlessRemainderOf(graph)?.universalKey).toBe(`PRESENCE#${step!.presenceUuid}`)
+            expect(unpointedBindingOf(graph)?.universalKey).toBe(`PRESENCE#${step!.presenceUuid}`)
         })
 
         it('rootStep mints the fixed PRESENCE#Base, and treats a legacy uuid-named hostless remainder as already rooted', () => {

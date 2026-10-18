@@ -22,13 +22,13 @@ const pointsAt = (binding: Binding, parent: ParentBinding): boolean => (
 )
 
 /** Plain copies throughout: the cover is retained in the graph past the reducer's return. */
-const withEntries = (cover: EphemeraPresenceCover, add: readonly EphemeraPresenceCoverEntry[]): EphemeraPresenceCover => ({
+export const withEntries = (cover: EphemeraPresenceCover, add: readonly EphemeraPresenceCoverEntry[]): EphemeraPresenceCover => ({
     members: [
         ...cover.members.map((member) => ({ ...member })),
         ...add.filter((entry) => !hasEntry(cover, entry)).map((entry) => ({ ...entry })),
     ],
 })
-const withoutEntries = (cover: EphemeraPresenceCover, remove: readonly EphemeraPresenceCoverEntry[]): EphemeraPresenceCover => ({
+export const withoutEntries = (cover: EphemeraPresenceCover, remove: readonly EphemeraPresenceCoverEntry[]): EphemeraPresenceCover => ({
     members: cover.members.filter((member) => isEphemeraPresenceCoverRemainder(member) || !remove.some((entry) => sameEntry(entry, member))).map((member) => ({ ...member })),
 })
 

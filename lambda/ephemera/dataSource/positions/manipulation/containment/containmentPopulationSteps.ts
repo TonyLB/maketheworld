@@ -3,10 +3,10 @@ import type { EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonyl
 import { isEphemeraAreaId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { BASE_PRESENCE_ID, ephemeraLudicTerminalsEqual, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
 import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelStep } from '../kernel/kernelStep'
 
@@ -34,7 +34,7 @@ export const rootStep = (
         graph: parentGraph.addPresenceNode({
             tag: 'Presence',
             universalKey: BASE_PRESENCE_ID,
-            cover: remainderCover(),
+            cover: { members: [] },
         }),
     }
 }
@@ -115,7 +115,7 @@ export const containmentPopulationSteps = (
     const existing = childGraph.presenceNodes.find((node) => parentHostOf(node) === parentId)
     // A first placement re-points a hostless root rather than minting beside it, so the child's own
     // children keep naming it. A Room's remainder never moves: it gets an Area carve-out instead.
-    const unplacedRoot = existing || isEphemeraRoomId(childId) ? undefined : hostlessRemainderOf(childGraph)
+    const unplacedRoot = existing || isEphemeraRoomId(childId) ? undefined : unpointedBindingOf(childGraph)
     if (unplacedRoot) {
         const placeStep: MutationKernelRepairPresenceBindingStep = {
             kind: 'repairPresenceBinding',

@@ -52,6 +52,9 @@ export const computeStepSequenceFootprint = (
             if (step.fromHostPresence) {
                 addHostOf(step.hostId, step.fromHostPresence.host)
             }
+            if (step.kind === 'repairPresenceBinding' && step.previousParent) {
+                addHostOf(step.hostId, step.previousParent.host)
+            }
             continue
         }
         if (step.kind === 'movePresenceBinding') {

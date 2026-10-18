@@ -8,7 +8,7 @@ import type { GroundedPresence } from '../../../actions/enrich/objectManipulatio
 import { isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraphStructureNode, EphemeraPresenceCover, EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
 import type { PositionKernelPresenceMove } from '../kernel/compile/positionKernelOp'
 
 export type ResolvePresenceMovesArgs = {
@@ -173,7 +173,7 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
         }
     }
 
-    const hostless = hostlessRemainderOf(moverGraph)
+    const hostless = unpointedBindingOf(moverGraph)
     if (hostless) {
         return { ok: true, presenceMoves: [{ presence: hostless.universalKey, from: null, to }] }
     }
