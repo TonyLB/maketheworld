@@ -50,17 +50,15 @@ export type {
 } from './classifyLudicGraphPortMismatch'
 
 export {
-    baseMigrationDriftOf,
-    baseMigrationHolderOf,
     classifyPresenceCoverDrift,
     coverRebuildsFor,
     coveredByBinding,
     coverageViolationsOf,
+    lacksBase,
     rebuiltCoverEntries,
     wholeMembersOf,
 } from './classifyPresenceCoverDrift'
 export type {
-    PresenceBaseMigrationDrift,
     PresenceBindingView,
     PresenceCoverDriftFinding,
     PresenceCoverDriftVerdict,

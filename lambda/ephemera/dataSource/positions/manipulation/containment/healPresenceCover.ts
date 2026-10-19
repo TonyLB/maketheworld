@@ -19,16 +19,15 @@ const viewOf = (graph: EphemeraLudicGraph): PresenceGraphView => ({
 })
 
 /**
- * The `Presence Cover Drift Finding` consumer: rebuilds a whole's remainder-free covers from its
+ * The `Presence Cover Drift Finding` consumer: rebuilds a whole's covers from its
  * members' `fromHostPresence` pointers, which govern (the cover is a stored index of them). Reads
  * the whole's graph and **every member's**, re-classifies with the sweep's own comparison
  * (`coverRebuildsFor`, so a redelivered finding whose drift is already healed commits nothing), and
  * rewrites each disagreeing cover through `repairPresenceBinding`: in place, same id, so no
  * pointer is orphaned. No new emitter.
  *
- * **Not repaired, deliberately:** a binding holding a `Remainder` (its unlisted members cannot be
- * told from stale pointers), an unbound or duplicated member binding, and a whole with no remainder.
- * Fixing those means minting a binding or a bucket, which the single write path reserves to the
+ * **Not repaired, deliberately:** an unbound or duplicated member binding, an uncovered member, and a whole with no
+ * `PRESENCE#Base`. Fixing those means minting a binding or a bucket, which the single write path reserves to the
  * move compiler and population. If any member's graph cannot be read the heal writes nothing, since
  * a rebuild over a partial read would drop that member's entry.
  *

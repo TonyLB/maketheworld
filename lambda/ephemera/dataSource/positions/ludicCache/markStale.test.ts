@@ -52,7 +52,7 @@ describe('markStale', () => {
     it('markHostsStale resolves the hosts to their rooms first', async () => {
         const getGraph = async (hostId: EphemeraMembershipHostId) => testLudicGraph(hostId, {
             nodes: hostId === cup
-                ? [{ tag: 'Presence', universalKey: PresenceKey('cup-binding'), fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) }, cover: { members: [{ tag: 'Remainder' }] } }]
+                ? [{ tag: 'Presence', universalKey: PresenceKey('cup-binding'), fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) }, cover: { members: [] } }]
                 : [],
         })
         await expect(markHostsStale([cup], { messageBus: bus, getGraph })).resolves.toEqual([roomA])

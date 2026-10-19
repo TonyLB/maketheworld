@@ -108,7 +108,7 @@ describe('a destination binding from its seen bucket', () => {
                 { tag: 'Object', universalKey: matOneId },
                 { tag: 'Object', universalKey: matTwoId },
                 presenceBindingNode('b1', roomId, { members: [{ host: matOneId, presence: 'PRESENCE#m1' as any }] }),
-                presenceBindingNode('b2', roomId, { members: [{ tag: 'Remainder' }] }),
+                presenceBindingNode('b2', roomId, { members: [] }),
             ],
         })
         const matOneGraph = testLudicGraph(matOneId, { nodes: [presenceBindingNode('m1', { host: rugId, presence: 'PRESENCE#b1' as any })] })

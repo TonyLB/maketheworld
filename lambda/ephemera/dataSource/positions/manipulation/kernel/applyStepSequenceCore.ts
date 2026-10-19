@@ -13,7 +13,6 @@ import type { MutationKernelStep } from './kernelStep'
 import { isBystanderMove } from './bystander'
 import { bindingPointsAt, settleMembership } from './settleMembership'
 import { movePresenceBinding, withEntries, withoutEntries } from './movePresenceBinding'
-import { renamePresenceBinding } from './renamePresenceBinding'
 import type { MutationKernelApplyOutcome } from './types'
 
 /**
@@ -158,7 +157,7 @@ const confirmCarriedHost = (
  * bindings --- population's mint, a move's re-point (`movePresenceBinding`, above), a departure, and
  * population's in-place repair. See `kernelStep.ts`'s doc comments.
  *
- * `createComponent`: seeds a not-yet-existing host's graph empty, holding one hostless remainder,
+ * `createComponent`: seeds a not-yet-existing host's graph empty, holding one hostless Base,
  * so the component is born with a binding. Throws if the host is already in `graphs`.
  *
  * `destroyComponent`: drops the host from the outcome, so `commitStepSequence` deletes its row.
@@ -256,9 +255,8 @@ export const applyStepSequenceCore = (
             // presenceNodes Slice 7a (PN-23): mints the presence node directly, with no port
             // record --- `EphemeraPresencePort` is retired, and `presenceUuid` (minted at
             // compile time, `presenceBindingStepsForMove.ts`) becomes the node's `universalKey`
-            // suffix on its own. A sole remainder by default -- nothing here computes real bucket
-            // membership; that is future work, not a migration of anything that exists today (no
-            // `Present` edge was ever written to derive it from).
+            // suffix on its own. An empty cover by default: the cover index (`writeCoverIndex`) adds
+            // each child's entry as its pointer is written (no `Present` edge was ever written to derive it from).
             const withNode = graph.addPresenceNode({
                 tag: 'Presence',
                 universalKey: PresenceKey(step.presenceUuid),
@@ -290,15 +288,6 @@ export const applyStepSequenceCore = (
             }
             graphs = settled.graphs
             settleOccupants(step.hostId, { ...(step.from ? { left: step.from.host } : {}), ...(step.to ? { arrived: step.to.host } : {}) })
-            continue
-        }
-        if (step.kind === 'renamePresenceBinding') {
-            // Membership does not change: the same bindings point at the same parents.
-            const renamed = renamePresenceBinding(graphs, step)
-            if ('reasonCode' in renamed) {
-                return { verdict: 'stale', reasonCode: renamed.reasonCode }
-            }
-            graphs = renamed.graphs
             continue
         }
         if (step.kind === 'repairPresenceBinding') {
@@ -405,8 +394,7 @@ export const applyStepSequenceCore = (
     // here; the coverage invariant below is its case (a whole has at most one binding under "no parent").
     // A violation is a caller bug (a missing join), not a verdict, like the character check above.
     // Also at the end of the run, because a split of a hostless binding passes through two hostless
-    // bindings. Coverage counts a `Remainder` as covering every unlisted member, so it adds nothing
-    // for a whole that still holds one (monotoneCovers Slice 1).
+    // bindings.
     graphs.forEach((graph, hostId) => {
         if (graph === initialGraphs.get(hostId)) {
             return

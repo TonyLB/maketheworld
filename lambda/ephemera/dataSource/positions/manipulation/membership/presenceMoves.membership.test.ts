@@ -119,8 +119,8 @@ describe('two bindings of one mover under one host', () => {
         [roomA]: testLudicGraph(roomA, {
             nodes: [
                 { tag: 'Object', universalKey: table },
-                presenceBindingNode(parentRemainderKey(roomA)),
-                presenceBindingNode('roomA-second', roomC),
+                presenceBindingNode(parentRemainderKey(roomA), undefined, { members: [{ host: table, presence: presence('table-1') }] }),
+                presenceBindingNode('roomA-second', roomC, { members: [{ host: table, presence: presence('table-2') }] }),
             ],
         }),
         [roomC]: room(roomC),
@@ -128,8 +128,8 @@ describe('two bindings of one mover under one host', () => {
             nodes: [
                 { tag: 'Object', universalKey: table },
                 { tag: 'Object', universalKey: plank },
-                presenceBindingNode('table-1', roomA),
-                presenceBindingNode('table-2', { host: roomA, presence: presence('roomA-second') }),
+                presenceBindingNode('table-1', roomA, { members: [{ host: plank, presence: presence('plank-on-1') }] }),
+                presenceBindingNode('table-2', { host: roomA, presence: presence('roomA-second') }, { members: [{ host: plank, presence: presence('plank-on-2') }] }),
             ],
         }),
         [plank]: testLudicGraph(plank, {

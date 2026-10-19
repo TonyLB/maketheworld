@@ -8,15 +8,15 @@ const FEATURE_ID = 'FEATURE#Stove'
 const CHARACTER_ID = 'CHARACTER#Alpha'
 
 const graphWith = (...nodes: object[]) => ({ nodes })
-const remainder = { members: [{ tag: 'Remainder' }] }
+const listing = { members: [{ host: FEATURE_ID, presence: 'PRESENCE#f' }] }
 const roomRoot = { tag: 'Presence', universalKey: 'PRESENCE#Base', cover: { members: [] } }
 const areaPointer = { host: AREA_ID, presence: 'PRESENCE#area-root' }
 
 describe('containmentDriftParentsOf', () => {
-    it('(a) flags a Room\'s Area binding that is not an empty-member carve-out', () => {
+    it('(a) flags a Room\'s Area binding that lists members instead of being an empty-member carve-out', () => {
         expect(containmentDriftParentsOf(ROOM_ID, graphWith(
             roomRoot,
-            { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: areaPointer, cover: remainder }
+            { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: areaPointer, cover: listing }
         ))).toEqual([AREA_ID])
     })
 
@@ -50,28 +50,6 @@ describe('containmentDriftParentsOf', () => {
     })
 })
 
-describe('containmentDriftParentsOf: the Base migration (c)', () => {
-    it('flags a Room, Area, Feature or Character whose root binding is not Base, or still holds a Remainder', () => {
-        const oldRoot = { tag: 'Presence', universalKey: 'PRESENCE#root', cover: remainder }
-        expect(containmentDriftParentsOf(ROOM_ID, graphWith(oldRoot))).toEqual([ROOM_ID])
-        expect(containmentDriftParentsOf(AREA_ID, graphWith(oldRoot))).toEqual([AREA_ID])
-        expect(containmentDriftParentsOf(ROOM_ID, graphWith({ ...roomRoot, cover: remainder }))).toEqual([ROOM_ID])
-        expect(containmentDriftParentsOf(FEATURE_ID, graphWith(
-            { tag: 'Presence', universalKey: 'PRESENCE#d', fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#Base' }, cover: remainder }
-        ))).toEqual([FEATURE_ID])
-        expect(containmentDriftParentsOf(CHARACTER_ID, graphWith(oldRoot))).toEqual([CHARACTER_ID])
-    })
-
-    it('leaves a migrated whole and an ambiguous whole alone', () => {
-        expect(containmentDriftParentsOf(ROOM_ID, graphWith(roomRoot))).toEqual([])
-        const pointed = { fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#Base' }, cover: remainder }
-        expect(containmentDriftParentsOf(FEATURE_ID, graphWith(
-            { tag: 'Presence', universalKey: 'PRESENCE#d', ...pointed },
-            { tag: 'Presence', universalKey: 'PRESENCE#e', ...pointed }
-        ))).toEqual([])
-    })
-})
-
 describe('containmentPopulationDriftSweep', () => {
     const emitFinding = jest.fn(async () => undefined)
 
@@ -88,7 +66,7 @@ describe('containmentPopulationDriftSweep', () => {
                     {
                         EphemeraId: ROOM_ID,
                         DataCategory: 'Meta::Room',
-                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: areaPointer, cover: remainder }),
+                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: areaPointer, cover: listing }),
                     },
                     {
                         EphemeraId: OTHER_ROOM_ID,
@@ -98,7 +76,7 @@ describe('containmentPopulationDriftSweep', () => {
                     {
                         EphemeraId: 'ROOM#Pantry',
                         DataCategory: 'Meta::Room',
-                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#s', fromHostPresence: areaPointer, cover: remainder }),
+                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#s', fromHostPresence: areaPointer, cover: listing }),
                     },
                     {
                         EphemeraId: 'ROOM#Bare',

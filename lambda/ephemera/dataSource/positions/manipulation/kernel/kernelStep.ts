@@ -61,18 +61,18 @@ export type MutationKernelCaptureStep = {
 export type MutationKernelAddPresenceBindingStep = {
     kind: 'addPresenceBinding'
     hostId: EphemeraMembershipHostId
-    /** The parent binding this one sits under (PR-21); absent for a hostless remainder. */
+    /** The parent binding this one sits under (PR-21); absent for a hostless binding. */
     fromHostPresence?: EphemeraPresenceParentPointer
-    /** Defaults to a sole remainder; a room's Area carve-out passes `{ members: [] }` (the room rule). */
+    /** Defaults to `{ members: [] }`: the cover index adds each child's entry as its pointer is written. */
     cover?: EphemeraPresenceCover
     presenceUuid: string
 }
 
 /**
- * Creates a component's host row, born holding one hostless remainder (`PRESENCE#Base`,
+ * Creates a component's host row, born holding one hostless binding (`PRESENCE#Base`,
  * no parent pointer), so a component never exists without a binding. Birth is a binding's proper
  * origin; `containmentPopulationSteps.ts`'s `rootStep` is the late catch-up for components created
- * outside the kernel. A placement later in the same sequence re-points this remainder
+ * outside the kernel. A placement later in the same sequence re-points this binding
  * (`movePresenceBinding`), keeping its id.
  *
  * The host is not fetched: `commitStepSequence` leaves it out of the `MultiKeyUpdate` keys and
@@ -114,32 +114,6 @@ export type MutationKernelRepairPresenceBindingStep = {
     fromHostPresence?: EphemeraPresenceParentPointer
     previousParent?: EphemeraPresenceParentPointer
     cover: EphemeraPresenceCover
-}
-
-/**
- * Renames a binding (`from` to `to`, on `hostId`'s own graph) and every stored reference to it, in one
- * write: the node's key, each child's `fromHostPresence.presence`, and the parent's cover entry for it.
- * Used once, by the Base migration (monotoneCovers Slice 5), to give a whole's original binding the
- * fixed id `PRESENCE#Base`. Nothing else changes: the pointer and the position stay. The cover stays
- * too unless `cover` is given, which replaces it in the same write (the migration's `Remainder`,
- * expanded to the entries it stood for).
- *
- * `childHosts` names every host holding a binding that points at `from`, because the footprint is
- * computed from the steps before any graph loads: the hosts of the node's cover entries, plus a room's
- * bystander characters (which no cover lists). `parent` is the node's stored pointer as read at
- * planning time, so its host is locked and its cover entry rewritten. The handler is `stale` when `from`
- * is gone or `to` is taken, when the stored pointer is no longer `parent`, when an entry of the resulting cover
- * names a host missing from `childHosts`, and when a relational edge ends at `from` (none is written today; this is a
- * guard, not a rewrite). A bystander character's rename also rewrites its room's characters row.
- */
-export type MutationKernelRenamePresenceBindingStep = {
-    kind: 'renamePresenceBinding'
-    hostId: EphemeraMembershipHostId
-    from: EphemeraPresenceNodeId
-    to: EphemeraPresenceNodeId
-    parent?: ParentBinding
-    cover?: EphemeraPresenceCover
-    childHosts: readonly EphemeraMembershipHostId[]
 }
 
 /**
@@ -228,7 +202,6 @@ export type MutationKernelStep =
     | MutationKernelAddPresenceBindingStep
     | MutationKernelMovePresenceBindingStep
     | MutationKernelRepairPresenceBindingStep
-    | MutationKernelRenamePresenceBindingStep
     | MutationKernelAddCrossingPortStep
     | MutationKernelRemoveCrossingPortStep
 
@@ -246,7 +219,6 @@ export const mutationKernelStepKinds = {
     addPresenceBinding: true,
     movePresenceBinding: true,
     repairPresenceBinding: true,
-    renamePresenceBinding: true,
     addCrossingPort: true,
     removeCrossingPort: true,
 } as const satisfies Record<MutationKernelStep['kind'], true>

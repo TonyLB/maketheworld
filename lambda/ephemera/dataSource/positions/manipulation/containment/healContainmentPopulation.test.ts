@@ -1,6 +1,6 @@
 import type { EphemeraAreaId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { BASE_PRESENCE_ID, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
@@ -19,13 +19,7 @@ jest.mock('../../../../internalCache', () => ({
     },
 }))
 
-jest.mock('./migrateBaseAtCache', () => ({
-    __esModule: true,
-    migrateBaseAtCache: jest.fn().mockResolvedValue(undefined),
-}))
-
 import internalCache from '../../../../internalCache'
-import { migrateBaseAtCache } from './migrateBaseAtCache'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import { healContainmentPopulation } from './healContainmentPopulation'
 import { parentRemainderKey } from '../../ludicGraph/testFixtures'
@@ -46,18 +40,6 @@ const withGraphs = (graphs: Record<string, EphemeraLudicGraph>) => {
 const committedSteps = (): any[] => (commitStepSequence as jest.Mock).mock.calls[0][0].steps
 
 describe('healContainmentPopulation', () => {
-    it('migrates the parent to Base before reading it for population', async () => {
-        const order: string[] = []
-        ;(migrateBaseAtCache as jest.Mock).mockImplementation(async () => { order.push('migrate') })
-        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) => {
-            order.push('read')
-            return testLudicGraph(hostId as any, { nodes: [{ tag: 'Room', universalKey: hostId } as any, presenceBindingNode(BASE_PRESENCE_ID)] })
-        })
-        await healContainmentPopulation(ROOM_ID, { messageBus: { publish: jest.fn() } as any, streamEvent: jest.fn() })
-        expect(order[0]).toBe('migrate')
-        expect(migrateBaseAtCache).toHaveBeenCalledWith(ROOM_ID, expect.anything())
-    })
-
     const messageBus = { publish: jest.fn() } as any
     const streamEvent = jest.fn().mockResolvedValue(undefined)
 
@@ -73,7 +55,7 @@ describe('healContainmentPopulation', () => {
                 edges: [partOf(FEATURE_ID, ROOM_ID)],
             }),
             [FEATURE_ID]: testLudicGraph(FEATURE_ID, {
-                nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#gone' as EphemeraPresenceNodeId }, cover: remainderCover() }],
+                nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#gone' as EphemeraPresenceNodeId }, cover: { members: [] } }],
             }),
         })
 
@@ -92,14 +74,14 @@ describe('healContainmentPopulation', () => {
         expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding', 'repairPresenceBinding'])
     })
 
-    it('repairs a room\'s sole-remainder Area binding to an empty-member carve-out naming the Area\'s root', async () => {
+    it('repairs a room\'s Area binding that lists members to an empty-member carve-out naming the Area\'s root', async () => {
         withGraphs({
             [AREA_ID]: testLudicGraph(AREA_ID, {
                 nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
                 edges: [partOf(ROOM_ID, AREA_ID)],
             }),
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
-                nodes: [presenceBindingNode('kitchen-in-area', AREA_ID)],
+                nodes: [{ tag: 'Feature', universalKey: FEATURE_ID }, presenceBindingNode('kitchen-in-area', AREA_ID, { members: [{ host: FEATURE_ID, presence: 'PRESENCE#stove-in-kitchen' as EphemeraPresenceNodeId }] })],
             }),
         })
 

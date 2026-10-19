@@ -392,26 +392,14 @@ export type EphemeraPresenceCoverEntry = {
 }
 
 /**
- * The sentinel in a cover's member list: every node of the whole that NO binding of the whole
- * lists explicitly. A typed variant beside `EphemeraPresenceCoverEntry`,
- * not a magic id. It may appear in any number of a whole's bindings; each such binding holds that
- * same unclaimed set. Only the graph holds it: the cache expands it (`ludicCache/types.ts`).
- */
-export type EphemeraPresenceCoverRemainder = { tag: 'Remainder' }
-
-/**
- * A presence binding's extent: one type, an ordered list of explicit entries and/or the
- * `Remainder` sentinel, which stands for every member no other binding of the whole lists.
- * Every whole keeps at least one remainder (so a member added later still lands in a bucket); a
- * room keeps exactly one, hostless. A room's binding into an Area is the one exception: a carve-out
- * with no members at all.
+ * A presence binding's extent: an ordered list of explicit entries, never a complement. Every
+ * component node of a whole is listed by at least one of its bindings (the coverage invariant), so
+ * a cover means the same thing whatever its siblings hold. A room's binding into an Area is the
+ * carve-out with no members at all.
  */
 export type EphemeraPresenceCover = {
-    members: (EphemeraPresenceCoverEntry | EphemeraPresenceCoverRemainder)[];
+    members: EphemeraPresenceCoverEntry[];
 }
-
-/** A fresh sole-remainder cover each call (never a shared object a reducer could freeze or mutate). */
-export const remainderCover = (): EphemeraPresenceCover => ({ members: [{ tag: 'Remainder' }] })
 
 /**
  * The fixed ids of a whole's root bindings (monotoneCovers MC-2). Base always exists and takes every
@@ -421,10 +409,6 @@ export const remainderCover = (): EphemeraPresenceCover => ({ members: [{ tag: '
  */
 export const BASE_PRESENCE_ID = 'PRESENCE#Base' as EphemeraPresenceNodeId
 export const UNPLACED_PRESENCE_ID = 'PRESENCE#Unplaced' as EphemeraPresenceNodeId
-
-export const isEphemeraPresenceCoverRemainder = (value: unknown): value is EphemeraPresenceCoverRemainder => (
-    !!value && typeof value === 'object' && (value as { tag?: unknown }).tag === 'Remainder'
-)
 
 /**
  * A presence node (presenceNodes plan / PN-5, 2026-09-15): the reified boundary site that used
@@ -730,7 +714,7 @@ export const isEphemeraPresenceCover = (value: unknown): value is EphemeraPresen
     if (cover.tag !== undefined) {
         return false
     }
-    return Array.isArray(cover.members) && cover.members.every((entry) => isEphemeraPresenceCoverRemainder(entry) || isEphemeraPresenceCoverEntry(entry))
+    return Array.isArray(cover.members) && cover.members.every(isEphemeraPresenceCoverEntry)
 }
 
 export const isEphemeraLudicGraphStructureNode = (value: unknown): value is EphemeraLudicGraphStructureNode => {

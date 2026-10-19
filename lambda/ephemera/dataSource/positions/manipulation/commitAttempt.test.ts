@@ -436,7 +436,7 @@ describe('commitAttempt', () => {
             // the bare CHARACTER host) up to the room everyone else actually witnesses the take in.
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) => (
                 hostId === CHARACTER
-                    ? { relationalEdges: [], presenceNodes: [{ tag: 'Presence', universalKey: 'PRESENCE#alice-binding', fromHostPresence: { host: ROOM, presence: parentRemainderKey(ROOM) }, cover: { members: [{ tag: 'Remainder' }] } }] }
+                    ? { relationalEdges: [], presenceNodes: [{ tag: 'Presence', universalKey: 'PRESENCE#alice-binding', fromHostPresence: { host: ROOM, presence: parentRemainderKey(ROOM) }, cover: { members: [] } }] }
                     : { relationalEdges: [], presenceNodes: [] }
             ))
             const takePlan = { steps: [{ kind: 'movePresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', from: { host: ROOM, presence: 'PRESENCE#room-root' }, to: { host: CHARACTER, presence: 'PRESENCE#dest-root' } }] }
@@ -631,7 +631,7 @@ describe('commitAttempt', () => {
             ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) => ({
                 relationalEdges: [],
                 presenceNodes: hostId === TABLE
-                    ? [{ tag: 'Presence', universalKey: TABLE_BINDING, fromHostPresence: { host: ROOM, presence: parentRemainderKey(ROOM) }, cover: { members: [{ tag: 'Remainder' }] } }]
+                    ? [{ tag: 'Presence', universalKey: TABLE_BINDING, fromHostPresence: { host: ROOM, presence: parentRemainderKey(ROOM) }, cover: { members: [] } }]
                     : [],
             }))
             const stamp = [{ host: TABLE, presence: TABLE_BINDING }]

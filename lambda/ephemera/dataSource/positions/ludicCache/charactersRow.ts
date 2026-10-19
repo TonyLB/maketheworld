@@ -24,7 +24,6 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { EphemeraLudicGraph } from '../ludicGraph'
 import { parentHostOf } from '../ludicGraph/presenceParent'
 import type { MembershipChange } from '../manipulation/kernel/membershipChanges'
-import type { MutationKernelStep } from '../manipulation/kernel/kernelStep'
 import { characterIdsOf, LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, type LudicCacheCharactersRow } from './charactersRowShape'
 
 export { LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, characterIdsOf } from './charactersRowShape'
@@ -88,31 +87,6 @@ export const charactersRowItemsFor = (
             ...(set.length > 0 ? { ExpressionAttributeValues: values } : {}),
         },
     }
-})
-
-/**
- * The row items for a sequence's bystander renames: a character's binding into a room changed its id and
- * no membership changed, so `charactersRowItemsFor` writes nothing. One `PrimitiveUpdate` per (room,
- * character), the character's binding ids into the room as the committed graph holds them. A rename never
- * runs beside a membership change of the same room (the Base migration commits alone), so no item is doubled.
- */
-export const charactersRowRenameItemsFor = (
-    steps: readonly MutationKernelStep[],
-    committedGraphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
-) => steps.flatMap((step) => {
-    const graph = step.kind === 'renamePresenceBinding' && isEphemeraCharacterId(step.hostId) ? committedGraphs.get(step.hostId) : undefined
-    if (step.kind !== 'renamePresenceBinding' || !graph || !step.parent || !isEphemeraRoomId(step.parent.host)) {
-        return []
-    }
-    return [{
-        PrimitiveUpdate: {
-            Key: { EphemeraId: step.parent.host, DataCategory: LUDIC_CACHE_CHARACTERS_DATA_CATEGORY },
-            ProjectionFields: [] as string[],
-            UpdateExpression: 'SET #c0 = :b0',
-            ExpressionAttributeNames: { '#c0': step.hostId },
-            ExpressionAttributeValues: { ':b0': bindingIdsInto(graph, step.parent.host) },
-        },
-    }]
 })
 
 export type ReadRoomCharactersDeps = {

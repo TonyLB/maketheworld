@@ -168,7 +168,7 @@ describe("StandardLudicGraph", () => {
                     {
                         tag: 'Presence' as const,
                         universalKey: 'PRESENCE#p1',
-                        cover: { members: [{ tag: 'Remainder' as const }] },
+                        cover: { members: [{ host: 'OBJECT#box' as const, presence: 'PRESENCE#p0' }] },
                     },
                 ],
             }
@@ -179,7 +179,7 @@ describe("StandardLudicGraph", () => {
             expect(graph.toJSON()).toEqual(data)
         })
 
-        it("round-trips a presence node with the current cover shape (a Remainder beside an entry)", () => {
+        it("round-trips a presence node with the current cover shape (explicit entries)", () => {
             const data = {
                 nodes: [
                     {
@@ -189,7 +189,7 @@ describe("StandardLudicGraph", () => {
                         cover: {
                             members: [
                                 { host: 'OBJECT#rope' as const, presence: 'PRESENCE#p2' },
-                                { tag: 'Remainder' as const },
+                                { host: 'OBJECT#knot' as const, presence: 'PRESENCE#p4' },
                             ],
                         },
                     },

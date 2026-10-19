@@ -3,9 +3,8 @@
  * `catalogHandles.ts`, not an extension of it --- that file is the command path's flat referent pool, and this one
  * answers a different question: *what does each of the room's direct objects directly hold?*
  *
- * **Read forward, no reverse index.** The room level is the union of the covers of the room node's bindings (the room's
- * hostless `Remainder` covers every direct member; an explicit claim by another binding moves a member out of it, so
- * all bindings are read). An object's contents are the `cover.members` of its own bindings: a binding's cover is the owner's own
+ * **Read forward, no reverse index.** The room level is the union of the covers of the room node's bindings (a member may be
+ * listed by any of the room's bindings, so all bindings are read). An object's contents are the `cover.members` of its own bindings: a binding's cover is the owner's own
  * graph, root excluded. So a table's contents are what its bindings cover, and a box on the table contributes the box
  * only, since the cup sits in the box's own graph. One level falls out of the data; nothing walks upward.
  *

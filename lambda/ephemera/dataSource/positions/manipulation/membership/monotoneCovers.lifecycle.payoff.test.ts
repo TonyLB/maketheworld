@@ -1,6 +1,6 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { BASE_PRESENCE_ID, isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { classifyPresenceCoverDrift, coverRebuildsFor, coverageViolationsOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
@@ -59,7 +59,6 @@ describe('the whole life of a placed thing writes only explicit entries', () => 
     const expectConsistent = () => {
         const memberOf = (id: string) => graphs.has(id as EphemeraMembershipHostId) ? viewOf(graphs.get(id as EphemeraMembershipHostId)!) : undefined
         for (const [hostId, graph] of graphs) {
-            expect([hostId, graph.presenceNodes.flatMap((node) => node.cover.members.filter(isEphemeraPresenceCoverRemainder))]).toEqual([hostId, []])
             expect(graph.presenceNodes.some(({ universalKey }) => universalKey === BASE_PRESENCE_ID)).toBe(true)
             expect([hostId, coverageViolationsOf(viewOf(graph))]).toEqual([hostId, { uncovered: [], hostlessBindings: [], badUnplaced: [] }])
             expect([hostId, classifyPresenceCoverDrift(viewOf(graph), memberOf).findings]).toEqual([hostId, []])

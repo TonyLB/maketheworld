@@ -1,4 +1,4 @@
-import { BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID, isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -11,10 +11,7 @@ import type { MutationKernelMovePresenceBindingStep } from './kernelStep'
 type Graphs = Map<EphemeraMembershipHostId, EphemeraLudicGraph>
 type Binding = EphemeraLudicGraphStructureNode
 
-const entriesOf = (cover: EphemeraPresenceCover): EphemeraPresenceCoverEntry[] => (
-    cover.members.filter((member): member is EphemeraPresenceCoverEntry => !isEphemeraPresenceCoverRemainder(member))
-)
-const hasRemainder = (cover: EphemeraPresenceCover): boolean => cover.members.some(isEphemeraPresenceCoverRemainder)
+const entriesOf = (cover: EphemeraPresenceCover): EphemeraPresenceCoverEntry[] => cover.members
 const sameEntry = (a: EphemeraPresenceCoverEntry, b: EphemeraPresenceCoverEntry): boolean => a.host === b.host && a.presence === b.presence
 const hasEntry = (cover: EphemeraPresenceCover, entry: EphemeraPresenceCoverEntry): boolean => entriesOf(cover).some((existing) => sameEntry(existing, entry))
 const pointsAt = (binding: Binding, parent: ParentBinding): boolean => (
@@ -29,14 +26,14 @@ export const withEntries = (cover: EphemeraPresenceCover, add: readonly Ephemera
     ],
 })
 export const withoutEntries = (cover: EphemeraPresenceCover, remove: readonly EphemeraPresenceCoverEntry[]): EphemeraPresenceCover => ({
-    members: cover.members.filter((member) => isEphemeraPresenceCoverRemainder(member) || !remove.some((entry) => sameEntry(entry, member))).map((member) => ({ ...member })),
+    members: cover.members.filter((member) => !remove.some((entry) => sameEntry(entry, member))).map((member) => ({ ...member })),
 })
 
-/** Whether two covers name the same entries and agree on holding a `Remainder`. */
+/** Whether two covers name the same entries. */
 const sameCover = (a: EphemeraPresenceCover, b: EphemeraPresenceCover): boolean => {
     const entriesA = entriesOf(a)
     const entriesB = entriesOf(b)
-    return hasRemainder(a) === hasRemainder(b) && entriesA.length === entriesB.length && entriesA.every((entry) => hasEntry(b, entry))
+    return entriesA.length === entriesB.length && entriesA.every((entry) => hasEntry(b, entry))
 }
 
 /**
@@ -170,11 +167,7 @@ export const movePresenceBinding = (
     }
     else {
         const targetCover = withEntries(target.cover, arrivals.map(({ entry }) => entry))
-        const carriedRemainder = wholeMove && hasRemainder(node.cover) && !hasRemainder(targetCover)
-        const nextTarget = {
-            ...target,
-            cover: carriedRemainder ? { members: [...targetCover.members, { tag: 'Remainder' as const }] } : targetCover,
-        }
+        const nextTarget = { ...target, cover: targetCover }
         nextHost = mintedTarget ? nextHost.addPresenceNode(nextTarget) : nextHost.replacePresenceNode(nextTarget)
         nextHost = wholeMove
             ? nextHost.removePresenceNode(node.universalKey)

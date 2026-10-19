@@ -165,11 +165,9 @@ describe('buildLudicCache', () => {
         ])
     })
 
-    // A graph-side 'Full' cover (what every move writes) has no entries; the fold expands it and
-    // looks each member's own binding up in the member's graph. A member bound in twice gets an
-    // entry per binding; a member with no binding into the host (placed without a move, so none
-    // was ever minted) stays covered with `presence` absent (PNR-3).
-    it('expands a Full cover to each member\'s own bindings into the host', async () => {
+    // A cover is only its explicit entries, and the fold copies them as written. A member bound in
+    // twice is listed once per binding; each entry names the member's own binding.
+    it('copies a binding\'s explicit entries, one per member binding', async () => {
         const objW = 'OBJECT#W' as EphemeraObjectId
         const roomGraph = testLudicGraph(roomA, {
             nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: objX }],
@@ -179,17 +177,21 @@ describe('buildLudicCache', () => {
                 { tag: 'Object', universalKey: objX },
                 { tag: 'Object', universalKey: objZ },
                 { tag: 'Object', universalKey: objW },
-                presenceNode('x_to_room', roomA, { members: [{ tag: 'Remainder' }] }),
+                presenceNode('x_to_room', roomA, { members: [
+                    { host: objZ, presence: 'PRESENCE#z_at_x_1' as EphemeraPresenceNodeId },
+                    { host: objZ, presence: 'PRESENCE#z_at_x_2' as EphemeraPresenceNodeId },
+                    { host: objW, presence: 'PRESENCE#w_at_x' as EphemeraPresenceNodeId },
+                ] }),
             ],
         })
         const zGraph = testLudicGraph(objZ, {
             nodes: [
                 { tag: 'Object', universalKey: objZ },
-                presenceNode('z_at_x_1', objX, { members: [{ tag: 'Remainder' }] }),
-                presenceNode('z_at_x_2', objX, { members: [{ tag: 'Remainder' }] }),
+                presenceNode('z_at_x_1', objX, { members: [] }),
+                presenceNode('z_at_x_2', objX, { members: [] }),
             ],
         })
-        const wGraph = testLudicGraph(objW, { nodes: [{ tag: 'Object', universalKey: objW }] })
+        const wGraph = testLudicGraph(objW, { nodes: [{ tag: 'Object', universalKey: objW }, presenceNode('w_at_x', objX, { members: [] })] })
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[roomA, roomGraph], [objX, xGraph], [objZ, zGraph], [objW, wGraph]])
         const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
             const graph = graphs.get(hostId)
@@ -206,23 +208,21 @@ describe('buildLudicCache', () => {
         expect(xBinding).toEqual({
             tag: 'Presence', universalKey: 'PRESENCE#x_to_room', fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) },
             cover: {
-                members: expect.arrayContaining([
+                members: [
                     { host: objZ, presence: 'PRESENCE#z_at_x_1' },
                     { host: objZ, presence: 'PRESENCE#z_at_x_2' },
-                    { host: objW },
-                ]),
+                    { host: objW, presence: 'PRESENCE#w_at_x' },
+                ],
             },
         })
-        expect(xBinding?.cover.members).toHaveLength(3)
         expect(isEphemeraLudicCacheData(cache)).toBe(true)
     })
 
-    // `A` holds B, C and other stuff, with presences { B, Remainder } and { C, Remainder }.
-    // Each remainder expands against the whole's claimed set, so B never leaks into P2 nor C into P1.
-    it('expands several remainders against the claimed set, not each binding\'s own list', async () => {
+    // `A` holds B and C, with presences { B } and { C }: each binding keeps only its own entries,
+    // so B never leaks into P2 nor C into P1.
+    it('keeps each binding to its own entries', async () => {
         const objB = 'OBJECT#B' as EphemeraObjectId
         const objC = 'OBJECT#C' as EphemeraObjectId
-        const objD = 'OBJECT#D' as EphemeraObjectId
         const roomGraph = testLudicGraph(roomA, {
             nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: objX }],
         })
@@ -231,14 +231,13 @@ describe('buildLudicCache', () => {
                 { tag: 'Object', universalKey: objX },
                 { tag: 'Object', universalKey: objB },
                 { tag: 'Object', universalKey: objC },
-                { tag: 'Object', universalKey: objD },
-                presenceNode('p1', roomA, { members: [{ host: objB, presence: 'PRESENCE#b_in_p1' as EphemeraPresenceNodeId }, { tag: 'Remainder' }] }),
-                presenceNode('p2', roomA, { members: [{ host: objC, presence: 'PRESENCE#c_in_p2' as EphemeraPresenceNodeId }, { tag: 'Remainder' }] }),
+                presenceNode('p1', roomA, { members: [{ host: objB, presence: 'PRESENCE#b_in_p1' as EphemeraPresenceNodeId }] }),
+                presenceNode('p2', roomA, { members: [{ host: objC, presence: 'PRESENCE#c_in_p2' as EphemeraPresenceNodeId }] }),
             ],
         })
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
             [roomA, roomGraph], [objX, xGraph],
-            ...[objB, objC, objD].map((id): [EphemeraMembershipHostId, EphemeraLudicGraph] => [id, testLudicGraph(id, { nodes: [{ tag: 'Object', universalKey: id }] })]),
+            ...[objB, objC].map((id): [EphemeraMembershipHostId, EphemeraLudicGraph] => [id, testLudicGraph(id, { nodes: [{ tag: 'Object', universalKey: id }] })]),
         ])
         const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
             const graph = graphs.get(hostId)
@@ -253,27 +252,25 @@ describe('buildLudicCache', () => {
         const bindings = cache.nodes.find((node) => node.universalKey === objX)?.presenceNodes ?? []
         expect(bindings.find((binding) => binding.universalKey === 'PRESENCE#p1')?.cover.members).toEqual([
             { host: objB, presence: 'PRESENCE#b_in_p1' },
-            { host: objD },
         ])
         expect(bindings.find((binding) => binding.universalKey === 'PRESENCE#p2')?.cover.members).toEqual([
             { host: objC, presence: 'PRESENCE#c_in_p2' },
-            { host: objD },
         ])
     })
 
     // The room rule (PR-21(f)), as population stores it: the room's hostless remainder holds its
     // contents and its Area binding is a carve-out with no members. The fold keeps both as stored.
-    it('keeps a room\'s empty Area carve-out empty while its hostless remainder holds its contents', async () => {
+    it('keeps a room\'s empty Area carve-out empty while its hostless root binding holds its contents', async () => {
         const town = 'AREA#Town' as EphemeraAreaId
         const roomGraph = testLudicGraph(roomA, {
             nodes: [
                 { tag: 'Room', universalKey: roomA },
                 { tag: 'Object', universalKey: objX },
-                { tag: 'Presence', universalKey: PresenceKey('a_root'), cover: { members: [{ tag: 'Remainder' }] } },
+                { tag: 'Presence', universalKey: PresenceKey('a_root'), cover: { members: [{ host: objX, presence: 'PRESENCE#x_root' as EphemeraPresenceNodeId }] } },
                 presenceNode('a_in_town', town, { members: [] }),
             ],
         })
-        const xGraph = testLudicGraph(objX, { nodes: [{ tag: 'Object', universalKey: objX }] })
+        const xGraph = testLudicGraph(objX, { nodes: [{ tag: 'Object', universalKey: objX }, presenceNode('x_root', roomA, { members: [] })] })
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[roomA, roomGraph], [objX, xGraph]])
         const getLudicGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) as EphemeraLudicGraph
 
@@ -281,7 +278,7 @@ describe('buildLudicCache', () => {
 
         const roomBindings = cache.nodes.find((node) => node.universalKey === roomA)?.presenceNodes ?? []
         expect(roomBindings).toEqual([
-            { tag: 'Presence', universalKey: 'PRESENCE#a_root', cover: { members: [{ host: objX }] } },
+            { tag: 'Presence', universalKey: 'PRESENCE#a_root', cover: { members: [{ host: objX, presence: 'PRESENCE#x_root' }] } },
             { tag: 'Presence', universalKey: 'PRESENCE#a_in_town', fromHostPresence: { host: town, presence: parentRemainderKey(town) }, cover: { members: [] } },
         ])
         expect(isEphemeraLudicCacheData(cache)).toBe(true)
@@ -290,7 +287,7 @@ describe('buildLudicCache', () => {
     // A non-room seed: the seed's own bindings nest on the seed's node, like any walked host's.
     // A binding whose cover holds nothing still names its owner --- the node it sits on.
     // Pins the premise that the room node's own binding covers can stand in for `graph.objectIds`:
-    // the union over ALL the room's bindings (not just the Remainder), Objects only, equals it.
+    // the union over ALL the room's bindings, Objects only, equals it.
     it('covers every direct Object of a room across its bindings, so the covers can stand in for objectIds', async () => {
         const town = 'AREA#Town' as EphemeraAreaId
         const roomGraph = testLudicGraph(roomA, {
@@ -298,7 +295,10 @@ describe('buildLudicCache', () => {
                 { tag: 'Room', universalKey: roomA },
                 { tag: 'Object', universalKey: objX },
                 { tag: 'Object', universalKey: objY },
-                { tag: 'Presence', universalKey: PresenceKey('a_root'), cover: { members: [{ tag: 'Remainder' }] } },
+                { tag: 'Presence', universalKey: PresenceKey('a_root'), cover: { members: [
+                    { host: objX, presence: 'PRESENCE#x_root' as EphemeraPresenceNodeId },
+                    { host: objY, presence: 'PRESENCE#y_root' as EphemeraPresenceNodeId },
+                ] } },
                 presenceNode('a_in_town', town, { members: [] }),
             ],
         })
@@ -324,11 +324,11 @@ describe('buildLudicCache', () => {
                 { tag: 'Object', universalKey: objX },
                 { tag: 'Object', universalKey: objZ },
                 presenceNode('x_to_room_a', roomA, enumeratedCover()),
-                presenceNode('x_to_room_b', roomB, { members: [{ tag: 'Remainder' }] }),
+                presenceNode('x_to_room_b', roomB, { members: [{ host: objZ, presence: 'PRESENCE#z_in_x' as EphemeraPresenceNodeId }] }),
             ],
         })
         const zGraph = testLudicGraph(objZ, {
-            nodes: [{ tag: 'Object', universalKey: objZ }, presenceNode('z_in_x', objX, { members: [{ tag: 'Remainder' }] })],
+            nodes: [{ tag: 'Object', universalKey: objZ }, presenceNode('z_in_x', objX, { members: [] })],
         })
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[objX, xGraph], [objZ, zGraph]])
         const getLudicGraph = async (hostId: EphemeraMembershipHostId) => {
@@ -379,7 +379,7 @@ describe('buildLudicCache', () => {
             nodes: [
                 { tag: 'Object', universalKey: boxId },
                 { tag: 'Object', universalKey: pebble },
-                presenceNode('box_in_a_1', roomA, { members: [{ tag: 'Remainder' }] }),
+                presenceNode('box_in_a_1', roomA, { members: [] }),
                 presenceNode('box_in_a_2', roomA, { members: [] }),
             ],
             edges: [{ tag: 'Relational', from: { owner: boxId, port: 'port_1' }, to: pebble, kind: 'On' }],
@@ -588,7 +588,7 @@ describe('buildLudicCache', () => {
                     nodes: [
                         { tag: 'Room', universalKey: roomA },
                         { tag: 'Object', universalKey: objX },
-                        { tag: 'Presence', universalKey: parentRemainderKey(roomA), cover: { members: [{ tag: 'Remainder' }] } },
+                        { tag: 'Presence', universalKey: parentRemainderKey(roomA), cover: { members: [{ host: objX, presence: 'PRESENCE#x_in_room' as EphemeraPresenceNodeId }] } },
                     ],
                 })],
                 [objX, testLudicGraph(objX, { nodes: [{ tag: 'Object', universalKey: objX }, presenceNode('x_in_room', roomA, enumeratedCover())] })],
@@ -596,7 +596,7 @@ describe('buildLudicCache', () => {
                 [alpha, testLudicGraph(alpha, {
                     nodes: [
                         { tag: 'Character', universalKey: alpha },
-                        { tag: 'Presence', universalKey: alphaBinding, fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) }, cover: { members: [{ tag: 'Remainder' }] } },
+                        { tag: 'Presence', universalKey: alphaBinding, fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) }, cover: { members: [] } },
                     ],
                 })],
             ])

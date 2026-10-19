@@ -12,7 +12,6 @@ import {
     LUDIC_CACHE_CHARACTERS_DATA_CATEGORY,
     bindingIdsInto,
     charactersRowItemsFor,
-    charactersRowRenameItemsFor,
     readRoomCharacters,
 } from './charactersRow'
 
@@ -87,30 +86,5 @@ describe('readRoomCharacters', () => {
 
     it('ignores the row\'s key attributes', async () => {
         expect(await readRoomCharacters(R1, rows({ EphemeraId: R1, DataCategory: LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, [ALPHA]: ['PRESENCE#a1'] }))).toEqual([ALPHA])
-    })
-})
-
-describe('charactersRowRenameItemsFor', () => {
-    const rename = (hostId: EphemeraMembershipHostId, parentHost: EphemeraMembershipHostId = R1) => ({
-        kind: 'renamePresenceBinding' as const, hostId, from: 'PRESENCE#old' as any, to: 'PRESENCE#Base' as any,
-        parent: { host: parentHost, presence: 'PRESENCE#root' as any }, childHosts: [],
-    })
-
-    it('rewrites a bystander\'s binding ids in its room\'s row from the committed graph', () => {
-        const committed = graphsOf(characterGraph(ALPHA, ['Base', R1]))
-        expect(charactersRowRenameItemsFor([rename(ALPHA)], committed)).toEqual([{
-            PrimitiveUpdate: {
-                Key: { EphemeraId: R1, DataCategory: LUDIC_CACHE_CHARACTERS_DATA_CATEGORY },
-                ProjectionFields: [],
-                UpdateExpression: 'SET #c0 = :b0',
-                ExpressionAttributeNames: { '#c0': ALPHA },
-                ExpressionAttributeValues: { ':b0': ['PRESENCE#Base'] },
-            },
-        }])
-    })
-
-    it('writes nothing for a non-character or a character with no room parent', () => {
-        expect(charactersRowRenameItemsFor([rename(CUP)], graphsOf())).toEqual([])
-        expect(charactersRowRenameItemsFor([{ ...rename(ALPHA), parent: undefined }], graphsOf(characterGraph(ALPHA, ['Base', undefined])))).toEqual([])
     })
 })

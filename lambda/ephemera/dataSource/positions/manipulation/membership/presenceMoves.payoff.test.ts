@@ -140,7 +140,15 @@ describe('a multi-from scrub moves each binding, and they converge to one', () =
 
     it('an object with contents converges to one binding and reads clean after the scrub', async () => {
         const world = {
-            ...roomsAndPlank([{ tag: 'Object', universalKey: ball }]),
+            ...roomsAndPlank(),
+            [plank]: testLudicGraph(plank, {
+                nodes: [
+                    { tag: 'Object', universalKey: plank },
+                    { tag: 'Object', universalKey: ball },
+                    presenceBindingNode('plank-a', roomA, { members: [{ host: ball, presence: presence('ball-on-plank') }] }),
+                    presenceBindingNode('plank-b', roomB),
+                ],
+            }),
             [ball]: testLudicGraph(ball, { nodes: [presenceBindingNode('ball-on-plank', { host: plank, presence: presence('plank-a') })] }),
         }
         const memberGraph = (graphs: ReadonlyMap<string, EphemeraLudicGraph> | Record<string, EphemeraLudicGraph>) => (id: string) => {
@@ -231,12 +239,12 @@ describe('moving part of a cover leaves it consistent with every child\'s pointe
                 { tag: 'Object', universalKey: cup },
                 { tag: 'Object', universalKey: book },
                 { tag: 'Object', universalKey: ball },
-                presenceBindingNode(B, roomA, { members: [{ host: cup, presence: presence('cup1') }, { host: book, presence: presence('book1') }, { tag: 'Remainder' }] }),
+                presenceBindingNode(B, roomA, { members: [{ host: cup, presence: presence('cup1') }, { host: book, presence: presence('book1') }, { host: ball, presence: presence('ball1') }] }),
             ],
         }),
         [cup]: testLudicGraph(cup, { nodes: [presenceBindingNode('cup1', under)] }),
         [book]: testLudicGraph(book, { nodes: [presenceBindingNode('book1', under)] }),
-        // never listed by a binding, so it belongs to the Remainder, which stays on the original
+        // listed by B but outside the part that moves, so it stays on the original
         [ball]: testLudicGraph(ball, { nodes: [presenceBindingNode('ball1', under)] }),
     })
     const verdictOf = (after: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>) => {

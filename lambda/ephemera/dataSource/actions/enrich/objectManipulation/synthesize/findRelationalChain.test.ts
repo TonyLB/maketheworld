@@ -279,7 +279,7 @@ describe('findRelationalChainFromLeg', () => {
             tag: 'Presence',
             universalKey: 'PRESENCE#presence-1' as EphemeraPresenceNodeId,
             fromHostPresence: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
-            cover: { members: [{ tag: 'Remainder' }] },
+            cover: { members: [] },
         }
         const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PRESENCE#presence-1' }, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addRelationalEdge(edge)

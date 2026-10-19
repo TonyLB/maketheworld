@@ -113,7 +113,7 @@ describe('commitStepSequence', () => {
             const bookEntry = { host: BOOK, presence: 'PRESENCE#book1' as const }
             const under = { host: PLANK, presence: 'PRESENCE#B' as const }
             const graphs = {
-                [PLANK]: testLudicGraph(PLANK, { nodes: [{ tag: 'Object', universalKey: PLANK }, presenceBindingNode('B', ROOM_ID, { members: [cupEntry, bookEntry, { tag: 'Remainder' }] })] }),
+                [PLANK]: testLudicGraph(PLANK, { nodes: [{ tag: 'Object', universalKey: PLANK }, presenceBindingNode('B', ROOM_ID, { members: [cupEntry, bookEntry] })] }),
                 [BOOK]: testLudicGraph(BOOK, { nodes: [presenceBindingNode('book1', under)] }),
                 [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: PLANK }, presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
                 [OTHER_ROOM]: testLudicGraph(OTHER_ROOM, { nodes: [presenceBindingNode(parentRemainderKey(OTHER_ROOM))] }),

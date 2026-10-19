@@ -178,7 +178,7 @@ describe('StandardForm.standardizeMode', () => {
                             {
                                 tag: 'Presence',
                                 universalKey: 'PRESENCE#test',
-                                cover: { members: [{ tag: 'Remainder' }] },
+                                cover: { members: [] },
                             },
                         ],
                     },
@@ -203,7 +203,7 @@ describe('StandardForm.standardizeMode', () => {
                             {
                                 tag: 'Presence',
                                 universalKey: 'PRESENCE#test',
-                                cover: { members: [{ tag: 'Remainder' }] },
+                                cover: { members: [] },
                             },
                         ],
                     },

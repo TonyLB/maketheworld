@@ -4,7 +4,6 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 
 import type { GroundedPresence } from '../../../actions/enrich/objectManipulation/plan/planStep'
-import { isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraphStructureNode, EphemeraPresenceCover, EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
@@ -54,15 +53,13 @@ const cascadeHostsOf = async (
             }
             const graph = await getGraph(host)
             const grandchildren = colliding.flatMap(({ presence }) => (
-                graph.presenceNodes.find(({ universalKey }) => universalKey === presence)?.cover.members.filter(
-                    (member): member is EphemeraPresenceCoverEntry => !isEphemeraPresenceCoverRemainder(member)
-                ) ?? []
+                graph.presenceNodes.find(({ universalKey }) => universalKey === presence)?.cover.members ?? []
             ))
             grandchildren.forEach(({ host: grandchildHost }) => hosts.add(grandchildHost as EphemeraMembershipHostId))
             await visit(grandchildren)
         }
     }
-    await visit(covers.flatMap((cover) => cover.members.filter((member): member is EphemeraPresenceCoverEntry => !isEphemeraPresenceCoverRemainder(member))))
+    await visit(covers.flatMap((cover) => cover.members))
     return [...hosts]
 }
 

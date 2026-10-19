@@ -1,9 +1,6 @@
-import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { baseMigrationDriftOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { isEphemeraAreaId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-
-import { presenceGraphViewOf } from '../presenceCoverDriftSweep/classification'
 
 type RawPresenceNode = {
     tag?: unknown
@@ -19,40 +16,31 @@ const hasNoParentPointer = (node: RawPresenceNode): boolean => !node.fromHostPre
  * `presenceParent`. A binding is drift when it is a Room's binding into an Area whose cover is
  * anything but an empty-member carve-out (a).
  *
- * And two checks on the owner itself: (b) a Room or Area with no binding lacking a parent pointer, the root of its
+ * And a check on the owner itself: (b) a Room or Area with no binding lacking a parent pointer, the root of its
  * presence tree, which every Room and Area keeps whatever it contains (reported with the owner as
  * the parent, since population mints it for the owner). A row with no stored graph yet counts.
- * (c) stored data from before monotone covers: the owner's root binding is not `PRESENCE#Base`, or
- * its cover holds a `Remainder` (`baseMigrationDriftOf`, the missing-Base finding too). The owner is
- * the parent, since the migration the heal runs rewrites the owner's own graph. Any host kind is
- * checked for (c), a Character's or Object's included.
  *
  * A row whose stored shape the guard rejects (e.g. the retired host-only `fromHostId`) is not this
  * sweep's: the heal could not read it, so it reports through `LudicGraphStaleStructureSweep`.
  *
- * **Deliberately a superset** of `containmentPopulationSteps`' wrong-shape test, not a second theory
- * of it: the consumer reruns that same population, which rechecks before writing, so a false
- * positive costs one no-op heal while a false negative would hide drift. Checks (a) and (b) classify
- * only Room, Feature and Area owners --- the population this finding reruns writes only their bindings
- * (an Area's only its root). A pointer naming a host but no binding is not checked here: `presence` is required, so the
+ * Each check carries its own condition on the owner's kind; no kind is excluded up front. (a) is a
+ * rule about a Room placed in an Area, and (b) holds only for wholes whose root is never their
+ * placement: a Feature's or Object's root is re-pointed when it is placed, so a placed one rightly
+ * has no unpointed binding (its missing-Base case is the cover-drift sweep's `noBase`).
+ *
+ * **Not a superset of `containmentPopulationSteps`' repair conditions.** Over the conditions it
+ * checks it errs wide, since the consumer reruns that same population, which rechecks before
+ * writing: a false positive costs one no-op heal. But population also repairs a pointer naming the
+ * wrong binding on the parent, a binding whose node the parent lacks, and a missing containment
+ * edge, and each of those needs the parent's row, which this one-row classifier does not read. A
+ * pointer naming a host but no binding is not checked here: `presence` is required, so the
  * stored-row guard rejects it and `LudicGraphStaleStructureSweep` reports it.
  */
 export const containmentDriftParentsOf = (ownerId: string, ludicGraph: unknown): EphemeraMembershipHostId[] => {
-    if (!(isEphemeraRoomId(ownerId) || isEphemeraFeatureId(ownerId) || isEphemeraAreaId(ownerId) || isEphemeraCharacterId(ownerId) || isEphemeraObjectId(ownerId))) {
-        return []
-    }
-    if (isEphemeraCharacterId(ownerId) || isEphemeraObjectId(ownerId)) {
-        const view = presenceGraphViewOf(ownerId, ludicGraph)
-        return view && baseMigrationDriftOf(view).length > 0 ? [ownerId] : []
-    }
     const storedNodes = (ludicGraph as { nodes?: unknown } | undefined)?.nodes
     const nodes = (Array.isArray(storedNodes) ? storedNodes : []) as RawPresenceNode[]
     const parents = new Set<EphemeraMembershipHostId>()
     if ((isEphemeraRoomId(ownerId) || isEphemeraAreaId(ownerId)) && !nodes.some((node) => node?.tag === 'Presence' && hasNoParentPointer(node))) {
-        parents.add(ownerId)
-    }
-    const view = presenceGraphViewOf(ownerId, ludicGraph)
-    if (view && baseMigrationDriftOf(view).length > 0) {
         parents.add(ownerId)
     }
     for (const node of nodes) {

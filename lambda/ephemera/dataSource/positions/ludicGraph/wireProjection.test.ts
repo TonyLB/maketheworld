@@ -21,7 +21,6 @@ const boxId = 'OBJECT#Box' as EphemeraObjectId
 const featureId = 'FEATURE#Fountain' as EphemeraFeatureId
 const areaId = 'AREA#Downtown' as EphemeraAreaId
 
-const fullCover: EphemeraPresenceCover = { members: [{ tag: 'Remainder' }] }
 const enumeratedCover = (host: string, presence: string): EphemeraPresenceCover => ({
     members: [{ host: host as any, presence: presence as EphemeraPresenceNodeId }],
 })
@@ -39,8 +38,8 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                     { tag: 'Object', universalKey: boxId },
                     { tag: 'Feature', universalKey: featureId },
                     { tag: 'Area', universalKey: areaId },
-                    // Lists Box explicitly as well: binding2 claims it, and a bare remainder excludes claimed members.
-                    { tag: 'Presence', universalKey: bindingId, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }, { host: boxId, presence: 'PRESENCE#box-binding' as EphemeraPresenceNodeId }] } },
+                    // Lists every other component, and Box as well: binding2 lists it too.
+                    { tag: 'Presence', universalKey: bindingId, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [roomId, charId, boxId, featureId, areaId].map((host) => ({ host, presence: 'PRESENCE#box-binding' as EphemeraPresenceNodeId })) } },
                     {
                         tag: 'Presence',
                         universalKey: 'PRESENCE#binding2' as EphemeraPresenceNodeId,
@@ -70,7 +69,7 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
 
             const wire = toWireLudicGraph(graph, bindingUuid)
 
-            // Nothing is cut away: `bindingUuid`'s cover is a remainder plus the one claimed member, so the bucket is every
+            // Nothing is cut away: `bindingUuid`'s cover lists every other component, so the bucket is every
             // component node plus both presence nodes (carried unconditionally) plus the root.
             expect(wire.nodes).toHaveLength(8)
             expect(wire.edges).toHaveLength(8)

@@ -926,10 +926,15 @@ describe('applyStepSequenceCore', () => {
         })
 
         it('a release keeps the host while another binding of the mover still points there', () => {
-            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('Base', roomId), presenceBindingNode('a2', roomId)] })
+            const trayGraph = testLudicGraph(trayId, { nodes: [presenceBindingNode('Base', roomId), presenceBindingNode('a2', { host: roomId, presence: 'PRESENCE#second' as any })] })
+            const roomGraph = testLudicGraph(roomId, { nodes: [
+                object(trayId),
+                presenceBindingNode(parentRemainderKey(roomId), undefined, { members: [{ host: trayId, presence: 'PRESENCE#Base' as any }] }),
+                presenceBindingNode('second', roomId, { members: [{ host: trayId, presence: 'PRESENCE#a2' as any }] }),
+            ] })
             const steps: MutationKernelStep[] = [releaseStep(trayId, 'PRESENCE#Base', remainderOf(roomId))]
 
-            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [roomId, hostHolding(roomId, object(trayId))]))
+            const outcome = applyStepSequenceCore(steps, graphsMap([trayId, trayGraph], [roomId, roomGraph]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
@@ -1014,7 +1019,7 @@ describe('applyStepSequenceCore', () => {
 
         it('throws when a sequence would leave a character with two presence bindings --- characters are single-hosted', () => {
             const characterGraph = testLudicGraph(characterId, {
-                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } }],
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [] } }],
             })
             const steps: MutationKernelStep[] = [
                 { kind: 'addPresenceBinding', hostId: characterId, fromHostPresence: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }, presenceUuid: 'p2' },
@@ -1025,7 +1030,7 @@ describe('applyStepSequenceCore', () => {
 
         it('does not throw when an object carries two presence bindings --- multi-presence is the point for objects', () => {
             const trayGraph = testLudicGraph(trayId, {
-                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } }],
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [] } }],
             })
             const steps: MutationKernelStep[] = [
                 { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }, presenceUuid: 'p2' },
@@ -1129,7 +1134,7 @@ describe('applyStepSequenceCore', () => {
                 kind: 'repairPresenceBinding',
                 hostId: trayId,
                 presenceId: hostOnly.universalKey,
-                fromHostPresence: { host: roomId, presence: 'PRESENCE#room-remainder' },
+                fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
                 cover: { members: [] },
             }]
 
@@ -1144,7 +1149,7 @@ describe('applyStepSequenceCore', () => {
             expect(nodes[1]).toEqual({
                 tag: 'Presence',
                 universalKey: hostOnly.universalKey,
-                fromHostPresence: { host: roomId, presence: 'PRESENCE#room-remainder' },
+                fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
                 cover: { members: [] },
             })
         })

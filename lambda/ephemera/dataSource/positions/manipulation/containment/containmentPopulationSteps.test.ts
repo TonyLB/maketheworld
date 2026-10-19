@@ -188,13 +188,13 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             }])
         })
 
-        it('repairs a room\'s sole-remainder Area binding to an empty carve-out', () => {
+        it('repairs a room\'s Area binding that lists members to an empty carve-out', () => {
             const parentGraph = testLudicGraph(AREA_ID, {
                 nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID }],
                 edges: [{ tag: 'Relational', from: ROOM_ID, to: AREA_ID, kind: 'PartOf' }],
             })
-            const wrong = presenceBindingNode('binding-1', AREA_ID)
-            const childGraph = testLudicGraph(ROOM_ID, { nodes: [wrong] })
+            const wrong = presenceBindingNode('binding-1', AREA_ID, { members: [{ host: FEATURE_ID, presence: 'PRESENCE#stove-in-kitchen' as any }] })
+            const childGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Feature', universalKey: FEATURE_ID }, wrong] })
 
             expect(containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)).toEqual([{
                 kind: 'repairPresenceBinding',

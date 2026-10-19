@@ -78,7 +78,7 @@ describe('computeStepSequenceFootprint', () => {
 
     it('a departure (to no parent) contributes its hostId, the host it leaves and the children of its cover', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'movePresenceBinding', to: null, hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }, cover: { members: [{ host: glassId, presence: 'PRESENCE#g' as any }, { tag: 'Remainder' }] } },
+            { kind: 'movePresenceBinding', to: null, hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }, cover: { members: [{ host: glassId, presence: 'PRESENCE#g' as any }] } },
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, otherRoomId, glassId]))
     })

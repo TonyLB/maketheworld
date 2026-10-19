@@ -22,7 +22,7 @@ type HostMetaRow = {
 }
 
 /** A whole with drift the heal cannot repair: reported in the result, never emitted as a finding. */
-export type PresenceCoverDriftUnrepairable = Pick<PresenceCoverDriftClassification, 'noRemainder' | 'findings'> & {
+export type PresenceCoverDriftUnrepairable = Pick<PresenceCoverDriftClassification, 'noBase' | 'findings'> & {
     ephemeraId: string
 }
 
@@ -164,8 +164,8 @@ export const presenceCoverDriftSweep = async (
         if (classification.healable && isEphemeraMembershipHostId(ephemeraId)) {
             healable.push(ephemeraId)
         }
-        if (classification.noRemainder || classification.findings.length) {
-            unrepairable.push({ ephemeraId, noRemainder: classification.noRemainder, findings: classification.findings })
+        if (classification.noBase || classification.findings.length) {
+            unrepairable.push({ ephemeraId, noBase: classification.noBase, findings: classification.findings })
         }
     }
 

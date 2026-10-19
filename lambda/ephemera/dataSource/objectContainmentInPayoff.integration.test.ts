@@ -167,10 +167,11 @@ describe('object containment In payoff (integration)', () => {
                 nodes: [
                     { tag: 'Object', universalKey: BALL_ID },
                     { tag: 'Object', universalKey: BOX_ID },
+                    { tag: 'Character', universalKey: CHARACTER_ID },
                     presenceBindingNode(parentRemainderKey(ROOM_ID)),
                 ],
                 edges: [],
-            }).addCharacter(CHARACTER_ID),
+            }),
             // The box's own graph must list itself as a node (its own root) --- a real Dynamo
             // read normalizes this in automatically (`normalizeStoredLudicGraph`), but this
             // fixture is handed straight to the transactWrite mock's draft, bypassing that

@@ -1,5 +1,4 @@
 import type { EphemeraFeatureId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
@@ -42,7 +41,7 @@ const roomWith = (carveMembers: { host: EphemeraFeatureId; presence: EphemeraPre
     nodes: [
         { tag: 'Feature', universalKey: STOVE },
         { tag: 'Feature', universalKey: SINK },
-        presenceBindingNode(ROOT, undefined, remainderCover()),
+        presenceBindingNode(ROOT, undefined, { members: [{ host: SINK, presence: 'PRESENCE#sink' as EphemeraPresenceNodeId }] }),
         presenceBindingNode(CARVE, undefined, { members: carveMembers }),
     ],
 })
@@ -59,7 +58,7 @@ describe('healPresenceCover', () => {
         ;(commitStepSequence as jest.Mock).mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
     })
 
-    it('rewrites a remainder-free cover from member pointers, in place, leaving the remainder alone', async () => {
+    it('rewrites a cover from member pointers, in place, leaving a correct cover alone', async () => {
         withGraphs({ [ROOM_ID]: roomWith([]), [STOVE]: stoveGraph, [SINK]: sinkGraph })
 
         await healPresenceCover(ROOM_ID, { messageBus, streamEvent })

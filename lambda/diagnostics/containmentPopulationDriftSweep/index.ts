@@ -65,9 +65,8 @@ const queryAllEphemeraRowsByDataCategory = async <T extends DBHandlerItem<'Ephem
 
 // The two child kinds cache-time containment population binds (Room-in-Area, Feature-in-Room,
 // Feature-in-Feature), whose own rows hold the bindings this sweep classifies, plus Areas, whose
-// rows hold the root a Room's carve-out names, plus Characters and Objects, whose root binding the
-// Base migration renames.
-const CHILD_DATA_CATEGORIES = ['Meta::Room', 'Meta::Feature', 'Meta::Area', 'Meta::Character', 'Meta::Object'] as const
+// rows hold the root a Room's carve-out names.
+const CHILD_DATA_CATEGORIES = ['Meta::Room', 'Meta::Feature', 'Meta::Area'] as const
 
 const defaultListCandidateRows = async (): Promise<HostMetaRow[]> => {
     const rowsByCategory = await Promise.all(

@@ -29,7 +29,6 @@ import type {
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardReferenceData } from '@tonylb/mtw-wml/ts/standardize/keys/dataTypes/reference'
 import type {
     LudicGraphNodeListData,
@@ -95,20 +94,14 @@ const wireTerminalToEphemera = (data: StandardLudicTerminalData): EphemeraLudicT
 //
 
 const coverToWire = (cover: EphemeraPresenceCover): StandardLudicGraphPresenceCoverData => ({
-    members: cover.members.map((entry) => isEphemeraPresenceCoverRemainder(entry)
-        ? entry
-        : { host: ephemeraComponentIdToReferenceData(entry.host), presence: entry.presence }
-    ),
+    members: cover.members.map((entry) => ({ host: ephemeraComponentIdToReferenceData(entry.host), presence: entry.presence })),
 })
 
 const wireCoverToEphemera = (cover: StandardLudicGraphPresenceCoverData): EphemeraPresenceCover => ({
-    members: cover.members.map((entry) => 'tag' in entry
-        ? entry
-        : {
-            host: referenceDataToEphemeraComponentId(entry.host) as EphemeraLudicGraphComponentNode['universalKey'],
-            presence: entry.presence as EphemeraPresenceNodeId,
-        }
-    ),
+    members: cover.members.map((entry) => ({
+        host: referenceDataToEphemeraComponentId(entry.host) as EphemeraLudicGraphComponentNode['universalKey'],
+        presence: entry.presence as EphemeraPresenceNodeId,
+    })),
 })
 
 //
