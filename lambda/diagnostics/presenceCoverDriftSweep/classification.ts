@@ -33,6 +33,12 @@ export const presenceGraphViewOf = (hostId: string, ludicGraph: unknown): Presen
     return { hostId, nodeIds, presenceNodes }
 }
 
+/**
+ * One whole's verdict. This sweep is the one authority for pointer, node and cover agreement (both
+ * directions) and for the binding-set rules (`noBase`, `SecondHostless`, `BadUnplaced`), for every
+ * kind and every producer. Whether a fixed nesting matches its authored asset is
+ * `FixedContainmentDriftSweep`'s; the one overlap is a Room or Area with bindings and no Base.
+ */
 export type PresenceCoverDriftClassification = {
     /** Drift the heal can rewrite (a cover rebuild, or a same-pointer repair of an orphaned binding): the only kinds that earn a finding. */
     healable: boolean

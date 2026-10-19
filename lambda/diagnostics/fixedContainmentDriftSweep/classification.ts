@@ -31,13 +31,17 @@ const isFixedChildOf = (parentId: string, childId: string): boolean => (
  *   - the child holds no binding pointing at the parent's root binding (a Room's binding into an
  *     Area must also be an empty-member carve-out).
  *
- * A stored nesting the asset no longer declares is not sensed: the contract defers removal for
- * Rooms and Features, so a finding would heal nothing. A parent holding several bindings names no
+ * This sweep owns nestings that never move; Objects and Characters are outside it because their
+ * placement is meant to change. De-authoring is out of scope: a stored nesting the asset no longer
+ * declares is not sensed, since the contract defers removal for Rooms and Features and a finding
+ * would heal nothing. The one overlap with `PresenceCoverDriftSweep` is a Room or Area with bindings
+ * and no Base: that is `noBase` there (report-only) and the Root condition here (healed, because
+ * population can mint the root). A parent holding several bindings names no
  * root for its children, so population refuses it; its children are not judged either. A row in a
  * shape the shared guard rejects is `LudicGraphStaleStructureSweep`'s.
  *
- * Every condition is one the consumer's population rerun repairs (once `healContainmentPopulation`
- * reads the authored list), so a finding is never one it would decline.
+ * Every condition is one the consumer's population rerun repairs (`healContainmentPopulation`
+ * reads the same authored list), so a finding is never one it would decline.
  */
 export const isFixedContainmentDrifted = (
     parentId: string,

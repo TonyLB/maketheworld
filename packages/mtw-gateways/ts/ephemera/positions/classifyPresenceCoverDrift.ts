@@ -9,6 +9,10 @@
  * whole lists; from the member's side (`orphanedPointersOf`) it walks the pointers the member holds, which is the
  * only way to see a pointer whose host lacks the member's node. Plain structural types, so the sweep can feed raw stored rows and the heal
  * can feed parsed graphs.
+ *
+ * This comparison is the one authority for the binding-set rules (`SecondHostless`, `BadUnplaced`, and the
+ * `lacksBase` check) for every kind, alongside pointer/node/cover agreement. Conformance of a never-moving
+ * nesting to its authored asset is not judged here; that is `FixedContainmentDriftSweep`.
  */
 
 export type PresenceCoverMember = { host: string; presence?: string }

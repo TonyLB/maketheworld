@@ -1,5 +1,5 @@
 /**
- * Payoff, diagnostics leg (containmentDriftCoverage Slice 4). For each shared scenario
+ * Payoff, diagnostics leg. For each shared scenario
  * (`@tonylb/mtw-gateways/.../containmentDriftScenarios`), the **real** sweeps run over the drifted rows
  * with their **default** `emitFinding`, so each finding goes through the real
  * `DiagnosticsEventSerializer` and out as a `PutEventsCommand`; only the EventBridge client is

@@ -1,5 +1,5 @@
 /**
- * Shared fixtures for the containment-drift payoff tests (containmentDriftCoverage Slice 4).
+ * Shared fixtures for the containment-drift payoff tests.
  *
  * The sweeps live in `lambda/diagnostics` and the heals in `lambda/ephemera`, and neither can import
  * the other, so the loop *drifted rows -> finding -> heal -> second sweep reads 0* is closed in two

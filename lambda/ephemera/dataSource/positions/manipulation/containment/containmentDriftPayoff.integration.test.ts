@@ -1,5 +1,5 @@
 /**
- * Payoff, ephemera leg (containmentDriftCoverage Slice 4). The diagnostics leg
+ * Payoff, ephemera leg. The diagnostics leg
  * (`lambda/diagnostics/containmentDriftPayoff.test.ts`) proves each shared scenario's drifted rows
  * make the real sweeps emit exactly `expected`, and that the scenario's `healed` rows read silent.
  * This leg proves the real heals turn the drifted rows into those healed rows: each expected finding
