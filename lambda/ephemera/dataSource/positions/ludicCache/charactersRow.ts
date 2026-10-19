@@ -22,7 +22,7 @@ import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from '../ludicGraph'
-import { parentHostOf } from '../ludicGraph/presenceParent'
+import { bindingHasParentOn } from '../ludicGraph/presenceParent'
 import type { MembershipChange } from '../manipulation/kernel/membershipChanges'
 import { characterIdsOf, LUDIC_CACHE_CHARACTERS_DATA_CATEGORY, type LudicCacheCharactersRow } from './charactersRowShape'
 
@@ -32,7 +32,7 @@ export type { LudicCacheCharactersRow } from './charactersRowShape'
 /** The ids of the character's own bindings that point at `roomId`, from the character's graph. */
 export const bindingIdsInto = (graph: EphemeraLudicGraph, roomId: EphemeraMembershipHostId): string[] => (
     graph.presenceNodes
-        .filter((node) => parentHostOf(node) === roomId)
+        .filter((node) => bindingHasParentOn(node, roomId))
         .map((node) => node.universalKey)
 )
 

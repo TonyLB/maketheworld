@@ -83,6 +83,19 @@ describe('roomsForPresenceNode', () => {
         await expect(roomsForPresenceNode(cup, presenceId, getGraph)).resolves.toEqual(new Set([roomA]))
     })
 
+    it('unions the rooms reached through every parent of a shared binding', async () => {
+        const presenceId = PresenceKey('ball-shared') as EphemeraPresenceNodeId
+        const getGraph = graphsFrom({
+            [ball]: [{ tag: 'Presence', universalKey: presenceId, fromHostPresences: [
+                { host: box, presence: parentRemainderKey(box) },
+                { host: shelf, presence: parentRemainderKey(shelf) },
+            ], cover: { members: [] } }],
+            [box]: [presenceAt(roomA)],
+            [shelf]: [presenceAt(roomB)],
+        })
+        await expect(roomsForPresenceNode(ball, presenceId, getGraph)).resolves.toEqual(new Set([roomA, roomB]))
+    })
+
     it('throws when the binding is not found on the named owner\'s graph', async () => {
         const getGraph = graphsFrom({})
         await expect(roomsForPresenceNode(cup, PresenceKey('missing') as EphemeraPresenceNodeId, getGraph)).rejects.toThrow(/not found/)

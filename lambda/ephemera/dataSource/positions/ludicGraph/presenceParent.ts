@@ -39,8 +39,15 @@ export const parentOf = (binding: EphemeraLudicGraphStructureNode): ParentBindin
     return parents[0]
 }
 
-/** The parent HOST a binding sits under, if it has one. */
-export const parentHostOf = (binding: EphemeraLudicGraphStructureNode): EphemeraMembershipHostId | undefined => parentOf(binding)?.host
+/** The hosts a binding sits under, one per distinct parent host (a host test reads "some parent is on H"). */
+export const parentHostsOf = (binding: EphemeraLudicGraphStructureNode): EphemeraMembershipHostId[] => (
+    [...new Set(parentsOf(binding).map(({ host }) => host))]
+)
+
+/** Whether some parent of `binding` is on `host`. */
+export const bindingHasParentOn = (binding: EphemeraLudicGraphStructureNode, host: EphemeraMembershipHostId): boolean => (
+    parentsOf(binding).some((parent) => parent.host === host)
+)
 
 /**
  * Every presence binding on `ownerHostId`'s own graph that has a parent (a binding is minted onto
@@ -56,18 +63,18 @@ export const parentBindingsOf = async (
     return presenceNodes.flatMap((binding) => parentsOf(binding).map((parent) => ({ binding, parent })))
 }
 
-/** One binding of `ownerHostId`'s, located by id on the owner's own graph. Hostless: `undefined`. */
-export const parentBinding = async (
+/** One binding of `ownerHostId`'s, located by id on the owner's own graph: every parent it names. Hostless: empty. */
+export const parentsOfBinding = async (
     ownerHostId: EphemeraMembershipHostId,
     presenceId: EphemeraPresenceNodeId,
     getGraph: GetGraph
-): Promise<ParentBinding | undefined> => {
+): Promise<ParentBinding[]> => {
     const { presenceNodes } = await getGraph(ownerHostId)
     const found = presenceNodes.find((binding) => binding.universalKey === presenceId)
     if (!found) {
-        throw new Error(`parentBinding: ${presenceId} not found on ${ownerHostId}'s own graph`)
+        throw new Error(`parentsOfBinding: ${presenceId} not found on ${ownerHostId}'s own graph`)
     }
-    return parentOf(found)
+    return parentsOf(found)
 }
 
 /** Whether `binding` names `parent` among its parents. */

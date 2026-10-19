@@ -43,7 +43,7 @@ import messageBus from '../../../messageBus'
 import { ephemeraDataSource } from '../../index'
 import { EphemeraLudicGraph, graphFromMeta } from '../ludicGraph'
 import { healLudicGraphStructure } from '../ludicGraph/healLudicGraphStructure'
-import { parentHostOf } from '../ludicGraph/presenceParent'
+import { parentHostsOf } from '../ludicGraph/presenceParent'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../ludicGraph/testFixtures'
 import { commitStepSequence } from '../manipulation/kernel/commitStepSequence'
 import { mutationKernelStepKinds, type MutationKernelStep } from '../manipulation/kernel/kernelStep'
@@ -330,7 +330,7 @@ const cold = async (roomId: EphemeraRoomId) => (await buildLudicCache(roomId, CA
 
 /** The host a thing sits in now (its first binding's parent), which the kernel's footprint asks for. */
 const hostOf = (id: unknown): EphemeraMembershipHostId | undefined => (
-    world.graphs.get(id as EphemeraMembershipHostId)?.presenceNodes.map(parentHostOf).find((host) => host !== undefined)
+    world.graphs.get(id as EphemeraMembershipHostId)?.presenceNodes.flatMap(parentHostsOf)[0]
 )
 
 const commit = async (steps: MutationKernelStep[], extra: { existenceItems?: any[] } = {}) => {

@@ -6,7 +6,7 @@ import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ep
 import { BASE_PRESENCE_ID, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf, parentsOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, unpointedBindingOf, bindingHasParentOn, parentsOf } from '../../ludicGraph/presenceParent'
 import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelStep } from '../kernel/kernelStep'
 
@@ -94,7 +94,7 @@ export const containmentPopulationSteps = (
     // An authored Object is placed only if it has no live host anywhere: population reruns for
     // every child a parent lists, so without this a player-moved or author-repositioned Object would
     // be put back or doubled. Any binding with a parent pointer on its own graph means it is live.
-    if (isEphemeraObjectId(childId) && childGraph.presenceNodes.some((node) => parentOf(node))) {
+    if (isEphemeraObjectId(childId) && childGraph.presenceNodes.some((node) => parentsOf(node).length > 0)) {
         return []
     }
 
@@ -113,7 +113,7 @@ export const containmentPopulationSteps = (
     // A room's binding into its Area is a carve-out with no members, so the bucket is the room itself.
     const wantedCover = isEphemeraRoomId(childId) && isEphemeraAreaId(parentId) ? { members: [] } : undefined
 
-    const existing = childGraph.presenceNodes.find((node) => parentHostOf(node) === parentId)
+    const existing = childGraph.presenceNodes.find((node) => bindingHasParentOn(node, parentId))
     // A first placement re-points a hostless root rather than minting beside it, so the child's own
     // children keep naming it. A Room's remainder never moves: it gets an Area carve-out instead.
     const unplacedRoot = existing || isEphemeraRoomId(childId) ? undefined : unpointedBindingOf(childGraph)

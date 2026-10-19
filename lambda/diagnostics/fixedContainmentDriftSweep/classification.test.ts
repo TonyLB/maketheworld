@@ -76,3 +76,20 @@ describe('isFixedContainmentDrifted', () => {
         expect(isFixedContainmentDrifted(FEATURE, two, ['FEATURE#Knob'], () => undefined)).toBe(false)
     })
 })
+
+describe('isFixedContainmentDrifted (a child with several bindings)', () => {
+    it('passes when a later binding names the root, even if an earlier one under the same host names another binding', () => {
+        const two = { nodes: [
+            { tag: 'Presence', universalKey: 'PRESENCE#a', fromHostPresences: [{ host: ROOM, presence: 'PRESENCE#Other' }], cover: { members: [] } },
+            { tag: 'Presence', universalKey: 'PRESENCE#b', fromHostPresences: [{ host: 'ROOM#Else', presence: 'PRESENCE#Base' }, { host: ROOM, presence: 'PRESENCE#Base' }], cover: { members: [] } },
+        ] }
+        expect(isFixedContainmentDrifted(ROOM, roomGraph, [FEATURE], () => two)).toBe(false)
+    })
+
+    it('flags when no binding names the root', () => {
+        const none = { nodes: [
+            { tag: 'Presence', universalKey: 'PRESENCE#a', fromHostPresences: [{ host: ROOM, presence: 'PRESENCE#Other' }], cover: { members: [] } },
+        ] }
+        expect(isFixedContainmentDrifted(ROOM, roomGraph, [FEATURE], () => none)).toBe(true)
+    })
+})

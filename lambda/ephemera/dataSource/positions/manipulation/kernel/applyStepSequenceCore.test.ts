@@ -6,7 +6,7 @@ import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MutationKernelStep } from './kernelStep'
 import { isKernelMutationStep } from './kernelStep'
 import { compilePositionKernelOp } from './compile/compilePositionKernelOp'
-import { parentBinding } from '../../ludicGraph/presenceParent'
+import { parentsOfBinding } from '../../ludicGraph/presenceParent'
 import { roomsForPresenceNode } from '../../ludicGraph/presenceRooms'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -1096,10 +1096,10 @@ describe('applyStepSequenceCore', () => {
             if (outcome.verdict !== 'legal') return
             const getGraph = async (hostId: EphemeraMembershipHostId) => outcome.graphs.get(hostId)!
             const cupPointer = outcome.graphs.get(cupId)!.presenceNodes[0].fromHostPresences[0]
-            expect(await parentBinding(characterId, cupPointer.presence!, getGraph)).toEqual({
+            expect(await parentsOfBinding(characterId, cupPointer.presence!, getGraph)).toEqual([{
                 host: otherRoomId,
                 presence: parentRemainderKey(otherRoomId),
-            })
+            }])
             expect(await roomsForPresenceNode(cupId, outcome.graphs.get(cupId)!.presenceNodes[0].universalKey, getGraph)).toEqual(new Set([otherRoomId]))
         })
     })

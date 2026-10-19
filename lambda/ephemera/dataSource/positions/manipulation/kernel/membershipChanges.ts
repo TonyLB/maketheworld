@@ -1,7 +1,7 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { parentHostOf } from '../../ludicGraph/presenceParent'
+import { parentHostsOf } from '../../ludicGraph/presenceParent'
 import { isBystanderMove } from './bystander'
 import type { MutationKernelStep } from './kernelStep'
 
@@ -49,10 +49,9 @@ export const membershipChangesOf = (
     return [...anchors].flatMap(([entityId, anchor]) => {
         const heldIn = (graphs: Graphs) => new Set([
             ...hostIds.filter((hostId) => hostId !== entityId && !isBystanderMove(entityId, hostId) && graphs.get(hostId)?.nodeIds.has(entityId)),
-            ...(graphs.get(entityId)?.presenceNodes ?? []).flatMap((node) => {
-                const hostId = parentHostOf(node)
-                return hostId !== undefined && isBystanderMove(entityId, hostId) ? [hostId] : []
-            }),
+            ...(graphs.get(entityId)?.presenceNodes ?? []).flatMap((node) => (
+                parentHostsOf(node).filter((hostId) => isBystanderMove(entityId, hostId))
+            )),
         ])
         const before = heldIn(priorGraphs)
         const after = heldIn(committedGraphs)

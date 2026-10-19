@@ -6,7 +6,7 @@ import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { GroundedPresence } from '../../../actions/enrich/objectManipulation/plan/planStep'
 import type { EphemeraLudicGraphStructureNode, EphemeraPresenceCover, EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf, parentsOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, unpointedBindingOf, bindingHasParentOn, parentOf, parentsOf } from '../../ludicGraph/presenceParent'
 import type { PositionKernelPresenceMove } from '../kernel/compile/positionKernelOp'
 
 export type ResolvePresenceMovesArgs = {
@@ -152,7 +152,7 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
 
     const moverGraph = await args.getGraph(args.moved)
     const departing = args.froms.map((fromHostId) => {
-        const underHost = moverGraph.presenceNodes.filter((node) => parentHostOf(node) === fromHostId)
+        const underHost = moverGraph.presenceNodes.filter((node) => bindingHasParentOn(node, fromHostId))
         const seen = args.moverGroundedPresence
         const narrowed = underHost.length > 1 && seen && seen.length > 0
             ? underHost.filter((node) => sitsUnderSeenBucket(node, seen))

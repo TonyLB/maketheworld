@@ -4,7 +4,7 @@ import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import type { MessageBus } from '../messageBus/baseClasses'
-import { parentHostOf } from './positions/ludicGraph/presenceParent'
+import { parentHostsOf } from './positions/ludicGraph/presenceParent'
 import { invalidateRoomMemos } from './positions/manipulation/kernel/invalidateRoomMemos'
 
 export type CharacterComponentUpdatedDeps = {
@@ -17,10 +17,9 @@ export type CharacterComponentUpdatedDeps = {
 /** The Rooms a character stands in, from its own graph's presence nodes (the bystander derivation of `membershipChangesOf`). */
 const roomIdsOf = async (characterId: EphemeraCharacterId): Promise<EphemeraRoomId[]> => {
     const graph = await internalCache.Positions.getLudicGraph(characterId)
-    return [...new Set(graph.presenceNodes.flatMap((node) => {
-        const hostId = parentHostOf(node)
-        return hostId !== undefined && isEphemeraRoomId(hostId) ? [hostId] : []
-    }))]
+    return [...new Set(graph.presenceNodes.flatMap((node) => (
+        parentHostsOf(node).filter((hostId): hostId is EphemeraRoomId => isEphemeraRoomId(hostId))
+    )))]
 }
 
 /**

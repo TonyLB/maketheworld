@@ -1,6 +1,6 @@
 # Presence parent sets: implementation
 
-**Status: opened 2026-10-19. Slice 0 done 2026-10-19. Slice 1 done 2026-10-19 (stored rows healed). Slice 2 is next. Slice 2 is next. PS-2 through PS-4 are Open; PS-3 and PS-4 are the user's to decide.**
+**Status: opened 2026-10-19. Slice 0 done 2026-10-19. Slice 1 done 2026-10-19 (stored rows healed). Slice 2 done 2026-10-19 (readers set-aware). Slice 3 is next. PS-2 through PS-4 are Open; PS-3 and PS-4 are the user's to decide.**
 
 **Scope in one sentence: a presence binding names a *set* of parent bindings rather than one, so the presence structure inside the ludicNetwork is a DAG rather than a forest rooted at hostless bindings, and a thing that sits identically under several parents holds one binding instead of copies.**
 
@@ -16,7 +16,7 @@ This is a standard implementation plan under [`taskPlanning/AGENT.md`](../../../
 2. **Read the rules it changes**, in [the presence-nodes section of `positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path): the parent pointer, the transient-duplicate invariant ("A binding's id is stable for the whole's life"), the binding-addressed move rule, and Base and Unplaced. In [`AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md), the producers-and-routing table and the guard paragraph ("**one or more** of whose covers names this presence node --- written as *exactly one* it forecloses the DAG silently").
 3. **The code**, under [`lambda/ephemera/dataSource/positions/`](../../../../../lambda/ephemera/dataSource/positions/) unless noted. The 2026-10-17 survey predates MC-3 (move, split, join and release are now one move), so Slice 0 re-runs it.
    - **Type:** `EphemeraPresenceParentPointer` and `fromHostPresence?` on the presence node, and its type guard (`isEphemeraPresenceParentPointerOrAbsent`), in [`packages/mtw-interfaces/ts/ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts). WML mirror: `StandardLudicGraphPresenceNodeData['fromHostPresence']` in `packages/mtw-wml/ts/standardize/components/dataTypes/ludicGraph.ts`, carried by `ludicGraphNodeList.ts`.
-   - **The accessor seam:** `ludicGraph/presenceParent.ts` (`parentOf`, `parentHostOf`, `parentBindingsOf`, `parentBinding`, `unpointedBindingOf`). Callers: `containmentPopulationSteps.ts`, `removeAuthoredObject.ts`, `resolvePresenceMoves.ts`, `movePresenceBinding.ts` (the `ParentBinding` type), `settleMembership.ts`, `membershipChanges.ts`, `commitStepSequence.ts`, `ludicGraph/presenceAncestry.ts`, `ludicGraph/presenceRooms.ts`, `ludicCache/fold.ts`, `ludicCache/charactersRow.ts`, `dataSource/characterComponentUpdated.ts`.
+   - **The accessor seam:** `ludicGraph/presenceParent.ts` (`parentsOf`, `parentOf`, `parentHostsOf`, `bindingHasParentOn`, `parentBindingsOf`, `parentsOfBinding`, `unpointedBindingOf`). Callers: `containmentPopulationSteps.ts`, `removeAuthoredObject.ts`, `resolvePresenceMoves.ts`, `movePresenceBinding.ts` (the `ParentBinding` type), `settleMembership.ts`, `membershipChanges.ts`, `commitStepSequence.ts`, `ludicGraph/presenceAncestry.ts`, `ludicGraph/presenceRooms.ts`, `ludicCache/fold.ts`, `ludicCache/charactersRow.ts`, `dataSource/characterComponentUpdated.ts`.
    - **Direct readers of `fromHostPresence`** (bypassing the seam): `manipulation/kernel/movePresenceBinding.ts` and `applyStepSequenceCore.ts` (12 each), `ludicGraph/wireProjection.ts`, `healPresenceCover.ts`, `containmentPopulationSteps.ts`, `resolvePresenceMoves.ts`, `kernelStep.ts`, `computeStepSequenceFootprint.ts`, `presenceSubGraph.ts`, `ludicCache/types.ts`, `ludicCache/mergeReducer.ts`, `ludicGraph/index.ts`, `ludicGraph/testFixtures.ts` (the `presenceBindingNode` test helper); in gateways, `classifyPresenceCoverDrift.ts` and `containmentDriftScenarios.ts`; in diagnostics, `fixedContainmentDriftSweep/classification.ts` and `presenceCoverDriftSweep/` (`classification.ts`, and a comment in `index.ts`); in mtw-interfaces, a comment in `eventBridge/diagnostics/index.ts`. 42 test files. Slice 0(a) classifies each one.
    - **The move:** `manipulation/kernel/movePresenceBinding.ts`. `pointsAt` is the one-pointer optimistic check; `from: ParentBinding | null` names one parent; the cascade merges a child's two bindings under one target.
    - **The guard:** the transient-duplicate check at the end of `applyStepSequenceCore.ts` (`presencesByParentHost`), which is already the positive rule keyed per parent binding.
@@ -110,11 +110,11 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [X] Gateways' `PresenceBindingView` has its own `parentPointersOf` accessor; the classifier, `containmentDriftScenarios.ts` and both diagnostics classifications read through it.
   - [X] `presenceBindingNode`'s `parent` takes a single parent or an array (a set); the other test literals follow the type.
   - [X] Migrate stored rows through the stale-structure heal (the user's design, 2026-10-19): `healLudicGraphStructure` rewrites a presence node's single `fromHostPresence` into a one-element `fromHostPresences`, or `[]` when it was absent, and marks the host's cache stale. Every Meta row holding a presence node is stale under the new guard (a hostless Base needs the empty array too), not only the placed character's. The user ran `LudicGraphStaleStructureSweep` 2026-10-19: it found all six components, and a second run emitted none. The `withParentSet` branch in `healLudicGraphStructure.ts` is now dead weight in this one-instance world and can be deleted at the user's choice.
-- [ ] **Slice 2. Readers become set-aware.** No producer yet writes two parents, so tests build multi-parent fixtures directly.
-  - [ ] (i) Host tests: "some parent is on H". (ii) Binding tests: set membership.
-  - [ ] (iii) Unions: audience resolution (`roomsForPresenceNode`) unions over parents; the cache fold and `charactersRow` see a binding under each parent; the wire and WML types carry the set.
-  - [ ] `fixedContainmentDriftSweep/classification.ts` asks whether some binding of the child has the parent's root among its parents, rather than taking the first binding into the parent (Slice 0(c)).
-  - [ ] Retire `parentOf`'s single-parent read where nothing still needs it. `contentDestinations` keeps it until Slice 6.
+- [X] **Slice 2. Readers become set-aware.** Done 2026-10-19. No producer yet writes two parents, so tests build multi-parent fixtures directly.
+  - [X] (i) Host tests: "some parent is on H" (`bindingHasParentOn`, `parentHostsOf`; `parentHostOf` deleted). (ii) Binding tests: set membership.
+  - [X] (iii) Unions: audience resolution (`roomsForPresenceNode`) unions over parents; the cache fold and `charactersRow` see a binding under each parent; the wire and WML types carry the set as `fromHostPresences` (absent when hostless).
+  - [X] `fixedContainmentDriftSweep/classification.ts` asks whether some binding of the child has the parent's root among its parents, rather than taking the first binding into the parent (Slice 0(c)).
+  - [X] Retire `parentOf`'s single-parent read where nothing still needs it. It stays, throwing on a multi-parent binding, in the writers and planners that name one parent: `healPresenceCover.ts`, `applyStepSequenceCore.ts` (the cover index `before`), `movePresenceBinding.ts` and `resolvePresenceMoves.ts` (the move's `from`) until PS-2 and Slice 4, and `contentDestinations` until Slice 6. `parentBinding` is now `parentsOfBinding`.
 - [ ] **Slice 3. The invariant, stated positively.**
   - [ ] The run-end guard in `applyStepSequenceCore.ts` keys by parent binding over parent sets: no parent binding is in two of one whole's bindings' parent sets (no parent counts as one, as today).
   - [ ] The cover index: a binding's entry is on every parent's cover, and every parent cover's entry for a node is matched by exactly one of that node's bindings having that parent (PR-25's rule). The drift classifier and the heal read it the same way.
@@ -154,7 +154,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 1. **Suite, from `lambda/ephemera`:** `npm run test -- --watchAll=false dataSource/positions/`, and the full ephemera suite after any rename or delete. Then `npx tsc --noEmit` there and in `packages/mtw-interfaces`, `packages/mtw-wml`, `packages/mtw-gateways` and `lambda/diagnostics`.
 2. **The seam holds:** after Slice 1, `git grep -nw fromHostPresences -- '*.ts' ':!*.test.ts'` (the stored field) finds only the type, its guard, `presenceParent.ts`, the cache guard and `mergeReducer.ts`, gateways' view accessor, and the handlers that write it. `git grep -nw fromHostPresence` (singular) finds only the retired-field guards, the step fields (until PS-2), and the wire and WML mappings.
-3. **No silent single-parent read:** after Slice 2, `git grep -n "parentOf(" -- '*.ts' ':!*.test.ts'` finds only `contentDestinations` (until Slice 6) and `presenceParent.ts`.
+3. **No silent single-parent read:** after Slice 2, `git grep -n "parentOf(" -- '*.ts' ':!*.test.ts'` finds only `presenceParent.ts`, `healPresenceCover.ts`, `applyStepSequenceCore.ts`, `movePresenceBinding.ts` and `resolvePresenceMoves.ts` (until PS-2 and Slice 4), and `removeAuthoredObject.ts` (`contentDestinations`, until Slice 6). `git grep -nw parentHostOf` finds nothing.
 4. **Anchor resolution:** every `](Other.md#anchor)` in this file resolves. Copy existing links rather than deriving slugs.
 
 ## Progress
@@ -163,8 +163,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | --- | --- |
 | 0. Verify premises | Done 2026-10-19 |
 | 1. Set type behind the seam | Done 2026-10-19 |
-| 2. Set-aware readers | Ready |
-| 3. Positive invariant | Waiting on 2 |
+| 2. Set-aware readers | Done 2026-10-19 |
+| 3. Positive invariant | Ready |
 | 4. Move under parent sets | Blocked on PS-2, PS-3 |
 | 5. Sharing writes | Blocked on PS-2; last item on PS-4 |
 | 6. `contentDestinations` | Blocked on PR-26 |

@@ -3,7 +3,7 @@ import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from './index'
-import { bindingHasParent, childParentBindingIdOf, parentBinding, parentBindingsOf, parentOf, parentsOf, unpointedBindingOf } from './presenceParent'
+import { bindingHasParent, bindingHasParentOn, childParentBindingIdOf, parentBindingsOf, parentHostsOf, parentsOfBinding, parentOf, parentsOf, unpointedBindingOf } from './presenceParent'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from './testFixtures'
 
 const area = 'AREA#Town' as EphemeraAreaId
@@ -58,19 +58,24 @@ describe('parentBindingsOf', () => {
     })
 })
 
-describe('parentBinding', () => {
-    it('returns the named binding\'s parent', async () => {
+describe('parentsOfBinding', () => {
+    it('returns the named binding\'s parents', async () => {
         const getGraph = graphsFrom({ [cup]: [presenceBindingNode('cup-shelf', shelf), presenceBindingNode('cup-roomA', roomA)] })
-        await expect(parentBinding(cup, presenceBindingNode('cup-roomA').universalKey, getGraph)).resolves.toEqual({ host: roomA, presence: parentRemainderKey(roomA) })
+        await expect(parentsOfBinding(cup, presenceBindingNode('cup-roomA').universalKey, getGraph)).resolves.toEqual([{ host: roomA, presence: parentRemainderKey(roomA) }])
     })
 
-    it('returns undefined for a hostless remainder', async () => {
+    it('returns every parent of a shared binding', async () => {
+        const getGraph = graphsFrom({ [cup]: [presenceBindingNode('cup-shared', [roomA, shelf])] })
+        await expect(parentsOfBinding(cup, presenceBindingNode('cup-shared').universalKey, getGraph)).resolves.toHaveLength(2)
+    })
+
+    it('returns no parents for a hostless remainder', async () => {
         const getGraph = graphsFrom({ [roomA]: [presenceBindingNode('roomA-remainder')] })
-        await expect(parentBinding(roomA, presenceBindingNode('roomA-remainder').universalKey, getGraph)).resolves.toBeUndefined()
+        await expect(parentsOfBinding(roomA, presenceBindingNode('roomA-remainder').universalKey, getGraph)).resolves.toEqual([])
     })
 
     it('throws when the binding is not on the owner\'s graph', async () => {
-        await expect(parentBinding(cup, presenceBindingNode('missing').universalKey, graphsFrom({}))).rejects.toThrow(/not found/)
+        await expect(parentsOfBinding(cup, presenceBindingNode('missing').universalKey, graphsFrom({}))).rejects.toThrow(/not found/)
     })
 })
 
@@ -116,6 +121,14 @@ describe('parent sets', () => {
         expect(bindingHasParent(shared, underShelf)).toBe(true)
         expect(bindingHasParent(shared, { host: roomB, presence: parentRemainderKey(roomB) })).toBe(false)
         expect(bindingHasParent(presenceBindingNode('die-hostless'), underRoomA)).toBe(false)
+    })
+
+    it('host tests read "some parent is on H": parentHostsOf is distinct hosts, bindingHasParentOn is membership', () => {
+        const twoOnOneHost = presenceBindingNode('die-two', [underRoomA, { host: roomA, presence: 'PRESENCE#other' as any }, underShelf])
+        expect(parentHostsOf(twoOnOneHost)).toEqual([roomA, shelf])
+        expect(parentHostsOf(presenceBindingNode('die-hostless'))).toEqual([])
+        expect(bindingHasParentOn(shared, shelf)).toBe(true)
+        expect(bindingHasParentOn(shared, roomB)).toBe(false)
     })
 
     it('unpointedBindingOf finds the binding with an empty parent set', () => {

@@ -37,6 +37,14 @@ describe('bindingIdsInto', () => {
     })
 })
 
+describe('bindingIdsInto (shared binding)', () => {
+    it('lists a binding when some parent is the room', () => {
+        const graph = testLudicGraph('CHARACTER#Alpha' as any, { nodes: [presenceBindingNode('shared', [R1, R2]), presenceBindingNode('other', R2)] })
+        expect(bindingIdsInto(graph, R1)).toEqual(['PRESENCE#shared'])
+        expect(bindingIdsInto(graph, R2)).toEqual(['PRESENCE#shared', 'PRESENCE#other'])
+    })
+})
+
 describe('charactersRowItemsFor', () => {
     it('removes a character from a room it left and sets it, with its binding ids, in the room it arrived at', () => {
         expect(charactersRowItemsFor(

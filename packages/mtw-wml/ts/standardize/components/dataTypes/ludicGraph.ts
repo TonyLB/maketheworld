@@ -42,8 +42,8 @@ export type StandardLudicGraphPresenceParentPointerData = {
 export type StandardLudicGraphPresenceNodeData = {
     tag: 'Presence'
     universalKey: string
-    /** Absent on a hostless remainder. */
-    fromHostPresence?: StandardLudicGraphPresenceParentPointerData
+    /** Every parent binding this one sits under; absent on a hostless binding. */
+    fromHostPresences?: StandardLudicGraphPresenceParentPointerData[]
     cover: StandardLudicGraphPresenceCoverData
     ref?: number
 }
@@ -68,10 +68,13 @@ export const isStandardLudicGraphPresenceNodeData = (arg: unknown): arg is Stand
         return false
     }
     return typeof node.universalKey === 'string' &&
-        (node.fromHostPresence === undefined || (
-            typeof node.fromHostPresence === 'object' && node.fromHostPresence !== null &&
-            isStandardReferenceData(node.fromHostPresence.host) &&
-            typeof node.fromHostPresence.presence === 'string'
+        (node.fromHostPresences === undefined || (
+            Array.isArray(node.fromHostPresences) &&
+            node.fromHostPresences.every((parent) => (
+                typeof parent === 'object' && parent !== null &&
+                isStandardReferenceData(parent.host) &&
+                typeof parent.presence === 'string'
+            ))
         )) &&
         isStandardLudicGraphPresenceCoverData(node.cover) &&
         (node.ref === undefined || typeof node.ref === 'number')

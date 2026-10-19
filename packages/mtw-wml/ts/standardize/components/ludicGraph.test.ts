@@ -185,7 +185,7 @@ describe("StandardLudicGraph", () => {
                     {
                         tag: 'Presence' as const,
                         universalKey: 'PRESENCE#p3',
-                        fromHostPresence: { host: 'ROOM#hall' as const, presence: 'PRESENCE#hallRoot' },
+                        fromHostPresences: [{ host: 'ROOM#hall' as const, presence: 'PRESENCE#hallRoot' }],
                         cover: {
                             members: [
                                 { host: 'OBJECT#rope' as const, presence: 'PRESENCE#p2' },

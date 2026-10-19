@@ -11,7 +11,7 @@ import { isStandardLudicGraphPresenceNodeData } from '@tonylb/mtw-wml/ts/standar
 
 import { testLudicGraph } from './testFixtures'
 import { fromWireLudicGraph, toWireLudicGraph } from './wireProjection'
-import { parentRemainderKey } from './testFixtures'
+import { parentRemainderKey, presenceBindingNode } from './testFixtures'
 
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const roomId = 'ROOM#Lab' as EphemeraRoomId
@@ -77,6 +77,29 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
 
             const roundTripped = fromWireLudicGraph(tableId, wire)
             expect(roundTripped).toEqual(graph.toStored())
+        })
+    })
+
+    describe('shared binding', () => {
+        it('carries every parent through the wire and back', () => {
+            const uuid = 'shared1'
+            const graph = testLudicGraph(boxId, {
+                nodes: [
+                    { tag: 'Object', universalKey: boxId },
+                    { tag: 'Room', universalKey: roomId },
+                    { tag: 'Room', universalKey: hallId },
+                    presenceBindingNode(uuid, [roomId, hallId]),
+                    presenceBindingNode('hostless'),
+                ],
+            })
+            const wire = toWireLudicGraph(graph, uuid)
+            const shared = wire.nodes!.find((node) => typeof node === 'object' && 'universalKey' in node && node.universalKey === `PRESENCE#${uuid}`)
+            expect(isStandardLudicGraphPresenceNodeData(shared)).toBe(true)
+            expect((shared as any).fromHostPresences).toHaveLength(2)
+            const hostless = wire.nodes!.find((node) => typeof node === 'object' && 'universalKey' in node && node.universalKey === 'PRESENCE#hostless')
+            expect(hostless).not.toHaveProperty('fromHostPresences')
+            const sharedBack = fromWireLudicGraph(boxId, wire).nodes!.find((node: any) => node.universalKey === `PRESENCE#${uuid}`)
+            expect(sharedBack).toEqual(graph.presenceNodes.find((node) => node.universalKey === `PRESENCE#${uuid}`))
         })
     })
 

@@ -55,7 +55,7 @@ import { stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../../internalCache'
 import { EphemeraLudicGraph, nodeFromId } from '../ludicGraph'
-import { parentHostOf } from '../ludicGraph/presenceParent'
+import { bindingHasParentOn } from '../ludicGraph/presenceParent'
 import { resolveComponentCacheFields } from '../../objects/objectShortName'
 import { enumerateLudicCacheShards, type EnumerateLudicCacheShardsDeps } from './enumerateShards'
 import { collapseCrossingPorts, dedupeEdgesByIdentity, foldSameHostBuckets } from './mergeReducer'
@@ -123,7 +123,7 @@ export const buildLudicCache = async (
             .filter((nodeId) => nodeId !== hostId && isEphemeraMembershipHostId(nodeId))
             .map((nodeId) => graphs.get(nodeId as EphemeraMembershipHostId))
             .filter((childGraph): childGraph is EphemeraLudicGraph =>
-                !!childGraph && childGraph.presenceNodes.some((presenceNode) => parentHostOf(presenceNode) === hostId))
+                !!childGraph && childGraph.presenceNodes.some((presenceNode) => bindingHasParentOn(presenceNode, hostId)))
             .flatMap((childGraph) => collapseCrossingPorts(graph, childGraph))
 
         return { hostId, presenceNodes, edges: [...sameHostEdges, ...crossingEdges] }
