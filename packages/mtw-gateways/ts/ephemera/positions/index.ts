@@ -55,10 +55,13 @@ export {
     coveredByBinding,
     coverageViolationsOf,
     lacksBase,
+    orphanRepairsFor,
+    orphanedPointersOf,
     rebuiltCoverEntries,
     wholeMembersOf,
 } from './classifyPresenceCoverDrift'
 export type {
+    OrphanedPointer,
     PresenceBindingView,
     PresenceCoverDriftFinding,
     PresenceCoverDriftVerdict,

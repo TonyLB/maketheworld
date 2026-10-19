@@ -32,8 +32,8 @@ jest.mock('./ludicGraphStaleStructureSweep', () => ({
 jest.mock('./presenceCoverDriftSweep', () => ({
     presenceCoverDriftSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[], unrepairable: [] as unknown[] }))
 }))
-jest.mock('./containmentPopulationDriftSweep', () => ({
-    containmentPopulationDriftSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[] }))
+jest.mock('./fixedContainmentDriftSweep', () => ({
+    fixedContainmentDriftSweep: jest.fn(async () => ({ emittedCount: 0, ephemeraIds: [] as string[] }))
 }))
 jest.mock('./ludicGraphPortMismatchSweep', () => ({
     ludicGraphPortMismatchSweep: jest.fn(async () => ({ emittedCount: 0, ports: [] as { ephemeraId: string; portId: string }[] }))
@@ -47,7 +47,7 @@ import { renderCacheDriftSweep } from './renderCacheDriftSweep'
 import { orphanedImprovisedObjectSweep } from './orphanedImprovisedObjectSweep'
 import { ludicGraphStaleStructureSweep } from './ludicGraphStaleStructureSweep'
 import { ludicGraphPortMismatchSweep } from './ludicGraphPortMismatchSweep'
-import { containmentPopulationDriftSweep } from './containmentPopulationDriftSweep'
+import { fixedContainmentDriftSweep } from './fixedContainmentDriftSweep'
 import { presenceCoverDriftSweep } from './presenceCoverDriftSweep'
 import { handler } from './app'
 
@@ -74,8 +74,8 @@ describe('diagnostics handler', () => {
         jest.mocked(ludicGraphStaleStructureSweep).mockResolvedValue({ emittedCount: 0, ephemeraIds: [] as EphemeraMembershipHostId[] })
         jest.mocked(ludicGraphPortMismatchSweep).mockReset()
         jest.mocked(ludicGraphPortMismatchSweep).mockResolvedValue({ emittedCount: 0, ports: [] })
-        jest.mocked(containmentPopulationDriftSweep).mockReset()
-        jest.mocked(containmentPopulationDriftSweep).mockResolvedValue({ emittedCount: 0, ephemeraIds: [] as EphemeraMembershipHostId[] })
+        jest.mocked(fixedContainmentDriftSweep).mockReset()
+        jest.mocked(fixedContainmentDriftSweep).mockResolvedValue({ emittedCount: 0, ephemeraIds: [] as EphemeraMembershipHostId[] })
     })
 
     it('invokes staleSessionSweep for direct StaleSessionSweep via api.diagnostics synthetic lane', async () => {
@@ -247,18 +247,18 @@ describe('diagnostics handler', () => {
         expect(result).toEqual({ emittedCount: 1, ephemeraIds: ['ROOM#Kitchen'] })
     })
 
-    it('invokes containmentPopulationDriftSweep for direct ContainmentPopulationDriftSweep type', async () => {
-        jest.mocked(containmentPopulationDriftSweep).mockResolvedValueOnce({
+    it('invokes fixedContainmentDriftSweep for direct FixedContainmentDriftSweep type', async () => {
+        jest.mocked(fixedContainmentDriftSweep).mockResolvedValueOnce({
             emittedCount: 1,
             ephemeraIds: ['AREA#Overworld' as EphemeraMembershipHostId],
         })
         const result = await handler({
-            type: 'ContainmentPopulationDriftSweep',
+            type: 'FixedContainmentDriftSweep',
             diagnosticRunId: 'dr-cpd',
             nowMs: 5555,
         })
 
-        expect(containmentPopulationDriftSweep).toHaveBeenCalledWith({
+        expect(fixedContainmentDriftSweep).toHaveBeenCalledWith({
             diagnosticRunId: 'dr-cpd',
             nowMs: 5555,
         })

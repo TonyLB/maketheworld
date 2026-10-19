@@ -10,7 +10,7 @@ import {
     isPlayerMisalignmentFindingEvent,
     isComponentVerticalMisalignedFindingEvent,
     isLudicGraphStaleStructureFindingEvent,
-    isContainmentPopulationDriftFindingEvent,
+    isFixedContainmentDriftFindingEvent,
     isPresenceCoverDriftFindingEvent,
     isLudicGraphPortMismatchFindingEvent,
     isWMLMaterializedViewFindingEvent,
@@ -1155,16 +1155,16 @@ describe('DiagnosticsEventSerializer', () => {
             })
         })
 
-        describe('isContainmentPopulationDriftFindingEvent', () => {
+        describe('isFixedContainmentDriftFindingEvent', () => {
             it('accepts a membership-host parent and rejects anything else', () => {
-                expect(isContainmentPopulationDriftFindingEvent({
-                    type: 'Containment Population Drift Finding',
+                expect(isFixedContainmentDriftFindingEvent({
+                    type: 'Fixed Containment Drift Finding',
                     ephemeraId: 'AREA#Downtown',
                     diagnosticRunId: 'run-1',
                     timestamp: '2025-10-18T12:00:00.000Z'
                 })).toBe(true)
-                expect(isContainmentPopulationDriftFindingEvent({ type: 'Containment Population Drift Finding', ephemeraId: 'BOGUS#x' })).toBe(false)
-                expect(isContainmentPopulationDriftFindingEvent({ type: 'Ludic Graph Stale Structure Finding', ephemeraId: 'ROOM#Kitchen' })).toBe(false)
+                expect(isFixedContainmentDriftFindingEvent({ type: 'Fixed Containment Drift Finding', ephemeraId: 'BOGUS#x' })).toBe(false)
+                expect(isFixedContainmentDriftFindingEvent({ type: 'Ludic Graph Stale Structure Finding', ephemeraId: 'ROOM#Kitchen' })).toBe(false)
             })
         })
 
@@ -1177,7 +1177,7 @@ describe('DiagnosticsEventSerializer', () => {
                     timestamp: '2025-10-18T12:00:00.000Z'
                 })).toBe(true)
                 expect(isPresenceCoverDriftFindingEvent({ type: 'Presence Cover Drift Finding', ephemeraId: 'BOGUS#x' })).toBe(false)
-                expect(isPresenceCoverDriftFindingEvent({ type: 'Containment Population Drift Finding', ephemeraId: 'ROOM#Kitchen' })).toBe(false)
+                expect(isPresenceCoverDriftFindingEvent({ type: 'Fixed Containment Drift Finding', ephemeraId: 'ROOM#Kitchen' })).toBe(false)
             })
         })
 
@@ -1406,9 +1406,9 @@ describe('DiagnosticsEventSerializer', () => {
             expect(deserialized).toEqual(original)
         })
 
-        it('should round-trip Containment Population Drift Finding', async () => {
+        it('should round-trip Fixed Containment Drift Finding', async () => {
             const original: DiagnosticsEventUpdate = {
-                type: 'Containment Population Drift Finding',
+                type: 'Fixed Containment Drift Finding',
                 ephemeraId: 'ROOM#Kitchen',
                 diagnosticRunId: 'run-cpd-rt',
                 timestamp: '2025-10-18T18:24:00.000Z'
@@ -1416,20 +1416,20 @@ describe('DiagnosticsEventSerializer', () => {
 
             const external = serializer.serialize({
                 content: original,
-                header: diagnosticsHeader('Containment Population Drift Finding')
+                header: diagnosticsHeader('Fixed Containment Drift Finding')
             })
             const deserialized = await serializer.deserialize({
                 content: external,
-                header: diagnosticsHeader('Containment Population Drift Finding')
+                header: diagnosticsHeader('Fixed Containment Drift Finding')
             })
 
             expect(deserialized).toEqual(original)
         })
 
-        it('should return null for Containment Population Drift Finding with invalid ephemeraId', async () => {
+        it('should return null for Fixed Containment Drift Finding with invalid ephemeraId', async () => {
             const deserialized = await serializer.deserialize({
-                content: { type: 'Containment Population Drift Finding', ephemeraId: 'BOGUS#x' },
-                header: diagnosticsHeader('Containment Population Drift Finding')
+                content: { type: 'Fixed Containment Drift Finding', ephemeraId: 'BOGUS#x' },
+                header: diagnosticsHeader('Fixed Containment Drift Finding')
             })
             expect(deserialized).toBeNull()
         })

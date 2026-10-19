@@ -1,4 +1,4 @@
-import { coverRebuildsFor, wholeMembersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { coverRebuildsFor, orphanRepairsFor, wholeMembersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -18,6 +18,36 @@ const viewOf = (graph: EphemeraLudicGraph): PresenceGraphView => ({
     presenceNodes: graph.presenceNodes,
 })
 
+/** The member-side repairs for `memberId`. A host whose graph cannot be read counts as absent, so its orphans are report-only. */
+const orphanRepairSteps = async (
+    memberId: EphemeraMembershipHostId,
+    memberGraph: EphemeraLudicGraph
+): Promise<MutationKernelRepairPresenceBindingStep[]> => {
+    const member = viewOf(memberGraph)
+    const hosts = new Map<string, PresenceGraphView>()
+    for (const binding of member.presenceNodes) {
+        const hostId = binding.fromHostPresence?.host
+        if (!hostId || hosts.has(hostId) || !isEphemeraMembershipHostId(hostId)) {
+            continue
+        }
+        try {
+            hosts.set(hostId, viewOf(await internalCache.Positions.getLudicGraph(hostId)))
+        } catch (error) {
+            // Unreadable reads as absent: the orphan stays report-only, and nothing is written for it.
+        }
+    }
+    return orphanRepairsFor(member, (hostId) => hosts.get(hostId)).map(({ bindingId, fromHostPresence }) => {
+        const binding = memberGraph.presenceNodes.find((node) => node.universalKey === bindingId)!
+        return {
+            kind: 'repairPresenceBinding',
+            hostId: memberId,
+            presenceId: bindingId as EphemeraPresenceNodeId,
+            fromHostPresence: binding.fromHostPresence,
+            cover: binding.cover,
+        }
+    })
+}
+
 /**
  * The `Presence Cover Drift Finding` consumer: rebuilds a whole's covers from its
  * members' `fromHostPresence` pointers, which govern (the cover is a stored index of them). Reads
@@ -25,6 +55,11 @@ const viewOf = (graph: EphemeraLudicGraph): PresenceGraphView => ({
  * (`coverRebuildsFor`, so a redelivered finding whose drift is already healed commits nothing), and
  * rewrites each disagreeing cover through `repairPresenceBinding`: in place, same id, so no
  * pointer is orphaned. No new emitter.
+ *
+ * The same id is also judged as a **member**: each of its bindings whose pointer names a host that holds the
+ * named binding but lacks this node (`orphanRepairsFor`) gets a `repairPresenceBinding` with pointer and cover
+ * unchanged; `settleMembership` re-seats the node and `writeCoverIndex` re-adds the cover entry. It mints nothing.
+ * An orphan whose host row or named binding is absent is not repaired (report-only in the sweep).
  *
  * **Not repaired, deliberately:** an unbound or duplicated member binding, an uncovered member, and a whole with no
  * `PRESENCE#Base`. Fixing those means minting a binding or a bucket, which the single write path reserves to the
@@ -53,7 +88,7 @@ export const healPresenceCover = async (
         }
     }
 
-    const steps = coverRebuildsFor(whole, (memberId) => views.get(memberId)).map(({ bindingId, entries }): MutationKernelRepairPresenceBindingStep => {
+    const coverSteps = coverRebuildsFor(whole, (memberId) => views.get(memberId)).map(({ bindingId, entries }): MutationKernelRepairPresenceBindingStep => {
         const binding = wholeGraph.presenceNodes.find((node) => node.universalKey === bindingId)!
         return {
             kind: 'repairPresenceBinding',
@@ -63,6 +98,8 @@ export const healPresenceCover = async (
             cover: { members: entries.map((entry) => ({ host: entry.host as EphemeraPresenceCoverEntry['host'], presence: entry.presence as EphemeraPresenceNodeId })) },
         }
     })
+    const orphanSteps = await orphanRepairSteps(wholeId, wholeGraph)
+    const steps = [...coverSteps, ...orphanSteps]
     if (steps.length === 0) {
         return
     }

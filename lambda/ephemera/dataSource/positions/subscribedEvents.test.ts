@@ -5,7 +5,7 @@ import {
     isEphemeraPositionsActionsCharacterHomeEnvelope,
     isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope,
     isEphemeraPositionsDiagnosticsRoomOccupancyDriftFindingEnvelope,
-    isEphemeraPositionsDiagnosticsContainmentPopulationDriftFindingEnvelope,
+    isEphemeraPositionsDiagnosticsFixedContainmentDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsPresenceCoverDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope,
@@ -212,16 +212,16 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         expect(isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope(envelope as any)).toBe(true)
     })
 
-    it('accepts mtw.diagnostics Containment Population Drift Finding envelope', () => {
+    it('accepts mtw.diagnostics Fixed Containment Drift Finding envelope', () => {
         const envelope = {
             header: {
                 dataSourceKey: 'mtw.diagnostics',
                 streamKey: 'global',
                 timestamp: Date.now(),
-                type: 'Containment Population Drift Finding' as const,
+                type: 'Fixed Containment Drift Finding' as const,
             },
             getContent: () => Promise.resolve({
-                type: 'Containment Population Drift Finding' as const,
+                type: 'Fixed Containment Drift Finding' as const,
                 ephemeraId: 'AREA#Overworld' as const,
                 diagnosticRunId: 'diag-3',
                 timestamp: '2026-10-11T10:00:00.000Z',
@@ -229,7 +229,7 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
         }
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
-        expect(isEphemeraPositionsDiagnosticsContainmentPopulationDriftFindingEnvelope(envelope as any)).toBe(true)
+        expect(isEphemeraPositionsDiagnosticsFixedContainmentDriftFindingEnvelope(envelope as any)).toBe(true)
         expect(isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope(envelope as any)).toBe(false)
     })
 
@@ -251,7 +251,7 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
 
         expect(isEphemeraPositionsSubscribedEnvelope(envelope as any)).toBe(true)
         expect(isEphemeraPositionsDiagnosticsPresenceCoverDriftFindingEnvelope(envelope as any)).toBe(true)
-        expect(isEphemeraPositionsDiagnosticsContainmentPopulationDriftFindingEnvelope(envelope as any)).toBe(false)
+        expect(isEphemeraPositionsDiagnosticsFixedContainmentDriftFindingEnvelope(envelope as any)).toBe(false)
     })
 
     it('accepts mtw.diagnostics Ludic Graph Port Mismatch Finding envelope', () => {

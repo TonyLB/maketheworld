@@ -1,4 +1,4 @@
-import { classifyPresenceCoverDrift, coverRebuildsFor, coverageViolationsOf, lacksBase, rebuiltCoverEntries } from './classifyPresenceCoverDrift'
+import { classifyPresenceCoverDrift, coverRebuildsFor, coverageViolationsOf, lacksBase, orphanRepairsFor, orphanedPointersOf, rebuiltCoverEntries } from './classifyPresenceCoverDrift'
 import type { PresenceGraphView } from './classifyPresenceCoverDrift'
 
 const listing = (...hosts: string[]) => ({ members: hosts.map((host) => ({ host, presence: 'PRESENCE#f' })) })
@@ -159,5 +159,39 @@ describe('lacksBase', () => {
     it('passes a whole holding Base, and a whole with no binding at all', () => {
         expect(lacksBase(rooted([{ universalKey: 'PRESENCE#Base', cover: { members: [] } }]))).toBe(false)
         expect(lacksBase(rooted([]))).toBe(false)
+    })
+})
+
+describe('orphanedPointersOf', () => {
+    const host = (nodeIds: string[]): PresenceGraphView => ({ hostId: 'FEATURE#h', nodeIds: ['FEATURE#h', ...nodeIds], presenceNodes: [{ universalKey: 'PRESENCE#root', cover: { members: [] } }] })
+    const object = (pointers: PresenceGraphView['presenceNodes']) => child('OBJECT#o', pointers)
+    const aimed = [point('PRESENCE#b', 'PRESENCE#root', 'FEATURE#h')]
+
+    it('reads clean when the host holds the node', () => {
+        expect(orphanedPointersOf(object(aimed), lookup([host(['OBJECT#o'])]))).toEqual([])
+    })
+
+    it('finds a pointer whose host lacks the node, repairable when the host holds the named binding', () => {
+        const view = lookup([host([])])
+        expect(orphanedPointersOf(object(aimed), view)).toEqual([{ host: 'FEATURE#h', presence: 'PRESENCE#root', repairable: true }])
+        expect(orphanRepairsFor(object(aimed), view)).toEqual([{ bindingId: 'PRESENCE#b', fromHostPresence: { host: 'FEATURE#h', presence: 'PRESENCE#root' } }])
+    })
+
+    it('reports a missing host, or a missing named binding, as report-only', () => {
+        expect(orphanedPointersOf(object(aimed), lookup([]))).toEqual([{ host: 'FEATURE#h', presence: 'PRESENCE#root', repairable: false }])
+        const wrong = [point('PRESENCE#b', 'PRESENCE#gone', 'FEATURE#h')]
+        expect(orphanedPointersOf(object(wrong), lookup([host([])]))).toEqual([{ host: 'FEATURE#h', presence: 'PRESENCE#gone', repairable: false }])
+        expect(orphanRepairsFor(object(wrong), lookup([host([])]))).toEqual([])
+    })
+
+    it('leaves a character at a room (a bystander) alone, but not a character at a feature', () => {
+        const roomHost: PresenceGraphView = { hostId: 'ROOM#a', nodeIds: ['ROOM#a'], presenceNodes: [{ universalKey: 'PRESENCE#root', cover: { members: [] } }] }
+        expect(orphanedPointersOf(child('CHARACTER#c', [point('PRESENCE#b', 'PRESENCE#root', 'ROOM#a')]), lookup([roomHost]))).toEqual([])
+        expect(orphanedPointersOf(child('CHARACTER#c', aimed), lookup([host([])]))).toHaveLength(1)
+    })
+
+    it('skips a pointer with no presence (a retired shape)', () => {
+        const retired = [{ universalKey: 'PRESENCE#b', fromHostPresence: { host: 'FEATURE#h' } as any, cover: { members: [] } }]
+        expect(orphanedPointersOf(object(retired), lookup([host([])]))).toEqual([])
     })
 })

@@ -1,4 +1,4 @@
-import { EphemeraAssetId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { EphemeraAssetId, EphemeraAreaId, EphemeraFeatureId, EphemeraRoomId, isEphemeraAreaId, isEphemeraFeatureId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { assetDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { AssetKey } from '@tonylb/mtw-utilities/ts/types';
 
@@ -54,31 +54,35 @@ export class CacheAssetRoomsData {
     }
 }
 
+/** The membership hosts whose participating assets are listed (a Character's cache lists none). */
+export type AssetHostId = EphemeraRoomId | EphemeraAreaId | EphemeraFeatureId
+
+/** The `Meta::<Tag>` row that lists the assets whose cache holds a membership host. */
+const metaCategoryOf = (hostId: AssetHostId): string => (
+    isEphemeraAreaId(hostId) ? 'Meta::Area' : isEphemeraFeatureId(hostId) ? 'Meta::Feature' : 'Meta::Room'
+)
+
+/**
+ * The assets that participate in a membership host (Room, Area or Feature): `Meta::<Tag>.cached`.
+ * Named for its original Room-only use, which is still its main one.
+ */
 export class CacheRoomAssetsData {
-    RoomAssetsById: Record<EphemeraRoomId, { EphemeraId: EphemeraRoomId, cached: EphemeraAssetId[] }> = {};
+    RoomAssetsById: Record<string, { EphemeraId: AssetHostId, cached: EphemeraAssetId[] }> = {};
     clear() {
         this.RoomAssetsById = {}
     }
-    async get(roomId: EphemeraRoomId): Promise<EphemeraAssetId[] | undefined> {
-        if (!(this.RoomAssetsById[roomId])) {
-            const roomAssets = await assetDB.getItem<{ cached?: string[] }>({
-                Key: { AssetId: roomId, DataCategory: 'Meta::Room' },
+    async get(hostId: AssetHostId): Promise<EphemeraAssetId[] | undefined> {
+        if (!(this.RoomAssetsById[hostId])) {
+            const hostAssets = await assetDB.getItem<{ cached?: string[] }>({
+                Key: { AssetId: hostId, DataCategory: metaCategoryOf(hostId) },
                 ProjectionFields: ['cached']
             })
-            if (roomAssets) {
-                this.RoomAssetsById[roomId] = {
-                    EphemeraId: roomId,
-                    cached: (roomAssets.cached || []).map(AssetKey)
-                }
-            }
-            else {
-                this.RoomAssetsById[roomId] = {
-                    EphemeraId: roomId,
-                    cached: []
-                }
+            this.RoomAssetsById[hostId] = {
+                EphemeraId: hostId,
+                cached: (hostAssets?.cached || []).map(AssetKey)
             }
         }
-        return this.RoomAssetsById[roomId]?.cached || []
+        return this.RoomAssetsById[hostId]?.cached || []
     }
 
 }

@@ -33,13 +33,13 @@ export type DiagnosticsApiLudicGraphStaleStructureSweepHeader =
 export type DiagnosticsApiLudicGraphPortMismatchSweepHeader =
     StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'LudicGraphPortMismatchSweep' }
 
-export type DiagnosticsApiContainmentPopulationDriftSweepHeader =
-    StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'ContainmentPopulationDriftSweep' }
+export type DiagnosticsApiFixedContainmentDriftSweepHeader =
+    StreamingEventHeader & { dataSourceKey: 'api.diagnostics'; type: 'FixedContainmentDriftSweep' }
 
-const isDiagnosticsApiContainmentPopulationDriftSweepHeader: HeaderGuard<DiagnosticsApiContainmentPopulationDriftSweepHeader> = (
+const isDiagnosticsApiFixedContainmentDriftSweepHeader: HeaderGuard<DiagnosticsApiFixedContainmentDriftSweepHeader> = (
     header
-): header is DiagnosticsApiContainmentPopulationDriftSweepHeader => (
-    header.dataSourceKey === 'api.diagnostics' && header.type === 'ContainmentPopulationDriftSweep'
+): header is DiagnosticsApiFixedContainmentDriftSweepHeader => (
+    header.dataSourceKey === 'api.diagnostics' && header.type === 'FixedContainmentDriftSweep'
 )
 
 export type DiagnosticsApiPresenceCoverDriftSweepHeader =
@@ -128,7 +128,7 @@ export const isDiagnosticsSubscribedHeader: HeaderGuard<
     isDiagnosticsApiOrphanedImprovisedObjectSweepHeader(header) ||
     isDiagnosticsApiLudicGraphStaleStructureSweepHeader(header) ||
     isDiagnosticsApiLudicGraphPortMismatchSweepHeader(header) ||
-    isDiagnosticsApiContainmentPopulationDriftSweepHeader(header) ||
+    isDiagnosticsApiFixedContainmentDriftSweepHeader(header) ||
     isDiagnosticsApiPresenceCoverDriftSweepHeader(header)
 )
 
@@ -182,10 +182,10 @@ export const isDiagnosticsApiLudicGraphPortMismatchSweepEnvelope = makeStreaming
     DiagnosticsApiLudicGraphPortMismatchSweepHeader
 >(isDiagnosticsApiLudicGraphPortMismatchSweepHeader)
 
-export const isDiagnosticsApiContainmentPopulationDriftSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
-    Extract<DiagnosticsAPIPayload, { type: 'ContainmentPopulationDriftSweep' }>,
-    DiagnosticsApiContainmentPopulationDriftSweepHeader
->(isDiagnosticsApiContainmentPopulationDriftSweepHeader)
+export const isDiagnosticsApiFixedContainmentDriftSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
+    Extract<DiagnosticsAPIPayload, { type: 'FixedContainmentDriftSweep' }>,
+    DiagnosticsApiFixedContainmentDriftSweepHeader
+>(isDiagnosticsApiFixedContainmentDriftSweepHeader)
 
 export const isDiagnosticsApiPresenceCoverDriftSweepEnvelope = makeStreamingEnvelopeGuardFromHeaderGuard<
     Extract<DiagnosticsAPIPayload, { type: 'PresenceCoverDriftSweep' }>,

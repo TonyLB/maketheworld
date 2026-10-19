@@ -93,8 +93,8 @@ export type DiagnosticsLudicGraphStaleStructureFindingEvent = {
  * The subject is the **parent**, because population is keyed on the parent: the consumer reruns it
  * for that parent's existing children, with no asset diff needed.
  */
-export type DiagnosticsContainmentPopulationDriftFindingEvent = {
-    type: 'Containment Population Drift Finding'
+export type DiagnosticsFixedContainmentDriftFindingEvent = {
+    type: 'Fixed Containment Drift Finding'
     ephemeraId: EphemeraMembershipHostId
     diagnosticRunId: string
     timestamp: string
@@ -165,7 +165,7 @@ export type DiagnosticsEventUpdate =
     | DiagnosticsComponentVerticalMisalignedFindingEvent
     | DiagnosticsLudicGraphStaleStructureFindingEvent
     | DiagnosticsLudicGraphPortMismatchFindingEvent
-    | DiagnosticsContainmentPopulationDriftFindingEvent
+    | DiagnosticsFixedContainmentDriftFindingEvent
     | DiagnosticsPresenceCoverDriftFindingEvent
     | DiagnosticsHealGlobalValuesContent
 
@@ -232,8 +232,8 @@ export type DiagnosticsLudicGraphStaleStructureFindingEventExternal = {
     timestamp?: string
 }
 
-export type DiagnosticsContainmentPopulationDriftFindingEventExternal = {
-    type: 'Containment Population Drift Finding'
+export type DiagnosticsFixedContainmentDriftFindingEventExternal = {
+    type: 'Fixed Containment Drift Finding'
     ephemeraId: EphemeraMembershipHostId
     diagnosticRunId?: string
     timestamp?: string
@@ -281,7 +281,7 @@ export type DiagnosticsEventExternal =
     | DiagnosticsComponentVerticalMisalignedFindingEventExternal
     | DiagnosticsLudicGraphStaleStructureFindingEventExternal
     | DiagnosticsLudicGraphPortMismatchFindingEventExternal
-    | DiagnosticsContainmentPopulationDriftFindingEventExternal
+    | DiagnosticsFixedContainmentDriftFindingEventExternal
     | DiagnosticsPresenceCoverDriftFindingEventExternal
 
 //
@@ -425,13 +425,13 @@ export const isLudicGraphStaleStructureFindingEvent = (
     )
 }
 
-export const isContainmentPopulationDriftFindingEvent = (
+export const isFixedContainmentDriftFindingEvent = (
     event: any
-): event is DiagnosticsContainmentPopulationDriftFindingEvent => {
+): event is DiagnosticsFixedContainmentDriftFindingEvent => {
     return Boolean(
         event &&
         typeof event === 'object' &&
-        event.type === 'Containment Population Drift Finding' &&
+        event.type === 'Fixed Containment Drift Finding' &&
         typeof event.ephemeraId === 'string' &&
         isEphemeraMembershipHostId(event.ephemeraId)
     )
@@ -482,7 +482,7 @@ export const isDiagnosticsEventUpdate = (event: unknown): event is DiagnosticsEv
         isStaleSessionIdFindingEvent(event) || isRoomOccupancyDriftFindingEvent(event) ||
         isOrphanedImprovisedObjectFindingEvent(event) || isPlayerMisalignmentFindingEvent(event) ||
         isComponentVerticalMisalignedFindingEvent(event) || isLudicGraphStaleStructureFindingEvent(event) ||
-        isLudicGraphPortMismatchFindingEvent(event) || isContainmentPopulationDriftFindingEvent(event) ||
+        isLudicGraphPortMismatchFindingEvent(event) || isFixedContainmentDriftFindingEvent(event) ||
         isPresenceCoverDriftFindingEvent(event) ||
         (typeof event === 'object' && event !== null && (event as any).type === 'Heal Global Values')
 }
@@ -593,9 +593,9 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
                 timestamp: content.timestamp
             }
         }
-        if (header.type === 'Containment Population Drift Finding' && isContainmentPopulationDriftFindingEvent(content)) {
+        if (header.type === 'Fixed Containment Drift Finding' && isFixedContainmentDriftFindingEvent(content)) {
             return {
-                type: 'Containment Population Drift Finding',
+                type: 'Fixed Containment Drift Finding',
                 ephemeraId: content.ephemeraId,
                 diagnosticRunId: content.diagnosticRunId,
                 timestamp: content.timestamp
@@ -776,12 +776,12 @@ export class DiagnosticsEventSerializer implements DataSourceEventSerializer<Dia
             }
         }
 
-        if (eventType === 'Containment Population Drift Finding') {
+        if (eventType === 'Fixed Containment Drift Finding') {
             if (typeof content.ephemeraId !== 'string' || !isEphemeraMembershipHostId(content.ephemeraId)) {
                 return null
             }
             return {
-                type: 'Containment Population Drift Finding',
+                type: 'Fixed Containment Drift Finding',
                 ephemeraId: content.ephemeraId as EphemeraMembershipHostId,
                 diagnosticRunId: content.diagnosticRunId || 'unknown',
                 timestamp: content.timestamp || new Date().toISOString()

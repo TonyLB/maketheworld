@@ -1,7 +1,7 @@
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge'
 import { v4 as uuidv4 } from 'uuid'
 import {
-    DiagnosticsContainmentPopulationDriftFindingEvent,
+    DiagnosticsFixedContainmentDriftFindingEvent,
     DiagnosticsEventSerializer,
 } from '@tonylb/mtw-interfaces/ts/eventBridge/diagnostics'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -11,7 +11,8 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { QueryPageEnvelope } from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/query'
 import type { DBHandlerItem } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses'
 
-import { containmentDriftParentsOf } from './classification'
+import { isFixedContainmentDrifted } from './classification'
+import { authoredChildrenOf } from './authoredNestings'
 
 type HostMetaRow = {
     EphemeraId: string
@@ -19,13 +20,14 @@ type HostMetaRow = {
     ludicGraph?: unknown
 }
 
-export type ContainmentPopulationDriftSweepResult = {
+export type FixedContainmentDriftSweepResult = {
     emittedCount: number
     ephemeraIds: EphemeraMembershipHostId[]
 }
 
-export type ContainmentPopulationDriftSweepDependencies = {
+export type FixedContainmentDriftSweepDependencies = {
     listCandidateRows?: () => Promise<HostMetaRow[]>
+    listAuthoredChildren?: (parentId: string) => Promise<string[]>
     emitFinding?: (args: {
         ephemeraId: EphemeraMembershipHostId
         diagnosticRunId: string
@@ -68,6 +70,9 @@ const queryAllEphemeraRowsByDataCategory = async <T extends DBHandlerItem<'Ephem
 // rows hold the root a Room's carve-out names.
 const CHILD_DATA_CATEGORIES = ['Meta::Room', 'Meta::Feature', 'Meta::Area'] as const
 
+// Each parent's setpoint read is a few Dynamo reads; bound how many run at once.
+const AUTHORED_READ_CONCURRENCY = 10
+
 const defaultListCandidateRows = async (): Promise<HostMetaRow[]> => {
     const rowsByCategory = await Promise.all(
         CHILD_DATA_CATEGORIES.map((dataCategory) => queryAllEphemeraRowsByDataCategory<HostMetaRow>({
@@ -85,8 +90,8 @@ const defaultEmitFinding = async (args: {
     eventBusName: string
 }): Promise<void> => {
     const serializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
-    const internalEvent: DiagnosticsContainmentPopulationDriftFindingEvent = {
-        type: 'Containment Population Drift Finding',
+    const internalEvent: DiagnosticsFixedContainmentDriftFindingEvent = {
+        type: 'Fixed Containment Drift Finding',
         ephemeraId: args.ephemeraId,
         diagnosticRunId: args.diagnosticRunId,
         timestamp: new Date(args.nowMs).toISOString(),
@@ -95,7 +100,7 @@ const defaultEmitFinding = async (args: {
         dataSourceKey: 'mtw.diagnostics' as const,
         streamKey: 'global',
         timestamp: args.nowMs,
-        type: 'Containment Population Drift Finding' as const,
+        type: 'Fixed Containment Drift Finding' as const,
     }
     const { eventBridgeEvent } = publishStreamEvent({
         header,
@@ -114,34 +119,47 @@ const defaultEmitFinding = async (args: {
 }
 
 /**
- * Read-only diagnostics sweep for containment-population drift: a Room's, Feature's or Area's presence
- * binding stored in a shape cache-time population would now write differently (see
- * `classification.ts`). Emits one `Containment Population Drift Finding` per **parent** host,
- * since population is keyed on the parent; ephemera's consumer reruns it for that parent with no
- * asset diff needed. Report-only: performs no repair. A clean second run (`emittedCount: 0`) is
- * the check that every heal landed.
+ * Read-only diagnostics sweep for fixed-containment drift: a Room, Feature or Area whose stored
+ * rows disagree with the nestings its authored assets declare (see `classification.ts`). Emits one
+ * `Fixed Containment Drift Finding` per drifted **parent** host, since population is keyed on
+ * the parent; ephemera's consumer reruns it for that parent with no asset diff needed. Report-only:
+ * performs no repair. A clean second run (`emittedCount: 0`) is the check that every heal landed.
  */
-export const containmentPopulationDriftSweep = async (
+export const fixedContainmentDriftSweep = async (
     params?: {
         diagnosticRunId?: string
         nowMs?: number
     },
-    deps?: ContainmentPopulationDriftSweepDependencies
-): Promise<ContainmentPopulationDriftSweepResult> => {
+    deps?: FixedContainmentDriftSweepDependencies
+): Promise<FixedContainmentDriftSweepResult> => {
     const eventBusName = process.env.EVENT_BUS_NAME
     if (!eventBusName) {
-        throw new Error('containmentPopulationDriftSweep requires EVENT_BUS_NAME')
+        throw new Error('fixedContainmentDriftSweep requires EVENT_BUS_NAME')
     }
 
     const nowMs = params?.nowMs ?? Date.now()
     const diagnosticRunId = params?.diagnosticRunId ?? uuidv4()
     const resolvedDeps = {
         listCandidateRows: deps?.listCandidateRows ?? defaultListCandidateRows,
+        listAuthoredChildren: deps?.listAuthoredChildren ?? authoredChildrenOf,
         emitFinding: deps?.emitFinding ?? defaultEmitFinding,
     }
 
     const rows = await resolvedDeps.listCandidateRows()
-    const parentIds = [...new Set(rows.flatMap((row) => containmentDriftParentsOf(row.EphemeraId, row.ludicGraph)))].sort()
+    const graphById = new Map(rows.map((row) => [row.EphemeraId, row.ludicGraph]))
+    const driftedParents: EphemeraMembershipHostId[] = []
+    for (let start = 0; start < rows.length; start += AUTHORED_READ_CONCURRENCY) {
+        const batch = await Promise.all(rows.slice(start, start + AUTHORED_READ_CONCURRENCY).map(async (row) => (
+            isFixedContainmentDrifted(
+                row.EphemeraId,
+                row.ludicGraph,
+                await resolvedDeps.listAuthoredChildren(row.EphemeraId),
+                (childId) => graphById.get(childId)
+            ) ? [row.EphemeraId as EphemeraMembershipHostId] : []
+        )))
+        driftedParents.push(...batch.flat())
+    }
+    const parentIds = [...new Set(driftedParents)].sort()
 
     for (const ephemeraId of parentIds) {
         await resolvedDeps.emitFinding({
@@ -158,4 +176,4 @@ export const containmentPopulationDriftSweep = async (
     }
 }
 
-export { containmentDriftParentsOf } from './classification'
+export { isFixedContainmentDrifted } from './classification'

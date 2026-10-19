@@ -8,7 +8,7 @@ import messageBus from '../messageBus'
 import { orphanedImprovisedObjectSweep } from '../orphanedImprovisedObjectSweep'
 import { ludicGraphStaleStructureSweep } from '../ludicGraphStaleStructureSweep'
 import { ludicGraphPortMismatchSweep } from '../ludicGraphPortMismatchSweep'
-import { containmentPopulationDriftSweep } from '../containmentPopulationDriftSweep'
+import { fixedContainmentDriftSweep } from '../fixedContainmentDriftSweep'
 import { presenceCoverDriftSweep } from '../presenceCoverDriftSweep'
 import { roomOccupancyDriftSweep } from '../roomOccupancyDriftSweep'
 import { componentVerticalMisalignmentSweep } from '../componentVerticalMisalignmentSweep'
@@ -27,7 +27,7 @@ import {
     isDiagnosticsApiOrphanedImprovisedObjectSweepEnvelope,
     isDiagnosticsApiLudicGraphStaleStructureSweepEnvelope,
     isDiagnosticsApiLudicGraphPortMismatchSweepEnvelope,
-    isDiagnosticsApiContainmentPopulationDriftSweepEnvelope,
+    isDiagnosticsApiFixedContainmentDriftSweepEnvelope,
     isDiagnosticsApiPresenceCoverDriftSweepEnvelope,
     isDiagnosticsApiStaleSessionSweepEnvelope,
     isDiagnosticsSubscribedEnvelope
@@ -202,9 +202,9 @@ export const processDiagnosticsSubscribedEvents = async (events: any[]) => {
                 })
                 return
             }
-            if (isDiagnosticsApiContainmentPopulationDriftSweepEnvelope(event as any)) {
+            if (isDiagnosticsApiFixedContainmentDriftSweepEnvelope(event as any)) {
                 const content = await event.getContent()
-                const result = await containmentPopulationDriftSweep({
+                const result = await fixedContainmentDriftSweep({
                     diagnosticRunId: typeof content.diagnosticRunId === 'string' ? content.diagnosticRunId : undefined,
                     nowMs: typeof content.nowMs === 'number' ? content.nowMs : undefined
                 })

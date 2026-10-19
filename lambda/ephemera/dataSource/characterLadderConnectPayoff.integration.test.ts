@@ -84,7 +84,7 @@ describe('character eviction-ladder connect payoff (integration)', () => {
         jest.spyOn(internalCache.Global, 'get').mockImplementation(async (key: any) => (
             key === 'assets' ? ['primitives'] : undefined
         ))
-        jest.spyOn(internalCache.RoomAssets, 'get').mockImplementation(async (roomId: EphemeraRoomId) => (
+        jest.spyOn(internalCache.RoomAssets, 'get').mockImplementation(async (roomId: string) => (
             roomId === OVERLOOK_ROOM_ID ? ['ASSET#overlayOne'] as any : ['ASSET#primitives'] as any
         ))
 
