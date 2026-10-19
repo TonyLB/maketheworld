@@ -150,7 +150,7 @@ describe('executeMembershipTransfer', () => {
             .map(([graph]: any[]) => graph)
             .find((graph: EphemeraLudicGraph) => graph.hostId === OBJECT_ID)
         expect(committedOwnGraph?.presenceNodes).toEqual([
-            expect.objectContaining({ fromHostPresence: { host: TO_ROOM, presence: parentRemainderKey(TO_ROOM) } }),
+            expect.objectContaining({ fromHostPresences: [{ host: TO_ROOM, presence: parentRemainderKey(TO_ROOM) }] }),
         ])
     })
 

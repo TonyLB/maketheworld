@@ -1,6 +1,6 @@
 # Presence parent sets: implementation
 
-**Status: opened 2026-10-19. Slice 0 done 2026-10-19. Slice 1 is next, blocked on PS-1. PS-1 through PS-4 are Open; PS-3 and PS-4 are the user's to decide.**
+**Status: opened 2026-10-19. Slice 0 done 2026-10-19. Slice 1 done 2026-10-19 (stored rows healed). Slice 2 is next. Slice 2 is next. PS-2 through PS-4 are Open; PS-3 and PS-4 are the user's to decide.**
 
 **Scope in one sentence: a presence binding names a *set* of parent bindings rather than one, so the presence structure inside the ludicNetwork is a DAG rather than a forest rooted at hostless bindings, and a thing that sits identically under several parents holds one binding instead of copies.**
 
@@ -41,7 +41,7 @@ cd lambda/ephemera && npm run test -- --watchAll=false dataSource/positions/
 
 Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
 
-- [X] **Slice 0. Verify premises (no code).** Done 2026-10-19; answers inline. No new decision rows. Evidence added to PS-1, PS-2 and PS-4; lines added to Slices 1, 2, 4 and 8.
+- [X] **Slice 0. Verify premises (no code).** Done 2026-10-19; answers inline. No new decision rows. Evidence added to PS-2 and PS-4 (and the since-decided stored-shape row); lines added to Slices 1, 2, 4 and 8.
   - [X] **(a) Re-run the PR-25 survey against today's code.** Classify every reader of the pointer (the lists in Getting Started) as (i) a host test (`=== H` becomes "some parent is on H"), (ii) a binding test (`pointsAt` becomes membership in the set), (iii) a one-value read that must become a union or a choice (audience, `contentDestinations`, wire, WML), or (iv) a write. For each (iii), say whether the union is forced or is a decision; a choice that is a decision goes to the table below.
     - **Answer.** 24 production files name the field and 13 call the seam (Getting Started now lists both in full). A fifth class was needed, (v), for files that only carry the field.
       - **(i) Host tests:** `bindingPointsAt` (`settleMembership.ts`), `bindingIdsInto` (`charactersRow.ts`), the crossing filter in `fold.ts`, population's `existing`, `resolvePresenceMoves.ts` (`underHost`, `sitsUnderSeenBucket`), `fixedContainmentDriftSweep/classification.ts`, and the classifier's pointers into a whole (`classifyPresenceCoverDrift.ts`).
@@ -92,8 +92,8 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
       - **Candidates for PS-4:**
         - (1) population, for a Room or Feature authored under several parents;
         - (2) a play-time verb that adds a parent without leaving one ("put the ring in Rings of Power" while it stays on the Table), which does not exist.
-  - [X] **(e) Stored data.** Count presence nodes with a `fromHostPresence` in the dev world, for PS-1's migration.
-    - **Answer: the count decides only whether PS-1 needs a migration at all.**
+  - [X] **(e) Stored data.** Count presence nodes with a `fromHostPresence` in the dev world, for the stored-shape migration.
+    - **Answer: the count decides only whether the stored-shape change needs a migration at all.**
       - **Any nonzero count means nearly every row.** Every placed binding carries the field, so any count above zero means rewriting nearly every row that holds a placed whole. The exact number does not change the mechanism.
       - **Where the field is stored:**
         - the `ludicGraph` on the five host kinds' Meta rows;
@@ -103,13 +103,13 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
       - **History.** The dev world held no presence nodes on 2026-10-11 (`AGENT.implementation.md`). Play since then has minted some.
       - **The user's estimate, 2026-10-19: six rows with presence nodes, and no Objects.** They are the five Coyote Game Rooms and one active character. A Room's Base is hostless, and Coyote uses no Areas, so the Rooms carry no pointer. That leaves **one Meta row to rewrite: the character's binding into its room.** Room cache rows that hold the character as a leaf rebuild once marked stale.
       - **Not measured directly.** Once Slice 1's guard rejects the old field, `LudicGraphStaleStructureSweep` reports exactly the rows to rewrite, which confirms the estimate.
-- [ ] **Slice 1. The set type behind the seam, behavior unchanged.**
-  - [ ] Change the stored type to a set (PS-1). Every producer still writes at most one parent.
-  - [ ] Add `parentsOf(binding): ParentBinding[]` to `presenceParent.ts`; `parentOf` becomes the transitional single-parent read and throws on more than one, so any reader not yet migrated fails loudly rather than reading the first parent.
-  - [ ] Route every direct reader from Slice 0(a) through the seam. After this slice, `git grep fromHostPresence` in production code finds only `presenceParent.ts`, the type, the type guard, the cache guard and `mergeReducer.ts`, gateways' view accessor (next item), and the wire and WML mappings. Doc comments naming the field are renamed with it.
-  - [ ] Gateways and diagnostics cannot import `presenceParent.ts`, so give gateways' `PresenceBindingView` (`classifyPresenceCoverDrift.ts`) its own parents accessor. The classifier, `containmentDriftScenarios.ts` and both diagnostics classifications read through it (Slice 0(a)).
-  - [ ] `presenceBindingNode`'s `parent` takes a set (31 test files use it); the other test literals follow the type (Slice 0(a): 42 files).
-  - [ ] Migrate stored rows (PS-1): the Meta rows' graphs. `ludicCache` rows rebuild once marked stale (Slice 0(e)).
+- [X] **Slice 1. The set type behind the seam, behavior unchanged.** Done 2026-10-19. Step fields (`addPresenceBinding`/`repairPresenceBinding`'s `fromHostPresence`, `previousParent`, the move's `from`) and the wire and WML types stay singular until PS-2 and Slice 2, so handlers convert (`[pointer]`) at the boundary and `wireProjection.ts` reads through `parentOf`.
+  - [X] Change the stored type to a set: required `fromHostPresences`, empty meaning hostless; the guard (`isEphemeraPresenceParentPointerList`) rejects the retired single field. Every producer still writes at most one parent.
+  - [X] Add `parentsOf(binding): ParentBinding[]` to `presenceParent.ts` (with `bindingHasParent`); `parentOf` becomes the transitional single-parent read and throws on more than one.
+  - [X] Route every direct reader from Slice 0(a) through the seam. `git grep -nw fromHostPresence` in production code now finds only the retired-field guards, the singular step fields, the wire and WML mappings, and gateways' `orphanRepairsFor` result. Doc comments are renamed.
+  - [X] Gateways' `PresenceBindingView` has its own `parentPointersOf` accessor; the classifier, `containmentDriftScenarios.ts` and both diagnostics classifications read through it.
+  - [X] `presenceBindingNode`'s `parent` takes a single parent or an array (a set); the other test literals follow the type.
+  - [X] Migrate stored rows through the stale-structure heal (the user's design, 2026-10-19): `healLudicGraphStructure` rewrites a presence node's single `fromHostPresence` into a one-element `fromHostPresences`, or `[]` when it was absent, and marks the host's cache stale. Every Meta row holding a presence node is stale under the new guard (a hostless Base needs the empty array too), not only the placed character's. The user ran `LudicGraphStaleStructureSweep` 2026-10-19: it found all six components, and a second run emitted none. The `withParentSet` branch in `healLudicGraphStructure.ts` is now dead weight in this one-instance world and can be deleted at the user's choice.
 - [ ] **Slice 2. Readers become set-aware.** No producer yet writes two parents, so tests build multi-parent fixtures directly.
   - [ ] (i) Host tests: "some parent is on H". (ii) Binding tests: set membership.
   - [ ] (iii) Unions: audience resolution (`roomsForPresenceNode`) unions over parents; the cache fold and `charactersRow` see a binding under each parent; the wire and WML types carry the set.
@@ -144,8 +144,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| **PS-1** | **The stored shape of the parent set, and how stored rows migrate.** PR-25 leaves this to implementation. **Recommended:** replace `fromHostPresence?: Pointer` with a required `fromHostPresences: Pointer[]`, empty meaning hostless, rather than keeping the optional single field beside an optional array. One field gives one reading of "hostless", and the type guard rejects the old field outright as it rejected `fromHostId` (`ephemeraMeta.ts`), so a surviving row reports through `LudicGraphStaleStructureSweep`. Pre-rollout, the migration is a one-shot rewrite rather than a dual-read period. **Slice 0(e):** the field is stored on Meta rows' graphs and on `ludicCache` rows. Cache rows rebuild once marked stale, so only Meta rows need the rewrite. Once the guard rejects the old field, `LudicGraphStaleStructureSweep` lists exactly those rows; a zero count would mean no migration at all. The user's estimate is one row, the active character's binding, since the five Coyote Rooms' Bases are hostless. | 1 | Open |
-| **PS-2** | **The step fields that name parents.** The move's `from: ParentBinding \| null` becomes the host and the parents leaving (move rule (1)). The sharing join and the separating split need a shape: options are a flag or field on the one move, or a step kind of its own. The kernel prefers a step kind per effect over a flag (`kernelStep.ts`), and MC-3 made the move one step because move, split and join were one effect; sharing changes parents without moving entries, so it is a different effect. **Leaning:** its own step kind. **Slice 0(a):** `addPresenceBinding` (`fromHostPresence`) and `repairPresenceBinding` (`fromHostPresence`, `previousParent`) also name parents, and both pass their pointer to `writeCoverIndex`. | 4, 5 | Open |
+| **PS-2** | **The step fields that name parents.** The move's `from: ParentBinding \| null` becomes the host and the parents leaving (move rule (1)). The sharing join and the separating split need a shape: options are a flag or field on the one move, or a step kind of its own. The kernel prefers a step kind per effect over a flag (`kernelStep.ts`), and MC-3 made the move one step because move, split and join were one effect; sharing changes parents without moving entries, so it is a different effect. **Leaning:** its own step kind. **Slice 0(a):** `addPresenceBinding` (`fromHostPresence`) and `repairPresenceBinding` (`fromHostPresence`, `previousParent`) also name parents, and both pass their pointer to `writeCoverIndex`. **Slice 1** left all of these singular and converts at the handler; PS-2 widens them. | 4, 5 | Open |
 | **PS-3** | **What the move does to parents it does not name** (the two items MC-3 left for PR-25). (a) Entries moved into a destination binding that also has parent Q are then seen under Q too: accept that as the meaning of sharing, or mint a separate binding at the destination when the target is shared. (b) How Base's parenting changes when part of its cover moves; today a part moved out of a hostless Base mints at the destination and Base stays hostless, which the user called an ad-hoc short-term answer. **The user's call.** | 4 | Open (the user) |
 | **PS-4** | **Which production path first writes sharing.** "Sharing is stored, never inferred", so equal covers never merge by themselves, and Slice 0(d) lists what could ask for it. Without a caller, the die beat is fixed in the kernel but never reached in play. **The user's call**, informed by Slice 0(d). Gates only Slice 5's last item and the in-play half of the payoff. **Slice 0(d):** no present path writes PR-C5's shape. Nothing in play gives a whole a second binding. Only cache-time population gives a whole a second parent, for a Room or Feature authored under several parents, and those bindings match only when both covers are empty (a Room in two Areas, or a Feature with no members). The candidates are that population path, or a play-time verb that adds a parent without leaving one, which does not exist yet. | 5 | Open (the user) |
 
@@ -154,7 +153,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 ## Verification
 
 1. **Suite, from `lambda/ephemera`:** `npm run test -- --watchAll=false dataSource/positions/`, and the full ephemera suite after any rename or delete. Then `npx tsc --noEmit` there and in `packages/mtw-interfaces`, `packages/mtw-wml`, `packages/mtw-gateways` and `lambda/diagnostics`.
-2. **The seam holds:** after Slice 1, `git grep -n fromHostPresence -- '*.ts' ':!*.test.ts'` finds only the type, its guard, `presenceParent.ts`, the cache guard and `mergeReducer.ts`, gateways' view accessor, and the wire and WML mappings.
+2. **The seam holds:** after Slice 1, `git grep -nw fromHostPresences -- '*.ts' ':!*.test.ts'` (the stored field) finds only the type, its guard, `presenceParent.ts`, the cache guard and `mergeReducer.ts`, gateways' view accessor, and the handlers that write it. `git grep -nw fromHostPresence` (singular) finds only the retired-field guards, the step fields (until PS-2), and the wire and WML mappings.
 3. **No silent single-parent read:** after Slice 2, `git grep -n "parentOf(" -- '*.ts' ':!*.test.ts'` finds only `contentDestinations` (until Slice 6) and `presenceParent.ts`.
 4. **Anchor resolution:** every `](Other.md#anchor)` in this file resolves. Copy existing links rather than deriving slugs.
 
@@ -163,8 +162,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | Slice | State |
 | --- | --- |
 | 0. Verify premises | Done 2026-10-19 |
-| 1. Set type behind the seam | Blocked on PS-1 |
-| 2. Set-aware readers | Waiting on 1 |
+| 1. Set type behind the seam | Done 2026-10-19 |
+| 2. Set-aware readers | Ready |
 | 3. Positive invariant | Waiting on 2 |
 | 4. Move under parent sets | Blocked on PS-2, PS-3 |
 | 5. Sharing writes | Blocked on PS-2; last item on PS-4 |

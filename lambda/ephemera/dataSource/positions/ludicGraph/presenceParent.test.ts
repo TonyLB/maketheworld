@@ -3,7 +3,7 @@ import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from './index'
-import { childParentBindingIdOf, parentBinding, parentBindingsOf } from './presenceParent'
+import { bindingHasParent, childParentBindingIdOf, parentBinding, parentBindingsOf, parentOf, parentsOf, unpointedBindingOf } from './presenceParent'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from './testFixtures'
 
 const area = 'AREA#Town' as EphemeraAreaId
@@ -84,5 +84,42 @@ describe('childParentBindingIdOf (Base)', () => {
         expect(childParentBindingIdOf(testLudicGraph(roomA, { nodes: [presenceBindingNode('legacy-uuid')] }))).toBeUndefined()
         expect(childParentBindingIdOf(testLudicGraph(shelf, { nodes: [presenceBindingNode('legacy', roomA)] }))).toBeUndefined()
         expect(childParentBindingIdOf(testLudicGraph(shelf, { nodes: [] }))).toBeUndefined()
+    })
+})
+
+describe('parent sets', () => {
+    const shared = presenceBindingNode('die-shared', [roomA, shelf])
+    const underRoomA = { host: roomA, presence: parentRemainderKey(roomA) }
+    const underShelf = { host: shelf, presence: parentRemainderKey(shelf) }
+
+    it('parentsOf lists every parent, and nothing for a hostless binding', () => {
+        expect(parentsOf(shared)).toEqual([underRoomA, underShelf])
+        expect(parentsOf(presenceBindingNode('die-hostless'))).toEqual([])
+    })
+
+    it('parentOf reads one parent, and throws rather than reading the first of several', () => {
+        expect(parentOf(presenceBindingNode('die-roomA', roomA))).toEqual(underRoomA)
+        expect(parentOf(presenceBindingNode('die-hostless'))).toBeUndefined()
+        expect(() => parentOf(shared)).toThrow(/die-shared.*2 parents/)
+    })
+
+    it('parentBindingsOf yields one entry per parent of a binding', async () => {
+        const getGraph = graphsFrom({ [cup]: [shared] })
+        const result = await parentBindingsOf(cup, getGraph)
+        expect(result.map(({ binding, parent }) => [binding.universalKey, parent])).toEqual([
+            [shared.universalKey, underRoomA],
+            [shared.universalKey, underShelf],
+        ])
+    })
+
+    it('bindingHasParent is set membership', () => {
+        expect(bindingHasParent(shared, underShelf)).toBe(true)
+        expect(bindingHasParent(shared, { host: roomB, presence: parentRemainderKey(roomB) })).toBe(false)
+        expect(bindingHasParent(presenceBindingNode('die-hostless'), underRoomA)).toBe(false)
+    })
+
+    it('unpointedBindingOf finds the binding with an empty parent set', () => {
+        const graph = testLudicGraph(cup, { nodes: [shared, presenceBindingNode('die-hostless')] })
+        expect(unpointedBindingOf(graph)?.universalKey).toEqual(presenceBindingNode('die-hostless').universalKey)
     })
 })

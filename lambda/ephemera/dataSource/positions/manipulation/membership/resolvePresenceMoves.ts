@@ -6,7 +6,7 @@ import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { GroundedPresence } from '../../../actions/enrich/objectManipulation/plan/planStep'
 import type { EphemeraLudicGraphStructureNode, EphemeraPresenceCover, EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf, parentsOf } from '../../ludicGraph/presenceParent'
 import type { PositionKernelPresenceMove } from '../kernel/compile/positionKernelOp'
 
 export type ResolvePresenceMovesArgs = {
@@ -65,12 +65,14 @@ const cascadeHostsOf = async (
 
 /** Whether a binding's parent pointer names one of the buckets where its whole is seen. */
 const sitsUnderSeenBucket = (
-    { fromHostPresence }: EphemeraLudicGraphStructureNode,
+    binding: EphemeraLudicGraphStructureNode,
     seen: readonly GroundedPresence[]
 ): boolean => seen.some((bucket) => (
-    typeof bucket === 'string'
-        ? fromHostPresence?.host === bucket
-        : fromHostPresence?.host === bucket.host && fromHostPresence?.presence === bucket.presence
+    parentsOf(binding).some((parent) => (
+        typeof bucket === 'string'
+            ? parent.host === bucket
+            : parent.host === bucket.host && parent.presence === bucket.presence
+    ))
 ))
 
 /** The bindings of a destination's own graph whose pointer names a bucket where it is seen. */

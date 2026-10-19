@@ -5,6 +5,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { ParentBinding } from '../../ludicGraph/presenceParent'
+import { bindingHasParent, parentOf } from '../../ludicGraph/presenceParent'
 import { isBystanderMove } from './bystander'
 import type { MutationKernelMovePresenceBindingStep } from './kernelStep'
 
@@ -14,9 +15,7 @@ type Binding = EphemeraLudicGraphStructureNode
 const entriesOf = (cover: EphemeraPresenceCover): EphemeraPresenceCoverEntry[] => cover.members
 const sameEntry = (a: EphemeraPresenceCoverEntry, b: EphemeraPresenceCoverEntry): boolean => a.host === b.host && a.presence === b.presence
 const hasEntry = (cover: EphemeraPresenceCover, entry: EphemeraPresenceCoverEntry): boolean => entriesOf(cover).some((existing) => sameEntry(existing, entry))
-const pointsAt = (binding: Binding, parent: ParentBinding): boolean => (
-    binding.fromHostPresence?.host === parent.host && binding.fromHostPresence.presence === parent.presence
-)
+const pointsAt = bindingHasParent
 
 /** Plain copies throughout: the cover is retained in the graph past the reducer's return. */
 export const withEntries = (cover: EphemeraPresenceCover, add: readonly EphemeraPresenceCoverEntry[]): EphemeraPresenceCover => ({
@@ -61,7 +60,7 @@ export const movePresenceBinding = (
     if (!node) {
         return { reasonCode: 'presenceBindingMissing' }
     }
-    if (step.from === null ? !!node.fromHostPresence : !pointsAt(node, step.from)) {
+    if (step.from === null ? !!parentOf(node) : !pointsAt(node, step.from)) {
         return { reasonCode: 'presenceBindingMoved' }
     }
     const wholeMove = step.subCover === undefined
@@ -104,7 +103,7 @@ export const movePresenceBinding = (
             target = existing
         }
         else if (wholeMove) {
-            target = { ...node, fromHostPresence: { host: step.to.host, presence: step.to.presence } }
+            target = { ...node, fromHostPresences: [{ host: step.to.host, presence: step.to.presence }] }
         }
         else {
             if (!step.mintedPresence) {
@@ -116,7 +115,7 @@ export const movePresenceBinding = (
             target = {
                 tag: 'Presence',
                 universalKey: step.mintedPresence,
-                fromHostPresence: { host: step.to.host, presence: step.to.presence },
+                fromHostPresences: [{ host: step.to.host, presence: step.to.presence }],
                 cover: { members: [] },
             }
             mintedTarget = true
@@ -135,20 +134,19 @@ export const movePresenceBinding = (
                 // Part of a hostless Base moved to no parent is where it already is.
                 return { graphs: new Map(graphs) }
             }
-            const { fromHostPresence: _departed, ...hostless } = node
-            target = hostless
+            target = { ...node, fromHostPresences: [] }
             if (unplaced) {
                 absorbed.push(unplaced)
             }
         }
-        else if (!base.fromHostPresence) {
+        else if (!parentOf(base)) {
             target = base
         }
         else if (unplaced) {
             target = unplaced
         }
         else {
-            target = { tag: 'Presence', universalKey: UNPLACED_PRESENCE_ID, cover: { members: [] } }
+            target = { tag: 'Presence', universalKey: UNPLACED_PRESENCE_ID, fromHostPresences: [], cover: { members: [] } }
             mintedTarget = true
         }
     }
@@ -200,7 +198,7 @@ export const movePresenceBinding = (
             }
             const repointed = childGraph.replacePresenceNode({
                 ...child,
-                fromHostPresence: { host: step.hostId, presence: target.universalKey },
+                fromHostPresences: [{ host: step.hostId, presence: target.universalKey }],
             })
             next.set(childHost, repointed)
             if (repointed.presenceNodes.filter((candidate) => pointsAt(candidate, { host: step.hostId, presence: target.universalKey })).length > 1) {
@@ -227,15 +225,17 @@ export const movePresenceBinding = (
         return undefined
     }
     // A part move leaves its source binding where it is, so only a whole move changes the source's entry.
-    const leaving = wholeMove && (!targetIsNode || node.fromHostPresence?.host !== target.fromHostPresence?.host || node.fromHostPresence?.presence !== target.fromHostPresence?.presence)
-    if (node.fromHostPresence && leaving) {
-        const failure = writeParentCover(node.fromHostPresence, (cover) => withoutEntries(cover, [{ host: step.hostId as EphemeraPresenceCoverEntry['host'], presence: node.universalKey }]))
+    const nodeParent = parentOf(node)
+    const targetParent = parentOf(target)
+    const leaving = wholeMove && (!targetIsNode || nodeParent?.host !== targetParent?.host || nodeParent?.presence !== targetParent?.presence)
+    if (nodeParent && leaving) {
+        const failure = writeParentCover(nodeParent, (cover) => withoutEntries(cover, [{ host: step.hostId as EphemeraPresenceCoverEntry['host'], presence: node.universalKey }]))
         if (failure) {
             return failure
         }
     }
-    if (target.fromHostPresence) {
-        const failure = writeParentCover(target.fromHostPresence, (cover) => withEntries(cover, [{ host: step.hostId as EphemeraPresenceCoverEntry['host'], presence: target.universalKey }]))
+    if (targetParent) {
+        const failure = writeParentCover(targetParent, (cover) => withEntries(cover, [{ host: step.hostId as EphemeraPresenceCoverEntry['host'], presence: target.universalKey }]))
         if (failure) {
             return failure
         }

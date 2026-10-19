@@ -48,10 +48,10 @@ const roomGraph = (...objects: EphemeraObjectId[]) =>
     testLudicGraph(roomA, { nodes: [
         { tag: 'Room', universalKey: roomA },
         ...objects.map((universalKey) => ({ tag: 'Object' as const, universalKey })),
-        { tag: 'Presence' as const, universalKey: PresenceKey('a_root'), cover: { members: [] } },
+        { tag: 'Presence' as const, universalKey: PresenceKey('a_root'), fromHostPresences: [], cover: { members: [] } },
     ] })
 const binding = (key: string, from: EphemeraMembershipHostId, cover: EphemeraPresenceCover = { members: [] }) =>
-    ({ tag: 'Presence' as const, universalKey: PresenceKey(key), fromHostPresence: { host: from, presence: parentRemainderKey(from) }, cover })
+    ({ tag: 'Presence' as const, universalKey: PresenceKey(key), fromHostPresences: [{ host: from, presence: parentRemainderKey(from) }], cover })
 
 const names = namedShortNameDeps({ [table]: 'Table', [box]: 'Box', [cup]: 'Cup', [mug]: 'Mug' })
 
@@ -178,7 +178,7 @@ describe('ludicCacheRoomObjectContents', () => {
 
     it('derives the room level from the cache: every named direct Object, none for a character or an unnamed object', async () => {
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-            [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: cup }, { tag: 'Object', universalKey: nameless }, { tag: 'Character', universalKey: 'CHARACTER#Tess' as any }, { tag: 'Presence', universalKey: PresenceKey('a_root'), cover: { members: [] } }] })],
+            [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: cup }, { tag: 'Object', universalKey: nameless }, { tag: 'Character', universalKey: 'CHARACTER#Tess' as any }, { tag: 'Presence', universalKey: PresenceKey('a_root'), fromHostPresences: [], cover: { members: [] } }] })],
             [cup, objectGraph(cup)],
             [nameless, objectGraph(nameless)],
             ['CHARACTER#Tess' as any, testLudicGraph('CHARACTER#Tess' as any, { nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Tess' as any }] })],

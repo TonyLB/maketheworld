@@ -6,7 +6,7 @@ import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ep
 import { BASE_PRESENCE_ID, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf, parentsOf } from '../../ludicGraph/presenceParent'
 import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelStep } from '../kernel/kernelStep'
 
@@ -34,6 +34,7 @@ export const rootStep = (
         graph: parentGraph.addPresenceNode({
             tag: 'Presence',
             universalKey: BASE_PRESENCE_ID,
+            fromHostPresences: [],
             cover: { members: [] },
         }),
     }
@@ -136,7 +137,7 @@ export const containmentPopulationSteps = (
         }
         steps.push(bindingStep)
     } else if (
-        existing.fromHostPresence?.presence !== fromHostPresence.presence ||
+        parentsOf(existing).find((parent) => parent.host === parentId)?.presence !== fromHostPresence.presence ||
         (wantedCover && existing.cover.members.length > 0) ||
         !parentGraph.nodeIds.has(childId)
     ) {

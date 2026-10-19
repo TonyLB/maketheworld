@@ -126,7 +126,7 @@ describe('a multi-from scrub moves each binding, and they converge to one', () =
         const { steps, after } = await scrub(roomsAndPlank())
 
         expect(steps.map((step) => step.kind)).toEqual(['movePresenceBinding', 'movePresenceBinding'])
-        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence])).toEqual([
+        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]])).toEqual([
             [presence('plank-a'), { host: roomC, presence: parentRemainderKey(roomC) }],
         ])
     })
@@ -181,7 +181,7 @@ describe('a multi-from scrub moves each binding, and they converge to one', () =
 
         expect(resolved.presenceMoves.every((move) => move.to !== null)).toBe(true)
         expect(after.get(plank)!.presenceNodes.map(({ universalKey }) => universalKey)).toEqual([presence('plank-a')])
-        expect(after.get(ball)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence])).toEqual([
+        expect(after.get(ball)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]])).toEqual([
             [presence('ball-a'), { host: plank, presence: presence('plank-a') }],
         ])
     })
@@ -272,9 +272,9 @@ describe('moving part of a cover leaves it consistent with every child\'s pointe
         const after = applyPlanned([partMove], graphs)
 
         expect(verdictOf(after)).toEqual({ findings: [], rebuilds: [] })
-        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence?.host])).toEqual([[B, roomA], [presence('plank-B2'), table]])
-        expect(after.get(book)!.presenceNodes[0].fromHostPresence).toEqual({ host: plank, presence: presence('plank-B2') })
-        expect(after.get(cup)!.presenceNodes[0].fromHostPresence).toEqual(under)
-        expect(after.get(ball)!.presenceNodes[0].fromHostPresence).toEqual(under)
+        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]?.host])).toEqual([[B, roomA], [presence('plank-B2'), table]])
+        expect(after.get(book)!.presenceNodes[0].fromHostPresences).toEqual([{ host: plank, presence: presence('plank-B2') }])
+        expect(after.get(cup)!.presenceNodes[0].fromHostPresences).toEqual([under])
+        expect(after.get(ball)!.presenceNodes[0].fromHostPresences).toEqual([under])
     })
 })

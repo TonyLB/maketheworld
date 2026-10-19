@@ -2,6 +2,7 @@ import { isEphemeraAreaId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb
 import { ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
+import { parentPointersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { presenceGraphViewOf } from '../presenceCoverDriftSweep/classification'
 
 type RawEdge = { kind?: unknown; from?: EphemeraLudicTerminalId; to?: EphemeraLudicTerminalId }
@@ -51,7 +52,7 @@ export const isFixedContainmentDrifted = (
 ): boolean => {
     const parent = presenceGraphViewOf(parentId, parentGraph)
     const isRootHolder = isEphemeraRoomId(parentId) || isEphemeraAreaId(parentId)
-    const root = parent?.presenceNodes.find((node) => !node.fromHostPresence)
+    const root = parent?.presenceNodes.find((node) => parentPointersOf(node).length === 0)
     if (isRootHolder && !root) {
         return true
     }
@@ -82,8 +83,8 @@ export const isFixedContainmentDrifted = (
             return true
         }
         const child = presenceGraphViewOf(childId, childGraphOf(childId))
-        const binding = child?.presenceNodes.find((node) => node.fromHostPresence?.host === parentId)
-        if (!binding || binding.fromHostPresence?.presence !== rootId) {
+        const binding = child?.presenceNodes.find((node) => parentPointersOf(node).some((pointer) => pointer.host === parentId))
+        if (!binding || !parentPointersOf(binding).some((pointer) => pointer.host === parentId && pointer.presence === rootId)) {
             return true
         }
         return isEphemeraAreaId(parentId) && binding.cover.members.length > 0

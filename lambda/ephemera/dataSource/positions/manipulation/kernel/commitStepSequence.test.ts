@@ -138,7 +138,7 @@ describe('commitStepSequence', () => {
             const locked = lastItems.current!.find((item) => 'MultiKeyUpdate' in item).MultiKeyUpdate.Keys.map((key: { EphemeraId: string }) => key.EphemeraId)
             expect(new Set(locked)).toEqual(new Set([PLANK, BOOK, ROOM_ID, OTHER_ROOM]))
             const bookRow = Object.values(lastDraft.current!).find((row: any) => row.EphemeraId === BOOK) as any
-            expect(graphFromMeta(bookRow, BOOK).presenceNodes[0].fromHostPresence).toEqual({ host: PLANK, presence: 'PRESENCE#B2' })
+            expect(graphFromMeta(bookRow, BOOK).presenceNodes[0].fromHostPresences).toEqual([{ host: PLANK, presence: 'PRESENCE#B2' }])
         })
     })
 

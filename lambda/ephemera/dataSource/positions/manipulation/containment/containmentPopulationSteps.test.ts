@@ -229,7 +229,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
                 edges: [{ tag: 'Relational', from: FEATURE_ID, to: ROOM_ID, kind: 'PartOf' }],
             })
             const hostOnly = presenceBindingNode('feature-binding', { host: ROOM_ID, presence: 'PRESENCE#gone' as any })
-            const stale = { ...hostOnly, fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#gone' as any } }
+            const stale = { ...hostOnly, fromHostPresences: [{ host: ROOM_ID, presence: 'PRESENCE#gone' as any }] }
             const childGraph = testLudicGraph(FEATURE_ID, { nodes: [stale] })
 
             const steps = containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph)

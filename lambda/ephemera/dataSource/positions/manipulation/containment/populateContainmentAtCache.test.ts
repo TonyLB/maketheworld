@@ -61,7 +61,7 @@ describe('populateContainmentAtCache', () => {
             edges: [{ tag: 'Relational', from: ROOM_A, to: AREA_ID, kind: 'PartOf' }],
         })
         const childGraph = testLudicGraph(ROOM_A, {
-            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostPresence: { host: AREA_ID, presence: 'PRESENCE#Base' }, cover: { members: [] } }],
+            nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostPresences: [{ host: AREA_ID, presence: 'PRESENCE#Base' }], cover: { members: [] } }],
         })
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
             hostId === AREA_ID ? parentGraph : childGraph

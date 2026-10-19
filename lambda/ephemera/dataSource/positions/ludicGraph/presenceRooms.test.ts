@@ -19,7 +19,7 @@ const shelf = 'OBJECT#Shelf' as EphemeraObjectId
 const presenceAt = (fromHostId: EphemeraMembershipHostId, key?: string): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: PresenceKey(key ?? `${fromHostId.replace('#', '-')}-binding`),
-    fromHostPresence: { host: fromHostId, presence: parentRemainderKey(fromHostId) },
+    fromHostPresences: [{ host: fromHostId, presence: parentRemainderKey(fromHostId) }],
     cover: { members: [] },
 })
 
@@ -77,7 +77,7 @@ describe('roomsForPresenceNode', () => {
     it('locates the binding on its owner\'s own graph and continues the walk', async () => {
         const presenceId = PresenceKey('cup-binding') as EphemeraPresenceNodeId
         const getGraph = graphsFrom({
-            [cup]: [{ tag: 'Presence', universalKey: presenceId, fromHostPresence: { host: box, presence: parentRemainderKey(box) }, cover: { members: [] } }],
+            [cup]: [{ tag: 'Presence', universalKey: presenceId, fromHostPresences: [{ host: box, presence: parentRemainderKey(box) }], cover: { members: [] } }],
             [box]: [presenceAt(roomA)],
         })
         await expect(roomsForPresenceNode(cup, presenceId, getGraph)).resolves.toEqual(new Set([roomA]))
@@ -109,7 +109,7 @@ describe('roomsForReferent', () => {
     it('unions a multi-room presence (several groundedPresence entries) into one deduplicated set', async () => {
         const presenceId = PresenceKey('cup-box-binding') as EphemeraPresenceNodeId
         const getGraph = graphsFrom({
-            [cup]: [{ tag: 'Presence', universalKey: presenceId, fromHostPresence: { host: box, presence: parentRemainderKey(box) }, cover: { members: [] } }],
+            [cup]: [{ tag: 'Presence', universalKey: presenceId, fromHostPresences: [{ host: box, presence: parentRemainderKey(box) }], cover: { members: [] } }],
             [box]: [presenceAt(roomA)],
         })
         await expect(roomsForReferent(cup, [{ host: cup, presence: presenceId }, roomB], getGraph)).resolves.toEqual(new Set([roomA, roomB]))
@@ -120,7 +120,7 @@ describe('roomsForReferent', () => {
         // lives on the box's graph, and the cup's own graph has none.
         const boxBinding = PresenceKey('box-room-binding') as EphemeraPresenceNodeId
         const getGraph = graphsFrom({
-            [box]: [{ tag: 'Presence', universalKey: boxBinding, fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) }, cover: { members: [] } }],
+            [box]: [{ tag: 'Presence', universalKey: boxBinding, fromHostPresences: [{ host: roomA, presence: parentRemainderKey(roomA) }], cover: { members: [] } }],
         })
         await expect(roomsForReferent(cup, [{ host: box, presence: boxBinding }], getGraph)).resolves.toEqual(new Set([roomA]))
     })

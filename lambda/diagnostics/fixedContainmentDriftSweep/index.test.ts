@@ -7,7 +7,7 @@ const FEATURE_ID = 'FEATURE#Stove'
 
 const root = { tag: 'Presence', universalKey: 'PRESENCE#Base', cover: { members: [] } }
 const carveOut = {
-    nodes: [root, { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: { host: AREA_ID, presence: 'PRESENCE#Base' }, cover: { members: [] } }],
+    nodes: [root, { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresences: [{ host: AREA_ID, presence: 'PRESENCE#Base' }], cover: { members: [] } }],
 }
 const cleanArea = { nodes: [root, ROOM_ID], edges: [{ tag: 'Relational', kind: 'PartOf', from: ROOM_ID, to: AREA_ID }] }
 const authored: Record<string, string[]> = { [AREA_ID]: [ROOM_ID] }
@@ -67,7 +67,7 @@ describe('fixedContainmentDriftSweep', () => {
             listCandidateRows: async () => [{
                 EphemeraId: ROOM_ID,
                 DataCategory: 'Meta::Room',
-                ludicGraph: { nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: { host: AREA_ID, presence: 'PRESENCE#Base' }, cover: { members: [] } }] },
+                ludicGraph: { nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresences: [{ host: AREA_ID, presence: 'PRESENCE#Base' }], cover: { members: [] } }] },
             }],
             listAuthoredChildren,
             emitFinding,

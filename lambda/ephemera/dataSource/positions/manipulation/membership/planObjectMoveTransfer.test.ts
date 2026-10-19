@@ -164,7 +164,7 @@ describe('planObjectMoveTransfer', () => {
             const cupGraph = testLudicGraph(CUP_ID, {
                 nodes: [
                     { tag: 'Object', universalKey: CUP_ID },
-                    { tag: 'Presence', universalKey: PresenceKey('cup-on-tray'), fromHostPresence: { host: TRAY_ID, presence: parentRemainderKey(TRAY_ID) }, cover: { members: [] } },
+                    { tag: 'Presence', universalKey: PresenceKey('cup-on-tray'), fromHostPresences: [{ host: TRAY_ID, presence: parentRemainderKey(TRAY_ID) }], cover: { members: [] } },
                 ],
             })
             const getGraph = jest.fn(async (hostId: string): Promise<EphemeraLudicGraph> => (

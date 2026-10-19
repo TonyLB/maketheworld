@@ -54,7 +54,7 @@ describe('movePresenceBinding', () => {
             expect(bindingOf(after, roomA, BASE_PRESENCE_ID)!.cover).toEqual(cover())
             expect(bindingOf(after, roomB, BASE_PRESENCE_ID)!.cover).toEqual(cover(entry(table, 't-1')))
             // the child still names the binding, so nothing is orphaned
-            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresence).toEqual(under(table, id('t-1')))
+            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresences).toEqual([under(table, id('t-1'))])
         })
 
         it('joins the moved entries into the mover\'s binding already at the destination, and removes the moved binding', () => {
@@ -72,7 +72,7 @@ describe('movePresenceBinding', () => {
 
             expect(bindingsOf(after, table).map(({ universalKey }) => universalKey)).toEqual([id('t-2')])
             expect(bindingOf(after, table, 't-2')!.cover).toEqual(cover(entry(tray, 'tray-1')))
-            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresence).toEqual(under(table, id('t-2')))
+            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresences).toEqual([under(table, id('t-2'))])
             expect(bindingOf(after, roomA, BASE_PRESENCE_ID)!.cover).toEqual(cover())
             expect(bindingOf(after, roomB, BASE_PRESENCE_ID)!.cover).toEqual(cover(entry(table, 't-2')))
         })
@@ -103,7 +103,7 @@ describe('movePresenceBinding', () => {
             expect(bindingsOf(after, ball).map(({ universalKey }) => universalKey)).toEqual([id('ball-2')])
             expect(bindingOf(after, tray, 'tray-2')).toEqual(presenceBindingNode('tray-2', under(table, id('t-2')), cover(entry(ball, 'ball-2'))))
             expect(bindingOf(after, table, 't-2')!.cover).toEqual(cover(entry(tray, 'tray-2')))
-            expect(bindingOf(after, ball, 'ball-2')!.fromHostPresence).toEqual(under(tray, id('tray-2')))
+            expect(bindingOf(after, ball, 'ball-2')!.fromHostPresences).toEqual([under(tray, id('tray-2'))])
         })
     })
 
@@ -124,8 +124,8 @@ describe('movePresenceBinding', () => {
 
             expect(bindingOf(after, table, 't-1')).toEqual(presenceBindingNode('t-1', under(roomA), cover(entry(ball, 'ball-1'))))
             expect(bindingOf(after, table, 't-new')).toEqual(presenceBindingNode('t-new', under(roomB), cover(entry(tray, 'tray-1'))))
-            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresence).toEqual(under(table, id('t-new')))
-            expect(bindingOf(after, ball, 'ball-1')!.fromHostPresence).toEqual(under(table, id('t-1')))
+            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresences).toEqual([under(table, id('t-new'))])
+            expect(bindingOf(after, ball, 'ball-1')!.fromHostPresences).toEqual([under(table, id('t-1'))])
             expect(bindingOf(after, roomB, BASE_PRESENCE_ID)!.cover).toEqual(cover(entry(table, 't-new')))
             // the source stays under room A, so room A's entry for it stays
             expect(bindingOf(after, roomA, BASE_PRESENCE_ID)!.cover).toEqual(cover(entry(table, 't-1')))
@@ -142,7 +142,7 @@ describe('movePresenceBinding', () => {
             const after = run(withSecond, move({ hostId: table, presence: id('t-1'), from: under(roomA), to: under(roomB), subCover: [entry(ball, 'ball-1')] }))
 
             expect(bindingOf(after, table, 't-2')!.cover).toEqual(cover(entry(ball, 'ball-1')))
-            expect(bindingOf(after, ball, 'ball-1')!.fromHostPresence).toEqual(under(table, id('t-2')))
+            expect(bindingOf(after, ball, 'ball-1')!.fromHostPresences).toEqual([under(table, id('t-2'))])
             expect(bindingOf(after, table, 't-1')!.cover).toEqual(cover(entry(tray, 'tray-1')))
         })
 
@@ -176,7 +176,7 @@ describe('movePresenceBinding', () => {
             expect(bindingsOf(after, table).map(({ universalKey }) => universalKey)).toEqual([BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID])
             expect(bindingOf(after, table, UNPLACED_PRESENCE_ID)).toEqual(presenceBindingNode(UNPLACED_PRESENCE_ID, undefined, cover(entry(tray, 'tray-1'))))
             expect(bindingOf(after, table, BASE_PRESENCE_ID)!.cover).toEqual(cover(entry(ball, 'ball-base')))
-            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresence).toEqual(under(table, UNPLACED_PRESENCE_ID))
+            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresences).toEqual([under(table, UNPLACED_PRESENCE_ID)])
             expect(bindingOf(after, roomB, BASE_PRESENCE_ID)!.cover).toEqual(cover())
         })
 
@@ -195,7 +195,7 @@ describe('movePresenceBinding', () => {
 
             expect(bindingsOf(after, table).map(({ universalKey }) => universalKey)).toEqual([BASE_PRESENCE_ID])
             expect(bindingOf(after, table, BASE_PRESENCE_ID)!.cover).toEqual(cover(entry(ball, 'ball-base'), entry(tray, 'tray-1')))
-            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresence).toEqual(under(table, BASE_PRESENCE_ID))
+            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresences).toEqual([under(table, BASE_PRESENCE_ID)])
         })
 
         it('moves a part to Unplaced and leaves the source where it is', () => {
@@ -215,7 +215,7 @@ describe('movePresenceBinding', () => {
 
             expect(bindingOf(after, table, UNPLACED_PRESENCE_ID)).toBeUndefined()
             expect(bindingOf(after, table, BASE_PRESENCE_ID)).toEqual(presenceBindingNode(BASE_PRESENCE_ID, undefined, cover(entry(ball, 'ball-base'), entry(tray, 'tray-u'))))
-            expect(bindingOf(after, tray, 'tray-u')!.fromHostPresence).toEqual(under(table, BASE_PRESENCE_ID))
+            expect(bindingOf(after, tray, 'tray-u')!.fromHostPresences).toEqual([under(table, BASE_PRESENCE_ID)])
             expect(bindingOf(after, roomA, BASE_PRESENCE_ID)!.cover).toEqual(cover())
         })
 
@@ -237,7 +237,7 @@ describe('movePresenceBinding', () => {
 
             const after = run(graphs, move({ hostId: character, presence: id('c-1'), from: under(roomA), to: under(roomB) }))
 
-            expect(bindingOf(after, character, 'c-1')!.fromHostPresence).toEqual(under(roomB))
+            expect(bindingOf(after, character, 'c-1')!.fromHostPresences).toEqual([under(roomB)])
             expect(after.has(roomA)).toBe(false)
             expect(after.has(roomB)).toBe(false)
         })

@@ -106,7 +106,7 @@ describe('the whole life of a placed thing writes only explicit entries', () => 
         expect(coverOf(roomC, base)).toEqual([entryFor(plank, second)])
         expect(coverOf(plank, second)).toEqual([entryFor(cup, base)])
         expect(coverOf(plank, base)).toEqual([])
-        expect(graphs.get(cup)!.presenceNodes[0].fromHostPresence).toEqual({ host: plank, presence: second })
+        expect(graphs.get(cup)!.presenceNodes[0].fromHostPresences).toEqual([{ host: plank, presence: second }])
     })
 
     it('moves it back: the two bindings rejoin under the first room', () => {
@@ -119,7 +119,7 @@ describe('the whole life of a placed thing writes only explicit entries', () => 
 
     it('disconnects it: the pointer goes, Base stays, and the room cover drops the entry', () => {
         run(moveSteps(plank, [{ presence: base, cover: { members: [entryFor(cup, base)] }, from: { host: roomB, presence: base }, to: null }], roomB))
-        expect(graphs.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence])).toEqual([[base, undefined]])
+        expect(graphs.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]])).toEqual([[base, undefined]])
         expect(coverOf(roomB, base)).toEqual([])
         expect(coverOf(plank, base)).toEqual([entryFor(cup, base)])
     })

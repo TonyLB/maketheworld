@@ -418,9 +418,9 @@ export const UNPLACED_PRESENCE_ID = 'PRESENCE#Unplaced' as EphemeraPresenceNodeI
  * already the discriminant, and a second constant field would be a discriminant with no second
  * value.
  *
- * `fromHostPresence` (PR-21) names the parent BINDING: `host` is the
+ * `fromHostPresences` (PR-21, PR-25) is the SET of parent BINDINGS: in each pointer, `host` is the
  * shard to read (one Dynamo read), `presence` is which of that host's bindings this one sits
- * under. The child's pointer governs; the parent's cover is a stored index of it. Absent means a
+ * under. The child's pointers govern; each parent's cover is a stored index of them. Empty means a
  * hostless remainder (a room, an unplaced or offline whole).
  */
 export type EphemeraPresenceParentPointer = {
@@ -432,7 +432,7 @@ export type EphemeraPresenceParentPointer = {
 export type EphemeraLudicGraphStructureNode = {
     tag: 'Presence';
     universalKey: EphemeraPresenceNodeId;
-    fromHostPresence?: EphemeraPresenceParentPointer;
+    fromHostPresences: EphemeraPresenceParentPointer[];
     cover: EphemeraPresenceCover;
 }
 
@@ -725,26 +725,27 @@ export const isEphemeraLudicGraphStructureNode = (value: unknown): value is Ephe
     if (entry.tag !== 'Presence') {
         return false
     }
-    // A stored host-only `fromHostId` is the retired locator, and a `fromHostPresence` with no
-    // `presence` is the same grain: both are rejected outright rather than read as hostless, so a
-    // surviving row reports through `LudicGraphStaleStructureSweep` instead of silently losing its parent.
+    // A stored host-only `fromHostId` is the retired locator, the single `fromHostPresence` is the
+    // retired one-parent shape, and a pointer with no `presence` is the same grain as the first:
+    // all are rejected outright rather than read as hostless, so a surviving row reports through
+    // `LudicGraphStaleStructureSweep` instead of silently losing its parent.
     return isEphemeraPresenceNodeId(entry.universalKey) &&
-        isEphemeraPresenceParentPointerOrAbsent(entry.fromHostPresence) &&
+        isEphemeraPresenceParentPointerList(entry.fromHostPresences) &&
         !('fromHostId' in entry) &&
+        !('fromHostPresence' in entry) &&
         isEphemeraPresenceCover(entry.cover)
 }
 
-/** Absent is legal: a hostless remainder has no parent. Present must be a well-formed `{ host, presence }`, both required. */
-export const isEphemeraPresenceParentPointerOrAbsent = (value: unknown): boolean => {
-    if (value === undefined) {
-        return true
-    }
-    if (!value || typeof value !== 'object') {
-        return false
-    }
-    const { host, presence } = value as Partial<EphemeraPresenceParentPointer>
-    return typeof host === 'string' && isEphemeraMembershipHostId(host) && typeof presence === 'string' && isEphemeraPresenceNodeId(presence)
-}
+/** Empty is legal: a hostless remainder has no parent. Every element must be a well-formed `{ host, presence }`, both required. */
+export const isEphemeraPresenceParentPointerList = (value: unknown): value is EphemeraPresenceParentPointer[] => (
+    Array.isArray(value) && value.every((pointer) => {
+        if (!pointer || typeof pointer !== 'object') {
+            return false
+        }
+        const { host, presence } = pointer as Partial<EphemeraPresenceParentPointer>
+        return typeof host === 'string' && isEphemeraMembershipHostId(host) && typeof presence === 'string' && isEphemeraPresenceNodeId(presence)
+    })
+)
 
 export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudicGraphNode => {
     if (!value || typeof value !== 'object') {

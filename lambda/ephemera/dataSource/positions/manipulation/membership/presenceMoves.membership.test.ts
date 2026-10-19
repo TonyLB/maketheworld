@@ -74,7 +74,7 @@ describe('a move changes a host\'s membership only with the mover\'s first or la
         expect(heldIn(after, roomA)).toBe(false)
         expect(heldIn(after, roomC)).toBe(true)
         expect(heldIn(after, roomB)).toBe(true)
-        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence?.host])).toEqual([
+        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]?.host])).toEqual([
             [presence('plank-a'), roomC],
             [presence('plank-b'), roomB],
         ])
@@ -108,7 +108,7 @@ describe('a move changes a host\'s membership only with the mover\'s first or la
 
         expect(heldIn(after, roomA)).toBe(false)
         expect(heldIn(after, roomB)).toBe(false)
-        expect(after.get(plank)!.presenceNodes.every((node) => !node.fromHostPresence)).toBe(true)
+        expect(after.get(plank)!.presenceNodes.every((node) => node.fromHostPresences.length === 0)).toBe(true)
     })
 })
 
@@ -157,7 +157,7 @@ describe('two bindings of one mover under one host', () => {
         const after = apply(planned.plan.steps, world)
 
         // The binding on table-2 moved; the one on table-1 stayed, so the table still holds the plank.
-        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence?.host])).toEqual([
+        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]?.host])).toEqual([
             [presence('plank-on-1'), table],
             [presence('plank-on-2'), roomC],
         ])
@@ -184,7 +184,7 @@ describe('two bindings of one mover under one host', () => {
         // the plank already holds a binding under table-2, so the move joins into it
         const after = apply(steps, world)
         expect(heldIn(after, table)).toBe(true)
-        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence?.presence])).toEqual([
+        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]?.presence])).toEqual([
             [presence('plank-on-2'), presence('table-2')],
         ])
     })

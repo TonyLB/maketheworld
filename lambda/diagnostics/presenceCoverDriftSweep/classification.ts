@@ -23,8 +23,8 @@ export const presenceGraphViewOf = (hostId: string, ludicGraph: unknown): Presen
             continue
         }
         if (tag === 'Presence') {
-            const { fromHostPresence, cover } = node as { fromHostPresence?: PresenceBindingView['fromHostPresence']; cover?: PresenceBindingView['cover'] }
-            presenceNodes.push({ universalKey, fromHostPresence, cover: Array.isArray(cover?.members) ? cover : { members: [] } })
+            const { fromHostPresences, cover } = node as { fromHostPresences?: PresenceBindingView['fromHostPresences']; cover?: PresenceBindingView['cover'] }
+            presenceNodes.push({ universalKey, fromHostPresences: Array.isArray(fromHostPresences) ? fromHostPresences : [], cover: Array.isArray(cover?.members) ? cover : { members: [] } })
         }
         else {
             nodeIds.push(universalKey)

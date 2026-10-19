@@ -793,7 +793,7 @@ describe('applyStepSequenceCore', () => {
                 expect.arrayContaining([{
                     tag: 'Presence',
                     universalKey: 'PRESENCE#Base',
-                    fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
+                    fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }],
                     cover: { members: [] },
                 }])
             )
@@ -908,7 +908,7 @@ describe('applyStepSequenceCore', () => {
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence])).toEqual([[BASE_PRESENCE_ID, undefined]])
+            expect(outcome.graphs.get(trayId)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]])).toEqual([[BASE_PRESENCE_ID, undefined]])
         })
 
         it('releasing several placed bindings one by one folds them all into the hostless Base', () => {
@@ -922,7 +922,7 @@ describe('applyStepSequenceCore', () => {
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence])).toEqual([[BASE_PRESENCE_ID, undefined]])
+            expect(outcome.graphs.get(trayId)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]])).toEqual([[BASE_PRESENCE_ID, undefined]])
         })
 
         it('a release keeps the host while another binding of the mover still points there', () => {
@@ -1019,7 +1019,7 @@ describe('applyStepSequenceCore', () => {
 
         it('throws when a sequence would leave a character with two presence bindings --- characters are single-hosted', () => {
             const characterGraph = testLudicGraph(characterId, {
-                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [] } }],
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }], cover: { members: [] } }],
             })
             const steps: MutationKernelStep[] = [
                 { kind: 'addPresenceBinding', hostId: characterId, fromHostPresence: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }, presenceUuid: 'p2' },
@@ -1030,7 +1030,7 @@ describe('applyStepSequenceCore', () => {
 
         it('does not throw when an object carries two presence bindings --- multi-presence is the point for objects', () => {
             const trayGraph = testLudicGraph(trayId, {
-                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [] } }],
+                nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }], cover: { members: [] } }],
             })
             const steps: MutationKernelStep[] = [
                 { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }, presenceUuid: 'p2' },
@@ -1055,7 +1055,7 @@ describe('applyStepSequenceCore', () => {
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(trayId)!.presenceNodes[0].fromHostPresence).toEqual({ host: featureId, presence: named })
+            expect(outcome.graphs.get(trayId)!.presenceNodes[0].fromHostPresences).toEqual([{ host: featureId, presence: named }])
         })
 
         it('addPresenceBinding takes an explicit cover (a room\'s Area carve-out has no members)', () => {
@@ -1095,7 +1095,7 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             const getGraph = async (hostId: EphemeraMembershipHostId) => outcome.graphs.get(hostId)!
-            const cupPointer = outcome.graphs.get(cupId)!.presenceNodes[0].fromHostPresence!
+            const cupPointer = outcome.graphs.get(cupId)!.presenceNodes[0].fromHostPresences[0]
             expect(await parentBinding(characterId, cupPointer.presence!, getGraph)).toEqual({
                 host: otherRoomId,
                 presence: parentRemainderKey(otherRoomId),
@@ -1149,7 +1149,7 @@ describe('applyStepSequenceCore', () => {
             expect(nodes[1]).toEqual({
                 tag: 'Presence',
                 universalKey: hostOnly.universalKey,
-                fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
+                fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }],
                 cover: { members: [] },
             })
         })

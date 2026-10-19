@@ -54,7 +54,7 @@ type Entry = { host: string; presence: string }
 const binding = (universalKey: string, parent?: Entry, members: Entry[] = []) => ({
     tag: 'Presence',
     universalKey,
-    ...(parent ? { fromHostPresence: parent } : {}),
+    fromHostPresences: parent ? [parent] : [],
     cover: { members },
 })
 const partOf = (from: string, to: string) => ({ tag: 'Relational', kind: 'PartOf', from, to })
@@ -257,12 +257,12 @@ export const normalizeMintedIds = (rows: ScenarioRow[]): ScenarioRow[] => {
     // Name in a stable order first: rows sorted by id, then each row's nodes by the *unminted* key, uuids by sorted order of discovery
     for (const { ludicGraph } of sorted) {
         for (const node of [...ludicGraph.nodes].sort(byKey)) {
-            const { tag, universalKey, fromHostPresence } = node as { tag?: string; universalKey?: string; fromHostPresence?: Entry }
+            const { tag, universalKey, fromHostPresences } = node as { tag?: string; universalKey?: string; fromHostPresences?: Entry[] }
             if (tag === 'Presence' && universalKey) {
                 rename(universalKey)
             }
-            if (fromHostPresence) {
-                rename(fromHostPresence.presence)
+            for (const parent of fromHostPresences ?? []) {
+                rename(parent.presence)
             }
         }
     }
@@ -271,12 +271,12 @@ export const normalizeMintedIds = (rows: ScenarioRow[]): ScenarioRow[] => {
         DataCategory,
         ludicGraph: {
             nodes: ludicGraph.nodes.map((node) => {
-                const { tag, universalKey, fromHostPresence, cover } = node as { tag: string; universalKey: string; fromHostPresence?: Entry; cover?: { members: Entry[] } }
+                const { tag, universalKey, fromHostPresences, cover } = node as { tag: string; universalKey: string; fromHostPresences?: Entry[]; cover?: { members: Entry[] } }
                 return tag === 'Presence'
                     ? {
                         tag,
                         universalKey: rename(universalKey),
-                        ...(fromHostPresence ? { fromHostPresence: { host: fromHostPresence.host, presence: rename(fromHostPresence.presence) } } : {}),
+                        fromHostPresences: (fromHostPresences ?? []).map((parent) => ({ host: parent.host, presence: rename(parent.presence) })),
                         cover: { members: [...(cover?.members ?? [])].map((entry) => ({ host: entry.host, presence: rename(entry.presence) })).sort(byKey) },
                     }
                     : { tag, universalKey }

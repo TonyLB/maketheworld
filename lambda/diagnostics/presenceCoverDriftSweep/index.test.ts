@@ -4,8 +4,8 @@ import { presenceCoverDriftSweep } from './index'
 const row = (id: string, category: string, ...nodes: object[]) => ({ EphemeraId: id, DataCategory: category, ludicGraph: { nodes: [{ tag: category.slice(6), universalKey: id }, ...nodes] } })
 const root = { tag: 'Presence', universalKey: 'PRESENCE#Base', cover: { members: [] } }
 const rootCovers = { ...root, cover: { members: [{ host: 'FEATURE#Stove', presence: 'PRESENCE#Base' }] } }
-const carve = (members: object[]) => ({ tag: 'Presence', universalKey: 'PRESENCE#carve', fromHostPresence: { host: 'AREA#Town', presence: 'PRESENCE#Base' }, cover: { members } })
-const pointer = (key: string, presence: string) => ({ tag: 'Presence', universalKey: key, fromHostPresence: { host: 'ROOM#Kitchen', presence }, cover: { members: [] } })
+const carve = (members: object[]) => ({ tag: 'Presence', universalKey: 'PRESENCE#carve', fromHostPresences: [{ host: 'AREA#Town', presence: 'PRESENCE#Base' }], cover: { members } })
+const pointer = (key: string, presence: string) => ({ tag: 'Presence', universalKey: key, fromHostPresences: [{ host: 'ROOM#Kitchen', presence }], cover: { members: [] } })
 const feature = { tag: 'Feature', universalKey: 'FEATURE#Stove' }
 // The area the carve-out binding points at, so those fixtures hold no orphan.
 const town = (...rooms: string[]) => row('AREA#Town', 'Meta::Area', ...rooms.map((universalKey) => ({ tag: 'Room', universalKey })),
@@ -76,7 +76,7 @@ describe('presenceCoverDriftSweep', () => {
     })
 
     describe('orphaned pointers', () => {
-        const objectAt = (host: string, presence: string) => row('OBJECT#Cup', 'Meta::Object', root, { tag: 'Presence', universalKey: 'PRESENCE#cup', fromHostPresence: { host, presence }, cover: { members: [] } })
+        const objectAt = (host: string, presence: string) => row('OBJECT#Cup', 'Meta::Object', root, { tag: 'Presence', universalKey: 'PRESENCE#cup', fromHostPresences: [{ host, presence }], cover: { members: [] } })
 
         it('emits a finding on the member whose pointer names a host that lacks its node', async () => {
             const result = await presenceCoverDriftSweep({}, {

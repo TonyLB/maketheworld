@@ -118,7 +118,7 @@ export type MutationKernelRepairPresenceBindingStep = {
 
 /**
  * A binding of a host, as a move names it: the host whose graph holds the binding, and its id there.
- * The same shape as a stored `fromHostPresence` (`ParentBinding`, `presenceParent.ts`), now that
+ * The same shape as a stored parent pointer (`fromHostPresences`) (`ParentBinding`, `presenceParent.ts`), now that
  * `presence` is required there.
  */
 export type PresenceBindingRef = ParentBinding

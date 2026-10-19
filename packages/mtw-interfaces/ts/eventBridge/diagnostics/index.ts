@@ -101,7 +101,7 @@ export type DiagnosticsFixedContainmentDriftFindingEvent = {
 }
 
 /**
- * A whole whose presence-binding covers disagree with its members' `fromHostPresence` pointers
+ * A whole whose presence-binding covers disagree with its members' `fromHostPresences` pointers
  * (the pointer governs; the cover is a stored index of it), or that holds no remainder. The
  * subject is the **whole**: the comparison reads its row and each member's, and the cover rebuild
  * writes only the whole's.

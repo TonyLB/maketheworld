@@ -4,7 +4,7 @@
  * (`lambda/diagnostics/presenceCoverDriftSweep/`) and the ephemera cover-rebuild heal's recheck
  * (`positions/ludicGraph/healPresenceCover.ts`). One definition of *drift* across both.
  *
- * It judges pointer versus cover, in both directions. A member's `fromHostPresence` governs; the whole's
+ * It judges pointer versus cover, in both directions. A member's `fromHostPresences` govern; the whole's
  * `cover` is a stored index of it. From the whole's side (`classifyPresenceCoverDrift`) it walks the nodes the
  * whole lists; from the member's side (`orphanedPointersOf`) it walks the pointers the member holds, which is the
  * only way to see a pointer whose host lacks the member's node. Plain structural types, so the sweep can feed raw stored rows and the heal
@@ -19,9 +19,12 @@ export type PresenceCoverMember = { host: string; presence?: string }
 
 export type PresenceBindingView = {
     universalKey: string
-    fromHostPresence?: { host: string; presence: string }
+    fromHostPresences: { host: string; presence: string }[]
     cover: { members: PresenceCoverMember[] }
 }
+
+/** Every parent pointer of a binding, empty for a hostless one. The one read of the stored field in this package. */
+export const parentPointersOf = (binding: PresenceBindingView): { host: string; presence: string }[] => binding.fromHostPresences
 
 /** The part of a host's graph this comparison reads. `nodeIds` are component nodes, root included. */
 export type PresenceGraphView = {
@@ -88,13 +91,13 @@ export const coveredByBinding = (whole: PresenceGraphView): Map<string, Set<stri
  */
 export const coverageViolationsOf = (whole: PresenceGraphView): { uncovered: string[]; hostlessBindings: string[]; badUnplaced: string[] } => {
     const covered = new Set([...coveredByBinding(whole).values()].flatMap((members) => [...members]))
-    const hostless = whole.presenceNodes.filter((binding) => !binding.fromHostPresence).map((binding) => binding.universalKey)
+    const hostless = whole.presenceNodes.filter((binding) => parentPointersOf(binding).length === 0).map((binding) => binding.universalKey)
     const base = whole.presenceNodes.find((binding) => binding.universalKey === BASE_ID)
     const unplaced = whole.presenceNodes.find((binding) => binding.universalKey === UNPLACED_ID)
     return {
         uncovered: wholeMembersOf(whole).filter((member) => !covered.has(member)),
         hostlessBindings: hostless.length > 1 ? hostless : [],
-        badUnplaced: unplaced && (unplaced.fromHostPresence || !base?.fromHostPresence) ? [unplaced.universalKey] : [],
+        badUnplaced: unplaced && (parentPointersOf(unplaced).length > 0 || !base || parentPointersOf(base).length === 0) ? [unplaced.universalKey] : [],
     }
 }
 
@@ -119,8 +122,8 @@ export const classifyPresenceCoverDrift = (
             continue
         }
         const pointers = graph.presenceNodes
-            .map((binding) => binding.fromHostPresence)
-            .filter((pointer): pointer is { host: string; presence: string } => !!pointer && pointer.host === whole.hostId)
+            .flatMap(parentPointersOf)
+            .filter((pointer) => pointer.host === whole.hostId)
         for (const [presence, members] of covered) {
             if (!members.has(member)) {
                 continue
@@ -169,9 +172,8 @@ export const orphanedPointersOf = (
     member: PresenceGraphView,
     viewOf: (hostId: string) => PresenceGraphView | undefined
 ): OrphanedPointer[] => (
-    member.presenceNodes.flatMap((binding): OrphanedPointer[] => {
-        const pointer = binding.fromHostPresence
-        if (!pointer?.presence || isBystanderPointer(member.hostId, pointer.host)) {
+    member.presenceNodes.flatMap(parentPointersOf).flatMap((pointer): OrphanedPointer[] => {
+        if (!pointer.presence || isBystanderPointer(member.hostId, pointer.host)) {
             return []
         }
         const host = viewOf(pointer.host)
@@ -189,12 +191,11 @@ export const orphanRepairsFor = (
     viewOf: (hostId: string) => PresenceGraphView | undefined
 ): { bindingId: string; fromHostPresence: { host: string; presence: string } }[] => {
     const repairable = new Set(orphanedPointersOf(member, viewOf).filter((orphan) => orphan.repairable).map((orphan) => `${orphan.host}|${orphan.presence}`))
-    return member.presenceNodes.flatMap((binding) => {
-        const pointer = binding.fromHostPresence
-        return pointer && repairable.has(`${pointer.host}|${pointer.presence}`)
-            ? [{ bindingId: binding.universalKey, fromHostPresence: pointer }]
-            : []
-    })
+    return member.presenceNodes.flatMap((binding) => (
+        parentPointersOf(binding)
+            .filter((pointer) => repairable.has(`${pointer.host}|${pointer.presence}`))
+            .map((pointer) => ({ bindingId: binding.universalKey, fromHostPresence: pointer }))
+    ))
 }
 
 /**
@@ -209,7 +210,7 @@ export const rebuiltCoverEntries = (
     wholeMembersOf(whole).flatMap((member) => {
         const graph = memberGraph(member)
         const pointed = graph?.presenceNodes.find((binding) => (
-            binding.fromHostPresence?.host === whole.hostId && binding.fromHostPresence.presence === bindingId
+            parentPointersOf(binding).some((pointer) => pointer.host === whole.hostId && pointer.presence === bindingId)
         ))
         return pointed ? [{ host: member, presence: pointed.universalKey }] : []
     })

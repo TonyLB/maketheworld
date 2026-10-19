@@ -346,7 +346,7 @@ export const mergeSameHostBucket = (
         .filter(([key], index, all) => all.findIndex(([other]) => other === key) === index)
         .map(([, edge]) => edge)
 
-    // Presence nodes aren't reconstructible from `nodeIds` alone (`fromHostPresence`/`cover` have no
+    // Presence nodes aren't reconstructible from `nodeIds` alone (`fromHostPresences`/`cover` have no
     // derivation from the id), and both sides carry the same ones anyway -- every presence node
     // is present in every cut of its own host (PN-6), so `accumulated` and `bucket` are unioning
     // identical copies here, not merging distinct facts. Component ids stay on the
@@ -421,7 +421,7 @@ const presenceCacheNodesFromFold = (
         return [...acc, {
             tag: 'Presence' as const,
             universalKey,
-            ...(presenceNode.fromHostPresence ? { fromHostPresence: presenceNode.fromHostPresence } : {}),
+            fromHostPresences: presenceNode.fromHostPresences,
             cover: { members },
         }]
     }, [])

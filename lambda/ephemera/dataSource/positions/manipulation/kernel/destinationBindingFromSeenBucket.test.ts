@@ -14,7 +14,7 @@ import type { MutationKernelStep } from './kernelStep'
 /**
  * Characterization for presenceMoves PM-1: a destination's `groundedPresence` names the bucket of the
  * HOLDING host in which the destination is seen, not the destination's own binding. The destination's
- * binding is "the one whose `fromHostPresence` names that bucket". These tests pin when that is unique
+ * binding is "the one whose `fromHostPresences` name that bucket". These tests pin when that is unique
  * (every shape the kernel writes today) and when it is not (two bindings under one parent bucket,
  * which only a split produces).
  */
@@ -30,11 +30,11 @@ const graphsMap = (...entries: [EphemeraMembershipHostId, EphemeraLudicGraph][])
 
 /** Bindings of the destination whose pointer names a seen bucket (a bare room id matches by host). */
 const bindingsUnder = (destGraph: EphemeraLudicGraph, bucket: GroundedPresence): EphemeraLudicGraphStructureNode[] => (
-    destGraph.presenceNodes.filter(({ fromHostPresence }) => (
+    destGraph.presenceNodes.filter(({ fromHostPresences }) => fromHostPresences.some((parent) => (
         typeof bucket === 'string'
-            ? fromHostPresence?.host === bucket
-            : fromHostPresence?.host === bucket.host && fromHostPresence?.presence === bucket.presence
-    ))
+            ? parent.host === bucket
+            : parent.host === bucket.host && parent.presence === bucket.presence
+    )))
 )
 
 /** The destination's binding(s) for every bucket where `destId` is seen in `holdingGraph`. */

@@ -1,4 +1,4 @@
-import { coverRebuildsFor, orphanRepairsFor, wholeMembersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { coverRebuildsFor, orphanRepairsFor, parentPointersOf, wholeMembersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -7,6 +7,7 @@ import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPo
 
 import internalCache from '../../../../internalCache'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { parentOf } from '../../ludicGraph/presenceParent'
 import { streamEventFromMessageBus } from '../../publishedEvents'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { MutationKernelRepairPresenceBindingStep } from '../kernel/kernelStep'
@@ -26,23 +27,24 @@ const orphanRepairSteps = async (
     const member = viewOf(memberGraph)
     const hosts = new Map<string, PresenceGraphView>()
     for (const binding of member.presenceNodes) {
-        const hostId = binding.fromHostPresence?.host
-        if (!hostId || hosts.has(hostId) || !isEphemeraMembershipHostId(hostId)) {
-            continue
-        }
-        try {
-            hosts.set(hostId, viewOf(await internalCache.Positions.getLudicGraph(hostId)))
-        } catch (error) {
-            // Unreadable reads as absent: the orphan stays report-only, and nothing is written for it.
+        for (const { host: hostId } of parentPointersOf(binding)) {
+            if (hosts.has(hostId) || !isEphemeraMembershipHostId(hostId)) {
+                continue
+            }
+            try {
+                hosts.set(hostId, viewOf(await internalCache.Positions.getLudicGraph(hostId)))
+            } catch (error) {
+                // Unreadable reads as absent: the orphan stays report-only, and nothing is written for it.
+            }
         }
     }
-    return orphanRepairsFor(member, (hostId) => hosts.get(hostId)).map(({ bindingId, fromHostPresence }) => {
+    return orphanRepairsFor(member, (hostId) => hosts.get(hostId)).map(({ bindingId }) => {
         const binding = memberGraph.presenceNodes.find((node) => node.universalKey === bindingId)!
         return {
             kind: 'repairPresenceBinding',
             hostId: memberId,
             presenceId: bindingId as EphemeraPresenceNodeId,
-            fromHostPresence: binding.fromHostPresence,
+            fromHostPresence: parentOf(binding),
             cover: binding.cover,
         }
     })
@@ -50,7 +52,7 @@ const orphanRepairSteps = async (
 
 /**
  * The `Presence Cover Drift Finding` consumer: rebuilds a whole's covers from its
- * members' `fromHostPresence` pointers, which govern (the cover is a stored index of them). Reads
+ * members' `fromHostPresences` pointers, which govern (the cover is a stored index of them). Reads
  * the whole's graph and **every member's**, re-classifies with the sweep's own comparison
  * (`coverRebuildsFor`, so a redelivered finding whose drift is already healed commits nothing), and
  * rewrites each disagreeing cover through `repairPresenceBinding`: in place, same id, so no
@@ -94,7 +96,7 @@ export const healPresenceCover = async (
             kind: 'repairPresenceBinding',
             hostId: wholeId,
             presenceId: bindingId as EphemeraPresenceNodeId,
-            fromHostPresence: binding.fromHostPresence,
+            fromHostPresence: parentOf(binding),
             cover: { members: entries.map((entry) => ({ host: entry.host as EphemeraPresenceCoverEntry['host'], presence: entry.presence as EphemeraPresenceNodeId })) },
         }
     })

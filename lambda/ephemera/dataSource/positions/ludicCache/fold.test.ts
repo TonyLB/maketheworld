@@ -54,7 +54,7 @@ const presenceNode = (
 ): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: PresenceKey(uuid),
-    fromHostPresence: { host: parentHost, presence: parentRemainderKey(parentHost) },
+    fromHostPresences: [{ host: parentHost, presence: parentRemainderKey(parentHost) }],
     cover,
 })
 
@@ -135,7 +135,7 @@ describe('buildLudicCache', () => {
         // z_at_x), never the covering binding.
         expect(shortNameDeps.getComponentAggregate).toHaveBeenCalledTimes(6) // roomA, objX, objY, objZ, pebble1, pebble2
         const binding = (uuid: string, parentHost: EphemeraMembershipHostId, members: { host: EphemeraMembershipHostId, presence: string }[]) => ({
-            tag: 'Presence', universalKey: PresenceKey(uuid), fromHostPresence: { host: parentHost, presence: parentRemainderKey(parentHost) },
+            tag: 'Presence', universalKey: PresenceKey(uuid), fromHostPresences: [{ host: parentHost, presence: parentRemainderKey(parentHost) }],
             cover: { members },
         })
         expect(cache.nodes).toHaveLength(6)
@@ -206,7 +206,7 @@ describe('buildLudicCache', () => {
         const xBinding = cache.nodes.find((node) => node.universalKey === objX)?.presenceNodes
             .find((presenceNode) => presenceNode.universalKey === 'PRESENCE#x_to_room')
         expect(xBinding).toEqual({
-            tag: 'Presence', universalKey: 'PRESENCE#x_to_room', fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) },
+            tag: 'Presence', universalKey: 'PRESENCE#x_to_room', fromHostPresences: [{ host: roomA, presence: parentRemainderKey(roomA) }],
             cover: {
                 members: [
                     { host: objZ, presence: 'PRESENCE#z_at_x_1' },
@@ -266,7 +266,7 @@ describe('buildLudicCache', () => {
             nodes: [
                 { tag: 'Room', universalKey: roomA },
                 { tag: 'Object', universalKey: objX },
-                { tag: 'Presence', universalKey: PresenceKey('a_root'), cover: { members: [{ host: objX, presence: 'PRESENCE#x_root' as EphemeraPresenceNodeId }] } },
+                { tag: 'Presence', universalKey: PresenceKey('a_root'), fromHostPresences: [], cover: { members: [{ host: objX, presence: 'PRESENCE#x_root' as EphemeraPresenceNodeId }] } },
                 presenceNode('a_in_town', town, { members: [] }),
             ],
         })
@@ -278,8 +278,8 @@ describe('buildLudicCache', () => {
 
         const roomBindings = cache.nodes.find((node) => node.universalKey === roomA)?.presenceNodes ?? []
         expect(roomBindings).toEqual([
-            { tag: 'Presence', universalKey: 'PRESENCE#a_root', cover: { members: [{ host: objX, presence: 'PRESENCE#x_root' }] } },
-            { tag: 'Presence', universalKey: 'PRESENCE#a_in_town', fromHostPresence: { host: town, presence: parentRemainderKey(town) }, cover: { members: [] } },
+            { tag: 'Presence', universalKey: 'PRESENCE#a_root', fromHostPresences: [], cover: { members: [{ host: objX, presence: 'PRESENCE#x_root' }] } },
+            { tag: 'Presence', universalKey: 'PRESENCE#a_in_town', fromHostPresences: [{ host: town, presence: parentRemainderKey(town) }], cover: { members: [] } },
         ])
         expect(isEphemeraLudicCacheData(cache)).toBe(true)
     })
@@ -295,7 +295,7 @@ describe('buildLudicCache', () => {
                 { tag: 'Room', universalKey: roomA },
                 { tag: 'Object', universalKey: objX },
                 { tag: 'Object', universalKey: objY },
-                { tag: 'Presence', universalKey: PresenceKey('a_root'), cover: { members: [
+                { tag: 'Presence', universalKey: PresenceKey('a_root'), fromHostPresences: [], cover: { members: [
                     { host: objX, presence: 'PRESENCE#x_root' as EphemeraPresenceNodeId },
                     { host: objY, presence: 'PRESENCE#y_root' as EphemeraPresenceNodeId },
                 ] } },
@@ -347,11 +347,11 @@ describe('buildLudicCache', () => {
                 universalKey: objX,
                 presenceNodes: [
                     {
-                        tag: 'Presence', universalKey: 'PRESENCE#x_to_room_a', fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) },
+                        tag: 'Presence', universalKey: 'PRESENCE#x_to_room_a', fromHostPresences: [{ host: roomA, presence: parentRemainderKey(roomA) }],
                         cover: { members: [] },
                     },
                     {
-                        tag: 'Presence', universalKey: 'PRESENCE#x_to_room_b', fromHostPresence: { host: roomB, presence: parentRemainderKey(roomB) },
+                        tag: 'Presence', universalKey: 'PRESENCE#x_to_room_b', fromHostPresences: [{ host: roomB, presence: parentRemainderKey(roomB) }],
                         cover: { members: [{ host: objZ, presence: 'PRESENCE#z_in_x' }] },
                     },
                 ],
@@ -360,7 +360,7 @@ describe('buildLudicCache', () => {
                 tag: 'Object',
                 universalKey: objZ,
                 presenceNodes: [{
-                    tag: 'Presence', universalKey: 'PRESENCE#z_in_x', fromHostPresence: { host: objX, presence: parentRemainderKey(objX) },
+                    tag: 'Presence', universalKey: 'PRESENCE#z_in_x', fromHostPresences: [{ host: objX, presence: parentRemainderKey(objX) }],
                     cover: { members: [] },
                 }],
             },
@@ -588,7 +588,7 @@ describe('buildLudicCache', () => {
                     nodes: [
                         { tag: 'Room', universalKey: roomA },
                         { tag: 'Object', universalKey: objX },
-                        { tag: 'Presence', universalKey: parentRemainderKey(roomA), cover: { members: [{ host: objX, presence: 'PRESENCE#x_in_room' as EphemeraPresenceNodeId }] } },
+                        { tag: 'Presence', universalKey: parentRemainderKey(roomA), fromHostPresences: [], cover: { members: [{ host: objX, presence: 'PRESENCE#x_in_room' as EphemeraPresenceNodeId }] } },
                     ],
                 })],
                 [objX, testLudicGraph(objX, { nodes: [{ tag: 'Object', universalKey: objX }, presenceNode('x_in_room', roomA, enumeratedCover())] })],
@@ -596,7 +596,7 @@ describe('buildLudicCache', () => {
                 [alpha, testLudicGraph(alpha, {
                     nodes: [
                         { tag: 'Character', universalKey: alpha },
-                        { tag: 'Presence', universalKey: alphaBinding, fromHostPresence: { host: roomA, presence: parentRemainderKey(roomA) }, cover: { members: [] } },
+                        { tag: 'Presence', universalKey: alphaBinding, fromHostPresences: [{ host: roomA, presence: parentRemainderKey(roomA) }], cover: { members: [] } },
                     ],
                 })],
             ])

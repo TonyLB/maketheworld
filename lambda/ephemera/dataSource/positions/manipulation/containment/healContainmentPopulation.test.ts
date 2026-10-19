@@ -66,7 +66,7 @@ describe('healContainmentPopulation', () => {
                 edges: [partOf(FEATURE_ID, ROOM_ID)],
             }),
             [FEATURE_ID]: testLudicGraph(FEATURE_ID, {
-                nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#gone' as EphemeraPresenceNodeId }, cover: { members: [] } }],
+                nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresences: [{ host: ROOM_ID, presence: 'PRESENCE#gone' as EphemeraPresenceNodeId }], cover: { members: [] } }],
             }),
         })
 

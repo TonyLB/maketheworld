@@ -7,6 +7,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { graphFromMeta } from '../../ludicGraph'
+import { parentOf, parentsOf } from '../../ludicGraph/presenceParent'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MutationKernelStep } from './kernelStep'
@@ -212,6 +213,7 @@ export const applyStepSequenceCore = (
             graphs.set(step.hostId, graphFromMeta({}, step.hostId).addPresenceNode({
                 tag: 'Presence',
                 universalKey: BASE_PRESENCE_ID,
+                fromHostPresences: [],
                 cover: { members: [] },
             }))
             continue
@@ -260,7 +262,7 @@ export const applyStepSequenceCore = (
             const withNode = graph.addPresenceNode({
                 tag: 'Presence',
                 universalKey: PresenceKey(step.presenceUuid),
-                ...(step.fromHostPresence ? { fromHostPresence: step.fromHostPresence } : {}),
+                fromHostPresences: step.fromHostPresence ? [step.fromHostPresence] : [],
                 cover: step.cover ?? { members: [] },
             })
             const indexed = writeCoverIndex(new Map(graphs).set(step.hostId, withNode), step.hostId, PresenceKey(step.presenceUuid) as EphemeraPresenceNodeId, undefined, step.fromHostPresence)
@@ -298,11 +300,11 @@ export const applyStepSequenceCore = (
             if (!graph.presenceNodes.some((node) => node.universalKey === step.presenceId)) {
                 return { verdict: 'stale', reasonCode: 'presenceBindingMissing' }
             }
-            const before = graph.presenceNodes.find((node) => node.universalKey === step.presenceId)?.fromHostPresence
+            const before = parentOf(graph.presenceNodes.find((node) => node.universalKey === step.presenceId)!)
             const repaired = new Map(graphs).set(step.hostId, graph.replacePresenceNode({
                 tag: 'Presence',
                 universalKey: step.presenceId,
-                ...(step.fromHostPresence ? { fromHostPresence: step.fromHostPresence } : {}),
+                fromHostPresences: step.fromHostPresence ? [step.fromHostPresence] : [],
                 cover: step.cover,
             }))
             // A repair that changes the parent host leaves the old one, as a move does.
@@ -422,10 +424,8 @@ export const applyStepSequenceCore = (
                 `Unplaced has no parent and exists only while Base has one.`
             )
         }
-        const presencesByParentHost = graph.presenceNodes.reduce<Record<string, string[]>>((accumulator, { fromHostPresence }) => (
-            fromHostPresence
-                ?{ ...accumulator, [fromHostPresence.host]: [...(accumulator[fromHostPresence.host] ?? []), fromHostPresence.presence] }
-                : accumulator
+        const presencesByParentHost = graph.presenceNodes.flatMap(parentsOf).reduce<Record<string, string[]>>((accumulator, parent) => (
+            { ...accumulator, [parent.host]: [...(accumulator[parent.host] ?? []), parent.presence] }
         ), {})
         Object.entries(presencesByParentHost).forEach(([parentHost, presences]) => {
             const duplicate = presences.find((presence, index) => presences.indexOf(presence) !== index)

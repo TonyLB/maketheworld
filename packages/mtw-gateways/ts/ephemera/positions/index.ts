@@ -57,6 +57,7 @@ export {
     lacksBase,
     orphanRepairsFor,
     orphanedPointersOf,
+    parentPointersOf,
     rebuiltCoverEntries,
     wholeMembersOf,
 } from './classifyPresenceCoverDrift'

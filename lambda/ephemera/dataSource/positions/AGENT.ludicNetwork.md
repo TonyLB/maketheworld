@@ -148,10 +148,10 @@ Sections 1--3 answer *what is in each host*. Presence answers the converse from 
 **Every hosted thing carries *at least* one presence node per host it is in**, as a node in its own graph. Usually exactly one --- but a thing inside a whole that is itself present in a host two distinguishable ways **inherits that arity**: a grappling-hook gun that is part of a contraption straddling two rooms has *one* host (the contraption) and *two* bindings into it, one per bucket of the contraption's own cover. That is why presence is indexed by binding rather than by host:
 
 ```text
-{ tag: 'Presence', universalKey: 'PRESENCE#<uuid>', fromHostPresence: { host: <the parent host>, presence: <its binding> }, cover: <see below> }
+{ tag: 'Presence', universalKey: 'PRESENCE#<uuid>', fromHostPresences: [{ host: <the parent host>, presence: <its binding> }], cover: <see below> }
 ```
 
-- **`fromHostPresence`** names the parent binding: `host` is the shard to read, `presence` is which of that host's bindings this one sits under. It governs; the parent's cover is a stored index of it. Absent on a hostless binding (`PRESENCE#Base` of a room, Area or unplaced whole, or `PRESENCE#Unplaced`), and `presence` is absent where the parent has several bindings and none is named.
+- **`fromHostPresences`** names the parent bindings (a set; every producer writes at most one today): in each, `host` is the shard to read, `presence` is which of that host's bindings this one sits under. They govern; each parent's cover is a stored index of them. Empty on a hostless binding (`PRESENCE#Base` of a room, Area or unplaced whole, or `PRESENCE#Unplaced`), and `presence` is absent where the parent has several bindings and none is named.
 - **`cover`** is the **bucket** --- which of this thing's own nodes are present at this host. `{ members: [...] }`, each entry either `{ host, presence }` --- naming one of this thing's nodes *and which of that node's own bindings* is meant --- and nothing else: a cover is its explicit entries, never "whatever no other binding lists".
 
 The rope makes the point. It is a node in the Lab's graph and in the Hall's graph, so its own graph holds two presence nodes:
@@ -160,8 +160,8 @@ The rope makes the point. It is a node in the Lab's graph and in the Hall's grap
 OBJECT#Rope.ludicGraph
   rootId: OBJECT#Rope
   nodes:  OBJECT#Rope, OBJECT#RopeEndA, OBJECT#RopeEndB,
-          { Presence, PRESENCE#p1, fromHostPresence: ROOM#Lab,  cover: [EndA] }   // bucket 1
-          { Presence, PRESENCE#p2, fromHostPresence: ROOM#Hall, cover: [EndB] }   // bucket 2
+          { Presence, PRESENCE#p1, fromHostPresences: [ROOM#Lab],  cover: [EndA] }   // bucket 1
+          { Presence, PRESENCE#p2, fromHostPresences: [ROOM#Hall], cover: [EndB] }   // bucket 2
   edges:  OBJECT#RopeEndA -PartOf-> OBJECT#Rope
           OBJECT#RopeEndB -PartOf-> OBJECT#Rope
           OBJECT#RopeEndA -Custom('spliced to')-> OBJECT#RopeEndB
@@ -255,7 +255,7 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 | **Crossing port** | The record in `ports` where a relation passes through the boundary; interior-side, two scopes of field | [Port records](AGENT.contract.md#port-records-field-scope-and-the-conflict-rule) |
 | **Leg / chain** | A relation across boundaries is stored as legs, one per graph; the chain is their shared identity | [`AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) |
 | **Coarsening** | An unresolvable port address reads as its owner | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
-| **Presence node** | `{ tag: 'Presence', PRESENCE#…, fromHostPresence, cover }` in the hosted thing's graph; one per binding, and a host may hold more than one binding into the same thing | [Presence nodes](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path) |
+| **Presence node** | `{ tag: 'Presence', PRESENCE#…, fromHostPresences, cover }` in the hosted thing's graph; one per binding, and a host may hold more than one binding into the same thing | [Presence nodes](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path) |
 | **Binding / bucket / cover / totality** | One way of being present / its node subset / the family of buckets / their union is every node | [Presence as a cover](AGENT.concepts.md#presence-as-a-cover) |
 | **Apprehension scale** | Whether a thing answers "what is here" at a host's scale; an attention concern of the cache, declared, not yet modelled | [`ludicCache` entry](AGENT.concepts.md#ludiccache-the-attention-scoped-read-structure) |
 | **`ludicCache`** | Derived, attention-scoped, cross-shard read structure; hits return handles | [`ludicCache` entry](AGENT.concepts.md#ludiccache-the-attention-scoped-read-structure), [`ludicCache/types.ts`](ludicCache/types.ts), [stored row rules](AGENT.contract.md#ludic-cache-staleness-and-rebuild), [rebuild mechanism](AGENT.implementation.md#rebuild-mechanism-findings-the-fold-implements) |

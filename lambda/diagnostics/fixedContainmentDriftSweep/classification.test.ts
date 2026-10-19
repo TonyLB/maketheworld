@@ -8,10 +8,10 @@ const OBJECT = 'OBJECT#Pot'
 const root = { tag: 'Presence', universalKey: 'PRESENCE#Base', cover: { members: [] } }
 const partOf = (from: string, to: string) => ({ tag: 'Relational', kind: 'PartOf', from, to })
 const pointingAt = (host: string, presence = 'PRESENCE#Base', members: unknown[] = []) => ({
-    nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host, presence }, cover: { members } }],
+    nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresences: [{ host, presence }], cover: { members } }],
 })
 const carveOut = (members: unknown[] = []) => ({
-    nodes: [root, { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: { host: AREA, presence: 'PRESENCE#Base' }, cover: { members } }],
+    nodes: [root, { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresences: [{ host: AREA, presence: 'PRESENCE#Base' }], cover: { members } }],
 })
 const areaGraph = { nodes: [root, ROOM], edges: [partOf(ROOM, AREA)] }
 const roomGraph = { nodes: [root, FEATURE], edges: [partOf(FEATURE, ROOM)] }
@@ -70,8 +70,8 @@ describe('isFixedContainmentDrifted', () => {
 
     it('refuses to judge children of a parent with several bindings and no root to name', () => {
         const two = { nodes: [
-            { tag: 'Presence', universalKey: 'PRESENCE#a', fromHostPresence: { host: ROOM, presence: 'PRESENCE#Base' }, cover: { members: [] } },
-            { tag: 'Presence', universalKey: 'PRESENCE#b', fromHostPresence: { host: 'ROOM#Other', presence: 'PRESENCE#Base' }, cover: { members: [] } },
+            { tag: 'Presence', universalKey: 'PRESENCE#a', fromHostPresences: [{ host: ROOM, presence: 'PRESENCE#Base' }], cover: { members: [] } },
+            { tag: 'Presence', universalKey: 'PRESENCE#b', fromHostPresences: [{ host: 'ROOM#Other', presence: 'PRESENCE#Base' }], cover: { members: [] } },
         ] }
         expect(isFixedContainmentDrifted(FEATURE, two, ['FEATURE#Knob'], () => undefined)).toBe(false)
     })
