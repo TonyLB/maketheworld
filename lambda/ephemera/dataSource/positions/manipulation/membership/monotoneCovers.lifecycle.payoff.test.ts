@@ -12,7 +12,7 @@ import { isKernelMutationStep } from '../kernel/kernelStep'
 import type { MutationKernelStep } from '../kernel/kernelStep'
 
 /**
- * monotoneCovers Slice 2b's payoff, through the real compiler and the real kernel apply: the whole
+ * The monotone-covers payoff, through the real compiler and the real kernel apply: the whole
  * life of a placed thing --- create, place, move, move part away, move it back, disconnect --- writes
  * only explicit entries. After every step no binding holds a `Remainder`, the coverage invariant
  * holds with Base present, and every parent's cover lists its arrivals with no `healPresenceCover`.

@@ -317,7 +317,7 @@ export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): E
  * so the qualifying `owner` on that address carries no information the id does not, and identity
  * may drop it.
  *
- * **Fixed ids break that uniqueness** (monotoneCovers Slice 4): every whole holds a `PRESENCE#Base`,
+ * **Fixed ids break that uniqueness** (contract, *Base and Unplaced*): every whole holds a `PRESENCE#Base`,
  * so a bare presence id names a binding only on the graph it sits in. A caller comparing terminals of
  * one graph passes that graph's host as `bareOwner`, and the exception then also requires the address
  * to be owned by it. Omitted, the owner is ignored, which is sound only for ids that are still unique.
@@ -402,7 +402,7 @@ export type EphemeraPresenceCover = {
 }
 
 /**
- * The fixed ids of a whole's root bindings (monotoneCovers MC-2). Base always exists and takes every
+ * The fixed ids of a whole's root bindings (contract, *Base and Unplaced*). Base always exists and takes every
  * context-free add; Unplaced exists only while Base has a parent pointer, and holds contents
  * explicitly unplaced. Each is unique per whole (never across wholes), so a reference to either is
  * host-qualified.

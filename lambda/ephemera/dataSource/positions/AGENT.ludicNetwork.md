@@ -151,7 +151,7 @@ Sections 1--3 answer *what is in each host*. Presence answers the converse from 
 { tag: 'Presence', universalKey: 'PRESENCE#<uuid>', fromHostPresence: { host: <the parent host>, presence: <its binding> }, cover: <see below> }
 ```
 
-- **`fromHostPresence`** names the parent binding: `host` is the shard to read, `presence` is which of that host's bindings this one sits under. It governs; the parent's cover is a stored index of it. Absent on a hostless remainder (a room's or Area's own, or an unplaced whole's), and `presence` is absent where the parent has several bindings and none is named.
+- **`fromHostPresence`** names the parent binding: `host` is the shard to read, `presence` is which of that host's bindings this one sits under. It governs; the parent's cover is a stored index of it. Absent on a hostless binding (`PRESENCE#Base` of a room, Area or unplaced whole, or `PRESENCE#Unplaced`), and `presence` is absent where the parent has several bindings and none is named.
 - **`cover`** is the **bucket** --- which of this thing's own nodes are present at this host. `{ members: [...] }`, each entry either `{ host, presence }` --- naming one of this thing's nodes *and which of that node's own bindings* is meant --- and nothing else: a cover is its explicit entries, never "whatever no other binding lists".
 
 The rope makes the point. It is a node in the Lab's graph and in the Hall's graph, so its own graph holds two presence nodes:

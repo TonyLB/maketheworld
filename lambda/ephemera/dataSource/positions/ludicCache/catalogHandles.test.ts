@@ -107,7 +107,7 @@ describe('ludicCacheObjectHandles', () => {
         expect(handles.map(({ objectId }) => objectId).sort()).toEqual([boxId, pebble].sort())
     })
 
-    // monotoneCovers Slice 4: every whole's root binding is `PRESENCE#Base`, so a box in a room meets
+    // Every whole's root binding is `PRESENCE#Base`, so a box in a room meets
     // two bindings with one bare id. Buckets are told apart by owner.
     it('keeps the room\'s Base and the box\'s own Base as two buckets for the box', async () => {
         const base = 'PRESENCE#Base' as const

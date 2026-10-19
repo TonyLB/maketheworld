@@ -1,6 +1,6 @@
 # Containment drift coverage: implementation
 
-**Status: queued 2026-10-18. Starts once [`AGENT.monotoneCovers.planning.md`](../ephemera/dataSource/positions/AGENT.monotoneCovers.planning.md) closes (its Slice 7 rewrites the contract clauses this plan links). Slice 0 is next.**
+**Status: ready (queued 2026-10-18, unblocked the same day): the monotone-covers plan landed and was deleted, and the contract clauses this plan links are rewritten. Slice 0 is next.**
 
 **Scope in one sentence: make the `ContainmentPopulationDriftSweep` sense every condition cache-time containment population repairs, keyed on the condition rather than on the owner's kind.**
 
@@ -65,7 +65,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | Slice | State |
 | --- | --- |
-| 0. Verify premises | Ready once monotoneCovers closes |
+| 0. Verify premises | Ready |
 | 1. Cross-row conditions | Not started |
 | 2. Payoff test | Not started |
 | 3. Docs and deletion | Not started |

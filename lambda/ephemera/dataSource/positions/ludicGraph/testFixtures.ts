@@ -50,7 +50,7 @@ export const testLudicGraphFromEnvelope = (
     envelope: PlayLudicGraph = { nodes: [] }
 ): EphemeraLudicGraph => EphemeraLudicGraph.fromPlayEnvelope(hostId, envelope)
 
-/** Test convention: a parent host's root binding id, when a fixture names only the host. Every whole's is `PRESENCE#Base` (monotoneCovers MC-2). */
+/** Test convention: a parent host's root binding id, when a fixture names only the host. Every whole's is `PRESENCE#Base`. */
 export const parentRemainderKey = (_host: EphemeraMembershipHostId): EphemeraPresenceNodeId => BASE_PRESENCE_ID
 
 /**

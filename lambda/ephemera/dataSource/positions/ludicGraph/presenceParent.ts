@@ -62,7 +62,7 @@ export const parentBinding = async (
 }
 
 /**
- * The binding of the graph's host with no parent pointer, whatever its cover (monotoneCovers: a
+ * The binding of the graph's host with no parent pointer, whatever its cover (a
  * whole has at most one). A Room or Area keeps one for good (PR-21(f)); any other whole holds one
  * while unplaced (minted by population as a parent's root, or left by a disconnect/destroy).
  */
@@ -72,8 +72,8 @@ export const unpointedBindingOf = (graph: EphemeraLudicGraph): EphemeraLudicGrap
 
 /**
  * The binding of `parentGraph`'s host that its children sit under: its `PRESENCE#Base`, which every
- * whole holds (monotoneCovers MC-1), or `undefined` when the host has none yet (population mints it
- * for a Room or Area; a missing one anywhere else is drift the Base migration owns). Never guesses.
+ * whole holds, or `undefined` when the host has none yet (population mints it
+ * for a Room or Area; a missing one anywhere else is drift the cover-drift sweep reports as `noBase`). Never guesses.
  */
 export const childParentBindingIdOf = (parentGraph: EphemeraLudicGraph): EphemeraPresenceNodeId | undefined => (
     parentGraph.presenceNodes.find((node) => node.universalKey === BASE_PRESENCE_ID)?.universalKey

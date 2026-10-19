@@ -37,7 +37,7 @@ const sameCover = (a: EphemeraPresenceCover, b: EphemeraPresenceCover): boolean 
 }
 
 /**
- * A move's write (`MutationKernelMovePresenceBindingStep`, monotoneCovers MC-3). Writes the whole's
+ * A move's write (`MutationKernelMovePresenceBindingStep`). Writes the whole's
  * graph, the children's (their pointers re-point) and the parents' (their covers are the index), so
  * it returns the whole map. A `reasonCode` is the `stale` reason: the producer built the step
  * against a snapshot that may since have changed.
@@ -126,7 +126,7 @@ export const movePresenceBinding = (
         const base = graph.presenceNodes.find(({ universalKey }) => universalKey === BASE_PRESENCE_ID)
         const unplaced = graph.presenceNodes.find(({ universalKey }) => universalKey === UNPLACED_PRESENCE_ID)
         if (!base) {
-            // A whole holds Base from creation on (stored data was migrated, monotoneCovers Slice 5); a move to no
+            // A whole holds Base from creation on (stored data was migrated); a move to no
             // parent has nowhere to land without one, so the producer's read is stale.
             return { reasonCode: 'baseMissing' }
         }

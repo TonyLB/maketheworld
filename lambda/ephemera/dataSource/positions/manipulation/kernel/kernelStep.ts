@@ -124,7 +124,7 @@ export type MutationKernelRepairPresenceBindingStep = {
 export type PresenceBindingRef = ParentBinding
 
 /**
- * A move's presence write (monotoneCovers MC-3): takes one binding of the mover (`presence`, on
+ * A move's presence write: takes one binding of the mover (`presence`, on
  * `hostId`'s own graph), or the `subCover` part of its cover, from the parent binding it sits under
  * now (`from`; `null` for a hostless binding, a first placement) to the parent binding `to`, or to
  * no parent (`to: null`). Nothing is resolved by host and nothing is guessed: the producer names
@@ -141,7 +141,7 @@ export type PresenceBindingRef = ParentBinding
  * - **To no parent**: the entries land in `PRESENCE#Base` if it is hostless, else in
  *   `PRESENCE#Unplaced` (minted if absent). Base moved to no parent absorbs Unplaced. A whole holding
  *   no Base is `stale` (`baseMissing`): every whole holds Base from creation on, and stored data was
- *   migrated to it (monotoneCovers Slice 5).
+ *   migrated to it.
  * - **Children re-point, and collisions merge.** Each moved entry is a child's binding, re-pointed to
  *   the binding that now covers it; a child left holding two bindings under it has them merged by
  *   this same move one level down.
