@@ -101,10 +101,10 @@ export type DiagnosticsFixedContainmentDriftFindingEvent = {
 }
 
 /**
- * A whole whose presence-binding covers disagree with its members' `fromHostPresences` pointers
+ * A host whose presence-binding covers disagree with its members' `fromHostPresences` pointers
  * (the pointer governs; the cover is a stored index of it), or that holds no remainder. The
- * subject is the **whole**: the comparison reads its row and each member's, and the cover rebuild
- * writes only the whole's.
+ * subject is the **host**: the comparison reads its row and each member's, and the cover rebuild
+ * writes only the host's.
  */
 export type DiagnosticsPresenceCoverDriftFindingEvent = {
     type: 'Presence Cover Drift Finding'

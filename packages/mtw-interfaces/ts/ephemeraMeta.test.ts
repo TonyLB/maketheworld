@@ -308,7 +308,7 @@ describe('ephemeraLudicTerminalsEqual / ephemeraLudicTerminalRefersTo', () => {
         expect(ephemeraLudicTerminalsEqual(address, primitive)).toBe(true)
     })
 
-    it('with a bare owner, a fixed-id presence node equals only an address owned by that graph (PRESENCE#Base is per whole)', () => {
+    it('with a bare owner, a fixed-id presence node equals only an address owned by that graph (PRESENCE#Base is per host)', () => {
         const base = 'PRESENCE#Base' as const
         const mine = { owner: 'ROOM#A' as const, port: 'PRESENCE#Base' }
         const theirs = { owner: 'OBJECT#BOX' as const, port: 'PRESENCE#Base' }

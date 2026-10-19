@@ -247,11 +247,11 @@ export const applyStepSequenceCore = (
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             // `addPresenceNode` returns silently on a duplicate key, which for a fixed id would hide a
-            // second mint of Base or Unplaced; a whole holds each at most once.
+            // second mint of Base or Unplaced; a host holds each at most once.
             const mintedId = PresenceKey(step.presenceUuid)
             if ((mintedId === BASE_PRESENCE_ID || mintedId === UNPLACED_PRESENCE_ID) && graph.presenceNodes.some((node) => node.universalKey === mintedId)) {
                 throw new Error(
-                    `addPresenceBinding: ${step.hostId} already holds ${mintedId} --- structural invariant violated (a whole holds each fixed root binding once)`
+                    `addPresenceBinding: ${step.hostId} already holds ${mintedId} --- structural invariant violated (a host holds each fixed root binding once)`
                 )
             }
             // presenceNodes Slice 7a (PN-23): mints the presence node directly, with no port
@@ -388,12 +388,12 @@ export const applyStepSequenceCore = (
             }
         })
 
-    // The transient-duplicate invariant (AGENT.contract.md, "A binding's id is stable for the whole's
-    // life"): two bindings of one whole under the same parent binding are legal only inside a run (a
+    // The transient-duplicate invariant (AGENT.contract.md, "A binding's id is stable for the host's
+    // life"): two bindings of one host under the same parent binding are legal only inside a run (a
     // split produces them, a pair of moves to one parent produces them before a join), and no run may
     // leave them behind. Checks only graphs this run wrote, so duplicates already in storage do not
     // make an unrelated run throw. A hostless binding has no pointer, so names no binding to collide on
-    // here; the coverage invariant below is its case (a whole has at most one binding under "no parent").
+    // here; the coverage invariant below is its case (a host has at most one binding under "no parent").
     // A violation is a caller bug (a missing join), not a verdict, like the character check above.
     // Also at the end of the run, because a split of a hostless binding passes through two hostless
     // bindings.
@@ -415,7 +415,7 @@ export const applyStepSequenceCore = (
         if (hostlessBindings.length) {
             throw new Error(
                 `applyStepSequenceCore: ${hostId} would carry ${hostlessBindings.length} hostless bindings (${hostlessBindings.join(', ')}) --- ` +
-                `a whole has at most one binding with no parent.`
+                `a host has at most one binding with no parent.`
             )
         }
         if (badUnplaced.length) {
@@ -432,7 +432,7 @@ export const applyStepSequenceCore = (
             if (duplicate) {
                 throw new Error(
                     `applyStepSequenceCore: ${hostId} would carry two bindings under the same parent binding ${duplicate} on ${parentHost} ` +
-                    `--- two bindings of one whole under one parent may exist only inside a run, so a join was missing.`
+                    `--- two bindings of one host under one parent may exist only inside a run, so a join was missing.`
                 )
             }
         })

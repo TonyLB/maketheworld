@@ -132,7 +132,7 @@ export const containmentPopulationSteps = (
             hostId: childId,
             fromHostPresence,
             ...(wantedCover ? { cover: wantedCover } : {}),
-            // a child holding no binding yet gets its Base placed (every whole holds one); a further binding is a new id
+            // a child holding no binding yet gets its Base placed (every host holds one); a further binding is a new id
             presenceUuid: childGraph.presenceNodes.length === 0 ? 'Base' : uuidv4(),
         }
         steps.push(bindingStep)

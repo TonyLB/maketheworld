@@ -1,4 +1,4 @@
-import { coverRebuildsFor, orphanRepairsFor, parentPointersOf, wholeMembersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { coverRebuildsFor, orphanRepairsFor, parentPointersOf, hostMembersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -51,9 +51,9 @@ const orphanRepairSteps = async (
 }
 
 /**
- * The `Presence Cover Drift Finding` consumer: rebuilds a whole's covers from its
+ * The `Presence Cover Drift Finding` consumer: rebuilds a host's covers from its
  * members' `fromHostPresences` pointers, which govern (the cover is a stored index of them). Reads
- * the whole's graph and **every member's**, re-classifies with the sweep's own comparison
+ * the host's graph and **every member's**, re-classifies with the sweep's own comparison
  * (`coverRebuildsFor`, so a redelivered finding whose drift is already healed commits nothing), and
  * rewrites each disagreeing cover through `repairPresenceBinding`: in place, same id, so no
  * pointer is orphaned. No new emitter.
@@ -63,7 +63,7 @@ const orphanRepairSteps = async (
  * unchanged; `settleMembership` re-seats the node and `writeCoverIndex` re-adds the cover entry. It mints nothing.
  * An orphan whose host row or named binding is absent is not repaired (report-only in the sweep).
  *
- * **Not repaired, deliberately:** an unbound or duplicated member binding, an uncovered member, and a whole with no
+ * **Not repaired, deliberately:** an unbound or duplicated member binding, an uncovered member, and a host with no
  * `PRESENCE#Base`. Fixing those means minting a binding or a bucket, which the single write path reserves to the
  * move compiler and population. If any member's graph cannot be read the heal writes nothing, since
  * a rebuild over a partial read would drop that member's entry.
@@ -72,35 +72,35 @@ const orphanRepairSteps = async (
  * consumer or a manual invocation.
  */
 export const healPresenceCover = async (
-    wholeId: EphemeraMembershipHostId,
+    hostId: EphemeraMembershipHostId,
     deps: PopulateContainmentAtCacheDependencies
 ): Promise<void> => {
-    const wholeGraph = await internalCache.Positions.getLudicGraph(wholeId)
-    const whole = viewOf(wholeGraph)
+    const hostGraph = await internalCache.Positions.getLudicGraph(hostId)
+    const host = viewOf(hostGraph)
     const views = new Map<string, PresenceGraphView>()
-    for (const memberId of wholeMembersOf(whole)) {
+    for (const memberId of hostMembersOf(host)) {
         if (!isEphemeraMembershipHostId(memberId)) {
             continue
         }
         try {
             views.set(memberId, viewOf(await internalCache.Positions.getLudicGraph(memberId)))
         } catch (error) {
-            console.error(`[mtw.ephemera.positions] healPresenceCover aborted for ${wholeId}: could not read ${memberId}`)
+            console.error(`[mtw.ephemera.positions] healPresenceCover aborted for ${hostId}: could not read ${memberId}`)
             return
         }
     }
 
-    const coverSteps = coverRebuildsFor(whole, (memberId) => views.get(memberId)).map(({ bindingId, entries }): MutationKernelRepairPresenceBindingStep => {
-        const binding = wholeGraph.presenceNodes.find((node) => node.universalKey === bindingId)!
+    const coverSteps = coverRebuildsFor(host, (memberId) => views.get(memberId)).map(({ bindingId, entries }): MutationKernelRepairPresenceBindingStep => {
+        const binding = hostGraph.presenceNodes.find((node) => node.universalKey === bindingId)!
         return {
             kind: 'repairPresenceBinding',
-            hostId: wholeId,
+            hostId: hostId,
             presenceId: bindingId as EphemeraPresenceNodeId,
             fromHostPresence: parentOf(binding),
             cover: { members: entries.map((entry) => ({ host: entry.host as EphemeraPresenceCoverEntry['host'], presence: entry.presence as EphemeraPresenceNodeId })) },
         }
     })
-    const orphanSteps = await orphanRepairSteps(wholeId, wholeGraph)
+    const orphanSteps = await orphanRepairSteps(hostId, hostGraph)
     const steps = [...coverSteps, ...orphanSteps]
     if (steps.length === 0) {
         return
@@ -111,10 +111,10 @@ export const healPresenceCover = async (
         {
             messageBus: deps.messageBus,
             streamEvent: deps.streamEvent ?? streamEventFromMessageBus(deps.messageBus),
-            getCurrentHost: () => wholeId,
+            getCurrentHost: () => hostId,
         }
     )
     if (!result.ok) {
-        console.error(`[mtw.ephemera.positions] healPresenceCover failed for ${wholeId}: ${result.errorMessage}`)
+        console.error(`[mtw.ephemera.positions] healPresenceCover failed for ${hostId}: ${result.errorMessage}`)
     }
 }

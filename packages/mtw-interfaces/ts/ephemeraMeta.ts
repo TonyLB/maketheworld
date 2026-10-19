@@ -317,7 +317,7 @@ export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): E
  * so the qualifying `owner` on that address carries no information the id does not, and identity
  * may drop it.
  *
- * **Fixed ids break that uniqueness** (contract, *Base and Unplaced*): every whole holds a `PRESENCE#Base`,
+ * **Fixed ids break that uniqueness** (contract, *Base and Unplaced*): every host holds a `PRESENCE#Base`,
  * so a bare presence id names a binding only on the graph it sits in. A caller comparing terminals of
  * one graph passes that graph's host as `bareOwner`, and the exception then also requires the address
  * to be owned by it. Omitted, the owner is ignored, which is sound only for ids that are still unique.
@@ -393,7 +393,7 @@ export type EphemeraPresenceCoverEntry = {
 
 /**
  * A presence binding's extent: an ordered list of explicit entries, never a complement. Every
- * component node of a whole is listed by at least one of its bindings (the coverage invariant), so
+ * component node of a host is listed by at least one of its bindings (the coverage invariant), so
  * a cover means the same thing whatever its siblings hold. A room's binding into an Area is the
  * carve-out with no members at all.
  */
@@ -402,9 +402,9 @@ export type EphemeraPresenceCover = {
 }
 
 /**
- * The fixed ids of a whole's root bindings (contract, *Base and Unplaced*). Base always exists and takes every
+ * The fixed ids of a host's root bindings (contract, *Base and Unplaced*). Base always exists and takes every
  * context-free add; Unplaced exists only while Base has a parent pointer, and holds contents
- * explicitly unplaced. Each is unique per whole (never across wholes), so a reference to either is
+ * explicitly unplaced. Each is unique per host (never across hosts), so a reference to either is
  * host-qualified.
  */
 export const BASE_PRESENCE_ID = 'PRESENCE#Base' as EphemeraPresenceNodeId
@@ -421,7 +421,7 @@ export const UNPLACED_PRESENCE_ID = 'PRESENCE#Unplaced' as EphemeraPresenceNodeI
  * `fromHostPresences` (PR-21, PR-25) is the SET of parent BINDINGS: in each pointer, `host` is the
  * shard to read (one Dynamo read), `presence` is which of that host's bindings this one sits
  * under. The child's pointers govern; each parent's cover is a stored index of them. Empty means a
- * hostless remainder (a room, an unplaced or offline whole).
+ * hostless remainder (a room, an unplaced or offline host).
  */
 export type EphemeraPresenceParentPointer = {
     host: EphemeraMembershipHostId;

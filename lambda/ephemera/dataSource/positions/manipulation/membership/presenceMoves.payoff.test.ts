@@ -44,7 +44,7 @@ const applyPlanned = (steps: ReturnType<typeof compilePositionKernelOp>['steps']
 }
 
 describe('a move lands under the destination binding it names', () => {
-    // A plank laid across two places in the room: two bindings of one whole under the room's remainder.
+    // A plank laid across two places in the room: two bindings of one host under the room's remainder.
     // `right` lists the cup's binding explicitly (cover distribution is the later split slice's work);
     // `left` holds the remainder.
     const plankGraph = () => testLudicGraph(plank, {

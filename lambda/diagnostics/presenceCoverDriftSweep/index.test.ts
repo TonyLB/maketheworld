@@ -19,7 +19,7 @@ describe('presenceCoverDriftSweep', () => {
         process.env.EVENT_BUS_NAME = 'test-bus'
     })
 
-    it('emits one finding per whole whose cover disagrees with its members\' pointers', async () => {
+    it('emits one finding per host whose cover disagrees with its members\' pointers', async () => {
         const result = await presenceCoverDriftSweep({ diagnosticRunId: 'run-1', nowMs: 1_700_000_000_000 }, {
             listCandidateRows: async () => [
                 town('ROOM#Kitchen'),
@@ -45,7 +45,7 @@ describe('presenceCoverDriftSweep', () => {
         expect(emitFinding).not.toHaveBeenCalled()
     })
 
-    it('lists unbound members and wholes with no Base as unrepairable, while the stale entry that names an unbound member is still healable', async () => {
+    it('lists unbound members and hosts with no Base as unrepairable, while the stale entry that names an unbound member is still healable', async () => {
         const result = await presenceCoverDriftSweep({}, {
             listCandidateRows: async () => [
                 town('ROOM#Cafe'),

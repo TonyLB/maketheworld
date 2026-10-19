@@ -960,7 +960,7 @@ describe('applyStepSequenceCore', () => {
             const parent = remainderOf(roomId)
             const twoUnderOneParent = () => testLudicGraph(trayId, { nodes: [presenceBindingNode('a', parent), presenceBindingNode('b', parent)] })
 
-            it('throws when a run leaves two bindings of one whole under the same parent binding', () => {
+            it('throws when a run leaves two bindings of one host under the same parent binding', () => {
                 // a move into a parent where the mover already holds a binding joins (MC-3), so the way left to
                 // leave two is a mint under that parent
                 const addB: MutationKernelStep = { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: parent, presenceUuid: 'b' } as MutationKernelStep

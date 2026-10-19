@@ -24,7 +24,7 @@ export type CoverUnrepairable = { ephemeraId: string; noBase: boolean; kinds: st
 export type DriftExpectation = {
     /** Parents the fixed-containment sweep reports (and the population heal is delivered for). */
     fixed: string[]
-    /** Wholes/members the cover sweep emits for (and `healPresenceCover` is delivered for). */
+    /** Hosts/members the cover sweep emits for (and `healPresenceCover` is delivered for). */
     cover: string[]
     /** What the cover sweep lists as report-only. */
     unrepairable: CoverUnrepairable[]
