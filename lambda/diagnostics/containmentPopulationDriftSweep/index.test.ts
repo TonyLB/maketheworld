@@ -1,94 +1,53 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
-import { containmentDriftParentsOf, containmentPopulationDriftSweep } from './index'
+import { containmentPopulationDriftSweep } from './index'
 
 const AREA_ID = 'AREA#Overworld'
 const ROOM_ID = 'ROOM#Kitchen'
-const OTHER_ROOM_ID = 'ROOM#Cafe'
 const FEATURE_ID = 'FEATURE#Stove'
-const CHARACTER_ID = 'CHARACTER#Alpha'
 
-const graphWith = (...nodes: object[]) => ({ nodes })
-const listing = { members: [{ host: FEATURE_ID, presence: 'PRESENCE#f' }] }
-const roomRoot = { tag: 'Presence', universalKey: 'PRESENCE#Base', cover: { members: [] } }
-const areaPointer = { host: AREA_ID, presence: 'PRESENCE#area-root' }
-
-describe('containmentDriftParentsOf', () => {
-    it('(a) flags a Room\'s Area binding that lists members instead of being an empty-member carve-out', () => {
-        expect(containmentDriftParentsOf(ROOM_ID, graphWith(
-            roomRoot,
-            { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: areaPointer, cover: listing }
-        ))).toEqual([AREA_ID])
-    })
-
-    it('passes a current-shape binding, a hostless remainder, and non-Room/Feature owners', () => {
-        expect(containmentDriftParentsOf(FEATURE_ID, graphWith(
-            { tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#Base' }, cover: { members: [] } }
-        ))).toEqual([])
-        expect(containmentDriftParentsOf(ROOM_ID, graphWith(roomRoot))).toEqual([])
-        expect(containmentDriftParentsOf(ROOM_ID, graphWith(
-            roomRoot,
-            { tag: 'Presence', universalKey: 'PRESENCE#b', fromHostPresence: areaPointer, cover: { members: [] } }
-        ))).toEqual([])
-        expect(containmentDriftParentsOf(AREA_ID, graphWith(roomRoot))).toEqual([])
-        expect(containmentDriftParentsOf(CHARACTER_ID, graphWith(
-            { tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#Base' }, cover: { members: [] } }
-        ))).toEqual([])
-        expect(containmentDriftParentsOf(FEATURE_ID, undefined)).toEqual([])
-    })
-
-    it('(b) flags a Room with no hostless remainder as its own parent, including one with no stored graph', () => {
-        expect(containmentDriftParentsOf(ROOM_ID, graphWith({ tag: 'Room', universalKey: ROOM_ID }))).toEqual([ROOM_ID])
-        expect(containmentDriftParentsOf(ROOM_ID, undefined)).toEqual([ROOM_ID])
-        expect(containmentDriftParentsOf(ROOM_ID, graphWith(
-            { tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: areaPointer, cover: { members: [] } }
-        ))).toEqual([ROOM_ID])
-    })
-
-    it('(b) flags an Area with no hostless remainder as its own parent', () => {
-        expect(containmentDriftParentsOf(AREA_ID, graphWith({ tag: 'Room', universalKey: ROOM_ID }))).toEqual([AREA_ID])
-        expect(containmentDriftParentsOf(AREA_ID, undefined)).toEqual([AREA_ID])
-    })
-})
+const root = { tag: 'Presence', universalKey: 'PRESENCE#Base', cover: { members: [] } }
+const carveOut = {
+    nodes: [root, { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: { host: AREA_ID, presence: 'PRESENCE#Base' }, cover: { members: [] } }],
+}
+const cleanArea = { nodes: [root, ROOM_ID], edges: [{ tag: 'Relational', kind: 'PartOf', from: ROOM_ID, to: AREA_ID }] }
+const authored: Record<string, string[]> = { [AREA_ID]: [ROOM_ID] }
 
 describe('containmentPopulationDriftSweep', () => {
     const emitFinding = jest.fn(async () => undefined)
+    const listAuthoredChildren = jest.fn(async (parentId: string) => authored[parentId] ?? [])
 
     beforeEach(() => {
         emitFinding.mockClear()
         process.env.EVENT_BUS_NAME = 'test-bus'
     })
 
-    it('emits one sorted, deduplicated finding per drifted parent', async () => {
+    it('emits nothing over a clean, fully populated nesting', async () => {
+        const result = await containmentPopulationDriftSweep({}, {
+            listCandidateRows: async () => [
+                { EphemeraId: AREA_ID, DataCategory: 'Meta::Area', ludicGraph: cleanArea },
+                { EphemeraId: ROOM_ID, DataCategory: 'Meta::Room', ludicGraph: carveOut },
+            ],
+            listAuthoredChildren,
+            emitFinding,
+        })
+
+        expect(result).toEqual({ emittedCount: 0, ephemeraIds: [] })
+        expect(emitFinding).not.toHaveBeenCalled()
+    })
+
+    it('finds an authored child that was never populated, and emits one sorted finding per drifted parent', async () => {
         const result = await containmentPopulationDriftSweep(
             { diagnosticRunId: 'run-1', nowMs: 1_700_000_000_000 },
             {
                 listCandidateRows: async () => [
-                    {
-                        EphemeraId: ROOM_ID,
-                        DataCategory: 'Meta::Room',
-                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: areaPointer, cover: listing }),
-                    },
-                    {
-                        EphemeraId: OTHER_ROOM_ID,
-                        DataCategory: 'Meta::Room',
-                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: areaPointer, cover: { members: [] } }),
-                    },
-                    {
-                        EphemeraId: 'ROOM#Pantry',
-                        DataCategory: 'Meta::Room',
-                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#s', fromHostPresence: areaPointer, cover: listing }),
-                    },
-                    {
-                        EphemeraId: 'ROOM#Bare',
-                        DataCategory: 'Meta::Room',
-                        ludicGraph: graphWith(),
-                    },
-                    {
-                        EphemeraId: 'FEATURE#Sink',
-                        DataCategory: 'Meta::Feature',
-                        ludicGraph: graphWith({ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#Base' }, cover: { members: [] } }),
-                    },
+                    // Area declares ROOM_ID but its row holds neither node, edge nor child binding
+                    { EphemeraId: AREA_ID, DataCategory: 'Meta::Area', ludicGraph: { nodes: [root] } },
+                    { EphemeraId: ROOM_ID, DataCategory: 'Meta::Room', ludicGraph: { nodes: [root] } },
+                    // a Room with no root is its own drifted parent
+                    { EphemeraId: 'ROOM#Bare', DataCategory: 'Meta::Room', ludicGraph: { nodes: [] } },
+                    { EphemeraId: FEATURE_ID, DataCategory: 'Meta::Feature' },
                 ],
+                listAuthoredChildren,
                 emitFinding,
             }
         )
@@ -103,25 +62,17 @@ describe('containmentPopulationDriftSweep', () => {
         })
     })
 
-    it('emits nothing over clean rows', async () => {
+    it('still fires for a root-less Room that also has bindings (the deliberate overlap with noBase)', async () => {
         const result = await containmentPopulationDriftSweep({}, {
             listCandidateRows: async () => [{
                 EphemeraId: ROOM_ID,
                 DataCategory: 'Meta::Room',
-                ludicGraph: graphWith(
-                    roomRoot,
-                    { tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: areaPointer, cover: { members: [] } },
-                ),
-            }, {
-                EphemeraId: AREA_ID,
-                DataCategory: 'Meta::Area',
-                ludicGraph: graphWith(roomRoot),
+                ludicGraph: { nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: { host: AREA_ID, presence: 'PRESENCE#Base' }, cover: { members: [] } }] },
             }],
+            listAuthoredChildren,
             emitFinding,
         })
-
-        expect(result).toEqual({ emittedCount: 0, ephemeraIds: [] })
-        expect(emitFinding).not.toHaveBeenCalled()
+        expect(result.ephemeraIds).toEqual([ROOM_ID])
     })
 
     it('throws without EVENT_BUS_NAME', async () => {

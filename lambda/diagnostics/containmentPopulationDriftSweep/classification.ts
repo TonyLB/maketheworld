@@ -1,61 +1,87 @@
-import { isEphemeraAreaId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraAreaId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-type RawPresenceNode = {
-    tag?: unknown
-    fromHostPresence?: { host?: unknown; presence?: unknown }
-    cover?: { members?: unknown }
+import { presenceGraphViewOf } from '../presenceCoverDriftSweep/classification'
+
+type RawEdge = { kind?: unknown; from?: EphemeraLudicTerminalId; to?: EphemeraLudicTerminalId }
+
+const edgesOf = (ludicGraph: unknown): RawEdge[] => {
+    const edges = (ludicGraph as { edges?: unknown } | undefined)?.edges
+    return Array.isArray(edges) ? edges as RawEdge[] : []
 }
 
-const hasNoParentPointer = (node: RawPresenceNode): boolean => !node.fromHostPresence
+/** The children a fixed nesting can hold: Rooms in an Area, Features in a Room or Feature. Objects move, so they are never fixed. */
+const isFixedChildOf = (parentId: string, childId: string): boolean => (
+    isEphemeraAreaId(parentId) ? isEphemeraRoomId(childId) : isEphemeraFeatureId(childId)
+)
 
 /**
- * The parents whose cache-time containment population would now write one of `ownerId`'s presence
- * bindings differently. Read from the raw stored row, since this lambda cannot import ephemera's
- * `presenceParent`. A binding is drift when it is a Room's binding into an Area whose cover is
- * anything but an empty-member carve-out (a).
+ * Whether a fixed nesting's parent has drifted from what its authored asset declares. The authored
+ * child list is the setpoint (read from the asset rows by `authoredNestings.ts`); the stored
+ * parent and child rows are what is judged. Read from raw rows, since this lambda cannot import
+ * ephemera's graph class. A parent is drifted when any of these holds:
  *
- * And a check on the owner itself: (b) a Room or Area with no binding lacking a parent pointer, the root of its
- * presence tree, which every Room and Area keeps whatever it contains (reported with the owner as
- * the parent, since population mints it for the owner). A row with no stored graph yet counts.
+ * - **Root:** a Room or Area has no binding lacking a parent pointer (the root of its presence
+ *   tree, which it keeps whatever it contains; a row with no stored graph counts). A Feature's or
+ *   Object's root becomes its placement, so it is not checked for one unless it hosts a fixed child.
+ * - For each authored child that is a legal fixed nesting (`isFixedChildOf`):
+ *   - the parent's node list lacks the child's node;
+ *   - the parent's graph holds no `PartOf` edge from the child to the parent;
+ *   - the child holds no binding pointing at the parent's root binding (a Room's binding into an
+ *     Area must also be an empty-member carve-out).
  *
- * A row whose stored shape the guard rejects (e.g. the retired host-only `fromHostId`) is not this
- * sweep's: the heal could not read it, so it reports through `LudicGraphStaleStructureSweep`.
+ * A stored nesting the asset no longer declares is not sensed: the contract defers removal for
+ * Rooms and Features, so a finding would heal nothing. A parent holding several bindings names no
+ * root for its children, so population refuses it; its children are not judged either. A row in a
+ * shape the shared guard rejects is `LudicGraphStaleStructureSweep`'s.
  *
- * Each check carries its own condition on the owner's kind; no kind is excluded up front. (a) is a
- * rule about a Room placed in an Area, and (b) holds only for wholes whose root is never their
- * placement: a Feature's or Object's root is re-pointed when it is placed, so a placed one rightly
- * has no unpointed binding (its missing-Base case is the cover-drift sweep's `noBase`).
- *
- * **Not a superset of `containmentPopulationSteps`' repair conditions.** Over the conditions it
- * checks it errs wide, since the consumer reruns that same population, which rechecks before
- * writing: a false positive costs one no-op heal. But population also repairs a pointer naming the
- * wrong binding on the parent, a binding whose node the parent lacks, and a missing containment
- * edge, and each of those needs the parent's row, which this one-row classifier does not read. A
- * pointer naming a host but no binding is not checked here: `presence` is required, so the
- * stored-row guard rejects it and `LudicGraphStaleStructureSweep` reports it.
+ * Every condition is one the consumer's population rerun repairs (once `healContainmentPopulation`
+ * reads the authored list), so a finding is never one it would decline.
  */
-export const containmentDriftParentsOf = (ownerId: string, ludicGraph: unknown): EphemeraMembershipHostId[] => {
-    const storedNodes = (ludicGraph as { nodes?: unknown } | undefined)?.nodes
-    const nodes = (Array.isArray(storedNodes) ? storedNodes : []) as RawPresenceNode[]
-    const parents = new Set<EphemeraMembershipHostId>()
-    if ((isEphemeraRoomId(ownerId) || isEphemeraAreaId(ownerId)) && !nodes.some((node) => node?.tag === 'Presence' && hasNoParentPointer(node))) {
-        parents.add(ownerId)
+export const isFixedContainmentDrifted = (
+    parentId: string,
+    parentGraph: unknown,
+    authoredChildIds: readonly string[],
+    childGraphOf: (childId: string) => unknown
+): boolean => {
+    const parent = presenceGraphViewOf(parentId, parentGraph)
+    const isRootHolder = isEphemeraRoomId(parentId) || isEphemeraAreaId(parentId)
+    const root = parent?.presenceNodes.find((node) => !node.fromHostPresence)
+    if (isRootHolder && !root) {
+        return true
     }
-    for (const node of nodes) {
-        if (!node || typeof node !== 'object' || node.tag !== 'Presence') {
-            continue
-        }
-        const parent = node.fromHostPresence?.host
-        if (typeof parent !== 'string' || !isEphemeraMembershipHostId(parent)) {
-            continue
-        }
-        const members = node.cover?.members
-        const roomAreaNotCarveOut = isEphemeraRoomId(ownerId) && isEphemeraAreaId(parent) && !(Array.isArray(members) && members.length === 0)
-        if (roomAreaNotCarveOut) {
-            parents.add(parent)
-        }
+    const children = [...new Set(authoredChildIds)].filter((childId) => isFixedChildOf(parentId, childId))
+    if (children.length === 0) {
+        return false
     }
-    return [...parents]
+    const rootId = isRootHolder ? root?.universalKey : (parent?.presenceNodes.length === 1 ? parent.presenceNodes[0].universalKey : undefined)
+    if (!parent || parent.presenceNodes.length === 0) {
+        // A parent with children and no binding at all: population mints its root.
+        return true
+    }
+    if (!rootId) {
+        return false
+    }
+    const edges = edgesOf(parentGraph)
+    return children.some((childId) => {
+        if (!parent.nodeIds.includes(childId)) {
+            return true
+        }
+        const hasEdge = edges.some((edge) => (
+            edge.kind === 'PartOf' &&
+            edge.from !== undefined && edge.to !== undefined &&
+            ephemeraLudicTerminalsEqual(edge.from, childId) &&
+            ephemeraLudicTerminalsEqual(edge.to, parentId)
+        ))
+        if (!hasEdge) {
+            return true
+        }
+        const child = presenceGraphViewOf(childId, childGraphOf(childId))
+        const binding = child?.presenceNodes.find((node) => node.fromHostPresence?.host === parentId)
+        if (!binding || binding.fromHostPresence?.presence !== rootId) {
+            return true
+        }
+        return isEphemeraAreaId(parentId) && binding.cover.members.length > 0
+    })
 }

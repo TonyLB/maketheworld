@@ -1,6 +1,6 @@
 # Containment drift coverage: implementation
 
-**Status: in progress (queued 2026-10-18; re-scoped 2026-10-19 with the user; Slice 0 and Slice 1 done 2026-10-19). Slice 2 is next.**
+**Status: in progress (queued 2026-10-18; re-scoped 2026-10-19 with the user; Slice 0, 1 and 2 done 2026-10-19). Slice 3 is next.**
 
 **Scope in one sentence: give each containment drift check one named authority. `PresenceCoverDriftSweep` owns pointer ↔ node ↔ cover consistency, for every kind and every producer, and gains the child→parent direction it lacks. `ContainmentPopulationDriftSweep` becomes `FixedContainmentDriftSweep`, which compares the ephemera rows against the authored declaration of nestings that never move.**
 
@@ -72,9 +72,11 @@ Pending work is `[ ]` and done is `[X]`. Mark nested lines `[X]` as each one is 
   - **Characters:** a Character pointer at a Room is a bystander, so it stays with the occupancy sweep. Character pointers into other hosts are included here.
   - **Shipped shape:** the finding is judged from the **member's** side (`orphanedPointersOf` / `orphanRepairsFor`), reported on the member's `ephemeraId` through the existing `Presence Cover Drift Finding` (no new event, no reverse index), and healed by `healPresenceCover(member)`'s new member pass. Only report-only orphans (host row or named binding absent) appear as `Orphaned` under `unrepairable`; a repairable one is carried by `healable`. The kernel footprint already includes the pointer's host for `repairPresenceBinding`.
   - **Tests:** unit tests in `mtw-gateways`, `presenceCoverDriftSweep/index.test.ts` (existing fixtures gained an Area row so their carve-out pointers are not orphans) and `healPresenceCover.test.ts`.
-- [ ] **Slice 2. The fixed classifier.** The sweep compares each fixed nesting the asset declares against the parent's and child's rows, checking the four conditions in the partition table. It reports the parent. The current one-row classifier and conditions (a) and (b) are retired into it. Unit tests cover each condition.
-  - **The setpoint read** (Slice 0(a)): `Meta::<Tag>.cached`, then `ComponentData` pairs, then the union of positive-ref nodes.
-  - **An extra test** checks that a nesting declared by an importing asset appears in the union. That confirms the importing asset's row shares the component's `universalKey` and appears in its `cached` list.
+- [X] **Slice 2. The fixed classifier.** The sweep compares each fixed nesting the asset declares against the parent's and child's rows, checking the four conditions in the partition table. It reports the parent. The current one-row classifier and conditions (a) and (b) are retired into it.
+  - [X] **The setpoint read** (Slice 0(a)): `authoredNestings.ts` reads `Meta::<Tag>.cached` from assetDB, then `internalCache.ComponentData.getAcrossAssets`, then the union of positive-ref, non-presence `ludicGraph.nodes`. Injectable deps; the sweep reads at most 10 parents at once.
+  - [X] **Shipped shape:** `isFixedContainmentDrifted(parentId, parentGraph, authoredChildIds, childGraphOf)` in `containmentPopulationDriftSweep/classification.ts`, reusing `presenceGraphViewOf`. Conditions: Room/Area root; child node on the parent; `PartOf` edge (compared with `ephemeraLudicTerminalsEqual`); child binding at the parent's root (Room-in-Area also an empty-member carve-out). A Feature with an authored child and no binding at all is drifted (population mints its root). A parent with several bindings and no root to name is not judged (population refuses it). Objects and wrong-kind children are ignored; de-authored nestings are not sensed. `containmentDriftParentsOf` is deleted.
+  - [X] **An extra test** checks that a nesting declared by an importing asset appears in the union (against the injected deps; it shows the union takes every `cached` asset, not that the importing asset's row shares the `universalKey`, which Slice 0(a) established from the code).
+  - **Tests:** `classification.test.ts`, `authoredNestings.test.ts`, `index.test.ts` (sweep-level, deps injected). The sweep's section in `lambda/diagnostics/AGENT.md` has the new Evaluation text; Slice 6 still owns the partition rewrite.
 - [ ] **Slice 3. The heal populates from the authored list.** `healContainmentPopulation` builds the parent's authored list with the Slice 0(a) read and passes its Room and Feature children to `populateContainmentAtCache`, in place of the children it found from `PartOf` edges.
   - **Asset list:** widen `CacheRoomAssetsData` to read `Meta::<Tag>.cached` for any membership host, rather than adding a sibling read.
   - **Ingress fix:** `processComponentUpdated` (`ephemera/dataSource/index.ts:46-49`) keeps only nodes with `ref > 0`. A unit test shows that a removal diff populates nothing.
@@ -103,8 +105,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | --- | --- |
 | 0. Verify premises | Done (2026-10-19) |
 | 1. Orphan pointer (shared comparison) | Done (2026-10-19) |
-| 2. Fixed classifier | Ready |
-| 3. Heal from authored list | Not started |
+| 2. Fixed classifier | Done (2026-10-19) |
+| 3. Heal from authored list | Ready |
 | 4. Payoff tests | Not started |
 | 5. Rename | Not started |
 | 6. Docs and deletion | Not started |
