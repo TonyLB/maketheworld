@@ -31,6 +31,8 @@ Both were found the expensive way and are recorded here because neither is visib
 
 **After any change that makes a shared field required, run `npm run test -- --clearCache` once before believing a green suite.** `ts-jest` caches type-check results per unchanged file, so fixtures that omit the new field keep reporting PASS until the cache happens to evict. This was observed across three consecutive full-suite runs over two days (`344 passed`) while two suites were in fact broken, and they failed identically on a clean `HEAD` checkout --- **the files that break are exactly the ones you did not touch, which is exactly what the cache keys on.**
 
+**Drift-sweep payoff tests.** The loop *drifted rows -> diagnostics finding -> heal -> second sweep reads 0* crosses two lambdas that cannot import each other, so it is tested in two legs over one shared scenario module (`packages/mtw-gateways/ts/ephemera/positions/containmentDriftScenarios.ts`). The ephemera leg is [`containmentDriftPayoff.integration.test.ts`](dataSource/positions/manipulation/containment/containmentDriftPayoff.integration.test.ts): findings are serialized with the real `DiagnosticsEventSerializer`, published on the real messageBus, healed by the real consumers and kernel, and only `ephemeraDB.transactWrite` and the cache reads are in memory. Its diagnostics counterpart is described in `lambda/diagnostics/AGENT.md`.
+
 For complete project-wide testing guidance, see **[Project-Level Testing Documentation](../../AGENT.md#testing-patterns)**.
 
 ## InternalCache Dependency Injection Pattern
