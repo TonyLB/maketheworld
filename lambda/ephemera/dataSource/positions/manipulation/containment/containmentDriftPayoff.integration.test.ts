@@ -31,7 +31,7 @@ import { EphemeraLudicGraph, graphFromMeta } from '../../ludicGraph'
 
 import '../../index'
 
-const FIXED_FINDING = 'Containment Population Drift Finding'
+const FIXED_FINDING = 'Fixed Containment Drift Finding'
 const COVER_FINDING = 'Presence Cover Drift Finding'
 
 let world: Map<string, { row: ScenarioRow; graph: EphemeraLudicGraph }>

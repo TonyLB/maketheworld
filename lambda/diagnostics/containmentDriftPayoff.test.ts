@@ -32,11 +32,11 @@ import {
     type ScenarioRow,
 } from '@tonylb/mtw-gateways/ts/ephemera/positions/containmentDriftScenarios'
 
-import { containmentPopulationDriftSweep } from './containmentPopulationDriftSweep'
-import { authoredChildrenOf } from './containmentPopulationDriftSweep/authoredNestings'
+import { fixedContainmentDriftSweep } from './fixedContainmentDriftSweep'
+import { authoredChildrenOf } from './fixedContainmentDriftSweep/authoredNestings'
 import { presenceCoverDriftSweep } from './presenceCoverDriftSweep'
 
-const FIXED_FINDING = 'Containment Population Drift Finding'
+const FIXED_FINDING = 'Fixed Containment Drift Finding'
 const COVER_FINDING = 'Presence Cover Drift Finding'
 
 /** The authored list as the sweep's own reader derives it from per-asset diffs (so `ref < 0` is filtered by the real code). */
@@ -62,7 +62,7 @@ const emittedFindings = async (detailType: string): Promise<string[]> => {
 
 const runSweeps = async (scenario: ContainmentDriftScenario, rows: ScenarioRow[]) => {
     sent.length = 0
-    const fixed = await containmentPopulationDriftSweep({}, {
+    const fixed = await fixedContainmentDriftSweep({}, {
         listCandidateRows: async () => fixedRows(rows),
         listAuthoredChildren: listAuthoredChildren(scenario),
     })

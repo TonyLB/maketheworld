@@ -323,21 +323,21 @@ describe('positions receive paths (integration)', () => {
         })
     })
 
-    describe('Containment Population Drift Finding', () => {
+    describe('Fixed Containment Drift Finding', () => {
         it('routes the serialized mtw.diagnostics finding through healContainmentPopulation for its parent', async () => {
             const serializer = new DiagnosticsEventSerializer(createNodeDataSourceEnvironment())
-            const header = { dataSourceKey: 'mtw.diagnostics', streamKey: 'global', timestamp: Date.now(), type: 'Containment Population Drift Finding' }
+            const header = { dataSourceKey: 'mtw.diagnostics', streamKey: 'global', timestamp: Date.now(), type: 'Fixed Containment Drift Finding' }
             const wire = serializer.serialize({
                 header: header as any,
                 content: {
-                    type: 'Containment Population Drift Finding',
+                    type: 'Fixed Containment Drift Finding',
                     ephemeraId: 'AREA#Overworld',
                     diagnosticRunId: 'diag-cpd',
                     timestamp: '2026-10-11T10:00:00.000Z',
                 },
             })
             const content = await serializer.deserialize({ header: header as any, content: JSON.parse(JSON.stringify(wire)) })
-            publishPositionsStreamingEvent('mtw.diagnostics', 'Containment Population Drift Finding', content as object)
+            publishPositionsStreamingEvent('mtw.diagnostics', 'Fixed Containment Drift Finding', content as object)
 
             await messageBus.flushAndSettle()
 

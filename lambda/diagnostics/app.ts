@@ -18,7 +18,7 @@ export const handler = async (event) => {
             'OrphanedImprovisedObjectSweep',
             'LudicGraphStaleStructureSweep',
             'LudicGraphPortMismatchSweep',
-            'ContainmentPopulationDriftSweep',
+            'FixedContainmentDriftSweep',
             'PresenceCoverDriftSweep',
         ].includes(event?.type)
     ) {

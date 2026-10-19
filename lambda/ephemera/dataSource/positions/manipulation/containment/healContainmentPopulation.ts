@@ -5,7 +5,7 @@ import { populateContainmentAtCache } from './populateContainmentAtCache'
 import { authoredChildrenOf } from './authoredChildren'
 
 /**
- * The `Containment Population Drift Finding` consumer: reruns cache-time containment population
+ * The `Fixed Containment Drift Finding` consumer: reruns cache-time containment population
  * for one parent without the asset diff `Component Updated` needs (`cacheAsset` emits only for
  * components that changed, so an unchanged asset never reaches population again).
  *

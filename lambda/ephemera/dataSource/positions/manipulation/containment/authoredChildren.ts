@@ -30,7 +30,7 @@ export const authoredChildIdsFromNodeLists = (nodeLists: readonly (readonly Node
  * The nestings a parent's authored assets declare: the setpoint `healContainmentPopulation` repairs
  * toward. `Component Updated` carries each asset's component as a diff, so the setpoint is the union
  * of added nodes across every asset in `Meta::<Tag>.cached`. The diagnostics sweep reads the same
- * list (`lambda/diagnostics/containmentPopulationDriftSweep/authoredNestings.ts`); keep the two
+ * list (`lambda/diagnostics/fixedContainmentDriftSweep/authoredNestings.ts`); keep the two
  * definitions of "authored" in step.
  */
 export const authoredChildrenOf = async (parentId: EphemeraMembershipHostId): Promise<(EphemeraRoomId | EphemeraFeatureId)[]> => {

@@ -1,5 +1,5 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals'
-import { containmentPopulationDriftSweep } from './index'
+import { fixedContainmentDriftSweep } from './index'
 
 const AREA_ID = 'AREA#Overworld'
 const ROOM_ID = 'ROOM#Kitchen'
@@ -12,7 +12,7 @@ const carveOut = {
 const cleanArea = { nodes: [root, ROOM_ID], edges: [{ tag: 'Relational', kind: 'PartOf', from: ROOM_ID, to: AREA_ID }] }
 const authored: Record<string, string[]> = { [AREA_ID]: [ROOM_ID] }
 
-describe('containmentPopulationDriftSweep', () => {
+describe('fixedContainmentDriftSweep', () => {
     const emitFinding = jest.fn(async () => undefined)
     const listAuthoredChildren = jest.fn(async (parentId: string) => authored[parentId] ?? [])
 
@@ -22,7 +22,7 @@ describe('containmentPopulationDriftSweep', () => {
     })
 
     it('emits nothing over a clean, fully populated nesting', async () => {
-        const result = await containmentPopulationDriftSweep({}, {
+        const result = await fixedContainmentDriftSweep({}, {
             listCandidateRows: async () => [
                 { EphemeraId: AREA_ID, DataCategory: 'Meta::Area', ludicGraph: cleanArea },
                 { EphemeraId: ROOM_ID, DataCategory: 'Meta::Room', ludicGraph: carveOut },
@@ -36,7 +36,7 @@ describe('containmentPopulationDriftSweep', () => {
     })
 
     it('finds an authored child that was never populated, and emits one sorted finding per drifted parent', async () => {
-        const result = await containmentPopulationDriftSweep(
+        const result = await fixedContainmentDriftSweep(
             { diagnosticRunId: 'run-1', nowMs: 1_700_000_000_000 },
             {
                 listCandidateRows: async () => [
@@ -63,7 +63,7 @@ describe('containmentPopulationDriftSweep', () => {
     })
 
     it('still fires for a root-less Room that also has bindings (the deliberate overlap with noBase)', async () => {
-        const result = await containmentPopulationDriftSweep({}, {
+        const result = await fixedContainmentDriftSweep({}, {
             listCandidateRows: async () => [{
                 EphemeraId: ROOM_ID,
                 DataCategory: 'Meta::Room',
@@ -77,6 +77,6 @@ describe('containmentPopulationDriftSweep', () => {
 
     it('throws without EVENT_BUS_NAME', async () => {
         delete process.env.EVENT_BUS_NAME
-        await expect(containmentPopulationDriftSweep({}, { listCandidateRows: async () => [], emitFinding })).rejects.toThrow('EVENT_BUS_NAME')
+        await expect(fixedContainmentDriftSweep({}, { listCandidateRows: async () => [], emitFinding })).rejects.toThrow('EVENT_BUS_NAME')
     })
 })

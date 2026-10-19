@@ -9,7 +9,7 @@
  * (`Character Navigate`, `Character Home`, `Ludic Network Change Requested` (the
  * generalized hand-off for membership/relational/containment attempts)),
  * `mtw.diagnostics` (`Room Occupancy Drift Finding`, `Ludic Graph Stale Structure Finding`,
- * `Ludic Graph Port Mismatch Finding`, `Containment Population Drift Finding`, `Presence Cover Drift Finding`). Additional
+ * `Ludic Graph Port Mismatch Finding`, `Fixed Containment Drift Finding`, `Presence Cover Drift Finding`). Additional
  * position-affecting subscriptions can be added here without inventing another one-off
  * DataSource module.
  *
@@ -33,7 +33,7 @@ import {
     isEphemeraPositionsActionsCharacterNavigateEnvelope,
     isEphemeraPositionsActionsLudicNetworkChangeRequestedEnvelope,
     isEphemeraPositionsConnectionsCharactersEnvelope,
-    isEphemeraPositionsDiagnosticsContainmentPopulationDriftFindingEnvelope,
+    isEphemeraPositionsDiagnosticsFixedContainmentDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsPresenceCoverDriftFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphStaleStructureFindingEnvelope,
     isEphemeraPositionsDiagnosticsLudicGraphPortMismatchFindingEnvelope,
@@ -86,7 +86,7 @@ export const ephemeraPositionsDataSource = new EphemeraDataSource<
                 await healLudicGraphStructure(content.ephemeraId, { dryRun: false })
                 return
             }
-            if (isEphemeraPositionsDiagnosticsContainmentPopulationDriftFindingEnvelope(envelope)) {
+            if (isEphemeraPositionsDiagnosticsFixedContainmentDriftFindingEnvelope(envelope)) {
                 const content = await envelope.getContent()
                 if (!content?.ephemeraId) {
                     return
