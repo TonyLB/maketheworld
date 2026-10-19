@@ -273,6 +273,32 @@ describe('Ephemera DataSource receiveEvents', () => {
             expect(populateContainmentAtCache).toHaveBeenCalledWith(roomComponent.universalKey, [], expect.objectContaining({ messageBus: expect.anything() }))
         })
 
+        describe('a diff with removed nodes (ref < 0)', () => {
+            const diffEvent = (universalKey: string, payload: any[]) => ({
+                header: { dataSourceKey: 'mtw.assets' as const, streamKey: 'ASSET#test-asset', timestamp: getCurrentTimestamp(), type: 'Component Updated' },
+                getContent: () => Promise.resolve({
+                    type: 'Component Updated' as const,
+                    component: { universalKey, ludicGraph: { nodes: { payload } } }
+                })
+            })
+            const receive = (events: any[]) => ephemeraDataSource.receiveEvents?.({ events, streamEvent: jest.fn().mockResolvedValue(undefined), streamEnvelope: jest.fn().mockResolvedValue(undefined) })
+
+            it('populates nothing for a Room whose diff only removes a Feature (the root is still minted)', async () => {
+                await receive([diffEvent('ROOM#cafe', [{ universalKey: 'FEATURE#sign', ref: -1 }])])
+                expect(populateContainmentAtCache).toHaveBeenCalledWith('ROOM#cafe', [], { messageBus: mockMessageBus })
+            })
+
+            it('passes only the added node of a mixed diff', async () => {
+                await receive([diffEvent('ROOM#cafe', [{ universalKey: 'FEATURE#sign', ref: -1 }, { universalKey: 'FEATURE#lamp', ref: 1 }])])
+                expect(populateContainmentAtCache).toHaveBeenCalledWith('ROOM#cafe', [{ universalKey: 'FEATURE#lamp', ref: 1 }], { messageBus: mockMessageBus })
+            })
+
+            it('does not populate a Feature whose diff only removes a nested Feature', async () => {
+                await receive([diffEvent('FEATURE#shelf', [{ universalKey: 'FEATURE#book', ref: -1 }])])
+                expect(populateContainmentAtCache).not.toHaveBeenCalled()
+            })
+        })
+
         it('does not call populateContainmentAtCache for a component kind with no ludicGraph field (e.g. Character)', async () => {
             const characterComponent = new StandardCharacter(deIndentWML(`
                 <Character uuid=(test-character)>

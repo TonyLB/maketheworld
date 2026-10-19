@@ -44,6 +44,8 @@ const defaultDependencies: AuthoredNestingsDependencies = {
  * nothing resolves imports. The declared list is the union of the positive-ref component nodes
  * across every asset in `Meta::<Tag>.cached`, which is what population has written since each
  * asset cached. Presence nodes are the parent's own bindings, not children.
+ * Ephemera's heal reads the same list (`lambda/ephemera/.../containment/authoredChildren.ts`);
+ * keep the two definitions of "authored" in step.
  */
 export const authoredChildrenOf = async (
     parentId: string,

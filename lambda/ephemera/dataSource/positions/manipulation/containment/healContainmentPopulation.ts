@@ -1,20 +1,17 @@
-import type { EphemeraFeatureId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import internalCache from '../../../../internalCache'
 import type { PopulateContainmentAtCacheDependencies } from './populateContainmentAtCache'
 import { populateContainmentAtCache } from './populateContainmentAtCache'
+import { authoredChildrenOf } from './authoredChildren'
 
 /**
  * The `Containment Population Drift Finding` consumer: reruns cache-time containment population
  * for one parent without the asset diff `Component Updated` needs (`cacheAsset` emits only for
  * components that changed, so an unchanged asset never reaches population again).
  *
- * The children are the Room/Feature sources of the `PartOf` edges into `parentId` --- what an
- * earlier population left on the parent's own graph --- so this heals what was populated, it does
- * not discover authored children that never were. All judging is `populateContainmentAtCache`'s
+ * The children are the parent's authored list (`authoredChildrenOf`: the union of added nodes across
+ * `Meta::<Tag>.cached`), not whatever an earlier population left on the graph, so a child that was
+ * never populated, or lost its `PartOf` edge, is reached too. All judging is `populateContainmentAtCache`'s
  * (via `containmentPopulationSteps`): a binding in the old shape is repaired in place, a room
  * parent gets its hostless remainder, and a clean parent commits nothing.
  *
@@ -25,16 +22,6 @@ export const healContainmentPopulation = async (
     parentId: EphemeraMembershipHostId,
     deps: PopulateContainmentAtCacheDependencies
 ): Promise<void> => {
-    const parentGraph = await internalCache.Positions.getLudicGraph(parentId)
-    const childIds = [...new Set(
-        parentGraph.relationalEdges.flatMap((edge) => (
-            edge.kind === 'PartOf' &&
-            ephemeraLudicTerminalsEqual(edge.to, parentId) &&
-            typeof edge.from === 'string' &&
-            (isEphemeraRoomId(edge.from) || isEphemeraFeatureId(edge.from))
-                ? [edge.from as EphemeraRoomId | EphemeraFeatureId]
-                : []
-        ))
-    )]
+    const childIds = await authoredChildrenOf(parentId)
     await populateContainmentAtCache(parentId, childIds, deps)
 }

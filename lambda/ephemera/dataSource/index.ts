@@ -15,6 +15,7 @@ import {
 import { kickRoomHeaderBroadcastForRoom } from './perception/kickRoomHeaderBroadcast'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { populateContainmentAtCache } from './positions/manipulation/containment/populateContainmentAtCache'
+import { addedNodesOf } from './positions/manipulation/containment/authoredChildren'
 import { removeAuthoredObject } from './positions/manipulation/containment/removeAuthoredObject'
 import { markHostsStale, markRoomsStale } from './positions/ludicCache/markStale'
 import internalCache from '../internalCache'
@@ -44,7 +45,8 @@ const processComponentUpdated = async (evt: Extract<EphemeraIncomingEvent, { hea
     // its presence tree, which every Room and Area keeps (`rootStep`).
     const { component } = content
     if (isEphemeraMembershipHostId(componentId) && 'ludicGraph' in component) {
-        const nodes = (component as { ludicGraph: { nodes: { payload: readonly { universalKey?: string }[] } } }).ludicGraph.nodes.payload
+        // The event carries a per-asset diff: `ref < 0` nodes were removed by this asset, and are not populated.
+        const nodes = addedNodesOf((component as { ludicGraph: { nodes: { payload: readonly { universalKey?: string; ref?: number; isPresence?: boolean }[] } } }).ludicGraph.nodes.payload)
         if (nodes.length > 0 || isEphemeraRoomId(componentId) || isEphemeraAreaId(componentId)) {
             await populateContainmentAtCache(componentId, nodes, { messageBus })
         }

@@ -16,6 +16,8 @@ jest.mock('../../../../internalCache', () => ({
         Positions: {
             getLudicGraph: jest.fn(),
         },
+        RoomAssets: { get: jest.fn() },
+        ComponentData: { getAcrossAssets: jest.fn() },
     },
 }))
 
@@ -37,6 +39,14 @@ const withGraphs = (graphs: Record<string, EphemeraLudicGraph>) => {
     ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) => graphs[hostId] ?? testLudicGraph(hostId as any))
 }
 
+// The parent's authored list: one cached asset whose per-asset diff declares these nodes.
+const withAuthored = (nodes: { universalKey: string; ref?: number }[]) => {
+    ;(internalCache.RoomAssets.get as jest.Mock).mockResolvedValue(nodes.length ? ['ASSET#test'] : [])
+    ;(internalCache.ComponentData.getAcrossAssets as jest.Mock).mockResolvedValue({
+        'ASSET#test': { component: { ludicGraph: { nodes: { payload: nodes } } } },
+    })
+}
+
 const committedSteps = (): any[] => (commitStepSequence as jest.Mock).mock.calls[0][0].steps
 
 describe('healContainmentPopulation', () => {
@@ -45,6 +55,7 @@ describe('healContainmentPopulation', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        withAuthored([])
         ;(commitStepSequence as jest.Mock).mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
     })
 
@@ -59,6 +70,7 @@ describe('healContainmentPopulation', () => {
             }),
         })
 
+        withAuthored([{ universalKey: FEATURE_ID }])
         await healContainmentPopulation(ROOM_ID, { messageBus, streamEvent })
 
         const steps = committedSteps()
@@ -85,6 +97,7 @@ describe('healContainmentPopulation', () => {
             }),
         })
 
+        withAuthored([{ universalKey: ROOM_ID }])
         await healContainmentPopulation(AREA_ID, { messageBus, streamEvent })
 
         // The Area's own root is minted first, and the carve-out names it.
@@ -115,6 +128,7 @@ describe('healContainmentPopulation', () => {
             }),
         })
 
+        withAuthored([{ universalKey: FEATURE_ID }])
         await healContainmentPopulation(ROOM_ID, { messageBus, streamEvent })
 
         expect(commitStepSequence).not.toHaveBeenCalled()
@@ -128,17 +142,55 @@ describe('healContainmentPopulation', () => {
         expect(committedSteps()).toEqual([{ kind: 'addPresenceBinding', hostId: ROOM_ID, presenceUuid: expect.any(String) }])
     })
 
-    it('only reruns population for Room/Feature PartOf sources into the parent', async () => {
+    it('only reruns population for authored Room/Feature children, never Objects', async () => {
         withGraphs({
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
                 nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, presenceBindingNode(ROOM_REMAINDER)],
                 edges: [partOf(OBJECT_ID, ROOM_ID)],
             }),
         })
+        withAuthored([{ universalKey: OBJECT_ID }])
 
         await healContainmentPopulation(ROOM_ID, { messageBus, streamEvent })
 
         expect(internalCache.Positions.getLudicGraph).not.toHaveBeenCalledWith(OBJECT_ID)
+        expect(commitStepSequence).not.toHaveBeenCalled()
+    })
+
+    it('populates an authored child that has no node and no PartOf edge on the parent', async () => {
+        withGraphs({
+            [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
+            [FEATURE_ID]: testLudicGraph(FEATURE_ID),
+        })
+        withAuthored([{ universalKey: FEATURE_ID }])
+
+        await healContainmentPopulation(ROOM_ID, { messageBus, streamEvent })
+
+        expect(internalCache.Positions.getLudicGraph).toHaveBeenCalledWith(FEATURE_ID)
+        expect(committedSteps()).toEqual(expect.arrayContaining([
+            expect.objectContaining({ kind: 'addPresenceBinding', hostId: FEATURE_ID }),
+        ]))
+    })
+
+    it('leaves alone a child with a PartOf edge that is no longer authored, and one the asset removed', async () => {
+        withGraphs({
+            [ROOM_ID]: testLudicGraph(ROOM_ID, {
+                nodes: [{ tag: 'Feature', universalKey: FEATURE_ID }, presenceBindingNode(ROOM_REMAINDER)],
+                edges: [partOf(FEATURE_ID, ROOM_ID)],
+            }),
+        })
+        withAuthored([{ universalKey: FEATURE_ID, ref: -1 }])
+
+        await healContainmentPopulation(ROOM_ID, { messageBus, streamEvent })
+
+        expect(internalCache.Positions.getLudicGraph).not.toHaveBeenCalledWith(FEATURE_ID)
+        expect(commitStepSequence).not.toHaveBeenCalled()
+    })
+
+    it('reads the asset list for the parent, so a Feature parent works too', async () => {
+        withGraphs({ [FEATURE_ID]: testLudicGraph(FEATURE_ID) })
+        await healContainmentPopulation(FEATURE_ID, { messageBus, streamEvent })
+        expect(internalCache.RoomAssets.get).toHaveBeenCalledWith(FEATURE_ID)
         expect(commitStepSequence).not.toHaveBeenCalled()
     })
 })
