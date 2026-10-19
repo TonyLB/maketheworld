@@ -1,6 +1,6 @@
 # Containment drift coverage: implementation
 
-**Status: in progress (queued 2026-10-18; re-scoped 2026-10-19 with the user; Slice 0 done 2026-10-19). Slice 1 is next.**
+**Status: in progress (queued 2026-10-18; re-scoped 2026-10-19 with the user; Slice 0 and Slice 1 done 2026-10-19). Slice 2 is next.**
 
 **Scope in one sentence: give each containment drift check one named authority. `PresenceCoverDriftSweep` owns pointer ↔ node ↔ cover consistency, for every kind and every producer, and gains the child→parent direction it lacks. `ContainmentPopulationDriftSweep` becomes `FixedContainmentDriftSweep`, which compares the ephemera rows against the authored declaration of nestings that never move.**
 
@@ -67,10 +67,11 @@ Pending work is `[ ]` and done is `[X]`. Mark nested lines `[X]` as each one is 
     - **Guard:** heal only if the host's row exists and holds the named binding. Otherwise the case is report-only. The kernel returns `presenceBindingMissing` only for a missing *child* binding, so the guard can't be left to it.
     - **Edges:** the heal writes no edge, because edges are orthogonal to membership.
     - **CD-1** is decided (b) from this.
-- [ ] **Slice 1. Orphan pointer in the shared comparison.** `classifyPresenceCoverDrift` also walks each member's pointers to the hosts they name. A pointer whose host lacks the member's node becomes a new finding kind, `Orphaned` (working name), carrying `member` and `presence`. The sweep already loads all five kinds, so this needs no new read.
+- [X] **Slice 1. Orphan pointer in the shared comparison.** `classifyPresenceCoverDrift` also walks each member's pointers to the hosts they name. A pointer whose host lacks the member's node becomes a new finding kind, `Orphaned` (working name), carrying `member` and `presence`. The sweep already loads all five kinds, so this needs no new read.
   - **Heal (CD-1 (b)):** `healPresenceCover` emits a `repairPresenceBinding` for the orphaned binding with pointer and cover unchanged. It does so only when the host's row exists and holds the named binding. Otherwise the finding goes to `unrepairable`.
   - **Characters:** a Character pointer at a Room is a bystander, so it stays with the occupancy sweep. Character pointers into other hosts are included here.
-  - **Tests:** unit tests in `mtw-gateways` and `presenceCoverDriftSweep/index.test.ts`.
+  - **Shipped shape:** the finding is judged from the **member's** side (`orphanedPointersOf` / `orphanRepairsFor`), reported on the member's `ephemeraId` through the existing `Presence Cover Drift Finding` (no new event, no reverse index), and healed by `healPresenceCover(member)`'s new member pass. Only report-only orphans (host row or named binding absent) appear as `Orphaned` under `unrepairable`; a repairable one is carried by `healable`. The kernel footprint already includes the pointer's host for `repairPresenceBinding`.
+  - **Tests:** unit tests in `mtw-gateways`, `presenceCoverDriftSweep/index.test.ts` (existing fixtures gained an Area row so their carve-out pointers are not orphans) and `healPresenceCover.test.ts`.
 - [ ] **Slice 2. The fixed classifier.** The sweep compares each fixed nesting the asset declares against the parent's and child's rows, checking the four conditions in the partition table. It reports the parent. The current one-row classifier and conditions (a) and (b) are retired into it. Unit tests cover each condition.
   - **The setpoint read** (Slice 0(a)): `Meta::<Tag>.cached`, then `ComponentData` pairs, then the union of positive-ref nodes.
   - **An extra test** checks that a nesting declared by an importing asset appears in the union. That confirms the importing asset's row shares the component's `universalKey` and appears in its `cached` list.
@@ -101,8 +102,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | Slice | State |
 | --- | --- |
 | 0. Verify premises | Done (2026-10-19) |
-| 1. Orphan pointer (shared comparison) | Ready |
-| 2. Fixed classifier | Not started |
+| 1. Orphan pointer (shared comparison) | Done (2026-10-19) |
+| 2. Fixed classifier | Ready |
 | 3. Heal from authored list | Not started |
 | 4. Payoff tests | Not started |
 | 5. Rename | Not started |

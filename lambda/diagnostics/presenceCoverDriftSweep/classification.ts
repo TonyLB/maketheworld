@@ -1,4 +1,4 @@
-import { classifyPresenceCoverDrift, coverRebuildsFor, lacksBase } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { classifyPresenceCoverDrift, coverRebuildsFor, lacksBase, orphanRepairsFor, orphanedPointersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { PresenceBindingView, PresenceCoverDriftFinding, PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 /**
@@ -34,7 +34,7 @@ export const presenceGraphViewOf = (hostId: string, ludicGraph: unknown): Presen
 }
 
 export type PresenceCoverDriftClassification = {
-    /** Drift the cover-rebuild heal can rewrite: the only kind that earns a finding. */
+    /** Drift the heal can rewrite (a cover rebuild, or a same-pointer repair of an orphaned binding): the only kinds that earn a finding. */
     healable: boolean
     /** A whole with bindings and no `PRESENCE#Base`; report-only (every writer mints Base, so a heal would invent one). */
     noBase: boolean
@@ -48,9 +48,12 @@ export const classifyWhole = (
     viewOf: (hostId: string) => PresenceGraphView | undefined
 ): PresenceCoverDriftClassification => {
     const verdict = classifyPresenceCoverDrift(whole, viewOf)
+    // The row is also judged as a member: a pointer of its own whose host lacks its node (the orphan direction).
+    // Only report-only orphans become findings; a repairable one is carried by `healable`.
+    const orphans = orphanedPointersOf(whole, viewOf).filter((orphan) => !orphan.repairable).map((orphan): PresenceCoverDriftFinding => ({ kind: 'Orphaned', host: orphan.host, presence: orphan.presence }))
     return {
-        healable: coverRebuildsFor(whole, viewOf).length > 0,
+        healable: coverRebuildsFor(whole, viewOf).length > 0 || orphanRepairsFor(whole, viewOf).length > 0,
         noBase: lacksBase(whole),
-        findings: verdict.findings,
+        findings: [...verdict.findings, ...orphans],
     }
 }

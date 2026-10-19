@@ -125,8 +125,10 @@ const defaultEmitFinding = async (args: {
  * member's `fromHostPresence` governs, and the whole's `cover` is a stored index of it. Joins each
  * whole's row with its members' rows (`classification.ts`; the comparison is shared with the heal).
  *
- * Emits one `Presence Cover Drift Finding` per **whole** whose remainder-free covers disagree with
- * its members' pointers, which the heal can rewrite. Everything else (an unbound, duplicated or
+ * Emits one `Presence Cover Drift Finding` per row with drift the heal can rewrite: a **whole** whose covers
+ * disagree with its members' pointers, or a **member** whose pointer names a host that holds the named binding
+ * but lacks the member's node (an orphan; the heal re-seats it with a same-pointer `repairPresenceBinding`).
+ * An orphan whose host row or named binding is absent is report-only. Everything else (an unbound, duplicated or
  * stale member binding; a whole with members and no remainder) the heal cannot repair without
  * minting a binding, so it is listed under `unrepairable` and never emitted: a report-only finding
  * would keep the second run from reading `emittedCount: 0`. Performs no repair itself.

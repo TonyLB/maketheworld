@@ -89,4 +89,41 @@ describe('healPresenceCover', () => {
 
         expect(commitStepSequence).not.toHaveBeenCalled()
     })
+
+    describe('as a member (orphaned pointer)', () => {
+        const roomLackingStove = testLudicGraph(ROOM_ID, {
+            nodes: [presenceBindingNode(ROOT), presenceBindingNode(CARVE)],
+        })
+
+        it('repairs the binding in place, pointer and cover unchanged, when the host holds the named binding', async () => {
+            withGraphs({ [ROOM_ID]: roomLackingStove, [STOVE]: stoveGraph })
+
+            await healPresenceCover(STOVE, { messageBus, streamEvent })
+
+            expect((commitStepSequence as jest.Mock).mock.calls[0][0].steps).toEqual([{
+                kind: 'repairPresenceBinding',
+                hostId: STOVE,
+                presenceId: STOVE_BINDING,
+                fromHostPresence: { host: ROOM_ID, presence: CARVE },
+                cover: { members: [] },
+            }])
+        })
+
+        it('writes nothing when the host holds the node (a redelivered finding)', async () => {
+            withGraphs({ [ROOM_ID]: roomWith([{ host: STOVE, presence: STOVE_BINDING }]), [STOVE]: stoveGraph })
+
+            await healPresenceCover(STOVE, { messageBus, streamEvent })
+
+            expect(commitStepSequence).not.toHaveBeenCalled()
+        })
+
+        it('writes nothing when the host row is missing or lacks the named binding', async () => {
+            withGraphs({ [STOVE]: stoveGraph })
+            await healPresenceCover(STOVE, { messageBus, streamEvent })
+            withGraphs({ [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode(ROOT)] }), [STOVE]: stoveGraph })
+            await healPresenceCover(STOVE, { messageBus, streamEvent })
+
+            expect(commitStepSequence).not.toHaveBeenCalled()
+        })
+    })
 })

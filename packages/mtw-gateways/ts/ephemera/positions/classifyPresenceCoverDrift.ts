@@ -4,8 +4,10 @@
  * (`lambda/diagnostics/presenceCoverDriftSweep/`) and the ephemera cover-rebuild heal's recheck
  * (`positions/ludicGraph/healPresenceCover.ts`). One definition of *drift* across both.
  *
- * It judges pointer versus cover. A member's `fromHostPresence` governs; the whole's `cover` is a
- * stored index of it. Plain structural types, so the sweep can feed raw stored rows and the heal
+ * It judges pointer versus cover, in both directions. A member's `fromHostPresence` governs; the whole's
+ * `cover` is a stored index of it. From the whole's side (`classifyPresenceCoverDrift`) it walks the nodes the
+ * whole lists; from the member's side (`orphanedPointersOf`) it walks the pointers the member holds, which is the
+ * only way to see a pointer whose host lacks the member's node. Plain structural types, so the sweep can feed raw stored rows and the heal
  * can feed parsed graphs.
  */
 
@@ -37,6 +39,11 @@ export type PresenceCoverDriftFinding =
     | { kind: 'SecondHostless'; presence: string }
     /** An `Unplaced` binding that holds a parent pointer, or that exists while `Base` is hostless or absent. */
     | { kind: 'BadUnplaced'; presence: string }
+    /**
+     * Judged from the member's side: the member's pointer names `host`'s binding `presence`, and `host`'s graph
+     * lacks the member's node (or has no graph at all). Reported against the member, not the host.
+     */
+    | { kind: 'Orphaned'; host: string; presence: string }
 
 export type PresenceCoverDriftVerdict = {
     findings: PresenceCoverDriftFinding[]
@@ -136,6 +143,54 @@ export const classifyPresenceCoverDrift = (
             ...violations.badUnplaced.map((presence): PresenceCoverDriftFinding => ({ kind: 'BadUnplaced', presence })),
         ],
     }
+}
+
+export type OrphanedPointer = {
+    host: string
+    presence: string
+    /** The host's graph exists and holds the binding the pointer names, so a same-pointer repair can re-seat the node. */
+    repairable: boolean
+}
+
+/** A character at a room is a bystander: never a node of the room's graph, so never an orphan. */
+const isBystanderPointer = (member: string, host: string): boolean => member.startsWith('CHARACTER#') && host.startsWith('ROOM#')
+
+/**
+ * The member-side direction: each pointer the member holds whose host's graph lacks the member's node.
+ * A pointer with no `presence` (a retired shape) is skipped; the whole's side reads it as `Stale`.
+ * `repairable` is false when the host has no graph, or no binding with the pointer's `presence`: the repair
+ * mints nothing, so it can only re-seat the node into a binding that exists.
+ */
+export const orphanedPointersOf = (
+    member: PresenceGraphView,
+    viewOf: (hostId: string) => PresenceGraphView | undefined
+): OrphanedPointer[] => (
+    member.presenceNodes.flatMap((binding): OrphanedPointer[] => {
+        const pointer = binding.fromHostPresence
+        if (!pointer?.presence || isBystanderPointer(member.hostId, pointer.host)) {
+            return []
+        }
+        const host = viewOf(pointer.host)
+        if (host?.nodeIds.includes(member.hostId)) {
+            return []
+        }
+        const repairable = !!host?.presenceNodes.some((node) => node.universalKey === pointer.presence)
+        return [{ host: pointer.host, presence: pointer.presence, repairable }]
+    })
+)
+
+/** The bindings of the member a heal can repair in place: shared by the sweep (healable or not) and the heal. */
+export const orphanRepairsFor = (
+    member: PresenceGraphView,
+    viewOf: (hostId: string) => PresenceGraphView | undefined
+): { bindingId: string; fromHostPresence: { host: string; presence: string } }[] => {
+    const repairable = new Set(orphanedPointersOf(member, viewOf).filter((orphan) => orphan.repairable).map((orphan) => `${orphan.host}|${orphan.presence}`))
+    return member.presenceNodes.flatMap((binding) => {
+        const pointer = binding.fromHostPresence
+        return pointer && repairable.has(`${pointer.host}|${pointer.presence}`)
+            ? [{ bindingId: binding.universalKey, fromHostPresence: pointer }]
+            : []
+    })
 }
 
 /**
