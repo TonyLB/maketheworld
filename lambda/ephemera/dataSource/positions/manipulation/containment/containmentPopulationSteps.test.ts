@@ -25,7 +25,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         const steps = containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)
 
         expect(steps).toEqual([
-            { kind: 'addPresenceBinding', hostId: ROOM_ID, fromHostPresence: areaPointer, cover: { members: [] }, presenceUuid: expect.any(String) },
+            { kind: 'addPresenceBinding', hostId: ROOM_ID, fromHostPresences: [areaPointer], cover: { members: [] }, presenceUuid: expect.any(String) },
             { kind: 'establishRelation', subjectId: ROOM_ID, targetId: AREA_ID, hostId: AREA_ID, relationKind: 'PartOf' },
         ])
     })
@@ -57,7 +57,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         const steps = containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)
 
         expect(steps).toEqual([
-            { kind: 'repairPresenceBinding', hostId: ROOM_ID, presenceId: carveOut.universalKey, fromHostPresence: areaPointer, cover: { members: [] } },
+            { kind: 'repairPresenceBinding', hostId: ROOM_ID, presenceId: carveOut.universalKey, fromHostPresences: [areaPointer], cover: { members: [] } },
             { kind: 'establishRelation', subjectId: ROOM_ID, targetId: AREA_ID, hostId: AREA_ID, relationKind: 'PartOf' },
         ])
     })
@@ -88,13 +88,13 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         it('rootStep mints the remainder for a room with none, and the returned graph already holds it', () => {
             const { step, graph } = rootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [] }))
 
-            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, presenceUuid: expect.any(String) })
+            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, fromHostPresences: [], presenceUuid: expect.any(String) })
             expect(unpointedBindingOf(graph)?.universalKey).toBe(`PRESENCE#${step!.presenceUuid}`)
         })
 
         it('rootStep mints the fixed PRESENCE#Base, and treats a legacy uuid-named hostless remainder as already rooted', () => {
             const { step, graph } = rootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [] }))
-            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, presenceUuid: 'Base' })
+            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, fromHostPresences: [], presenceUuid: 'Base' })
             expect(graph.presenceNodes.map((node) => node.universalKey)).toEqual(['PRESENCE#Base'])
 
             expect(rootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode('legacy-uuid')] })).step).toBeUndefined()
@@ -103,14 +103,14 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         it('rootStep mints a room\'s remainder even when the room already holds its Area carve-out', () => {
             const { step } = rootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [areaCarveOut()] }))
 
-            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, presenceUuid: expect.any(String) })
+            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, fromHostPresences: [], presenceUuid: expect.any(String) })
         })
 
         it('rootStep mints an Area\'s hostless remainder, and leaves one that has it unchanged', () => {
             const { step } = rootStep(AREA_ID, testLudicGraph(AREA_ID, { nodes: [] }))
             const rooted = testLudicGraph(AREA_ID, { nodes: [areaRoot] })
 
-            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: AREA_ID, presenceUuid: expect.any(String) })
+            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: AREA_ID, fromHostPresences: [], presenceUuid: expect.any(String) })
             expect(rootStep(AREA_ID, rooted)).toEqual({ graph: rooted })
         })
 
@@ -124,7 +124,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             const { step } = rootStep(FEATURE_ID, testLudicGraph(FEATURE_ID, { nodes: [] }))
             const placed = testLudicGraph(FEATURE_ID, { nodes: [presenceBindingNode('counter-in-cafe', ROOM_ID)] })
 
-            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: FEATURE_ID, presenceUuid: expect.any(String) })
+            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: FEATURE_ID, fromHostPresences: [], presenceUuid: expect.any(String) })
             expect(rootStep(FEATURE_ID, placed)).toEqual({ graph: placed })
         })
 
@@ -134,10 +134,10 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
 
             const steps = containmentPopulationSteps(FEATURE_ID, childFeatureId, root.graph, testLudicGraph(childFeatureId, { nodes: [] })) as any[]
 
-            expect(steps.find(({ kind }) => kind === 'addPresenceBinding').fromHostPresence).toEqual({
+            expect(steps.find(({ kind }) => kind === 'addPresenceBinding').fromHostPresences).toEqual([{
                 host: FEATURE_ID,
                 presence: `PRESENCE#${root.step!.presenceUuid}`,
-            })
+            }])
         })
 
         it('points a Feature at the room\'s remainder and mints no second one', () => {
@@ -148,7 +148,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             const steps = containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph) as any[]
 
             expect(steps.filter(({ kind }) => kind === 'addPresenceBinding')).toEqual([
-                expect.objectContaining({ hostId: FEATURE_ID, fromHostPresence: { host: ROOM_ID, presence: remainder.universalKey } }),
+                expect.objectContaining({ hostId: FEATURE_ID, fromHostPresences: [{ host: ROOM_ID, presence: remainder.universalKey }] }),
             ])
         })
     })
@@ -183,7 +183,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
                 kind: 'repairPresenceBinding',
                 hostId: FEATURE_ID,
                 presenceId: hostOnly.universalKey,
-                fromHostPresence: { host: ROOM_ID, presence: remainder.universalKey },
+                fromHostPresences: [{ host: ROOM_ID, presence: remainder.universalKey }],
                 cover: hostOnly.cover,
             }])
         })
@@ -200,7 +200,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
                 kind: 'repairPresenceBinding',
                 hostId: ROOM_ID,
                 presenceId: wrong.universalKey,
-                fromHostPresence: areaPointer,
+                fromHostPresences: [areaPointer],
                 cover: { members: [] },
             }])
         })
@@ -217,7 +217,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
                 kind: 'repairPresenceBinding',
                 hostId: ROOM_ID,
                 presenceId: hostOnly.universalKey,
-                fromHostPresence: areaPointer,
+                fromHostPresences: [areaPointer],
                 cover: { members: [] },
             }])
         })
@@ -265,7 +265,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
                 kind: 'repairPresenceBinding',
                 hostId: FEATURE_ID,
                 presenceId: featureRoot.universalKey,
-                fromHostPresence: { host: ROOM_ID, presence: remainder.universalKey },
+                fromHostPresences: [{ host: ROOM_ID, presence: remainder.universalKey }],
                 cover: featureRoot.cover,
             }])
         })
@@ -289,7 +289,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             const steps = containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)
 
             expect(steps.filter(({ kind }) => kind === 'repairPresenceBinding' || kind === 'addPresenceBinding')).toEqual([
-                { kind: 'addPresenceBinding', hostId: ROOM_ID, fromHostPresence: areaPointer, cover: { members: [] }, presenceUuid: expect.any(String) },
+                { kind: 'addPresenceBinding', hostId: ROOM_ID, fromHostPresences: [areaPointer], cover: { members: [] }, presenceUuid: expect.any(String) },
             ])
         })
     })
@@ -302,7 +302,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
             expect(containmentPopulationSteps(ROOM_ID, OBJECT_ID, parentGraph, childGraph)).toEqual([
-                { kind: 'addPresenceBinding', hostId: OBJECT_ID, fromHostPresence: { host: ROOM_ID, presence: remainder.universalKey }, presenceUuid: expect.any(String) },
+                { kind: 'addPresenceBinding', hostId: OBJECT_ID, fromHostPresences: [{ host: ROOM_ID, presence: remainder.universalKey }], presenceUuid: expect.any(String) },
                 { kind: 'establishRelation', subjectId: OBJECT_ID, targetId: ROOM_ID, hostId: ROOM_ID, relationKind: 'In' },
             ])
         })
@@ -313,7 +313,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
             expect(containmentPopulationSteps(SHELF_ID, OBJECT_ID, parentGraph, childGraph)).toEqual([
-                expect.objectContaining({ kind: 'addPresenceBinding', fromHostPresence: { host: SHELF_ID, presence: shelfBinding.universalKey } }),
+                expect.objectContaining({ kind: 'addPresenceBinding', fromHostPresences: [{ host: SHELF_ID, presence: shelfBinding.universalKey }] }),
                 expect.objectContaining({ kind: 'establishRelation', relationKind: 'In', targetId: SHELF_ID }),
             ])
         })

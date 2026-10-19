@@ -5,7 +5,8 @@
  * (`positions/ludicGraph/healPresenceCover.ts`). One definition of *drift* across both.
  *
  * It judges pointer versus cover, in both directions. A member's `fromHostPresences` govern; the host's
- * `cover` is a stored index of it. From the host's side (`classifyPresenceCoverDrift`) it walks the nodes the
+ * `cover` is a stored index of it. The rule is positive (PR-25): for every parent binding whose cover lists
+ * a member, exactly one of that member's bindings has that parent binding in its parent set. From the host's side (`classifyPresenceCoverDrift`) it walks the nodes the
  * host lists; from the member's side (`orphanedPointersOf`) it walks the pointers the member holds, which is the
  * only way to see a pointer whose host lacks the member's node. Plain structural types, so the sweep can feed raw stored rows and the heal
  * can feed parsed graphs.
@@ -199,8 +200,10 @@ export const orphanRepairsFor = (
 }
 
 /**
- * The cover entries a binding should list, rebuilt from members' pointers: the
- * members whose pointer names it..
+ * The cover entries a binding should list, rebuilt from members' pointers: one entry for every binding of
+ * every member whose parent set names it (a shared binding is listed by each parent it names; a second
+ * binding naming it too is listed as well, so the cover stays an index of the pointers and the
+ * `Duplicate` finding stays visible).
  */
 export const rebuiltCoverEntries = (
     host: PresenceGraphView,
@@ -209,10 +212,9 @@ export const rebuiltCoverEntries = (
 ): { host: string; presence: string }[] => (
     hostMembersOf(host).flatMap((member) => {
         const graph = memberGraph(member)
-        const pointed = graph?.presenceNodes.find((binding) => (
-            parentPointersOf(binding).some((pointer) => pointer.host === host.hostId && pointer.presence === bindingId)
-        ))
-        return pointed ? [{ host: member, presence: pointed.universalKey }] : []
+        return (graph?.presenceNodes ?? [])
+            .filter((binding) => parentPointersOf(binding).some((pointer) => pointer.host === host.hostId && pointer.presence === bindingId))
+            .map((binding) => ({ host: member, presence: binding.universalKey }))
     })
 )
 

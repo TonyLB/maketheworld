@@ -83,8 +83,8 @@ describe('populateContainmentAtCache', () => {
         expect(commitStepSequence).toHaveBeenCalledTimes(1)
         const [{ steps }, deps] = (commitStepSequence as jest.Mock).mock.calls[0]
         expect(steps).toHaveLength(5) // the Area's root, then 2 steps (binding, edge) x 2 children
-        expect(steps[0]).toEqual({ kind: 'addPresenceBinding', hostId: AREA_ID, presenceUuid: expect.any(String) })
-        expect(steps.filter((step: any) => step.kind === 'addPresenceBinding' && step.fromHostPresence)).toHaveLength(2)
+        expect(steps[0]).toEqual({ kind: 'addPresenceBinding', hostId: AREA_ID, fromHostPresences: [], presenceUuid: expect.any(String) })
+        expect(steps.filter((step: any) => step.kind === 'addPresenceBinding' && step.fromHostPresences.length)).toHaveLength(2)
         expect(deps.messageBus).toBe(messageBus)
         expect(deps.getCurrentHost()).toBe(AREA_ID)
     })
@@ -97,7 +97,7 @@ describe('populateContainmentAtCache', () => {
 
         expect(commitStepSequence).toHaveBeenCalledTimes(1)
         const [{ steps }] = (commitStepSequence as jest.Mock).mock.calls[0]
-        expect(steps).toEqual([{ kind: 'addPresenceBinding', hostId: ROOM_A, presenceUuid: expect.any(String) }])
+        expect(steps).toEqual([{ kind: 'addPresenceBinding', hostId: ROOM_A, fromHostPresences: [], presenceUuid: expect.any(String) }])
 
         ;(commitStepSequence as jest.Mock).mockClear()
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(
@@ -119,7 +119,7 @@ describe('populateContainmentAtCache', () => {
         expect(roomMints).toHaveLength(1)
         const remainderKey = `PRESENCE#${roomMints[0].presenceUuid}`
         const childBindings = steps.filter((step: any) => step.kind === 'addPresenceBinding' && step.hostId !== ROOM_A)
-        expect(childBindings.map((step: any) => step.fromHostPresence)).toEqual([
+        expect(childBindings.map((step: any) => step.fromHostPresences[0])).toEqual([
             { host: ROOM_A, presence: remainderKey },
             { host: ROOM_A, presence: remainderKey },
         ])
@@ -138,7 +138,7 @@ describe('populateContainmentAtCache', () => {
         await populateContainmentAtCache(AREA_ID, [], { messageBus, streamEvent })
 
         const [{ steps }] = (commitStepSequence as jest.Mock).mock.calls[0]
-        expect(steps).toEqual([{ kind: 'addPresenceBinding', hostId: AREA_ID, presenceUuid: expect.any(String) }])
+        expect(steps).toEqual([{ kind: 'addPresenceBinding', hostId: AREA_ID, fromHostPresences: [], presenceUuid: expect.any(String) }])
 
         ;(commitStepSequence as jest.Mock).mockClear()
         ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue(

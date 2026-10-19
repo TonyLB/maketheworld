@@ -25,7 +25,7 @@ export const presenceBindingStepsForMove = (
     const moves = op.presenceMoves.filter((move): move is PositionKernelPresenceMove & { to: PresenceBindingRef } => move.to !== null)
     const releases = op.presenceMoves.filter((move): move is PositionKernelPresenceMove & { from: ParentBinding; to: null } => move.to === null)
     return [
-        ...(op.mintedRootUuid ? [{ kind: 'addPresenceBinding' as const, hostId, presenceUuid: op.mintedRootUuid }] : []),
+        ...(op.mintedRootUuid ? [{ kind: 'addPresenceBinding' as const, hostId, fromHostPresences: [], presenceUuid: op.mintedRootUuid }] : []),
         // Several moves into one destination converge by themselves: the first re-points its binding, and
         // each later one finds the mover's binding already there and joins it. A later move carries its
         // planner-read `cover`, so the footprint can lock the children it re-points.

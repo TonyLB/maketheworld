@@ -61,8 +61,8 @@ export type MutationKernelCaptureStep = {
 export type MutationKernelAddPresenceBindingStep = {
     kind: 'addPresenceBinding'
     hostId: EphemeraMembershipHostId
-    /** The parent binding this one sits under (PR-21); absent for a hostless binding. */
-    fromHostPresence?: EphemeraPresenceParentPointer
+    /** The parent bindings this one sits under (PR-21, PR-25); empty for a hostless binding. */
+    fromHostPresences: EphemeraPresenceParentPointer[]
     /** Defaults to `{ members: [] }`: the cover index adds each child's entry as its pointer is written. */
     cover?: EphemeraPresenceCover
     presenceUuid: string
@@ -103,16 +103,17 @@ export type MutationKernelDestroyComponentStep = {
  * write differently (a pointer not naming the parent's binding, a room's Area cover with members); a correct binding never
  * emits one, so a rerun of population is a true no-op once repaired. A missing binding is stale,
  * never silently created. A pointer names the host the mover now sits in, so the node is added there
- * if absent (`settleMembership.ts`). Every present producer repairs within one host; a repair that
- * leaves another host names the binding it leaves in `previousParent`, so the footprint locks that
- * host and its cover entry and node go with the move.
+ * if absent (`settleMembership.ts`). The step names the binding's whole parent set after the repair,
+ * so a producer repairing a shared binding carries the parents it keeps. Every present producer repairs
+ * within one host; a repair that leaves another host names the bindings it leaves in `previousParents`,
+ * so the footprint locks that host and its cover entry and node go with the move.
  */
 export type MutationKernelRepairPresenceBindingStep = {
     kind: 'repairPresenceBinding'
     hostId: EphemeraMembershipHostId
     presenceId: EphemeraPresenceNodeId
-    fromHostPresence?: EphemeraPresenceParentPointer
-    previousParent?: EphemeraPresenceParentPointer
+    fromHostPresences: EphemeraPresenceParentPointer[]
+    previousParents?: EphemeraPresenceParentPointer[]
     cover: EphemeraPresenceCover
 }
 

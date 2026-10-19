@@ -40,7 +40,7 @@ describe('presenceBindingStepsForMove', () => {
         })
 
         expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding', 'movePresenceBinding'])
-        expect(steps[0]).toEqual({ kind: 'addPresenceBinding', hostId: HOST_ID, presenceUuid: 'fresh' })
+        expect(steps[0]).toEqual({ kind: 'addPresenceBinding', hostId: HOST_ID, fromHostPresences: [], presenceUuid: 'fresh' })
     })
 
     it('emits one move per binding, each after the first carrying its cover, with no join (a multi-from scrub)', () => {

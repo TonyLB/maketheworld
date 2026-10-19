@@ -195,3 +195,47 @@ describe('orphanedPointersOf', () => {
         expect(orphanedPointersOf(object(retired), lookup([host([])]))).toEqual([])
     })
 })
+
+describe('a shared binding (parent sets, PR-25)', () => {
+    // the backgammon-set shape: the host holds two bindings, and the member's one binding sits under both
+    const entry = { host: 'FEATURE#x', presence: 'PRESENCE#f' }
+    const twoParents = () => room(['FEATURE#x'], [
+        { universalKey: 'PRESENCE#root', fromHostPresences: [], cover: { members: [entry] } },
+        { universalKey: 'PRESENCE#carve', fromHostPresences: [{ host: 'AREA#up', presence: 'PRESENCE#top' }], cover: { members: [entry] } },
+    ])
+    const shared = child('FEATURE#x', [{
+        universalKey: 'PRESENCE#f',
+        fromHostPresences: [{ host: 'ROOM#a', presence: 'PRESENCE#root' }, { host: 'ROOM#a', presence: 'PRESENCE#carve' }],
+        cover: { members: [] },
+    }])
+
+    it('reads clean when one binding is named by each parent cover that lists it', () => {
+        expect(classifyPresenceCoverDrift(twoParents(), lookup([shared])).findings).toEqual([])
+        expect(coverRebuildsFor(twoParents(), lookup([shared]))).toEqual([])
+    })
+
+    it('rebuilds a cover that lacks the shared binding, and only that one', () => {
+        const host = twoParents()
+        host.presenceNodes[1] = { ...host.presenceNodes[1], cover: { members: [] } }
+
+        expect(classifyPresenceCoverDrift(host, lookup([shared])).findings).toEqual([{ kind: 'Stale', member: 'FEATURE#x', presence: 'PRESENCE#carve' }])
+        expect(coverRebuildsFor(host, lookup([shared]))).toEqual([{ bindingId: 'PRESENCE#carve', entries: [entry] }])
+    })
+
+    it('reports a second binding under a parent the shared one names as Duplicate, and lists both in the rebuilt cover', () => {
+        const extra = child('FEATURE#x', [...shared.presenceNodes, point('PRESENCE#g', 'PRESENCE#carve')])
+
+        expect(classifyPresenceCoverDrift(twoParents(), lookup([extra])).findings).toEqual([{ kind: 'Duplicate', member: 'FEATURE#x', presence: 'PRESENCE#carve' }])
+        expect(rebuiltCoverEntries(twoParents(), 'PRESENCE#carve', lookup([extra])).map(({ presence }) => presence)).toEqual(['PRESENCE#f', 'PRESENCE#g'])
+    })
+
+    it('reports one binding naming the same parent twice as Duplicate', () => {
+        const twice = child('FEATURE#x', [{
+            universalKey: 'PRESENCE#f',
+            fromHostPresences: [{ host: 'ROOM#a', presence: 'PRESENCE#root' }, { host: 'ROOM#a', presence: 'PRESENCE#root' }],
+            cover: { members: [] },
+        }])
+
+        expect(classifyPresenceCoverDrift(twoParents(), lookup([twice])).findings).toContainEqual({ kind: 'Duplicate', member: 'FEATURE#x', presence: 'PRESENCE#root' })
+    })
+})

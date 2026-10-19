@@ -1,6 +1,6 @@
 # Presence parent sets: implementation
 
-**Status: opened 2026-10-19. Slice 0 done 2026-10-19. Slice 1 done 2026-10-19 (stored rows healed). Slice 2 done 2026-10-19 (readers set-aware). Slice 3 is next. PS-2 through PS-4 are Open; PS-3 and PS-4 are the user's to decide.**
+**Status: opened 2026-10-19. Slice 0 done 2026-10-19. Slice 1 done 2026-10-19 (stored rows healed). Slice 2 done 2026-10-19 (readers set-aware). Slice 3 done 2026-10-19 (invariant stated positively; add/repair steps carry parent sets). Slice 4 is next, gated on PS-2 (the move's `from` and the sharing step) and PS-3. PS-2 through PS-4 are Open; PS-3 and PS-4 are the user's to decide.**
 
 **Scope in one sentence: a presence binding names a *set* of parent bindings rather than one, so the presence structure inside the ludicNetwork is a DAG rather than a forest rooted at hostless bindings, and a thing that sits identically under several parents holds one binding instead of copies.**
 
@@ -114,11 +114,11 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [X] (i) Host tests: "some parent is on H" (`bindingHasParentOn`, `parentHostsOf`; `parentHostOf` deleted). (ii) Binding tests: set membership.
   - [X] (iii) Unions: audience resolution (`roomsForPresenceNode`) unions over parents; the cache fold and `charactersRow` see a binding under each parent; the wire and WML types carry the set as `fromHostPresences` (absent when hostless).
   - [X] `fixedContainmentDriftSweep/classification.ts` asks whether some binding of the child has the parent's root among its parents, rather than taking the first binding into the parent (Slice 0(c)).
-  - [X] Retire `parentOf`'s single-parent read where nothing still needs it. It stays, throwing on a multi-parent binding, in the writers and planners that name one parent: `healPresenceCover.ts`, `applyStepSequenceCore.ts` (the cover index `before`), `movePresenceBinding.ts` and `resolvePresenceMoves.ts` (the move's `from`) until PS-2 and Slice 4, and `contentDestinations` until Slice 6. `parentBinding` is now `parentsOfBinding`.
-- [ ] **Slice 3. The invariant, stated positively.**
-  - [ ] The run-end guard in `applyStepSequenceCore.ts` keys by parent binding over parent sets: no parent binding is in two of one host's bindings' parent sets (no parent counts as one, as today).
-  - [ ] The cover index: a binding's entry is on every parent's cover, and every parent cover's entry for a node is matched by exactly one of that node's bindings having that parent (PR-25's rule). The drift classifier and the heal read it the same way.
-  - [ ] Fix each "exactly one" from Slice 0(c).
+  - [X] Retire `parentOf`'s single-parent read where nothing still needs it. It stays, throwing on a multi-parent binding, in the writers and planners that name one parent: `healPresenceCover.ts`, `applyStepSequenceCore.ts` (the cover index `before`) (both retired in Slice 3), `movePresenceBinding.ts` and `resolvePresenceMoves.ts` (the move's `from`) until PS-2 and Slice 4, and `contentDestinations` until Slice 6. `parentBinding` is now `parentsOfBinding`.
+- [X] **Slice 3. The invariant, stated positively.** Done 2026-10-19. The guard and the classifier's count were already the positive rule over flattened sets (Slice 1/2), so the work was tests, wording, and the pieces that were still single-parent: the cover index, the repair/add handlers, the heal, and `rebuiltCoverEntries`.
+  - [X] The run-end guard in `applyStepSequenceCore.ts` keys by parent binding over parent sets: no parent binding is in two of one host's bindings' parent sets (no parent counts as one, as today). Tests: one binding under two parent bindings is legal, a second binding or a repeated parent trips it; the message states the rule.
+  - [X] The cover index: `writeCoverIndex` takes parent lists and writes an entry onto every parent in `after` and off every parent only in `before`. The `addPresenceBinding` and `repairPresenceBinding` steps carry `fromHostPresences` / `previousParents` (first half of PS-2, decided here), `settleParentChange` settles a departure per left host and an arrival per arrived host, and `healPresenceCover` and population pass the whole parent set (population swaps only the parent on its own host and keeps the rest). The classifier's `rebuiltCoverEntries` lists every binding that names the parent, not the first. The heal repairs a shared binding once with its whole parent set.
+  - [X] Fix each "exactly one" from Slice 0(c): the classifier header and the contract's comparison paragraph now state the rule over parent sets. The concepts paragraph stays with Slice 8.
 - [ ] **Slice 4. The move under parent sets.**
   - [ ] Move rule (1): `from` names a host and the parents leaving (PS-2). A whole move out of host H removes every parent on H and keeps parents on other hosts; the optimistic check is "each named parent is still in the set".
   - [ ] Entries arriving at a destination binding that has other parents (PS-3, the user's call): moving into it also shows the entries under those parents.
@@ -144,7 +144,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| **PS-2** | **The step fields that name parents.** The move's `from: ParentBinding \| null` becomes the host and the parents leaving (move rule (1)). The sharing join and the separating split need a shape: options are a flag or field on the one move, or a step kind of its own. The kernel prefers a step kind per effect over a flag (`kernelStep.ts`), and MC-3 made the move one step because move, split and join were one effect; sharing changes parents without moving entries, so it is a different effect. **Leaning:** its own step kind. **Slice 0(a):** `addPresenceBinding` (`fromHostPresence`) and `repairPresenceBinding` (`fromHostPresence`, `previousParent`) also name parents, and both pass their pointer to `writeCoverIndex`. **Slice 1** left all of these singular and converts at the handler; PS-2 widens them. | 4, 5 | Open |
+| **PS-2** | **The step fields that name parents.** The move's `from: ParentBinding \| null` becomes the host and the parents leaving (move rule (1)). The sharing join and the separating split need a shape: options are a flag or field on the one move, or a step kind of its own. The kernel prefers a step kind per effect over a flag (`kernelStep.ts`), and MC-3 made the move one step because move, split and join were one effect; sharing changes parents without moving entries, so it is a different effect. **Leaning:** its own step kind. **Slice 0(a):** `addPresenceBinding` (`fromHostPresence`) and `repairPresenceBinding` (`fromHostPresence`, `previousParent`) also name parents, and both pass their pointer to `writeCoverIndex`. **Slice 1** left all of these singular and converts at the handler. **Decided with Slice 3, 2026-10-19: the add and repair steps are widened** (`fromHostPresences`, `previousParents`), because the cover index and the heal cannot be set-aware over a singular field. **Still Open:** the move's `from` and the sharing step's shape. | 4, 5 | Open |
 | **PS-3** | **What the move does to parents it does not name** (the two items MC-3 left for PR-25). (a) Entries moved into a destination binding that also has parent Q are then seen under Q too: accept that as the meaning of sharing, or mint a separate binding at the destination when the target is shared. (b) How Base's parenting changes when part of its cover moves; today a part moved out of a hostless Base mints at the destination and Base stays hostless, which the user called an ad-hoc short-term answer. **The user's call.** | 4 | Open (the user) |
 | **PS-4** | **Which production path first writes sharing.** "Sharing is stored, never inferred", so equal covers never merge by themselves, and Slice 0(d) lists what could ask for it. Without a caller, the die beat is fixed in the kernel but never reached in play. **The user's call**, informed by Slice 0(d). Gates only Slice 5's last item and the in-play half of the payoff. **Slice 0(d):** no present path writes PR-C5's shape. Nothing in play gives a host a second binding. Only cache-time population gives a host a second parent, for a Room or Feature authored under several parents, and those bindings match only when both covers are empty (a Room in two Areas, or a Feature with no members). The candidates are that population path, or a play-time verb that adds a parent without leaving one, which does not exist yet. | 5 | Open (the user) |
 
@@ -153,8 +153,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 ## Verification
 
 1. **Suite, from `lambda/ephemera`:** `npm run test -- --watchAll=false dataSource/positions/`, and the full ephemera suite after any rename or delete. Then `npx tsc --noEmit` there and in `packages/mtw-interfaces`, `packages/mtw-wml`, `packages/mtw-gateways` and `lambda/diagnostics`.
-2. **The seam holds:** after Slice 1, `git grep -nw fromHostPresences -- '*.ts' ':!*.test.ts'` (the stored field) finds only the type, its guard, `presenceParent.ts`, the cache guard and `mergeReducer.ts`, gateways' view accessor, and the handlers that write it. `git grep -nw fromHostPresence` (singular) finds only the retired-field guards, the step fields (until PS-2), and the wire and WML mappings.
-3. **No silent single-parent read:** after Slice 2, `git grep -n "parentOf(" -- '*.ts' ':!*.test.ts'` finds only `presenceParent.ts`, `healPresenceCover.ts`, `applyStepSequenceCore.ts`, `movePresenceBinding.ts` and `resolvePresenceMoves.ts` (until PS-2 and Slice 4), and `removeAuthoredObject.ts` (`contentDestinations`, until Slice 6). `git grep -nw parentHostOf` finds nothing.
+2. **The seam holds:** after Slice 1, `git grep -nw fromHostPresences -- '*.ts' ':!*.test.ts'` (the stored field) finds only the type, its guard, `presenceParent.ts`, the cache guard and `mergeReducer.ts`, gateways' view accessor, and the handlers that write it. `git grep -nw fromHostPresence` (singular) finds only the retired-field guards and healing, population's local variable, and gateways' `orphanRepairsFor` result; the add/repair step fields became `fromHostPresences` in Slice 3.
+3. **No silent single-parent read:** after Slice 2, `git grep -n "parentOf(" -- '*.ts' ':!*.test.ts'` finds only `presenceParent.ts`, `movePresenceBinding.ts` and `resolvePresenceMoves.ts` (until PS-2 and Slice 4), and `removeAuthoredObject.ts` (`contentDestinations`, until Slice 6). `git grep -nw parentHostOf` finds nothing.
 4. **Anchor resolution:** every `](Other.md#anchor)` in this file resolves. Copy existing links rather than deriving slugs.
 
 ## Progress
@@ -164,9 +164,9 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | 0. Verify premises | Done 2026-10-19 |
 | 1. Set type behind the seam | Done 2026-10-19 |
 | 2. Set-aware readers | Done 2026-10-19 |
-| 3. Positive invariant | Ready |
-| 4. Move under parent sets | Blocked on PS-2, PS-3 |
-| 5. Sharing writes | Blocked on PS-2; last item on PS-4 |
+| 3. Positive invariant | Done 2026-10-19 |
+| 4. Move under parent sets | Blocked on PS-2 (move `from`), PS-3 |
+| 5. Sharing writes | Blocked on PS-2 (sharing step); last item on PS-4 |
 | 6. `contentDestinations` | Blocked on PR-26 |
 | 7. Payoff test | Waiting on 4, 5 |
 | 8. Docs and graduation | Waiting on all |

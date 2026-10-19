@@ -30,7 +30,7 @@ export const rootStep = (
         return { graph: parentGraph }
     }
     return {
-        step: { kind: 'addPresenceBinding', hostId: parentId, presenceUuid: 'Base' },
+        step: { kind: 'addPresenceBinding', hostId: parentId, fromHostPresences: [], presenceUuid: 'Base' },
         graph: parentGraph.addPresenceNode({
             tag: 'Presence',
             universalKey: BASE_PRESENCE_ID,
@@ -122,7 +122,7 @@ export const containmentPopulationSteps = (
             kind: 'repairPresenceBinding',
             hostId: childId,
             presenceId: unplacedRoot.universalKey,
-            fromHostPresence,
+            fromHostPresences: [fromHostPresence],
             cover: unplacedRoot.cover,
         }
         steps.push(placeStep)
@@ -130,7 +130,7 @@ export const containmentPopulationSteps = (
         const bindingStep: MutationKernelAddPresenceBindingStep = {
             kind: 'addPresenceBinding',
             hostId: childId,
-            fromHostPresence,
+            fromHostPresences: [fromHostPresence],
             ...(wantedCover ? { cover: wantedCover } : {}),
             // a child holding no binding yet gets its Base placed (every host holds one); a further binding is a new id
             presenceUuid: childGraph.presenceNodes.length === 0 ? 'Base' : uuidv4(),
@@ -149,7 +149,8 @@ export const containmentPopulationSteps = (
             kind: 'repairPresenceBinding',
             hostId: childId,
             presenceId: existing.universalKey,
-            fromHostPresence,
+            // swap the parent on this host; parents on other hosts stay (a shared binding)
+            fromHostPresences: [...parentsOf(existing).filter((parent) => parent.host !== parentId), fromHostPresence],
             cover: wantedCover ?? existing.cover,
         }
         steps.push(repairStep)

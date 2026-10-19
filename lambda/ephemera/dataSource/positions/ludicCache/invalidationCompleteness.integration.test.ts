@@ -405,14 +405,14 @@ const cases: Case[] = [
         kinds: ['addPresenceBinding'],
         rooms: [R1, R2],
         changesCache: true,
-        act: () => commit([{ kind: 'addPresenceBinding', hostId: BOX, fromHostPresence: remainder(R2), presenceUuid: 'box2' }]),
+        act: () => commit([{ kind: 'addPresenceBinding', hostId: BOX, fromHostPresences: [remainder(R2)], presenceUuid: 'box2' }]),
     },
     {
         name: 'a binding is repaired to point at another host',
         kinds: ['repairPresenceBinding'],
         rooms: [R1, R2],
         changesCache: true,
-        act: () => commit([{ kind: 'repairPresenceBinding', hostId: BOX, presenceId: 'PRESENCE#Base' as any, fromHostPresence: remainder(R2), previousParent: remainder(R1), cover: { members: [] } }]),
+        act: () => commit([{ kind: 'repairPresenceBinding', hostId: BOX, presenceId: 'PRESENCE#Base' as any, fromHostPresences: [remainder(R2)], previousParents: [remainder(R1)], cover: { members: [] } }]),
     },
     {
         name: 'an improvised object is created and placed',

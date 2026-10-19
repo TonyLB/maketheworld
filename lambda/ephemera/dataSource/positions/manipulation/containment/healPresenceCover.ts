@@ -7,7 +7,7 @@ import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPo
 
 import internalCache from '../../../../internalCache'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { parentOf } from '../../ludicGraph/presenceParent'
+import { parentsOf } from '../../ludicGraph/presenceParent'
 import { streamEventFromMessageBus } from '../../publishedEvents'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { MutationKernelRepairPresenceBindingStep } from '../kernel/kernelStep'
@@ -38,13 +38,15 @@ const orphanRepairSteps = async (
             }
         }
     }
-    return orphanRepairsFor(member, (hostId) => hosts.get(hostId)).map(({ bindingId }) => {
+    // one repair per binding: a shared binding with several orphaned parents is rewritten once, with its whole parent set
+    const bindingIds = [...new Set(orphanRepairsFor(member, (hostId) => hosts.get(hostId)).map(({ bindingId }) => bindingId))]
+    return bindingIds.map((bindingId) => {
         const binding = memberGraph.presenceNodes.find((node) => node.universalKey === bindingId)!
         return {
             kind: 'repairPresenceBinding',
             hostId: memberId,
             presenceId: bindingId as EphemeraPresenceNodeId,
-            fromHostPresence: parentOf(binding),
+            fromHostPresences: parentsOf(binding),
             cover: binding.cover,
         }
     })
@@ -96,7 +98,7 @@ export const healPresenceCover = async (
             kind: 'repairPresenceBinding',
             hostId: hostId,
             presenceId: bindingId as EphemeraPresenceNodeId,
-            fromHostPresence: parentOf(binding),
+            fromHostPresences: parentsOf(binding),
             cover: { members: entries.map((entry) => ({ host: entry.host as EphemeraPresenceCoverEntry['host'], presence: entry.presence as EphemeraPresenceNodeId })) },
         }
     })

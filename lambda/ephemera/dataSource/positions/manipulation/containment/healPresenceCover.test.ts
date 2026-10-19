@@ -68,7 +68,7 @@ describe('healPresenceCover', () => {
             kind: 'repairPresenceBinding',
             hostId: ROOM_ID,
             presenceId: CARVE,
-            fromHostPresence: undefined,
+            fromHostPresences: [],
             cover: { members: [{ host: STOVE, presence: STOVE_BINDING }] },
         }])
     })
@@ -104,7 +104,24 @@ describe('healPresenceCover', () => {
                 kind: 'repairPresenceBinding',
                 hostId: STOVE,
                 presenceId: STOVE_BINDING,
-                fromHostPresence: { host: ROOM_ID, presence: CARVE },
+                fromHostPresences: [{ host: ROOM_ID, presence: CARVE }],
+                cover: { members: [] },
+            }])
+        })
+
+        it('repairs a shared binding without dropping a parent: the step carries the whole parent set', async () => {
+            const sharedStove = testLudicGraph(STOVE, {
+                nodes: [presenceBindingNode(STOVE_BINDING, [{ host: ROOM_ID, presence: ROOT }, { host: ROOM_ID, presence: CARVE }])],
+            })
+            withGraphs({ [ROOM_ID]: roomLackingStove, [STOVE]: sharedStove })
+
+            await healPresenceCover(STOVE, { messageBus, streamEvent })
+
+            expect((commitStepSequence as jest.Mock).mock.calls[0][0].steps).toEqual([{
+                kind: 'repairPresenceBinding',
+                hostId: STOVE,
+                presenceId: STOVE_BINDING,
+                fromHostPresences: [{ host: ROOM_ID, presence: ROOT }, { host: ROOM_ID, presence: CARVE }],
                 cover: { members: [] },
             }])
         })

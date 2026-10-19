@@ -55,14 +55,14 @@ describe('computeStepSequenceFootprint', () => {
 
     it('presence binding add/repair steps contribute their hostId and the host their pointer names', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'addPresenceBinding', hostId: trayId, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, presenceUuid: 'p1' },
-            { kind: 'repairPresenceBinding', hostId: otherRoomId, presenceId: 'PRESENCE#p2', cover: { members: [] } },
+            { kind: 'addPresenceBinding', hostId: trayId, fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }], presenceUuid: 'p1' },
+            { kind: 'repairPresenceBinding', hostId: otherRoomId, presenceId: 'PRESENCE#p2', fromHostPresences: [], cover: { members: [] } },
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, roomId, otherRoomId]))
     })
 
     it('a pointer-less add contributes only its hostId', () => {
-        const steps: MutationKernelStep[] = [{ kind: 'addPresenceBinding', hostId: roomId, presenceUuid: 'root' }]
+        const steps: MutationKernelStep[] = [{ kind: 'addPresenceBinding', hostId: roomId, fromHostPresences: [], presenceUuid: 'root' }]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([roomId]))
     })
 
@@ -137,7 +137,7 @@ describe('computeStepSequenceFootprint', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'movePresenceBinding', hostId: characterId, presence: 'PRESENCE#p' as any, from: { host: roomId, presence: parentRemainderKey(roomId) }, to: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) } } as any,
             { kind: 'movePresenceBinding', to: null, hostId: characterId, presence: 'PRESENCE#q' as any, from: { host: roomId, presence: parentRemainderKey(roomId) } },
-            { kind: 'addPresenceBinding', hostId: characterId, presenceUuid: 'u', fromHostPresence: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) } } as any,
+            { kind: 'addPresenceBinding', hostId: characterId, presenceUuid: 'u', fromHostPresences: [{ host: otherRoomId, presence: parentRemainderKey(otherRoomId) }] } as any,
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([characterId]))
     })
