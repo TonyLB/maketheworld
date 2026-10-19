@@ -1,6 +1,6 @@
 import type { EphemeraAreaId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
@@ -55,7 +55,7 @@ describe('healContainmentPopulation', () => {
                 edges: [partOf(FEATURE_ID, ROOM_ID)],
             }),
             [FEATURE_ID]: testLudicGraph(FEATURE_ID, {
-                nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresence: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }, cover: remainderCover() }],
+                nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#gone' as EphemeraPresenceNodeId }, cover: { members: [] } }],
             }),
         })
 
@@ -74,14 +74,14 @@ describe('healContainmentPopulation', () => {
         expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding', 'repairPresenceBinding'])
     })
 
-    it('repairs a room\'s sole-remainder Area binding to an empty-member carve-out naming the Area\'s root', async () => {
+    it('repairs a room\'s Area binding that lists members to an empty-member carve-out naming the Area\'s root', async () => {
         withGraphs({
             [AREA_ID]: testLudicGraph(AREA_ID, {
                 nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
                 edges: [partOf(ROOM_ID, AREA_ID)],
             }),
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
-                nodes: [presenceBindingNode('kitchen-in-area', AREA_ID)],
+                nodes: [{ tag: 'Feature', universalKey: FEATURE_ID }, presenceBindingNode('kitchen-in-area', AREA_ID, { members: [{ host: FEATURE_ID, presence: 'PRESENCE#stove-in-kitchen' as EphemeraPresenceNodeId }] })],
             }),
         })
 

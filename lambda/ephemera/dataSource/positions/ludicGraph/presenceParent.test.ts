@@ -3,7 +3,7 @@ import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from './index'
-import { parentBinding, parentBindingsOf } from './presenceParent'
+import { childParentBindingIdOf, parentBinding, parentBindingsOf } from './presenceParent'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from './testFixtures'
 
 const area = 'AREA#Town' as EphemeraAreaId
@@ -71,5 +71,18 @@ describe('parentBinding', () => {
 
     it('throws when the binding is not on the owner\'s graph', async () => {
         await expect(parentBinding(cup, presenceBindingNode('missing').universalKey, graphsFrom({}))).rejects.toThrow(/not found/)
+    })
+})
+
+describe('childParentBindingIdOf (Base)', () => {
+    it('names PRESENCE#Base by id, even when the whole holds several bindings', () => {
+        const graph = testLudicGraph(shelf, { nodes: [presenceBindingNode('Base', roomA), presenceBindingNode('other', roomB)] })
+        expect(childParentBindingIdOf(graph)).toBe('PRESENCE#Base')
+    })
+
+    it('names nothing for a whole with no Base: no guess from a hostless or only binding (the Base migration owns it)', () => {
+        expect(childParentBindingIdOf(testLudicGraph(roomA, { nodes: [presenceBindingNode('legacy-uuid')] }))).toBeUndefined()
+        expect(childParentBindingIdOf(testLudicGraph(shelf, { nodes: [presenceBindingNode('legacy', roomA)] }))).toBeUndefined()
+        expect(childParentBindingIdOf(testLudicGraph(shelf, { nodes: [] }))).toBeUndefined()
     })
 })

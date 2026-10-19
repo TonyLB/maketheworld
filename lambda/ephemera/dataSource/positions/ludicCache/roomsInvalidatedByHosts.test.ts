@@ -19,7 +19,7 @@ const presenceAt = (fromHostId: EphemeraMembershipHostId): EphemeraLudicGraphStr
     tag: 'Presence',
     universalKey: PresenceKey(`${fromHostId.replace('#', '-')}-binding`),
     fromHostPresence: { host: fromHostId, presence: parentRemainderKey(fromHostId) },
-    cover: { members: [{ tag: 'Remainder' }] },
+    cover: { members: [] },
 })
 
 const graphsFrom = (parents: Partial<Record<EphemeraMembershipHostId, EphemeraMembershipHostId>>) => (

@@ -30,7 +30,7 @@ describe('planObjectMoveTransfer', () => {
     describe('room -> character (take-hold)', () => {
         it('returns a legal plan with the default step shape', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
-            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')], edges: [] })
+            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')], edges: [] })
             const trayGraph = testLudicGraph(TRAY_ID, { nodes: [trayBinding('tray-in-room', ROOM_ID)] })
             const getGraph = worldOf({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: trayGraph })
 
@@ -50,7 +50,7 @@ describe('planObjectMoveTransfer', () => {
                 hostId: TRAY_ID,
                 presence: 'PRESENCE#tray-in-room',
                 from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
-                to: { host: CHARACTER_ID, presence: 'PRESENCE#character-root' },
+                to: { host: CHARACTER_ID, presence: 'PRESENCE#Base' },
             })
             expect(result.fromHostId).toBe(ROOM_ID)
         })
@@ -67,7 +67,7 @@ describe('planObjectMoveTransfer', () => {
                     { tag: 'Relational', from: TRAY_ID, to: CHANDELIER_ID, kind: 'Custom', relationLabel: 'under' },
                 ],
             })
-            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')], edges: [] })
+            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')], edges: [] })
             const trayGraph = testLudicGraph(TRAY_ID, { nodes: [trayBinding('tray-in-room', ROOM_ID)] })
             const getGraph = worldOf({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: trayGraph })
 
@@ -92,7 +92,7 @@ describe('planObjectMoveTransfer', () => {
     describe('On rehost', () => {
         it('put on an empty tray: transferMembership then an establishRelation edge into the tray', async () => {
             const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }], edges: [] })
-            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode('tray-root')], edges: [] })
+            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode('Base')], edges: [] })
             const cupGraph = testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-held', CHARACTER_ID)] })
             const getGraph = worldOf({ [CHARACTER_ID]: characterGraph, [TRAY_ID]: trayGraph, [CUP_ID]: cupGraph })
 
@@ -115,7 +115,7 @@ describe('planObjectMoveTransfer', () => {
                 nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID }],
                 edges: [{ tag: 'Relational', from: CUP_ID, to: TRAY_ID, kind: 'On' }],
             })
-            const tray2Graph = testLudicGraph(TRAY2_ID, { nodes: [{ tag: 'Object', universalKey: TRAY2_ID }, presenceBindingNode('tray2-root')], edges: [] })
+            const tray2Graph = testLudicGraph(TRAY2_ID, { nodes: [{ tag: 'Object', universalKey: TRAY2_ID }, presenceBindingNode('Base')], edges: [] })
             const cupGraph = testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-on-tray', TRAY_ID)] })
             const getGraph = worldOf({ [TRAY_ID]: tray1Graph, [TRAY2_ID]: tray2Graph, [CUP_ID]: cupGraph })
 
@@ -140,7 +140,7 @@ describe('planObjectMoveTransfer', () => {
                 nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID }],
                 edges: [{ tag: 'Relational', from: CUP_ID, to: TRAY_ID, kind: 'On' }],
             })
-            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')], edges: [] })
+            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')], edges: [] })
             const cupGraph = testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-on-tray', TRAY_ID)] })
             const getGraph = worldOf({ [TRAY_ID]: trayGraph, [CHARACTER_ID]: characterGraph, [CUP_ID]: cupGraph })
 
@@ -164,7 +164,7 @@ describe('planObjectMoveTransfer', () => {
             const cupGraph = testLudicGraph(CUP_ID, {
                 nodes: [
                     { tag: 'Object', universalKey: CUP_ID },
-                    { tag: 'Presence', universalKey: PresenceKey('cup-on-tray'), fromHostPresence: { host: TRAY_ID, presence: parentRemainderKey(TRAY_ID) }, cover: { members: [{ tag: 'Remainder' }] } },
+                    { tag: 'Presence', universalKey: PresenceKey('cup-on-tray'), fromHostPresence: { host: TRAY_ID, presence: parentRemainderKey(TRAY_ID) }, cover: { members: [] } },
                 ],
             })
             const getGraph = jest.fn(async (hostId: string): Promise<EphemeraLudicGraph> => (
@@ -256,7 +256,7 @@ describe('planObjectMoveTransfer', () => {
                 fromHostId: ROOM_ID,
                 toHostId: CHARACTER_ID,
                 getGraph: worldOf({
-                    [CHARACTER_ID]: testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')] }),
+                    [CHARACTER_ID]: testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')] }),
                     [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-a', ROOM_ID), trayBinding('cup-b', ROOM_ID)] }),
                 }),
             })

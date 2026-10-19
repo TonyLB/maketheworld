@@ -1,13 +1,12 @@
-import { v4 as uuidv4 } from 'uuid'
 import { isEphemeraAreaId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 
 import type { GroundedPresence } from '../../../actions/enrich/objectManipulation/plan/planStep'
-import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicGraphStructureNode, EphemeraPresenceCover, EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
 import type { PositionKernelPresenceMove } from '../kernel/compile/positionKernelOp'
 
 export type ResolvePresenceMovesArgs = {
@@ -30,7 +29,39 @@ export type ResolvePresenceMovesArgs = {
 
 export type ResolvedPresenceMoves =
     | { ok: true; presenceMoves: PositionKernelPresenceMove[]; mintedRootUuid?: string }
-    | { ok: false; errorCode: 'destinationBindingMissing' | 'destinationBindingAmbiguous' | 'moverBindingAmbiguous' | 'joinChildrenCollide' }
+    | { ok: false; errorCode: 'destinationBindingMissing' | 'destinationBindingAmbiguous' | 'moverBindingAmbiguous' }
+
+/**
+ * The hosts whose bindings a set of moves into one receiver may merge below it: a child listed under
+ * more than one of the covers ends holding several bindings under the receiver, which the move merges
+ * one level down, re-pointing the merged bindings' own children, and so on. Names only the hosts; the
+ * handler verifies each read under the lock.
+ */
+const cascadeHostsOf = async (
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
+    covers: readonly EphemeraPresenceCover[]
+): Promise<EphemeraMembershipHostId[]> => {
+    const hosts = new Set<EphemeraMembershipHostId>()
+    const visit = async (entries: readonly EphemeraPresenceCoverEntry[]): Promise<void> => {
+        const byHost = new Map<EphemeraMembershipHostId, EphemeraPresenceCoverEntry[]>()
+        for (const entry of entries) {
+            byHost.set(entry.host as EphemeraMembershipHostId, [...(byHost.get(entry.host as EphemeraMembershipHostId) ?? []), entry])
+        }
+        for (const [host, colliding] of byHost) {
+            if (colliding.length < 2) {
+                continue
+            }
+            const graph = await getGraph(host)
+            const grandchildren = colliding.flatMap(({ presence }) => (
+                graph.presenceNodes.find(({ universalKey }) => universalKey === presence)?.cover.members ?? []
+            ))
+            grandchildren.forEach(({ host: grandchildHost }) => hosts.add(grandchildHost as EphemeraMembershipHostId))
+            await visit(grandchildren)
+        }
+    }
+    await visit(covers.flatMap((cover) => cover.members))
+    return [...hosts]
+}
 
 /** Whether a binding's parent pointer names one of the buckets where its whole is seen. */
 const sitsUnderSeenBucket = (
@@ -62,8 +93,8 @@ export const destinationBindingOf = (
     seen: readonly GroundedPresence[] | undefined
 ): { presence: EphemeraPresenceNodeId } | { errorCode: 'destinationBindingMissing' | 'destinationBindingAmbiguous' } => {
     if (isEphemeraRoomId(destGraph.hostId) || isEphemeraAreaId(destGraph.hostId)) {
-        const remainder = hostlessRemainderOf(destGraph)
-        return remainder ? { presence: remainder.universalKey } : { errorCode: 'destinationBindingMissing' }
+        const base = childParentBindingIdOf(destGraph)
+        return base ? { presence: base } : { errorCode: 'destinationBindingMissing' }
     }
     if (seen && seen.length > 0) {
         const matches = bindingsUnderSeenBuckets(destGraph, seen)
@@ -92,8 +123,10 @@ export const destinationBindingOf = (
  * - **A mover with a binding under each `from` host** moves those bindings. Several under one
  *   host are told apart by where the mover is seen (`moverGroundedPresence`); still several, or no
  *   such name, is a refusal.
- * - **Several moves** (a scrub) are joined into one binding, so a child listed under two of them
- *   (it would end holding two bindings under the survivor) is refused as `joinChildrenCollide`.
+ * - **Several moves** (a scrub) converge on one binding, so a child listed under two of them ends
+ *   holding two bindings under it and has them merged by the same move one level down. The planner
+ *   reads down that chain only to name the hosts (`cascadeHosts`) the footprint must lock; the
+ *   kernel re-verifies under the lock.
  * - **A mover with none** (a first placement, a connect, or a legacy whole) moves its hostless
  *   binding, `from: null`; if it holds no hostless binding, a root is minted ahead of the move.
  */
@@ -101,9 +134,13 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
     if (args.to === null) {
         const departing = (await args.getGraph(args.moved)).presenceNodes.flatMap((node) => {
             const from = parentOf(node)
-            return from && args.froms.includes(from.host) ? [{ presence: node.universalKey, from, to: null }] : []
+            return from && args.froms.includes(from.host) ? [{ presence: node.universalKey, from, to: null, cover: node.cover }] : []
         })
-        return { ok: true, presenceMoves: departing }
+        const cascadeHosts = await cascadeHostsOf(args.getGraph, departing.map(({ cover }) => cover))
+        return {
+            ok: true,
+            presenceMoves: departing.map((move) => ({ ...move, ...(cascadeHosts.length > 0 ? { cascadeHosts } : {}) })),
+        }
     }
     const destination = destinationBindingOf(await args.getGraph(args.to), args.toGroundedPresence)
     if ('errorCode' in destination) {
@@ -125,24 +162,20 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
     }
     const named = departing.flatMap((nodes) => nodes)
     if (named.length > 0) {
-        // Several moves are followed by a join, which re-points the absorbed children to the survivor.
-        // A child listed under two of the joined bindings would end holding two under the survivor
-        // (PM-2), so this version refuses to plan it rather than cascade the child's own join.
-        const childHosts = named.flatMap(({ cover }) => cover.members.flatMap((member) => 'host' in member ? [member.host] : []))
-        if (named.length > 1 && new Set(childHosts).size !== childHosts.length) {
-            return { ok: false, errorCode: 'joinChildrenCollide' }
-        }
+        const cascadeHosts = named.length > 1 ? await cascadeHostsOf(args.getGraph, named.map(({ cover }) => cover)) : []
         return {
             ok: true,
-            presenceMoves: named.map((node) => ({ presence: node.universalKey, from: parentOf(node) ?? null, to, cover: node.cover })),
+            presenceMoves: named.map((node) => ({ presence: node.universalKey, from: parentOf(node) ?? null, to, cover: node.cover, ...(cascadeHosts.length > 0 ? { cascadeHosts } : {}) })),
         }
     }
 
-    const hostless = hostlessRemainderOf(moverGraph)
+    const hostless = unpointedBindingOf(moverGraph)
     if (hostless) {
         return { ok: true, presenceMoves: [{ presence: hostless.universalKey, from: null, to }] }
     }
-    const mintedRootUuid = uuidv4()
+    // A mover holding no binding at all has no Base yet (a whole holds Base from creation on), so the root it
+    // is placed from is its Base.
+    const mintedRootUuid = 'Base'
     return {
         ok: true,
         presenceMoves: [{ presence: PresenceKey(mintedRootUuid) as EphemeraPresenceNodeId, from: null, to }],

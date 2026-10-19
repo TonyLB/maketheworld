@@ -1,13 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraAreaId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalsEqual, remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf, hostlessRemainderOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
 import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelStep } from '../kernel/kernelStep'
 
@@ -25,18 +24,17 @@ export const rootStep = (
     parentGraph: EphemeraLudicGraph
 ): { step?: MutationKernelAddPresenceBindingStep; graph: EphemeraLudicGraph } => {
     const hasRoot = isEphemeraRoomId(parentId) || isEphemeraAreaId(parentId)
-        ? Boolean(hostlessRemainderOf(parentGraph))
+        ? Boolean(childParentBindingIdOf(parentGraph) ?? unpointedBindingOf(parentGraph))
         : parentGraph.presenceNodes.length > 0
     if (hasRoot) {
         return { graph: parentGraph }
     }
-    const presenceUuid = uuidv4()
     return {
-        step: { kind: 'addPresenceBinding', hostId: parentId, presenceUuid },
+        step: { kind: 'addPresenceBinding', hostId: parentId, presenceUuid: 'Base' },
         graph: parentGraph.addPresenceNode({
             tag: 'Presence',
-            universalKey: PresenceKey(presenceUuid) as EphemeraPresenceNodeId,
-            cover: remainderCover(),
+            universalKey: BASE_PRESENCE_ID,
+            cover: { members: [] },
         }),
     }
 }
@@ -117,7 +115,7 @@ export const containmentPopulationSteps = (
     const existing = childGraph.presenceNodes.find((node) => parentHostOf(node) === parentId)
     // A first placement re-points a hostless root rather than minting beside it, so the child's own
     // children keep naming it. A Room's remainder never moves: it gets an Area carve-out instead.
-    const unplacedRoot = existing || isEphemeraRoomId(childId) ? undefined : hostlessRemainderOf(childGraph)
+    const unplacedRoot = existing || isEphemeraRoomId(childId) ? undefined : unpointedBindingOf(childGraph)
     if (unplacedRoot) {
         const placeStep: MutationKernelRepairPresenceBindingStep = {
             kind: 'repairPresenceBinding',
@@ -133,7 +131,8 @@ export const containmentPopulationSteps = (
             hostId: childId,
             fromHostPresence,
             ...(wantedCover ? { cover: wantedCover } : {}),
-            presenceUuid: uuidv4(),
+            // a child holding no binding yet gets its Base placed (every whole holds one); a further binding is a new id
+            presenceUuid: childGraph.presenceNodes.length === 0 ? 'Base' : uuidv4(),
         }
         steps.push(bindingStep)
     } else if (

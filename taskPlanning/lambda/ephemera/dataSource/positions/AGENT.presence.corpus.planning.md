@@ -342,7 +342,7 @@ Each root is in every bucket of its own graph by definition, per PR-9's point (4
 | --- | --- | --- |
 | **Default `Remainder`** (today, [PR-21](AGENT.presence.planning.md#settled-register)(a)) | Takes a `Remainder` unless something writes otherwise, so it covers every game: the games become inherited furniture | Lists the games, or holds the `Remainder` instead; either way the two covers are not independent |
 | **PR-25 as first worded** (one binding, because it is one chest) | One cover for both parents. Whatever Boardgames reaches through the chest, Inherited Furniture reaches too | --- |
-| **Monotone covers** ([PR-24](AGENT.presence.planning.md#open-decisions-design--plan-only)) | `[]` | Every game |
+| **Monotone covers** ([PR-24](AGENT.presence.planning.md#settled-register)) | `[]` | Every game |
 
 **Finding 1: a binding is identified by what it covers, not by the thing it belongs to.** The chest is the same chest in both abstractions and still needs two bindings, because the two parents see different contents. **PR-25 as first worded fails.** The case is expressible only under monotone covers: coverage holds because presenceB covers every game, and presenceA's empty cover means "the chest, nothing inside it" rather than "everything nobody else listed."
 
@@ -363,6 +363,15 @@ Each root is in every bucket of its own graph by definition, per PR-9's point (4
 
 Today's rule is the special case where every parent set has one member. The chest satisfies it with two bindings, the Backgammon set with one. **Sharing is stored, never inferred:** two bindings with equal covers are not thereby one binding. If a shared binding's covers later need to differ by parent, separating it is an explicit write, as Split is today.
 
-**What this case does not grade.** Where a context-free add to the chest lands (an heirloom quilt put in with no context): the chest has no hostless binding, which is [MC-1](AGENT.monotoneCovers.planning.md#open-decisions-implementation--plan-only)'s question with a concrete instance. How audience resolution ([PR-21](AGENT.presence.planning.md#settled-register)(e), (g)) walks a binding with several parents.
+**Beat 3: a player takes one die out of the backgammon set.** Added 2026-10-17 from the PR-25 code survey. The move is out of host `OBJECT#Backgammon` into the player's hand.
 
-**Rows graded:** [PR-25](AGENT.presence.planning.md#open-decisions-design--plan-only) (first wording: fails; candidate (a): survives, with the rule above; (b) is what differing covers produce, with no "same as" needed; (c) is unneeded); [PR-24](AGENT.presence.planning.md#open-decisions-design--plan-only) (monotone covers: required by beat 1; overlapping covers: legal); [PR-21](AGENT.presence.planning.md#settled-register)(c) (one parent pointer per binding: does not survive beat 2).
+| Reading | The die's bindings before | The move | After |
+| --- | --- | --- | --- |
+| **One parent pointer** (today) | Two: one under each Backgammon binding, and the die is seen in both buckets | `resolvePresenceMoves` finds two bindings under Backgammon, and the grounding cannot tell them apart: refused as `moverBindingAmbiguous` | Nothing moves. If the grounding is narrowed to one bucket instead, one binding moves and the other stays: the die is in the hand **and** still in the set |
+| **Parent set** | One, parents `{Backgammon's binding}` | One binding, one move | The die is in the hand only |
+
+**Finding 3: the copies are not only a write-time cost; a physical move over them is wrong or refused.** Under the move rule [PR-25](AGENT.presence.planning.md#open-decisions-design--plan-only) records (a move out of host H removes every parent on H; parents on other hosts stay), the same move made on a binding with two parents on Backgammon would remove both.
+
+**What this case does not grade.** Where a context-free add to the chest lands (an heirloom quilt put in with no context): the chest has no hostless binding, which was MC-1 (monotone-covers plan, deleted 2026-10-18)'s question with a concrete instance. Decided 2026-10-18: the quilt lands in the chest's `PRESENCE#Base`, wherever Base is placed. Where the dice go if the backgammon set itself is removed: its binding has two parents, so there are two candidate destinations ([PR-26](AGENT.presence.planning.md#open-decisions-design--plan-only)). Audience resolution over several parents is argued from the code in PR-25, not graded here.
+
+**Rows graded:** [PR-25](AGENT.presence.planning.md#open-decisions-design--plan-only) (first wording: fails; candidate (a): survives, with the rule above; (b) is what differing covers produce, with no "same as" needed; (c) is unneeded); [PR-24](AGENT.presence.planning.md#settled-register) (monotone covers: required by beat 1; overlapping covers: legal); [PR-21](AGENT.presence.planning.md#settled-register)(c) (one parent pointer per binding: does not survive beats 2 and 3).

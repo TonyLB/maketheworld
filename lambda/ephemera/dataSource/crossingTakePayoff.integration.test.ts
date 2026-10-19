@@ -51,9 +51,13 @@ const HOOK_ID = 'OBJECT#Hook' as EphemeraObjectId
 
 const tied = (from: unknown, to: unknown) => ({ from, to, kind: 'Custom' as const, relationLabel: 'is tied to' }) as never
 const crossingPort = (portId: string, fromHostId: EphemeraRoomId) => ({ portId, fromHostId, kind: 'Custom' as const, exteriorRelationLabel: 'is tied to' })
-const fullBinding = (key: string, parentHost: EphemeraMembershipHostId, parentPresence?: string) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, fromHostPresence: { host: parentHost, presence: (parentPresence ?? parentRemainderKey(parentHost)) as EphemeraPresenceNodeId }, cover: { members: [{ tag: 'Remainder' as const }] } })
+/** The entries a binding lists, each naming the member's own binding (a member without one is listed under `PRESENCE#Base`). */
+const covering = (...members: ([EphemeraCharacterId | EphemeraObjectId, string?])[]) => ({
+    members: members.map(([host, presence]) => ({ host, presence: (presence ?? 'PRESENCE#Base') as EphemeraPresenceNodeId })),
+})
+const fullBinding = (key: string, parentHost: EphemeraMembershipHostId, parentPresence?: string, cover: ReturnType<typeof covering> = { members: [] }) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, fromHostPresence: { host: parentHost, presence: (parentPresence ?? parentRemainderKey(parentHost)) as EphemeraPresenceNodeId }, cover })
 /** A hostless binding: the root a mover's presence write re-points. */
-const rootBinding = (key: string) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, cover: { members: [{ tag: 'Remainder' as const }] } })
+const rootBinding = (key: string, cover: ReturnType<typeof covering> = { members: [] }) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, cover })
 
 /** Same stand-in as `ropeLashedTakePayoff.integration.test.ts`: runs the real reducer over the seeded graphs. */
 const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => (
@@ -176,6 +180,7 @@ describe('crossing take payoff (integration)', () => {
         seed({
             graphs: {
                 [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
+                    .addPresenceNode(rootBinding(parentRemainderKey(ROOM_ID), covering([CHARACTER_ID], [STRING_ID, 'PRESENCE#string-in-bridge'], [TABLE_ID, 'PRESENCE#table-in-bridge'])))
                     .addCharacter(CHARACTER_ID)
                     .addObject(STRING_ID)
                     .addObject(TABLE_ID)
@@ -183,10 +188,10 @@ describe('crossing take payoff (integration)', () => {
                 [TABLE_ID]: EphemeraLudicGraph.empty(TABLE_ID)
                     .addObject(CUP_ID)
                     .addPort(crossingPort('port-table', ROOM_ID))
-                    .addPresenceNode(fullBinding('PRESENCE#table-in-bridge', ROOM_ID))
+                    .addPresenceNode(fullBinding('PRESENCE#table-in-bridge', ROOM_ID, undefined, covering([CUP_ID, 'PRESENCE#cup-on-table'])))
                     .addRelationalEdge({ from: CUP_ID, to: TABLE_ID, kind: 'On' })
                     .addRelationalEdge(tied(tablePort, CUP_ID)),
-                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#character-root')),
+                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
                 [CUP_ID]: EphemeraLudicGraph.empty(CUP_ID).addPresenceNode(fullBinding('PRESENCE#cup-on-table', TABLE_ID, 'PRESENCE#table-in-bridge')),
                 [STRING_ID]: EphemeraLudicGraph.empty(STRING_ID).addPresenceNode(fullBinding('PRESENCE#string-in-bridge', ROOM_ID)),
             },
@@ -221,20 +226,22 @@ describe('crossing take payoff (integration)', () => {
         seed({
             graphs: {
                 [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
+                    .addPresenceNode(rootBinding(parentRemainderKey(ROOM_ID), covering([CHARACTER_ID], [STRING_ID, 'PRESENCE#string-in-bridge'], [WALL_ID, 'PRESENCE#wall-in-bridge'])))
                     .addCharacter(CHARACTER_ID)
                     .addObject(STRING_ID)
                     .addObject(WALL_ID)
                     .addRelationalEdge(tied(STRING_ID, wallPort)),
                 [OTHER_ROOM_ID]: EphemeraLudicGraph.empty(OTHER_ROOM_ID)
+                    .addPresenceNode(rootBinding(parentRemainderKey(OTHER_ROOM_ID), covering([ONLOOKER_ID], [WALL_ID, 'PRESENCE#wall-in-galley'])))
                     .addCharacter(ONLOOKER_ID)
                     .addObject(WALL_ID),
                 [WALL_ID]: EphemeraLudicGraph.empty(WALL_ID)
                     .addObject(HOOK_ID)
                     .addPort(crossingPort('port-wall', ROOM_ID))
-                    .addPresenceNode(fullBinding('PRESENCE#wall-in-bridge', ROOM_ID))
-                    .addPresenceNode(fullBinding('PRESENCE#wall-in-galley', OTHER_ROOM_ID))
+                    .addPresenceNode(fullBinding('PRESENCE#wall-in-bridge', ROOM_ID, undefined, covering([HOOK_ID])))
+                    .addPresenceNode(fullBinding('PRESENCE#wall-in-galley', OTHER_ROOM_ID, undefined, covering([HOOK_ID])))
                     .addRelationalEdge(tied(wallPort, HOOK_ID)),
-                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#character-root')),
+                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
                 [STRING_ID]: EphemeraLudicGraph.empty(STRING_ID).addPresenceNode(fullBinding('PRESENCE#string-in-bridge', ROOM_ID)),
                 [HOOK_ID]: EphemeraLudicGraph.empty(HOOK_ID),
             },

@@ -93,7 +93,7 @@ const seedGraphs = (edge: EphemeraLudicGraphEdgeInput): Record<string, EphemeraL
         ],
         edges: [{ tag: 'Relational', ...edge }],
     }),
-    [CHARACTER_ID]: testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')] }),
+    [CHARACTER_ID]: testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')] }),
     [ROPE_ID]: testLudicGraph(ROPE_ID, { nodes: [{ tag: 'Object', universalKey: ROPE_ID }, presenceBindingNode('rope-in-room', ROOM_ID)] }),
 })
 

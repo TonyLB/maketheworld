@@ -67,7 +67,7 @@ describe('executeComponentDestruction (real commit, in-memory rows)', () => {
     it('a remove is one transactWrite that deletes the Object\'s row and takes it out of the room', async () => {
         const world = makeWorld({
             [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [objectNode(CUP_ID), presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
-            [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [presenceBindingNode('p1', ROOM_ID)] }),
+            [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [presenceBindingNode('Base', ROOM_ID)] }),
         })
 
         const result = await executeComponentDestruction({
@@ -89,8 +89,8 @@ describe('executeComponentDestruction (real commit, in-memory rows)', () => {
     describe('a cup on a table', () => {
         const tableWorld = () => makeWorld({
             [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [objectNode(TABLE_ID), presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
-            [TABLE_ID]: testLudicGraph(TABLE_ID, { nodes: [objectNode(CUP_ID), presenceBindingNode('pt', ROOM_ID)] }),
-            [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [presenceBindingNode('pc', TABLE_ID)] }),
+            [TABLE_ID]: testLudicGraph(TABLE_ID, { nodes: [objectNode(CUP_ID), presenceBindingNode('Base', ROOM_ID)] }),
+            [CUP_ID]: testLudicGraph(CUP_ID, { nodes: [presenceBindingNode('Base', TABLE_ID)] }),
         })
         const containers: Record<string, EphemeraMembershipHostId[]> = { [TABLE_ID]: [ROOM_ID], [CUP_ID]: [TABLE_ID] }
         const destroy = (world: ReturnType<typeof makeWorld>, objectId: EphemeraObjectId) => executeComponentDestruction({

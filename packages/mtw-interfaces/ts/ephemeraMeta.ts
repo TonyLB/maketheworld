@@ -317,18 +317,23 @@ export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): E
  * so the qualifying `owner` on that address carries no information the id does not, and identity
  * may drop it.
  *
+ * **Fixed ids break that uniqueness** (contract, *Base and Unplaced*): every whole holds a `PRESENCE#Base`,
+ * so a bare presence id names a binding only on the graph it sits in. A caller comparing terminals of
+ * one graph passes that graph's host as `bareOwner`, and the exception then also requires the address
+ * to be owned by it. Omitted, the owner is ignored, which is sound only for ids that are still unique.
+ *
  * Scoped by the port address's DECLARED TAG (`isPresenceTaggedPortId`), which under PN-24 is
  * carried on the value itself --- a crossing port's id is bare, so it can never satisfy this test
  * and every non-presence pair is unaffected, including same-owner ones. Both sides carry the tag,
  * so this is a plain equality; do NOT reintroduce a `PRESENCE#${...}` reconstruction here, which
  * is what this comparison looked like while `.port` was bare and would now double-prefix. */
-export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: EphemeraLudicTerminalId): boolean => {
+export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: EphemeraLudicTerminalId, bareOwner?: string): boolean => {
     if (typeof a === 'string' && typeof b === 'string') {
         return a === b
     }
     if (typeof a === 'string' || typeof b === 'string') {
         const [primitive, address] = typeof a === 'string' ? [a, b as EphemeraLudicPortAddress] : [b as EphemeraLudicTerminalPrimitive, a as EphemeraLudicPortAddress]
-        return isPresenceTaggedPortId(address.port) && primitive === address.port
+        return isPresenceTaggedPortId(address.port) && primitive === address.port && (bareOwner === undefined || address.owner === bareOwner)
     }
     return a.owner === b.owner && a.port === b.port
 }
@@ -387,30 +392,23 @@ export type EphemeraPresenceCoverEntry = {
 }
 
 /**
- * The sentinel in a cover's member list: every node of the whole that NO binding of the whole
- * lists explicitly. A typed variant beside `EphemeraPresenceCoverEntry`,
- * not a magic id. It may appear in any number of a whole's bindings; each such binding holds that
- * same unclaimed set. Only the graph holds it: the cache expands it (`ludicCache/types.ts`).
- */
-export type EphemeraPresenceCoverRemainder = { tag: 'Remainder' }
-
-/**
- * A presence binding's extent: one type, an ordered list of explicit entries and/or the
- * `Remainder` sentinel, which stands for every member no other binding of the whole lists.
- * Every whole keeps at least one remainder (so a member added later still lands in a bucket); a
- * room keeps exactly one, hostless. A room's binding into an Area is the one exception: a carve-out
- * with no members at all.
+ * A presence binding's extent: an ordered list of explicit entries, never a complement. Every
+ * component node of a whole is listed by at least one of its bindings (the coverage invariant), so
+ * a cover means the same thing whatever its siblings hold. A room's binding into an Area is the
+ * carve-out with no members at all.
  */
 export type EphemeraPresenceCover = {
-    members: (EphemeraPresenceCoverEntry | EphemeraPresenceCoverRemainder)[];
+    members: EphemeraPresenceCoverEntry[];
 }
 
-/** A fresh sole-remainder cover each call (never a shared object a reducer could freeze or mutate). */
-export const remainderCover = (): EphemeraPresenceCover => ({ members: [{ tag: 'Remainder' }] })
-
-export const isEphemeraPresenceCoverRemainder = (value: unknown): value is EphemeraPresenceCoverRemainder => (
-    !!value && typeof value === 'object' && (value as { tag?: unknown }).tag === 'Remainder'
-)
+/**
+ * The fixed ids of a whole's root bindings (contract, *Base and Unplaced*). Base always exists and takes every
+ * context-free add; Unplaced exists only while Base has a parent pointer, and holds contents
+ * explicitly unplaced. Each is unique per whole (never across wholes), so a reference to either is
+ * host-qualified.
+ */
+export const BASE_PRESENCE_ID = 'PRESENCE#Base' as EphemeraPresenceNodeId
+export const UNPLACED_PRESENCE_ID = 'PRESENCE#Unplaced' as EphemeraPresenceNodeId
 
 /**
  * A presence node (presenceNodes plan / PN-5, 2026-09-15): the reified boundary site that used
@@ -716,7 +714,7 @@ export const isEphemeraPresenceCover = (value: unknown): value is EphemeraPresen
     if (cover.tag !== undefined) {
         return false
     }
-    return Array.isArray(cover.members) && cover.members.every((entry) => isEphemeraPresenceCoverRemainder(entry) || isEphemeraPresenceCoverEntry(entry))
+    return Array.isArray(cover.members) && cover.members.every(isEphemeraPresenceCoverEntry)
 }
 
 export const isEphemeraLudicGraphStructureNode = (value: unknown): value is EphemeraLudicGraphStructureNode => {

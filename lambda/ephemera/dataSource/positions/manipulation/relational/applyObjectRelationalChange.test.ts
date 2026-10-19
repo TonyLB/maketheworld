@@ -1,5 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { testLudicGraph } from '../../ludicGraph/testFixtures'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyObjectRelationalChange } from './applyObjectRelationalChange'
 
@@ -31,6 +31,7 @@ const roomGraphWithObjects = testLudicGraph(ROOM_ID, {
     nodes: [
         { tag: 'Object' as const, universalKey: BROOM_ID },
         { tag: 'Object' as const, universalKey: TABLE_ID },
+        presenceBindingNode(parentRemainderKey(ROOM_ID)),
     ],
 })
 
@@ -131,6 +132,7 @@ describe('applyObjectRelationalChange', () => {
             nodes: [
                 { tag: 'Object' as const, universalKey: STRING_ID },
                 { tag: 'Object' as const, universalKey: TOP_ID },
+                presenceBindingNode(parentRemainderKey(CHARACTER_ID)),
             ],
         })
         const transactWrite = makeTransactWriteMock({ [CHARACTER_ID]: characterGraph })

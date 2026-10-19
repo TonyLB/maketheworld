@@ -26,25 +26,12 @@
  */
 import type { EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { ephemeraLudicTerminalOwner, isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PresenceKey, stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from './index'
 import type { GroundedPresence } from '../../actions/enrich/objectManipulation/plan/planStep'
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
-
-const isListedEntry = (entry: EphemeraPresenceCover['members'][number]): entry is EphemeraPresenceCoverEntry => !isEphemeraPresenceCoverRemainder(entry)
-
-/** Every component host any binding of `graph` lists explicitly (the whole's claimed set). */
-export const claimedHosts = (graph: EphemeraLudicGraph): Set<EphemeraLudicTerminalPrimitive> => new Set(
-    graph.presenceNodes.flatMap((node) => node.cover.members.filter(isListedEntry).map((entry) => entry.host))
-)
-
-/** What a `Remainder` stands for: the graph's component nodes no binding lists. Shared with the cache fold so the two cannot drift. */
-export const unclaimedComponentNodes = (graph: EphemeraLudicGraph): EphemeraLudicTerminalPrimitive[] => {
-    const claimed = claimedHosts(graph)
-    return [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id) && !claimed.has(id))
-}
 
 /**
  * The bucket a presence binding names --- the nodes of `graph` present at that binding.
@@ -55,16 +42,13 @@ export const unclaimedComponentNodes = (graph: EphemeraLudicGraph): EphemeraLudi
  * `presenceUuid` is the bare uuid `applyStepSequenceCore.ts`'s `addPresenceBinding` handler mints
  * it with, which becomes the node's `PRESENCE#{presenceUuid}` key.
  *
- * - The root is in the bucket unconditionally (PR-9/PN-6), regardless of `cover.tag`.
+ * - The root is in the bucket unconditionally (PR-9/PN-6).
  * - **Explicit entries:** membership includes each entry's `host` component (PN-20: each entry
  *   is a `{ host, presence }` pair; `presence` disambiguates which of that component's own
  *   bindings is meant and is not consumed by this function's return type).
- * - **The `Remainder` sentinel:** adds every component node of `graph`
- *   that no binding of the graph lists explicitly (`claimedHosts`). A sole-`Remainder` binding is
- *   therefore every component node, which is what the retired `Full` tag meant. Presence/structure
- *   nodes are excluded from this set: PN-6 settled that a presence node is a member of no bucket,
- *   present in every cut instead (mirroring how `subGraphFromNodes` already carries every
- *   presence node into every bucket unconditionally).
+ * - Presence/structure nodes are never in the listed set: PN-6 settled that a presence node is a
+ *   member of no bucket, present in every cut instead (mirroring how `subGraphFromNodes` already
+ *   carries every presence node into every bucket unconditionally).
  * - **The binding's own presence node id is ALSO in the returned set (PN-6 clause (c),
  *   presenceNodes Slice 4).** This is unrelated to node *cutting* --- `subGraphFromNodes` filters
  *   presence ids out of its own component-node candidate list before consulting this set, so the
@@ -88,11 +72,8 @@ export const nodesFromPresenceBinding = (
         const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
         return new Set([...componentNodeIds, root])
     }
-    const listed = presenceNode.cover.members.filter(isListedEntry).map((entry) => entry.host)
-    const remainder = presenceNode.cover.members.some(isEphemeraPresenceCoverRemainder)
-        ? unclaimedComponentNodes(graph)
-        : []
-    return new Set<EphemeraLudicTerminalPrimitive>([...listed, ...remainder, root, presenceNodeId])
+    const listed = presenceNode.cover.members.map((entry) => entry.host)
+    return new Set<EphemeraLudicTerminalPrimitive>([...listed, root, presenceNodeId])
 }
 
 /**

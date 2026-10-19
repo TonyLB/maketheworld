@@ -28,7 +28,7 @@ export type MembershipMoveNarrationInput = {
  * (`compilePositionKernelOp.ts`) expands into `KernelStep[]`. Shaped at the level the instruction
  * planner sees the world --- `moved` generalizes over object/character (BD-36) --- rather than at the level a player
  * experiences it (a character-only, room-only "navigate" op sitting one layer above a type that's
- * already general). `Move` and `Split` are the members of `PositionKernelOp`; it is a closed union
+ * already general). `Move` is the one op; it is closed
  * because world operations are genuinely enumerable --- take/drop/give is definitionally a move of
  * an entity between two membership hosts, the same shape as a character moving room to room, so the
  * direction never needed to be an op discriminant, and no sibling `Take`/`Drop` ops exist.
@@ -50,10 +50,13 @@ export type PositionKernelPresenceMove = {
     /** The mover's own binding, on the mover's graph. */
     presence: EphemeraPresenceNodeId
     /**
-     * That binding's cover as the planner read it. Used only when the move is followed by a join,
-     * where the absorbed binding's cover names the children the join must lock and re-point.
+     * That binding's cover as the planner read it. Carried onto the step as `cover` (for a
+     * whole move that re-points its children: a later move of a scrub, or a departure), where it
+     * names the children the footprint must lock.
      */
     cover?: EphemeraPresenceCover
+    /** Hosts of child bindings the planner found would merge below the receiver, to lock (see `cascadeHostsOf`). */
+    cascadeHosts?: readonly EphemeraMembershipHostId[]
 } & (
     {
         /** The parent binding it sits under now; `null` for a hostless binding (a first placement). */
@@ -74,8 +77,9 @@ export type PositionKernelMoveOp = {
     /**
      * The mover's presence writes, one per binding that changes parent, **named by the producer**
      * (`resolvePresenceMoves`) --- the compiler reads nothing. More than one (a multi-`from` scrub)
-     * compiles to a move each, then a join. For an op with `to: null` each entry is a departure
-     * (`to: null`), which compiles to a `releasePresenceBinding`. Empty for an op that moves no binding.
+     * compiles to a move each, and a later move into the same destination joins the first's binding.
+     * For an op with `to: null` each entry is a departure (`to: null`), which compiles to a move to
+     * no parent. Empty for an op that moves no binding.
      */
     presenceMoves: readonly PositionKernelPresenceMove[]
     /**
@@ -110,21 +114,3 @@ export type PositionKernelMoveOp = {
     /** Present only when this move should narrate world lines --- see doc comment above. */
     narration?: MembershipMoveNarrationInput
 }
-
-/**
- * Splits one binding of a whole into several under the same parent (presenceMoves Slice 3). The
- * whole is the only host written (plus the children whose bindings are re-pointed, which the step
- * names through its cover entries), so there is no mover, narration, header or dissolved edge: the
- * op compiles to the one `splitPresenceBinding` step (`presenceBindingStepsForSplit`). `splitInto`
- * is the finished instruction, **ids minted by the producer** (`resolvePresenceSplit`), because a
- * later step in the same run (a move of one result to another parent) must name them.
- */
-export type PositionKernelSplitOp = {
-    kind: 'split'
-    whole: EphemeraMembershipHostId
-    /** The binding being split; it survives as one entry of `splitInto`. */
-    presence: EphemeraPresenceNodeId
-    splitInto: readonly { presence: EphemeraPresenceNodeId; cover: EphemeraPresenceCover }[]
-}
-
-export type PositionKernelOp = PositionKernelMoveOp | PositionKernelSplitOp

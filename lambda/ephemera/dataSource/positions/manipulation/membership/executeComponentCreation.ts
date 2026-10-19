@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -8,8 +7,7 @@ import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { CommitStepSequenceDeps, CommitStepSequenceTransactItem } from '../kernel/commitStepSequence'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import { isKernelMutationStep } from '../kernel/kernelStep'
-import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
-import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { defaultGetGraph } from '../relational/findRelationalChainsForRemoval'
 import { destinationBindingOf } from './resolvePresenceMoves'
@@ -40,7 +38,7 @@ export type ExecuteComponentCreationResult =
 
 /**
  * Creates a component and places it, as one kernel commit: `createComponent` (the host row, born
- * holding a hostless remainder) followed by the first-placement move, which re-points that
+ * holding its hostless `PRESENCE#Base`) followed by the first-placement move, which re-points that
  * remainder at `target`. The one emitter of `createComponent`. Nothing exists unless everything
  * commits, so a failed placement leaves no row to compensate for.
  */
@@ -50,11 +48,10 @@ export const executeComponentCreation = async (
     const createStep: MutationKernelCreateComponentStep = {
         kind: 'createComponent',
         hostId: args.objectId,
-        presenceUuid: uuidv4(),
         meta: args.meta,
     }
     // The first placement moves the remainder `createComponent` seeds (`from: null`), so the binding's
-    // id is the creator's own uuid and needs no read; only the destination's binding is looked up.
+    // id is the fixed `PRESENCE#Base` and needs no read; only the destination's binding is looked up.
     const destination = args.target === null
         ? undefined
         : destinationBindingOf(await (args.getGraph ?? defaultGetGraph)(args.target), undefined)
@@ -71,7 +68,7 @@ export const executeComponentCreation = async (
             to: args.target,
             header: null,
             presenceMoves: [{
-                presence: PresenceKey(createStep.presenceUuid) as EphemeraPresenceNodeId,
+                presence: BASE_PRESENCE_ID,
                 from: null,
                 to: { host: args.target, presence: destination.presence },
             }],

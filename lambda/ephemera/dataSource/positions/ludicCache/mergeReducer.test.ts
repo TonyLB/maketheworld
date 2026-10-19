@@ -37,7 +37,6 @@ const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey
 })
 
 /** These fixtures' covers are all Enumerated, whose entries the fold copies; the lookup a Full cover needs is never consulted. */
-const noMemberBindings = () => []
 
 /** The presence node minted for the binding named `portId` (presenceNodes Slice 3; no port record as of Slice 7a). */
 const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLudicGraphStructureNode => ({
@@ -408,15 +407,15 @@ describe('foldSameHostBuckets', () => {
     })
 
     it('reconstructs the same two edges via a single accumulating fold walk, cutting one bucket at a time', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'], noMemberBindings)
+        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
 
         expect(result.edges).toHaveLength(2)
         expect(result.edges).toEqual(expect.arrayContaining(expectedEdges))
     })
 
     it('does not depend on the order buckets are visited in --- a still-open stub is carried in the walk\'s own state, not compared only to the immediately preceding bucket', () => {
-        const forward = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'], noMemberBindings)
-        const shuffled = foldSameHostBuckets(graph, ['port_3', 'port_1', 'port_2'], noMemberBindings)
+        const forward = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
+        const shuffled = foldSameHostBuckets(graph, ['port_3', 'port_1', 'port_2'])
 
         expect(forward.edges).toHaveLength(2)
         expect(shuffled.edges).toHaveLength(2)
@@ -440,7 +439,7 @@ describe('foldSameHostBuckets', () => {
             ],
         })
 
-        const result = foldSameHostBuckets(bareGraph, ['port_1'], noMemberBindings)
+        const result = foldSameHostBuckets(bareGraph, ['port_1'])
 
         expect(result.edges).toEqual([
             { tag: 'Relational', from: pebble, to: { owner: boxId, port: 'PRESENCE#port_1' }, kind: 'On' },
@@ -448,7 +447,7 @@ describe('foldSameHostBuckets', () => {
     })
 
     it('mints one cache binding per binding folded, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'], noMemberBindings)
+        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
 
         expect(result.presenceNodes).toHaveLength(3)
         expect(result.presenceNodes).toEqual(expect.arrayContaining([
@@ -490,7 +489,7 @@ describe('foldSameHostBuckets', () => {
     })
 
     it('mints nothing for a presenceUuid with no matching graph node (degenerate: no node minted, or a stale/legacy binding), given every real binding is otherwise consolidated', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3', 'nonexistent'], noMemberBindings)
+        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3', 'nonexistent'])
 
         expect(result.presenceNodes).toHaveLength(3)
         expect(result.presenceNodes.map((node) => node.universalKey).sort()).toEqual([
@@ -499,12 +498,12 @@ describe('foldSameHostBuckets', () => {
     })
 
     it("throws when presenceUuids consolidates a proper subset of the host's real presence bindings (clause 3: zero or all, never some)", () => {
-        expect(() => foldSameHostBuckets(graph, ['port_1'], noMemberBindings)).toThrow(/zero or all/)
+        expect(() => foldSameHostBuckets(graph, ['port_1'])).toThrow(/zero or all/)
     })
 
     it('does not throw when presenceUuids is empty (unexamined) or names every real binding (fully consolidated)', () => {
-        expect(() => foldSameHostBuckets(graph, [], noMemberBindings)).not.toThrow()
-        expect(() => foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'], noMemberBindings)).not.toThrow()
+        expect(() => foldSameHostBuckets(graph, [])).not.toThrow()
+        expect(() => foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])).not.toThrow()
     })
 })
 

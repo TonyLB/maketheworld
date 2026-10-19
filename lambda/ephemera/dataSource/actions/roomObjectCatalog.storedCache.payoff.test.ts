@@ -31,7 +31,7 @@ const graphsBeforeMove = (): Map<EphemeraMembershipHostId, EphemeraLudicGraph> =
     [tableId, testLudicGraph(tableId, {
         nodes: [
             { tag: 'Object', universalKey: cupId },
-            { tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } },
+            { tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [] } },
         ],
     })],
     [cupId, testLudicGraph(cupId, { nodes: [{ tag: 'Object', universalKey: cupId }] })],
@@ -39,7 +39,7 @@ const graphsBeforeMove = (): Map<EphemeraMembershipHostId, EphemeraLudicGraph> =
     [alphaId, testLudicGraph(alphaId, {
         nodes: [
             { tag: 'Object', universalKey: hatId },
-            { tag: 'Presence', universalKey: alphaBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } },
+            { tag: 'Presence', universalKey: alphaBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [] } },
         ],
     })],
 ])
@@ -49,7 +49,7 @@ const graphsAfterMove = (): Map<EphemeraMembershipHostId, EphemeraLudicGraph> =>
     [roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: tableId }, { tag: 'Object', universalKey: cupId }] })],
     [tableId, testLudicGraph(tableId, {
         nodes: [
-            { tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } },
+            { tag: 'Presence', universalKey: tableBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [] } },
         ],
     })],
     [cupId, testLudicGraph(cupId, { nodes: [{ tag: 'Object', universalKey: cupId }] })],
@@ -57,7 +57,7 @@ const graphsAfterMove = (): Map<EphemeraMembershipHostId, EphemeraLudicGraph> =>
     [alphaId, testLudicGraph(alphaId, {
         nodes: [
             { tag: 'Object', universalKey: hatId },
-            { tag: 'Presence', universalKey: alphaBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [{ tag: 'Remainder' }] } },
+            { tag: 'Presence', universalKey: alphaBinding, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [] } },
         ],
     })],
 ])

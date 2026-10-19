@@ -53,6 +53,8 @@ export {
     classifyPresenceCoverDrift,
     coverRebuildsFor,
     coveredByBinding,
+    coverageViolationsOf,
+    lacksBase,
     rebuiltCoverEntries,
     wholeMembersOf,
 } from './classifyPresenceCoverDrift'

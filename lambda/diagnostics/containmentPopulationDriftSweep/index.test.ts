@@ -8,21 +8,21 @@ const FEATURE_ID = 'FEATURE#Stove'
 const CHARACTER_ID = 'CHARACTER#Alpha'
 
 const graphWith = (...nodes: object[]) => ({ nodes })
-const remainder = { members: [{ tag: 'Remainder' }] }
-const roomRoot = { tag: 'Presence', universalKey: 'PRESENCE#root', cover: remainder }
+const listing = { members: [{ host: FEATURE_ID, presence: 'PRESENCE#f' }] }
+const roomRoot = { tag: 'Presence', universalKey: 'PRESENCE#Base', cover: { members: [] } }
 const areaPointer = { host: AREA_ID, presence: 'PRESENCE#area-root' }
 
 describe('containmentDriftParentsOf', () => {
-    it('(a) flags a Room\'s Area binding that is not an empty-member carve-out', () => {
+    it('(a) flags a Room\'s Area binding that lists members instead of being an empty-member carve-out', () => {
         expect(containmentDriftParentsOf(ROOM_ID, graphWith(
             roomRoot,
-            { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: areaPointer, cover: remainder }
+            { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresence: areaPointer, cover: listing }
         ))).toEqual([AREA_ID])
     })
 
     it('passes a current-shape binding, a hostless remainder, and non-Room/Feature owners', () => {
         expect(containmentDriftParentsOf(FEATURE_ID, graphWith(
-            { tag: 'Presence', universalKey: 'PRESENCE#d', fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#r' }, cover: remainder }
+            { tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#Base' }, cover: { members: [] } }
         ))).toEqual([])
         expect(containmentDriftParentsOf(ROOM_ID, graphWith(roomRoot))).toEqual([])
         expect(containmentDriftParentsOf(ROOM_ID, graphWith(
@@ -31,7 +31,7 @@ describe('containmentDriftParentsOf', () => {
         ))).toEqual([])
         expect(containmentDriftParentsOf(AREA_ID, graphWith(roomRoot))).toEqual([])
         expect(containmentDriftParentsOf(CHARACTER_ID, graphWith(
-            { tag: 'Presence', universalKey: 'PRESENCE#e', fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#r' }, cover: remainder }
+            { tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#Base' }, cover: { members: [] } }
         ))).toEqual([])
         expect(containmentDriftParentsOf(FEATURE_ID, undefined)).toEqual([])
     })
@@ -66,7 +66,7 @@ describe('containmentPopulationDriftSweep', () => {
                     {
                         EphemeraId: ROOM_ID,
                         DataCategory: 'Meta::Room',
-                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: areaPointer, cover: remainder }),
+                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#k', fromHostPresence: areaPointer, cover: listing }),
                     },
                     {
                         EphemeraId: OTHER_ROOM_ID,
@@ -76,7 +76,7 @@ describe('containmentPopulationDriftSweep', () => {
                     {
                         EphemeraId: 'ROOM#Pantry',
                         DataCategory: 'Meta::Room',
-                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#s', fromHostPresence: areaPointer, cover: remainder }),
+                        ludicGraph: graphWith(roomRoot, { tag: 'Presence', universalKey: 'PRESENCE#s', fromHostPresence: areaPointer, cover: listing }),
                     },
                     {
                         EphemeraId: 'ROOM#Bare',
@@ -86,7 +86,7 @@ describe('containmentPopulationDriftSweep', () => {
                     {
                         EphemeraId: 'FEATURE#Sink',
                         DataCategory: 'Meta::Feature',
-                        ludicGraph: graphWith({ tag: 'Presence', universalKey: 'PRESENCE#t', fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#r' }, cover: remainder }),
+                        ludicGraph: graphWith({ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#Base' }, cover: { members: [] } }),
                     },
                 ],
                 emitFinding,

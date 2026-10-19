@@ -22,20 +22,15 @@ export type StandardLudicGraphPresenceCoverEntryData = {
     presence: string
 }
 
-export type StandardLudicGraphPresenceCoverRemainderData = { tag: 'Remainder' }
-
-/** Mirrors `EphemeraPresenceCover`: entries and/or the `Remainder` sentinel. */
+/** Mirrors `EphemeraPresenceCover`: explicit entries only. */
 export type StandardLudicGraphPresenceCoverData = {
-    members: (StandardLudicGraphPresenceCoverEntryData | StandardLudicGraphPresenceCoverRemainderData)[]
+    members: StandardLudicGraphPresenceCoverEntryData[]
 }
 
 const isStandardLudicGraphPresenceCoverMember = (entry: unknown): boolean => (
-    !!entry && typeof entry === 'object' && (
-        (entry as { tag?: unknown }).tag === 'Remainder' || (
-            typeof (entry as StandardLudicGraphPresenceCoverEntryData).presence === 'string' &&
-            isStandardReferenceData((entry as StandardLudicGraphPresenceCoverEntryData).host)
-        )
-    )
+    !!entry && typeof entry === 'object' &&
+    typeof (entry as StandardLudicGraphPresenceCoverEntryData).presence === 'string' &&
+    isStandardReferenceData((entry as StandardLudicGraphPresenceCoverEntryData).host)
 )
 
 /** Mirrors `EphemeraPresenceParentPointer`: the parent binding (host shard + which of its bindings). */

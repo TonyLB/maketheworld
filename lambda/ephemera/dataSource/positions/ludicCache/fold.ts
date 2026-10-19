@@ -111,12 +111,7 @@ export const buildLudicCache = async (
         // proper subset), satisfying `foldSameHostBuckets`'s clause-3 zero-or-all assertion for
         // an exhaustive rebuild.
         const presenceUuids = graph.presenceNodes.map((presenceNode) => presenceUuidFromKey(presenceNode.universalKey))
-        // Each covered member's own bindings into this host, read from the member's graph; none
-        // when the member was placed without a move and never had a binding minted.
-        const memberBindings = (member: string) => (graphs.get(member as EphemeraMembershipHostId)?.presenceNodes ?? [])
-            .filter((presenceNode) => parentHostOf(presenceNode) === hostId)
-            .map((presenceNode) => presenceNode.universalKey)
-        const { presenceNodes, edges: sameHostEdges } = foldSameHostBuckets(graph, presenceUuids, memberBindings)
+        const { presenceNodes, edges: sameHostEdges } = foldSameHostBuckets(graph, presenceUuids)
 
         // Mechanism 2: the parent/child crossing-port boundary between this host and every
         // member walked as its own shard. A member with no crossing ports contributes nothing

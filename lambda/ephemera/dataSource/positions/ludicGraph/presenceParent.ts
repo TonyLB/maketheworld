@@ -1,7 +1,6 @@
-import { isEphemeraAreaId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraPresenceCoverRemainder } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from './index'
@@ -63,25 +62,19 @@ export const parentBinding = async (
 }
 
 /**
- * A hostless remainder of the graph's host: no parent pointer, and a cover that includes the
- * remainder. A Room or Area keeps exactly one for good (PR-21(f)); any other whole holds one while
- * unplaced (minted by population as a parent's root, or left by a disconnect/destroy).
+ * The binding of the graph's host with no parent pointer, whatever its cover (a
+ * whole has at most one). A Room or Area keeps one for good (PR-21(f)); any other whole holds one
+ * while unplaced (minted by population as a parent's root, or left by a disconnect/destroy).
  */
-export const hostlessRemainderOf = (graph: EphemeraLudicGraph): EphemeraLudicGraphStructureNode | undefined => (
-    graph.presenceNodes.find((node) => (
-        !node.fromHostPresence && node.cover.members.some(isEphemeraPresenceCoverRemainder)
-    ))
+export const unpointedBindingOf = (graph: EphemeraLudicGraph): EphemeraLudicGraphStructureNode | undefined => (
+    graph.presenceNodes.find((node) => !node.fromHostPresence)
 )
 
 /**
- * The binding of `parentGraph`'s host that its children sit under, when the data names one
- * unambiguously: a Room's or Area's hostless remainder, else the host's only binding. Never
- * guesses --- no binding, or several (the caller must name which), is `undefined`.
+ * The binding of `parentGraph`'s host that its children sit under: its `PRESENCE#Base`, which every
+ * whole holds, or `undefined` when the host has none yet (population mints it
+ * for a Room or Area; a missing one anywhere else is drift the cover-drift sweep reports as `noBase`). Never guesses.
  */
-export const childParentBindingIdOf = (parentGraph: EphemeraLudicGraph): EphemeraPresenceNodeId | undefined => {
-    if (isEphemeraRoomId(parentGraph.hostId) || isEphemeraAreaId(parentGraph.hostId)) {
-        return hostlessRemainderOf(parentGraph)?.universalKey
-    }
-    const { presenceNodes } = parentGraph
-    return presenceNodes.length === 1 ? presenceNodes[0].universalKey : undefined
-}
+export const childParentBindingIdOf = (parentGraph: EphemeraLudicGraph): EphemeraPresenceNodeId | undefined => (
+    parentGraph.presenceNodes.find((node) => node.universalKey === BASE_PRESENCE_ID)?.universalKey
+)

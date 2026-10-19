@@ -183,7 +183,7 @@ export const commitStepSequence = async (
         console.error(`[mtw.ephemera.positions] commitStepSequence could not resolve invalidated rooms: ${message}`)
         return { ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage: message }
     }
-    const movesMembership = steps.some((step) => step.kind === 'addPresenceBinding' || step.kind === 'movePresenceBinding' || step.kind === 'releasePresenceBinding' || step.kind === 'repairPresenceBinding')
+    const movesMembership = steps.some((step) => step.kind === 'addPresenceBinding' || step.kind === 'movePresenceBinding' || step.kind === 'repairPresenceBinding')
 
     let committedGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
     // Assignment, not append --- the reducer body can run more than once under

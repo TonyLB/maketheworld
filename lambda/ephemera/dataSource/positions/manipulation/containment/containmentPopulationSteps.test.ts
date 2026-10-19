@@ -1,7 +1,7 @@
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
-import { hostlessRemainderOf } from '../../ludicGraph/presenceParent'
+import { unpointedBindingOf } from '../../ludicGraph/presenceParent'
 import { containmentPopulationSteps, rootStep } from './containmentPopulationSteps'
 
 const AREA_ID = 'AREA#Overworld' as EphemeraAreaId
@@ -13,7 +13,7 @@ const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 // An Area keeps one hostless remainder; a room's binding into it is a carve-out naming that
 // remainder, with no members.
-const areaRoot = presenceBindingNode('overworld-remainder')
+const areaRoot = presenceBindingNode('Base')
 const areaPointer = { host: AREA_ID, presence: areaRoot.universalKey }
 const areaCarveOut = (name = 'binding-1') => presenceBindingNode(name, areaPointer, { members: [] })
 
@@ -89,7 +89,15 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             const { step, graph } = rootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [] }))
 
             expect(step).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, presenceUuid: expect.any(String) })
-            expect(hostlessRemainderOf(graph)?.universalKey).toBe(`PRESENCE#${step!.presenceUuid}`)
+            expect(unpointedBindingOf(graph)?.universalKey).toBe(`PRESENCE#${step!.presenceUuid}`)
+        })
+
+        it('rootStep mints the fixed PRESENCE#Base, and treats a legacy uuid-named hostless remainder as already rooted', () => {
+            const { step, graph } = rootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [] }))
+            expect(step).toEqual({ kind: 'addPresenceBinding', hostId: ROOM_ID, presenceUuid: 'Base' })
+            expect(graph.presenceNodes.map((node) => node.universalKey)).toEqual(['PRESENCE#Base'])
+
+            expect(rootStep(ROOM_ID, testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode('legacy-uuid')] })).step).toBeUndefined()
         })
 
         it('rootStep mints a room\'s remainder even when the room already holds its Area carve-out', () => {
@@ -107,7 +115,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         })
 
         it('rootStep leaves a room that has one unchanged', () => {
-            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode('room-remainder')] })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode('Base')] })
 
             expect(rootStep(ROOM_ID, roomGraph)).toEqual({ graph: roomGraph })
         })
@@ -133,7 +141,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         })
 
         it('points a Feature at the room\'s remainder and mints no second one', () => {
-            const remainder = presenceBindingNode('room-remainder')
+            const remainder = presenceBindingNode('Base')
             const parentGraph = testLudicGraph(ROOM_ID, { nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID }] })
             const childGraph = testLudicGraph(FEATURE_ID, { nodes: [] })
 
@@ -145,14 +153,30 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         })
     })
 
+    describe('a child\'s first binding is its Base', () => {
+        const parentGraph = () => testLudicGraph(ROOM_ID, { nodes: [presenceBindingNode('Base'), { tag: 'Feature', universalKey: FEATURE_ID }] })
+
+        it('mints PRESENCE#Base for a child holding no binding at all', () => {
+            const steps = containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph(), testLudicGraph(FEATURE_ID, { nodes: [] }))
+            expect(steps.find(({ kind }) => kind === 'addPresenceBinding')).toEqual(expect.objectContaining({ hostId: FEATURE_ID, presenceUuid: 'Base' }))
+        })
+
+        it('mints a fresh id for a further binding, beside one the child already holds elsewhere', () => {
+            const elsewhere = presenceBindingNode('Base', { host: 'ROOM#Other' as any, presence: 'PRESENCE#Base' as any }, { members: [] })
+            const steps = containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph(), testLudicGraph(FEATURE_ID, { nodes: [elsewhere] }))
+            const added = steps.find(({ kind }) => kind === 'addPresenceBinding') as any
+            expect(added.presenceUuid).not.toBe('Base')
+        })
+    })
+
     describe('repair: a binding in the wrong shape is rewritten in place, keeping its id', () => {
         it('repairs a pointer naming only the host once the parent binding exists', () => {
-            const remainder = presenceBindingNode('room-remainder')
+            const remainder = presenceBindingNode('Base')
             const parentGraph = testLudicGraph(ROOM_ID, {
                 nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID }],
                 edges: [{ tag: 'Relational', from: FEATURE_ID, to: ROOM_ID, kind: 'PartOf' }],
             })
-            const hostOnly = presenceBindingNode('feature-binding', ROOM_ID)
+            const hostOnly = presenceBindingNode('feature-binding', { host: ROOM_ID, presence: 'PRESENCE#gone' as any })
             const childGraph = testLudicGraph(FEATURE_ID, { nodes: [hostOnly] })
 
             expect(containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph)).toEqual([{
@@ -164,13 +188,13 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             }])
         })
 
-        it('repairs a room\'s sole-remainder Area binding to an empty carve-out', () => {
+        it('repairs a room\'s Area binding that lists members to an empty carve-out', () => {
             const parentGraph = testLudicGraph(AREA_ID, {
                 nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID }],
                 edges: [{ tag: 'Relational', from: ROOM_ID, to: AREA_ID, kind: 'PartOf' }],
             })
-            const wrong = presenceBindingNode('binding-1', AREA_ID)
-            const childGraph = testLudicGraph(ROOM_ID, { nodes: [wrong] })
+            const wrong = presenceBindingNode('binding-1', AREA_ID, { members: [{ host: FEATURE_ID, presence: 'PRESENCE#stove-in-kitchen' as any }] })
+            const childGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Feature', universalKey: FEATURE_ID }, wrong] })
 
             expect(containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)).toEqual([{
                 kind: 'repairPresenceBinding',
@@ -186,7 +210,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
                 nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID }],
                 edges: [{ tag: 'Relational', from: ROOM_ID, to: AREA_ID, kind: 'PartOf' }],
             })
-            const hostOnly = presenceBindingNode('binding-1', AREA_ID, { members: [] })
+            const hostOnly = presenceBindingNode('binding-1', { host: AREA_ID, presence: 'PRESENCE#gone' as any }, { members: [] })
             const childGraph = testLudicGraph(ROOM_ID, { nodes: [hostOnly] })
 
             expect(containmentPopulationSteps(AREA_ID, ROOM_ID, parentGraph, childGraph)).toEqual([{
@@ -199,13 +223,13 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         })
 
         it('repairs a pointer that names no parent binding once the parent has one', () => {
-            const remainder = presenceBindingNode('room-remainder')
+            const remainder = presenceBindingNode('Base')
             const parentGraph = testLudicGraph(ROOM_ID, {
                 nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID }],
                 edges: [{ tag: 'Relational', from: FEATURE_ID, to: ROOM_ID, kind: 'PartOf' }],
             })
-            const hostOnly = presenceBindingNode('feature-binding', ROOM_ID)
-            const stale = { ...hostOnly, fromHostPresence: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) } }
+            const hostOnly = presenceBindingNode('feature-binding', { host: ROOM_ID, presence: 'PRESENCE#gone' as any })
+            const stale = { ...hostOnly, fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#gone' as any } }
             const childGraph = testLudicGraph(FEATURE_ID, { nodes: [stale] })
 
             const steps = containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph)
@@ -214,7 +238,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         })
 
         it('is a true no-op once repaired', () => {
-            const remainder = presenceBindingNode('room-remainder')
+            const remainder = presenceBindingNode('Base')
             const parentGraph = testLudicGraph(ROOM_ID, {
                 nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID }],
                 edges: [{ tag: 'Relational', from: FEATURE_ID, to: ROOM_ID, kind: 'PartOf' }],
@@ -228,7 +252,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
     })
 
     describe('first placement re-points a hostless root rather than minting beside it', () => {
-        const remainder = presenceBindingNode('room-remainder')
+        const remainder = presenceBindingNode('Base')
 
         it('re-points a Feature\'s hostless root (minted while it was a parent) in place, keeping its id', () => {
             const featureRoot = presenceBindingNode('counter-root')
@@ -258,7 +282,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         })
 
         it('never re-points a Room\'s remainder: a Room adds its Area carve-out beside it', () => {
-            const roomRoot = presenceBindingNode('cafe-remainder')
+            const roomRoot = presenceBindingNode('Base')
             const parentGraph = testLudicGraph(AREA_ID, { nodes: [areaRoot] })
             const childGraph = testLudicGraph(ROOM_ID, { nodes: [roomRoot] })
 
@@ -271,7 +295,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
     })
 
     describe('authored Objects: placed In the parent, only if not live anywhere', () => {
-        const remainder = presenceBindingNode('room-remainder')
+        const remainder = presenceBindingNode('Base')
 
         it('places an Object under a Room: binding at the remainder (which adds the node), and an In edge', () => {
             const parentGraph = testLudicGraph(ROOM_ID, { nodes: [remainder] })
@@ -284,7 +308,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         })
 
         it('places an Object under an Object', () => {
-            const shelfBinding = presenceBindingNode('shelf-binding', ROOM_ID)
+            const shelfBinding = presenceBindingNode('Base', ROOM_ID)
             const parentGraph = testLudicGraph(SHELF_ID, { nodes: [shelfBinding] })
             const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
@@ -295,7 +319,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         })
 
         it('places an Object under a Character by the same rule, with no character branch', () => {
-            const parentGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('character-root')] })
+            const parentGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')] })
             const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
             const steps = containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, parentGraph, childGraph)
@@ -335,7 +359,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
 
         it('leaves an Object where it is live when the author lists it under another parent', () => {
             const roomB = 'ROOM#Kitchen' as EphemeraRoomId
-            const parentGraph = testLudicGraph(roomB, { nodes: [presenceBindingNode('kitchen-remainder')] })
+            const parentGraph = testLudicGraph(roomB, { nodes: [presenceBindingNode('Base')] })
             const childGraph = testLudicGraph(OBJECT_ID, { nodes: [presenceBindingNode('cup-binding', ROOM_ID)] })
 
             expect(containmentPopulationSteps(roomB, OBJECT_ID, parentGraph, childGraph)).toEqual([])

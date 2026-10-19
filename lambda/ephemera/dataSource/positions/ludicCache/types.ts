@@ -62,9 +62,9 @@ export type EphemeraLudicCacheNode = EphemeraLudicGraphComponentNode & {
 /**
  * One of a host's own bindings, nested on that host's `EphemeraLudicCacheNode`
  * (presenceNodes Slice 3, PN-19 decided (b)): `cover` is
- * entries only --- the graph's `Remainder` sentinel ("every unclaimed node of the host") has no
- * referent in a multi-host merge (loss (A)), so this makes it unrepresentable in the cache
- * *by construction* rather than by a runtime guard someone could forget. Minted by
+ * entries only, as the graph-side cover is, so a complement ("every unclaimed node of the host", which
+ * has no referent in a multi-host merge, loss (A)) is unrepresentable *by construction* rather
+ * than by a runtime guard someone could forget. Minted by
  * `mergeReducer.ts`'s `foldSameHostBuckets` (via its
  * `presenceCacheNodesFromFold` helper), one per binding folded. Each cover
  * entry names the member's own binding into this binding's host (`EphemeraLudicCacheCoverEntry`).
@@ -76,10 +76,9 @@ export type EphemeraLudicCachePresenceNode = Omit<EphemeraLudicGraphStructureNod
 /**
  * A cache cover entry: `host` is covered, and `presence` names which of `host`'s own bindings
  * (into the covering binding's host) is meant. The graph-side `EphemeraPresenceCoverEntry`
- * requires `presence`; here it is optional because the cache expands a graph-side `Remainder`,
- * which has no entries, into an entry list, and must look each member's binding up in
- * the member's own graph. That lookup can come back empty --- e.g. a thing placed without a move,
- * which never had a binding minted --- and the member is still covered, so the entry stays
+ * requires `presence`; here it is optional because the fold once looked each member's binding up in
+ * the member's own graph for a graph-side complement, and that lookup could come back empty --- e.g. a thing placed without a move,
+ * which never had a binding minted --- and the member was still covered, so the entry stays
  * with `presence` absent. Entries copied from a graph-side explicit entry always carry it.
  */
 export type EphemeraLudicCacheCoverEntry = Omit<EphemeraPresenceCoverEntry, 'presence'> & {
@@ -110,7 +109,7 @@ const isEphemeraLudicCacheCoverEntry = (value: unknown): value is EphemeraLudicC
 }
 
 // Checked here rather than through the graph-side structure guard, whose cover check requires
-// `presence` on every entry (see `EphemeraLudicCacheCoverEntry`). A `Remainder` entry or a legacy `tag` is illegal in the
+// `presence` on every entry (see `EphemeraLudicCacheCoverEntry`). A complement sentinel or a legacy `tag` is illegal in the
 // cache (PN-19).
 export const isEphemeraLudicCachePresenceNode = (value: unknown): value is EphemeraLudicCachePresenceNode => {
     if (!value || typeof value !== 'object') {
@@ -179,8 +178,9 @@ export const isEphemeraLudicCacheData = (value: unknown): value is EphemeraLudic
     // Referential integrity (rebuild 3d, presenceNodes Slice 6/PN-12): a cover entry resolves by
     // path --- the host's node, then that binding on it --- and an entry whose host has no node,
     // or whose named binding is not on that node, is internal inconsistency and FAILS. The walk
-    // reaches every member, a present character included (as a leaf: its node and bindings, none of
-    // its inventory), so an absent host cannot be a legitimate omission.
+    // reaches every member of the graphs it enumerates, so an absent host cannot be a legitimate
+    // omission. A room-seeded walk meets no bystander (the characters row indexes it, and the room's
+    // graph holds no node for it); a character-seeded walk expands its own seed.
     // An entry with `presence` absent (the fold could not find that binding) checks the host step
     // only. An edge terminating at an absent presence node is a different, legal shape (the
     // binding exists and was not pulled into this cache, PR-15) and is deliberately NOT checked

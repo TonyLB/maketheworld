@@ -33,7 +33,6 @@ jest.mock('../../../internalUtils/dateUtil', () => ({
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { remainderCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import { StandardRoom } from '@tonylb/mtw-wml/ts/standardize/components/room'
@@ -89,7 +88,7 @@ type World = {
     assetRooms: Record<string, EphemeraRoomId[]>
 }
 
-const hostBinding = (name: string, parent: EphemeraMembershipHostId | ReturnType<typeof ref>, members: any[] = [{ tag: 'Remainder' }]) => (
+const hostBinding = (name: string, parent: EphemeraMembershipHostId | ReturnType<typeof ref>, members: any[] = []) => (
     presenceBindingNode(name, parent as any, { members } as any)
 )
 
@@ -97,8 +96,27 @@ const hostBinding = (name: string, parent: EphemeraMembershipHostId | ReturnType
  * Cafe holds a table (a cup and a saucer on it), a box and Alpha; Terrace is empty. Built in the
  * shapes the kernel's own tests use, so every step in this suite is legal against it.
  */
+/** Cafe's room graph as `freshWorld` builds it (a table and a box), for scenarios that restate it with edges. */
+const cafeGraph = (edges: any[] = []) => testLudicGraph(R1, {
+    nodes: [
+        { tag: 'Room', universalKey: R1 },
+        { tag: 'Object', universalKey: TABLE },
+        { tag: 'Object', universalKey: BOX },
+        presenceBindingNode(parentRemainderKey(R1), undefined, { members: [entry(TABLE, 'PRESENCE#tbl'), entry(BOX, 'PRESENCE#Base')] } as any),
+    ],
+    edges,
+})
+
 const freshWorld = (): World => {
-    const room = (id: EphemeraRoomId, ...nodes: any[]) => testLudicGraph(id, { nodes: [{ tag: 'Room', universalKey: id }, ...nodes, presenceBindingNode(parentRemainderKey(id))] })
+    // The room's root binding lists each thing it holds, under that thing's own binding into the room.
+    const ownBinding: Record<string, string> = { [TABLE]: 'PRESENCE#tbl' }
+    const room = (id: EphemeraRoomId, ...nodes: any[]) => testLudicGraph(id, {
+        nodes: [
+            { tag: 'Room', universalKey: id },
+            ...nodes,
+            presenceBindingNode(parentRemainderKey(id), undefined, { members: nodes.map(({ universalKey }) => entry(universalKey, ownBinding[universalKey] ?? 'PRESENCE#Base')) } as any),
+        ],
+    })
     const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
         [R1, room(R1, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX })],
         [R2, room(R2)],
@@ -107,13 +125,13 @@ const freshWorld = (): World => {
                 { tag: 'Object', universalKey: TABLE },
                 { tag: 'Object', universalKey: CUP },
                 { tag: 'Object', universalKey: SAUCER },
-                hostBinding('tbl', R1, [entry(CUP, 'PRESENCE#cup1'), entry(SAUCER, 'PRESENCE#sau1'), { tag: 'Remainder' }]),
+                hostBinding('tbl', R1, [entry(CUP, 'PRESENCE#cup1'), entry(SAUCER, 'PRESENCE#sau1')]),
             ],
         })],
         [CUP, testLudicGraph(CUP, { nodes: [{ tag: 'Object', universalKey: CUP }, hostBinding('cup1', ref(TABLE, 'PRESENCE#tbl'))] })],
         [SAUCER, testLudicGraph(SAUCER, { nodes: [{ tag: 'Object', universalKey: SAUCER }, hostBinding('sau1', ref(TABLE, 'PRESENCE#tbl'))] })],
-        [BOX, testLudicGraph(BOX, { nodes: [{ tag: 'Object', universalKey: BOX }, hostBinding('box1', R1)] })],
-        [ALPHA, testLudicGraph(ALPHA as any, { nodes: [hostBinding('alpha1', R1)] })],
+        [BOX, testLudicGraph(BOX, { nodes: [{ tag: 'Object', universalKey: BOX }, hostBinding('Base', R1)] })],
+        [ALPHA, testLudicGraph(ALPHA as any, { nodes: [hostBinding('Base', R1)] })],
         [LAMP, testLudicGraph(LAMP, { nodes: [{ tag: 'Object', universalKey: LAMP }, presenceBindingNode('lamp1')] })],
     ])
     return {
@@ -121,7 +139,7 @@ const freshWorld = (): World => {
         markers: new Map(),
         rows: new Map(),
         characterRows: new Map<EphemeraRoomId, Record<string, unknown>>([
-            [R1, { [ALPHA]: ['PRESENCE#alpha1'] }],
+            [R1, { [ALPHA]: ['PRESENCE#Base'] }],
             [R2, {}],
         ]),
         names: { [TABLE]: 'Table', [CUP]: 'Cup', [SAUCER]: 'Saucer', [BOX]: 'Box', [LAMP]: 'Lamp', [MUG]: 'Mug', [R1]: 'Cafe', [R2]: 'Terrace', [ALPHA]: 'Alpha' },
@@ -140,7 +158,7 @@ const splitTableWorld = (): World => {
             { tag: 'Object', universalKey: TABLE },
             { tag: 'Object', universalKey: CUP },
             { tag: 'Object', universalKey: SAUCER },
-            hostBinding('tbl', R1, [entry(CUP, 'PRESENCE#cup1'), { tag: 'Remainder' }]),
+            hostBinding('tbl', R1, [entry(CUP, 'PRESENCE#cup1')]),
             hostBinding('tbl2', R1, [entry(SAUCER, 'PRESENCE#sau1')]),
         ],
     }))
@@ -373,14 +391,14 @@ const cases: Case[] = [
         rooms: [],
         changesCache: false,
         marksNothing: true,
-        act: () => commit([move(ALPHA, 'alpha1', remainder(R1), remainder(R2))]),
+        act: () => commit([move(ALPHA, 'Base', remainder(R1), remainder(R2))]),
     },
     {
         name: 'an object is released from where it sat',
-        kinds: ['releasePresenceBinding'],
+        kinds: ['movePresenceBinding'],
         rooms: [R1],
         changesCache: true,
-        act: () => commit([{ kind: 'releasePresenceBinding', hostId: BOX, presence: 'PRESENCE#box1' as any, from: remainder(R1) }]),
+        act: () => commit([{ kind: 'movePresenceBinding', to: null, hostId: BOX, presence: 'PRESENCE#Base' as any, from: remainder(R1) }]),
     },
     {
         name: 'an object gains a second binding in another room',
@@ -394,7 +412,7 @@ const cases: Case[] = [
         kinds: ['repairPresenceBinding'],
         rooms: [R1, R2],
         changesCache: true,
-        act: () => commit([{ kind: 'repairPresenceBinding', hostId: BOX, presenceId: 'PRESENCE#box1' as any, fromHostPresence: remainder(R2), cover: remainderCover() }]),
+        act: () => commit([{ kind: 'repairPresenceBinding', hostId: BOX, presenceId: 'PRESENCE#Base' as any, fromHostPresence: remainder(R2), previousParent: remainder(R1), cover: { members: [] } }]),
     },
     {
         name: 'an improvised object is created and placed',
@@ -402,50 +420,48 @@ const cases: Case[] = [
         rooms: [R1],
         changesCache: true,
         act: () => commit([
-            { kind: 'createComponent', hostId: MUG, presenceUuid: 'mug1', meta: { EphemeraId: MUG, DataCategory: 'Meta::Object' } as any },
-            move(MUG, 'mug1', null, remainder(R1)),
+            { kind: 'createComponent', hostId: MUG, meta: { EphemeraId: MUG, DataCategory: 'Meta::Object' } as any },
+            move(MUG, 'Base', null, remainder(R1)),
         ]),
     },
     {
         name: 'an improvised object is released and destroyed',
-        kinds: ['releasePresenceBinding', 'destroyComponent'],
+        kinds: ['movePresenceBinding', 'destroyComponent'],
         rooms: [R1],
         changesCache: true,
         act: () => commit([
-            { kind: 'releasePresenceBinding', hostId: BOX, presence: 'PRESENCE#box1' as any, from: remainder(R1) },
+            { kind: 'movePresenceBinding', to: null, hostId: BOX, presence: 'PRESENCE#Base' as any, from: remainder(R1) },
             { kind: 'destroyComponent', hostId: BOX },
         ]),
     },
     {
-        name: 'a binding is split and one part moves to another room',
-        kinds: ['splitPresenceBinding', 'movePresenceBinding'],
+        name: 'part of a binding moves to another room, minting a binding there',
+        kinds: ['movePresenceBinding'],
         rooms: [R1, R2],
         changesCache: true,
-        act: () => commit([
-            {
-                kind: 'splitPresenceBinding',
-                hostId: TABLE,
-                presence: 'PRESENCE#tbl' as any,
-                splitInto: [
-                    { presence: 'PRESENCE#tbl' as any, cover: { members: [entry(CUP, 'PRESENCE#cup1'), { tag: 'Remainder' }] } },
-                    { presence: 'PRESENCE#tbl2' as any, cover: { members: [entry(SAUCER, 'PRESENCE#sau1')] } },
-                ],
-            },
-            move(TABLE, 'tbl2', remainder(R1), remainder(R2)),
-        ]),
+        act: () => commit([{
+            kind: 'movePresenceBinding',
+            hostId: TABLE,
+            presence: 'PRESENCE#tbl' as any,
+            from: remainder(R1),
+            to: remainder(R2),
+            subCover: [entry(SAUCER, 'PRESENCE#sau1')],
+            mintedPresence: 'PRESENCE#tbl2' as any,
+        }]),
     },
     {
-        name: 'two bindings of one whole are joined',
-        kinds: ['joinPresenceBindings'],
+        name: 'a binding is moved into another binding of the same whole (they join)',
+        kinds: ['movePresenceBinding'],
         world: splitTableWorld,
         rooms: [R1],
         changesCache: true,
         act: () => commit([{
-            kind: 'joinPresenceBindings',
+            kind: 'movePresenceBinding',
             hostId: TABLE,
-            survivor: 'PRESENCE#tbl' as any,
-            absorbed: 'PRESENCE#tbl2' as any,
-            absorbedCover: { members: [entry(SAUCER, 'PRESENCE#sau1')] },
+            presence: 'PRESENCE#tbl2' as any,
+            from: remainder(R1),
+            to: remainder(R1),
+            cover: { members: [entry(SAUCER, 'PRESENCE#sau1')] },
         }]),
     },
     {
@@ -460,10 +476,7 @@ const cases: Case[] = [
         kinds: ['dissolveRelation'],
         world: () => {
             const base = freshWorld()
-            base.graphs.set(R1, testLudicGraph(R1, {
-                nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
-                edges: [{ tag: 'Relational', from: BOX, to: TABLE, kind: 'Custom', relationLabel: 'tied to' }],
-            }))
+            base.graphs.set(R1, cafeGraph([{ tag: 'Relational', from: BOX, to: TABLE, kind: 'Custom', relationLabel: 'tied to' }]))
             return base
         },
         rooms: [R1],
@@ -511,41 +524,39 @@ const cases: Case[] = [
         kinds: ['movePresenceBinding'],
         world: () => {
             const base = freshWorld()
-            base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('alpha1')] }))
+            base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('Base')] }))
             base.characterRows.set(R1, {})
             return base
         },
         rooms: [R1],
         changesCache: true,
         act: () => commit([
-            move(ALPHA, 'alpha1', null, remainder(R1)),
+            move(ALPHA, 'Base', null, remainder(R1)),
             move(CUP, 'cup1', ref(TABLE, 'PRESENCE#tbl'), remainder(R1)),
         ]),
     },
     {
         name: 'a character disconnects (its binding is released from the room)',
-        kinds: ['releasePresenceBinding'],
+        kinds: ['movePresenceBinding'],
         rooms: [],
         changesCache: false,
         marksNothing: true,
-        act: () => commit([{ kind: 'releasePresenceBinding', hostId: ALPHA, presence: 'PRESENCE#alpha1' as any, from: remainder(R1) }]),
+        act: () => commit([{ kind: 'movePresenceBinding', to: null, hostId: ALPHA, presence: 'PRESENCE#Base' as any, from: remainder(R1) }]),
     },
     {
         name: 'a character connects (its hostless binding is placed in the room)',
         kinds: ['movePresenceBinding'],
         world: () => {
             const base = freshWorld()
-            base.graphs.set(R1, testLudicGraph(R1, {
-                nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
-            }))
-            base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('alpha1')] }))
+            base.graphs.set(R1, cafeGraph())
+            base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('Base')] }))
             base.characterRows.set(R1, {})
             return base
         },
         rooms: [],
         changesCache: false,
         marksNothing: true,
-        act: () => commit([move(ALPHA, 'alpha1', null, remainder(R1))]),
+        act: () => commit([move(ALPHA, 'Base', null, remainder(R1))]),
     },
     {
         name: 'an object is renamed',
@@ -671,13 +682,13 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         world.names[POUCH] = 'Pouch'
         world.names[HAT] = 'Hat'
         world.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, {
-            nodes: [{ tag: 'Object', universalKey: POUCH }, { tag: 'Object', universalKey: HAT }, hostBinding('alpha1', R1, [entry(POUCH, 'PRESENCE#pch1'), entry(HAT, 'PRESENCE#hat1'), { tag: 'Remainder' }])],
+            nodes: [{ tag: 'Object', universalKey: POUCH }, { tag: 'Object', universalKey: HAT }, hostBinding('Base', R1, [entry(POUCH, 'PRESENCE#pch1'), entry(HAT, 'PRESENCE#hat1')])],
         }))
-        world.graphs.set(POUCH, testLudicGraph(POUCH, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('pch1', ref(ALPHA as any, 'PRESENCE#alpha1'))] }))
-        world.graphs.set(HAT, testLudicGraph(HAT, { nodes: [{ tag: 'Object', universalKey: HAT }, hostBinding('hat1', ref(ALPHA as any, 'PRESENCE#alpha1'))] }))
+        world.graphs.set(POUCH, testLudicGraph(POUCH, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('pch1', ref(ALPHA as any, 'PRESENCE#Base'))] }))
+        world.graphs.set(HAT, testLudicGraph(HAT, { nodes: [{ tag: 'Object', universalKey: HAT }, hostBinding('hat1', ref(ALPHA as any, 'PRESENCE#Base'))] }))
         await stored(R1)
         const before = world.markers.get(R1) ?? 0
-        await commit([move(HAT, 'hat1', ref(ALPHA as any, 'PRESENCE#alpha1'), ref(POUCH, 'PRESENCE#pch1'))])
+        await commit([move(HAT, 'hat1', ref(ALPHA as any, 'PRESENCE#Base'), ref(POUCH, 'PRESENCE#pch1'))])
         expect(world.markers.get(R1) ?? 0).toBe(before)
         const read = await stored(R1)
         expect(read.outcome).toBe('hit')
@@ -694,15 +705,13 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         const POUCH = 'OBJECT#Pouch' as EphemeraObjectId
         world.names[POUCH] = 'Pouch'
         world.names[BETA] = 'Beta'
-        world.graphs.set(R1, testLudicGraph(R1, {
-            nodes: [{ tag: 'Room', universalKey: R1 }, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX }, presenceBindingNode(parentRemainderKey(R1))],
-        }))
-        world.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('alpha1', R1, [entry(POUCH, 'PRESENCE#pch1')])] }))
+        world.graphs.set(R1, cafeGraph())
+        world.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('Base', R1, [entry(POUCH, 'PRESENCE#pch1')])] }))
         world.graphs.set(BETA as any, testLudicGraph(BETA as any, { nodes: [hostBinding('beta1', R1)] }))
-        world.graphs.set(POUCH, testLudicGraph(POUCH, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('pch1', ref(ALPHA as any, 'PRESENCE#alpha1'))] }))
+        world.graphs.set(POUCH, testLudicGraph(POUCH, { nodes: [{ tag: 'Object', universalKey: POUCH }, hostBinding('pch1', ref(ALPHA as any, 'PRESENCE#Base'))] }))
         await stored(R1)
         const before = world.markers.get(R1) ?? 0
-        await commit([move(POUCH, 'pch1', ref(ALPHA as any, 'PRESENCE#alpha1'), ref(BETA as any, 'PRESENCE#beta1'))])
+        await commit([move(POUCH, 'pch1', ref(ALPHA as any, 'PRESENCE#Base'), ref(BETA as any, 'PRESENCE#beta1'))])
         expect(world.markers.get(R1) ?? 0).toBe(before)
         const read = await stored(R1)
         expect(read.outcome).toBe('hit')
