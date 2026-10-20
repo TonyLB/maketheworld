@@ -9,6 +9,7 @@ import { bindingHasParent, parentOf } from '../../ludicGraph/presenceParent'
 import { UNPLACED_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { dropEmptyUnplaced, releaseChildren, withEntries, withoutEntries } from './endOfRunRules'
 import { isBystanderMove } from './bystander'
+import { collisionsUnder, joinCollisions } from './joinPresenceBindings'
 import type { MutationKernelMovePresenceBindingStep } from './kernelStep'
 
 type Graphs = Map<EphemeraMembershipHostId, EphemeraLudicGraph>
@@ -94,20 +95,11 @@ const departFromParent = (
             return failure
         }
     }
-    const under: ParentBinding = { host: step.hostId, presence: UNPLACED_PRESENCE_ID }
-    for (const collision of collisions) {
-        const merged = movePresenceBinding(result, {
-            kind: 'movePresenceBinding',
-            hostId: collision.host as EphemeraMembershipHostId,
-            presence: collision.presence,
-            from: under,
-            to: under,
-        })
-        if ('reasonCode' in merged) {
-            return merged
-        }
-        result = merged.graphs
+    const joined = joinCollisions(result, collisionsUnder(result, { host: step.hostId, presence: UNPLACED_PRESENCE_ID }, collisions))
+    if ('reasonCode' in joined) {
+        return joined
     }
+    result = joined.graphs
     return { graphs: dropEmptyUnplaced(result, step.hostId) }
 }
 

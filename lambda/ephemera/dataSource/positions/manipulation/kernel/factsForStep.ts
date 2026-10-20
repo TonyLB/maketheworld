@@ -60,7 +60,8 @@ export const factsForStep = (
 
     // not a world event any narration channel reads today --- the object-move narrate
     // steps already cover "arrives," and a presence binding's own visibility is future work.
-    if (step.kind === 'addPresenceBinding' || step.kind === 'movePresenceBinding' || step.kind === 'repairPresenceBinding') {
+    if (step.kind === 'addPresenceBinding' || step.kind === 'movePresenceBinding' || step.kind === 'repairPresenceBinding'
+        || step.kind === 'reparentPresenceBinding' || step.kind === 'joinPresenceBindings' || step.kind === 'splitPresenceBinding') {
         return []
     }
 

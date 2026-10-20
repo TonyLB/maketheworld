@@ -22,6 +22,9 @@ const isPresenceWrite = (step: MutationKernelStep): step is Extract<MutationKern
     step.kind === 'addPresenceBinding'
     || step.kind === 'movePresenceBinding'
     || step.kind === 'repairPresenceBinding'
+    || step.kind === 'reparentPresenceBinding'
+    || step.kind === 'joinPresenceBindings'
+    || step.kind === 'splitPresenceBinding'
 )
 
 /**

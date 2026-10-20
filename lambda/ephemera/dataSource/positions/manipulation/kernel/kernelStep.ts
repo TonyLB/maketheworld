@@ -175,6 +175,70 @@ export type MutationKernelMovePresenceBindingStep = {
 }
 
 /**
+ * Reparent (Framework F): one binding of the mover gains and/or loses named parents. Its cover and
+ * its children do not change. Each `lose` parent must still be in the stored set (an optimistic
+ * check against a concurrent writer: `presenceBindingMoved`), and each `gain` parent's binding must
+ * exist (`destinationBindingMissing`). The parent covers are the index and are written by the same
+ * step. It may leave the binding with no parent, or two bindings of the host under one parent: both
+ * are settled at the run's end (F-R1 removes a parentless binding, F-R3 refuses a collision), so the
+ * producer writes a join itself. `cascadeHosts` names the hosts of the binding's children, which the
+ * footprint locks because F-R1 may remove the binding and re-parent them.
+ */
+export type MutationKernelReparentPresenceBindingStep = {
+    kind: 'reparentPresenceBinding'
+    hostId: EphemeraMembershipHostId
+    presence: EphemeraPresenceNodeId
+    lose?: readonly ParentBinding[]
+    gain?: readonly ParentBinding[]
+    cascadeHosts?: readonly EphemeraMembershipHostId[]
+}
+
+/**
+ * Join (Framework F): the bindings `toJoin` are dispensed with and `into` keeps its id (PS-5). `into`
+ * takes the union of their parents and of their covers; each child of a `toJoin` cover has the joined
+ * binding swapped for `into` in its parent set (a union, so a child listed by two of them collapses to
+ * one pointer), and the parents' cover entries follow. Base is never dispensed with: `toJoin` holds no
+ * Base (`joinDispensesBase`). Children that now collide under `into` are not joined here: the
+ * producer writes that join one level down, and the run's end refuses it otherwise (F-R3).
+ * `cascadeHosts` names the hosts of the children, for the footprint.
+ */
+export type MutationKernelJoinPresenceBindingsStep = {
+    kind: 'joinPresenceBindings'
+    hostId: EphemeraMembershipHostId
+    into: EphemeraPresenceNodeId
+    toJoin: readonly EphemeraPresenceNodeId[]
+    cascadeHosts?: readonly EphemeraMembershipHostId[]
+}
+
+/**
+ * One piece of a split: it either names the original binding (`presence`, the piece that keeps its
+ * id) or is new (`presenceUuid`, minted by the producer so a later step can name it), with the
+ * subset of the original's parents and cover it takes.
+ */
+export type PresenceBindingPiece = (
+    | { presence: EphemeraPresenceNodeId; presenceUuid?: undefined }
+    | { presenceUuid: string; presence?: undefined }
+) & {
+    parents: readonly ParentBinding[]
+    cover: EphemeraPresenceCover
+}
+
+/**
+ * Split (Framework F): one binding becomes `pieces`. Exactly one piece names the original and keeps
+ * its id. At both levels the pieces' parents and covers are subsets of the original's that may
+ * overlap and together equal it (`splitPartsNotCovered`). Each child entry's parent set swaps the
+ * original for every piece that covers it, and the parents' covers are rewritten per piece. Two
+ * pieces may sit under one parent until the run's end, and a piece with no parent is removed then
+ * (F-R1) unless a later step gives it one.
+ */
+export type MutationKernelSplitPresenceBindingStep = {
+    kind: 'splitPresenceBinding'
+    hostId: EphemeraMembershipHostId
+    presence: EphemeraPresenceNodeId
+    pieces: readonly PresenceBindingPiece[]
+}
+
+/**
  * a crossing-port record's own add/remove, distinct from a leg edge (an ordinary
  * `establishRelation`/`dissolveRelation` step whose endpoint happens to be a port address --- see
  * `executorTypes.ts`'s widening note). Unlike `setPresencePort`'s replace-all (presence is
@@ -204,6 +268,9 @@ export type MutationKernelStep =
     | MutationKernelDestroyComponentStep
     | MutationKernelAddPresenceBindingStep
     | MutationKernelMovePresenceBindingStep
+    | MutationKernelReparentPresenceBindingStep
+    | MutationKernelJoinPresenceBindingsStep
+    | MutationKernelSplitPresenceBindingStep
     | MutationKernelRepairPresenceBindingStep
     | MutationKernelAddCrossingPortStep
     | MutationKernelRemoveCrossingPortStep
@@ -221,6 +288,9 @@ export const mutationKernelStepKinds = {
     destroyComponent: true,
     addPresenceBinding: true,
     movePresenceBinding: true,
+    reparentPresenceBinding: true,
+    joinPresenceBindings: true,
+    splitPresenceBinding: true,
     repairPresenceBinding: true,
     addCrossingPort: true,
     removeCrossingPort: true,
@@ -383,6 +453,9 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'destroyComponent' ||
     step.kind === 'addPresenceBinding' ||
     step.kind === 'movePresenceBinding' ||
+    step.kind === 'reparentPresenceBinding' ||
+    step.kind === 'joinPresenceBindings' ||
+    step.kind === 'splitPresenceBinding' ||
     step.kind === 'repairPresenceBinding' ||
     step.kind === 'addCrossingPort' ||
     step.kind === 'removeCrossingPort'

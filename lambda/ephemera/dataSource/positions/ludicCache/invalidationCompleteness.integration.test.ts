@@ -465,6 +465,51 @@ const cases: Case[] = [
         }]),
     },
     {
+        name: 'a binding is reparented to another room (its cover and children do not change)',
+        kinds: ['reparentPresenceBinding'],
+        rooms: [R1, R2],
+        changesCache: true,
+        act: () => commit([{
+            kind: 'reparentPresenceBinding',
+            hostId: TABLE,
+            presence: 'PRESENCE#tbl' as any,
+            lose: [remainder(R1)],
+            gain: [remainder(R2)],
+        }]),
+    },
+    {
+        name: 'two bindings of the same whole are joined into one',
+        kinds: ['joinPresenceBindings'],
+        world: splitTableWorld,
+        rooms: [R1],
+        changesCache: true,
+        act: () => commit([{
+            kind: 'joinPresenceBindings',
+            hostId: TABLE,
+            into: 'PRESENCE#tbl' as any,
+            toJoin: ['PRESENCE#tbl2' as any],
+            cascadeHosts: [SAUCER],
+        }]),
+    },
+    {
+        name: 'a binding is split in two and one piece is reparented to another room',
+        kinds: ['splitPresenceBinding', 'reparentPresenceBinding'],
+        rooms: [R1, R2],
+        changesCache: true,
+        act: () => commit([
+            {
+                kind: 'splitPresenceBinding',
+                hostId: TABLE,
+                presence: 'PRESENCE#tbl' as any,
+                pieces: [
+                    { presence: 'PRESENCE#tbl' as any, parents: [remainder(R1)], cover: { members: [entry(CUP, 'PRESENCE#cup1'), entry(SAUCER, 'PRESENCE#sau1')] } },
+                    { presenceUuid: 'tbl3', parents: [remainder(R1)], cover: { members: [entry(SAUCER, 'PRESENCE#sau1')] } },
+                ],
+            },
+            { kind: 'reparentPresenceBinding', hostId: TABLE, presence: 'PRESENCE#tbl3' as any, lose: [remainder(R1)], gain: [remainder(R2)] },
+        ]),
+    },
+    {
         name: 'a relation is established between two things in a room',
         kinds: ['establishRelation'],
         rooms: [R1],

@@ -141,4 +141,23 @@ describe('computeStepSequenceFootprint', () => {
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([characterId]))
     })
+    it('the Framework F steps lock the mover, the parents they name and the children they rewrite', () => {
+        const parent = (host: EphemeraRoomId | EphemeraObjectId) => ({ host, presence: parentRemainderKey(host) })
+        const steps: MutationKernelStep[] = [
+            { kind: 'reparentPresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, lose: [parent(roomId)], gain: [parent(otherRoomId)], cascadeHosts: [glassId] },
+            { kind: 'joinPresenceBindings', hostId: tableId, into: 'PRESENCE#a' as any, toJoin: ['PRESENCE#b' as any], cascadeHosts: [characterId] },
+        ]
+        expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, roomId, otherRoomId, glassId, tableId, characterId]))
+    })
+
+    it('a split locks the pieces\' parents and the hosts of their covers', () => {
+        const piece = (parent: typeof roomId, cover: { host: any; presence: any }[]) => ({ presenceUuid: 'u', parents: [{ host: parent, presence: parentRemainderKey(parent) }], cover: { members: cover } })
+        const step: MutationKernelStep = {
+            kind: 'splitPresenceBinding',
+            hostId: tableId,
+            presence: 'PRESENCE#t' as any,
+            pieces: [piece(roomId, [{ host: trayId, presence: 'PRESENCE#x' }]), piece(otherRoomId, [{ host: glassId, presence: 'PRESENCE#y' }])],
+        }
+        expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([tableId, roomId, otherRoomId, trayId, glassId]))
+    })
 })

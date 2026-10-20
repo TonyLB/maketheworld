@@ -75,6 +75,33 @@ export const computeStepSequenceFootprint = (
             }
             continue
         }
+        if (step.kind === 'reparentPresenceBinding') {
+            hosts.add(step.hostId)
+            for (const parent of [...(step.lose ?? []), ...(step.gain ?? [])]) {
+                addHostOf(step.hostId, parent.host)
+            }
+            for (const host of step.cascadeHosts ?? []) {
+                hosts.add(host)
+            }
+            continue
+        }
+        if (step.kind === 'joinPresenceBindings') {
+            // the joined bindings' parents and children are read and rewritten: the producer names the
+            // children's hosts, and a parent host that is absent is a stale refusal at apply time.
+            hosts.add(step.hostId)
+            for (const host of step.cascadeHosts ?? []) {
+                hosts.add(host)
+            }
+            continue
+        }
+        if (step.kind === 'splitPresenceBinding') {
+            hosts.add(step.hostId)
+            for (const piece of step.pieces) {
+                piece.parents.forEach((parent) => addHostOf(step.hostId, parent.host))
+                piece.cover.members.forEach((member) => hosts.add(member.host as EphemeraMembershipHostId))
+            }
+            continue
+        }
         if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {
             hosts.add(step.hostId)
             continue
