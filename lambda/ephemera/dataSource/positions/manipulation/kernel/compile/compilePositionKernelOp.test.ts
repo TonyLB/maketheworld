@@ -172,7 +172,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         })
     })
 
-    it('stamps each dissolve with the host its edge names, so a move leaving several hosts dissolves in each (PS-8)', () => {
+    it('stamps each dissolve with the host its edge names, so a move leaving several hosts dissolves in each (the take rule)', () => {
         const TABLE = 'OBJECT#Table' as EphemeraObjectId
         const plan = compilePositionKernelOp(objectOp({
             froms: [FROM_ROOM, TABLE],

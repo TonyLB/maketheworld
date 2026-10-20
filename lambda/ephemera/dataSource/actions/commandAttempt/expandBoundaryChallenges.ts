@@ -98,7 +98,7 @@ const dissolveNarrationUnit = (
  * refuses it as uncovered, rather than Expansion guessing an end it cannot name.
  *
  * `graphs` are the hosts the object leaves: one for most moves, several for a take of a thing in
- * several hosts (PS-8), whose boundary edges are found in each.
+ * several hosts (the take rule), whose boundary edges are found in each.
  */
 export const attemptActionsFromBoundaryOutcomes = (
     primaryAction: AttemptAction,
@@ -180,7 +180,7 @@ const boundaryActionsInGraph = (
  * transfer whose moved object touches an exit gets an {@link ExitEdgeChallenge} on the primary
  * action, which stays pending (the take or drop abstains); then the boundary dissolves are added
  * as {@link attemptActionsFromBoundaryOutcomes} does. `graphs` are the object's source hosts (several
- * for a take of a thing in several hosts, PS-8: an exit contact in any one challenges the take);
+ * for a take of a thing in several hosts: an exit contact in any one challenges the take);
  * `getGraph` reaches the shards a crossing relation continues into.
  */
 export const attemptActionsFromTransfer = (

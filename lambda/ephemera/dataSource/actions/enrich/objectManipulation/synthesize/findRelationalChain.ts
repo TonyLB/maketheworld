@@ -209,7 +209,7 @@ export const findRelationalChainFromLeg = (
  * from `subjectId`'s host when it is known, else from `targetId`'s: a caller may know only one
  * end's host (Expansion's dissolve of a relation whose moved end is its target, where the
  * subject is a `graphNode` no phrase named). When neither end is in exactly one host (a take of
- * a thing in several hosts, PS-8, whose far end no phrase named), it starts from each of the
+ * a thing in several hosts, whose far end no phrase named), it starts from each of the
  * subject's hosts (`getMembershipContainers`). Either way, `steps` run subject -> target.
  */
 export const findRelationalChain = (

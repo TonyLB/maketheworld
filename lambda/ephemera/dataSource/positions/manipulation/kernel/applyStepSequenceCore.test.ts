@@ -1061,7 +1061,7 @@ describe('applyStepSequenceCore', () => {
                 expect(() => applyStepSequenceCore([addHostless('p2')], world)).toThrow(/Base and Unplaced and nothing else/)
             })
 
-            it('allows a hostless Base and a hostless Unplaced together (F-R2)', () => {
+            it('allows a hostless Base and a hostless Unplaced together (the root rule)', () => {
                 const world = graphsMap([trayId, testLudicGraph(trayId, { nodes: [presenceBindingNode('Base')] })])
 
                 expect(applyStepSequenceCore([addHostless('Unplaced')], world).verdict).toBe('legal')

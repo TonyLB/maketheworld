@@ -8,8 +8,7 @@ import { computeStepSequenceFootprint } from '../kernel/computeStepSequenceFootp
 import { partMoveSteps, resolvePresenceMoves } from './resolvePresenceMoves'
 
 /**
- * The planner's step output (Framework F), run through the real kernel. The corpus cases (M-numbers)
- * are in `AGENT.presenceParentSets.corpus.planning.md`.
+ * The planner's step output (reparent, join and split), run through the real kernel.
  */
 
 const roomA = 'ROOM#Bridge' as EphemeraRoomId

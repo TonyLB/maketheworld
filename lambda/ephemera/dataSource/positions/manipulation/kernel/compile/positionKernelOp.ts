@@ -50,7 +50,7 @@ export type PositionKernelMoveOp = {
     to: EphemeraMembershipHostId | null
     /**
      * The mover's presence writes, **named by the producer** (`resolvePresenceMoves`) --- the compiler
-     * reads nothing and passes them through ahead of the establish steps. They are Framework F steps
+     * reads nothing and passes them through ahead of the establish steps. They are the reparent and join steps
      * (`reparentPresenceBinding`, `joinPresenceBindings`, and a minted Base's `addPresenceBinding`), each
      * addressed to the mover's own graph. Empty for an op that moves no binding.
      */
@@ -68,7 +68,7 @@ export type PositionKernelMoveOp = {
      * classification has outcomes besides `dissolve` (`defer` on a `Custom` edge, BD-10; a thrown
      * AB-54 invariant on a hosting-kind edge) and `compilePositionKernelOp` has no verdict channel;
      * giving it one would cost the purity that lets compilation correctly skip the Plan-stage dry run.
-     * Each edge names the host whose graph holds it: a move can leave several hosts (PS-8), and
+     * Each edge names the host whose graph holds it: a move can leave several hosts (the take rule), and
      * `HostRelationalEdge` carries no host of its own.
      */
     dissolvedEdges?: readonly { hostId: EphemeraMembershipHostId; edge: HostRelationalEdge }[]

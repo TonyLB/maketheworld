@@ -20,7 +20,7 @@ const spreadSkeleton = (verb: string, subjectSpan: string, prep: string, targetS
 ]
 
 describe('matchSpreadTemplate', () => {
-    it('plans "spread rug over table" as the containment transfer that keeps its from (PS-4)', () => {
+    it('plans "spread rug over table" as the containment transfer that keeps its from', () => {
         expect(summarize(matchSpreadTemplate(spreadSkeleton('spread', 'rug', 'over', 'table'), 'test command'))).toEqual({
             type: 'matched',
             change: {

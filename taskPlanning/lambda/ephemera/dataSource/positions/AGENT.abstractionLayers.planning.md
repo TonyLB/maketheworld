@@ -252,13 +252,13 @@ The examples separate along at least three axes, and conflating them is the main
 
 ### Scale the representation to the thinking (2026-10-20)
 
-**Stated by the user 2026-10-20, from conversation on [presenceParentSets PS-7](AGENT.presenceParentSets.planning.md#open-decisions-implementation--plan-only), as a guiding principle for the system generally.**
+**Stated by the user 2026-10-20, from conversation on the parent-sets work's view rule, as a guiding principle for the system generally.**
 
 > Reality is fractally complicated. Our goal is not to represent the whole fractal, but to match each part of the representation to how it is actually thought about. Things that are thought of simply must stay simple to represent, and pay nothing for complexity they do not use. Things that are thought about in complex ways may have complex representations, and whoever needs that complexity tracked carries its upkeep.
 
 **"Thought about" by whom:** the authors, the players, and --- importantly --- the reasoning system that handles player input and reasons about actions and consequences. Not the implementers: what is hard to code is not, on that ground, licensed to be complex.
 
-**Why the complex half is valuable, not tolerated.** An abstraction like *the inherited things in this attic* is worth having precisely because it tracks and caches a real complication --- that the backgammon box is still wholly inherited until someone tosses D&D dice into it, at which point the chest's view and the category's view part company ([corpus M19](AGENT.presenceParentSets.corpus.planning.md#group-3-through-a-shared-binding)). Caching it means it is not re-derived every time someone thinks about it. That the model can express edge cases of almost arbitrary complexity is the expressivity to represent, where useful, the regress of complication reality has; it is not a sign of an overcomplicated model of a simple problem.
+**Why the complex half is valuable, not tolerated.** An abstraction like *the inherited things in this attic* is worth having precisely because it tracks and caches a real complication --- that the backgammon box is still wholly inherited until someone tosses D&D dice into it, at which point the chest's view and the category's view part company (the dice-in-a-shared-box case from the parent-sets move corpus). Caching it means it is not re-derived every time someone thinks about it. That the model can express edge cases of almost arbitrary complexity is the expressivity to represent, where useful, the regress of complication reality has; it is not a sign of an overcomplicated model of a simple problem.
 
 **The test, which is the half that earns its keep:**
 
@@ -266,7 +266,7 @@ The examples separate along at least three axes, and conflating them is the main
 
 **For corpus work this cuts both ways.** Many corpus cases are deliberately intricate, to test expressivity, and must not be graded down for needing an intricate representation. A case a person or the reasoning system would think of simply --- a ring on a table --- that needs one *is* a finding.
 
-**Who carries the upkeep.** Complexity is paid for by whatever needs it tracked: the caller that creates a shared binding owns keeping it meaningful, splitting it before a change that does not fit. The kernel cannot tell a wanted view change from an unwanted one, since that is a judgment about meaning; a rule that tries to (presenceParentSets' retired view rule) has to be wrong one way or the other. Relation to [Minted, not found](#minted-not-found-2026-09-11): the grouping is minted, and its upkeep goes with the mint.
+**Who carries the upkeep.** Complexity is paid for by whatever needs it tracked: the caller that creates a shared binding owns keeping it meaningful, splitting it before a change that does not fit. The kernel cannot tell a wanted view change from an unwanted one, since that is a judgment about meaning; a rule that tries to (the parent-sets work's retired view rule) has to be wrong one way or the other. Relation to [Minted, not found](#minted-not-found-2026-09-11): the grouping is minted, and its upkeep goes with the mint.
 
 
 ### Fiction is a fault-tolerant medium --- and what that does not excuse (2026-08-09)

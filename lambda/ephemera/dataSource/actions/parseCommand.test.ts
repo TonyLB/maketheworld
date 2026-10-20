@@ -1973,7 +1973,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         })
     })
 
-    describe('an object in several hosts (PS-8)', () => {
+    describe('an object in several hosts (the take rule)', () => {
         // The rope lies partly on the table (a spread): a member of both the room and the table.
         const tableWith = (nodes: EphemeraObjectId[], edges: Array<Record<string, unknown>> = []) => testLudicGraph(TABLE, {
             nodes: nodes.map((universalKey) => ({ tag: 'Object' as const, universalKey })),

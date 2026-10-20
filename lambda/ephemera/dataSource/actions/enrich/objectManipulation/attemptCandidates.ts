@@ -341,7 +341,7 @@ export const buildAttemptEnvironment = async (
     }
 
     // An absent graph is left absent: Expansion reports what it cannot see, as it does for any host.
-    // Every host of a candidate, not only a lone one: a take of a thing in several hosts leaves them all (PS-8).
+    // Every host of a candidate, not only a lone one: a take of a thing in several hosts leaves them all (the take rule).
     const hostGraphMap = new Map<EphemeraMembershipHostId, EphemeraLudicGraph | undefined>([[hostRoomId, roomGraph]])
     for (const hostId of objectIds.flatMap((objectId) => containersByHostId.get(objectId) ?? [])) {
         if (!hostGraphMap.has(hostId)) {
@@ -379,7 +379,7 @@ export type DryRunFrame = {
  * (a look has no preconditions and no mutation).
  *
  * ISS8203 slice 3: a transfer's preconditions are checked here, whichever template produced it.
- * The moved object is in exactly one host (`multiPresent` otherwise, except for a take, PS-8); `from` is the host it is
+ * The moved object is in exactly one host (`multiPresent` otherwise, except for a take); `from` is the host it is
  * actually in (`notCarryingObject` for a drop of something not held, since a drop's `from` is the
  * actor); and `from` differs from `to` (`alreadyHoldingObject`). A pending challenge defers, and a
  * refused one is illegal, so a doubt about the move is a challenge and never a separate defer.
@@ -470,7 +470,7 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
  * The transfer preconditions (ISS8203 slice 3), over a grounded `transferMembership`. Returns the
  * refusal reason for the first one that fails, or undefined when all hold.
  *
- * A take of a thing in several hosts is allowed and leaves them all (PS-8, deliberately crude):
+ * A take of a thing in several hosts is allowed and leaves them all (deliberately crude):
  * its `from` is any one of them, and it is refused only when the thing is already held. Every
  * other destination still refuses `multiPresent`.
  */
@@ -510,7 +510,7 @@ const transferPreconditionFailure = (step: TransferMembershipChange<GroundedRefe
  * Expansion and Adjudicate for every candidate's transfer (ISS8203 slice 3): a `transferMembership`
  * gets its boundary dissolves, and its exit-contact challenge, from its object's source host graph,
  * whichever template produced it. Then the per-candidate Adjudicate tier judges what it may.
- * A take of a thing in several hosts reads every one of them (PS-8).
+ * A take of a thing in several hosts reads every one of them (the take rule).
  * A candidate missing a source graph is left unexpanded, and its dry run refuses it.
  */
 export const expandAndAdjudicateCandidates = (
@@ -528,7 +528,7 @@ export const expandAndAdjudicateCandidates = (
     if (objectId === undefined || !isEphemeraObjectId(objectId)) {
         return candidate
     }
-    // The hosts the object leaves: its one host, or every host for a take of a thing in several (PS-8).
+    // The hosts the object leaves: its one host, or every host for a take of a thing in several (the take rule).
     const sourceHost = env.getCurrentHost(objectId)
     const sourceHosts = sourceHost !== undefined
         ? [sourceHost]

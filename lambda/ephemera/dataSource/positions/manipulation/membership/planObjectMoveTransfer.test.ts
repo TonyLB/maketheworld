@@ -196,7 +196,7 @@ describe('planObjectMoveTransfer', () => {
         })
     })
 
-    describe('a take of an object in several hosts (PS-8, alsoLeaving)', () => {
+    describe('a take of an object in several hosts (alsoLeaving)', () => {
         // A cup spread across the room floor and the table: a member of both.
         const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }, { tag: 'Object', universalKey: TABLE_ID }] })
         const tableGraph = testLudicGraph(TABLE_ID, {

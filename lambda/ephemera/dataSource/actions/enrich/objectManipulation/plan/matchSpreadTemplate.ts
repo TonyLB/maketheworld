@@ -25,7 +25,7 @@ function isTextToken(token: ParseToken): token is TextToken {
 /**
  * Matches a spread command (`spread X over Y`, `drape X on Y`) against the one closed shape
  * TEXT(verb) OBJECTSPAN TEXT(prep) OBJECTSPAN: the object is laid partly onto (or into) another
- * and stays where it is (PS-4). The step is the containment transfer with `keepFrom`, so the
+ * and stays where it is. The step is the containment transfer with `keepFrom`, so the
  * object's one binding gains the target's as a parent and keeps its own.
  *
  * **The naive implementation of the spread intent.** A closed phrase list is a stand-in: the LLM

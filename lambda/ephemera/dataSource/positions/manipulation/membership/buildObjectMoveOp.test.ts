@@ -74,7 +74,7 @@ describe('buildObjectMoveOp', () => {
         expect(op.dissolvedEdges).toEqual([{ hostId: TABLE, edge: { from: TRAY, to: TABLE, kind: 'On' } }])
     })
 
-    it('a take leaving several hosts (PS-8) leaves each, and strips its own containment edge in each that has one', () => {
+    it('a take leaving several hosts (the take rule) leaves each, and strips its own containment edge in each that has one', () => {
         const tableGraph = testLudicGraph(TABLE, {
             nodes: [{ tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: TRAY }],
             edges: [{ tag: 'Relational', from: TRAY, to: TABLE, kind: 'On' }],

@@ -251,7 +251,7 @@ describe('the moved fact reports only the hosts whose membership changed', () =>
     })
 })
 
-describe('a spread leaves the mover a member of both hosts (PS-4)', () => {
+describe('a spread leaves the mover a member of both hosts', () => {
     // A rug lies in the room, and is spread partly onto the table that stands there.
     const rug = 'OBJECT#Rug' as EphemeraObjectId
     const world = () => ({

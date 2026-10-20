@@ -422,7 +422,7 @@ describe('commitAttempt', () => {
         expect(putArgs).not.toHaveProperty('keepFrom')
     })
 
-    describe('an object in several hosts (PS-8)', () => {
+    describe('an object in several hosts (the take rule)', () => {
         /** Character is in ROOM; the broom is in every one of `broomHosts`. */
         const mockBroomHosts = (broomHosts: (EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId)[]) => {
             getMembershipContainersMock.mockImplementation(async (id) => (id === CHARACTER ? [ROOM] : broomHosts))

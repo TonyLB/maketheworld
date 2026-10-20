@@ -1,9 +1,9 @@
 /**
- * Payoff test for the first sharing caller, a spread (presenceParentSets Slice 7(c), (d), (f);
- * PS-4): "spread the rug over the table" lays the rug partly onto the table while it stays on the
+ * Payoff test for the first sharing caller, a spread (the contract's
+ * spread rule): "spread the rug over the table" lays the rug partly onto the table while it stays on the
  * floor, so its one presence binding sits under both the room's and the table's. Terminates at what
  * a player sees: the line narrated, `look table`, and the room header's object list. Then "take
- * rug" (Slice 7(e), PS-8) lifts it out of both hosts in one move.
+ * rug" (the crude take rule) lifts it out of both hosts in one move.
  *
  * Real, in this order, following `objectContainmentInPayoff.integration.test.ts`'s harness (see its
  * header for the conventions): `parseCommand` with its two Bedrock seams mocked, the bus crossing
@@ -283,7 +283,7 @@ describe('object spread payoff (integration)', () => {
         ])
     })
 
-    it('then a real "take rug" lifts it out of both hosts in one move (PS-8)', async () => {
+    it('then a real "take rug" lifts it out of both hosts in one move (the take rule)', async () => {
         await commit((await parse('spread the rug over the table', spreadTokens, beforeSpread)).attempt, beforeSpread)
 
         const takeResult = await parse('take rug', undefined, afterSpread)

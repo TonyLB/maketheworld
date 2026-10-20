@@ -68,7 +68,7 @@ describe('buildReferentAssignment', () => {
         expect(buildReferentAssignment(change, new Map([['trayRef', TRAY_ID]]), resolver({}))).toBeUndefined()
     })
 
-    describe('a thing in several hosts (PS-8)', () => {
+    describe('a thing in several hosts (the take rule)', () => {
         const severalHosts: DerivedReferentResolver = {
             actingCharacter: CHARACTER_ID,
             currentHost: () => undefined,

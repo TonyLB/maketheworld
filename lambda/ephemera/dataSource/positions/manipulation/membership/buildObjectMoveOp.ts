@@ -12,7 +12,7 @@ export type BuildObjectMoveOpArgs = {
     entityId: EphemeraObjectId
     /**
      * The hosts the mover leaves, each with its graph as of whenever the caller fetched it: one
-     * for most moves, several for a take of a thing in several hosts (PS-8). Each graph is used
+     * for most moves, several for a take of a thing in several hosts (the take rule). Each graph is used
      * only to find the mover's own containment edge into its root (if any), which is stripped
      * here on every move: leaving a host means leaving its containment, as entering one means
      * gaining it (`containment`). A spread (`keepFrom`) leaves nothing, so it strips nothing. No
@@ -28,7 +28,7 @@ export type BuildObjectMoveOpArgs = {
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
     /**
-     * A spread (PS-4): the mover stays in `fromHostId` and also enters `toHostId`, so its own
+     * A spread: the mover stays in `fromHostId` and also enters `toHostId`, so its own
      * containment edges stay and the op leaves no host (`froms: []`).
      */
     keepFrom?: true

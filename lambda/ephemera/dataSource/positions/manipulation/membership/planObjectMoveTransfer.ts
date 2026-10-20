@@ -20,10 +20,10 @@ export type PlanObjectMoveTransferArgs = {
     moverGroundedPresence?: readonly GroundedPresence[]
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
-    /** A spread (PS-4): the mover gains `toHostId` and stays in `fromHostId` (`resolvePresenceMoves`'s `keepFroms`). */
+    /** A spread: the mover gains `toHostId` and stays in `fromHostId` (`resolvePresenceMoves`'s `keepFroms`). */
     keepFrom?: true
     /**
-     * A take of a thing in several hosts (PS-8): the hosts besides `fromHostId` it also leaves, so
+     * A take of a thing in several hosts (the take rule): the hosts besides `fromHostId` it also leaves, so
      * it leaves every one. Deliberately crude: it does not ask how the thing came to be in several.
      */
     alsoLeaving?: readonly EphemeraMembershipHostId[]

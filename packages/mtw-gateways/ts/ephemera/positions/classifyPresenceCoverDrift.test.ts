@@ -128,7 +128,7 @@ describe('the Unplaced fixed id', () => {
     const placedBase = { ...base, fromHostPresences: [{ host: 'ROOM#b', presence: 'PRESENCE#Base' }] }
     const unplaced = { universalKey: 'PRESENCE#Unplaced', fromHostPresences: [], cover: { members: [] } }
 
-    it('accepts Unplaced beside a placed or a hostless Base (both may be hostless, F-R2)', () => {
+    it('accepts Unplaced beside a placed or a hostless Base (both may be hostless)', () => {
         expect(coverageViolationsOf(room([], [placedBase, unplaced]))).toEqual({ uncovered: [], hostlessBindings: [], badUnplaced: [] })
         expect(coverageViolationsOf(room([], [base, unplaced]))).toEqual({ uncovered: [], hostlessBindings: [], badUnplaced: [] })
     })

@@ -72,7 +72,7 @@ export type TransferMembershipChange<R extends Referent = Referent> = {
      */
     containment?: 'On' | 'In'
     /**
-     * A spread (PS-4): the object also enters `to` and stays in `from`, so its one presence
+     * A spread: the object also enters `to` and stays in `from`, so its one presence
      * binding gains `to`'s and keeps the one it has. `from` keeps its meaning (the host the object
      * is in now). Phrase-free, so the LLM Plan fallback can produce it as the closed template does.
      */

@@ -12,7 +12,7 @@ import { destinationBindingOf } from './resolvePresenceMoves'
 import { planObjectMoveTransfer } from './planObjectMoveTransfer'
 
 /**
- * PR-C5 beats 2 and 3 (presenceParentSets Slice 9, kernel half), through the real planner, compiler
+ * PR-C5 beats 2 and 3 (parent sets: one shared binding), through the real planner, compiler
  * and kernel apply, judged by the classifier the deployed `PresenceCoverDriftSweep` uses.
  *
  * The backgammon set holds ONE binding under BOTH of the steamer chest's bindings (the chest's two

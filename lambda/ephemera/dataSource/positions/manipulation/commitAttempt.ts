@@ -83,7 +83,7 @@ type ActionFragment = {
  * Positions' snapshot for grounding's derived half, read once per attempt after the hand-off:
  * every host of the acting character and of every thing the attempt refers to (`containers`),
  * and the current host of each that is in exactly one (`liveHosts`: zero or several is not a
- * current host, and a step depending on one drops, except a take, PS-8). Also serves
+ * current host, and a step depending on one drops, except a take). Also serves
  * membership's drift check below.
  */
 const readLiveHosts = async (
@@ -107,7 +107,7 @@ const readLiveHosts = async (
  * and builds (not commits) the plan via the existing `planObjectMoveTransfer`. The plan carries
  * mutation steps only: the action's lines are its narration units, delivered by the sweep.
  *
- * A take of a thing in several hosts (PS-8) leaves them all: its `from` is any one of them, and
+ * A take of a thing in several hosts (the take rule) leaves them all: its `from` is any one of them, and
  * the rest go to the planner as `alsoLeaving`.
  */
 const buildMembershipFragment = async (
