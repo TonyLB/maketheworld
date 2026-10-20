@@ -103,6 +103,8 @@ These are not cases. Each is a request that a framework might let a producer wri
 
 ### Group 4: Base, Unplaced, and fallthrough
 
+Base and Unplaced are both stored, and both may be hostless at once. The user decided this on 2026-10-19. Base holds the default contents. Unplaced is the catch-all for entries that fell out of every placed binding. Base never absorbs Unplaced. Unplaced exists only while it covers something, and Base always exists.
+
 **M9. Part of a hostless Base is placed** (PS-3(b)).
 S1: `Base{} = [X, Y]`.
 S2: `Base{} = [Y]`, `N{Q} = [X]`. **M9a**, Base placed: S1 `Base{A} = [X, Y]`, S2 `Base{A} = [Y]`, `N{Q} = [X]`. In both, Base's parents are unchanged.
@@ -117,7 +119,7 @@ S2: `Base{Q} = [X, Y]`. X is still placed, so nothing falls through and there is
 
 **M12. Base leaves its last parent while Unplaced exists** (draft O2).
 S1: `Base{Q} = [Y]`, `Unplaced{} = [Z]`.
-S2: `Base{} = [Y, Z]`, Unplaced gone.
+S2: `Base{} = [Y]`, `Unplaced{} = [Z]`. Unplaced survives, which answers draft O2 (user, 2026-10-19). The earlier S2 was `Base{} = [Y, Z]` with Unplaced gone, which is today's absorb. The evaluations of D and E below were graded against that earlier S2.
 
 ### Group 5: convergence (scrubs)
 
@@ -140,17 +142,27 @@ S2: plank `p{Hand} = [a]`; apple `a{p} = []`, one binding. **M18a** is the same 
 - **K. Today's kernel.** `movePresenceBinding` takes one binding, one `from: ParentBinding | null`, one `to`, and an optional `subCover`. A whole move replaces the parent set with `[to]` (`movePresenceBinding.ts:106`). Moved children's parent sets are overwritten with the target (`:201`). A child left with two bindings under the target is merged recursively (`:247`). `resolvePresenceMoves` is the planner.
 - **P. Parent-addressed** (the user's first proposal, 2026-10-19). `fromHostPresences[]`, optional `subCover`, `toHostPresences[]`. The listed items, or the subCover, are removed from each from-parent. A child is unplaced if and only if it has no positions left. Not evaluated case by case: the user withdrew it on two ambiguities, each of which shows in a case here. With Base under A and B, adding contents under B alone leaves it unclear which binding is Base (M9a's shape). And with identical contents under two parents, nothing says whether they join (M8).
 - **B. Binding-addressed** (the user's second proposal, 2026-10-19). `fromBindings: { presenceBindingId, presenceParents?, subCover? }[]`, and likewise `toBindings`. Not evaluated case by case. Q1 is writable in it, which led to D.
-- **D. Pairing change and content move.** The [first-iteration draft](AGENT.presenceParentSets.planning.md#move-shape-first-iteration-draft).
+- **D. Pairing change and content move.** The plan's first-iteration draft, retired 2026-10-20 in favour of F. Its open points: **O1**, which binding survives a collision; **O2**, Base going hostless while Unplaced exists (answered: no collision, Group 4); **O3**, marking a target as minted or existing; **O4**, the planner composes several steps from one read.
   - A *pairing change* edits one binding's parents (leave, gain, or both; a separation onto a named new binding) and never its own cover. A collision merges only equal covers.
   - A *content move* takes a subCover out of all of one binding, into an existing binding, a minted one with stated parents, or nowhere. It never changes a parent set, except that a minted target's parents are set.
   - The *end-state rule*: an entry is in the hostless binding if and only if no placed binding covers it.
-- **E. Parent groupings** (the user's proposal, 2026-10-19). D's two operations become one step, `{ from: ParentBinding[][], to: ParentBinding[][], subCover? }`, which names bindings by their parent sets. These rules are the corpus's reading, and the user confirmed it on 2026-10-19.
+- **E. Parent groupings** (the user's proposal, 2026-10-19). D's two operations become one step, `{ from: ParentBinding[][], to: ParentBinding[][], subCover? }`, which names bindings by their parent sets. These rules are the corpus's reading of it. The user later judged E "still probably not right" (2026-10-19), and F follows from that.
   - **E1.** Each list in `from` names one existing binding of the mover by its exact, full parent set. The invariant makes that name unique, and `[]` names the hostless binding. The match is the stale-read check.
   - **E2.** The lists in `to` are the new grouping, and no parent may appear in two of them. A parent that is in `to` but in no `from` list is gained. If a binding that the step does not name already sits under that parent, the step is refused. To join that binding, the step names it in `from`.
   - **E3. Whole step (no subCover).** The `from` bindings are replaced by one binding per `to` list, and each new binding covers the union of every `from` cover. A parent named in `to` whose view changes has that change stated by the step that names it.
   - **E4. SubCover step.** S leaves every `from` binding, and those bindings keep their parents. Each `to` list names an existing binding or a new one, and S is added to it. An empty `from` is a copy.
   - **E5.** A whole step with `to: []` removes the `from` bindings. D's end-state rule decides what falls through.
   - **E6.** A child left with several bindings under one new binding gets the same step one level down, for example from `[[p1], [p2]]` to `[[p]]`.
+- **F. Reparent, join, split** (worked out with the user, 2026-10-19). Three kernel operations, each with its natural meaning. The instruction compiler builds higher-order requests, such as "move these contents elsewhere", out of them.
+  - **Reparent.** One binding gains named parents, loses named parents, or both. Its cover does not change.
+  - **Join.** Several bindings become one. Its parents are the union of their parents, and its cover is the union of their covers. If Base is one of them, the result is Base. Otherwise, which id survives is F-O1.
+  - **Split.** One binding becomes several pieces. Each piece takes a subset of the parents and a subset of the cover. At both levels the subsets may overlap, and together they must cover the original. The step says which piece keeps the original id.
+  - **Inside a run**, the parenting invariant may be broken. Two pieces of a split may sit under one parent until a later step moves one of them.
+  - **At the end of a run:**
+    - **F-R1. Removal.** A binding with no parents, other than Base or Unplaced, is removed. Each child binding that pointed at it drops that parent. A child binding left with no other parent on this host gains `{host, Unplaced}`, and Unplaced is created if it does not exist.
+    - **F-R2. The root bindings.** Base and Unplaced are stored, and both may be hostless at once (Group 4). Unplaced is removed when empty. Base always exists.
+    - **F-R3. Collisions.** Two bindings of one host under one parent (Unplaced included) are joined, then the same rule applies one level down.
+    - **F-R4. Checks.** The parenting invariant holds. Every parent whose view at the end differs from its view at the start is named by the request (the view rule). Views are compared across the whole run, not after each step.
 
 ## Evaluation: D
 
@@ -259,6 +271,48 @@ F7 and F8 are open choices, not gaps.
 7. **Transients mostly go away.** Scrubs and unequal merges are one step, so the planner orders steps only in M5, M6 and M17. None of those widens a view.
 8. **Cost moves into the step.** A planner composing E reads the full parent set of every binding it names, and the covers of any parent it gains. The kernel computes the unions and the cascade, as K does today.
 
+## Evaluation: F
+
+Each row gives the steps the compiler would emit. "Auto" marks a join that F-R3 makes at the run's end. Gaining a parent is a reparent, so a copy of an entry into another binding is a reparent of the entry's child binding, one level down (marked "child").
+
+| Case | Steps | R | U | A | S | C |
+| --- | --- | --- | --- | --- | --- | --- |
+| M15 | Join C, C′ | ✓ | ✓ | F-O1 | ✓ | 1 |
+| M16 | Split C into `{A}:[X]`, `{B}:[X]` | ✓ | ✓ | ✓ | ✓ | 1 |
+| M17 | Split C into `{A}:[X, Y]`, `{B}:[X]`; child: Y's binding gains D | ✓ | ✓ | ✓ | F-O2 | 2 |
+| M1 | Reparent R: lose Table, gain Shelf | ✓ | ✓ | ✓ | F-O2 | 1 |
+| M2 | Reparent R: lose Table, gain Shelf; auto join with R2 | ✓ | ✓ | F-O1 | F-O2 | 1 |
+| M3 | As M2; the union is `[g, h]`, and the Shelf, which is named, gains h | ✓ | ✓ | F-O1 | F-O2 | 1 |
+| M4 | Reparent R: lose Table. Gaining the Shelf would auto-join and give RoP k, which F-R4 refuses | ✓ | ✓ | ✓ | ✓ | 1 |
+| M5 | Reparent R: lose Table; child: g's binding gains R2 | ✓ | ✓ | ✓ | F-O2 | 2 |
+| M5a | Reparent R: lose Table, gain Shelf; auto join with R2 | ✓ | ✓ | F-O1 | F-O2 | 1 |
+| M6 | Split B into `{C}:[X, Y]` (keeps B), `{A}:[Y]`, `{A}:[X]`; reparent the third: lose A, gain Q | ✓ | ✓ | ✓ | ✓ | 2 |
+| M7 | Reparent d: lose BG, gain Hand | ✓ | ✓ | ✓ | F-O2 | 1 |
+| M8 | Join BG1, BG2 | ✓ | ✓ | F-O1 | ✓ | 1 |
+| M9, M9a | Split Base into `{}:[Y]` (keeps Base), `{}:[X]` (or `{A}:…` for M9a); reparent the second: gain Q (M9a: lose A, gain Q) | ✓ | ✓ | ✓ | ✓ | 2 |
+| M10 | Reparent B: lose A. F-R1 removes B, and X's binding gains `{host, Unplaced}` | ✓ | ✓ | ✓ | ✓ | 1 |
+| M11 | As M10. X's binding still has Base, so it gains nothing | ✓ | ✓ | ✓ | ✓ | 1 |
+| M12 | Reparent Base: lose Q. F-R2 keeps both root bindings | ✓ | ✓ | ✓ | ✓ | 1 |
+| M13, M14 | Reparent p1 (lose Table or T1, gain Hand), reparent p2 (likewise); auto join | ✓ | ✓ | F-O1 | F-O2 | 2 |
+| M18, M18a | M13's steps; F-R3 then joins the apple's two bindings under p. p1 and p2 are gone at the run's end, so no surviving view changes | ✓ | ✓ | F-O1 | F-O2 | 2 |
+
+**What the evaluation shows about F.**
+
+1. **Every case reaches its S2.** The two-step cases are those where part of a binding regroups (M5, M6, M9, M9a, M17) and the scrubs (M13, M14, M18).
+2. **A copy is a reparent one level down.** An entry that is added to a binding is a child binding that gains a parent (M5, M17). Moving content needs no operation of its own in the kernel. It is a compiler-level operation.
+3. **There is no mint.** A binding under a new parent comes from a split followed by a reparent (M6, M9). The split's temporary violation (two pieces under A in M6) is what makes that possible without a hostless piece.
+4. **Removal is stated** (F-R1), which closes D's F3 and E-F3. M11 is no longer K's wrong write.
+5. **The view rule does the work of D's equal-cover rule.** M4 and M5 refuse the join that gaining the Shelf would cause. M3 and M5a allow it, because only the named Shelf's view changes. Q2 is writable, and is legal if the request names both chests.
+6. **Q1 is writable as steps and refused at the run's end** by the parenting invariant.
+7. **Base gets no special case apart from naming.** It wins any join, and a split says which piece keeps it.
+
+**What F still owes.**
+
+- **F-O1. Which id survives an ordinary join** (draft O1).
+- **F-O2. Stale-safety of gains.** An auto join under a gained parent can merge a binding that appeared after the producer's read. The view rule catches this only when an unnamed view changes. This is D's F5 again. One candidate is for a gain to state the bindings it expects to collide with.
+- **F-O3. Where the view rule is checked, and what "named" means.** The compiler can check it, but the kernel must then verify the covers the compiler read, so that a stale read is a refusal.
+- **F-O4. The request shape** that the compiler accepts for higher-order operations, and how a request states the pieces of a split.
+
 ## Evaluation: K (baseline)
 
 Partial: K is the code Slice 4 replaces. It is graded so the corpus records what changes.
@@ -268,7 +322,7 @@ Partial: K is the code Slice 4 replaces. It is graded so the corpus records what
 - **M15 and M8** are unreachable: no step adds a parent without replacing the set.
 - **M9, M9a and M10** are reached.
 - **M11 is a wrong write.** K mints `Unplaced = [X]` beside a Base that still covers X, and overwrites X's child binding's parent set with `{Unplaced}` (`:201`). Base's cover then names a child that no longer points back.
-- **M12** is reached: Base absorbs Unplaced (`:139`).
+- **M12 is a different write.** Base absorbs Unplaced (`:139`), but S2 keeps Unplaced. K reached the earlier S2.
 - **M13** is reached in one planner call: two moves, then the recursive merge.
 - **M18 and M18a** are reached in one planner call. The recursive merge (`:247`) unions the apple's two bindings whether or not their covers are equal, and `cascadeHostsOf` names the apple's host for the lock.
 - **M14** is refused, `moverBindingAmbiguous`, unless `moverGroundedPresence` narrows to one binding. Narrowed, it moves one binding and leaves the plank under the other.
