@@ -12,10 +12,11 @@ export type BuildObjectMoveOpArgs = {
     entityId: EphemeraObjectId
     /**
      * The departure host's graph, as of whenever the caller fetched it. Used only to find the
-     * mover's own containment edge into this graph's root (if any), which is stripped here
-     * unconditionally: leaving a host means leaving its containment, as entering one means
-     * gaining it (`containment`). No other edge is dissolved here. A boundary edge's dissolve
-     * is a facilitating action the command attempt states explicitly, and the commit path
+     * mover's own containment edge into this graph's root (if any), which is stripped here on
+     * every move: leaving a host means leaving its containment, as entering one means gaining it
+     * (`containment`). A spread (`keepFrom`) leaves nothing, so it strips nothing. No other edge
+     * is dissolved here. A boundary edge's dissolve is a facilitating action the command attempt
+     * states explicitly, and the commit path
      * commits it as a sibling of this op; one the attempt does not cover is left in place for
      * `applyDeparture` to report as `repairable`, and the move is refused.
      */
@@ -26,6 +27,11 @@ export type BuildObjectMoveOpArgs = {
     presenceSteps: readonly MutationKernelStep[]
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
+    /**
+     * A spread (PS-4): the mover stays in `fromHostId` and also enters `toHostId`, so its own
+     * containment edge stays and the op leaves no host (`froms: []`).
+     */
+    keepFrom?: true
 }
 
 /**
@@ -51,17 +57,17 @@ export type BuildObjectMoveOpArgs = {
  * it, so the move names one entity.
  *
  * `dissolvedEdges` is derived here from `fromGraph`, not handed in pre-computed by the caller: it
- * holds only the mover's own containment edge. See `fromGraph`'s own doc comment above for why
- * boundary edges are not folded in.
+ * holds only the mover's own containment edge, and nothing on a spread. See `fromGraph`'s own doc
+ * comment above for why boundary edges are not folded in.
  */
 export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMoveOp => {
-    const ownRootContainmentEdge = findOwnRootContainmentEdge(args.entityId, args.fromGraph)
+    const ownRootContainmentEdge = args.keepFrom ? undefined : findOwnRootContainmentEdge(args.entityId, args.fromGraph)
     const dissolvedEdges: HostRelationalEdge[] = ownRootContainmentEdge ? [ownRootContainmentEdge] : []
 
     return {
         kind: 'move',
         moved: args.entityId,
-        froms: [args.fromHostId],
+        froms: args.keepFrom ? [] : [args.fromHostId],
         to: args.toHostId,
         header: null,
         presenceSteps: args.presenceSteps,

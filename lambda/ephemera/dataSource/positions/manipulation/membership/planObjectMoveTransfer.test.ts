@@ -153,6 +153,49 @@ describe('planObjectMoveTransfer', () => {
         })
     })
 
+    describe('spread (keepFrom)', () => {
+        it('a cup on one tray spread onto a second: no strip of its edge on the first, an establish into the second, and a gain-only reparent', async () => {
+            const tray1Graph = testLudicGraph(TRAY_ID, {
+                nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID }, presenceBindingNode('Base', ROOM_ID, { members: [{ host: CUP_ID, presence: PresenceKey('cup-on-tray') as any }] })],
+                edges: [{ tag: 'Relational', from: CUP_ID, to: TRAY_ID, kind: 'On' }],
+            })
+            const tray2Graph = testLudicGraph(TRAY2_ID, { nodes: [{ tag: 'Object', universalKey: TRAY2_ID }, presenceBindingNode('Base', ROOM_ID)], edges: [] })
+            const cupGraph = testLudicGraph(CUP_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }, trayBinding('cup-on-tray', TRAY_ID)] })
+            const getGraph = worldOf({ [TRAY_ID]: tray1Graph, [TRAY2_ID]: tray2Graph, [CUP_ID]: cupGraph })
+
+            const result = await planObjectMoveTransfer({
+                entityId: CUP_ID,
+                fromHostId: TRAY_ID,
+                toHostId: TRAY2_ID,
+                containment: 'On',
+                keepFrom: true,
+                getGraph,
+            })
+
+            if (!result.ok) { throw new Error(result.errorCode) }
+            expect(result.plan.steps.some((step) => step.kind === 'dissolveRelation')).toBe(false)
+            expect(result.plan.steps).toEqual([
+                { kind: 'reparentPresenceBinding', hostId: CUP_ID, presence: PresenceKey('cup-on-tray'), gain: [{ host: TRAY2_ID, presence: PresenceKey('Base') }] },
+                expect.objectContaining({ kind: 'establishRelation', subjectId: CUP_ID, targetId: TRAY2_ID, hostId: TRAY2_ID, relationKind: 'On' }),
+            ])
+        })
+
+        it('still refuses a containment cycle', async () => {
+            const getGraph = jest.fn(async (hostId: string): Promise<EphemeraLudicGraph> => testLudicGraph(hostId as EphemeraObjectId))
+
+            const result = await planObjectMoveTransfer({
+                entityId: TRAY_ID,
+                fromHostId: ROOM_ID,
+                toHostId: TRAY_ID,
+                containment: 'On',
+                keepFrom: true,
+                getGraph,
+            })
+
+            expect(result).toEqual({ ok: false, errorCode: 'containmentCycle' })
+        })
+    })
+
     describe('containment cycle (AB-63)', () => {
         it('refuses putting the tray on a cup that is already on the tray, before reading any departure graph', async () => {
             const cupGraph = testLudicGraph(CUP_ID, {

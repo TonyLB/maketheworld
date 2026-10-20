@@ -20,6 +20,8 @@ export type PlanObjectMoveTransferArgs = {
     moverGroundedPresence?: readonly GroundedPresence[]
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
+    /** A spread (PS-4): the mover gains `toHostId` and stays in `fromHostId` (`resolvePresenceMoves`'s `keepFroms`). */
+    keepFrom?: true
     /** injectable for test seams only. */
     getGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 }
@@ -30,8 +32,8 @@ export type PlanObjectMoveTransferResult =
 
 /**
  * Take/drop/give's `plan*`-tier stage: refuses a containment cycle, then builds and compiles the
- * move's own plan --- the transfer, the mover's own containment-edge strip, and (with
- * `containment`) the establish into the new host. Reads, never writes.
+ * move's own plan --- the transfer, the mover's own containment-edge strip (not on a spread,
+ * `keepFrom`), and (with `containment`) the establish into the new host. Reads, never writes.
  *
  * It does not dry-run, and derives no boundary-edge dissolve. Those dissolves are the command
  * attempt's own facilitating actions, committed as sibling fragments, so this fragment alone
@@ -59,6 +61,7 @@ export const planObjectMoveTransfer = async (
         to: args.toHostId,
         ...(args.toGroundedPresence ? { toGroundedPresence: args.toGroundedPresence } : {}),
         ...(args.moverGroundedPresence ? { moverGroundedPresence: args.moverGroundedPresence } : {}),
+        ...(args.keepFrom ? { keepFroms: true as const } : {}),
         getGraph,
     })
     if (!resolved.ok) {
@@ -72,6 +75,7 @@ export const planObjectMoveTransfer = async (
         toHostId: args.toHostId,
         presenceSteps: resolved.steps,
         ...(args.containment ? { containment: args.containment } : {}),
+        ...(args.keepFrom ? { keepFrom: true as const } : {}),
     }
 
     const plan = compilePositionKernelOp(buildObjectMoveOp(buildArgs))

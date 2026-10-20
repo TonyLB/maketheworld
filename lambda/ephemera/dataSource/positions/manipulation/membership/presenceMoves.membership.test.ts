@@ -250,3 +250,38 @@ describe('the moved fact reports only the hosts whose membership changed', () =>
         expect(membershipChangesOf([sameHost], prior, final)).toEqual([])
     })
 })
+
+describe('a spread leaves the mover a member of both hosts (PS-4)', () => {
+    // A rug lies in the room, and is spread partly onto the table that stands there.
+    const rug = 'OBJECT#Rug' as EphemeraObjectId
+    const world = () => ({
+        [roomA]: testLudicGraph(roomA, { nodes: [
+            { tag: 'Object', universalKey: rug },
+            { tag: 'Object', universalKey: table },
+            presenceBindingNode(parentRemainderKey(roomA), undefined, { members: [{ host: rug, presence: presence('rug') }, { host: table, presence: presence('Base') }] }),
+        ] }),
+        [table]: testLudicGraph(table, { nodes: [{ tag: 'Object', universalKey: table }, presenceBindingNode('Base', roomA)] }),
+        [rug]: testLudicGraph(rug, { nodes: [{ tag: 'Object', universalKey: rug }, presenceBindingNode('rug', roomA)] }),
+    })
+
+    it('holds the rug in the room and on the table, under one binding, with its On edge on the table', async () => {
+        const before = world()
+        const planned = await planObjectMoveTransfer({ entityId: rug, fromHostId: roomA, toHostId: table, containment: 'On', keepFrom: true, getGraph: worldOf(before) })
+        if (!planned.ok) { throw new Error(`expected a plan, got ${planned.errorCode}`) }
+        const steps = planned.plan.steps.filter(isKernelMutationStep)
+        const prior = new Map(Object.entries(before) as [EphemeraMembershipHostId, EphemeraLudicGraph][])
+        const after = apply(steps, before)
+
+        expect(after.get(roomA)!.nodeIds.has(rug)).toBe(true)
+        expect(after.get(table)!.nodeIds.has(rug)).toBe(true)
+        expect(after.get(rug)!.presenceNodes.map(({ universalKey }) => universalKey)).toEqual([presence('rug')])
+        expect(after.get(table)!.relationalEdges).toEqual([expect.objectContaining({ from: rug, to: table, kind: 'On' })])
+
+        const changes = membershipChangesOf(steps, prior, after)
+        expect(changes).toEqual([expect.objectContaining({ entityId: rug, left: [], arrived: [table] })])
+        expect(movedFactsFor(changes[0], 1)).toEqual([expect.objectContaining({ type: 'Object Moved', froms: [], to: table })])
+
+        const verdict = classifyPresenceCoverDrift(viewOf(after.get(rug)!), (id) => after.has(id as EphemeraMembershipHostId) ? viewOf(after.get(id as EphemeraMembershipHostId)!) : undefined)
+        expect(verdict.findings).toEqual([])
+    })
+})

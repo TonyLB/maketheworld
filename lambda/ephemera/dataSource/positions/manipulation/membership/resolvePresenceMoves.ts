@@ -26,6 +26,11 @@ export type ResolvePresenceMovesArgs = {
      * bindings of a table) is told apart by binding. Absent, the host alone must be enough.
      */
     moverGroundedPresence?: readonly GroundedPresence[]
+    /**
+     * A spread (PS-4): the mover gains `to` and keeps its parents on the `from` hosts, so its binding
+     * sits under both. Absent, a move: the parents on the `from` hosts are lost.
+     */
+    keepFroms?: true
     getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 }
 
@@ -233,6 +238,9 @@ export const partMoveSteps = (args: {
  *   Covers are never compared.
  * - **A mover with none** (a first placement, a connect, or a legacy whole) gains the destination for its
  *   hostless binding; if it holds no hostless binding, a Base is minted ahead of the reparent.
+ * - **A spread** (`keepFroms`) is the same with nothing lost: the binding gains the destination and keeps
+ *   its parents on the `from` hosts, and the same joins follow. A mover with no binding under a `from`
+ *   host gains that host's binding too, so it ends under both rather than under the destination alone.
  */
 export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Promise<ResolvedPresenceMoves> => {
     const hostId = args.moved
@@ -279,16 +287,28 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
     const movers = named.length > 0 ? named : hostless ? [hostless] : []
     const moverIds = new Set(movers.map(({ universalKey }) => universalKey))
 
+    // A spread from a mover with no binding under a `from` host keeps it there by gaining that host's binding.
+    const kept: ParentBinding[] = []
+    if (args.keepFroms && named.length === 0) {
+        for (const fromHostId of args.froms) {
+            const fromBinding = destinationBindingOf(await args.getGraph(fromHostId), undefined)
+            if ('errorCode' in fromBinding) {
+                return { ok: false, errorCode: fromBinding.errorCode }
+            }
+            kept.push({ host: fromHostId, presence: fromBinding.presence })
+        }
+    }
+
     const mintedId = PresenceKey('Base') as EphemeraPresenceNodeId
     const reparents = (mintsBase ? [{ universalKey: mintedId, lose: [] as ParentBinding[] }] : movers.map((node) => ({
         universalKey: node.universalKey,
-        lose: parentsOf(node).filter(({ host }) => args.froms.includes(host)),
+        lose: args.keepFroms ? [] : parentsOf(node).filter(({ host }) => args.froms.includes(host)),
     }))).map(({ universalKey, lose }): MutationKernelStep => ({
         kind: 'reparentPresenceBinding',
         hostId,
         presence: universalKey,
         ...(lose.length > 0 ? { lose } : {}),
-        gain: [to],
+        gain: [...kept, to],
     }))
 
     const existing = moverGraph.presenceNodes.filter((node) => !moverIds.has(node.universalKey) && bindingHasParent(node, to))
@@ -296,7 +316,7 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
     const joins: MutationKernelStep[] = []
     if (under.length > 1) {
         const survivor = under.find(({ universalKey }) => universalKey === BASE_PRESENCE_ID) ?? existing[0] ?? movers[0]
-        joins.push(...await joinStepsFor(args.getGraph, hostId, survivor, under.filter((node) => node !== survivor), [to]))
+        joins.push(...await joinStepsFor(args.getGraph, hostId, survivor, under.filter((node) => node !== survivor), [...kept, to]))
     }
     return {
         ok: true,

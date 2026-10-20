@@ -8,8 +8,8 @@ import type { EphemeraLudicGraph } from '../../ludicGraph'
  * On/In/PartOf). It would otherwise hit `classifyInteractionUnderTransfer`'s hosting-kind throw ---
  * a correct invariant for every other shape reaching it, but not for the mover's own edge into the
  * host it is leaving. Extracted from `executeMembershipTransfer`'s former `honorDefer` block
- * (3d, 2026-09-08) so `buildObjectMoveOp` can strip it unconditionally rather than only when a
- * caller opted into a flag.
+ * (3d, 2026-09-08) so `buildObjectMoveOp` can strip it on every move rather than only when a
+ * caller opted into a flag. A spread, which leaves no host, keeps it.
  */
 export const findOwnRootContainmentEdge = (
     entityId: EphemeraObjectId,
