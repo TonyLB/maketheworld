@@ -1,4 +1,4 @@
-import { BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -6,6 +6,8 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { ParentBinding } from '../../ludicGraph/presenceParent'
 import { bindingHasParent, parentOf } from '../../ludicGraph/presenceParent'
+import { UNPLACED_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { dropEmptyUnplaced, releaseChildren, withEntries, withoutEntries } from './endOfRunRules'
 import { isBystanderMove } from './bystander'
 import type { MutationKernelMovePresenceBindingStep } from './kernelStep'
 
@@ -17,22 +19,96 @@ const sameEntry = (a: EphemeraPresenceCoverEntry, b: EphemeraPresenceCoverEntry)
 const hasEntry = (cover: EphemeraPresenceCover, entry: EphemeraPresenceCoverEntry): boolean => entriesOf(cover).some((existing) => sameEntry(existing, entry))
 const pointsAt = bindingHasParent
 
-/** Plain copies throughout: the cover is retained in the graph past the reducer's return. */
-export const withEntries = (cover: EphemeraPresenceCover, add: readonly EphemeraPresenceCoverEntry[]): EphemeraPresenceCover => ({
-    members: [
-        ...cover.members.map((member) => ({ ...member })),
-        ...add.filter((entry) => !hasEntry(cover, entry)).map((entry) => ({ ...entry })),
-    ],
-})
-export const withoutEntries = (cover: EphemeraPresenceCover, remove: readonly EphemeraPresenceCoverEntry[]): EphemeraPresenceCover => ({
-    members: cover.members.filter((member) => !remove.some((entry) => sameEntry(entry, member))).map((member) => ({ ...member })),
-})
+export { withEntries, withoutEntries }
 
 /** Whether two covers name the same entries. */
 const sameCover = (a: EphemeraPresenceCover, b: EphemeraPresenceCover): boolean => {
     const entriesA = entriesOf(a)
     const entriesB = entriesOf(b)
     return entriesA.length === entriesB.length && entriesA.every((entry) => hasEntry(b, entry))
+}
+
+/** Writes a parent binding's cover (the index of its children). A bystander's parent is a room graph the move never touches. */
+const writeParentCover = (
+    next: Graphs,
+    hostId: EphemeraMembershipHostId,
+    parent: ParentBinding,
+    change: (cover: EphemeraPresenceCover) => EphemeraPresenceCover
+): { reasonCode: string } | undefined => {
+    if (isBystanderMove(hostId, parent.host)) {
+        return undefined
+    }
+    const parentGraph = next.get(parent.host)
+    if (!parentGraph) {
+        return { reasonCode: 'hostNotInFootprint' }
+    }
+    const parentBinding = parentGraph.presenceNodes.find(({ universalKey }) => universalKey === parent.presence)
+    if (!parentBinding) {
+        // A vanished parent binding has no index to correct; drift owns it.
+        return undefined
+    }
+    next.set(parent.host, parentGraph.replacePresenceNode({ ...parentBinding, cover: change(parentBinding.cover) }))
+    return undefined
+}
+
+/**
+ * A move to no parent (F-R1, F-R2). Nothing lands anywhere by itself: the entries leave the binding,
+ * and each child binding drops it as a parent and falls through to Unplaced only if no other parent
+ * on the host still covers it (`releaseChildren`). A whole binding other than Base is then left with
+ * no parent and is removed; Base is never removed, it just becomes hostless, and Unplaced stays a
+ * binding of its own. A binding that is already hostless has nowhere further to go.
+ */
+const departFromParent = (
+    graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>,
+    step: MutationKernelMovePresenceBindingStep,
+    node: Binding,
+    wholeMove: boolean,
+    moved: readonly EphemeraPresenceCoverEntry[]
+): { graphs: Graphs } | { reasonCode: string } => {
+    const graph = graphs.get(step.hostId)!
+    if (!graph.presenceNodes.some(({ universalKey }) => universalKey === BASE_PRESENCE_ID)) {
+        // A whole holds Base from creation on (stored data was migrated); without one the producer's read is stale.
+        return { reasonCode: 'baseMissing' }
+    }
+    const parent = parentOf(node)
+    if (!parent) {
+        return { graphs: new Map(graphs) }
+    }
+    const isBase = node.universalKey === BASE_PRESENCE_ID
+    let result: Graphs = new Map(graphs).set(step.hostId, wholeMove
+        ? (isBase ? graph.replacePresenceNode({ ...node, fromHostPresences: [] }) : graph.removePresenceNode(node.universalKey))
+        : graph.replacePresenceNode({ ...node, cover: withoutEntries(node.cover, moved) })
+    )
+    let collisions: EphemeraPresenceCoverEntry[] = []
+    if (!(wholeMove && isBase)) {
+        const released = releaseChildren(result, step.hostId, node.universalKey, moved)
+        if ('reasonCode' in released) {
+            return released
+        }
+        result = released.graphs
+        collisions = released.collisions
+    }
+    if (wholeMove) {
+        const failure = writeParentCover(result, step.hostId, parent, (cover) => withoutEntries(cover, [{ host: step.hostId as EphemeraPresenceCoverEntry['host'], presence: node.universalKey }]))
+        if (failure) {
+            return failure
+        }
+    }
+    const under: ParentBinding = { host: step.hostId, presence: UNPLACED_PRESENCE_ID }
+    for (const collision of collisions) {
+        const merged = movePresenceBinding(result, {
+            kind: 'movePresenceBinding',
+            hostId: collision.host as EphemeraMembershipHostId,
+            presence: collision.presence,
+            from: under,
+            to: under,
+        })
+        if ('reasonCode' in merged) {
+            return merged
+        }
+        result = merged.graphs
+    }
+    return { graphs: dropEmptyUnplaced(result, step.hostId) }
 }
 
 /**
@@ -44,9 +120,10 @@ const sameCover = (a: EphemeraPresenceCover, b: EphemeraPresenceCover): boolean 
  * A child left holding two bindings under the receiving binding has them merged by this same move,
  * one level down; it ends because the host graph is a DAG.
  *
- * How the parenting of Base changes when part of its cover moves is deliberately the generic answer
- * (a part moved out of a hostless Base mints a binding at the destination and leaves Base hostless);
- * stating it explicitly is owed to the parent-sets work (PR-25).
+ * A move to no parent is `departFromParent`, the end-of-run rules F-R1 and F-R2 applied to this move
+ * (`endOfRunRules.ts` holds the pieces). How the parenting of Base changes when part of its cover
+ * moves is deliberately the generic answer (a part moved out of a hostless Base mints a binding at
+ * the destination and leaves Base hostless); stating it explicitly is owed to the parent-sets work.
  */
 export const movePresenceBinding = (
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>,
@@ -81,109 +158,74 @@ export const movePresenceBinding = (
         }
     }
 
+    if (step.to === null) {
+        return departFromParent(graphs, step, node, wholeMove, moved)
+    }
+    const to = step.to
+
     // The destination parent's binding must exist, except for a bystander, whose room is not in the footprint.
-    const bystanderTo = step.to !== null && isBystanderMove(step.hostId, step.to.host)
-    if (step.to !== null && !bystanderTo) {
-        const destination = graphs.get(step.to.host)
+    if (!isBystanderMove(step.hostId, to.host)) {
+        const destination = graphs.get(to.host)
         if (!destination) {
             return { reasonCode: 'hostNotInFootprint' }
         }
-        if (!destination.presenceNodes.some(({ universalKey }) => universalKey === step.to!.presence)) {
+        if (!destination.presenceNodes.some(({ universalKey }) => universalKey === to.presence)) {
             return { reasonCode: 'destinationBindingMissing' }
         }
     }
 
-    // Resolve the binding that will hold the moved entries (`target`), and what else merges into it.
+    // Resolve the binding that will hold the moved entries (`target`).
     let target: Binding
     let mintedTarget = false
-    const absorbed: Binding[] = []
-    if (step.to !== null) {
-        const existing = graph.presenceNodes.find((candidate) => candidate.universalKey !== node.universalKey && pointsAt(candidate, step.to!))
-        if (existing) {
-            target = existing
-        }
-        else if (wholeMove) {
-            target = { ...node, fromHostPresences: [{ host: step.to.host, presence: step.to.presence }] }
-        }
-        else {
-            if (!step.mintedPresence) {
-                return { reasonCode: 'moveMintMissing' }
-            }
-            if (graph.presenceNodes.some(({ universalKey }) => universalKey === step.mintedPresence)) {
-                return { reasonCode: 'moveIdCollision' }
-            }
-            target = {
-                tag: 'Presence',
-                universalKey: step.mintedPresence,
-                fromHostPresences: [{ host: step.to.host, presence: step.to.presence }],
-                cover: { members: [] },
-            }
-            mintedTarget = true
-        }
+    const existing = graph.presenceNodes.find((candidate) => candidate.universalKey !== node.universalKey && pointsAt(candidate, to))
+    if (existing) {
+        target = existing
+    }
+    else if (wholeMove) {
+        target = { ...node, fromHostPresences: [{ host: to.host, presence: to.presence }] }
     }
     else {
-        const base = graph.presenceNodes.find(({ universalKey }) => universalKey === BASE_PRESENCE_ID)
-        const unplaced = graph.presenceNodes.find(({ universalKey }) => universalKey === UNPLACED_PRESENCE_ID)
-        if (!base) {
-            // A whole holds Base from creation on (stored data was migrated); a move to no
-            // parent has nowhere to land without one, so the producer's read is stale.
-            return { reasonCode: 'baseMissing' }
+        if (!step.mintedPresence) {
+            return { reasonCode: 'moveMintMissing' }
         }
-        if (node.universalKey === BASE_PRESENCE_ID) {
-            if (!wholeMove) {
-                // Part of a hostless Base moved to no parent is where it already is.
-                return { graphs: new Map(graphs) }
-            }
-            target = { ...node, fromHostPresences: [] }
-            if (unplaced) {
-                absorbed.push(unplaced)
-            }
+        if (graph.presenceNodes.some(({ universalKey }) => universalKey === step.mintedPresence)) {
+            return { reasonCode: 'moveIdCollision' }
         }
-        else if (!parentOf(base)) {
-            target = base
+        target = {
+            tag: 'Presence',
+            universalKey: step.mintedPresence,
+            fromHostPresences: [{ host: to.host, presence: to.presence }],
+            cover: { members: [] },
         }
-        else if (unplaced) {
-            target = unplaced
-        }
-        else {
-            target = { tag: 'Presence', universalKey: UNPLACED_PRESENCE_ID, fromHostPresences: [], cover: { members: [] } }
-            mintedTarget = true
-        }
+        mintedTarget = true
     }
 
     const targetIsNode = target.universalKey === node.universalKey
-    const absorbedEntries = absorbed.flatMap((binding) => entriesOf(binding.cover))
-    const arrivals = [...moved.map((entry) => ({ entry, from: node.universalKey })), ...absorbedEntries.map((entry) => ({ entry, from: UNPLACED_PRESENCE_ID }))]
 
     // The whole's own graph: the target takes the entries, the source gives them up (or goes).
     let nextHost = graph
     if (targetIsNode) {
         nextHost = nextHost.replacePresenceNode({
             ...target,
-            cover: withEntries(target.cover, absorbedEntries),
+            cover: target.cover,
         })
     }
     else {
-        const targetCover = withEntries(target.cover, arrivals.map(({ entry }) => entry))
+        const targetCover = withEntries(target.cover, moved)
         const nextTarget = { ...target, cover: targetCover }
         nextHost = mintedTarget ? nextHost.addPresenceNode(nextTarget) : nextHost.replacePresenceNode(nextTarget)
         nextHost = wholeMove
             ? nextHost.removePresenceNode(node.universalKey)
             : nextHost.replacePresenceNode({ ...node, cover: withoutEntries(node.cover, moved) })
     }
-    for (const binding of absorbed) {
-        nextHost = nextHost.removePresenceNode(binding.universalKey)
-    }
     const next: Graphs = new Map(graphs)
     next.set(step.hostId, nextHost)
 
     // Children: each moved entry names a child binding, now covered by the target.
     const collisions: { host: EphemeraMembershipHostId; presence: EphemeraPresenceNodeId }[] = []
-    if (!targetIsNode || absorbed.length > 0) {
-        for (const { entry, from } of arrivals) {
-            if (targetIsNode && from === node.universalKey) {
-                continue
-            }
+    if (!targetIsNode) {
+        for (const entry of moved) {
+            const from = node.universalKey
             const childHost = entry.host as EphemeraMembershipHostId
             const childGraph = next.get(childHost)
             if (!childGraph) {
@@ -208,34 +250,18 @@ export const movePresenceBinding = (
     }
 
     // The cover index: the entry for this whole's binding leaves its old parent and arrives at its new one.
-    const writeParentCover = (parent: ParentBinding, change: (cover: EphemeraPresenceCover) => EphemeraPresenceCover): { reasonCode: string } | undefined => {
-        if (isBystanderMove(step.hostId, parent.host)) {
-            return undefined
-        }
-        const parentGraph = next.get(parent.host)
-        if (!parentGraph) {
-            return { reasonCode: 'hostNotInFootprint' }
-        }
-        const parentBinding = parentGraph.presenceNodes.find(({ universalKey }) => universalKey === parent.presence)
-        if (!parentBinding) {
-            // A vanished parent binding has no index to correct; drift owns it.
-            return undefined
-        }
-        next.set(parent.host, parentGraph.replacePresenceNode({ ...parentBinding, cover: change(parentBinding.cover) }))
-        return undefined
-    }
     // A part move leaves its source binding where it is, so only a whole move changes the source's entry.
     const nodeParent = parentOf(node)
     const targetParent = parentOf(target)
     const leaving = wholeMove && (!targetIsNode || nodeParent?.host !== targetParent?.host || nodeParent?.presence !== targetParent?.presence)
     if (nodeParent && leaving) {
-        const failure = writeParentCover(nodeParent, (cover) => withoutEntries(cover, [{ host: step.hostId as EphemeraPresenceCoverEntry['host'], presence: node.universalKey }]))
+        const failure = writeParentCover(next, step.hostId, nodeParent, (cover) => withoutEntries(cover, [{ host: step.hostId as EphemeraPresenceCoverEntry['host'], presence: node.universalKey }]))
         if (failure) {
             return failure
         }
     }
     if (targetParent) {
-        const failure = writeParentCover(targetParent, (cover) => withEntries(cover, [{ host: step.hostId as EphemeraPresenceCoverEntry['host'], presence: target.universalKey }]))
+        const failure = writeParentCover(next, step.hostId, targetParent, (cover) => withEntries(cover, [{ host: step.hostId as EphemeraPresenceCoverEntry['host'], presence: target.universalKey }]))
         if (failure) {
             return failure
         }
@@ -257,5 +283,5 @@ export const movePresenceBinding = (
         }
         result = merged.graphs
     }
-    return { graphs: result }
+    return { graphs: dropEmptyUnplaced(result, step.hostId) }
 }

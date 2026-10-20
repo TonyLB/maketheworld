@@ -321,8 +321,8 @@ Partial: K is the code Slice 4 replaces. It is graded so the corpus records what
 - **M7** is reached: d has one parent.
 - **M15 and M8** are unreachable: no step adds a parent without replacing the set.
 - **M9, M9a and M10** are reached.
-- **M11 is a wrong write.** K mints `Unplaced = [X]` beside a Base that still covers X, and overwrites X's child binding's parent set with `{Unplaced}` (`:201`). Base's cover then names a child that no longer points back.
-- **M12 is a different write.** Base absorbs Unplaced (`:139`), but S2 keeps Unplaced. K reached the earlier S2.
+- **M11 was a wrong write (fixed by Slice 4, 2026-10-20).** K mints `Unplaced = [X]` beside a Base that still covers X, and overwrites X's child binding's parent set with `{Unplaced}` (`:201`). Base's cover then names a child that no longer points back.
+- **M12 was a different write (fixed by Slice 4, 2026-10-20).** Base absorbs Unplaced (`:139`), but S2 keeps Unplaced. K reached the earlier S2.
 - **M13** is reached in one planner call: two moves, then the recursive merge.
 - **M18 and M18a** are reached in one planner call. The recursive merge (`:247`) unions the apple's two bindings whether or not their covers are equal, and `cascadeHostsOf` names the apple's host for the lock.
 - **M14** is refused, `moverBindingAmbiguous`, unless `moverGroundedPresence` narrows to one binding. Narrowed, it moves one binding and leaves the plank under the other.

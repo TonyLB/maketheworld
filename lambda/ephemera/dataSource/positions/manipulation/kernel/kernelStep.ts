@@ -139,10 +139,12 @@ export type PresenceBindingRef = ParentBinding
  * - **A `subCover` part**: only those entries move, to the mover's binding under `to` or to a new one
  *   (`mintedPresence`, minted by the producer so a later step can name it). The source binding stays,
  *   even with an empty cover. Every entry must be listed by the source's cover.
- * - **To no parent**: the entries land in `PRESENCE#Base` if it is hostless, else in
- *   `PRESENCE#Unplaced` (minted if absent). Base moved to no parent absorbs Unplaced. A whole holding
- *   no Base is `stale` (`baseMissing`): every whole holds Base from creation on, and stored data was
- *   migrated to it.
+ * - **To no parent** (end-of-run rules F-R1, F-R2): nothing lands by itself. The entries leave the
+ *   binding; each child binding drops it as a parent and, if no other parent on the host covers it,
+ *   falls through to `PRESENCE#Unplaced` (minted if absent). A whole binding other than Base is left
+ *   with no parent and is removed; Base becomes hostless and never absorbs Unplaced; Unplaced is
+ *   removed when it empties. A whole holding no Base is `stale` (`baseMissing`): every whole holds
+ *   Base from creation on, and stored data was migrated to it.
  * - **Children re-point, and collisions merge.** Each moved entry is a child's binding, re-pointed to
  *   the binding that now covers it; a child left holding two bindings under it has them merged by
  *   this same move one level down.

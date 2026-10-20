@@ -411,7 +411,7 @@ export const applyStepSequenceCore = (
     // split produces them, a pair of moves to one parent produces them before a join), and no run may
     // leave them behind. Checks only graphs this run wrote, so duplicates already in storage do not
     // make an unrelated run throw. A hostless binding has no pointer, so names no binding to collide on
-    // here; the coverage invariant below is its case (a host has at most one binding under "no parent").
+    // here; the coverage invariant below is its case (a host's hostless bindings are Base and Unplaced).
     // A violation is a caller bug (a missing join), not a verdict, like the character check above.
     // Also at the end of the run, because a split of a hostless binding passes through two hostless
     // bindings.
@@ -433,13 +433,13 @@ export const applyStepSequenceCore = (
         if (hostlessBindings.length) {
             throw new Error(
                 `applyStepSequenceCore: ${hostId} would carry ${hostlessBindings.length} hostless bindings (${hostlessBindings.join(', ')}) --- ` +
-                `a host has at most one binding with no parent.`
+                `a host's hostless bindings are Base and Unplaced and nothing else.`
             )
         }
         if (badUnplaced.length) {
             throw new Error(
                 `applyStepSequenceCore: ${hostId} would carry ${badUnplaced.join(', ')} --- ` +
-                `Unplaced has no parent and exists only while Base has one.`
+                `Unplaced has no parent.`
             )
         }
         const presencesByParentHost = graph.presenceNodes.flatMap(parentsOf).reduce<Record<string, string[]>>((accumulator, parent) => (

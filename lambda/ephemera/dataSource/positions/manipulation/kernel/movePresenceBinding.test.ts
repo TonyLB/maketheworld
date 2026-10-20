@@ -180,7 +180,7 @@ describe('movePresenceBinding', () => {
             expect(bindingOf(after, roomB, BASE_PRESENCE_ID)!.cover).toEqual(cover())
         })
 
-        it('lands in Base when Base is hostless', () => {
+        it('falls through to Unplaced beside a hostless Base, which never absorbs it (F-R1, F-R2)', () => {
             const hostlessBase = worldOf(
                 roomBase(roomB, entry(table, 't-1')),
                 testLudicGraph(table, { nodes: [
@@ -193,9 +193,57 @@ describe('movePresenceBinding', () => {
 
             const after = run(hostlessBase, move({ hostId: table, presence: id('t-1'), from: under(roomB), to: null }))
 
+            expect(bindingsOf(after, table).map(({ universalKey }) => universalKey)).toEqual([BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID])
+            expect(bindingOf(after, table, BASE_PRESENCE_ID)!.cover).toEqual(cover(entry(ball, 'ball-base')))
+            expect(bindingOf(after, table, UNPLACED_PRESENCE_ID)).toEqual(presenceBindingNode(UNPLACED_PRESENCE_ID, undefined, cover(entry(tray, 'tray-1'))))
+            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresences).toEqual([under(table, UNPLACED_PRESENCE_ID)])
+        })
+
+        it('M10: a departure removes the binding, and a child left with no parent on the host falls to Unplaced', () => {
+            const after = run(placedBase(), move({ hostId: table, presence: id('t-1'), from: under(roomB), to: null }))
+
+            expect(bindingOf(after, table, 't-1')).toBeUndefined()
+            expect(bindingOf(after, table, UNPLACED_PRESENCE_ID)!.cover).toEqual(cover(entry(tray, 'tray-1')))
+            expect(bindingOf(after, tray, 'tray-1')!.fromHostPresences).toEqual([under(table, UNPLACED_PRESENCE_ID)])
+        })
+
+        it('M11: a child still covered by Base drops the departing parent and gains nothing', () => {
+            const shared = worldOf(
+                roomBase(roomA, entry(table, BASE_PRESENCE_ID)),
+                roomBase(roomB, entry(table, 't-1')),
+                testLudicGraph(table, { nodes: [
+                    presenceBindingNode(BASE_PRESENCE_ID, under(roomA), cover(entry(tray, 'tray-1'), entry(ball, 'ball-base'))),
+                    presenceBindingNode('t-1', under(roomB), cover(entry(tray, 'tray-1'))),
+                ] }),
+                testLudicGraph(tray, { nodes: [presenceBindingNode('tray-1', [under(table, BASE_PRESENCE_ID), under(table, id('t-1'))], cover())] }),
+                testLudicGraph(ball, { nodes: [presenceBindingNode('ball-base', under(table, BASE_PRESENCE_ID), cover())] })
+            )
+
+            const after = run(shared, move({ hostId: table, presence: id('t-1'), from: under(roomB), to: null }))
+
             expect(bindingsOf(after, table).map(({ universalKey }) => universalKey)).toEqual([BASE_PRESENCE_ID])
-            expect(bindingOf(after, table, BASE_PRESENCE_ID)!.cover).toEqual(cover(entry(ball, 'ball-base'), entry(tray, 'tray-1')))
             expect(bindingOf(after, tray, 'tray-1')!.fromHostPresences).toEqual([under(table, BASE_PRESENCE_ID)])
+            expect(bindingOf(after, roomB, BASE_PRESENCE_ID)!.cover).toEqual(cover())
+        })
+
+        it('joins a fallen child into the binding its host already holds under Unplaced', () => {
+            const crowded = worldOf(
+                roomBase(roomB, entry(table, 't-1')),
+                testLudicGraph(table, { nodes: [
+                    presenceBindingNode(BASE_PRESENCE_ID, under(roomA), cover()),
+                    presenceBindingNode(UNPLACED_PRESENCE_ID, undefined, cover(entry(tray, 'tray-u'))),
+                    presenceBindingNode('t-1', under(roomB), cover(entry(tray, 'tray-1'))),
+                ] }),
+                testLudicGraph(tray, { nodes: [
+                    presenceBindingNode('tray-u', under(table, UNPLACED_PRESENCE_ID), cover()),
+                    presenceBindingNode('tray-1', under(table, id('t-1')), cover()),
+                ] })
+            )
+
+            const after = run(crowded, move({ hostId: table, presence: id('t-1'), from: under(roomB), to: null }))
+
+            expect(bindingsOf(after, tray).map(({ universalKey }) => universalKey)).toEqual([id('tray-u')])
+            expect(bindingOf(after, table, UNPLACED_PRESENCE_ID)!.cover).toEqual(cover(entry(tray, 'tray-u')))
         })
 
         it('moves a part to Unplaced and leaves the source where it is', () => {
@@ -206,17 +254,34 @@ describe('movePresenceBinding', () => {
             expect(bindingOf(after, roomB, BASE_PRESENCE_ID)!.cover).toEqual(cover(entry(table, 't-1')))
         })
 
-        it('strips Base\'s pointer and absorbs Unplaced when Base itself moves to no parent', () => {
+        it('M12: Base leaves its last parent while Unplaced exists, and Unplaced survives', () => {
             const withUnplaced = worldOf(...[...placedBase().values()].map((graph) => graph.hostId === table
                 ? graph.addPresenceNode(presenceBindingNode(UNPLACED_PRESENCE_ID, undefined, cover(entry(tray, 'tray-u'))))
                 : graph.hostId === tray ? graph.addPresenceNode(presenceBindingNode('tray-u', under(table, UNPLACED_PRESENCE_ID), cover())) : graph))
 
             const after = run(withUnplaced, move({ hostId: table, presence: BASE_PRESENCE_ID, from: under(roomA), to: null }))
 
-            expect(bindingOf(after, table, UNPLACED_PRESENCE_ID)).toBeUndefined()
-            expect(bindingOf(after, table, BASE_PRESENCE_ID)).toEqual(presenceBindingNode(BASE_PRESENCE_ID, undefined, cover(entry(ball, 'ball-base'), entry(tray, 'tray-u'))))
-            expect(bindingOf(after, tray, 'tray-u')!.fromHostPresences).toEqual([under(table, BASE_PRESENCE_ID)])
+            expect(bindingOf(after, table, BASE_PRESENCE_ID)).toEqual(presenceBindingNode(BASE_PRESENCE_ID, undefined, cover(entry(ball, 'ball-base'))))
+            expect(bindingOf(after, table, UNPLACED_PRESENCE_ID)).toEqual(presenceBindingNode(UNPLACED_PRESENCE_ID, undefined, cover(entry(tray, 'tray-u'))))
+            expect(bindingOf(after, tray, 'tray-u')!.fromHostPresences).toEqual([under(table, UNPLACED_PRESENCE_ID)])
             expect(bindingOf(after, roomA, BASE_PRESENCE_ID)!.cover).toEqual(cover())
+        })
+
+        it('removes Unplaced once a part moving out of it leaves it empty', () => {
+            const unplaced = worldOf(
+                roomBase(roomB, entry(table, 't-1')),
+                testLudicGraph(table, { nodes: [
+                    presenceBindingNode(BASE_PRESENCE_ID, undefined, cover()),
+                    presenceBindingNode(UNPLACED_PRESENCE_ID, undefined, cover(entry(tray, 'tray-u'))),
+                    presenceBindingNode('t-1', under(roomB), cover()),
+                ] }),
+                testLudicGraph(tray, { nodes: [presenceBindingNode('tray-u', under(table, UNPLACED_PRESENCE_ID), cover())] })
+            )
+
+            const after = run(unplaced, move({ hostId: table, presence: UNPLACED_PRESENCE_ID, from: null, to: under(roomB), subCover: [entry(tray, 'tray-u')] }))
+
+            expect(bindingOf(after, table, UNPLACED_PRESENCE_ID)).toBeUndefined()
+            expect(bindingOf(after, table, 't-1')!.cover).toEqual(cover(entry(tray, 'tray-u')))
         })
 
         it('is stale (baseMissing) when the whole holds no Base: nowhere to land, and no guess', () => {

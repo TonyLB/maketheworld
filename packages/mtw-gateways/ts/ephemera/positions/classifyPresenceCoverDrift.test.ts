@@ -128,24 +128,24 @@ describe('the Unplaced fixed id', () => {
     const placedBase = { ...base, fromHostPresences: [{ host: 'ROOM#b', presence: 'PRESENCE#Base' }] }
     const unplaced = { universalKey: 'PRESENCE#Unplaced', fromHostPresences: [], cover: { members: [] } }
 
-    it('accepts Unplaced while Base has a parent pointer', () => {
-        expect(coverageViolationsOf(room([], [placedBase, unplaced])).badUnplaced).toEqual([])
+    it('accepts Unplaced beside a placed or a hostless Base (both may be hostless, F-R2)', () => {
+        expect(coverageViolationsOf(room([], [placedBase, unplaced]))).toEqual({ uncovered: [], hostlessBindings: [], badUnplaced: [] })
+        expect(coverageViolationsOf(room([], [base, unplaced]))).toEqual({ uncovered: [], hostlessBindings: [], badUnplaced: [] })
     })
 
-    it('rejects Unplaced beside a hostless Base (and reports the second hostless binding too)', () => {
-        const verdict = coverageViolationsOf(room([], [base, unplaced]))
-        expect(verdict.badUnplaced).toEqual(['PRESENCE#Unplaced'])
-        expect(verdict.hostlessBindings).toEqual(['PRESENCE#Base', 'PRESENCE#Unplaced'])
+    it('still reports a hostless binding that is neither Base nor Unplaced beside them', () => {
+        const stray = { universalKey: 'PRESENCE#stray', fromHostPresences: [], cover: { members: [] } }
+        expect(coverageViolationsOf(room([], [base, unplaced, stray])).hostlessBindings).toEqual(['PRESENCE#Base', 'PRESENCE#Unplaced', 'PRESENCE#stray'])
     })
 
-    it('rejects Unplaced with no Base at all, and Unplaced that holds a parent pointer', () => {
-        expect(coverageViolationsOf(room([], [unplaced])).badUnplaced).toEqual(['PRESENCE#Unplaced'])
+    it('rejects Unplaced that holds a parent pointer', () => {
         expect(coverageViolationsOf(room([], [placedBase, { ...unplaced, fromHostPresences: [{ host: 'ROOM#c', presence: 'PRESENCE#Base' }] }])).badUnplaced)
             .toEqual(['PRESENCE#Unplaced'])
     })
 
     it('reports BadUnplaced as a finding', () => {
-        expect(classifyPresenceCoverDrift(room([], [base, unplaced]), () => undefined).findings).toContainEqual({ kind: 'BadUnplaced', presence: 'PRESENCE#Unplaced' })
+        const parented = { ...unplaced, fromHostPresences: [{ host: 'ROOM#c', presence: 'PRESENCE#Base' }] }
+        expect(classifyPresenceCoverDrift(room([], [base, parented]), () => undefined).findings).toContainEqual({ kind: 'BadUnplaced', presence: 'PRESENCE#Unplaced' })
     })
 })
 

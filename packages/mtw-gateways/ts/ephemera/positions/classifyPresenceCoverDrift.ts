@@ -87,18 +87,19 @@ export const coveredByBinding = (host: PresenceGraphView): Map<string, Set<strin
 /**
  * The coverage invariant, judged on the host's own graph: every member is covered by at least one
  * binding, and a
- * host has at most one hostless binding, meaning one with no parent pointer. `hostlessBindings`
- * lists every hostless binding's key, and only when there is more than one.
+ * host's hostless bindings (those with no parent pointer) are Base and Unplaced and nothing else
+ * (both may be hostless at once). `hostlessBindings` lists every hostless binding's key, and only
+ * when there is more than one and one of them is neither Base nor Unplaced. `badUnplaced` is an
+ * Unplaced that holds a parent.
  */
 export const coverageViolationsOf = (host: PresenceGraphView): { uncovered: string[]; hostlessBindings: string[]; badUnplaced: string[] } => {
     const covered = new Set([...coveredByBinding(host).values()].flatMap((members) => [...members]))
     const hostless = host.presenceNodes.filter((binding) => parentPointersOf(binding).length === 0).map((binding) => binding.universalKey)
-    const base = host.presenceNodes.find((binding) => binding.universalKey === BASE_ID)
     const unplaced = host.presenceNodes.find((binding) => binding.universalKey === UNPLACED_ID)
     return {
         uncovered: hostMembersOf(host).filter((member) => !covered.has(member)),
-        hostlessBindings: hostless.length > 1 ? hostless : [],
-        badUnplaced: unplaced && (parentPointersOf(unplaced).length > 0 || !base || parentPointersOf(base).length === 0) ? [unplaced.universalKey] : [],
+        hostlessBindings: hostless.length > 1 && hostless.some((key) => key !== BASE_ID && key !== UNPLACED_ID) ? hostless : [],
+        badUnplaced: unplaced && parentPointersOf(unplaced).length > 0 ? [unplaced.universalKey] : [],
     }
 }
 

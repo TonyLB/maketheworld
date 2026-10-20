@@ -1056,7 +1056,20 @@ describe('applyStepSequenceCore', () => {
             it('throws when a run leaves a whole with two hostless bindings', () => {
                 const world = graphsMap([trayId, testLudicGraph(trayId, { nodes: [presenceBindingNode('Base')] })])
 
-                expect(() => applyStepSequenceCore([addHostless('p2')], world)).toThrow(/at most one binding with no parent/)
+                expect(() => applyStepSequenceCore([addHostless('p2')], world)).toThrow(/Base and Unplaced and nothing else/)
+            })
+
+            it('allows a hostless Base and a hostless Unplaced together (F-R2)', () => {
+                const world = graphsMap([trayId, testLudicGraph(trayId, { nodes: [presenceBindingNode('Base')] })])
+
+                expect(applyStepSequenceCore([addHostless('Unplaced')], world).verdict).toBe('legal')
+            })
+
+            it('throws when Unplaced holds a parent', () => {
+                const world = graphsMap([trayId, testLudicGraph(trayId, { nodes: [presenceBindingNode('Base')] })], [roomId, hostHolding(roomId)])
+                const placed = { kind: 'addPresenceBinding', hostId: trayId, fromHostPresences: [remainderOf(roomId)], presenceUuid: 'Unplaced' } as MutationKernelStep
+
+                expect(() => applyStepSequenceCore([placed], world)).toThrow(/Unplaced has no parent/)
             })
 
             it('allows two hostless bindings inside a run, when a later step places one', () => {

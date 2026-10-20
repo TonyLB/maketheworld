@@ -403,8 +403,8 @@ export type EphemeraPresenceCover = {
 
 /**
  * The fixed ids of a host's root bindings (contract, *Base and Unplaced*). Base always exists and takes every
- * context-free add; Unplaced exists only while Base has a parent pointer, and holds contents
- * explicitly unplaced. Each is unique per host (never across hosts), so a reference to either is
+ * context-free add; Unplaced is optional and never has a parent,
+ * exists only while it covers something, and holds contents that fell out of every placed binding. Each is unique per host (never across hosts), so a reference to either is
  * host-qualified.
  */
 export const BASE_PRESENCE_ID = 'PRESENCE#Base' as EphemeraPresenceNodeId
