@@ -25,7 +25,7 @@ The legality invariant every S1 and S2 obeys: **for each parent binding, at most
 Each evaluation grades each case on these criteria.
 
 - **R. Reachable.** Some composition reaches S2 exactly.
-- **U. Unnamed parents.** No parent that the instructions do not name changes its view, unless the instruction states that it does.
+- **U. Unnamed parents.** No parent that the instructions do not name changes its view, unless the instruction states that it does. **Corrected 2026-10-20 (user):** U grades a framework's instructions; it is not a rule the system enforces (F-R4's view rule retired, plan PS-7). A shared binding commits to its changes showing in every parent, and whether a given change still fits the share is a judgment about meaning that belongs to the caller that owns the share (M19). Group 1's Rings of Power, which gives the U failures in M4 their force, rests on an ill-formed share (see Group 1's note).
 - **A. Unambiguous.** Each instruction, read against S1, has exactly one result.
 - **S. Stale-safe.** Each step checks what its producer read, so a stale read is a refusal, not a different write.
 - **C. Cost.** The number of steps, and what the planner must read to compose them.
@@ -52,7 +52,7 @@ S2: `C{A} = [X, Y]`, `C′{B} = [X]`, `D{E} = [X, Y]`.
 
 ### Group 1: one parent moves, another is not named
 
-The fiction for this group is the ring that sits on the Table and is also one of the Rings of Power (RoP). The player moves it from the Table to the Shelf. In every case Rings of Power must see what it saw before, and the Table must see nothing of the ring afterwards.
+The fiction for this group is the ring that sits on the Table and is also one of the Rings of Power (RoP). The player moves it from the Table to the Shelf. In every case Rings of Power must see what it saw before, and the Table must see nothing of the ring afterwards. **Note 2026-10-20 (user):** `R{Table, RoP}` shares one binding between a place and a category, which claims their views move together, and nothing in the fiction gives a reason they should. The cases still test reachability; M4's reading, and every U grade that depends on RoP, tests that ill-formed share rather than a danger in joins. M19 is the case for an unnamed parent's view changing.
 
 **M1. No collision.**
 S1: `R{Table, RoP} = [g]`.
@@ -93,6 +93,10 @@ S2: `d{Hand} = []`.
 **M8. The set's two bindings become one shared binding** (beat 2; the PS-4 question). The mover is Backgammon.
 S1: `BG1{chestA} = [d]`, `BG2{chestB} = [d]`.
 S2: `BG{chestA, chestB} = [d]`.
+
+**M19. Dice are put into the inherited backgammon box** (the user, 2026-10-20). The box sits in a chest and also belongs to the *Inherited* category, as one shared binding: Inherited is happy to see what the chest sees while the box's contents still fit the category. Someone tosses D&D dice (q) into the box for safe-keeping. The mover is the dice.
+S1: Backgammon `BG{chest, Inherited} = [d]`; dice `q{Hand} = []`.
+S2: Backgammon `BG{chest} = [d, q]`, `BG′{Inherited} = [d]`; dice `q{BG} = []`. Inherited's view must not gain the dice. This is the corpus's reading. The other, `BG{chest, Inherited} = [d, q]`, is what the shared binding commits to, and is right whenever the new contents fit the share (a character entering a Room that sits in two Areas). Which reading applies is a judgment about meaning, not structure.
 
 ### Requests with no legal S2
 
@@ -162,7 +166,7 @@ S2: plank `p{Hand} = [a]`; apple `a{p} = []`, one binding. **M18a** is the same 
     - **F-R1. Removal.** A binding with no parents, other than Base or Unplaced, is removed. Each child binding that pointed at it drops that parent. A child binding left with no other parent on this host gains `{host, Unplaced}`, and Unplaced is created if it does not exist.
     - **F-R2. The root bindings.** Base and Unplaced are stored, and both may be hostless at once (Group 4). Unplaced is removed when empty. Base always exists.
     - **F-R3. Collisions.** Two bindings of one host under one parent (Unplaced included) at the run's end are refused, like any other F-R4 check. The producer writes the join itself (reparent, then join, and again one level down). **The exception (decided 2026-10-20):** a collision that F-R1 itself causes under Unplaced, which the producer's steps never named, is joined by the kernel, into the existing Unplaced child, and then the same rule applies one level down.
-    - **F-R4. Checks.** The parenting invariant holds. Every parent whose view at the end differs from its view at the start is named by the request (the view rule). Views are compared across the whole run, not after each step.
+    - **F-R4. Checks.** The parenting invariant holds. ~~Every parent whose view at the end differs from its view at the start is named by the request (the view rule). Views are compared across the whole run, not after each step.~~ **The view rule retired 2026-10-20 (user, plan PS-7):** it was criterion U turned into a runtime rule, and structure cannot tell a wanted view change from an unwanted one (M19). The parenting invariant check stays.
 
 ## Evaluation: D
 
@@ -283,7 +287,7 @@ Each row gives the steps the compiler would emit. "Auto" marks a join that the p
 | M1 | Reparent R: lose Table, gain Shelf | ✓ | ✓ | ✓ | F-O2 | 1 |
 | M2 | Reparent R: lose Table, gain Shelf; auto join with R2 | ✓ | ✓ | F-O1 | F-O2 | 1 |
 | M3 | As M2; the union is `[g, h]`, and the Shelf, which is named, gains h | ✓ | ✓ | F-O1 | F-O2 | 1 |
-| M4 | Reparent R: lose Table. Gaining the Shelf would auto-join and give RoP k, which F-R4 refuses | ✓ | ✓ | ✓ | ✓ | 1 |
+| M4 | Reparent R: lose Table. Gaining the Shelf would auto-join and give RoP k, which F-R4 refuses. *(2026-10-20: the view rule is retired, so the planner gains the Shelf and joins, giving the other reading; M4's S1 is an ill-formed share, Group 1's note.)* | ✓ | ✓ | ✓ | ✓ | 1 |
 | M5 | Reparent R: lose Table; child: g's binding gains R2 | ✓ | ✓ | ✓ | F-O2 | 2 |
 | M5a | Reparent R: lose Table, gain Shelf; auto join with R2 | ✓ | ✓ | F-O1 | F-O2 | 1 |
 | M6 | Split B into `{C}:[X, Y]` (keeps B), `{A}:[Y]`, `{A}:[X]`; reparent the third: lose A, gain Q | ✓ | ✓ | ✓ | ✓ | 2 |
@@ -295,6 +299,7 @@ Each row gives the steps the compiler would emit. "Auto" marks a join that the p
 | M12 | Reparent Base: lose Q. F-R2 keeps both root bindings | ✓ | ✓ | ✓ | ✓ | 1 |
 | M13, M14 | Reparent p1 (lose Table or T1, gain Hand), reparent p2 (likewise); auto join | ✓ | ✓ | F-O1 | F-O2 | 2 |
 | M18, M18a | M13's steps; the planner then joins the apple's two bindings under p. p1 and p2 are gone at the run's end, so no surviving view changes | ✓ | ✓ | F-O1 | F-O2 | 2 |
+| M19 | Split BG into `{chest}:[d]` (keeps BG), `{Inherited}:[d]`; reparent q: lose Hand, gain BG. The split is written by the caller that owns the Inherited share (plan PS-4); without it, the reparent alone gives the other reading (added 2026-10-20) | ✓ | n/a | ✓ | ✓ | 2 |
 
 **What the evaluation shows about F.**
 
@@ -302,7 +307,7 @@ Each row gives the steps the compiler would emit. "Auto" marks a join that the p
 2. **A copy is a reparent one level down.** An entry that is added to a binding is a child binding that gains a parent (M5, M17). Moving content needs no operation of its own in the kernel. It is a compiler-level operation.
 3. **There is no mint.** A binding under a new parent comes from a split followed by a reparent (M6, M9). The split's temporary violation (two pieces under A in M6) is what makes that possible without a hostless piece.
 4. **Removal is stated** (F-R1), which closes D's F3 and E-F3. M11 is no longer K's wrong write.
-5. **The view rule does the work of D's equal-cover rule.** M4 and M5 refuse the join that gaining the Shelf would cause. M3 and M5a allow it, because only the named Shelf's view changes. Q2 is writable, and is legal if the request names both chests.
+5. **The view rule does the work of D's equal-cover rule.** M4 and M5 refuse the join that gaining the Shelf would cause. M3 and M5a allow it, because only the named Shelf's view changes. Q2 is writable, and is legal if the request names both chests. **Withdrawn 2026-10-20 (user):** the refusals in M4 and M5 rested on Group 1's ill-formed share, and the view rule is retired (F-R4). Q2 is writable and legal.
 6. **Q1 is writable as steps and refused at the run's end** by the parenting invariant.
 7. **Base gets no special case apart from naming.** It wins any join, and a split says which piece keeps it.
 
@@ -310,8 +315,8 @@ Each row gives the steps the compiler would emit. "Auto" marks a join that the p
 
 - **F-O1. Which id survives an ordinary join** (draft O1). **Decided 2026-10-20 (user):** the join step names `toJoin` and `into`; `into` keeps its id. A join under a gained parent is not automatic: the producer writes reparent, then join (decided 2026-10-20, user).
 - **F-O2. Stale-safety of gains.** **Retired 2026-10-20 (user):** with no automatic join (F-R3 is a check), the join step's own optimistic check is the stale-safety, and an unexpected collision is refused. (Formerly: an auto join under a gained parent can merge a binding that appeared after the producer's read. The view rule catches this only when an unnamed view changes. This is D's F5 again. One candidate was for a gain to state the bindings it expects to collide with.)
-- **F-O3. Where the view rule is checked, and what "named" means.** The compiler can check it, but the kernel must then verify the covers the compiler read, so that a stale read is a refusal.
-- **F-O4. The request shape** that the compiler accepts for higher-order operations, and how a request states the pieces of a split.
+- **F-O3. Where the view rule is checked, and what "named" means.** The compiler can check it, but the kernel must then verify the covers the compiler read, so that a stale read is a refusal. **Retired 2026-10-20 (user), plan PS-7:** the view rule is not checked anywhere (F-R4).
+- **F-O4. The request shape** that the compiler accepts for higher-order operations, and how a request states the pieces of a split. **Decided 2026-10-20 (user), PS-2:** callers stay host-level and the planner emits F steps directly; a part move states the moving cover subset and the planner derives the pieces. Splits whose pieces take different parents, and copies, are decided with PS-4.
 
 ## Evaluation: K (baseline)
 

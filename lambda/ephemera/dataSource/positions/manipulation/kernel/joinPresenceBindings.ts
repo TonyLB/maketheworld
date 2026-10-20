@@ -58,7 +58,8 @@ export const collisionsUnder = (graphs: Graphs, parent: ParentBinding, entries: 
  * Join (Framework F): the bindings `toJoin` become `into`, which keeps its id. `into` takes the union of
  * their parents and covers; each child of a `toJoin` cover swaps the joined binding for `into` in its
  * parent set (a union, so a shared child collapses to one pointer); the parents' cover entries follow.
- * Reads only existence, never covers (PS-7 owns the cover-stale check). The parent hosts do not change, so
+ * Reads only existence, never covers: the result is the union whatever the covers hold, so there is no
+ * cover read to re-check (the producer joins on a collision, not on what the covers contain). The parent hosts do not change, so
  * membership does not either. Returns the children that now collide under `into`; it does not join them.
  */
 export const joinBindings = (

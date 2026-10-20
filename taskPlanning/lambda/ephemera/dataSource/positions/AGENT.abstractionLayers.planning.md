@@ -250,6 +250,25 @@ The examples separate along at least three axes, and conflating them is the main
 **What it does not settle: what licenses a mint.** Composition mints on parts, an Arrangement on edges, [AB-6](#open-decisions-design--plan-only)'s derived branch on a predicate --- and *useful right now* is not a licensing condition anywhere. The **measurement** half is parked at [Measuring when to mint and dissolve an abstraction](#measuring-when-to-mint-and-dissolve-an-abstraction-2026-08-13) and must stay parked; the **authority** half is [AB-9](#open-decisions-design--plan-only)'s open guardrail question, recorded there 2026-09-11. **Naming the pattern answers neither, and must not be read as having done so.**
 
 
+### Scale the representation to the thinking (2026-10-20)
+
+**Stated by the user 2026-10-20, from conversation on [presenceParentSets PS-7](AGENT.presenceParentSets.planning.md#open-decisions-implementation--plan-only), as a guiding principle for the system generally.**
+
+> Reality is fractally complicated. Our goal is not to represent the whole fractal, but to match each part of the representation to how it is actually thought about. Things that are thought of simply must stay simple to represent, and pay nothing for complexity they do not use. Things that are thought about in complex ways may have complex representations, and whoever needs that complexity tracked carries its upkeep.
+
+**"Thought about" by whom:** the authors, the players, and --- importantly --- the reasoning system that handles player input and reasons about actions and consequences. Not the implementers: what is hard to code is not, on that ground, licensed to be complex.
+
+**Why the complex half is valuable, not tolerated.** An abstraction like *the inherited things in this attic* is worth having precisely because it tracks and caches a real complication --- that the backgammon box is still wholly inherited until someone tosses D&D dice into it, at which point the chest's view and the category's view part company ([corpus M19](AGENT.presenceParentSets.corpus.planning.md#group-3-through-a-shared-binding)). Caching it means it is not re-derived every time someone thinks about it. That the model can express edge cases of almost arbitrary complexity is the expressivity to represent, where useful, the regress of complication reality has; it is not a sign of an overcomplicated model of a simple problem.
+
+**The test, which is the half that earns its keep:**
+
+> **A simple case with a complex representation is a defect. A complex case with a complex representation is not.** Over-design shows as simple things becoming expensive to represent, never as an intricate edge case being expressible.
+
+**For corpus work this cuts both ways.** Many corpus cases are deliberately intricate, to test expressivity, and must not be graded down for needing an intricate representation. A case a person or the reasoning system would think of simply --- a ring on a table --- that needs one *is* a finding.
+
+**Who carries the upkeep.** Complexity is paid for by whatever needs it tracked: the caller that creates a shared binding owns keeping it meaningful, splitting it before a change that does not fit. The kernel cannot tell a wanted view change from an unwanted one, since that is a judgment about meaning; a rule that tries to (presenceParentSets' retired view rule) has to be wrong one way or the other. Relation to [Minted, not found](#minted-not-found-2026-09-11): the grouping is minted, and its upkeep goes with the mint.
+
+
 ### Fiction is a fault-tolerant medium --- and what that does not excuse (2026-08-09)
 
 **Recorded from conversation as a standing frame, not as a clause inside the proposal that prompted it.** It already has three consumers --- [coarsening](#clean-fractal-dirty-implementation), [P4](AGENT.abstractionLayers.proposals.planning.md#two-defects-inherited-with-the-model)'s glitch policy (**PS-5** offers *accept transient wrong values* as a live option), and [P5](AGENT.abstractionLayers.proposals.planning.md#licence-transfer-import-is-a-copy-and-provenance-is-deliberately-not-traced-2026-08-09)'s no-cascade decision --- which is the test for a frame rather than a local argument.
