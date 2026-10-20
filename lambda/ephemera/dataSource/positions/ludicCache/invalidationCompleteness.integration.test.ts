@@ -43,7 +43,7 @@ import messageBus from '../../../messageBus'
 import { ephemeraDataSource } from '../../index'
 import { EphemeraLudicGraph, graphFromMeta } from '../ludicGraph'
 import { healLudicGraphStructure } from '../ludicGraph/healLudicGraphStructure'
-import { parentHostOf } from '../ludicGraph/presenceParent'
+import { parentHostsOf } from '../ludicGraph/presenceParent'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../ludicGraph/testFixtures'
 import { commitStepSequence } from '../manipulation/kernel/commitStepSequence'
 import { mutationKernelStepKinds, type MutationKernelStep } from '../manipulation/kernel/kernelStep'
@@ -330,7 +330,7 @@ const cold = async (roomId: EphemeraRoomId) => (await buildLudicCache(roomId, CA
 
 /** The host a thing sits in now (its first binding's parent), which the kernel's footprint asks for. */
 const hostOf = (id: unknown): EphemeraMembershipHostId | undefined => (
-    world.graphs.get(id as EphemeraMembershipHostId)?.presenceNodes.map(parentHostOf).find((host) => host !== undefined)
+    world.graphs.get(id as EphemeraMembershipHostId)?.presenceNodes.flatMap(parentHostsOf)[0]
 )
 
 const commit = async (steps: MutationKernelStep[], extra: { existenceItems?: any[] } = {}) => {
@@ -344,7 +344,7 @@ const commit = async (steps: MutationKernelStep[], extra: { existenceItems?: any
 }
 
 const move = (mover: EphemeraMembershipHostId, name: string, from: ReturnType<typeof ref> | null, to: ReturnType<typeof ref>): MutationKernelStep => (
-    { kind: 'movePresenceBinding', hostId: mover, presence: `PRESENCE#${name}` as any, from, to }
+    { kind: 'reparentPresenceBinding', hostId: mover, presence: `PRESENCE#${name}` as any, ...(from ? { lose: [from] } : {}), gain: [to] }
 )
 
 const receive = (events: any[]) => ephemeraDataSource.receiveEvents?.({
@@ -380,14 +380,14 @@ type Case = {
 const cases: Case[] = [
     {
         name: 'a nested object moves out of its container onto the floor',
-        kinds: ['movePresenceBinding'],
+        kinds: ['reparentPresenceBinding'],
         rooms: [R1],
         changesCache: true,
         act: () => commit([move(CUP, 'cup1', ref(TABLE, 'PRESENCE#tbl'), remainder(R1))]),
     },
     {
         name: 'a character moves between rooms (a bystander: no room is marked)',
-        kinds: ['movePresenceBinding'],
+        kinds: ['reparentPresenceBinding'],
         rooms: [],
         changesCache: false,
         marksNothing: true,
@@ -395,28 +395,28 @@ const cases: Case[] = [
     },
     {
         name: 'an object is released from where it sat',
-        kinds: ['movePresenceBinding'],
+        kinds: ['reparentPresenceBinding'],
         rooms: [R1],
         changesCache: true,
-        act: () => commit([{ kind: 'movePresenceBinding', to: null, hostId: BOX, presence: 'PRESENCE#Base' as any, from: remainder(R1) }]),
+        act: () => commit([{ kind: 'reparentPresenceBinding', hostId: BOX, presence: 'PRESENCE#Base' as any, lose: [remainder(R1)] }]),
     },
     {
         name: 'an object gains a second binding in another room',
         kinds: ['addPresenceBinding'],
         rooms: [R1, R2],
         changesCache: true,
-        act: () => commit([{ kind: 'addPresenceBinding', hostId: BOX, fromHostPresence: remainder(R2), presenceUuid: 'box2' }]),
+        act: () => commit([{ kind: 'addPresenceBinding', hostId: BOX, fromHostPresences: [remainder(R2)], presenceUuid: 'box2' }]),
     },
     {
         name: 'a binding is repaired to point at another host',
         kinds: ['repairPresenceBinding'],
         rooms: [R1, R2],
         changesCache: true,
-        act: () => commit([{ kind: 'repairPresenceBinding', hostId: BOX, presenceId: 'PRESENCE#Base' as any, fromHostPresence: remainder(R2), previousParent: remainder(R1), cover: { members: [] } }]),
+        act: () => commit([{ kind: 'repairPresenceBinding', hostId: BOX, presenceId: 'PRESENCE#Base' as any, fromHostPresences: [remainder(R2)], previousParents: [remainder(R1)], cover: { members: [] } }]),
     },
     {
         name: 'an improvised object is created and placed',
-        kinds: ['createComponent', 'movePresenceBinding'],
+        kinds: ['createComponent', 'reparentPresenceBinding'],
         rooms: [R1],
         changesCache: true,
         act: () => commit([
@@ -426,43 +426,58 @@ const cases: Case[] = [
     },
     {
         name: 'an improvised object is released and destroyed',
-        kinds: ['movePresenceBinding', 'destroyComponent'],
+        kinds: ['reparentPresenceBinding', 'destroyComponent'],
         rooms: [R1],
         changesCache: true,
         act: () => commit([
-            { kind: 'movePresenceBinding', to: null, hostId: BOX, presence: 'PRESENCE#Base' as any, from: remainder(R1) },
+            { kind: 'reparentPresenceBinding', hostId: BOX, presence: 'PRESENCE#Base' as any, lose: [remainder(R1)] },
             { kind: 'destroyComponent', hostId: BOX },
         ]),
     },
     {
-        name: 'part of a binding moves to another room, minting a binding there',
-        kinds: ['movePresenceBinding'],
+        name: 'a binding is reparented to another room (its cover and children do not change)',
+        kinds: ['reparentPresenceBinding'],
         rooms: [R1, R2],
         changesCache: true,
         act: () => commit([{
-            kind: 'movePresenceBinding',
+            kind: 'reparentPresenceBinding',
             hostId: TABLE,
             presence: 'PRESENCE#tbl' as any,
-            from: remainder(R1),
-            to: remainder(R2),
-            subCover: [entry(SAUCER, 'PRESENCE#sau1')],
-            mintedPresence: 'PRESENCE#tbl2' as any,
+            lose: [remainder(R1)],
+            gain: [remainder(R2)],
         }]),
     },
     {
-        name: 'a binding is moved into another binding of the same whole (they join)',
-        kinds: ['movePresenceBinding'],
+        name: 'two bindings of the same whole are joined into one',
+        kinds: ['joinPresenceBindings'],
         world: splitTableWorld,
         rooms: [R1],
         changesCache: true,
         act: () => commit([{
-            kind: 'movePresenceBinding',
+            kind: 'joinPresenceBindings',
             hostId: TABLE,
-            presence: 'PRESENCE#tbl2' as any,
-            from: remainder(R1),
-            to: remainder(R1),
-            cover: { members: [entry(SAUCER, 'PRESENCE#sau1')] },
+            into: 'PRESENCE#tbl' as any,
+            toJoin: ['PRESENCE#tbl2' as any],
+            cascadeHosts: [SAUCER],
         }]),
+    },
+    {
+        name: 'a binding is split in two and one piece is reparented to another room',
+        kinds: ['splitPresenceBinding', 'reparentPresenceBinding'],
+        rooms: [R1, R2],
+        changesCache: true,
+        act: () => commit([
+            {
+                kind: 'splitPresenceBinding',
+                hostId: TABLE,
+                presence: 'PRESENCE#tbl' as any,
+                pieces: [
+                    { presence: 'PRESENCE#tbl' as any, parents: [remainder(R1)], cover: { members: [entry(CUP, 'PRESENCE#cup1'), entry(SAUCER, 'PRESENCE#sau1')] } },
+                    { presenceUuid: 'tbl3', parents: [remainder(R1)], cover: { members: [entry(SAUCER, 'PRESENCE#sau1')] } },
+                ],
+            },
+            { kind: 'reparentPresenceBinding', hostId: TABLE, presence: 'PRESENCE#tbl3' as any, lose: [remainder(R1)], gain: [remainder(R2)] },
+        ]),
     },
     {
         name: 'a relation is established between two things in a room',
@@ -521,7 +536,7 @@ const cases: Case[] = [
     },
     {
         name: 'a character arrives in the same commit that moves an object in the room (the object marks the room)',
-        kinds: ['movePresenceBinding'],
+        kinds: ['reparentPresenceBinding'],
         world: () => {
             const base = freshWorld()
             base.graphs.set(ALPHA as any, testLudicGraph(ALPHA as any, { nodes: [presenceBindingNode('Base')] }))
@@ -537,15 +552,15 @@ const cases: Case[] = [
     },
     {
         name: 'a character disconnects (its binding is released from the room)',
-        kinds: ['movePresenceBinding'],
+        kinds: ['reparentPresenceBinding'],
         rooms: [],
         changesCache: false,
         marksNothing: true,
-        act: () => commit([{ kind: 'movePresenceBinding', to: null, hostId: ALPHA, presence: 'PRESENCE#Base' as any, from: remainder(R1) }]),
+        act: () => commit([{ kind: 'reparentPresenceBinding', hostId: ALPHA, presence: 'PRESENCE#Base' as any, lose: [remainder(R1)] }]),
     },
     {
         name: 'a character connects (its hostless binding is placed in the room)',
-        kinds: ['movePresenceBinding'],
+        kinds: ['reparentPresenceBinding'],
         world: () => {
             const base = freshWorld()
             base.graphs.set(R1, cafeGraph())

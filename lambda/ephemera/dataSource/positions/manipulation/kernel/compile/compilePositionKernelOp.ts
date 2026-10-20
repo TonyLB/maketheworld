@@ -6,7 +6,6 @@ import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep } from
 import type { KernelStep, MutationKernelCaptureStep, NarrationSpecification } from '../kernelStep'
 import type { MembershipMoveNarrationInput } from './positionKernelOp'
 import type { PositionKernelMoveOp } from './positionKernelOp'
-import { presenceBindingStepsForMove } from './presenceBindingStepsForMove'
 
 /**
  * `steps` is the whole ordered plan; its `narrate` and `describe` steps, in array order, are the
@@ -96,12 +95,10 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
         ? [{ kind: 'describe', referentId: op.to, referentKind: 'room', header: op.header }]
         : []
 
-    // the mover's presence writes, every mover regardless of host kind. Mechanics --- stable bindings
-    // re-pointed, kept hostless on a departure to nowhere --- live in `presenceBindingStepsForMove`, of
-    // which this is the only caller: `executeMembershipTransfer` reaches it through this
-    // compiler rather than emitting its own steps. Membership is not a step of its own: each
+    // the mover's presence writes, every mover regardless of host kind, named by the producer
+    // (`resolvePresenceMoves`) and passed through. Membership is not a step of its own: each
     // presence step applies it (a host loses the node only with the mover's last binding there).
-    const presenceBindingSteps = presenceBindingStepsForMove(primaryMovedId, op)
+    const presenceBindingSteps: KernelStep[] = [...op.presenceSteps]
 
     if (!op.narration) {
         return { steps: [...dissolveSteps, ...presenceBindingSteps, ...establishSteps, ...headerSteps] }

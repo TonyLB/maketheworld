@@ -1169,7 +1169,7 @@ describe('DiagnosticsEventSerializer', () => {
         })
 
         describe('isPresenceCoverDriftFindingEvent', () => {
-            it('accepts a membership-host whole and rejects anything else', () => {
+            it('accepts a membership-host host and rejects anything else', () => {
                 expect(isPresenceCoverDriftFindingEvent({
                     type: 'Presence Cover Drift Finding',
                     ephemeraId: 'ROOM#Kitchen',

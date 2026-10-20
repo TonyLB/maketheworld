@@ -12,7 +12,7 @@ import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import type { QueryPageEnvelope } from '@tonylb/mtw-utilities/ts/dynamoDB/mixins/query'
 import type { DBHandlerItem } from '@tonylb/mtw-utilities/ts/dynamoDB/baseClasses'
 
-import { classifyWhole, presenceGraphViewOf } from './classification'
+import { classifyHost, presenceGraphViewOf } from './classification'
 import type { PresenceCoverDriftClassification } from './classification'
 
 type HostMetaRow = {
@@ -21,7 +21,7 @@ type HostMetaRow = {
     ludicGraph?: unknown
 }
 
-/** A whole with drift the heal cannot repair: reported in the result, never emitted as a finding. */
+/** A host with drift the heal cannot repair: reported in the result, never emitted as a finding. */
 export type PresenceCoverDriftUnrepairable = Pick<PresenceCoverDriftClassification, 'noBase' | 'findings'> & {
     ephemeraId: string
 }
@@ -71,7 +71,7 @@ const queryAllEphemeraRowsByDataCategory = async <T extends DBHandlerItem<'Ephem
     return await unfoldPages<T>(firstPage)
 }
 
-// Every host kind can be a whole (its graph lists members) and a member (its graph holds the
+// Every host kind can be a host (its graph lists members) and a member (its graph holds the
 // pointer), and the comparison joins the two, so every host row is read.
 const HOST_DATA_CATEGORIES = ['Meta::Room', 'Meta::Feature', 'Meta::Area', 'Meta::Object', 'Meta::Character'] as const
 
@@ -122,14 +122,14 @@ const defaultEmitFinding = async (args: {
 
 /**
  * Read-only diagnostics sweep for pointer-versus-cover drift (the contract's presence cover drift self-heal): a
- * member's `fromHostPresence` governs, and the whole's `cover` is a stored index of it. Joins each
- * whole's row with its members' rows (`classification.ts`; the comparison is shared with the heal).
+ * member's `fromHostPresences` govern, and the host's `cover` is a stored index of it. Joins each
+ * host's row with its members' rows (`classification.ts`; the comparison is shared with the heal).
  *
- * Emits one `Presence Cover Drift Finding` per row with drift the heal can rewrite: a **whole** whose covers
+ * Emits one `Presence Cover Drift Finding` per row with drift the heal can rewrite: a **host** whose covers
  * disagree with its members' pointers, or a **member** whose pointer names a host that holds the named binding
  * but lacks the member's node (an orphan; the heal re-seats it with a same-pointer `repairPresenceBinding`).
  * An orphan whose host row or named binding is absent is report-only. Everything else (an unbound, duplicated or
- * stale member binding; a whole with members and no remainder) the heal cannot repair without
+ * stale member binding; a host with members and no remainder) the heal cannot repair without
  * minting a binding, so it is listed under `unrepairable` and never emitted: a report-only finding
  * would keep the second run from reading `emittedCount: 0`. Performs no repair itself.
  */
@@ -161,8 +161,8 @@ export const presenceCoverDriftSweep = async (
 
     const healable: EphemeraMembershipHostId[] = []
     const unrepairable: PresenceCoverDriftUnrepairable[] = []
-    for (const [ephemeraId, whole] of [...views].sort(([a], [b]) => a.localeCompare(b))) {
-        const classification = classifyWhole(whole, viewOf)
+    for (const [ephemeraId, host] of [...views].sort(([a], [b]) => a.localeCompare(b))) {
+        const classification = classifyHost(host, viewOf)
         if (classification.healable && isEphemeraMembershipHostId(ephemeraId)) {
             healable.push(ephemeraId)
         }
@@ -182,4 +182,4 @@ export const presenceCoverDriftSweep = async (
     }
 }
 
-export { classifyWhole, presenceGraphViewOf } from './classification'
+export { classifyHost, presenceGraphViewOf } from './classification'

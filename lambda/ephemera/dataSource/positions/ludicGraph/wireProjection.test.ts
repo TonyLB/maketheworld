@@ -11,7 +11,7 @@ import { isStandardLudicGraphPresenceNodeData } from '@tonylb/mtw-wml/ts/standar
 
 import { testLudicGraph } from './testFixtures'
 import { fromWireLudicGraph, toWireLudicGraph } from './wireProjection'
-import { parentRemainderKey } from './testFixtures'
+import { parentRemainderKey, presenceBindingNode } from './testFixtures'
 
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const roomId = 'ROOM#Lab' as EphemeraRoomId
@@ -39,11 +39,11 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                     { tag: 'Feature', universalKey: featureId },
                     { tag: 'Area', universalKey: areaId },
                     // Lists every other component, and Box as well: binding2 lists it too.
-                    { tag: 'Presence', universalKey: bindingId, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: { members: [roomId, charId, boxId, featureId, areaId].map((host) => ({ host, presence: 'PRESENCE#box-binding' as EphemeraPresenceNodeId })) } },
+                    { tag: 'Presence', universalKey: bindingId, fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }], cover: { members: [roomId, charId, boxId, featureId, areaId].map((host) => ({ host, presence: 'PRESENCE#box-binding' as EphemeraPresenceNodeId })) } },
                     {
                         tag: 'Presence',
                         universalKey: 'PRESENCE#binding2' as EphemeraPresenceNodeId,
-                        fromHostPresence: { host: hallId, presence: parentRemainderKey(hallId) },
+                        fromHostPresences: [{ host: hallId, presence: parentRemainderKey(hallId) }],
                         cover: enumeratedCover(boxId, 'PRESENCE#box-binding'),
                     },
                 ],
@@ -80,6 +80,29 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
         })
     })
 
+    describe('shared binding', () => {
+        it('carries every parent through the wire and back', () => {
+            const uuid = 'shared1'
+            const graph = testLudicGraph(boxId, {
+                nodes: [
+                    { tag: 'Object', universalKey: boxId },
+                    { tag: 'Room', universalKey: roomId },
+                    { tag: 'Room', universalKey: hallId },
+                    presenceBindingNode(uuid, [roomId, hallId]),
+                    presenceBindingNode('hostless'),
+                ],
+            })
+            const wire = toWireLudicGraph(graph, uuid)
+            const shared = wire.nodes!.find((node) => typeof node === 'object' && 'universalKey' in node && node.universalKey === `PRESENCE#${uuid}`)
+            expect(isStandardLudicGraphPresenceNodeData(shared)).toBe(true)
+            expect((shared as any).fromHostPresences).toHaveLength(2)
+            const hostless = wire.nodes!.find((node) => typeof node === 'object' && 'universalKey' in node && node.universalKey === 'PRESENCE#hostless')
+            expect(hostless).not.toHaveProperty('fromHostPresences')
+            const sharedBack = fromWireLudicGraph(boxId, wire).nodes!.find((node: any) => node.universalKey === `PRESENCE#${uuid}`)
+            expect(sharedBack).toEqual(graph.presenceNodes.find((node) => node.universalKey === `PRESENCE#${uuid}`))
+        })
+    })
+
     describe('rope-shaped second-binding test', () => {
         const ropeId = 'OBJECT#Rope' as EphemeraObjectId
         const endAId = 'OBJECT#RopeEndA' as EphemeraObjectId
@@ -93,8 +116,8 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                 { tag: 'Object', universalKey: ropeId },
                 { tag: 'Object', universalKey: endAId },
                 { tag: 'Object', universalKey: endBId },
-                { tag: 'Presence', universalKey: bindingAId, fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) }, cover: enumeratedCover(endAId, 'PRESENCE#endA-binding') },
-                { tag: 'Presence', universalKey: bindingBId, fromHostPresence: { host: hallId, presence: parentRemainderKey(hallId) }, cover: enumeratedCover(endBId, 'PRESENCE#endB-binding') },
+                { tag: 'Presence', universalKey: bindingAId, fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }], cover: enumeratedCover(endAId, 'PRESENCE#endA-binding') },
+                { tag: 'Presence', universalKey: bindingBId, fromHostPresences: [{ host: hallId, presence: parentRemainderKey(hallId) }], cover: enumeratedCover(endBId, 'PRESENCE#endB-binding') },
             ],
             edges: [
                 { tag: 'Relational', kind: 'PartOf', from: endAId, to: ropeId },

@@ -18,7 +18,7 @@ describe('buildObjectMoveOp', () => {
             fromGraph: emptyFromGraph,
             fromHostId: ROOM,
             toHostId: CHARACTER,
-            presenceMoves: [],
+            presenceSteps: [],
         })
 
         expect(op.moved).toEqual(TRAY)
@@ -33,7 +33,7 @@ describe('buildObjectMoveOp', () => {
             fromGraph: emptyFromGraph,
             fromHostId: ROOM,
             toHostId: CHARACTER,
-            presenceMoves: [],
+            presenceSteps: [],
         })
 
         expect(op.narration).toBeUndefined()
@@ -56,7 +56,7 @@ describe('buildObjectMoveOp', () => {
             fromGraph,
             fromHostId: ROOM,
             toHostId: CHARACTER,
-            presenceMoves: [],
+            presenceSteps: [],
         })
 
         expect(op.dissolvedEdges).toEqual([])
@@ -72,7 +72,7 @@ describe('buildObjectMoveOp', () => {
             fromGraph,
             fromHostId: TABLE,
             toHostId: ROOM,
-            presenceMoves: [],
+            presenceSteps: [],
         })
 
         expect(op.dissolvedEdges).toEqual([{ from: TRAY, to: TABLE, kind: 'On' }])

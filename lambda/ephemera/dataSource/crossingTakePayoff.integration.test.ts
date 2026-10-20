@@ -55,9 +55,9 @@ const crossingPort = (portId: string, fromHostId: EphemeraRoomId) => ({ portId, 
 const covering = (...members: ([EphemeraCharacterId | EphemeraObjectId, string?])[]) => ({
     members: members.map(([host, presence]) => ({ host, presence: (presence ?? 'PRESENCE#Base') as EphemeraPresenceNodeId })),
 })
-const fullBinding = (key: string, parentHost: EphemeraMembershipHostId, parentPresence?: string, cover: ReturnType<typeof covering> = { members: [] }) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, fromHostPresence: { host: parentHost, presence: (parentPresence ?? parentRemainderKey(parentHost)) as EphemeraPresenceNodeId }, cover })
+const fullBinding = (key: string, parentHost: EphemeraMembershipHostId, parentPresence?: string, cover: ReturnType<typeof covering> = { members: [] }) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, fromHostPresences: [{ host: parentHost, presence: (parentPresence ?? parentRemainderKey(parentHost)) as EphemeraPresenceNodeId }], cover })
 /** A hostless binding: the root a mover's presence write re-points. */
-const rootBinding = (key: string, cover: ReturnType<typeof covering> = { members: [] }) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, cover })
+const rootBinding = (key: string, cover: ReturnType<typeof covering> = { members: [] }) => ({ tag: 'Presence' as const, universalKey: key as EphemeraPresenceNodeId, fromHostPresences: [], cover })
 
 /** Same stand-in as `ropeLashedTakePayoff.integration.test.ts`: runs the real reducer over the seeded graphs. */
 const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => (

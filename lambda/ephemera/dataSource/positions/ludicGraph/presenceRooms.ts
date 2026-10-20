@@ -4,7 +4,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { EphemeraLudicGraph } from './index'
 import type { GroundedPresence } from '../../actions/enrich/objectManipulation/plan/planStep'
-import { parentBinding, parentBindingsOf } from './presenceParent'
+import { parentsOfBinding, parentBindingsOf } from './presenceParent'
 
 /**
  * Every room reachable upward from `startId` through presence bindings: a narration unit's audience
@@ -59,7 +59,7 @@ export const roomsForHost = async (
 
 /**
  * Locates one presence binding on its owner's own graph (a binding is held on the mover's own
- * graph, per `presenceBindingStepsForMove.ts`), then continues the walk from that binding's
+ * graph, per `resolvePresenceMoves.ts`), then continues the walk from that binding's
  * parent host. The owner is the bucket's own `host`, not the referent: a thing is usually seen
  * through a binding of the host whose graph holds it.
  */
@@ -68,12 +68,13 @@ export const roomsForPresenceNode = async (
     presenceId: EphemeraPresenceNodeId,
     getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 ): Promise<Set<EphemeraRoomId>> => {
-    const parent = await parentBinding(ownerHostId, presenceId, getGraph)
-    if (!parent) {
+    const parents = await parentsOfBinding(ownerHostId, presenceId, getGraph)
+    if (parents.length === 0) {
         // A hostless binding (PR-21(g)): a room's own resolves to that room, any other to no rooms.
         return new Set(isEphemeraRoomId(ownerHostId) ? [ownerHostId] : [])
     }
-    return roomsForHost(parent.host, getGraph)
+    const perParent = await Promise.all(parents.map(({ host }) => roomsForHost(host, getGraph)))
+    return new Set(perParent.flatMap((rooms) => [...rooms]))
 }
 
 /**

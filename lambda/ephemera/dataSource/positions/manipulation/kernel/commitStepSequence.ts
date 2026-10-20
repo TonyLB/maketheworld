@@ -14,7 +14,7 @@ import { charactersRowItemsFor } from '../../ludicCache/charactersRow'
 import { roomsInvalidatedByHosts } from '../../ludicCache/roomsInvalidatedByHosts'
 import { ludicCacheMarkerBumpItems } from '../../ludicCache/store'
 import { EphemeraLudicGraph, graphFromMeta, hostDataCategory } from '../../ludicGraph'
-import { parentHostOf } from '../../ludicGraph/presenceParent'
+import { parentHostsOf } from '../../ludicGraph/presenceParent'
 import { streamObjectMembershipFact } from '../membership/streamObjectMembershipFact'
 import { streamMembershipFact } from '../membership/streamMembershipFact'
 import { streamObjectRelationalFact } from '../relational/streamObjectRelationalFact'
@@ -104,10 +104,7 @@ const containersAfter = (
     entityId: EphemeraMembershipHostId,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): EphemeraMembershipHostId[] => [...new Set(
-    (graphs.get(entityId)?.presenceNodes ?? []).flatMap((node) => {
-        const host = parentHostOf(node)
-        return host === undefined ? [] : [host]
-    })
+    (graphs.get(entityId)?.presenceNodes ?? []).flatMap(parentHostsOf)
 )]
 
 /**
@@ -183,7 +180,7 @@ export const commitStepSequence = async (
         console.error(`[mtw.ephemera.positions] commitStepSequence could not resolve invalidated rooms: ${message}`)
         return { ok: false, errorCode: 'STEP_SEQUENCE_TRANSACT_FAILED', errorMessage: message }
     }
-    const movesMembership = steps.some((step) => step.kind === 'addPresenceBinding' || step.kind === 'movePresenceBinding' || step.kind === 'repairPresenceBinding')
+    const movesMembership = steps.some((step) => step.kind === 'addPresenceBinding' || step.kind === 'repairPresenceBinding' || step.kind === 'reparentPresenceBinding' || step.kind === 'joinPresenceBindings' || step.kind === 'splitPresenceBinding')
 
     let committedGraphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> | undefined
     // Assignment, not append --- the reducer body can run more than once under

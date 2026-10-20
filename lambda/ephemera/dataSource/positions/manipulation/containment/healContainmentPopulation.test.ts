@@ -66,7 +66,7 @@ describe('healContainmentPopulation', () => {
                 edges: [partOf(FEATURE_ID, ROOM_ID)],
             }),
             [FEATURE_ID]: testLudicGraph(FEATURE_ID, {
-                nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresence: { host: ROOM_ID, presence: 'PRESENCE#gone' as EphemeraPresenceNodeId }, cover: { members: [] } }],
+                nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresences: [{ host: ROOM_ID, presence: 'PRESENCE#gone' as EphemeraPresenceNodeId }], cover: { members: [] } }],
             }),
         })
 
@@ -76,12 +76,12 @@ describe('healContainmentPopulation', () => {
         const steps = committedSteps()
         const mint = steps.find((step) => step.kind === 'addPresenceBinding')
         expect(mint).toMatchObject({ hostId: ROOM_ID })
-        expect(mint.fromHostPresence).toBeUndefined()
+        expect(mint.fromHostPresences).toEqual([])
         const repair = steps.find((step) => step.kind === 'repairPresenceBinding')
         expect(repair).toMatchObject({
             hostId: FEATURE_ID,
             presenceId: HOST_ONLY_BINDING,
-            fromHostPresence: { host: ROOM_ID, presence: `PRESENCE#${mint.presenceUuid}` },
+            fromHostPresences: [{ host: ROOM_ID, presence: `PRESENCE#${mint.presenceUuid}` }],
         })
         expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding', 'repairPresenceBinding'])
     })
@@ -103,12 +103,12 @@ describe('healContainmentPopulation', () => {
         // The Area's own root is minted first, and the carve-out names it.
         const steps = committedSteps()
         expect(steps).toEqual([
-            { kind: 'addPresenceBinding', hostId: AREA_ID, presenceUuid: expect.any(String) },
+            { kind: 'addPresenceBinding', hostId: AREA_ID, fromHostPresences: [], presenceUuid: expect.any(String) },
             expect.objectContaining({
                 kind: 'repairPresenceBinding',
                 hostId: ROOM_ID,
                 presenceId: 'PRESENCE#kitchen-in-area',
-                fromHostPresence: { host: AREA_ID, presence: `PRESENCE#${steps[0].presenceUuid}` },
+                fromHostPresences: [{ host: AREA_ID, presence: `PRESENCE#${steps[0].presenceUuid}` }],
                 cover: { members: [] },
             }),
         ])
@@ -139,7 +139,7 @@ describe('healContainmentPopulation', () => {
 
         await healContainmentPopulation(ROOM_ID, { messageBus, streamEvent })
 
-        expect(committedSteps()).toEqual([{ kind: 'addPresenceBinding', hostId: ROOM_ID, presenceUuid: expect.any(String) }])
+        expect(committedSteps()).toEqual([{ kind: 'addPresenceBinding', hostId: ROOM_ID, fromHostPresences: [], presenceUuid: expect.any(String) }])
     })
 
     it('only reruns population for authored Room/Feature children, never Objects', async () => {

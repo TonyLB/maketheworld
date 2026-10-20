@@ -57,8 +57,9 @@ export {
     lacksBase,
     orphanRepairsFor,
     orphanedPointersOf,
+    parentPointersOf,
     rebuiltCoverEntries,
-    wholeMembersOf,
+    hostMembersOf,
 } from './classifyPresenceCoverDrift'
 export type {
     OrphanedPointer,

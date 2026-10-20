@@ -52,7 +52,7 @@ const apply = (steps: readonly KernelStep[], graphs: Record<string, EphemeraLudi
 const moveOf = async (froms: EphemeraMembershipHostId[], to: EphemeraMembershipHostId | null, graphs: Record<string, EphemeraLudicGraph>, moverGroundedPresence?: Parameters<typeof resolvePresenceMoves>[0]['moverGroundedPresence']) => {
     const resolved = await resolvePresenceMoves({ moved: plank, froms, to, getGraph: worldOf(graphs), ...(moverGroundedPresence ? { moverGroundedPresence } : {}) })
     if (!resolved.ok) { throw new Error(`expected moves, got ${resolved.errorCode}`) }
-    return compilePositionKernelOp({ kind: 'move', moved: plank, froms, to, header: null, presenceMoves: resolved.presenceMoves }).steps
+    return compilePositionKernelOp({ kind: 'move', moved: plank, froms, to, header: null, presenceSteps: resolved.steps }).steps
 }
 
 const heldIn = (graphs: ReadonlyMap<string, EphemeraLudicGraph>, host: string) => graphs.get(host)!.nodeIds.has(plank)
@@ -74,7 +74,7 @@ describe('a move changes a host\'s membership only with the mover\'s first or la
         expect(heldIn(after, roomA)).toBe(false)
         expect(heldIn(after, roomC)).toBe(true)
         expect(heldIn(after, roomB)).toBe(true)
-        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence?.host])).toEqual([
+        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]?.host])).toEqual([
             [presence('plank-a'), roomC],
             [presence('plank-b'), roomB],
         ])
@@ -108,7 +108,7 @@ describe('a move changes a host\'s membership only with the mover\'s first or la
 
         expect(heldIn(after, roomA)).toBe(false)
         expect(heldIn(after, roomB)).toBe(false)
-        expect(after.get(plank)!.presenceNodes.every((node) => !node.fromHostPresence)).toBe(true)
+        expect(after.get(plank)!.presenceNodes.every((node) => node.fromHostPresences.length === 0)).toBe(true)
     })
 })
 
@@ -157,7 +157,7 @@ describe('two bindings of one mover under one host', () => {
         const after = apply(planned.plan.steps, world)
 
         // The binding on table-2 moved; the one on table-1 stayed, so the table still holds the plank.
-        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence?.host])).toEqual([
+        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]?.host])).toEqual([
             [presence('plank-on-1'), table],
             [presence('plank-on-2'), roomC],
         ])
@@ -165,7 +165,7 @@ describe('two bindings of one mover under one host', () => {
         expect(heldIn(after, roomC)).toBe(true)
     })
 
-    it('a move between two bindings of one host compiles to its presence write alone and changes no membership', () => {
+    it('a move between two bindings of one host is a reparent and a join, and changes no membership', () => {
         const world = acrossTwoBindings()
         const { steps } = compilePositionKernelOp({
             kind: 'move',
@@ -173,18 +173,23 @@ describe('two bindings of one mover under one host', () => {
             froms: [table],
             to: table,
             header: null,
-            presenceMoves: [{
-                presence: presence('plank-on-1'),
-                from: { host: table, presence: presence('table-1') },
-                to: { host: table, presence: presence('table-2') },
-            }],
+            presenceSteps: [
+                {
+                    kind: 'reparentPresenceBinding',
+                    hostId: plank,
+                    presence: presence('plank-on-1'),
+                    lose: [{ host: table, presence: presence('table-1') }],
+                    gain: [{ host: table, presence: presence('table-2') }],
+                },
+                // the plank already holds a binding under table-2, so the producer joins into it
+                { kind: 'joinPresenceBindings', hostId: plank, into: presence('plank-on-2'), toJoin: [presence('plank-on-1')], cascadeHosts: [table] },
+            ],
         })
 
-        expect(steps.map((step) => step.kind)).toEqual(['movePresenceBinding'])
-        // the plank already holds a binding under table-2, so the move joins into it
+        expect(steps.map((step) => step.kind)).toEqual(['reparentPresenceBinding', 'joinPresenceBindings'])
         const after = apply(steps, world)
         expect(heldIn(after, table)).toBe(true)
-        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresence }) => [universalKey, fromHostPresence?.presence])).toEqual([
+        expect(after.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]?.presence])).toEqual([
             [presence('plank-on-2'), presence('table-2')],
         ])
     })
@@ -239,13 +244,7 @@ describe('the moved fact reports only the hosts whose membership changed', () =>
             [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Object', universalKey: plank }, presenceBindingNode(parentRemainderKey(roomA)), presenceBindingNode('roomA-other', roomB), presenceBindingNode('roomA-third', roomC)] })],
             [plank, testLudicGraph(plank, { nodes: [{ tag: 'Object', universalKey: plank }, presenceBindingNode('plank-a', roomA), presenceBindingNode('plank-a2', { host: roomA, presence: presence('roomA-other') })] })],
         ])
-        const sameHost: MutationKernelStep = {
-            kind: 'movePresenceBinding',
-            hostId: plank,
-            presence: presence('plank-a'),
-            from: { host: roomA, presence: parentRemainderKey(roomA) },
-            to: { host: roomA, presence: presence('roomA-third') },
-        }
+        const sameHost: MutationKernelStep = { kind: 'reparentPresenceBinding', hostId: plank, presence: presence('plank-a'), lose: [{ host: roomA, presence: parentRemainderKey(roomA) }], gain: [{ host: roomA, presence: presence('roomA-third') }] }
         const final = apply([sameHost], Object.fromEntries(prior))
 
         expect(membershipChangesOf([sameHost], prior, final)).toEqual([])

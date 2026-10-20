@@ -98,27 +98,27 @@ export class LudicGraphComponentNode implements LudicGraphNodeListItem {
 export class LudicGraphPresenceNode implements LudicGraphNodeListItem {
     readonly isPresence = true as const
     _universalKey: string
-    _fromHostPresence: StandardLudicGraphPresenceNodeData['fromHostPresence']
+    _fromHostPresences: StandardLudicGraphPresenceNodeData['fromHostPresences']
     _cover: StandardLudicGraphPresenceNodeData['cover']
     _ref: number
 
     constructor(arg: LudicGraphPresenceNode | StandardLudicGraphPresenceNodeData) {
         if (arg instanceof LudicGraphPresenceNode) {
             this._universalKey = arg._universalKey
-            this._fromHostPresence = arg._fromHostPresence
+            this._fromHostPresences = arg._fromHostPresences
             this._cover = arg._cover
             this._ref = arg._ref
             return
         }
         this._universalKey = arg.universalKey
-        this._fromHostPresence = arg.fromHostPresence
+        this._fromHostPresences = arg.fromHostPresences
         this._cover = arg.cover
         this._ref = arg.ref ?? 1
     }
 
     get tag(): 'Presence' { return 'Presence' }
     get universalKey(): string { return this._universalKey }
-    get fromHostPresence(): StandardLudicGraphPresenceNodeData['fromHostPresence'] { return this._fromHostPresence }
+    get fromHostPresences(): StandardLudicGraphPresenceNodeData['fromHostPresences'] { return this._fromHostPresences }
     get cover(): StandardLudicGraphPresenceNodeData['cover'] { return this._cover }
     get ref(): number { return this._ref }
 
@@ -134,7 +134,7 @@ export class LudicGraphPresenceNode implements LudicGraphNodeListItem {
         return new LudicGraphPresenceNode({
             tag: 'Presence',
             universalKey: this._universalKey,
-            ...(this._fromHostPresence ? { fromHostPresence: this._fromHostPresence } : {}),
+            ...(this._fromHostPresences ? { fromHostPresences: this._fromHostPresences } : {}),
             cover: this._cover,
             ref,
         })
@@ -165,7 +165,7 @@ export class LudicGraphPresenceNode implements LudicGraphNodeListItem {
         return {
             tag: 'Presence',
             universalKey: this._universalKey,
-            ...(this._fromHostPresence ? { fromHostPresence: this._fromHostPresence } : {}),
+            ...(this._fromHostPresences ? { fromHostPresences: this._fromHostPresences } : {}),
             cover: this._cover,
             ...(this._ref !== 1 ? { ref: this._ref } : {}),
         }

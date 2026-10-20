@@ -317,7 +317,7 @@ export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): E
  * so the qualifying `owner` on that address carries no information the id does not, and identity
  * may drop it.
  *
- * **Fixed ids break that uniqueness** (contract, *Base and Unplaced*): every whole holds a `PRESENCE#Base`,
+ * **Fixed ids break that uniqueness** (contract, *Base and Unplaced*): every host holds a `PRESENCE#Base`,
  * so a bare presence id names a binding only on the graph it sits in. A caller comparing terminals of
  * one graph passes that graph's host as `bareOwner`, and the exception then also requires the address
  * to be owned by it. Omitted, the owner is ignored, which is sound only for ids that are still unique.
@@ -393,7 +393,7 @@ export type EphemeraPresenceCoverEntry = {
 
 /**
  * A presence binding's extent: an ordered list of explicit entries, never a complement. Every
- * component node of a whole is listed by at least one of its bindings (the coverage invariant), so
+ * component node of a host is listed by at least one of its bindings (the coverage invariant), so
  * a cover means the same thing whatever its siblings hold. A room's binding into an Area is the
  * carve-out with no members at all.
  */
@@ -402,9 +402,9 @@ export type EphemeraPresenceCover = {
 }
 
 /**
- * The fixed ids of a whole's root bindings (contract, *Base and Unplaced*). Base always exists and takes every
- * context-free add; Unplaced exists only while Base has a parent pointer, and holds contents
- * explicitly unplaced. Each is unique per whole (never across wholes), so a reference to either is
+ * The fixed ids of a host's root bindings (contract, *Base and Unplaced*). Base always exists and takes every
+ * context-free add; Unplaced is optional and never has a parent,
+ * exists only while it covers something, and holds contents that fell out of every placed binding. Each is unique per host (never across hosts), so a reference to either is
  * host-qualified.
  */
 export const BASE_PRESENCE_ID = 'PRESENCE#Base' as EphemeraPresenceNodeId
@@ -418,10 +418,10 @@ export const UNPLACED_PRESENCE_ID = 'PRESENCE#Unplaced' as EphemeraPresenceNodeI
  * already the discriminant, and a second constant field would be a discriminant with no second
  * value.
  *
- * `fromHostPresence` (PR-21) names the parent BINDING: `host` is the
+ * `fromHostPresences` (PR-21, PR-25) is the SET of parent BINDINGS: in each pointer, `host` is the
  * shard to read (one Dynamo read), `presence` is which of that host's bindings this one sits
- * under. The child's pointer governs; the parent's cover is a stored index of it. Absent means a
- * hostless remainder (a room, an unplaced or offline whole).
+ * under. The child's pointers govern; each parent's cover is a stored index of them. Empty means a
+ * hostless remainder (a room, an unplaced or offline host).
  */
 export type EphemeraPresenceParentPointer = {
     host: EphemeraMembershipHostId;
@@ -432,7 +432,7 @@ export type EphemeraPresenceParentPointer = {
 export type EphemeraLudicGraphStructureNode = {
     tag: 'Presence';
     universalKey: EphemeraPresenceNodeId;
-    fromHostPresence?: EphemeraPresenceParentPointer;
+    fromHostPresences: EphemeraPresenceParentPointer[];
     cover: EphemeraPresenceCover;
 }
 
@@ -725,26 +725,27 @@ export const isEphemeraLudicGraphStructureNode = (value: unknown): value is Ephe
     if (entry.tag !== 'Presence') {
         return false
     }
-    // A stored host-only `fromHostId` is the retired locator, and a `fromHostPresence` with no
-    // `presence` is the same grain: both are rejected outright rather than read as hostless, so a
-    // surviving row reports through `LudicGraphStaleStructureSweep` instead of silently losing its parent.
+    // A stored host-only `fromHostId` is the retired locator, the single `fromHostPresence` is the
+    // retired one-parent shape, and a pointer with no `presence` is the same grain as the first:
+    // all are rejected outright rather than read as hostless, so a surviving row reports through
+    // `LudicGraphStaleStructureSweep` instead of silently losing its parent.
     return isEphemeraPresenceNodeId(entry.universalKey) &&
-        isEphemeraPresenceParentPointerOrAbsent(entry.fromHostPresence) &&
+        isEphemeraPresenceParentPointerList(entry.fromHostPresences) &&
         !('fromHostId' in entry) &&
+        !('fromHostPresence' in entry) &&
         isEphemeraPresenceCover(entry.cover)
 }
 
-/** Absent is legal: a hostless remainder has no parent. Present must be a well-formed `{ host, presence }`, both required. */
-export const isEphemeraPresenceParentPointerOrAbsent = (value: unknown): boolean => {
-    if (value === undefined) {
-        return true
-    }
-    if (!value || typeof value !== 'object') {
-        return false
-    }
-    const { host, presence } = value as Partial<EphemeraPresenceParentPointer>
-    return typeof host === 'string' && isEphemeraMembershipHostId(host) && typeof presence === 'string' && isEphemeraPresenceNodeId(presence)
-}
+/** Empty is legal: a hostless remainder has no parent. Every element must be a well-formed `{ host, presence }`, both required. */
+export const isEphemeraPresenceParentPointerList = (value: unknown): value is EphemeraPresenceParentPointer[] => (
+    Array.isArray(value) && value.every((pointer) => {
+        if (!pointer || typeof pointer !== 'object') {
+            return false
+        }
+        const { host, presence } = pointer as Partial<EphemeraPresenceParentPointer>
+        return typeof host === 'string' && isEphemeraMembershipHostId(host) && typeof presence === 'string' && isEphemeraPresenceNodeId(presence)
+    })
+)
 
 export const isEphemeraLudicGraphNode = (value: unknown): value is EphemeraLudicGraphNode => {
     if (!value || typeof value !== 'object') {

@@ -13,7 +13,7 @@ import type {
  * `ExecutorParsePlanStep`. Membership (an entity's node in a host's graph) has no step of its own: it
  * is a consequence of the mover's presence bindings (a node is in host H iff some binding of it
  * points at H), applied inside the presence steps below (`addPresenceBinding`,
- * `movePresenceBinding`, `repairPresenceBinding`) by
+ * `reparentPresenceBinding`, `joinPresenceBindings`, `splitPresenceBinding`, `repairPresenceBinding`) by
  * `settleMembership.ts`. The executor's own `TransferMembershipStep` is the *action-layer* primitive
  * a player command plans; `planObjectMoveTransfer` compiles it to presence steps.
  */
@@ -45,7 +45,7 @@ export type MutationKernelCaptureStep = {
 /**
  * Mints one presence binding on `hostId`'s own graph: cache-time containment population's add
  * (a child's first binding into an authored parent, or a whole's hostless root). A move never
- * emits this: it re-points the mover's existing binding (`movePresenceBinding`, below), so a
+ * emits this: it reparents the mover's existing binding (`reparentPresenceBinding`, below), so a
  * binding keeps its id for the whole's life (PR-21(e)). At-most-one presence is not a property of
  * this step; for characters it is enforced separately, by an end-of-sequence validator in
  * `applyStepSequenceCore.ts` --- characters are single-hosted, per `AGENT.contract.md`. Objects get
@@ -61,8 +61,8 @@ export type MutationKernelCaptureStep = {
 export type MutationKernelAddPresenceBindingStep = {
     kind: 'addPresenceBinding'
     hostId: EphemeraMembershipHostId
-    /** The parent binding this one sits under (PR-21); absent for a hostless binding. */
-    fromHostPresence?: EphemeraPresenceParentPointer
+    /** The parent bindings this one sits under (PR-21, PR-25); empty for a hostless binding. */
+    fromHostPresences: EphemeraPresenceParentPointer[]
     /** Defaults to `{ members: [] }`: the cover index adds each child's entry as its pointer is written. */
     cover?: EphemeraPresenceCover
     presenceUuid: string
@@ -72,8 +72,8 @@ export type MutationKernelAddPresenceBindingStep = {
  * Creates a component's host row, born holding one hostless binding (`PRESENCE#Base`,
  * no parent pointer), so a component never exists without a binding. Birth is a binding's proper
  * origin; `containmentPopulationSteps.ts`'s `rootStep` is the late catch-up for components created
- * outside the kernel. A placement later in the same sequence re-points this binding
- * (`movePresenceBinding`), keeping its id.
+ * outside the kernel. A placement later in the same sequence reparents this binding
+ * (`reparentPresenceBinding`), keeping its id.
  *
  * The host is not fetched: `commitStepSequence` leaves it out of the `MultiKeyUpdate` keys and
  * writes `{ ...meta, ludicGraph }` as a `Put` through the wrapper's `cascade`. v1 creates
@@ -103,72 +103,85 @@ export type MutationKernelDestroyComponentStep = {
  * write differently (a pointer not naming the parent's binding, a room's Area cover with members); a correct binding never
  * emits one, so a rerun of population is a true no-op once repaired. A missing binding is stale,
  * never silently created. A pointer names the host the mover now sits in, so the node is added there
- * if absent (`settleMembership.ts`). Every present producer repairs within one host; a repair that
- * leaves another host names the binding it leaves in `previousParent`, so the footprint locks that
- * host and its cover entry and node go with the move.
+ * if absent (`settleMembership.ts`). The step names the binding's whole parent set after the repair,
+ * so a producer repairing a shared binding carries the parents it keeps. Every present producer repairs
+ * within one host; a repair that leaves another host names the bindings it leaves in `previousParents`,
+ * so the footprint locks that host and its cover entry and node go with the move.
  */
 export type MutationKernelRepairPresenceBindingStep = {
     kind: 'repairPresenceBinding'
     hostId: EphemeraMembershipHostId
     presenceId: EphemeraPresenceNodeId
-    fromHostPresence?: EphemeraPresenceParentPointer
-    previousParent?: EphemeraPresenceParentPointer
+    fromHostPresences: EphemeraPresenceParentPointer[]
+    previousParents?: EphemeraPresenceParentPointer[]
+    cover: EphemeraPresenceCover
+}
+
+/** A binding of a host, as a step names it: the host whose graph holds the binding, and its id there (a stored parent pointer's shape). */
+export type PresenceBindingRef = ParentBinding
+
+/**
+ * Reparent (Framework F): one binding of the mover gains and/or loses named parents. Its cover and
+ * its children do not change. Each `lose` parent must still be in the stored set (an optimistic
+ * check against a concurrent writer: `presenceBindingMoved`), and each `gain` parent's binding must
+ * exist (`destinationBindingMissing`). The parent covers are the index and are written by the same
+ * step. It may leave the binding with no parent, or two bindings of the host under one parent: both
+ * are settled at the run's end (F-R1 removes a parentless binding, F-R3 refuses a collision), so the
+ * producer writes a join itself. `cascadeHosts` names the hosts of the binding's children, which the
+ * footprint locks because F-R1 may remove the binding and re-parent them.
+ */
+export type MutationKernelReparentPresenceBindingStep = {
+    kind: 'reparentPresenceBinding'
+    hostId: EphemeraMembershipHostId
+    presence: EphemeraPresenceNodeId
+    lose?: readonly ParentBinding[]
+    gain?: readonly ParentBinding[]
+    cascadeHosts?: readonly EphemeraMembershipHostId[]
+}
+
+/**
+ * Join (Framework F): the bindings `toJoin` are dispensed with and `into` keeps its id (PS-5). `into`
+ * takes the union of their parents and of their covers; each child of a `toJoin` cover has the joined
+ * binding swapped for `into` in its parent set (a union, so a child listed by two of them collapses to
+ * one pointer), and the parents' cover entries follow. Base is never dispensed with: `toJoin` holds no
+ * Base (`joinDispensesBase`). Children that now collide under `into` are not joined here: the
+ * producer writes that join one level down, and the run's end refuses it otherwise (F-R3).
+ * `cascadeHosts` names the hosts of the children, for the footprint.
+ */
+export type MutationKernelJoinPresenceBindingsStep = {
+    kind: 'joinPresenceBindings'
+    hostId: EphemeraMembershipHostId
+    into: EphemeraPresenceNodeId
+    toJoin: readonly EphemeraPresenceNodeId[]
+    cascadeHosts?: readonly EphemeraMembershipHostId[]
+}
+
+/**
+ * One piece of a split: it either names the original binding (`presence`, the piece that keeps its
+ * id) or is new (`presenceUuid`, minted by the producer so a later step can name it), with the
+ * subset of the original's parents and cover it takes.
+ */
+export type PresenceBindingPiece = (
+    | { presence: EphemeraPresenceNodeId; presenceUuid?: undefined }
+    | { presenceUuid: string; presence?: undefined }
+) & {
+    parents: readonly ParentBinding[]
     cover: EphemeraPresenceCover
 }
 
 /**
- * A binding of a host, as a move names it: the host whose graph holds the binding, and its id there.
- * The same shape as a stored `fromHostPresence` (`ParentBinding`, `presenceParent.ts`), now that
- * `presence` is required there.
+ * Split (Framework F): one binding becomes `pieces`. Exactly one piece names the original and keeps
+ * its id. At both levels the pieces' parents and covers are subsets of the original's that may
+ * overlap and together equal it (`splitPartsNotCovered`). Each child entry's parent set swaps the
+ * original for every piece that covers it, and the parents' covers are rewritten per piece. Two
+ * pieces may sit under one parent until the run's end, and a piece with no parent is removed then
+ * (F-R1) unless a later step gives it one.
  */
-export type PresenceBindingRef = ParentBinding
-
-/**
- * A move's presence write: takes one binding of the mover (`presence`, on
- * `hostId`'s own graph), or the `subCover` part of its cover, from the parent binding it sits under
- * now (`from`; `null` for a hostless binding, a first placement) to the parent binding `to`, or to
- * no parent (`to: null`). Nothing is resolved by host and nothing is guessed: the producer names
- * both ends, and the handler is `stale` when `presence` or `to.presence` is gone, or when the stored
- * pointer is no longer `from` (an optimistic check against a concurrent writer). `from.host` and
- * `to.host` may be equal: a move between two bindings of one parent.
- *
- * - **A whole binding** (no `subCover`): if the mover holds no binding under `to`, the binding is
- *   re-pointed and keeps its id and cover, so no child pointer naming it is orphaned (PR-21(e)). If
- *   it already holds one there, the moved entries join it and the moved binding is removed.
- * - **A `subCover` part**: only those entries move, to the mover's binding under `to` or to a new one
- *   (`mintedPresence`, minted by the producer so a later step can name it). The source binding stays,
- *   even with an empty cover. Every entry must be listed by the source's cover.
- * - **To no parent**: the entries land in `PRESENCE#Base` if it is hostless, else in
- *   `PRESENCE#Unplaced` (minted if absent). Base moved to no parent absorbs Unplaced. A whole holding
- *   no Base is `stale` (`baseMissing`): every whole holds Base from creation on, and stored data was
- *   migrated to it.
- * - **Children re-point, and collisions merge.** Each moved entry is a child's binding, re-pointed to
- *   the binding that now covers it; a child left holding two bindings under it has them merged by
- *   this same move one level down.
- * - **The cover index.** The same step writes the parent covers: an entry onto `to`'s binding when a
- *   binding arrives there and off `from`'s when one leaves. A bystander never touches a room graph,
- *   so its parent covers are not written.
- *
- * It also applies membership (`settleMembership.ts`): the node leaves `from.host` unless another
- * binding of the mover still points there, and arrives at `to.host` unless it is already there. Both
- * hosts are in the step's footprint.
- *
- * `cover` is the planner's read of the moved binding's cover (whole moves), carried because the
- * footprint is computed from the steps before any graph loads, and the children to lock are only
- * named there (as a join's `absorbedCover` was); the handler checks it against the stored cover, so
- * one that changed since planning is `stale`. `cascadeHosts` names the hosts of any child bindings
- * the planner found would collide, so their merge's own children are locked too.
- */
-export type MutationKernelMovePresenceBindingStep = {
-    kind: 'movePresenceBinding'
+export type MutationKernelSplitPresenceBindingStep = {
+    kind: 'splitPresenceBinding'
     hostId: EphemeraMembershipHostId
     presence: EphemeraPresenceNodeId
-    from: ParentBinding | null
-    to: PresenceBindingRef | null
-    subCover?: readonly EphemeraPresenceCoverEntry[]
-    mintedPresence?: EphemeraPresenceNodeId
-    cover?: EphemeraPresenceCover
-    cascadeHosts?: readonly EphemeraMembershipHostId[]
+    pieces: readonly PresenceBindingPiece[]
 }
 
 /**
@@ -200,7 +213,9 @@ export type MutationKernelStep =
     | MutationKernelCreateComponentStep
     | MutationKernelDestroyComponentStep
     | MutationKernelAddPresenceBindingStep
-    | MutationKernelMovePresenceBindingStep
+    | MutationKernelReparentPresenceBindingStep
+    | MutationKernelJoinPresenceBindingsStep
+    | MutationKernelSplitPresenceBindingStep
     | MutationKernelRepairPresenceBindingStep
     | MutationKernelAddCrossingPortStep
     | MutationKernelRemoveCrossingPortStep
@@ -217,7 +232,9 @@ export const mutationKernelStepKinds = {
     createComponent: true,
     destroyComponent: true,
     addPresenceBinding: true,
-    movePresenceBinding: true,
+    reparentPresenceBinding: true,
+    joinPresenceBindings: true,
+    splitPresenceBinding: true,
     repairPresenceBinding: true,
     addCrossingPort: true,
     removeCrossingPort: true,
@@ -379,7 +396,9 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'createComponent' ||
     step.kind === 'destroyComponent' ||
     step.kind === 'addPresenceBinding' ||
-    step.kind === 'movePresenceBinding' ||
+    step.kind === 'reparentPresenceBinding' ||
+    step.kind === 'joinPresenceBindings' ||
+    step.kind === 'splitPresenceBinding' ||
     step.kind === 'repairPresenceBinding' ||
     step.kind === 'addCrossingPort' ||
     step.kind === 'removeCrossingPort'

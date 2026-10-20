@@ -2,6 +2,7 @@ import { isEphemeraAreaId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb
 import { ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
+import { parentPointersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { presenceGraphViewOf } from '../presenceCoverDriftSweep/classification'
 
 type RawEdge = { kind?: unknown; from?: EphemeraLudicTerminalId; to?: EphemeraLudicTerminalId }
@@ -28,7 +29,7 @@ const isFixedChildOf = (parentId: string, childId: string): boolean => (
  * - For each authored child that is a legal fixed nesting (`isFixedChildOf`):
  *   - the parent's node list lacks the child's node;
  *   - the parent's graph holds no `PartOf` edge from the child to the parent;
- *   - the child holds no binding pointing at the parent's root binding (a Room's binding into an
+ *   - the child holds no binding with the parent's root binding among its parents (a Room's binding into an
  *     Area must also be an empty-member carve-out).
  *
  * This sweep owns nestings that never move; Objects and Characters are outside it because their
@@ -51,7 +52,7 @@ export const isFixedContainmentDrifted = (
 ): boolean => {
     const parent = presenceGraphViewOf(parentId, parentGraph)
     const isRootHolder = isEphemeraRoomId(parentId) || isEphemeraAreaId(parentId)
-    const root = parent?.presenceNodes.find((node) => !node.fromHostPresence)
+    const root = parent?.presenceNodes.find((node) => parentPointersOf(node).length === 0)
     if (isRootHolder && !root) {
         return true
     }
@@ -75,15 +76,18 @@ export const isFixedContainmentDrifted = (
         const hasEdge = edges.some((edge) => (
             edge.kind === 'PartOf' &&
             edge.from !== undefined && edge.to !== undefined &&
-            ephemeraLudicTerminalsEqual(edge.from, childId) &&
-            ephemeraLudicTerminalsEqual(edge.to, parentId)
+            ephemeraLudicTerminalsEqual(edge.from, childId as EphemeraLudicTerminalId) &&
+            ephemeraLudicTerminalsEqual(edge.to, parentId as EphemeraLudicTerminalId)
         ))
         if (!hasEdge) {
             return true
         }
         const child = presenceGraphViewOf(childId, childGraphOf(childId))
-        const binding = child?.presenceNodes.find((node) => node.fromHostPresence?.host === parentId)
-        if (!binding || binding.fromHostPresence?.presence !== rootId) {
+        // Some binding of the child names the parent's root (a child may hold several bindings, each under other parents too).
+        const binding = child?.presenceNodes.find((node) => (
+            parentPointersOf(node).some((pointer) => pointer.host === parentId && pointer.presence === rootId)
+        ))
+        if (!binding) {
             return true
         }
         return isEphemeraAreaId(parentId) && binding.cover.members.length > 0

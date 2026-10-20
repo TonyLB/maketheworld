@@ -10,7 +10,7 @@ import {
     isEphemeraLudicGraphComponentNode,
     isEphemeraLudicRelationalEdgeData,
     isPresenceTaggedPortId,
-    isEphemeraPresenceParentPointerOrAbsent,
+    isEphemeraPresenceParentPointerList,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -115,11 +115,12 @@ export const isEphemeraLudicCachePresenceNode = (value: unknown): value is Ephem
     if (!value || typeof value !== 'object') {
         return false
     }
-    const node = value as { tag?: unknown; universalKey?: unknown; fromHostPresence?: unknown; cover?: { tag?: unknown; members?: unknown } }
+    const node = value as { tag?: unknown; universalKey?: unknown; fromHostPresences?: unknown; cover?: { tag?: unknown; members?: unknown } }
     return node.tag === 'Presence'
         && typeof node.universalKey === 'string' && isEphemeraPresenceNodeId(node.universalKey)
-        && isEphemeraPresenceParentPointerOrAbsent(node.fromHostPresence)
+        && isEphemeraPresenceParentPointerList(node.fromHostPresences)
         && !('fromHostId' in node)
+        && !('fromHostPresence' in node)
         && !!node.cover && node.cover.tag === undefined
         && Array.isArray(node.cover.members)
         && node.cover.members.every((entry: unknown) => isEphemeraLudicCacheCoverEntry(entry))

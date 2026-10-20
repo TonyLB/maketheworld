@@ -67,10 +67,11 @@ export const executeComponentCreation = async (
             froms: [],
             to: args.target,
             header: null,
-            presenceMoves: [{
+            presenceSteps: [{
+                kind: 'reparentPresenceBinding',
+                hostId: args.objectId,
                 presence: BASE_PRESENCE_ID,
-                from: null,
-                to: { host: args.target, presence: destination.presence },
+                gain: [{ host: args.target, presence: destination.presence }],
             }],
         }).steps.filter(isKernelMutationStep)
 

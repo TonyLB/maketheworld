@@ -17,7 +17,7 @@ import { EphemeraLudicGraph } from './index'
 const withRootCover = (hostId: EphemeraMembershipHostId, nodes: EphemeraLudicGraphFieldPayload['nodes']): EphemeraLudicGraphFieldPayload['nodes'] => {
     const bindings = nodes.filter((node): node is EphemeraLudicGraphStructureNode => typeof node !== 'string' && node.tag === 'Presence')
     const root = bindings.find((node) => node.universalKey === BASE_PRESENCE_ID)
-        ?? (bindings.filter((node) => !node.fromHostPresence).length === 1 ? bindings.find((node) => !node.fromHostPresence) : undefined)
+        ?? (bindings.filter((node) => node.fromHostPresences.length === 0).length === 1 ? bindings.find((node) => node.fromHostPresences.length === 0) : undefined)
         ?? (bindings.length === 1 ? bindings[0] : undefined)
     if (!root) {
         return nodes
@@ -55,18 +55,17 @@ export const parentRemainderKey = (_host: EphemeraMembershipHostId): EphemeraPre
 
 /**
  * Test helper: a presence binding. `parent` is a `{ host, presence }` pointer, a bare host (pointing
- * at that host's conventional remainder, `parentRemainderKey`), or `undefined` for a hostless remainder.
+ * at that host's conventional remainder, `parentRemainderKey`), an array of either (a parent set), or `undefined` for a hostless remainder.
  * `name` mints the binding's own id unless a full `universalKey` is passed.
  */
 export const presenceBindingNode = (
     name: string | EphemeraPresenceNodeId,
-    parent?: EphemeraMembershipHostId | EphemeraPresenceParentPointer,
+    parent?: EphemeraMembershipHostId | EphemeraPresenceParentPointer | (EphemeraMembershipHostId | EphemeraPresenceParentPointer)[],
     cover: EphemeraPresenceCover = { members: [] }
 ): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: name.startsWith('PRESENCE#') ? name as EphemeraPresenceNodeId : PresenceKey(name) as EphemeraPresenceNodeId,
-    ...(parent
-        ? { fromHostPresence: typeof parent === 'string' ? { host: parent, presence: parentRemainderKey(parent) } : parent }
-        : {}),
+    fromHostPresences: (parent === undefined ? [] : Array.isArray(parent) ? parent : [parent])
+        .map((entry) => typeof entry === 'string' ? { host: entry, presence: parentRemainderKey(entry) } : entry),
     cover,
 })

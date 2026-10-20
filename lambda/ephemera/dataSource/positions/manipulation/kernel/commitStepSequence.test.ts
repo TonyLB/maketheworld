@@ -43,10 +43,10 @@ const withoutMarkerBumps = (items: any[] | undefined) => items?.filter((item) =>
 const remainder = (host: EphemeraMembershipHostId) => ({ host, presence: parentRemainderKey(host) })
 /** A binding move of `mover`'s binding `name` between hosts (`from: null` is a first placement). */
 const move = (mover: EphemeraMembershipHostId, name: string, from: EphemeraMembershipHostId | null, to: EphemeraMembershipHostId): MutationKernelStep => (
-    { kind: 'movePresenceBinding', hostId: mover, presence: `PRESENCE#${name}` as any, from: from ? remainder(from) : null, to: remainder(to) }
+    { kind: 'reparentPresenceBinding', hostId: mover, presence: `PRESENCE#${name}` as any, ...(from ? { lose: [remainder(from)] } : {}), gain: [remainder(to)] }
 )
 const release = (mover: EphemeraMembershipHostId, name: string, from: EphemeraMembershipHostId): MutationKernelStep => (
-    { kind: 'movePresenceBinding', to: null, hostId: mover, presence: `PRESENCE#${name}` as any, from: remainder(from) }
+    { kind: 'reparentPresenceBinding', hostId: mover, presence: `PRESENCE#${name}` as any, lose: [remainder(from)] }
 )
 /** The mover's own graph, holding one binding `name` under `host` (hostless without one). */
 const moverGraph = (mover: EphemeraMembershipHostId, host?: EphemeraMembershipHostId, name = 'Base') => (
@@ -108,26 +108,37 @@ describe('commitStepSequence', () => {
         const BOOK = 'OBJECT#Book' as EphemeraObjectId
         const OTHER_ROOM = 'ROOM#Terrace' as EphemeraRoomId
 
-        it('locks the re-pointed child (not the rest of the source binding\'s children) and persists the re-pointed pointer', async () => {
+        it('locks the children of both pieces and persists the re-pointed pointer of the piece that moved', async () => {
             const cupEntry = { host: CUP, presence: 'PRESENCE#cup1' as const }
             const bookEntry = { host: BOOK, presence: 'PRESENCE#book1' as const }
             const under = { host: PLANK, presence: 'PRESENCE#B' as const }
             const graphs = {
                 [PLANK]: testLudicGraph(PLANK, { nodes: [{ tag: 'Object', universalKey: PLANK }, presenceBindingNode('B', ROOM_ID, { members: [cupEntry, bookEntry] })] }),
+                [CUP]: testLudicGraph(CUP, { nodes: [presenceBindingNode('cup1', under)] }),
                 [BOOK]: testLudicGraph(BOOK, { nodes: [presenceBindingNode('book1', under)] }),
                 [ROOM_ID]: testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: PLANK }, presenceBindingNode(parentRemainderKey(ROOM_ID))] }),
                 [OTHER_ROOM]: testLudicGraph(OTHER_ROOM, { nodes: [presenceBindingNode(parentRemainderKey(OTHER_ROOM))] }),
             }
             const { transactWrite, lastItems, lastDraft } = makeTransactWriteMock(graphs)
-            const steps: MutationKernelStep[] = [{
-                kind: 'movePresenceBinding',
-                hostId: PLANK,
-                presence: 'PRESENCE#B' as any,
-                from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
-                to: { host: OTHER_ROOM, presence: parentRemainderKey(OTHER_ROOM) },
-                subCover: [bookEntry],
-                mintedPresence: 'PRESENCE#B2' as any,
-            }]
+            const parents = [{ host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }]
+            const steps: MutationKernelStep[] = [
+                {
+                    kind: 'splitPresenceBinding',
+                    hostId: PLANK,
+                    presence: 'PRESENCE#B' as any,
+                    pieces: [
+                        { presence: 'PRESENCE#B' as any, parents, cover: { members: [cupEntry] } },
+                        { presenceUuid: 'B2', parents, cover: { members: [bookEntry] } },
+                    ],
+                },
+                {
+                    kind: 'reparentPresenceBinding',
+                    hostId: PLANK,
+                    presence: 'PRESENCE#B2' as any,
+                    lose: parents,
+                    gain: [{ host: OTHER_ROOM, presence: parentRemainderKey(OTHER_ROOM) }],
+                },
+            ]
 
             const result = await commitStepSequence(
                 { steps },
@@ -136,9 +147,9 @@ describe('commitStepSequence', () => {
 
             expect(result.ok).toBe(true)
             const locked = lastItems.current!.find((item) => 'MultiKeyUpdate' in item).MultiKeyUpdate.Keys.map((key: { EphemeraId: string }) => key.EphemeraId)
-            expect(new Set(locked)).toEqual(new Set([PLANK, BOOK, ROOM_ID, OTHER_ROOM]))
+            expect(new Set(locked)).toEqual(new Set([PLANK, CUP, BOOK, ROOM_ID, OTHER_ROOM]))
             const bookRow = Object.values(lastDraft.current!).find((row: any) => row.EphemeraId === BOOK) as any
-            expect(graphFromMeta(bookRow, BOOK).presenceNodes[0].fromHostPresence).toEqual({ host: PLANK, presence: 'PRESENCE#B2' })
+            expect(graphFromMeta(bookRow, BOOK).presenceNodes[0].fromHostPresences).toEqual([{ host: PLANK, presence: 'PRESENCE#B2' }])
         })
     })
 

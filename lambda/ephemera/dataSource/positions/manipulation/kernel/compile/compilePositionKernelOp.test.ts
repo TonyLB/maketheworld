@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, Eph
 
 import { compilePositionKernelOp } from './compilePositionKernelOp'
 import { isNarrateStep } from '../kernelStep'
-import type { MembershipNarrationSpec, PresentationKernelNarrateStep, PresenceBindingRef } from '../kernelStep'
+import type { MembershipNarrationSpec, MutationKernelStep, PresentationKernelNarrateStep, PresenceBindingRef } from '../kernelStep'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 
 /** Narrows a compiled narrate step to the membership family these cases all exercise. */
@@ -18,8 +18,8 @@ const FROM_ROOM = 'ROOM#Departure' as EphemeraRoomId
 const TO_ROOM = 'ROOM#Arrival' as EphemeraRoomId
 
 const TO_BINDING = { host: TO_ROOM, presence: 'PRESENCE#arrival-remainder' as EphemeraPresenceNodeId }
-const presenceMovesFrom = (presence: string, from: { host: EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId; presence?: string } | null, to: PresenceBindingRef = TO_BINDING) => [
-    { presence: `PRESENCE#${presence}` as EphemeraPresenceNodeId, from: from as any, to },
+const presenceStepsFrom = (hostId: EphemeraCharacterId | EphemeraObjectId, presence: string, from: { host: EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId; presence?: string } | null, to: PresenceBindingRef = TO_BINDING): MutationKernelStep[] => [
+    { kind: 'reparentPresenceBinding', hostId, presence: `PRESENCE#${presence}` as EphemeraPresenceNodeId, ...(from ? { lose: [from as any] } : {}), gain: [to] },
 ]
 
 const baseOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMoveOp => ({
@@ -28,7 +28,7 @@ const baseOp = (overrides: Partial<PositionKernelMoveOp> = {}): PositionKernelMo
     froms: [FROM_ROOM],
     to: TO_ROOM,
     header: null,
-    presenceMoves: presenceMovesFrom('mover', { host: FROM_ROOM }),
+    presenceSteps: presenceStepsFrom(CHARACTER_ID, 'mover', { host: FROM_ROOM }),
     narration: {
         kind: 'membershipMove',
         characterName: 'Tess',
@@ -44,7 +44,7 @@ describe('compilePositionKernelOp', () => {
 
         expect(plan.steps.map((step) => step.kind)).toEqual([
             'capture',
-            'movePresenceBinding',
+            'reparentPresenceBinding',
             'capture',
             'narrate',
             'narrate',
@@ -99,13 +99,7 @@ describe('compilePositionKernelOp', () => {
         const plan = compilePositionKernelOp(baseOp({ narration: undefined }))
 
         expect(plan.steps).toEqual([
-            {
-                kind: 'movePresenceBinding',
-                hostId: CHARACTER_ID,
-                presence: 'PRESENCE#mover',
-                from: { host: FROM_ROOM },
-                to: TO_BINDING,
-            },
+            { kind: 'reparentPresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#mover', lose: [{ host: FROM_ROOM }], gain: [TO_BINDING] },
         ])
         expect(plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
@@ -135,7 +129,7 @@ describe('compilePositionKernelOp --- object moves', () => {
         froms: [FROM_ROOM],
         to: CHARACTER_ID,
         header: null,
-        presenceMoves: presenceMovesFrom('tray', { host: FROM_ROOM }, { host: CHARACTER_ID, presence: 'PRESENCE#character-root' as EphemeraPresenceNodeId }),
+        presenceSteps: presenceStepsFrom(TRAY, 'tray', { host: FROM_ROOM }, { host: CHARACTER_ID, presence: 'PRESENCE#character-root' as EphemeraPresenceNodeId }),
         dissolvedEdges: [],
         ...overrides,
     })
@@ -143,7 +137,7 @@ describe('compilePositionKernelOp --- object moves', () => {
     it('compiles an object move to mutation steps only: no captures, narrate or describe steps', () => {
         const plan = compilePositionKernelOp(objectOp())
 
-        expect(plan.steps.map((step) => step.kind)).toEqual(['movePresenceBinding'])
+        expect(plan.steps.map((step) => step.kind)).toEqual(['reparentPresenceBinding'])
         expect(plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
@@ -154,7 +148,7 @@ describe('compilePositionKernelOp --- object moves', () => {
 
         const kinds = plan.steps.map((step) => step.kind)
         // factsForStep streams in step order, so a severed relation's fact must precede the move's.
-        expect(kinds.indexOf('dissolveRelation')).toBeLessThan(kinds.indexOf('movePresenceBinding'))
+        expect(kinds.indexOf('dissolveRelation')).toBeLessThan(kinds.indexOf('reparentPresenceBinding'))
         expect(plan.steps.find((step) => step.kind === 'dissolveRelation')).toEqual({
             kind: 'dissolveRelation',
             subjectId: TRAY,
@@ -183,7 +177,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
         }))
 
-        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'movePresenceBinding'])
+        expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'reparentPresenceBinding'])
         expect(plan.steps.some((step) => step.kind === 'describe')).toBe(false)
     })
 
@@ -192,7 +186,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             const plan = compilePositionKernelOp(objectOp({ containment: 'On' }))
 
             const kinds = plan.steps.map((step) => step.kind)
-            expect(kinds.indexOf('movePresenceBinding')).toBeLessThan(kinds.indexOf('establishRelation'))
+            expect(kinds.indexOf('reparentPresenceBinding')).toBeLessThan(kinds.indexOf('establishRelation'))
             expect(plan.steps.find((step) => step.kind === 'establishRelation')).toEqual({
                 kind: 'establishRelation',
                 subjectId: TRAY,
@@ -209,13 +203,7 @@ describe('compilePositionKernelOp --- object moves', () => {
 
         it('re-points the presence binding at the destination on every object rehost, containment or not', () => {
             const plan = compilePositionKernelOp(objectOp())
-            expect(plan.steps.filter((step) => step.kind === 'movePresenceBinding')).toEqual([{
-                kind: 'movePresenceBinding',
-                hostId: TRAY,
-                presence: 'PRESENCE#tray',
-                from: { host: FROM_ROOM },
-                to: { host: CHARACTER_ID, presence: 'PRESENCE#character-root' },
-            }])
+            expect(plan.steps.filter((step) => step.kind === 'reparentPresenceBinding')).toEqual([{ kind: 'reparentPresenceBinding', hostId: TRAY, presence: 'PRESENCE#tray', lose: [{ host: FROM_ROOM }], gain: [{ host: CHARACTER_ID, presence: 'PRESENCE#character-root' }] }])
             expect(plan.steps.some((step) => step.kind === 'addPresenceBinding')).toBe(false)
         })
 
@@ -226,37 +214,18 @@ describe('compilePositionKernelOp --- object moves', () => {
                 froms: [FROM_ROOM],
                 to: TO_ROOM,
                 header: null,
-                presenceMoves: presenceMovesFrom('mover', { host: FROM_ROOM }),
+                presenceSteps: presenceStepsFrom(CHARACTER_ID, 'mover', { host: FROM_ROOM }),
             })
-            expect(plan.steps.find((step) => step.kind === 'movePresenceBinding')).toEqual({
-                kind: 'movePresenceBinding',
-                hostId: CHARACTER_ID,
-                presence: 'PRESENCE#mover',
-                from: { host: FROM_ROOM },
-                to: TO_BINDING,
-            })
+            expect(plan.steps.find((step) => step.kind === 'reparentPresenceBinding')).toEqual({ kind: 'reparentPresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#mover', lose: [{ host: FROM_ROOM }], gain: [TO_BINDING] })
         })
 
-        it('compiles each departing binding to a release, and a multi-binding move to one move per binding', () => {
-            const departing = compilePositionKernelOp(objectOp({
-                to: null,
-                presenceMoves: [{ presence: 'PRESENCE#tray' as EphemeraPresenceNodeId, from: { host: FROM_ROOM, presence: 'PRESENCE#room-root' as EphemeraPresenceNodeId }, to: null }],
-            }))
-            expect(departing.steps).toEqual([{
-                kind: 'movePresenceBinding', to: null,
-                hostId: TRAY,
-                presence: 'PRESENCE#tray',
-                from: { host: FROM_ROOM, presence: 'PRESENCE#room-root' },
-            }])
-
-            const scrub = compilePositionKernelOp(objectOp({
-                froms: [FROM_ROOM, 'ROOM#Third' as EphemeraRoomId],
-                presenceMoves: [
-                    ...presenceMovesFrom('a', { host: FROM_ROOM }),
-                    ...presenceMovesFrom('b', { host: 'ROOM#Third' as EphemeraRoomId }),
-                ],
-            }))
-            expect(scrub.steps.map((step) => step.kind)).toEqual(['movePresenceBinding', 'movePresenceBinding'])
+        it('passes the producer\'s presence steps through in order, a departure and a join included', () => {
+            const steps: MutationKernelStep[] = [
+                { kind: 'reparentPresenceBinding', hostId: TRAY, presence: 'PRESENCE#a' as EphemeraPresenceNodeId, lose: [{ host: FROM_ROOM, presence: 'PRESENCE#room-root' as EphemeraPresenceNodeId }] },
+                ...presenceStepsFrom(TRAY, 'b', { host: 'ROOM#Third' as EphemeraRoomId }),
+                { kind: 'joinPresenceBindings', hostId: TRAY, into: 'PRESENCE#a' as EphemeraPresenceNodeId, toJoin: ['PRESENCE#b' as EphemeraPresenceNodeId] },
+            ]
+            expect(compilePositionKernelOp(objectOp({ presenceSteps: steps })).steps).toEqual(steps)
         })
 
         it('throws when containment is set with no destination', () => {

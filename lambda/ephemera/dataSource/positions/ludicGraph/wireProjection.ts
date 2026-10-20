@@ -40,6 +40,7 @@ import type {
     StandardLudicGraphPresenceNodeData,
 } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/ludicGraph'
 import { isStandardLudicGraphPresenceNodeData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/ludicGraph'
+import { parentsOf } from './presenceParent'
 import type {
     LudicEdgeListData,
     StandardLudicRelationalEdgeData,
@@ -109,31 +110,30 @@ const wireCoverToEphemera = (cover: StandardLudicGraphPresenceCoverData): Epheme
 // nothing -- a component node becomes a bare reference, a presence node becomes the typed arm.
 //
 
-const nodeToWire = (node: EphemeraLudicGraphNode): StandardLudicGraphNodeData =>
-    node.tag === 'Presence'
-        ? {
-            tag: 'Presence',
-            universalKey: node.universalKey,
-            ...(node.fromHostPresence
-                ? { fromHostPresence: { host: ephemeraComponentIdToReferenceData(node.fromHostPresence.host), presence: node.fromHostPresence.presence } }
-                : {}),
-            cover: coverToWire(node.cover),
-        }
-        : ephemeraComponentIdToReferenceData(node.universalKey)
+const nodeToWire = (node: EphemeraLudicGraphNode): StandardLudicGraphNodeData => {
+    if (node.tag !== 'Presence') {
+        return ephemeraComponentIdToReferenceData(node.universalKey)
+    }
+    const parents = parentsOf(node)
+    return {
+        tag: 'Presence',
+        universalKey: node.universalKey,
+        ...(parents.length > 0 ? {
+            fromHostPresences: parents.map((parent) => ({ host: ephemeraComponentIdToReferenceData(parent.host), presence: parent.presence })),
+        } : {}),
+        cover: coverToWire(node.cover),
+    }
+}
 
 const wireNodeToEphemera = (data: StandardLudicGraphNodeData): EphemeraLudicGraphNode => {
     if (isStandardLudicGraphPresenceNodeData(data)) {
         return {
             tag: 'Presence',
             universalKey: data.universalKey as EphemeraPresenceNodeId,
-            ...(data.fromHostPresence
-                ? {
-                    fromHostPresence: {
-                        host: referenceDataToEphemeraComponentId(data.fromHostPresence.host) as EphemeraMembershipHostId,
-                        presence: data.fromHostPresence.presence as EphemeraPresenceNodeId,
-                    },
-                }
-                : {}),
+            fromHostPresences: (data.fromHostPresences ?? []).map((parent) => ({
+                host: referenceDataToEphemeraComponentId(parent.host) as EphemeraMembershipHostId,
+                presence: parent.presence as EphemeraPresenceNodeId,
+            })),
             cover: wireCoverToEphemera(data.cover),
         }
     }

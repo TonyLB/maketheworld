@@ -88,7 +88,7 @@ describe('isEphemeraLudicCacheNode', () => {
             presenceNodes: [{
                 tag: 'Presence',
                 universalKey: 'PRESENCE#abc123',
-                fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
+                fromHostPresences: [{ host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') }],
                 cover: { members: [] },
             }],
         })).toBe(true)
@@ -101,7 +101,7 @@ describe('isEphemeraLudicCacheNode', () => {
             presenceNodes: [{
                 tag: 'Presence',
                 universalKey: 'PRESENCE#abc123',
-                fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
+                fromHostPresences: [{ host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') }],
                 cover: { members: [{ tag: 'Remainder' }] },
             }],
         })).toBe(false)
@@ -112,7 +112,7 @@ describe('isEphemeraLudicCacheNode', () => {
         expect(isEphemeraLudicCacheNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
-            fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
+            fromHostPresences: [{ host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') }],
             cover: { members: [] },
         })).toBe(false)
     })
@@ -126,7 +126,7 @@ describe('isEphemeraLudicCachePresenceNode', () => {
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
-            fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
+            fromHostPresences: [{ host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') }],
             cover: { members: [] },
         })).toBe(true)
     })
@@ -135,13 +135,13 @@ describe('isEphemeraLudicCachePresenceNode', () => {
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
-            fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
+            fromHostPresences: [{ host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') }],
             cover: { tag: 'Full' },
         })).toBe(false)
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
-            fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
+            fromHostPresences: [{ host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') }],
             cover: { members: [{ tag: 'Remainder' }] },
         })).toBe(false)
     })
@@ -150,7 +150,7 @@ describe('isEphemeraLudicCachePresenceNode', () => {
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
-            fromHostPresence: { host: 'PRESENCE#xyz789', presence: 'PRESENCE#abc123' },
+            fromHostPresences: [{ host: 'PRESENCE#xyz789', presence: 'PRESENCE#abc123' }],
             cover: { members: [] },
         })).toBe(false)
     })
@@ -161,7 +161,7 @@ describe('isEphemeraLudicCachePresenceNode', () => {
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
-            fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
+            fromHostPresences: [{ host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') }],
             cover: { members: [{ host: 'OBJECT#Z', presence: 'PRESENCE#z_in_x' }, { host: 'OBJECT#W' }] },
         })).toBe(true)
     })
@@ -170,7 +170,7 @@ describe('isEphemeraLudicCachePresenceNode', () => {
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
-            fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
+            fromHostPresences: [{ host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') }],
             cover: { members: [{ host: 'OBJECT#Z', presence: 'OBJECT#Z' }] },
         })).toBe(false)
     })
@@ -179,7 +179,7 @@ describe('isEphemeraLudicCachePresenceNode', () => {
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
             universalKey: 'PRESENCE#abc123',
-            fromHostPresence: { host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') },
+            fromHostPresences: [{ host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') }],
             cover: { members: [{ host: 'PRESENCE#z_in_x' }] },
         })).toBe(false)
     })
@@ -280,7 +280,7 @@ describe('isEphemeraLudicCacheData', () => {
         presenceNodes: [{
             tag: 'Presence' as const,
             universalKey: 'PRESENCE#box_in_room',
-            fromHostPresence: { host: 'ROOM#Test', presence: parentRemainderKey('ROOM#Test') },
+            fromHostPresences: [{ host: 'ROOM#Test', presence: parentRemainderKey('ROOM#Test') }],
             cover: { members },
         }],
     })
@@ -289,7 +289,7 @@ describe('isEphemeraLudicCacheData', () => {
         presenceNodes: [{
             tag: 'Presence' as const,
             universalKey: 'PRESENCE#helmet_in_box',
-            fromHostPresence: { host: 'OBJECT#box', presence: parentRemainderKey('OBJECT#box') },
+            fromHostPresences: [{ host: 'OBJECT#box', presence: parentRemainderKey('OBJECT#box') }],
             cover: { members: [] },
         }],
     }
@@ -336,7 +336,7 @@ describe('isEphemeraLudicCacheData', () => {
         presenceNodes: [{
             tag: 'Presence' as const,
             universalKey: 'PRESENCE#alpha1',
-            fromHostPresence: { host: 'ROOM#Test', presence: parentRemainderKey('ROOM#Test') },
+            fromHostPresences: [{ host: 'ROOM#Test', presence: parentRemainderKey('ROOM#Test') }],
             cover: { members: [] },
         }],
     }

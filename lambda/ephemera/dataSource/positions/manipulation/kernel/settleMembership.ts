@@ -4,7 +4,7 @@ import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfac
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { applyDeparture } from '../../ludicGraph/expandValidate/applyDeparture'
-import { parentHostOf } from '../../ludicGraph/presenceParent'
+import { bindingHasParentOn } from '../../ludicGraph/presenceParent'
 import { isBystanderMove } from './bystander'
 import type { MutationKernelApplyOutcome } from './types'
 
@@ -12,7 +12,7 @@ type Graphs = ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 
 /** Whether some binding of the mover, on its own graph, points at the host. */
 export const bindingPointsAt = (moverId: EphemeraMembershipHostId, hostId: EphemeraMembershipHostId, graphs: Graphs): boolean => (
-    (graphs.get(moverId)?.presenceNodes ?? []).some((node) => parentHostOf(node) === hostId)
+    (graphs.get(moverId)?.presenceNodes ?? []).some((node) => bindingHasParentOn(node, hostId))
 )
 
 export type SettleMembershipOutcome =

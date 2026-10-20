@@ -182,7 +182,7 @@ describe('spawnOneImprovisationObject', () => {
             const metaPut = written.find((item) => item.Put?.DataCategory === 'Meta::Object')
             const presenceNodes = metaPut.Put.ludicGraph.nodes.filter((node: { tag: string }) => node.tag === 'Presence')
             expect(presenceNodes).toHaveLength(1)
-            expect(presenceNodes[0].fromHostPresence).toEqual({ host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) })
+            expect(presenceNodes[0].fromHostPresences).toEqual([{ host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }])
             expect(written).toEqual(expect.arrayContaining([PAIR_ITEM]))
         })
 

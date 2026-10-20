@@ -213,6 +213,37 @@ describe('healLudicGraphStructure', () => {
         })
     })
 
+    describe('the retired single fromHostPresence', () => {
+        const heal = (nodes: unknown[]) => healLudicGraphStructure(ROOM_ID, { dryRun: true }, {
+            getStoredLudicGraph: async () => ({ rootId: ROOM_ID, nodes: [{ tag: 'Room', universalKey: ROOM_ID }, ...nodes], ports: [] }),
+            writeHealedLudicGraph: jest.fn(),
+        })
+
+        it('becomes a one-element fromHostPresences', async () => {
+            const parent = { host: 'AREA#Town', presence: 'PRESENCE#Base' }
+            const outcome = await heal([{ tag: 'Presence', universalKey: 'PRESENCE#a', fromHostPresence: parent, cover: { members: [] } }])
+            expect(outcome).toMatchObject({ stale: true, healable: true })
+            expect((outcome as any).repairedPayload.nodes[1]).toEqual({ tag: 'Presence', universalKey: 'PRESENCE#a', fromHostPresences: [parent], cover: { members: [] } })
+        })
+
+        it('becomes an empty fromHostPresences when the binding was hostless', async () => {
+            const outcome = await heal([{ tag: 'Presence', universalKey: 'PRESENCE#Base', cover: { members: [] } }])
+            expect(outcome).toMatchObject({ stale: true, healable: true })
+            expect((outcome as any).repairedPayload.nodes[1]).toEqual({ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresences: [], cover: { members: [] } })
+        })
+
+        it('leaves a node that already holds fromHostPresences alone', async () => {
+            const parents = [{ host: 'AREA#Town', presence: 'PRESENCE#Base' }]
+            const outcome = await heal([{ tag: 'Presence', universalKey: 'PRESENCE#a', fromHostPresences: parents, cover: { members: [] } }])
+            expect(outcome).toEqual({ stale: false })
+        })
+
+        it('stays unhealable when the old pointer is malformed (names a host but no presence)', async () => {
+            const outcome = await heal([{ tag: 'Presence', universalKey: 'PRESENCE#a', fromHostPresence: { host: 'AREA#Town' }, cover: { members: [] } }])
+            expect(outcome).toEqual({ stale: true, healable: false, applied: false })
+        })
+    })
+
     it('reports healable: false for a non-object stored value', async () => {
         const writeHealedLudicGraph = jest.fn()
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {

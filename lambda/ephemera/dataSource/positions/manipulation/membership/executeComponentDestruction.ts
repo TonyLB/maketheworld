@@ -54,13 +54,13 @@ export const executeComponentDestruction = async (
         getGraph
     )
     const resolved = froms.length === 0
-        ? { ok: true as const, presenceMoves: [] }
+        ? { ok: true as const, steps: [] }
         : await resolvePresenceMoves({ moved: args.objectId, froms, to: null, getGraph })
     if (!resolved.ok) {
         console.error(`[mtw.ephemera.positions] executeComponentDestruction refused for ${args.objectId}: ${resolved.errorCode}`)
         return { ok: false, errorCode: resolved.errorCode, errorMessage: resolved.errorCode }
     }
-    const moveSteps: MutationKernelStep[] = resolved.presenceMoves.length === 0
+    const moveSteps: MutationKernelStep[] = resolved.steps.length === 0
         ? []
         : compilePositionKernelOp({
             kind: 'move',
@@ -68,7 +68,7 @@ export const executeComponentDestruction = async (
             froms,
             to: null,
             header: null,
-            presenceMoves: resolved.presenceMoves,
+            presenceSteps: resolved.steps,
         }).steps.filter(isKernelMutationStep)
 
     const result = await commitStepSequence(

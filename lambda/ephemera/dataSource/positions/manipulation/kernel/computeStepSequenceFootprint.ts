@@ -49,31 +49,36 @@ export const computeStepSequenceFootprint = (
         }
         if (step.kind === 'addPresenceBinding' || step.kind === 'repairPresenceBinding') {
             hosts.add(step.hostId)
-            if (step.fromHostPresence) {
-                addHostOf(step.hostId, step.fromHostPresence.host)
-            }
-            if (step.kind === 'repairPresenceBinding' && step.previousParent) {
-                addHostOf(step.hostId, step.previousParent.host)
+            step.fromHostPresences.forEach((parent) => addHostOf(step.hostId, parent.host))
+            if (step.kind === 'repairPresenceBinding') {
+                step.previousParents?.forEach((parent) => addHostOf(step.hostId, parent.host))
             }
             continue
         }
-        if (step.kind === 'movePresenceBinding') {
+        if (step.kind === 'reparentPresenceBinding') {
             hosts.add(step.hostId)
-            if (step.to) {
-                addHostOf(step.hostId, step.to.host)
-            }
-            if (step.from) {
-                addHostOf(step.hostId, step.from.host)
-            }
-            // every child whose binding is re-pointed to the receiving binding, and the hosts of any
-            // children the planner found would collide there (their merge re-points their own children).
-            for (const member of step.subCover ?? step.cover?.members ?? []) {
-                if ('host' in member) {
-                    hosts.add(member.host as EphemeraMembershipHostId)
-                }
+            for (const parent of [...(step.lose ?? []), ...(step.gain ?? [])]) {
+                addHostOf(step.hostId, parent.host)
             }
             for (const host of step.cascadeHosts ?? []) {
                 hosts.add(host)
+            }
+            continue
+        }
+        if (step.kind === 'joinPresenceBindings') {
+            // the joined bindings' parents and children are read and rewritten: the producer names the
+            // children's hosts, and a parent host that is absent is a stale refusal at apply time.
+            hosts.add(step.hostId)
+            for (const host of step.cascadeHosts ?? []) {
+                hosts.add(host)
+            }
+            continue
+        }
+        if (step.kind === 'splitPresenceBinding') {
+            hosts.add(step.hostId)
+            for (const piece of step.pieces) {
+                piece.parents.forEach((parent) => addHostOf(step.hostId, parent.host))
+                piece.cover.members.forEach((member) => hosts.add(member.host as EphemeraMembershipHostId))
             }
             continue
         }

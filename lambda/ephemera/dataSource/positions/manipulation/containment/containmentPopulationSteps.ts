@@ -6,7 +6,7 @@ import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ep
 import { BASE_PRESENCE_ID, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf, unpointedBindingOf, parentHostOf, parentOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, unpointedBindingOf, bindingHasParentOn, parentsOf } from '../../ludicGraph/presenceParent'
 import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
 import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelStep } from '../kernel/kernelStep'
 
@@ -30,10 +30,11 @@ export const rootStep = (
         return { graph: parentGraph }
     }
     return {
-        step: { kind: 'addPresenceBinding', hostId: parentId, presenceUuid: 'Base' },
+        step: { kind: 'addPresenceBinding', hostId: parentId, fromHostPresences: [], presenceUuid: 'Base' },
         graph: parentGraph.addPresenceNode({
             tag: 'Presence',
             universalKey: BASE_PRESENCE_ID,
+            fromHostPresences: [],
             cover: { members: [] },
         }),
     }
@@ -93,7 +94,7 @@ export const containmentPopulationSteps = (
     // An authored Object is placed only if it has no live host anywhere: population reruns for
     // every child a parent lists, so without this a player-moved or author-repositioned Object would
     // be put back or doubled. Any binding with a parent pointer on its own graph means it is live.
-    if (isEphemeraObjectId(childId) && childGraph.presenceNodes.some((node) => parentOf(node))) {
+    if (isEphemeraObjectId(childId) && childGraph.presenceNodes.some((node) => parentsOf(node).length > 0)) {
         return []
     }
 
@@ -112,7 +113,7 @@ export const containmentPopulationSteps = (
     // A room's binding into its Area is a carve-out with no members, so the bucket is the room itself.
     const wantedCover = isEphemeraRoomId(childId) && isEphemeraAreaId(parentId) ? { members: [] } : undefined
 
-    const existing = childGraph.presenceNodes.find((node) => parentHostOf(node) === parentId)
+    const existing = childGraph.presenceNodes.find((node) => bindingHasParentOn(node, parentId))
     // A first placement re-points a hostless root rather than minting beside it, so the child's own
     // children keep naming it. A Room's remainder never moves: it gets an Area carve-out instead.
     const unplacedRoot = existing || isEphemeraRoomId(childId) ? undefined : unpointedBindingOf(childGraph)
@@ -121,7 +122,7 @@ export const containmentPopulationSteps = (
             kind: 'repairPresenceBinding',
             hostId: childId,
             presenceId: unplacedRoot.universalKey,
-            fromHostPresence,
+            fromHostPresences: [fromHostPresence],
             cover: unplacedRoot.cover,
         }
         steps.push(placeStep)
@@ -129,14 +130,14 @@ export const containmentPopulationSteps = (
         const bindingStep: MutationKernelAddPresenceBindingStep = {
             kind: 'addPresenceBinding',
             hostId: childId,
-            fromHostPresence,
+            fromHostPresences: [fromHostPresence],
             ...(wantedCover ? { cover: wantedCover } : {}),
-            // a child holding no binding yet gets its Base placed (every whole holds one); a further binding is a new id
+            // a child holding no binding yet gets its Base placed (every host holds one); a further binding is a new id
             presenceUuid: childGraph.presenceNodes.length === 0 ? 'Base' : uuidv4(),
         }
         steps.push(bindingStep)
     } else if (
-        existing.fromHostPresence?.presence !== fromHostPresence.presence ||
+        parentsOf(existing).find((parent) => parent.host === parentId)?.presence !== fromHostPresence.presence ||
         (wantedCover && existing.cover.members.length > 0) ||
         !parentGraph.nodeIds.has(childId)
     ) {
@@ -148,7 +149,8 @@ export const containmentPopulationSteps = (
             kind: 'repairPresenceBinding',
             hostId: childId,
             presenceId: existing.universalKey,
-            fromHostPresence,
+            // swap the parent on this host; parents on other hosts stay (a shared binding)
+            fromHostPresences: [...parentsOf(existing).filter((parent) => parent.host !== parentId), fromHostPresence],
             cover: wantedCover ?? existing.cover,
         }
         steps.push(repairStep)

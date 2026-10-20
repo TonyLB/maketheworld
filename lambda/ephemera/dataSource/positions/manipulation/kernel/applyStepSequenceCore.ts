@@ -7,49 +7,20 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { graphFromMeta } from '../../ludicGraph'
+import { parentsOf } from '../../ludicGraph/presenceParent'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MutationKernelStep } from './kernelStep'
 import { isBystanderMove } from './bystander'
 import { bindingPointsAt, settleMembership } from './settleMembership'
-import { movePresenceBinding, withEntries, withoutEntries } from './movePresenceBinding'
+import { settleParentChange, writeCoverIndex } from './presenceStepWrites'
+import { reparentPresenceBinding } from './reparentPresenceBinding'
+import { joinBindings } from './joinPresenceBindings'
+import { splitPresenceBinding } from './splitPresenceBinding'
+import { settleParentless } from './settleParentless'
+import type { ParentBinding } from '../../ludicGraph/presenceParent'
 import type { MutationKernelApplyOutcome } from './types'
 
-/**
- * The cover index for a pointer write that is not a move (`addPresenceBinding`, `repairPresenceBinding`):
- * the entry for `host`'s binding leaves the parent binding it pointed at (`before`) and arrives at the
- * one it points at now (`after`), as a move writes it. A bystander's room is not in the footprint and
- * keeps its coverage in the characters row; a parent binding that is absent has no index to correct
- * (drift owns it).
- */
-const writeCoverIndex = (
-    graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>,
-    host: EphemeraMembershipHostId,
-    presence: EphemeraPresenceNodeId,
-    before: EphemeraPresenceParentPointer | undefined,
-    after: EphemeraPresenceParentPointer | undefined
-): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => {
-    const next = new Map(graphs)
-    const entry = { host: host as Parameters<typeof withEntries>[1][number]['host'], presence }
-    const write = (parent: EphemeraPresenceParentPointer, change: typeof withEntries) => {
-        if (isBystanderMove(host, parent.host)) {
-            return
-        }
-        const parentGraph = next.get(parent.host)
-        const binding = parentGraph?.presenceNodes.find(({ universalKey }) => universalKey === parent.presence)
-        if (parentGraph && binding) {
-            next.set(parent.host, parentGraph.replacePresenceNode({ ...binding, cover: change(binding.cover, [entry]) }))
-        }
-    }
-    const unchanged = before?.host === after?.host && before?.presence === after?.presence
-    if (before && !unchanged) {
-        write(before, withoutEntries)
-    }
-    if (after) {
-        write(after, withEntries)
-    }
-    return next
-}
 
 /**
  * The hosts (plural) an id currently appears on as a node. A node can legitimately be a member of
@@ -136,8 +107,8 @@ const confirmCarriedHost = (
  * already guaranteed that order.
  *
  * **Membership is applied by the presence steps** (`settleMembership.ts`): `addPresenceBinding` and
- * `repairPresenceBinding` (with a parent pointer) add the node at the pointer's host, `movePresenceBinding`
- * departs `from.host` and arrives at `to.host`. A node
+ * `repairPresenceBinding` (with a parent pointer) add the node at the pointer's host, `reparentPresenceBinding`
+ * departs the hosts it loses and arrives at the hosts it gains. A node
  * leaves a host only with the mover's last binding there and arrives only if absent.
  *
  * `establishRelation`/`dissolveRelation`: confirms the step's own carried `hostId` 
@@ -153,8 +124,8 @@ const confirmCarriedHost = (
  * This function has no verdict meaning "the world forbids this" because it makes no such judgment
  * --- it checks mechanism, and legality is the enrich tier's question. See `types.ts`.
  *
- * `addPresenceBinding`/`movePresenceBinding`/`repairPresenceBinding`: a host's own presence
- * bindings --- population's mint, a move's re-point (`movePresenceBinding`, above), a departure, and
+ * `addPresenceBinding`/`repairPresenceBinding` and the F steps: a host's own presence
+ * bindings --- population's mint, a move's reparent and join (above), a departure, and
  * population's in-place repair. See `kernelStep.ts`'s doc comments.
  *
  * `createComponent`: seeds a not-yet-existing host's graph empty, holding one hostless Base,
@@ -191,6 +162,9 @@ export const applyStepSequenceCore = (
         }
     }
 
+    // Bindings a reparent or split may have left parentless: F-R1 removes the ones still so at the run's end.
+    const parentlessCandidates: ParentBinding[] = []
+
     for (const step of steps) {
         if (step.kind === 'capture') {
             const hostOccupants = occupants.get(step.hostId)
@@ -212,6 +186,7 @@ export const applyStepSequenceCore = (
             graphs.set(step.hostId, graphFromMeta({}, step.hostId).addPresenceNode({
                 tag: 'Presence',
                 universalKey: BASE_PRESENCE_ID,
+                fromHostPresences: [],
                 cover: { members: [] },
             }))
             continue
@@ -245,49 +220,76 @@ export const applyStepSequenceCore = (
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             // `addPresenceNode` returns silently on a duplicate key, which for a fixed id would hide a
-            // second mint of Base or Unplaced; a whole holds each at most once.
+            // second mint of Base or Unplaced; a host holds each at most once.
             const mintedId = PresenceKey(step.presenceUuid)
             if ((mintedId === BASE_PRESENCE_ID || mintedId === UNPLACED_PRESENCE_ID) && graph.presenceNodes.some((node) => node.universalKey === mintedId)) {
                 throw new Error(
-                    `addPresenceBinding: ${step.hostId} already holds ${mintedId} --- structural invariant violated (a whole holds each fixed root binding once)`
+                    `addPresenceBinding: ${step.hostId} already holds ${mintedId} --- structural invariant violated (a host holds each fixed root binding once)`
                 )
             }
             // presenceNodes Slice 7a (PN-23): mints the presence node directly, with no port
             // record --- `EphemeraPresencePort` is retired, and `presenceUuid` (minted at
-            // compile time, `presenceBindingStepsForMove.ts`) becomes the node's `universalKey`
+            // plan time, `resolvePresenceMoves.ts`) becomes the node's `universalKey`
             // suffix on its own. An empty cover by default: the cover index (`writeCoverIndex`) adds
             // each child's entry as its pointer is written (no `Present` edge was ever written to derive it from).
             const withNode = graph.addPresenceNode({
                 tag: 'Presence',
                 universalKey: PresenceKey(step.presenceUuid),
-                ...(step.fromHostPresence ? { fromHostPresence: step.fromHostPresence } : {}),
+                fromHostPresences: step.fromHostPresences,
                 cover: step.cover ?? { members: [] },
             })
-            const indexed = writeCoverIndex(new Map(graphs).set(step.hostId, withNode), step.hostId, PresenceKey(step.presenceUuid) as EphemeraPresenceNodeId, undefined, step.fromHostPresence)
-            const settled = settleMembership(indexed, step.hostId, {
-                ...(step.fromHostPresence ? { arrived: step.fromHostPresence.host } : {}),
-            })
+            const indexed = writeCoverIndex(new Map(graphs).set(step.hostId, withNode), step.hostId, PresenceKey(step.presenceUuid) as EphemeraPresenceNodeId, [], step.fromHostPresences)
+            const arrived = [...new Set(step.fromHostPresences.map(({ host }) => host))]
+            const settled = settleParentChange(indexed, step.hostId, [], arrived)
             if (settled.verdict !== 'legal') {
                 return settled
             }
             graphs = settled.graphs
-            settleOccupants(step.hostId, { ...(step.fromHostPresence ? { arrived: step.fromHostPresence.host } : {}) })
+            arrived.forEach((host) => settleOccupants(step.hostId, { arrived: host }))
             continue
         }
-        if (step.kind === 'movePresenceBinding') {
-            const moved = movePresenceBinding(graphs, step)
-            if ('reasonCode' in moved) {
-                return { verdict: 'stale', reasonCode: moved.reasonCode }
+        if (step.kind === 'reparentPresenceBinding') {
+            const reparented = reparentPresenceBinding(graphs, step)
+            if ('reasonCode' in reparented) {
+                return { verdict: 'stale', reasonCode: reparented.reasonCode }
             }
-            const settled = settleMembership(moved.graphs, step.hostId, {
-                ...(step.from ? { left: step.from.host } : {}),
-                ...(step.to ? { arrived: step.to.host } : {}),
-            })
+            const afterHosts = new Set(reparented.after.map(({ host }) => host))
+            const beforeHosts = new Set(reparented.before.map(({ host }) => host))
+            const left = [...beforeHosts].filter((host) => !afterHosts.has(host))
+            const arrived = [...afterHosts].filter((host) => !beforeHosts.has(host))
+            const settled = settleParentChange(reparented.graphs, step.hostId, left, arrived)
             if (settled.verdict !== 'legal') {
                 return settled
             }
             graphs = settled.graphs
-            settleOccupants(step.hostId, { ...(step.from ? { left: step.from.host } : {}), ...(step.to ? { arrived: step.to.host } : {}) })
+            left.forEach((host) => settleOccupants(step.hostId, { left: host }))
+            arrived.forEach((host) => settleOccupants(step.hostId, { arrived: host }))
+            if (reparented.after.length === 0) {
+                parentlessCandidates.push({ host: step.hostId, presence: step.presence })
+            }
+            continue
+        }
+        if (step.kind === 'joinPresenceBindings') {
+            // Membership does not change: the joined parents' hosts are the same hosts. Children that now
+            // collide are left for the producer's next join, and the run's end refuses them otherwise.
+            const joined = joinBindings(graphs, step)
+            if ('reasonCode' in joined) {
+                return { verdict: 'stale', reasonCode: joined.reasonCode }
+            }
+            graphs = joined.graphs
+            continue
+        }
+        if (step.kind === 'splitPresenceBinding') {
+            const split = splitPresenceBinding(graphs, step)
+            if ('reasonCode' in split) {
+                return { verdict: 'stale', reasonCode: split.reasonCode }
+            }
+            graphs = split.graphs
+            step.pieces.forEach((piece) => {
+                if (piece.parents.length === 0) {
+                    parentlessCandidates.push({ host: step.hostId, presence: piece.presence ?? PresenceKey(piece.presenceUuid!) as EphemeraPresenceNodeId })
+                }
+            })
             continue
         }
         if (step.kind === 'repairPresenceBinding') {
@@ -298,22 +300,24 @@ export const applyStepSequenceCore = (
             if (!graph.presenceNodes.some((node) => node.universalKey === step.presenceId)) {
                 return { verdict: 'stale', reasonCode: 'presenceBindingMissing' }
             }
-            const before = graph.presenceNodes.find((node) => node.universalKey === step.presenceId)?.fromHostPresence
+            const stored = graph.presenceNodes.find((node) => node.universalKey === step.presenceId)!
+            const before = parentsOf(stored)
             const repaired = new Map(graphs).set(step.hostId, graph.replacePresenceNode({
                 tag: 'Presence',
                 universalKey: step.presenceId,
-                ...(step.fromHostPresence ? { fromHostPresence: step.fromHostPresence } : {}),
+                fromHostPresences: step.fromHostPresences,
                 cover: step.cover,
             }))
-            // A repair that changes the parent host leaves the old one, as a move does.
-            const left = step.previousParent && step.previousParent.host !== step.fromHostPresence?.host ? step.previousParent.host : undefined
-            const hostChange = { ...(left ? { left } : {}), ...(step.fromHostPresence ? { arrived: step.fromHostPresence.host } : {}) }
-            const settled = settleMembership(writeCoverIndex(repaired, step.hostId, step.presenceId, before, step.fromHostPresence), step.hostId, hostChange)
+            // A repair that changes the parent hosts leaves the old ones, as a move does.
+            const arrived = [...new Set(step.fromHostPresences.map(({ host }) => host))]
+            const left = [...new Set((step.previousParents ?? []).map(({ host }) => host))].filter((host) => !arrived.includes(host))
+            const settled = settleParentChange(writeCoverIndex(repaired, step.hostId, step.presenceId, before, step.fromHostPresences), step.hostId, left, arrived)
             if (settled.verdict !== 'legal') {
                 return settled
             }
             graphs = settled.graphs
-            settleOccupants(step.hostId, hostChange)
+            left.forEach((host) => settleOccupants(step.hostId, { left: host }))
+            arrived.forEach((host) => settleOccupants(step.hostId, { arrived: host }))
             continue
         }
 
@@ -361,6 +365,16 @@ export const applyStepSequenceCore = (
         graphs.set(step.hostId, patched)
     }
 
+    // F-R1 and F-R2 at the run's end, before the checks below (a binding still parentless here is removed,
+    // not refused).
+    const settledParentless = settleParentless(graphs, parentlessCandidates)
+    if ('reasonCode' in settledParentless) {
+        return { verdict: 'stale', reasonCode: settledParentless.reasonCode }
+    }
+    else {
+        graphs = settledParentless.graphs
+    }
+
     // At-most-one presence stopped being reducer-enforced when `setPresencePort` split into
     // add/remove, so it is re-enforced here for the one kind still restricted to it: characters,
     // per AGENT.contract.md's "a character's membership host is a ROOM, and only a ROOM ... it
@@ -386,12 +400,12 @@ export const applyStepSequenceCore = (
             }
         })
 
-    // The transient-duplicate invariant (AGENT.contract.md, "A binding's id is stable for the whole's
-    // life"): two bindings of one whole under the same parent binding are legal only inside a run (a
+    // The transient-duplicate invariant (AGENT.contract.md, "A binding's id is stable for the host's
+    // life"): two bindings of one host under the same parent binding are legal only inside a run (a
     // split produces them, a pair of moves to one parent produces them before a join), and no run may
     // leave them behind. Checks only graphs this run wrote, so duplicates already in storage do not
     // make an unrelated run throw. A hostless binding has no pointer, so names no binding to collide on
-    // here; the coverage invariant below is its case (a whole has at most one binding under "no parent").
+    // here; the coverage invariant below is its case (a host's hostless bindings are Base and Unplaced).
     // A violation is a caller bug (a missing join), not a verdict, like the character check above.
     // Also at the end of the run, because a split of a hostless binding passes through two hostless
     // bindings.
@@ -413,26 +427,24 @@ export const applyStepSequenceCore = (
         if (hostlessBindings.length) {
             throw new Error(
                 `applyStepSequenceCore: ${hostId} would carry ${hostlessBindings.length} hostless bindings (${hostlessBindings.join(', ')}) --- ` +
-                `a whole has at most one binding with no parent.`
+                `a host's hostless bindings are Base and Unplaced and nothing else.`
             )
         }
         if (badUnplaced.length) {
             throw new Error(
                 `applyStepSequenceCore: ${hostId} would carry ${badUnplaced.join(', ')} --- ` +
-                `Unplaced has no parent and exists only while Base has one.`
+                `Unplaced has no parent.`
             )
         }
-        const presencesByParentHost = graph.presenceNodes.reduce<Record<string, string[]>>((accumulator, { fromHostPresence }) => (
-            fromHostPresence
-                ?{ ...accumulator, [fromHostPresence.host]: [...(accumulator[fromHostPresence.host] ?? []), fromHostPresence.presence] }
-                : accumulator
+        const presencesByParentHost = graph.presenceNodes.flatMap(parentsOf).reduce<Record<string, string[]>>((accumulator, parent) => (
+            { ...accumulator, [parent.host]: [...(accumulator[parent.host] ?? []), parent.presence] }
         ), {})
         Object.entries(presencesByParentHost).forEach(([parentHost, presences]) => {
             const duplicate = presences.find((presence, index) => presences.indexOf(presence) !== index)
             if (duplicate) {
                 throw new Error(
                     `applyStepSequenceCore: ${hostId} would carry two bindings under the same parent binding ${duplicate} on ${parentHost} ` +
-                    `--- two bindings of one whole under one parent may exist only inside a run, so a join was missing.`
+                    `--- a parent binding is named by exactly one of a host's bindings (once in its parent set), so a join was missing.`
                 )
             }
         })

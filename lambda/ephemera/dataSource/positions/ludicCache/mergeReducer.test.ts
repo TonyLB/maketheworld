@@ -42,7 +42,7 @@ const enumeratedCover = (...hosts: EphemeraLudicGraphComponentNode['universalKey
 const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLudicGraphStructureNode => ({
     tag: 'Presence',
     universalKey: `PRESENCE#${portId}` as EphemeraPresenceNodeId,
-    fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
+    fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }],
     cover,
 })
 
@@ -454,7 +454,7 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_1',
-                fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
+                fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }],
                 cover: {
                     members: expect.arrayContaining([
                         { host: charA, presence: ownBinding(charA) },
@@ -466,7 +466,7 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_2',
-                fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
+                fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }],
                 cover: {
                     members: expect.arrayContaining([
                         { host: charB, presence: ownBinding(charB) },
@@ -477,7 +477,7 @@ describe('foldSameHostBuckets', () => {
             {
                 tag: 'Presence',
                 universalKey: 'PRESENCE#port_3',
-                fromHostPresence: { host: roomId, presence: parentRemainderKey(roomId) },
+                fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }],
                 cover: {
                     members: expect.arrayContaining([
                         { host: charC, presence: ownBinding(charC) },

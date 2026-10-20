@@ -17,8 +17,8 @@ const holding = (host: EphemeraRoomId, ...held: EphemeraObjectId[]) => testLudic
 const own = (...parents: EphemeraRoomId[]) => testLudicGraph(tray, {
     nodes: [{ tag: 'Object', universalKey: tray }, ...parents.map((parent, index) => presenceBindingNode(`p${index}`, parent))],
 })
-const release: MutationKernelStep = { kind: 'movePresenceBinding', to: null, hostId: tray, presence: 'PRESENCE#p0' as any, from: { host: roomA, presence: parentRemainderKey(roomA) } }
-const move: MutationKernelStep = { kind: 'movePresenceBinding', hostId: tray, presence: 'PRESENCE#p0' as any, from: { host: roomA, presence: parentRemainderKey(roomA) }, to: { host: roomB, presence: parentRemainderKey(roomB) } }
+const release: MutationKernelStep = { kind: 'reparentPresenceBinding', hostId: tray, presence: 'PRESENCE#p0' as any, lose: [{ host: roomA, presence: parentRemainderKey(roomA) }] }
+const move: MutationKernelStep = { kind: 'reparentPresenceBinding', hostId: tray, presence: 'PRESENCE#p0' as any, lose: [{ host: roomA, presence: parentRemainderKey(roomA) }], gain: [{ host: roomB, presence: parentRemainderKey(roomB) }] }
 
 describe('membershipChangesOf', () => {
     it('reports the hosts a mover left and arrived at, from the graphs alone', () => {
@@ -61,7 +61,7 @@ describe('membershipChangesOf', () => {
     describe('a bystander (a character at a Room)', () => {
         const alpha = 'CHARACTER#Alpha' as EphemeraCharacterId
         const ownAlpha = (...parents: EphemeraRoomId[]) => testLudicGraph(alpha as any, { nodes: parents.map((parent, index) => presenceBindingNode(`a${index}`, parent)) })
-        const alphaMove: MutationKernelStep = { kind: 'movePresenceBinding', hostId: alpha, presence: 'PRESENCE#a0' as any, from: { host: roomA, presence: parentRemainderKey(roomA) }, to: { host: roomB, presence: parentRemainderKey(roomB) } }
+        const alphaMove: MutationKernelStep = { kind: 'reparentPresenceBinding', hostId: alpha, presence: 'PRESENCE#a0' as any, lose: [{ host: roomA, presence: parentRemainderKey(roomA) }], gain: [{ host: roomB, presence: parentRemainderKey(roomB) }] }
 
         it('reads the rooms from its own bindings: the room graphs hold no node for it', () => {
             const prior = graphs([alpha as any, ownAlpha(roomA)])

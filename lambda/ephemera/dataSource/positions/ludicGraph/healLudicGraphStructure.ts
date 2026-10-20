@@ -51,10 +51,24 @@ const defaultWriteHealedLudicGraph = async (
 }
 
 /**
- * Scoped, canonical repair for three fields: `rootId` on a host-bound graph (canonically
+ * A presence node stored before parent sets (PR-25) carries one optional `fromHostPresence`.
+ * It becomes a one-element `fromHostPresences`, or an empty one when it was absent (a hostless
+ * binding). A node already holding `fromHostPresences` is left as written; the guard judges the
+ * result, so a malformed pointer still reports `healable: false`.
+ */
+const withParentSet = (node: unknown): unknown => {
+    if (!node || typeof node !== 'object' || (node as { tag?: unknown }).tag !== 'Presence' || 'fromHostPresences' in node) {
+        return node
+    }
+    const { fromHostPresence, ...rest } = node as { fromHostPresence?: unknown }
+    return { ...rest, fromHostPresences: fromHostPresence === undefined ? [] : [fromHostPresence] }
+}
+
+/**
+ * Scoped, canonical repair for four fields: `rootId` on a host-bound graph (canonically
  * `hostId`) and the root's own node (canonically derivable from `rootId` alone via
  * `nodeFromId`), recorded-never-derived per `ludicGraph/AGENT.md`; and `ports`, the egress list,
- * defaulted to `[]`. The `ports` default is the interim posture of AB-62 (abstraction-layers plan)
+ * defaulted to `[]`; and a presence node's parent set (`withParentSet`). The `ports` default is the interim posture of AB-62 (abstraction-layers plan)
  * (a graph that exists but carries no recorded `ports` is treated as *not yet written*, not as
  * *lazily always empty*): it is a one-time write-carrying repair, not a `??=` read-boundary
  * default (`fromFieldPayload`/the guard stay strict), and it does not resolve the
@@ -72,7 +86,7 @@ const computeRepairedPayload = (
         : ephemeraId
     const rootOwner = ephemeraLudicTerminalOwner(rootId)
 
-    const nodes = Array.isArray(ludicGraph.nodes) ? ludicGraph.nodes : []
+    const nodes = Array.isArray(ludicGraph.nodes) ? ludicGraph.nodes.map(withParentSet) : []
     const hasRootNode = nodes.some((node) => (
         node && typeof node === 'object' && (node as { universalKey?: unknown }).universalKey === rootOwner
     ))
