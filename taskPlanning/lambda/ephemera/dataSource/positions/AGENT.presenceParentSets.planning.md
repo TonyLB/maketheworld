@@ -138,14 +138,101 @@ Pending work is `[ ]`, done is `[X]`; mark nested lines `[X]` as each is done.
   - [ ] Concepts: "parent set" and "shared binding", vocabulary only. Rewrite the "Bindings form a forest" paragraph, which states the single pointer as a principle (Slice 0(c)).
   - [ ] Delete this plan.
 
+## Move shape: first-iteration draft
+
+**Status: draft from conversation, 2026-10-19; not decided.** It answers PS-2's move half and PS-3, subject to the open points at its end. It replaces today's one `movePresenceBinding` (whole or part, one `from`, one `to`) with two step kinds. Each step changes either a binding's own cover or its parent set, never both, and changes nothing seen by a parent the step does not name.
+
+**Evaluated against cases in [the move corpus](AGENT.presenceParentSets.corpus.planning.md#evaluation-d)**, which states each case as S1 to S2 independent of any framework. The worked examples below are this draft's own illustrations.
+
+**Notation.** `B{A, C} = [X, Y]` is binding `B` of the mover, with parents `A` and `C`, covering entries `X` and `Y`. Entries name child bindings, so equal covers name the same child bindings.
+
+### The two operations
+
+- **Pairing change: changes one binding's parents and never its own cover.** It names the binding, the parents it leaves (which must all still be in its set: the optimistic check) and the parents it gains. A swap is leave A, gain Q. Adding a parent is gain only. A departure is leave only. A separation moves some of the parents onto a new binding, named in the step, that starts with a copy of the cover; the children gain the new binding as a parent. Only the parents' cover index changes: an entry comes off each parent left and goes onto each parent gained. Children's pointers are untouched, because the binding keeps its id.
+  - **Collision.** Gaining a parent under which another binding of the mover already sits merges the two, and **only when their covers are equal.** The merged binding's parents are the union, and each child's parents collapse to one set. Unequal covers are refused. So **a join is not an operation of its own.** It is a pairing change that collides with an equal cover, whether the join is voluntary (gain the other binding's parent) or forced (a re-point onto a parent already occupied).
+  - **No parents left.** If the binding is Base, it becomes the hostless binding. Otherwise it is removed. Either way, its entries fall through by the end-state rule below.
+- **Content move: changes covers and never a parent set.** `subCover` S, a subset of binding B's cover, leaves **all of B**, so every parent of B stops seeing S. S goes to an existing binding of the mover, or to a minted one whose parents the step states (the one place a content move sets parents; a minted parent that collides with another binding is refused), or nowhere, in which case it falls through. B stays even if its cover ends up empty. Each moved entry's child binding swaps B for the target among its parents.
+- **The end-state rule (unplaced fallthrough).** An entry is in the hostless binding (Base if hostless, else Unplaced) if and only if no placed binding of the mover covers it. Unplaced is removed when it empties.
+
+**What this cannot do in one step, by construction:** take S out of a binding as only some of its parents see it. That is a separation followed by a content move (W4).
+
+### Worked examples
+
+**W1. The ring off the Table, onto the Shelf, with no collision.** Pairing change on R: leave Table, gain Shelf.
+
+| Before | After |
+| --- | --- |
+| `R{Table, RoP} = [g]` | `R{Shelf, RoP} = [g]` |
+
+Rings of Power sees the same ring. Sharing survives, and a later gem set into the ring lands once.
+
+**W2. The same, but the ring already sits on the Shelf with an equal cover.** The same pairing change collides with R2, and the covers are equal, so the two merge. Before the move, g sits under both R and R2.
+
+| Before | After |
+| --- | --- |
+| `R{Table, RoP} = [g]`, `R2{Shelf} = [g]` | `R{Shelf, RoP} = [g]` (survivor: open point O1) |
+
+**W3. The same, but R2's cover is a strict subset of R's.** The pairing change alone is refused (unequal covers). Composed:
+
+| Step | Result |
+| --- | --- |
+| Start | `R{Table, RoP} = [g, h]`, `R2{Shelf} = [g]` |
+| 1. Content move R2's `[g]` into R | `R = [g, h]` (g already there; its parents collapse to `{R}`), `R2{Shelf} = []` |
+| 2. Pairing change on R2: leave Shelf | R2 is not Base and has no parents left, so it is removed; nothing falls through |
+| 3. Pairing change on R: leave Table, gain Shelf | `R{Shelf, RoP} = [g, h]` |
+
+Rings of Power's view never changes. If R2 had covered something R did not, step 1 would add it to Rings of Power's view. The step says so openly, so it is the producer's choice, and otherwise the producer separates R first.
+
+**W4. X out of B as A sees it only.** Start: `B{A, C} = [X, Y]`. The one-step attempt, `from: { B, presenceParents: [A], subCover: [X] }`, `to: { D, presenceParents: [A] }`, has no legal result. It would need `B{A} = [Y]` and `D{A} = [X]`: two bindings under A. Under these operations it cannot even be written. The legal version, sending X under some other parent Q:
+
+| Step | Result |
+| --- | --- |
+| 1. Pairing change: separate A off B onto B′ | `B{C} = [X, Y]`, `B′{A} = [X, Y]` (X's and Y's children gain B′) |
+| 2. Content move `[X]` out of B′ into minted `N{Q}` | `B{C} = [X, Y]`, `B′{A} = [Y]`, `N{Q} = [X]` |
+
+**W5. The die out of the backgammon set** (PR-C5 beat 3). The mover is the die. Its binding d sits under Backgammon's shared binding BG, whose parents are `{chestA, chestB}`. Pairing change on d: leave BG, gain the hand.
+
+| Before | After |
+| --- | --- |
+| `d{BG} = []`; `BG{chestA, chestB}` covers d | `d{Hand} = []`; BG no longer covers d |
+
+Both chest bindings stop seeing the die, because they see it only through BG. No `moverBindingAmbiguous`: there is one binding.
+
+**W6. Part of a hostless Base moves** (PS-3(b)). Content move `[X]` out of Base into minted `N{Q}`.
+
+| Before | After |
+| --- | --- |
+| `Base{} = [X, Y]` | `Base{} = [Y]`, `N{Q} = [X]` |
+
+Base's parents are unchanged. A part move never touches them.
+
+**W7. The plank under two bindings of a table, moved to the hand** (a scrub). Start: `p1{T1} = [a]`, `p2{T2} = [b]`, with p2 not Base.
+
+| Step | Result |
+| --- | --- |
+| 1. Content move p2's `[b]` into p1 | `p1{T1} = [a, b]`, `p2{T2} = []` |
+| 2. Pairing change on p2: leave T2 | p2 removed |
+| 3. Pairing change on p1: leave T1, gain Hand | `p1{Hand} = [a, b]` |
+
+Step 1 briefly widens T1's view, but all three steps are one run, and T1 is left in step 3. The planner emits these steps itself, where today's kernel merges recursively.
+
+**W8. A departure with Base placed elsewhere.** Start: `Base{Q} = [Y]`, `B{A} = [X]`. Pairing change on B: leave A. B is removed, and X is covered by no placed binding, so it falls through: `Unplaced{} = [X]` is minted. If X had also been in Base's cover, nothing would fall through, which today's rule gets wrong.
+
+### Open points
+
+- **O1. Which binding survives a collision.** Candidates: the one the step names, or the one already under the parent. Base must always survive.
+- **O2. Base going hostless while Unplaced exists.** Two hostless bindings collide under "no parent". Is that governed by the end-state rule (Unplaced folds into Base by recomputation) rather than the equal-only join? This draft assumes the end-state rule.
+- **O3. Mint or existing.** A content move's target and a separation's new binding must be marked as new, so a stale producer cannot join where it meant to mint (today's `moveIdCollision`).
+- **O4. The planner composes.** Scrubs and unequal merges become several steps in one run (W3, W7), planned from a read the kernel re-checks. A stale read is now a refusal where the kernel's recursive merge used to absorb it.
+
 ## Open decisions (implementation --- plan only)
 
 Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| **PS-2** | **The step fields that name parents.** The move's `from: ParentBinding \| null` becomes the host and the parents leaving (move rule (1)). The sharing join and the separating split need a shape: options are a flag or field on the one move, or a step kind of its own. The kernel prefers a step kind per effect over a flag (`kernelStep.ts`), and MC-3 made the move one step because move, split and join were one effect; sharing changes parents without moving entries, so it is a different effect. **Leaning:** its own step kind. **Slice 0(a):** `addPresenceBinding` (`fromHostPresence`) and `repairPresenceBinding` (`fromHostPresence`, `previousParent`) also name parents, and both pass their pointer to `writeCoverIndex`. **Slice 1** left all of these singular and converts at the handler. **Decided with Slice 3, 2026-10-19: the add and repair steps are widened** (`fromHostPresences`, `previousParents`), because the cover index and the heal cannot be set-aware over a singular field. **Still Open:** the move's `from` and the sharing step's shape. | 4, 5 | Open |
-| **PS-3** | **What the move does to parents it does not name** (the two items MC-3 left for PR-25). (a) Entries moved into a destination binding that also has parent Q are then seen under Q too: accept that as the meaning of sharing, or mint a separate binding at the destination when the target is shared. (b) How Base's parenting changes when part of its cover moves; today a part moved out of a hostless Base mints at the destination and Base stays hostless, which the user called an ad-hoc short-term answer. **The user's call.** | 4 | Open (the user) |
+| **PS-2** | **The step fields that name parents.** The move's `from: ParentBinding \| null` becomes the host and the parents leaving (move rule (1)). The sharing join and the separating split need a shape: options are a flag or field on the one move, or a step kind of its own. The kernel prefers a step kind per effect over a flag (`kernelStep.ts`), and MC-3 made the move one step because move, split and join were one effect; sharing changes parents without moving entries, so it is a different effect. **Leaning:** its own step kind. **Slice 0(a):** `addPresenceBinding` (`fromHostPresence`) and `repairPresenceBinding` (`fromHostPresence`, `previousParent`) also name parents, and both pass their pointer to `writeCoverIndex`. **Slice 1** left all of these singular and converts at the handler. **Decided with Slice 3, 2026-10-19: the add and repair steps are widened** (`fromHostPresences`, `previousParents`), because the cover index and the heal cannot be set-aware over a singular field. **Still Open:** the move's `from` and the sharing step's shape. **Draft 2026-10-19:** [first-iteration draft](#move-shape-first-iteration-draft): a pairing change and a content move, with no separate join or sharing step. | 4, 5 | Open |
+| **PS-3** | **What the move does to parents it does not name** (the two items MC-3 left for PR-25). (a) Entries moved into a destination binding that also has parent Q are then seen under Q too: accept that as the meaning of sharing, or mint a separate binding at the destination when the target is shared. (b) How Base's parenting changes when part of its cover moves; today a part moved out of a hostless Base mints at the destination and Base stays hostless, which the user called an ad-hoc short-term answer. **The user's call.** **Draft 2026-10-19:** [first-iteration draft](#move-shape-first-iteration-draft): (a) no step changes what an unnamed parent sees, so a collision merges only equal covers; (b) a part move never touches Base's parents (W6). | 4 | Open (the user) |
 | **PS-4** | **Which production path first writes sharing.** "Sharing is stored, never inferred", so equal covers never merge by themselves, and Slice 0(d) lists what could ask for it. Without a caller, the die beat is fixed in the kernel but never reached in play. **The user's call**, informed by Slice 0(d). Gates only Slice 5's last item and the in-play half of the payoff. **Slice 0(d):** no present path writes PR-C5's shape. Nothing in play gives a host a second binding. Only cache-time population gives a host a second parent, for a Room or Feature authored under several parents, and those bindings match only when both covers are empty (a Room in two Areas, or a Feature with no members). The candidates are that population path, or a play-time verb that adds a parent without leaving one, which does not exist yet. | 5 | Open (the user) |
 
 [PR-26](AGENT.presence.planning.md#open-decisions-design--plan-only) stays a design row in the parent plan and gates Slice 6 only.
