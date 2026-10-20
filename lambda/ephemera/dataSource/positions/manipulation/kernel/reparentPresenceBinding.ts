@@ -12,12 +12,12 @@ type Graphs = Map<EphemeraMembershipHostId, EphemeraLudicGraph>
 const keyOf = (parent: ParentBinding): string => `${parent.host}|${parent.presence}`
 
 /**
- * Reparent (Framework F): one binding gains and/or loses parents; its cover and its children do not
+ * Reparent: one binding gains and/or loses parents; its cover and its children do not
  * change. Each lost parent must still be in the stored set (`presenceBindingMoved`), and each gained
  * parent's binding must exist (`destinationBindingMissing`; a bystander's room is not in the footprint).
  * A gain already held is a no-op. The parents' covers are the index and are written here. Leaving the
  * binding parentless, or alongside another binding under a gained parent, is legal inside the run and
- * settled at its end (F-R1, F-R3). Returns the set before and after for the caller's membership settle.
+ * settled at its end (fall-through, collision). Returns the set before and after for the caller's membership settle.
  */
 export const reparentPresenceBinding = (
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>,

@@ -149,7 +149,7 @@ describe('computeStepSequenceFootprint', () => {
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([characterId]))
     })
-    it('the Framework F steps lock the mover, the parents they name and the children they rewrite', () => {
+    it('the reparent, join and split steps lock the mover, the parents they name and the children they rewrite', () => {
         const parent = (host: EphemeraRoomId | EphemeraObjectId) => ({ host, presence: parentRemainderKey(host) })
         const steps: MutationKernelStep[] = [
             { kind: 'reparentPresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, lose: [parent(roomId)], gain: [parent(otherRoomId)], cascadeHosts: [glassId] },

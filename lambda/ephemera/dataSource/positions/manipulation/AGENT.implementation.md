@@ -90,7 +90,7 @@ Call sites do not hand-build step lists. They emit an **abstract op** and [`comp
 
 | File | Role |
 | --- | --- |
-| [`kernel/compile/positionKernelOp.ts`](kernel/compile/positionKernelOp.ts) | `PositionKernelMoveOp`: `moved` (a bare entity id), `froms`, `to`, `presenceSteps` (the mover's presence steps, named by the producer: reparents, joins, a minted Base's `addPresenceBinding`), `header` (a `describe` header binding, or `null`), optional `dissolvedEdges`, optional `narration` (`membershipMove` ingredients; character moves only --- an object move carries none) |
+| [`kernel/compile/positionKernelOp.ts`](kernel/compile/positionKernelOp.ts) | `PositionKernelMoveOp`: `moved` (a bare entity id), `froms`, `to`, `presenceSteps` (the mover's presence steps, named by the producer: reparents, joins, a minted Base's `addPresenceBinding`), `header` (a `describe` header binding, or `null`), optional `dissolvedEdges` (each edge with the host whose graph holds it), optional `narration` (`membershipMove` ingredients; character moves only --- an object move carries none) |
 | [`kernel/compile/compilePositionKernelOp.ts`](kernel/compile/compilePositionKernelOp.ts) | op -> `CompiledPositionKernelPlan { steps }`. Owns bracket shape, capture-id generation, dissolve sequencing, and presentation order (leave, header, arrive). Builds no object-family copy |
 | [`membership/resolvePresenceMoves.ts`](membership/resolvePresenceMoves.ts) | The planner, not the compiler (`presenceBindingStepsForMove` and `PositionKernelPresenceMove` are retired): `{ moved, froms, to }` -> the mover's presence steps, read from the mover's and the destination's graphs. A reparent per binding that moves (losing every parent on the `from` hosts), a join when bindings end up under one parent (the binding already there survives, Base always), and the joins one level down for children that collide, each with the `cascadeHosts` the footprint needs. `compilePositionKernelOp` passes `op.presenceSteps` through ahead of the establish steps. **Single-level by construction:** it addresses the mover's own host id and never descends into composition |
 
@@ -242,7 +242,7 @@ Object-move routes (object take-hold / drop / give / containment)
     -> commitAttempt.ts refuses an attempt whose result has not succeeded (a pending challenge)
     -> each facilitating dissolve action (listed before the move) -> planRelationalEdgeTransfer
     -> the move action -> planObjectMoveTransfer: containment-cycle check, then buildObjectMoveOp
-       (dissolvedEdges = the mover's own containment strip only; no boundary classify)
+       (dissolvedEdges = the mover's own containment strip in each host it leaves; no boundary classify)
        -> PositionKernelMoveOp (no narration) -> compilePositionKernelOp (mutation steps only)
     -> commitAttempt.ts concatenates in action order -> dryRunStepSequence over the whole attempt
        (fresh snapshot); any non-legal verdict refuses with its reason code --- a boundary edge no
@@ -379,7 +379,7 @@ Normative statements of these live in [`../AGENT.contract.md`](../AGENT.contract
 
 | Path | Role |
 | --- | --- |
-| [`membership/planObjectMoveTransfer.ts`](membership/planObjectMoveTransfer.ts) | Take/drop/give/containment's `plan*`-tier stage: refuses a containment cycle, then builds the op via `buildObjectMoveOp` (whose `dissolvedEdges` is only the mover's own containment strip) and compiles it. No dry run and no repair: a boundary edge's dissolve is the command attempt's own action, so this fragment alone would look illegal; [`../commitAttempt.ts`](commitAttempt.ts) dry-runs the whole attempt instead. No commit. |
+| [`membership/planObjectMoveTransfer.ts`](membership/planObjectMoveTransfer.ts) | Take/drop/give/containment's `plan*`-tier stage: refuses a containment cycle, then builds the op via `buildObjectMoveOp` (whose `dissolvedEdges` is only the mover's own containment strip, in each host it leaves: `fromHostId`, plus `alsoLeaving` for a take of a thing in several hosts) and compiles it. No dry run and no repair: a boundary edge's dissolve is the command attempt's own action, so this fragment alone would look illegal; [`../commitAttempt.ts`](commitAttempt.ts) dry-runs the whole attempt instead. No commit. |
 | [`membership/repairAdministrativeChainDissolve.ts`](membership/repairAdministrativeChainDissolve.ts) | The administrative repair-authority policy (a player move has none: it refuses any boundary edge its attempt does not dissolve): unconditional, chain-aware ([`findRelationalChainsForRemoval.ts`](relational/findRelationalChainsForRemoval.ts)), no dry run, no legality question to ask ("may sever anything") |
 | [`membership/findOwnRootContainmentEdge.ts`](membership/findOwnRootContainmentEdge.ts) | Pure helper: the moved object's own containment edge into a graph's root, if any --- the only edge `buildObjectMoveOp` dissolves itself |
 | [`membership/executeComponentDestruction.ts`](membership/executeComponentDestruction.ts) | Destruction as one commit: `[dissolve sweep, the compiled move to nowhere, destroyComponent]`, with the caller's own rows as opaque `existenceItems` and its cache work as `afterPersist` (handed the hosts the component left). The one emitter of `destroyComponent`; the move is skipped when the Object has no containers (an orphan) |

@@ -208,7 +208,9 @@ export const findRelationalChainFromLeg = (
  * leg-seeded walker, and keeps only those whose far endpoint is the other end. The walk starts
  * from `subjectId`'s host when it is known, else from `targetId`'s: a caller may know only one
  * end's host (Expansion's dissolve of a relation whose moved end is its target, where the
- * subject is a `graphNode` no phrase named). Either way, `steps` run subject -> target.
+ * subject is a `graphNode` no phrase named). When neither end is in exactly one host (a take of
+ * a thing in several hosts, whose far end no phrase named), it starts from each of the
+ * subject's hosts (`getMembershipContainers`). Either way, `steps` run subject -> target.
  */
 export const findRelationalChain = (
     input: {
@@ -218,31 +220,31 @@ export const findRelationalChain = (
         /** `relationKind: 'Custom'` only, matching `expandSameHost`'s own pairing. */
         relationLabel?: string
     },
-    env: Pick<ExpansionEnvironment, 'getGraph' | 'getCurrentHost'>
+    env: Pick<ExpansionEnvironment, 'getGraph' | 'getCurrentHost'> & Partial<Pick<ExpansionEnvironment, 'getMembershipContainers'>>
 ): FindRelationalChainResult => {
     const { subjectId, targetId, relationKind, relationLabel } = input
     const { getGraph, getCurrentHost } = env
 
     const subjectHostId = getCurrentHost(subjectId)
-    const [startId, farId, startHostId] = subjectHostId !== undefined
-        ? [subjectId, targetId, subjectHostId] as const
-        : [targetId, subjectId, getCurrentHost(targetId)] as const
-    if (startHostId === undefined) {
-        return { verdict: 'notFound' }
-    }
-    const graph = getGraph(startHostId)
-    if (!graph) {
-        return { verdict: 'notFound' }
-    }
+    const targetHostId = getCurrentHost(targetId)
+    const starts: (readonly [EphemeraObjectId, EphemeraObjectId, EphemeraMembershipHostId])[] = subjectHostId !== undefined
+        ? [[subjectId, targetId, subjectHostId]]
+        : targetHostId !== undefined
+            ? [[targetId, subjectId, targetHostId]]
+            : (env.getMembershipContainers?.(subjectId) ?? []).map((hostId) => [subjectId, targetId, hostId] as const)
 
-    const candidateEdges = graph.relationalEdges.filter(
-        (edge) =>
-            edgeMatchesRelation(edge, relationKind, relationLabel)
-            && (ephemeraLudicTerminalsEqual(edge.from, startId) || ephemeraLudicTerminalsEqual(edge.to, startId))
-    )
+    // Each start graph's edges at its start end; one relation's first leg sits in one graph only.
+    const candidateLegs = starts.flatMap(([startId, farId, startHostId]) => {
+        const graph = getGraph(startHostId)
+        return (graph?.relationalEdges ?? [])
+            .filter((edge) =>
+                edgeMatchesRelation(edge, relationKind, relationLabel)
+                && (ephemeraLudicTerminalsEqual(edge.from, startId) || ephemeraLudicTerminalsEqual(edge.to, startId)))
+            .map((edge) => ({ startId, farId, startHostId, edge }))
+    })
 
     const found: RelationalChainStep[][] = []
-    for (const edge of candidateEdges) {
+    for (const { startId, farId, startHostId, edge } of candidateLegs) {
         const result = findRelationalChainFromLeg({ hostId: startHostId, edge }, { getGraph })
         if (result.verdict !== 'found') {
             continue

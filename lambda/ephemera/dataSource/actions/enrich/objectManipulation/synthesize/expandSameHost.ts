@@ -156,7 +156,7 @@ export const expandSameHost = (
             // discriminated-union parameter to narrow into).
             const chain = findRelationalChain(
                 { subjectId, targetId: objectId, relationKind, relationLabel },
-                { getGraph: env.getGraph, getCurrentHost: env.getCurrentHost }
+                { getGraph: env.getGraph, getCurrentHost: env.getCurrentHost, getMembershipContainers: env.getMembershipContainers }
             )
             if (chain.verdict === 'found') {
                 return { verdict: 'crossed', chain: chain.steps }

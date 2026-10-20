@@ -81,47 +81,67 @@ type ActionFragment = {
 
 /**
  * Positions' snapshot for grounding's derived half, read once per attempt after the hand-off:
- * the current host of the acting character and of every thing the attempt refers to, each
- * kept only when it is in exactly one host (zero or several is not knowable here, and a step
- * depending on it drops). Also serves membership's drift check below.
+ * every host of the acting character and of every thing the attempt refers to (`containers`),
+ * and the current host of each that is in exactly one (`liveHosts`: zero or several is not a
+ * current host, and a step depending on one drops, except a take). Also serves
+ * membership's drift check below.
  */
 const readLiveHosts = async (
     attempt: CommandAttempt,
     characterId: EphemeraCharacterId
-): Promise<ReadonlyMap<GroundedId, EphemeraMembershipHostId>> => {
+): Promise<{ liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>; containers: ReadonlyMap<GroundedId, readonly EphemeraMembershipHostId[]> }> => {
     const ids = [...new Set<GroundedId>([characterId, ...attempt.referents().map(({ id }) => id)])]
         .filter((id): id is EphemeraPositionAdjacencyContainedId =>
             isEphemeraCharacterId(id) || isEphemeraObjectId(id) || isEphemeraFeatureId(id) || isEphemeraRoomId(id))
     const entries = await Promise.all(ids.map(async (id) => [id, await internalCache.Positions.getMembershipContainers(id)] as const))
-    return new Map(entries.flatMap(([id, hosts]) => (hosts.length === 1 ? [[id, hosts[0]!] as const] : [])))
+    return {
+        liveHosts: new Map(entries.flatMap(([id, hosts]) => (hosts.length === 1 ? [[id, hosts[0]!] as const] : []))),
+        containers: new Map(entries),
+    }
 }
 
 /**
  * Membership's half of `commitAttempt`'s per-action dispatch, given a step `commitAttempt`
  * has already grounded: checks the object's live host still matches the grounded `from` (a
- * drift/race no-op, as are zero or multiple current containers --- not repaired here),
+ * drift/race no-op, as are zero containers, or several for anything but a take --- not repaired here),
  * and builds (not commits) the plan via the existing `planObjectMoveTransfer`. The plan carries
  * mutation steps only: the action's lines are its narration units, delivered by the sweep.
+ *
+ * A take of a thing in several hosts (the take rule) leaves them all: its `from` is any one of them, and
+ * the rest go to the planner as `alsoLeaving`.
  */
 const buildMembershipFragment = async (
     actionId: string,
     change: TransferMembershipChange<GroundedReferent>,
-    liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>,
+    live: { liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>; containers: ReadonlyMap<GroundedId, readonly EphemeraMembershipHostId[]> },
     args: CommitAttemptArgs
 ): Promise<ActionFragment | undefined> => {
+    const { liveHosts } = live
     const entityId = change.object.groundedId
     const fromHostId = change.from.groundedId as EphemeraMembershipHostId
     const toHostId = change.to.groundedId as EphemeraMembershipHostId
     if (!isEphemeraObjectId(entityId)) {
         return undefined
     }
+    const containers = live.containers.get(entityId) ?? []
+    const multiHostTake = containers.length > 1 && toHostId === args.characterId
+    if (multiHostTake) {
+        if (containers.includes(toHostId)) {
+            console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${entityId} is already on ${toHostId}`)
+            return undefined
+        }
+        if (!containers.includes(fromHostId)) {
+            console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${entityId} is no longer on ${fromHostId}`)
+            return undefined
+        }
+    }
     // Already held (a take of something picked up since the dry run, or a drop of something
     // already put down): refused, with its own message, not silently skipped.
-    if (liveHosts.get(entityId) === toHostId) {
+    if (!multiHostTake && liveHosts.get(entityId) === toHostId) {
         console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${entityId} is already on ${toHostId}`)
         return undefined
     }
-    if (liveHosts.get(entityId) !== fromHostId) {
+    if (!multiHostTake && liveHosts.get(entityId) !== fromHostId) {
         console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${entityId} is no longer on ${fromHostId}`)
         return undefined
     }
@@ -146,6 +166,9 @@ const buildMembershipFragment = async (
         // `compilePositionKernelOp` already thread this through to the establish step whose
         // `hostId` is always `toHostId` by construction --- no ancestry walk needed.
         ...(change.containment ? { containment: change.containment } : {}),
+        // A spread: the object stays in `fromHostId` too, so the plan leaves no host.
+        ...(change.keepFrom ? { keepFrom: true as const } : {}),
+        ...(multiHostTake ? { alsoLeaving: containers.filter((hostId) => hostId !== fromHostId) } : {}),
     })
 
     if (!planResult.ok) {
@@ -401,10 +424,12 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     // here, against live state, for every action alike (a relational step, published fully
     // grounded, passes through unchanged).
     const spans = new Map(attempt.referents().map(({ refKey, id }) => [refKey, id]))
-    const liveHosts = await readLiveHosts(attempt, characterId)
+    const live = await readLiveHosts(attempt, characterId)
+    const { liveHosts } = live
     const resolver: DerivedReferentResolver = {
         actingCharacter: characterId,
         currentHost: (id) => liveHosts.get(id),
+        anyHost: (id) => live.containers.get(id)?.[0],
     }
 
     // All-or-nothing: one action that cannot be built refuses the whole attempt, so nothing is
@@ -445,7 +470,7 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     const fragmentActionIds: string[] = []
     for (const { actionId, change } of grounded) {
         const fragment = change.primitive === 'transferMembership'
-            ? await buildMembershipFragment(actionId, change, liveHosts, args)
+            ? await buildMembershipFragment(actionId, change, live, args)
             : await buildRelationalFragment(change)
         if (fragment === undefined) {
             console.error(`[mtw.ephemera.positions] commitAttempt: attempt refused: ${change.primitive} action could not be built`)

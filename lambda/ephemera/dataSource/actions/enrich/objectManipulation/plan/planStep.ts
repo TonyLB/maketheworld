@@ -71,6 +71,12 @@ export type TransferMembershipChange<R extends Referent = Referent> = {
      * here (ND-4, `parseCommand.ts` hard-errors it earlier).
      */
     containment?: 'On' | 'In'
+    /**
+     * A spread: the object also enters `to` and stays in `from`, so its one presence
+     * binding gains `to`'s and keeps the one it has. `from` keeps its meaning (the host the object
+     * is in now). Phrase-free, so the LLM Plan fallback can produce it as the closed template does.
+     */
+    keepFrom?: true
 }
 
 export type EstablishRelationChange<R extends Referent = Referent> = {

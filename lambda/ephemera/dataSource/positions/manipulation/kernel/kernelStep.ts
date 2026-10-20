@@ -121,14 +121,14 @@ export type MutationKernelRepairPresenceBindingStep = {
 export type PresenceBindingRef = ParentBinding
 
 /**
- * Reparent (Framework F): one binding of the mover gains and/or loses named parents. Its cover and
+ * Reparent: one binding of the mover gains and/or loses named parents. Its cover and
  * its children do not change. Each `lose` parent must still be in the stored set (an optimistic
  * check against a concurrent writer: `presenceBindingMoved`), and each `gain` parent's binding must
  * exist (`destinationBindingMissing`). The parent covers are the index and are written by the same
  * step. It may leave the binding with no parent, or two bindings of the host under one parent: both
- * are settled at the run's end (F-R1 removes a parentless binding, F-R3 refuses a collision), so the
+ * are settled at the run's end (the fall-through rule removes a parentless binding, the collision rule refuses a collision), so the
  * producer writes a join itself. `cascadeHosts` names the hosts of the binding's children, which the
- * footprint locks because F-R1 may remove the binding and re-parent them.
+ * footprint locks because the fall-through rule may remove the binding and re-parent them.
  */
 export type MutationKernelReparentPresenceBindingStep = {
     kind: 'reparentPresenceBinding'
@@ -140,12 +140,12 @@ export type MutationKernelReparentPresenceBindingStep = {
 }
 
 /**
- * Join (Framework F): the bindings `toJoin` are dispensed with and `into` keeps its id (PS-5). `into`
+ * Join: the bindings `toJoin` are dispensed with and `into` keeps its id. `into`
  * takes the union of their parents and of their covers; each child of a `toJoin` cover has the joined
  * binding swapped for `into` in its parent set (a union, so a child listed by two of them collapses to
  * one pointer), and the parents' cover entries follow. Base is never dispensed with: `toJoin` holds no
  * Base (`joinDispensesBase`). Children that now collide under `into` are not joined here: the
- * producer writes that join one level down, and the run's end refuses it otherwise (F-R3).
+ * producer writes that join one level down, and the run's end refuses it otherwise (the collision rule).
  * `cascadeHosts` names the hosts of the children, for the footprint.
  */
 export type MutationKernelJoinPresenceBindingsStep = {
@@ -170,12 +170,12 @@ export type PresenceBindingPiece = (
 }
 
 /**
- * Split (Framework F): one binding becomes `pieces`. Exactly one piece names the original and keeps
+ * Split: one binding becomes `pieces`. Exactly one piece names the original and keeps
  * its id. At both levels the pieces' parents and covers are subsets of the original's that may
  * overlap and together equal it (`splitPartsNotCovered`). Each child entry's parent set swaps the
  * original for every piece that covers it, and the parents' covers are rewritten per piece. Two
  * pieces may sit under one parent until the run's end, and a piece with no parent is removed then
- * (F-R1) unless a later step gives it one.
+ * (the fall-through rule) unless a later step gives it one.
  */
 export type MutationKernelSplitPresenceBindingStep = {
     kind: 'splitPresenceBinding'

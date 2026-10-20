@@ -246,7 +246,7 @@ describe('the primitives through applyStepSequenceCore', () => {
         { kind: 'reparentPresenceBinding', hostId, presence: id(presence), lose, gain }
     )
 
-    describe('removal and the root bindings (F-R1, F-R2)', () => {
+    describe('removal and the root bindings (the fall-through rule)', () => {
         // M10: the mover's B{A} = [x] leaves A while Base sits under Q and covers something else.
         const placed = (baseCover: ReturnType<typeof entry>[]) => world(
             ...parentsOver({ A: ['b'], Q: [BASE_PRESENCE_ID] }),
@@ -368,7 +368,7 @@ describe('the primitives through applyStepSequenceCore', () => {
         })
     })
 
-    describe('the run\'s end refuses what a producer left unjoined (F-R3)', () => {
+    describe('the run\'s end refuses what a producer left unjoined (the collision rule)', () => {
         const ringsWorld = () => world(
             ...parentsOver({ A: ['c'], B: ['c2'] }),
             bindings(M, presenceBindingNode('c', at(A), cover(entry(X, 'x'))), presenceBindingNode('c2', at(B), cover(entry(X, 'x')))),

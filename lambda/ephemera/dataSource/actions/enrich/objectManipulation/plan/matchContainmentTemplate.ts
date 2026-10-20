@@ -27,14 +27,19 @@ const matchesPhrase = (normalizedSpan: string, phrase: string): boolean => (
 /**
  * Which containment kind a preposition span names, and the closed phrase that matched it, or
  * `undefined` for a peer (or unknown) preposition. Narration uses the matched phrase, never the raw
- * span, so a stray word in the text run ("hurriedly into") never reaches the line.
+ * span, so a stray word in the text run ("hurriedly into") never reaches the line. `extraOnPhrases`
+ * lets a sibling template (the spread's `over`) read more phrases as `On` without this template
+ * claiming them.
  */
-function matchContainmentPhrase(relationSpan: string): { containment: ContainmentKind; phrase: string } | undefined {
+export function matchContainmentPhrase(
+    relationSpan: string,
+    extraOnPhrases: readonly string[] = []
+): { containment: ContainmentKind; phrase: string } | undefined {
     const normalizedSpan = normalizeExitName(relationSpan.trim())
     if (!normalizedSpan) {
         return undefined
     }
-    const onPhrase = ON_PHRASES.find((phrase) => matchesPhrase(normalizedSpan, phrase))
+    const onPhrase = [...ON_PHRASES, ...extraOnPhrases].find((phrase) => matchesPhrase(normalizedSpan, phrase))
     if (onPhrase) {
         return { containment: 'On', phrase: onPhrase }
     }

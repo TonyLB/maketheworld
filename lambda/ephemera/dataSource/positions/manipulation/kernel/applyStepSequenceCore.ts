@@ -162,7 +162,7 @@ export const applyStepSequenceCore = (
         }
     }
 
-    // Bindings a reparent or split may have left parentless: F-R1 removes the ones still so at the run's end.
+    // Bindings a reparent or split may have left parentless: the fall-through rule removes the ones still so at the run's end.
     const parentlessCandidates: ParentBinding[] = []
 
     for (const step of steps) {
@@ -365,7 +365,7 @@ export const applyStepSequenceCore = (
         graphs.set(step.hostId, patched)
     }
 
-    // F-R1 and F-R2 at the run's end, before the checks below (a binding still parentless here is removed,
+    // the fall-through and root rules at the run's end, before the checks below (a binding still parentless here is removed,
     // not refused).
     const settledParentless = settleParentless(graphs, parentlessCandidates)
     if ('reasonCode' in settledParentless) {

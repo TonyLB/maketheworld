@@ -16,7 +16,7 @@ const parentKey = (parent: ParentBinding): string => `${parent.host}|${parent.pr
 const entryKey = (entry: EphemeraPresenceCoverEntry): string => `${entry.host}|${entry.presence}`
 
 /**
- * Split (Framework F): the binding becomes `pieces`, exactly one of which names it and keeps its id; the
+ * Split: the binding becomes `pieces`, exactly one of which names it and keeps its id; the
  * rest are new. Pieces' parents and covers are subsets of the original's, may overlap, and together equal
  * it. Each child entry swaps the original for every piece that covers it, and the parents' covers are
  * rewritten per piece. Two pieces under one parent is legal until the run's end. The parent hosts do

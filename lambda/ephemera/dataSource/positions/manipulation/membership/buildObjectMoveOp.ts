@@ -11,21 +11,27 @@ export type BuildObjectMoveOpArgs = {
     /** The moved object --- the whole moved set: anything it hosts lives in its own shard and travels with it. */
     entityId: EphemeraObjectId
     /**
-     * The departure host's graph, as of whenever the caller fetched it. Used only to find the
-     * mover's own containment edge into this graph's root (if any), which is stripped here
-     * unconditionally: leaving a host means leaving its containment, as entering one means
-     * gaining it (`containment`). No other edge is dissolved here. A boundary edge's dissolve
-     * is a facilitating action the command attempt states explicitly, and the commit path
+     * The hosts the mover leaves, each with its graph as of whenever the caller fetched it: one
+     * for most moves, several for a take of a thing in several hosts (the take rule). Each graph is used
+     * only to find the mover's own containment edge into its root (if any), which is stripped
+     * here on every move: leaving a host means leaving its containment, as entering one means
+     * gaining it (`containment`). A spread (`keepFrom`) leaves nothing, so it strips nothing. No
+     * other edge is dissolved here. A boundary edge's dissolve is a facilitating action the
+     * command attempt states explicitly, and the commit path
      * commits it as a sibling of this op; one the attempt does not cover is left in place for
      * `applyDeparture` to report as `repairable`, and the move is refused.
      */
-    fromGraph: EphemeraLudicGraph
-    fromHostId: EphemeraMembershipHostId
+    departures: readonly { hostId: EphemeraMembershipHostId; graph: EphemeraLudicGraph }[]
     toHostId: EphemeraMembershipHostId
     /** The mover's presence steps, named by `resolvePresenceMoves`. */
     presenceSteps: readonly MutationKernelStep[]
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
+    /**
+     * A spread: the mover stays in `fromHostId` and also enters `toHostId`, so its own
+     * containment edges stay and the op leaves no host (`froms: []`).
+     */
+    keepFrom?: true
 }
 
 /**
@@ -50,18 +56,21 @@ export type BuildObjectMoveOpArgs = {
  * No carried-object count: a moved object's hosted contents live in its own shard and travel with
  * it, so the move names one entity.
  *
- * `dissolvedEdges` is derived here from `fromGraph`, not handed in pre-computed by the caller: it
- * holds only the mover's own containment edge. See `fromGraph`'s own doc comment above for why
- * boundary edges are not folded in.
+ * `dissolvedEdges` is derived here from `departures`, not handed in pre-computed by the caller: it
+ * holds only the mover's own containment edge in each host it leaves, and nothing on a spread. See
+ * `departures`' own doc comment above for why boundary edges are not folded in.
  */
 export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMoveOp => {
-    const ownRootContainmentEdge = findOwnRootContainmentEdge(args.entityId, args.fromGraph)
-    const dissolvedEdges: HostRelationalEdge[] = ownRootContainmentEdge ? [ownRootContainmentEdge] : []
+    const departures = args.keepFrom ? [] : args.departures
+    const dissolvedEdges = departures.flatMap(({ hostId, graph }): { hostId: EphemeraMembershipHostId; edge: HostRelationalEdge }[] => {
+        const edge = findOwnRootContainmentEdge(args.entityId, graph)
+        return edge ? [{ hostId, edge }] : []
+    })
 
     return {
         kind: 'move',
         moved: args.entityId,
-        froms: [args.fromHostId],
+        froms: departures.map(({ hostId }) => hostId),
         to: args.toHostId,
         header: null,
         presenceSteps: args.presenceSteps,

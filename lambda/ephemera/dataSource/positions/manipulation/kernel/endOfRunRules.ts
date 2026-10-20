@@ -23,7 +23,7 @@ export const withoutEntries = (cover: EphemeraPresenceCover, remove: readonly Ep
 })
 
 /**
- * F-R1 for the children of a binding that has given up entries (a part left it, or the binding is
+ * The fall-through rule, for the children of a binding that has given up entries (a part left it, or the binding is
  * gone): each entry's child binding drops `parentPresence` from its parent set, and a child left
  * with no parent on `hostId` falls through to `{hostId, Unplaced}`, which is minted if absent. A
  * child that still has another parent on the host (Base, say) gains nothing. `collisions` names
@@ -77,7 +77,7 @@ export const releaseChildren = (
     return { graphs: next, collisions }
 }
 
-/** F-R2: Unplaced exists only while it covers something. Base is never removed. */
+/** The root rule: Unplaced exists only while it covers something. Base is never removed. */
 export const dropEmptyUnplaced = (graphs: Graphs, hostId: EphemeraMembershipHostId): Graphs => {
     const graph = graphs.get(hostId)
     const unplaced = graph?.presenceNodes.find(({ universalKey }) => universalKey === UNPLACED_PRESENCE_ID)

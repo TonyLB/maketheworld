@@ -15,7 +15,7 @@ type Graphs = Map<EphemeraMembershipHostId, EphemeraLudicGraph>
 /**
  * Bindings of one host that now sit under the same parent: the survivor first. A join leaves these
  * behind one level down (two children of the joined bindings that now share `into`), and the run's end
- * refuses them (F-R3) unless the producer writes the join, or F-R1 caused them under Unplaced.
+ * refuses them (the collision rule) unless the producer writes the join, or the fall-through rule caused them under Unplaced.
  */
 export type JoinCollision = {
     host: EphemeraMembershipHostId
@@ -41,7 +41,7 @@ const collisionOf = (graphs: Graphs, host: EphemeraMembershipHostId, parent: Par
 
 /**
  * The collisions among `entries`' hosts under `parent`, for a caller that put those entries there
- * (F-R1's fall to Unplaced): bindings that were not just placed survive.
+ * (the fall-through rule's fall to Unplaced): bindings that were not just placed survive.
  */
 export const collisionsUnder = (graphs: Graphs, parent: ParentBinding, entries: readonly EphemeraPresenceCoverEntry[]): JoinCollision[] => {
     const placed = new Set(entries.map(({ presence }) => presence))
@@ -55,7 +55,7 @@ export const collisionsUnder = (graphs: Graphs, parent: ParentBinding, entries: 
 }
 
 /**
- * Join (Framework F): the bindings `toJoin` become `into`, which keeps its id. `into` takes the union of
+ * Join: the bindings `toJoin` become `into`, which keeps its id. `into` takes the union of
  * their parents and covers; each child of a `toJoin` cover swaps the joined binding for `into` in its
  * parent set (a union, so a shared child collapses to one pointer); the parents' cover entries follow.
  * Reads only existence, never covers: the result is the union whatever the covers hold, so there is no
@@ -130,8 +130,8 @@ export const joinBindings = (
 
 /**
  * Joins each collision into its first binding, then the collisions that join leaves one level down, and
- * so on. Only F-R1's fall to Unplaced is joined by the kernel itself; the end of the run refuses any
- * other (F-R3).
+ * so on. Only the fall-through rule's fall to Unplaced is joined by the kernel itself; the end of the run refuses any
+ * other (the collision rule).
  */
 export const joinCollisions = (
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>,

@@ -15,8 +15,7 @@ describe('buildObjectMoveOp', () => {
     it('carries the moved object id directly as the moved set', () => {
         const op = buildObjectMoveOp({
             entityId: TRAY,
-            fromGraph: emptyFromGraph,
-            fromHostId: ROOM,
+            departures: [{ hostId: ROOM, graph: emptyFromGraph }],
             toHostId: CHARACTER,
             presenceSteps: [],
         })
@@ -30,8 +29,7 @@ describe('buildObjectMoveOp', () => {
     it('carries no narration: an object move\'s lines are its attempt\'s narration units', () => {
         const op = buildObjectMoveOp({
             entityId: TRAY,
-            fromGraph: emptyFromGraph,
-            fromHostId: ROOM,
+            departures: [{ hostId: ROOM, graph: emptyFromGraph }],
             toHostId: CHARACTER,
             presenceSteps: [],
         })
@@ -53,8 +51,7 @@ describe('buildObjectMoveOp', () => {
         })
         const op = buildObjectMoveOp({
             entityId: TRAY,
-            fromGraph,
-            fromHostId: ROOM,
+            departures: [{ hostId: ROOM, graph: fromGraph }],
             toHostId: CHARACTER,
             presenceSteps: [],
         })
@@ -62,19 +59,51 @@ describe('buildObjectMoveOp', () => {
         expect(op.dissolvedEdges).toEqual([])
     })
 
-    it('strips the moved object\'s own containment edge into fromGraph\'s root, unconditionally --- not gated on any flag (3d, 2026-09-08: moved from executeMembershipTransfer\'s retired honorDefer mode)', () => {
+    it('strips the moved object\'s own containment edge into its departure graph\'s root on every move --- not gated on a caller\'s flag (3d, 2026-09-08: moved from executeMembershipTransfer\'s retired honorDefer mode)', () => {
         const fromGraph = testLudicGraph(TABLE, {
             nodes: [{ tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: TRAY }],
             edges: [{ tag: 'Relational', from: TRAY, to: TABLE, kind: 'On' }],
         })
         const op = buildObjectMoveOp({
             entityId: TRAY,
-            fromGraph,
-            fromHostId: TABLE,
+            departures: [{ hostId: TABLE, graph: fromGraph }],
             toHostId: ROOM,
             presenceSteps: [],
         })
 
-        expect(op.dissolvedEdges).toEqual([{ from: TRAY, to: TABLE, kind: 'On' }])
+        expect(op.dissolvedEdges).toEqual([{ hostId: TABLE, edge: { from: TRAY, to: TABLE, kind: 'On' } }])
+    })
+
+    it('a take leaving several hosts (the take rule) leaves each, and strips its own containment edge in each that has one', () => {
+        const tableGraph = testLudicGraph(TABLE, {
+            nodes: [{ tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: TRAY }],
+            edges: [{ tag: 'Relational', from: TRAY, to: TABLE, kind: 'On' }],
+        })
+        const op = buildObjectMoveOp({
+            entityId: TRAY,
+            departures: [{ hostId: ROOM, graph: emptyFromGraph }, { hostId: TABLE, graph: tableGraph }],
+            toHostId: CHANDELIER,
+            presenceSteps: [],
+        })
+
+        expect(op.froms).toEqual([ROOM, TABLE])
+        expect(op.dissolvedEdges).toEqual([{ hostId: TABLE, edge: { from: TRAY, to: TABLE, kind: 'On' } }])
+    })
+
+    it('a spread (keepFrom) keeps the own containment edge and leaves no host: the mover stays where it was', () => {
+        const fromGraph = testLudicGraph(TABLE, {
+            nodes: [{ tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: TRAY }],
+            edges: [{ tag: 'Relational', from: TRAY, to: TABLE, kind: 'On' }],
+        })
+        const op = buildObjectMoveOp({
+            entityId: TRAY,
+            departures: [{ hostId: TABLE, graph: fromGraph }],
+            toHostId: CHANDELIER,
+            presenceSteps: [],
+            containment: 'On',
+            keepFrom: true,
+        })
+
+        expect(op).toMatchObject({ froms: [], to: CHANDELIER, dissolvedEdges: [], containment: 'On' })
     })
 })

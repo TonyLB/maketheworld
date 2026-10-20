@@ -31,6 +31,18 @@ describe('planSkeleton', () => {
         expect(attempts[0].actions()[0].desiredResult).not.toHaveProperty('containment')
     })
 
+    it('plans "spread the rug over the table" as one spread: the containment transfer that keeps its from', () => {
+        const attempts = attemptsOf(relationalSkeleton('spread', 'rug', 'over', 'table'))
+        expect(attempts).toHaveLength(1)
+        expect(attempts[0].actions()[0].desiredResult).toMatchObject({
+            primitive: 'transferMembership',
+            from: { referentType: 'currentHost' },
+            to: { referentType: 'objectSpan', span: 'table' },
+            containment: 'On',
+            keepFrom: true,
+        })
+    })
+
     it('plans nothing for "tie the rope in the box": no template claims it, so the zero-attempt branch answers', () => {
         expect(attemptsOf(relationalSkeleton('tie', 'rope', 'in', 'box'))).toEqual([])
     })

@@ -10,12 +10,12 @@ import { collisionsUnder, joinCollisions } from './joinPresenceBindings'
 type Graphs = Map<EphemeraMembershipHostId, EphemeraLudicGraph>
 
 /**
- * F-R1 at the run's end, for the bindings this run's reparents and splits may have left parentless
+ * the fall-through rule at the run's end, for the bindings this run's reparents and splits may have left parentless
  * (`candidates`, named by the steps; a parentless binding written some other way is the coverage
  * guard's business). A candidate that is still there, is neither Base nor Unplaced, and has no parent
  * is removed; each child binding drops it and falls to Unplaced if no other parent on the host covers
  * it (`releaseChildren`). Children that collide under Unplaced are joined by the kernel, into the
- * binding already there, and again one level down (the F-R1 exception to F-R3). Then F-R2: Unplaced
+ * binding already there, and again one level down (the exception to the collision rule that the fall-through rule makes). Then the root rule: Unplaced
  * is removed when it covers nothing. A child host outside the footprint is `stale`.
  */
 export const settleParentless = (

@@ -8,8 +8,7 @@ import { computeStepSequenceFootprint } from '../kernel/computeStepSequenceFootp
 import { partMoveSteps, resolvePresenceMoves } from './resolvePresenceMoves'
 
 /**
- * The planner's step output (Framework F), run through the real kernel. The corpus cases (M-numbers)
- * are in `AGENT.presenceParentSets.corpus.planning.md`.
+ * The planner's step output (reparent, join and split), run through the real kernel.
  */
 
 const roomA = 'ROOM#Bridge' as EphemeraRoomId
@@ -212,6 +211,98 @@ describe('resolvePresenceMoves', () => {
 
             expect(after.get(set)!.presenceNodes.map(({ universalKey }) => universalKey)).toEqual([presence('Base'), presence('Unplaced')])
             expect(after.get(apple)!.presenceNodes[0].fromHostPresences).toEqual([{ host: set, presence: presence('Unplaced') }])
+        })
+    })
+
+    describe('a spread (keepFroms)', () => {
+        // A rug lies in the room; it is spread partly onto the table, which also stands in the room.
+        const rug = 'OBJECT#Rug' as EphemeraObjectId
+        const table = 'OBJECT#Table' as EphemeraObjectId
+        const chair = 'OBJECT#Chair' as EphemeraObjectId
+        const onTable = { host: table, presence: presence('Base') }
+        const inRoom = { host: roomA, presence: parentRemainderKey(roomA) }
+        const tableGraph = () => testLudicGraph(table, { nodes: [{ tag: 'Object', universalKey: table }, presenceBindingNode('Base', roomA)] })
+        const rugGraph = (...bindings: ReturnType<typeof presenceBindingNode>[]) => testLudicGraph(rug, { nodes: [{ tag: 'Object', universalKey: rug }, ...bindings] })
+        const spread = (graphs: Record<string, EphemeraLudicGraph>) => resolvePresenceMoves({ moved: rug, froms: [roomA], to: table, keepFroms: true, getGraph: getGraphOf(graphs) })
+
+        it('gains the destination and loses nothing: one binding under both (M5\'s copy shape)', async () => {
+            const world = { [rug]: rugGraph(presenceBindingNode('rug', roomA)), [table]: tableGraph(), [roomA]: room(roomA, [rug, table]) }
+
+            const resolved = await spread(world)
+            expect(resolved).toEqual({ ok: true, steps: [{ kind: 'reparentPresenceBinding', hostId: rug, presence: presence('rug'), gain: [onTable] }] })
+            if (!resolved.ok) { throw new Error(resolved.errorCode) }
+
+            const after = apply(resolved.steps, world)
+            expect(bindingsOf(after, rug)).toEqual([[presence('rug'), [`${roomA}|${parentRemainderKey(roomA)}`, `${table}|${presence('Base')}`]]])
+            expect(after.get(table)!.presenceNodes[0].cover.members).toEqual([{ host: rug, presence: presence('rug') }])
+        })
+
+        it('onto a destination that already holds a binding of the mover: reparent, then join into that binding, which keeps both parents', async () => {
+            const world = {
+                [rug]: rugGraph(presenceBindingNode('in-room', roomA), presenceBindingNode('on-table', onTable)),
+                [table]: testLudicGraph(table, { nodes: [{ tag: 'Object', universalKey: table }, presenceBindingNode('Base', roomA, { members: [{ host: rug, presence: presence('on-table') }] })] }),
+                [roomA]: room(roomA, [rug, table]),
+            }
+
+            const resolved = await spread(world)
+            if (!resolved.ok) { throw new Error(resolved.errorCode) }
+
+            expect(resolved.steps.map((step) => step.kind)).toEqual(['reparentPresenceBinding', 'joinPresenceBindings'])
+            expect(resolved.steps[1]).toMatchObject({ into: presence('on-table'), toJoin: [presence('in-room')] })
+            const [[id, parents]] = bindingsOf(apply(resolved.steps, world), rug) as [string, string[]][]
+            expect(id).toEqual(presence('on-table'))
+            expect([...parents].sort()).toEqual([`${roomA}|${parentRemainderKey(roomA)}`, `${table}|${presence('Base')}`].sort())
+        })
+
+        it('a binding that is already shared gains a third parent', async () => {
+            const world = {
+                [rug]: rugGraph(presenceBindingNode('rug', [inRoom, { host: chair, presence: presence('Base') }])),
+                [chair]: testLudicGraph(chair, { nodes: [{ tag: 'Object', universalKey: chair }, presenceBindingNode('Base', roomA, { members: [{ host: rug, presence: presence('rug') }] })] }),
+                [table]: tableGraph(),
+                [roomA]: room(roomA, [rug, table, chair]),
+            }
+
+            const resolved = await spread(world)
+            if (!resolved.ok) { throw new Error(resolved.errorCode) }
+
+            expect(bindingsOf(apply(resolved.steps, world), rug)).toEqual([[presence('rug'), [
+                `${roomA}|${parentRemainderKey(roomA)}`, `${chair}|${presence('Base')}`, `${table}|${presence('Base')}`,
+            ]]])
+        })
+
+        it('gaining a parent the binding already holds is a no-op in the kernel', async () => {
+            const world = {
+                [rug]: rugGraph(presenceBindingNode('rug', [inRoom, onTable])),
+                [table]: testLudicGraph(table, { nodes: [{ tag: 'Object', universalKey: table }, presenceBindingNode('Base', roomA, { members: [{ host: rug, presence: presence('rug') }] })] }),
+                [roomA]: room(roomA, [rug, table]),
+            }
+
+            const resolved = await spread(world)
+            expect(resolved).toEqual({ ok: true, steps: [{ kind: 'reparentPresenceBinding', hostId: rug, presence: presence('rug'), gain: [onTable] }] })
+            if (!resolved.ok) { throw new Error(resolved.errorCode) }
+
+            const after = apply(resolved.steps, world)
+            expect(bindingsOf(after, rug)).toEqual([[presence('rug'), [`${roomA}|${parentRemainderKey(roomA)}`, `${table}|${presence('Base')}`]]])
+            expect(after.get(table)!.presenceNodes[0].cover.members).toEqual([{ host: rug, presence: presence('rug') }])
+        })
+
+        it('a mover with no binding under the from host gains that host\'s binding too, so it ends under both', async () => {
+            const world = { [rug]: rugGraph(), [table]: tableGraph(), [roomA]: room(roomA, [rug, table]) }
+
+            const resolved = await spread(world)
+            if (!resolved.ok) { throw new Error(resolved.errorCode) }
+
+            expect(resolved.steps).toEqual([
+                { kind: 'addPresenceBinding', hostId: rug, fromHostPresences: [], presenceUuid: 'Base' },
+                { kind: 'reparentPresenceBinding', hostId: rug, presence: presence('Base'), gain: [inRoom, onTable] },
+            ])
+            expect(bindingsOf(apply(resolved.steps, world), rug)).toEqual([[presence('Base'), [`${roomA}|${parentRemainderKey(roomA)}`, `${table}|${presence('Base')}`]]])
+        })
+
+        it('still refuses several distinct bindings under the from host that nothing narrows', async () => {
+            const world = { [rug]: rugGraph(presenceBindingNode('x', roomA), presenceBindingNode('y', roomA)), [table]: tableGraph() }
+
+            expect(await spread(world)).toEqual({ ok: false, errorCode: 'moverBindingAmbiguous' })
         })
     })
 
