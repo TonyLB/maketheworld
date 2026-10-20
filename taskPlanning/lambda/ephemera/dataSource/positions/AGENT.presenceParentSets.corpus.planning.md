@@ -155,13 +155,13 @@ S2: plank `p{Hand} = [a]`; apple `a{p} = []`, one binding. **M18a** is the same 
   - **E6.** A child left with several bindings under one new binding gets the same step one level down, for example from `[[p1], [p2]]` to `[[p]]`.
 - **F. Reparent, join, split** (worked out with the user, 2026-10-19). Three kernel operations, each with its natural meaning. The instruction compiler builds higher-order requests, such as "move these contents elsewhere", out of them.
   - **Reparent.** One binding gains named parents, loses named parents, or both. Its cover does not change.
-  - **Join.** Several bindings become one. Its parents are the union of their parents, and its cover is the union of their covers. If Base is one of them, the result is Base. Otherwise, which id survives is F-O1.
+  - **Join.** Several bindings become one. Its parents are the union of their parents, and its cover is the union of their covers. If Base is one of them, the result is Base. Otherwise the join step names the survivor (F-O1, decided 2026-10-20: `toJoin` and `into`).
   - **Split.** One binding becomes several pieces. Each piece takes a subset of the parents and a subset of the cover. At both levels the subsets may overlap, and together they must cover the original. The step says which piece keeps the original id.
   - **Inside a run**, the parenting invariant may be broken. Two pieces of a split may sit under one parent until a later step moves one of them.
   - **At the end of a run:**
     - **F-R1. Removal.** A binding with no parents, other than Base or Unplaced, is removed. Each child binding that pointed at it drops that parent. A child binding left with no other parent on this host gains `{host, Unplaced}`, and Unplaced is created if it does not exist.
     - **F-R2. The root bindings.** Base and Unplaced are stored, and both may be hostless at once (Group 4). Unplaced is removed when empty. Base always exists.
-    - **F-R3. Collisions.** Two bindings of one host under one parent (Unplaced included) are joined, then the same rule applies one level down.
+    - **F-R3. Collisions.** Two bindings of one host under one parent (Unplaced included) at the run's end are refused, like any other F-R4 check. The producer writes the join itself (reparent, then join, and again one level down). **The exception (decided 2026-10-20):** a collision that F-R1 itself causes under Unplaced, which the producer's steps never named, is joined by the kernel, into the existing Unplaced child, and then the same rule applies one level down.
     - **F-R4. Checks.** The parenting invariant holds. Every parent whose view at the end differs from its view at the start is named by the request (the view rule). Views are compared across the whole run, not after each step.
 
 ## Evaluation: D
@@ -273,7 +273,7 @@ F7 and F8 are open choices, not gaps.
 
 ## Evaluation: F
 
-Each row gives the steps the compiler would emit. "Auto" marks a join that F-R3 makes at the run's end. Gaining a parent is a reparent, so a copy of an entry into another binding is a reparent of the entry's child binding, one level down (marked "child").
+Each row gives the steps the compiler would emit. "Auto" marks a join that the producer writes after a reparent (`toJoin` and `into`); since 2026-10-20 F-R3 refuses a collision rather than joining it. Gaining a parent is a reparent, so a copy of an entry into another binding is a reparent of the entry's child binding, one level down (marked "child").
 
 | Case | Steps | R | U | A | S | C |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -294,7 +294,7 @@ Each row gives the steps the compiler would emit. "Auto" marks a join that F-R3 
 | M11 | As M10. X's binding still has Base, so it gains nothing | ✓ | ✓ | ✓ | ✓ | 1 |
 | M12 | Reparent Base: lose Q. F-R2 keeps both root bindings | ✓ | ✓ | ✓ | ✓ | 1 |
 | M13, M14 | Reparent p1 (lose Table or T1, gain Hand), reparent p2 (likewise); auto join | ✓ | ✓ | F-O1 | F-O2 | 2 |
-| M18, M18a | M13's steps; F-R3 then joins the apple's two bindings under p. p1 and p2 are gone at the run's end, so no surviving view changes | ✓ | ✓ | F-O1 | F-O2 | 2 |
+| M18, M18a | M13's steps; the planner then joins the apple's two bindings under p. p1 and p2 are gone at the run's end, so no surviving view changes | ✓ | ✓ | F-O1 | F-O2 | 2 |
 
 **What the evaluation shows about F.**
 
@@ -308,8 +308,8 @@ Each row gives the steps the compiler would emit. "Auto" marks a join that F-R3 
 
 **What F still owes.**
 
-- **F-O1. Which id survives an ordinary join** (draft O1).
-- **F-O2. Stale-safety of gains.** An auto join under a gained parent can merge a binding that appeared after the producer's read. The view rule catches this only when an unnamed view changes. This is D's F5 again. One candidate is for a gain to state the bindings it expects to collide with.
+- **F-O1. Which id survives an ordinary join** (draft O1). **Decided 2026-10-20 (user):** the join step names `toJoin` and `into`; `into` keeps its id. A join under a gained parent is not automatic: the producer writes reparent, then join (decided 2026-10-20, user).
+- **F-O2. Stale-safety of gains.** **Retired 2026-10-20 (user):** with no automatic join (F-R3 is a check), the join step's own optimistic check is the stale-safety, and an unexpected collision is refused. (Formerly: an auto join under a gained parent can merge a binding that appeared after the producer's read. The view rule catches this only when an unnamed view changes. This is D's F5 again. One candidate was for a gain to state the bindings it expects to collide with.)
 - **F-O3. Where the view rule is checked, and what "named" means.** The compiler can check it, but the kernel must then verify the covers the compiler read, so that a stale read is a refusal.
 - **F-O4. The request shape** that the compiler accepts for higher-order operations, and how a request states the pieces of a split.
 
