@@ -188,6 +188,12 @@ const describeGroundedAction = (action: AttemptAction): { action: AttemptAction;
         }
         const target = labelOf(step.to)
         const preposition = step.containment === 'On' ? 'on' : 'in'
+        if (step.keepFrom) {
+            return {
+                action: new PositionAttemptAction(action.id, action.challenges(), step, `Spread ${subject} ${preposition} ${target}`),
+                alternative: { label: `${subject} / ${target}`, proposedCommand: `spread the ${subject} ${preposition} the ${target}` },
+            }
+        }
         return {
             action: new PositionAttemptAction(action.id, action.challenges(), step, `Put ${subject} ${preposition} ${target}`),
             alternative: { label: `${subject} / ${target}`, proposedCommand: `put the ${subject} ${preposition} the ${target}` },
@@ -498,7 +504,8 @@ export const expandAndAdjudicateCandidates = (
     const actions = candidate.attempt.actions()
     const primary = actions[actions.length - 1]
     const step = primary?.desiredResult
-    if (primary === undefined || step?.kind !== 'change' || step.primitive !== 'transferMembership') {
+    // A spread leaves nothing, so it has no boundary to dissolve and no exit contact to challenge.
+    if (primary === undefined || step?.kind !== 'change' || step.primitive !== 'transferMembership' || step.keepFrom) {
         return candidate
     }
     const objectId = step.object.referentType === 'objectSpan' ? step.object.groundedId : undefined

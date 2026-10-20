@@ -102,7 +102,7 @@ const mockLiveHosts = (broomHost: EphemeraRoomId | EphemeraCharacterId | Ephemer
 /** A containment move's attempt: one `transferMembership` action carrying a
  * `containment` flag, `from` derived from the subject's own span (`currentHost(span:subject)`),
  * ungrounded on `object`/`to` --- same shape the real producer builds. */
-const containmentAttempt = (containment: 'On' | 'In' = 'On'): CommandAttempt => CommandAttempt.fromJSON({
+const containmentAttempt = (containment: 'On' | 'In' = 'On', keepFrom?: true): CommandAttempt => CommandAttempt.fromJSON({
     words: 'put the cup on the tray',
     referents: [
         { refKey: 'subject', id: BROOM, shortName: 'cup' },
@@ -118,6 +118,7 @@ const containmentAttempt = (containment: 'On' | 'In' = 'On'): CommandAttempt => 
             from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'subject', groundedId: BROOM, shortName: 'cup' } },
             to: { referentType: 'objectSpan', span: 'tray', stableRefKey: 'target', groundedId: TABLE, shortName: 'tray' },
             containment,
+            ...(keepFrom ? { keepFrom } : {}),
         } as never,
         challenges: [],
     }],
@@ -406,6 +407,19 @@ describe('commitAttempt', () => {
             containment: 'On',
         }))
         expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('passes a spread\'s keepFrom through to planObjectMoveTransfer, and a plain put carries none', async () => {
+        mockLiveHosts(ROOM)
+        const plan = { steps: [{ kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', gain: [{ host: TABLE, presence: 'PRESENCE#dest-root' }] }] }
+        planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
+
+        await commitAttempt({ attempt: containmentAttempt('On', true), characterId: CHARACTER, messageBus, streamEvent })
+        await commitAttempt({ attempt: containmentAttempt('On'), characterId: CHARACTER, messageBus, streamEvent })
+
+        const [[spreadArgs], [putArgs]] = planObjectMoveTransferMock.mock.calls as any
+        expect(spreadArgs).toMatchObject({ entityId: BROOM, fromHostId: ROOM, toHostId: TABLE, containment: 'On', keepFrom: true })
+        expect(putArgs).not.toHaveProperty('keepFrom')
     })
 
     it('omits the containment field when planObjectMoveTransfer is called for an ordinary membership move', async () => {

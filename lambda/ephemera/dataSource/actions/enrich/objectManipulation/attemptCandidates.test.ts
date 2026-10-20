@@ -218,6 +218,70 @@ describe('proposeAttemptCandidates', () => {
     })
 })
 
+describe('a spread (keepFrom)', () => {
+    const spreadSkeleton: ParseSkeleton = [
+        { type: 'text', text: 'spread' },
+        { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+        { type: 'text', text: 'on' },
+        { type: 'objectSpan', span: 'tray', stableRefKey: 'trayRef' },
+    ]
+
+    it('describes itself as a spread, and its Consult wording proposes a spread, not a put', () => {
+        const result = proposeAttemptCandidates({
+            command: 'spread cup on tray',
+            attempts: [attemptFor(spreadSkeleton, 'spread cup on tray')],
+            spanPools: new Map([['cupRef', pool('cup', cupId)], ['trayRef', pool('tray', trayId)]]),
+            catalog,
+            noAssignmentReason: 'none',
+        })
+
+        expect(result.ok).toBe(true)
+        if (!result.ok) {
+            return
+        }
+        const [candidate] = result.candidates
+        expect(candidate!.alternative).toEqual({ label: 'cup / tray', proposedCommand: 'spread the cup on the tray' })
+        expect(candidate!.attempt.actions()[0]!.describe()).toBe('Spread cup on tray')
+    })
+
+    it('is left unexpanded: the object leaves nothing, so a tie it has gets no dissolve, where a take of it does', () => {
+        const roomId = 'ROOM#Bridge' as EphemeraRoomId
+        const ropeId = 'OBJECT#Rope' as EphemeraObjectId
+        const postId = 'OBJECT#Post' as EphemeraObjectId
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [{ tag: 'Relational', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' }],
+        })
+        const rope = { referentType: 'objectSpan' as const, span: 'rope', stableRefKey: 'ropeRef', groundedId: ropeId }
+        const transfer = (keepFrom: boolean) => new PositionAttemptAction('move', [], {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: rope,
+            from: currentHostRef({ referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' }),
+            to: { referentType: 'objectSpan', span: 'tray', stableRefKey: 'trayRef', groundedId: trayId },
+            containment: 'On',
+            ...(keepFrom ? { keepFrom: true as const } : {}),
+        })
+        const env = {
+            getGraph: (hostId: string) => (hostId === roomId ? graph : undefined),
+            getCurrentHost: (id: string) => (id === ropeId ? roomId : undefined),
+            getMembershipContainers: () => [],
+        }
+        const expand = (keepFrom: boolean) => expandAndAdjudicateCandidates(
+            [{ attempt: CommandAttempt.create('move rope', [transfer(keepFrom)]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'move the rope' } }],
+            env as never
+        )[0]!.attempt.actions()
+
+        expect(expand(false)).toHaveLength(2)
+        const spreadActions = expand(true)
+        expect(spreadActions).toHaveLength(1)
+        expect(spreadActions[0]!.challenges()).toEqual([])
+    })
+})
+
 describe('describe-only (look) grounding', () => {
     it('names the look by its grounded referent and keeps "Look at the" wording', () => {
         const look = attemptFor([

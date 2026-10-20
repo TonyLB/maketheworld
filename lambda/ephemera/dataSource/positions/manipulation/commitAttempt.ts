@@ -146,6 +146,8 @@ const buildMembershipFragment = async (
         // `compilePositionKernelOp` already thread this through to the establish step whose
         // `hostId` is always `toHostId` by construction --- no ancestry walk needed.
         ...(change.containment ? { containment: change.containment } : {}),
+        // A spread: the object stays in `fromHostId` too, so the plan leaves no host.
+        ...(change.keepFrom ? { keepFrom: true as const } : {}),
     })
 
     if (!planResult.ok) {

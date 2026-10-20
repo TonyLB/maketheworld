@@ -3,9 +3,10 @@ import type { CommandAttempt } from '../../../commandAttempt'
 import { matchContainmentTemplate } from './matchContainmentTemplate'
 import { matchLookTemplate } from './matchLookTemplate'
 import { matchMembershipTemplate } from './matchMembershipTemplate'
+import { matchSpreadTemplate } from './matchSpreadTemplate'
 
 export type PlanSkeletonResult =
-    /** Every template's ungrounded attempts, in template order (containment, look, membership). Empty: no object route. */
+    /** Every template's ungrounded attempts, in template order (containment, spread, look, membership). Empty: no object route. */
     { type: 'attempts'; attempts: CommandAttempt[] }
 
 /**
@@ -18,6 +19,7 @@ export type PlanSkeletonResult =
 export function planSkeleton(skeleton: ParseSkeleton, command: string): PlanSkeletonResult {
     const attempts = [
         matchContainmentTemplate(skeleton, command),
+        matchSpreadTemplate(skeleton, command),
         matchLookTemplate(skeleton, command),
         matchMembershipTemplate(skeleton, command),
     ].flatMap(result => (result.type === 'matched' ? [result.attempt] : []))
