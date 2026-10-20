@@ -99,8 +99,7 @@ export const executeMembershipTransfer = async (
         froms,
         to: args.target,
         header: null,
-        presenceMoves: resolved.presenceMoves,
-        ...(resolved.mintedRootUuid ? { mintedRootUuid: resolved.mintedRootUuid } : {}),
+        presenceSteps: resolved.steps,
     })
     const steps = compiledSteps.filter(isKernelMutationStep)
 

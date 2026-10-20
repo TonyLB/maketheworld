@@ -44,14 +44,8 @@ describe('planObjectMoveTransfer', () => {
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a legal plan') }
             // Mutation steps only: the move's audiences are `commitAttempt.ts`'s to resolve and capture.
-            expect(result.plan.steps.map((step) => step.kind)).toEqual(['movePresenceBinding'])
-            expect(result.plan.steps[0]).toEqual({
-                kind: 'movePresenceBinding',
-                hostId: TRAY_ID,
-                presence: 'PRESENCE#tray-in-room',
-                from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) },
-                to: { host: CHARACTER_ID, presence: 'PRESENCE#Base' },
-            })
+            expect(result.plan.steps.map((step) => step.kind)).toEqual(['reparentPresenceBinding'])
+            expect(result.plan.steps[0]).toEqual({ kind: 'reparentPresenceBinding', hostId: TRAY_ID, presence: 'PRESENCE#tray-in-room', lose: [{ host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }], gain: [{ host: CHARACTER_ID, presence: 'PRESENCE#Base' }] })
             expect(result.fromHostId).toBe(ROOM_ID)
         })
 
@@ -219,8 +213,8 @@ describe('planObjectMoveTransfer', () => {
             })
 
             if (!result.ok) { throw new Error('expected a plan') }
-            expect(result.plan.steps.find((step) => step.kind === 'movePresenceBinding')).toEqual(expect.objectContaining({
-                to: { host: TABLE_ID, presence: 'PRESENCE#table-right' },
+            expect(result.plan.steps.find((step) => step.kind === 'reparentPresenceBinding')).toEqual(expect.objectContaining({
+                gain: [{ host: TABLE_ID, presence: 'PRESENCE#table-right' }],
             }))
         })
 

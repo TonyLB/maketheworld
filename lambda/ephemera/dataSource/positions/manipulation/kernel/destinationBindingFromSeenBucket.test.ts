@@ -48,7 +48,7 @@ const placeThroughKernel = (
     destId: EphemeraObjectId
 ): EphemeraLudicGraph => {
     const steps: MutationKernelStep[] = [
-        { kind: 'movePresenceBinding', hostId: destId, presence: 'PRESENCE#dest' as EphemeraPresenceNodeId, from: null, to: { host: holdingGraph.hostId, presence: childParentBindingIdOf(holdingGraph)! } },
+        { kind: 'reparentPresenceBinding', hostId: destId, presence: 'PRESENCE#dest' as EphemeraPresenceNodeId, gain: [{ host: holdingGraph.hostId, presence: childParentBindingIdOf(holdingGraph)! }] },
     ]
     const outcome = applyStepSequenceCore(steps, graphsMap([destId, testLudicGraph(destId, { nodes: [presenceBindingNode('dest')] })], [holdingGraph.hostId, holdingGraph]))
     if (outcome.verdict !== 'legal') {

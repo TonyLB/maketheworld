@@ -13,7 +13,6 @@ import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ep
 import type { MutationKernelStep } from './kernelStep'
 import { isBystanderMove } from './bystander'
 import { bindingPointsAt, settleMembership } from './settleMembership'
-import { movePresenceBinding } from './movePresenceBinding'
 import { settleParentChange, writeCoverIndex } from './presenceStepWrites'
 import { reparentPresenceBinding } from './reparentPresenceBinding'
 import { joinBindings } from './joinPresenceBindings'
@@ -108,8 +107,8 @@ const confirmCarriedHost = (
  * already guaranteed that order.
  *
  * **Membership is applied by the presence steps** (`settleMembership.ts`): `addPresenceBinding` and
- * `repairPresenceBinding` (with a parent pointer) add the node at the pointer's host, `movePresenceBinding`
- * departs `from.host` and arrives at `to.host`. A node
+ * `repairPresenceBinding` (with a parent pointer) add the node at the pointer's host, `reparentPresenceBinding`
+ * departs the hosts it loses and arrives at the hosts it gains. A node
  * leaves a host only with the mover's last binding there and arrives only if absent.
  *
  * `establishRelation`/`dissolveRelation`: confirms the step's own carried `hostId` 
@@ -125,8 +124,8 @@ const confirmCarriedHost = (
  * This function has no verdict meaning "the world forbids this" because it makes no such judgment
  * --- it checks mechanism, and legality is the enrich tier's question. See `types.ts`.
  *
- * `addPresenceBinding`/`movePresenceBinding`/`repairPresenceBinding`: a host's own presence
- * bindings --- population's mint, a move's re-point (`movePresenceBinding`, above), a departure, and
+ * `addPresenceBinding`/`repairPresenceBinding` and the F steps: a host's own presence
+ * bindings --- population's mint, a move's reparent and join (above), a departure, and
  * population's in-place repair. See `kernelStep.ts`'s doc comments.
  *
  * `createComponent`: seeds a not-yet-existing host's graph empty, holding one hostless Base,
@@ -230,7 +229,7 @@ export const applyStepSequenceCore = (
             }
             // presenceNodes Slice 7a (PN-23): mints the presence node directly, with no port
             // record --- `EphemeraPresencePort` is retired, and `presenceUuid` (minted at
-            // compile time, `presenceBindingStepsForMove.ts`) becomes the node's `universalKey`
+            // plan time, `resolvePresenceMoves.ts`) becomes the node's `universalKey`
             // suffix on its own. An empty cover by default: the cover index (`writeCoverIndex`) adds
             // each child's entry as its pointer is written (no `Present` edge was ever written to derive it from).
             const withNode = graph.addPresenceNode({
@@ -247,22 +246,6 @@ export const applyStepSequenceCore = (
             }
             graphs = settled.graphs
             arrived.forEach((host) => settleOccupants(step.hostId, { arrived: host }))
-            continue
-        }
-        if (step.kind === 'movePresenceBinding') {
-            const moved = movePresenceBinding(graphs, step)
-            if ('reasonCode' in moved) {
-                return { verdict: 'stale', reasonCode: moved.reasonCode }
-            }
-            const settled = settleMembership(moved.graphs, step.hostId, {
-                ...(step.from ? { left: step.from.host } : {}),
-                ...(step.to ? { arrived: step.to.host } : {}),
-            })
-            if (settled.verdict !== 'legal') {
-                return settled
-            }
-            graphs = settled.graphs
-            settleOccupants(step.hostId, { ...(step.from ? { left: step.from.host } : {}), ...(step.to ? { arrived: step.to.host } : {}) })
             continue
         }
         if (step.kind === 'reparentPresenceBinding') {

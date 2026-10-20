@@ -3,10 +3,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { HostRelationalEdge } from '../../types'
 import type { ExecutorDescribeStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import type { MembershipEmissionCopyKind, PresenceBindingRef } from '../kernelStep'
-import type { ParentBinding } from '../../../ludicGraph/presenceParent'
-import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { MembershipEmissionCopyKind, MutationKernelStep } from '../kernelStep'
 
 /** The arrival header's binding, as carried on a `describe` step. */
 export type MoveHeaderBinding = NonNullable<ExecutorDescribeStep['header']>
@@ -46,48 +43,18 @@ export type MembershipMoveNarrationInput = {
  * copy react to what the mutation actually did rather than only what was intended at compile time.
  * It keeps its `kind` discriminant, matching `NarrationSpecification`'s family axis.
  */
-export type PositionKernelPresenceMove = {
-    /** The mover's own binding, on the mover's graph. */
-    presence: EphemeraPresenceNodeId
-    /**
-     * That binding's cover as the planner read it. Carried onto the step as `cover` (for a
-     * whole move that re-points its children: a later move of a scrub, or a departure), where it
-     * names the children the footprint must lock.
-     */
-    cover?: EphemeraPresenceCover
-    /** Hosts of child bindings the planner found would merge below the receiver, to lock (see `cascadeHostsOf`). */
-    cascadeHosts?: readonly EphemeraMembershipHostId[]
-} & (
-    {
-        /** The parent binding it sits under now; `null` for a hostless binding (a first placement). */
-        from: ParentBinding | null
-        to: PresenceBindingRef
-    } | {
-        /** A departure: the parent binding it leaves, with no destination (`to: null`). */
-        from: ParentBinding
-        to: null
-    }
-)
-
 export type PositionKernelMoveOp = {
     kind: 'move'
     moved: EphemeraObjectId | EphemeraCharacterId
     froms: EphemeraMembershipHostId[]
     to: EphemeraMembershipHostId | null
     /**
-     * The mover's presence writes, one per binding that changes parent, **named by the producer**
-     * (`resolvePresenceMoves`) --- the compiler reads nothing. More than one (a multi-`from` scrub)
-     * compiles to a move each, and a later move into the same destination joins the first's binding.
-     * For an op with `to: null` each entry is a departure (`to: null`), which compiles to a move to
-     * no parent. Empty for an op that moves no binding.
+     * The mover's presence writes, **named by the producer** (`resolvePresenceMoves`) --- the compiler
+     * reads nothing and passes them through ahead of the establish steps. They are Framework F steps
+     * (`reparentPresenceBinding`, `joinPresenceBindings`, and a minted Base's `addPresenceBinding`), each
+     * addressed to the mover's own graph. Empty for an op that moves no binding.
      */
-    presenceMoves: readonly PositionKernelPresenceMove[]
-    /**
-     * A fresh uuid when the mover holds no binding at all (a character before its first connect):
-     * the compiler mints a hostless root under it ahead of the moves, and `presenceMoves[0].presence`
-     * names it. Absent whenever the mover already has a hostless binding.
-     */
-    mintedRootUuid?: string
+    presenceSteps: readonly MutationKernelStep[]
     /**
      * Resolved by the caller (async perspective-key lookup is render-pipeline territory, not the
      * compiler's job); null when no arrival header applies. The compiler places the header

@@ -8,7 +8,7 @@
  * fixtures, which put several buckets directly on a room's own graph, encode a scenario that
  * cannot arise from a real write. The real case is a **multi-hosted child**: an object present
  * inside two different containing objects at once carries two presence bindings on its OWN
- * graph (one per parent, written by `presenceBindingStepsForMove` onto the mover's own item), and
+ * graph (one per parent, written by the planner's steps onto the mover's own item), and
  * an edge inside *that child's own interior* can straddle those two bindings. `objZ` below is
  * that child --- present inside both `objX` and `objY`, with an interior `pebble1 -Custom: under->
  * pebble2` edge split across its two bindings' covers.
@@ -45,7 +45,7 @@ const enumeratedCover = (...entries: [EphemeraMembershipHostId, string][]): Ephe
     members: entries.map(([host, uuid]) => ({ host, presence: PresenceKey(uuid) as EphemeraPresenceNodeId })),
 })
 
-/** A presence binding held on ITS OWN graph (`presenceBindingStepsForMove.ts`'s convention):
+/** A presence binding held on ITS OWN graph (the planner's convention):
  * `hostId` is the mover, `parentHost` is the parent it's now present at. */
 const presenceNode = (
     uuid: string,

@@ -18,9 +18,8 @@ export type MembershipChange = {
     anchor: number
 }
 
-const isPresenceWrite = (step: MutationKernelStep): step is Extract<MutationKernelStep, { kind: 'addPresenceBinding' | 'movePresenceBinding' | 'repairPresenceBinding' }> => (
+const isPresenceWrite = (step: MutationKernelStep): step is Extract<MutationKernelStep, { kind: 'addPresenceBinding' | 'repairPresenceBinding' | 'reparentPresenceBinding' | 'joinPresenceBindings' | 'splitPresenceBinding' }> => (
     step.kind === 'addPresenceBinding'
-    || step.kind === 'movePresenceBinding'
     || step.kind === 'repairPresenceBinding'
     || step.kind === 'reparentPresenceBinding'
     || step.kind === 'joinPresenceBindings'

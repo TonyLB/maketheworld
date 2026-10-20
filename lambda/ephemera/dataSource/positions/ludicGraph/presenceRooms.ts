@@ -59,7 +59,7 @@ export const roomsForHost = async (
 
 /**
  * Locates one presence binding on its owner's own graph (a binding is held on the mover's own
- * graph, per `presenceBindingStepsForMove.ts`), then continues the walk from that binding's
+ * graph, per `resolvePresenceMoves.ts`), then continues the walk from that binding's
  * parent host. The owner is the bucket's own `host`, not the referent: a thing is usually seen
  * through a binding of the host whose graph holds it.
  */

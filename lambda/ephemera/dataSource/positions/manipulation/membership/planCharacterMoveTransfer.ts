@@ -85,8 +85,7 @@ export const planCharacterMoveTransfer = async (
         intentFromRoomId: args.intentFromRoomId,
         exitName: args.exitName,
         header,
-        presenceMoves: resolved.presenceMoves,
-        ...(resolved.mintedRootUuid ? { mintedRootUuid: resolved.mintedRootUuid } : {}),
+        presenceSteps: resolved.steps,
     })
 
     const plan = compilePositionKernelOp(op)

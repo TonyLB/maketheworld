@@ -44,7 +44,7 @@ describe('executeComponentDestruction', () => {
         expect(commitMock).toHaveBeenCalledTimes(1)
         const [args, deps] = commitMock.mock.calls[0]
         expect(args.steps).toEqual([
-            { kind: 'movePresenceBinding', to: null, hostId: OBJECT_ID, presence: 'PRESENCE#p1', from: { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }, cover: expect.any(Object) },
+            { kind: 'reparentPresenceBinding', hostId: OBJECT_ID, presence: 'PRESENCE#p1', lose: [{ host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }] },
             { kind: 'destroyComponent', hostId: OBJECT_ID },
         ])
         expect(args.existenceItems).toEqual([rowItem])

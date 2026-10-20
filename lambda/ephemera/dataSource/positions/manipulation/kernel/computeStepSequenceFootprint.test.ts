@@ -23,7 +23,7 @@ describe('computeStepSequenceFootprint', () => {
     it('unions hosts across a multi-step sequence with no duplicates', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'dissolveRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' },
-            { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: roomId, presence: parentRemainderKey(roomId) }, to: { host: characterId, presence: 'PRESENCE#c' as any } },
+            { kind: 'reparentPresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, lose: [{ host: roomId, presence: parentRemainderKey(roomId) }], gain: [{ host: characterId, presence: 'PRESENCE#c' as any }] },
         ]
         const getCurrentHost = () => roomId
         expect(computeStepSequenceFootprint(steps, getCurrentHost)).toEqual(new Set([roomId, characterId, trayId]))
@@ -67,34 +67,42 @@ describe('computeStepSequenceFootprint', () => {
     })
 
     it('a move step contributes its hostId, its destination (read to confirm the binding) and the host it leaves', () => {
-        const move: MutationKernelStep = { kind: 'movePresenceBinding', hostId: glassId, presence: 'PRESENCE#p3' as any, from: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }, to: { host: roomId, presence: 'PRESENCE#r' as any } }
+        const move: MutationKernelStep = { kind: 'reparentPresenceBinding', hostId: glassId, presence: 'PRESENCE#p3' as any, lose: [{ host: otherRoomId, presence: parentRemainderKey(otherRoomId) }], gain: [{ host: roomId, presence: 'PRESENCE#r' as any }] }
         expect(computeStepSequenceFootprint([move], () => undefined)).toEqual(new Set([glassId, roomId, otherRoomId]))
     })
 
     it('a first-placement move (from null) contributes its hostId and destination', () => {
-        const move: MutationKernelStep = { kind: 'movePresenceBinding', hostId: glassId, presence: 'PRESENCE#p3' as any, from: null, to: { host: roomId, presence: 'PRESENCE#r' as any } }
+        const move: MutationKernelStep = { kind: 'reparentPresenceBinding', hostId: glassId, presence: 'PRESENCE#p3' as any, gain: [{ host: roomId, presence: 'PRESENCE#r' as any }] }
         expect(computeStepSequenceFootprint([move], () => undefined)).toEqual(new Set([glassId, roomId]))
     })
 
-    it('a departure (to no parent) contributes its hostId, the host it leaves and the children of its cover', () => {
+    it('a departure (a reparent that only loses) contributes its hostId, the host it leaves and its cascade hosts', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'movePresenceBinding', to: null, hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) }, cover: { members: [{ host: glassId, presence: 'PRESENCE#g' as any }] } },
+            { kind: 'reparentPresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, lose: [{ host: otherRoomId, presence: parentRemainderKey(otherRoomId) }], cascadeHosts: [glassId] },
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, otherRoomId, glassId]))
     })
 
-    it('a subCover move contributes the children of the part that moves, not the rest of the cover, and any cascade hosts', () => {
-        const part: MutationKernelStep = {
-            kind: 'movePresenceBinding',
+    it('a split contributes the children of each piece, and a reparent its cascade hosts', () => {
+        const parents = [{ host: roomId, presence: parentRemainderKey(roomId) }]
+        const split: MutationKernelStep = {
+            kind: 'splitPresenceBinding',
             hostId: tableId,
             presence: 'PRESENCE#a' as any,
-            from: { host: roomId, presence: parentRemainderKey(roomId) },
-            to: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) },
-            subCover: [{ host: trayId, presence: 'PRESENCE#t' as any }],
-            mintedPresence: 'PRESENCE#b' as any,
+            pieces: [
+                { presence: 'PRESENCE#a' as any, parents, cover: { members: [] } },
+                { presenceUuid: 'b', parents, cover: { members: [{ host: trayId, presence: 'PRESENCE#t' as any }] } },
+            ],
+        }
+        const reparent: MutationKernelStep = {
+            kind: 'reparentPresenceBinding',
+            hostId: tableId,
+            presence: 'PRESENCE#b' as any,
+            lose: parents,
+            gain: [{ host: otherRoomId, presence: parentRemainderKey(otherRoomId) }],
             cascadeHosts: [glassId],
         }
-        expect(computeStepSequenceFootprint([part], () => undefined)).toEqual(new Set([tableId, roomId, otherRoomId, trayId, glassId]))
+        expect(computeStepSequenceFootprint([split, reparent], () => undefined)).toEqual(new Set([tableId, roomId, otherRoomId, trayId, glassId]))
     })
 
     it('a leg with a port-address endpoint resolves its host from the primitive endpoint alone, not both', () => {
@@ -126,7 +134,7 @@ describe('computeStepSequenceFootprint', () => {
 
     it('a capture step contributes nothing: a room\'s occupants are resolved before the transact', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'movePresenceBinding', to: null, hostId: trayId, presence: 'PRESENCE#t' as any, from: { host: roomId, presence: parentRemainderKey(roomId) } },
+            { kind: 'reparentPresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, lose: [{ host: roomId, presence: parentRemainderKey(roomId) }] },
             { kind: 'capture', hostId: otherRoomId, captureId: 'onlooker' },
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([trayId, roomId]))
@@ -135,8 +143,8 @@ describe('computeStepSequenceFootprint', () => {
     it('a bystander move contributes only the character: the rooms it leaves and arrives at are indexed by the characters row', () => {
         const characterId = 'CHARACTER#Alpha' as any
         const steps: MutationKernelStep[] = [
-            { kind: 'movePresenceBinding', hostId: characterId, presence: 'PRESENCE#p' as any, from: { host: roomId, presence: parentRemainderKey(roomId) }, to: { host: otherRoomId, presence: parentRemainderKey(otherRoomId) } } as any,
-            { kind: 'movePresenceBinding', to: null, hostId: characterId, presence: 'PRESENCE#q' as any, from: { host: roomId, presence: parentRemainderKey(roomId) } },
+            { kind: 'reparentPresenceBinding', hostId: characterId, presence: 'PRESENCE#p' as any, lose: [{ host: roomId, presence: parentRemainderKey(roomId) }], gain: [{ host: otherRoomId, presence: parentRemainderKey(otherRoomId) }] } as any,
+            { kind: 'reparentPresenceBinding', hostId: characterId, presence: 'PRESENCE#q' as any, lose: [{ host: roomId, presence: parentRemainderKey(roomId) }] },
             { kind: 'addPresenceBinding', hostId: characterId, presenceUuid: 'u', fromHostPresences: [{ host: otherRoomId, presence: parentRemainderKey(otherRoomId) }] } as any,
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([characterId]))

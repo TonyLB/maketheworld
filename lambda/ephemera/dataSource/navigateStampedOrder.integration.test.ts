@@ -73,7 +73,7 @@ describe('navigate into an uncached room: stamped presentation order (integratio
             intentKind: 'navigate',
             intentFromRoomId: FROM_ROOM,
             header: { perspectiveKey: PERSPECTIVE_KEY, assets: [] },
-            presenceMoves: [],
+            presenceSteps: [],
         }))
 
         await presentStepSequence(

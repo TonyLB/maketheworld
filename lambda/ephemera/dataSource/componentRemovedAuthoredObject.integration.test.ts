@@ -54,10 +54,11 @@ describe('Component Removed for an authored Object', () => {
 
         expect(commitStepSequence).toHaveBeenCalledTimes(1)
         const [{ steps }] = (commitStepSequence as jest.Mock).mock.calls[0]
-        expect(steps.find((step: any) => step.kind === 'movePresenceBinding')).toMatchObject({
-            to: null,
+        const departure = steps.find((step: any) => step.kind === 'reparentPresenceBinding')
+        expect(departure).toMatchObject({
             hostId: 'OBJECT#cup',
-            from: { host: ROOM },
+            lose: [{ host: ROOM }],
         })
+        expect(departure).not.toHaveProperty('gain')
     })
 })

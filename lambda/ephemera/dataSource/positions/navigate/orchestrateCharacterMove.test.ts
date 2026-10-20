@@ -88,7 +88,7 @@ describe('orchestrateCharacterMove', () => {
         // header is a describe step carrying the resolved binding.
         expect(lastPlan().steps).toEqual([
             { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
-            { kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex', from: { host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) }, to: { host: TO_ROOM, presence: parentRemainderKey(TO_ROOM) } },
+            { kind: 'reparentPresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex', lose: [{ host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) }], gain: [{ host: TO_ROOM, presence: parentRemainderKey(TO_ROOM) }] },
             { kind: 'capture', hostId: TO_ROOM, captureId: 'capture:to' },
             expect.objectContaining({ kind: 'narrate' }),
             { kind: 'describe', referentId: TO_ROOM, referentKind: 'room', header: { perspectiveKey: 'perspective-key', assets: ['primitives', 'TownCenter'] } },
@@ -163,8 +163,8 @@ describe('orchestrateCharacterMove', () => {
         expect(lastPlan().steps).toEqual(expect.arrayContaining([
             { kind: 'capture', hostId: FROM_ROOM, captureId: 'capture:from:ROOM#VORTEX' },
             { kind: 'capture', hostId: ROOM_C, captureId: 'capture:from:ROOM#TestThree' },
-            expect.objectContaining({ kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex' }),
-            expect.objectContaining({ kind: 'movePresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-three' }),
+            expect.objectContaining({ kind: 'reparentPresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex' }),
+            expect.objectContaining({ kind: 'reparentPresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-three' }),
         ]))
     })
 

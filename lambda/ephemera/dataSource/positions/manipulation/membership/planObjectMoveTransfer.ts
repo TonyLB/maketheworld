@@ -70,8 +70,7 @@ export const planObjectMoveTransfer = async (
         fromGraph,
         fromHostId: args.fromHostId,
         toHostId: args.toHostId,
-        presenceMoves: resolved.presenceMoves,
-        ...(resolved.mintedRootUuid ? { mintedRootUuid: resolved.mintedRootUuid } : {}),
+        presenceSteps: resolved.steps,
         ...(args.containment ? { containment: args.containment } : {}),
     }
 

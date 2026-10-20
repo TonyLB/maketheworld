@@ -13,7 +13,7 @@ const roomId = 'ROOM#Cafe' as EphemeraRoomId
 const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 const moveTrayOut = (mover: EphemeraMembershipHostId = trayId): MutationKernelStep => (
-    { kind: 'movePresenceBinding', hostId: mover, presence: 'PRESENCE#p1' as any, from: { host: roomId, presence: parentRemainderKey(roomId) }, to: { host: characterId, presence: parentRemainderKey(characterId) } }
+    { kind: 'reparentPresenceBinding', hostId: mover, presence: 'PRESENCE#p1' as any, lose: [{ host: roomId, presence: parentRemainderKey(roomId) }], gain: [{ host: characterId, presence: parentRemainderKey(characterId) }] }
 )
 const moverGraph = (mover: EphemeraMembershipHostId) => testLudicGraph(mover, { nodes: [presenceBindingNode('p1', roomId)] })
 const characterHost = () => testLudicGraph(characterId, { nodes: [presenceBindingNode(parentRemainderKey(characterId))] })
@@ -47,7 +47,7 @@ describe('dryRunStepSequence', () => {
         })
         const steps: MutationKernelStep[] = [
             { kind: 'createComponent', hostId: trayId, meta: { EphemeraId: trayId, DataCategory: 'Meta::Object', stableKey: 'tray' } },
-            { kind: 'movePresenceBinding', hostId: trayId, presence: 'PRESENCE#Base' as any, from: null, to: { host: roomId, presence: parentRemainderKey(roomId) } },
+            { kind: 'reparentPresenceBinding', hostId: trayId, presence: 'PRESENCE#Base' as any, gain: [{ host: roomId, presence: parentRemainderKey(roomId) }] },
         ]
 
         const outcome = await dryRunStepSequence(steps, { getCurrentHost: () => undefined, getGraph })

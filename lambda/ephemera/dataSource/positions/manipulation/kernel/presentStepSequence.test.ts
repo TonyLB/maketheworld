@@ -76,7 +76,7 @@ describe('presentStepSequence', () => {
 
     it('publishes one event per describe step, in order, ignoring mutation steps in the same shared list', async () => {
         const steps: KernelStep[] = [
-            { kind: 'movePresenceBinding', hostId: OBJECT_ID, presence: 'PRESENCE#p1' as any, from: { host: ROOM_ID, presence: 'PRESENCE#r1' as any }, to: { host: CHARACTER_ID, presence: 'PRESENCE#c1' as any } },
+            { kind: 'reparentPresenceBinding', hostId: OBJECT_ID, presence: 'PRESENCE#p1' as any, lose: [{ host: ROOM_ID, presence: 'PRESENCE#r1' as any }], gain: [{ host: CHARACTER_ID, presence: 'PRESENCE#c1' as any }] },
             { kind: 'describe', referentId: ROOM_ID, referentKind: 'room' },
             { kind: 'describe', referentId: FEATURE_ID, referentKind: 'feature' },
         ]
@@ -125,7 +125,7 @@ describe('presentStepSequence', () => {
 
     it('is a clean no-op when the shared list has no describe steps at all', async () => {
         const steps: KernelStep[] = [
-            { kind: 'movePresenceBinding', hostId: OBJECT_ID, presence: 'PRESENCE#p1' as any, from: { host: ROOM_ID, presence: 'PRESENCE#r1' as any }, to: { host: CHARACTER_ID, presence: 'PRESENCE#c1' as any } },
+            { kind: 'reparentPresenceBinding', hostId: OBJECT_ID, presence: 'PRESENCE#p1' as any, lose: [{ host: ROOM_ID, presence: 'PRESENCE#r1' as any }], gain: [{ host: CHARACTER_ID, presence: 'PRESENCE#c1' as any }] },
         ]
 
         await presentStepSequence(steps, CHARACTER_ID, { streamEvent, messageBus })

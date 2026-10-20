@@ -13,7 +13,7 @@ describe('isKernelMutationStep', () => {
     })
 
     it('accepts the presence steps, including a per-binding release', () => {
-        const release: KernelStep = { kind: 'movePresenceBinding', to: null, hostId: 'OBJECT#Tray' as any, presence: 'PRESENCE#a' as any, from: { host: roomId, presence: parentRemainderKey(roomId) } }
+        const release: KernelStep = { kind: 'reparentPresenceBinding', hostId: 'OBJECT#Tray' as any, presence: 'PRESENCE#a' as any, lose: [{ host: roomId, presence: parentRemainderKey(roomId) }] }
         expect(isKernelMutationStep(release)).toBe(true)
     })
 

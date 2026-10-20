@@ -51,15 +51,9 @@ describe('planCharacterMoveTransfer', () => {
         expect(result.froms).toEqual([FROM_ROOM])
         expect(result.to).toEqual(TO_ROOM)
         expect(result.plan.steps.map((step) => step.kind)).toEqual([
-            'capture', 'movePresenceBinding', 'capture', 'narrate', 'narrate',
+            'capture', 'reparentPresenceBinding', 'capture', 'narrate', 'narrate',
         ])
-        expect(result.plan.steps.find((step) => step.kind === 'movePresenceBinding')).toEqual({
-            kind: 'movePresenceBinding',
-            hostId: CHARACTER_ID,
-            presence: 'PRESENCE#in-vortex',
-            from: { host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) },
-            to: { host: TO_ROOM, presence: parentRemainderKey(TO_ROOM) },
-        })
+        expect(result.plan.steps.find((step) => step.kind === 'reparentPresenceBinding')).toEqual({ kind: 'reparentPresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex', lose: [{ host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) }], gain: [{ host: TO_ROOM, presence: parentRemainderKey(TO_ROOM) }] })
     })
 
     it('resolves the header slot only once the move is confirmed changed and has a real destination', async () => {
@@ -126,13 +120,7 @@ describe('planCharacterMoveTransfer', () => {
         })
 
         if (!result.ok || !result.changed) { throw new Error('expected a changed plan') }
-        expect(result.plan.steps).toContainEqual({
-            kind: 'movePresenceBinding', to: null,
-            hostId: CHARACTER_ID,
-            presence: 'PRESENCE#in-vortex',
-            from: { host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) },
-            cover: expect.any(Object),
-        })
+        expect(result.plan.steps).toContainEqual({ kind: 'reparentPresenceBinding', hostId: CHARACTER_ID, presence: 'PRESENCE#in-vortex', lose: [{ host: FROM_ROOM, presence: parentRemainderKey(FROM_ROOM) }] })
     })
 
     it('refuses, with no plan, when the destination room holds no remainder to land under', async () => {
@@ -160,12 +148,13 @@ describe('planCharacterMoveTransfer', () => {
 
         if (!result.ok || !result.changed) { throw new Error('expected a changed plan') }
         const kinds = result.plan.steps.map((step) => step.kind)
-        expect(kinds.indexOf('addPresenceBinding')).toBeLessThan(kinds.indexOf('movePresenceBinding'))
+        expect(kinds.indexOf('addPresenceBinding')).toBeLessThan(kinds.indexOf('reparentPresenceBinding'))
         const mint = result.plan.steps.find((step) => step.kind === 'addPresenceBinding') as { presenceUuid: string }
-        expect(result.plan.steps.find((step) => step.kind === 'movePresenceBinding')).toEqual(expect.objectContaining({
+        expect(result.plan.steps.find((step) => step.kind === 'reparentPresenceBinding')).toEqual(expect.objectContaining({
             presence: `PRESENCE#${mint.presenceUuid}`,
-            from: null,
+            gain: [expect.objectContaining({ host: TO_ROOM })],
         }))
+        expect(result.plan.steps.find((step) => step.kind === 'reparentPresenceBinding')).not.toHaveProperty('lose')
     })
 
     it('a connect re-points the hostless binding a disconnect left behind', async () => {
@@ -180,6 +169,6 @@ describe('planCharacterMoveTransfer', () => {
 
         if (!result.ok || !result.changed) { throw new Error('expected a changed plan') }
         expect(result.plan.steps.some((step) => step.kind === 'addPresenceBinding')).toBe(false)
-        expect(result.plan.steps.find((step) => step.kind === 'movePresenceBinding')).toEqual(expect.objectContaining({ presence: 'PRESENCE#kept', from: null }))
+        expect(result.plan.steps.find((step) => step.kind === 'reparentPresenceBinding')).toEqual(expect.objectContaining({ presence: 'PRESENCE#kept', gain: [expect.objectContaining({ host: TO_ROOM })] }))
     })
 })

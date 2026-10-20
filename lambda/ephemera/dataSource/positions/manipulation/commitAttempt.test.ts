@@ -157,7 +157,7 @@ describe('commitAttempt', () => {
 
     it('grounds a published (ungrounded) take against live state and dispatches it through planObjectMoveTransfer', async () => {
         mockLiveHosts(ROOM)
-        const plan = { steps: [{ kind: 'movePresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', from: { host: ROOM, presence: 'PRESENCE#room-root' }, to: { host: CHARACTER, presence: 'PRESENCE#dest-root' } }] }
+        const plan = { steps: [{ kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', lose: [{ host: ROOM, presence: 'PRESENCE#room-root' }], gain: [{ host: CHARACTER, presence: 'PRESENCE#dest-root' }] }] }
         planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
 
         await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
@@ -279,7 +279,7 @@ describe('commitAttempt', () => {
 
     it('concatenates a membership and a relational action into one commit', async () => {
         mockLiveHosts(ROOM)
-        const membershipStep = { kind: 'movePresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', from: { host: ROOM, presence: 'PRESENCE#room-root' }, to: { host: TABLE, presence: 'PRESENCE#dest-root' } }
+        const membershipStep = { kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', lose: [{ host: ROOM, presence: 'PRESENCE#room-root' }], gain: [{ host: TABLE, presence: 'PRESENCE#dest-root' }] }
         const relationalStep = { kind: 'establishRelation', subjectId: BROOM, targetId: TABLE, hostId: TABLE, relationKind: 'On' }
         planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [membershipStep] } as any, fromHostId: ROOM })
         planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: [relationalStep] as any })
@@ -328,7 +328,7 @@ describe('commitAttempt', () => {
 
     it('commits a lashed object\'s met dissolve before its containment transfer, in one commit (ISS8203 slice 3 payoff)', async () => {
         const dissolveStep = { kind: 'dissolveRelation', subjectId: BROOM, targetId: TABLE, hostId: ROOM, relationKind: 'Custom', relationLabel: 'is lashed to' }
-        const transferStep = { kind: 'movePresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', from: { host: ROOM, presence: 'PRESENCE#room-root' }, to: { host: TABLE, presence: 'PRESENCE#dest-root' } }
+        const transferStep = { kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', lose: [{ host: ROOM, presence: 'PRESENCE#room-root' }], gain: [{ host: TABLE, presence: 'PRESENCE#dest-root' }] }
         planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: [dissolveStep] as any })
         planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [transferStep] } as any, fromHostId: ROOM })
 
@@ -394,7 +394,7 @@ describe('commitAttempt', () => {
 
     it('dispatches a containment action through planObjectMoveTransfer with its containment flag', async () => {
         mockLiveHosts(ROOM)
-        const plan = { steps: [{ kind: 'movePresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', from: { host: ROOM, presence: 'PRESENCE#room-root' }, to: { host: TABLE, presence: 'PRESENCE#dest-root' } }] }
+        const plan = { steps: [{ kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', lose: [{ host: ROOM, presence: 'PRESENCE#room-root' }], gain: [{ host: TABLE, presence: 'PRESENCE#dest-root' }] }] }
         planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
 
         await commitAttempt({ attempt: containmentAttempt('On'), characterId: CHARACTER, messageBus, streamEvent })
@@ -410,7 +410,7 @@ describe('commitAttempt', () => {
 
     it('omits the containment field when planObjectMoveTransfer is called for an ordinary membership move', async () => {
         mockLiveHosts(ROOM)
-        const plan = { steps: [{ kind: 'movePresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', from: { host: ROOM, presence: 'PRESENCE#room-root' }, to: { host: CHARACTER, presence: 'PRESENCE#dest-root' } }] }
+        const plan = { steps: [{ kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', lose: [{ host: ROOM, presence: 'PRESENCE#room-root' }], gain: [{ host: CHARACTER, presence: 'PRESENCE#dest-root' }] }] }
         planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
 
         await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
@@ -439,7 +439,7 @@ describe('commitAttempt', () => {
                     ? { relationalEdges: [], presenceNodes: [{ tag: 'Presence', universalKey: 'PRESENCE#alice-binding', fromHostPresences: [{ host: ROOM, presence: parentRemainderKey(ROOM) }], cover: { members: [] } }] }
                     : { relationalEdges: [], presenceNodes: [] }
             ))
-            const takePlan = { steps: [{ kind: 'movePresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', from: { host: ROOM, presence: 'PRESENCE#room-root' }, to: { host: CHARACTER, presence: 'PRESENCE#dest-root' } }] }
+            const takePlan = { steps: [{ kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', lose: [{ host: ROOM, presence: 'PRESENCE#room-root' }], gain: [{ host: CHARACTER, presence: 'PRESENCE#dest-root' }] }] }
             planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: takePlan as any, fromHostId: ROOM })
             const take = membershipAttempt('takeHold')
 
@@ -539,7 +539,7 @@ describe('commitAttempt', () => {
         const POST = 'OBJECT#Post' as EphemeraObjectId
         const lashed = { from: BROOM, to: POST, kind: 'Custom' as const, relationLabel: 'is lashed to' }
         const dissolveStep = { kind: 'dissolveRelation', subjectId: BROOM, targetId: POST, hostId: ROOM, relationKind: 'Custom', relationLabel: 'is lashed to' }
-        const transferStep = { kind: 'movePresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', from: { host: ROOM, presence: 'PRESENCE#room-root' }, to: { host: CHARACTER, presence: 'PRESENCE#dest-root' } }
+        const transferStep = { kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', lose: [{ host: ROOM, presence: 'PRESENCE#room-root' }], gain: [{ host: CHARACTER, presence: 'PRESENCE#dest-root' }] }
 
         /** The producer's shape: the dissolve action first, the take last, in execution order. */
         const OTHER_ROOM = 'ROOM#Kitchen' as EphemeraRoomId

@@ -4,7 +4,8 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { HostRelationalEdge } from '../types'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { findOwnRootContainmentEdge } from './findOwnRootContainmentEdge'
-import type { PositionKernelMoveOp, PositionKernelPresenceMove } from '../kernel/compile/positionKernelOp'
+import type { PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
+import type { MutationKernelStep } from '../kernel/kernelStep'
 
 export type BuildObjectMoveOpArgs = {
     /** The moved object --- the whole moved set: anything it hosts lives in its own shard and travels with it. */
@@ -21,9 +22,8 @@ export type BuildObjectMoveOpArgs = {
     fromGraph: EphemeraLudicGraph
     fromHostId: EphemeraMembershipHostId
     toHostId: EphemeraMembershipHostId
-    /** The bindings the move re-points, named by `resolvePresenceMoves`. */
-    presenceMoves: readonly PositionKernelPresenceMove[]
-    mintedRootUuid?: string
+    /** The mover's presence steps, named by `resolvePresenceMoves`. */
+    presenceSteps: readonly MutationKernelStep[]
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
 }
@@ -64,8 +64,7 @@ export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMo
         froms: [args.fromHostId],
         to: args.toHostId,
         header: null,
-        presenceMoves: args.presenceMoves,
-        ...(args.mintedRootUuid ? { mintedRootUuid: args.mintedRootUuid } : {}),
+        presenceSteps: args.presenceSteps,
         dissolvedEdges,
         ...(args.containment ? { containment: args.containment } : {}),
     }

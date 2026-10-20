@@ -7,8 +7,7 @@ import type { PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positio
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import { applyStepSequenceCore } from '../kernel/applyStepSequenceCore'
-import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
-import { isKernelMutationStep } from '../kernel/kernelStep'
+import { partMoveSteps } from './resolvePresenceMoves'
 import type { MutationKernelStep } from '../kernel/kernelStep'
 
 /**
@@ -42,9 +41,18 @@ const createStep = (hostId: EphemeraObjectId, stableKey: string): MutationKernel
     meta: { EphemeraId: hostId, DataCategory: 'Meta::Object', stableKey },
 } as MutationKernelStep)
 
-const moveSteps = (moved: EphemeraObjectId, presenceMoves: Parameters<typeof compilePositionKernelOp>[0] extends infer Op ? (Op extends { presenceMoves: infer P } ? P : never) : never, to: EphemeraMembershipHostId) => (
-    compilePositionKernelOp({ kind: 'move', moved, froms: [], to, header: null, presenceMoves } as Parameters<typeof compilePositionKernelOp>[0]).steps.filter(isKernelMutationStep)
-)
+const reparent = (
+    hostId: EphemeraObjectId,
+    presence: EphemeraPresenceNodeId,
+    from: { host: EphemeraMembershipHostId; presence: EphemeraPresenceNodeId } | null,
+    to: { host: EphemeraMembershipHostId; presence: EphemeraPresenceNodeId } | null
+): MutationKernelStep[] => [{
+    kind: 'reparentPresenceBinding',
+    hostId,
+    presence,
+    ...(from ? { lose: [from] } : {}),
+    ...(to ? { gain: [to] } : {}),
+}]
 
 describe('the whole life of a placed thing writes only explicit entries', () => {
     let graphs: Graphs
@@ -78,31 +86,31 @@ describe('the whole life of a placed thing writes only explicit entries', () => 
         run([createStep(plank, 'plank'), createStep(cup, 'cup')])
         expect(coverOf(plank, base)).toEqual([])
 
-        run(moveSteps(cup, [{ presence: base, from: null, to: { host: plank, presence: base } }], plank))
+        run(reparent(cup, base, null, { host: plank, presence: base }))
         expect(coverOf(plank, base)).toEqual([entryFor(cup, base)])
     })
 
     it('places it: the room cover lists the arrival', () => {
-        run(moveSteps(plank, [{ presence: base, from: null, to: { host: roomA, presence: base } }], roomA))
+        run(reparent(plank, base, null, { host: roomA, presence: base }))
         expect(coverOf(roomA, base)).toEqual([entryFor(plank, base)])
     })
 
     it('moves it: the entry leaves one room cover and arrives in the other', () => {
-        run(moveSteps(plank, [{ presence: base, from: { host: roomA, presence: base }, to: { host: roomB, presence: base } }], roomB))
+        run(reparent(plank, base, { host: roomA, presence: base }, { host: roomB, presence: base }))
         expect(coverOf(roomA, base)).toEqual([])
         expect(coverOf(roomB, base)).toEqual([entryFor(plank, base)])
     })
 
     it('moves part of it away: the cup rides a new binding of the plank', () => {
-        run([{
-            kind: 'movePresenceBinding',
+        const binding = graphs.get(plank)!.presenceNodes.find(({ universalKey }) => universalKey === base)!
+        run(partMoveSteps({
             hostId: plank,
-            presence: base,
-            from: { host: roomB, presence: base },
-            to: { host: roomC, presence: base },
-            subCover: [entryFor(cup, base)],
-            mintedPresence: second,
-        } as MutationKernelStep])
+            binding,
+            part: [entryFor(cup, base)],
+            presenceUuid: second.replace('PRESENCE#', ''),
+            lose: [{ host: roomB, presence: base }],
+            gain: [{ host: roomC, presence: base }],
+        }))
         expect(coverOf(roomC, base)).toEqual([entryFor(plank, second)])
         expect(coverOf(plank, second)).toEqual([entryFor(cup, base)])
         expect(coverOf(plank, base)).toEqual([])
@@ -110,7 +118,10 @@ describe('the whole life of a placed thing writes only explicit entries', () => 
     })
 
     it('moves it back: the two bindings rejoin under the first room', () => {
-        run(moveSteps(plank, [{ presence: second, from: { host: roomC, presence: base }, to: { host: roomB, presence: base } }], roomB))
+        run([
+            ...reparent(plank, second, { host: roomC, presence: base }, { host: roomB, presence: base }),
+            { kind: 'joinPresenceBindings', hostId: plank, into: base, toJoin: [second], cascadeHosts: [cup] },
+        ])
         expect(graphs.get(plank)!.presenceNodes.map(({ universalKey }) => universalKey)).toEqual([base])
         expect(coverOf(plank, base)).toEqual([entryFor(cup, base)])
         expect(coverOf(roomC, base)).toEqual([])
@@ -118,7 +129,7 @@ describe('the whole life of a placed thing writes only explicit entries', () => 
     })
 
     it('disconnects it: the pointer goes, Base stays, and the room cover drops the entry', () => {
-        run(moveSteps(plank, [{ presence: base, cover: { members: [entryFor(cup, base)] }, from: { host: roomB, presence: base }, to: null }], roomB))
+        run(reparent(plank, base, { host: roomB, presence: base }, null))
         expect(graphs.get(plank)!.presenceNodes.map(({ universalKey, fromHostPresences }) => [universalKey, fromHostPresences[0]])).toEqual([[base, undefined]])
         expect(coverOf(roomB, base)).toEqual([])
         expect(coverOf(plank, base)).toEqual([entryFor(cup, base)])
