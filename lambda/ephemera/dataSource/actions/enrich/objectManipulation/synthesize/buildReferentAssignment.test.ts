@@ -68,6 +68,40 @@ describe('buildReferentAssignment', () => {
         expect(buildReferentAssignment(change, new Map([['trayRef', TRAY_ID]]), resolver({}))).toBeUndefined()
     })
 
+    describe('a thing in several hosts (PS-8)', () => {
+        const severalHosts: DerivedReferentResolver = {
+            actingCharacter: CHARACTER_ID,
+            currentHost: () => undefined,
+            anyHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined),
+        }
+        const fromTray = currentHostRef(objectSpanRef('tray', 'trayRef'))
+
+        it('grounds a take\'s from to any one of its hosts', () => {
+            const change: Change = {
+                kind: 'change',
+                primitive: 'transferMembership',
+                object: objectSpanRef('tray', 'trayRef'),
+                from: fromTray,
+                to: actingCharacterRef,
+            }
+
+            expect(buildReferentAssignment(change, new Map([['trayRef', TRAY_ID]]), severalHosts)?.derived.get(derivedReferentKey(fromTray))).toBe(ROOM_ID)
+        })
+
+        it('grounds a put\'s from the same way: the preconditions, not grounding, refuse it (multiPresent)', () => {
+            const change: Change = {
+                kind: 'change',
+                primitive: 'transferMembership',
+                object: objectSpanRef('tray', 'trayRef'),
+                from: fromTray,
+                to: objectSpanRef('table', 'tableRef'),
+                containment: 'On',
+            }
+
+            expect(buildReferentAssignment(change, new Map([['trayRef', TRAY_ID], ['tableRef', TABLE_ID]]), severalHosts)?.derived.get(derivedReferentKey(fromTray))).toBe(ROOM_ID)
+        })
+    })
+
     it('adds nothing for an already-grounded step', () => {
         const change: Change = {
             kind: 'change',

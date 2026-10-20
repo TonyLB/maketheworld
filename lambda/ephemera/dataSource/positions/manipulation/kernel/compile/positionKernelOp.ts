@@ -68,8 +68,10 @@ export type PositionKernelMoveOp = {
      * classification has outcomes besides `dissolve` (`defer` on a `Custom` edge, BD-10; a thrown
      * AB-54 invariant on a hosting-kind edge) and `compilePositionKernelOp` has no verdict channel;
      * giving it one would cost the purity that lets compilation correctly skip the Plan-stage dry run.
+     * Each edge names the host whose graph holds it: a move can leave several hosts (PS-8), and
+     * `HostRelationalEdge` carries no host of its own.
      */
-    dissolvedEdges?: readonly HostRelationalEdge[]
+    dissolvedEdges?: readonly { hostId: EphemeraMembershipHostId; edge: HostRelationalEdge }[]
     /**
      * Hosting kinds only (AB-54). Unlike `dissolvedEdges`, this is a compiler *instruction*
      * ("establish this at the destination"), not a pre-classified verdict --- there is no

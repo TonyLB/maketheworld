@@ -51,22 +51,17 @@ const CAPTURE_ID_TO = 'capture:to'
  */
 export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPositionKernelPlan => {
     // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed, but this op's only producer
-    // (`buildObjectMoveOp`, below) severs the mover's own containment edge, which joins two
+    // (`buildObjectMoveOp`) severs the mover's own containment edges, which join two
     // primitives: a port-qualified edge is a crossing, which Expansion dissolves as its own
-    // attempt action, never here. So skip rather than assume.
-    // `hostId: op.froms[0]` --- `dissolvedEdges` is only ever populated by `buildObjectMoveOp`
-    // (single-origin, always `froms: [args.fromHostId]`), so every severed boundary edge belongs
-    // to that one departure host. Not derived per-edge because
-    // `HostRelationalEdge` (the graph's own internal edge representation, used far more broadly)
-    // doesn't carry a host of its own.
+    // attempt action, never here. So skip rather than assume. Each edge carries its own host.
     const dissolveSteps: ExecutorDissolveRelationStep[] = (op.dissolvedEdges ?? [])
-        .filter((edge) => isEphemeraLudicTerminalPrimitive(edge.from) && isEphemeraLudicTerminalPrimitive(edge.to))
-        .map((edge) => ({
+        .filter(({ edge }) => isEphemeraLudicTerminalPrimitive(edge.from) && isEphemeraLudicTerminalPrimitive(edge.to))
+        .map(({ hostId, edge }) => ({
             kind: 'dissolveRelation' as const,
             // Safe: filtered to primitive endpoints above.
             subjectId: edge.from as EphemeraLudicTerminalPrimitive,
             targetId: edge.to as EphemeraLudicTerminalPrimitive,
-            hostId: op.froms[0]!,
+            hostId,
             ...relationKindAndLabelOf(edge),
         }))
 

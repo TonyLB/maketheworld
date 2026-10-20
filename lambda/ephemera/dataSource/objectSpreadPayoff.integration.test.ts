@@ -2,7 +2,8 @@
  * Payoff test for the first sharing caller, a spread (presenceParentSets Slice 7(c), (d), (f);
  * PS-4): "spread the rug over the table" lays the rug partly onto the table while it stays on the
  * floor, so its one presence binding sits under both the room's and the table's. Terminates at what
- * a player sees: the line narrated, `look table`, and the room header's object list.
+ * a player sees: the line narrated, `look table`, and the room header's object list. Then "take
+ * rug" (Slice 7(e), PS-8) lifts it out of both hosts in one move.
  *
  * Real, in this order, following `objectContainmentInPayoff.integration.test.ts`'s harness (see its
  * header for the conventions): `parseCommand` with its two Bedrock seams mocked, the bus crossing
@@ -84,25 +85,26 @@ const tableTerminalCacheRecord = (): EphemeraCacheDynamoItem => ({
     perspectiveMatcher: { requiredAssetIds: [], forbiddenAssetIds: [] },
 })
 
-/** Same stand-in as `objectContainmentInPayoff.integration.test.ts`: runs the real reducer over the seeded graphs. */
-const makeTransactWriteMock = (graphsByHost: Record<string, EphemeraLudicGraph>) => (
+/**
+ * Like `objectContainmentInPayoff.integration.test.ts`'s stand-in, it runs the real reducer, but
+ * over each host's graph as of now (`internalCache`, which a commit updates), so a second command
+ * sees the first one's writes.
+ */
+const makeTransactWriteMock = () => (
     jest.fn(async (items: any[]): Promise<void> => {
         const multiKeyItem = items.find((item) => 'MultiKeyUpdate' in item)?.MultiKeyUpdate
         if (!multiKeyItem) {
             return
         }
         const draft: Record<string, any> = {}
-        multiKeyItem.Keys.forEach((key: { EphemeraId: string; DataCategory: string }) => {
-            const graph = graphsByHost[key.EphemeraId]
-            if (!graph) {
-                throw new Error(`makeTransactWriteMock: no seeded graph for footprint host ${key.EphemeraId}`)
-            }
+        for (const key of multiKeyItem.Keys as { EphemeraId: string; DataCategory: string }[]) {
+            const graph = await internalCache.Positions.getLudicGraph(key.EphemeraId as any)
             draft[`${key.EphemeraId}#${key.DataCategory}`] = {
                 EphemeraId: key.EphemeraId,
                 DataCategory: key.DataCategory,
                 ludicGraph: graph.toStored(),
             }
-        })
+        }
         multiKeyItem.reducer(draft)
     })
 )
@@ -143,6 +145,7 @@ describe('object spread payoff (integration)', () => {
             }),
             [TABLE_ID]: testLudicGraph(TABLE_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }, presenceBindingNode(BASE_PRESENCE_ID, ROOM_ID)] }),
             [RUG_ID]: testLudicGraph(RUG_ID, { nodes: [{ tag: 'Object', universalKey: RUG_ID }, presenceBindingNode(BASE_PRESENCE_ID, ROOM_ID)] }),
+            [CHARACTER_ID]: testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode(BASE_PRESENCE_ID)] }),
         }
 
         ephemeraDBMock.getItem.mockImplementation(async ({ Key }: any) => {
@@ -150,19 +153,20 @@ describe('object spread payoff (integration)', () => {
             if (graph && Key.DataCategory === 'LudicCache::Characters') {
                 return Object.fromEntries([...graph.characterIds].map((characterId) => [characterId, []]))
             }
-            if (graph && (Key.DataCategory === 'Meta::Room' || Key.DataCategory === 'Meta::Object')) {
+            if (graph && ['Meta::Room', 'Meta::Object', 'Meta::Character'].includes(Key.DataCategory)) {
                 return { ludicGraph: graph.toStored() }
             }
             return undefined
         })
-        ephemeraDBMock.transactWrite.mockImplementation(makeTransactWriteMock(initialGraphsByHost))
+        ephemeraDBMock.transactWrite.mockImplementation(makeTransactWriteMock())
     })
 
-    it('a real "spread the rug over the table" leaves the rug in both hosts, and shows it from both', async () => {
-        // Step A: real parse.
+    /** A real parse, its positions reads answered by `containersOf` and the live graphs. */
+    const parse = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[]) => {
         const parseResult = await parseCommand(
             {
-                command: 'spread the rug over the table',
+                command,
+                characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
                 roomObjectLabels: ['rug', 'table'],
                 roomObjectCatalog: [
@@ -172,23 +176,49 @@ describe('object spread payoff (integration)', () => {
             },
             {
                 invokeBedrockParseCommandImpl: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
-                invokeBedrockObjectManipulationParseImpl: jest.fn().mockResolvedValue({
-                    success: true,
-                    body: '{"tokens":[{"type":"text","text":"spread"},{"type":"objectSpan","span":"rug"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}',
-                }),
+                invokeBedrockObjectManipulationParseImpl: jest.fn().mockResolvedValue({ success: true, body: tokens ?? '{"tokens":[]}' }),
                 objectManipulationPositionsReadDeps: {
-                    getMembershipContainers: jest.fn().mockImplementation(async (id: string) => (
-                        id === RUG_ID || id === TABLE_ID ? [ROOM_ID] : []
-                    )),
+                    getMembershipContainers: jest.fn().mockImplementation(async (id: string) => containersOf(id)),
                     getLudicGraph: (hostId: string) => internalCache.Positions.getLudicGraph(hostId as any),
                 },
             }
         )
-
-        expect(isParseCommandCommandAttemptResult(parseResult)).toBe(true)
         if (!isParseCommandCommandAttemptResult(parseResult)) {
-            throw new Error('unreachable: asserted above')
+            throw new Error(`"${command}" did not parse to an attempt: ${JSON.stringify(parseResult)}`)
         }
+        return parseResult
+    }
+
+    /** The real commit, the attempt crossing the bus as plain data; positions' live hosts answered by `containersOf`. */
+    const commit = async (attempt: CommandAttemptData, containersOf: (id: string) => string[]) => {
+        const writeMessageBus = { publish: jest.fn() }
+        const published = JSON.parse(JSON.stringify(attempt)) as CommandAttemptData
+        jest.spyOn(internalCache.Positions, 'getMembershipContainers').mockImplementation(async (id) => containersOf(id) as any)
+        await commitAttempt({
+            attempt: CommandAttempt.fromJSON(published),
+            characterId: CHARACTER_ID,
+            messageBus: writeMessageBus as any,
+            streamEvent: jest.fn().mockResolvedValue(undefined),
+        })
+        return writeMessageBus
+    }
+
+    const spreadTokens = '{"tokens":[{"type":"text","text":"spread"},{"type":"objectSpan","span":"rug"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}'
+    const beforeSpread = (id: string) => (id === RUG_ID || id === TABLE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
+    const afterSpread = (id: string) => (id === RUG_ID ? [ROOM_ID, TABLE_ID] : beforeSpread(id))
+
+    /** The room header's object list over the committed graphs. */
+    const roomObjects = async () => (await ludicCacheRoomObjectContents(ROOM_ID, ['ASSET#viewer'], {
+        readLudicCache: async (roomId) => ({
+            cache: (await buildLudicCache(roomId, [], { getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId), ...shortNameDeps })).cache,
+            outcome: 'hit' as const,
+        }),
+        ...shortNameDeps,
+    })).objects
+
+    it('a real "spread the rug over the table" leaves the rug in both hosts, and shows it from both', async () => {
+        // Step A: real parse.
+        const parseResult = await parse('spread the rug over the table', spreadTokens, beforeSpread)
         const transfer = CommandAttempt.fromJSON(parseResult.attempt).actions().map((action) => action.desiredResult).find((step) => step?.kind === 'change')
         expect(transfer).toMatchObject({
             primitive: 'transferMembership',
@@ -199,15 +229,7 @@ describe('object spread payoff (integration)', () => {
         })
 
         // Step B: real commit, the attempt crossing the bus as plain data.
-        const writeMessageBus = { publish: jest.fn() }
-        const published = JSON.parse(JSON.stringify(parseResult.attempt)) as CommandAttemptData
-        jest.spyOn(internalCache.Positions, 'getMembershipContainers').mockResolvedValue([ROOM_ID] as any)
-        await commitAttempt({
-            attempt: CommandAttempt.fromJSON(published),
-            characterId: CHARACTER_ID,
-            messageBus: writeMessageBus as any,
-            streamEvent: jest.fn().mockResolvedValue(undefined),
-        })
+        const writeMessageBus = await commit(parseResult.attempt, beforeSpread)
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(1)
 
         const lines = writeMessageBus.publish.mock.calls
@@ -252,19 +274,32 @@ describe('object spread payoff (integration)', () => {
         expect(tableWml).toContain('<ShortName>rug</ShortName>')
 
         // Step D: the room's look, the header's object list over the committed graphs.
-        const { objects } = await ludicCacheRoomObjectContents(ROOM_ID, ['ASSET#viewer'], {
-            readLudicCache: async (roomId) => ({
-                cache: (await buildLudicCache(roomId, [], { getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId), ...shortNameDeps })).cache,
-                outcome: 'hit' as const,
-            }),
-            ...shortNameDeps,
-        })
         // Slice 7(f) finding, recorded for the user's call and not fixed here: the room lists the
         // rug twice, as a room-level object and as the table's content. Both parent bindings'
         // covers list its one binding, and the header reads each cover forward.
-        expect(objects).toEqual([
+        expect(await roomObjects()).toEqual([
             { objectId: RUG_ID, shortName: 'rug', contents: [] },
             { objectId: TABLE_ID, shortName: 'table', contents: [{ objectId: RUG_ID, shortName: 'rug' }] },
         ])
+    })
+
+    it('then a real "take rug" lifts it out of both hosts in one move (PS-8)', async () => {
+        await commit((await parse('spread the rug over the table', spreadTokens, beforeSpread)).attempt, beforeSpread)
+
+        const takeResult = await parse('take rug', undefined, afterSpread)
+        await commit(takeResult.attempt, afterSpread)
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(2)
+
+        // Out of the room and off the table, and in hand, through its one binding.
+        const [roomGraph, tableGraph, rugGraph, characterGraph] = await Promise.all([ROOM_ID, TABLE_ID, RUG_ID, CHARACTER_ID].map((hostId) => internalCache.Positions.getLudicGraph(hostId)))
+        expect(roomGraph.nodeIds.has(RUG_ID)).toBe(false)
+        expect(tableGraph.nodeIds.has(RUG_ID)).toBe(false)
+        expect(characterGraph.nodeIds.has(RUG_ID)).toBe(true)
+        expect(tableGraph.relationalEdges).toEqual([])
+        expect(rugGraph.presenceNodes).toHaveLength(1)
+        expect(parentsOf(rugGraph.presenceNodes[0]!).map(({ host }) => host)).toEqual([CHARACTER_ID])
+
+        // Both of the room header's rug entries are gone.
+        expect(await roomObjects()).toEqual([{ objectId: TABLE_ID, shortName: 'table', contents: [] }])
     })
 })

@@ -143,7 +143,7 @@ describe('compilePositionKernelOp --- object moves', () => {
 
     it('renders severed boundary edges as dissolveRelation steps ahead of the presence steps (BD-28)', () => {
         const plan = compilePositionKernelOp(objectOp({
-            dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
+            dissolvedEdges: [{ hostId: FROM_ROOM, edge: { from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' } }],
         }))
 
         const kinds = plan.steps.map((step) => step.kind)
@@ -160,7 +160,7 @@ describe('compilePositionKernelOp --- object moves', () => {
 
     it('renders a dissolveRelation step for a non-Object (Character) dissolved-edge endpoint, no throw', () => {
         const plan = compilePositionKernelOp(objectOp({
-            dissolvedEdges: [{ from: CHARACTER_ID, to: TRAY, kind: 'On' }],
+            dissolvedEdges: [{ hostId: FROM_ROOM, edge: { from: CHARACTER_ID, to: TRAY, kind: 'On' } }],
         }))
 
         expect(plan.steps.find((step) => step.kind === 'dissolveRelation')).toEqual({
@@ -172,9 +172,23 @@ describe('compilePositionKernelOp --- object moves', () => {
         })
     })
 
+    it('stamps each dissolve with the host its edge names, so a move leaving several hosts dissolves in each (PS-8)', () => {
+        const TABLE = 'OBJECT#Table' as EphemeraObjectId
+        const plan = compilePositionKernelOp(objectOp({
+            froms: [FROM_ROOM, TABLE],
+            dissolvedEdges: [
+                { hostId: FROM_ROOM, edge: { from: TRAY, to: FROM_ROOM, kind: 'On' } },
+                { hostId: TABLE, edge: { from: TRAY, to: TABLE, kind: 'On' } },
+            ],
+        }))
+
+        expect(plan.steps.filter((step) => step.kind === 'dissolveRelation').map((step) => step.kind === 'dissolveRelation' && [step.targetId, step.hostId]))
+            .toEqual([[FROM_ROOM, FROM_ROOM], [TABLE, TABLE]])
+    })
+
     it('emits the dissolves and the presence re-point, and nothing else', () => {
         const plan = compilePositionKernelOp(objectOp({
-            dissolvedEdges: [{ from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' }],
+            dissolvedEdges: [{ hostId: FROM_ROOM, edge: { from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' } }],
         }))
 
         expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'reparentPresenceBinding'])

@@ -96,13 +96,30 @@ const dissolveNarrationUnit = (
  * A relation whose chain cannot be walked (a shard `getGraph` does not have) or whose far end is
  * not a thing (a presence binding, PR-15) gets no dissolve: the move's commit-time recheck then
  * refuses it as uncovered, rather than Expansion guessing an end it cannot name.
+ *
+ * `graphs` are the hosts the object leaves: one for most moves, several for a take of a thing in
+ * several hosts (PS-8), whose boundary edges are found in each.
  */
 export const attemptActionsFromBoundaryOutcomes = (
     primaryAction: AttemptAction,
     objectId: EphemeraObjectId,
-    graph: EphemeraLudicGraph,
+    graphs: readonly EphemeraLudicGraph[],
     getGraph: ExpansionEnvironment['getGraph']
 ): ExpandedAttemptActions => {
+    const boundary = graphs.flatMap((graph) => boundaryActionsInGraph(primaryAction, objectId, graph, getGraph))
+    return {
+        actions: [...boundary.map(({ action }) => action), primaryAction],
+        narrationUnits: boundary.map(({ narrationUnit }) => narrationUnit),
+    }
+}
+
+/** One source host's boundary dissolves, each with its narration unit. */
+const boundaryActionsInGraph = (
+    primaryAction: AttemptAction,
+    objectId: EphemeraObjectId,
+    graph: EphemeraLudicGraph,
+    getGraph: ExpansionEnvironment['getGraph']
+): { action: AttemptAction; narrationUnit: NarrationUnit }[] => {
     // A mover's own containment edge into the host it is leaving (the cup `On` the table, read
     // from the table's shard) is removed by the move itself, as `buildObjectMoveOp` does at
     // commit, so it is not a boundary edge and never reaches the hosting-kind classifier.
@@ -110,7 +127,7 @@ export const attemptActionsFromBoundaryOutcomes = (
         isHostingRelationKind(edge.kind)
         && ephemeraLudicTerminalsEqual(edge.to, graph.rootId)
         && ephemeraLudicTerminalsEqual(edge.from, objectId))
-    const boundary = outcomes.flatMap((entry): { action: AttemptAction; narrationUnit: NarrationUnit }[] => {
+    return outcomes.flatMap((entry): { action: AttemptAction; narrationUnit: NarrationUnit }[] => {
         const chain = findRelationalChainFromLeg({ hostId: graph.hostId, edge: entry.edge }, { getGraph })
         if (chain.verdict !== 'found') {
             return []
@@ -156,32 +173,28 @@ export const attemptActionsFromBoundaryOutcomes = (
         const [moved, other] = subjectMoves ? [subject, target] : [target, subject]
         return [{ action, narrationUnit: dissolveNarrationUnit(action.id, derivedReferentKey(moved), derivedReferentKey(other)) }]
     })
-
-    return {
-        actions: [...boundary.map(({ action }) => action), primaryAction],
-        narrationUnits: boundary.map(({ narrationUnit }) => narrationUnit),
-    }
 }
 
 /**
  * Expansion for any `transferMembership` (ISS8203 slice 3), whichever template produced it. A
  * transfer whose moved object touches an exit gets an {@link ExitEdgeChallenge} on the primary
  * action, which stays pending (the take or drop abstains); then the boundary dissolves are added
- * as {@link attemptActionsFromBoundaryOutcomes} does. `graph` is the object's source host;
+ * as {@link attemptActionsFromBoundaryOutcomes} does. `graphs` are the object's source hosts (several
+ * for a take of a thing in several hosts, PS-8: an exit contact in any one challenges the take);
  * `getGraph` reaches the shards a crossing relation continues into.
  */
 export const attemptActionsFromTransfer = (
     primaryAction: AttemptAction,
     objectId: EphemeraObjectId,
-    graph: EphemeraLudicGraph,
+    graphs: readonly EphemeraLudicGraph[],
     getGraph: ExpansionEnvironment['getGraph']
 ): ExpandedAttemptActions => {
-    const exitChallenged = objectTouchesExitEdgeOnGraph(graph, objectId)
+    const exitChallenged = graphs.some((graph) => objectTouchesExitEdgeOnGraph(graph, objectId))
     const primary = exitChallenged
         ? primaryAction.withChallenges([
             ...primaryAction.challenges(),
             new ExitEdgeChallenge(exitEdgeChallengeId(primaryAction.id), describeExitEdgeChallenge()),
         ])
         : primaryAction
-    return attemptActionsFromBoundaryOutcomes(primary, objectId, graph, getGraph)
+    return attemptActionsFromBoundaryOutcomes(primary, objectId, graphs, getGraph)
 }

@@ -1973,6 +1973,52 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         })
     })
 
+    describe('an object in several hosts (PS-8)', () => {
+        // The rope lies partly on the table (a spread): a member of both the room and the table.
+        const tableWith = (nodes: EphemeraObjectId[], edges: Array<Record<string, unknown>> = []) => testLudicGraph(TABLE, {
+            nodes: nodes.map((universalKey) => ({ tag: 'Object' as const, universalKey })),
+            edges: [{ tag: 'Relational', from: ROPE, to: TABLE, kind: 'On' }, ...edges] as any,
+        })
+        const spreadRope = (tableGraph = tableWith([ROPE])): CaseOptions => ({
+            containers: { [ROPE]: [ROOM, TABLE] },
+            graphs: { [ROOM]: roomWith([ROPE, TABLE, BROOM]), [TABLE]: tableGraph },
+        })
+        const attemptActions = (result: unknown) => (result as { attempt?: { actions: Array<{ desiredResult?: Record<string, unknown> }> } }).attempt?.actions ?? []
+
+        it('take rope: allowed, and the take is the attempt\'s one action', async () => {
+            const { result } = await run(
+                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [TABLE, 'table']]) },
+                spreadRope()
+            )
+
+            const actions = attemptActions(result)
+            expect(actions).toHaveLength(1)
+            expect(actions[0]!.desiredResult).toMatchObject({ primitive: 'transferMembership', to: { referentType: 'actingCharacter' } })
+        })
+
+        it('take rope when it is lashed to a post on the table: the dissolve is found in the second host', async () => {
+            const { result } = await run(
+                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [TABLE, 'table']]) },
+                {
+                    ...spreadRope(tableWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }])),
+                    containers: { [ROPE]: [ROOM, TABLE], [POST]: [TABLE] },
+                }
+            )
+
+            expect(attemptActions(result).map(({ desiredResult }) => desiredResult?.primitive)).toEqual(['dissolveRelation', 'transferMembership'])
+        })
+
+        it('put the rope on the broom: still refused as multiPresent', async () => {
+            const { result } = await run(
+                { command: 'put the rope on the broom', roomObjectLabels: ['rope', 'broom'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [BROOM, 'broom']]) },
+                { ...spreadRope(), parseTokens: [text('put'), span('rope'), text('on'), span('broom')] }
+            )
+
+            expect(attemptActions(result)).toEqual([])
+            expect(JSON.stringify(result)).toContain(objectManipulationErrorMessages.complexMultiPresent)
+        })
+    })
+
     describe('payoff: a lashed object moves (ISS8203 slice 3)', () => {
         it('put the rope on the table when the rope is lashed to the post: the published attempt dissolves the lashing, met, before the containment transfer', async () => {
             const result = await run(

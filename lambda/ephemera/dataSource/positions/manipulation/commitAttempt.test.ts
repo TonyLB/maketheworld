@@ -422,6 +422,54 @@ describe('commitAttempt', () => {
         expect(putArgs).not.toHaveProperty('keepFrom')
     })
 
+    describe('an object in several hosts (PS-8)', () => {
+        /** Character is in ROOM; the broom is in every one of `broomHosts`. */
+        const mockBroomHosts = (broomHosts: (EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId)[]) => {
+            getMembershipContainersMock.mockImplementation(async (id) => (id === CHARACTER ? [ROOM] : broomHosts))
+        }
+
+        it('a take leaves every host: from is one of them, and the rest go to the planner as alsoLeaving', async () => {
+            mockBroomHosts([ROOM, TABLE])
+            planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'stop' })
+
+            await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(planObjectMoveTransferMock).toHaveBeenCalledWith(expect.objectContaining({
+                entityId: BROOM,
+                fromHostId: ROOM,
+                toHostId: CHARACTER,
+                alsoLeaving: [TABLE],
+            }))
+        })
+
+        it('a take of an object in one host carries no alsoLeaving', async () => {
+            mockBroomHosts([ROOM])
+            planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'stop' })
+
+            await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(planObjectMoveTransferMock.mock.calls[0]![0]).not.toHaveProperty('alsoLeaving')
+        })
+
+        it('a take of something the character already holds (among its hosts) is refused', async () => {
+            mockBroomHosts([ROOM, CHARACTER])
+
+            await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(planObjectMoveTransferMock).not.toHaveBeenCalled()
+            expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+        })
+
+        it('a put of it anywhere else is still refused', async () => {
+            mockBroomHosts([ROOM, 'OBJECT#Chest' as EphemeraObjectId])
+
+            await commitAttempt({ attempt: containmentAttempt('On'), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(planObjectMoveTransferMock).not.toHaveBeenCalled()
+            expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+        })
+    })
+
     it('omits the containment field when planObjectMoveTransfer is called for an ordinary membership move', async () => {
         mockLiveHosts(ROOM)
         const plan = { steps: [{ kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', lose: [{ host: ROOM, presence: 'PRESENCE#room-root' }], gain: [{ host: CHARACTER, presence: 'PRESENCE#dest-root' }] }] }

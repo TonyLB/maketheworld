@@ -341,8 +341,9 @@ export const buildAttemptEnvironment = async (
     }
 
     // An absent graph is left absent: Expansion reports what it cannot see, as it does for any host.
+    // Every host of a candidate, not only a lone one: a take of a thing in several hosts leaves them all (PS-8).
     const hostGraphMap = new Map<EphemeraMembershipHostId, EphemeraLudicGraph | undefined>([[hostRoomId, roomGraph]])
-    for (const hostId of hostByObjectId.values()) {
+    for (const hostId of objectIds.flatMap((objectId) => containersByHostId.get(objectId) ?? [])) {
         if (!hostGraphMap.has(hostId)) {
             hostGraphMap.set(hostId, await reads.getLudicGraph(hostId))
         }
@@ -378,7 +379,7 @@ export type DryRunFrame = {
  * (a look has no preconditions and no mutation).
  *
  * ISS8203 slice 3: a transfer's preconditions are checked here, whichever template produced it.
- * The moved object is in exactly one host (`multiPresent` otherwise); `from` is the host it is
+ * The moved object is in exactly one host (`multiPresent` otherwise, except for a take, PS-8); `from` is the host it is
  * actually in (`notCarryingObject` for a drop of something not held, since a drop's `from` is the
  * actor); and `from` differs from `to` (`alreadyHoldingObject`). A pending challenge defers, and a
  * refused one is illegal, so a doubt about the move is a challenge and never a separate defer.
@@ -415,6 +416,7 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
         const assignment = buildReferentAssignment(step, spans, {
             actingCharacter: frame.actorCharacterId,
             currentHost: (id) => (id === frame.actorCharacterId ? frame.roomId : isEphemeraObjectId(id) ? env.getCurrentHost(id) : undefined),
+            anyHost: (id) => (isEphemeraObjectId(id) ? env.getMembershipContainers(id)[0] : undefined),
         })
         if (assignment === undefined) {
             return { verdict: 'illegal', decidable: true, reason: objectManipulationErrorMessages.noMembershipHost }
@@ -467,6 +469,10 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
 /**
  * The transfer preconditions (ISS8203 slice 3), over a grounded `transferMembership`. Returns the
  * refusal reason for the first one that fails, or undefined when all hold.
+ *
+ * A take of a thing in several hosts is allowed and leaves them all (PS-8, deliberately crude):
+ * its `from` is any one of them, and it is refused only when the thing is already held. Every
+ * other destination still refuses `multiPresent`.
  */
 const transferPreconditionFailure = (step: TransferMembershipChange<GroundedReferent>, env: ExpansionEnvironment): string | undefined => {
     const objectId = step.object.groundedId
@@ -476,8 +482,17 @@ const transferPreconditionFailure = (step: TransferMembershipChange<GroundedRefe
     const actualHost = env.getCurrentHost(objectId)
     if (actualHost === undefined) {
         const containers = env.getMembershipContainers(objectId)
-        return containers.length > 1
-            ? complexErrorMessage('multiPresent')
+        if (containers.length <= 1) {
+            return objectManipulationErrorMessages.noMembershipHost
+        }
+        if (step.to.referentType !== 'actingCharacter') {
+            return complexErrorMessage('multiPresent')
+        }
+        if (containers.includes(step.to.groundedId as EphemeraMembershipHostId)) {
+            return objectManipulationErrorMessages.alreadyHoldingObject
+        }
+        return containers.includes(step.from.groundedId as EphemeraMembershipHostId)
+            ? undefined
             : objectManipulationErrorMessages.noMembershipHost
     }
     if (step.from.groundedId !== actualHost) {
@@ -495,7 +510,8 @@ const transferPreconditionFailure = (step: TransferMembershipChange<GroundedRefe
  * Expansion and Adjudicate for every candidate's transfer (ISS8203 slice 3): a `transferMembership`
  * gets its boundary dissolves, and its exit-contact challenge, from its object's source host graph,
  * whichever template produced it. Then the per-candidate Adjudicate tier judges what it may.
- * A candidate with no source graph is left unexpanded, and its dry run refuses it.
+ * A take of a thing in several hosts reads every one of them (PS-8).
+ * A candidate missing a source graph is left unexpanded, and its dry run refuses it.
  */
 export const expandAndAdjudicateCandidates = (
     candidates: readonly GroundedAttemptCandidate[],
@@ -512,12 +528,19 @@ export const expandAndAdjudicateCandidates = (
     if (objectId === undefined || !isEphemeraObjectId(objectId)) {
         return candidate
     }
+    // The hosts the object leaves: its one host, or every host for a take of a thing in several (PS-8).
     const sourceHost = env.getCurrentHost(objectId)
-    const graph = sourceHost !== undefined ? env.getGraph(sourceHost) : undefined
-    if (graph === undefined) {
+    const sourceHosts = sourceHost !== undefined
+        ? [sourceHost]
+        : step.to.referentType === 'actingCharacter' ? env.getMembershipContainers(objectId) : []
+    const graphs = sourceHosts.flatMap((hostId) => {
+        const graph = env.getGraph(hostId)
+        return graph ? [graph] : []
+    })
+    if (graphs.length === 0 || graphs.length < sourceHosts.length) {
         return candidate
     }
-    const expanded = attemptActionsFromTransfer(primary, objectId, graph, env.getGraph)
+    const expanded = attemptActionsFromTransfer(primary, objectId, graphs, env.getGraph)
     return {
         ...candidate,
         attempt: adjudicateAttempt(CommandAttempt.create(

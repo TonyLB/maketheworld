@@ -22,6 +22,11 @@ export type PlanObjectMoveTransferArgs = {
     containment?: 'On' | 'In' | 'PartOf'
     /** A spread (PS-4): the mover gains `toHostId` and stays in `fromHostId` (`resolvePresenceMoves`'s `keepFroms`). */
     keepFrom?: true
+    /**
+     * A take of a thing in several hosts (PS-8): the hosts besides `fromHostId` it also leaves, so
+     * it leaves every one. Deliberately crude: it does not ask how the thing came to be in several.
+     */
+    alsoLeaving?: readonly EphemeraMembershipHostId[]
     /** injectable for test seams only. */
     getGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 }
@@ -53,11 +58,12 @@ export const planObjectMoveTransfer = async (
         return { ok: false, errorCode: 'containmentCycle' }
     }
 
-    const fromGraph = await getGraph(args.fromHostId)
+    const froms = [args.fromHostId, ...(args.alsoLeaving ?? [])]
+    const departures = await Promise.all(froms.map(async (hostId) => ({ hostId, graph: await getGraph(hostId) })))
 
     const resolved = await resolvePresenceMoves({
         moved: args.entityId,
-        froms: [args.fromHostId],
+        froms,
         to: args.toHostId,
         ...(args.toGroundedPresence ? { toGroundedPresence: args.toGroundedPresence } : {}),
         ...(args.moverGroundedPresence ? { moverGroundedPresence: args.moverGroundedPresence } : {}),
@@ -70,8 +76,7 @@ export const planObjectMoveTransfer = async (
 
     const buildArgs = {
         entityId: args.entityId,
-        fromGraph,
-        fromHostId: args.fromHostId,
+        departures,
         toHostId: args.toHostId,
         presenceSteps: resolved.steps,
         ...(args.containment ? { containment: args.containment } : {}),

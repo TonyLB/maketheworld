@@ -196,6 +196,47 @@ describe('planObjectMoveTransfer', () => {
         })
     })
 
+    describe('a take of an object in several hosts (PS-8, alsoLeaving)', () => {
+        // A cup spread across the room floor and the table: a member of both.
+        const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }, { tag: 'Object', universalKey: TABLE_ID }] })
+        const tableGraph = testLudicGraph(TABLE_ID, {
+            nodes: [{ tag: 'Object', universalKey: TABLE_ID }, { tag: 'Object', universalKey: CUP_ID }],
+            edges: [{ tag: 'Relational', from: CUP_ID, to: TABLE_ID, kind: 'On' }],
+        })
+        const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')] })
+        const take = (cupGraph: EphemeraLudicGraph) => planObjectMoveTransfer({
+            entityId: CUP_ID,
+            fromHostId: ROOM_ID,
+            alsoLeaving: [TABLE_ID],
+            toHostId: CHARACTER_ID,
+            getGraph: worldOf({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph, [CHARACTER_ID]: characterGraph, [CUP_ID]: cupGraph }),
+        })
+
+        it('a shared binding (a spread) loses both parents in one reparent, and its edge on the table is stripped there', async () => {
+            const result = await take(testLudicGraph(CUP_ID, { nodes: [presenceBindingNode('cup', [ROOM_ID, TABLE_ID])] }))
+
+            if (!result.ok) { throw new Error(result.errorCode) }
+            expect(result.plan.steps).toEqual([
+                expect.objectContaining({ kind: 'dissolveRelation', subjectId: CUP_ID, targetId: TABLE_ID, hostId: TABLE_ID, relationKind: 'On' }),
+                {
+                    kind: 'reparentPresenceBinding',
+                    hostId: CUP_ID,
+                    presence: PresenceKey('cup'),
+                    lose: [{ host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }, { host: TABLE_ID, presence: parentRemainderKey(TABLE_ID) }],
+                    gain: [{ host: CHARACTER_ID, presence: PresenceKey('Base') }],
+                },
+            ])
+        })
+
+        it('drift (a binding in each host) moves both bindings to the character and joins them in hand', async () => {
+            const result = await take(testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-in-room', ROOM_ID), trayBinding('cup-on-table', TABLE_ID)] }))
+
+            if (!result.ok) { throw new Error(result.errorCode) }
+            expect(result.plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'reparentPresenceBinding', 'reparentPresenceBinding', 'joinPresenceBindings'])
+            expect(result.plan.steps[result.plan.steps.length - 1]).toMatchObject({ hostId: CUP_ID, into: PresenceKey('cup-in-room'), toJoin: [PresenceKey('cup-on-table')] })
+        })
+    })
+
     describe('containment cycle (AB-63)', () => {
         it('refuses putting the tray on a cup that is already on the tray, before reading any departure graph', async () => {
             const cupGraph = testLudicGraph(CUP_ID, {
