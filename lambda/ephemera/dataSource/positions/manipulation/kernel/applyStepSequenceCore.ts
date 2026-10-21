@@ -17,6 +17,7 @@ import { settleParentChange, writeCoverIndex } from './presenceStepWrites'
 import { reparentPresenceBinding } from './reparentPresenceBinding'
 import { joinBindings } from './joinPresenceBindings'
 import { splitPresenceBinding } from './splitPresenceBinding'
+import { connectedToViolation } from './connectedToLegality'
 import { settleParentless } from './settleParentless'
 import type { ParentBinding } from '../../ludicGraph/presenceParent'
 import type { MutationKernelApplyOutcome } from './types'
@@ -352,6 +353,12 @@ export const applyStepSequenceCore = (
         const { subjectHosts, targetHosts } = confirmCarriedHost(step.subjectId, step.targetId, step.hostId, graphs)
         if (subjectHosts.length === 0 || targetHosts.length === 0) {
             return { verdict: 'stale', reasonCode: 'staleRelationalCandidate' }
+        }
+        if (step.kind === 'establishRelation' && step.relationKind === 'ConnectedTo') {
+            const violation = connectedToViolation(hostGraph, step.hostId, step.subjectId, step.targetId)
+            if (violation) {
+                throw new Error(`ConnectedTo in ${step.hostId}: ${violation} --- structural invariant violated (ConnectedTo joins parts of one whole, in that whole's own graph)`)
+            }
         }
         const patched = hostGraph.applyRelationalPatch({
             hostId: step.hostId,
