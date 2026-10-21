@@ -1,6 +1,6 @@
 # ConnectedTo: topology within one whole, and a rope across rooms
 
-**Status: opened 2026-10-15; Slices 0--4 shipped 2026-10-21; instruction set revised 2026-10-20 (see [The instruction set](#the-instruction-set-extend-contract-and-a-move-of-a-view)). Next step: [Slice 5](#recommended-order).** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). The design question it builds on is [EA-12](AGENT.edgeAbstractions.planning.md#ea-12) in the edge-abstractions plan, answered *yes, a kind* by the user on 2026-10-15. The code it licenses is a **Prototype** (see [Licensing](#licensing-a-prototype-with-its-rollback-trigger)).
+**Status: opened 2026-10-15; Slices 0--4 shipped 2026-10-21; instruction set revised 2026-10-20 (see [The instruction set](#the-instruction-set-extend-contract-and-a-move-of-a-view)). Paused 2026-10-21 on [`AGENT.positionReferents.planning.md`](../actions/AGENT.positionReferents.planning.md) (what a take of a spread object means, Slice 4 item 3, the `alsoLeaving`/`anyHost` deletions); unblocked parts of [Slice 5](#recommended-order) (the `keepFrom` rename, the one-host parent rule) can go ahead.** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). The design question it builds on is [EA-12](AGENT.edgeAbstractions.planning.md#ea-12) in the edge-abstractions plan, answered *yes, a kind* by the user on 2026-10-15. The code it licenses is a **Prototype** (see [Licensing](#licensing-a-prototype-with-its-rollback-trigger)).
 
 ## Goal
 
