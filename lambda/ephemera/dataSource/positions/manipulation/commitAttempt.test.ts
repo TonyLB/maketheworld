@@ -1,3 +1,4 @@
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 jest.mock('../../../internalCache', () => ({
@@ -448,7 +449,7 @@ describe('commitAttempt', () => {
                     desiredResult: {
                         kind: 'change',
                         primitive: 'transferMembership',
-                        object: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom', extendedBindingUuid: 'new' },
+                        object: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom', view: [PresenceKey('new')] },
                         from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom' } },
                         to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'target', groundedId: TABLE, shortName: 'table' },
                         containment: 'On',

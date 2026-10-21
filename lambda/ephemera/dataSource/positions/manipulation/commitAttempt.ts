@@ -161,11 +161,10 @@ const buildMembershipFragment = async (
         return undefined
     }
 
-    // A move of the binding an earlier extend mints names it by that extend's uuid; otherwise the
-    // buckets the actor perceives the object in narrow which of its bindings moves.
-    const moverBinding = 'extendedBindingUuid' in change.object && change.object.extendedBindingUuid !== undefined
-        ? PresenceKey(change.object.extendedBindingUuid) as EphemeraPresenceNodeId
-        : undefined
+    // A move of a one-binding view (the binding an earlier extend mints, say) names that binding;
+    // otherwise the buckets the actor perceives the object in narrow which of its bindings moves.
+    const moverView = 'view' in change.object ? change.object.view : undefined
+    const moverBinding = moverView?.length === 1 ? moverView[0] : undefined
     const planResult = await planObjectMoveTransfer({
         entityId,
         fromHostId,

@@ -1,6 +1,7 @@
 import type { EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 
 import type { EphemeraThingId } from '../thing'
 
@@ -22,7 +23,7 @@ export type GroundedPresenceBinding = { host: EphemeraMembershipHostId; presence
  * One place a referent is seen: a presence bucket (a binding of the host whose graph holds the
  * thing), or the room itself when the thing sits in the room's own graph (a room is a
  * perspective root, so what sits in its graph is seen there without a binding). A referent's `groundedPresence` lists every one, so an audience walks up from all of
- * them to every room that can see the thing change. Learned alongside `groundedId`, by whoever
+ * them to every room that can see the thing change. (Which part of the object a command means is the referent's `view`, not this.) Learned alongside `groundedId`, by whoever
  * learns it (Grounding, from the `ludicCache`; Expansion, from the graph it read). Optional:
  * absent means not learned, never "in the room".
  */
@@ -45,12 +46,14 @@ export type ObjectSpanReferent = {
     groundedId?: GroundedId
     groundedPresence?: GroundedPresence[]
     /**
-     * The referent is not the whole object but the binding an earlier extend step of the same attempt
-     * mints (that step's `presenceUuid`), which does not exist until the attempt commits. A move of it
-     * names the new binding by this, since `groundedPresence` cannot (it needs the object's id, which
-     * is known only once grounded).
+     * The part meant: the object's own bindings (bare ids, the host being `groundedId`), as against
+     * `groundedPresence`, which is everywhere the object is seen. Absent means the whole object. A
+     * binding an earlier extend step of the same attempt mints (`PresenceKey(presenceUuid)`) is a valid
+     * entry before it exists; `viewMintedByExtend` reads that off the attempt. Only a one-binding view
+     * has a consumer so far (`commitAttempt` moves that binding); a wider view waits on the consumers
+     * that read it.
      */
-    extendedBindingUuid?: string
+    view?: EphemeraPresenceNodeId[]
     /** Names the thing for the attempt's prose once known (stamped by key, `stampCandidateReferents.ts`). */
     shortName?: string
     gloss?: string
@@ -99,6 +102,21 @@ export type ExtendChange<R extends Referent = Referent> = {
     primitive: 'extend'
     object: R
     presenceUuid: string
+}
+
+/**
+ * Whether a referent's `view` names a binding that an `extend` among `steps` mints, so the binding does
+ * not exist until the attempt commits (a spread's move). Read off the attempt rather than flagged on the
+ * referent: the view names the binding, the extend step says it is not there yet.
+ */
+export const viewMintedByExtend = (object: Referent, steps: readonly PlanStep[]): boolean => {
+    if (object.referentType !== 'objectSpan' || object.view === undefined) {
+        return false
+    }
+    const minted = new Set<string>(steps.flatMap((step) => (
+        step.kind === 'change' && step.primitive === 'extend' ? [PresenceKey(step.presenceUuid)] : []
+    )))
+    return object.view.some((binding) => minted.has(binding))
 }
 
 export type EstablishRelationChange<R extends Referent = Referent> = {

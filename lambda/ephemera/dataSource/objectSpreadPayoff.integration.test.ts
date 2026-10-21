@@ -23,6 +23,7 @@ jest.mock('../publishMessage', () => ({
     default: jest.fn().mockResolvedValue(undefined),
 }))
 
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
@@ -237,7 +238,7 @@ describe('object spread payoff (integration)', () => {
         expect(transfer).toMatchObject({
             primitive: 'transferMembership',
             containment: 'On',
-            object: { groundedId: RUG_ID, extendedBindingUuid: (extend as { presenceUuid: string }).presenceUuid },
+            object: { groundedId: RUG_ID, view: [PresenceKey((extend as { presenceUuid: string }).presenceUuid)] },
             to: { groundedId: TABLE_ID },
         })
         expect(transfer).not.toHaveProperty('keepFrom')
@@ -359,7 +360,7 @@ describe('rope carried into the next room (integration)', () => {
         new PositionAttemptAction('move-end', [], {
             kind: 'change',
             primitive: 'transferMembership',
-            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ROPE_ID, shortName: 'rope', extendedBindingUuid: 'far-end' },
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ROPE_ID, shortName: 'rope', view: [PresenceKey('far-end')] },
             from: { referentType: 'graphNode', groundedId: ROOM_ID },
             to: { referentType: 'graphNode', groundedId: NEXT_ROOM_ID },
         }),

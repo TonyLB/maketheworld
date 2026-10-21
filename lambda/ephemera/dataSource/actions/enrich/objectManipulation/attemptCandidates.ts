@@ -13,6 +13,7 @@ import { attemptActionsFromTransfer } from '../../commandAttempt/expandBoundaryC
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
+import { viewMintedByExtend } from './plan/planStep'
 import type { ExtendChange, GroundedId, GroundedReferent, PlanStep, Referent, TransferMembershipChange } from './plan/planStep'
 import { complexErrorMessage } from './complexityClasses'
 import { buildReferentAssignment } from './synthesize/buildReferentAssignment'
@@ -152,12 +153,17 @@ export const groundedObjectIdOf = (referent: Referent): EphemeraObjectId => {
     return id
 }
 
+/** The plan steps behind an attempt's position actions. */
+const planStepsOf = (actions: readonly AttemptAction[]): PlanStep[] => actions.flatMap((action) => (
+    action instanceof PositionAttemptAction && action.desiredResult !== undefined ? [action.desiredResult as PlanStep] : []
+))
+
 /**
  * Describes one grounded action: its prose description and its Consult wording (the per-kind describer,
  * one per desired-result kind). Keeps today's strings exactly, so the published attempt is unchanged.
  * A transfer with no containment is a membership move (take or drop), described as before.
  */
-const describeGroundedAction = (action: AttemptAction): { action: AttemptAction; alternative: ConsultAlternative } => {
+const describeGroundedAction = (action: AttemptAction, attemptSteps: readonly PlanStep[]): { action: AttemptAction; alternative: ConsultAlternative } => {
     if (action instanceof NarrateAttemptAction) {
         const [referent] = action.referents()
         if (referent === undefined) {
@@ -189,7 +195,7 @@ const describeGroundedAction = (action: AttemptAction): { action: AttemptAction;
         const target = labelOf(step.to)
         const preposition = step.containment === 'On' ? 'on' : 'in'
         // A move of the binding an extend minted is the spread's second step: it reads as the spread.
-        if (step.keepFrom || (step.object.referentType === 'objectSpan' && step.object.extendedBindingUuid !== undefined)) {
+        if (step.keepFrom || viewMintedByExtend(step.object, attemptSteps)) {
             return {
                 action: new PositionAttemptAction(action.id, action.challenges(), step, `Spread ${subject} ${preposition} ${target}`),
                 alternative: { label: `${subject} / ${target}`, proposedCommand: `spread the ${subject} ${preposition} the ${target}` },
@@ -288,7 +294,7 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
             })
         }
         return input.attempts.map((attempt): GroundedAttemptCandidate => {
-            const described = attempt.actions().map((action) => describeGroundedAction(action.grounded(names)))
+            const described = attempt.actions().map((action) => describeGroundedAction(action.grounded(names), planStepsOf(attempt.actions())))
             const primary = described[described.length - 1]!
             return {
                 attempt: CommandAttempt.create(input.command, described.map((entry) => entry.action), attempt.narrationUnits()),
@@ -549,7 +555,7 @@ export const expandAndAdjudicateCandidates = (
     // A spread leaves nothing, so it has no boundary to dissolve and no exit contact to challenge: its
     // move is of the binding an extend minted, and the object stays in the host the binding leaves.
     if (primary === undefined || step?.kind !== 'change' || step.primitive !== 'transferMembership' || step.keepFrom
-        || (step.object.referentType === 'objectSpan' && step.object.extendedBindingUuid !== undefined)) {
+        || viewMintedByExtend(step.object, planStepsOf(actions))) {
         return candidate
     }
     const objectId = step.object.referentType === 'objectSpan' ? step.object.groundedId : undefined

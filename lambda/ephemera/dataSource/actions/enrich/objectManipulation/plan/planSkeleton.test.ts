@@ -1,3 +1,4 @@
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { ParseSkeleton } from '../parse/parseToken'
 import { planSkeleton } from './planSkeleton'
 
@@ -38,7 +39,7 @@ describe('planSkeleton', () => {
         expect(extend).toMatchObject({ primitive: 'extend', object: { span: 'rug' } })
         expect(move).toMatchObject({
             primitive: 'transferMembership',
-            object: { span: 'rug', extendedBindingUuid: (extend as { presenceUuid: string }).presenceUuid },
+            object: { span: 'rug', view: [PresenceKey((extend as { presenceUuid: string }).presenceUuid)] },
             from: { referentType: 'currentHost' },
             to: { referentType: 'objectSpan', span: 'table' },
             containment: 'On',
