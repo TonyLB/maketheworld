@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -15,6 +16,7 @@ import type { NarrationUnit } from '../../actions/commandAttempt/narrationUnit'
 import type {
     DissolveRelationChange,
     EstablishRelationChange,
+    ExtendChange,
     GroundedId,
     GroundedPresence,
     GroundedReferent,
@@ -29,7 +31,9 @@ import type { RelationalEdgeFactSource } from './kernel/factsForStep'
 import { isKernelMutationStep } from './kernel/kernelStep'
 import type { MutationKernelCaptureStep } from './kernel/kernelStep'
 import { dryRunStepSequence } from './kernel/dryRunStepSequence'
+import { extendSteps, withExtendedBinding } from './membership/extendSteps'
 import { planObjectMoveTransfer } from './membership/planObjectMoveTransfer'
+import { defaultGetGraph } from './relational/findRelationalChainsForRemoval'
 import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTransfer'
 import { deliverNarrationUnits } from './deliverNarrationUnits'
 import { resolveNarrationLabels } from '../../perception/resolveNarrationLabels'
@@ -114,7 +118,8 @@ const buildMembershipFragment = async (
     actionId: string,
     change: TransferMembershipChange<GroundedReferent>,
     live: { liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>; containers: ReadonlyMap<GroundedId, readonly EphemeraMembershipHostId[]> },
-    args: CommitAttemptArgs
+    args: CommitAttemptArgs,
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 ): Promise<ActionFragment | undefined> => {
     const { liveHosts } = live
     const entityId = change.object.groundedId
@@ -156,19 +161,26 @@ const buildMembershipFragment = async (
         return undefined
     }
 
+    // A move of the binding an earlier extend mints names it by that extend's uuid; otherwise the
+    // buckets the actor perceives the object in narrow which of its bindings moves.
+    const moverBinding = 'extendedBindingUuid' in change.object && change.object.extendedBindingUuid !== undefined
+        ? PresenceKey(change.object.extendedBindingUuid) as EphemeraPresenceNodeId
+        : undefined
     const planResult = await planObjectMoveTransfer({
         entityId,
         fromHostId,
         toHostId,
         ...('groundedPresence' in change.to && change.to.groundedPresence ? { toGroundedPresence: change.to.groundedPresence } : {}),
-        ...('groundedPresence' in change.object && change.object.groundedPresence ? { moverGroundedPresence: change.object.groundedPresence } : {}),
+        ...(multiHostTake ? { alsoLeaving: containers.filter((hostId) => hostId !== fromHostId) } : {}),
+        ...(moverBinding ? { moverBinding } : {}),
+        ...(!moverBinding && 'groundedPresence' in change.object && change.object.groundedPresence ? { moverGroundedPresence: change.object.groundedPresence } : {}),
         // Containment: `planObjectMoveTransfer`/`buildObjectMoveOp`/
         // `compilePositionKernelOp` already thread this through to the establish step whose
         // `hostId` is always `toHostId` by construction --- no ancestry walk needed.
         ...(change.containment ? { containment: change.containment } : {}),
         // A spread: the object stays in `fromHostId` too, so the plan leaves no host.
         ...(change.keepFrom ? { keepFrom: true as const } : {}),
-        ...(multiHostTake ? { alsoLeaving: containers.filter((hostId) => hostId !== fromHostId) } : {}),
+        getGraph,
     })
 
     if (!planResult.ok) {
@@ -184,6 +196,38 @@ const buildMembershipFragment = async (
             fromHostId,
             toHostId,
         },
+    }
+}
+
+/**
+ * Extend's fragment: the binding the object is seen through (named by `groundedPresence`, else its
+ * only binding) gains a connected sibling in place. Reads the object's graph; a binding it cannot
+ * single out refuses. Returns the object's graph as it will stand after the extend, so the move that
+ * follows can name the new binding (see `withExtendedBinding`).
+ */
+const buildExtendFragment = async (
+    change: ExtendChange<GroundedReferent>,
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
+): Promise<{ fragment: ActionFragment; entityId: EphemeraObjectId; extended: EphemeraLudicGraph } | undefined> => {
+    const entityId = change.object.groundedId
+    if (!isEphemeraObjectId(entityId)) {
+        return undefined
+    }
+    const graph = await getGraph(entityId)
+    const seen = 'groundedPresence' in change.object ? change.object.groundedPresence ?? [] : []
+    const named = graph.presenceNodes.filter(({ universalKey }) => seen.some((bucket) => (
+        typeof bucket !== 'string' && bucket.host === entityId && bucket.presence === universalKey
+    )))
+    const candidates = named.length > 0 ? named : graph.presenceNodes
+    if (candidates.length !== 1) {
+        console.error(`[mtw.ephemera.positions] commitAttempt: extend action refused: ${entityId} has ${candidates.length} bindings to extend`)
+        return undefined
+    }
+    const binding = candidates[0]!
+    return {
+        fragment: { steps: extendSteps({ hostId: entityId, binding, presenceUuid: change.presenceUuid }) },
+        entityId,
+        extended: withExtendedBinding(graph, binding, change.presenceUuid),
     }
 }
 
@@ -468,10 +512,23 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
 
     const fragments: ActionFragment[] = []
     const fragmentActionIds: string[] = []
+    // An extend's result is overlaid on its object's graph for the fragments after it: its move names the
+    // new binding before the sequence has committed.
+    const overlay = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>()
+    const getGraph = async (hostId: EphemeraMembershipHostId) => overlay.get(hostId) ?? await defaultGetGraph(hostId)
     for (const { actionId, change } of grounded) {
-        const fragment = change.primitive === 'transferMembership'
-            ? await buildMembershipFragment(actionId, change, live, args)
-            : await buildRelationalFragment(change)
+        let fragment: ActionFragment | undefined
+        if (change.primitive === 'extend') {
+            const built = await buildExtendFragment(change, getGraph)
+            if (built !== undefined) {
+                overlay.set(built.entityId, built.extended)
+                fragment = built.fragment
+            }
+        } else {
+            fragment = change.primitive === 'transferMembership'
+                ? await buildMembershipFragment(actionId, change, live, args, getGraph)
+                : await buildRelationalFragment(change)
+        }
         if (fragment === undefined) {
             console.error(`[mtw.ephemera.positions] commitAttempt: attempt refused: ${change.primitive} action could not be built`)
             return

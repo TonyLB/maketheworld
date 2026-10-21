@@ -306,6 +306,77 @@ describe('resolvePresenceMoves', () => {
         })
     })
 
+    describe('a view-move (moverBinding)', () => {
+        // The rope has two bindings, both under roomA until one is moved (the new binding an extend minted).
+        const rope = 'OBJECT#Rope' as EphemeraObjectId
+        const world = () => ({
+            [rope]: testLudicGraph(rope, { nodes: [{ tag: 'Object', universalKey: rope }, presenceBindingNode('pA', roomA), presenceBindingNode('pB', roomA)] }),
+            [roomA]: room(roomA, [rope]),
+            [roomB]: room(roomB),
+        })
+
+        it('moves only the named binding, where the host alone would be ambiguous', async () => {
+            const resolved = await resolvePresenceMoves({ moved: rope, froms: [roomA], to: roomB, moverBinding: presence('pB'), getGraph: getGraphOf(world()) })
+
+            expect(resolved).toEqual({ ok: true, steps: [{
+                kind: 'reparentPresenceBinding',
+                hostId: rope,
+                presence: presence('pB'),
+                lose: [{ host: roomA, presence: parentRemainderKey(roomA) }],
+                gain: [{ host: roomB, presence: parentRemainderKey(roomB) }],
+            }] })
+        })
+
+        it('dissolves a ConnectedTo between two bindings that converge into one, ahead of the join', async () => {
+            // The rope runs from roomA to roomB; a take leaves both rooms, so both bindings end in the hand.
+            const spanning = {
+                [rope]: testLudicGraph(rope, { nodes: [{ tag: 'Object', universalKey: rope }, presenceBindingNode('pA', roomA), presenceBindingNode('pB', roomB)] })
+                    .addRelationalEdge({ from: { owner: rope, port: presence('pA') }, to: { owner: rope, port: presence('pB') }, kind: 'ConnectedTo' } as any),
+                [hand]: handGraph,
+                [roomA]: room(roomA, [rope]),
+                [roomB]: room(roomB, [rope]),
+            }
+            const resolved = await resolvePresenceMoves({ moved: rope, froms: [roomA, roomB], to: hand, getGraph: getGraphOf(spanning) })
+
+            expect(resolved.ok && resolved.steps.map(({ kind }) => kind)).toEqual(['reparentPresenceBinding', 'reparentPresenceBinding', 'dissolveRelation', 'joinPresenceBindings'])
+        })
+
+        it('refuses a binding that is absent, or not under a from host', async () => {
+            expect(await resolvePresenceMoves({ moved: rope, froms: [roomA], to: roomB, moverBinding: presence('nope'), getGraph: getGraphOf(world()) }))
+                .toEqual({ ok: false, errorCode: 'moverBindingMissing' })
+            expect(await resolvePresenceMoves({ moved: rope, froms: [roomB], to: roomA, moverBinding: presence('pA'), getGraph: getGraphOf(world()) }))
+                .toEqual({ ok: false, errorCode: 'moverBindingMissing' })
+        })
+    })
+
+    describe('a destination holding several bindings (deepest part)', () => {
+        const cloth = 'OBJECT#Cloth' as EphemeraObjectId
+        const table = 'OBJECT#Table' as EphemeraObjectId
+        // The cloth is one part on the floor and one part on the table (which sits on the floor).
+        const world = (clothBindings = [presenceBindingNode('floor', roomA), presenceBindingNode('onTable', [{ host: table, presence: presence('Base') }])]) => ({
+            [cloth]: testLudicGraph(cloth, { nodes: [{ tag: 'Object', universalKey: cloth }, ...clothBindings] }),
+            [table]: testLudicGraph(table, { nodes: [{ tag: 'Object', universalKey: table }, presenceBindingNode('Base', roomA)] }),
+            [apple]: testLudicGraph(apple, { nodes: [{ tag: 'Object', universalKey: apple }, presenceBindingNode('Base', roomA)] }),
+            [roomA]: room(roomA, [cloth, table, apple]),
+        })
+        const gain = (resolved: Awaited<ReturnType<typeof resolvePresenceMoves>>) => (
+            resolved.ok ? (resolved.steps.find((step) => step.kind === 'reparentPresenceBinding') as { gain: unknown }).gain : resolved
+        )
+
+        it('lands the mover on the part furthest below the room', async () => {
+            const resolved = await resolvePresenceMoves({ moved: apple, froms: [roomA], to: cloth, getGraph: getGraphOf(world()) })
+
+            expect(gain(resolved)).toEqual([{ host: cloth, presence: presence('onTable') }])
+        })
+
+        it('refuses two equally deep parts as ambiguous', async () => {
+            const tied = world([presenceBindingNode('left', roomA), presenceBindingNode('right', roomA)])
+
+            expect(await resolvePresenceMoves({ moved: apple, froms: [roomA], to: cloth, getGraph: getGraphOf(tied) }))
+                .toEqual({ ok: false, errorCode: 'destinationBindingAmbiguous' })
+        })
+    })
+
     describe('refusals', () => {
         it('still refuses several distinct bindings under one from host that nothing narrows', async () => {
             const world = {

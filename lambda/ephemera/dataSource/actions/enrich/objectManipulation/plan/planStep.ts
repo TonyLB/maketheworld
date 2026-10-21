@@ -44,6 +44,13 @@ export type ObjectSpanReferent = {
     stableRefKey?: string
     groundedId?: GroundedId
     groundedPresence?: GroundedPresence[]
+    /**
+     * The referent is not the whole object but the binding an earlier extend step of the same attempt
+     * mints (that step's `presenceUuid`), which does not exist until the attempt commits. A move of it
+     * names the new binding by this, since `groundedPresence` cannot (it needs the object's id, which
+     * is known only once grounded).
+     */
+    extendedBindingUuid?: string
     /** Names the thing for the attempt's prose once known (stamped by key, `stampCandidateReferents.ts`). */
     shortName?: string
     gloss?: string
@@ -79,6 +86,21 @@ export type TransferMembershipChange<R extends Referent = Referent> = {
     keepFrom?: true
 }
 
+/**
+ * Extend: the object (one that has extent --- a rope, a cloth) gains a second presence binding in
+ * place, under the same parents as the binding it extends and connected to it by `ConnectedTo`.
+ * Changes nothing anyone sees; a move of the new binding follows. `presenceUuid` is minted by
+ * whoever plans the step, so a later step can name the new binding before it exists. Phrase-free,
+ * so the LLM Plan fallback can produce it as a template does. `object.groundedPresence` names the
+ * binding it extends; absent, the object's only binding.
+ */
+export type ExtendChange<R extends Referent = Referent> = {
+    kind: 'change'
+    primitive: 'extend'
+    object: R
+    presenceUuid: string
+}
+
 export type EstablishRelationChange<R extends Referent = Referent> = {
     kind: 'change'
     primitive: 'establishRelation'
@@ -93,7 +115,7 @@ export type DissolveRelationChange<R extends Referent = Referent> = {
     target: R
 } & RelationalKindAndLabel
 
-export type Change<R extends Referent = Referent> = TransferMembershipChange<R> | EstablishRelationChange<R> | DissolveRelationChange<R>
+export type Change<R extends Referent = Referent> = TransferMembershipChange<R> | ExtendChange<R> | EstablishRelationChange<R> | DissolveRelationChange<R>
 
 /**
  * BD-14: `negate` rather than paired predicate names (e.g. `notContainedBy`) ---
@@ -182,7 +204,9 @@ export const stepReferents = (step: PlanStep): Referent[] =>
         ? [step.subject, step.object]
         : step.primitive === 'transferMembership'
             ? [step.object, step.from, step.to]
-            : [step.subject, step.target]
+            : step.primitive === 'extend'
+                ? [step.object]
+                : [step.subject, step.target]
 
 /** True when every referent of this step carries a known id. */
 export const isGroundedStep = (step: PlanStep): step is PlanStep<GroundedReferent> =>

@@ -42,6 +42,9 @@ export const stampCandidateReferents = <S extends PlanStep>(step: S, names: Read
             to: stampReferent(change.to, names),
         } as S
     }
+    if (change.primitive === 'extend') {
+        return { ...change, object: stampReferent(change.object, names) } as S
+    }
     return {
         ...change,
         subject: stampReferent(change.subject, names),

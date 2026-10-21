@@ -13,7 +13,7 @@ import { attemptActionsFromTransfer } from '../../commandAttempt/expandBoundaryC
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
-import type { GroundedId, GroundedReferent, PlanStep, Referent, TransferMembershipChange } from './plan/planStep'
+import type { ExtendChange, GroundedId, GroundedReferent, PlanStep, Referent, TransferMembershipChange } from './plan/planStep'
 import { complexErrorMessage } from './complexityClasses'
 import { buildReferentAssignment } from './synthesize/buildReferentAssignment'
 import { groundChange } from './synthesize/groundChange'
@@ -188,7 +188,8 @@ const describeGroundedAction = (action: AttemptAction): { action: AttemptAction;
         }
         const target = labelOf(step.to)
         const preposition = step.containment === 'On' ? 'on' : 'in'
-        if (step.keepFrom) {
+        // A move of the binding an extend minted is the spread's second step: it reads as the spread.
+        if (step.keepFrom || (step.object.referentType === 'objectSpan' && step.object.extendedBindingUuid !== undefined)) {
             return {
                 action: new PositionAttemptAction(action.id, action.challenges(), step, `Spread ${subject} ${preposition} ${target}`),
                 alternative: { label: `${subject} / ${target}`, proposedCommand: `spread the ${subject} ${preposition} the ${target}` },
@@ -197,6 +198,13 @@ const describeGroundedAction = (action: AttemptAction): { action: AttemptAction;
         return {
             action: new PositionAttemptAction(action.id, action.challenges(), step, `Put ${subject} ${preposition} ${target}`),
             alternative: { label: `${subject} / ${target}`, proposedCommand: `put the ${subject} ${preposition} the ${target}` },
+        }
+    }
+    if (step.primitive === 'extend') {
+        const subject = labelOf(step.object)
+        return {
+            action: new PositionAttemptAction(action.id, action.challenges(), step, `Extend ${subject}`),
+            alternative: { objectId: groundedObjectIdOf(step.object), label: subject, proposedCommand: `extend the ${subject}` },
         }
     }
     if (step.primitive === 'establishRelation' || step.primitive === 'dissolveRelation') {
@@ -422,6 +430,14 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
             return { verdict: 'illegal', decidable: true, reason: objectManipulationErrorMessages.noMembershipHost }
         }
         const grounded = groundChange(step, assignment)
+        if (grounded.kind === 'change' && grounded.primitive === 'extend') {
+            // Extend writes no host-level effect for the executor to lower: only its precondition is judged here.
+            const precondition = extendPreconditionFailure(grounded)
+            if (precondition !== undefined) {
+                return { verdict: 'illegal', decidable: true, reason: precondition }
+            }
+            continue
+        }
         if (grounded.kind === 'change' && grounded.primitive === 'transferMembership') {
             const precondition = transferPreconditionFailure(grounded, env)
             if (precondition !== undefined) {
@@ -431,6 +447,9 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
         seeds.push(grounded)
     }
 
+    if (seeds.length === 0) {
+        return { verdict: 'legal', decidable: true }
+    }
     const outcome = runExecutor(seedFromGroundedSteps(seeds), env)
     if (outcome.verdict === 'error') {
         return { verdict: 'illegal', decidable: true, reason: outcome.reason }
@@ -467,12 +486,19 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
 }
 
 /**
+ * Extend's precondition: *this thing has extent*. For now every object these instructions are applied
+ * to is assumed to have it (nothing is judged and no trait is read), so this never refuses. It is the
+ * one seam where a real judgment (planner, or an authored or improvised trait) replaces the assumption.
+ */
+const extendPreconditionFailure = (_step: ExtendChange<GroundedReferent>): string | undefined => undefined
+
+/**
  * The transfer preconditions (ISS8203 slice 3), over a grounded `transferMembership`. Returns the
  * refusal reason for the first one that fails, or undefined when all hold.
  *
- * A take of a thing in several hosts is allowed and leaves them all (deliberately crude):
- * its `from` is any one of them, and it is refused only when the thing is already held. Every
- * other destination still refuses `multiPresent`.
+ * A take of a thing in several hosts is allowed and leaves them all (deliberately crude, a shim until
+ * referent handling can say which part a take means): its `from` is any one of them, and it is refused
+ * only when the thing is already held. Every other destination still refuses `multiPresent`.
  */
 const transferPreconditionFailure = (step: TransferMembershipChange<GroundedReferent>, env: ExpansionEnvironment): string | undefined => {
     const objectId = step.object.groundedId
@@ -520,8 +546,10 @@ export const expandAndAdjudicateCandidates = (
     const actions = candidate.attempt.actions()
     const primary = actions[actions.length - 1]
     const step = primary?.desiredResult
-    // A spread leaves nothing, so it has no boundary to dissolve and no exit contact to challenge.
-    if (primary === undefined || step?.kind !== 'change' || step.primitive !== 'transferMembership' || step.keepFrom) {
+    // A spread leaves nothing, so it has no boundary to dissolve and no exit contact to challenge: its
+    // move is of the binding an extend minted, and the object stays in the host the binding leaves.
+    if (primary === undefined || step?.kind !== 'change' || step.primitive !== 'transferMembership' || step.keepFrom
+        || (step.object.referentType === 'objectSpan' && step.object.extendedBindingUuid !== undefined)) {
         return candidate
     }
     const objectId = step.object.referentType === 'objectSpan' ? step.object.groundedId : undefined
@@ -545,7 +573,7 @@ export const expandAndAdjudicateCandidates = (
         ...candidate,
         attempt: adjudicateAttempt(CommandAttempt.create(
             candidate.attempt.words,
-            expanded.actions,
+            [...actions.slice(0, -1), ...expanded.actions],
             [...candidate.attempt.narrationUnits(), ...expanded.narrationUnits]
         )),
     }
@@ -558,6 +586,9 @@ const stepSpans = (step: PlanStep): Extract<Referent, { referentType: 'objectSpa
     }
     if (step.primitive === 'transferMembership') {
         return [step.object, step.from, step.to].flatMap(objectSpansIn)
+    }
+    if (step.primitive === 'extend') {
+        return objectSpansIn(step.object)
     }
     return [step.subject, step.target].flatMap(objectSpansIn)
 }

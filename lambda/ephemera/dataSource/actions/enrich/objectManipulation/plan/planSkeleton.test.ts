@@ -31,16 +31,19 @@ describe('planSkeleton', () => {
         expect(attempts[0].actions()[0].desiredResult).not.toHaveProperty('containment')
     })
 
-    it('plans "spread the rug over the table" as one spread: the containment transfer that keeps its from', () => {
+    it('plans "spread the rug over the table" as one spread: an extend, then a containment move of the new binding', () => {
         const attempts = attemptsOf(relationalSkeleton('spread', 'rug', 'over', 'table'))
         expect(attempts).toHaveLength(1)
-        expect(attempts[0].actions()[0].desiredResult).toMatchObject({
+        const [extend, move] = attempts[0].actions().map((action) => action.desiredResult)
+        expect(extend).toMatchObject({ primitive: 'extend', object: { span: 'rug' } })
+        expect(move).toMatchObject({
             primitive: 'transferMembership',
+            object: { span: 'rug', extendedBindingUuid: (extend as { presenceUuid: string }).presenceUuid },
             from: { referentType: 'currentHost' },
             to: { referentType: 'objectSpan', span: 'table' },
             containment: 'On',
-            keepFrom: true,
         })
+        expect(move).not.toHaveProperty('keepFrom')
     })
 
     it('plans nothing for "tie the rope in the box": no template claims it, so the zero-attempt branch answers', () => {

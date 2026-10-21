@@ -7,7 +7,7 @@ import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../l
 import { applyStepSequenceCore } from '../kernel/applyStepSequenceCore'
 import { computeStepSequenceFootprint } from '../kernel/computeStepSequenceFootprint'
 import type { MutationKernelStep } from '../kernel/kernelStep'
-import { extendSteps } from './extendSteps'
+import { extendSteps, withExtendedBinding } from './extendSteps'
 
 const roomA = 'ROOM#Bridge' as EphemeraRoomId
 const roomB = 'ROOM#Galley' as EphemeraRoomId
@@ -92,5 +92,21 @@ describe('extendSteps', () => {
 
             expect([...footprint].sort()).toEqual([rope, roomA, roomB].sort())
         })
+    })
+})
+
+describe('withExtendedBinding', () => {
+    it('adds the fresh binding under the original\'s parents with an empty cover, as the committed extend would', () => {
+        const graph = world()[rope]
+        const extended = withExtendedBinding(graph, graph.presenceNodes[0], 'pB')
+
+        expect(extended.presenceNodes.map(({ universalKey }) => universalKey)).toEqual([presence('pA'), presence('pB')])
+        expect(extended.presenceNodes[1]).toEqual({
+            tag: 'Presence',
+            universalKey: presence('pB'),
+            fromHostPresences: [{ host: roomA, presence: parentRemainderKey(roomA) }],
+            cover: { members: [] },
+        })
+        expect(graph.presenceNodes).toHaveLength(1)
     })
 })

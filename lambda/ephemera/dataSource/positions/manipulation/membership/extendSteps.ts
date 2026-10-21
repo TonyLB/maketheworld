@@ -3,6 +3,7 @@ import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 
+import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { parentsOf } from '../../ludicGraph/presenceParent'
 import type { MutationKernelStep } from '../kernel/kernelStep'
 
@@ -46,3 +47,20 @@ export const extendSteps = (args: {
         },
     ]
 }
+
+/**
+ * The object's graph as it will stand once `extendSteps` commits: the fresh binding is present under
+ * the original's parents with an empty cover. A planner that must name the new binding before the
+ * extend has committed (the move that follows it in one attempt) reads this instead of the live graph.
+ * `ConnectedTo` is not overlaid: nothing the planner reads depends on it.
+ */
+export const withExtendedBinding = (
+    graph: EphemeraLudicGraph,
+    binding: EphemeraLudicGraphStructureNode,
+    presenceUuid: string
+): EphemeraLudicGraph => graph.addPresenceNode({
+    tag: 'Presence',
+    universalKey: PresenceKey(presenceUuid) as EphemeraPresenceNodeId,
+    fromHostPresences: binding.fromHostPresences,
+    cover: { members: [] },
+})

@@ -4,6 +4,7 @@ import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/act
 import type { NarrationUnit } from '../../../commandAttempt/narrationUnit'
 import { matchContainmentPhrase } from './matchContainmentTemplate'
 import { currentHostRef, objectSpanRef } from './planStep'
+import type { Referent } from './planStep'
 
 /**
  * The spreading verbs, each with the third-person form its narration uses. A closed set, so a
@@ -25,11 +26,15 @@ function isTextToken(token: ParseToken): token is TextToken {
 /**
  * Matches a spread command (`spread X over Y`, `drape X on Y`) against the one closed shape
  * TEXT(verb) OBJECTSPAN TEXT(prep) OBJECTSPAN: the object is laid partly onto (or into) another
- * and stays where it is. The step is the containment transfer with `keepFrom`, so the
- * object's one binding gains the target's as a parent and keeps its own.
+ * and stays where it is. Two steps: extend the object in place (a second binding, connected to
+ * the first), then move the new binding into the target with the containment transfer. The
+ * extend's minted `presenceUuid` is how the move names the binding before it exists
+ * (`extendedBindingUuid`).
  *
  * **The naive implementation of the spread intent.** A closed phrase list is a stand-in: the LLM
- * Plan fallback replaces it, producing the same `keepFrom` transfer from open phrasing.
+ * Plan fallback replaces it, producing the same two steps from open phrasing. Extend assumes the
+ * object has extent, so for this route the closed verb list is what keeps extend to things that
+ * drape and spread.
  *
  * Narration follows the containment template's pattern: the player's verb and the matched phrase,
  * one line to everyone who can see the actor or either object, before the move.
@@ -59,7 +64,9 @@ export function matchSpreadTemplate(skeleton: ParseSkeleton, command: string): S
 
     const subject = objectSpanRef(subjectToken.span, subjectToken.stableRefKey)
     const target = objectSpanRef(targetToken.span, targetToken.stableRefKey)
+    const extendActionId = mintActionId()
     const actionId = mintActionId()
+    const presenceUuid = mintActionId()
     const narrationUnit: NarrationUnit = {
         covers: [actionId],
         variants: [{
@@ -76,14 +83,19 @@ export function matchSpreadTemplate(skeleton: ParseSkeleton, command: string): S
     return {
         type: 'matched',
         attempt: CommandAttempt.create(command, [
+            new PositionAttemptAction(extendActionId, [], {
+                kind: 'change',
+                primitive: 'extend',
+                object: subject,
+                presenceUuid,
+            }),
             new PositionAttemptAction(actionId, [], {
                 kind: 'change',
                 primitive: 'transferMembership',
-                object: subject,
+                object: { ...subject, extendedBindingUuid: presenceUuid } as Referent,
                 from: currentHostRef(subject),
                 to: target,
                 containment,
-                keepFrom: true,
             }),
         ], [narrationUnit]),
     }
