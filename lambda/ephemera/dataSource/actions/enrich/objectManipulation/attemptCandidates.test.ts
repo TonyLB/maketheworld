@@ -1,6 +1,6 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { attemptReferentAnswers, attemptSpanKeys, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
+import { attemptReferentAnswers, attemptSpanKeys, disambiguationLabels, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { planSkeleton } from './plan/planSkeleton'
 import type { ParseSkeleton } from './parse/parseToken'
@@ -42,6 +42,123 @@ const relationSkeleton: ParseSkeleton = [
 describe('attemptSpanKeys', () => {
     it('lists the distinct stableRefKeys the attempt names, in order', () => {
         expect(attemptSpanKeys([attemptFor(relationSkeleton, 'put cup on tray')])).toEqual(['cupRef', 'trayRef'])
+    })
+})
+
+describe('proposeAttemptCandidates over an object seen in several positions', () => {
+    const roomA = 'ROOM#A' as EphemeraRoomId
+    const roomB = 'ROOM#B' as EphemeraRoomId
+    const clothId = 'OBJECT#Cloth' as EphemeraObjectId
+    const tableId = 'OBJECT#Table' as EphemeraObjectId
+    const roomBinding = 'PRESENCE#room' as EphemeraPresenceNodeId
+    const tableBinding = 'PRESENCE#table' as EphemeraPresenceNodeId
+    const hanging = 'PRESENCE#hanging' as EphemeraPresenceNodeId
+    const lying = 'PRESENCE#lying' as EphemeraPresenceNodeId
+
+    // The cloth draped over the table: both parts are seen from the actor's room.
+    const drapedCloth: ObjectManipulationCatalogEntry = {
+        objectId: clothId,
+        normalizedShortName: 'cloth',
+        catalogScope: 'room',
+        placement: [{ host: clothId, bindings: [
+            { presence: hanging, under: [{ host: roomA, presence: roomBinding }], rooms: [roomA] },
+            { presence: lying, under: [{ host: tableId, presence: tableBinding }], rooms: [roomA] },
+        ] }],
+    }
+    // A rope across two rooms: only one end reaches the actor's room.
+    const acrossRooms: ObjectManipulationCatalogEntry = {
+        ...drapedCloth,
+        placement: [{ host: clothId, bindings: [
+            { presence: hanging, under: [{ host: roomA, presence: roomBinding }], rooms: [roomA] },
+            { presence: lying, under: [{ host: roomB, presence: roomBinding }], rooms: [roomB] },
+        ] }],
+    }
+    const table: ObjectManipulationCatalogEntry = { objectId: tableId, normalizedShortName: 'table', catalogScope: 'room' }
+
+    const propose = (entry: ObjectManipulationCatalogEntry, extra: Partial<Parameters<typeof proposeAttemptCandidates>[0]> = {}) => proposeAttemptCandidates({
+        command: 'put cloth on tray',
+        attempts: [attemptFor(relationSkeleton, 'put cloth on tray')],
+        spanPools: new Map([['cupRef', pool('cloth', clothId)], ['trayRef', pool('tray', trayId)]]),
+        catalog: [entry, table, catalog[1]!],
+        noAssignmentReason: 'none',
+        actorRoom: roomA,
+        ...extra,
+    })
+    const candidatesOf = (result: ReturnType<typeof proposeAttemptCandidates>) => {
+        if (!result.ok) {
+            throw new Error(result.reason)
+        }
+        return result.candidates
+    }
+    const clothSpan = (candidate: ReturnType<typeof candidatesOf>[number]) => candidate.attempt.actions()[0]?.referents()[0]
+
+    it('offers each position and the whole where the actor\'s own position does not pick one', () => {
+        const candidates = candidatesOf(propose(drapedCloth))
+
+        expect(candidates.map(({ viewAnswers }) => viewAnswers)).toEqual([
+            { cupRef: [hanging] },
+            { cupRef: [lying] },
+            { cupRef: 'whole' },
+        ])
+        expect(candidates.map(({ viewLabels }) => viewLabels)).toEqual([
+            { cupRef: 'the cloth in the room' },
+            { cupRef: 'the cloth on the table' },
+            { cupRef: 'both parts of the cloth' },
+        ])
+    })
+
+    it('stamps the chosen position as the referent\'s view, and nothing for the whole', () => {
+        const [hangingCandidate, lyingCandidate, wholeCandidate] = candidatesOf(propose(drapedCloth))
+
+        expect(clothSpan(hangingCandidate!)).toEqual(expect.objectContaining({ groundedId: clothId, view: [hanging] }))
+        expect(clothSpan(lyingCandidate!)).toEqual(expect.objectContaining({ view: [lying] }))
+        expect(clothSpan(wholeCandidate!)).not.toHaveProperty('view')
+    })
+
+    it('does not ask where the actor\'s own position picks one, and stamps no view yet', () => {
+        const candidates = candidatesOf(propose(acrossRooms))
+
+        expect(candidates).toHaveLength(1)
+        expect(candidates[0]).not.toHaveProperty('viewAnswers')
+        expect(clothSpan(candidates[0]!)).not.toHaveProperty('view')
+    })
+
+    it('does not ask without an actor\'s room, or for an entry with no placement', () => {
+        expect(candidatesOf(propose(drapedCloth, { actorRoom: undefined }))).toHaveLength(1)
+        const { placement, ...bare } = drapedCloth
+        expect(candidatesOf(propose(bare))).toHaveLength(1)
+    })
+
+    it('narrows a resumed command to the position it was answered with', () => {
+        const [only, ...rest] = candidatesOf(propose(drapedCloth, { viewAnswers: { cupRef: [lying] } }))
+
+        expect(rest).toEqual([])
+        expect(only!.viewAnswers).toEqual({ cupRef: [lying] })
+        expect(clothSpan(only!)).toEqual(expect.objectContaining({ view: [lying] }))
+    })
+
+    it('narrows a resumed command answered with the whole to the unstamped whole', () => {
+        const [only, ...rest] = candidatesOf(propose(drapedCloth, { viewAnswers: { cupRef: 'whole' } }))
+
+        expect(rest).toEqual([])
+        expect(clothSpan(only!)).not.toHaveProperty('view')
+    })
+
+    it.each<[string, ObjectManipulationCatalogEntry]>([
+        ['a position the object no longer has', { ...drapedCloth, placement: [{ host: clothId, bindings: [drapedCloth.placement![0]!.bindings[0]!, { presence: 'PRESENCE#gone' as EphemeraPresenceNodeId, under: [{ host: tableId, presence: tableBinding }], rooms: [roomA] }] }] }],
+        ['an object whose position now picks itself', acrossRooms],
+    ])('refuses a stale answer: %s', (_label, entry) => {
+        const result = propose(entry, { viewAnswers: { cupRef: [lying] } })
+
+        expect(result).toEqual({ ok: false, reason: expect.stringContaining('no longer available'), stale: true })
+    })
+
+    it('names each candidate\'s referents by where they sit, for telling same-named options apart', () => {
+        const [first] = candidatesOf(propose(drapedCloth))
+        const [unasked] = candidatesOf(propose(acrossRooms))
+
+        expect(first!.placeNames).toEqual({ cupRef: 'the cloth in the room', trayRef: 'tray' })
+        expect(unasked!.placeNames).toEqual({ cupRef: 'the cloth in the room', trayRef: 'tray' })
     })
 })
 
@@ -371,5 +488,27 @@ describe('narration units through candidate building and Expansion', () => {
             unit,
             expect.objectContaining({ covers: [dissolve!.id] }),
         ])
+    })
+})
+
+describe('disambiguationLabels over views', () => {
+    const skeleton: ParseSkeleton = [
+        { type: 'text', text: 'get' },
+        { type: 'objectSpan', span: 'cloth', stableRefKey: 'clothRef' },
+    ]
+
+    it('treats two readings of one object as ambiguous, labelled by the part meant', () => {
+        expect(disambiguationLabels(skeleton, [
+            { answers: { clothRef: 'OBJECT#Cloth' }, views: { clothRef: ['PRESENCE#a' as EphemeraPresenceNodeId] }, names: { clothRef: 'the cloth on the table' } },
+            { answers: { clothRef: 'OBJECT#Cloth' }, views: { clothRef: 'whole' }, names: { clothRef: 'both parts of the cloth' } },
+        ])).toEqual(['the cloth on the table', 'both parts of the cloth'])
+    })
+
+    it('words the whole command where more than one referent is ambiguous', () => {
+        const two: ParseSkeleton = [...skeleton, { type: 'text', text: 'from' }, { type: 'objectSpan', span: 'box', stableRefKey: 'boxRef' }]
+        expect(disambiguationLabels(two, [
+            { answers: { clothRef: 'OBJECT#Cloth', boxRef: 'OBJECT#Red' }, views: { clothRef: 'whole' }, names: { clothRef: 'both parts of the cloth', boxRef: 'red box' } },
+            { answers: { clothRef: 'OBJECT#Cloth', boxRef: 'OBJECT#Blue' }, views: { clothRef: ['PRESENCE#a' as EphemeraPresenceNodeId] }, names: { clothRef: 'the cloth on the table', boxRef: 'blue box' } },
+        ])).toEqual(['get both parts of the cloth from red box', 'get the cloth on the table from blue box'])
     })
 })

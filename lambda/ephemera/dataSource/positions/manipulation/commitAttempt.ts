@@ -119,7 +119,8 @@ const buildMembershipFragment = async (
     change: TransferMembershipChange<GroundedReferent>,
     live: { liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>; containers: ReadonlyMap<GroundedId, readonly EphemeraMembershipHostId[]> },
     args: CommitAttemptArgs,
-    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
+    mintedBindings: ReadonlySet<string>
 ): Promise<ActionFragment | undefined> => {
     const { liveHosts } = live
     const entityId = change.object.groundedId
@@ -161,10 +162,12 @@ const buildMembershipFragment = async (
         return undefined
     }
 
-    // A move of a one-binding view (the binding an earlier extend mints, say) names that binding;
-    // otherwise the buckets the actor perceives the object in narrow which of its bindings moves.
+    // A one-binding view naming a binding an earlier extend minted moves that binding (a spread). Any other
+    // view (a part the player chose) is not read yet: the take still lifts every binding, so a view must not
+    // move one binding while `alsoLeaving` lifts the rest. Otherwise the buckets the actor perceives the
+    // object in narrow which of its bindings moves.
     const moverView = 'view' in change.object ? change.object.view : undefined
-    const moverBinding = moverView?.length === 1 ? moverView[0] : undefined
+    const moverBinding = moverView?.length === 1 && mintedBindings.has(moverView[0]!) ? moverView[0] : undefined
     const planResult = await planObjectMoveTransfer({
         entityId,
         fromHostId,
@@ -515,17 +518,19 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     // new binding before the sequence has committed.
     const overlay = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>()
     const getGraph = async (hostId: EphemeraMembershipHostId) => overlay.get(hostId) ?? await defaultGetGraph(hostId)
+    const mintedBindings = new Set<string>()
     for (const { actionId, change } of grounded) {
         let fragment: ActionFragment | undefined
         if (change.primitive === 'extend') {
             const built = await buildExtendFragment(change, getGraph)
             if (built !== undefined) {
+                mintedBindings.add(PresenceKey(change.presenceUuid))
                 overlay.set(built.entityId, built.extended)
                 fragment = built.fragment
             }
         } else {
             fragment = change.primitive === 'transferMembership'
-                ? await buildMembershipFragment(actionId, change, live, args, getGraph)
+                ? await buildMembershipFragment(actionId, change, live, args, getGraph, mintedBindings)
                 : await buildRelationalFragment(change)
         }
         if (fragment === undefined) {

@@ -7,6 +7,7 @@ import {
     isEphemeraObjectId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
+import type { ViewAnswer } from '../../objectViews'
 import type { ObjectManipulationCatalogScope } from './catalogMerge'
 import type { EphemeraThingId } from './thing'
 import { isEphemeraThingId } from './thing'
@@ -51,6 +52,8 @@ export type ConsultAlternative = {
     proposedCommand: string
     /** The joint identity assignment this alternative stands for (stableRefKey to object id); absent for the harness-only fallbacks. */
     referentAnswers?: Record<string, EphemeraObjectId>
+    /** Which part of each object that assignment means (stableRefKey to view), where it was seen in several positions. */
+    viewAnswers?: Record<string, ViewAnswer>
 }
 
 export type SpanResolutionOutcome =

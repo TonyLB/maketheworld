@@ -504,6 +504,25 @@ describe('commitAttempt', () => {
             getMembershipContainersMock.mockImplementation(async (id) => (id === CHARACTER ? [ROOM] : broomHosts))
         }
 
+        it('a take of a chosen part still lifts every binding: a view no earlier extend minted is not read yet', async () => {
+            mockBroomHosts([ROOM, TABLE])
+            planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'stop' })
+            const whole = membershipAttempt('takeHold').toJSON()
+            const part = CommandAttempt.fromJSON({
+                ...whole,
+                actions: whole.actions.map((action: any) => ({
+                    ...action,
+                    desiredResult: { ...action.desiredResult, object: { ...action.desiredResult.object, view: [PresenceKey('chosen')] } },
+                })),
+            })
+
+            await commitAttempt({ attempt: part, characterId: CHARACTER, messageBus, streamEvent })
+
+            const [[args]] = planObjectMoveTransferMock.mock.calls as any
+            expect(args).toMatchObject({ alsoLeaving: [TABLE] })
+            expect(args).not.toHaveProperty('moverBinding')
+        })
+
         it('a take leaves every host: from is one of them, and the rest go to the planner as alsoLeaving', async () => {
             mockBroomHosts([ROOM, TABLE])
             planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'stop' })

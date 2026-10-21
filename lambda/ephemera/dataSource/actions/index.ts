@@ -203,7 +203,7 @@ type ResponseContext = {
     /** Absent when there is no echo to attach to (no sessionId, or an assessed-action entry). */
     transcript?: TranscriptContext
     /** Answers already given to this command (a resumed one), kept if it has to ask again. */
-    priorAnswers?: Pick<PersistentCommandPayload, 'referentAnswers' | 'challengeAnswers'>
+    priorAnswers?: Pick<PersistentCommandPayload, 'referentAnswers' | 'viewAnswers' | 'challengeAnswers'>
 }
 
 /**
@@ -747,7 +747,7 @@ const handleAnswerSubmitted = async (
         roomExitContext,
         coyoteOccupiedStableKeys,
         parseResult,
-        priorAnswers: { referentAnswers: payload.referentAnswers, challengeAnswers: payload.challengeAnswers },
+        priorAnswers: { referentAnswers: payload.referentAnswers, viewAnswers: payload.viewAnswers, challengeAnswers: payload.challengeAnswers },
         ...(transcript ? { transcript } : {}),
     }, streamEvent)
     publishReturnValueForRequest(content.requestId, 'answer_handled')

@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 
-import { audienceBuckets, defaultReading, readingsOf, type PresencePlacement } from './objectViews'
+import { audienceBuckets, defaultReading, readingLabel, readingsOf, wholeReadingLabel, type PresencePlacement } from './objectViews'
 
 const roomA = 'ROOM#A' as EphemeraRoomId
 const roomB = 'ROOM#B' as EphemeraRoomId
@@ -78,5 +78,27 @@ describe('defaultReading', () => {
 
     it('is nothing when no reading reaches the actor\'s room (the whole object, as today)', () => {
         expect(defaultReading(ropeId, across, 'ROOM#Elsewhere' as EphemeraRoomId)).toBeUndefined()
+    })
+})
+
+describe('readingLabel', () => {
+    const naming = { actorRoom: roomA, nameOf: (host: string) => (host === tableId ? 'table' : undefined) }
+    const reading = (under: { host: EphemeraObjectId | EphemeraRoomId; presence: typeof base }[], rooms: EphemeraRoomId[] = [roomA]) => ({ bindings: [one], under, rooms })
+
+    it('names a part on an object and a part in the actor\'s room', () => {
+        expect(readingLabel('cloth', reading([{ host: tableId, presence: tableBinding }]), naming)).toBe('the cloth on the table')
+        expect(readingLabel('cloth', reading([{ host: roomA, presence: base }]), naming)).toBe('the cloth in the room')
+    })
+
+    it('names a part in some other room without a room name', () => {
+        expect(readingLabel('rope', reading([{ host: roomB, presence: base }], [roomB]), naming)).toBe('the rope in another room')
+    })
+
+    it('falls back to the bare name when no parent has a name to give', () => {
+        expect(readingLabel('cloth', reading([{ host: 'OBJECT#Unnamed' as EphemeraObjectId, presence: base }]), naming)).toBe('cloth')
+    })
+
+    it('words the whole', () => {
+        expect(wholeReadingLabel('cloth')).toBe('both parts of the cloth')
     })
 })

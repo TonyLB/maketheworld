@@ -66,3 +66,35 @@ export const defaultReading = (objectId: string, placement: readonly PresencePla
     const here = readingsOf(objectId, placement).filter(({ rooms }) => rooms.includes(actorRoom))
     return here.length === 1 ? here[0] : undefined
 }
+
+/** The part of an object a player chose when asked: one reading's own bindings, or `'whole'` for every part at once (PR-4). Unasked is the absence of an answer. */
+export type ViewAnswer = EphemeraPresenceNodeId[] | 'whole'
+
+export const isViewAnswer = (value: unknown): value is ViewAnswer => (
+    value === 'whole' || (Array.isArray(value) && value.every((binding) => typeof binding === 'string'))
+)
+
+/** What a position-qualified name needs from the world: the actor's room, and a host object's short name. */
+export type ReadingNaming = {
+    actorRoom: EphemeraRoomId
+    nameOf: (host: EphemeraMembershipHostId) => string | undefined
+}
+
+/**
+ * A reading named by where it sits ("the cloth on the table", "the cloth in the room"): each parent it
+ * sits under, a room as "in the room" (the actor's own) or "in another room", an object as "on the X".
+ * A parent with no name to give is left out, and a reading with nothing to say falls back to the bare name.
+ */
+export const readingLabel = (shortName: string, reading: ObjectReading, { actorRoom, nameOf }: ReadingNaming): string => {
+    const places = reading.under.flatMap(({ host }): string[] => {
+        if (isEphemeraRoomId(host)) {
+            return [host === actorRoom ? 'in the room' : 'in another room']
+        }
+        const name = nameOf(host)
+        return name === undefined ? [] : [`on the ${name}`]
+    })
+    return places.length === 0 ? shortName : `the ${shortName} ${[...new Set(places)].join(' and ')}`
+}
+
+/** The option that means every part at once (PR-4): today's whole-object take. */
+export const wholeReadingLabel = (shortName: string): string => `both parts of the ${shortName}`

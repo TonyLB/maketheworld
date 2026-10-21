@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
@@ -12,6 +12,7 @@ import { attemptActionsFromTransfer } from '../../commandAttempt/expandBoundaryC
 
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
+import { defaultReading, readingLabel, readingsOf, wholeReadingLabel, type ViewAnswer } from '../../objectViews'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import { viewMintedByExtend } from './plan/planStep'
 import type { ExtendChange, GroundedId, GroundedReferent, PlanStep, Referent, TransferMembershipChange } from './plan/planStep'
@@ -52,6 +53,12 @@ export type GroundedAttemptCandidate = {
     attempt: CommandAttempt
     confidence: number
     alternative: ConsultAlternative
+    /** The part of each object this candidate means, by stableRefKey, for an object seen in several positions (what answering stores). The attempt carries a `view` only for a part, never for the whole. */
+    viewAnswers?: Record<string, ViewAnswer>
+    /** The option wording of each such part ("the cloth on the table", "both parts of the cloth"). */
+    viewLabels?: Record<string, string>
+    /** Each referent's name qualified by where it sits, for telling same-named options apart. */
+    placeNames?: Record<string, string>
 }
 
 export type ProposeAttemptCandidatesResult =
@@ -68,6 +75,68 @@ export type ProposeAttemptCandidatesInput = {
     noAssignmentReason: string
     /** A resumed command's `stableRefKey` to thing id: narrows that span's pool to the chosen object. */
     referentAnswers?: Readonly<Record<string, string>>
+    /** A resumed command's `stableRefKey` to the part chosen: narrows that object's positions to the one meant. */
+    viewAnswers?: Readonly<Record<string, ViewAnswer>>
+    /** The actor's room: it decides which position of an object is the actor's own (PR-2). Absent, an object is never asked about by position. */
+    actorRoom?: EphemeraRoomId
+}
+
+/** One way an object can be meant: a part to stamp as the referent's `view`, or the whole; `answer` is absent where nothing was asked. */
+type ViewChoice = { answer?: ViewAnswer; view?: EphemeraPresenceNodeId[]; label?: string }
+
+const sameBindings = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((binding) => b.includes(binding))
+
+const answerMatches = (choice: ViewChoice, answered: ViewAnswer): boolean => (
+    answered === 'whole'
+        ? choice.answer === 'whole'
+        : Array.isArray(choice.answer) && sameBindings(choice.answer, answered)
+)
+
+/**
+ * The ways an object is meant. One unasked choice unless it is seen in several positions and the
+ * actor's own position does not pick one (PR-2): then one choice per position and the whole (PR-4).
+ */
+const viewChoicesFor = (
+    entry: ObjectManipulationCatalogEntry | undefined,
+    actorRoom: EphemeraRoomId | undefined,
+    catalog: readonly ObjectManipulationCatalogEntry[]
+): ViewChoice[] => {
+    if (entry?.placement === undefined || actorRoom === undefined) {
+        return [{}]
+    }
+    const readings = readingsOf(entry.objectId, entry.placement)
+    if (readings.length < 2 || defaultReading(entry.objectId, entry.placement, actorRoom) !== undefined) {
+        return [{}]
+    }
+    const naming = hostNaming(catalog, actorRoom)
+    return [
+        ...readings.map((reading): ViewChoice => ({ answer: reading.bindings, view: reading.bindings, label: readingLabel(entry.normalizedShortName, reading, naming) })),
+        { answer: 'whole', label: wholeReadingLabel(entry.normalizedShortName) },
+    ]
+}
+
+const hostNaming = (catalog: readonly ObjectManipulationCatalogEntry[], actorRoom: EphemeraRoomId) => ({
+    actorRoom,
+    nameOf: (host: EphemeraMembershipHostId): string | undefined => catalog.find(({ objectId }) => objectId === host)?.normalizedShortName,
+})
+
+/** An object's name qualified by the position it is meant in, or its bare name where it has no position to give. */
+const placeNameOf = (
+    entry: ObjectManipulationCatalogEntry | undefined,
+    choice: ViewChoice,
+    actorRoom: EphemeraRoomId | undefined,
+    catalog: readonly ObjectManipulationCatalogEntry[],
+    fallback: string
+): string => {
+    if (choice.label !== undefined) {
+        return choice.label
+    }
+    if (entry?.placement === undefined || actorRoom === undefined) {
+        return fallback
+    }
+    const readings = readingsOf(entry.objectId, entry.placement)
+    const reading = defaultReading(entry.objectId, entry.placement, actorRoom) ?? (readings.length === 1 ? readings[0] : undefined)
+    return reading === undefined ? fallback : readingLabel(entry.normalizedShortName, reading, hostNaming(catalog, actorRoom))
 }
 
 /** Every object-span referent the attempts name, in first-appearance order, one per stableRefKey. */
@@ -122,10 +191,11 @@ export const attemptReferentNames = (attempt: CommandAttempt): Record<string, st
  */
 export const disambiguationLabels = (
     skeleton: ParseSkeleton,
-    options: readonly { answers: Record<string, string>; names: Record<string, string> }[]
+    options: readonly { answers: Record<string, string>; names: Record<string, string>; views?: Record<string, ViewAnswer> }[]
 ): string[] => {
     const keys = [...new Set(options.flatMap(({ answers }) => Object.keys(answers)))]
-    const ambiguous = keys.filter((key) => new Set(options.map(({ answers }) => answers[key])).size > 1)
+    // Two options differ on a key by the object, or by the part of it that is meant.
+    const ambiguous = keys.filter((key) => new Set(options.map(({ answers, views }) => JSON.stringify([answers[key], views?.[key]]))).size > 1)
     if (ambiguous.length === 1) {
         const [key] = ambiguous
         return options.map(({ names }) => names[key] ?? key)
@@ -281,18 +351,49 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
         return { ok: false, reason: input.noAssignmentReason }
     }
 
+    // An object seen in several positions is one candidate per way it can be meant (the actor's own position
+    // picks one, else each position and the whole), and a resumed command's answer keeps only the one chosen.
+    const viewed = assignments.flatMap(({ identities, confidence }) => {
+        const perKey = [...identities].map(([key, identity]) => {
+            const entry = input.catalog.find((catalogEntry) => catalogEntry.objectId === identity.objectId)
+            const answered = input.viewAnswers?.[key]
+            const choices = viewChoicesFor(entry, input.actorRoom, input.catalog)
+            return { key, identity, entry, choices: answered === undefined ? choices : choices.filter((choice) => choice.answer !== undefined && answerMatches(choice, answered)) }
+        })
+        return perKey.reduce<{ key: string; choice: ViewChoice }[][]>(
+            (partials, { key, choices }) => partials.flatMap((partial) => choices.map((choice) => [...partial, { key, choice }])),
+            [[]]
+        ).map((chosen) => ({ identities, confidence, chosen: new Map(chosen.map(({ key, choice }) => [key, choice])) }))
+    })
+    if (viewed.length === 0 && input.viewAnswers !== undefined && Object.keys(input.viewAnswers).length > 0) {
+        const [staleKey] = Object.keys(input.viewAnswers)
+        return { ok: false, reason: resumeErrorMessages.staleReferentAnswer(input.spanPools.get(staleKey!)?.span ?? staleKey!), stale: true }
+    }
+
     // One candidate per attempt per assignment: each is built from its own attempt's actions only.
-    const candidates = assignments.flatMap(({ identities, confidence }) => {
+    const candidates = viewed.flatMap(({ identities, confidence, chosen }) => {
         const names = new Map<string, SpanName>()
+        const viewAnswers: Record<string, ViewAnswer> = {}
+        const viewLabels: Record<string, string> = {}
+        const placeNames: Record<string, string> = {}
         for (const [key, identity] of identities) {
             const entry = input.catalog.find((catalogEntry) => catalogEntry.objectId === identity.objectId)
+            const choice = chosen.get(key) ?? {}
+            const shortName = entry?.normalizedShortName ?? identity.objectId
             names.set(key, {
                 id: identity.objectId,
-                shortName: entry?.normalizedShortName ?? identity.objectId,
+                shortName,
                 gloss: entry?.gloss,
                 presence: entry?.presence,
+                ...(choice.view !== undefined ? { view: choice.view } : {}),
             })
+            placeNames[key] = placeNameOf(entry, choice, input.actorRoom, input.catalog, shortName)
+            if (choice.answer !== undefined) {
+                viewAnswers[key] = choice.answer
+                viewLabels[key] = choice.label!
+            }
         }
+        const asked = Object.keys(viewAnswers).length > 0
         return input.attempts.map((attempt): GroundedAttemptCandidate => {
             const described = attempt.actions().map((action) => describeGroundedAction(action.grounded(names), planStepsOf(attempt.actions())))
             const primary = described[described.length - 1]!
@@ -300,6 +401,8 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
                 attempt: CommandAttempt.create(input.command, described.map((entry) => entry.action), attempt.narrationUnits()),
                 confidence,
                 alternative: primary.alternative,
+                placeNames,
+                ...(asked ? { viewAnswers, viewLabels } : {}),
             }
         })
     })

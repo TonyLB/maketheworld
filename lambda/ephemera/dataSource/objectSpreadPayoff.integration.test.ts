@@ -45,6 +45,10 @@ import { presenceBindingNode, testLudicGraph } from './positions/ludicGraph/test
 import type { EphemeraLudicGraph } from './positions/ludicGraph'
 import { buildLudicCache } from './positions/ludicCache/fold'
 import { ludicCacheRoomObjectContents } from './positions/ludicCache/roomObjectContents'
+import { ludicCacheRoomObjectHandles } from './positions/ludicCache/catalogHandles'
+import type { RoomInPlayObjectCatalogEntry } from './actions/roomObjectCatalogForCharacter'
+import { askRowPayload, selectQuestionFromConsult } from './actions/selectQuestion'
+import { resumePersistentCommand } from './actions/persistentCommand/resume'
 import { orchestrateRoomDescriptionStreams } from './perception/orchestrate'
 import { newDirectIngressAddress, registerIngressSlot } from './messageOrchestration'
 import type { EphemeraCacheDynamoItem } from './renderCache/baseClasses'
@@ -172,15 +176,18 @@ const useWorld = (objects: WorldObjects) => {
         ephemeraDBMock.transactWrite.mockImplementation(makeTransactWriteMock())
     })
 
-    /** A real parse, its positions reads answered by `containersOf` and the live graphs. */
-    const parse = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[]) => {
-        const parseResult = await parseCommand(
+    /**
+     * A real parse, its positions reads answered by `containersOf` and the live graphs. `catalog` stands in for the
+     * production one (`catalogFromCache`); the default carries no `presence` or `placement`, so nothing is ever asked by position.
+     */
+    const parseAny = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[]) => {
+        return parseCommand(
             {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
                 roomObjectLabels: objects.map(([, name]) => name),
-                roomObjectCatalog: objects.map(([objectId, name]) => ({ objectId, normalizedShortName: name })),
+                roomObjectCatalog: catalog ?? objects.map(([objectId, name]) => ({ objectId, normalizedShortName: name })),
             },
             {
                 invokeBedrockParseCommandImpl: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
@@ -191,11 +198,28 @@ const useWorld = (objects: WorldObjects) => {
                 },
             }
         )
+    }
+    const parse = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[]) => {
+        const parseResult = await parseAny(command, tokens, containersOf, catalog)
         if (!isParseCommandCommandAttemptResult(parseResult)) {
             throw new Error(`"${command}" did not parse to an attempt: ${JSON.stringify(parseResult)}`)
         }
         return parseResult
     }
+
+    /** The room catalog as production builds it: the handles of a cold fold over the committed graphs, which carry `presence` and `placement`. */
+    const catalogFromCache = async (): Promise<RoomInPlayObjectCatalogEntry[]> => (await ludicCacheRoomObjectHandles(ROOM_ID, {
+        readLudicCache: async (roomId) => ({
+            cache: (await buildLudicCache(roomId, [], { getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId), ...shortNameDeps })).cache,
+            outcome: 'hit' as const,
+        }),
+    })).map(({ objectId, shortName, gloss, presence, placement }) => ({
+        objectId,
+        normalizedShortName: shortName,
+        ...(gloss !== undefined ? { gloss } : {}),
+        ...(presence !== undefined ? { presence } : {}),
+        ...(placement !== undefined ? { placement } : {}),
+    }))
 
     /** The real commit, the attempt crossing the bus as plain data; positions' live hosts answered by `containersOf`. */
     const commit = async (attempt: CommandAttemptData, containersOf: (id: string) => string[]) => {
@@ -220,7 +244,7 @@ const useWorld = (objects: WorldObjects) => {
         ...shortNameDeps,
     })).objects
 
-    return { parse, commit, roomObjects }
+    return { parse, parseAny, commit, roomObjects, catalogFromCache }
 }
 
 describe('object spread payoff (integration)', () => {
@@ -392,5 +416,76 @@ describe('rope carried into the next room (integration)', () => {
         expect(ropeGraph.relationalEdges).toEqual([])
         expect((await roomObjects(ROOM_ID)).map(({ objectId }) => objectId)).toEqual([])
         expect((await roomObjects(NEXT_ROOM_ID)).map(({ objectId }) => objectId)).toEqual([])
+    })
+})
+
+describe('asking which part of a draped cloth (integration)', () => {
+    const { parse, parseAny, commit, catalogFromCache } = useWorld([[CLOTH_ID, 'cloth'], [TABLE_ID, 'table']])
+
+    const drapeTokens = '{"tokens":[{"type":"text","text":"drape"},{"type":"objectSpan","span":"cloth"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}'
+    const beforeDrape = (id: string) => (id === CLOTH_ID || id === TABLE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
+    const afterDrape = (id: string) => (id === CLOTH_ID ? [ROOM_ID, TABLE_ID] : beforeDrape(id))
+    const positionsReadDeps = {
+        getMembershipContainers: async (id: string) => afterDrape(id) as any,
+        getLudicGraph: (hostId: string) => internalCache.Positions.getLudicGraph(hostId as any),
+    }
+
+    const askTake = async () => {
+        await commit((await parse('drape the cloth over the table', drapeTokens, beforeDrape)).attempt, beforeDrape)
+        const catalog = await catalogFromCache()
+        const consult = await parseAny('take cloth', undefined, afterDrape, catalog)
+        return { catalog, consult }
+    }
+    /** What answering the option at `index` stores, applied to the row the question left (as `answerPending` merges it). */
+    const answered = (consult: Awaited<ReturnType<typeof parseAny>>, index: number) => {
+        let next = 0
+        const question = selectQuestionFromConsult(consult as any, () => `option-${next++}`)!
+        const row = askRowPayload(question, { messageId: 'MESSAGE#1', createdTime: 1, command: 'take cloth', sessionId: 's' })
+        const { pending, ...rest } = row
+        const optionId = `option-${index}`
+        return { question, payload: { ...rest, referentAnswers: pending!.options[optionId]!, viewAnswers: pending!.views?.[optionId] } }
+    }
+
+    it('asks which part of the cloth, by position, with the whole as the last option', async () => {
+        const { consult } = await askTake()
+
+        expect(consult).toMatchObject({ type: 'Consult' })
+        const { question } = answered(consult, 0)
+        expect(question.outcome.Options.map(({ Label }) => Label)).toEqual([['the cloth in the room'], ['the cloth on the table'], ['both parts of the cloth']])
+    })
+
+    it.each([0, 1, 2])('resumes the answer at option %i as a take of the cloth, with the part stamped as its view', async (index) => {
+        const { catalog, consult } = await askTake()
+        const { payload } = answered(consult, index)
+
+        const resumed = await resumePersistentCommand(payload as any, { characterId: CHARACTER_ID, hostRoomId: ROOM_ID, roomObjectCatalog: catalog, heldInventoryCatalog: [] }, { positionsReadDeps: positionsReadDeps as any })
+
+        expect(resumed).toMatchObject({ type: 'CommandAttempt' })
+        const [step] = CommandAttempt.fromJSON((resumed as any).attempt).actions().map((action) => action.desiredResult)
+        expect(step).toMatchObject({ primitive: 'transferMembership', object: { groundedId: CLOTH_ID } })
+        if (index === 2) {
+            expect((step as any).object).not.toHaveProperty('view')
+        } else {
+            expect((step as any).object.view).toHaveLength(1)
+        }
+
+        // Slice 3 only asks: whatever part was chosen, the take still lifts the whole cloth (Slice 4 reads the view).
+        await commit((resumed as any).attempt, afterDrape)
+        const clothGraph = await internalCache.Positions.getLudicGraph(CLOTH_ID)
+        expect(clothGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host))).toEqual([CHARACTER_ID])
+    })
+
+    it('does not ask when only one position of the cloth reaches the actor\'s room', async () => {
+        // A catalog entry whose second position sits in another room: the actor's own position picks the first.
+        const { catalog } = await askTake()
+        const cloth = catalog.find(({ objectId }) => objectId === CLOTH_ID)!
+        const [first, second] = cloth.placement!.find(({ host }) => host === CLOTH_ID)!.bindings
+        const oneEnd = catalog.map((entry) => (entry.objectId === CLOTH_ID
+            ? { ...entry, placement: [{ host: CLOTH_ID, bindings: [first!, { ...second!, rooms: [NEXT_ROOM_ID] }] }] }
+            : entry))
+
+        const result = await parseAny('take cloth', undefined, afterDrape, oneEnd as RoomInPlayObjectCatalogEntry[])
+
+        expect(result).toMatchObject({ type: 'CommandAttempt' })
     })
 })

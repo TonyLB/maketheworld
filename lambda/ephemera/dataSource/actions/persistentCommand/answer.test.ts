@@ -31,6 +31,21 @@ describe('answerPending', () => {
         expect(props.checkKeys).toEqual(['pending'])
     })
 
+    it('merges the chosen option\'s view answers beside the object answers', async () => {
+        const payload = twoCupPendingPayload()
+        const [key] = Object.keys(payload.pending!.options['option-red']!)
+        const pending = { ...payload.pending!, views: { 'option-blue': { [key!]: ['PRESENCE#a'] } } }
+        fakeOptimisticUpdate({ ...payload, pending, viewAnswers: { earlier: 'whole' }, deleteAt: nowSeconds() + 100 })
+        const result = await answerPending('CHARACTER#TESS', 'abc', 'option-blue')
+        expect(result.outcome === 'answered' && result.payload.viewAnswers).toEqual({ earlier: 'whole', [key!]: ['PRESENCE#a'] })
+    })
+
+    it('leaves view answers off a payload that never had any', async () => {
+        fakeOptimisticUpdate({ ...twoCupPendingPayload(), deleteAt: nowSeconds() + 100 })
+        const result = await answerPending('CHARACTER#TESS', 'abc', 'option-blue')
+        expect(result.outcome === 'answered' && result.payload.viewAnswers).toBeUndefined()
+    })
+
     it('reports a second answer to an answered question as a duplicate, whichever option it names', async () => {
         const payload = twoCupPendingPayload()
         fakeOptimisticUpdate({ ...payload, pending: { ...payload.pending!, answer: 'option-red' }, deleteAt: nowSeconds() + 100 })
