@@ -204,6 +204,7 @@ describe("StandardLudicGraph", () => {
                 edges: [
                     { kind: 'Navigation' as const, uuid: 'e1', payload: {} },
                     { kind: 'Bearing' as const, from: 'ROOM#a' as const, to: 'ROOM#b' as const },
+                    { kind: 'ConnectedTo' as const, from: 'OBJECT#ropeEndA' as const, to: 'OBJECT#ropeEndB' as const },
                     { kind: 'In' as const, from: 'OBJECT#cup' as const, to: 'OBJECT#box' as const },
                     { kind: 'On' as const, from: 'OBJECT#cup' as const, to: 'OBJECT#tray' as const },
                     { kind: 'PartOf' as const, from: 'OBJECT#spring' as const, to: 'OBJECT#contraption' as const },
@@ -211,7 +212,7 @@ describe("StandardLudicGraph", () => {
                 ],
             }
             const graph = StandardLudicGraph.fromJSON(data)
-            expect(graph.edges.length).toBe(6)
+            expect(graph.edges.length).toBe(7)
             expect(graph.toJSON()).toEqual(data)
         })
 

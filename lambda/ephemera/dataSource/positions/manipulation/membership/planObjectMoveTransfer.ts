@@ -1,4 +1,4 @@
-import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -8,6 +8,7 @@ import { buildObjectMoveOp } from './buildObjectMoveOp'
 import { defaultGetGraph } from '../relational/findRelationalChainsForRemoval'
 import { hasPresenceAncestor } from '../../ludicGraph/presenceAncestry'
 import type { GroundedPresence } from '../../../actions/enrich/objectManipulation/plan/planStep'
+import { bindingHasParentOn } from '../../ludicGraph/presenceParent'
 import { resolvePresenceMoves } from './resolvePresenceMoves'
 
 export type PlanObjectMoveTransferArgs = {
@@ -18,6 +19,8 @@ export type PlanObjectMoveTransferArgs = {
     toGroundedPresence?: readonly GroundedPresence[]
     /** Where the mover is seen in the host it leaves: names which of its bindings under that host moves. */
     moverGroundedPresence?: readonly GroundedPresence[]
+    /** The one binding of the mover that moves, named directly (the new binding an extend mints); `moverGroundedPresence` is then unused. */
+    moverBinding?: EphemeraPresenceNodeId
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
     /** A spread: the mover gains `toHostId` and stays in `fromHostId` (`resolvePresenceMoves`'s `keepFroms`). */
@@ -67,6 +70,7 @@ export const planObjectMoveTransfer = async (
         to: args.toHostId,
         ...(args.toGroundedPresence ? { toGroundedPresence: args.toGroundedPresence } : {}),
         ...(args.moverGroundedPresence ? { moverGroundedPresence: args.moverGroundedPresence } : {}),
+        ...(args.moverBinding ? { moverBinding: args.moverBinding } : {}),
         ...(args.keepFrom ? { keepFroms: true as const } : {}),
         getGraph,
     })
@@ -74,13 +78,19 @@ export const planObjectMoveTransfer = async (
         return { ok: false, errorCode: resolved.errorCode }
     }
 
+    // A view-move of one binding leaves its host only if no other binding of the mover stays under it:
+    // the mover's own containment edge in that host, and its departure, are then untouched (as on a spread).
+    const staysInFrom = args.moverBinding !== undefined && (await getGraph(args.entityId)).presenceNodes.some((node) => (
+        node.universalKey !== args.moverBinding && froms.some((hostId) => bindingHasParentOn(node, hostId))
+    ))
+
     const buildArgs = {
         entityId: args.entityId,
         departures,
         toHostId: args.toHostId,
         presenceSteps: resolved.steps,
         ...(args.containment ? { containment: args.containment } : {}),
-        ...(args.keepFrom ? { keepFrom: true as const } : {}),
+        ...(args.keepFrom || staysInFrom ? { keepFrom: true as const } : {}),
     }
 
     const plan = compilePositionKernelOp(buildObjectMoveOp(buildArgs))

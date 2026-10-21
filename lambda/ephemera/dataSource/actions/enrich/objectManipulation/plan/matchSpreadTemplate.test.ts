@@ -4,12 +4,12 @@ import { matchSpreadTemplate } from './matchSpreadTemplate'
 import type { SpreadTemplateMatchResult } from './matchSpreadTemplate'
 import type { Change } from './planStep'
 
-/** The attempt's step, so the expectations below read the plan's shape, not the attempt's. */
+/** The attempt's steps, so the expectations below read the plan's shape, not the attempt's. */
 const summarize = (result: SpreadTemplateMatchResult) => {
     if (result.type !== 'matched') {
         return result
     }
-    return { type: 'matched' as const, change: result.attempt.actions()[0].desiredResult as Change }
+    return { type: 'matched' as const, changes: result.attempt.actions().map((action) => action.desiredResult as Change) }
 }
 
 const spreadSkeleton = (verb: string, subjectSpan: string, prep: string, targetSpan: string): ParseSkeleton => [
@@ -20,19 +20,23 @@ const spreadSkeleton = (verb: string, subjectSpan: string, prep: string, targetS
 ]
 
 describe('matchSpreadTemplate', () => {
-    it('plans "spread rug over table" as the containment transfer that keeps its from', () => {
-        expect(summarize(matchSpreadTemplate(spreadSkeleton('spread', 'rug', 'over', 'table'), 'test command'))).toEqual({
-            type: 'matched',
-            change: {
-                kind: 'change',
-                primitive: 'transferMembership',
-                object: { referentType: 'objectSpan', span: 'rug', stableRefKey: 'rugRef' },
-                from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'rug', stableRefKey: 'rugRef' } },
-                to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
-                containment: 'On',
-                keepFrom: true,
-            },
+    it('plans "spread rug over table" as an extend, then a move of the new binding', () => {
+        const result = summarize(matchSpreadTemplate(spreadSkeleton('spread', 'rug', 'over', 'table'), 'test command'))
+        if (result.type !== 'matched') {
+            throw new Error('expected a match')
+        }
+        const rug = { referentType: 'objectSpan', span: 'rug', stableRefKey: 'rugRef' }
+        const [extend, move] = result.changes
+        expect(extend).toEqual({ kind: 'change', primitive: 'extend', object: rug, presenceUuid: expect.any(String) })
+        expect(move).toEqual({
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: { ...rug, extendedBindingUuid: (extend as { presenceUuid: string }).presenceUuid },
+            from: { referentType: 'currentHost', referentTarget: rug },
+            to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+            containment: 'On',
         })
+        expect(move).not.toHaveProperty('keepFrom')
     })
 
     it.each([
@@ -44,7 +48,7 @@ describe('matchSpreadTemplate', () => {
         ['drape', 'in', 'In'],
     ] as const)('plans "%s X %s Y" as a spread, kind %s', (verb, prep, containment) => {
         const result = summarize(matchSpreadTemplate(spreadSkeleton(verb, 'rug', prep, 'table'), 'test command'))
-        expect(result).toMatchObject({ type: 'matched', change: { containment, keepFrom: true } })
+        expect(result).toMatchObject({ type: 'matched', changes: [{ primitive: 'extend' }, { primitive: 'transferMembership', containment }] })
     })
 
     it('authors one unit over the actor and both objects, before, from the verb form and the matched phrase', () => {
@@ -52,9 +56,9 @@ describe('matchSpreadTemplate', () => {
         if (result.type !== 'matched') {
             throw new Error('expected a match')
         }
-        const [action] = result.attempt.actions()
+        const [, move] = result.attempt.actions()
         expect(result.attempt.narrationUnits()).toEqual([{
-            covers: [action!.id],
+            covers: [move!.id],
             variants: [{
                 audience: { refs: ['actor', 'rugRef', 'tableRef'], phase: 'before' },
                 parts: [{ slot: 'actor' }, { text: ' drapes ' }, { ref: 'rugRef' }, { text: ' over ' }, { ref: 'tableRef' }],

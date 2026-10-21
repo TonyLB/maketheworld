@@ -53,7 +53,7 @@ import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTrans
 import { commitAndPresentStepSequence } from './kernel/commitAndPresentStepSequence'
 import { dryRunStepSequence } from './kernel/dryRunStepSequence'
 import { deliverNarrationUnits } from './deliverNarrationUnits'
-import { parentRemainderKey } from '../ludicGraph/testFixtures'
+import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../ludicGraph/testFixtures'
 
 const getMembershipContainersMock = internalCache.Positions.getMembershipContainers as jest.MockedFunction<
     typeof internalCache.Positions.getMembershipContainers
@@ -420,6 +420,81 @@ describe('commitAttempt', () => {
         const [[spreadArgs], [putArgs]] = planObjectMoveTransferMock.mock.calls as any
         expect(spreadArgs).toMatchObject({ entityId: BROOM, fromHostId: ROOM, toHostId: TABLE, containment: 'On', keepFrom: true })
         expect(putArgs).not.toHaveProperty('keepFrom')
+    })
+
+    describe('an extend, then a move of the new binding', () => {
+        /** `[extend broom, move the new binding onto the table]`, as the spread template plans it, round-tripped through JSON. */
+        const spreadAttempt = (): CommandAttempt => CommandAttempt.fromJSON({
+            words: 'spread the broom over the table',
+            referents: [
+                { refKey: 'subject', id: BROOM, shortName: 'broom' },
+                { refKey: 'target', id: TABLE, shortName: 'table' },
+            ],
+            actions: [
+                {
+                    kind: 'position',
+                    id: 'extend-1',
+                    desiredResult: {
+                        kind: 'change',
+                        primitive: 'extend',
+                        object: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom' },
+                        presenceUuid: 'new',
+                    } as never,
+                    challenges: [],
+                },
+                {
+                    kind: 'position',
+                    id: 'move-1',
+                    desiredResult: {
+                        kind: 'change',
+                        primitive: 'transferMembership',
+                        object: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom', extendedBindingUuid: 'new' },
+                        from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom' } },
+                        to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'target', groundedId: TABLE, shortName: 'table' },
+                        containment: 'On',
+                    } as never,
+                    challenges: [],
+                },
+            ],
+            narrationUnits: [],
+        })
+        const broomGraph = () => testLudicGraph(BROOM, { nodes: [{ tag: 'Object', universalKey: BROOM }, presenceBindingNode('Base', ROOM)] })
+
+        beforeEach(() => {
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) => (
+                hostId === BROOM ? broomGraph() : { relationalEdges: [], presenceNodes: [] }
+            ))
+        })
+
+        it('commits the extend\'s steps, then the move\'s, in one sequence', async () => {
+            const moveSteps = [{ kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#new' }]
+            planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: moveSteps } as any, fromHostId: ROOM })
+
+            await commitAttempt({ attempt: spreadAttempt(), characterId: CHARACTER, messageBus, streamEvent })
+
+            const [committedPlan] = commitAndPresentStepSequenceMock.mock.calls[0]!
+            expect(withoutCaptureSteps(committedPlan.steps).map(({ kind }) => kind)).toEqual(['splitPresenceBinding', 'establishRelation', 'reparentPresenceBinding'])
+        })
+
+        it('names the move\'s binding by the extend\'s uuid, and plans it against the graph as the extend leaves it', async () => {
+            planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'stop' })
+
+            await commitAttempt({ attempt: spreadAttempt(), characterId: CHARACTER, messageBus, streamEvent })
+
+            const [moveArgs] = planObjectMoveTransferMock.mock.calls[0]!
+            expect(moveArgs).toMatchObject({ entityId: BROOM, fromHostId: ROOM, toHostId: TABLE, moverBinding: 'PRESENCE#new' })
+            const seen = await moveArgs.getGraph!(BROOM)
+            expect(seen.presenceNodes.map(({ universalKey }) => universalKey)).toEqual(['PRESENCE#Base', 'PRESENCE#new'])
+        })
+
+        it('refuses the whole attempt when the extend finds no single binding to extend', async () => {
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockResolvedValue({ relationalEdges: [], presenceNodes: [] })
+
+            await commitAttempt({ attempt: spreadAttempt(), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(planObjectMoveTransferMock).not.toHaveBeenCalled()
+            expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+        })
     })
 
     describe('an object in several hosts (the take rule)', () => {

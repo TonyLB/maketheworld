@@ -4,14 +4,15 @@ import { ExitEdgePayloadData, isExitEdgePayloadData } from "./exitEdge"
 
 //
 // LG-9/LG-10: one edge list over three classes of kind. Topology is today's <Exit> plus the
-// unauthored Bearing sibling; Membership and Peer mirror ephemera's HostRelationalEdgeKind
+// unauthored Bearing sibling and ConnectedTo (arrangement within one whole; a join between
+// SEPARATE wholes is Peer/Custom); Membership and Peer mirror ephemera's HostRelationalEdgeKind
 // split. `kind` is the sole discriminant -- no `category` field restates it. `edgeId`/`chainId`
 // sit on every non-Navigation kind as base fields (LG-10); Navigation keeps its existing `uuid`
 // field, which plays the same identity role (the authored uuid IS the edgeId -- one slot, not
 // two schemes).
 //
 
-export const LUDIC_EDGE_TOPOLOGY_KINDS = ['Navigation', 'Bearing'] as const
+export const LUDIC_EDGE_TOPOLOGY_KINDS = ['Navigation', 'Bearing', 'ConnectedTo'] as const
 export const LUDIC_EDGE_MEMBERSHIP_KINDS = ['In', 'On', 'PartOf'] as const
 export const LUDIC_EDGE_PEER_KINDS = ['Custom'] as const
 
@@ -121,6 +122,7 @@ const LUDIC_RELATIONAL_EDGE_KIND_SET = new Set<string>([
     ...LUDIC_EDGE_MEMBERSHIP_KINDS,
     ...LUDIC_EDGE_PEER_KINDS,
     'Bearing',
+    'ConnectedTo',
 ])
 
 export const isStandardLudicRelationalEdgeData = (arg: unknown): arg is StandardLudicRelationalEdgeData => {

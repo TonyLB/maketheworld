@@ -9,6 +9,7 @@ import {
     isEphemeraLudicGraphComponentNode,
     isEphemeraLudicGraphStructureNode,
     isEphemeraLudicGraphPort,
+    isEphemeraLudicRelationalEdgeData,
     isEphemeraLudicTerminalPrimitive,
     isEphemeraLudicPortAddress,
     isEphemeraLudicTerminalId,
@@ -756,6 +757,19 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 { tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'PartOf' },
             ],
         })).toBe(true)
+    })
+
+    // `ConnectedTo` is a label-free kind (topology within one whole): the Set must admit it, and a
+    // label on it is unrepresentable like on any non-Custom kind.
+    it('accepts a ConnectedTo edge between two presence-binding addresses', () => {
+        const edge = {
+            tag: 'Relational',
+            from: { owner: 'OBJECT#rope', port: 'PRESENCE#a' },
+            to: { owner: 'OBJECT#rope', port: 'PRESENCE#b' },
+            kind: 'ConnectedTo',
+        }
+        expect(isEphemeraLudicRelationalEdgeData(edge)).toBe(true)
+        expect(isEphemeraLudicRelationalEdgeData({ ...edge, relationLabel: 'spliced to' })).toBe(false)
     })
 
     // `'Present'` retired from `HostRelationalEdgeKind` entirely at presenceNodes Slice 3

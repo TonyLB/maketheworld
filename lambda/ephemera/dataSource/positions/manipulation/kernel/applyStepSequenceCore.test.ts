@@ -1289,4 +1289,62 @@ describe('applyStepSequenceCore', () => {
             expect(applyStepSequenceCore(steps, graphsMap())).toEqual({ verdict: 'stale', reasonCode: 'hostNotInFootprint' })
         })
     })
+
+    describe('ConnectedTo legality', () => {
+        const roomWithSiblings = () => testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, object(trayId), object(glassId), presenceBindingNode(parentRemainderKey(roomId))],
+            edges: [
+                { tag: 'Relational', from: trayId, to: roomId, kind: 'In' },
+                { tag: 'Relational', from: glassId, to: roomId, kind: 'In' },
+            ],
+        })
+        const connect = (relationKind: 'ConnectedTo' | 'Custom'): MutationKernelStep => ({
+            kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId,
+            ...(relationKind === 'Custom' ? { relationKind, relationLabel: 'tied to' } : { relationKind }),
+        })
+
+        it('throws on two siblings held in a room, leaving no partial result', () => {
+            expect(() => applyStepSequenceCore([connect('ConnectedTo')], graphsMap([roomId, roomWithSiblings()]))).toThrow(/ConnectedTo in ROOM#Cafe: OBJECT#Tray is not a part of ROOM#Cafe/)
+        })
+
+        it('still commits the same pair as a Custom peer relation', () => {
+            const outcome = applyStepSequenceCore([connect('Custom')], graphsMap([roomId, roomWithSiblings()]))
+
+            expect(outcome.verdict).toBe('legal')
+        })
+
+        it('commits a ConnectedTo between two parts of one whole', () => {
+            const whole = testLudicGraph(trayId, {
+                nodes: [object(trayId), object(glassId), object(tableId), presenceBindingNode(parentRemainderKey(trayId))],
+                edges: [
+                    { tag: 'Relational', from: glassId, to: trayId, kind: 'PartOf' },
+                    { tag: 'Relational', from: tableId, to: trayId, kind: 'PartOf' },
+                ],
+            })
+            const outcome = applyStepSequenceCore(
+                [{ kind: 'establishRelation', subjectId: glassId, targetId: tableId, hostId: trayId, relationKind: 'ConnectedTo' }],
+                graphsMap([trayId, whole])
+            )
+            if (outcome.verdict !== 'legal') { throw new Error(`expected legal, got ${JSON.stringify(outcome)}`) }
+
+            expect(outcome.graphs.get(trayId)!.relationalEdges.filter(({ kind }) => kind === 'ConnectedTo')).toHaveLength(1)
+        })
+
+        it('does not check a dissolve, so a stray edge can always be cleared', () => {
+            const stray = roomWithSiblings().addRelationalEdge({ from: trayId, to: glassId, kind: 'ConnectedTo' })
+            const outcome = applyStepSequenceCore(
+                [{ kind: 'dissolveRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'ConnectedTo' }],
+                graphsMap([roomId, stray])
+            )
+            if (outcome.verdict !== 'legal') { throw new Error(`expected legal, got ${JSON.stringify(outcome)}`) }
+
+            expect(outcome.graphs.get(roomId)!.relationalEdges.filter(({ kind }) => kind === 'ConnectedTo')).toHaveLength(0)
+        })
+
+        it('reports a vanished endpoint as stale rather than a violation', () => {
+            const outcome = applyStepSequenceCore([connect('ConnectedTo')], graphsMap([roomId, hostHolding(roomId)]))
+
+            expect(outcome).toEqual({ verdict: 'stale', reasonCode: 'staleRelationalCandidate' })
+        })
+    })
 })

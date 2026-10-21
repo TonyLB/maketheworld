@@ -33,6 +33,9 @@ type GroundedInstructionStepResult =
  * without typing them. A grounded non-Room host (an actor's inventory graph) is admitted.
  */
 const groundedInstructionStep = (change: Change<GroundedReferent>): GroundedInstructionStepResult => {
+    if (change.primitive === 'extend') {
+        return { ok: false, reason: 'extend has no executor lowering (the dry run judges its precondition and leaves it out of the worklist)' }
+    }
     if (change.primitive !== 'transferMembership') {
         return { ok: true, step: change }
     }

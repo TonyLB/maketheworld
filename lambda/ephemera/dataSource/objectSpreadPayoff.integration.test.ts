@@ -36,6 +36,7 @@ import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
 import { isParseCommandCommandAttemptResult } from './actions/baseClasses'
 import { CommandAttempt } from './actions/commandAttempt'
+import { PositionAttemptAction } from './actions/commandAttempt/action'
 import type { CommandAttemptData } from './actions/commandAttempt'
 import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { parentsOf } from './positions/ludicGraph/presenceParent'
@@ -54,12 +55,16 @@ const ephemeraDBMock = jest.mocked(ephemeraDB)
 const ROOM_ID = 'ROOM#TestRoom' as EphemeraRoomId
 const RUG_ID = 'OBJECT#Rug' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
+const NEXT_ROOM_ID = 'ROOM#NextRoom' as EphemeraRoomId
+const ROPE_ID = 'OBJECT#Rope' as EphemeraObjectId
+const CLOTH_ID = 'OBJECT#Cloth' as EphemeraObjectId
+const PLATE_ID = 'OBJECT#Plate' as EphemeraObjectId
 const CHARACTER_ID = 'CHARACTER#Tester' as EphemeraCharacterId
 const VIEWER = 'CHARACTER#viewer' as const
 const PERSPECTIVE_KEY = 'PERSPECTIVE#v1#abc123'
 const CACHE_ID = 'CACHE#fixture-cache-1' as const
 
-const SHORT_NAMES: Record<string, string> = { [RUG_ID]: 'rug', [TABLE_ID]: 'table' }
+const SHORT_NAMES: Record<string, string> = { [RUG_ID]: 'rug', [TABLE_ID]: 'table', [CLOTH_ID]: 'cloth', [PLATE_ID]: 'plate', [ROPE_ID]: 'rope' }
 
 /** Names for the cache's stored nodes and for the viewer's labels: the same per-object shortName. */
 const shortNameDeps = {
@@ -109,7 +114,13 @@ const makeTransactWriteMock = () => (
     })
 )
 
-describe('object spread payoff (integration)', () => {
+type WorldObjects = readonly (readonly [EphemeraObjectId, string])[]
+
+/**
+ * A world of one room holding `objects` and the actor, each object's Base under the room's Base (whose
+ * cover lists them all). Installs the mocks per test and returns the real parse, commit and room look.
+ */
+const useWorld = (objects: WorldObjects) => {
     beforeEach(() => {
         jest.clearAllMocks()
         let timestamp = 1_000_000_000_000
@@ -120,7 +131,7 @@ describe('object spread payoff (integration)', () => {
         assetDBMock.query.mockResolvedValue([] as any)
         ephemeraDBMock.getItems.mockResolvedValue([] as any)
 
-        for (const [objectId, shortName] of [[RUG_ID, 'rug'], [TABLE_ID, 'table']] as const) {
+        for (const [objectId, shortName] of objects) {
             internalCache.ImprovisationComponentData.set(objectId, IMPROVISATION_ASSET_ID, new StandardObject({
                 tag: 'Object',
                 universalKey: objectId,
@@ -133,19 +144,18 @@ describe('object spread payoff (integration)', () => {
         const initialGraphsByHost: Record<string, EphemeraLudicGraph> = {
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
                 nodes: [
-                    { tag: 'Object', universalKey: RUG_ID },
-                    { tag: 'Object', universalKey: TABLE_ID },
+                    ...objects.map(([universalKey]) => ({ tag: 'Object' as const, universalKey })),
                     { tag: 'Character', universalKey: CHARACTER_ID },
-                    presenceBindingNode(BASE_PRESENCE_ID, undefined, { members: [
-                        { host: RUG_ID, presence: BASE_PRESENCE_ID },
-                        { host: TABLE_ID, presence: BASE_PRESENCE_ID },
-                    ] }),
+                    presenceBindingNode(BASE_PRESENCE_ID, undefined, { members: objects.map(([host]) => ({ host, presence: BASE_PRESENCE_ID })) }),
                 ],
                 edges: [],
             }),
-            [TABLE_ID]: testLudicGraph(TABLE_ID, { nodes: [{ tag: 'Object', universalKey: TABLE_ID }, presenceBindingNode(BASE_PRESENCE_ID, ROOM_ID)] }),
-            [RUG_ID]: testLudicGraph(RUG_ID, { nodes: [{ tag: 'Object', universalKey: RUG_ID }, presenceBindingNode(BASE_PRESENCE_ID, ROOM_ID)] }),
+            ...Object.fromEntries(objects.map(([objectId]) => [
+                objectId,
+                testLudicGraph(objectId, { nodes: [{ tag: 'Object', universalKey: objectId }, presenceBindingNode(BASE_PRESENCE_ID, ROOM_ID)] }),
+            ])),
             [CHARACTER_ID]: testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode(BASE_PRESENCE_ID)] }),
+            [NEXT_ROOM_ID]: testLudicGraph(NEXT_ROOM_ID, { nodes: [presenceBindingNode(BASE_PRESENCE_ID)] }),
         }
 
         ephemeraDBMock.getItem.mockImplementation(async ({ Key }: any) => {
@@ -168,11 +178,8 @@ describe('object spread payoff (integration)', () => {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                roomObjectLabels: ['rug', 'table'],
-                roomObjectCatalog: [
-                    { objectId: RUG_ID, normalizedShortName: 'rug' },
-                    { objectId: TABLE_ID, normalizedShortName: 'table' },
-                ],
+                roomObjectLabels: objects.map(([, name]) => name),
+                roomObjectCatalog: objects.map(([objectId, name]) => ({ objectId, normalizedShortName: name })),
             },
             {
                 invokeBedrockParseCommandImpl: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
@@ -203,12 +210,8 @@ describe('object spread payoff (integration)', () => {
         return writeMessageBus
     }
 
-    const spreadTokens = '{"tokens":[{"type":"text","text":"spread"},{"type":"objectSpan","span":"rug"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}'
-    const beforeSpread = (id: string) => (id === RUG_ID || id === TABLE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
-    const afterSpread = (id: string) => (id === RUG_ID ? [ROOM_ID, TABLE_ID] : beforeSpread(id))
-
     /** The room header's object list over the committed graphs. */
-    const roomObjects = async () => (await ludicCacheRoomObjectContents(ROOM_ID, ['ASSET#viewer'], {
+    const roomObjects = async (roomId: EphemeraRoomId = ROOM_ID) => (await ludicCacheRoomObjectContents(roomId, ['ASSET#viewer'], {
         readLudicCache: async (roomId) => ({
             cache: (await buildLudicCache(roomId, [], { getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId), ...shortNameDeps })).cache,
             outcome: 'hit' as const,
@@ -216,17 +219,28 @@ describe('object spread payoff (integration)', () => {
         ...shortNameDeps,
     })).objects
 
+    return { parse, commit, roomObjects }
+}
+
+describe('object spread payoff (integration)', () => {
+    const { parse, commit, roomObjects } = useWorld([[RUG_ID, 'rug'], [TABLE_ID, 'table']])
+
+    const spreadTokens = '{"tokens":[{"type":"text","text":"spread"},{"type":"objectSpan","span":"rug"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}'
+    const beforeSpread = (id: string) => (id === RUG_ID || id === TABLE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
+    const afterSpread = (id: string) => (id === RUG_ID ? [ROOM_ID, TABLE_ID] : beforeSpread(id))
+
     it('a real "spread the rug over the table" leaves the rug in both hosts, and shows it from both', async () => {
         // Step A: real parse.
         const parseResult = await parse('spread the rug over the table', spreadTokens, beforeSpread)
-        const transfer = CommandAttempt.fromJSON(parseResult.attempt).actions().map((action) => action.desiredResult).find((step) => step?.kind === 'change')
+        const [extend, transfer] = CommandAttempt.fromJSON(parseResult.attempt).actions().map((action) => action.desiredResult)
+        expect(extend).toMatchObject({ primitive: 'extend', object: { groundedId: RUG_ID } })
         expect(transfer).toMatchObject({
             primitive: 'transferMembership',
             containment: 'On',
-            keepFrom: true,
-            object: { groundedId: RUG_ID },
+            object: { groundedId: RUG_ID, extendedBindingUuid: (extend as { presenceUuid: string }).presenceUuid },
             to: { groundedId: TABLE_ID },
         })
+        expect(transfer).not.toHaveProperty('keepFrom')
 
         // Step B: real commit, the attempt crossing the bus as plain data.
         const writeMessageBus = await commit(parseResult.attempt, beforeSpread)
@@ -238,13 +252,14 @@ describe('object spread payoff (integration)', () => {
             .map((message: any) => message.message.join(''))
         expect(lines).toEqual([expect.stringMatching(/ spreads rug over table$/)])
 
-        // The rug is in both hosts, through one binding under both.
+        // The rug is in both hosts, through two connected bindings: one under the room, one under the table.
         const [roomGraph, tableGraph, rugGraph] = await Promise.all([ROOM_ID, TABLE_ID, RUG_ID].map((hostId) => internalCache.Positions.getLudicGraph(hostId)))
         expect(roomGraph.nodeIds.has(RUG_ID)).toBe(true)
         expect(tableGraph.nodeIds.has(RUG_ID)).toBe(true)
         const rugBindings = rugGraph.presenceNodes
-        expect(rugBindings).toHaveLength(1)
-        expect(parentsOf(rugBindings[0]!).map(({ host }) => host).sort()).toEqual([ROOM_ID, TABLE_ID].sort())
+        expect(rugBindings).toHaveLength(2)
+        expect(rugBindings.flatMap((binding) => parentsOf(binding).map(({ host }) => host)).sort()).toEqual([ROOM_ID, TABLE_ID].sort())
+        expect(rugGraph.relationalEdges.map(({ kind }) => kind)).toEqual(['ConnectedTo'])
 
         // Step C: `look table` names the rug.
         const publishSpy = jest.spyOn(messageBus, 'publish')
@@ -274,9 +289,8 @@ describe('object spread payoff (integration)', () => {
         expect(tableWml).toContain('<ShortName>rug</ShortName>')
 
         // Step D: the room's look, the header's object list over the committed graphs.
-        // Slice 7(f) finding, recorded for the user's call and not fixed here: the room lists the
-        // rug twice, as a room-level object and as the table's content. Both parent bindings'
-        // covers list its one binding, and the header reads each cover forward.
+        // The rug is listed twice, as a room-level object and as the table's content: its two
+        // bindings sit under the room and under the table, and the header reads each cover forward.
         expect(await roomObjects()).toEqual([
             { objectId: RUG_ID, shortName: 'rug', contents: [] },
             { objectId: TABLE_ID, shortName: 'table', contents: [{ objectId: RUG_ID, shortName: 'rug' }] },
@@ -290,16 +304,92 @@ describe('object spread payoff (integration)', () => {
         await commit(takeResult.attempt, afterSpread)
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(2)
 
-        // Out of the room and off the table, and in hand, through its one binding.
+        // Out of the room and off the table, and in hand, its two bindings joined into one.
         const [roomGraph, tableGraph, rugGraph, characterGraph] = await Promise.all([ROOM_ID, TABLE_ID, RUG_ID, CHARACTER_ID].map((hostId) => internalCache.Positions.getLudicGraph(hostId)))
         expect(roomGraph.nodeIds.has(RUG_ID)).toBe(false)
         expect(tableGraph.nodeIds.has(RUG_ID)).toBe(false)
         expect(characterGraph.nodeIds.has(RUG_ID)).toBe(true)
         expect(tableGraph.relationalEdges).toEqual([])
+        expect(rugGraph.relationalEdges).toEqual([])
         expect(rugGraph.presenceNodes).toHaveLength(1)
         expect(parentsOf(rugGraph.presenceNodes[0]!).map(({ host }) => host)).toEqual([CHARACTER_ID])
 
         // Both of the room header's rug entries are gone.
         expect(await roomObjects()).toEqual([{ objectId: TABLE_ID, shortName: 'table', contents: [] }])
+    })
+})
+
+describe('cloth draped over a table (integration)', () => {
+    const { parse, commit } = useWorld([[CLOTH_ID, 'cloth'], [TABLE_ID, 'table'], [PLATE_ID, 'plate']])
+
+    const drapeTokens = '{"tokens":[{"type":"text","text":"drape"},{"type":"objectSpan","span":"cloth"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}'
+    const putTokens = '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"plate"},{"type":"text","text":"on"},{"type":"objectSpan","span":"cloth"}]}'
+    const beforeDrape = (id: string) => (id === CLOTH_ID || id === TABLE_ID || id === PLATE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
+    const afterDrape = (id: string) => (id === CLOTH_ID ? [ROOM_ID, TABLE_ID] : beforeDrape(id))
+
+    it('a plate put on the cloth lands in the cover of the part on the table', async () => {
+        await commit((await parse('drape the cloth over the table', drapeTokens, beforeDrape)).attempt, beforeDrape)
+
+        const putResult = await parse('put the plate on the cloth', putTokens, afterDrape)
+        await commit(putResult.attempt, afterDrape)
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(2)
+
+        const clothGraph = await internalCache.Positions.getLudicGraph(CLOTH_ID)
+        const [onFloor, onTable] = ['floor', 'table'].map((where) => clothGraph.presenceNodes.find((binding) => parentsOf(binding).some(({ host }) => host === (where === 'floor' ? ROOM_ID : TABLE_ID)))!)
+        expect(onTable.cover.members.map(({ host }) => host)).toEqual([PLATE_ID])
+        expect(onFloor.cover.members).toEqual([])
+    })
+})
+
+describe('rope carried into the next room (integration)', () => {
+    const { parse, commit, roomObjects } = useWorld([[ROPE_ID, 'rope']])
+
+    /**
+     * `[extend rope, move the new end into the next room]`, as the plan layer will state it once a
+     * command can name the far room: no template reaches it yet, so the attempt is built by hand and
+     * crosses the bus as plain data like any other.
+     */
+    const carryEndAttempt = (): CommandAttemptData => CommandAttempt.create('carry the rope end into the next room', [
+        new PositionAttemptAction('extend-rope', [], {
+            kind: 'change',
+            primitive: 'extend',
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ROPE_ID, shortName: 'rope' },
+            presenceUuid: 'far-end',
+        }),
+        new PositionAttemptAction('move-end', [], {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ROPE_ID, shortName: 'rope', extendedBindingUuid: 'far-end' },
+            from: { referentType: 'graphNode', groundedId: ROOM_ID },
+            to: { referentType: 'graphNode', groundedId: NEXT_ROOM_ID },
+        }),
+    ]).toJSON()
+    const containersOf = (id: string) => (id === ROPE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
+
+    it('shows the rope in both rooms, with its two ends connected', async () => {
+        await commit(carryEndAttempt(), containersOf)
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(1)
+
+        expect((await roomObjects(ROOM_ID)).map(({ objectId }) => objectId)).toEqual([ROPE_ID])
+        expect((await roomObjects(NEXT_ROOM_ID)).map(({ objectId }) => objectId)).toEqual([ROPE_ID])
+
+        const ropeGraph = await internalCache.Positions.getLudicGraph(ROPE_ID)
+        expect(ropeGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host)).sort()).toEqual([ROOM_ID, NEXT_ROOM_ID].sort())
+        expect(ropeGraph.relationalEdges.map(({ kind }) => kind)).toEqual(['ConnectedTo'])
+    })
+
+    it('then a real "take rope" takes the whole rope, both ends (the take rule, a shim until a take can say which part)', async () => {
+        await commit(carryEndAttempt(), containersOf)
+
+        const afterCarry = (id: string) => (id === ROPE_ID ? [ROOM_ID, NEXT_ROOM_ID] : containersOf(id))
+        const takeResult = await parse('take rope', undefined, afterCarry)
+        await commit(takeResult.attempt, afterCarry)
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(2)
+
+        const ropeGraph = await internalCache.Positions.getLudicGraph(ROPE_ID)
+        expect(ropeGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host))).toEqual([CHARACTER_ID])
+        expect(ropeGraph.relationalEdges).toEqual([])
+        expect((await roomObjects(ROOM_ID)).map(({ objectId }) => objectId)).toEqual([])
+        expect((await roomObjects(NEXT_ROOM_ID)).map(({ objectId }) => objectId)).toEqual([])
     })
 })

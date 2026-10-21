@@ -445,6 +445,19 @@ describe('subGraphFromNodes', () => {
         expect(first.ports[0].portId).toEqual(second.ports[0].portId)
     })
 
+    it('mints the same stub id for a ConnectedTo edge in either endpoint order, but not for a directional one', () => {
+        const stubIdFor = (from: typeof objC, to: typeof objD, kind: 'ConnectedTo' | 'On') => subGraphFromNodes(testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC },
+                { tag: 'Object', universalKey: objD },
+            ],
+            edges: [{ tag: 'Relational', from, to, kind }],
+        }), bucket).ports[0].portId
+        expect(stubIdFor(objC, objD, 'ConnectedTo')).toEqual(stubIdFor(objD, objC, 'ConnectedTo'))
+        expect(stubIdFor(objC, objD, 'On')).not.toEqual(stubIdFor(objD, objC, 'On'))
+    })
+
     it('prefixes a minted stub id with STUB-, so the merge can tell it from an authored crossing port', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [

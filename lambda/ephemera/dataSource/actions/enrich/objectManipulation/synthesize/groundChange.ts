@@ -55,6 +55,9 @@ export const groundChange = (change: Change, assignment: ReferentAssignment): Ch
             to: groundOneReferent(change.to, assignment),
         }
     }
+    if (change.primitive === 'extend') {
+        return { ...change, object: groundOneReferent(change.object, assignment) }
+    }
     return {
         ...change,
         subject: groundOneReferent(change.subject, assignment),

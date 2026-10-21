@@ -27,6 +27,11 @@ export type ResolvePresenceMovesArgs = {
      */
     moverGroundedPresence?: readonly GroundedPresence[]
     /**
+     * The one binding of the mover that moves, named directly: a view-move. It must hold a parent on a
+     * `from` host (else `moverBindingMissing`); `moverGroundedPresence` is not consulted.
+     */
+    moverBinding?: EphemeraPresenceNodeId
+    /**
      * A spread: the mover gains `to` and keeps its parents on the `from` hosts, so its binding
      * sits under both. Absent, a move: the parents on the `from` hosts are lost.
      */
@@ -36,7 +41,7 @@ export type ResolvePresenceMovesArgs = {
 
 export type ResolvedPresenceMoves =
     | { ok: true; steps: MutationKernelStep[] }
-    | { ok: false; errorCode: 'destinationBindingMissing' | 'destinationBindingAmbiguous' | 'moverBindingAmbiguous' }
+    | { ok: false; errorCode: 'destinationBindingMissing' | 'destinationBindingAmbiguous' | 'moverBindingAmbiguous' | 'moverBindingMissing' }
 
 /**
  * The hosts whose bindings a set of moves into one receiver may merge below it: a child listed under
@@ -119,6 +124,54 @@ export const destinationBindingOf = (
         return { presence: only }
     }
     return { errorCode: destGraph.presenceNodes.length === 0 ? 'destinationBindingMissing' : 'destinationBindingAmbiguous' }
+}
+
+/** How far a binding sits below a root: 0 when hostless, else one more than its deepest parent binding. */
+const bindingDepth = async (
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
+    binding: EphemeraLudicGraphStructureNode,
+    visiting: ReadonlySet<string> = new Set()
+): Promise<number> => {
+    const parents = parentsOf(binding)
+    if (parents.length === 0 || visiting.has(binding.universalKey)) {
+        return 0
+    }
+    const depths = await Promise.all(parents.map(async ({ host, presence }) => {
+        const parentBinding = (await getGraph(host)).presenceNodes.find(({ universalKey }) => universalKey === presence)
+        return parentBinding ? bindingDepth(getGraph, parentBinding, new Set([...visiting, binding.universalKey])) : 0
+    }))
+    return 1 + Math.max(...depths)
+}
+
+/**
+ * `destinationBindingOf`, for a destination that may hold several bindings (an extended whole: a cloth
+ * draped over a table is one part on the floor and one on the table). When where the destination is
+ * seen does not single one out, the mover lands on the **deepest** part, the one furthest below the
+ * room (the part on the table, which supports it); two equally deep are `destinationBindingAmbiguous`.
+ * A first-iteration stand-in: once a command can say which part it means ("the cup on the table"),
+ * the player's own naming replaces it and an unnamed choice is a question to the player.
+ */
+const destinationBindingForMove = async (
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
+    destGraph: EphemeraLudicGraph,
+    seen: readonly GroundedPresence[] | undefined
+): Promise<ReturnType<typeof destinationBindingOf>> => {
+    const plain = destinationBindingOf(destGraph, seen)
+    if (isEphemeraRoomId(destGraph.hostId) || isEphemeraAreaId(destGraph.hostId)) {
+        return plain
+    }
+    const matched = seen && seen.length > 0 ? bindingsUnderSeenBuckets(destGraph, seen) : []
+    if (matched.length === 1) {
+        return plain
+    }
+    const candidates = destGraph.presenceNodes.filter(({ universalKey }) => matched.length > 1 ? matched.includes(universalKey) : true)
+    if (candidates.length < 2) {
+        return plain
+    }
+    const depths = await Promise.all(candidates.map(async (binding) => ({ binding, depth: await bindingDepth(getGraph, binding) })))
+    const deepest = Math.max(...depths.map(({ depth }) => depth))
+    const tied = depths.filter(({ depth }) => depth === deepest)
+    return tied.length === 1 ? { presence: tied[0]!.binding.universalKey } : { errorCode: 'destinationBindingAmbiguous' }
 }
 
 const hostsOfCover = (cover: EphemeraPresenceCover): EphemeraMembershipHostId[] => (
@@ -261,14 +314,23 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
             }),
         }
     }
-    const destination = destinationBindingOf(await args.getGraph(args.to), args.toGroundedPresence)
+    const destination = await destinationBindingForMove(args.getGraph, await args.getGraph(args.to), args.toGroundedPresence)
     if ('errorCode' in destination) {
         return { ok: false, errorCode: destination.errorCode }
     }
     const to: ParentBinding = { host: args.to, presence: destination.presence }
 
     const moverGraph = await args.getGraph(args.moved)
+    if (args.moverBinding !== undefined) {
+        const binding = moverGraph.presenceNodes.find(({ universalKey }) => universalKey === args.moverBinding)
+        if (!binding || !args.froms.some((fromHostId) => bindingHasParentOn(binding, fromHostId))) {
+            return { ok: false, errorCode: 'moverBindingMissing' }
+        }
+    }
     const departing = args.froms.map((fromHostId) => {
+        if (args.moverBinding !== undefined) {
+            return moverGraph.presenceNodes.filter((node) => node.universalKey === args.moverBinding && bindingHasParentOn(node, fromHostId))
+        }
         const underHost = moverGraph.presenceNodes.filter((node) => bindingHasParentOn(node, fromHostId))
         const seen = args.moverGroundedPresence
         const narrowed = underHost.length > 1 && seen && seen.length > 0
@@ -316,6 +378,21 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
     const joins: MutationKernelStep[] = []
     if (under.length > 1) {
         const survivor = under.find(({ universalKey }) => universalKey === BASE_PRESENCE_ID) ?? existing[0] ?? movers[0]
+        // A `ConnectedTo` between two bindings that end up as one has nothing left to join: dissolve it ahead of the
+        // join, so no edge is left naming the absorbed binding. (An edge from one of them to a binding outside this
+        // set would still dangle; contracting those is the contract instruction's work, not this convergence's.)
+        const joining = new Set(under.map(({ universalKey }) => universalKey))
+        const ends = (endpoint: unknown): boolean => typeof endpoint === 'object' && endpoint !== null
+            && (endpoint as { owner?: string }).owner === hostId && joining.has((endpoint as { port: EphemeraPresenceNodeId }).port)
+        joins.push(...moverGraph.relationalEdges
+            .filter((edge) => edge.kind === 'ConnectedTo' && ends(edge.from) && ends(edge.to))
+            .map((edge): MutationKernelStep => ({
+                kind: 'dissolveRelation',
+                hostId,
+                subjectId: edge.from,
+                targetId: edge.to,
+                relationKind: 'ConnectedTo',
+            })))
         joins.push(...await joinStepsFor(args.getGraph, hostId, survivor, under.filter((node) => node !== survivor), [...kept, to]))
     }
     return {

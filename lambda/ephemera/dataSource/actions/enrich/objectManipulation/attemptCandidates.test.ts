@@ -241,7 +241,9 @@ describe('a spread (keepFrom)', () => {
         }
         const [candidate] = result.candidates
         expect(candidate!.alternative).toEqual({ label: 'cup / tray', proposedCommand: 'spread the cup on the tray' })
-        expect(candidate!.attempt.actions()[0]!.describe()).toBe('Spread cup on tray')
+        const [extend, move] = candidate!.attempt.actions()
+        expect(extend!.describe()).toBe('Extend cup')
+        expect(move!.describe()).toBe('Spread cup on tray')
     })
 
     it('is left unexpanded: the object leaves nothing, so a tie it has gets no dissolve, where a take of it does', () => {

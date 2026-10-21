@@ -37,6 +37,20 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         }))
     })
 
+    it('throws on a deferred ConnectedTo boundary edge: no challenge type exists for a part leaving its whole', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [{ tag: 'Relational', from: ropeId, to: postId, kind: 'ConnectedTo' }],
+        })
+        const primaryAction = new PositionAttemptAction('action-ct', [], undefined, 'Take: rope')
+
+        expect(() => attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, [graph], noShards))
+            .toThrow(/'ConnectedTo' boundary edge deferred/)
+    })
+
     it('adds one action carrying a CustomEdgeChallenge (with the real edge) for a defer-classified boundary edge', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
