@@ -2191,7 +2191,19 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                         : []
                 )) as any,
             }))
-            expect(entries).toEqual([{ objectId: TABLE, normalizedShortName: 'table', presence: [{ host: TABLE, presence: tableHere }, { host: TABLE, presence: tableThere }] }])
+            expect(entries).toEqual([{
+                objectId: TABLE,
+                normalizedShortName: 'table',
+                // Each own binding records the room it sits in, which is what lets a view be told from the other.
+                placement: [{
+                    host: TABLE,
+                    bindings: [
+                        { presence: tableHere, under: [{ host: ROOM, presence: parentRemainderKey(ROOM) }], rooms: [ROOM] },
+                        { presence: tableThere, under: [{ host: OTHER_ROOM, presence: parentRemainderKey(OTHER_ROOM) }], rooms: [OTHER_ROOM] },
+                    ],
+                }],
+                presence: [{ host: TABLE, presence: tableHere }, { host: TABLE, presence: tableThere }],
+            }])
 
             const { result } = await run(
                 { command: 'take table', roomObjectLabels: roomObjectLabelsFromCatalog(entries), roomObjectCatalog: entries },

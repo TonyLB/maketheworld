@@ -11,6 +11,7 @@ import internalCache from '../../internalCache'
 import { ludicCacheRoomObjectHandles, type RoomObjectHandlesDeps } from '../positions/ludicCache/catalogHandles'
 import { normalizeExitName } from './roomExitTargetsForCharacter'
 import type { GroundedPresence } from './enrich/objectManipulation/plan/planStep'
+import type { PresencePlacement } from './objectViews'
 
 export type RoomInPlayObjectCatalogEntry = {
     objectId: EphemeraObjectId
@@ -21,6 +22,8 @@ export type RoomInPlayObjectCatalogEntry = {
     gloss?: string
     /** Every place it is seen: its presence buckets, or the room it sits in directly (`GroundedPresence`). */
     presence?: GroundedPresence[]
+    /** The structure `presence` is projected from (`audienceBuckets`): each own binding with the parents it sits under, which `readingsOf`/`defaultReading` (`objectViews.ts`) read. Absent on a held entry, which reads as the whole object. */
+    placement?: PresencePlacement[]
 }
 
 export type RoomObjectCatalogForCharacter = {
@@ -61,7 +64,7 @@ export async function getRoomObjectCatalogForCharacter(
     const handles = await ludicCacheRoomObjectHandles(roomId, { readLudicCache: deps.readLudicCache })
 
     const entries = handles
-        .map(({ objectId, shortName, gloss, presence }): RoomInPlayObjectCatalogEntry | undefined => {
+        .map(({ objectId, shortName, gloss, presence, placement }): RoomInPlayObjectCatalogEntry | undefined => {
             const normalizedShortName = normalizeExitName(shortName)
             if (normalizedShortName.length === 0) {
                 return undefined
@@ -71,6 +74,7 @@ export async function getRoomObjectCatalogForCharacter(
                 normalizedShortName,
                 ...(gloss !== undefined ? { gloss } : {}),
                 ...(presence !== undefined ? { presence } : {}),
+                ...(placement !== undefined ? { placement } : {}),
             }
         })
         .filter((entry): entry is RoomInPlayObjectCatalogEntry => entry !== undefined)
