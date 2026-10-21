@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { factForRelationalEdge, factsForStep, movedFactsFor } from './factsForStep'
+import { factForRelationalEdge, factsForStep, isFactOfRelationalEdge, movedFactsFor } from './factsForStep'
 import type { MembershipChange } from './membershipChanges'
 import type { MutationKernelStep } from './kernelStep'
 import { testLudicGraph } from '../../ludicGraph/testFixtures'
@@ -19,6 +19,24 @@ const beatAnchorTime = 1_700_000_000_000
 const graphsMap = (
     ...entries: [EphemeraMembershipHostId, EphemeraLudicGraph][]
 ): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map(entries)
+
+describe('isFactOfRelationalEdge', () => {
+    const fact = (kind: 'ConnectedTo' | 'On', subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => ({
+        type: 'Object Relation Changed' as const, subjectId, targetId, hostId: roomId, operation: 'establish' as const, beatAnchorTime, relationKind: kind,
+    })
+    const edge = (kind: 'ConnectedTo' | 'On', subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => ({
+        subjectId, targetId, operation: 'establish' as const, relationKind: kind,
+    })
+
+    it('matches a ConnectedTo fact in either endpoint order', () => {
+        expect(isFactOfRelationalEdge(fact('ConnectedTo', glassId, tableId), edge('ConnectedTo', tableId, glassId))).toBe(true)
+    })
+
+    it('stays directional for other kinds', () => {
+        expect(isFactOfRelationalEdge(fact('On', glassId, tableId), edge('On', tableId, glassId))).toBe(false)
+        expect(isFactOfRelationalEdge(fact('On', glassId, tableId), edge('On', glassId, tableId))).toBe(true)
+    })
+})
 
 describe('factsForStep', () => {
     const change = (entityId: MembershipChange['entityId'], left: MembershipChange['left'], arrived: MembershipChange['arrived']): MembershipChange => ({ entityId, left, arrived, anchor: 0 })

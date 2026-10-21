@@ -9,7 +9,7 @@ import type { EphemeraLudicGraphComponentNode, EphemeraLudicGraphPort, EphemeraL
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
-import { collapseCrossingPorts, collapseSameHostStubs, foldSameHostBuckets, mergeSameHostBucket } from './mergeReducer'
+import { collapseCrossingPorts, collapsedEdgeIdentityKey, collapseSameHostStubs, foldSameHostBuckets, mergeSameHostBucket } from './mergeReducer'
 import { isEphemeraLudicCacheEdge } from './types'
 import { parentRemainderKey } from '../ludicGraph/testFixtures'
 
@@ -641,5 +641,20 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
         expect(partialViaB).not.toEqual(partialViaC)
         expect(partialViaB[0].chainId).toBeUndefined()
         expect(partialViaC[0].chainId).toBeUndefined()
+    })
+})
+
+describe('collapsedEdgeIdentityKey: ConnectedTo symmetry', () => {
+    const a = { owner: 'OBJECT#Rope' as EphemeraObjectId, port: 'PRESENCE#a' }
+    const b = { owner: 'OBJECT#Rope' as EphemeraObjectId, port: 'PRESENCE#b' }
+
+    it('hashes a ConnectedTo edge alike in either endpoint order', () => {
+        expect(collapsedEdgeIdentityKey({ tag: 'Relational', from: a, to: b, kind: 'ConnectedTo' }))
+            .toEqual(collapsedEdgeIdentityKey({ tag: 'Relational', from: b, to: a, kind: 'ConnectedTo' }))
+    })
+
+    it('keeps Custom directional', () => {
+        expect(collapsedEdgeIdentityKey({ tag: 'Relational', from: a, to: b, kind: 'Custom', relationLabel: 'tied to' }))
+            .not.toEqual(collapsedEdgeIdentityKey({ tag: 'Relational', from: b, to: a, kind: 'Custom', relationLabel: 'tied to' }))
     })
 })

@@ -8,6 +8,7 @@ import type {
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
+    ephemeraEdgeEndpointsEqual,
     ephemeraLudicTerminalRefersTo,
     ephemeraLudicTerminalsEqual,
     isEphemeraLudicRelationalEdgeData,
@@ -44,7 +45,7 @@ export type HostRelationalEdge =
 
 // 'Present' retired from HostRelationalEdgeKind at presenceNodes Slice 3 (PN-14) -- no edge of
 // that kind was ever constructed by any writer, so this recovery path never needed to salvage one.
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Custom', 'In', 'PartOf'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Custom', 'In', 'PartOf', 'ConnectedTo'])
 
 export const toStoredRelationalEdge = (
     edge: HostRelationalEdge
@@ -187,7 +188,7 @@ export function edgesMatch(
     if (a.chainId !== b.chainId) {
         return false
     }
-    if (!ephemeraLudicTerminalsEqual(a.from, b.from) || !ephemeraLudicTerminalsEqual(a.to, b.to) || a.kind !== b.kind) {
+    if (a.kind !== b.kind || !ephemeraEdgeEndpointsEqual(a, b)) {
         return false
     }
     // Both sides are tested even though the kind equality above already implies the second:

@@ -54,6 +54,7 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                     { tag: 'Relational', kind: 'Custom', relationLabel: 'under', from: charId, to: areaId },
                     { tag: 'Relational', kind: 'Custom', relationLabel: 'against', from: roomId, to: featureId },
                     { tag: 'Relational', kind: 'Custom', from: boxId, to: charId, relationLabel: 'Beside' },
+                    { tag: 'Relational', kind: 'ConnectedTo', from: boxId, to: featureId },
                     // Port-qualified terminal (LG-11): an interior edge landing on this graph's
                     // own boundary port -- `owner: tableId` is `graph.hostId` itself, exactly the
                     // running example's `{owner: OBJECT#Box, port: 8f3a} -TiedTo-> OBJECT#Cup` shape.
@@ -72,7 +73,7 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
             // Nothing is cut away: `bindingUuid`'s cover lists every other component, so the bucket is every
             // component node plus both presence nodes (carried unconditionally) plus the root.
             expect(wire.nodes).toHaveLength(8)
-            expect(wire.edges).toHaveLength(8)
+            expect(wire.edges).toHaveLength(9)
             expect(wire.ports).toHaveLength(1)
 
             const roundTripped = fromWireLudicGraph(tableId, wire)

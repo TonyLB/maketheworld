@@ -1,4 +1,6 @@
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardLudicNavigationEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
 
 import {
@@ -613,6 +615,39 @@ describe('EphemeraLudicGraph', () => {
                 { from: OBJECT_A, to: OBJECT_B, kind: 'Custom', relationLabel: 'leaning' },
                 { from: OBJECT_A, to: OBJECT_B, kind: 'Custom', relationLabel: 'against' }
             )).toBe(false)
+        })
+
+        it('edgesMatch treats ConnectedTo as symmetric, and every other kind as directional', () => {
+            expect(edgesMatch(
+                { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' },
+                { from: OBJECT_B, to: OBJECT_A, kind: 'ConnectedTo' }
+            )).toBe(true)
+            expect(edgesMatch(
+                { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' },
+                { from: OBJECT_A, to: OBJECT_A, kind: 'ConnectedTo' }
+            )).toBe(false)
+            expect(edgesMatch(
+                { from: OBJECT_A, to: OBJECT_B, kind: 'Custom', relationLabel: 'leaning' },
+                { from: OBJECT_B, to: OBJECT_A, kind: 'Custom', relationLabel: 'leaning' }
+            )).toBe(false)
+            expect(edgesMatch(
+                { from: OBJECT_A, to: OBJECT_B, kind: 'On' },
+                { from: OBJECT_B, to: OBJECT_A, kind: 'On' }
+            )).toBe(false)
+        })
+
+        it('a ConnectedTo edge between binding addresses round-trips through storage', () => {
+            const edge: EphemeraLudicRelationalEdgeData = {
+                tag: 'Relational',
+                from: { owner: OBJECT_A, port: 'PRESENCE#a' },
+                to: { owner: OBJECT_A, port: 'PRESENCE#b' },
+                kind: 'ConnectedTo',
+            }
+            expect(isEphemeraLudicRelationalEdgeData(edge)).toBe(true)
+            expect(extractRelationalEdgesFromStored({ edges: [edge] as unknown as [] })).toEqual([
+                { from: edge.from, to: edge.to, kind: 'ConnectedTo' },
+            ])
+            expect(toStoredRelationalEdge({ from: edge.from, to: edge.to, kind: 'ConnectedTo' })).toEqual(edge)
         })
 
         it('toStoredRelationalEdge includes relationLabel for Custom only', () => {

@@ -126,10 +126,13 @@ export const isFactOfRelationalEdge = (
     fact: ObjectRelationChangedPublishedPayload,
     edge: RelationalEdgeFactSource
 ): boolean => (
-    fact.subjectId === edge.subjectId
-    && fact.targetId === edge.targetId
-    && fact.operation === edge.operation
+    fact.operation === edge.operation
     && fact.relationKind === edge.relationKind
+    && (
+        (fact.subjectId === edge.subjectId && fact.targetId === edge.targetId)
+        // `ConnectedTo` is symmetric: the fact may name the pair in either order.
+        || (fact.relationKind === 'ConnectedTo' && fact.subjectId === edge.targetId && fact.targetId === edge.subjectId)
+    )
     && (fact.relationKind !== 'Custom' || (edge.relationKind === 'Custom' && fact.relationLabel === edge.relationLabel))
 )
 

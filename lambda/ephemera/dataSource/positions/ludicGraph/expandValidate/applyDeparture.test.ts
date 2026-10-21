@@ -37,6 +37,25 @@ describe('applyDeparture', () => {
         expect(outcome.sourceGraph.objectIds.has(tableId)).toBe(true)
     })
 
+    it('repairable/dissolveRelationalEdge: a ConnectedTo boundary edge (a part leaving its whole) defers like a non-Custom edge', () => {
+        const sourceGraph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: tableId },
+            ],
+            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'ConnectedTo' }],
+        })
+
+        const outcome = applyDeparture(sourceGraph, trayId)
+
+        expect(outcome).toEqual(expect.objectContaining({
+            verdict: 'repairable',
+            reasonCode: 'transferInteractionDefer',
+            repairKind: 'dissolveRelationalEdge',
+            authority: 'worldChanging',
+        }))
+    })
+
     it('repairable/classifyCustomRelation: a Custom boundary edge names the decision it needs, not a severing', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [

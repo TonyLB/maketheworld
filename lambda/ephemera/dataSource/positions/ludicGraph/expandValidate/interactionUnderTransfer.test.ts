@@ -15,6 +15,8 @@ describe('classifyInteractionUnderTransfer', () => {
     it.each([
         ['Custom', 'subject', 'defer'],
         ['Custom', 'target', 'defer'],
+        ['ConnectedTo', 'subject', 'defer'],
+        ['ConnectedTo', 'target', 'defer'],
     ] as const)('%s / %s -> %s', (relationKind, movedRole, expected) => {
         expect(classifyInteractionUnderTransfer(relationKind, movedRole)).toBe(expected)
     })

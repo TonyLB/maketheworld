@@ -15,7 +15,8 @@ export type InteractionUnderTransferOutcome = 'dissolve' | 'defer'
  * the move --- a hosted thing lives in its host's own shard and travels with it, so hosting kinds
  * never reach this table (see the throw below).
  *
- * Every peer relation is `Custom`, and it defers whichever end moves: whether a severed peer edge
+ * Every peer relation is `Custom`, and it defers whichever end moves (`ConnectedTo`, topology
+ * within one whole, defers the same way): whether a severed peer edge
  * matters (clearance under a table, a rope still lashed) is an interaction judgment for the
  * adjudicator, not a fixed rule. The closed `Under`/`Against` kinds, which dissolved on some
  * moves, no longer exist.
@@ -26,6 +27,11 @@ export function classifyInteractionUnderTransfer(
 ): InteractionUnderTransferOutcome {
     switch (relationKind) {
         case 'Custom':
+            return 'defer'
+        case 'ConnectedTo':
+            // A `ConnectedTo` edge reaches this graph only when a part moves out of its own whole,
+            // which tears the whole apart: an interaction for the adjudicator, as a peer edge is,
+            // as a first iteration.
             return 'defer'
         case 'On':
         case 'In':

@@ -144,9 +144,13 @@ const stubPortIdFromEdge = (edge: HostRelationalEdge): string => {
     }
     const terminalKey = (terminal: EphemeraLudicTerminalId): string =>
         typeof terminal === 'string' ? terminal : `${terminal.owner}#${terminal.port}`
+    // `ConnectedTo` is symmetric: sort the endpoint keys so either order mints the same stub.
+    const endpointKeys = [terminalKey(edge.from), terminalKey(edge.to)]
+    if (edge.kind === 'ConnectedTo') {
+        endpointKeys.sort()
+    }
     return `STUB-${JSON.stringify([
-        terminalKey(edge.from),
-        terminalKey(edge.to),
+        ...endpointKeys,
         edge.kind,
         edge.kind === 'Custom' ? edge.relationLabel : '',
     ])}`

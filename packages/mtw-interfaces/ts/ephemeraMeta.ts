@@ -338,6 +338,22 @@ export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: Ephem
     return a.owner === b.owner && a.port === b.port
 }
 
+/**
+ * Whether two relational edges have the same endpoints. `ConnectedTo` is symmetric (`A -ConnectedTo- B`
+ * is `B -ConnectedTo- A`), so for that kind either order agrees; every other kind is directional
+ * and agrees only straight. Order-insensitive comparison rather than a canonical order fixed at
+ * write time, so no reader has to know a canonical order exists. Does not compare kinds: callers
+ * test `kind` first.
+ */
+export const ephemeraEdgeEndpointsEqual = (
+    a: { from: EphemeraLudicTerminalId; to: EphemeraLudicTerminalId; kind: string },
+    b: { from: EphemeraLudicTerminalId; to: EphemeraLudicTerminalId },
+    bareOwner?: string
+): boolean => (
+    (ephemeraLudicTerminalsEqual(a.from, b.from, bareOwner) && ephemeraLudicTerminalsEqual(a.to, b.to, bareOwner))
+    || (a.kind === 'ConnectedTo' && ephemeraLudicTerminalsEqual(a.from, b.to, bareOwner) && ephemeraLudicTerminalsEqual(a.to, b.from, bareOwner))
+)
+
 /** True when a terminal (qualified or not) resolves to the given component id. */
 export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId, id: EphemeraLudicTerminalPrimitive): boolean =>
     ephemeraLudicTerminalOwner(terminal) === id
@@ -460,6 +476,7 @@ export const isHostingRelationKind = (value: string): value is HostingRelationKi
 export type HostRelationalEdgeKind =
     | HostingRelationKind                       // hosting kinds (AB-54); In/PartOf non-exclusive (premise 9)
     | 'Custom'                                  // peer kind (AB-54): the only one; a label says which relation
+    | 'ConnectedTo'                             // topology within ONE whole (symmetric); not a hosting kind --- never decides shard placement
 // `'Present'` retired from this union at presenceNodes Slice 3 (PN-14, decided 2026-09-16: removal
 // here with the edge sense, not deferred to Slice 7 with the port sense). No `Present`-kind edge
 // was ever constructed by any writer -- the migration moves bucket membership onto `cover`
@@ -569,7 +586,7 @@ export type EphemeraLudicRelationalEdgeData =
     | (EphemeraLudicRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
     | (EphemeraLudicRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Custom', 'In', 'PartOf'])
+const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Custom', 'In', 'PartOf', 'ConnectedTo'])
 
 export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {

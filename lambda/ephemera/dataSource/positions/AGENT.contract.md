@@ -333,13 +333,16 @@ Mental model: [**Host-local relational patch**](AGENT.concepts.md#manipulation-l
 
 ### Relation kinds
 
-**`HostRelationalEdgeKind`** is the hosting kinds (`HostingRelationKind`: `On`, `In`, `PartOf`) plus one peer kind, `Custom`:
+**`HostRelationalEdgeKind`** is the hosting kinds (`HostingRelationKind`: `On`, `In`, `PartOf`) plus one peer kind, `Custom`, plus the topology kind `ConnectedTo`:
 
 | Kind | Player language (examples) | Persist |
 | --- | --- | --- |
 | **`On`** / **`In`** | on, onto, in, inside | Containment: the mover's own edge to its new host's root, written by a `transferMembership` with a `containment` flag (below). **Must not** persist as a peer edge between siblings |
 | **`PartOf`** | none (no deterministic authoring) | Containment edge, same shape |
 | **`Custom`** | under, against, tied to, wrapped around, long-tail phrases | **`kind: 'Custom'`** + **`relationLabel`** (see below) |
+| **`ConnectedTo`** | none yet (no producer) | **`kind: 'ConnectedTo'`**, no label. Topology within one whole: how its parts or bindings join |
+
+**`ConnectedTo` rules (the kind only; its legality check and producers are not shipped):** it is **not** a hosting kind (not in `HOSTING_RELATION_KINDS`) and never decides shard placement. It is **symmetric**: `A -ConnectedTo- B` and `B -ConnectedTo- A` are one edge, compared order-insensitively (`ephemeraEdgeEndpointsEqual`; `collapsedEdgeIdentityKey`, `stubPortIdFromEdge` and `isFactOfRelationalEdge` agree), and every other kind stays directional. A move that severs one defers to the adjudicator (`classifyInteractionUnderTransfer`), as a `Custom` edge does. In WML it sits in the Topology class (`LUDIC_EDGE_TOPOLOGY_KINDS`).
 
 There is no deterministic parse of a peer relation: `Custom` is produced only by the LLM Plan fallback, and the relation's words live in `relationLabel`. There are no closed peer kinds; a move that severs any peer edge defers to the adjudicator. **Manner, not physics:** the graph cannot tell clearance (a lamp under a table, moved away) from a pinned relation (a rope lashed to a post), and `Custom` has no finer kind, so the adjudicator meets a severed peer subject-move either way. The rule is the manner in which the move happens, not what the graph holds.
 

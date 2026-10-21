@@ -155,9 +155,11 @@ const boundaryActionsInGraph = (
 
         let challenges: Challenge[] = []
         if (entry.outcome === 'defer') {
-            // The classifier defers only `Custom` (the one peer kind); anything else is an invariant break.
+            // The classifier defers `Custom` (the one peer kind) and `ConnectedTo`; only `Custom` has a
+            // challenge type. A `ConnectedTo` defer (a part leaving its whole) has no producer yet, so
+            // reaching it is an invariant break until a challenge for it exists.
             if (entry.edge.kind !== 'Custom') {
-                throw new Error(`attemptActionsFromBoundaryOutcomes: a '${entry.edge.kind}' boundary edge deferred, but only 'Custom' defers`)
+                throw new Error(`attemptActionsFromBoundaryOutcomes: a '${entry.edge.kind}' boundary edge deferred, but only 'Custom' has a challenge`)
             }
             challenges = [new CustomEdgeChallenge(customEdgeChallengeId(primaryAction.id, entry.edge), entry.edge, describeCustomEdgeChallenge(entry.edge))]
         }
