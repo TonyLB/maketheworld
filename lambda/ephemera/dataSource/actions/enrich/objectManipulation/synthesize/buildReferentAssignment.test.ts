@@ -1,3 +1,4 @@
+import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
@@ -68,37 +69,42 @@ describe('buildReferentAssignment', () => {
         expect(buildReferentAssignment(change, new Map([['trayRef', TRAY_ID]]), resolver({}))).toBeUndefined()
     })
 
-    describe('a thing in several hosts (the take rule)', () => {
+    describe('a thing in several hosts (grounded by its view)', () => {
+        const view = ['PRESENCE#onTable' as EphemeraPresenceNodeId]
         const severalHosts: DerivedReferentResolver = {
             actingCharacter: CHARACTER_ID,
             currentHost: () => undefined,
-            anyHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined),
+            viewHosts: (id, named) => (id === TRAY_ID && named[0] === view[0] ? [ROOM_ID] : undefined),
         }
-        const fromTray = currentHostRef(objectSpanRef('tray', 'trayRef'))
+        const fromTray = (named?: EphemeraPresenceNodeId[]) => currentHostRef({ ...objectSpanRef('tray', 'trayRef'), ...(named ? { view: named } : {}) })
+        const takeFrom = (from: ReturnType<typeof fromTray>): Change => ({
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: objectSpanRef('tray', 'trayRef'),
+            from,
+            to: actingCharacterRef,
+        })
+        const spans = new Map([['trayRef', TRAY_ID]])
 
-        it('grounds a take\'s from to any one of its hosts', () => {
-            const change: Change = {
-                kind: 'change',
-                primitive: 'transferMembership',
-                object: objectSpanRef('tray', 'trayRef'),
-                from: fromTray,
-                to: actingCharacterRef,
-            }
+        it('grounds a transfer\'s from to the first host its view sits under', () => {
+            const from = fromTray(view)
 
-            expect(buildReferentAssignment(change, new Map([['trayRef', TRAY_ID]]), severalHosts)?.derived.get(derivedReferentKey(fromTray))).toBe(ROOM_ID)
+            expect(buildReferentAssignment(takeFrom(from), spans, severalHosts)?.derived.get(derivedReferentKey(from))).toBe(ROOM_ID)
         })
 
-        it('grounds a put\'s from the same way: the preconditions, not grounding, refuse it (multiPresent)', () => {
-            const change: Change = {
-                kind: 'change',
-                primitive: 'transferMembership',
-                object: objectSpanRef('tray', 'trayRef'),
-                from: fromTray,
-                to: objectSpanRef('table', 'tableRef'),
-                containment: 'On',
-            }
+        it('does not ground a from with no view to say which part, so the step is dropped', () => {
+            expect(buildReferentAssignment(takeFrom(fromTray()), spans, severalHosts)).toBeUndefined()
+        })
 
-            expect(buildReferentAssignment(change, new Map([['trayRef', TRAY_ID], ['tableRef', TABLE_ID]]), severalHosts)?.derived.get(derivedReferentKey(fromTray))).toBe(ROOM_ID)
+        it('does not ground a from whose view the world no longer holds', () => {
+            expect(buildReferentAssignment(takeFrom(fromTray(['PRESENCE#gone' as EphemeraPresenceNodeId])), spans, severalHosts)).toBeUndefined()
+        })
+
+        it('prefers the one host a thing is in over its view', () => {
+            const oneHost: DerivedReferentResolver = { ...severalHosts, currentHost: () => TABLE_ID }
+            const from = fromTray(view)
+
+            expect(buildReferentAssignment(takeFrom(from), spans, oneHost)?.derived.get(derivedReferentKey(from))).toBe(TABLE_ID)
         })
     })
 

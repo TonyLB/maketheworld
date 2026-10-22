@@ -54,7 +54,7 @@ export const executeComponentCreation = async (
     // id is the fixed `PRESENCE#Base` and needs no read; only the destination's binding is looked up.
     const destination = args.target === null
         ? undefined
-        : destinationBindingOf(await (args.getGraph ?? defaultGetGraph)(args.target), undefined)
+        : destinationBindingOf(await (args.getGraph ?? defaultGetGraph)(args.target))
     if (destination && 'errorCode' in destination) {
         console.error(`[mtw.ephemera.positions] executeComponentCreation refused for ${args.objectId}: ${destination.errorCode}`)
         return { ok: false, errorCode: destination.errorCode, errorMessage: destination.errorCode }

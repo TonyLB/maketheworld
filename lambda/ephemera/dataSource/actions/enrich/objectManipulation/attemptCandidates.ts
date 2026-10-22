@@ -12,11 +12,10 @@ import { attemptActionsFromTransfer } from '../../commandAttempt/expandBoundaryC
 
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
-import { defaultReading, readingLabel, readingsOf, wholeReadingLabel, type ViewAnswer } from '../../objectViews'
+import { defaultReading, placementHostsOfView, readingLabel, readingsHere, readingsOf, wholeReadingLabel, type ViewAnswer } from '../../objectViews'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import { viewMintedByExtend } from './plan/planStep'
 import type { ExtendChange, GroundedId, GroundedReferent, PlanStep, Referent, TransferMembershipChange } from './plan/planStep'
-import { complexErrorMessage } from './complexityClasses'
 import { buildReferentAssignment } from './synthesize/buildReferentAssignment'
 import { groundChange } from './synthesize/groundChange'
 import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
@@ -79,9 +78,14 @@ export type ProposeAttemptCandidatesInput = {
     viewAnswers?: Readonly<Record<string, ViewAnswer>>
     /** The actor's room: it decides which position of an object is the actor's own (PR-2). Absent, an object is never asked about by position. */
     actorRoom?: EphemeraRoomId
+    /** The actor: a part it holds is at its position too (the room's cache holds no character to walk through). */
+    actorCharacter?: EphemeraCharacterId
 }
 
-/** One way an object can be meant: a part to stamp as the referent's `view`, or the whole; `answer` is absent where nothing was asked. */
+/** Where the actor stands: its room, and itself (what it holds is where it is). */
+type ActorPosition = { room: EphemeraRoomId; character?: EphemeraCharacterId }
+
+/** One way an object can be meant: the bindings to stamp as the referent's `view` (the whole is every own binding); `answer` is absent where nothing was asked. */
 type ViewChoice = { answer?: ViewAnswer; view?: EphemeraPresenceNodeId[]; label?: string }
 
 const sameBindings = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((binding) => b.includes(binding))
@@ -93,30 +97,40 @@ const answerMatches = (choice: ViewChoice, answered: ViewAnswer): boolean => (
 )
 
 /**
- * The ways an object is meant. One unasked choice unless it is seen in several positions and the
- * actor's own position does not pick one (PR-2): then one choice per position and the whole (PR-4).
+ * The ways an object is meant. An object with a unique position at the actor's (PR-2) is meant there,
+ * stamped as the view unasked, whether or not it has other positions. Otherwise each position at the
+ * actor's is a choice, plus all of them together (PR-4; not for a destination, which a mover lands under
+ * one part of), and the dry run keeps only the choices the verb can act on. A position out of the actor's
+ * reach (another room) is never offered. An object with no position to name has no view.
  */
 const viewChoicesFor = (
     entry: ObjectManipulationCatalogEntry | undefined,
-    actorRoom: EphemeraRoomId | undefined,
-    catalog: readonly ObjectManipulationCatalogEntry[]
+    actor: ActorPosition | undefined,
+    catalog: readonly ObjectManipulationCatalogEntry[],
+    isDestination: boolean
 ): ViewChoice[] => {
-    if (entry?.placement === undefined || actorRoom === undefined) {
+    if (entry?.placement === undefined || actor === undefined) {
         return [{}]
     }
-    const readings = readingsOf(entry.objectId, entry.placement)
-    if (readings.length < 2 || defaultReading(entry.objectId, entry.placement, actorRoom) !== undefined) {
+    const here = readingsHere(entry.objectId, entry.placement, actor.room, actor.character)
+    if (here.length === 1) {
+        // Not an answer: nothing was asked, so the row, resume and labels never see it.
+        return [{ view: here[0]!.bindings }]
+    }
+    if (here.length === 0) {
         return [{}]
     }
-    const naming = hostNaming(catalog, actorRoom)
-    return [
-        ...readings.map((reading): ViewChoice => ({ answer: reading.bindings, view: reading.bindings, label: readingLabel(entry.normalizedShortName, reading, naming) })),
-        { answer: 'whole', label: wholeReadingLabel(entry.normalizedShortName) },
-    ]
+    const naming = hostNaming(catalog, actor)
+    const parts = here.map((reading): ViewChoice => ({ answer: reading.bindings, view: reading.bindings, label: readingLabel(entry.normalizedShortName, reading, naming) }))
+    // A mover lands under one part of a destination, never under all of them at once: no whole there.
+    return isDestination
+        ? parts
+        : [...parts, { answer: 'whole', view: here.flatMap(({ bindings }) => bindings), label: wholeReadingLabel(entry.normalizedShortName) }]
 }
 
-const hostNaming = (catalog: readonly ObjectManipulationCatalogEntry[], actorRoom: EphemeraRoomId) => ({
-    actorRoom,
+const hostNaming = (catalog: readonly ObjectManipulationCatalogEntry[], actor: ActorPosition) => ({
+    actorRoom: actor.room,
+    actorCharacter: actor.character,
     nameOf: (host: EphemeraMembershipHostId): string | undefined => catalog.find(({ objectId }) => objectId === host)?.normalizedShortName,
 })
 
@@ -124,19 +138,19 @@ const hostNaming = (catalog: readonly ObjectManipulationCatalogEntry[], actorRoo
 const placeNameOf = (
     entry: ObjectManipulationCatalogEntry | undefined,
     choice: ViewChoice,
-    actorRoom: EphemeraRoomId | undefined,
+    actor: ActorPosition | undefined,
     catalog: readonly ObjectManipulationCatalogEntry[],
     fallback: string
 ): string => {
     if (choice.label !== undefined) {
         return choice.label
     }
-    if (entry?.placement === undefined || actorRoom === undefined) {
+    if (entry?.placement === undefined || actor === undefined) {
         return fallback
     }
     const readings = readingsOf(entry.objectId, entry.placement)
-    const reading = defaultReading(entry.objectId, entry.placement, actorRoom) ?? (readings.length === 1 ? readings[0] : undefined)
-    return reading === undefined ? fallback : readingLabel(entry.normalizedShortName, reading, hostNaming(catalog, actorRoom))
+    const reading = defaultReading(entry.objectId, entry.placement, actor.room, actor.character) ?? (readings.length === 1 ? readings[0] : undefined)
+    return reading === undefined ? fallback : readingLabel(entry.normalizedShortName, reading, hostNaming(catalog, actor))
 }
 
 /** Every object-span referent the attempts name, in first-appearance order, one per stableRefKey. */
@@ -151,6 +165,16 @@ const distinctSpanReferents = (attempts: readonly CommandAttempt[]): Extract<Ref
     }
     return [...seen.values()]
 }
+
+/** The stableRefKeys a transfer in the attempts moves something onto: the objects a mover lands under one part of. */
+const destinationSpanKeys = (attempts: readonly CommandAttempt[]): Set<string> => new Set(
+    attempts.flatMap((attempt) => attempt.actions()).flatMap((action) => {
+        const step = action.desiredResult
+        return step?.kind === 'change' && step.primitive === 'transferMembership'
+            ? objectSpansIn(step.to).flatMap(({ stableRefKey }) => (stableRefKey === undefined ? [] : [stableRefKey]))
+            : []
+    })
+)
 
 /** The distinct stableRefKeys the attempts name, in first-appearance order: Identify's key set. */
 export const attemptSpanKeys = (attempts: readonly CommandAttempt[]): string[] =>
@@ -353,11 +377,13 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
 
     // An object seen in several positions is one candidate per way it can be meant (the actor's own position
     // picks one, else each position and the whole), and a resumed command's answer keeps only the one chosen.
+    const destinationKeys = destinationSpanKeys(input.attempts)
+    const actor: ActorPosition | undefined = input.actorRoom === undefined ? undefined : { room: input.actorRoom, character: input.actorCharacter }
     const viewed = assignments.flatMap(({ identities, confidence }) => {
         const perKey = [...identities].map(([key, identity]) => {
             const entry = input.catalog.find((catalogEntry) => catalogEntry.objectId === identity.objectId)
             const answered = input.viewAnswers?.[key]
-            const choices = viewChoicesFor(entry, input.actorRoom, input.catalog)
+            const choices = viewChoicesFor(entry, actor, input.catalog, destinationKeys.has(key))
             return { key, identity, entry, choices: answered === undefined ? choices : choices.filter((choice) => choice.answer !== undefined && answerMatches(choice, answered)) }
         })
         return perKey.reduce<{ key: string; choice: ViewChoice }[][]>(
@@ -387,7 +413,7 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
                 presence: entry?.presence,
                 ...(choice.view !== undefined ? { view: choice.view } : {}),
             })
-            placeNames[key] = placeNameOf(entry, choice, input.actorRoom, input.catalog, shortName)
+            placeNames[key] = placeNameOf(entry, choice, actor, input.catalog, shortName)
             if (choice.answer !== undefined) {
                 viewAnswers[key] = choice.answer
                 viewLabels[key] = choice.label!
@@ -436,7 +462,8 @@ export const buildAttemptEnvironment = async (
     candidates: readonly GroundedAttemptCandidate[],
     hostRoomId: EphemeraRoomId,
     roomGraph: EphemeraLudicGraph | undefined,
-    reads: AttemptPositionsReads
+    reads: AttemptPositionsReads,
+    catalog: readonly ObjectManipulationCatalogEntry[] = []
 ): Promise<ExpansionEnvironment> => {
     const objectIds = candidateObjectIds(candidates)
     const getMembershipContainersForWalk = (id: EphemeraPositionAdjacencyContainedId): Promise<EphemeraMembershipHostId[]> =>
@@ -480,6 +507,10 @@ export const buildAttemptEnvironment = async (
         getGraph: (hostId) => hostGraphMap.get(hostId),
         getCurrentHost: (objectId) => hostByObjectId.get(objectId),
         getMembershipContainers: (id) => containersByHostId.get(id) ?? [],
+        getViewHosts: (id, view) => {
+            const placement = catalog.find(({ objectId }) => objectId === id)?.placement
+            return placement === undefined ? undefined : placementHostsOfView(id, placement, view)
+        },
     }
 }
 
@@ -496,9 +527,9 @@ export type DryRunFrame = {
  * (a look has no preconditions and no mutation).
  *
  * ISS8203 slice 3: a transfer's preconditions are checked here, whichever template produced it.
- * The moved object is in exactly one host (`multiPresent` otherwise, except for a take); `from` is the host it is
- * actually in (`notCarryingObject` for a drop of something not held, since a drop's `from` is the
- * actor); and `from` differs from `to` (`alreadyHoldingObject`). A pending challenge defers, and a
+ * The moved object is in one host, or its view says which part moves (an object in several hosts with no view
+ * never grounds a `from`, so it is refused as having no membership host); `from` is a host the moving part is actually in (`notCarryingObject` for a drop of something not
+ * held, since a drop's `from` is the actor); and the part is not already in `to` (`alreadyHoldingObject`). A pending challenge defers, and a
  * refused one is illegal, so a doubt about the move is a challenge and never a separate defer.
  */
 export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: ExpansionEnvironment | undefined, frame: DryRunFrame = {}): DryRunOutcome => {
@@ -533,7 +564,7 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
         const assignment = buildReferentAssignment(step, spans, {
             actingCharacter: frame.actorCharacterId,
             currentHost: (id) => (id === frame.actorCharacterId ? frame.roomId : isEphemeraObjectId(id) ? env.getCurrentHost(id) : undefined),
-            anyHost: (id) => (isEphemeraObjectId(id) ? env.getMembershipContainers(id)[0] : undefined),
+            viewHosts: (id, view) => (isEphemeraObjectId(id) ? env.getViewHosts?.(id, view) : undefined),
         })
         if (assignment === undefined) {
             return { verdict: 'illegal', decidable: true, reason: objectManipulationErrorMessages.noMembershipHost }
@@ -605,9 +636,9 @@ const extendPreconditionFailure = (_step: ExtendChange<GroundedReferent>): strin
  * The transfer preconditions (ISS8203 slice 3), over a grounded `transferMembership`. Returns the
  * refusal reason for the first one that fails, or undefined when all hold.
  *
- * A take of a thing in several hosts is allowed and leaves them all (deliberately crude, a shim until
- * referent handling can say which part a take means): its `from` is any one of them, and it is refused
- * only when the thing is already held. Every other destination still refuses `multiPresent`.
+ * An object in one host is judged by that host. One in several is judged by its `view`, whose hosts the
+ * catalog's placement gives (`getViewHosts`): `from` must be one of them, and the part must not already sit
+ * under `to`.
  */
 const transferPreconditionFailure = (step: TransferMembershipChange<GroundedReferent>, env: ExpansionEnvironment): string | undefined => {
     const objectId = step.object.groundedId
@@ -615,20 +646,22 @@ const transferPreconditionFailure = (step: TransferMembershipChange<GroundedRefe
         return objectManipulationErrorMessages.noMembershipHost
     }
     const actualHost = env.getCurrentHost(objectId)
-    if (actualHost === undefined) {
-        const containers = env.getMembershipContainers(objectId)
-        if (containers.length <= 1) {
-            return objectManipulationErrorMessages.noMembershipHost
-        }
-        if (step.to.referentType !== 'actingCharacter') {
-            return complexErrorMessage('multiPresent')
-        }
-        if (containers.includes(step.to.groundedId as EphemeraMembershipHostId)) {
+    const view = step.object.referentType === 'objectSpan' ? step.object.view : undefined
+    // A thing in one host is judged by that host, as ever; only a thing in several needs its view's hosts.
+    const viewHosts = actualHost === undefined && view !== undefined ? env.getViewHosts?.(objectId, view) : undefined
+    if (viewHosts !== undefined) {
+        if (viewHosts.includes(step.to.groundedId as EphemeraMembershipHostId)) {
             return objectManipulationErrorMessages.alreadyHoldingObject
         }
-        return containers.includes(step.from.groundedId as EphemeraMembershipHostId)
-            ? undefined
-            : objectManipulationErrorMessages.noMembershipHost
+        if (!viewHosts.includes(step.from.groundedId as EphemeraMembershipHostId)) {
+            return step.from.referentType === 'actingCharacter'
+                ? objectManipulationErrorMessages.notCarryingObject
+                : objectManipulationErrorMessages.noMembershipHost
+        }
+        return undefined
+    }
+    if (actualHost === undefined) {
+        return objectManipulationErrorMessages.noMembershipHost
     }
     if (step.from.groundedId !== actualHost) {
         return step.from.referentType === 'actingCharacter'
@@ -645,7 +678,7 @@ const transferPreconditionFailure = (step: TransferMembershipChange<GroundedRefe
  * Expansion and Adjudicate for every candidate's transfer (ISS8203 slice 3): a `transferMembership`
  * gets its boundary dissolves, and its exit-contact challenge, from its object's source host graph,
  * whichever template produced it. Then the per-candidate Adjudicate tier judges what it may.
- * A take of a thing in several hosts reads every one of them (the take rule).
+ * A thing in several hosts reads those its view sits under.
  * A candidate missing a source graph is left unexpanded, and its dry run refuses it.
  */
 export const expandAndAdjudicateCandidates = (
@@ -665,11 +698,10 @@ export const expandAndAdjudicateCandidates = (
     if (objectId === undefined || !isEphemeraObjectId(objectId)) {
         return candidate
     }
-    // The hosts the object leaves: its one host, or every host for a take of a thing in several (the take rule).
+    // The hosts the object leaves: its one host, else those its view sits under.
     const sourceHost = env.getCurrentHost(objectId)
-    const sourceHosts = sourceHost !== undefined
-        ? [sourceHost]
-        : step.to.referentType === 'actingCharacter' ? env.getMembershipContainers(objectId) : []
+    const view = step.object.referentType === 'objectSpan' ? step.object.view : undefined
+    const sourceHosts = sourceHost !== undefined ? [sourceHost] : (view !== undefined ? env.getViewHosts?.(objectId, view) : undefined) ?? []
     const graphs = sourceHosts.flatMap((hostId) => {
         const graph = env.getGraph(hostId)
         return graph ? [graph] : []

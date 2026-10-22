@@ -107,20 +107,73 @@ describe('proposeAttemptCandidates over an object seen in several positions', ()
         ])
     })
 
-    it('stamps the chosen position as the referent\'s view, and nothing for the whole', () => {
+    it('stamps the chosen position as the referent\'s view, and every own binding for the whole', () => {
         const [hangingCandidate, lyingCandidate, wholeCandidate] = candidatesOf(propose(drapedCloth))
 
         expect(clothSpan(hangingCandidate!)).toEqual(expect.objectContaining({ groundedId: clothId, view: [hanging] }))
         expect(clothSpan(lyingCandidate!)).toEqual(expect.objectContaining({ view: [lying] }))
-        expect(clothSpan(wholeCandidate!)).not.toHaveProperty('view')
+        expect(clothSpan(wholeCandidate!)).toEqual(expect.objectContaining({ view: [hanging, lying] }))
     })
 
-    it('does not ask where the actor\'s own position picks one, and stamps no view yet', () => {
+    it('does not ask where the actor\'s own position picks one, and stamps that position as the view', () => {
         const candidates = candidatesOf(propose(acrossRooms))
 
         expect(candidates).toHaveLength(1)
         expect(candidates[0]).not.toHaveProperty('viewAnswers')
-        expect(clothSpan(candidates[0]!)).not.toHaveProperty('view')
+        expect(clothSpan(candidates[0]!)).toEqual(expect.objectContaining({ view: [hanging] }))
+    })
+
+    it('offers the parts and not the whole where the object is what a mover lands on', () => {
+        // "put cup on cloth": the cloth is the destination of the move, which lands under one part of it.
+        const result = propose(drapedCloth, { spanPools: new Map([['cupRef', pool('cup', cupId)], ['trayRef', pool('cloth', clothId)]]), catalog: [drapedCloth, table, catalog[0]!], attempts: [attemptFor(relationSkeleton, 'put cup on cloth')] })
+        const candidates = candidatesOf(result)
+
+        expect(candidates.map(({ viewAnswers }) => viewAnswers)).toEqual([{ trayRef: [hanging] }, { trayRef: [lying] }])
+        expect(candidates.map(({ viewLabels }) => viewLabels)).toEqual([{ trayRef: 'the cloth in the room' }, { trayRef: 'the cloth on the table' }])
+    })
+
+    it('stamps an object\'s one position as its view when it is at the actor\'s', () => {
+        const oneBinding: ObjectManipulationCatalogEntry = { ...drapedCloth, placement: [{ host: clothId, bindings: [drapedCloth.placement![0]!.bindings[0]!] }] }
+
+        expect(clothSpan(candidatesOf(propose(oneBinding))[0]!)).toEqual(expect.objectContaining({ view: [hanging] }))
+    })
+
+    it('never offers a position out of the actor\'s reach: with one part here and two elsewhere, it is meant here unasked', () => {
+        const elsewhere: ObjectManipulationCatalogEntry = {
+            ...drapedCloth,
+            placement: [{ host: clothId, bindings: [
+                drapedCloth.placement![0]!.bindings[0]!,
+                { presence: lying, under: [{ host: roomB, presence: roomBinding }], rooms: [roomB] },
+                { presence: 'PRESENCE#far' as EphemeraPresenceNodeId, under: [{ host: tableId, presence: tableBinding }], rooms: [roomB] },
+            ] }],
+        }
+        const candidates = candidatesOf(propose(elsewhere))
+
+        expect(candidates).toHaveLength(1)
+        expect(candidates[0]).not.toHaveProperty('viewAnswers')
+        expect(clothSpan(candidates[0]!)).toEqual(expect.objectContaining({ view: [hanging] }))
+    })
+
+    it('counts a part the actor holds as at the actor\'s position, and names it in the actor\'s hands', () => {
+        const actor = 'CHARACTER#Tess' as const
+        const heldAndHere: ObjectManipulationCatalogEntry = {
+            ...drapedCloth,
+            placement: [{ host: clothId, bindings: [
+                drapedCloth.placement![0]!.bindings[0]!,
+                // The room's cache holds no character, so the held part's walk upward reaches no room.
+                { presence: lying, under: [{ host: actor, presence: 'PRESENCE#Base' as EphemeraPresenceNodeId }], rooms: [] },
+            ] }],
+        }
+
+        // Not knowing the actor, only the part in the room is at its position, and it is meant unasked.
+        const [unknownActor, ...more] = candidatesOf(propose(heldAndHere))
+        expect(more).toEqual([])
+        expect(clothSpan(unknownActor!)).toEqual(expect.objectContaining({ view: [hanging] }))
+        expect(candidatesOf(propose(heldAndHere, { actorCharacter: actor })).map(({ viewLabels }) => viewLabels)).toEqual([
+            { cupRef: 'the cloth in the room' },
+            { cupRef: 'the cloth in your hands' },
+            { cupRef: 'both parts of the cloth' },
+        ])
     })
 
     it('does not ask without an actor\'s room, or for an entry with no placement', () => {
@@ -137,11 +190,11 @@ describe('proposeAttemptCandidates over an object seen in several positions', ()
         expect(clothSpan(only!)).toEqual(expect.objectContaining({ view: [lying] }))
     })
 
-    it('narrows a resumed command answered with the whole to the unstamped whole', () => {
+    it('narrows a resumed command answered with the whole to the whole, every own binding', () => {
         const [only, ...rest] = candidatesOf(propose(drapedCloth, { viewAnswers: { cupRef: 'whole' } }))
 
         expect(rest).toEqual([])
-        expect(clothSpan(only!)).not.toHaveProperty('view')
+        expect(clothSpan(only!)).toEqual(expect.objectContaining({ view: [hanging, lying] }))
     })
 
     it.each<[string, ObjectManipulationCatalogEntry]>([

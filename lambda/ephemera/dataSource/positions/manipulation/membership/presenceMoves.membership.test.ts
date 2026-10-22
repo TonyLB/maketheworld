@@ -49,8 +49,8 @@ const apply = (steps: readonly KernelStep[], graphs: Record<string, EphemeraLudi
     return outcome.graphs
 }
 
-const moveOf = async (froms: EphemeraMembershipHostId[], to: EphemeraMembershipHostId | null, graphs: Record<string, EphemeraLudicGraph>, moverGroundedPresence?: Parameters<typeof resolvePresenceMoves>[0]['moverGroundedPresence']) => {
-    const resolved = await resolvePresenceMoves({ moved: plank, froms, to, getGraph: worldOf(graphs), ...(moverGroundedPresence ? { moverGroundedPresence } : {}) })
+const moveOf = async (froms: EphemeraMembershipHostId[], to: EphemeraMembershipHostId | null, graphs: Record<string, EphemeraLudicGraph>, moverBindings?: Parameters<typeof resolvePresenceMoves>[0]['moverBindings']) => {
+    const resolved = await resolvePresenceMoves({ moved: plank, froms, to, getGraph: worldOf(graphs), ...(moverBindings ? { moverBindings } : {}) })
     if (!resolved.ok) { throw new Error(`expected moves, got ${resolved.errorCode}`) }
     return compilePositionKernelOp({ kind: 'move', moved: plank, froms, to, header: null, presenceSteps: resolved.steps }).steps
 }
@@ -68,7 +68,7 @@ describe('a move changes a host\'s membership only with the mover\'s first or la
 
     it('moving one binding to a new host leaves the host of its other binding untouched', async () => {
         const world = twoRooms()
-        const steps = await moveOf([roomA], roomC, world, [roomA])
+        const steps = await moveOf([roomA], roomC, world, [presence('plank-a')])
         const after = apply(steps, world)
 
         expect(heldIn(after, roomA)).toBe(false)
@@ -141,7 +141,7 @@ describe('two bindings of one mover under one host', () => {
         }),
     })
 
-    it('the mover\'s own groundedPresence names the binding that moves, where the host alone could not', async () => {
+    it('the mover\'s view names the binding that moves, where the host alone could not', async () => {
         const world = acrossTwoBindings()
         const refused = await planObjectMoveTransfer({ entityId: plank, fromHostId: table, toHostId: roomC, getGraph: worldOf(world) })
         expect(refused).toEqual({ ok: false, errorCode: 'moverBindingAmbiguous' })
@@ -150,7 +150,7 @@ describe('two bindings of one mover under one host', () => {
             entityId: plank,
             fromHostId: table,
             toHostId: roomC,
-            moverGroundedPresence: [{ host: table, presence: presence('table-2') }],
+            moverBindings: [presence('plank-on-2')],
             getGraph: worldOf(world),
         })
         if (!planned.ok) { throw new Error(`expected a plan, got ${planned.errorCode}`) }
@@ -200,7 +200,7 @@ describe('two bindings of one mover under one host', () => {
             entityId: plank,
             fromHostId: table,
             toHostId: roomC,
-            moverGroundedPresence: [{ host: table, presence: presence('table-2') }],
+            moverBindings: [presence('plank-on-2')],
             getGraph: worldOf(world),
         })
         if (!planned.ok) { throw new Error(`expected a plan, got ${planned.errorCode}`) }
@@ -232,7 +232,7 @@ describe('the moved fact reports only the hosts whose membership changed', () =>
 
     it('omits a host the mover still holds a binding at', async () => {
         const world = before()
-        const steps = (await moveOf([roomA], roomC, world, [roomA])).filter(isKernelMutationStep)
+        const steps = (await moveOf([roomA], roomC, world, [presence('plank-a')])).filter(isKernelMutationStep)
         const prior = new Map(Object.entries(world) as [EphemeraMembershipHostId, EphemeraLudicGraph][])
 
         const [change] = membershipChangesOf(steps, prior, apply(steps, world))

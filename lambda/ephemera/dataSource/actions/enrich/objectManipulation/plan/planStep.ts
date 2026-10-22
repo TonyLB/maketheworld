@@ -47,11 +47,11 @@ export type ObjectSpanReferent = {
     groundedPresence?: GroundedPresence[]
     /**
      * The part meant: the object's own bindings (bare ids, the host being `groundedId`), as against
-     * `groundedPresence`, which is everywhere the object is seen. Absent means the whole object. A
-     * binding an earlier extend step of the same attempt mints (`PresenceKey(presenceUuid)`) is a valid
-     * entry before it exists; `viewMintedByExtend` reads that off the attempt. Only a one-binding view
-     * has a consumer so far (`commitAttempt` moves that binding); a wider view waits on the consumers
-     * that read it.
+     * `groundedPresence`, which is everywhere the object is seen. An object with several positions is
+     * stamped with the part meant (the actor's own, a part the player chose, or every own binding for
+     * the whole); absent means the object has one position to mean. A binding an earlier extend step of
+     * the same attempt mints (`PresenceKey(presenceUuid)`) is a valid entry before it exists;
+     * `viewMintedByExtend` reads that off the attempt. A transfer moves exactly these bindings.
      */
     view?: EphemeraPresenceNodeId[]
     /** Names the thing for the attempt's prose once known (stamped by key, `stampCandidateReferents.ts`). */

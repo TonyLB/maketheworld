@@ -306,7 +306,7 @@ describe('resolvePresenceMoves', () => {
         })
     })
 
-    describe('a view-move (moverBinding)', () => {
+    describe('a view-move (moverBindings)', () => {
         // The rope has two bindings, both under roomA until one is moved (the new binding an extend minted).
         const rope = 'OBJECT#Rope' as EphemeraObjectId
         const world = () => ({
@@ -316,7 +316,7 @@ describe('resolvePresenceMoves', () => {
         })
 
         it('moves only the named binding, where the host alone would be ambiguous', async () => {
-            const resolved = await resolvePresenceMoves({ moved: rope, froms: [roomA], to: roomB, moverBinding: presence('pB'), getGraph: getGraphOf(world()) })
+            const resolved = await resolvePresenceMoves({ moved: rope, froms: [roomA], to: roomB, moverBindings: [presence('pB')], getGraph: getGraphOf(world()) })
 
             expect(resolved).toEqual({ ok: true, steps: [{
                 kind: 'reparentPresenceBinding',
@@ -341,20 +341,26 @@ describe('resolvePresenceMoves', () => {
             expect(resolved.ok && resolved.steps.map(({ kind }) => kind)).toEqual(['reparentPresenceBinding', 'reparentPresenceBinding', 'dissolveRelation', 'joinPresenceBindings'])
         })
 
+        it('moves every binding a wider view names, even two under one host', async () => {
+            const resolved = await resolvePresenceMoves({ moved: rope, froms: [roomA], to: roomB, moverBindings: [presence('pA'), presence('pB')], getGraph: getGraphOf(world()) })
+
+            expect(resolved.ok && resolved.steps.map(({ kind }) => kind)).toEqual(['reparentPresenceBinding', 'reparentPresenceBinding', 'joinPresenceBindings'])
+        })
+
         it('refuses a binding that is absent, or not under a from host', async () => {
-            expect(await resolvePresenceMoves({ moved: rope, froms: [roomA], to: roomB, moverBinding: presence('nope'), getGraph: getGraphOf(world()) }))
+            expect(await resolvePresenceMoves({ moved: rope, froms: [roomA], to: roomB, moverBindings: [presence('nope')], getGraph: getGraphOf(world()) }))
                 .toEqual({ ok: false, errorCode: 'moverBindingMissing' })
-            expect(await resolvePresenceMoves({ moved: rope, froms: [roomB], to: roomA, moverBinding: presence('pA'), getGraph: getGraphOf(world()) }))
+            expect(await resolvePresenceMoves({ moved: rope, froms: [roomB], to: roomA, moverBindings: [presence('pA')], getGraph: getGraphOf(world()) }))
                 .toEqual({ ok: false, errorCode: 'moverBindingMissing' })
         })
     })
 
-    describe('a destination holding several bindings (deepest part)', () => {
+    describe('a destination holding several bindings (named by its view)', () => {
         const cloth = 'OBJECT#Cloth' as EphemeraObjectId
         const table = 'OBJECT#Table' as EphemeraObjectId
         // The cloth is one part on the floor and one part on the table (which sits on the floor).
-        const world = (clothBindings = [presenceBindingNode('floor', roomA), presenceBindingNode('onTable', [{ host: table, presence: presence('Base') }])]) => ({
-            [cloth]: testLudicGraph(cloth, { nodes: [{ tag: 'Object', universalKey: cloth }, ...clothBindings] }),
+        const world = () => ({
+            [cloth]: testLudicGraph(cloth, { nodes: [{ tag: 'Object', universalKey: cloth }, presenceBindingNode('floor', roomA), presenceBindingNode('onTable', [{ host: table, presence: presence('Base') }])] }),
             [table]: testLudicGraph(table, { nodes: [{ tag: 'Object', universalKey: table }, presenceBindingNode('Base', roomA)] }),
             [apple]: testLudicGraph(apple, { nodes: [{ tag: 'Object', universalKey: apple }, presenceBindingNode('Base', roomA)] }),
             [roomA]: room(roomA, [cloth, table, apple]),
@@ -363,17 +369,20 @@ describe('resolvePresenceMoves', () => {
             resolved.ok ? (resolved.steps.find((step) => step.kind === 'reparentPresenceBinding') as { gain: unknown }).gain : resolved
         )
 
-        it('lands the mover on the part furthest below the room', async () => {
-            const resolved = await resolvePresenceMoves({ moved: apple, froms: [roomA], to: cloth, getGraph: getGraphOf(world()) })
+        it.each(['floor', 'onTable'])('lands the mover on the part the destination\'s view names: %s', async (part) => {
+            const resolved = await resolvePresenceMoves({ moved: apple, froms: [roomA], to: cloth, toBinding: presence(part), getGraph: getGraphOf(world()) })
 
-            expect(gain(resolved)).toEqual([{ host: cloth, presence: presence('onTable') }])
+            expect(gain(resolved)).toEqual([{ host: cloth, presence: presence(part) }])
         })
 
-        it('refuses two equally deep parts as ambiguous', async () => {
-            const tied = world([presenceBindingNode('left', roomA), presenceBindingNode('right', roomA)])
-
-            expect(await resolvePresenceMoves({ moved: apple, froms: [roomA], to: cloth, getGraph: getGraphOf(tied) }))
+        it('refuses a destination with several parts and no view, never guessing the deepest', async () => {
+            expect(await resolvePresenceMoves({ moved: apple, froms: [roomA], to: cloth, getGraph: getGraphOf(world()) }))
                 .toEqual({ ok: false, errorCode: 'destinationBindingAmbiguous' })
+        })
+
+        it('refuses a view naming a part the destination does not have', async () => {
+            expect(await resolvePresenceMoves({ moved: apple, froms: [roomA], to: cloth, toBinding: presence('gone'), getGraph: getGraphOf(world()) }))
+                .toEqual({ ok: false, errorCode: 'destinationBindingMissing' })
         })
     })
 

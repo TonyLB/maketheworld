@@ -268,6 +268,7 @@ export async function compileAttemptsFromSkeleton(
         referentAnswers: answers?.referentAnswers,
         viewAnswers: answers?.viewAnswers,
         actorRoom: hostRoomId,
+        actorCharacter: input.characterId,
     })
     if (!proposed.ok) {
         return proposed.stale ? { type: 'Error', errorMessage: proposed.reason } : failure(proposed.reason)
@@ -276,7 +277,7 @@ export async function compileAttemptsFromSkeleton(
     // A pool of looks has no steps, so the shared dry run never reads its environment and none is built.
     const env = roomGraph === undefined || hostRoomId === undefined || survivors.every((entry) => entry.kind === 'look')
         ? undefined
-        : await buildAttemptEnvironment(proposed.candidates, hostRoomId, roomGraph, positionsReads)
+        : await buildAttemptEnvironment(proposed.candidates, hostRoomId, roomGraph, positionsReads, catalog)
     const expanded = env === undefined ? proposed.candidates : expandAndAdjudicateCandidates(proposed.candidates, env)
     const candidates = answers?.challengeAnswers === undefined ? expanded : applyChallengeAnswers(expanded, answers.challengeAnswers)
     const dryRun = (candidate: GroundedAttemptCandidate) => attemptDryRun(candidate, env, {

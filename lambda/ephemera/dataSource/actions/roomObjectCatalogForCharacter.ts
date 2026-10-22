@@ -22,7 +22,7 @@ export type RoomInPlayObjectCatalogEntry = {
     gloss?: string
     /** Every place it is seen: its presence buckets, or the room it sits in directly (`GroundedPresence`). */
     presence?: GroundedPresence[]
-    /** The structure `presence` is projected from (`audienceBuckets`): each own binding with the parents it sits under, which `readingsOf`/`defaultReading` (`objectViews.ts`) read. Absent on a held entry, which reads as the whole object. */
+    /** The structure `presence` is projected from (`audienceBuckets`): each own binding with the parents it sits under, which `readingsOf`/`defaultReading` (`objectViews.ts`) read. A held entry names only the part in hand (`heldPlacement`, read from the character's graph); absent, the object has no position to name. */
     placement?: PresencePlacement[]
 }
 

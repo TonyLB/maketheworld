@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 
-import { audienceBuckets, defaultReading, readingLabel, readingsOf, wholeReadingLabel, type PresencePlacement } from './objectViews'
+import { audienceBuckets, defaultReading, placementHostsOfView, readingLabel, readingsOf, wholeReadingLabel, type PresencePlacement } from './objectViews'
 
 const roomA = 'ROOM#A' as EphemeraRoomId
 const roomB = 'ROOM#B' as EphemeraRoomId
@@ -100,5 +100,50 @@ describe('readingLabel', () => {
 
     it('words the whole', () => {
         expect(wholeReadingLabel('cloth')).toBe('both parts of the cloth')
+    })
+})
+
+describe('placementHostsOfView', () => {
+    const placement: PresencePlacement[] = [
+        { host: tableId, bindings: [{ presence: tableBinding }] },
+        { host: ropeId, bindings: [
+            { presence: one, under: [{ host: roomA, presence: base }], rooms: [roomA] },
+            { presence: two, under: [{ host: tableId, presence: tableBinding }], rooms: [roomA] },
+            { presence: three, under: [{ host: roomB, presence: base }, { host: tableId, presence: tableBinding }], rooms: [roomA, roomB] },
+        ] },
+    ]
+
+    it('lists the distinct hosts the view\'s bindings sit under, in view order, reading only the object\'s own run', () => {
+        expect(placementHostsOfView(ropeId, placement, [two, one])).toEqual([tableId, roomA])
+        expect(placementHostsOfView(ropeId, placement, [three, two])).toEqual([roomB, tableId])
+    })
+
+    it('is undefined where the placement lacks a binding the view names', () => {
+        expect(placementHostsOfView(ropeId, placement, [one, PresenceKey('gone')])).toBeUndefined()
+        expect(placementHostsOfView(ropeId, placement, [tableBinding])).toBeUndefined()
+    })
+})
+
+describe('defaultReading with the actor known', () => {
+    const actor = 'CHARACTER#Tess' as const
+    const held = { presence: two, under: [{ host: actor, presence: base }], rooms: [] }
+
+    it('counts a part held by the actor as at the actor\'s position, though its walk reaches no room', () => {
+        const placement: PresencePlacement[] = [{ host: ropeId, bindings: [held, { presence: one, under: [{ host: roomB, presence: base }], rooms: [roomB] }] }]
+
+        expect(defaultReading(ropeId, placement, roomA)).toBeUndefined()
+        expect(defaultReading(ropeId, placement, roomA, actor)?.bindings).toEqual([two])
+    })
+
+    it('finds no single default where a held part and a part in the actor\'s room are both at its position', () => {
+        const placement: PresencePlacement[] = [{ host: ropeId, bindings: [held, { presence: one, under: [{ host: roomA, presence: base }], rooms: [roomA] }] }]
+
+        expect(defaultReading(ropeId, placement, roomA, actor)).toBeUndefined()
+    })
+
+    it('labels the held part as in the actor\'s hands', () => {
+        const [reading] = readingsOf(ropeId, [{ host: ropeId, bindings: [held] }])
+
+        expect(readingLabel('rope', reading!, { actorRoom: roomA, actorCharacter: actor, nameOf: () => undefined })).toBe('the rope in your hands')
     })
 })

@@ -4,7 +4,6 @@ import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClass
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 
-import type { GroundedPresence } from '../../../actions/enrich/objectManipulation/plan/planStep'
 import type { EphemeraLudicGraphStructureNode, EphemeraPresenceCover, EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { childParentBindingIdOf, unpointedBindingOf, bindingHasParent, bindingHasParentOn, parentHostsOf, parentsOf } from '../../ludicGraph/presenceParent'
@@ -16,21 +15,17 @@ export type ResolvePresenceMovesArgs = {
     froms: readonly EphemeraMembershipHostId[]
     to: EphemeraMembershipHostId | null
     /**
-     * Where the destination is seen in the host that holds it (`groundedPresence`): narrows which of
-     * the destination's own bindings the mover lands under. Absent, the destination's only binding.
+     * The binding of the destination the mover lands under, named directly (the destination's `view`).
+     * It must be one of the destination's own bindings (else `destinationBindingMissing`). Absent, the
+     * destination's only binding; a destination with several and none named is `destinationBindingAmbiguous`.
      */
-    toGroundedPresence?: readonly GroundedPresence[]
+    toBinding?: EphemeraPresenceNodeId
     /**
-     * Where the mover is seen in the host it leaves (`groundedPresence`): names which of that host's
-     * buckets it sits in, so a mover holding several bindings under one host (a plank under two
-     * bindings of a table) is told apart by binding. Absent, the host alone must be enough.
+     * The bindings of the mover that move, named directly (the mover's `view`): each must hold a parent
+     * on a `from` host (else `moverBindingMissing`). Absent, the mover's one binding under each `from`
+     * host; several under one host is `moverBindingAmbiguous`.
      */
-    moverGroundedPresence?: readonly GroundedPresence[]
-    /**
-     * The one binding of the mover that moves, named directly: a view-move. It must hold a parent on a
-     * `from` host (else `moverBindingMissing`); `moverGroundedPresence` is not consulted.
-     */
-    moverBinding?: EphemeraPresenceNodeId
+    moverBindings?: readonly EphemeraPresenceNodeId[]
     /**
      * A spread: the mover gains `to` and keeps its parents on the `from` hosts, so its binding
      * sits under both. Absent, a move: the parents on the `from` hosts are lost.
@@ -75,103 +70,23 @@ const cascadeHostsOf = async (
     return [...hosts]
 }
 
-/** Whether a binding's parent pointer names one of the buckets where its whole is seen. */
-const sitsUnderSeenBucket = (
-    binding: EphemeraLudicGraphStructureNode,
-    seen: readonly GroundedPresence[]
-): boolean => seen.some((bucket) => (
-    parentsOf(binding).some((parent) => (
-        typeof bucket === 'string'
-            ? parent.host === bucket
-            : parent.host === bucket.host && parent.presence === bucket.presence
-    ))
-))
-
-/** The bindings of a destination's own graph whose pointer names a bucket where it is seen. */
-const bindingsUnderSeenBuckets = (
-    destGraph: EphemeraLudicGraph,
-    seen: readonly GroundedPresence[]
-): EphemeraPresenceNodeId[] => (
-    destGraph.presenceNodes
-        .filter((node) => sitsUnderSeenBucket(node, seen))
-        .map(({ universalKey }) => universalKey)
-)
-
 /**
  * The binding of the destination that a mover will sit under: a Room's or Area's hostless
- * remainder; otherwise the one named by where the destination is seen, else its only binding.
- * Never a guess: none, or several, is a refusal the caller reports.
+ * remainder; otherwise its only binding, whatever it is called. Never a guess: none, or several, is a
+ * refusal the caller reports (a destination with several parts is named by its `view`, `toBinding`).
  */
 export const destinationBindingOf = (
-    destGraph: EphemeraLudicGraph,
-    seen: readonly GroundedPresence[] | undefined
+    destGraph: EphemeraLudicGraph
 ): { presence: EphemeraPresenceNodeId } | { errorCode: 'destinationBindingMissing' | 'destinationBindingAmbiguous' } => {
     if (isEphemeraRoomId(destGraph.hostId) || isEphemeraAreaId(destGraph.hostId)) {
         const base = childParentBindingIdOf(destGraph)
         return base ? { presence: base } : { errorCode: 'destinationBindingMissing' }
     }
-    if (seen && seen.length > 0) {
-        const matches = bindingsUnderSeenBuckets(destGraph, seen)
-        if (matches.length === 1) {
-            return { presence: matches[0] }
-        }
-        if (matches.length > 1) {
-            return { errorCode: 'destinationBindingAmbiguous' }
-        }
+    const [only, ...rest] = destGraph.presenceNodes
+    if (only && rest.length === 0) {
+        return { presence: only.universalKey }
     }
-    const only = childParentBindingIdOf(destGraph)
-    if (only) {
-        return { presence: only }
-    }
-    return { errorCode: destGraph.presenceNodes.length === 0 ? 'destinationBindingMissing' : 'destinationBindingAmbiguous' }
-}
-
-/** How far a binding sits below a root: 0 when hostless, else one more than its deepest parent binding. */
-const bindingDepth = async (
-    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
-    binding: EphemeraLudicGraphStructureNode,
-    visiting: ReadonlySet<string> = new Set()
-): Promise<number> => {
-    const parents = parentsOf(binding)
-    if (parents.length === 0 || visiting.has(binding.universalKey)) {
-        return 0
-    }
-    const depths = await Promise.all(parents.map(async ({ host, presence }) => {
-        const parentBinding = (await getGraph(host)).presenceNodes.find(({ universalKey }) => universalKey === presence)
-        return parentBinding ? bindingDepth(getGraph, parentBinding, new Set([...visiting, binding.universalKey])) : 0
-    }))
-    return 1 + Math.max(...depths)
-}
-
-/**
- * `destinationBindingOf`, for a destination that may hold several bindings (an extended whole: a cloth
- * draped over a table is one part on the floor and one on the table). When where the destination is
- * seen does not single one out, the mover lands on the **deepest** part, the one furthest below the
- * room (the part on the table, which supports it); two equally deep are `destinationBindingAmbiguous`.
- * A first-iteration stand-in: once a command can say which part it means ("the cup on the table"),
- * the player's own naming replaces it and an unnamed choice is a question to the player.
- */
-const destinationBindingForMove = async (
-    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
-    destGraph: EphemeraLudicGraph,
-    seen: readonly GroundedPresence[] | undefined
-): Promise<ReturnType<typeof destinationBindingOf>> => {
-    const plain = destinationBindingOf(destGraph, seen)
-    if (isEphemeraRoomId(destGraph.hostId) || isEphemeraAreaId(destGraph.hostId)) {
-        return plain
-    }
-    const matched = seen && seen.length > 0 ? bindingsUnderSeenBuckets(destGraph, seen) : []
-    if (matched.length === 1) {
-        return plain
-    }
-    const candidates = destGraph.presenceNodes.filter(({ universalKey }) => matched.length > 1 ? matched.includes(universalKey) : true)
-    if (candidates.length < 2) {
-        return plain
-    }
-    const depths = await Promise.all(candidates.map(async (binding) => ({ binding, depth: await bindingDepth(getGraph, binding) })))
-    const deepest = Math.max(...depths.map(({ depth }) => depth))
-    const tied = depths.filter(({ depth }) => depth === deepest)
-    return tied.length === 1 ? { presence: tied[0]!.binding.universalKey } : { errorCode: 'destinationBindingAmbiguous' }
+    return { errorCode: only ? 'destinationBindingAmbiguous' : 'destinationBindingMissing' }
 }
 
 const hostsOfCover = (cover: EphemeraPresenceCover): EphemeraMembershipHostId[] => (
@@ -282,9 +197,9 @@ export const partMoveSteps = (args: {
  *   no parent and drops its children to Unplaced (the fall-through rule). A mover with none names nothing, and any node
  *   it holds in those hosts is drift the kernel leaves to the sweeps.
  * - **A mover with a binding under a `from` host** reparents that binding: it loses every parent on the
- *   `from` hosts and gains the destination binding, keeping its id. Several distinct bindings under one
- *   host are told apart by where the mover is seen (`moverGroundedPresence`); still several, or no such
- *   name, is a refusal. One shared binding with several parents on the host is one mover.
+ *   `from` hosts and gains the destination binding, keeping its id. The bindings that move are named by
+ *   the mover's view (`moverBindings`); with none named, several distinct bindings under one host is a
+ *   refusal. One shared binding with several parents on the host is one mover.
  * - **Convergence.** Several bindings (a scrub), or a mover already holding a binding under the
  *   destination, end up under one parent. A join follows the reparents (the binding already under the
  *   destination survives, Base always does), then the joins for the children that collide beneath it.
@@ -314,31 +229,32 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
             }),
         }
     }
-    const destination = await destinationBindingForMove(args.getGraph, await args.getGraph(args.to), args.toGroundedPresence)
+    const destGraph = await args.getGraph(args.to)
+    const destination = args.toBinding !== undefined
+        ? destGraph.presenceNodes.some(({ universalKey }) => universalKey === args.toBinding)
+            ? { presence: args.toBinding }
+            : { errorCode: 'destinationBindingMissing' as const }
+        : destinationBindingOf(destGraph)
     if ('errorCode' in destination) {
         return { ok: false, errorCode: destination.errorCode }
     }
     const to: ParentBinding = { host: args.to, presence: destination.presence }
 
     const moverGraph = await args.getGraph(args.moved)
-    if (args.moverBinding !== undefined) {
-        const binding = moverGraph.presenceNodes.find(({ universalKey }) => universalKey === args.moverBinding)
-        if (!binding || !args.froms.some((fromHostId) => bindingHasParentOn(binding, fromHostId))) {
+    const viewed = args.moverBindings
+    if (viewed !== undefined) {
+        const missing = viewed.some((presence) => {
+            const binding = moverGraph.presenceNodes.find(({ universalKey }) => universalKey === presence)
+            return !binding || !args.froms.some((fromHostId) => bindingHasParentOn(binding, fromHostId))
+        })
+        if (missing) {
             return { ok: false, errorCode: 'moverBindingMissing' }
         }
     }
-    const departing = args.froms.map((fromHostId) => {
-        if (args.moverBinding !== undefined) {
-            return moverGraph.presenceNodes.filter((node) => node.universalKey === args.moverBinding && bindingHasParentOn(node, fromHostId))
-        }
-        const underHost = moverGraph.presenceNodes.filter((node) => bindingHasParentOn(node, fromHostId))
-        const seen = args.moverGroundedPresence
-        const narrowed = underHost.length > 1 && seen && seen.length > 0
-            ? underHost.filter((node) => sitsUnderSeenBucket(node, seen))
-            : underHost
-        return narrowed.length > 0 ? narrowed : underHost
-    })
-    if (departing.some((nodes) => nodes.length > 1)) {
+    const departing = viewed !== undefined
+        ? [moverGraph.presenceNodes.filter((node) => viewed.includes(node.universalKey))]
+        : args.froms.map((fromHostId) => moverGraph.presenceNodes.filter((node) => bindingHasParentOn(node, fromHostId)))
+    if (viewed === undefined && departing.some((nodes) => nodes.length > 1)) {
         return { ok: false, errorCode: 'moverBindingAmbiguous' }
     }
     const named = [...new Map(departing.flatMap((nodes) => nodes).map((node) => [node.universalKey, node])).values()]
@@ -353,7 +269,7 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
     const kept: ParentBinding[] = []
     if (args.keepFroms && named.length === 0) {
         for (const fromHostId of args.froms) {
-            const fromBinding = destinationBindingOf(await args.getGraph(fromHostId), undefined)
+            const fromBinding = destinationBindingOf(await args.getGraph(fromHostId))
             if ('errorCode' in fromBinding) {
                 return { ok: false, errorCode: fromBinding.errorCode }
             }

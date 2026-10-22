@@ -10,7 +10,6 @@ export const objectManipulationErrorMessages = {
     complexRelational: 'ObjectManipulation enrich: relational placement is not implemented yet',
     noHostRoom: 'ObjectManipulation resolution failed: you are not in a room',
     complexMultiObject: 'ObjectManipulation enrich: multi-object manipulation is not implemented yet',
-    complexMultiPresent: 'ObjectManipulation enrich: object is present in more than one place',
     complexUnimplementedVerb: 'ObjectManipulation enrich: that manipulation verb is not implemented yet',
     noMembershipHost: 'ObjectManipulation resolution failed: object has no membership host',
     notCarryingObject: 'ObjectManipulation resolution failed: object is in room but not held',

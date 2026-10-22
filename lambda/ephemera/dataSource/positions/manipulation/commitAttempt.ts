@@ -111,16 +111,17 @@ const readLiveHosts = async (
  * and builds (not commits) the plan via the existing `planObjectMoveTransfer`. The plan carries
  * mutation steps only: the action's lines are its narration units, delivered by the sweep.
  *
- * A take of a thing in several hosts (the take rule) leaves them all: its `from` is any one of them, and
- * the rest go to the planner as `alsoLeaving`.
+ * A move acts on the object's `view`: the bindings it names move, and the planner leaves every host they sit
+ * under, read off the mover's graph it reads anyway (a take of both parts of a thing in several hosts leaves
+ * them all; a take of one part leaves one). For a thing in several hosts, `from` is only a live host of it;
+ * the hosts the move starts from are the view's, so the narrated `fromHostId` is the planner's.
  */
 const buildMembershipFragment = async (
     actionId: string,
     change: TransferMembershipChange<GroundedReferent>,
     live: { liveHosts: ReadonlyMap<GroundedId, EphemeraMembershipHostId>; containers: ReadonlyMap<GroundedId, readonly EphemeraMembershipHostId[]> },
     args: CommitAttemptArgs,
-    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
-    mintedBindings: ReadonlySet<string>
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 ): Promise<ActionFragment | undefined> => {
     const { liveHosts } = live
     const entityId = change.object.groundedId
@@ -129,25 +130,17 @@ const buildMembershipFragment = async (
     if (!isEphemeraObjectId(entityId)) {
         return undefined
     }
+    const moverView = 'view' in change.object ? change.object.view : undefined
+    const liveHost = liveHosts.get(entityId)
     const containers = live.containers.get(entityId) ?? []
-    const multiHostTake = containers.length > 1 && toHostId === args.characterId
-    if (multiHostTake) {
-        if (containers.includes(toHostId)) {
-            console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${entityId} is already on ${toHostId}`)
-            return undefined
-        }
-        if (!containers.includes(fromHostId)) {
-            console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${entityId} is no longer on ${fromHostId}`)
-            return undefined
-        }
-    }
     // Already held (a take of something picked up since the dry run, or a drop of something
-    // already put down): refused, with its own message, not silently skipped.
-    if (!multiHostTake && liveHosts.get(entityId) === toHostId) {
+    // already put down): refused, with its own message, not silently skipped. A thing in several hosts
+    // is judged by its view's hosts, which the planner reads (`alreadyOnDestination`).
+    if (liveHost !== undefined && liveHost === toHostId) {
         console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${entityId} is already on ${toHostId}`)
         return undefined
     }
-    if (!multiHostTake && liveHosts.get(entityId) !== fromHostId) {
+    if (liveHost !== undefined ? liveHost !== fromHostId : moverView === undefined || !containers.includes(fromHostId)) {
         console.error(`[mtw.ephemera.positions] commitAttempt: membership action refused: ${entityId} is no longer on ${fromHostId}`)
         return undefined
     }
@@ -162,20 +155,13 @@ const buildMembershipFragment = async (
         return undefined
     }
 
-    // A one-binding view naming a binding an earlier extend minted moves that binding (a spread). Any other
-    // view (a part the player chose) is not read yet: the take still lifts every binding, so a view must not
-    // move one binding while `alsoLeaving` lifts the rest. Otherwise the buckets the actor perceives the
-    // object in narrow which of its bindings moves.
-    const moverView = 'view' in change.object ? change.object.view : undefined
-    const moverBinding = moverView?.length === 1 && mintedBindings.has(moverView[0]!) ? moverView[0] : undefined
+    const toView = 'view' in change.to ? change.to.view : undefined
     const planResult = await planObjectMoveTransfer({
         entityId,
         fromHostId,
         toHostId,
-        ...('groundedPresence' in change.to && change.to.groundedPresence ? { toGroundedPresence: change.to.groundedPresence } : {}),
-        ...(multiHostTake ? { alsoLeaving: containers.filter((hostId) => hostId !== fromHostId) } : {}),
-        ...(moverBinding ? { moverBinding } : {}),
-        ...(!moverBinding && 'groundedPresence' in change.object && change.object.groundedPresence ? { moverGroundedPresence: change.object.groundedPresence } : {}),
+        ...(toView?.length === 1 ? { toBinding: toView[0] } : {}),
+        ...(moverView ? { moverBindings: moverView } : {}),
         // Containment: `planObjectMoveTransfer`/`buildObjectMoveOp`/
         // `compilePositionKernelOp` already thread this through to the establish step whose
         // `hostId` is always `toHostId` by construction --- no ancestry walk needed.
@@ -195,7 +181,7 @@ const buildMembershipFragment = async (
         membershipMove: {
             actionId,
             entityId,
-            fromHostId,
+            fromHostId: planResult.fromHostId,
             toHostId,
         },
     }
@@ -472,10 +458,12 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     const spans = new Map(attempt.referents().map(({ refKey, id }) => [refKey, id]))
     const live = await readLiveHosts(attempt, characterId)
     const { liveHosts } = live
+    // A transfer's `from`, for a thing in several hosts that names a part: a live host of it. Which hosts the
+    // move leaves is the planner's, read off the view's bindings in the mover's graph.
     const resolver: DerivedReferentResolver = {
         actingCharacter: characterId,
         currentHost: (id) => liveHosts.get(id),
-        anyHost: (id) => live.containers.get(id)?.[0],
+        viewHosts: (id) => live.containers.get(id),
     }
 
     // All-or-nothing: one action that cannot be built refuses the whole attempt, so nothing is
@@ -518,19 +506,17 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     // new binding before the sequence has committed.
     const overlay = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>()
     const getGraph = async (hostId: EphemeraMembershipHostId) => overlay.get(hostId) ?? await defaultGetGraph(hostId)
-    const mintedBindings = new Set<string>()
     for (const { actionId, change } of grounded) {
         let fragment: ActionFragment | undefined
         if (change.primitive === 'extend') {
             const built = await buildExtendFragment(change, getGraph)
             if (built !== undefined) {
-                mintedBindings.add(PresenceKey(change.presenceUuid))
                 overlay.set(built.entityId, built.extended)
                 fragment = built.fragment
             }
         } else {
             fragment = change.primitive === 'transferMembership'
-                ? await buildMembershipFragment(actionId, change, live, args, getGraph, mintedBindings)
+                ? await buildMembershipFragment(actionId, change, live, args, getGraph)
                 : await buildRelationalFragment(change)
         }
         if (fragment === undefined) {
