@@ -153,49 +153,6 @@ describe('planObjectMoveTransfer', () => {
         })
     })
 
-    describe('spread (keepFrom)', () => {
-        it('a cup on one tray spread onto a second: no strip of its edge on the first, an establish into the second, and a gain-only reparent', async () => {
-            const tray1Graph = testLudicGraph(TRAY_ID, {
-                nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID }, presenceBindingNode('Base', ROOM_ID, { members: [{ host: CUP_ID, presence: PresenceKey('cup-on-tray') as any }] })],
-                edges: [{ tag: 'Relational', from: CUP_ID, to: TRAY_ID, kind: 'On' }],
-            })
-            const tray2Graph = testLudicGraph(TRAY2_ID, { nodes: [{ tag: 'Object', universalKey: TRAY2_ID }, presenceBindingNode('Base', ROOM_ID)], edges: [] })
-            const cupGraph = testLudicGraph(CUP_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }, trayBinding('cup-on-tray', TRAY_ID)] })
-            const getGraph = worldOf({ [TRAY_ID]: tray1Graph, [TRAY2_ID]: tray2Graph, [CUP_ID]: cupGraph })
-
-            const result = await planObjectMoveTransfer({
-                entityId: CUP_ID,
-                fromHostId: TRAY_ID,
-                toHostId: TRAY2_ID,
-                containment: 'On',
-                keepFrom: true,
-                getGraph,
-            })
-
-            if (!result.ok) { throw new Error(result.errorCode) }
-            expect(result.plan.steps.some((step) => step.kind === 'dissolveRelation')).toBe(false)
-            expect(result.plan.steps).toEqual([
-                { kind: 'reparentPresenceBinding', hostId: CUP_ID, presence: PresenceKey('cup-on-tray'), gain: [{ host: TRAY2_ID, presence: PresenceKey('Base') }] },
-                expect.objectContaining({ kind: 'establishRelation', subjectId: CUP_ID, targetId: TRAY2_ID, hostId: TRAY2_ID, relationKind: 'On' }),
-            ])
-        })
-
-        it('still refuses a containment cycle', async () => {
-            const getGraph = jest.fn(async (hostId: string): Promise<EphemeraLudicGraph> => testLudicGraph(hostId as EphemeraObjectId))
-
-            const result = await planObjectMoveTransfer({
-                entityId: TRAY_ID,
-                fromHostId: ROOM_ID,
-                toHostId: TRAY_ID,
-                containment: 'On',
-                keepFrom: true,
-                getGraph,
-            })
-
-            expect(result).toEqual({ ok: false, errorCode: 'containmentCycle' })
-        })
-    })
-
     describe('a take of the whole of an object in several hosts (moverBindings)', () => {
         // A cup spread across the room floor and the table: a member of both.
         const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }, { tag: 'Object', universalKey: TABLE_ID }] })
@@ -213,7 +170,7 @@ describe('planObjectMoveTransfer', () => {
             getGraph: worldOf({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph, [CHARACTER_ID]: characterGraph, [CUP_ID]: cupGraph }),
         })
 
-        it('a shared binding (a spread) loses both parents in one reparent, and its edge on the table is stripped there', async () => {
+        it('a binding shared across hosts loses both parents in one reparent, and its edge on the table is stripped there', async () => {
             const result = await take(testLudicGraph(CUP_ID, { nodes: [presenceBindingNode('cup', [ROOM_ID, TABLE_ID])] }))
 
             if (!result.ok) { throw new Error(result.errorCode) }
@@ -243,6 +200,41 @@ describe('planObjectMoveTransfer', () => {
             expect(result.fromHostId).toBe(TABLE_ID)
             expect(result.plan.steps.filter((step) => step.kind === 'reparentPresenceBinding')).toEqual([
                 expect.objectContaining({ presence: PresenceKey('cup-on-table'), lose: [{ host: TABLE_ID, presence: parentRemainderKey(TABLE_ID) }] }),
+            ])
+        })
+
+        it('a view across two hosts strips the containment edge only in the host it fully leaves', async () => {
+            // The table holds two bindings, and the cup sits under both: the view moves the part on its left and
+            // the part in the room, so the cup still sits on the table's right and keeps its edge there.
+            const leftRightTable = testLudicGraph(TABLE_ID, {
+                nodes: [
+                    { tag: 'Object', universalKey: TABLE_ID },
+                    { tag: 'Object', universalKey: CUP_ID },
+                    presenceBindingNode('table-left', { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }),
+                    presenceBindingNode('table-right', { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }),
+                ],
+                edges: [{ tag: 'Relational', from: CUP_ID, to: TABLE_ID, kind: 'On' }],
+            })
+            const roomWithEdge = testLudicGraph(ROOM_ID, {
+                nodes: [{ tag: 'Object', universalKey: CUP_ID }, { tag: 'Object', universalKey: TABLE_ID }],
+                edges: [{ tag: 'Relational', from: CUP_ID, to: ROOM_ID, kind: 'In' }],
+            })
+            const cupGraph = testLudicGraph(CUP_ID, { nodes: [
+                trayBinding('cup-in-room', ROOM_ID),
+                presenceBindingNode('cup-on-left', { host: TABLE_ID, presence: PresenceKey('table-left') as any }),
+                presenceBindingNode('cup-on-right', { host: TABLE_ID, presence: PresenceKey('table-right') as any }),
+            ] })
+            const result = await planObjectMoveTransfer({
+                entityId: CUP_ID,
+                fromHostId: ROOM_ID,
+                moverBindings: [PresenceKey('cup-in-room'), PresenceKey('cup-on-left')],
+                toHostId: CHARACTER_ID,
+                getGraph: worldOf({ [ROOM_ID]: roomWithEdge, [TABLE_ID]: leftRightTable, [CHARACTER_ID]: characterGraph, [CUP_ID]: cupGraph }),
+            })
+
+            if (!result.ok) { throw new Error(result.errorCode) }
+            expect(result.plan.steps.filter((step) => step.kind === 'dissolveRelation')).toEqual([
+                expect.objectContaining({ subjectId: CUP_ID, targetId: ROOM_ID, hostId: ROOM_ID, relationKind: 'In' }),
             ])
         })
 

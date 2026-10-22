@@ -289,7 +289,7 @@ const describeGroundedAction = (action: AttemptAction, attemptSteps: readonly Pl
         const target = labelOf(step.to)
         const preposition = step.containment === 'On' ? 'on' : 'in'
         // A move of the binding an extend minted is the spread's second step: it reads as the spread.
-        if (step.keepFrom || viewMintedByExtend(step.object, attemptSteps)) {
+        if (viewMintedByExtend(step.object, attemptSteps)) {
             return {
                 action: new PositionAttemptAction(action.id, action.challenges(), step, `Spread ${subject} ${preposition} ${target}`),
                 alternative: { label: `${subject} / ${target}`, proposedCommand: `spread the ${subject} ${preposition} the ${target}` },
@@ -688,9 +688,9 @@ export const expandAndAdjudicateCandidates = (
     const actions = candidate.attempt.actions()
     const primary = actions[actions.length - 1]
     const step = primary?.desiredResult
-    // A spread leaves nothing, so it has no boundary to dissolve and no exit contact to challenge: its
-    // move is of the binding an extend minted, and the object stays in the host the binding leaves.
-    if (primary === undefined || step?.kind !== 'change' || step.primitive !== 'transferMembership' || step.keepFrom
+    // A move of the binding an extend minted leaves nothing: the object stays in the host the binding
+    // leaves, so it has no boundary to dissolve and no exit contact to challenge.
+    if (primary === undefined || step?.kind !== 'change' || step.primitive !== 'transferMembership'
         || viewMintedByExtend(step.object, planStepsOf(actions))) {
         return candidate
     }

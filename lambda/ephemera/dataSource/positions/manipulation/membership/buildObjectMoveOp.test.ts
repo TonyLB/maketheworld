@@ -89,21 +89,4 @@ describe('buildObjectMoveOp', () => {
         expect(op.froms).toEqual([ROOM, TABLE])
         expect(op.dissolvedEdges).toEqual([{ hostId: TABLE, edge: { from: TRAY, to: TABLE, kind: 'On' } }])
     })
-
-    it('a spread (keepFrom) keeps the own containment edge and leaves no host: the mover stays where it was', () => {
-        const fromGraph = testLudicGraph(TABLE, {
-            nodes: [{ tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: TRAY }],
-            edges: [{ tag: 'Relational', from: TRAY, to: TABLE, kind: 'On' }],
-        })
-        const op = buildObjectMoveOp({
-            entityId: TRAY,
-            departures: [{ hostId: TABLE, graph: fromGraph }],
-            toHostId: CHANDELIER,
-            presenceSteps: [],
-            containment: 'On',
-            keepFrom: true,
-        })
-
-        expect(op).toMatchObject({ froms: [], to: CHANDELIER, dissolvedEdges: [], containment: 'On' })
-    })
 })

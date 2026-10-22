@@ -37,7 +37,6 @@ describe('matchSpreadTemplate', () => {
             to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
             containment: 'On',
         })
-        expect(move).not.toHaveProperty('keepFrom')
     })
 
     it.each([

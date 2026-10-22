@@ -31,8 +31,6 @@ export type PlanObjectMoveTransferArgs = {
     moverBindings?: readonly EphemeraPresenceNodeId[]
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
-    /** A spread: the mover gains `toHostId` and stays in `fromHostId` (`resolvePresenceMoves`'s `keepFroms`). */
-    keepFrom?: true
     /** injectable for test seams only. */
     getGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 }
@@ -43,8 +41,8 @@ export type PlanObjectMoveTransferResult =
 
 /**
  * Take/drop/give's `plan*`-tier stage: refuses a containment cycle, then builds and compiles the
- * move's own plan --- the transfer, the mover's own containment-edge strip (not on a spread,
- * `keepFrom`), and (with `containment`) the establish into the new host. Reads, never writes.
+ * move's own plan --- the transfer, the mover's own containment-edge strip in each host it
+ * leaves, and (with `containment`) the establish into the new host. Reads, never writes.
  *
  * It does not dry-run, and derives no boundary-edge dissolve. Those dissolves are the command
  * attempt's own facilitating actions, committed as sibling fragments, so this fragment alone
@@ -74,7 +72,6 @@ export const planObjectMoveTransfer = async (
         return { ok: false, errorCode: 'alreadyOnDestination' }
     }
     const froms = viewHosts ?? [args.fromHostId]
-    const departures = await Promise.all(froms.map(async (hostId) => ({ hostId, graph: await getGraph(hostId) })))
 
     const resolved = await resolvePresenceMoves({
         moved: args.entityId,
@@ -82,18 +79,18 @@ export const planObjectMoveTransfer = async (
         to: args.toHostId,
         ...(args.toBinding ? { toBinding: args.toBinding } : {}),
         ...(args.moverBindings ? { moverBindings: args.moverBindings } : {}),
-        ...(args.keepFrom ? { keepFroms: true as const } : {}),
         getGraph,
     })
     if (!resolved.ok) {
         return { ok: false, errorCode: resolved.errorCode }
     }
 
-    // A view-move leaves its host only if no other binding of the mover stays under it:
-    // the mover's own containment edge in that host, and its departure, are then untouched (as on a spread).
-    const staysInFrom = mover !== undefined && mover.presenceNodes.some((node) => (
-        !args.moverBindings!.includes(node.universalKey) && froms.some((hostId) => bindingHasParentOn(node, hostId))
-    ))
+    // A view-move leaves a host only if no other binding of the mover stays under it: the mover's own
+    // containment edge in a host it stays in is untouched.
+    const left = mover === undefined ? froms : froms.filter((hostId) => !mover.presenceNodes.some((node) => (
+        !args.moverBindings!.includes(node.universalKey) && bindingHasParentOn(node, hostId)
+    )))
+    const departures = await Promise.all(left.map(async (hostId) => ({ hostId, graph: await getGraph(hostId) })))
 
     const buildArgs = {
         entityId: args.entityId,
@@ -101,7 +98,6 @@ export const planObjectMoveTransfer = async (
         toHostId: args.toHostId,
         presenceSteps: resolved.steps,
         ...(args.containment ? { containment: args.containment } : {}),
-        ...(args.keepFrom || staysInFrom ? { keepFrom: true as const } : {}),
     }
 
     const plan = compilePositionKernelOp(buildObjectMoveOp(buildArgs))

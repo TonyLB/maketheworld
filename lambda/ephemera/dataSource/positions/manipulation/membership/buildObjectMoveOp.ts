@@ -12,11 +12,11 @@ export type BuildObjectMoveOpArgs = {
     entityId: EphemeraObjectId
     /**
      * The hosts the mover leaves, each with its graph as of whenever the caller fetched it: one
-     * for most moves, several for a take of a thing in several hosts (the take rule). Each graph is used
+     * for most moves, several for a view across several hosts, none for a move of one part that
+     * leaves another part behind in every host it starts from. Each graph is used
      * only to find the mover's own containment edge into its root (if any), which is stripped
-     * here on every move: leaving a host means leaving its containment, as entering one means
-     * gaining it (`containment`). A spread (`keepFrom`) leaves nothing, so it strips nothing. No
-     * other edge is dissolved here. A boundary edge's dissolve is a facilitating action the
+     * here: leaving a host means leaving its containment, as entering one means
+     * gaining it (`containment`). No other edge is dissolved here. A boundary edge's dissolve is a facilitating action the
      * command attempt states explicitly, and the commit path
      * commits it as a sibling of this op; one the attempt does not cover is left in place for
      * `applyDeparture` to report as `repairable`, and the move is refused.
@@ -27,11 +27,6 @@ export type BuildObjectMoveOpArgs = {
     presenceSteps: readonly MutationKernelStep[]
     /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
     containment?: 'On' | 'In' | 'PartOf'
-    /**
-     * A spread: the mover stays in `fromHostId` and also enters `toHostId`, so its own
-     * containment edges stay and the op leaves no host (`froms: []`).
-     */
-    keepFrom?: true
 }
 
 /**
@@ -57,12 +52,11 @@ export type BuildObjectMoveOpArgs = {
  * it, so the move names one entity.
  *
  * `dissolvedEdges` is derived here from `departures`, not handed in pre-computed by the caller: it
- * holds only the mover's own containment edge in each host it leaves, and nothing on a spread. See
+ * holds only the mover's own containment edge in each host it leaves. See
  * `departures`' own doc comment above for why boundary edges are not folded in.
  */
 export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMoveOp => {
-    const departures = args.keepFrom ? [] : args.departures
-    const dissolvedEdges = departures.flatMap(({ hostId, graph }): { hostId: EphemeraMembershipHostId; edge: HostRelationalEdge }[] => {
+    const dissolvedEdges = args.departures.flatMap(({ hostId, graph }): { hostId: EphemeraMembershipHostId; edge: HostRelationalEdge }[] => {
         const edge = findOwnRootContainmentEdge(args.entityId, graph)
         return edge ? [{ hostId, edge }] : []
     })
@@ -70,7 +64,7 @@ export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMo
     return {
         kind: 'move',
         moved: args.entityId,
-        froms: departures.map(({ hostId }) => hostId),
+        froms: args.departures.map(({ hostId }) => hostId),
         to: args.toHostId,
         header: null,
         presenceSteps: args.presenceSteps,
