@@ -3,6 +3,7 @@ import { WorldKnowledgeChallenge } from '../../commandAttempt/challenge'
 import { verdictFromJSON } from '../../commandAttempt/verdict'
 import type { ChallengeAnswer } from '../../persistentCommand/payload'
 
+import type { ViewAnswer } from '../../objectViews'
 import type { GroundedAttemptCandidate } from './attemptCandidates'
 
 /**
@@ -12,6 +13,7 @@ import type { GroundedAttemptCandidate } from './attemptCandidates'
 export type ResumeAnswers = {
     selectedAttempt?: string
     referentAnswers?: Readonly<Record<string, string>>
+    viewAnswers?: Readonly<Record<string, ViewAnswer>>
     challengeAnswers?: Readonly<Record<string, ChallengeAnswer>>
 }
 

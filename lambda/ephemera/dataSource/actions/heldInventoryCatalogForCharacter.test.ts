@@ -80,9 +80,13 @@ describe('getHeldInventoryCatalogForCharacter', () => {
             getComponentAggregate: namedComponentAggregate({ [broomId]: 'Broom' }),
         })
 
-        expect(result.entries).toEqual([
-            { objectId: broomId, normalizedShortName: 'broom', presence: [{ host: characterId, presence: characterBinding }] },
-        ])
+        expect(result.entries).toEqual([{
+            objectId: broomId,
+            normalizedShortName: 'broom',
+            presence: [{ host: characterId, presence: characterBinding }],
+            // The part in hand: the broom's own binding the character's binding covers, under that binding.
+            placement: [{ host: broomId, bindings: [{ presence: PresenceKey('Base'), under: [{ host: characterId, presence: characterBinding }], rooms: [] }] }],
+        }])
     })
 
     it('resolves an authored merged ComponentAggregate shortName', async () => {

@@ -40,6 +40,20 @@ describe('selectQuestionFromConsult', () => {
         expect(question.root).toBe(root)
     })
 
+    it('asks between two readings of one object, storing each option\'s view beside the object', () => {
+        const question = selectQuestionFromConsult(consult([
+            { proposedCommand: 'get cloth', label: 'the cloth on the table', referentAnswers: { 'ref-1': 'OBJECT#Cloth' }, viewAnswers: { 'ref-1': ['PRESENCE#table'] } },
+            { proposedCommand: 'get cloth', label: 'both parts of the cloth', referentAnswers: { 'ref-1': 'OBJECT#Cloth' }, viewAnswers: { 'ref-1': 'whole' } },
+        ] as any), counter())!
+        expect(question.pending.options).toEqual({ 'option-0': { 'ref-1': 'OBJECT#Cloth' }, 'option-1': { 'ref-1': 'OBJECT#Cloth' } })
+        expect(question.pending.views).toEqual({ 'option-0': { 'ref-1': ['PRESENCE#table'] }, 'option-1': { 'ref-1': 'whole' } })
+        expect(question.outcome.Options.map(({ Label }) => Label)).toEqual([['the cloth on the table'], ['both parts of the cloth']])
+    })
+
+    it('stores no views for a question about objects alone', () => {
+        expect(selectQuestionFromConsult(twoCups, counter())!.pending.views).toBeUndefined()
+    })
+
     it('keeps a multi-key assignment whole', () => {
         const question = selectQuestionFromConsult(consult([
             { proposedCommand: 'a', referentAnswers: { 'ref-1': 'OBJECT#A', 'ref-2': 'OBJECT#X' } },
@@ -96,5 +110,15 @@ describe('askRowPayload', () => {
         expect(payload.referentAnswers).toEqual(prior.referentAnswers)
         expect(payload.challengeAnswers).toEqual(prior.challengeAnswers)
         expect(Object.keys(payload.pending!.options)).toEqual(['option-0', 'option-1'])
+    })
+
+    it('keeps the view answers already given when it asks again', () => {
+        const payload = askRowPayload(selectQuestionFromConsult(twoCups, counter())!, transcript, {
+            referentAnswers: {},
+            viewAnswers: { 'ref-0': 'whole' },
+            challengeAnswers: {},
+        })
+        expect(payload.viewAnswers).toEqual({ 'ref-0': 'whole' })
+        expect(isPersistentCommandPayload(payload)).toBe(true)
     })
 })

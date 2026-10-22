@@ -102,7 +102,7 @@ describe('a player command resolving a nested object from the stored cache', () 
         const log = jest.spyOn(console, 'log').mockImplementation(() => {})
 
         // First command: no row yet, so the room is rebuilt (and written); the cup resolves on the table.
-        expect(cupEntry((await catalog()).entries)).toEqual({ objectId: cupId, normalizedShortName: 'cup', presence: [{ host: tableId, presence: tableBinding }] })
+        expect(cupEntry((await catalog()).entries)).toEqual({ objectId: cupId, normalizedShortName: 'cup', placement: [{ host: tableId, bindings: [{ presence: tableBinding }] }], presence: [{ host: tableId, presence: tableBinding }] })
         const readsToBuild = getFreshLudicGraph.mock.calls.length
         expect(readsToBuild).toBeGreaterThan(0)
 
@@ -115,7 +115,7 @@ describe('a player command resolving a nested object from the stored cache', () 
         state.version += 1
 
         // Next command: the row is stale, rebuilt, and the cup resolves in its new place.
-        expect(cupEntry((await catalog()).entries)).toEqual({ objectId: cupId, normalizedShortName: 'cup', presence: [roomId] })
+        expect(cupEntry((await catalog()).entries)).toEqual({ objectId: cupId, normalizedShortName: 'cup', placement: [{ host: roomId, bindings: [] }], presence: [roomId] })
         expect(outcomes).toEqual(['absent', 'hit', 'stale'])
         // a present character is no referent, and what it carries is not in the room
         const referents = (await catalog()).entries.map(({ objectId }) => objectId)

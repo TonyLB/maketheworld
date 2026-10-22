@@ -27,14 +27,14 @@ export const resumePersistentCommand = (
     world: PersistentCommandWorld,
     deps: CompileAttemptsFromSkeletonDeps = {}
 ): Promise<CompileAttemptsFromSkeletonResult> => {
-    const { root, selectedAttempt, referentAnswers, challengeAnswers } = payload
+    const { root, selectedAttempt, referentAnswers, viewAnswers, challengeAnswers } = payload
     return compileAttemptsFromSkeleton(
         {
             command: root.command,
             skeleton: root.skeleton,
             attempts: root.attempts.map((data) => CommandAttempt.fromJSON(data)),
             ...world,
-            answers: { selectedAttempt, referentAnswers, challengeAnswers },
+            answers: { selectedAttempt, referentAnswers, viewAnswers, challengeAnswers },
         },
         root.confidence,
         deps

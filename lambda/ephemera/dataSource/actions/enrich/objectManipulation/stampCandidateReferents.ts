@@ -1,7 +1,8 @@
+import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { Change, GroundedId, GroundedPresence, PlanStep, Referent } from './plan/planStep'
 
 /** What one identity candidate says about a span key: its id, the names prose reads, and where it was seen. */
-export type SpanName = { id: GroundedId; shortName: string; gloss?: string; presence?: GroundedPresence[] }
+export type SpanName = { id: GroundedId; shortName: string; gloss?: string; presence?: GroundedPresence[]; view?: EphemeraPresenceNodeId[] }
 
 export const stampReferent = <R extends Referent>(referent: R, names: ReadonlyMap<string, SpanName>): R => {
     if (referent.referentType === 'objectSpan') {
@@ -15,6 +16,8 @@ export const stampReferent = <R extends Referent>(referent: R, names: ReadonlyMa
             shortName: name.shortName,
             ...(name.gloss !== undefined ? { gloss: name.gloss } : {}),
             ...(name.presence !== undefined ? { groundedPresence: name.presence } : {}),
+            // A view the Plan already named (a spread's minted binding) is the part meant; a chosen reading only fills one in.
+            ...(referent.view === undefined && name.view !== undefined ? { view: name.view } : {}),
         }
     }
     if (referent.referentType === 'currentHost') {

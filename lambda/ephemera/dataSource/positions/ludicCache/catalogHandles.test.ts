@@ -10,6 +10,7 @@ import { testLudicGraph } from '../ludicGraph/testFixtures'
 import { ludicCacheObjectHandles, ludicCacheRoomObjectHandles } from './catalogHandles'
 import { buildLudicCache } from './fold'
 import { roomsForReferent } from '../ludicGraph/presenceRooms'
+import { audienceBuckets, defaultReading, readingsOf } from '../../actions/objectViews'
 import { parentRemainderKey } from '../ludicGraph/testFixtures'
 
 const makeObjectComponent = (shortName: string) => new StandardObject({ tag: 'Object', shortName })
@@ -64,7 +65,7 @@ describe('ludicCacheObjectHandles', () => {
             ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
         })
 
-        expect(handles).toEqual([{ objectId: namedId, shortName: 'Named Thing', presence: [roomA] }])
+        expect(handles).toEqual([{ objectId: namedId, shortName: 'Named Thing', placement: [{ host: roomA, bindings: [] }], presence: [roomA] }])
     })
 
     it('excludes an object whose shortName never resolved', async () => {
@@ -215,8 +216,17 @@ describe('ludicCacheObjectHandles', () => {
             })
 
             expect(handles).toEqual(expect.arrayContaining([
-                { objectId: boxId, shortName: 'Box', presence: [inRoomA, ofBox(boxBinding)] },
-                { objectId: pebble, shortName: 'Pebble', presence: [ofBox(boxBinding)] },
+                {
+                    objectId: boxId,
+                    shortName: 'Box',
+                    // The box's own binding records the parent it sits under and the room that parent reaches.
+                    placement: [
+                        { host: roomA, bindings: [{ presence: inRoomA.presence }] },
+                        { host: boxId, bindings: [{ presence: boxBinding, under: [inRoomA], rooms: [roomA] }] },
+                    ],
+                    presence: [inRoomA, ofBox(boxBinding)],
+                },
+                { objectId: pebble, shortName: 'Pebble', placement: [{ host: boxId, bindings: [{ presence: boxBinding }] }], presence: [ofBox(boxBinding)] },
             ]))
         })
 
@@ -375,7 +385,7 @@ describe('ludicCacheRoomObjectHandles', () => {
 
         const handles = await ludicCacheRoomObjectHandles(roomA, { readLudicCache: async () => ({ cache, outcome: 'hit' }) })
 
-        expect(handles).toEqual([{ objectId: namedId, shortName: 'Named Thing', presence: [roomA] }])
+        expect(handles).toEqual([{ objectId: namedId, shortName: 'Named Thing', placement: [{ host: roomA, bindings: [] }], presence: [roomA] }])
     })
 
     it('logs the outcome, with the stored size on a rebuild and none on a hit', async () => {
@@ -400,5 +410,120 @@ describe('ludicCacheRoomObjectHandles', () => {
 
         expect(spy.mock.calls[0][1]).toMatchObject({ outcome: 'cold' })
         spy.mockRestore()
+    })
+})
+
+// The Slice 0 worlds of the position-referents plan, through the real cold fold: the catalog's presence is a
+// flat set (F1), and `placement` is the structure it is projected from.
+describe('placement', () => {
+    const tableId = 'OBJECT#Table' as EphemeraObjectId
+    const ropeId = 'OBJECT#Rope' as EphemeraObjectId
+    const base = parentRemainderKey(roomA)
+    const names = namedShortNameDeps({ [tableId]: 'Table', [ropeId]: 'Rope' })
+    const rope = (handles: Awaited<ReturnType<typeof ludicCacheObjectHandles>>) => handles.find(({ objectId }) => objectId === ropeId)!
+
+    // A rope spread over a table: one binding under the room (on the floor), one under the table.
+    const tableBinding = PresenceKey('table-in-a')
+    const ropeOnFloor = PresenceKey('rope-on-floor')
+    const ropeOnTable = PresenceKey('rope-on-table')
+    const ropeOverTable = () => new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+        [roomA, testLudicGraph(roomA, {
+            nodes: [
+                { tag: 'Room', universalKey: roomA },
+                { tag: 'Object', universalKey: tableId },
+                { tag: 'Object', universalKey: ropeId },
+                { tag: 'Presence', universalKey: base, fromHostPresences: [], cover: { members: [{ host: tableId, presence: tableBinding }, { host: ropeId, presence: ropeOnFloor }] } },
+            ],
+        })],
+        [tableId, testLudicGraph(tableId, {
+            nodes: [
+                { tag: 'Object', universalKey: tableId },
+                { tag: 'Object', universalKey: ropeId },
+                { tag: 'Presence', universalKey: tableBinding, fromHostPresences: [{ host: roomA, presence: base }], cover: { members: [{ host: ropeId, presence: ropeOnTable }] } },
+            ],
+        })],
+        [ropeId, testLudicGraph(ropeId, {
+            nodes: [
+                { tag: 'Object', universalKey: ropeId },
+                { tag: 'Presence', universalKey: ropeOnFloor, fromHostPresences: [{ host: roomA, presence: base }], cover: { members: [] } },
+                { tag: 'Presence', universalKey: ropeOnTable, fromHostPresences: [{ host: tableId, presence: tableBinding }], cover: { members: [] } },
+            ],
+        })],
+    ])
+
+    it('pairs each of the rope\'s own bindings with the parent it sits under, one entry per owner', async () => {
+        const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(ropeOverTable()), ...names })
+
+        expect(rope(handles).placement).toEqual([
+            { host: roomA, bindings: [{ presence: base }] },
+            { host: tableId, bindings: [{ presence: tableBinding }] },
+            {
+                host: ropeId,
+                bindings: [
+                    { presence: ropeOnFloor, under: [{ host: roomA, presence: base }], rooms: [roomA] },
+                    { presence: ropeOnTable, under: [{ host: tableId, presence: tableBinding }], rooms: [roomA] },
+                ],
+            },
+        ])
+    })
+
+    it('projects the flat set the audience readers have always read', async () => {
+        const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(ropeOverTable()), ...names })
+
+        expect(rope(handles).presence).toEqual([
+            { host: roomA, presence: base },
+            { host: tableId, presence: tableBinding },
+            { host: ropeId, presence: ropeOnFloor },
+            { host: ropeId, presence: ropeOnTable },
+        ])
+        handles.forEach(({ placement, presence }) => expect(presence).toEqual(audienceBuckets(placement!)))
+    })
+
+    it('reads two readings, both in the actor\'s room, so no default (the command would ask)', async () => {
+        const { placement } = rope(await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(ropeOverTable()), ...names }))
+
+        expect(readingsOf(ropeId, placement!).map(({ bindings }) => bindings)).toEqual([[ropeOnFloor], [ropeOnTable]])
+        expect(defaultReading(ropeId, placement!, roomA)).toBeUndefined()
+    })
+
+    // A rope across two rooms: one end in each, the actor in room B.
+    const farEnd = PresenceKey('rope-far-end')
+    const ropeAcrossRooms = () => new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+        [roomB, testLudicGraph(roomB, {
+            nodes: [
+                { tag: 'Room', universalKey: roomB },
+                { tag: 'Object', universalKey: ropeId },
+                { tag: 'Presence', universalKey: base, fromHostPresences: [], cover: { members: [{ host: ropeId, presence: farEnd }] } },
+            ],
+        })],
+        [ropeId, testLudicGraph(ropeId, {
+            nodes: [
+                { tag: 'Object', universalKey: ropeId },
+                { tag: 'Presence', universalKey: ropeOnFloor, fromHostPresences: [{ host: roomA, presence: base }], cover: { members: [] } },
+                { tag: 'Presence', universalKey: farEnd, fromHostPresences: [{ host: roomB, presence: base }], cover: { members: [] } },
+            ],
+        })],
+    ])
+
+    it('takes the end in the actor\'s room as the default, though both ends are in the set', async () => {
+        const handles = await ludicCacheObjectHandles(roomB, [], { ...graphsAsDeps(ropeAcrossRooms()), ...names })
+        const { placement, presence } = rope(handles)
+
+        expect(presence).toEqual([
+            { host: roomB, presence: base },
+            { host: ropeId, presence: ropeOnFloor },
+            { host: ropeId, presence: farEnd },
+        ])
+        expect(defaultReading(ropeId, placement!, roomB)?.bindings).toEqual([farEnd])
+        expect(defaultReading(ropeId, placement!, roomA)?.bindings).toEqual([ropeOnFloor])
+    })
+
+    it('has one reading, and so a default, for an object with one binding', async () => {
+        const single = new Map(ropeOverTable()).set(ropeId, testLudicGraph(ropeId, {
+            nodes: [{ tag: 'Object', universalKey: ropeId }, { tag: 'Presence', universalKey: ropeOnFloor, fromHostPresences: [{ host: roomA, presence: base }], cover: { members: [] } }],
+        }))
+        const { placement } = rope(await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(single), ...names }))
+
+        expect(defaultReading(ropeId, placement!, roomA)?.bindings).toEqual([ropeOnFloor])
     })
 })

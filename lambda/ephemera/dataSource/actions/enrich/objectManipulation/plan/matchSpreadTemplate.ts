@@ -3,6 +3,8 @@ import { CommandAttempt } from '../../../commandAttempt'
 import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/action'
 import type { NarrationUnit } from '../../../commandAttempt/narrationUnit'
 import { matchContainmentPhrase } from './matchContainmentTemplate'
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
+
 import { currentHostRef, objectSpanRef } from './planStep'
 import type { Referent } from './planStep'
 
@@ -29,7 +31,7 @@ function isTextToken(token: ParseToken): token is TextToken {
  * and stays where it is. Two steps: extend the object in place (a second binding, connected to
  * the first), then move the new binding into the target with the containment transfer. The
  * extend's minted `presenceUuid` is how the move names the binding before it exists
- * (`extendedBindingUuid`).
+ * (the moved referent's `view`).
  *
  * **The naive implementation of the spread intent.** A closed phrase list is a stand-in: the LLM
  * Plan fallback replaces it, producing the same two steps from open phrasing. Extend assumes the
@@ -92,7 +94,7 @@ export function matchSpreadTemplate(skeleton: ParseSkeleton, command: string): S
             new PositionAttemptAction(actionId, [], {
                 kind: 'change',
                 primitive: 'transferMembership',
-                object: { ...subject, extendedBindingUuid: presenceUuid } as Referent,
+                object: { ...subject, view: [PresenceKey(presenceUuid)] } as Referent,
                 from: currentHostRef(subject),
                 to: target,
                 containment,

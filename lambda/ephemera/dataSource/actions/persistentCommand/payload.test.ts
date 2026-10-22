@@ -22,6 +22,20 @@ describe('isPersistentCommandPayload', () => {
         expect(isPersistentCommandPayload({ ...payload, pending: { ...payload.pending, answer: 'option-blue' } })).toBe(true)
     })
 
+    it('accepts view answers, on the payload and on the open question', () => {
+        const payload = twoCupPendingPayload()
+        expect(isPersistentCommandPayload({ ...payload, viewAnswers: { k: 'whole', j: ['PRESENCE#a'] } })).toBe(true)
+        expect(isPersistentCommandPayload({ ...payload, pending: { ...payload.pending, views: { 'option-red': { k: ['PRESENCE#a'] } } } })).toBe(true)
+    })
+
+    it.each<[string, (payload: any) => any]>([
+        ['a view answer that is neither whole nor a list of bindings', (payload) => ({ ...payload, viewAnswers: { k: 'half' } })],
+        ['a view answer list with a non-string binding', (payload) => ({ ...payload, viewAnswers: { k: [3] } })],
+        ['pending views that are not records of records', (payload) => ({ ...payload, pending: { ...payload.pending, views: { 'option-red': 'x' } } })],
+    ])('rejects %s', (_label, corrupt) => {
+        expect(isPersistentCommandPayload(corrupt(twoCupPendingPayload()))).toBe(false)
+    })
+
     it.each<[string, (payload: any) => any]>([
         ['a non-record pending', (payload) => ({ ...payload, pending: 'x' })],
         ['pending without options', (payload) => ({ ...payload, pending: {} })],

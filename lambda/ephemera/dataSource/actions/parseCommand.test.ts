@@ -1973,32 +1973,56 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         })
     })
 
-    describe('an object in several hosts (the take rule)', () => {
-        // The rope lies partly on the table (a spread): a member of both the room and the table.
+    describe('an object in several hosts (moved by its view)', () => {
+        const GALLEY = 'ROOM#Galley' as EphemeraRoomId
+        const onFloor = 'PRESENCE#rope-floor' as EphemeraPresenceNodeId
+        const onTable = 'PRESENCE#rope-table' as EphemeraPresenceNodeId
+        // The rope lies partly on the table (a spread): one binding under the room, one under the table.
         const tableWith = (nodes: EphemeraObjectId[], edges: Array<Record<string, unknown>> = []) => testLudicGraph(TABLE, {
             nodes: nodes.map((universalKey) => ({ tag: 'Object' as const, universalKey })),
             edges: [{ tag: 'Relational', from: ROPE, to: TABLE, kind: 'On' }, ...edges] as any,
         })
+        const ropeGraph = () => testLudicGraph(ROPE as unknown as EphemeraRoomId, {
+            nodes: [
+                { tag: 'Object', universalKey: ROPE },
+                { tag: 'Presence', universalKey: onFloor, fromHostPresences: [{ host: ROOM, presence: parentRemainderKey(ROOM) }], cover: { members: [] } },
+                { tag: 'Presence', universalKey: onTable, fromHostPresences: [{ host: TABLE, presence: parentRemainderKey(TABLE) }], cover: { members: [] } },
+            ],
+        })
         const spreadRope = (tableGraph = tableWith([ROPE])): CaseOptions => ({
             containers: { [ROPE]: [ROOM, TABLE] },
-            graphs: { [ROOM]: roomWith([ROPE, TABLE, BROOM]), [TABLE]: tableGraph },
+            graphs: { [ROOM]: roomWith([ROPE, TABLE, BROOM]), [TABLE]: tableGraph, [ROPE]: ropeGraph() },
         })
+        /** The rope's catalog entry, each part reaching the rooms given (the actor is in ROOM). */
+        const ropeEntry = (floorRooms: EphemeraRoomId[], tableRooms: EphemeraRoomId[]) => ({
+            objectId: ROPE,
+            normalizedShortName: 'rope',
+            placement: [{
+                host: ROPE,
+                bindings: [
+                    { presence: onFloor, under: [{ host: ROOM, presence: parentRemainderKey(ROOM) }], rooms: floorRooms },
+                    { presence: onTable, under: [{ host: TABLE, presence: parentRemainderKey(TABLE) }], rooms: tableRooms },
+                ],
+            }],
+        })
+        // Only the part on the table reaches the actor's room, so the actor's own position picks it (PR-2).
+        const catalog = (rope: Record<string, unknown> = ropeEntry([GALLEY], [ROOM])) => [rope, { objectId: TABLE, normalizedShortName: 'table' }, { objectId: BROOM, normalizedShortName: 'broom' }]
         const attemptActions = (result: unknown) => (result as { attempt?: { actions: Array<{ desiredResult?: Record<string, unknown> }> } }).attempt?.actions ?? []
 
-        it('take rope: allowed, and the take is the attempt\'s one action', async () => {
+        it('take rope: moves the part the actor\'s own position picks, and that is the attempt\'s one action', async () => {
             const { result } = await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [TABLE, 'table']]) },
+                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog() as any },
                 spreadRope()
             )
 
             const actions = attemptActions(result)
             expect(actions).toHaveLength(1)
-            expect(actions[0]!.desiredResult).toMatchObject({ primitive: 'transferMembership', to: { referentType: 'actingCharacter' } })
+            expect(actions[0]!.desiredResult).toMatchObject({ primitive: 'transferMembership', object: { view: [onTable] }, to: { referentType: 'actingCharacter' } })
         })
 
-        it('take rope when it is lashed to a post on the table: the dissolve is found in the second host', async () => {
+        it('take rope when its part on the table is lashed to a post: the dissolve is found in the table, the host the part leaves', async () => {
             const { result } = await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [TABLE, 'table']]) },
+                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog() as any },
                 {
                     ...spreadRope(tableWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }])),
                     containers: { [ROPE]: [ROOM, TABLE], [POST]: [TABLE] },
@@ -2008,14 +2032,47 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             expect(attemptActions(result).map(({ desiredResult }) => desiredResult?.primitive)).toEqual(['dissolveRelation', 'transferMembership'])
         })
 
-        it('put the rope on the broom: still refused as multiPresent', async () => {
+        it('put the rope on the broom: moves the part the actor\'s own position picks', async () => {
             const { result } = await run(
-                { command: 'put the rope on the broom', roomObjectLabels: ['rope', 'broom'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [BROOM, 'broom']]) },
+                { command: 'put the rope on the broom', roomObjectLabels: ['rope', 'broom'], roomObjectCatalog: catalog() as any },
                 { ...spreadRope(), parseTokens: [text('put'), span('rope'), text('on'), span('broom')] }
             )
 
+            expect(attemptActions(result).map(({ desiredResult }) => desiredResult)).toEqual([
+                expect.objectContaining({ primitive: 'transferMembership', object: expect.objectContaining({ view: [onTable] }) }),
+            ])
+        })
+
+        it('look at rope: reads the whole thing and is not asked or changed by the part the actor\'s position picks', async () => {
+            const { result } = await run(
+                { command: 'look rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog() as any },
+                { ...spreadRope(), parseTokens: [text('look'), span('rope')] }
+            )
+
+            expect(result).toMatchObject({ type: 'CommandAttempt' })
+            expect(attemptActions(result).map(({ desiredResult }) => desiredResult)).toEqual([undefined])
+        })
+
+        it('take rope when both parts reach the room: asks which part', async () => {
+            const { result } = await run(
+                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog(ropeEntry([ROOM], [ROOM])) as any },
+                spreadRope()
+            )
+
+            expect(result).toMatchObject({ type: 'Consult' })
+        })
+
+        it.each([
+            ['take rope', [text('take'), span('rope')]],
+            ['put the rope on the broom', [text('put'), span('rope'), text('on'), span('broom')]],
+        ])('%s with no position to say which part: refused for want of a membership host', async (command, parseTokens) => {
+            const { result } = await run(
+                { command, roomObjectLabels: ['rope', 'broom'], roomObjectCatalog: [{ objectId: ROPE, normalizedShortName: 'rope' }, { objectId: BROOM, normalizedShortName: 'broom' }] },
+                { ...spreadRope(), parseTokens }
+            )
+
             expect(attemptActions(result)).toEqual([])
-            expect(JSON.stringify(result)).toContain(objectManipulationErrorMessages.complexMultiPresent)
+            expect(JSON.stringify(result)).toContain(objectManipulationErrorMessages.noMembershipHost)
         })
     })
 
@@ -2191,7 +2248,19 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                         : []
                 )) as any,
             }))
-            expect(entries).toEqual([{ objectId: TABLE, normalizedShortName: 'table', presence: [{ host: TABLE, presence: tableHere }, { host: TABLE, presence: tableThere }] }])
+            expect(entries).toEqual([{
+                objectId: TABLE,
+                normalizedShortName: 'table',
+                // Each own binding records the room it sits in, which is what lets a view be told from the other.
+                placement: [{
+                    host: TABLE,
+                    bindings: [
+                        { presence: tableHere, under: [{ host: ROOM, presence: parentRemainderKey(ROOM) }], rooms: [ROOM] },
+                        { presence: tableThere, under: [{ host: OTHER_ROOM, presence: parentRemainderKey(OTHER_ROOM) }], rooms: [OTHER_ROOM] },
+                    ],
+                }],
+                presence: [{ host: TABLE, presence: tableHere }, { host: TABLE, presence: tableThere }],
+            }])
 
             const { result } = await run(
                 { command: 'take table', roomObjectLabels: roomObjectLabelsFromCatalog(entries), roomObjectCatalog: entries },

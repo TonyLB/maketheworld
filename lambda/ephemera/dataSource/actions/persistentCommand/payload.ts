@@ -1,6 +1,7 @@
 import type { CommandAttemptData } from '../commandAttempt'
 import type { VerdictData } from '../commandAttempt/verdict'
 import { isCommandAttemptData, isVerdictData } from '../commandAttempt/adjudicate'
+import { isViewAnswer, type ViewAnswer } from '../objectViews'
 import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
 
 /**
@@ -46,6 +47,8 @@ export type PersistentCommandTranscript = {
  */
 export type PersistentCommandPending = {
     options: Record<string, Record<string, string>>
+    /** The views each option also stores (option id to stableRefKey to view): absent for a question about objects alone. */
+    views?: Record<string, Record<string, ViewAnswer>>
     answer?: string
 }
 
@@ -59,6 +62,8 @@ export type PersistentCommandPayload = {
     selectedAttempt?: string
     /** `stableRefKey` to thing id; narrows that span's candidate pool. */
     referentAnswers: Record<string, string>
+    /** `stableRefKey` to the part of that object chosen; absent where no object was asked about by position. */
+    viewAnswers?: Record<string, ViewAnswer>
     /** Challenge id (structural, see `expandBoundaryChallenges.ts`) to answer. */
     challengeAnswers: Record<string, ChallengeAnswer>
 }
@@ -106,6 +111,7 @@ const isPersistentCommandTranscript = (value: unknown): value is PersistentComma
 const isPersistentCommandPending = (value: unknown): value is PersistentCommandPending => (
     isRecord(value)
     && isRecordOf((answers) => isRecordOf((id) => typeof id === 'string')(answers))(value.options)
+    && (value.views === undefined || isRecordOf((views) => isRecordOf(isViewAnswer)(views))(value.views))
     && (value.answer === undefined || (typeof value.answer === 'string' && Object.prototype.hasOwnProperty.call(value.options, value.answer)))
 )
 
@@ -117,5 +123,6 @@ export const isPersistentCommandPayload = (value: unknown): value is PersistentC
     && (value.pending === undefined || isPersistentCommandPending(value.pending))
     && (value.selectedAttempt === undefined || typeof value.selectedAttempt === 'string')
     && isRecordOf((answer) => typeof answer === 'string')(value.referentAnswers)
+    && (value.viewAnswers === undefined || isRecordOf(isViewAnswer)(value.viewAnswers))
     && isRecordOf(isChallengeAnswer)(value.challengeAnswers)
 )

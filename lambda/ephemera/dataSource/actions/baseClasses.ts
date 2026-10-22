@@ -10,6 +10,7 @@ import {
     isEphemeraObjectId,
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isViewAnswer, type ViewAnswer } from './objectViews'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraMetaObject, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
@@ -95,6 +96,8 @@ export type ParseCommandConsultAlternative = {
     label?: string
     /** The joint assignment this alternative stands for (stableRefKey to object id): what answering it stores. */
     referentAnswers?: Record<string, EphemeraObjectId>
+    /** Which part of an object that assignment means, where the object was seen in several positions (stableRefKey to view); absent for a whole or single-position object. */
+    viewAnswers?: Record<string, ViewAnswer>
 }
 
 /** Player-facing consult terminal parse (FT-3.1); v1 OOC stub assembles copy from alternatives. */
@@ -409,6 +412,12 @@ export function isParseCommandConsultResult(
             const answers = entry.referentAnswers
             if (typeof answers !== 'object' || answers === null || Array.isArray(answers)
                 || !Object.values(answers).every((id) => typeof id === 'string' && isEphemeraObjectId(id))) {
+                return false
+            }
+        }
+        if (entry.viewAnswers !== undefined) {
+            const views = entry.viewAnswers
+            if (typeof views !== 'object' || views === null || Array.isArray(views) || !Object.values(views).every(isViewAnswer)) {
                 return false
             }
         }

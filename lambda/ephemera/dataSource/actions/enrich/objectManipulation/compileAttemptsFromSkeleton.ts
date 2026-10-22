@@ -266,6 +266,9 @@ export async function compileAttemptsFromSkeleton(
         catalog,
         noAssignmentReason: noAssignmentReasonFor(lead.kind),
         referentAnswers: answers?.referentAnswers,
+        viewAnswers: answers?.viewAnswers,
+        actorRoom: hostRoomId,
+        actorCharacter: input.characterId,
     })
     if (!proposed.ok) {
         return proposed.stale ? { type: 'Error', errorMessage: proposed.reason } : failure(proposed.reason)
@@ -274,21 +277,29 @@ export async function compileAttemptsFromSkeleton(
     // A pool of looks has no steps, so the shared dry run never reads its environment and none is built.
     const env = roomGraph === undefined || hostRoomId === undefined || survivors.every((entry) => entry.kind === 'look')
         ? undefined
-        : await buildAttemptEnvironment(proposed.candidates, hostRoomId, roomGraph, positionsReads)
+        : await buildAttemptEnvironment(proposed.candidates, hostRoomId, roomGraph, positionsReads, catalog)
     const expanded = env === undefined ? proposed.candidates : expandAndAdjudicateCandidates(proposed.candidates, env)
     const candidates = answers?.challengeAnswers === undefined ? expanded : applyChallengeAnswers(expanded, answers.challengeAnswers)
     const dryRun = (candidate: GroundedAttemptCandidate) => attemptDryRun(candidate, env, {
         roomId: hostRoomId,
         actorCharacterId: input.characterId,
     })
-    const namesOf = new Map<ConsultAlternative, Record<string, string>>()
+    const namesOf = new Map<ConsultAlternative, { names: Record<string, string>; placeNames: Record<string, string> }>()
     const select = (pool: readonly GroundedAttemptCandidate[]) => selectPlanTuple({
         candidates: pool,
         getConfidence: (candidate) => candidate.confidence,
         dryRun,
         toConsultAlternative: (candidate) => {
-            const alternative = { ...candidate.alternative, referentAnswers: attemptReferentAnswers(candidate.attempt) }
-            namesOf.set(alternative, attemptReferentNames(candidate.attempt))
+            const alternative = {
+                ...candidate.alternative,
+                referentAnswers: attemptReferentAnswers(candidate.attempt),
+                ...(candidate.viewAnswers !== undefined ? { viewAnswers: candidate.viewAnswers } : {}),
+            }
+            // A part is worded by its position wherever it is asked; the rest keep the object's own name.
+            namesOf.set(alternative, {
+                names: { ...attemptReferentNames(candidate.attempt), ...candidate.viewLabels },
+                placeNames: { ...candidate.placeNames, ...candidate.viewLabels },
+            })
             return alternative
         },
     })
@@ -304,13 +315,18 @@ export async function compileAttemptsFromSkeleton(
     }
 
     if (selection.verdict === 'consult') {
-        const labels = disambiguationLabels(input.skeleton, selection.alternatives.map((alternative) => ({
+        const { alternatives } = selection
+        const labelOptions = (pick: 'names' | 'placeNames') => alternatives.map((alternative) => ({
             answers: alternative.referentAnswers ?? {},
-            names: namesOf.get(alternative) ?? {},
-        })))
+            views: alternative.viewAnswers,
+            names: namesOf.get(alternative)?.[pick] ?? {},
+        }))
+        // Same-named options (two cups) are told apart by where each sits.
+        const byName = disambiguationLabels(input.skeleton, labelOptions('names'))
+        const labels = new Set(byName).size === byName.length ? byName : disambiguationLabels(input.skeleton, labelOptions('placeNames'))
         return {
             type: 'Consult',
-            alternatives: selection.alternatives.map(({ proposedCommand, objectId, referentAnswers }, index) => ({ proposedCommand, objectId, label: labels[index], referentAnswers })),
+            alternatives: selection.alternatives.map(({ proposedCommand, objectId, referentAnswers, viewAnswers }, index) => ({ proposedCommand, objectId, label: labels[index], referentAnswers, ...(viewAnswers !== undefined ? { viewAnswers } : {}) })),
             confidence: intentConfidence,
             // All of Plan's attempts, not the survivors: a resume restarts from the same frozen set.
             root: {

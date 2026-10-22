@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { compileAttemptsFromSkeleton } from './compileAttemptsFromSkeleton'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
@@ -30,6 +30,7 @@ const planAttempt = (skeleton: ParseSkeleton, command: string) => {
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
+const tableId = 'OBJECT#Table' as EphemeraObjectId
 
 const containmentSkeleton = (
     verb: string,
@@ -217,6 +218,35 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
             throw new Error(`expected a Consult, got ${result.type}`)
         }
         expect(result.alternatives.map(({ label }) => label).sort()).toEqual(['Blue cup', 'Red cup'])
+    })
+
+    it('tells two same-named cups apart by where each sits, where the names alone would read the same', async () => {
+        const secondCupId = 'OBJECT#Cup2' as EphemeraObjectId
+        const base = 'PRESENCE#base' as EphemeraPresenceNodeId
+        const onTable = 'PRESENCE#on-table' as EphemeraPresenceNodeId
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command: 'put cup on tray',
+                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
+                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
+                hostRoomId: roomId,
+                roomObjectCatalog: [
+                    { objectId: cupId, normalizedShortName: 'cup', placement: [{ host: cupId, bindings: [{ presence: base, under: [{ host: roomId, presence: base }], rooms: [roomId] }] }] },
+                    { objectId: secondCupId, normalizedShortName: 'cup', placement: [{ host: secondCupId, bindings: [{ presence: onTable, under: [{ host: tableId, presence: base }], rooms: [roomId] }] }] },
+                    { objectId: tableId, normalizedShortName: 'table' },
+                    { objectId: trayId, normalizedShortName: 'tray' },
+                ],
+            },
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
+        )
+
+        if (result.type !== 'Consult') {
+            throw new Error(`expected a Consult, got ${result.type}`)
+        }
+        expect(result.alternatives.map(({ label }) => label)).toEqual(['the cup in the room', 'the cup on the table'])
+        // One reading each, so nothing is asked by position: the answers are objects alone.
+        expect(result.alternatives.every((alternative) => alternative.viewAnswers === undefined)).toBe(true)
     })
 
     it('abstains when subject and target resolve to the same object', async () => {

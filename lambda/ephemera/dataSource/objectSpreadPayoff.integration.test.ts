@@ -23,6 +23,7 @@ jest.mock('../publishMessage', () => ({
     default: jest.fn().mockResolvedValue(undefined),
 }))
 
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { StandardForm } from '@tonylb/mtw-wml/ts/standardize'
 import StandardObject from '@tonylb/mtw-wml/ts/standardize/components/object'
@@ -44,6 +45,11 @@ import { presenceBindingNode, testLudicGraph } from './positions/ludicGraph/test
 import type { EphemeraLudicGraph } from './positions/ludicGraph'
 import { buildLudicCache } from './positions/ludicCache/fold'
 import { ludicCacheRoomObjectContents } from './positions/ludicCache/roomObjectContents'
+import { ludicCacheRoomObjectHandles } from './positions/ludicCache/catalogHandles'
+import { getHeldInventoryCatalogForCharacter } from './actions/heldInventoryCatalogForCharacter'
+import type { RoomInPlayObjectCatalogEntry } from './actions/roomObjectCatalogForCharacter'
+import { askRowPayload, selectQuestionFromConsult } from './actions/selectQuestion'
+import { resumePersistentCommand } from './actions/persistentCommand/resume'
 import { orchestrateRoomDescriptionStreams } from './perception/orchestrate'
 import { newDirectIngressAddress, registerIngressSlot } from './messageOrchestration'
 import type { EphemeraCacheDynamoItem } from './renderCache/baseClasses'
@@ -171,15 +177,19 @@ const useWorld = (objects: WorldObjects) => {
         ephemeraDBMock.transactWrite.mockImplementation(makeTransactWriteMock())
     })
 
-    /** A real parse, its positions reads answered by `containersOf` and the live graphs. */
-    const parse = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[]) => {
-        const parseResult = await parseCommand(
+    /**
+     * A real parse, its positions reads answered by `containersOf` and the live graphs. `catalog` stands in for the
+     * production one (`catalogFromCache`); the default carries no `presence` or `placement`, so nothing is ever asked by position.
+     */
+    const parseAny = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[], heldCatalog: readonly RoomInPlayObjectCatalogEntry[] = []) => {
+        return parseCommand(
             {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
                 roomObjectLabels: objects.map(([, name]) => name),
-                roomObjectCatalog: objects.map(([objectId, name]) => ({ objectId, normalizedShortName: name })),
+                roomObjectCatalog: catalog ?? objects.map(([objectId, name]) => ({ objectId, normalizedShortName: name })),
+                heldInventoryCatalog: heldCatalog,
             },
             {
                 invokeBedrockParseCommandImpl: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
@@ -190,11 +200,35 @@ const useWorld = (objects: WorldObjects) => {
                 },
             }
         )
+    }
+    const parse = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[]) => {
+        const parseResult = await parseAny(command, tokens, containersOf, catalog)
         if (!isParseCommandCommandAttemptResult(parseResult)) {
             throw new Error(`"${command}" did not parse to an attempt: ${JSON.stringify(parseResult)}`)
         }
         return parseResult
     }
+
+    /** The room catalog as production builds it: the handles of a cold fold over the committed graphs, which carry `presence` and `placement`. */
+    const catalogFromCache = async (): Promise<RoomInPlayObjectCatalogEntry[]> => (await ludicCacheRoomObjectHandles(ROOM_ID, {
+        readLudicCache: async (roomId) => ({
+            cache: (await buildLudicCache(roomId, [], { getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId), ...shortNameDeps })).cache,
+            outcome: 'hit' as const,
+        }),
+    })).map(({ objectId, shortName, gloss, presence, placement }) => ({
+        objectId,
+        normalizedShortName: shortName,
+        ...(gloss !== undefined ? { gloss } : {}),
+        ...(presence !== undefined ? { presence } : {}),
+        ...(placement !== undefined ? { placement } : {}),
+    }))
+
+    /** The held catalog as production builds it: what the character holds, read from its own graph, with the part in hand. */
+    const heldCatalogFromCache = async (): Promise<RoomInPlayObjectCatalogEntry[]> => (await getHeldInventoryCatalogForCharacter(CHARACTER_ID, {
+        getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
+        getCharacterAssets: async () => [],
+        getComponentAggregate: shortNameDeps.getComponentAggregate as any,
+    })).entries
 
     /** The real commit, the attempt crossing the bus as plain data; positions' live hosts answered by `containersOf`. */
     const commit = async (attempt: CommandAttemptData, containersOf: (id: string) => string[]) => {
@@ -219,11 +253,41 @@ const useWorld = (objects: WorldObjects) => {
         ...shortNameDeps,
     })).objects
 
-    return { parse, commit, roomObjects }
+    /** A command as production parses it (the catalog built from the committed graphs), whatever it answers: an attempt, or a question. */
+    const ask = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[]) => {
+        const catalog = await catalogFromCache()
+        return { catalog, consult: await parseAny(command, tokens, containersOf, catalog) }
+    }
+    /** What answering the option at `index` stores, applied to the row the question left (as `answerPending` merges it). */
+    const answered = (consult: Awaited<ReturnType<typeof parseAny>>, index: number, command: string) => {
+        let next = 0
+        const question = selectQuestionFromConsult(consult as any, () => `option-${next++}`)!
+        const row = askRowPayload(question, { messageId: 'MESSAGE#1', createdTime: 1, command, sessionId: 's' })
+        const { pending, ...rest } = row
+        const optionId = `option-${index}`
+        return { question, payload: { ...rest, referentAnswers: pending!.options[optionId]!, viewAnswers: pending!.views?.[optionId] } }
+    }
+    /** The question's option labels, then the command resumed at the option at `index`: the attempt the player's answer makes. */
+    const resumeAt = async (consult: Awaited<ReturnType<typeof parseAny>>, index: number, command: string, catalog: readonly RoomInPlayObjectCatalogEntry[], containersOf: (id: string) => string[]) => {
+        const { payload } = answered(consult, index, command)
+        const resumed = await resumePersistentCommand(payload as any, { characterId: CHARACTER_ID, hostRoomId: ROOM_ID, roomObjectCatalog: catalog, heldInventoryCatalog: [] }, {
+            positionsReadDeps: {
+                getMembershipContainers: async (id: string) => containersOf(id) as any,
+                getLudicGraph: (hostId: string) => internalCache.Positions.getLudicGraph(hostId as any),
+            } as any,
+        })
+        if (resumed.type !== 'CommandAttempt') {
+            throw new Error(`"${command}" did not resume to an attempt: ${JSON.stringify(resumed)}`)
+        }
+        return resumed as unknown as { attempt: CommandAttemptData }
+    }
+    const optionLabels = (consult: Awaited<ReturnType<typeof parseAny>>, command: string) => answered(consult, 0, command).question.outcome.Options.map(({ Label }) => Label)
+
+    return { parse, parseAny, commit, roomObjects, catalogFromCache, heldCatalogFromCache, ask, resumeAt, optionLabels }
 }
 
 describe('object spread payoff (integration)', () => {
-    const { parse, commit, roomObjects } = useWorld([[RUG_ID, 'rug'], [TABLE_ID, 'table']])
+    const { parse, commit, roomObjects, ask, resumeAt, optionLabels } = useWorld([[RUG_ID, 'rug'], [TABLE_ID, 'table']])
 
     const spreadTokens = '{"tokens":[{"type":"text","text":"spread"},{"type":"objectSpan","span":"rug"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}'
     const beforeSpread = (id: string) => (id === RUG_ID || id === TABLE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
@@ -237,7 +301,7 @@ describe('object spread payoff (integration)', () => {
         expect(transfer).toMatchObject({
             primitive: 'transferMembership',
             containment: 'On',
-            object: { groundedId: RUG_ID, extendedBindingUuid: (extend as { presenceUuid: string }).presenceUuid },
+            object: { groundedId: RUG_ID, view: [PresenceKey((extend as { presenceUuid: string }).presenceUuid)] },
             to: { groundedId: TABLE_ID },
         })
         expect(transfer).not.toHaveProperty('keepFrom')
@@ -297,12 +361,19 @@ describe('object spread payoff (integration)', () => {
         ])
     })
 
-    it('then a real "take rug" lifts it out of both hosts in one move (the take rule)', async () => {
+    /** The rug spread over the table, then `take rug` asked (both parts reach the room) and answered at `index`. */
+    const takeRugAnswering = async (index: number) => {
         await commit((await parse('spread the rug over the table', spreadTokens, beforeSpread)).attempt, beforeSpread)
-
-        const takeResult = await parse('take rug', undefined, afterSpread)
-        await commit(takeResult.attempt, afterSpread)
+        const { catalog, consult } = await ask('take rug', undefined, afterSpread)
+        const labels = optionLabels(consult, 'take rug')
+        const resumed = await resumeAt(consult, index, 'take rug', catalog, afterSpread)
+        await commit(resumed.attempt, afterSpread)
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(2)
+        return labels
+    }
+
+    it('then "take rug" asks which part, and "both parts" lifts it out of both hosts in one move', async () => {
+        expect(await takeRugAnswering(2)).toEqual([['the rug in the room'], ['the rug on the table'], ['both parts of the rug']])
 
         // Out of the room and off the table, and in hand, its two bindings joined into one.
         const [roomGraph, tableGraph, rugGraph, characterGraph] = await Promise.all([ROOM_ID, TABLE_ID, RUG_ID, CHARACTER_ID].map((hostId) => internalCache.Positions.getLudicGraph(hostId)))
@@ -317,32 +388,82 @@ describe('object spread payoff (integration)', () => {
         // Both of the room header's rug entries are gone.
         expect(await roomObjects()).toEqual([{ objectId: TABLE_ID, shortName: 'table', contents: [] }])
     })
+
+    it('then taking the part in the room leaves the part on the table, still connected (PR-5)', async () => {
+        await takeRugAnswering(0)
+
+        const [roomGraph, tableGraph, rugGraph, characterGraph] = await Promise.all([ROOM_ID, TABLE_ID, RUG_ID, CHARACTER_ID].map((hostId) => internalCache.Positions.getLudicGraph(hostId)))
+        expect(roomGraph.nodeIds.has(RUG_ID)).toBe(false)
+        expect(tableGraph.nodeIds.has(RUG_ID)).toBe(true)
+        expect(characterGraph.nodeIds.has(RUG_ID)).toBe(true)
+        expect(rugGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host)).sort()).toEqual([CHARACTER_ID, TABLE_ID].sort())
+        expect(rugGraph.relationalEdges.map(({ kind }) => kind)).toEqual(['ConnectedTo'])
+
+        // The room's look: the rug is no longer on the floor, and is still the table's content.
+        expect(await roomObjects()).toEqual([{ objectId: TABLE_ID, shortName: 'table', contents: [{ objectId: RUG_ID, shortName: 'rug' }] }])
+    })
+
+    it('then taking the part on the table leaves the part in the room, still connected (PR-5)', async () => {
+        await takeRugAnswering(1)
+
+        const [roomGraph, tableGraph, rugGraph] = await Promise.all([ROOM_ID, TABLE_ID, RUG_ID].map((hostId) => internalCache.Positions.getLudicGraph(hostId)))
+        expect(roomGraph.nodeIds.has(RUG_ID)).toBe(true)
+        expect(tableGraph.nodeIds.has(RUG_ID)).toBe(false)
+        expect(rugGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host)).sort()).toEqual([CHARACTER_ID, ROOM_ID].sort())
+        expect(rugGraph.relationalEdges.map(({ kind }) => kind)).toEqual(['ConnectedTo'])
+        expect(await roomObjects()).toEqual([
+            { objectId: RUG_ID, shortName: 'rug', contents: [] },
+            { objectId: TABLE_ID, shortName: 'table', contents: [] },
+        ])
+    })
 })
 
 describe('cloth draped over a table (integration)', () => {
-    const { parse, commit } = useWorld([[CLOTH_ID, 'cloth'], [TABLE_ID, 'table'], [PLATE_ID, 'plate']])
+    const { parse, commit, ask, resumeAt, optionLabels } = useWorld([[CLOTH_ID, 'cloth'], [TABLE_ID, 'table'], [PLATE_ID, 'plate']])
 
     const drapeTokens = '{"tokens":[{"type":"text","text":"drape"},{"type":"objectSpan","span":"cloth"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}'
     const putTokens = '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"plate"},{"type":"text","text":"on"},{"type":"objectSpan","span":"cloth"}]}'
     const beforeDrape = (id: string) => (id === CLOTH_ID || id === TABLE_ID || id === PLATE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
     const afterDrape = (id: string) => (id === CLOTH_ID ? [ROOM_ID, TABLE_ID] : beforeDrape(id))
 
-    it('a plate put on the cloth lands in the cover of the part on the table', async () => {
+    /** The cloth draped, then `put the plate on the cloth` asked (the cloth has two parts) and answered at `index`. */
+    const putPlateAnswering = async (index: number) => {
         await commit((await parse('drape the cloth over the table', drapeTokens, beforeDrape)).attempt, beforeDrape)
 
-        const putResult = await parse('put the plate on the cloth', putTokens, afterDrape)
-        await commit(putResult.attempt, afterDrape)
+        const { catalog, consult } = await ask('put the plate on the cloth', putTokens, afterDrape)
+        const labels = optionLabels(consult, 'put the plate on the cloth')
+        const resumed = await resumeAt(consult, index, 'put the plate on the cloth', catalog, afterDrape)
+        await commit(resumed.attempt, afterDrape)
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(2)
 
         const clothGraph = await internalCache.Positions.getLudicGraph(CLOTH_ID)
-        const [onFloor, onTable] = ['floor', 'table'].map((where) => clothGraph.presenceNodes.find((binding) => parentsOf(binding).some(({ host }) => host === (where === 'floor' ? ROOM_ID : TABLE_ID)))!)
+        const [onFloor, onTable] = [ROOM_ID, TABLE_ID].map((host) => clothGraph.presenceNodes.find((binding) => parentsOf(binding).some((parent) => parent.host === host))!)
+        return { labels, onFloor, onTable }
+    }
+
+    it('asks which part of the cloth the plate goes on, offering the parts and not the whole', async () => {
+        const { labels } = await putPlateAnswering(1)
+
+        expect(labels).toEqual([['the cloth in the room'], ['the cloth on the table']])
+    })
+
+    it('puts the plate in the cover of the part on the table when that part is chosen', async () => {
+        const { onFloor, onTable } = await putPlateAnswering(1)
+
         expect(onTable.cover.members.map(({ host }) => host)).toEqual([PLATE_ID])
         expect(onFloor.cover.members).toEqual([])
+    })
+
+    it('puts the plate in the cover of the part in the room when that part is chosen', async () => {
+        const { onFloor, onTable } = await putPlateAnswering(0)
+
+        expect(onFloor.cover.members.map(({ host }) => host)).toEqual([PLATE_ID])
+        expect(onTable.cover.members).toEqual([])
     })
 })
 
 describe('rope carried into the next room (integration)', () => {
-    const { parse, commit, roomObjects } = useWorld([[ROPE_ID, 'rope']])
+    const { commit, roomObjects, ask, parseAny, catalogFromCache, heldCatalogFromCache } = useWorld([[ROPE_ID, 'rope']])
 
     /**
      * `[extend rope, move the new end into the next room]`, as the plan layer will state it once a
@@ -359,7 +480,7 @@ describe('rope carried into the next room (integration)', () => {
         new PositionAttemptAction('move-end', [], {
             kind: 'change',
             primitive: 'transferMembership',
-            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ROPE_ID, shortName: 'rope', extendedBindingUuid: 'far-end' },
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ROPE_ID, shortName: 'rope', view: [PresenceKey('far-end')] },
             from: { referentType: 'graphNode', groundedId: ROOM_ID },
             to: { referentType: 'graphNode', groundedId: NEXT_ROOM_ID },
         }),
@@ -378,18 +499,158 @@ describe('rope carried into the next room (integration)', () => {
         expect(ropeGraph.relationalEdges.map(({ kind }) => kind)).toEqual(['ConnectedTo'])
     })
 
-    it('then a real "take rope" takes the whole rope, both ends (the take rule, a shim until a take can say which part)', async () => {
+    it('then a real "take rope" takes the end in the actor\'s room unasked, and leaves the far end connected (PR-2, PR-5)', async () => {
         await commit(carryEndAttempt(), containersOf)
 
         const afterCarry = (id: string) => (id === ROPE_ID ? [ROOM_ID, NEXT_ROOM_ID] : containersOf(id))
-        const takeResult = await parse('take rope', undefined, afterCarry)
-        await commit(takeResult.attempt, afterCarry)
+        const { catalog, consult } = await ask('take rope', undefined, afterCarry)
+        expect(consult).toMatchObject({ type: 'CommandAttempt' })
+        await commit((consult as any).attempt, afterCarry)
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(2)
+        expect(catalog.find(({ objectId }) => objectId === ROPE_ID)?.placement).toBeDefined()
 
         const ropeGraph = await internalCache.Positions.getLudicGraph(ROPE_ID)
-        expect(ropeGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host))).toEqual([CHARACTER_ID])
-        expect(ropeGraph.relationalEdges).toEqual([])
+        expect(ropeGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host)).sort()).toEqual([CHARACTER_ID, NEXT_ROOM_ID].sort())
+        expect(ropeGraph.relationalEdges.map(({ kind }) => kind)).toEqual(['ConnectedTo'])
         expect((await roomObjects(ROOM_ID)).map(({ objectId }) => objectId)).toEqual([])
-        expect((await roomObjects(NEXT_ROOM_ID)).map(({ objectId }) => objectId)).toEqual([])
+        expect((await roomObjects(NEXT_ROOM_ID)).map(({ objectId }) => objectId)).toEqual([ROPE_ID])
+    })
+
+    it('then "drop rope" drops the end in hand where the actor stands, and the far end stays connected (PR-5)', async () => {
+        await commit(carryEndAttempt(), containersOf)
+        const afterCarry = (id: string) => (id === ROPE_ID ? [ROOM_ID, NEXT_ROOM_ID] : containersOf(id))
+        const taken = await ask('take rope', undefined, afterCarry)
+        await commit((taken.consult as any).attempt, afterCarry)
+
+        // The end in hand is the held catalog's; the room's catalog no longer reaches the rope at all.
+        const afterTake = (id: string) => (id === ROPE_ID ? [CHARACTER_ID, NEXT_ROOM_ID] : containersOf(id))
+        const dropped = await parseAny('drop rope', undefined, afterTake, await catalogFromCache(), await heldCatalogFromCache())
+        expect(dropped).toMatchObject({ type: 'CommandAttempt' })
+        await commit((dropped as any).attempt, afterTake)
+        expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(3)
+
+        const ropeGraph = await internalCache.Positions.getLudicGraph(ROPE_ID)
+        expect(ropeGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host)).sort()).toEqual([ROOM_ID, NEXT_ROOM_ID].sort())
+        expect(ropeGraph.relationalEdges.map(({ kind }) => kind)).toEqual(['ConnectedTo'])
+        expect((await roomObjects(ROOM_ID)).map(({ objectId }) => objectId)).toEqual([ROPE_ID])
+        expect((await roomObjects(NEXT_ROOM_ID)).map(({ objectId }) => objectId)).toEqual([ROPE_ID])
+    })
+})
+
+describe('rope held at one end, the other on the floor of the same room (integration)', () => {
+    const { commit, ask, parseAny, catalogFromCache, heldCatalogFromCache } = useWorld([[ROPE_ID, 'rope']])
+
+    /** `[extend rope, move the new end into the actor's hands]`, built by hand as the carry into the next room is. */
+    const holdEndAttempt = (): CommandAttemptData => CommandAttempt.create('pick up one end of the rope', [
+        new PositionAttemptAction('extend-rope', [], {
+            kind: 'change',
+            primitive: 'extend',
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ROPE_ID, shortName: 'rope' },
+            presenceUuid: 'held-end',
+        }),
+        new PositionAttemptAction('hold-end', [], {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef', groundedId: ROPE_ID, shortName: 'rope', view: [PresenceKey('held-end')] },
+            from: { referentType: 'graphNode', groundedId: ROOM_ID },
+            to: { referentType: 'graphNode', groundedId: CHARACTER_ID },
+        }),
+    ]).toJSON()
+    const beforeHold = (id: string) => (id === ROPE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
+    const holding = (id: string) => (id === ROPE_ID ? [ROOM_ID, CHARACTER_ID] : beforeHold(id))
+    const movedView = (result: unknown) => CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt).actions()
+        .map((action) => action.desiredResult)
+        .flatMap((step) => (step?.kind === 'change' && step.primitive === 'transferMembership' && step.object.referentType === 'objectSpan' ? [step.object.view] : []))
+
+    beforeEach(async () => {
+        await commit(holdEndAttempt(), beforeHold)
+        const ropeGraph = await internalCache.Positions.getLudicGraph(ROPE_ID)
+        expect(ropeGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host)).sort()).toEqual([CHARACTER_ID, ROOM_ID].sort())
+    })
+
+    it('"take rope" takes the end on the floor without asking: taking the end in hand is not something the take can do', async () => {
+        const { consult } = await ask('take rope', undefined, holding)
+
+        expect(consult).toMatchObject({ type: 'CommandAttempt' })
+        expect(movedView(consult)).toEqual([[PresenceKey('Base')]])
+    })
+
+    it('"drop rope" drops the end in hand without asking: dropping the end on the floor is not something the drop can do', async () => {
+        const dropped = await parseAny('drop rope', undefined, holding, await catalogFromCache(), await heldCatalogFromCache())
+
+        expect(dropped).toMatchObject({ type: 'CommandAttempt' })
+        expect(movedView(dropped)).toEqual([[PresenceKey('held-end')]])
+    })
+})
+
+describe('asking which part of a draped cloth (integration)', () => {
+    const { parse, parseAny, commit, catalogFromCache } = useWorld([[CLOTH_ID, 'cloth'], [TABLE_ID, 'table']])
+
+    const drapeTokens = '{"tokens":[{"type":"text","text":"drape"},{"type":"objectSpan","span":"cloth"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}'
+    const beforeDrape = (id: string) => (id === CLOTH_ID || id === TABLE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
+    const afterDrape = (id: string) => (id === CLOTH_ID ? [ROOM_ID, TABLE_ID] : beforeDrape(id))
+    const positionsReadDeps = {
+        getMembershipContainers: async (id: string) => afterDrape(id) as any,
+        getLudicGraph: (hostId: string) => internalCache.Positions.getLudicGraph(hostId as any),
+    }
+
+    const askTake = async () => {
+        await commit((await parse('drape the cloth over the table', drapeTokens, beforeDrape)).attempt, beforeDrape)
+        const catalog = await catalogFromCache()
+        const consult = await parseAny('take cloth', undefined, afterDrape, catalog)
+        return { catalog, consult }
+    }
+    /** What answering the option at `index` stores, applied to the row the question left (as `answerPending` merges it). */
+    const answered = (consult: Awaited<ReturnType<typeof parseAny>>, index: number) => {
+        let next = 0
+        const question = selectQuestionFromConsult(consult as any, () => `option-${next++}`)!
+        const row = askRowPayload(question, { messageId: 'MESSAGE#1', createdTime: 1, command: 'take cloth', sessionId: 's' })
+        const { pending, ...rest } = row
+        const optionId = `option-${index}`
+        return { question, payload: { ...rest, referentAnswers: pending!.options[optionId]!, viewAnswers: pending!.views?.[optionId] } }
+    }
+
+    it('asks which part of the cloth, by position, with the whole as the last option', async () => {
+        const { consult } = await askTake()
+
+        expect(consult).toMatchObject({ type: 'Consult' })
+        const { question } = answered(consult, 0)
+        expect(question.outcome.Options.map(({ Label }) => Label)).toEqual([['the cloth in the room'], ['the cloth on the table'], ['both parts of the cloth']])
+    })
+
+    it.each([
+        [0, [TABLE_ID]],
+        [1, [ROOM_ID]],
+        [2, []],
+    ])('resumes the answer at option %i as a take of that part, which leaves where the rest stays', async (index, staysIn) => {
+        const { catalog, consult } = await askTake()
+        const { payload } = answered(consult, index)
+
+        const resumed = await resumePersistentCommand(payload as any, { characterId: CHARACTER_ID, hostRoomId: ROOM_ID, roomObjectCatalog: catalog, heldInventoryCatalog: [] }, { positionsReadDeps: positionsReadDeps as any })
+
+        expect(resumed).toMatchObject({ type: 'CommandAttempt' })
+        const [step] = CommandAttempt.fromJSON((resumed as any).attempt).actions().map((action) => action.desiredResult)
+        expect(step).toMatchObject({ primitive: 'transferMembership', object: { groundedId: CLOTH_ID } })
+        // The whole is every own binding of the cloth.
+        expect((step as any).object.view).toHaveLength(index === 2 ? 2 : 1)
+
+        // The take moves the part chosen into the hand and leaves the rest where it was.
+        await commit((resumed as any).attempt, afterDrape)
+        const clothGraph = await internalCache.Positions.getLudicGraph(CLOTH_ID)
+        expect(clothGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host)).sort()).toEqual([CHARACTER_ID, ...staysIn].sort())
+    })
+
+    it('does not ask when only one position of the cloth reaches the actor\'s room', async () => {
+        // A catalog entry whose second position sits in another room: the actor's own position picks the first.
+        const { catalog } = await askTake()
+        const cloth = catalog.find(({ objectId }) => objectId === CLOTH_ID)!
+        const [first, second] = cloth.placement!.find(({ host }) => host === CLOTH_ID)!.bindings
+        const oneEnd = catalog.map((entry) => (entry.objectId === CLOTH_ID
+            ? { ...entry, placement: [{ host: CLOTH_ID, bindings: [first!, { ...second!, rooms: [NEXT_ROOM_ID] }] }] }
+            : entry))
+
+        const result = await parseAny('take cloth', undefined, afterDrape, oneEnd as RoomInPlayObjectCatalogEntry[])
+
+        expect(result).toMatchObject({ type: 'CommandAttempt' })
     })
 })

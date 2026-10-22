@@ -1,6 +1,7 @@
 import type { CommandSelectOutcome } from '@tonylb/mtw-interfaces/ts/messages'
 
 import type { ParseCommandConsultResult } from './baseClasses'
+import type { ViewAnswer } from './objectViews'
 import type {
     PersistentCommandPayload,
     PersistentCommandPending,
@@ -17,8 +18,13 @@ export type SelectQuestion = {
 
 const SELECT_PROMPT = 'Which did you mean?'
 
-const assignmentKey = (answers: Record<string, string>): string => (
-    JSON.stringify(Object.entries(answers).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+const sortedEntries = (record: Record<string, unknown>): [string, unknown][] => (
+    Object.entries(record).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+)
+
+/** An alternative's whole assignment: the objects and, where an object was seen in several positions, the part meant. */
+const assignmentKey = (answers: Record<string, string>, views: Record<string, ViewAnswer> = {}): string => (
+    JSON.stringify([sortedEntries(answers), sortedEntries(views)])
 )
 
 /**
@@ -41,18 +47,22 @@ export const selectQuestionFromConsult = (
     ))) {
         return undefined
     }
-    if (new Set(assignments.map(assignmentKey)).size !== assignments.length) {
+    if (new Set(alternatives.map(({ referentAnswers, viewAnswers }) => assignmentKey(referentAnswers!, viewAnswers))).size !== assignments.length) {
         return undefined
     }
     const options = alternatives.map((alternative, index) => ({
         optionId: mintOptionId(),
         label: alternative.label ?? alternative.proposedCommand,
         answers: { ...assignments[index] } as Record<string, string>,
+        views: alternatives[index]!.viewAnswers,
     }))
     return {
         root,
         pending: {
             options: Object.fromEntries(options.map(({ optionId, answers }) => [optionId, answers])),
+            ...(options.some(({ views }) => views !== undefined)
+                ? { views: Object.fromEntries(options.flatMap(({ optionId, views }) => (views === undefined ? [] : [[optionId, { ...views }]]))) }
+                : {}),
         },
         outcome: {
             Kind: 'Select',
@@ -69,11 +79,12 @@ export const selectQuestionFromConsult = (
 export const askRowPayload = (
     question: SelectQuestion,
     transcript: TranscriptContext,
-    prior: Pick<PersistentCommandPayload, 'referentAnswers' | 'challengeAnswers'> = { referentAnswers: {}, challengeAnswers: {} }
+    prior: Pick<PersistentCommandPayload, 'referentAnswers' | 'viewAnswers' | 'challengeAnswers'> = { referentAnswers: {}, challengeAnswers: {} }
 ): PersistentCommandPayload => ({
     root: question.root,
     transcript: { messageId: transcript.messageId, createdTime: transcript.createdTime, command: transcript.command },
     pending: question.pending,
     referentAnswers: prior.referentAnswers,
+    ...(prior.viewAnswers !== undefined ? { viewAnswers: prior.viewAnswers } : {}),
     challengeAnswers: prior.challengeAnswers,
 })

@@ -1,8 +1,11 @@
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
+
 import {
     actingCharacterRef,
     currentHostRef,
     derivedReferentKey,
     objectSpanRef,
+    viewMintedByExtend,
     type Assertion,
     type Change,
 } from './planStep'
@@ -99,5 +102,26 @@ describe('Assertion literal shape', () => {
             negate: true,
         }
         expect(assertion.negate).toBe(true)
+    })
+})
+
+describe('viewMintedByExtend', () => {
+    const extend: Change = { kind: 'change', primitive: 'extend', object: objectSpanRef('rope'), presenceUuid: 'new-end' }
+    const withView = (...uuids: string[]) => ({ ...objectSpanRef('rope'), view: uuids.map((uuid) => PresenceKey(uuid)) } as ReturnType<typeof objectSpanRef>)
+
+    it('is true when the view names the binding an extend step mints', () => {
+        expect(viewMintedByExtend(withView('new-end'), [extend])).toBe(true)
+    })
+
+    it('is false when the view names a different binding than the extend mints', () => {
+        expect(viewMintedByExtend(withView('existing'), [extend])).toBe(false)
+    })
+
+    it('is false when the attempt has no extend step', () => {
+        expect(viewMintedByExtend(withView('new-end'), [])).toBe(false)
+    })
+
+    it('is false for a referent with no view (the whole object)', () => {
+        expect(viewMintedByExtend(objectSpanRef('rope'), [extend])).toBe(false)
     })
 })

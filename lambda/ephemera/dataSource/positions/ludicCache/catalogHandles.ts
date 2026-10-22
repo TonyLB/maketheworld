@@ -11,7 +11,7 @@
  * walk reaches, matching `collectNestedObjectIds`'s old scope exactly. Filtering the pool to the
  * caller's own presence bucket (AB-9's read-path half) is open debt, not built here.
  *
- * **Each handle names every bucket it is seen in** (`presence`): each binding in the cache whose
+ * **Each handle names every bucket it is seen in** (`presence`, the flat projection of `placement`, which also pairs each own binding with the parents it sits under): each binding in the cache whose
  * cover holds the object, plus each of the object's own bindings (a host is the root of its own
  * graph, so it is in each of its own buckets, though `cover` leaves the root out) --- walked or
  * not. The caller's perspective decides *which* thing a phrase means, not who can see it change,
@@ -30,43 +30,77 @@
  * `cache.nodes`/`edges` --- so it does not reopen the P6-clause-3 boundary this file exists to hold.
  */
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
 import { logLudicCacheRebuild } from './ludicCacheInstrumentation'
 import { readLudicCacheWithOutcome } from './store'
-import type { EphemeraLudicCacheData } from './types'
-import type { GroundedPresence, GroundedPresenceBinding } from '../../actions/enrich/objectManipulation/plan/planStep'
+import type { EphemeraLudicCacheData, EphemeraLudicCacheNode, EphemeraLudicCachePresenceNode } from './types'
+import { audienceBuckets, type PlacementBinding, type PresencePlacement } from '../../actions/objectViews'
+import type { GroundedPresence } from '../../actions/enrich/objectManipulation/plan/planStep'
 
 export type LudicCacheObjectHandle = {
     objectId: EphemeraObjectId
     shortName: string
     /** Reasoning gloss, present only where authored or improvised (see `AGENT.concepts.md`'s `CommandAttempt` section). Still a flat scalar, not a widening past the handle boundary this file's own header comment states. */
     gloss?: string
-    /** Every presence bucket this object is seen in, each named with the host that owns it, or the seed room (see the header). */
+    /** Where the object is seen, structured: each owner's run of bindings, the object's own with the parents each sits under (see the header). The source of `presence`. */
+    placement?: PresencePlacement[]
+    /** Every presence bucket this object is seen in, each named with the host that owns it, or the seed room (see the header): `audienceBuckets(placement)`, set only where the handle is built. */
     presence?: GroundedPresence[]
 }
 
 /**
- * Each host's buckets: its own bindings and every binding in the cache whose cover holds it, deduped, in cache order (which the fold keeps byte-identical).
+ * Each host's placement: its own bindings and every binding in the cache whose cover holds it, deduped, in cache order (which the fold keeps byte-identical),
+ * as runs of one owner's bindings (`audienceBuckets` flattens them back, in the same order).
  * Each bucket names its owner (the node whose binding it is), since the binding lives on the owner's graph, not the member's.
+ * An own binding also records the parents it sits under and the rooms they reach (`PlacementBinding`), read from the binding's own parent pointers, which govern.
  */
-const bucketsByMember = (cache: EphemeraLudicCacheData): Map<string, GroundedPresenceBinding[]> => {
-    const addBucket = (buckets: Map<string, GroundedPresenceBinding[]>, host: string, bucket: GroundedPresenceBinding) => {
-        const held = buckets.get(host) ?? []
-        return held.some(({ host: owner, presence }) => owner === bucket.host && presence === bucket.presence) ? buckets : new Map(buckets).set(host, [...held, bucket])
+const placementsByMember = (cache: EphemeraLudicCacheData): Map<string, PresencePlacement[]> => {
+    const bindingKey = (host: string, presence: string) => `${host}|${presence}`
+    const bindings = new Map(cache.nodes.flatMap((node) => node.presenceNodes.map((binding) => [bindingKey(node.universalKey, binding.universalKey), binding] as const)))
+    const roomsReached = (host: EphemeraMembershipHostId, presence: EphemeraPresenceNodeId, seen: ReadonlySet<string> = new Set()): EphemeraRoomId[] => {
+        if (isEphemeraRoomId(host)) {
+            return [host]
+        }
+        const key = bindingKey(host, presence)
+        const binding = bindings.get(key)
+        return binding === undefined || seen.has(key)
+            ? []
+            : binding.fromHostPresences.flatMap((parent) => roomsReached(parent.host, parent.presence, new Set([...seen, key])))
+    }
+    const placementBinding = (node: EphemeraLudicCacheNode, binding: EphemeraLudicCachePresenceNode, forHost: string): PlacementBinding => {
+        if (node.universalKey !== forHost) {
+            return { presence: binding.universalKey }
+        }
+        return {
+            presence: binding.universalKey,
+            under: binding.fromHostPresences.map(({ host, presence }) => ({ host, presence })),
+            rooms: [...new Set(binding.fromHostPresences.flatMap(({ host, presence }) => roomsReached(host, presence)))],
+        }
+    }
+    const addBucket = (placements: Map<string, PresencePlacement[]>, host: string, owner: EphemeraMembershipHostId, binding: PlacementBinding) => {
+        const held = placements.get(host) ?? []
+        if (held.some((run) => run.host === owner && run.bindings.some(({ presence }) => presence === binding.presence))) {
+            return placements
+        }
+        const last = held[held.length - 1]
+        return new Map(placements).set(host, last?.host === owner
+            ? [...held.slice(0, -1), { host: owner, bindings: [...last.bindings, binding] }]
+            : [...held, { host: owner, bindings: [binding] }]
+        )
     }
     return cache.nodes.reduce(
         (byNode, node) => node.presenceNodes.reduce(
             (byBinding, binding) => [node.universalKey, ...binding.cover.members.map(({ host }) => host)].reduce(
-                (byHost, host) => addBucket(byHost, host, { host: node.universalKey as EphemeraMembershipHostId, presence: binding.universalKey }),
+                (byHost, host) => addBucket(byHost, host, node.universalKey as EphemeraMembershipHostId, placementBinding(node, binding, host)),
                 byBinding
             ),
             byNode
         ),
-        new Map<string, GroundedPresenceBinding[]>()
+        new Map<string, PresencePlacement[]>()
     )
 }
 
@@ -75,7 +109,7 @@ const handlesFromCache = (
     seedHostId: EphemeraMembershipHostId
 ): { handles: LudicCacheObjectHandle[]; objectCount: number } => {
     const handles: LudicCacheObjectHandle[] = []
-    const buckets = bucketsByMember(cache)
+    const placements = placementsByMember(cache)
     const seedRoom = isEphemeraRoomId(seedHostId) ? seedHostId : undefined
     let objectCount = 0
     for (const node of cache.nodes) {
@@ -86,12 +120,12 @@ const handlesFromCache = (
         if (node.shortName === undefined) {
             continue
         }
-        const presence: GroundedPresence[] | undefined = buckets.get(node.universalKey) ?? (seedRoom !== undefined ? [seedRoom] : undefined)
+        const placement: PresencePlacement[] | undefined = placements.get(node.universalKey) ?? (seedRoom !== undefined ? [{ host: seedRoom, bindings: [] }] : undefined)
         handles.push({
             objectId: node.universalKey,
             shortName: node.shortName,
             ...(node.gloss !== undefined ? { gloss: node.gloss } : {}),
-            ...(presence !== undefined ? { presence } : {}),
+            ...(placement !== undefined ? { placement, presence: audienceBuckets(placement) } : {}),
         })
     }
     return { handles, objectCount }

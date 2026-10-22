@@ -8,7 +8,7 @@ import { persistentCommandKey } from './rowKey'
 
 type StoredRow = Record<string, unknown> & { deleteAt?: number }
 
-const ROW_FIELDS = ['root', 'transcript', 'pending', 'selectedAttempt', 'referentAnswers', 'challengeAnswers', 'deleteAt']
+const ROW_FIELDS = ['root', 'transcript', 'pending', 'selectedAttempt', 'referentAnswers', 'viewAnswers', 'challengeAnswers', 'deleteAt']
 
 export type AnswerPendingResult =
     /** This call marked the question answered: `payload` is the command to resume, with the chosen option's answers merged in and no `pending`. */
@@ -22,8 +22,8 @@ const payloadOf = (row: StoredRow | undefined): PersistentCommandPayload | undef
     if (!row || isPersistentCommandExpired(row)) {
         return undefined
     }
-    const { root, transcript, pending, selectedAttempt, referentAnswers, challengeAnswers } = row
-    const payload = { root, transcript, pending, selectedAttempt, referentAnswers, challengeAnswers }
+    const { root, transcript, pending, selectedAttempt, referentAnswers, viewAnswers, challengeAnswers } = row
+    const payload = { root, transcript, pending, selectedAttempt, referentAnswers, viewAnswers, challengeAnswers }
     return isPersistentCommandPayload(payload) ? payload : undefined
 }
 
@@ -65,7 +65,15 @@ export const answerPending = async (
     const chosen = payload?.pending?.options[optionId]
     if (payload && chosen) {
         const { pending, ...rest } = payload
-        return { outcome: 'answered', payload: { ...rest, referentAnswers: { ...payload.referentAnswers, ...chosen } } }
+        const chosenViews = pending?.views?.[optionId]
+        return {
+            outcome: 'answered',
+            payload: {
+                ...rest,
+                referentAnswers: { ...payload.referentAnswers, ...chosen },
+                ...(chosenViews !== undefined || payload.viewAnswers !== undefined ? { viewAnswers: { ...payload.viewAnswers, ...chosenViews } } : {}),
+            },
+        }
     }
     const row = payloadOf(returned as StoredRow | undefined)
     if (row?.pending?.answer !== undefined) {

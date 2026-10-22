@@ -60,18 +60,17 @@ describe('a move lands under the destination binding it names', () => {
         [cup]: testLudicGraph(cup, { nodes: [presenceBindingNode('cup-on-plank', roomA)] }),
     })
 
-    it('refuses stale data where two bindings of the destination sit under the one bucket it is seen in (the planner will not guess)', async () => {
+    it('refuses a destination whose two bindings none names (the planner will not guess)', async () => {
         const planned = await planObjectMoveTransfer({
             entityId: cup,
             fromHostId: roomA,
             toHostId: plank,
-            toGroundedPresence: [{ host: roomA, presence: parentRemainderKey(roomA) }],
             getGraph: worldOf(graphs()),
         })
 
-        // Both plank bindings sit under the room's remainder, so the seen bucket cannot tell them
-        // apart. That state is transient by design (it must not outlive a kernel run), so reaching it
-        // here means stale data, and the planner refuses rather than guess.
+        // Both plank bindings sit under the room's remainder and no view names one. That state is
+        // transient by design (it must not outlive a kernel run), so reaching it here means stale data,
+        // and the planner refuses rather than guess.
         expect(planned).toEqual({ ok: false, errorCode: 'destinationBindingAmbiguous' })
     })
 
@@ -91,7 +90,7 @@ describe('a move lands under the destination binding it names', () => {
             entityId: cup,
             fromHostId: roomA,
             toHostId: plank,
-            toGroundedPresence: [{ host: roomB, presence: parentRemainderKey(roomB) }],
+            toBinding: presence('plank-right'),
             getGraph: worldOf(world),
         })
         if (!planned.ok) { throw new Error(`expected a plan, got ${planned.errorCode}`) }

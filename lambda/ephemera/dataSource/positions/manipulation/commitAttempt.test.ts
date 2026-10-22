@@ -1,3 +1,4 @@
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 jest.mock('../../../internalCache', () => ({
@@ -448,7 +449,7 @@ describe('commitAttempt', () => {
                     desiredResult: {
                         kind: 'change',
                         primitive: 'transferMembership',
-                        object: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom', extendedBindingUuid: 'new' },
+                        object: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom', view: [PresenceKey('new')] },
                         from: { referentType: 'currentHost', referentTarget: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'subject', groundedId: BROOM, shortName: 'broom' } },
                         to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'target', groundedId: TABLE, shortName: 'table' },
                         containment: 'On',
@@ -482,7 +483,7 @@ describe('commitAttempt', () => {
             await commitAttempt({ attempt: spreadAttempt(), characterId: CHARACTER, messageBus, streamEvent })
 
             const [moveArgs] = planObjectMoveTransferMock.mock.calls[0]!
-            expect(moveArgs).toMatchObject({ entityId: BROOM, fromHostId: ROOM, toHostId: TABLE, moverBinding: 'PRESENCE#new' })
+            expect(moveArgs).toMatchObject({ entityId: BROOM, fromHostId: ROOM, toHostId: TABLE, moverBindings: ['PRESENCE#new'] })
             const seen = await moveArgs.getGraph!(BROOM)
             expect(seen.presenceNodes.map(({ universalKey }) => universalKey)).toEqual(['PRESENCE#Base', 'PRESENCE#new'])
         })
@@ -497,37 +498,75 @@ describe('commitAttempt', () => {
         })
     })
 
-    describe('an object in several hosts (the take rule)', () => {
-        /** Character is in ROOM; the broom is in every one of `broomHosts`. */
-        const mockBroomHosts = (broomHosts: (EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId)[]) => {
-            getMembershipContainersMock.mockImplementation(async (id) => (id === CHARACTER ? [ROOM] : broomHosts))
+    describe('an object in several hosts (moved by its view)', () => {
+        /** Character is in ROOM; the broom is in every one of `broomHosts`, each through the binding of that name. */
+        const mockBroom = (bindings: Record<string, EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId>) => {
+            const hosts = [...new Set(Object.values(bindings))]
+            getMembershipContainersMock.mockImplementation(async (id) => (id === CHARACTER ? [ROOM] : hosts))
+            ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) => (
+                hostId === BROOM
+                    ? {
+                        relationalEdges: [],
+                        presenceNodes: Object.entries(bindings).map(([name, host]) => ({
+                            universalKey: `PRESENCE#${name}`,
+                            fromHostPresences: [{ host, presence: `PRESENCE#under-${host}` }],
+                            cover: { members: [] },
+                        })),
+                    }
+                    : { relationalEdges: [], presenceNodes: [] }
+            ))
         }
+        /** The attempt with the broom's `view` stamped on every span of it (the object, and the one `from` is the host of), as a chosen or defaulted part is. */
+        const viewing = (attempt: CommandAttempt, view: string[]): CommandAttempt => {
+            const data = attempt.toJSON()
+            const stamped = (span: any) => ({ ...span, view: view.map((name) => PresenceKey(name)) })
+            return CommandAttempt.fromJSON({
+                ...data,
+                actions: data.actions.map((action: any) => ({
+                    ...action,
+                    desiredResult: {
+                        ...action.desiredResult,
+                        object: stamped(action.desiredResult.object),
+                        ...(action.desiredResult.from?.referentType === 'currentHost'
+                            ? { from: { ...action.desiredResult.from, referentTarget: stamped(action.desiredResult.from.referentTarget) } }
+                            : {}),
+                    },
+                })),
+            })
+        }
+        const planned = () => (planObjectMoveTransferMock.mock.calls as any)[0][0]
 
-        it('a take leaves every host: from is one of them, and the rest go to the planner as alsoLeaving', async () => {
-            mockBroomHosts([ROOM, TABLE])
+        it('a take of one part hands the planner that binding, which decides the hosts it leaves', async () => {
+            mockBroom({ onFloor: ROOM, onTable: TABLE })
+            planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'stop' })
+
+            await commitAttempt({ attempt: viewing(membershipAttempt('takeHold'), ['onTable']), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(planned()).toMatchObject({ entityId: BROOM, toHostId: CHARACTER, moverBindings: ['PRESENCE#onTable'] })
+            // The commit reads no graph of the broom's own to find its hosts: that is the planner's read.
+            expect(internalCache.Positions.getLudicGraph).not.toHaveBeenCalledWith(BROOM)
+        })
+
+        it('a take of the whole names every binding, and starts from the first host its view sits under', async () => {
+            mockBroom({ onFloor: ROOM, onTable: TABLE })
+            planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'stop' })
+
+            await commitAttempt({ attempt: viewing(membershipAttempt('takeHold'), ['onFloor', 'onTable']), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(planned()).toMatchObject({ toHostId: CHARACTER, moverBindings: ['PRESENCE#onFloor', 'PRESENCE#onTable'] })
+        })
+
+        it('a take of an object in one host with no view names no binding', async () => {
+            mockLiveHosts(ROOM)
             planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'stop' })
 
             await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
 
-            expect(planObjectMoveTransferMock).toHaveBeenCalledWith(expect.objectContaining({
-                entityId: BROOM,
-                fromHostId: ROOM,
-                toHostId: CHARACTER,
-                alsoLeaving: [TABLE],
-            }))
+            expect(planned()).not.toHaveProperty('moverBindings')
         })
 
-        it('a take of an object in one host carries no alsoLeaving', async () => {
-            mockBroomHosts([ROOM])
-            planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'stop' })
-
-            await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
-
-            expect(planObjectMoveTransferMock.mock.calls[0]![0]).not.toHaveProperty('alsoLeaving')
-        })
-
-        it('a take of something the character already holds (among its hosts) is refused', async () => {
-            mockBroomHosts([ROOM, CHARACTER])
+        it('a take of an object in several hosts with no view to say which part is refused', async () => {
+            mockBroom({ onFloor: ROOM, onTable: TABLE })
 
             await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
 
@@ -535,8 +574,17 @@ describe('commitAttempt', () => {
             expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
         })
 
-        it('a put of it anywhere else is still refused', async () => {
-            mockBroomHosts([ROOM, 'OBJECT#Chest' as EphemeraObjectId])
+        it('a planner refusal (a part already in hand, or gone) refuses the whole attempt', async () => {
+            mockBroom({ onFloor: ROOM, held: CHARACTER })
+            planObjectMoveTransferMock.mockResolvedValue({ ok: false, errorCode: 'alreadyOnDestination' })
+
+            await commitAttempt({ attempt: viewing(membershipAttempt('takeHold'), ['held']), characterId: CHARACTER, messageBus, streamEvent })
+
+            expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
+        })
+
+        it('a put of it anywhere else with no view is refused', async () => {
+            mockBroom({ onFloor: ROOM, inChest: 'OBJECT#Chest' as EphemeraObjectId })
 
             await commitAttempt({ attempt: containmentAttempt('On'), characterId: CHARACTER, messageBus, streamEvent })
 

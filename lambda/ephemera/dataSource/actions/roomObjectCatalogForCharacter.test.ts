@@ -77,8 +77,8 @@ describe('getRoomObjectCatalogForCharacter', () => {
 
         expect(result.roomId).toBe(roomId)
         expect(result.entries).toEqual([
-            { objectId: broomId, normalizedShortName: 'broom', presence: [roomId] },
-            { objectId: anvilId, normalizedShortName: 'heavy anvil', presence: [roomId] },
+            { objectId: broomId, normalizedShortName: 'broom', placement: [{ host: roomId, bindings: [] }], presence: [roomId] },
+            { objectId: anvilId, normalizedShortName: 'heavy anvil', placement: [{ host: roomId, bindings: [] }], presence: [roomId] },
         ])
         expect(roomObjectLabelsFromCatalog(result.entries)).toEqual(['broom', 'heavy anvil'])
     })
@@ -102,7 +102,7 @@ describe('getRoomObjectCatalogForCharacter', () => {
         })
 
         expect(result.entries).toEqual([
-            { objectId: authoredId, normalizedShortName: 'brass candlestick', presence: [roomId] },
+            { objectId: authoredId, normalizedShortName: 'brass candlestick', placement: [{ host: roomId, bindings: [] }], presence: [roomId] },
         ])
     })
 
@@ -146,8 +146,13 @@ describe('getRoomObjectCatalogForCharacter', () => {
         })
 
         expect(result.entries).toEqual([
-            { objectId: tableId, normalizedShortName: 'table', presence: [{ host: tableId, presence: tableBinding }] },
-            { objectId: cupId, normalizedShortName: 'cup', presence: [{ host: tableId, presence: tableBinding }] },
+            {
+                objectId: tableId,
+                normalizedShortName: 'table',
+                placement: [{ host: tableId, bindings: [{ presence: tableBinding, under: [{ host: roomId, presence: parentRemainderKey(roomId) }], rooms: [roomId] }] }],
+                presence: [{ host: tableId, presence: tableBinding }],
+            },
+            { objectId: cupId, normalizedShortName: 'cup', placement: [{ host: tableId, bindings: [{ presence: tableBinding }] }], presence: [{ host: tableId, presence: tableBinding }] },
         ])
     })
 })

@@ -1,3 +1,4 @@
+import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { ParseSkeleton } from '../parse/parseToken'
 import { matchContainmentTemplate } from './matchContainmentTemplate'
 import { matchSpreadTemplate } from './matchSpreadTemplate'
@@ -31,7 +32,7 @@ describe('matchSpreadTemplate', () => {
         expect(move).toEqual({
             kind: 'change',
             primitive: 'transferMembership',
-            object: { ...rug, extendedBindingUuid: (extend as { presenceUuid: string }).presenceUuid },
+            object: { ...rug, view: [PresenceKey((extend as { presenceUuid: string }).presenceUuid)] },
             from: { referentType: 'currentHost', referentTarget: rug },
             to: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
             containment: 'On',

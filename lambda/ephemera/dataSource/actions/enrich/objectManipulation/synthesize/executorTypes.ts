@@ -3,6 +3,7 @@ import type {
     EphemeraFeatureId,
     EphemeraKnowledgeId,
     EphemeraObjectId,
+    EphemeraPresenceNodeId,
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -158,6 +159,11 @@ export type ExpansionEnvironment = {
      * that returns `[]` --- it is never invoked.
      */
     getMembershipContainers: (id: EphemeraPositionAdjacencyContainedId) => EphemeraMembershipHostId[]
+    /**
+     * The hosts a named part of an object sits under (its `view`), read from the catalog's placement
+     * (the room's cache); `undefined` when the placement does not hold the part. Absent, no part is known.
+     */
+    getViewHosts?: (id: EphemeraObjectId, view: readonly EphemeraPresenceNodeId[]) => EphemeraMembershipHostId[] | undefined
 }
 
 export const isExecutorParsePlanStep = (

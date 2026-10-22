@@ -101,37 +101,34 @@ describe('the backgammon set shared under both chest bindings (PR-C5 beats 2 and
     })
 
     describe('beat 2: an add to the set lands once and is seen from both', () => {
-        // a die in Tess's hand is put into the set, which is seen through either chest binding
-        const put = (seen: typeof chestA) => planObjectMoveTransfer({
+        // a die in Tess's hand is put into the set, which is one binding seen through both chest bindings
+        const put = () => planObjectMoveTransfer({
             entityId: spareDie,
             fromHostId: tess,
             toHostId: set,
-            toGroundedPresence: [seen],
             getGraph: getGraphOf(world()),
         })
 
-        it.each([['chestA', chestA], ['chestB', chestB]])('resolves the one shared binding when the set is seen through %s', async (_name, seen) => {
-            const found = destinationBindingOf((await getGraphOf(world())(set)) as EphemeraLudicGraph, [seen])
+        it('resolves the one shared binding, whichever chest binding the set is seen through', async () => {
+            const found = destinationBindingOf((await getGraphOf(world())(set)) as EphemeraLudicGraph)
 
             expect(found).toEqual({ presence: presence('bg') })
         })
 
-        it('writes one reparent, whichever chest binding the set was seen through', async () => {
-            for (const seen of [chestA, chestB]) {
-                const planned = await put(seen)
-                if (!planned.ok) { throw new Error(planned.errorCode) }
+        it('writes one reparent', async () => {
+            const planned = await put()
+            if (!planned.ok) { throw new Error(planned.errorCode) }
 
-                expect(planned.plan.steps.filter((step) => step.kind === 'reparentPresenceBinding')).toEqual([expect.objectContaining({
-                    hostId: spareDie,
-                    presence: presence('spare'),
-                    lose: [tessBase],
-                    gain: [bgUnder],
-                })])
-            }
+            expect(planned.plan.steps.filter((step) => step.kind === 'reparentPresenceBinding')).toEqual([expect.objectContaining({
+                hostId: spareDie,
+                presence: presence('spare'),
+                lose: [tessBase],
+                gain: [bgUnder],
+            })])
         })
 
         it('leaves the die with one parent, listed once by the set, and the sweep clean', async () => {
-            const planned = await put(chestA)
+            const planned = await put()
             if (!planned.ok) { throw new Error(planned.errorCode) }
 
             const after = applyPlanned(planned.plan, world())
@@ -143,7 +140,7 @@ describe('the backgammon set shared under both chest bindings (PR-C5 beats 2 and
         })
 
         it('is seen from the attic once, through both chest bindings', async () => {
-            const planned = await put(chestA)
+            const planned = await put()
             if (!planned.ok) { throw new Error(planned.errorCode) }
             const after = applyPlanned(planned.plan, world())
 

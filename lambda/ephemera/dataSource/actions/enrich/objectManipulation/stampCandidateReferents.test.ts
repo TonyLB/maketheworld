@@ -36,6 +36,19 @@ describe('stampCandidateReferents', () => {
         })
     })
 
+    it('keeps a view the referent already carries', () => {
+        const view = [BOX_BINDING]
+        const step: Change = {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'subjectRef', view },
+            from: { referentType: 'actingCharacter' },
+            to: { referentType: 'actingCharacter' },
+        }
+
+        expect((stampCandidateReferents(step, names) as typeof step).object).toMatchObject({ groundedId: ROPE, view })
+    })
+
     it('leaves derived referents and spans without a key in the map untouched', () => {
         const step: Change = {
             kind: 'change',
