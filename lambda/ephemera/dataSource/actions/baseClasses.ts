@@ -11,6 +11,7 @@ import {
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isViewAnswer, type ViewAnswer } from './objectViews'
+import type { ParseTokenDraft } from './enrich/objectManipulation/parse/parseToken'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraMetaObject, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
@@ -318,12 +319,12 @@ export type ParseCommandMultipleCommandsResult = {
 export type ParseCommandObjectMembershipIntentResult = {
     type: 'ObjectMembershipIntent'
     /**
-     * Object noun phrase strings for the membership route. Classify itself no longer extracts these
-     * (retired --- see `AGENT.implementation.md`, object-manipulation field ownership); always `[]` here. The real
-     * source is either `deterministicChecks.ts` (zero-Bedrock fast path, populated before classify
-     * ever runs) or Parse's skeleton (`objectSpansFromSkeleton.ts`), both applied in `parseCommand.ts`.
+     * The flat, unstamped skeleton the zero-Bedrock fast path (`deterministicChecks.ts`) builds: the
+     * verb as typed, then the tail split at each closed-set preposition, the skeleton Nova Micro
+     * returns for the same command. Only the fast path produces this intent; `parseCommand.ts` stamps
+     * the skeleton and enters Plan.
      */
-    rawObjectSpans: string[]
+    skeleton: ParseTokenDraft[]
     /** Membership language direction from classify. Mapped from JSON `verbClass`. */
     verbClass: ManipulationVerbClass
     confidence: ParseCommandConfidence

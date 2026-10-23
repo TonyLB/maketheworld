@@ -15,6 +15,8 @@ import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
 import { peelLeadingArticleWhenTail } from './peelLeadingArticleWhenTail'
+import { splitQualifierTail } from './splitQualifierTail'
+import type { ParseTokenDraft } from '../enrich/objectManipulation/parse/parseToken'
 
 /** After trim, case-insensitive look or l as the whole line. */
 function isBareLookCommand(trimmed: string): boolean {
@@ -36,6 +38,16 @@ function isBarePredictCommand(trimmed: string): boolean {
     return /^predict$/i.test(trimmed)
 }
 
+/**
+ * The zero-Bedrock take/get/drop fast path. It claims `take` and `drop` always (not `take hold`),
+ * and `get` when its head piece is a room label. It emits the flat skeleton Nova Micro returns for
+ * the same command: a tail that is a room label as a whole stays one span (a name like "man in the
+ * moon"); otherwise the tail is split at each closed-set preposition (`splitQualifierTail`). The
+ * split reads only the words, never the verb: which piece a phrase attaches to is grouping's to
+ * decide (`plan/groupSkeleton.ts`), so a drop's tail or a chain is split here and refused there.
+ * The split is a stopgap until templates are matched against the command text
+ * (`AGENT.skeletonPatterns.planning.md`).
+ */
 function maybeDeterministicManipulationIntent(
     input: ParseCommandInput
 ): ParseCommandObjectMembershipIntentResult | null {
@@ -66,17 +78,30 @@ function maybeDeterministicManipulationIntent(
         return null
     }
 
-    if (acquireMatch?.[1].toLowerCase() === 'get') {
-        const normalizedSpan = normalizeExitName(rawObjectSpan)
-        const labels = input.roomObjectLabels ?? []
-        if (!normalizedSpan || !labels.includes(normalizedSpan)) {
-            return null
-        }
+    const labels = input.roomObjectLabels ?? []
+    const isLabel = (span: string): boolean => {
+        const normalizedSpan = normalizeExitName(span)
+        return normalizedSpan.length > 0 && labels.includes(normalizedSpan)
+    }
+    const { head, links } = isLabel(rawObjectSpan)
+        ? { head: rawObjectSpan, links: [] }
+        : splitQualifierTail(rawObjectSpan)
+
+    if (acquireMatch?.[1].toLowerCase() === 'get' && !isLabel(head)) {
+        return null
     }
 
+    const verb = trimmed.split(/\s+/)[0]!
     return {
         type: 'ObjectMembershipIntent',
-        rawObjectSpans: [rawObjectSpan],
+        skeleton: [
+            { type: 'text', text: verb },
+            { type: 'objectSpan', span: head },
+            ...links.flatMap(({ preposition, span }): ParseTokenDraft[] => [
+                { type: 'text', text: preposition },
+                { type: 'objectSpan', span },
+            ]),
+        ],
         verbClass,
         confidence: 1,
     }

@@ -24,7 +24,7 @@ describe('discriminateIntent', () => {
 
         expect(result).toEqual({
             type: 'ObjectMembershipIntent',
-            rawObjectSpans: ['broom'],
+            skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'broom' }],
             verbClass: 'acquire',
             confidence: 1,
         })

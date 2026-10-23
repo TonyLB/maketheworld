@@ -198,13 +198,13 @@ describe('deterministicIntentChecks', () => {
         it('returns ObjectMembershipIntent for minimal take/drop/get verbs', () => {
             expect(deterministicIntentChecks({ command: 'take broom' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                rawObjectSpans: ['broom'],
+                skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'broom' }],
                 verbClass: 'acquire',
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: '  DROP   the rope  ' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                rawObjectSpans: ['rope'],
+                skeleton: [{ type: 'text', text: 'DROP' }, { type: 'objectSpan', span: 'rope' }],
                 verbClass: 'release',
                 confidence: 1,
             })
@@ -213,7 +213,7 @@ describe('deterministicIntentChecks', () => {
                 roomObjectLabels: ['broom'],
             })).toEqual({
                 type: 'ObjectMembershipIntent',
-                rawObjectSpans: ['broom'],
+                skeleton: [{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'broom' }],
                 verbClass: 'acquire',
                 confidence: 1,
             })
@@ -237,7 +237,7 @@ describe('deterministicIntentChecks', () => {
         it('peels leading articles on deterministic manipulation spans', () => {
             expect(deterministicIntentChecks({ command: 'take an apple' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                rawObjectSpans: ['apple'],
+                skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'apple' }],
                 verbClass: 'acquire',
                 confidence: 1,
             })
@@ -246,13 +246,13 @@ describe('deterministicIntentChecks', () => {
                 roomObjectLabels: ['broom'],
             })).toEqual({
                 type: 'ObjectMembershipIntent',
-                rawObjectSpans: ['broom'],
+                skeleton: [{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'broom' }],
                 verbClass: 'acquire',
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: 'drop some rope' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                rawObjectSpans: ['rope'],
+                skeleton: [{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'rope' }],
                 verbClass: 'release',
                 confidence: 1,
             })
@@ -261,15 +261,71 @@ describe('deterministicIntentChecks', () => {
         it('preserves article-only spans instead of rejecting them', () => {
             expect(deterministicIntentChecks({ command: 'take a' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                rawObjectSpans: ['a'],
+                skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'a' }],
                 verbClass: 'acquire',
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: 'drop the' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                rawObjectSpans: ['the'],
+                skeleton: [{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'the' }],
                 verbClass: 'release',
                 confidence: 1,
+            })
+        })
+
+        describe('a qualified tail splits into the flat skeleton (QR-3)', () => {
+            const skeletonOf = (command: string, roomObjectLabels?: string[]) => {
+                const result = deterministicIntentChecks({ command, ...(roomObjectLabels ? { roomObjectLabels } : {}) })
+                return result?.type === 'ObjectMembershipIntent' ? result.skeleton : result
+            }
+            const text = (value: string) => ({ type: 'text', text: value })
+            const span = (value: string) => ({ type: 'objectSpan', span: value })
+
+            it('splits a take at a closed-set preposition, peeling articles from each piece', () => {
+                expect(skeletonOf('take the cup on the table')).toEqual([text('take'), span('cup'), text('on'), span('table')])
+            })
+
+            it('keeps a tail whole when the whole tail is a room label, for get and take', () => {
+                expect(skeletonOf('get the man in the moon', ['man in the moon'])).toEqual([text('get'), span('man in the moon')])
+                expect(skeletonOf('take the man in the moon', ['man in the moon'])).toEqual([text('take'), span('man in the moon')])
+            })
+
+            it('splits misspelled pieces and leaves them to Identify', () => {
+                expect(skeletonOf('take bagg from talbe')).toEqual([text('take'), span('bagg'), text('from'), span('talbe')])
+            })
+
+            it('claims a get when its head piece is a room label, not its qualifier', () => {
+                expect(skeletonOf('get cup on table', ['cup'])).toEqual([text('get'), span('cup'), text('on'), span('table')])
+                expect(skeletonOf('get cup on table', ['table'])).toBeNull()
+            })
+
+            it('does not claim get up or get out of here', () => {
+                expect(skeletonOf('get up', ['cup'])).toBeNull()
+                expect(skeletonOf('get out of here', ['cup'])).toBeNull()
+            })
+
+            it('splits a two-qualifier tail into three spans', () => {
+                expect(skeletonOf('take cup on saucer on table')).toEqual([
+                    text('take'), span('cup'), text('on'), span('saucer'), text('on'), span('table'),
+                ])
+            })
+
+            it('splits a drop\'s tail like any other: the split never reads the verb', () => {
+                expect(skeletonOf('drop the cup in the box')).toEqual([text('drop'), span('cup'), text('in'), span('box')])
+            })
+
+            it('folds a tail with no head, as before', () => {
+                expect(skeletonOf('take off the hat')).toEqual([text('take'), span('off the hat')])
+            })
+
+            // The qualifiedReferents corpus's Nova Micro baseline, for the rows whose spans carry no article (O2).
+            it.each<[string, string[], ReturnType<typeof text | typeof span>[]]>([
+                ['get bag from table', ['bag'], [text('get'), span('bag'), text('from'), span('table')]],
+                ['take cup off saucer', [], [text('take'), span('cup'), text('off'), span('saucer')]],
+                ['take coin out of box', [], [text('take'), span('coin'), text('out of'), span('box')]],
+                ['get the cup off the table', ['cup'], [text('get'), span('cup'), text('off'), span('table')]],
+            ])('builds the skeleton Nova Micro returns for "%s"', (command, labels, novaMicro) => {
+                expect(skeletonOf(command, labels)).toEqual(novaMicro)
             })
         })
     })

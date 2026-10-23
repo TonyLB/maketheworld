@@ -181,7 +181,7 @@ describe('makePatternTemplate', () => {
                 { type: 'templateText', options: ['take'] },
                 { type: 'objectSpan', role: 'subject' },
             ],
-            { type: 'ObjectMembershipIntent', verbClass: 'acquire', rawObjectSpans: [], confidence: 1 }
+            { type: 'ObjectMembershipIntent', verbClass: 'acquire', skeleton: [], confidence: 1 }
         )
 
         const stringResult = template.matchString('take red ball')
@@ -189,7 +189,7 @@ describe('makePatternTemplate', () => {
         expect(stringResult.intent).toEqual({
             type: 'ObjectMembershipIntent',
             verbClass: 'acquire',
-            rawObjectSpans: [],
+            skeleton: [],
             confidence: 1,
             subject: 'red ball',
         })
@@ -202,7 +202,7 @@ describe('makePatternTemplate', () => {
         expect(tokenResult.intent).toEqual({
             type: 'ObjectMembershipIntent',
             verbClass: 'acquire',
-            rawObjectSpans: [],
+            skeleton: [],
             confidence: 1,
             subject: 'red ball',
         })

@@ -12,9 +12,11 @@ A command reaches Plan by one of two routes. Which one it takes is decided befor
 
 - **Deterministic fast path** (`maybeDeterministicManipulationIntent`, [`deterministicChecks.ts`](../../../../../lambda/ephemera/dataSource/actions/discriminateIntent/deterministicChecks.ts)). Read from code, 2026-10-23:
   - `take <tail>` and `drop <tail>` are always claimed.
-  - `get <tail>` is claimed only when the whole tail, normalized, equals a room object label.
+  - `get <tail>` was claimed only when the whole tail, normalized, equals a room object label.
 
-  In both cases the leading article is peeled, and the **whole tail becomes one object span**. [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) builds the skeleton `text <verb> | span <tail>` and enters Plan. There is no Bedrock call.
+  In both cases the leading article was peeled, and the **whole tail became one object span**. [`parseCommand.ts`](../../../../../lambda/ephemera/dataSource/actions/parseCommand.ts) built the skeleton `text <verb> | span <tail>` and entered Plan. There is no Bedrock call.
+
+  **After Slice 3** the fast path splits the tail at each closed-set preposition, unless the whole tail is a room label, and peels the article from each piece; a `get` is claimed when its head piece is a label. It hands `parseCommand.ts` the flat skeleton, which matches Nova Micro's except for O2's articles. The table below is the pre-Slice-3 baseline.
 - **LLM route.** Everything the fast path does not claim, and that the non-object templates and navigation paraphrases do not resolve, goes through discriminateIntent's classify call and then the Nova Micro Parse ([`buildParsePrompt.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/parse/buildParsePrompt.ts)).
 
 | Command | Route | Skeleton |
@@ -26,7 +28,7 @@ A command reaches Plan by one of two routes. Which one it takes is decided befor
 | `get the cup on the table` | LLM (no room object is labelled "cup on the table") | see below |
 | `get cup` (a cup in the room) | fast path | `text "get" \| span "cup"` |
 
-**So the same qualifier is folded on one route and split on the other.** On the fast path a qualified take is one span with no BD-20 refusal, and the whole phrase goes to Identify as a name. On the LLM route the same phrase is split, and the take is refused as `multiObject` (see below).
+**So, before Slice 3, the same qualifier was folded on one route and split on the other.** On the fast path a qualified take is one span with no BD-20 refusal, and the whole phrase goes to Identify as a name. On the LLM route the same phrase is split, and the take is refused as `multiObject` (see below).
 
 ## LLM route: Nova Micro Parse
 
@@ -123,12 +125,14 @@ Each case gives the world, the skeleton each route builds today, today's result,
 | `get bagg from talbe` | Bag on the table | The head "bagg" is not a label, so the fast path doesn't claim it. The LLM route splits it (fixture 6), and the result is the same, with Bedrock calls. |
 | `take cup from table`, cup on a saucer on the table | Cup under the saucer, the saucer under the table | F1: not a direct host, so QR-6's refusal. A player may expect a match; see QR-4's "direct or transitive". |
 
-### W5. Tails left as today
+### W5. Tails that stay refused
 
-| Command | Fast path today and after | LLM route today and after |
+Amended 2026-10-23 (user, QR-3/QR-7): the fast path splits these like any tail, so both routes give the same skeleton and the same refusal.
+
+| Command | Fast path after Slice 3 | LLM route today and after |
 | --- | --- | --- |
-| `drop the cup in the box` | Folded `drop` \| **cup in the box**; Identify on the folded span; drops in the room if matched (QR-7) | BD-20 refuses `multiObject`, still after Slice 2 (QR-7) |
-| `take cup on saucer on table` | Two prepositions: no split, folded as today | Membership with a three-span tail: still `multiObject` |
+| `drop the cup in the box` | Split `drop` \| **cup** \| `in` \| **box**; grouping leaves it flat and the unread-span gate refuses `multiObject` (QR-7) | BD-20 refuses `multiObject`, still after Slice 2 (QR-7) |
+| `take cup on saucer on table` | Split into three spans (chains split, like O1); grouping leaves it flat and the gate refuses `multiObject` | Membership with a three-span tail: still `multiObject` |
 | `take off the hat` | The tail starts with a preposition, so the head is empty. **An empty head is no split point**: folded `take` \| **off the hat**, as today | --- |
 
 ### W6. Names that hold a preposition

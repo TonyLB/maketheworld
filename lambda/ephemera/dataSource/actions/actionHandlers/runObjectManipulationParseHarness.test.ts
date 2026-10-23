@@ -46,6 +46,8 @@ const skeletons: Record<string, ParseStageResult> = {
 describe('runObjectManipulationParseHarness', () => {
     const runParseStageImpl = jest.fn(async ({ command }: { command: string }) =>
         skeletons[command] ?? { type: 'error' as const, errorMessage: 'no parse' })
+    // No room labels: a `get` is never claimed by the fast path, so the fixtures above reach Parse.
+    const getRoomObjectLabelsImpl = jest.fn(async () => [] as string[])
 
     beforeEach(() => {
         jest.clearAllMocks()
@@ -58,12 +60,14 @@ describe('runObjectManipulationParseHarness', () => {
             messageBus,
             fixtures,
             runParseStageImpl,
+            getRoomObjectLabelsImpl,
             now: () => 0,
         })
 
         expect(runParseStageImpl).toHaveBeenCalledTimes(2)
         const text = publishedText()
         expect(text).toContain('--- 1/2 [1] C1: get the cup on the table ---')
+        expect(text).toContain('Route: LLM (Parse)')
         expect(text).toContain('Parse: text "get" | span "cup on the table"')
         expect(text).toContain('Templates: containment noMatch, spread noMatch, look noMatch, membership matched')
         expect(text).toContain('Attempt (membership):')
@@ -79,6 +83,7 @@ describe('runObjectManipulationParseHarness', () => {
             fixtures,
             harnessInvocation: { fixtureIndex1Based: 2 },
             runParseStageImpl,
+            getRoomObjectLabelsImpl,
             now: () => 0,
         })
 
@@ -93,6 +98,7 @@ describe('runObjectManipulationParseHarness', () => {
             fixtures,
             harnessInvocation: { command: 'frobnicate' },
             runParseStageImpl,
+            getRoomObjectLabelsImpl,
             now: () => 0,
         })
 
@@ -101,5 +107,25 @@ describe('runObjectManipulationParseHarness', () => {
         expect(text).toContain('[free text]: frobnicate')
         expect(text).toContain('Parse error: no parse')
         expect(text).not.toContain('Templates:')
+    })
+
+    it('shows the fast path\'s split skeleton for a command it claims, with no Parse call', async () => {
+        await runObjectManipulationParseHarness({
+            characterId: 'CHARACTER#t',
+            messageBus,
+            fixtures,
+            harnessInvocation: { command: 'take the cup on the table' },
+            runParseStageImpl,
+            getRoomObjectLabelsImpl,
+            now: () => 0,
+        })
+
+        expect(runParseStageImpl).not.toHaveBeenCalled()
+        expect(getRoomObjectLabelsImpl).toHaveBeenCalledWith('CHARACTER#t')
+        const text = publishedText()
+        expect(text).toContain('Route: fast path')
+        expect(text).toContain('Skeleton: text "take" | span "cup" | text "on" | span "table"')
+        expect(text).toContain('Templates: containment noMatch, spread noMatch, look noMatch, membership matched')
+        expect(text).toContain('"predicate":"containedBy"')
     })
 })

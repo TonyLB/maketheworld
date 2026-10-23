@@ -26,13 +26,9 @@ async function parseCommandCore(
 
     if (intentResult.type === 'ObjectMembershipIntent') {
         // Only reachable via deterministicIntentChecks's take/get/drop fast path (iteration 7,
-        // Sub-iteration 1). ISS8203 slice 3: the fast path synthesizes its skeleton, the
-        // leading verb and its one object span, stamps it, and enters Plan like a parsed skeleton.
-        const verb = input.command.trim().split(/\s+/)[0]!
-        const skeleton = stampStableRefKeys([
-            { type: 'text', text: verb },
-            { type: 'objectSpan', span: intentResult.rawObjectSpans[0]! },
-        ])
+        // Sub-iteration 1). The fast path builds the flat skeleton (a qualified tail arrives split,
+        // as Parse would return it); it is stamped and enters Plan like a parsed skeleton.
+        const skeleton = stampStableRefKeys(intentResult.skeleton)
         const plan = planSkeleton(skeleton, input.command)
         if (plan.attempts.length === 0) {
             return { result: { type: 'Unimplemented', confidence: intentResult.confidence }, enrichReasoningMarkdown: '', enrichRawBody: undefined }
@@ -149,7 +145,7 @@ async function parseCommandCore(
 }
 
 /**
- * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **`/test parse`** returns **`ObjectManipulationParseTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**; minimal-verb **`take` / `drop` / `get <object>`** returns **`ObjectMembershipIntent`**: all without Bedrock classify.
+ * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **`/test parse`** returns **`ObjectManipulationParseTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**; minimal-verb **`take` / `drop` / `get <object>`** returns **`ObjectMembershipIntent`** (its flat skeleton, a closed-set tail split): all without Bedrock classify.
  * Otherwise runs the narrowed (iteration 7) intent discrimination: **`Command`** first tries
  * deterministic Plan-stage dispatch (Sub-iteration 2) -- a closed paraphrase lexicon for
  * **`LookRoom`**, **`Help`**, **`Home`**, and **`AwaitRoadRunner`**, then a movement-verb paraphrase
