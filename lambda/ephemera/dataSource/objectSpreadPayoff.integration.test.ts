@@ -304,7 +304,6 @@ describe('object spread payoff (integration)', () => {
             object: { groundedId: RUG_ID, view: [PresenceKey((extend as { presenceUuid: string }).presenceUuid)] },
             to: { groundedId: TABLE_ID },
         })
-        expect(transfer).not.toHaveProperty('keepFrom')
 
         // Step B: real commit, the attempt crossing the bus as plain data.
         const writeMessageBus = await commit(parseResult.attempt, beforeSpread)

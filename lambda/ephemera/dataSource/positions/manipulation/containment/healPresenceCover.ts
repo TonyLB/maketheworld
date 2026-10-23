@@ -7,17 +7,13 @@ import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPo
 
 import internalCache from '../../../../internalCache'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { parentsOf } from '../../ludicGraph/presenceParent'
+import { parentsOf, presenceGraphViewOf } from '../../ludicGraph/presenceParent'
 import { streamEventFromMessageBus } from '../../publishedEvents'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { MutationKernelRepairPresenceBindingStep } from '../kernel/kernelStep'
 import type { PopulateContainmentAtCacheDependencies } from './populateContainmentAtCache'
 
-const viewOf = (graph: EphemeraLudicGraph): PresenceGraphView => ({
-    hostId: graph.hostId,
-    nodeIds: [...graph.nodeIds],
-    presenceNodes: graph.presenceNodes,
-})
+const viewOf = presenceGraphViewOf
 
 /** The member-side repairs for `memberId`. A host whose graph cannot be read counts as absent, so its orphans are report-only. */
 const orphanRepairSteps = async (

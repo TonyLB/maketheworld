@@ -1,11 +1,11 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { classifyPresenceCoverDrift, coverRebuildsFor } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { roomsForPresenceNode } from '../../ludicGraph/presenceRooms'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
+import { presenceGraphViewOf } from '../../ludicGraph/presenceParent'
 import { applyStepSequenceCore } from '../kernel/applyStepSequenceCore'
 import { isKernelMutationStep } from '../kernel/kernelStep'
 import { destinationBindingOf } from './resolvePresenceMoves'
@@ -36,11 +36,7 @@ const chestB = { host: chest, presence: presence('chestB') }
 const bgUnder = { host: set, presence: presence('bg') }
 const tessBase = { host: tess, presence: presence('Base') }
 
-const viewOf = (graph: EphemeraLudicGraph): PresenceGraphView => ({
-    hostId: graph.hostId,
-    nodeIds: [...graph.nodeIds],
-    presenceNodes: graph.presenceNodes,
-})
+const viewOf = presenceGraphViewOf
 
 const world = (): Record<string, EphemeraLudicGraph> => ({
     [attic]: testLudicGraph(attic, { nodes: [obj(chest), presenceBindingNode(parentRemainderKey(attic))] }),

@@ -44,7 +44,6 @@ describe('planSkeleton', () => {
             to: { referentType: 'objectSpan', span: 'table' },
             containment: 'On',
         })
-        expect(move).not.toHaveProperty('keepFrom')
     })
 
     it('plans nothing for "tie the rope in the box": no template claims it, so the zero-attempt branch answers', () => {

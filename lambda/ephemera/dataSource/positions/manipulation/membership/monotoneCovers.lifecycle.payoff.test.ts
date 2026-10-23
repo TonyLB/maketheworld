@@ -2,10 +2,10 @@ import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { classifyPresenceCoverDrift, coverRebuildsFor, coverageViolationsOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
+import { presenceGraphViewOf } from '../../ludicGraph/presenceParent'
 import { applyStepSequenceCore } from '../kernel/applyStepSequenceCore'
 import { partMoveSteps } from './resolvePresenceMoves'
 import type { MutationKernelStep } from '../kernel/kernelStep'
@@ -27,11 +27,7 @@ const second = 'PRESENCE#plank-second' as EphemeraPresenceNodeId
 
 type Graphs = Map<EphemeraMembershipHostId, EphemeraLudicGraph>
 
-const viewOf = (graph: EphemeraLudicGraph): PresenceGraphView => ({
-    hostId: graph.hostId,
-    nodeIds: [...graph.nodeIds],
-    presenceNodes: graph.presenceNodes,
-})
+const viewOf = presenceGraphViewOf
 
 const roomGraph = (room: EphemeraRoomId) => testLudicGraph(room, { nodes: [presenceBindingNode(base, undefined, { members: [] })] })
 

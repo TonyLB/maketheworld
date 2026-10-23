@@ -93,6 +93,43 @@ describe('extendSteps', () => {
             expect([...footprint].sort()).toEqual([rope, roomA, roomB].sort())
         })
     })
+
+    describe('the kernel\'s end-of-run check reads the contraction rule (CT-C1, CT-C2)', () => {
+        const carried = () => {
+            const outcome = applyStepSequenceCore([...extend(), moveNewBinding], graphsOf(world()))
+            if (outcome.verdict !== 'legal') { throw new Error(`expected legal, got ${JSON.stringify(outcome)}`) }
+            return outcome.graphs
+        }
+        const backToA = (binding: string): MutationKernelStep => ({
+            kind: 'reparentPresenceBinding',
+            hostId: rope,
+            presence: presence(binding),
+            lose: [{ host: roomB, presence: parentRemainderKey(roomB) }],
+            gain: [{ host: roomA, presence: parentRemainderKey(roomA) }],
+        })
+
+        it('refuses an end carried home and left beside its neighbor uncontracted', () => {
+            expect(() => applyStepSequenceCore([backToA('pB')], carried())).toThrow(/a join was missing/)
+        })
+
+        it('commits a rope carried on from the far room back into the first: two stretches in one room, joined only through the other', () => {
+            const graphs = carried()
+            const outcome = applyStepSequenceCore([
+                ...extendSteps({ hostId: rope, binding: graphs.get(rope)!.presenceNodes[1], presenceUuid: 'pC' }),
+                {
+                    kind: 'reparentPresenceBinding',
+                    hostId: rope,
+                    presence: presence('pC'),
+                    lose: [{ host: roomB, presence: parentRemainderKey(roomB) }],
+                    gain: [{ host: roomA, presence: parentRemainderKey(roomA) }],
+                },
+            ], graphs)
+            if (outcome.verdict !== 'legal') { throw new Error(`expected legal, got ${JSON.stringify(outcome)}`) }
+
+            expect(outcome.graphs.get(rope)!.presenceNodes.filter(({ fromHostPresences }) => fromHostPresences.some(({ host }) => host === roomA)).map(({ universalKey }) => universalKey))
+                .toEqual([presence('pA'), presence('pC')])
+        })
+    })
 })
 
 describe('withExtendedBinding', () => {
@@ -108,5 +145,13 @@ describe('withExtendedBinding', () => {
             cover: { members: [] },
         })
         expect(graph.presenceNodes).toHaveLength(1)
+    })
+
+    it('overlays the ConnectedTo between the original and the fresh binding, so a planner reads them as neighbors', () => {
+        const graph = world()[rope]
+        const extended = withExtendedBinding(graph, graph.presenceNodes[0], 'pB')
+
+        expect(extended.relationalEdges).toEqual([{ from: { owner: rope, port: presence('pA') }, to: { owner: rope, port: presence('pB') }, kind: 'ConnectedTo' }])
+        expect(graph.relationalEdges).toEqual([])
     })
 })

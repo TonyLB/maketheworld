@@ -230,7 +230,7 @@ An abstraction is a **cognitive tool, not an objective feature of the world.** T
 
 **Why location resolution terminates.** Where a thing is, in room terms, is found by walking its bindings up through its hosts, each of which has bindings of its own. **The room is the base case, because it is a perspective root:** a player is in a room, never in "a room as it is present in an area". Rooms are grouped into areas, and that grouping is presence too, but the room is a pinch point: whatever groups a room takes it whole, nothing below the room inherits that multiplicity, and the tree of bindings starts again below it. Detail above a room is how rooms are grouped; detail below it is how things exist. Location, audience and perspective therefore stop at the room, so the walk bottoms out. The rule is the same at every step, whether the thing at that step is being discussed as a whole or as a part. It holds while every chain of bindings upward reaches a room; a thing bound directly into an area, with no room between, is not yet modelled ([Wholes, parts, and ports](#wholes-parts-and-ports)).
 
-**Bindings form a DAG too, and a shared binding is stored, never inferred.** A binding's parents are a **set**: the bindings of its host it sits under. Because arity is inherited, each parent binding whose cover lists a thing is named by exactly one of that thing's bindings, so a thing that is the same under several parents holds **one** binding (a **shared binding**), written once and seen from every parent. Most bindings have a one-member parent set, which is the old single chain of ancestors; a share is a binding whose set has more. Equal covers never merge by themselves, because a binding is identified by what it covers and two parents may differ in meaning; separating a shared binding is an explicit write. The consequence: anything keyed by binding --- which rooms a bucket is ultimately in --- is a walk over the set of parents with a visited set, and one ancestor chain is no longer guaranteed. (Every component is born holding a binding, so none lacks a chain.)
+**Bindings form a DAG too, and a shared binding is stored, never inferred.** A binding's parents are a **set**: the bindings of its host it sits under. Because arity is inherited, each parent binding whose cover lists a thing is named by one of that thing's bindings (or by several that are distinct stretches of it, below: [Topology within one whole](#topology-within-one-whole)), so a thing that is the same under several parents holds **one** binding (a **shared binding**), written once and seen from every parent. Most bindings have a one-member parent set, which is the old single chain of ancestors; a share is a binding whose set has more. Equal covers never merge by themselves, because a binding is identified by what it covers and two parents may differ in meaning; separating a shared binding is an explicit write. The consequence: anything keyed by binding --- which rooms a bucket is ultimately in --- is a walk over the set of parents with a visited set, and one ancestor chain is no longer guaranteed. (Every component is born holding a binding, so none lacks a chain.)
 
 | Term | Means |
 | --- | --- |
@@ -247,6 +247,23 @@ An abstraction is a **cognitive tool, not an objective feature of the world.** T
 **Not modelled:** what sub-graph a bucket *induces*, and what becomes of an edge with one endpoint outside it (a **reduction** convention, not a cover question).
 
 **What would re-open this entry.** A corpus case the cover cannot express --- **not** a case violating totality, since by construction none exists. The live target is the **constructor**: a nested straddling whole whose inner covers no stated discipline can build.
+
+### Topology within one whole
+
+**A whole with extent (a rope, a cloth, a slime) can be present in several places at once, and its presence bindings record how its pieces join.** Two bindings of one whole joined by a `ConnectedTo` edge are adjacent pieces of it: a rope carried from one room into the next has a binding in each, connected. `ConnectedTo` is topology inside one whole; a join between separate wholes (soldered to, tied to) is a peer relation and stays `Custom`.
+
+**Two graphs, kept apart.** The parent DAG says where each binding sits; the `ConnectedTo` graph says how the pieces join. A sentence about one is not a sentence about the other.
+
+**Topology means branch points and loops.** Ends, and the pieces strung between branch points, are not structure: a string that shortens, even to a single binding, has the same topology. **How a thing lies at one position** (coiled, laid out, doubled over, wound three times around a post) is an **arrangement**, not topology; it is never recorded as a number of bindings, and if a story needs it, it is an attribute.
+
+| Term | Means |
+| --- | --- |
+| **Siblings** | Bindings of one whole under the same parent binding: present at the same position |
+| **Neighbors** | Bindings of one whole joined by a `ConnectedTo` edge: adjacent pieces. The edge is symmetric |
+| **Degree** | A binding's number of `ConnectedTo` edges. A **bare** binding has none, so only its position tells it from its siblings |
+| **Extend** | Adds a binding to a whole **in place**, beside the one it extends and connected to it. Nothing visible changes; a move of the new binding follows. Extending an end lengthens a string; extending a middle binding makes a branch |
+| **Contraction** | Merging siblings that the topology does not tell apart: a bare sibling into any sibling, and two neighbors when the merge loses no branch point and no loop. Automatic, after a move. Two siblings that both have edges and no edge between them stay apart: a thread that passes through one room twice is two stretches there |
+| **Cascading pull** | Dragging a whole's other pieces, and what rests on them, after one piece is moved (a rope hauled through pulleys). **Not** contraction, which merges pieces already at one position and moves nothing |
 
 ### `ludicCache`: the attention-scoped read structure
 

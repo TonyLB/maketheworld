@@ -388,7 +388,7 @@ describe('proposeAttemptCandidates', () => {
     })
 })
 
-describe('a spread (keepFrom)', () => {
+describe('a spread (extend, then a move of the minted binding)', () => {
     const spreadSkeleton: ParseSkeleton = [
         { type: 'text', text: 'spread' },
         { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
@@ -416,7 +416,7 @@ describe('a spread (keepFrom)', () => {
         expect(move!.describe()).toBe('Spread cup on tray')
     })
 
-    it('is left unexpanded: the object leaves nothing, so a tie it has gets no dissolve, where a take of it does', () => {
+    it('is left unexpanded: a move of the minted binding leaves nothing, so a tie gets no dissolve, where a move of the rope does', () => {
         const roomId = 'ROOM#Bridge' as EphemeraRoomId
         const ropeId = 'OBJECT#Rope' as EphemeraObjectId
         const postId = 'OBJECT#Post' as EphemeraObjectId
@@ -428,29 +428,29 @@ describe('a spread (keepFrom)', () => {
             edges: [{ tag: 'Relational', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' }],
         })
         const rope = { referentType: 'objectSpan' as const, span: 'rope', stableRefKey: 'ropeRef', groundedId: ropeId }
-        const transfer = (keepFrom: boolean) => new PositionAttemptAction('move', [], {
+        const extend = new PositionAttemptAction('extend', [], { kind: 'change', primitive: 'extend', object: rope, presenceUuid: 'fresh' })
+        const transfer = (minted: boolean) => new PositionAttemptAction('move', [], {
             kind: 'change',
             primitive: 'transferMembership',
-            object: rope,
+            object: minted ? { ...rope, view: ['PRESENCE#fresh' as EphemeraPresenceNodeId] } : rope,
             from: currentHostRef({ referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' }),
             to: { referentType: 'objectSpan', span: 'tray', stableRefKey: 'trayRef', groundedId: trayId },
             containment: 'On',
-            ...(keepFrom ? { keepFrom: true as const } : {}),
         })
         const env = {
             getGraph: (hostId: string) => (hostId === roomId ? graph : undefined),
             getCurrentHost: (id: string) => (id === ropeId ? roomId : undefined),
             getMembershipContainers: () => [],
         }
-        const expand = (keepFrom: boolean) => expandAndAdjudicateCandidates(
-            [{ attempt: CommandAttempt.create('move rope', [transfer(keepFrom)]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'move the rope' } }],
+        const expand = (minted: boolean) => expandAndAdjudicateCandidates(
+            [{ attempt: CommandAttempt.create('move rope', minted ? [extend, transfer(true)] : [transfer(false)]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'move the rope' } }],
             env as never
         )[0]!.attempt.actions()
 
         expect(expand(false)).toHaveLength(2)
         const spreadActions = expand(true)
-        expect(spreadActions).toHaveLength(1)
-        expect(spreadActions[0]!.challenges()).toEqual([])
+        expect(spreadActions).toHaveLength(2)
+        expect(spreadActions.map((action) => action.challenges())).toEqual([[], []])
     })
 })
 

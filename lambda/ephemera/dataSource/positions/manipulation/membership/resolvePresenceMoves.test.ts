@@ -214,98 +214,6 @@ describe('resolvePresenceMoves', () => {
         })
     })
 
-    describe('a spread (keepFroms)', () => {
-        // A rug lies in the room; it is spread partly onto the table, which also stands in the room.
-        const rug = 'OBJECT#Rug' as EphemeraObjectId
-        const table = 'OBJECT#Table' as EphemeraObjectId
-        const chair = 'OBJECT#Chair' as EphemeraObjectId
-        const onTable = { host: table, presence: presence('Base') }
-        const inRoom = { host: roomA, presence: parentRemainderKey(roomA) }
-        const tableGraph = () => testLudicGraph(table, { nodes: [{ tag: 'Object', universalKey: table }, presenceBindingNode('Base', roomA)] })
-        const rugGraph = (...bindings: ReturnType<typeof presenceBindingNode>[]) => testLudicGraph(rug, { nodes: [{ tag: 'Object', universalKey: rug }, ...bindings] })
-        const spread = (graphs: Record<string, EphemeraLudicGraph>) => resolvePresenceMoves({ moved: rug, froms: [roomA], to: table, keepFroms: true, getGraph: getGraphOf(graphs) })
-
-        it('gains the destination and loses nothing: one binding under both (M5\'s copy shape)', async () => {
-            const world = { [rug]: rugGraph(presenceBindingNode('rug', roomA)), [table]: tableGraph(), [roomA]: room(roomA, [rug, table]) }
-
-            const resolved = await spread(world)
-            expect(resolved).toEqual({ ok: true, steps: [{ kind: 'reparentPresenceBinding', hostId: rug, presence: presence('rug'), gain: [onTable] }] })
-            if (!resolved.ok) { throw new Error(resolved.errorCode) }
-
-            const after = apply(resolved.steps, world)
-            expect(bindingsOf(after, rug)).toEqual([[presence('rug'), [`${roomA}|${parentRemainderKey(roomA)}`, `${table}|${presence('Base')}`]]])
-            expect(after.get(table)!.presenceNodes[0].cover.members).toEqual([{ host: rug, presence: presence('rug') }])
-        })
-
-        it('onto a destination that already holds a binding of the mover: reparent, then join into that binding, which keeps both parents', async () => {
-            const world = {
-                [rug]: rugGraph(presenceBindingNode('in-room', roomA), presenceBindingNode('on-table', onTable)),
-                [table]: testLudicGraph(table, { nodes: [{ tag: 'Object', universalKey: table }, presenceBindingNode('Base', roomA, { members: [{ host: rug, presence: presence('on-table') }] })] }),
-                [roomA]: room(roomA, [rug, table]),
-            }
-
-            const resolved = await spread(world)
-            if (!resolved.ok) { throw new Error(resolved.errorCode) }
-
-            expect(resolved.steps.map((step) => step.kind)).toEqual(['reparentPresenceBinding', 'joinPresenceBindings'])
-            expect(resolved.steps[1]).toMatchObject({ into: presence('on-table'), toJoin: [presence('in-room')] })
-            const [[id, parents]] = bindingsOf(apply(resolved.steps, world), rug) as [string, string[]][]
-            expect(id).toEqual(presence('on-table'))
-            expect([...parents].sort()).toEqual([`${roomA}|${parentRemainderKey(roomA)}`, `${table}|${presence('Base')}`].sort())
-        })
-
-        it('a binding that is already shared gains a third parent', async () => {
-            const world = {
-                [rug]: rugGraph(presenceBindingNode('rug', [inRoom, { host: chair, presence: presence('Base') }])),
-                [chair]: testLudicGraph(chair, { nodes: [{ tag: 'Object', universalKey: chair }, presenceBindingNode('Base', roomA, { members: [{ host: rug, presence: presence('rug') }] })] }),
-                [table]: tableGraph(),
-                [roomA]: room(roomA, [rug, table, chair]),
-            }
-
-            const resolved = await spread(world)
-            if (!resolved.ok) { throw new Error(resolved.errorCode) }
-
-            expect(bindingsOf(apply(resolved.steps, world), rug)).toEqual([[presence('rug'), [
-                `${roomA}|${parentRemainderKey(roomA)}`, `${chair}|${presence('Base')}`, `${table}|${presence('Base')}`,
-            ]]])
-        })
-
-        it('gaining a parent the binding already holds is a no-op in the kernel', async () => {
-            const world = {
-                [rug]: rugGraph(presenceBindingNode('rug', [inRoom, onTable])),
-                [table]: testLudicGraph(table, { nodes: [{ tag: 'Object', universalKey: table }, presenceBindingNode('Base', roomA, { members: [{ host: rug, presence: presence('rug') }] })] }),
-                [roomA]: room(roomA, [rug, table]),
-            }
-
-            const resolved = await spread(world)
-            expect(resolved).toEqual({ ok: true, steps: [{ kind: 'reparentPresenceBinding', hostId: rug, presence: presence('rug'), gain: [onTable] }] })
-            if (!resolved.ok) { throw new Error(resolved.errorCode) }
-
-            const after = apply(resolved.steps, world)
-            expect(bindingsOf(after, rug)).toEqual([[presence('rug'), [`${roomA}|${parentRemainderKey(roomA)}`, `${table}|${presence('Base')}`]]])
-            expect(after.get(table)!.presenceNodes[0].cover.members).toEqual([{ host: rug, presence: presence('rug') }])
-        })
-
-        it('a mover with no binding under the from host gains that host\'s binding too, so it ends under both', async () => {
-            const world = { [rug]: rugGraph(), [table]: tableGraph(), [roomA]: room(roomA, [rug, table]) }
-
-            const resolved = await spread(world)
-            if (!resolved.ok) { throw new Error(resolved.errorCode) }
-
-            expect(resolved.steps).toEqual([
-                { kind: 'addPresenceBinding', hostId: rug, fromHostPresences: [], presenceUuid: 'Base' },
-                { kind: 'reparentPresenceBinding', hostId: rug, presence: presence('Base'), gain: [inRoom, onTable] },
-            ])
-            expect(bindingsOf(apply(resolved.steps, world), rug)).toEqual([[presence('Base'), [`${roomA}|${parentRemainderKey(roomA)}`, `${table}|${presence('Base')}`]]])
-        })
-
-        it('still refuses several distinct bindings under the from host that nothing narrows', async () => {
-            const world = { [rug]: rugGraph(presenceBindingNode('x', roomA), presenceBindingNode('y', roomA)), [table]: tableGraph() }
-
-            expect(await spread(world)).toEqual({ ok: false, errorCode: 'moverBindingAmbiguous' })
-        })
-    })
-
     describe('a view-move (moverBindings)', () => {
         // The rope has two bindings, both under roomA until one is moved (the new binding an extend minted).
         const rope = 'OBJECT#Rope' as EphemeraObjectId
@@ -352,6 +260,87 @@ describe('resolvePresenceMoves', () => {
                 .toEqual({ ok: false, errorCode: 'moverBindingMissing' })
             expect(await resolvePresenceMoves({ moved: rope, froms: [roomB], to: roomA, moverBindings: [presence('pA')], getGraph: getGraphOf(world()) }))
                 .toEqual({ ok: false, errorCode: 'moverBindingMissing' })
+        })
+    })
+
+    describe('the contraction rule decides which converging bindings merge', () => {
+        const rope = 'OBJECT#Rope' as EphemeraObjectId
+        const roomC = 'ROOM#Hold' as EphemeraRoomId
+        const connect = (graph: EphemeraLudicGraph, owner: EphemeraMembershipHostId, from: string, to: string) => graph.addRelationalEdge({
+            from: { owner, port: presence(from) }, to: { owner, port: presence(to) }, kind: 'ConnectedTo',
+        } as any)
+        const edgesOf = (graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>, host: EphemeraMembershipHostId) => (
+            graphs.get(host)!.relationalEdges.map(({ from, to }) => [(from as { port: string }).port, (to as { port: string }).port])
+        )
+
+        it('keeps apart two bindings that both have edges and none between them: a rope carried on and back into the first room', async () => {
+            const world = {
+                [rope]: connect(connect(testLudicGraph(rope, { nodes: [{ tag: 'Object', universalKey: rope }, presenceBindingNode('pA', roomA), presenceBindingNode('pB', roomB), presenceBindingNode('pC', roomB)] }), rope, 'pA', 'pB'), rope, 'pB', 'pC'),
+                [roomA]: room(roomA, [rope]),
+                [roomB]: room(roomB, [rope]),
+            }
+
+            const resolved = await resolvePresenceMoves({ moved: rope, froms: [roomB], to: roomA, moverBindings: [presence('pC')], getGraph: getGraphOf(world) })
+            if (!resolved.ok) { throw new Error(resolved.errorCode) }
+
+            expect(resolved.steps.map(({ kind }) => kind)).toEqual(['reparentPresenceBinding'])
+            const after = apply(resolved.steps, world)
+            expect(bindingsOf(after, rope).map(([key]) => key)).toEqual([presence('pA'), presence('pB'), presence('pC')])
+            expect(edgesOf(after, rope)).toEqual([[presence('pA'), presence('pB')], [presence('pB'), presence('pC')]])
+        })
+
+        it('contracts a stretch carried back beside its neighbor, rewriting its other edge onto the survivor', async () => {
+            // pA⟨A⟩ – pB⟨B⟩ – pC⟨C⟩; pB comes back into A, beside pA.
+            const world = {
+                [rope]: connect(connect(testLudicGraph(rope, { nodes: [{ tag: 'Object', universalKey: rope }, presenceBindingNode('pA', roomA), presenceBindingNode('pB', roomB), presenceBindingNode('pC', roomC)] }), rope, 'pA', 'pB'), rope, 'pB', 'pC'),
+                [roomA]: room(roomA, [rope]),
+                [roomB]: room(roomB, [rope]),
+                [roomC]: room(roomC, [rope]),
+            }
+
+            const resolved = await resolvePresenceMoves({ moved: rope, froms: [roomB], to: roomA, moverBindings: [presence('pB')], getGraph: getGraphOf(world) })
+            if (!resolved.ok) { throw new Error(resolved.errorCode) }
+
+            expect(resolved.steps.map(({ kind }) => kind)).toEqual(['reparentPresenceBinding', 'dissolveRelation', 'dissolveRelation', 'joinPresenceBindings', 'establishRelation'])
+            expect(resolved.steps[3]).toMatchObject({ into: presence('pA'), toJoin: [presence('pB')] })
+            const after = apply(resolved.steps, world)
+            expect(bindingsOf(after, rope)).toEqual([
+                [presence('pA'), [`${roomA}|${parentRemainderKey(roomA)}`]],
+                [presence('pC'), [`${roomC}|${parentRemainderKey(roomC)}`]],
+            ])
+            expect(edgesOf(after, rope)).toEqual([[presence('pA'), presence('pC')]])
+        })
+
+        it('one level down, keeps apart two children the rule keeps apart when their parents join', async () => {
+            // The set's two bindings join in the hand; the apple's two bindings, one under each, are stretches joined only
+            // through a third binding elsewhere, so they stay two.
+            const world = {
+                [set]: testLudicGraph(set, { nodes: [
+                    { tag: 'Object', universalKey: set },
+                    presenceBindingNode('a', roomA, { members: [{ host: apple, presence: presence('apple-a') }] }),
+                    presenceBindingNode('b', roomB, { members: [{ host: apple, presence: presence('apple-b') }] }),
+                ] }),
+                [apple]: connect(connect(testLudicGraph(apple, { nodes: [
+                    presenceBindingNode('apple-a', { host: set, presence: presence('a') }),
+                    presenceBindingNode('apple-b', { host: set, presence: presence('b') }),
+                    presenceBindingNode('apple-c', roomC),
+                ] }), apple, 'apple-a', 'apple-c'), apple, 'apple-c', 'apple-b'),
+                [hand]: handGraph,
+                [roomA]: room(roomA, [set]),
+                [roomB]: room(roomB, [set]),
+                [roomC]: room(roomC, [apple]),
+            }
+
+            const resolved = await resolvePresenceMoves({ moved: set, froms: [roomA, roomB], to: hand, getGraph: getGraphOf(world) })
+            if (!resolved.ok) { throw new Error(resolved.errorCode) }
+
+            expect(resolved.steps.map((step) => [step.kind, step.hostId])).toEqual([
+                ['reparentPresenceBinding', set],
+                ['reparentPresenceBinding', set],
+                ['joinPresenceBindings', set],
+            ])
+            const after = apply(resolved.steps, world)
+            expect(bindingsOf(after, apple).filter(([, parents]) => parents.includes(`${set}|${presence('a')}`)).map(([key]) => key)).toEqual([presence('apple-a'), presence('apple-b')])
         })
     })
 

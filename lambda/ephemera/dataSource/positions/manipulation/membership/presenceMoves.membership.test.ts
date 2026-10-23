@@ -1,10 +1,10 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { classifyPresenceCoverDrift } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
+import { presenceGraphViewOf } from '../../ludicGraph/presenceParent'
 import { applyStepSequenceCore } from '../kernel/applyStepSequenceCore'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import { movedFactsFor } from '../kernel/factsForStep'
@@ -27,11 +27,7 @@ const plank = 'OBJECT#Plank' as EphemeraObjectId
 const table = 'OBJECT#Table' as EphemeraObjectId
 const presence = (name: string) => `PRESENCE#${name}` as EphemeraPresenceNodeId
 
-const viewOf = (graph: EphemeraLudicGraph): PresenceGraphView => ({
-    hostId: graph.hostId,
-    nodeIds: [...graph.nodeIds],
-    presenceNodes: graph.presenceNodes,
-})
+const viewOf = presenceGraphViewOf
 
 const worldOf = (graphs: Record<string, EphemeraLudicGraph>) => async (hostId: string): Promise<EphemeraLudicGraph> => (
     graphs[hostId] ?? testLudicGraph(hostId as EphemeraMembershipHostId)
@@ -251,22 +247,22 @@ describe('the moved fact reports only the hosts whose membership changed', () =>
     })
 })
 
-describe('a spread leaves the mover a member of both hosts', () => {
-    // A rug lies in the room, and is spread partly onto the table that stands there.
+describe('a move of one part leaves the mover a member of both hosts', () => {
+    // A rug lies in the room as two parts (an extend), and the far part is laid onto the table that stands there.
     const rug = 'OBJECT#Rug' as EphemeraObjectId
     const world = () => ({
         [roomA]: testLudicGraph(roomA, { nodes: [
             { tag: 'Object', universalKey: rug },
             { tag: 'Object', universalKey: table },
-            presenceBindingNode(parentRemainderKey(roomA), undefined, { members: [{ host: rug, presence: presence('rug') }, { host: table, presence: presence('Base') }] }),
+            presenceBindingNode(parentRemainderKey(roomA), undefined, { members: [{ host: rug, presence: presence('rug') }, { host: rug, presence: presence('rug-far') }, { host: table, presence: presence('Base') }] }),
         ] }),
         [table]: testLudicGraph(table, { nodes: [{ tag: 'Object', universalKey: table }, presenceBindingNode('Base', roomA)] }),
-        [rug]: testLudicGraph(rug, { nodes: [{ tag: 'Object', universalKey: rug }, presenceBindingNode('rug', roomA)] }),
+        [rug]: testLudicGraph(rug, { nodes: [{ tag: 'Object', universalKey: rug }, presenceBindingNode('rug', roomA), presenceBindingNode('rug-far', roomA)] }),
     })
 
-    it('holds the rug in the room and on the table, under one binding, with its On edge on the table', async () => {
+    it('holds the rug in the room and on the table, one part in each, with its On edge on the table', async () => {
         const before = world()
-        const planned = await planObjectMoveTransfer({ entityId: rug, fromHostId: roomA, toHostId: table, containment: 'On', keepFrom: true, getGraph: worldOf(before) })
+        const planned = await planObjectMoveTransfer({ entityId: rug, fromHostId: roomA, toHostId: table, moverBindings: [presence('rug-far')], containment: 'On', getGraph: worldOf(before) })
         if (!planned.ok) { throw new Error(`expected a plan, got ${planned.errorCode}`) }
         const steps = planned.plan.steps.filter(isKernelMutationStep)
         const prior = new Map(Object.entries(before) as [EphemeraMembershipHostId, EphemeraLudicGraph][])
@@ -274,7 +270,7 @@ describe('a spread leaves the mover a member of both hosts', () => {
 
         expect(after.get(roomA)!.nodeIds.has(rug)).toBe(true)
         expect(after.get(table)!.nodeIds.has(rug)).toBe(true)
-        expect(after.get(rug)!.presenceNodes.map(({ universalKey }) => universalKey)).toEqual([presence('rug')])
+        expect(after.get(rug)!.presenceNodes.map(({ universalKey }) => universalKey)).toEqual([presence('rug'), presence('rug-far')])
         expect(after.get(table)!.relationalEdges).toEqual([expect.objectContaining({ from: rug, to: table, kind: 'On' })])
 
         const changes = membershipChangesOf(steps, prior, after)
