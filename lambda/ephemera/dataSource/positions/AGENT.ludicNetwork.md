@@ -164,8 +164,10 @@ OBJECT#Rope.ludicGraph
           { Presence, PRESENCE#p2, fromHostPresences: [ROOM#Hall], cover: [EndB] }   // bucket 2
   edges:  OBJECT#RopeEndA -PartOf-> OBJECT#Rope
           OBJECT#RopeEndB -PartOf-> OBJECT#Rope
-          OBJECT#RopeEndA -Custom('spliced to')-> OBJECT#RopeEndB
+          OBJECT#RopeEndA -ConnectedTo- OBJECT#RopeEndB
 ```
+
+`ConnectedTo` is topology inside one whole: how its parts join, and symmetric (`A -ConnectedTo- B` is the same edge as `B -ConnectedTo- A`). A join between separate wholes (tied to, soldered to) is a peer relation, `Custom` with a label. A rope with no named parts, the kind a player makes by carrying one end into the next room, carries the same edge between its two **bindings** instead (`{owner: Rope, port: p1} -ConnectedTo- {owner: Rope, port: p2}`): that is what extend writes.
 
 The **formulation**, in the terms the design uses:
 
@@ -174,7 +176,7 @@ The **formulation**, in the terms the design uses:
 | **Presence binding** | One distinguishable way the rope is present. Realised as a presence node. There are two, and they are indexed **by binding, not by host** --- one host could hold two bindings into the same thing, and those are two buckets |
 | **Bucket** | The nodes present at one binding: `{Rope, EndA}` in the Lab, `{Rope, EndB}` in the Hall. **The root is in every bucket**, definitionally |
 | **Cover** | The family of buckets. **Totality:** their union is every node of the rope. Buckets may overlap |
-| **Cross-bucket edge** | `EndA -spliced to-> EndB` spans both buckets. Edges are never bucket members; a cover ranges over **nodes only**. A per-bucket edge union would silently lose this edge, and it is exactly the edge that makes the rope's route recoverable |
+| **Cross-bucket edge** | `EndA -ConnectedTo- EndB` spans both buckets. Edges are never bucket members; a cover ranges over **nodes only**. A per-bucket edge union would silently lose this edge, and it is exactly the edge that makes the rope's route recoverable |
 
 **Addressing a binding from outside.** The Lab's edge `OBJECT#Hook -TiedTo-> OBJECT#Rope` names the rope as a whole. To say *the part of the rope that is here*, an edge lands on the binding: `OBJECT#Hook -TiedTo-> {owner: OBJECT#Rope, port: 'PRESENCE#p1'}`. That terminal **is** the referent (the Lab-side extent of the rope), not a pointer to be walked, and an edge landing there is a terminal, never a crossing.
 

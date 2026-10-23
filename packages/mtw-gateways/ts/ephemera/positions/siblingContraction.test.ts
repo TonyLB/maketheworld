@@ -1,7 +1,7 @@
 import { contractionsOf, mergeablePairOf, mergeablePairUnder } from './siblingContraction'
 import type { ConnectedToPair, ContractionBinding } from './siblingContraction'
 
-// The cases are the topology corpus's (taskPlanning/.../positions/AGENT.connectedTo.corpus.planning.md).
+// The cases are the topology corpus's (lambda/ephemera/dataSource/positions/AGENT.topology.corpus.md).
 const under = (key: string, ...hosts: string[]): ContractionBinding => ({
     universalKey: key,
     fromHostPresences: hosts.map((host) => ({ host, presence: 'PRESENCE#Base' })),

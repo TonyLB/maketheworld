@@ -42,7 +42,7 @@ A player entering the Room should be able to learn *there is a power cord here, 
 
 | Edge | Kind (AB-54 class) | Lives in | Crosses the Flashlight boundary? |
 | --- | --- | --- | --- |
-| `Cord -[ConnectedTo]-> StrippedEnd` | `Custom` (peer) | `PowerCord`'s own graph | **No** --- interior to the cord |
+| `Cord -[ConnectedTo]-> StrippedEnd` | `ConnectedTo` (topology; `Custom` until [EA-12](AGENT.edgeAbstractions.planning.md#settled-register) made it a kind) | `PowerCord`'s own graph | **No** --- interior to the cord |
 | `StrippedEnd -[SolderedTo]-> BatteryCase` | `Custom` (peer) | crossing | **Yes** |
 | `BatteryCase -[PartOf]-> Flashlight` | `PartOf` (hosting) | `Flashlight`'s graph | No |
 | `PowerCord -[In]-> Room` | `In` (hosting) | `Room`'s graph | No |

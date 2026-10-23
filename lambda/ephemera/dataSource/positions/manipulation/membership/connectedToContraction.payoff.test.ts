@@ -13,7 +13,7 @@ import { extendSteps, withExtendedBinding } from './extendSteps'
 import { resolvePresenceMoves } from './resolvePresenceMoves'
 
 /**
- * The topology corpus's cases (taskPlanning/.../positions/AGENT.connectedTo.corpus.planning.md) through the
+ * The topology corpus's cases ([`AGENT.topology.corpus.md`](../../AGENT.topology.corpus.md)) through the
  * real planner and kernel, judged by the classifier the deployed `PresenceCoverDriftSweep` uses. Every
  * step is what a player's carry is: extend the binding in hand in place, then move the new binding
  * (planned against the graph as the extend leaves it, as `commitAttempt` plans it), or a move of one
