@@ -1,4 +1,5 @@
-import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { compileAttemptsFromSkeleton } from './compileAttemptsFromSkeleton'
 import { complexErrorMessage } from './complexityClasses'
@@ -133,26 +134,6 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         )
 
         expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noCatalog })
-    })
-
-    it('refuses a take with a qualifier tail as multi-object (BD-20): nothing reads the qualifier yet', async () => {
-        const skeleton = containmentSkeleton('take', 'cup', 'cupRef', 'off', 'table', 'tableRef')
-        const result = await compileAttemptsFromSkeleton(
-            {
-                command: 'take cup off table',
-                skeleton,
-                attempts: [planAttempt(skeleton, 'take cup off table')],
-                hostRoomId: roomId,
-                roomObjectCatalog: [
-                    { objectId: cupId, normalizedShortName: 'cup' },
-                    { objectId: tableId, normalizedShortName: 'table' },
-                ],
-            },
-            0.9,
-            { positionsReadDeps: containmentPositionsReads() }
-        )
-
-        expect(result).toEqual({ type: 'Error', errorMessage: complexErrorMessage('multiObject') })
     })
 
     it('returns Consult, naming both candidates, when the subject span resolves to more than one object', async () => {
@@ -319,5 +300,126 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
             from: { referentType: 'currentHost' },
             to: { referentType: 'objectSpan', stableRefKey: 'trayRef' },
         })
+    })
+})
+
+describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () => {
+    const actor = 'CHARACTER#Tess' as EphemeraCharacterId
+    const tableCupId = 'OBJECT#TableCup' as EphemeraObjectId
+    const floorCupId = 'OBJECT#FloorCup' as EphemeraObjectId
+    const bagId = 'OBJECT#Bag' as EphemeraObjectId
+    const clothId = 'OBJECT#Cloth' as EphemeraObjectId
+    const hanging = 'PRESENCE#hanging' as EphemeraPresenceNodeId
+    const lying = 'PRESENCE#lying' as EphemeraPresenceNodeId
+
+    const table = { objectId: tableId, normalizedShortName: 'table' }
+    const cloth = {
+        objectId: clothId,
+        normalizedShortName: 'cloth',
+        placement: [{ host: clothId, bindings: [
+            { presence: hanging, under: [{ host: roomId, presence: 'PRESENCE#room' as EphemeraPresenceNodeId }], rooms: [roomId] },
+            { presence: lying, under: [{ host: tableId, presence: 'PRESENCE#table' as EphemeraPresenceNodeId }], rooms: [roomId] },
+        ] }],
+    }
+
+    /** Parse's flat skeleton for a qualified command, Planned as parseCommand does, then compiled. */
+    const compile = (
+        verb: string,
+        subject: string,
+        preposition: string,
+        host: string,
+        catalog: { objectId: EphemeraObjectId; normalizedShortName: string }[],
+        hostsOf: Record<string, EphemeraMembershipHostId[]>
+    ) => {
+        const command = `${verb} the ${subject} ${preposition} the ${host}`
+        const skeleton = containmentSkeleton(verb, subject, `${subject}Ref`, preposition, host, `${host}Ref`)
+        return compileAttemptsFromSkeleton(
+            {
+                command,
+                skeleton,
+                attempts: planSkeleton(skeleton, command).attempts,
+                characterId: actor,
+                hostRoomId: roomId,
+                roomObjectCatalog: catalog,
+            },
+            0.9,
+            {
+                positionsReadDeps: {
+                    getMembershipContainers: jest.fn(async (id: string) => hostsOf[id] ?? []),
+                    getLudicGraph: jest.fn(async (hostId: string) => testLudicGraph(hostId as EphemeraRoomId)),
+                },
+            }
+        )
+    }
+
+    const twoCups = [
+        { objectId: tableCupId, normalizedShortName: 'cup' },
+        { objectId: floorCupId, normalizedShortName: 'cup' },
+        table,
+    ]
+    const twoCupsHosts = { [tableCupId]: [tableId], [floorCupId]: [roomId], [tableId]: [roomId] }
+
+    it.each(['on', 'from'])('takes the cup %s the table without asking: the check rules out the cup on the floor', async (preposition) => {
+        const result = await compile('get', 'cup', preposition, 'table', twoCups, twoCupsHosts)
+
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(transferStepOf(result)).toMatchObject({ object: { groundedId: tableCupId }, to: { referentType: 'actingCharacter' } })
+    })
+
+    it('takes the part of a draped cloth on the table without asking: the hanging part and the whole fail the check', async () => {
+        const result = await compile('get', 'cloth', 'on', 'table', [cloth, table], { [clothId]: [roomId, tableId], [tableId]: [roomId] })
+
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(transferStepOf(result)).toMatchObject({ object: { groundedId: clothId, view: [lying] } })
+    })
+
+    it('refuses a take whose only candidate is not on the qualifier, naming host and subject (QR-6)', async () => {
+        const result = await compile('get', 'bag', 'from', 'table', [{ objectId: bagId, normalizedShortName: 'bag' }, table], { [bagId]: [roomId], [tableId]: [roomId] })
+
+        expect(result).toEqual({ type: 'Error', errorMessage: 'The table has no bag.' })
+    })
+
+    it('still asks when both cups are on the table: the check passes for both (labels as today)', async () => {
+        const result = await compile('get', 'cup', 'on', 'table', twoCups, { ...twoCupsHosts, [floorCupId]: [tableId] })
+
+        if (result.type !== 'Consult') {
+            throw new Error(`expected a Consult, got ${result.type}`)
+        }
+        expect(result.alternatives.map(({ objectId }) => objectId).sort()).toEqual([floorCupId, tableCupId].sort())
+        expect(result.alternatives.map(({ label }) => label)).toEqual(['cup', 'cup'])
+    })
+
+    it.each([
+        ['a drop\'s tail, which is not read (QR-7)', 'drop', 'in'],
+        ['a preposition outside the qualifier set', 'get', 'under'],
+    ])('refuses %s as multi-object (BD-20): the take leaves a span unread', async (_label, verb, preposition) => {
+        const result = await compile(verb, 'cup', preposition, 'table', twoCups, twoCupsHosts)
+
+        expect(result).toEqual({ type: 'Error', errorMessage: complexErrorMessage('multiObject') })
+    })
+
+    it('refuses a two-qualifier take as multi-object (BD-20): the tail stays flat', async () => {
+        const command = 'take cup on saucer on table'
+        const skeleton: ParseSkeleton = [
+            { type: 'text', text: 'take' },
+            { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+            { type: 'text', text: 'on' },
+            { type: 'objectSpan', span: 'saucer', stableRefKey: 'saucerRef' },
+            { type: 'text', text: 'on' },
+            { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+        ]
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command,
+                skeleton,
+                attempts: planSkeleton(skeleton, command).attempts,
+                hostRoomId: roomId,
+                roomObjectCatalog: [{ objectId: cupId, normalizedShortName: 'cup' }, { objectId: trayId, normalizedShortName: 'saucer' }, table],
+            },
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
+        )
+
+        expect(result).toEqual({ type: 'Error', errorMessage: complexErrorMessage('multiObject') })
     })
 })

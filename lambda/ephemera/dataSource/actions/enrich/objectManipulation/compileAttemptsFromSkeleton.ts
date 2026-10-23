@@ -238,8 +238,15 @@ export async function compileAttemptsFromSkeleton(
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    // BD-20 arity policy: a take or drop names one object. Composing more is unbuilt Plan-IR work.
-    if (survivors.some((entry) => entry.kind === 'membership') && input.skeleton.filter((token) => token.type === 'objectSpan').length > 1) {
+    // BD-20 arity policy: a take or drop reads every span it is given (its object, and a qualifier's
+    // host through the assertion lowered from it). A span it leaves unread (a drop's tail, a tail
+    // outside the qualifier set, a second qualifier) is unbuilt Plan-IR work.
+    const skeletonKeys = input.skeleton.flatMap((token) => (token.type === 'objectSpan' ? [token.stableRefKey] : []))
+    const leavesSpanUnread = (attempt: CommandAttempt): boolean => {
+        const read = new Set(attemptSpanKeys([attempt]))
+        return skeletonKeys.some((key) => !read.has(key))
+    }
+    if (survivors.some((entry) => entry.kind === 'membership' && leavesSpanUnread(entry.attempt))) {
         return { type: 'Error', errorMessage: complexErrorMessage('multiObject') }
     }
 

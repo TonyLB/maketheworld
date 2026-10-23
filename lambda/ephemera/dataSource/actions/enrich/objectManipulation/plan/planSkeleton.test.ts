@@ -16,7 +16,7 @@ const attemptsOf = (skeleton: ParseSkeleton) => {
 }
 
 describe('planSkeleton', () => {
-    it('plans containment ahead of membership: "take the coin in the box" is a membership take, not a containment move', () => {
+    it('plans "take the coin in the box" as a qualified membership take, not a containment move: a check on the coin, then the take', () => {
         const attempts = attemptsOf([
             { type: 'text', text: 'take' },
             { type: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
@@ -24,12 +24,29 @@ describe('planSkeleton', () => {
             { type: 'objectSpan', span: 'box', stableRefKey: 'boxRef' },
         ])
         expect(attempts).toHaveLength(1)
-        expect(attempts[0].actions()[0].desiredResult).toMatchObject({
+        const [check, take] = attempts[0].actions().map((action) => action.desiredResult)
+        expect(check).toEqual({
+            kind: 'assertion',
+            predicate: 'containedBy',
+            subject: { referentType: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
+            object: { referentType: 'objectSpan', span: 'box', stableRefKey: 'boxRef' },
+            negate: false,
+            relation: 'In',
+        })
+        expect(take).toMatchObject({
             primitive: 'transferMembership',
             from: { referentType: 'currentHost' },
             to: { referentType: 'actingCharacter' },
         })
-        expect(attempts[0].actions()[0].desiredResult).not.toHaveProperty('containment')
+        expect(take).not.toHaveProperty('containment')
+        // The check is judged, not narrated: only the take is covered.
+        expect(attempts[0].narrationUnits().flatMap(({ covers }) => covers)).toEqual([attempts[0].actions()[1]!.id])
+    })
+
+    it('plans "drop the cup in the box" as a plain drop: a drop\'s tail is not grouped, so nothing is checked', () => {
+        const attempts = attemptsOf(relationalSkeleton('drop', 'cup', 'in', 'box'))
+        expect(attempts).toHaveLength(1)
+        expect(attempts[0].actions().map((action) => action.desiredResult?.kind)).toEqual(['change'])
     })
 
     it('plans "spread the rug over the table" as one spread: an extend, then a containment move of the new binding', () => {
@@ -100,10 +117,11 @@ describe('planSkeleton', () => {
         expect(look.narrationUnits()).toEqual([])
     })
 
-    it('plans take X off Y as membership acquire of X: the tail is ignored, and no relational attempt exists', () => {
+    it('plans take X off Y as membership acquire of X, checked to be on Y, and no relational attempt exists', () => {
         const attempts = attemptsOf(relationalSkeleton('take', 'rope', 'off', 'crate'))
         expect(attempts).toHaveLength(1)
-        expect(attempts[0].actions()[0].desiredResult).toMatchObject({
+        expect(attempts[0].actions()[0].desiredResult).toMatchObject({ kind: 'assertion', relation: 'On', object: { span: 'crate' } })
+        expect(attempts[0].actions()[1].desiredResult).toMatchObject({
             primitive: 'transferMembership',
             object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
             from: { referentType: 'currentHost' },

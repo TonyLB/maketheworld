@@ -37,10 +37,10 @@ function isTextToken(token: ParseToken): token is TextToken {
 
 /**
  * Matches a membership command by its leading verb: `take`/`get` acquire, `drop` releases.
- * Runs after the containment and look templates. A trailing tail (`take X off Y`, `take X out of Y`)
- * is ignored here: membership claims the leading verb, and the tail only narrows which X is meant.
- * The span is the first object span, or empty
- * when the command has none; the producer still reads every object span from the skeleton.
+ * Runs after the containment and look templates. A trailing tail is not read here: a qualifier
+ * (`take X off Y`) arrives grouped onto the span (`groupSkeleton`) and is lowered to an assertion
+ * after this template (`lowerQualifiers`); a tail left flat (a drop's) is refused by the producer's
+ * BD-20 gate as an unread span. The span is the first object span, or empty when the command has none.
  *
  * The template created the action, so it authors its narration unit: one line per verb class
  * (`take` and `get` both read "picks up"), to everyone who can see the actor or the object, before
