@@ -2,8 +2,8 @@ import { classifyPresenceCoverDrift, coverRebuildsFor, coverageViolationsOf, lac
 import type { PresenceGraphView } from './classifyPresenceCoverDrift'
 
 const listing = (...hosts: string[]) => ({ members: hosts.map((host) => ({ host, presence: 'PRESENCE#f' })) })
-const room = (nodeIds: string[], presenceNodes: PresenceGraphView['presenceNodes']): PresenceGraphView => ({ hostId: 'ROOM#a', nodeIds: ['ROOM#a', ...nodeIds], presenceNodes })
-const child = (hostId: string, presenceNodes: PresenceGraphView['presenceNodes']): PresenceGraphView => ({ hostId, nodeIds: [hostId], presenceNodes })
+const room = (nodeIds: string[], presenceNodes: PresenceGraphView['presenceNodes']): PresenceGraphView => ({ hostId: 'ROOM#a', nodeIds: ['ROOM#a', ...nodeIds], presenceNodes, connectedTo: [] })
+const child = (hostId: string, presenceNodes: PresenceGraphView['presenceNodes']): PresenceGraphView => ({ hostId, nodeIds: [hostId], presenceNodes, connectedTo: [] })
 const point = (key: string, presence: string, host = 'ROOM#a') => ({ universalKey: key, fromHostPresences: [{ host, presence }], cover: { members: [] as { host: string; presence: string }[] } })
 
 const lookup = (graphs: PresenceGraphView[]) => (id: string) => graphs.find((graph) => graph.hostId === id)
@@ -29,6 +29,26 @@ describe('classifyPresenceCoverDrift', () => {
     it('reports two pointers at one binding as Duplicate', () => {
         const graph = child('FEATURE#x', [point('PRESENCE#f1', 'PRESENCE#root'), point('PRESENCE#f2', 'PRESENCE#root')])
         expect(classifyPresenceCoverDrift(host, lookup([graph])).findings).toEqual([{ kind: 'Duplicate', member: 'FEATURE#x', presence: 'PRESENCE#root' }])
+    })
+
+    describe('two bindings of a member with ConnectedTo edges (the contraction rule)', () => {
+        const thread = (connectedTo: [string, string][]): PresenceGraphView => ({
+            ...child('FEATURE#x', [
+                point('PRESENCE#t2', 'PRESENCE#root'),
+                point('PRESENCE#t3', 'PRESENCE#elsewhere', 'ROOM#c'),
+                point('PRESENCE#t4', 'PRESENCE#root'),
+            ]),
+            connectedTo,
+        })
+
+        it('reads two stretches joined only through another room as legal, not Duplicate', () => {
+            expect(classifyPresenceCoverDrift(host, lookup([thread([['PRESENCE#t2', 'PRESENCE#t3'], ['PRESENCE#t3', 'PRESENCE#t4']])])).findings).toEqual([])
+        })
+
+        it('reports two adjacent stretches the rule would contract as Duplicate', () => {
+            expect(classifyPresenceCoverDrift(host, lookup([thread([['PRESENCE#t2', 'PRESENCE#t4'], ['PRESENCE#t4', 'PRESENCE#t3']])])).findings)
+                .toEqual([{ kind: 'Duplicate', member: 'FEATURE#x', presence: 'PRESENCE#root' }])
+        })
     })
 
     it('holds a listed member to its listing binding only, not to another binding', () => {
@@ -150,7 +170,7 @@ describe('the Unplaced fixed id', () => {
 })
 
 describe('lacksBase', () => {
-    const rooted = (presenceNodes: PresenceGraphView['presenceNodes']): PresenceGraphView => ({ hostId: 'FEATURE#x', nodeIds: ['FEATURE#x'], presenceNodes })
+    const rooted = (presenceNodes: PresenceGraphView['presenceNodes']): PresenceGraphView => ({ hostId: 'FEATURE#x', nodeIds: ['FEATURE#x'], presenceNodes, connectedTo: [] })
 
     it('flags a host that holds bindings and none is Base', () => {
         expect(lacksBase(rooted([{ universalKey: 'PRESENCE#root', fromHostPresences: [], cover: { members: [] } }]))).toBe(true)
@@ -163,7 +183,7 @@ describe('lacksBase', () => {
 })
 
 describe('orphanedPointersOf', () => {
-    const host = (nodeIds: string[]): PresenceGraphView => ({ hostId: 'FEATURE#h', nodeIds: ['FEATURE#h', ...nodeIds], presenceNodes: [{ universalKey: 'PRESENCE#root', fromHostPresences: [], cover: { members: [] } }] })
+    const host = (nodeIds: string[]): PresenceGraphView => ({ hostId: 'FEATURE#h', nodeIds: ['FEATURE#h', ...nodeIds], presenceNodes: [{ universalKey: 'PRESENCE#root', fromHostPresences: [], cover: { members: [] } }], connectedTo: [] })
     const object = (pointers: PresenceGraphView['presenceNodes']) => child('OBJECT#o', pointers)
     const aimed = [point('PRESENCE#b', 'PRESENCE#root', 'FEATURE#h')]
 
@@ -185,7 +205,7 @@ describe('orphanedPointersOf', () => {
     })
 
     it('leaves a character at a room (a bystander) alone, but not a character at a feature', () => {
-        const roomHost: PresenceGraphView = { hostId: 'ROOM#a', nodeIds: ['ROOM#a'], presenceNodes: [{ universalKey: 'PRESENCE#root', fromHostPresences: [], cover: { members: [] } }] }
+        const roomHost: PresenceGraphView = { hostId: 'ROOM#a', nodeIds: ['ROOM#a'], presenceNodes: [{ universalKey: 'PRESENCE#root', fromHostPresences: [], cover: { members: [] } }], connectedTo: [] }
         expect(orphanedPointersOf(child('CHARACTER#c', [point('PRESENCE#b', 'PRESENCE#root', 'ROOM#a')]), lookup([roomHost]))).toEqual([])
         expect(orphanedPointersOf(child('CHARACTER#c', aimed), lookup([host([])]))).toHaveLength(1)
     })

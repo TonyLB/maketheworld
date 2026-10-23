@@ -1,5 +1,5 @@
 import { classifyPresenceCoverDrift, coverRebuildsFor, lacksBase, orphanRepairsFor, orphanedPointersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { PresenceBindingView, PresenceCoverDriftFinding, PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import type { ConnectedToPair, PresenceBindingView, PresenceCoverDriftFinding, PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 /**
  * A stored `ludicGraph` read as the plain view the shared comparison takes. Read from the raw row,
@@ -30,7 +30,23 @@ export const presenceGraphViewOf = (hostId: string, ludicGraph: unknown): Presen
             nodeIds.push(universalKey)
         }
     }
-    return { hostId, nodeIds, presenceNodes }
+    return { hostId, nodeIds, presenceNodes, connectedTo: connectedToOf(hostId, ludicGraph) }
+}
+
+/** A port-address endpoint the host itself owns: one of its own bindings, by key. */
+const ownBindingOf = (hostId: string, endpoint: unknown): string | undefined => {
+    const { owner, port } = (endpoint ?? {}) as { owner?: unknown; port?: unknown }
+    return owner === hostId && typeof port === 'string' ? port : undefined
+}
+
+/** The row's `ConnectedTo` edges between two of its own bindings, as binding keys (the contraction rule reads them). */
+const connectedToOf = (hostId: string, ludicGraph: unknown): ConnectedToPair[] => {
+    const edges = (ludicGraph as { edges?: unknown } | undefined)?.edges
+    return (Array.isArray(edges) ? edges : []).flatMap((edge): ConnectedToPair[] => {
+        const { tag, kind, from, to } = (edge ?? {}) as { tag?: unknown; kind?: unknown; from?: unknown; to?: unknown }
+        const ends = [ownBindingOf(hostId, from), ownBindingOf(hostId, to)]
+        return tag === 'Relational' && kind === 'ConnectedTo' && ends[0] && ends[1] ? [[ends[0], ends[1]]] : []
+    })
 }
 
 /**

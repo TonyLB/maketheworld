@@ -68,3 +68,16 @@ export type {
     PresenceCoverDriftVerdict,
     PresenceGraphView,
 } from './classifyPresenceCoverDrift'
+
+export {
+    contractionsOf,
+    mergeablePairOf,
+    mergeablePairUnder,
+} from './siblingContraction'
+export type {
+    ConnectedToPair,
+    Contraction,
+    ContractionBinding,
+    ContractionParent,
+    MergeablePair,
+} from './siblingContraction'

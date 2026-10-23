@@ -14,12 +14,13 @@ import type { MutationKernelStep } from '../kernel/kernelStep'
  * passed in (no graph reads).
  *
  * The fresh piece takes an empty cover: this assumes a partless whole, whose extent holds no contents
- * to divide. It also assumes the binding carries no `ConnectedTo` edge yet, so the extension hangs off
- * it alone; extending the middle of an already-extended whole must say which piece keeps which edge,
- * and nothing here does.
+ * to divide. The binding extended keeps its id and every `ConnectedTo` edge it already has, and the
+ * fresh piece hangs off it alone: extending an end lengthens the string, and extending a middle binding
+ * makes a branch. Inserting a binding into a stretch (splitting an edge) is not something this does.
  *
- * Two bindings under one parent binding is a state the kernel's end-of-run check refuses, so the
- * caller follows with a move of the new binding in the same sequence.
+ * The two pieces are adjacent siblings, which the contraction rule merges, so the kernel's end-of-run
+ * check refuses an extend left unmoved; the caller follows with a move of the new binding in the same
+ * sequence.
  */
 export const extendSteps = (args: {
     hostId: EphemeraMembershipHostId
@@ -50,17 +51,27 @@ export const extendSteps = (args: {
 
 /**
  * The object's graph as it will stand once `extendSteps` commits: the fresh binding is present under
- * the original's parents with an empty cover. A planner that must name the new binding before the
- * extend has committed (the move that follows it in one attempt) reads this instead of the live graph.
- * `ConnectedTo` is not overlaid: nothing the planner reads depends on it.
+ * the original's parents with an empty cover, connected to the original by `ConnectedTo`. A planner
+ * that must name the new binding before the extend has committed (the move that follows it in one
+ * attempt) reads this instead of the live graph. The edge is overlaid because the planner's
+ * contraction rule reads it: without it the new binding would look bare, and merge into any sibling.
  */
 export const withExtendedBinding = (
     graph: EphemeraLudicGraph,
     binding: EphemeraLudicGraphStructureNode,
     presenceUuid: string
-): EphemeraLudicGraph => graph.addPresenceNode({
-    tag: 'Presence',
-    universalKey: PresenceKey(presenceUuid) as EphemeraPresenceNodeId,
-    fromHostPresences: binding.fromHostPresences,
-    cover: { members: [] },
-})
+): EphemeraLudicGraph => {
+    const fresh = PresenceKey(presenceUuid) as EphemeraPresenceNodeId
+    return graph
+        .addPresenceNode({
+            tag: 'Presence',
+            universalKey: fresh,
+            fromHostPresences: binding.fromHostPresences,
+            cover: { members: [] },
+        })
+        .addRelationalEdge({
+            from: { owner: graph.hostId, port: binding.universalKey },
+            to: { owner: graph.hostId, port: fresh },
+            kind: 'ConnectedTo',
+        })
+}

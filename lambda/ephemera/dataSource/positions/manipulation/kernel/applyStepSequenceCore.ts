@@ -1,13 +1,13 @@
 import { BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID, edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { coverageViolationsOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { coverageViolationsOf, mergeablePairOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { graphFromMeta } from '../../ludicGraph'
-import { parentsOf } from '../../ludicGraph/presenceParent'
+import { connectedToPairsOf, parentsOf } from '../../ludicGraph/presenceParent'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MutationKernelStep } from './kernelStep'
@@ -407,23 +407,27 @@ export const applyStepSequenceCore = (
             }
         })
 
-    // The transient-duplicate invariant (AGENT.contract.md, "A binding's id is stable for the host's
-    // life"): two bindings of one host under the same parent binding are legal only inside a run (a
-    // split produces them, a pair of moves to one parent produces them before a join), and no run may
-    // leave them behind. Checks only graphs this run wrote, so duplicates already in storage do not
-    // make an unrelated run throw. A hostless binding has no pointer, so names no binding to collide on
-    // here; the coverage invariant below is its case (a host's hostless bindings are Base and Unplaced).
-    // A violation is a caller bug (a missing join), not a verdict, like the character check above.
-    // Also at the end of the run, because a split of a hostless binding passes through two hostless
-    // bindings.
+    // The collision rule (AGENT.contract.md, "A binding's id is stable for the host's life"): two
+    // bindings of one host under the same parent binding that the contraction rule merges
+    // (`siblingContraction`: either is bare, or they are neighbors on a string) are legal only inside a
+    // run (an extend produces them, a pair of moves to one parent produces them before a join), and no
+    // run may leave them behind. Two the rule keeps apart (both with `ConnectedTo` edges, none between
+    // them: a thread that passes one room twice) are legal. Checks only graphs this run wrote, so
+    // duplicates already in storage do not make an unrelated run throw. A hostless binding has no
+    // pointer, so names no binding to collide on here; the coverage invariant below is its case (a
+    // host's hostless bindings are Base and Unplaced). A violation is a caller bug (a missing join or
+    // contraction), not a verdict, like the character check above. Also at the end of the run, because
+    // a split of a hostless binding passes through two hostless bindings.
     graphs.forEach((graph, hostId) => {
         if (graph === initialGraphs.get(hostId)) {
             return
         }
+        const connectedTo = connectedToPairsOf(graph)
         const { uncovered, hostlessBindings, badUnplaced } = coverageViolationsOf({
             hostId,
             nodeIds: [...graph.nodeIds],
             presenceNodes: graph.presenceNodes,
+            connectedTo,
         })
         if (uncovered.length) {
             throw new Error(
@@ -443,18 +447,23 @@ export const applyStepSequenceCore = (
                 `Unplaced has no parent.`
             )
         }
-        const presencesByParentHost = graph.presenceNodes.flatMap(parentsOf).reduce<Record<string, string[]>>((accumulator, parent) => (
-            { ...accumulator, [parent.host]: [...(accumulator[parent.host] ?? []), parent.presence] }
-        ), {})
-        Object.entries(presencesByParentHost).forEach(([parentHost, presences]) => {
-            const duplicate = presences.find((presence, index) => presences.indexOf(presence) !== index)
-            if (duplicate) {
+        graph.presenceNodes.forEach((binding) => {
+            const parents = parentsOf(binding)
+            const repeated = parents.find((parent, index) => parents.findIndex(({ host, presence }) => host === parent.host && presence === parent.presence) !== index)
+            if (repeated) {
                 throw new Error(
-                    `applyStepSequenceCore: ${hostId} would carry two bindings under the same parent binding ${duplicate} on ${parentHost} ` +
-                    `--- a parent binding is named by exactly one of a host's bindings (once in its parent set), so a join was missing.`
+                    `applyStepSequenceCore: ${hostId} would carry ${binding.universalKey} under the same parent binding ${repeated.presence} on ${repeated.host} twice ` +
+                    `--- a binding names each parent once in its parent set.`
                 )
             }
         })
+        const mergeable = mergeablePairOf(graph.presenceNodes, connectedTo)
+        if (mergeable) {
+            throw new Error(
+                `applyStepSequenceCore: ${hostId} would carry two bindings under the same parent binding ${mergeable.parent.presence} on ${mergeable.parent.host} ` +
+                `(${mergeable.bindings.join(', ')}) that the contraction rule merges (${mergeable.reason}) --- a join was missing.`
+            )
+        }
     })
 
     return { verdict: 'legal', graphs, captures }

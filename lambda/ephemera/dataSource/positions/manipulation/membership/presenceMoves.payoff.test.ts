@@ -1,10 +1,10 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { classifyPresenceCoverDrift, coverRebuildsFor } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
+import { presenceGraphViewOf } from '../../ludicGraph/presenceParent'
 import { applyStepSequenceCore } from '../kernel/applyStepSequenceCore'
 import { compilePositionKernelOp } from '../kernel/compile/compilePositionKernelOp'
 import { isKernelMutationStep } from '../kernel/kernelStep'
@@ -24,11 +24,7 @@ const cup = 'OBJECT#Cup' as EphemeraObjectId
 const ball = 'OBJECT#Ball' as EphemeraObjectId
 const presence = (name: string) => `PRESENCE#${name}` as EphemeraPresenceNodeId
 
-const viewOf = (graph: EphemeraLudicGraph): PresenceGraphView => ({
-    hostId: graph.hostId,
-    nodeIds: [...graph.nodeIds],
-    presenceNodes: graph.presenceNodes,
-})
+const viewOf = presenceGraphViewOf
 
 const worldOf = (graphs: Record<string, EphemeraLudicGraph>) => async (hostId: string): Promise<EphemeraLudicGraph> => (
     graphs[hostId] ?? testLudicGraph(hostId as EphemeraMembershipHostId)

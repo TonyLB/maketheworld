@@ -16,6 +16,9 @@
  * nesting to its authored asset is not judged here; that is `FixedContainmentDriftSweep`.
  */
 
+import { mergeablePairUnder } from './siblingContraction'
+import type { ConnectedToPair } from './siblingContraction'
+
 export type PresenceCoverMember = { host: string; presence?: string }
 
 export type PresenceBindingView = {
@@ -27,17 +30,27 @@ export type PresenceBindingView = {
 /** Every parent pointer of a binding, empty for a hostless one. The one read of the stored field in this package. */
 export const parentPointersOf = (binding: PresenceBindingView): { host: string; presence: string }[] => binding.fromHostPresences
 
-/** The part of a host's graph this comparison reads. `nodeIds` are component nodes, root included. */
+/**
+ * The part of a host's graph this comparison reads. `nodeIds` are component nodes, root included.
+ * `connectedTo` is the host's `ConnectedTo` edges between its own bindings, as binding keys: the
+ * contraction rule (`siblingContraction`) reads them to tell two bindings that may share a parent from a
+ * duplicate.
+ */
 export type PresenceGraphView = {
     hostId: string
     nodeIds: string[]
     presenceNodes: PresenceBindingView[]
+    connectedTo: ConnectedToPair[]
 }
 
 export type PresenceCoverDriftFinding =
     /** A covered member holds no binding at all into the host. Reported, never minted. */
     | { kind: 'Unbound'; member: string; presence: string }
-    /** A covered member holds more than one binding naming the same host binding. */
+    /**
+     * A covered member holds bindings naming the same host binding that the contraction rule would merge
+     * (`siblingContraction`), or one binding names it twice. Two that the rule keeps apart (two stretches
+     * of one thread in one room) are not drift.
+     */
     | { kind: 'Duplicate'; member: string; presence: string }
     /** A member binding names a host binding that is absent, or whose cover does not include the member. */
     | { kind: 'Stale'; member: string; presence?: string }
@@ -103,6 +116,14 @@ export const coverageViolationsOf = (host: PresenceGraphView): { uncovered: stri
     }
 }
 
+/** One binding naming the parent twice, or two the contraction rule would merge. */
+const isDuplicateUnder = (member: PresenceGraphView, parent: { host: string; presence: string }): boolean => (
+    member.presenceNodes.some((binding) => (
+        parentPointersOf(binding).filter((pointer) => pointer.host === parent.host && pointer.presence === parent.presence).length > 1
+    ))
+    || mergeablePairUnder(parent, member.presenceNodes, member.connectedTo) !== undefined
+)
+
 /**
  * `memberGraph` returns a member's own graph view, or `undefined` when it cannot be read; an
  * unreadable member is skipped (its absence is not drift this comparison can see).
@@ -134,7 +155,7 @@ export const classifyPresenceCoverDrift = (
             if (count === 0) {
                 findings.push({ kind: pointers.length === 0 ? 'Unbound' : 'Stale', member, presence })
             }
-            else if (count > 1) {
+            else if (count > 1 && isDuplicateUnder(graph, { host: host.hostId, presence })) {
                 findings.push({ kind: 'Duplicate', member, presence })
             }
         }

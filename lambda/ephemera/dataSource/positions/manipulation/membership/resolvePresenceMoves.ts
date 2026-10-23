@@ -3,10 +3,12 @@ import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
+import { contractionsOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import type { ConnectedToPair } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 import type { EphemeraLudicGraphStructureNode, EphemeraPresenceCover, EphemeraPresenceCoverEntry } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { childParentBindingIdOf, unpointedBindingOf, bindingHasParent, bindingHasParentOn, parentHostsOf, parentsOf } from '../../ludicGraph/presenceParent'
+import { childParentBindingIdOf, connectedToPairsOf, unpointedBindingOf, bindingHasParent, bindingHasParentOn, parentHostsOf, parentsOf } from '../../ludicGraph/presenceParent'
 import type { ParentBinding } from '../../ludicGraph/presenceParent'
 import type { MutationKernelStep } from '../kernel/kernelStep'
 
@@ -88,24 +90,71 @@ const hostsOfCover = (cover: EphemeraPresenceCover): EphemeraMembershipHostId[] 
     [...new Set(cover.members.map(({ host }) => host as EphemeraMembershipHostId))]
 )
 
+/** The order survivors are picked in: Base first (it is never dispensed with), then a binding already in place, then the rest. */
+const survivorRank = (kept: ReadonlySet<string>) => (key: string): number => (
+    key === BASE_PRESENCE_ID ? 0 : kept.has(key) ? 1 : 2
+)
+
+const connectedToStep = (kind: 'establishRelation' | 'dissolveRelation', hostId: EphemeraMembershipHostId, [from, to]: ConnectedToPair): MutationKernelStep => ({
+    kind,
+    hostId,
+    subjectId: { owner: hostId, port: from },
+    targetId: { owner: hostId, port: to },
+    relationKind: 'ConnectedTo',
+})
+
+const mergedNode = (into: EphemeraLudicGraphStructureNode, absorbed: EphemeraLudicGraphStructureNode): EphemeraLudicGraphStructureNode => ({
+    ...into,
+    fromHostPresences: [...new Map([...parentsOf(into), ...parentsOf(absorbed)].map((parent) => [`${parent.host}|${parent.presence}`, parent])).values()],
+    cover: { members: [...new Map([...into.cover.members, ...absorbed.cover.members].map((entry) => [`${entry.host}|${entry.presence}`, entry])).values()] },
+})
+
 /**
- * The joins that put `toJoin` into `into` (one host's bindings, all about to sit under one parent),
- * and then the joins one level down for the children that now collide beneath `into`. The survivor of
- * a child join is a binding already in `into`'s cover when there is one, never decided by
- * comparing covers. Each step names the hosts it reads: the parents of every binding it
- * joins (their covers are the index) and the hosts of the children it re-parents.
+ * The contraction rule (`siblingContraction`) applied to `scope`, one host's bindings as they will stand
+ * once the run's earlier steps land, written as steps. Each merge dissolves every `ConnectedTo` on the
+ * binding it absorbs, joins it into the survivor (with the joins one level down), and re-establishes
+ * the absorbed binding's other edges on the survivor, so no edge is left naming a binding that is gone.
+ * Merges repeat until no sibling pair the rule merges is left; two siblings it keeps apart (a thread
+ * that passes one place twice) stay as two bindings.
+ */
+const contractionSteps = async (
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
+    hostId: EphemeraMembershipHostId,
+    scope: readonly EphemeraLudicGraphStructureNode[],
+    connectedTo: readonly ConnectedToPair[],
+    rank: (key: string) => number
+): Promise<MutationKernelStep[]> => {
+    const { contractions } = contractionsOf(scope, connectedTo, rank)
+    const nodes = new Map(scope.map((node) => [node.universalKey as string, node]))
+    const steps: MutationKernelStep[] = []
+    for (const { survivor, absorbed, dissolve, establish } of contractions) {
+        const into = nodes.get(survivor)!
+        const gone = nodes.get(absorbed)!
+        steps.push(
+            ...dissolve.map((pair) => connectedToStep('dissolveRelation', hostId, pair)),
+            ...await joinStepsFor(getGraph, hostId, into, [gone]),
+            ...establish.map((pair) => connectedToStep('establishRelation', hostId, pair))
+        )
+        nodes.set(survivor, mergedNode(into, gone))
+        nodes.delete(absorbed)
+    }
+    return steps
+}
+
+/**
+ * The join that puts `toJoin` into `into` (one host's bindings, as they will stand, all under one
+ * parent), and then the contractions one level down among the children that now sit together beneath
+ * `into`, by the same rule. The survivor of a child merge is a binding already in `into`'s cover when
+ * there is one, never decided by comparing covers. Each step names the hosts it reads: the parents of
+ * every binding it joins (their covers are the index) and the hosts of the children it re-parents.
  */
 const joinStepsFor = async (
     getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
     hostId: EphemeraMembershipHostId,
     into: EphemeraLudicGraphStructureNode,
-    toJoin: readonly EphemeraLudicGraphStructureNode[],
-    extraParents: readonly ParentBinding[]
+    toJoin: readonly EphemeraLudicGraphStructureNode[]
 ): Promise<MutationKernelStep[]> => {
-    const parentHosts = [...new Set([
-        ...extraParents.map(({ host }) => host),
-        ...[into, ...toJoin].flatMap(parentHostsOf),
-    ])]
+    const parentHosts = [...new Set([into, ...toJoin].flatMap(parentHostsOf))]
     const joinedEntries = toJoin.flatMap(({ cover }) => cover.members)
     const childHosts = hostsOfCover({ members: [...into.cover.members, ...joinedEntries] })
     const cascadeHosts = [...new Set([...parentHosts, ...childHosts])]
@@ -116,7 +165,8 @@ const joinStepsFor = async (
         toJoin: toJoin.map(({ universalKey }) => universalKey),
         ...(cascadeHosts.length > 0 ? { cascadeHosts } : {}),
     }
-    const kept = new Set(into.cover.members.map(({ presence }) => presence))
+    const kept = new Set<string>(into.cover.members.map(({ presence }) => presence))
+    const joined = new Set<string>(toJoin.map(({ universalKey }) => universalKey))
     const below: MutationKernelStep[] = []
     for (const childHost of childHosts) {
         const entries = [...new Map([...into.cover.members, ...joinedEntries]
@@ -126,15 +176,17 @@ const joinStepsFor = async (
             continue
         }
         const graph = await getGraph(childHost)
-        const bindings = entries.flatMap(({ presence }) => {
+        // The kernel's join swaps each joined binding for `into` in a child's parent set; the scope is read as it will stand.
+        const scope = entries.flatMap(({ presence }) => {
             const found = graph.presenceNodes.find(({ universalKey }) => universalKey === presence)
-            return found ? [found] : []
+            return found ? [{
+                ...found,
+                fromHostPresences: [...new Map(parentsOf(found)
+                    .map((parent) => (parent.host === hostId && joined.has(parent.presence) ? { host: hostId, presence: into.universalKey } : parent))
+                    .map((parent) => [`${parent.host}|${parent.presence}`, parent])).values()],
+            }] : []
         })
-        const survivor = bindings.find(({ universalKey }) => kept.has(universalKey)) ?? bindings[0]
-        if (!survivor) {
-            continue
-        }
-        below.push(...await joinStepsFor(getGraph, childHost, survivor, bindings.filter((binding) => binding !== survivor), []))
+        below.push(...await contractionSteps(getGraph, childHost, scope, connectedToPairsOf(graph), survivorRank(kept)))
     }
     return [step, ...below]
 }
@@ -195,10 +247,13 @@ export const partMoveSteps = (args: {
  *   `from` hosts and gains the destination binding, keeping its id. The bindings that move are named by
  *   the mover's view (`moverBindings`); with none named, several distinct bindings under one host is a
  *   refusal. One shared binding with several parents on the host is one mover.
- * - **Convergence.** Several bindings (a scrub), or a mover already holding a binding under the
- *   destination, end up under one parent. A join follows the reparents (the binding already under the
- *   destination survives, Base always does), then the joins for the children that collide beneath it.
- *   Covers are never compared.
+ * - **Convergence is contraction.** Several bindings (a scrub), or a mover already holding a binding under
+ *   the destination, end up under one parent. The contraction rule (`siblingContraction`) decides which
+ *   of them merge: a bare one merges into a sibling, neighbors on a string contract, and two that both
+ *   have `ConnectedTo` edges with none between them stay apart. Each merge is a join that follows the
+ *   reparents (Base always survives, then a binding already under the destination), with the absorbed
+ *   binding's edges rewritten onto the survivor, then the same rule one level down for the children that
+ *   now sit together beneath it. Covers are never compared.
  * - **A mover with none** (a first placement, a connect, or a legacy whole) gains the destination for its
  *   hostless binding; if it holds no hostless binding, a Base is minted ahead of the reparent.
  */
@@ -269,28 +324,20 @@ export const resolvePresenceMoves = async (args: ResolvePresenceMovesArgs): Prom
         gain: [to],
     }))
 
-    const existing = moverGraph.presenceNodes.filter((node) => !moverIds.has(node.universalKey) && bindingHasParent(node, to))
-    const under = [...movers, ...existing]
-    const joins: MutationKernelStep[] = []
-    if (under.length > 1) {
-        const survivor = under.find(({ universalKey }) => universalKey === BASE_PRESENCE_ID) ?? existing[0] ?? movers[0]
-        // A `ConnectedTo` between two bindings that end up as one has nothing left to join: dissolve it ahead of the
-        // join, so no edge is left naming the absorbed binding. (An edge from one of them to a binding outside this
-        // set would still dangle; contracting those is the contract instruction's work, not this convergence's.)
-        const joining = new Set(under.map(({ universalKey }) => universalKey))
-        const ends = (endpoint: unknown): boolean => typeof endpoint === 'object' && endpoint !== null
-            && (endpoint as { owner?: string }).owner === hostId && joining.has((endpoint as { port: EphemeraPresenceNodeId }).port)
-        joins.push(...moverGraph.relationalEdges
-            .filter((edge) => edge.kind === 'ConnectedTo' && ends(edge.from) && ends(edge.to))
-            .map((edge): MutationKernelStep => ({
-                kind: 'dissolveRelation',
-                hostId,
-                subjectId: edge.from,
-                targetId: edge.to,
-                relationKind: 'ConnectedTo',
-            })))
-        joins.push(...await joinStepsFor(args.getGraph, hostId, survivor, under.filter((node) => node !== survivor), [to]))
-    }
+    // The mover's bindings as they will stand once the reparents land; those under the destination are the scope the
+    // contraction rule judges (a binding already there, and every one that arrives).
+    const minted: EphemeraLudicGraphStructureNode = { tag: 'Presence', universalKey: mintedId, fromHostPresences: [to], cover: { members: [] } }
+    const after = [
+        ...moverGraph.presenceNodes.map((node) => (moverIds.has(node.universalKey)
+            ? { ...node, fromHostPresences: [...parentsOf(node).filter((parent) => !args.froms.includes(parent.host) && !(parent.host === to.host && parent.presence === to.presence)), to] }
+            : node)),
+        ...(mintsBase ? [minted] : []),
+    ]
+    const under = after.filter((node) => bindingHasParent(node, to))
+    const inPlace = new Set<string>(under.filter((node) => !moverIds.has(node.universalKey) && node !== minted).map(({ universalKey }) => universalKey))
+    const joins = under.length > 1
+        ? await contractionSteps(args.getGraph, hostId, under, connectedToPairsOf(moverGraph), survivorRank(inPlace))
+        : []
     return {
         ok: true,
         steps: [
