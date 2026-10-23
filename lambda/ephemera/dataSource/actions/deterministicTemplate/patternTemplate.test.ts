@@ -1,6 +1,6 @@
 import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
 import type { PatternElement } from './deterministicTemplate'
-import type { PatternCapture } from './patternTemplate'
+import type { PatternCapture, PatternFill } from './patternTemplate'
 import {
     assembleIntent,
     makePatternTemplate,
@@ -9,18 +9,20 @@ import {
     synthesizeSkeletonFromPattern,
 } from './patternTemplate'
 
+const captureTexts = (fill: PatternFill) => fill.captures.map(({ text }) => text)
+
 describe('matchPatternAgainstString', () => {
     it('matches a pure templateText pattern case-insensitively', () => {
         const pattern: PatternElement[] = [{ type: 'templateText', options: ['look', 'l'] }]
-        expect(matchPatternAgainstString(pattern, 'Look').type).toBe('matched')
-        expect(matchPatternAgainstString(pattern, 'l').type).toBe('matched')
+        expect(matchPatternAgainstString(pattern, 'Look')).toHaveLength(1)
+        expect(matchPatternAgainstString(pattern, 'l')).toHaveLength(1)
     })
 
     it('rejects near-miss text outside the closed vocabulary (anchoring proof)', () => {
         const pattern: PatternElement[] = [{ type: 'templateText', options: ['look', 'l'] }]
-        expect(matchPatternAgainstString(pattern, 'looks').type).toBe('noMatch')
-        expect(matchPatternAgainstString(pattern, 'lookout').type).toBe('noMatch')
-        expect(matchPatternAgainstString(pattern, 'look around').type).toBe('noMatch')
+        expect(matchPatternAgainstString(pattern, 'looks')).toEqual([])
+        expect(matchPatternAgainstString(pattern, 'lookout')).toEqual([])
+        expect(matchPatternAgainstString(pattern, 'look around')).toEqual([])
     })
 
     it('captures an objectSpan slot', () => {
@@ -28,9 +30,9 @@ describe('matchPatternAgainstString', () => {
             { type: 'templateText', options: ['take'] },
             { type: 'objectSpan', role: 'subject' },
         ]
-        const result = matchPatternAgainstString(pattern, 'take red ball')
-        if (result.type !== 'matched') throw new Error('expected matched')
-        const subject = result.captures.find((c) => c.kind === 'objectSpan')
+        const [fill, ...rest] = matchPatternAgainstString(pattern, 'take red ball')
+        expect(rest).toEqual([])
+        const subject = fill.captures.find((c) => c.kind === 'objectSpan')
         expect(subject).toMatchObject({ kind: 'objectSpan', role: 'subject', text: 'red ball' })
     })
 
@@ -39,32 +41,129 @@ describe('matchPatternAgainstString', () => {
             { type: 'templateText', options: ['relate'] },
             { type: 'capturedText', role: 'relationLabel' },
         ]
-        const result = matchPatternAgainstString(pattern, 'relate atop')
-        if (result.type !== 'matched') throw new Error('expected matched')
-        const label = result.captures.find((c) => c.kind === 'capturedText')
+        const [fill, ...rest] = matchPatternAgainstString(pattern, 'relate atop')
+        expect(rest).toEqual([])
+        const label = fill.captures.find((c) => c.kind === 'capturedText')
         expect(label).toMatchObject({ kind: 'capturedText', role: 'relationLabel', text: 'atop' })
     })
 
-    it('bounds non-greedy objectSpan captures between fixed text (does not overrun)', () => {
+    it('bounds objectSpan captures between fixed text (does not overrun)', () => {
         const pattern: PatternElement[] = [
             { type: 'templateText', options: ['put'] },
             { type: 'objectSpan', role: 'subject' },
             { type: 'templateText', options: ['on'] },
             { type: 'objectSpan', role: 'target' },
         ]
-        const result = matchPatternAgainstString(pattern, 'put red bag on small table')
-        if (result.type !== 'matched') throw new Error('expected matched')
-        const subject = result.captures.find((c) => c.kind === 'objectSpan' && c.role === 'subject')
-        const target = result.captures.find((c) => c.kind === 'objectSpan' && c.role === 'target')
+        const [fill, ...rest] = matchPatternAgainstString(pattern, 'put red bag on small table')
+        expect(rest).toEqual([])
+        const subject = fill.captures.find((c) => c.kind === 'objectSpan' && c.role === 'subject')
+        const target = fill.captures.find((c) => c.kind === 'objectSpan' && c.role === 'target')
         expect(subject).toMatchObject({ text: 'red bag' })
         expect(target).toMatchObject({ text: 'small table' })
     })
 
-    it('returns noMatch for wrong vocabulary, trailing tokens, and empty input', () => {
+    it('returns no fill for wrong vocabulary, trailing tokens, and empty input', () => {
         const pattern: PatternElement[] = [{ type: 'templateText', options: ['help'] }]
-        expect(matchPatternAgainstString(pattern, 'assist').type).toBe('noMatch')
-        expect(matchPatternAgainstString(pattern, 'help me').type).toBe('noMatch')
-        expect(matchPatternAgainstString(pattern, '').type).toBe('noMatch')
+        expect(matchPatternAgainstString(pattern, 'assist')).toEqual([])
+        expect(matchPatternAgainstString(pattern, 'help me')).toEqual([])
+        expect(matchPatternAgainstString(pattern, '')).toEqual([])
+    })
+
+    it('returns every fill: a fixed word may sit inside a span in one fill and be the fixed word in another', () => {
+        const pattern: PatternElement[] = [
+            { type: 'templateText', options: ['take'] },
+            { type: 'objectSpan', role: 'subject' },
+            { type: 'templateText', options: ['on'] },
+            { type: 'objectSpan', role: 'target' },
+        ]
+        const fills = matchPatternAgainstString(pattern, 'take cup on saucer on table')
+        expect(fills.map(captureTexts)).toEqual(expect.arrayContaining([
+            ['take', 'cup', 'on', 'saucer on table'],
+            ['take', 'cup on saucer', 'on', 'table'],
+        ]))
+        expect(fills).toHaveLength(2)
+    })
+
+    it('a phrase option fills only where the text holds the phrase; its prefix option fills too', () => {
+        const pattern: PatternElement[] = [
+            { type: 'templateText', options: ['put'] },
+            { type: 'objectSpan', role: 'subject' },
+            { type: 'templateText', options: ['on', 'on top of'] },
+            { type: 'objectSpan', role: 'target' },
+        ]
+        const phraseFills = matchPatternAgainstString(pattern, 'put cup on top of table')
+        expect(phraseFills.map(captureTexts)).toEqual(expect.arrayContaining([
+            ['put', 'cup', 'on top of', 'table'],
+            ['put', 'cup', 'on', 'top of table'],
+        ]))
+        expect(phraseFills).toHaveLength(2)
+        expect(matchPatternAgainstString(pattern, 'put cup on table').map(captureTexts)).toEqual([['put', 'cup', 'on', 'table']])
+    })
+
+    it('matches a fixed word only as a whole word: "on" inside "onion" is no fill', () => {
+        const pattern: PatternElement[] = [
+            { type: 'templateText', options: ['take'] },
+            { type: 'objectSpan', role: 'subject' },
+            { type: 'templateText', options: ['on'] },
+            { type: 'objectSpan', role: 'target' },
+        ]
+        expect(matchPatternAgainstString(pattern, 'take onion on table').map(captureTexts)).toEqual([['take', 'onion', 'on', 'table']])
+        expect(matchPatternAgainstString(pattern, 'take onion table')).toEqual([])
+    })
+
+    it('ignores case and collapses spacing, keeping the words as typed', () => {
+        const pattern: PatternElement[] = [
+            { type: 'templateText', options: ['put'] },
+            { type: 'objectSpan', role: 'subject' },
+            { type: 'templateText', options: ['on top of'] },
+            { type: 'objectSpan', role: 'target' },
+        ]
+        expect(matchPatternAgainstString(pattern, '  Put  Red   Cup ON  top OF table ').map(captureTexts))
+            .toEqual([['Put', 'Red Cup', 'ON top OF', 'table']])
+    })
+
+    it('merges fills that build the same skeleton', () => {
+        const pattern: PatternElement[] = [
+            { type: 'templateText', options: ['take', 'TAKE'] },
+            { type: 'objectSpan', role: 'subject' },
+        ]
+        expect(matchPatternAgainstString(pattern, 'take cup')).toHaveLength(1)
+    })
+
+    it('adjacent wildcards yield every split', () => {
+        const pattern: PatternElement[] = [
+            { type: 'objectSpan', role: 'subject' },
+            { type: 'objectSpan', role: 'target' },
+        ]
+        expect(matchPatternAgainstString(pattern, 'red cup box').map(captureTexts)).toEqual(expect.arrayContaining([
+            ['red', 'cup box'],
+            ['red cup', 'box'],
+        ]))
+        expect(matchPatternAgainstString(pattern, 'red cup box')).toHaveLength(2)
+    })
+
+    it('stamps each fill\'s skeleton', () => {
+        const pattern: PatternElement[] = [
+            { type: 'templateText', options: ['take'] },
+            { type: 'objectSpan', role: 'subject' },
+            { type: 'templateText', options: ['on'] },
+            { type: 'objectSpan', role: 'target' },
+        ]
+        const skeletons = matchPatternAgainstString(pattern, 'take cup on saucer on table').map(({ skeleton }) => skeleton)
+        expect(skeletons).toEqual(expect.arrayContaining([
+            [
+                { type: 'text', text: 'take' },
+                { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+                { type: 'text', text: 'on' },
+                { type: 'objectSpan', span: 'saucer on table', stableRefKey: 'saucerOnTableRef' },
+            ],
+            [
+                { type: 'text', text: 'take' },
+                { type: 'objectSpan', span: 'cup on saucer', stableRefKey: 'cupOnSaucerRef' },
+                { type: 'text', text: 'on' },
+                { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+            ],
+        ]))
     })
 })
 
@@ -72,13 +171,13 @@ describe('matchPatternAgainstTokens', () => {
     it('accepts a templateText element against a matching TextToken, case-insensitively', () => {
         const pattern: PatternElement[] = [{ type: 'templateText', options: ['look', 'l'] }]
         const skeleton: ParseSkeleton = [{ type: 'text', text: 'LOOK' }]
-        expect(matchPatternAgainstTokens(pattern, skeleton).type).toBe('matched')
+        expect(matchPatternAgainstTokens(pattern, skeleton)).toHaveLength(1)
     })
 
     it('rejects a templateText element against a TextToken not in options', () => {
         const pattern: PatternElement[] = [{ type: 'templateText', options: ['look', 'l'] }]
         const skeleton: ParseSkeleton = [{ type: 'text', text: 'help' }]
-        expect(matchPatternAgainstTokens(pattern, skeleton).type).toBe('noMatch')
+        expect(matchPatternAgainstTokens(pattern, skeleton)).toEqual([])
     })
 
     it('captures an objectSpan element against an ObjectSpanToken', () => {
@@ -90,27 +189,27 @@ describe('matchPatternAgainstTokens', () => {
             { type: 'text', text: 'take' },
             { type: 'objectSpan', span: 'red ball', stableRefKey: 'redBallRef' },
         ]
-        const result = matchPatternAgainstTokens(pattern, skeleton)
-        if (result.type !== 'matched') throw new Error('expected matched')
-        const subject = result.captures.find((c) => c.kind === 'objectSpan')
+        const [fill, ...rest] = matchPatternAgainstTokens(pattern, skeleton)
+        expect(rest).toEqual([])
+        expect(fill.skeleton).toBe(skeleton)
+        const subject = fill.captures.find((c) => c.kind === 'objectSpan')
         expect(subject).toMatchObject({ kind: 'objectSpan', role: 'subject', text: 'red ball', stableRefKey: 'redBallRef' })
     })
 
     it('captures a capturedText element against a TextToken', () => {
         const pattern: PatternElement[] = [{ type: 'capturedText', role: 'relationLabel' }]
         const skeleton: ParseSkeleton = [{ type: 'text', text: 'atop' }]
-        const result = matchPatternAgainstTokens(pattern, skeleton)
-        if (result.type !== 'matched') throw new Error('expected matched')
-        expect(result.captures[0]).toMatchObject({ kind: 'capturedText', role: 'relationLabel', text: 'atop' })
+        const [fill] = matchPatternAgainstTokens(pattern, skeleton)
+        expect(fill.captures[0]).toMatchObject({ kind: 'capturedText', role: 'relationLabel', text: 'atop' })
     })
 
-    it('returns noMatch on length mismatch', () => {
+    it('returns no fill on length mismatch', () => {
         const pattern: PatternElement[] = [{ type: 'templateText', options: ['look'] }]
         const skeleton: ParseSkeleton = [{ type: 'text', text: 'look' }, { type: 'text', text: 'around' }]
-        expect(matchPatternAgainstTokens(pattern, skeleton).type).toBe('noMatch')
+        expect(matchPatternAgainstTokens(pattern, skeleton)).toEqual([])
     })
 
-    it('returns noMatch on a token-type mismatch at a position', () => {
+    it('returns no fill on a token-type mismatch at a position', () => {
         const pattern: PatternElement[] = [
             { type: 'templateText', options: ['take'] },
             { type: 'objectSpan', role: 'subject' },
@@ -119,7 +218,24 @@ describe('matchPatternAgainstTokens', () => {
             { type: 'text', text: 'take' },
             { type: 'text', text: 'red ball' },
         ]
-        expect(matchPatternAgainstTokens(pattern, skeleton).type).toBe('noMatch')
+        expect(matchPatternAgainstTokens(pattern, skeleton)).toEqual([])
+    })
+
+    it('a fixed word must be the whole text token: "hurriedly into" is not "into"', () => {
+        const pattern: PatternElement[] = [
+            { type: 'templateText', options: ['put'] },
+            { type: 'objectSpan', role: 'subject' },
+            { type: 'templateText', options: ['into', 'on top of'] },
+            { type: 'objectSpan', role: 'target' },
+        ]
+        const skeleton = (preposition: string): ParseSkeleton => [
+            { type: 'text', text: 'put' },
+            { type: 'objectSpan', span: 'coin', stableRefKey: 'coinRef' },
+            { type: 'text', text: preposition },
+            { type: 'objectSpan', span: 'box', stableRefKey: 'boxRef' },
+        ]
+        expect(matchPatternAgainstTokens(pattern, skeleton('hurriedly into'))).toEqual([])
+        expect(matchPatternAgainstTokens(pattern, skeleton(' On  top OF '))).toHaveLength(1)
     })
 })
 
@@ -206,5 +322,19 @@ describe('makePatternTemplate', () => {
             confidence: 1,
             subject: 'red ball',
         })
+    })
+
+    it('an intent row with several fills is noMatch: one intent cannot carry them', () => {
+        const template = makePatternTemplate(
+            [
+                { type: 'templateText', options: ['take'] },
+                { type: 'objectSpan', role: 'subject' },
+                { type: 'templateText', options: ['on'] },
+                { type: 'objectSpan', role: 'target' },
+            ],
+            { type: 'ObjectRelateIntent', confidence: 1 }
+        )
+        expect(template.matchString('take cup on table').type).toBe('matched')
+        expect(template.matchString('take cup on saucer on table')).toEqual({ type: 'noMatch' })
     })
 })

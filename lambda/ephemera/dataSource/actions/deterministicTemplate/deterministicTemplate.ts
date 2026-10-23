@@ -14,7 +14,9 @@ export type IntentFieldRole = 'subject' | 'target' | 'relationLabel'
  * A single slot in a DeterministicTemplate's pattern. `templateText` is a
  * closed-vocabulary gate -- matched purely to validate shape, never captured into
  * intent (every template using it fixes the relevant intent field as a constant,
- * regardless of which listed synonym matched). `objectSpan` is a referent slot --
+ * regardless of which listed synonym matched). An option matches whole words of the
+ * command text, or a whole text token of a skeleton, ignoring case and spacing; it
+ * never matches a word inside a longer token. `objectSpan` is a referent slot --
  * feeds both a skeleton token and an intent field. `capturedText` is a free-text
  * slot -- feeds a skeleton text token and an intent field like `objectSpan`, but
  * carries no referent/Identify semantics (for open-ended values, e.g. a custom

@@ -4,6 +4,7 @@ import type { ParseCommandResult } from '../baseClasses'
 import type {
     DeterministicTemplate,
     DeterministicTemplateDeferReason,
+    DeterministicTemplateMatch,
     IntentFieldRole,
     PatternElement,
 } from './deterministicTemplate'
@@ -14,57 +15,84 @@ export type PatternCapture =
     | { elementIndex: number; kind: 'objectSpan'; role: IntentFieldRole; text: string; stableRefKey?: string }
     | { elementIndex: number; kind: 'capturedText'; role: IntentFieldRole; text: string }
 
-export type PatternMatchResult =
-    | { type: 'noMatch' }
-    | { type: 'matched'; captures: PatternCapture[] }
+/**
+ * One way a pattern fits: the skeleton it builds (stamped, from a string match; the
+ * input skeleton, from a token match) and what each element captured, parallel to the
+ * pattern.
+ */
+export type PatternFill = { skeleton: ParseSkeleton; captures: PatternCapture[] }
 
-function escapeRegExpLiteral(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+function splitWords(value: string): string[] {
+    return value.trim().split(/\s+/).filter((word) => word.length > 0)
+}
+
+function sameWords(left: string[], right: string[]): boolean {
+    return left.length === right.length && left.every((word, index) => word.toLowerCase() === right[index].toLowerCase())
 }
 
 /**
- * Builds one anchored, case-insensitive regex from the pattern and matches it
- * against a raw command string. `templateText` options become a capturing
- * alternation (captured, not just validated, so skeleton synthesis can preserve
- * whichever synonym was actually typed -- see synthesizeSkeletonFromPattern).
- * `objectSpan`/`capturedText` become non-greedy bounded captures. Elements are
- * joined by `\s+`, matching this codebase's existing whitespace-collapsing
- * convention (`normalizeCommandToken`, discriminateIntent/exitResolution.ts).
- *
- * Adjacent `objectSpan`/`capturedText` elements with no intervening `templateText`
- * are unsegmentable from raw text by any deterministic grammar (not a regex
- * weakness) -- callers must not author such patterns for this engine; that
- * invariant is not validated at runtime here.
+ * Every way to assign the pattern's elements, from `elementIndex` on, to the words from
+ * `wordIndex` on, using up both. A `templateText` option must equal the next whole
+ * words; a wildcard takes one or more words.
  */
-export function matchPatternAgainstString(pattern: PatternElement[], command: string): PatternMatchResult {
-    const trimmed = command.trim()
-    const fragments = pattern.map((element) => (
-        element.type === 'templateText'
-            ? `(${element.options.map(escapeRegExpLiteral).join('|')})`
-            : '(.+?)'
-    ))
-    const regex = new RegExp(`^${fragments.join('\\s+')}$`, 'i')
-    const match = regex.exec(trimmed)
-    if (!match) {
-        return { type: 'noMatch' }
+function fillWords(pattern: PatternElement[], words: string[], elementIndex: number, wordIndex: number): PatternCapture[][] {
+    if (elementIndex === pattern.length) {
+        return wordIndex === words.length ? [[]] : []
     }
-    const captures: PatternCapture[] = pattern.map((element, elementIndex) => {
-        const text = match[elementIndex + 1]
-        if (element.type === 'templateText') {
-            return { elementIndex, kind: 'templateText', text }
-        }
-        return { elementIndex, kind: element.type, role: element.role, text }
+    const element = pattern[elementIndex]
+    const extend = (capture: PatternCapture, nextWordIndex: number): PatternCapture[][] => (
+        fillWords(pattern, words, elementIndex + 1, nextWordIndex).map((rest) => [capture, ...rest])
+    )
+    if (element.type === 'templateText') {
+        return element.options.flatMap((option) => {
+            const optionWords = splitWords(option)
+            const nextWordIndex = wordIndex + optionWords.length
+            if (optionWords.length === 0 || !sameWords(optionWords, words.slice(wordIndex, nextWordIndex))) {
+                return []
+            }
+            return extend({ elementIndex, kind: 'templateText', text: words.slice(wordIndex, nextWordIndex).join(' ') }, nextWordIndex)
+        })
+    }
+    return words.slice(wordIndex).flatMap((_word, offset) => {
+        const nextWordIndex = wordIndex + offset + 1
+        const text = words.slice(wordIndex, nextWordIndex).join(' ')
+        return extend({ elementIndex, kind: element.type, role: element.role, text }, nextWordIndex)
     })
-    return { type: 'matched', captures }
 }
 
 /**
- * Positional walk of the pattern against an already-tokenized skeleton. Length
- * mismatch is an immediate `noMatch`.
+ * Every way the pattern fits a raw command string, matched over words: a
+ * `templateText` option must equal whole words, ignoring case and spacing, and keeps
+ * the words as typed (so skeleton synthesis preserves whichever synonym was typed --
+ * see synthesizeSkeletonFromPattern). `objectSpan`/`capturedText` take one or more
+ * words, re-joined with single spaces. A fixed word can sit inside a wildcard in one
+ * fill and be the fixed word in another, so `[take, span, on, span]` against "take cup
+ * on saucer on table" has two fills. Adjacent wildcards yield every split.
+ *
+ * No order is promised. Fills that build the same skeleton are merged (duplicate
+ * options, for instance).
  */
-export function matchPatternAgainstTokens(pattern: PatternElement[], skeleton: ParseSkeleton): PatternMatchResult {
+export function matchPatternAgainstString(pattern: PatternElement[], command: string): PatternFill[] {
+    const fillsByKey = new Map<string, PatternFill>()
+    for (const captures of fillWords(pattern, splitWords(command), 0, 0)) {
+        const key = JSON.stringify(captures.map(({ kind, text }) => [kind, text]))
+        if (!fillsByKey.has(key)) {
+            fillsByKey.set(key, { skeleton: synthesizeSkeletonFromPattern(pattern, captures), captures })
+        }
+    }
+    return [...fillsByKey.values()]
+}
+
+/**
+ * Positional walk of the pattern against an already-tokenized skeleton, one token per
+ * element, so at most one fill. The model's segmentation binds: a `templateText`
+ * option must equal the whole text token, ignoring case and spacing (never a word
+ * inside a longer token), and a wildcard takes exactly one token. Length mismatch is
+ * an immediate no match.
+ */
+export function matchPatternAgainstTokens(pattern: PatternElement[], skeleton: ParseSkeleton): PatternFill[] {
     if (pattern.length !== skeleton.length) {
-        return { type: 'noMatch' }
+        return []
     }
     const captures: PatternCapture[] = []
     for (let elementIndex = 0; elementIndex < pattern.length; elementIndex += 1) {
@@ -72,18 +100,18 @@ export function matchPatternAgainstTokens(pattern: PatternElement[], skeleton: P
         const token = skeleton[elementIndex]
         if (element.type === 'templateText') {
             if (token.type !== 'text') {
-                return { type: 'noMatch' }
+                return []
             }
-            const normalized = token.text.trim().toLowerCase()
-            if (!element.options.some((option) => option.toLowerCase() === normalized)) {
-                return { type: 'noMatch' }
+            const tokenWords = splitWords(token.text)
+            if (!element.options.some((option) => sameWords(splitWords(option), tokenWords))) {
+                return []
             }
             captures.push({ elementIndex, kind: 'templateText', text: token.text })
             continue
         }
         if (element.type === 'objectSpan') {
             if (token.type !== 'objectSpan') {
-                return { type: 'noMatch' }
+                return []
             }
             captures.push({
                 elementIndex,
@@ -95,11 +123,11 @@ export function matchPatternAgainstTokens(pattern: PatternElement[], skeleton: P
             continue
         }
         if (token.type !== 'text') {
-            return { type: 'noMatch' }
+            return []
         }
         captures.push({ elementIndex, kind: 'capturedText', role: element.role, text: token.text })
     }
-    return { type: 'matched', captures }
+    return [{ skeleton, captures }]
 }
 
 /**
@@ -126,11 +154,11 @@ export function assembleIntent(templateIntent: Partial<ParseCommandResult>, capt
  * becomes an ObjectSpanToken, `templateText`/`capturedText` become a TextToken
  * holding the actually-matched text (not a canonicalized option), consistent with
  * this codebase's existing principle that tokens identify the actual occurrence,
- * not a canonical form (stampStableRefKeys.ts). Called unconditionally on every
- * matchString hit -- a no-op passthrough while no pattern has an objectSpan
+ * not a canonical form (stampStableRefKeys.ts). Called on every fill of
+ * matchPatternAgainstString -- a no-op passthrough while no pattern has an objectSpan
  * element (true of every template in this slice), real stamping once a template with an
  * objectSpan element lands. Captures are guaranteed parallel to pattern by both
- * engines above, so index lookup (not a search) is safe.
+ * engines, so index lookup (not a search) is safe.
  */
 export function synthesizeSkeletonFromPattern(pattern: PatternElement[], captures: PatternCapture[]): ParseSkeleton {
     const draft: ParseTokenDraft[] = pattern.map((element, elementIndex) => {
@@ -141,6 +169,19 @@ export function synthesizeSkeletonFromPattern(pattern: PatternElement[], capture
         return { type: 'text', text: capture.text }
     })
     return stampStableRefKeys(draft)
+}
+
+/**
+ * An intent row reads one fill: no fill is `noMatch`, and several fills are `noMatch`
+ * too, since one `ParseCommandResult` cannot carry them (the command falls to the LLM
+ * route rather than guessing). No bare-word row has a wildcard, so none has several.
+ */
+function matchFromFills(fills: PatternFill[], templateIntent: Partial<ParseCommandResult>): DeterministicTemplateMatch {
+    if (fills.length !== 1) {
+        return { type: 'noMatch' }
+    }
+    const [{ skeleton, captures }] = fills
+    return { type: 'matched', skeleton, intent: assembleIntent(templateIntent, captures) }
 }
 
 /**
@@ -157,26 +198,10 @@ export function makePatternTemplate(
 ): DeterministicTemplate {
     return {
         matchString(command) {
-            const result = matchPatternAgainstString(pattern, command)
-            if (result.type === 'noMatch') {
-                return { type: 'noMatch' }
-            }
-            return {
-                type: 'matched',
-                skeleton: synthesizeSkeletonFromPattern(pattern, result.captures),
-                intent: assembleIntent(templateIntent, result.captures),
-            }
+            return matchFromFills(matchPatternAgainstString(pattern, command), templateIntent)
         },
         matchTokens(skeleton) {
-            const result = matchPatternAgainstTokens(pattern, skeleton)
-            if (result.type === 'noMatch') {
-                return { type: 'noMatch' }
-            }
-            return {
-                type: 'matched',
-                skeleton,
-                intent: assembleIntent(templateIntent, result.captures),
-            }
+            return matchFromFills(matchPatternAgainstTokens(pattern, skeleton), templateIntent)
         },
     }
 }
@@ -186,8 +211,8 @@ export function makePatternTemplate(
  * structural match means "recognized shape, known-unsupported" rather than
  * "matched" -- e.g. containment language ("in"/"into") for a relational
  * command, which the current relation model (On/In/PartOf/Custom, a
- * ludicGraph edge) has no representation for at all. Always defers on
- * structural match; never produces `matched` or reads/assembles intent.
+ * ludicGraph edge) has no representation for at all. Always defers when any
+ * fill exists; never produces `matched` or reads/assembles intent.
  */
 export function makeDeferPatternTemplate(
     pattern: PatternElement[],
@@ -195,18 +220,10 @@ export function makeDeferPatternTemplate(
 ): DeterministicTemplate {
     return {
         matchString(command) {
-            const result = matchPatternAgainstString(pattern, command)
-            if (result.type === 'noMatch') {
-                return { type: 'noMatch' }
-            }
-            return { type: 'defer', reason }
+            return matchPatternAgainstString(pattern, command).length > 0 ? { type: 'defer', reason } : { type: 'noMatch' }
         },
         matchTokens(skeleton) {
-            const result = matchPatternAgainstTokens(pattern, skeleton)
-            if (result.type === 'noMatch') {
-                return { type: 'noMatch' }
-            }
-            return { type: 'defer', reason }
+            return matchPatternAgainstTokens(pattern, skeleton).length > 0 ? { type: 'defer', reason } : { type: 'noMatch' }
         },
     }
 }
