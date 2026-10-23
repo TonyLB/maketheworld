@@ -64,6 +64,7 @@ import {
     isParseCommandCharacterSpokeResult,
     isParseCommandConsultResult,
     isParseCommandCoyoteAffinitiesTestResult,
+    isParseCommandObjectManipulationParseTestResult,
     isParseCommandCoyoteEngineTestResult,
     isParseCommandErrorResult,
     isParseCommandHelpResult,
@@ -84,12 +85,14 @@ import { navigationIntentErrorMessages, objectManipulationErrorMessages } from '
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
+import { runObjectManipulationParseHarness } from './actionHandlers/runObjectManipulationParseHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 import { isCoyoteGameRoom } from '../coyoteGame/utilities/isCoyoteGameRoom'
 import { commitAndPresentStepSequence } from '../positions/manipulation/kernel/commitAndPresentStepSequence'
 
 const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
 const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = true
+const OBJECT_MANIPULATION_PARSE_TEST_HARNESS_ENABLED = true
 
 type ParseCommandAcmeOrderValidLine = Extract<ParseCommandAcmeOrderLine, { valid: true }>
 type ParseCommandAcmeOrderInvalidLine = Extract<ParseCommandAcmeOrderLine, { valid: false }>
@@ -310,6 +313,20 @@ const respondImperativelyForIntent = async (context: ResponseContext): Promise<v
         }
         else {
             await runAcmeOrderAffinitiesHarness({
+                characterId,
+                messageBus,
+                ...(parseResult.harnessInvocation !== undefined
+                    ? { harnessInvocation: parseResult.harnessInvocation }
+                    : {}),
+            })
+        }
+    }
+    else if (isParseCommandObjectManipulationParseTestResult(parseResult)) {
+        if (!OBJECT_MANIPULATION_PARSE_TEST_HARNESS_ENABLED) {
+            reportCommandOutcome(context, 'Error', ['Object manipulation Parse test harness is currently disabled.'])
+        }
+        else {
+            await runObjectManipulationParseHarness({
                 characterId,
                 messageBus,
                 ...(parseResult.harnessInvocation !== undefined

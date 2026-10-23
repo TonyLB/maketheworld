@@ -17,12 +17,26 @@ export type PlanSkeletonResult =
  * attempts carry no `groundedId`s.
  */
 export function planSkeleton(skeleton: ParseSkeleton, command: string): PlanSkeletonResult {
-    const attempts = [
-        matchContainmentTemplate(skeleton, command),
-        matchSpreadTemplate(skeleton, command),
-        matchLookTemplate(skeleton, command),
-        matchMembershipTemplate(skeleton, command),
-    ].flatMap(result => (result.type === 'matched' ? [result.attempt] : []))
+    const attempts = matchPlanTemplates(skeleton, command)
+        .flatMap(({ attempt }) => (attempt ? [attempt] : []))
 
     return { type: 'attempts', attempts }
+}
+
+export type PlanTemplateName = 'containment' | 'spread' | 'look' | 'membership'
+
+/** One template's answer for a skeleton: its attempt, or none when it did not match. */
+export type PlanTemplateMatch = { template: PlanTemplateName; attempt?: CommandAttempt }
+
+/** Every template's answer, in template order, matched or not: what `planSkeleton` unions, labelled for the `/test parse` harness. */
+export function matchPlanTemplates(skeleton: ParseSkeleton, command: string): PlanTemplateMatch[] {
+    const results = [
+        { template: 'containment', result: matchContainmentTemplate(skeleton, command) },
+        { template: 'spread', result: matchSpreadTemplate(skeleton, command) },
+        { template: 'look', result: matchLookTemplate(skeleton, command) },
+        { template: 'membership', result: matchMembershipTemplate(skeleton, command) },
+    ] as const
+    return results.map(({ template, result }) => (
+        result.type === 'matched' ? { template, attempt: result.attempt } : { template }
+    ))
 }

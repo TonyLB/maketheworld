@@ -6,10 +6,13 @@ import type {
 import { normalizeExitName } from '../roomExitTargetsForCharacter'
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../coyoteGame/generators/testHarness/coyoteEngineTestFixtures'
 import { ACME_ORDER_AFFINITIES_HARNESS_FIXTURES } from '../acmeOrderAffinitiesHarnessPhrases'
+import { OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES } from '../objectManipulationParseHarnessFixtures'
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
+import { isObjectManipulationParseTestSlashCommand } from './objectManipulationParseTestSlashCommand'
 import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestSlash'
 import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
+import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
 import { peelLeadingArticleWhenTail } from './peelLeadingArticleWhenTail'
 
@@ -122,6 +125,18 @@ export function deterministicIntentChecks(input: ParseCommandInput): ParseComman
         }
         return {
             type: 'CoyoteAffinitiesTest',
+            confidence: 1,
+            ...(parsed.harnessInvocation !== undefined ? { harnessInvocation: parsed.harnessInvocation } : {}),
+        }
+    }
+    if (isObjectManipulationParseTestSlashCommand(input.command)) {
+        const trimmed = input.command.trim()
+        const parsed = parseObjectManipulationParseTestSlashTail(trimmed, OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES.length)
+        if (!parsed.ok) {
+            return { type: 'Error', errorMessage: parsed.errorMessage }
+        }
+        return {
+            type: 'ObjectManipulationParseTest',
             confidence: 1,
             ...(parsed.harnessInvocation !== undefined ? { harnessInvocation: parsed.harnessInvocation } : {}),
         }

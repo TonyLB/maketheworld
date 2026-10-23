@@ -80,6 +80,30 @@ describe('deterministicIntentChecks', () => {
         })
     })
 
+    it('returns ObjectManipulationParseTest for valid /test parse commands', () => {
+        expect(deterministicIntentChecks({ command: '/test parse' })).toEqual({
+            type: 'ObjectManipulationParseTest',
+            confidence: 1,
+        })
+        expect(deterministicIntentChecks({ command: ' /test parse 3 ' })).toEqual({
+            type: 'ObjectManipulationParseTest',
+            confidence: 1,
+            harnessInvocation: { fixtureIndex1Based: 3 },
+        })
+        expect(deterministicIntentChecks({ command: '/test parse "get bag from table"' })).toEqual({
+            type: 'ObjectManipulationParseTest',
+            confidence: 1,
+            harnessInvocation: { command: 'get bag from table' },
+        })
+    })
+
+    it('returns Parse error for invalid /test parse tails', () => {
+        expect(deterministicIntentChecks({ command: '/test parse 99' })).toEqual({
+            type: 'Error',
+            errorMessage: expect.stringContaining('out of range'),
+        })
+    })
+
     it('returns Parse error for invalid /test affinities tails', () => {
         const badToken = deterministicIntentChecks({ command: '/test affinities abc' })
         expect(badToken).toEqual({

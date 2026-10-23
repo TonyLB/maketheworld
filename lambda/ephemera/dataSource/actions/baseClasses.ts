@@ -242,6 +242,25 @@ export type ParseCommandCoyoteAffinitiesTestResult = {
     harnessInvocation?: CoyoteAffinitiesHarnessInvocation
 }
 
+/** One `/test parse` fixture: a qualifiedReferents corpus command, run through Parse and Plan with no world. */
+export type ObjectManipulationParseHarnessFixture = {
+    id: string
+    corpusCase: string
+    command: string
+}
+
+/** Which commands a `/test parse` run covers: one fixture by 1-based index, or free text. Absent: every fixture. */
+export type ObjectManipulationParseHarnessInvocation =
+    | { fixtureIndex1Based: number }
+    | { command: string }
+
+/** Operator trigger for the object-manipulation Parse + Plan harness (`/test parse`). */
+export type ParseCommandObjectManipulationParseTestResult = {
+    type: 'ObjectManipulationParseTest'
+    confidence: ParseCommandConfidence
+    harnessInvocation?: ObjectManipulationParseHarnessInvocation
+}
+
 export type ParseCommandUnimplementedResult = {
     type: 'Unimplemented'
     confidence: ParseCommandConfidence
@@ -366,6 +385,7 @@ export type ParseCommandResult =
     | ParseCommandCharacterSpokeResult
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
+    | ParseCommandObjectManipulationParseTestResult
     | ParseCommandCommandAttemptResult
     | ParseCommandObjectMembershipIntentResult
     | ParseCommandObjectRelateIntentResult
@@ -612,6 +632,15 @@ export function isParseCommandCoyoteAffinitiesTestResult(
     result: ParseCommandResult
 ): result is ParseCommandCoyoteAffinitiesTestResult {
     if (result.type !== 'CoyoteAffinitiesTest') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandObjectManipulationParseTestResult(
+    result: ParseCommandResult
+): result is ParseCommandObjectManipulationParseTestResult {
+    if (result.type !== 'ObjectManipulationParseTest') {
         return false
     }
     return isParseConfidence(result.confidence)
