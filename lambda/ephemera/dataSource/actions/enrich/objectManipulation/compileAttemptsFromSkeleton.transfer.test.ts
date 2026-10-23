@@ -1,6 +1,7 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { compileAttemptsFromSkeleton } from './compileAttemptsFromSkeleton'
+import { complexErrorMessage } from './complexityClasses'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ParseSkeleton } from './parse/parseToken'
 import { planSkeleton } from './plan/planSkeleton'
@@ -132,6 +133,26 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         )
 
         expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noCatalog })
+    })
+
+    it('refuses a take with a qualifier tail as multi-object (BD-20): nothing reads the qualifier yet', async () => {
+        const skeleton = containmentSkeleton('take', 'cup', 'cupRef', 'off', 'table', 'tableRef')
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command: 'take cup off table',
+                skeleton,
+                attempts: [planAttempt(skeleton, 'take cup off table')],
+                hostRoomId: roomId,
+                roomObjectCatalog: [
+                    { objectId: cupId, normalizedShortName: 'cup' },
+                    { objectId: tableId, normalizedShortName: 'table' },
+                ],
+            },
+            0.9,
+            { positionsReadDeps: containmentPositionsReads() }
+        )
+
+        expect(result).toEqual({ type: 'Error', errorMessage: complexErrorMessage('multiObject') })
     })
 
     it('returns Consult, naming both candidates, when the subject span resolves to more than one object', async () => {

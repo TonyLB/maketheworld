@@ -29,6 +29,16 @@ export const objectManipulationErrorMessages = {
     noActingCharacter: 'ObjectManipulation resolution failed: no acting character',
 } as const
 
+/**
+ * A qualifier every candidate fails ("get bag from table" with the one bag on the floor): names the host
+ * and the subject without claiming a relation, since the dry run judges any host leniently. Already the
+ * player's line. A negated qualifier that fails says the host does have it.
+ */
+export const qualifierErrorMessages = {
+    unmet: (host: string, subject: string): string => `The ${host} has no ${subject}.`,
+    negatedUnmet: (host: string, subject: string): string => `The ${host} has the ${subject}.`,
+} as const
+
 export type ObjectSpanResolutionResult =
     | { type: 'Resolved'; objectId: EphemeraObjectId }
     | { type: 'NoCatalog' }

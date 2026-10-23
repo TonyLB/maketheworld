@@ -119,6 +119,7 @@ export type GroundedBinaryAssertion = {
     subjectId: EphemeraObjectId
     objectId: EphemeraObjectId
     negate: boolean
+    relation?: 'On' | 'In'
 }
 
 export type GroundedAssertion = GroundedBinaryAssertion

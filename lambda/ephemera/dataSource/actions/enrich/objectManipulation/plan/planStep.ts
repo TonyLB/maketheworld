@@ -134,6 +134,12 @@ export type Change<R extends Referent = Referent> = TransferMembershipChange<R> 
  * a flag reuses one evaluation path instead of forking the (disjunctive)
  * predicate logic into two copies that must be kept in sync. Single member
  * today; grow this union as concrete cases demand (BD-14 scope discipline).
+ *
+ * `containedBy(subject, object)`: the subject is held by the object. A qualifier ("the cup on the
+ * table") is one, judged in the dry run (`attemptDryRun`), where a candidate it rules out is illegal.
+ * `relation` records what the words said (`On`, `In`); absent means held there, how unspecified
+ * ("from"). The dry run is lenient for now: every host of the subject's view must be the object
+ * directly, whatever the relation.
  */
 export type ContainedByAssertion<R extends Referent = Referent> = {
     kind: 'assertion'
@@ -141,6 +147,7 @@ export type ContainedByAssertion<R extends Referent = Referent> = {
     subject: R
     object: R
     negate: boolean
+    relation?: 'On' | 'In'
 }
 
 export type Assertion<R extends Referent = Referent> = ContainedByAssertion<R>
