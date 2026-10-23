@@ -53,7 +53,7 @@ describe('groupSkeleton', () => {
     })
 
     it.each<[string, ParseSkeleton]>([
-        ['a drop\'s tail (QR-7)', flat('drop', 'cup', 'in', 'box')],
+        ['a drop\'s tail, which is not read', flat('drop', 'cup', 'in', 'box')],
         ['a destination after put', flat('put', 'cup', 'on', 'table')],
         ['a preposition outside the set', flat('get', 'cup', 'under', 'table')],
         ['a motion word', flat('get', 'cup', 'onto', 'table')],

@@ -120,6 +120,12 @@ A pending challenge defers and a refused one is illegal, so every doubt about a 
 
 **Handoff:** `ParseSkeleton` -> `compileAttemptsFromSkeleton`'s `input.skeleton`.
 
+**Parse, as observed** (Nova Micro, two `/test parse` runs over the qualified-take fixtures, 2026-10-23). These are what the downstream closed sets have to absorb, not prompt rules:
+
+- **A phrase naming another object is always its own span**, chained phrases included ("put cup on saucer on table" gives three spans). The prompt's keep-every-modifier rule never folds a qualifier into its subject, so Parse needs no change for qualifiers (actions contract, "Qualifier").
+- **Articles survive after `get`.** The prompt says to strip them, and after `put` they are; after `get` the subject usually keeps "the", and the qualifier sometimes does, varying between runs. Nothing peels them downstream (shelved, "Articles on the LLM route", in [`../../AGENT.implementation.md`](../../AGENT.implementation.md)).
+- **`out of` is unstable.** One run emitted `out` and dropped "of", against the prompt's do-not-skip rule; the qualifier lexicon accepts bare `out` for that reason.
+
 **10. Plan-stage template match (deterministic, containment only)**  
 Plan has no peer-relation template. The deterministic match left in this branch is [`plan/matchContainmentTemplate.ts`](plan/matchContainmentTemplate.ts): `put`/`place` + in/inside/into or on/onto/on top of builds the `transferMembership` with its `containment` kind. A sibling, [`plan/matchSpreadTemplate.ts`](plan/matchSpreadTemplate.ts), is the temporary front end for a spread (the object is laid partly onto another and stays where it is): `spread`/`drape` + containment's phrases or `over`/`across` builds two actions, an `extend` of the object (phrase-free, carrying a minted `presenceUuid`) and then the containment transfer of the binding the extend mints (a one-binding `view` on its object), until the LLM Plan fallback produces the same two from open phrasing. Extend assumes the object has extent; for this template the closed verb list is what keeps it to things that spread, and `extendPreconditionFailure` ([`attemptCandidates.ts`](attemptCandidates.ts)) is the seam where a real judgment replaces the assumption. Each fast-path template (containment, and membership's take/get/drop) also authors the narration unit over the action it creates: copy from a closed per-template verb map and, for containment, the matched preposition phrase (never the raw text run), one audience over the actor and every referent, *before*. Parse is unchanged (BD-21). Outcomes: `matched` (an ungrounded attempt) or `noMatch`. A skeleton with no containment match, including every peer relation, yields zero attempts and `Unimplemented`. Peer `establishRelation`/`dissolveRelation` come only from Plan's LLM fallback, which is not built.
 
@@ -147,7 +153,7 @@ There is no construction-time Validation on this route: a candidate whose Expans
 | --- | --- | --- |
 | Intent **`type`** (`ObjectMembershipIntent` \| `ObjectRelateIntent`) | Classify | Semantic |
 | **`verbClass`** | Classify (**membership only**) | Semantic |
-| **`objectSpans`** / **`rawObjectSpans`** | Classify no longer extracts these for object-manipulation intents (retired 2026-07-20); Parse ([`parse/runParseStage.ts`](parse/runParseStage.ts)) tokenizes into a `ParseSkeleton` on both routes | Semantic (Parse) |
+| **`objectSpans`** / **`rawObjectSpans`** | Classify no longer extracts these for object-manipulation intents (retired 2026-07-20; `rawObjectSpans` retired 2026-10-23). The fast path builds the flat draft skeleton itself (`ObjectMembershipIntent.skeleton`); everything else is tokenized by Parse ([`parse/runParseStage.ts`](parse/runParseStage.ts)); `parseCommand` stamps either | Deterministic (fast path) / Semantic (Parse) |
 | Membership **`operationKind`** (`takeHold` \| `drop`) | Verb-intended propose-N, then the shared selector's legality partition (ISS8203 slice 3); a deferred take or drop abstains (no complexity LLM) | Deterministic |
 | Relational **`operationKind`** (`establishRelation` \| `dissolveRelation`) | Plan's LLM fallback (**BD-12**'s verb classification; no deterministic producer, not yet built) | LLM |
 | **`relationKind`** / **`relationLabel`** | Plan's LLM fallback (peer `Custom` + label) | LLM |

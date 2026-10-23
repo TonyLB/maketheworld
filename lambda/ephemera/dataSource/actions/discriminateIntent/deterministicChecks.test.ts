@@ -273,7 +273,7 @@ describe('deterministicIntentChecks', () => {
             })
         })
 
-        describe('a qualified tail splits into the flat skeleton (QR-3)', () => {
+        describe('a qualified tail splits into the flat skeleton', () => {
             const skeletonOf = (command: string, roomObjectLabels?: string[]) => {
                 const result = deterministicIntentChecks({ command, ...(roomObjectLabels ? { roomObjectLabels } : {}) })
                 return result?.type === 'ObjectMembershipIntent' ? result.skeleton : result
@@ -318,7 +318,7 @@ describe('deterministicIntentChecks', () => {
                 expect(skeletonOf('take off the hat')).toEqual([text('take'), span('off the hat')])
             })
 
-            // The qualifiedReferents corpus's Nova Micro baseline, for the rows whose spans carry no article (O2).
+            // Nova Micro's recorded skeletons for these commands (two `/test parse` runs, 2026-10-23), for the rows whose spans carry no article.
             it.each<[string, string[], ReturnType<typeof text | typeof span>[]]>([
                 ['get bag from table', ['bag'], [text('get'), span('bag'), text('from'), span('table')]],
                 ['take cup off saucer', [], [text('take'), span('cup'), text('off'), span('saucer')]],

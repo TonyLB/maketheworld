@@ -11,6 +11,10 @@
  * leaf, then `orchestrateRoomDescriptionStreams` for `look table`. The room's look is the room
  * header's read, `ludicCacheRoomObjectContents`, over a cold `buildLudicCache` of the committed
  * graphs (as `roomObjectContents.test.ts` stands in for the stored row).
+ *
+ * The same harness carries the qualified-take payoffs ("get the cup on the table", "get the cloth on
+ * the table", "get bag from table"): a phrase naming where an object is picks the object, or the part
+ * of it, without asking, or refuses with a line that says why (the actions contract's "Qualifier").
  */
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 const mockGetCurrentTimestamp = jest.fn()
@@ -65,12 +69,15 @@ const NEXT_ROOM_ID = 'ROOM#NextRoom' as EphemeraRoomId
 const ROPE_ID = 'OBJECT#Rope' as EphemeraObjectId
 const CLOTH_ID = 'OBJECT#Cloth' as EphemeraObjectId
 const PLATE_ID = 'OBJECT#Plate' as EphemeraObjectId
+const CUP_ON_TABLE_ID = 'OBJECT#CupOnTable' as EphemeraObjectId
+const CUP_ON_FLOOR_ID = 'OBJECT#CupOnFloor' as EphemeraObjectId
+const BAG_ID = 'OBJECT#Bag' as EphemeraObjectId
 const CHARACTER_ID = 'CHARACTER#Tester' as EphemeraCharacterId
 const VIEWER = 'CHARACTER#viewer' as const
 const PERSPECTIVE_KEY = 'PERSPECTIVE#v1#abc123'
 const CACHE_ID = 'CACHE#fixture-cache-1' as const
 
-const SHORT_NAMES: Record<string, string> = { [RUG_ID]: 'rug', [TABLE_ID]: 'table', [CLOTH_ID]: 'cloth', [PLATE_ID]: 'plate', [ROPE_ID]: 'rope' }
+const SHORT_NAMES: Record<string, string> = { [RUG_ID]: 'rug', [TABLE_ID]: 'table', [CLOTH_ID]: 'cloth', [PLATE_ID]: 'plate', [ROPE_ID]: 'rope', [CUP_ON_TABLE_ID]: 'cup', [CUP_ON_FLOOR_ID]: 'cup', [BAG_ID]: 'bag' }
 
 /** Names for the cache's stored nodes and for the viewer's labels: the same per-object shortName. */
 const shortNameDeps = {
@@ -180,14 +187,15 @@ const useWorld = (objects: WorldObjects) => {
     /**
      * A real parse, its positions reads answered by `containersOf` and the live graphs. `catalog` stands in for the
      * production one (`catalogFromCache`); the default carries no `presence` or `placement`, so nothing is ever asked by position.
+     * `labels` stands in for the room's object labels (default: every object's name), which decide what the fast path claims.
      */
-    const parseAny = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[], heldCatalog: readonly RoomInPlayObjectCatalogEntry[] = []) => {
+    const parseAny = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[], heldCatalog: readonly RoomInPlayObjectCatalogEntry[] = [], labels?: readonly string[]) => {
         return parseCommand(
             {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                roomObjectLabels: objects.map(([, name]) => name),
+                roomObjectLabels: labels ? [...labels] : objects.map(([, name]) => name),
                 roomObjectCatalog: catalog ?? objects.map(([objectId, name]) => ({ objectId, normalizedShortName: name })),
                 heldInventoryCatalog: heldCatalog,
             },
@@ -285,6 +293,12 @@ const useWorld = (objects: WorldObjects) => {
 
     return { parse, parseAny, commit, roomObjects, catalogFromCache, heldCatalogFromCache, ask, resumeAt, optionLabels }
 }
+
+/** The world lines a commit narrated, from the bus it published to. */
+const narratedLines = (writeMessageBus: { publish: jest.Mock }): string[] => writeMessageBus.publish.mock.calls
+    .map((call: any[]) => call[0])
+    .filter((message: any) => message?.type === 'PublishMessage' && message?.displayProtocol === 'WorldMessage')
+    .map((message: any) => message.message.join(''))
 
 describe('object spread payoff (integration)', () => {
     const { parse, commit, roomObjects, ask, resumeAt, optionLabels } = useWorld([[RUG_ID, 'rug'], [TABLE_ID, 'table']])
@@ -639,6 +653,20 @@ describe('asking which part of a draped cloth (integration)', () => {
         expect(clothGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host)).sort()).toEqual([CHARACTER_ID, ...staysIn].sort())
     })
 
+    it('"get the cloth on the table" takes the part on the table without asking, and the hanging part stays', async () => {
+        await commit((await parse('drape the cloth over the table', drapeTokens, beforeDrape)).attempt, beforeDrape)
+
+        // No tokens: the fast path claims it, and the dry run's check rules out the hanging part and the whole.
+        const result = await parseAny('get the cloth on the table', undefined, afterDrape, await catalogFromCache())
+        expect(result).toMatchObject({ type: 'CommandAttempt' })
+
+        const writeMessageBus = await commit((result as any).attempt, afterDrape)
+        expect(narratedLines(writeMessageBus)).toEqual([expect.stringMatching(/ picks up cloth$/)])
+        const clothGraph = await internalCache.Positions.getLudicGraph(CLOTH_ID)
+        expect(clothGraph.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host)).sort()).toEqual([CHARACTER_ID, ROOM_ID].sort())
+        expect(clothGraph.relationalEdges.map(({ kind }) => kind)).toEqual(['ConnectedTo'])
+    })
+
     it('does not ask when only one position of the cloth reaches the actor\'s room', async () => {
         // A catalog entry whose second position sits in another room: the actor's own position picks the first.
         const { catalog } = await askTake()
@@ -651,5 +679,60 @@ describe('asking which part of a draped cloth (integration)', () => {
         const result = await parseAny('take cloth', undefined, afterDrape, oneEnd as RoomInPlayObjectCatalogEntry[])
 
         expect(result).toMatchObject({ type: 'CommandAttempt' })
+    })
+})
+
+describe('two cups, one on the table: a qualified take (integration)', () => {
+    const { parse, parseAny, commit, roomObjects, catalogFromCache } = useWorld([[CUP_ON_TABLE_ID, 'cup'], [CUP_ON_FLOOR_ID, 'cup'], [TABLE_ID, 'table']])
+
+    const putTokens = '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"table"}]}'
+    const beforePut = (id: string) => ([CUP_ON_TABLE_ID, CUP_ON_FLOOR_ID, TABLE_ID, CHARACTER_ID].includes(id as any) ? [ROOM_ID] : [])
+    const afterPut = (id: string) => (id === CUP_ON_TABLE_ID ? [TABLE_ID] : beforePut(id))
+
+    /** Setup: one cup put on the table for real (the put's catalog holds only that cup, so the setup does not ask). */
+    beforeEach(async () => {
+        const onlyThatCup = [{ objectId: CUP_ON_TABLE_ID, normalizedShortName: 'cup' }, { objectId: TABLE_ID, normalizedShortName: 'table' }]
+        await commit((await parse('put the cup on the table', putTokens, beforePut, onlyThatCup)).attempt, beforePut)
+        expect(await roomObjects()).toEqual([
+            { objectId: CUP_ON_FLOOR_ID, shortName: 'cup', contents: [] },
+            { objectId: TABLE_ID, shortName: 'table', contents: [{ objectId: CUP_ON_TABLE_ID, shortName: 'cup' }] },
+        ])
+    })
+
+    it.each([
+        // No tokens: the fast path claims it (the head "cup" is a room label).
+        ['the fast path', undefined, undefined],
+        // Labels withheld, standing in for a head that is no label: Parse's flat skeleton, as Nova Micro returns it.
+        ['the LLM route', '{"tokens":[{"type":"text","text":"get"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"table"}]}', []],
+    ])('"get the cup on the table", by %s, picks up the cup on the table without asking', async (_route, tokens, labels) => {
+        const result = await parseAny('get the cup on the table', tokens, afterPut, await catalogFromCache(), [], labels)
+        expect(result).toMatchObject({ type: 'CommandAttempt' })
+
+        const writeMessageBus = await commit((result as any).attempt, afterPut)
+        expect(narratedLines(writeMessageBus)).toEqual([expect.stringMatching(/ picks up cup$/)])
+        const [cupOnTable, cupOnFloor] = await Promise.all([CUP_ON_TABLE_ID, CUP_ON_FLOOR_ID].map((id) => internalCache.Positions.getLudicGraph(id)))
+        expect(cupOnTable.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host))).toEqual([CHARACTER_ID])
+        expect(cupOnFloor.presenceNodes.flatMap((binding) => parentsOf(binding).map(({ host }) => host))).toEqual([ROOM_ID])
+
+        // The room's look: the cup on the floor stays, and the table is empty.
+        expect(await roomObjects()).toEqual([
+            { objectId: CUP_ON_FLOOR_ID, shortName: 'cup', contents: [] },
+            { objectId: TABLE_ID, shortName: 'table', contents: [] },
+        ])
+    })
+})
+
+describe('one bag, on the floor: a qualifier that matches nothing (integration)', () => {
+    const { parseAny, roomObjects, catalogFromCache } = useWorld([[BAG_ID, 'bag'], [TABLE_ID, 'table']])
+    const onTheFloor = (id: string) => ([BAG_ID, TABLE_ID, CHARACTER_ID].includes(id as any) ? [ROOM_ID] : [])
+
+    it('"get bag from table" refuses with a line that says why, and changes nothing', async () => {
+        const before = await roomObjects()
+
+        const result = await parseAny('get bag from table', undefined, onTheFloor, await catalogFromCache())
+
+        expect(result).toEqual({ type: 'Error', errorMessage: 'The table has no bag.' })
+        expect(ephemeraDBMock.transactWrite).not.toHaveBeenCalled()
+        expect(await roomObjects()).toEqual(before)
     })
 })

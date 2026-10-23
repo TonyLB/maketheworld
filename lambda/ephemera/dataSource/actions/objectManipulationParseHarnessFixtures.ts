@@ -1,9 +1,10 @@
 import type { ObjectManipulationParseHarnessFixture } from './baseClasses'
 
 /**
- * `/test parse` fixtures: the commands of the qualifiedReferents corpus, run down the route each
- * takes (the fast path or Parse) and through Plan, with no world beyond the actor's room labels. One fixture runs as its `command`; the 1-based order here is the slash index.
- * `corpusCase` names the corpus section the command belongs to.
+ * `/test parse` fixtures, kept as a Parse regression set: the qualified-take commands (and their
+ * controls), run down the route each takes (the fast path or Parse) and through Plan, with no world
+ * beyond the actor's room labels. One fixture runs as its `command`; the 1-based order here is the
+ * slash index. `corpusCase` groups the fixtures by the world they were written against.
  */
 export const OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES: readonly ObjectManipulationParseHarnessFixture[] = [
     { id: 'c1-get-cup-on-table', corpusCase: 'C1 two cups', command: 'get the cup on the table' },

@@ -1694,7 +1694,7 @@ describe('parseCommand LLM path', () => {
         })
 
         it.each([
-            ['a drop\'s tail (QR-7)', 'drop the cup in the box'],
+            ['a drop\'s tail, which is not read', 'drop the cup in the box'],
             ['a chained tail', 'take cup on saucer on table'],
         ])('splits %s and refuses it as multi-object, as the LLM route does, without Bedrock', async (_label, command) => {
             const invokeBedrockParseCommandImpl = jest.fn()

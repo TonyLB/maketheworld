@@ -243,7 +243,7 @@ export type ParseCommandCoyoteAffinitiesTestResult = {
     harnessInvocation?: CoyoteAffinitiesHarnessInvocation
 }
 
-/** One `/test parse` fixture: a qualifiedReferents corpus command, run through Parse and Plan with no world. */
+/** One `/test parse` fixture: a command run down the route it takes (fast path or Parse) and through Plan, with no world. */
 export type ObjectManipulationParseHarnessFixture = {
     id: string
     corpusCase: string

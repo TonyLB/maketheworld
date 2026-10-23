@@ -32,7 +32,7 @@ export const matchQualifierPreposition = (text: string): QualifierPreposition | 
 }
 
 /**
- * The verbs whose tail groups as a qualifier. A stand-in for "the verb does not decide" (QR-1),
+ * The verbs whose tail groups as a qualifier. A stand-in for "the verb does not decide" (a qualifier restricts, an argument places: the actions contract's "Qualifier"),
  * kept until grouping emits every reading and lets the dry run and selection choose.
  */
 const GROUPING_VERBS = new Set(['take', 'get'])

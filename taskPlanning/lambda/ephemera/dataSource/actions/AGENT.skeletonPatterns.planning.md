@@ -1,6 +1,6 @@
 # Skeleton patterns: one template, matched against text or a skeleton
 
-**Status: drafted 2026-10-23, not started. Waits for [`AGENT.qualifiedReferents.planning.md`](AGENT.qualifiedReferents.planning.md) to finish (its Slices 3 and 4).** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). It is rung 12 of the iteration ladder in [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md). It takes over the shelf bullet "Templates matched against the command text" under "Shelved: stacked qualifiers and `put`" in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md), and that shelf's "Chained qualifiers on a take".
+**Status: drafted 2026-10-23, not started. Ready to start: qualified referents (rung 6) shipped and retired 2026-10-23, with its rules in [`actions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.contract.md#qualifier) "Qualifier".** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). It is rung 12 of the iteration ladder in [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md). It takes over the shelf bullet "Templates matched against the command text" under "Shelved: stacked qualifiers and `put`" in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md), and that shelf's "Chained qualifiers on a take".
 
 ## Goal
 
@@ -14,7 +14,7 @@ The match returns **every** way the pattern fits, not just the first. The final 
 **Payoff, stated at the observable output:**
 
 - Every fast-path take, get or drop does what it did at the end of qualifiedReferents, and the fast path no longer has a pattern of its own: deleting the take/get/drop regexes in `deterministicChecks.ts` changes no player-visible line.
-- For each corpus command the fast path claims, its skeleton equals the one Nova Micro returns.
+- For each `/test parse` fixture the fast path claims ([`objectManipulationParseHarnessFixtures.ts`](../../../../../lambda/ephemera/dataSource/actions/objectManipulationParseHarnessFixtures.ts)), its skeleton equals the one Nova Micro returns.
 - `take cup on saucer on table`, with one cup on a saucer on the table and another cup on a saucer on the floor, picks up the first cup without asking. Today it is refused as `multiObject`.
 
 ## Why now
@@ -64,7 +64,7 @@ Pending work uses `[ ]` and completed work `[X]`; mark nested lines `[X]` as eac
 - [ ] **Slice 3. The fast path is the patterns run against the text.**
   - [ ] `maybeDeterministicManipulationIntent`'s regexes and qualifiedReferents' split (`splitQualifierTail`) are deleted. The fast path matches the object templates' patterns against the command text, keeps the fills its claim policy allows (SP-3, SP-6), and hands the matched skeletons to Plan directly. (`parseCommand.ts` already takes the fast path's skeleton as built, since qualifiedReferents' Slice 3.)
   - [ ] The claim policy is the fast path's only code of its own: the whole-tail-label guard, `get`'s head-label rule, `take hold`, and which templates it claims.
-  - [ ] Tests: for each corpus command the fast path claims, its skeleton equals Nova Micro's (qualifiedReferents' corpus, LLM-route table). Every `deterministicChecks` test keeps its outcome.
+  - [ ] Tests: for each `/test parse` fixture the fast path claims, its skeleton equals Nova Micro's (the recorded rows in `deterministicChecks.test.ts`, "a qualified tail splits into the flat skeleton"; the full two-run table is in git history with the deleted qualifiedReferents corpus). Every `deterministicChecks` test keeps its outcome.
 - [ ] **Slice 4. The object phrase is recursive.**
   - [ ] Add a recursive pattern element (SP-7): an object phrase is a span, optionally followed by a closed-set preposition and another object phrase. One match returns every bracketing, as skeletons whose spans carry `qualifier`, which `lowerQualifiers` already reads.
   - [ ] `groupSkeleton` is deleted. Matching the recursive patterns against the flat skeleton (LLM route) or the text (fast path) yields the readings. Where the verb table goes is SP-8.
@@ -96,13 +96,13 @@ Plan-only: decisions made in order to implement the next slice(s). Do not copy i
 | **SP-5** | **Where does a template's attempt builder live?** *Lean:* beside its pattern, as `build(captures, command) → CommandAttempt`, so the template file holds its shape, its words and its narration unit together. | Slice 2 | Open |
 | **SP-6** | **Which templates does the fast path claim?** *Lean:* take/get/drop, as today. Whether `put`, `place`, `spread` and `look` join becomes a one-line change to the claim list. That question stays on the shelf ("Whether the fast path learns `put`"). | Slice 3 | Open |
 | **SP-7** | **What shape is the recursive object phrase?** Right-nested only (`ObjectPhrase = SPAN (PREP ObjectPhrase)?`, the shelf's grammar), or also several qualifiers on one span ("the cup on the saucer from the shelf")? Also, which depth cap? `ObjectSpanToken.qualifier` holds one qualifier today. | Slice 4 | Open |
-| **SP-8** | **Does `GROUPING_VERBS` survive Slice 4?** Retiring it is QR-1's "the verb does not decide": every verb's skeleton then yields its qualifier readings. That reaches QR-7: `drop cup in box` would gain a qualifier reading, so its refusal would come from the dry run (the dropped cup must be held and in the box) rather than from `multiObject`. Keeping the table keeps this plan's behavior changes to takes. | Slice 4 | Open |
+| **SP-8** | **Does `GROUPING_VERBS` survive Slice 4?** Retiring it is the contract's "a qualifier restricts; an argument places" (the verb does not decide): every verb's skeleton then yields its qualifier readings. That reaches the rule that a drop's tail is never read: `drop cup in box` would gain a qualifier reading, so its refusal would come from the dry run (the dropped cup must be held and in the box) rather than from `multiObject`. Keeping the table keeps this plan's behavior changes to takes. | Slice 4 | Open |
 
 ## Getting Started
 
 1. Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once, for how this plan is kept.
 2. Read [`actions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.concepts.md#deterministictemplate) (`DeterministicTemplate`, Plan, attempts) and the `DeterministicTemplate` module and Parse-skeleton pipeline sections of [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md).
-3. Read [`AGENT.qualifiedReferents.planning.md`](AGENT.qualifiedReferents.planning.md) (QR-1, QR-3, QR-7, QR-8) and its [corpus](AGENT.qualifiedReferents.corpus.planning.md), until that plan is retired; after that, the contract rules it graduated.
+3. Read [`actions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.contract.md#qualifier) "Qualifier": what a qualifier is, attachment in grouping alone, a drop's tail never read, and what the fast path claims. The leftovers are in `actions/AGENT.implementation.md` "Shelved: stacked qualifiers and `put`".
 4. Testing: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md) is the authority. If commands conflict, follow it.
 5. Baseline, from `lambda/ephemera/`: `npm run test -- --clearCache`, then `npx tsc --noEmit` and `npm run test -- --watchAll=false`, all green before any edit.
 
@@ -112,7 +112,7 @@ Per slice, from `lambda/ephemera/`: `npx tsc --noEmit` and `npm run test -- --wa
 
 - Slice 1: matcher tests show several fills for `take cup on saucer on table` against a `[take, span, on, span]` pattern, and a phrase option (`on top of`) is preferred over its prefix only where the text holds it. The `deterministicTemplate/` tests pass unchanged.
 - Slice 2: every `plan/` and `compileAttemptsFromSkeleton*` test passes unchanged. A grep finds no length check left in the object templates.
-- Slice 3: `deterministicChecks` tests keep their outcomes. The fast path's skeleton equals Nova Micro's for each corpus command it claims. A grep finds no take/get/drop regex in `deterministicChecks.ts`. In dev, `/test parse "get cup on table"` reports the fast path.
+- Slice 3: `deterministicChecks` tests keep their outcomes. The fast path's skeleton equals Nova Micro's for each `/test parse` fixture it claims. A grep finds no take/get/drop regex in `deterministicChecks.ts`. In dev, `/test parse "get cup on table"` reports the fast path.
 - Slice 4: matcher tests list the bracketings of a two-qualifier tail. The `take cup on saucer on table` compile test takes the right cup. The gate test shows a failing reading dropped while a working one survives.
 - Slice 5: the payoff tests assert on the player's line and the world after commit.
 

@@ -373,7 +373,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
         expect(transferStepOf(result)).toMatchObject({ object: { groundedId: clothId, view: [lying] } })
     })
 
-    it('refuses a take whose only candidate is not on the qualifier, naming host and subject (QR-6)', async () => {
+    it('refuses a take whose only candidate is not on the qualifier, naming host and subject', async () => {
         const result = await compile('get', 'bag', 'from', 'table', [{ objectId: bagId, normalizedShortName: 'bag' }, table], { [bagId]: [roomId], [tableId]: [roomId] })
 
         expect(result).toEqual({ type: 'Error', errorMessage: 'The table has no bag.' })
@@ -390,7 +390,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
     })
 
     it.each([
-        ['a drop\'s tail, which is not read (QR-7)', 'drop', 'in'],
+        ['a drop\'s tail, which is not read', 'drop', 'in'],
         ['a preposition outside the qualifier set', 'get', 'under'],
     ])('refuses %s as multi-object (BD-20): the take leaves a span unread', async (_label, verb, preposition) => {
         const result = await compile(verb, 'cup', preposition, 'table', twoCups, twoCupsHosts)
