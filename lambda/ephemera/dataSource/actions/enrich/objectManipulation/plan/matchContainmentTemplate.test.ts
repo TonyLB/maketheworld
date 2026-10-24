@@ -84,7 +84,7 @@ describe('matchContainmentTemplate', () => {
         expect(summarize(matchContainmentTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
     })
 
-    it('returns noMatch for a 6-token skeleton (modifier-bearing shape, out of scope)', () => {
+    it('matches a qualified object: the candle from the bookshelf, moved into the bag', () => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'put' },
             { type: 'objectSpan', span: 'candle', stableRefKey: 'candleRef' },
@@ -94,7 +94,10 @@ describe('matchContainmentTemplate', () => {
             { type: 'objectSpan', span: 'bag', stableRefKey: 'bagRef' },
         ]
 
-        expect(summarize(matchContainmentTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
+        expect(summarize(matchContainmentTemplate(skeleton, 'test command'))).toMatchObject({
+            type: 'matched',
+            change: { object: { span: 'candle' }, to: { span: 'bag' }, containment: 'In' },
+        })
     })
 })
 

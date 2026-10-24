@@ -35,7 +35,6 @@ import {
 } from './parseCommand'
 import { parentRemainderKey } from '../positions/ludicGraph/testFixtures'
 import { catalogDepsFromColdBuild } from './roomObjectCatalogTestDeps'
-import { complexErrorMessage } from './enrich/objectManipulation/complexityClasses'
 
 /** The route's change step: the attempt's first action that changes the world (relation or transfer). */
 const primaryStepOf = (result: unknown): any => {
@@ -1694,9 +1693,9 @@ describe('parseCommand LLM path', () => {
         })
 
         it.each([
-            ['a drop\'s tail, which is not read', 'drop the cup in the box'],
-            ['a chained tail', 'take cup on saucer on table'],
-        ])('splits %s and refuses it as multi-object, as the LLM route does, without Bedrock', async (_label, command) => {
+            ['a drop\'s tail, whose qualified reading finds the held cup not in the box', 'drop the cup in the box', 'The box has no cup.'],
+            ['a chained tail, whose reading of every span finds no cup on the saucer', 'take cup on saucer on table', 'The saucer has no cup.'],
+        ])('splits %s, as the LLM route does, without Bedrock', async (_label, command, errorMessage) => {
             const invokeBedrockParseCommandImpl = jest.fn()
             const invokeBedrockObjectManipulationParseImpl = jest.fn()
 
@@ -1720,7 +1719,7 @@ describe('parseCommand LLM path', () => {
                 }
             )
 
-            expect(result).toEqual({ type: 'Error', errorMessage: complexErrorMessage('multiObject') })
+            expect(result).toEqual({ type: 'Error', errorMessage })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
         })

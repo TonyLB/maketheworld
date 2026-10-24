@@ -318,7 +318,7 @@ describe('deterministicIntentChecks', () => {
                 expect(skeletonOf('take cup on top of table')).toEqual([text('take'), span('cup'), text('on top of'), span('table')])
             })
 
-            it('cuts at a bare "out", as grouping reads the LLM route\'s bare "out"', () => {
+            it('cuts at a bare "out", as Plan\'s readings read the LLM route\'s bare "out"', () => {
                 expect(skeletonOf('take coin out box')).toEqual([text('take'), span('coin'), text('out'), span('box')])
             })
 

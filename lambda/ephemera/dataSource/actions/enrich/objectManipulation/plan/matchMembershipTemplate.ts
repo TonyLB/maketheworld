@@ -8,6 +8,7 @@ import {
     objectSpanRef,
     type TransferMembershipChange,
 } from './planStep'
+import { QUALIFIER_OBJECT_PHRASE_ELEMENT } from './qualifierPrepositions'
 import { optionAt, spanAt } from './templateCaptures'
 
 /** The membership verbs, each with the operation it plans and the narration it reads: `take` and `get` both read "picks up". */
@@ -38,11 +39,12 @@ export const planMembershipDesiredResult = (
 })
 
 /**
- * A membership command: `take`/`get` acquire, `drop` releases, the object is the span after the
- * verb, and whatever follows is not read here (`rest`). Runs after the containment and look
- * templates. A qualifier (`take X off Y`) arrives grouped onto the span (`groupSkeleton`) and is
- * lowered to an assertion after this template (`lowerQualifiers`); a tail left flat (a drop's) is
- * refused by the producer's BD-20 gate as an unread span.
+ * A membership command: `take`/`get` acquire, `drop` releases, the object is the object phrase
+ * after the verb, and whatever follows is not read here (`rest`). Runs after the containment and
+ * look templates. Each run of qualifiers the phrase reads (`take X off Y`, `take X on Y on Z`) is
+ * its own fill, nested onto the span in that fill's reading and lowered to assertions after this
+ * template (`lowerQualifiers`); a fill whose `rest` holds a span is dropped by the producer's BD-20
+ * gate as leaving it unread.
  *
  * The template created the action, so it authors its narration unit: one line per verb class,
  * to everyone who can see the actor or the object, before the move.
@@ -51,7 +53,7 @@ export const membershipTemplate: AttemptTemplate<'membership'> = {
     name: 'membership',
     pattern: [
         MEMBERSHIP_VERB_ELEMENT,
-        { type: 'objectSpan', role: 'subject' },
+        QUALIFIER_OBJECT_PHRASE_ELEMENT,
         { type: 'rest' },
     ],
     build(captures, command) {

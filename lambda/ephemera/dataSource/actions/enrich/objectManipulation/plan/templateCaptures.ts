@@ -13,10 +13,13 @@ export const optionAt = (captures: PatternCapture[], elementIndex: number): stri
     return capture.option
 }
 
-/** The span an `objectSpan` position captured, with the key Parse stamped on it (its occurrence). */
+/**
+ * The span an `objectSpan` position captured, or an `objectPhrase` position's first span (what its
+ * qualifiers restrict), with the key Parse stamped on it (its occurrence).
+ */
 export const spanAt = (captures: PatternCapture[], elementIndex: number): { span: string; stableRefKey: string } => {
     const capture = captures[elementIndex]
-    if (capture?.kind !== 'objectSpan' || capture.stableRefKey === undefined) {
+    if ((capture?.kind !== 'objectSpan' && capture?.kind !== 'objectPhrase') || capture.stableRefKey === undefined) {
         throw new Error(`templateCaptures: element ${elementIndex} is not a stamped object span`)
     }
     return { span: capture.text, stableRefKey: capture.stableRefKey }

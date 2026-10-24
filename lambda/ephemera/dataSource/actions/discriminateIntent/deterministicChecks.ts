@@ -58,8 +58,8 @@ const prepositionWordCount = ({ links }: FastPathFill): number => (
  * fill's head is a room label. A tail that is a room label as a whole stays one span (a name like
  * "man in the moon"); otherwise the fill with the most cuts is kept, longest phrases first, which is
  * the flat skeleton Nova Micro returns. The policy never reads the verb to cut: which span a phrase
- * attaches to is grouping's to decide (`plan/groupSkeleton.ts`), so a drop's tail or a chain is cut
- * here and refused there. Each span has its leading article peeled.
+ * attaches to is decided by Plan, whose templates' object phrases read every way to attach it (each
+ * fill a reading). Each span has its leading article peeled.
  */
 function maybeDeterministicManipulationIntent(
     input: ParseCommandInput

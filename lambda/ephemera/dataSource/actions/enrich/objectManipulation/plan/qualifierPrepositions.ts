@@ -1,4 +1,4 @@
-import type { PatternElement } from '../../../deterministicTemplate/deterministicTemplate'
+import type { IntentFieldRole, PatternElement } from '../../../deterministicTemplate/deterministicTemplate'
 import type { QualifierPreposition } from '../parse/parseToken'
 
 /**
@@ -28,9 +28,16 @@ export const QUALIFIER_OPTIONS: Readonly<Record<string, QualifierPreposition>> =
 /** The pattern element for a closed-set preposition; a capture's `option` keys `QUALIFIER_OPTIONS`. */
 export const QUALIFIER_PREPOSITION_ELEMENT: PatternElement = { type: 'templateText', options: Object.keys(QUALIFIER_OPTIONS) }
 
-/** An object phrase cut at the closed-set prepositions: the fast path's flat skeleton, matched from the command text. */
-export const QUALIFIER_OBJECT_PHRASE_ELEMENT: PatternElement = {
+/**
+ * An object phrase linked at the closed-set prepositions, in a role. Against the command text it
+ * cuts the fast path's flat skeleton; against a skeleton its readings nest each linked span as a
+ * qualifier, with the preposition canonical.
+ */
+export const qualifierObjectPhraseElement = (role: IntentFieldRole): PatternElement => ({
     type: 'objectPhrase',
-    role: 'subject',
-    prepositions: Object.keys(QUALIFIER_OPTIONS),
-}
+    role,
+    prepositions: QUALIFIER_OPTIONS,
+})
+
+/** The subject object phrase: the fast path's and the membership template's. */
+export const QUALIFIER_OBJECT_PHRASE_ELEMENT: PatternElement = qualifierObjectPhraseElement('subject')

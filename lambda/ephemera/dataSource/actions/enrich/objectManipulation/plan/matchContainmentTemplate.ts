@@ -3,6 +3,7 @@ import { CommandAttempt } from '../../../commandAttempt'
 import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/action'
 import type { NarrationUnit } from '../../../commandAttempt/narrationUnit'
 import { currentHostRef, objectSpanRef } from './planStep'
+import { qualifierObjectPhraseElement } from './qualifierPrepositions'
 import { optionAt, spanAt } from './templateCaptures'
 
 /**
@@ -25,13 +26,15 @@ export const CONTAINMENT_PHRASES: Readonly<Record<string, ContainmentKind>> = {
 
 /**
  * A placing command: verb, object, phrase, target. Each fixed word must be a whole token of the
- * skeleton, so a model's `hurriedly into` is no containment phrase.
+ * skeleton, so a model's `hurriedly into` is no containment phrase. The object and the target are
+ * object phrases, so each reading of a stacked command (`put cup on saucer on table`) is a fill:
+ * which phrase is the destination, and which qualify a span.
  */
 export const placingPattern = (verbForms: Readonly<Record<string, string>>, phrases: Readonly<Record<string, ContainmentKind>>): readonly PatternElement[] => [
     { type: 'templateText', options: Object.keys(verbForms) },
-    { type: 'objectSpan', role: 'subject' },
+    qualifierObjectPhraseElement('subject'),
     { type: 'templateText', options: Object.keys(phrases) },
-    { type: 'objectSpan', role: 'target' },
+    qualifierObjectPhraseElement('target'),
 ]
 
 /**

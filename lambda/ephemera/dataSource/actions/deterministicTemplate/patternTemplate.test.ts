@@ -1,4 +1,4 @@
-import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
+import type { ObjectSpanToken, ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
 import type { PatternElement } from './deterministicTemplate'
 import type { PatternCapture, PatternFill } from './patternTemplate'
 import {
@@ -10,6 +10,20 @@ import {
 } from './patternTemplate'
 
 const captureTexts = (fill: PatternFill) => fill.captures.map(({ text }) => text)
+
+const ON_PREPOSITIONS = { 'on top of': 'on top of', on: 'on', off: 'off' } as const
+
+/** A reading as one line: each span with its qualifier nested in parentheses. */
+const readingLine = (skeleton: ParseSkeleton): string => {
+    const spanLine = (token: ObjectSpanToken): string => (
+        token.qualifier === undefined ? token.span : `${token.span} (${token.qualifier.preposition} ${spanLine(token.qualifier.span)})`
+    )
+    return skeleton.map((token) => (token.type === 'objectSpan' ? `[${spanLine(token)}]` : token.text)).join(' ')
+}
+
+const tokens = (...words: string[]): ParseSkeleton => words.map((word, index) => (
+    index % 2 === 1 ? { type: 'objectSpan', span: word, stableRefKey: `${word}Ref` } : { type: 'text', text: word }
+))
 
 describe('matchPatternAgainstString', () => {
     it('matches a pure templateText pattern case-insensitively', () => {
@@ -159,7 +173,7 @@ describe('matchPatternAgainstString', () => {
     describe('an object phrase', () => {
         const pattern: PatternElement[] = [
             { type: 'templateText', options: ['take'] },
-            { type: 'objectPhrase', role: 'subject', prepositions: ['on top of', 'on', 'off'] },
+            { type: 'objectPhrase', role: 'subject', prepositions: ON_PREPOSITIONS },
         ]
         const flatSkeletons = (command: string) => matchPatternAgainstString(pattern, command)
             .map(({ skeleton }) => skeleton.map((token) => (token.type === 'objectSpan' ? `[${token.span}]` : token.text)).join(' '))
@@ -202,12 +216,6 @@ describe('matchPatternAgainstString', () => {
             expect(flatSkeletons('take Cup  On   Top  OF  Table')).toContain('take [Cup] On Top OF [Table]')
         })
 
-        it('is matched against text only', () => {
-            expect(() => matchPatternAgainstTokens(pattern, [
-                { type: 'text', text: 'take' },
-                { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
-            ])).toThrow()
-        })
     })
 
     it('stamps each fill\'s skeleton', () => {
@@ -259,7 +267,7 @@ describe('matchPatternAgainstTokens', () => {
         ]
         const [fill, ...rest] = matchPatternAgainstTokens(pattern, skeleton)
         expect(rest).toEqual([])
-        expect(fill.skeleton).toBe(skeleton)
+        expect(fill.skeleton).toEqual(skeleton)
         const subject = fill.captures.find((c) => c.kind === 'objectSpan')
         expect(subject).toMatchObject({ kind: 'objectSpan', role: 'subject', text: 'red ball', stableRefKey: 'redBallRef' })
     })
@@ -340,6 +348,65 @@ describe('matchPatternAgainstTokens', () => {
 
         it('still needs the elements before it', () => {
             expect(matchPatternAgainstTokens(pattern, [{ type: 'text', text: 'drop' }])).toEqual([])
+        })
+    })
+
+    describe('an object phrase', () => {
+        const takePattern: PatternElement[] = [
+            { type: 'templateText', options: ['take'] },
+            { type: 'objectPhrase', role: 'subject', prepositions: { ...ON_PREPOSITIONS, out: 'out of' } },
+            { type: 'rest' },
+        ]
+        const readings = (pattern: PatternElement[], skeleton: ParseSkeleton) => (
+            matchPatternAgainstTokens(pattern, skeleton).map(({ skeleton: reading }) => readingLine(reading)).sort()
+        )
+
+        it('returns every reading, each nesting the spans it links as qualifiers, right-nested', () => {
+            expect(readings(takePattern, tokens('take', 'cup', 'on', 'saucer', 'on', 'table'))).toEqual([
+                'take [cup (on saucer (on table))]',
+                'take [cup (on saucer)] on [table]',
+                'take [cup] on [saucer] on [table]',
+            ])
+        })
+
+        it('chooses which phrase is the destination when a fixed word follows it', () => {
+            const putPattern: PatternElement[] = [
+                { type: 'templateText', options: ['put'] },
+                { type: 'objectPhrase', role: 'subject', prepositions: ON_PREPOSITIONS },
+                { type: 'templateText', options: ['on'] },
+                { type: 'objectPhrase', role: 'target', prepositions: ON_PREPOSITIONS },
+            ]
+            expect(readings(putPattern, tokens('put', 'cup', 'on', 'saucer', 'on', 'table'))).toEqual([
+                'put [cup (on saucer)] on [table]',
+                'put [cup] on [saucer (on table)]',
+            ])
+        })
+
+        it('captures the first span with its key, and each link', () => {
+            const [fill] = matchPatternAgainstTokens(takePattern, tokens('take', 'cup', 'on', 'saucer')).filter(({ skeleton }) => skeleton.length === 2)
+            expect(fill.captures[1]).toEqual({
+                elementIndex: 1,
+                kind: 'objectPhrase',
+                role: 'subject',
+                text: 'cup',
+                stableRefKey: 'cupRef',
+                links: [{ text: 'on', option: 'on', span: 'saucer' }],
+            })
+        })
+
+        it('nests the canonical preposition: a model\'s "out" is "out of"', () => {
+            const [nested] = matchPatternAgainstTokens(takePattern, tokens('take', 'coin', 'Out', 'box')).filter(({ skeleton }) => skeleton.length === 2)
+            expect(nested.skeleton[1]).toEqual({
+                type: 'objectSpan',
+                span: 'coin',
+                stableRefKey: 'coinRef',
+                qualifier: { preposition: 'out of', span: { type: 'objectSpan', span: 'box', stableRefKey: 'boxRef' } },
+            })
+        })
+
+        it('links only at a whole text token among its prepositions', () => {
+            expect(readings(takePattern, tokens('take', 'cup', 'hurriedly on', 'table'))).toEqual(['take [cup] hurriedly on [table]'])
+            expect(readings(takePattern, tokens('take', 'cup', 'onto', 'table'))).toEqual(['take [cup] onto [table]'])
         })
     })
 })

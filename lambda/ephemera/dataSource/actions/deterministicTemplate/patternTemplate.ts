@@ -1,4 +1,10 @@
-import type { ParseSkeleton, ParseTokenDraft } from '../enrich/objectManipulation/parse/parseToken'
+import type {
+    ObjectSpanToken,
+    ParseSkeleton,
+    ParseToken,
+    ParseTokenDraft,
+    QualifierPreposition,
+} from '../enrich/objectManipulation/parse/parseToken'
 import { stampStableRefKeys } from '../enrich/objectManipulation/parse/stampStableRefKeys'
 import type { ParseCommandResult } from '../baseClasses'
 import type { CommandAttempt } from '../commandAttempt'
@@ -15,21 +21,22 @@ import type {
  * What a single pattern element captured out of a successful match. `text` is as typed; a
  * `templateText` capture also names the option it matched, as written in the pattern. A `rest`
  * capture's text is empty when nothing followed. An `objectPhrase` capture's `text` is its first
- * span, and each link holds a preposition (as typed, and the option it matched) and the span after it.
+ * span (with its key, from a token match), and each link holds a preposition (as typed, and the
+ * option it matched) and the span after it.
  */
 export type PatternCapture =
     | { elementIndex: number; kind: 'templateText'; text: string; option: string }
     | { elementIndex: number; kind: 'objectSpan'; role: IntentFieldRole; text: string; stableRefKey?: string }
     | { elementIndex: number; kind: 'capturedText'; role: IntentFieldRole; text: string }
     | { elementIndex: number; kind: 'rest'; text: string }
-    | { elementIndex: number; kind: 'objectPhrase'; role: IntentFieldRole; text: string; links: ObjectPhraseLink[] }
+    | { elementIndex: number; kind: 'objectPhrase'; role: IntentFieldRole; text: string; stableRefKey?: string; links: ObjectPhraseLink[] }
 
 export type ObjectPhraseLink = { text: string; option: string; span: string }
 
 /**
- * One way a pattern fits: the skeleton it builds (stamped, from a string match; the
- * input skeleton, from a token match) and what each element captured, parallel to the
- * pattern.
+ * One way a pattern fits: the skeleton it builds (stamped and flat, from a string match; the
+ * reading, from a token match: the input skeleton with each object phrase nested onto its first
+ * span as qualifiers) and what each element captured, parallel to the pattern.
  */
 export type PatternFill = { skeleton: ParseSkeleton; captures: PatternCapture[] }
 
@@ -39,6 +46,12 @@ function splitWords(value: string): string[] {
 
 function sameWords(left: string[], right: string[]): boolean {
     return left.length === right.length && left.every((word, index) => word.toLowerCase() === right[index].toLowerCase())
+}
+
+/** The option a whole text token equals, ignoring case and spacing; never a word inside a longer token. */
+function optionForToken(options: readonly string[], text: string): string | undefined {
+    const tokenWords = splitWords(text)
+    return options.find((option) => sameWords(splitWords(option), tokenWords))
 }
 
 /**
@@ -98,7 +111,7 @@ function fillWords(pattern: readonly PatternElement[], words: string[], elementI
         return extend({ elementIndex, kind: 'rest', text: words.slice(wordIndex).join(' ') }, words.length)
     }
     if (element.type === 'objectPhrase') {
-        return fillObjectPhrase(element.prepositions, words, wordIndex).flatMap(({ text, links, nextWordIndex }) => (
+        return fillObjectPhrase(Object.keys(element.prepositions), words, wordIndex).flatMap(({ text, links, nextWordIndex }) => (
             extend({ elementIndex, kind: 'objectPhrase', role: element.role, text, links }, nextWordIndex)
         ))
     }
@@ -135,73 +148,119 @@ export function matchPatternAgainstString(pattern: readonly PatternElement[], co
 }
 
 /**
- * Positional walk of the pattern against an already-tokenized skeleton, one token per
- * element, so at most one fill. The model's segmentation binds: a `templateText`
- * option must equal the whole text token, ignoring case and spacing (never a word
- * inside a longer token), and a wildcard takes exactly one token. A trailing `rest` takes
- * every token left, zero or more, its text the tokens' words joined. Otherwise a length
- * mismatch is an immediate no match. An object phrase is matched against text only, so a
- * pattern holding one throws here.
+ * Every reading an object phrase can make starting at `tokenIndex`: an object span, then either
+ * nothing more, or a text token equal to a preposition and another object phrase, nested onto the
+ * span as its qualifier (right-nested: "cup on saucer on table" is the cup on (the saucer on the
+ * table)). Each result says where the phrase ends.
  */
-export function matchPatternAgainstTokens(pattern: readonly PatternElement[], skeleton: ParseSkeleton): PatternFill[] {
-    const hasRest = pattern[pattern.length - 1]?.type === 'rest'
-    const fixedLength = hasRest ? pattern.length - 1 : pattern.length
-    if (hasRest ? skeleton.length < fixedLength : skeleton.length !== fixedLength) {
+function fillObjectPhraseTokens(
+    prepositions: Readonly<Record<string, QualifierPreposition>>,
+    skeleton: ParseSkeleton,
+    tokenIndex: number
+): { head: ObjectSpanToken; links: ObjectPhraseLink[]; nextTokenIndex: number }[] {
+    const head = skeleton[tokenIndex]
+    if (head?.type !== 'objectSpan') {
         return []
     }
-    const captures: PatternCapture[] = []
-    for (let elementIndex = 0; elementIndex < fixedLength; elementIndex += 1) {
-        const element = pattern[elementIndex]
-        const token = skeleton[elementIndex]
-        if (element.type === 'rest') {
+    const preposition = skeleton[tokenIndex + 1]
+    const option = preposition?.type === 'text' ? optionForToken(Object.keys(prepositions), preposition.text) : undefined
+    const linked = preposition?.type !== 'text' || option === undefined
+        ? []
+        : fillObjectPhraseTokens(prepositions, skeleton, tokenIndex + 2).map((tail) => ({
+            head: { ...head, qualifier: { preposition: prepositions[option], span: tail.head } },
+            links: [{ text: preposition.text, option, span: tail.head.span }, ...tail.links],
+            nextTokenIndex: tail.nextTokenIndex,
+        }))
+    return [{ head, links: [], nextTokenIndex: tokenIndex + 1 }, ...linked]
+}
+
+/**
+ * Every way to assign the pattern's elements, from `elementIndex` on, to the tokens from
+ * `tokenIndex` on, using up both, with the reading each builds. The model's segmentation binds: a
+ * `templateText` option must equal the whole text token, ignoring case and spacing, and a wildcard
+ * takes exactly one token. A `rest` takes every token left, and must be the last element. An object
+ * phrase takes every run of spans its prepositions link.
+ */
+function fillTokens(
+    pattern: readonly PatternElement[],
+    skeleton: ParseSkeleton,
+    elementIndex: number,
+    tokenIndex: number
+): { captures: PatternCapture[]; reading: ParseToken[] }[] {
+    if (elementIndex === pattern.length) {
+        return tokenIndex === skeleton.length ? [{ captures: [], reading: [] }] : []
+    }
+    const element = pattern[elementIndex]
+    const token = skeleton[tokenIndex]
+    const extend = (capture: PatternCapture, reading: ParseToken[], nextTokenIndex: number) => (
+        fillTokens(pattern, skeleton, elementIndex + 1, nextTokenIndex).map((rest) => ({
+            captures: [capture, ...rest.captures],
+            reading: [...reading, ...rest.reading],
+        }))
+    )
+    if (element.type === 'rest') {
+        if (elementIndex !== pattern.length - 1) {
             throw new Error('matchPatternAgainstTokens: a rest element must be the last')
         }
-        if (element.type === 'objectPhrase') {
-            throw new Error('matchPatternAgainstTokens: an objectPhrase element is matched against text only')
-        }
-        if (element.type === 'templateText') {
-            if (token.type !== 'text') {
-                return []
-            }
-            const tokenWords = splitWords(token.text)
-            const option = element.options.find((candidate) => sameWords(splitWords(candidate), tokenWords))
-            if (option === undefined) {
-                return []
-            }
-            captures.push({ elementIndex, kind: 'templateText', text: token.text, option })
-            continue
-        }
-        if (element.type === 'objectSpan') {
-            if (token.type !== 'objectSpan') {
-                return []
-            }
-            captures.push({
-                elementIndex,
-                kind: 'objectSpan',
-                role: element.role,
-                text: token.span,
-                stableRefKey: token.stableRefKey,
-            })
-            continue
-        }
-        if (token.type !== 'text') {
-            return []
-        }
-        captures.push({ elementIndex, kind: 'capturedText', role: element.role, text: token.text })
+        const tail = skeleton.slice(tokenIndex)
+        const text = tail.map((tailToken) => (tailToken.type === 'objectSpan' ? tailToken.span : tailToken.text)).join(' ')
+        return extend({ elementIndex, kind: 'rest', text }, tail, skeleton.length)
     }
-    if (hasRest) {
-        const text = skeleton.slice(fixedLength).map((token) => (token.type === 'objectSpan' ? token.span : token.text)).join(' ')
-        captures.push({ elementIndex: fixedLength, kind: 'rest', text })
+    if (element.type === 'objectPhrase') {
+        return fillObjectPhraseTokens(element.prepositions, skeleton, tokenIndex).flatMap(({ head, links, nextTokenIndex }) => (
+            extend({ elementIndex, kind: 'objectPhrase', role: element.role, text: head.span, stableRefKey: head.stableRefKey, links }, [head], nextTokenIndex)
+        ))
     }
-    return [{ skeleton, captures }]
+    if (token === undefined) {
+        return []
+    }
+    if (element.type === 'templateText') {
+        const option = token.type === 'text' ? optionForToken(element.options, token.text) : undefined
+        return token.type !== 'text' || option === undefined
+            ? []
+            : extend({ elementIndex, kind: 'templateText', text: token.text, option }, [token], tokenIndex + 1)
+    }
+    if (element.type === 'objectSpan') {
+        return token.type !== 'objectSpan'
+            ? []
+            : extend({ elementIndex, kind: 'objectSpan', role: element.role, text: token.span, stableRefKey: token.stableRefKey }, [token], tokenIndex + 1)
+    }
+    return token.type !== 'text'
+        ? []
+        : extend({ elementIndex, kind: 'capturedText', role: element.role, text: token.text }, [token], tokenIndex + 1)
+}
+
+/**
+ * Every way the pattern fits an already-tokenized skeleton (see fillTokens). Each fill's skeleton
+ * is its reading: an object phrase's spans nest onto its first span as qualifiers, and every other
+ * token is the input's own, so a pattern with no object phrase reads the skeleton as it is. No
+ * order is promised; fills that build the same reading are merged.
+ */
+export function matchPatternAgainstTokens(pattern: readonly PatternElement[], skeleton: ParseSkeleton): PatternFill[] {
+    const fillsByKey = new Map<string, PatternFill>()
+    for (const { captures, reading } of fillTokens(pattern, skeleton, 0, 0)) {
+        const key = JSON.stringify(reading)
+        if (!fillsByKey.has(key)) {
+            fillsByKey.set(key, { skeleton: reading, captures })
+        }
+    }
+    return [...fillsByKey.values()]
 }
 
 /**
  * An object template's attempts for a skeleton: one per fill, each built from that fill's
- * captures. Empty when the pattern does not fit.
+ * captures, beside the reading it was built from (whose qualifiers Plan lowers into it). Empty
+ * when the pattern does not fit.
  */
-export function matchAttemptTemplate(template: AttemptTemplate, skeleton: ParseSkeleton, command: string): CommandAttempt[] {
-    return matchPatternAgainstTokens(template.pattern, skeleton).map(({ captures }) => template.build(captures, command))
+export function matchAttemptTemplate(
+    template: AttemptTemplate,
+    skeleton: ParseSkeleton,
+    command: string
+): { attempt: CommandAttempt; reading: ParseSkeleton }[] {
+    return matchPatternAgainstTokens(template.pattern, skeleton).map(({ skeleton: reading, captures }) => ({
+        attempt: template.build(captures, command),
+        reading,
+    }))
 }
 
 /**

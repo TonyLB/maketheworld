@@ -238,16 +238,24 @@ export async function compileAttemptsFromSkeleton(
         return { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    // BD-20 arity policy: a take or drop reads every span it is given (its object, and a qualifier's
-    // host through the assertion lowered from it). A span it leaves unread (a drop's tail, a tail
-    // outside the qualifier set, a second qualifier) is unbuilt Plan-IR work.
+    // BD-20 arity policy: a take or drop reads every span it is given (its object, and each
+    // qualifier's host through the assertion lowered from it). A reading that leaves a span unread
+    // (a tail outside the qualifier set, or a reading that stops short of a qualifier) is dropped,
+    // and a reading of the same command that reads every span survives.
     const skeletonKeys = input.skeleton.flatMap((token) => (token.type === 'objectSpan' ? [token.stableRefKey] : []))
     const leavesSpanUnread = (attempt: CommandAttempt): boolean => {
         const read = new Set(attemptSpanKeys([attempt]))
         return skeletonKeys.some((key) => !read.has(key))
     }
-    if (survivors.some((entry) => entry.kind === 'membership' && leavesSpanUnread(entry.attempt))) {
-        return { type: 'Error', errorMessage: complexErrorMessage('multiObject') }
+    survivors = survivors.filter((entry) => {
+        if (entry.kind === 'membership' && leavesSpanUnread(entry.attempt)) {
+            refusals.push({ type: 'Error', errorMessage: complexErrorMessage('multiObject') })
+            return false
+        }
+        return true
+    })
+    if (survivors.length === 0) {
+        return refusals[0]!
     }
 
     // Post-Identify: each survivor's own refusal, then the survivors again.

@@ -12,6 +12,7 @@ import { attemptActionsFromTransfer } from '../../commandAttempt/expandBoundaryC
 
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
+import type { IdentityPlanIdentity } from './identityPlanCandidate'
 import { defaultReading, placementHostsOfView, readingLabel, readingsHere, readingsOf, wholeReadingLabel, type ViewAnswer } from '../../objectViews'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import { viewMintedByExtend } from './plan/planStep'
@@ -373,11 +374,18 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
 
     // A step's distinct span keys must bind distinct objects: "put cup on cup" is never a candidate,
     // and that rule is the same for every route (it is the case stableRefKey exists for). Assignments
-    // are joint across attempts, so a key two attempts share binds one object in both.
-    const assignments = enumerateIdentityAssignments(pools).filter(({ identities }) => input.attempts.every((attempt) => attempt.actions().every((action) => {
-        const objectIds = actionSpanKeys(action).map((key) => identities.get(key)?.objectId)
-        return new Set(objectIds).size === objectIds.length
-    })))
+    // are joint across attempts, so a key two attempts share binds one object in both. The rule drops
+    // an attempt under an assignment, not the assignment: one reading that needs two tables ("table on
+    // table") must not sink another reading of the same command that needs one.
+    const bindsDistinct = (attempt: CommandAttempt, identities: ReadonlyMap<string, IdentityPlanIdentity>): boolean => (
+        attempt.actions().every((action) => {
+            const objectIds = actionSpanKeys(action).map((key) => identities.get(key)?.objectId)
+            return new Set(objectIds).size === objectIds.length
+        })
+    )
+    const assignments = enumerateIdentityAssignments(pools).filter(({ identities }) => (
+        input.attempts.some((attempt) => bindsDistinct(attempt, identities))
+    ))
     if (assignments.length === 0) {
         return { ok: false, reason: input.noAssignmentReason }
     }
@@ -403,7 +411,7 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
         return { ok: false, reason: resumeErrorMessages.staleReferentAnswer(input.spanPools.get(staleKey!)?.span ?? staleKey!), stale: true }
     }
 
-    // One candidate per attempt per assignment: each is built from its own attempt's actions only.
+    // One candidate per attempt per assignment it binds distinctly: each is built from its own attempt's actions only.
     const candidates = viewed.flatMap(({ identities, confidence, chosen }) => {
         const names = new Map<string, SpanName>()
         const viewAnswers: Record<string, ViewAnswer> = {}
@@ -427,7 +435,7 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
             }
         }
         const asked = Object.keys(viewAnswers).length > 0
-        return input.attempts.map((attempt): GroundedAttemptCandidate => {
+        return input.attempts.filter((attempt) => bindsDistinct(attempt, identities)).map((attempt): GroundedAttemptCandidate => {
             const described = attempt.actions().map((action) => describeGroundedAction(action.grounded(names), planStepsOf(attempt.actions())))
             const primary = described[described.length - 1]!
             return {

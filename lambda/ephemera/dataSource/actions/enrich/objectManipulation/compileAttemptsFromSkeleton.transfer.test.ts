@@ -389,16 +389,72 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
         expect(result.alternatives.map(({ label }) => label)).toEqual(['cup', 'cup'])
     })
 
-    it.each([
-        ['a drop\'s tail, which is not read', 'drop', 'in'],
-        ['a preposition outside the qualifier set', 'get', 'under'],
-    ])('refuses %s as multi-object (BD-20): the take leaves a span unread', async (_label, verb, preposition) => {
-        const result = await compile(verb, 'cup', preposition, 'table', twoCups, twoCupsHosts)
+    it('moves the cup on the saucer on the table onto the table: a reading that needs two tables does not sink the one that needs one', async () => {
+        const blueCupId = 'OBJECT#BlueCup' as EphemeraObjectId
+        const blueSaucerId = 'OBJECT#BlueSaucer' as EphemeraObjectId
+        const redCupId = 'OBJECT#RedCup' as EphemeraObjectId
+        const redSaucerId = 'OBJECT#RedSaucer' as EphemeraObjectId
+        const command = 'put cup on saucer on table on table'
+        const skeleton: ParseSkeleton = [
+            { type: 'text', text: 'put' },
+            { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+            { type: 'text', text: 'on' },
+            { type: 'objectSpan', span: 'saucer', stableRefKey: 'saucerRef' },
+            { type: 'text', text: 'on' },
+            { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef1' },
+            { type: 'text', text: 'on' },
+            { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef2' },
+        ]
+        const hostsOf: Record<string, EphemeraMembershipHostId[]> = {
+            [blueCupId]: [blueSaucerId],
+            [blueSaucerId]: [roomId],
+            [redCupId]: [redSaucerId],
+            [redSaucerId]: [tableId],
+            [tableId]: [roomId],
+        }
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command,
+                skeleton,
+                attempts: planSkeleton(skeleton, command).attempts,
+                characterId: actor,
+                hostRoomId: roomId,
+                roomObjectCatalog: [
+                    { objectId: blueCupId, normalizedShortName: 'cup' },
+                    { objectId: redCupId, normalizedShortName: 'cup' },
+                    { objectId: blueSaucerId, normalizedShortName: 'saucer' },
+                    { objectId: redSaucerId, normalizedShortName: 'saucer' },
+                    table,
+                ],
+            },
+            0.9,
+            {
+                positionsReadDeps: {
+                    getMembershipContainers: jest.fn(async (id: string) => hostsOf[id] ?? []),
+                    getLudicGraph: jest.fn(async (hostId: string) => testLudicGraph(hostId as EphemeraRoomId)),
+                },
+            }
+        )
+
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(transferStepOf(result)).toMatchObject({ object: { groundedId: redCupId }, to: { groundedId: tableId } })
+    })
+
+    it('refuses a preposition outside the qualifier set as multi-object (BD-20): the take leaves a span unread', async () => {
+        const result = await compile('get', 'cup', 'under', 'table', twoCups, twoCupsHosts)
 
         expect(result).toEqual({ type: 'Error', errorMessage: complexErrorMessage('multiObject') })
     })
 
-    it('refuses a two-qualifier take as multi-object (BD-20): the tail stays flat', async () => {
+    it('refuses a drop of a cup it does not hold through the qualified reading: the plain drop leaves the table unread', async () => {
+        const result = await compile('drop', 'cup', 'in', 'table', twoCups, twoCupsHosts)
+
+        expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.notCarryingObject })
+    })
+
+    it('takes the cup on the saucer on the table without asking: the reading of every span survives the gate, and its checks rule out the floor stack', async () => {
+        const tableSaucerId = 'OBJECT#TableSaucer' as EphemeraObjectId
+        const floorSaucerId = 'OBJECT#FloorSaucer' as EphemeraObjectId
         const command = 'take cup on saucer on table'
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'take' },
@@ -408,18 +464,38 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
             { type: 'text', text: 'on' },
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
+        const hostsOf: Record<string, EphemeraMembershipHostId[]> = {
+            [tableCupId]: [tableSaucerId],
+            [tableSaucerId]: [tableId],
+            [floorCupId]: [floorSaucerId],
+            [floorSaucerId]: [roomId],
+            [tableId]: [roomId],
+        }
         const result = await compileAttemptsFromSkeleton(
             {
                 command,
                 skeleton,
                 attempts: planSkeleton(skeleton, command).attempts,
+                characterId: actor,
                 hostRoomId: roomId,
-                roomObjectCatalog: [{ objectId: cupId, normalizedShortName: 'cup' }, { objectId: trayId, normalizedShortName: 'saucer' }, table],
+                roomObjectCatalog: [
+                    { objectId: tableCupId, normalizedShortName: 'cup' },
+                    { objectId: floorCupId, normalizedShortName: 'cup' },
+                    { objectId: tableSaucerId, normalizedShortName: 'saucer' },
+                    { objectId: floorSaucerId, normalizedShortName: 'saucer' },
+                    table,
+                ],
             },
             0.9,
-            { positionsReadDeps: containmentPositionsReads() }
+            {
+                positionsReadDeps: {
+                    getMembershipContainers: jest.fn(async (id: string) => hostsOf[id] ?? []),
+                    getLudicGraph: jest.fn(async (hostId: string) => testLudicGraph(hostId as EphemeraRoomId)),
+                },
+            }
         )
 
-        expect(result).toEqual({ type: 'Error', errorMessage: complexErrorMessage('multiObject') })
+        expect(result).toEqual({ type: 'CommandAttempt', attempt: expect.anything(), confidence: 0.9 })
+        expect(transferStepOf(result)).toMatchObject({ object: { groundedId: tableCupId }, to: { referentType: 'actingCharacter' } })
     })
 })

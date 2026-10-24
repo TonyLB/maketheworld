@@ -4,7 +4,7 @@
 // Plan owns keyword/pattern matching over the text runs (see the templates under plan/);
 // tagging verb/preposition at Parse's layer was rejected as an untested classification with
 // no schema precedent (full rationale in git history). Parse's skeleton is always flat: a
-// span's `qualifier` is added by Plan's grouping (`plan/groupSkeleton.ts`), never by Parse.
+// span's `qualifier` is added in a reading of Plan's templates (an object phrase's fill), never by Parse.
 //
 
 export type TextToken = {
@@ -31,7 +31,7 @@ export type ParseTokenDraft = ObjectSpanTokenDraft | TextToken
  */
 export type ObjectSpanToken = ObjectSpanTokenDraft & {
     stableRefKey: string
-    /** Where the thing is said to be ("the cup on the table"): set by grouping, read by lowering (`plan/lowerQualifiers.ts`). */
+    /** Where the thing is said to be ("the cup on the table"): set in a reading of Plan's templates, read by lowering (`plan/lowerQualifiers.ts`). */
     qualifier?: SpanQualifier
 }
 
