@@ -1,4 +1,4 @@
-import type { AttemptTemplate } from '../../../deterministicTemplate/deterministicTemplate'
+import type { AttemptTemplate, PatternElement } from '../../../deterministicTemplate/deterministicTemplate'
 import { CommandAttempt } from '../../../commandAttempt'
 import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/action'
 import type { NarrationUnit } from '../../../commandAttempt/narrationUnit'
@@ -16,6 +16,9 @@ const MEMBERSHIP_VERBS: Readonly<Record<string, { operationKind: 'takeHold' | 'd
     get: { operationKind: 'takeHold', narration: ' picks up ' },
     drop: { operationKind: 'drop', narration: ' drops ' },
 }
+
+/** The membership verbs as a pattern element; the fast path claims the same list. */
+export const MEMBERSHIP_VERB_ELEMENT: PatternElement = { type: 'templateText', options: Object.keys(MEMBERSHIP_VERBS) }
 
 /**
  * Plan's half of a membership attempt: depends only on the operation and the object phrase. A take
@@ -47,7 +50,7 @@ export const planMembershipDesiredResult = (
 export const membershipTemplate: AttemptTemplate<'membership'> = {
     name: 'membership',
     pattern: [
-        { type: 'templateText', options: Object.keys(MEMBERSHIP_VERBS) },
+        MEMBERSHIP_VERB_ELEMENT,
         { type: 'objectSpan', role: 'subject' },
         { type: 'rest' },
     ],

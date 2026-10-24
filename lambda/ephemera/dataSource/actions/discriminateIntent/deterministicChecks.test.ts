@@ -310,6 +310,30 @@ describe('deterministicIntentChecks', () => {
                 expect(skeletonOf('take off the hat')).toEqual([text('take'), span('off the hat')])
             })
 
+            it('leaves a trailing preposition in its span', () => {
+                expect(skeletonOf('take cup on')).toEqual([text('take'), span('cup on')])
+            })
+
+            it('cuts at the longest phrase: "on top of" over "on"', () => {
+                expect(skeletonOf('take cup on top of table')).toEqual([text('take'), span('cup'), text('on top of'), span('table')])
+            })
+
+            it('cuts at a bare "out", as grouping reads the LLM route\'s bare "out"', () => {
+                expect(skeletonOf('take coin out box')).toEqual([text('take'), span('coin'), text('out'), span('box')])
+            })
+
+            it('cuts only at whole words: "on" inside "onion" is no cut', () => {
+                expect(skeletonOf('take onion on table')).toEqual([text('take'), span('onion'), text('on'), span('table')])
+            })
+
+            it.each(['cup under table', 'box of matches', 'cup onto table', 'coin into box'])('does not cut "take %s": the word is outside the closed set', (tail) => {
+                expect(skeletonOf(`take ${tail}`)).toEqual([text('take'), span(tail)])
+            })
+
+            it('keeps the verb and preposition as typed, spacing collapsed', () => {
+                expect(skeletonOf('Take Cup  On   Top  OF  Table')).toEqual([text('Take'), span('Cup'), text('On Top OF'), span('Table')])
+            })
+
             // Nova Micro's recorded skeletons for these commands (two `/test parse` runs, 2026-10-23), for the rows whose spans carry no article.
             it.each<[string, string[], ReturnType<typeof text | typeof span>[]]>([
                 ['get bag from table', ['bag'], [text('get'), span('bag'), text('from'), span('table')]],

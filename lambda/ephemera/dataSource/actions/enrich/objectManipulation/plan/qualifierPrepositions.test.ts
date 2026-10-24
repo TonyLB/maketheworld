@@ -1,5 +1,5 @@
 import { matchPatternAgainstTokens } from '../../../deterministicTemplate/patternTemplate'
-import { QUALIFIER_OPTIONS, QUALIFIER_PHRASES, QUALIFIER_PREPOSITION_ELEMENT } from './qualifierPrepositions'
+import { QUALIFIER_OPTIONS, QUALIFIER_PREPOSITION_ELEMENT } from './qualifierPrepositions'
 
 /** The canonical preposition a whole text token names, read through the pattern element. */
 const canonicalOf = (text: string) => {
@@ -25,9 +25,5 @@ describe('QUALIFIER_PREPOSITION_ELEMENT', () => {
 
     it.each(['onto', 'into', 'under', 'of', 'with', 'hurriedly from'])('reads "%s" as no qualifier', (text) => {
         expect(canonicalOf(text)).toBeUndefined()
-    })
-
-    it('lists multi-word phrases first, for a split inside free text', () => {
-        expect(QUALIFIER_PHRASES.slice(0, 2)).toEqual(['on top of', 'out of'])
     })
 })

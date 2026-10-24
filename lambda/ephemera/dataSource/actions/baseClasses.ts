@@ -311,8 +311,8 @@ export type ParseCommandObjectMembershipIntentResult = {
     type: 'ObjectMembershipIntent'
     /**
      * The flat, unstamped skeleton the zero-Bedrock fast path (`deterministicChecks.ts`) builds: the
-     * verb as typed, then the tail split at each closed-set preposition, the skeleton Nova Micro
-     * returns for the same command. Only the fast path produces this intent; `parseCommand.ts` stamps
+     * fill of its pattern (verb, then the tail cut at closed-set prepositions) that its claim policy
+     * keeps, the skeleton Nova Micro returns for the same command. Only the fast path produces this intent; `parseCommand.ts` stamps
      * the skeleton and enters Plan.
      */
     skeleton: ParseTokenDraft[]

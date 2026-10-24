@@ -156,6 +156,60 @@ describe('matchPatternAgainstString', () => {
         expect(split.skeleton.map((token) => token.type)).toEqual(['text', 'objectSpan', 'text'])
     })
 
+    describe('an object phrase', () => {
+        const pattern: PatternElement[] = [
+            { type: 'templateText', options: ['take'] },
+            { type: 'objectPhrase', role: 'subject', prepositions: ['on top of', 'on', 'off'] },
+        ]
+        const flatSkeletons = (command: string) => matchPatternAgainstString(pattern, command)
+            .map(({ skeleton }) => skeleton.map((token) => (token.type === 'objectSpan' ? `[${token.span}]` : token.text)).join(' '))
+
+        it('returns every set of cuts at its prepositions as a fill', () => {
+            expect(flatSkeletons('take cup on saucer on table').sort()).toEqual([
+                'take [cup on saucer on table]',
+                'take [cup on saucer] on [table]',
+                'take [cup] on [saucer on table]',
+                'take [cup] on [saucer] on [table]',
+            ])
+        })
+
+        it('captures the first span and each link, with the option a preposition matched', () => {
+            const [cut] = matchPatternAgainstString(pattern, 'take cup on saucer').filter(({ skeleton }) => skeleton.length === 4)
+            expect(cut.captures[1]).toEqual({
+                elementIndex: 1,
+                kind: 'objectPhrase',
+                role: 'subject',
+                text: 'cup',
+                links: [{ text: 'on', option: 'on', span: 'saucer' }],
+            })
+        })
+
+        it('cuts at a phrase and at its prefix where the text allows', () => {
+            expect(flatSkeletons('take cup on top of table').sort()).toEqual([
+                'take [cup on top of table]',
+                'take [cup] on [top of table]',
+                'take [cup] on top of [table]',
+            ])
+        })
+
+        it('cuts only where a span stands on both sides, and only at whole words', () => {
+            expect(flatSkeletons('take cup on')).toEqual(['take [cup on]'])
+            expect(flatSkeletons('take off the hat')).toEqual(['take [off the hat]'])
+            expect(flatSkeletons('take onion')).toEqual(['take [onion]'])
+        })
+
+        it('keeps the preposition as typed, spacing collapsed', () => {
+            expect(flatSkeletons('take Cup  On   Top  OF  Table')).toContain('take [Cup] On Top OF [Table]')
+        })
+
+        it('is matched against text only', () => {
+            expect(() => matchPatternAgainstTokens(pattern, [
+                { type: 'text', text: 'take' },
+                { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+            ])).toThrow()
+        })
+    })
+
     it('stamps each fill\'s skeleton', () => {
         const pattern: PatternElement[] = [
             { type: 'templateText', options: ['take'] },

@@ -15,8 +15,11 @@ import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
 import { peelLeadingArticleWhenTail } from './peelLeadingArticleWhenTail'
-import { splitQualifierTail } from './splitQualifierTail'
 import type { ParseTokenDraft } from '../enrich/objectManipulation/parse/parseToken'
+import type { PatternElement } from '../deterministicTemplate/deterministicTemplate'
+import { matchPatternAgainstString, type ObjectPhraseLink } from '../deterministicTemplate/patternTemplate'
+import { MEMBERSHIP_VERB_ELEMENT } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
+import { QUALIFIER_OBJECT_PHRASE_ELEMENT } from '../enrich/objectManipulation/plan/qualifierPrepositions'
 
 /** After trim, case-insensitive look or l as the whole line. */
 function isBareLookCommand(trimmed: string): boolean {
@@ -38,42 +41,46 @@ function isBarePredictCommand(trimmed: string): boolean {
     return /^predict$/i.test(trimmed)
 }
 
+/** The fast path's one pattern: a membership verb, then an object phrase cut at the closed-set prepositions. */
+const FAST_PATH_PATTERN: readonly PatternElement[] = [MEMBERSHIP_VERB_ELEMENT, QUALIFIER_OBJECT_PHRASE_ELEMENT]
+
+type FastPathFill = { verb: string; option: string; rawHead: string; head: string; links: ObjectPhraseLink[] }
+
+/** How many words a fill's prepositions hold: among fills with as many cuts, the longest phrases win. */
+const prepositionWordCount = ({ links }: FastPathFill): number => (
+    links.reduce((count, { text }) => count + text.split(' ').length, 0)
+)
+
 /**
- * The zero-Bedrock take/get/drop fast path. It claims `take` and `drop` always (not `take hold`),
- * and `get` when its head piece is a room label. It emits the flat skeleton Nova Micro returns for
- * the same command: a tail that is a room label as a whole stays one span (a name like "man in the
- * moon"); otherwise the tail is split at each closed-set preposition (`splitQualifierTail`). The
- * split reads only the words, never the verb: which piece a phrase attaches to is grouping's to
- * decide (`plan/groupSkeleton.ts`), so a drop's tail or a chain is split here and refused there.
- * The split is a stopgap until templates are matched against the command text
- * (`AGENT.skeletonPatterns.planning.md`).
+ * The zero-Bedrock take/get/drop fast path: the membership verbs and an object phrase matched
+ * against the command text (every set of cuts at the closed-set prepositions), and a claim policy
+ * that keeps one fill. It claims `take` and `drop` always (not `take hold`), and `get` when the kept
+ * fill's head is a room label. A tail that is a room label as a whole stays one span (a name like
+ * "man in the moon"); otherwise the fill with the most cuts is kept, longest phrases first, which is
+ * the flat skeleton Nova Micro returns. The policy never reads the verb to cut: which span a phrase
+ * attaches to is grouping's to decide (`plan/groupSkeleton.ts`), so a drop's tail or a chain is cut
+ * here and refused there. Each span has its leading article peeled.
  */
 function maybeDeterministicManipulationIntent(
     input: ParseCommandInput
 ): ParseCommandObjectMembershipIntentResult | null {
-    const trimmed = input.command.trim()
-    if (!trimmed) {
+    const fills = matchPatternAgainstString(FAST_PATH_PATTERN, input.command).flatMap(({ captures: [verb, phrase] }): FastPathFill[] => (
+        verb?.kind === 'templateText' && phrase?.kind === 'objectPhrase'
+            ? [{
+                verb: verb.text,
+                option: verb.option,
+                rawHead: phrase.text,
+                head: peelLeadingArticleWhenTail(phrase.text),
+                links: phrase.links.map((link) => ({ ...link, span: peelLeadingArticleWhenTail(link.span) })),
+            }]
+            : []
+    ))
+    const uncut = fills.find(({ links }) => links.length === 0)
+    if (!uncut) {
         return null
     }
 
-    const acquireMatch = /^(take|get)\s+(.+)$/i.exec(trimmed)
-    const releaseMatch = /^drop\s+(.+)$/i.exec(trimmed)
-    const rawTail = acquireMatch?.[2] ?? releaseMatch?.[1]
-    if (!rawTail) {
-        return null
-    }
-
-    const tail = rawTail.trim()
-    if (!tail) {
-        return null
-    }
-
-    if (acquireMatch?.[1].toLowerCase() === 'take' && /^hold\b/i.test(tail)) {
-        return null
-    }
-
-    const rawObjectSpan = peelLeadingArticleWhenTail(tail)
-    if (!rawObjectSpan) {
+    if (uncut.option === 'take' && /^hold\b/i.test(uncut.rawHead)) {
         return null
     }
 
@@ -82,22 +89,26 @@ function maybeDeterministicManipulationIntent(
         const normalizedSpan = normalizeExitName(span)
         return normalizedSpan.length > 0 && labels.includes(normalizedSpan)
     }
-    const { head, links } = isLabel(rawObjectSpan)
-        ? { head: rawObjectSpan, links: [] }
-        : splitQualifierTail(rawObjectSpan)
+    const kept = isLabel(uncut.head)
+        ? uncut
+        : fills.reduce((best, fill) => (
+            fill.links.length > best.links.length
+            || (fill.links.length === best.links.length && prepositionWordCount(fill) > prepositionWordCount(best))
+                ? fill
+                : best
+        ))
 
-    if (acquireMatch?.[1].toLowerCase() === 'get' && !isLabel(head)) {
+    if (kept.option === 'get' && !isLabel(kept.head)) {
         return null
     }
 
-    const verb = trimmed.split(/\s+/)[0]!
     return {
         type: 'ObjectMembershipIntent',
         skeleton: [
-            { type: 'text', text: verb },
-            { type: 'objectSpan', span: head },
-            ...links.flatMap(({ preposition, span }): ParseTokenDraft[] => [
-                { type: 'text', text: preposition },
+            { type: 'text', text: kept.verb },
+            { type: 'objectSpan', span: kept.head },
+            ...kept.links.flatMap(({ text, span }): ParseTokenDraft[] => [
+                { type: 'text', text },
                 { type: 'objectSpan', span },
             ]),
         ],

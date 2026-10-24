@@ -27,12 +27,17 @@ export type IntentFieldRole = 'subject' | 'target' | 'relationLabel'
  * narration form, a preposition's relation) looks the value up in its own typed lexicon.
  * `rest` is valid only as the last element: it takes whatever follows, zero or more words or
  * tokens of any type, and no template reads it (a tail a template leaves unread).
+ * `objectPhrase` is a span followed by zero or more pairs of a preposition (one of
+ * `prepositions`, matched as whole words) and another span. Against the command text it returns
+ * every set of cuts as its own fill, and it emits flat tokens (span, preposition, span ...). It is
+ * matched against text only; a skeleton the model built is not walked by it yet.
  */
 export type PatternElement =
     | { type: 'templateText'; options: readonly string[] }
     | { type: 'objectSpan'; role: IntentFieldRole }
     | { type: 'capturedText'; role: IntentFieldRole }
     | { type: 'rest' }
+    | { type: 'objectPhrase'; role: IntentFieldRole; prepositions: readonly string[] }
 
 /**
  * No producer in this slice -- the first is Step 2's relational containment bucket

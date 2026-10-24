@@ -14,13 +14,17 @@ import type {
 /**
  * What a single pattern element captured out of a successful match. `text` is as typed; a
  * `templateText` capture also names the option it matched, as written in the pattern. A `rest`
- * capture's text is empty when nothing followed.
+ * capture's text is empty when nothing followed. An `objectPhrase` capture's `text` is its first
+ * span, and each link holds a preposition (as typed, and the option it matched) and the span after it.
  */
 export type PatternCapture =
     | { elementIndex: number; kind: 'templateText'; text: string; option: string }
     | { elementIndex: number; kind: 'objectSpan'; role: IntentFieldRole; text: string; stableRefKey?: string }
     | { elementIndex: number; kind: 'capturedText'; role: IntentFieldRole; text: string }
     | { elementIndex: number; kind: 'rest'; text: string }
+    | { elementIndex: number; kind: 'objectPhrase'; role: IntentFieldRole; text: string; links: ObjectPhraseLink[] }
+
+export type ObjectPhraseLink = { text: string; option: string; span: string }
 
 /**
  * One way a pattern fits: the skeleton it builds (stamped, from a string match; the
@@ -38,9 +42,39 @@ function sameWords(left: string[], right: string[]): boolean {
 }
 
 /**
+ * Every way an object phrase can start at `wordIndex`: a span of one or more words, then zero or
+ * more links, each a preposition equal to the next whole words and the span after it. Each
+ * result says where the phrase ends.
+ */
+function fillObjectPhrase(
+    prepositions: readonly string[],
+    words: string[],
+    wordIndex: number
+): { text: string; links: ObjectPhraseLink[]; nextWordIndex: number }[] {
+    return words.slice(wordIndex).flatMap((_word, offset) => {
+        const headEnd = wordIndex + offset + 1
+        const text = words.slice(wordIndex, headEnd).join(' ')
+        const linked = prepositions.flatMap((option) => {
+            const optionWords = splitWords(option)
+            const spanStart = headEnd + optionWords.length
+            if (optionWords.length === 0 || !sameWords(optionWords, words.slice(headEnd, spanStart))) {
+                return []
+            }
+            return fillObjectPhrase(prepositions, words, spanStart).map((tail) => ({
+                text,
+                links: [{ text: words.slice(headEnd, spanStart).join(' '), option, span: tail.text }, ...tail.links],
+                nextWordIndex: tail.nextWordIndex,
+            }))
+        })
+        return [{ text, links: [], nextWordIndex: headEnd }, ...linked]
+    })
+}
+
+/**
  * Every way to assign the pattern's elements, from `elementIndex` on, to the words from
  * `wordIndex` on, using up both. A `templateText` option must equal the next whole
- * words; a wildcard takes one or more words.
+ * words; a wildcard takes one or more words; an object phrase takes every cut its
+ * prepositions allow.
  */
 function fillWords(pattern: readonly PatternElement[], words: string[], elementIndex: number, wordIndex: number): PatternCapture[][] {
     if (elementIndex === pattern.length) {
@@ -63,6 +97,11 @@ function fillWords(pattern: readonly PatternElement[], words: string[], elementI
     if (element.type === 'rest') {
         return extend({ elementIndex, kind: 'rest', text: words.slice(wordIndex).join(' ') }, words.length)
     }
+    if (element.type === 'objectPhrase') {
+        return fillObjectPhrase(element.prepositions, words, wordIndex).flatMap(({ text, links, nextWordIndex }) => (
+            extend({ elementIndex, kind: 'objectPhrase', role: element.role, text, links }, nextWordIndex)
+        ))
+    }
     return words.slice(wordIndex).flatMap((_word, offset) => {
         const nextWordIndex = wordIndex + offset + 1
         const text = words.slice(wordIndex, nextWordIndex).join(' ')
@@ -77,7 +116,8 @@ function fillWords(pattern: readonly PatternElement[], words: string[], elementI
  * see synthesizeSkeletonFromPattern). `objectSpan`/`capturedText` take one or more
  * words, re-joined with single spaces. A fixed word can sit inside a wildcard in one
  * fill and be the fixed word in another, so `[take, span, on, span]` against "take cup
- * on saucer on table" has two fills. Adjacent wildcards yield every split.
+ * on saucer on table" has two fills. Adjacent wildcards yield every split, and an
+ * object phrase yields every set of cuts at its prepositions.
  *
  * No order is promised. Fills that build the same skeleton are merged (duplicate
  * options, for instance).
@@ -85,9 +125,10 @@ function fillWords(pattern: readonly PatternElement[], words: string[], elementI
 export function matchPatternAgainstString(pattern: readonly PatternElement[], command: string): PatternFill[] {
     const fillsByKey = new Map<string, PatternFill>()
     for (const captures of fillWords(pattern, splitWords(command), 0, 0)) {
-        const key = JSON.stringify(captures.map(({ kind, text }) => [kind, text]))
+        const draft = draftFromPattern(pattern, captures)
+        const key = JSON.stringify(draft)
         if (!fillsByKey.has(key)) {
-            fillsByKey.set(key, { skeleton: synthesizeSkeletonFromPattern(pattern, captures), captures })
+            fillsByKey.set(key, { skeleton: stampStableRefKeys(draft), captures })
         }
     }
     return [...fillsByKey.values()]
@@ -99,7 +140,8 @@ export function matchPatternAgainstString(pattern: readonly PatternElement[], co
  * option must equal the whole text token, ignoring case and spacing (never a word
  * inside a longer token), and a wildcard takes exactly one token. A trailing `rest` takes
  * every token left, zero or more, its text the tokens' words joined. Otherwise a length
- * mismatch is an immediate no match.
+ * mismatch is an immediate no match. An object phrase is matched against text only, so a
+ * pattern holding one throws here.
  */
 export function matchPatternAgainstTokens(pattern: readonly PatternElement[], skeleton: ParseSkeleton): PatternFill[] {
     const hasRest = pattern[pattern.length - 1]?.type === 'rest'
@@ -113,6 +155,9 @@ export function matchPatternAgainstTokens(pattern: readonly PatternElement[], sk
         const token = skeleton[elementIndex]
         if (element.type === 'rest') {
             throw new Error('matchPatternAgainstTokens: a rest element must be the last')
+        }
+        if (element.type === 'objectPhrase') {
+            throw new Error('matchPatternAgainstTokens: an objectPhrase element is matched against text only')
         }
         if (element.type === 'templateText') {
             if (token.type !== 'text') {
@@ -180,8 +225,9 @@ export function assembleIntent(templateIntent: Partial<ParseCommandResult>, capt
 
 /**
  * Walks matched elements and emits one ParseToken per element -- `objectSpan`
- * becomes an ObjectSpanToken, `templateText`/`capturedText` become a TextToken, and a
- * non-empty `rest` becomes one TextToken (an empty one emits nothing),
+ * becomes an ObjectSpanToken, `templateText`/`capturedText` become a TextToken, a
+ * non-empty `rest` becomes one TextToken (an empty one emits nothing), and an
+ * `objectPhrase` becomes its first span then a TextToken and a span per link,
  * holding the actually-matched text (not a canonicalized option), consistent with
  * this codebase's existing principle that tokens identify the actual occurrence,
  * not a canonical form (stampStableRefKeys.ts). Called on every fill of
@@ -191,17 +237,29 @@ export function assembleIntent(templateIntent: Partial<ParseCommandResult>, capt
  * engines, so index lookup (not a search) is safe.
  */
 export function synthesizeSkeletonFromPattern(pattern: readonly PatternElement[], captures: PatternCapture[]): ParseSkeleton {
-    const draft: ParseTokenDraft[] = pattern.flatMap((element, elementIndex): ParseTokenDraft[] => {
+    return stampStableRefKeys(draftFromPattern(pattern, captures))
+}
+
+function draftFromPattern(pattern: readonly PatternElement[], captures: PatternCapture[]): ParseTokenDraft[] {
+    return pattern.flatMap((element, elementIndex): ParseTokenDraft[] => {
         const capture = captures[elementIndex]
         if (element.type === 'objectSpan') {
             return [{ type: 'objectSpan', span: capture.text }]
+        }
+        if (capture.kind === 'objectPhrase') {
+            return [
+                { type: 'objectSpan', span: capture.text },
+                ...capture.links.flatMap(({ text, span }): ParseTokenDraft[] => [
+                    { type: 'text', text },
+                    { type: 'objectSpan', span },
+                ]),
+            ]
         }
         if (element.type === 'rest' && capture.text.length === 0) {
             return []
         }
         return [{ type: 'text', text: capture.text }]
     })
-    return stampStableRefKeys(draft)
 }
 
 /**
