@@ -1137,7 +1137,7 @@ Separate initiatives, real interactions. Recorded so neither plan silently assum
 
 | Data-blocked --- this initiative plausibly unblocks | Blocked on something else --- will not move |
 | --- | --- |
-| Feature look-matcher dispatch; character-inclusive catalog population (CPG-5 remainder) --- **AB-12** | **BD-24** / iteration 6, location-disambiguating modifiers --- *demand*-blocked, "no concrete case currently demands it" |
+| Feature look-matcher dispatch; character-inclusive catalog population (CPG-5 remainder) --- **AB-12** | **BD-24** / iteration 6, location-disambiguating modifiers --- was *demand*-blocked; the demand arrived through positionReferents, and it is superseded (2026-10-23) by its own plan, qualified referents (shipped and retired 2026-10-23; rules in [`actions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.contract.md#qualifier)), outside this initiative |
 | **BD-16 (3)**'s `multiPresent` all-Error treatment --- explicitly waiting on a `Custom`-relation defer resolving into genuine multi-host co-location | **C3** / `MultipleCommands` policy --- same posture; no confirmed real-world example remains |
 | Coyote's genre-bounded reasoning context --- **AB-19**; bounded by genre because there is no assembly-level structure to bound it with | **BD-18** / backtrack channel --- *architecture*-blocked: addressable resume points, bounded retry, cost policy |
 | Situational meaning and the unpopulated mark-state axis --- **AB-23** | Iteration 2's remaining fallback steps --- prompt and calibration work. **Resumed 2026-09-23 as the ladder's active rung, and this initiative was deferred to make room for it** (see Status). Confirmed on review: nothing here gated it. |

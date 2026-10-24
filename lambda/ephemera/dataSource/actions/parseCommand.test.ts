@@ -1692,6 +1692,37 @@ describe('parseCommand LLM path', () => {
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
+        it.each([
+            ['a drop\'s tail, whose qualified reading finds the held cup not in the box', 'drop the cup in the box', 'The box has no cup.'],
+            ['a chained tail, whose reading of every span finds no cup on the saucer', 'take cup on saucer on table', 'The saucer has no cup.'],
+        ])('splits %s, as the LLM route does, without Bedrock', async (_label, command, errorMessage) => {
+            const invokeBedrockParseCommandImpl = jest.fn()
+            const invokeBedrockObjectManipulationParseImpl = jest.fn()
+
+            const result = await parseCommand(
+                {
+                    command,
+                    characterId: 'CHARACTER#123',
+                    hostRoomId: 'ROOM#Bridge',
+                    roomObjectLabels: ['cup', 'saucer', 'table', 'box'],
+                    roomObjectCatalog: [
+                        { objectId: 'OBJECT#Saucer', normalizedShortName: 'saucer' },
+                        { objectId: 'OBJECT#Table', normalizedShortName: 'table' },
+                        { objectId: 'OBJECT#Box', normalizedShortName: 'box' },
+                    ],
+                    heldInventoryCatalog: [{ objectId: 'OBJECT#Cup', normalizedShortName: 'cup' }],
+                },
+                {
+                    invokeBedrockParseCommandImpl,
+                    invokeBedrockObjectManipulationParseImpl,
+                    objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
+                }
+            )
+
+            expect(result).toEqual({ type: 'Error', errorMessage })
+            expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+            expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
+        })
     })
 
     it('returns Unimplemented for attack troll (genuine miss, iteration 7 sub-iteration 2: not order/buy/purchase-shaped, so matchAcmeOrderFamily does not match either)', async () => {
@@ -1896,7 +1927,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('take the rope off the post (today a two-candidate Consult, not a dissolve)', async () => {
+        it('take the rope off the post (fast path: the qualifier refuses, the rope is lashed to the post, not held by it)', async () => {
             expect(await run(
                 { command: 'take the rope off the post', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {

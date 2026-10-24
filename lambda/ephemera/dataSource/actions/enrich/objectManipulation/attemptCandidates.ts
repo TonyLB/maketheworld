@@ -12,19 +12,20 @@ import { attemptActionsFromTransfer } from '../../commandAttempt/expandBoundaryC
 
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
+import type { IdentityPlanIdentity } from './identityPlanCandidate'
 import { defaultReading, placementHostsOfView, readingLabel, readingsHere, readingsOf, wholeReadingLabel, type ViewAnswer } from '../../objectViews'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import { viewMintedByExtend } from './plan/planStep'
-import type { ExtendChange, GroundedId, GroundedReferent, PlanStep, Referent, TransferMembershipChange } from './plan/planStep'
+import type { ContainedByAssertion, ExtendChange, GroundedId, GroundedReferent, PlanStep, Referent, TransferMembershipChange } from './plan/planStep'
 import { buildReferentAssignment } from './synthesize/buildReferentAssignment'
-import { groundChange } from './synthesize/groundChange'
+import { groundPlanStep } from './synthesize/groundChange'
 import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
 import type { ExecutorRelationalChain, ExpansionEnvironment } from './synthesize/executorTypes'
 import { walkAncestryContainers } from './synthesize/findShardBoundary'
 import { fetchRelationalReachability } from '../../../positions/manipulation/relational/findRelationalChainsForRemoval'
 import type { SpanName } from './stampCandidateReferents'
 import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
-import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { objectManipulationErrorMessages, qualifierErrorMessages } from './resolveObjectSpan'
 import type { DryRunOutcome } from './validatePlanDryRun'
 import { resumeErrorMessages } from './resumeAnswers'
 import type { ParseSkeleton } from './parse/parseToken'
@@ -274,8 +275,15 @@ const describeGroundedAction = (action: AttemptAction, attemptSteps: readonly Pl
         throw new Error('attemptCandidates: a position action has no desired result')
     }
     const step = action.desiredResult
-    if (step.kind !== 'change') {
-        throw new Error('attemptCandidates: assertion steps are not produced by the skeleton routes')
+    if (step.kind === 'assertion') {
+        // A qualifier's check: described for the record, never the primary (the action it qualifies comes last).
+        const subject = labelOf(step.subject)
+        const host = labelOf(step.object)
+        const preposition = step.relation === 'On' ? 'on' : step.relation === 'In' ? 'in' : 'at'
+        return {
+            action: new PositionAttemptAction(action.id, action.challenges(), step, `Check: ${subject} ${preposition} ${host}`),
+            alternative: { objectId: groundedObjectIdOf(step.subject), label: subject, proposedCommand: `look at the ${subject}` },
+        }
     }
     if (step.primitive === 'transferMembership') {
         const subject = labelOf(step.object)
@@ -366,11 +374,18 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
 
     // A step's distinct span keys must bind distinct objects: "put cup on cup" is never a candidate,
     // and that rule is the same for every route (it is the case stableRefKey exists for). Assignments
-    // are joint across attempts, so a key two attempts share binds one object in both.
-    const assignments = enumerateIdentityAssignments(pools).filter(({ identities }) => input.attempts.every((attempt) => attempt.actions().every((action) => {
-        const objectIds = actionSpanKeys(action).map((key) => identities.get(key)?.objectId)
-        return new Set(objectIds).size === objectIds.length
-    })))
+    // are joint across attempts, so a key two attempts share binds one object in both. The rule drops
+    // an attempt under an assignment, not the assignment: one reading that needs two tables ("table on
+    // table") must not sink another reading of the same command that needs one.
+    const bindsDistinct = (attempt: CommandAttempt, identities: ReadonlyMap<string, IdentityPlanIdentity>): boolean => (
+        attempt.actions().every((action) => {
+            const objectIds = actionSpanKeys(action).map((key) => identities.get(key)?.objectId)
+            return new Set(objectIds).size === objectIds.length
+        })
+    )
+    const assignments = enumerateIdentityAssignments(pools).filter(({ identities }) => (
+        input.attempts.some((attempt) => bindsDistinct(attempt, identities))
+    ))
     if (assignments.length === 0) {
         return { ok: false, reason: input.noAssignmentReason }
     }
@@ -396,7 +411,7 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
         return { ok: false, reason: resumeErrorMessages.staleReferentAnswer(input.spanPools.get(staleKey!)?.span ?? staleKey!), stale: true }
     }
 
-    // One candidate per attempt per assignment: each is built from its own attempt's actions only.
+    // One candidate per attempt per assignment it binds distinctly: each is built from its own attempt's actions only.
     const candidates = viewed.flatMap(({ identities, confidence, chosen }) => {
         const names = new Map<string, SpanName>()
         const viewAnswers: Record<string, ViewAnswer> = {}
@@ -420,7 +435,7 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
             }
         }
         const asked = Object.keys(viewAnswers).length > 0
-        return input.attempts.map((attempt): GroundedAttemptCandidate => {
+        return input.attempts.filter((attempt) => bindsDistinct(attempt, identities)).map((attempt): GroundedAttemptCandidate => {
             const described = attempt.actions().map((action) => describeGroundedAction(action.grounded(names), planStepsOf(attempt.actions())))
             const primary = described[described.length - 1]!
             return {
@@ -531,6 +546,9 @@ export type DryRunFrame = {
  * never grounds a `from`, so it is refused as having no membership host); `from` is a host the moving part is actually in (`notCarryingObject` for a drop of something not
  * held, since a drop's `from` is the actor); and the part is not already in `to` (`alreadyHoldingObject`). A pending challenge defers, and a
  * refused one is illegal, so a doubt about the move is a challenge and never a separate defer.
+ *
+ * An assertion (a qualifier's `containedBy`) is judged in step order and never seeded: one that fails
+ * makes the candidate illegal with its reason, so the selection loop drops the candidates it rules out.
  */
 export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: ExpansionEnvironment | undefined, frame: DryRunFrame = {}): DryRunOutcome => {
     const steps = candidate.attempt.actions().flatMap((action) => action.desiredResult ? [action.desiredResult] : [])
@@ -552,9 +570,6 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
 
     const seeds: PlanStep<GroundedReferent>[] = []
     for (const step of steps) {
-        if (step.kind !== 'change') {
-            throw new Error('attemptDryRun: assertion steps are not produced by the skeleton routes')
-        }
         const spans = new Map<string, GroundedId>()
         for (const span of stepSpans(step)) {
             if (span.stableRefKey !== undefined && span.groundedId !== undefined) {
@@ -569,7 +584,15 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
         if (assignment === undefined) {
             return { verdict: 'illegal', decidable: true, reason: objectManipulationErrorMessages.noMembershipHost }
         }
-        const grounded = groundChange(step, assignment)
+        const grounded = groundPlanStep(step, assignment)
+        if (grounded.kind === 'assertion') {
+            // A qualifier is judged here, before the steps after it, and has nothing for the executor to lower.
+            const failure = containedByFailure(grounded, env)
+            if (failure !== undefined) {
+                return { verdict: 'illegal', decidable: true, reason: failure }
+            }
+            continue
+        }
         if (grounded.kind === 'change' && grounded.primitive === 'extend') {
             // Extend writes no host-level effect for the executor to lower: only its precondition is judged here.
             const precondition = extendPreconditionFailure(grounded)
@@ -631,6 +654,32 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
  * one seam where a real judgment (planner, or an authored or improvised trait) replaces the assumption.
  */
 const extendPreconditionFailure = (_step: ExtendChange<GroundedReferent>): string | undefined => undefined
+
+/**
+ * A `containedBy` assertion's failure reason, or undefined when it holds. The subject's hosts are its one
+ * host, else those its view sits under (the read a transfer makes); every one must be the object, so a
+ * view that sits only partly under it fails (the whole draped cloth is not "on the table"; its table part is).
+ * Lenient for now: direct hosts only, and the relation is not read. `negate` flips the verdict.
+ */
+const containedByFailure = (step: ContainedByAssertion<GroundedReferent>, env: ExpansionEnvironment): string | undefined => {
+    const subjectId = step.subject.groundedId
+    if (!isEphemeraObjectId(subjectId)) {
+        return objectManipulationErrorMessages.noMembershipHost
+    }
+    const view = step.subject.referentType === 'objectSpan' ? step.subject.view : undefined
+    const actualHost = env.getCurrentHost(subjectId)
+    const hosts = actualHost !== undefined ? [actualHost] : view !== undefined ? env.getViewHosts?.(subjectId, view) : undefined
+    if (hosts === undefined || hosts.length === 0) {
+        return objectManipulationErrorMessages.noMembershipHost
+    }
+    const held = hosts.every((host) => host === step.object.groundedId)
+    if (held === step.negate) {
+        const host = labelOf(step.object)
+        const subject = labelOf(step.subject)
+        return step.negate ? qualifierErrorMessages.negatedUnmet(host, subject) : qualifierErrorMessages.unmet(host, subject)
+    }
+    return undefined
+}
 
 /**
  * The transfer preconditions (ISS8203 slice 3), over a grounded `transferMembership`. Returns the

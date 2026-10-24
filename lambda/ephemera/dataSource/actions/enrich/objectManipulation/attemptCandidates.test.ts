@@ -1,6 +1,7 @@
-import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { attemptReferentAnswers, attemptSpanKeys, disambiguationLabels, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
+import { attemptDryRun, attemptReferentAnswers, attemptSpanKeys, buildAttemptEnvironment, disambiguationLabels, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { planSkeleton } from './plan/planSkeleton'
 import type { ParseSkeleton } from './parse/parseToken'
@@ -10,6 +11,7 @@ import type { NarrationUnit } from '../../commandAttempt'
 import { PositionAttemptAction } from '../../commandAttempt/action'
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 import { actingCharacterRef, currentHostRef } from './plan/planStep'
+import type { ContainedByAssertion } from './plan/planStep'
 
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
 const trayId = 'OBJECT#Tray' as EphemeraObjectId
@@ -563,5 +565,125 @@ describe('disambiguationLabels over views', () => {
             { answers: { clothRef: 'OBJECT#Cloth', boxRef: 'OBJECT#Red' }, views: { clothRef: 'whole' }, names: { clothRef: 'both parts of the cloth', boxRef: 'red box' } },
             { answers: { clothRef: 'OBJECT#Cloth', boxRef: 'OBJECT#Blue' }, views: { clothRef: ['PRESENCE#a' as EphemeraPresenceNodeId] }, names: { clothRef: 'the cloth on the table', boxRef: 'blue box' } },
         ])).toEqual(['get both parts of the cloth from red box', 'get the cloth on the table from blue box'])
+    })
+})
+
+describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
+    // Hand-built: no template emits an assertion yet. "get the cup on the table" is [check, take].
+    const roomId = 'ROOM#Cafe' as EphemeraRoomId
+    const actor = 'CHARACTER#Tess' as EphemeraCharacterId
+    const tableId = 'OBJECT#Table' as EphemeraObjectId
+    const tableCupId = 'OBJECT#TableCup' as EphemeraObjectId
+    const floorCupId = 'OBJECT#FloorCup' as EphemeraObjectId
+    const clothId = 'OBJECT#Cloth' as EphemeraObjectId
+    const hanging = 'PRESENCE#hanging' as EphemeraPresenceNodeId
+    const lying = 'PRESENCE#lying' as EphemeraPresenceNodeId
+
+    const table: ObjectManipulationCatalogEntry = { objectId: tableId, normalizedShortName: 'table', catalogScope: 'room' }
+    const cups: ObjectManipulationCatalogEntry[] = [
+        { objectId: tableCupId, normalizedShortName: 'cup', catalogScope: 'room' },
+        { objectId: floorCupId, normalizedShortName: 'cup', catalogScope: 'room' },
+    ]
+    const cloth: ObjectManipulationCatalogEntry = {
+        objectId: clothId,
+        normalizedShortName: 'cloth',
+        catalogScope: 'room',
+        placement: [{ host: clothId, bindings: [
+            { presence: hanging, under: [{ host: roomId, presence: 'PRESENCE#room' as EphemeraPresenceNodeId }], rooms: [roomId] },
+            { presence: lying, under: [{ host: tableId, presence: 'PRESENCE#table' as EphemeraPresenceNodeId }], rooms: [roomId] },
+        ] }],
+    }
+    const hostsOf: Record<string, EphemeraMembershipHostId[]> = {
+        [tableId]: [roomId],
+        [tableCupId]: [tableId],
+        [floorCupId]: [roomId],
+        [clothId]: [roomId, tableId],
+    }
+    const reads = {
+        getMembershipContainers: jest.fn(async (id: string) => hostsOf[id] ?? []),
+        getLudicGraph: jest.fn(async (hostId: string) => testLudicGraph(hostId as EphemeraRoomId)),
+    }
+
+    const qualifiedTake = (span: string, overrides: Partial<ContainedByAssertion> = {}): CommandAttempt => {
+        const take = attemptFor([{ type: 'text', text: 'get' }, { type: 'objectSpan', span, stableRefKey: 'subjectRef' }], `get ${span}`).actions()[0]!
+        const check = new PositionAttemptAction('qualifier', [], {
+            kind: 'assertion',
+            predicate: 'containedBy',
+            subject: { referentType: 'objectSpan', span, stableRefKey: 'subjectRef' },
+            object: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+            negate: false,
+            relation: 'On',
+            ...overrides,
+        })
+        return CommandAttempt.create(`get the ${span} on the table`, [check, take])
+    }
+
+    const dryRuns = async (span: string, subjects: ObjectManipulationCatalogEntry[], overrides: Partial<ContainedByAssertion> = {}) => {
+        const subjectPool: SpanCandidatePool = {
+            span,
+            candidates: subjects.map(({ objectId }) => ({ id: objectId, label: span, jointRelevance: 1, sourceTags: ['exact' as const], locus: { kind: 'room' as const } })),
+        }
+        const catalogHere = [...subjects, table]
+        const proposed = proposeAttemptCandidates({
+            command: `get the ${span} on the table`,
+            attempts: [qualifiedTake(span, overrides)],
+            spanPools: new Map([['subjectRef', subjectPool], ['tableRef', pool('table', tableId)]]),
+            catalog: catalogHere,
+            noAssignmentReason: 'none',
+            actorRoom: roomId,
+            actorCharacter: actor,
+        })
+        if (!proposed.ok) {
+            throw new Error(proposed.reason)
+        }
+        const env = await buildAttemptEnvironment(proposed.candidates, roomId, testLudicGraph(roomId), reads, catalogHere)
+        return proposed.candidates.map((candidate) => ({
+            candidate,
+            outcome: attemptDryRun(candidate, env, { roomId, actorCharacterId: actor }),
+        }))
+    }
+    const subjectIdOf = (candidate: Awaited<ReturnType<typeof dryRuns>>[number]['candidate']) => attemptReferentAnswers(candidate.attempt).subjectRef
+
+    it('keeps the cup on the table and refuses the cup on the floor, naming host and subject', async () => {
+        const results = await dryRuns('cup', cups)
+
+        expect(results.map(({ candidate, outcome }) => [subjectIdOf(candidate), outcome.verdict, outcome.reason])).toEqual([
+            [tableCupId, 'legal', undefined],
+            [floorCupId, 'illegal', 'The table has no cup.'],
+        ])
+    })
+
+    it('still runs the take after a met check: the plan is the take\'s transfer', async () => {
+        const [met] = await dryRuns('cup', cups)
+
+        expect(met!.outcome.plan?.steps).toEqual([expect.objectContaining({ kind: 'transferMembership' })])
+    })
+
+    it('judges every binding of the view: the cloth\'s part on the table passes, its hanging part and the whole fail', async () => {
+        const results = await dryRuns('cloth', [cloth])
+
+        expect(results.map(({ candidate, outcome }) => [candidate.viewAnswers?.subjectRef, outcome.verdict, outcome.reason])).toEqual([
+            [[hanging], 'illegal', 'The table has no cloth.'],
+            [[lying], 'legal', undefined],
+            ['whole', 'illegal', 'The table has no cloth.'],
+        ])
+    })
+
+    it('flips the verdict when negated', async () => {
+        const results = await dryRuns('cup', cups, { negate: true })
+
+        expect(results.map(({ candidate, outcome }) => [subjectIdOf(candidate), outcome.verdict, outcome.reason])).toEqual([
+            [tableCupId, 'illegal', 'The table has the cup.'],
+            [floorCupId, 'legal', undefined],
+        ])
+    })
+
+    it('describes the check, worded from its relation, and keeps the take as the candidate\'s primary', async () => {
+        const [{ candidate }] = await dryRuns('cup', [cups[0]!])
+        const fromTable = (await dryRuns('cup', [cups[0]!], { relation: undefined }))[0]!.candidate
+
+        expect(candidate.attempt.actions().map((action) => action.describe())).toEqual(['Check: cup on table', 'Take: cup'])
+        expect(fromTable.attempt.actions()[0]!.describe()).toBe('Check: cup at table')
+        expect(candidate.alternative).toEqual({ objectId: tableCupId, label: 'cup', proposedCommand: 'take the cup' })
     })
 })

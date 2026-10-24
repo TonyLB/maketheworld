@@ -11,6 +11,7 @@ import {
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isViewAnswer, type ViewAnswer } from './objectViews'
+import type { ParseTokenDraft } from './enrich/objectManipulation/parse/parseToken'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraMetaObject, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
@@ -55,15 +56,6 @@ export type CollectCoyoteOccupiedStableKeysDeps = {
  * Parser confidence for non-error outcomes. Typically in [0, 1]; validated by type guards.
  */
 export type ParseCommandConfidence = number
-
-/**
- * Membership language direction from classify (PA-1). Not a route's operation kind (none is on the result arm).
- */
-export type ManipulationVerbClass = 'acquire' | 'release'
-
-export function isManipulationVerbClass(value: unknown): value is ManipulationVerbClass {
-    return value === 'acquire' || value === 'release'
-}
 
 const isParseConfidence = (value: unknown): value is ParseCommandConfidence => (
     typeof value === 'number'
@@ -242,6 +234,25 @@ export type ParseCommandCoyoteAffinitiesTestResult = {
     harnessInvocation?: CoyoteAffinitiesHarnessInvocation
 }
 
+/** One `/test parse` fixture: a command run down the route it takes (fast path or Parse) and through Plan, with no world. */
+export type ObjectManipulationParseHarnessFixture = {
+    id: string
+    corpusCase: string
+    command: string
+}
+
+/** Which commands a `/test parse` run covers: one fixture by 1-based index, or free text. Absent: every fixture. */
+export type ObjectManipulationParseHarnessInvocation =
+    | { fixtureIndex1Based: number }
+    | { command: string }
+
+/** Operator trigger for the object-manipulation Parse + Plan harness (`/test parse`). */
+export type ParseCommandObjectManipulationParseTestResult = {
+    type: 'ObjectManipulationParseTest'
+    confidence: ParseCommandConfidence
+    harnessInvocation?: ObjectManipulationParseHarnessInvocation
+}
+
 export type ParseCommandUnimplementedResult = {
     type: 'Unimplemented'
     confidence: ParseCommandConfidence
@@ -292,27 +303,25 @@ export type ParseCommandMultipleCommandsResult = {
 
 /**
  * Intent discrimination only: player intent is membership host transfer (which ludicGraph hosts the object).
- * `verbClass` is membership **language** direction from classify (`acquire` | `release` only).
+ * The direction (take or drop) is read by Plan's membership template from the skeleton's verb.
  * `operationKind` is forbidden at classify and owned by enrich/compiler (membership pre-gates + agreement gate).
  * Terminal outcomes are {@link ParseCommandCommandAttemptResult} or {@link ParseCommandErrorResult}.
  */
 export type ParseCommandObjectMembershipIntentResult = {
     type: 'ObjectMembershipIntent'
     /**
-     * Object noun phrase strings for the membership route. Classify itself no longer extracts these
-     * (retired --- see `AGENT.implementation.md`, object-manipulation field ownership); always `[]` here. The real
-     * source is either `deterministicChecks.ts` (zero-Bedrock fast path, populated before classify
-     * ever runs) or Parse's skeleton (`objectSpansFromSkeleton.ts`), both applied in `parseCommand.ts`.
+     * The flat, unstamped skeleton the zero-Bedrock fast path (`deterministicChecks.ts`) builds: the
+     * fill of its pattern (verb, then the tail cut at closed-set prepositions) that its claim policy
+     * keeps, the skeleton Nova Micro returns for the same command. Only the fast path produces this intent; `parseCommand.ts` stamps
+     * the skeleton and enters Plan.
      */
-    rawObjectSpans: string[]
-    /** Membership language direction from classify. Mapped from JSON `verbClass`. */
-    verbClass: ManipulationVerbClass
+    skeleton: ParseTokenDraft[]
     confidence: ParseCommandConfidence
 }
 
 /**
  * Intent discrimination only: player intent is an in-host edge between objects on a host ludicGraph.
- * No `verbClass` at classify; operation kind (`establishRelation` / `dissolveRelation`) is owned by enrich/compiler.
+ * Operation kind (`establishRelation` / `dissolveRelation`) is owned by enrich/compiler.
  * No object spans at classify either --- the relational route resolves spans entirely from Parse's
  * skeleton (see `enrich/objectManipulation/AGENT.md`, relational branch).
  */
@@ -366,6 +375,7 @@ export type ParseCommandResult =
     | ParseCommandCharacterSpokeResult
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
+    | ParseCommandObjectManipulationParseTestResult
     | ParseCommandCommandAttemptResult
     | ParseCommandObjectMembershipIntentResult
     | ParseCommandObjectRelateIntentResult
@@ -612,6 +622,15 @@ export function isParseCommandCoyoteAffinitiesTestResult(
     result: ParseCommandResult
 ): result is ParseCommandCoyoteAffinitiesTestResult {
     if (result.type !== 'CoyoteAffinitiesTest') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandObjectManipulationParseTestResult(
+    result: ParseCommandResult
+): result is ParseCommandObjectManipulationParseTestResult {
+    if (result.type !== 'ObjectManipulationParseTest') {
         return false
     }
     return isParseConfidence(result.confidence)

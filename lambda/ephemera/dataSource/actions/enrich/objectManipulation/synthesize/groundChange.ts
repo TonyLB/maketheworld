@@ -1,4 +1,4 @@
-import type { Change, GroundedReferent, Referent, ReferentAssignment } from '../plan/planStep'
+import type { Change, GroundedReferent, PlanStep, Referent, ReferentAssignment } from '../plan/planStep'
 import { derivedReferentKey, withGroundedId } from '../plan/planStep'
 
 /**
@@ -44,7 +44,7 @@ const groundOneReferent = (referent: Referent, assignment: ReferentAssignment): 
  * Grounding's. Whether a self-reference is legal ("can't put an object on itself") is the
  * producer's/Validation's.
  *
- * Does not handle `Assertion` --- see `groundAssertion.ts`.
+ * Does not handle `Assertion`: `groundPlanStep` grounds either kind.
  */
 export const groundChange = (change: Change, assignment: ReferentAssignment): Change<GroundedReferent> => {
     if (change.primitive === 'transferMembership') {
@@ -64,3 +64,14 @@ export const groundChange = (change: Change, assignment: ReferentAssignment): Ch
         target: groundOneReferent(change.target, assignment),
     }
 }
+
+/**
+ * Grounds any `PlanStep` the way `groundChange` grounds a `Change`: every referent kept and given its id.
+ * An assertion keeps its referents too (a subject's `view` and short name are what the dry run judges and
+ * names it by), where `groundAssertion` lowers one to bare ids.
+ */
+export const groundPlanStep = (step: PlanStep, assignment: ReferentAssignment): PlanStep<GroundedReferent> => (
+    step.kind === 'assertion'
+        ? { ...step, subject: groundOneReferent(step.subject, assignment), object: groundOneReferent(step.object, assignment) }
+        : groundChange(step, assignment)
+)

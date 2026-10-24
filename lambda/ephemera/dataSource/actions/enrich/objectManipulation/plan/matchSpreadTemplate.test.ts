@@ -1,12 +1,15 @@
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { ParseSkeleton } from '../parse/parseToken'
-import { matchContainmentTemplate } from './matchContainmentTemplate'
-import { matchSpreadTemplate } from './matchSpreadTemplate'
-import type { SpreadTemplateMatchResult } from './matchSpreadTemplate'
+import { matchTemplate, type TemplateMatchResult } from './attemptTemplateFixture'
+import { containmentTemplate } from './matchContainmentTemplate'
+import { spreadTemplate } from './matchSpreadTemplate'
 import type { Change } from './planStep'
 
+const matchContainmentTemplate = matchTemplate(containmentTemplate)
+const matchSpreadTemplate = matchTemplate(spreadTemplate)
+
 /** The attempt's steps, so the expectations below read the plan's shape, not the attempt's. */
-const summarize = (result: SpreadTemplateMatchResult) => {
+const summarize = (result: TemplateMatchResult) => {
     if (result.type !== 'matched') {
         return result
     }
@@ -52,7 +55,7 @@ describe('matchSpreadTemplate', () => {
     })
 
     it('authors one unit over the actor and both objects, before, from the verb form and the matched phrase', () => {
-        const result = matchSpreadTemplate(spreadSkeleton('Drape', 'rug', 'partly over', 'table'), 'test command')
+        const result = matchSpreadTemplate(spreadSkeleton('Drape', 'rug', 'over', 'table'), 'test command')
         if (result.type !== 'matched') {
             throw new Error('expected a match')
         }
@@ -64,6 +67,10 @@ describe('matchSpreadTemplate', () => {
                 parts: [{ slot: 'actor' }, { text: ' drapes ' }, { ref: 'rugRef' }, { text: ' over ' }, { ref: 'tableRef' }],
             }],
         }])
+    })
+
+    it('does not match a fixed word inside a longer text token: "drape rug partly over table" is no spread', () => {
+        expect(matchSpreadTemplate(spreadSkeleton('Drape', 'rug', 'partly over', 'table'), 'test command')).toEqual({ type: 'noMatch' })
     })
 
     it('leaves put and place to the containment template, and does not lend it "over"', () => {

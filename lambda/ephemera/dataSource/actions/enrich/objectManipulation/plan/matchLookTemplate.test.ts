@@ -1,9 +1,11 @@
 import type { ParseSkeleton } from '../parse/parseToken'
-import { matchLookTemplate } from './matchLookTemplate'
-import type { LookTemplateMatchResult } from './matchLookTemplate'
+import { matchTemplate, type TemplateMatchResult } from './attemptTemplateFixture'
+import { lookTemplate } from './matchLookTemplate'
+
+const matchLookTemplate = matchTemplate(lookTemplate)
 
 /** The narration's referent, so the expectations below read the template's referent shape. */
-const summarize = (result: LookTemplateMatchResult) => {
+const summarize = (result: TemplateMatchResult) => {
     if (result.type !== 'matched') {
         return result
     }

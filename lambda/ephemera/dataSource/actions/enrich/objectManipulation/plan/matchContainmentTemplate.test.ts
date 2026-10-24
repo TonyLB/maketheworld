@@ -1,10 +1,12 @@
 import type { ParseSkeleton } from '../parse/parseToken'
-import { matchContainmentPreposition, matchContainmentTemplate } from './matchContainmentTemplate'
-import type { ContainmentTemplateMatchResult } from './matchContainmentTemplate'
+import { matchTemplate, type TemplateMatchResult } from './attemptTemplateFixture'
+import { containmentTemplate } from './matchContainmentTemplate'
 import type { Change } from './planStep'
 
+const matchContainmentTemplate = matchTemplate(containmentTemplate)
+
 /** The attempt's step, so the expectations below read the plan's shape, not the attempt's. */
-const summarize = (result: ContainmentTemplateMatchResult) => {
+const summarize = (result: TemplateMatchResult) => {
     if (result.type !== 'matched') {
         return result
     }
@@ -48,15 +50,16 @@ describe('matchContainmentTemplate', () => {
     })
 
     it.each([
-        ['place', 'on top of'],
-        ['place', 'onto'],
-        ['put', 'inside'],
-        ['put', 'into'],
-    ] as const)('plans "%s X %s Y" as containment (RD-1 verbs, closed prepositions)', (verb, prep) => {
+        ['place', 'on top of', 'On'],
+        ['place', 'onto', 'On'],
+        ['put', 'inside', 'In'],
+        ['put', 'into', 'In'],
+        ['put', 'ON', 'On'],
+    ] as const)('plans "%s X %s Y" as containment (RD-1 verbs, closed prepositions), kind %s', (verb, prep, containment) => {
         const result = summarize(matchContainmentTemplate(containmentSkeleton(verb, 'coin', prep, 'jar'), 'test command'))
         expect(result.type).toBe('matched')
         if (result.type !== 'matched' || result.change.primitive !== 'transferMembership') return
-        expect(result.change.containment).toBe(matchContainmentPreposition(prep))
+        expect(result.change.containment).toBe(containment)
     })
 
     it.each([
@@ -81,7 +84,7 @@ describe('matchContainmentTemplate', () => {
         expect(summarize(matchContainmentTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
     })
 
-    it('returns noMatch for a 6-token skeleton (modifier-bearing shape, out of scope)', () => {
+    it('matches a qualified object: the candle from the bookshelf, moved into the bag', () => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'put' },
             { type: 'objectSpan', span: 'candle', stableRefKey: 'candleRef' },
@@ -91,7 +94,10 @@ describe('matchContainmentTemplate', () => {
             { type: 'objectSpan', span: 'bag', stableRefKey: 'bagRef' },
         ]
 
-        expect(summarize(matchContainmentTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
+        expect(summarize(matchContainmentTemplate(skeleton, 'test command'))).toMatchObject({
+            type: 'matched',
+            change: { object: { span: 'candle' }, to: { span: 'bag' }, containment: 'In' },
+        })
     })
 })
 
@@ -120,23 +126,12 @@ describe('matchContainmentTemplate narration (the template authors its unit)', (
         expect(parts).toEqual([{ slot: 'actor' }, { text: ' places ' }, { ref: 'coinRef' }, { text: ' on top of ' }, { ref: 'jarRef' }])
     })
 
-    it('narrates only the matched phrase, never the raw text run: a stray word does not reach the line', () => {
-        const [{ variants: [{ parts }] }] = unitOf('put', 'hurriedly into').units
-        expect(parts).toContainEqual({ text: ' into ' })
-        expect(JSON.stringify(parts)).not.toContain('hurriedly')
-    })
-})
-
-describe('matchContainmentPreposition', () => {
-    it.each(['in', 'inside', 'into'] as const)('names %s as kind In', (prep) => {
-        expect(matchContainmentPreposition(prep)).toBe('In')
+    it('narrates the phrase as the template writes it, not as typed', () => {
+        const [{ variants: [{ parts }] }] = unitOf('PUT', 'Into').units
+        expect(parts).toEqual([{ slot: 'actor' }, { text: ' puts ' }, { ref: 'coinRef' }, { text: ' into ' }, { ref: 'jarRef' }])
     })
 
-    it.each(['on', 'onto', 'ON', 'on top of'] as const)('names %s as kind On', (prep) => {
-        expect(matchContainmentPreposition(prep)).toBe('On')
-    })
-
-    it.each(['under', 'against', 'tied to', 'around'] as const)('returns undefined for peer preposition %s', (prep) => {
-        expect(matchContainmentPreposition(prep)).toBeUndefined()
+    it('does not match a fixed word inside a longer text token: "put coin hurriedly into box" is no containment', () => {
+        expect(matchContainmentTemplate(containmentSkeleton('put', 'coin', 'hurriedly into', 'box'), 'test command')).toEqual({ type: 'noMatch' })
     })
 })

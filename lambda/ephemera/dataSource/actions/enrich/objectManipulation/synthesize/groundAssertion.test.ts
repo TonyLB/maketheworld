@@ -30,6 +30,30 @@ describe('groundAssertion', () => {
         })
     })
 
+    it('carries the relation the words recorded', () => {
+        const assertion: Assertion = {
+            kind: 'assertion',
+            predicate: 'containedBy',
+            subject: objectSpanRef('tray', 'trayRef'),
+            object: objectSpanRef('table', 'tableRef'),
+            negate: false,
+            relation: 'On',
+        }
+        const assignment: ReferentAssignment = {
+            spans: new Map([['trayRef', TRAY_ID], ['tableRef', TABLE_ID]]),
+            derived: new Map(),
+        }
+
+        expect(groundAssertion(assertion, assignment)).toEqual({
+            kind: 'assertion',
+            predicate: 'containedBy',
+            subjectId: TRAY_ID,
+            objectId: TABLE_ID,
+            negate: false,
+            relation: 'On',
+        })
+    })
+
     it('throws when a referent has no span assignment for its stableRefKey', () => {
         const assertion: Assertion = {
             kind: 'assertion',

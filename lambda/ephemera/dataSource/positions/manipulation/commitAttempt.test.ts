@@ -591,7 +591,7 @@ describe('commitAttempt', () => {
     })
 
     describe('narration units', () => {
-        /** Plan's own unit for a take, as `matchMembershipTemplate` authors it, plus an *after* variant to exercise that phase. */
+        /** Plan's own unit for a take, as `membershipTemplate` authors it, plus an *after* variant to exercise that phase. */
         const takeUnit = {
             covers: ['action-1'],
             variants: [
@@ -714,7 +714,7 @@ describe('commitAttempt', () => {
 
         /** The producer's shape: the dissolve action first, the take last, in execution order. */
         const OTHER_ROOM = 'ROOM#Kitchen' as EphemeraRoomId
-        /** Plan's own unit for the take, as `matchMembershipTemplate` authors it. */
+        /** Plan's own unit for the take, as `membershipTemplate` authors it. */
         const takeUnit = {
             covers: ['action-1'],
             variants: [{ audience: { refs: ['actor', 'primaryObject'], phase: 'before' as const }, parts: [{ slot: 'actor' as const }, { text: ' picks up ' }, { ref: 'primaryObject' }] }],

@@ -3,7 +3,8 @@
 // leftover text runs, deliberately with no grammatical (verb/preposition) classification --
 // Plan owns keyword/pattern matching over the text runs (see the templates under plan/);
 // tagging verb/preposition at Parse's layer was rejected as an untested classification with
-// no schema precedent (full rationale in git history).
+// no schema precedent (full rationale in git history). Parse's skeleton is always flat: a
+// span's `qualifier` is added in a reading of Plan's templates (an object phrase's fill), never by Parse.
 //
 
 export type TextToken = {
@@ -30,6 +31,20 @@ export type ParseTokenDraft = ObjectSpanTokenDraft | TextToken
  */
 export type ObjectSpanToken = ObjectSpanTokenDraft & {
     stableRefKey: string
+    /** Where the thing is said to be ("the cup on the table"): set in a reading of Plan's templates, read by lowering (`plan/lowerQualifiers.ts`). */
+    qualifier?: SpanQualifier
+}
+
+/**
+ * A closed-set restricting preposition, canonical (the LLM's `out` reads as `out of`). Which
+ * relation each records is `QUALIFIER_PREPOSITIONS` in `plan/qualifierPrepositions.ts`.
+ */
+export type QualifierPreposition = 'on' | 'on top of' | 'off' | 'in' | 'inside' | 'out of' | 'from'
+
+/** A qualifier on a span: the preposition, and the span naming the host --- the flat skeleton's own token, with its own key. */
+export type SpanQualifier = {
+    preposition: QualifierPreposition
+    span: ObjectSpanToken
 }
 
 export type ParseToken = ObjectSpanToken | TextToken

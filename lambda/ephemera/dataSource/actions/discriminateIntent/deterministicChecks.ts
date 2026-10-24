@@ -6,12 +6,20 @@ import type {
 import { normalizeExitName } from '../roomExitTargetsForCharacter'
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../coyoteGame/generators/testHarness/coyoteEngineTestFixtures'
 import { ACME_ORDER_AFFINITIES_HARNESS_FIXTURES } from '../acmeOrderAffinitiesHarnessPhrases'
+import { OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES } from '../objectManipulationParseHarnessFixtures'
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
+import { isObjectManipulationParseTestSlashCommand } from './objectManipulationParseTestSlashCommand'
 import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestSlash'
 import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
+import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
 import { peelLeadingArticleWhenTail } from './peelLeadingArticleWhenTail'
+import type { ParseTokenDraft } from '../enrich/objectManipulation/parse/parseToken'
+import type { PatternElement } from '../deterministicTemplate/deterministicTemplate'
+import { matchPatternAgainstString, type ObjectPhraseLink } from '../deterministicTemplate/patternTemplate'
+import { MEMBERSHIP_VERB_ELEMENT } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
+import { QUALIFIER_OBJECT_PHRASE_ELEMENT } from '../enrich/objectManipulation/plan/qualifierPrepositions'
 
 /** After trim, case-insensitive look or l as the whole line. */
 function isBareLookCommand(trimmed: string): boolean {
@@ -33,48 +41,77 @@ function isBarePredictCommand(trimmed: string): boolean {
     return /^predict$/i.test(trimmed)
 }
 
+/** The fast path's one pattern: a membership verb, then an object phrase cut at the closed-set prepositions. */
+const FAST_PATH_PATTERN: readonly PatternElement[] = [MEMBERSHIP_VERB_ELEMENT, QUALIFIER_OBJECT_PHRASE_ELEMENT]
+
+type FastPathFill = { verb: string; option: string; rawHead: string; head: string; links: ObjectPhraseLink[] }
+
+/** How many words a fill's prepositions hold: among fills with as many cuts, the longest phrases win. */
+const prepositionWordCount = ({ links }: FastPathFill): number => (
+    links.reduce((count, { text }) => count + text.split(' ').length, 0)
+)
+
+/**
+ * The zero-Bedrock take/get/drop fast path: the membership verbs and an object phrase matched
+ * against the command text (every set of cuts at the closed-set prepositions), and a claim policy
+ * that keeps one fill. It claims `take` and `drop` always (not `take hold`), and `get` when the kept
+ * fill's head is a room label. A tail that is a room label as a whole stays one span (a name like
+ * "man in the moon"); otherwise the fill with the most cuts is kept, longest phrases first, which is
+ * the flat skeleton Nova Micro returns. The policy never reads the verb to cut: which span a phrase
+ * attaches to is decided by Plan, whose templates' object phrases read every way to attach it (each
+ * fill a reading). Each span has its leading article peeled.
+ */
 function maybeDeterministicManipulationIntent(
     input: ParseCommandInput
 ): ParseCommandObjectMembershipIntentResult | null {
-    const trimmed = input.command.trim()
-    if (!trimmed) {
+    const fills = matchPatternAgainstString(FAST_PATH_PATTERN, input.command).flatMap(({ captures: [verb, phrase] }): FastPathFill[] => (
+        verb?.kind === 'templateText' && phrase?.kind === 'objectPhrase'
+            ? [{
+                verb: verb.text,
+                option: verb.option,
+                rawHead: phrase.text,
+                head: peelLeadingArticleWhenTail(phrase.text),
+                links: phrase.links.map((link) => ({ ...link, span: peelLeadingArticleWhenTail(link.span) })),
+            }]
+            : []
+    ))
+    const uncut = fills.find(({ links }) => links.length === 0)
+    if (!uncut) {
         return null
     }
 
-    const acquireMatch = /^(take|get)\s+(.+)$/i.exec(trimmed)
-    const releaseMatch = /^drop\s+(.+)$/i.exec(trimmed)
-    const verbClass = acquireMatch ? 'acquire' as const : releaseMatch ? 'release' as const : undefined
-    const rawTail = acquireMatch?.[2] ?? releaseMatch?.[1]
-    if (!verbClass || !rawTail) {
+    if (uncut.option === 'take' && /^hold\b/i.test(uncut.rawHead)) {
         return null
     }
 
-    const tail = rawTail.trim()
-    if (!tail) {
-        return null
+    const labels = input.roomObjectLabels ?? []
+    const isLabel = (span: string): boolean => {
+        const normalizedSpan = normalizeExitName(span)
+        return normalizedSpan.length > 0 && labels.includes(normalizedSpan)
     }
+    const kept = isLabel(uncut.head)
+        ? uncut
+        : fills.reduce((best, fill) => (
+            fill.links.length > best.links.length
+            || (fill.links.length === best.links.length && prepositionWordCount(fill) > prepositionWordCount(best))
+                ? fill
+                : best
+        ))
 
-    if (acquireMatch?.[1].toLowerCase() === 'take' && /^hold\b/i.test(tail)) {
+    if (kept.option === 'get' && !isLabel(kept.head)) {
         return null
-    }
-
-    const rawObjectSpan = peelLeadingArticleWhenTail(tail)
-    if (!rawObjectSpan) {
-        return null
-    }
-
-    if (acquireMatch?.[1].toLowerCase() === 'get') {
-        const normalizedSpan = normalizeExitName(rawObjectSpan)
-        const labels = input.roomObjectLabels ?? []
-        if (!normalizedSpan || !labels.includes(normalizedSpan)) {
-            return null
-        }
     }
 
     return {
         type: 'ObjectMembershipIntent',
-        rawObjectSpans: [rawObjectSpan],
-        verbClass,
+        skeleton: [
+            { type: 'text', text: kept.verb },
+            { type: 'objectSpan', span: kept.head },
+            ...kept.links.flatMap(({ text, span }): ParseTokenDraft[] => [
+                { type: 'text', text },
+                { type: 'objectSpan', span },
+            ]),
+        ],
         confidence: 1,
     }
 }
@@ -122,6 +159,18 @@ export function deterministicIntentChecks(input: ParseCommandInput): ParseComman
         }
         return {
             type: 'CoyoteAffinitiesTest',
+            confidence: 1,
+            ...(parsed.harnessInvocation !== undefined ? { harnessInvocation: parsed.harnessInvocation } : {}),
+        }
+    }
+    if (isObjectManipulationParseTestSlashCommand(input.command)) {
+        const trimmed = input.command.trim()
+        const parsed = parseObjectManipulationParseTestSlashTail(trimmed, OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES.length)
+        if (!parsed.ok) {
+            return { type: 'Error', errorMessage: parsed.errorMessage }
+        }
+        return {
+            type: 'ObjectManipulationParseTest',
             confidence: 1,
             ...(parsed.harnessInvocation !== undefined ? { harnessInvocation: parsed.harnessInvocation } : {}),
         }

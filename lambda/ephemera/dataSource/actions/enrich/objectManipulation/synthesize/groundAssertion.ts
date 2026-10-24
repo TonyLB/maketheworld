@@ -8,8 +8,9 @@ import type { GroundedAssertion } from './executorTypes'
  * Grounds an `Assertion` (Plan's output) into a `GroundedAssertion`, the same substitution
  * `groundChange` applies to a `Change`: total over a complete
  * `ReferentAssignment`, throwing on a missing key rather than returning a result a caller
- * branches on. No shipped predicate emission reaches this today (`containedBy` unused) ---
- * kept in step with `groundChange`'s shape for when one does.
+ * branches on. Ids only: the form an executor lowering would take, and none exists yet (checking
+ * an assertion at commit is shelved). The dry run judges an assertion from `groundPlanStep`'s
+ * output instead, which keeps each referent's view and name.
  */
 export const groundAssertion = (
     assertion: Assertion,
@@ -23,6 +24,7 @@ export const groundAssertion = (
                 subjectId: groundSingleObjectId(assertion.subject, assignment),
                 objectId: groundSingleObjectId(assertion.object, assignment),
                 negate: assertion.negate,
+                ...(assertion.relation !== undefined ? { relation: assertion.relation } : {}),
             }
     }
 }

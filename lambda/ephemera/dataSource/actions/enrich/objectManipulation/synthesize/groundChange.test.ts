@@ -1,4 +1,4 @@
-import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import {
     actingCharacterRef,
@@ -8,8 +8,8 @@ import {
     objectSpanRef,
     withGroundedId,
 } from '../plan/planStep'
-import type { Change, ReferentAssignment } from '../plan/planStep'
-import { groundChange } from './groundChange'
+import type { Assertion, Change, ReferentAssignment } from '../plan/planStep'
+import { groundChange, groundPlanStep } from './groundChange'
 
 const CHARACTER_ID = 'CHARACTER#Alpha' as EphemeraCharacterId
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
@@ -129,5 +129,42 @@ describe('groundChange', () => {
         const assignment: ReferentAssignment = { spans: new Map(), derived: new Map() }
 
         expect(groundChange(change, assignment)).toEqual(change)
+    })
+})
+
+describe('groundPlanStep', () => {
+    it('grounds an assertion\'s referents in place, keeping the subject\'s view and name', () => {
+        const view = ['PRESENCE#lying' as EphemeraPresenceNodeId]
+        const assertion: Assertion = {
+            kind: 'assertion',
+            predicate: 'containedBy',
+            subject: { referentType: 'objectSpan', span: 'tray', stableRefKey: 'trayRef', shortName: 'tray', view },
+            object: objectSpanRef('table', 'tableRef'),
+            negate: false,
+            relation: 'On',
+        }
+        const assignment: ReferentAssignment = { spans: new Map([['trayRef', TRAY_ID], ['tableRef', TABLE_ID]]), derived: new Map() }
+
+        expect(groundPlanStep(assertion, assignment)).toEqual({
+            ...assertion,
+            subject: { ...assertion.subject, groundedId: TRAY_ID },
+            object: { ...assertion.object, groundedId: TABLE_ID },
+        })
+    })
+
+    it('grounds a change as groundChange does', () => {
+        const change: Change = {
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: objectSpanRef('tray', 'trayRef'),
+            from: currentHostRef(objectSpanRef('tray', 'trayRef')),
+            to: actingCharacterRef,
+        }
+        const assignment: ReferentAssignment = {
+            spans: new Map([['trayRef', TRAY_ID]]),
+            derived: new Map([['currentHost(span:trayRef)', ROOM_ID], ['actingCharacter', CHARACTER_ID]]),
+        }
+
+        expect(groundPlanStep(change, assignment)).toEqual(groundChange(change, assignment))
     })
 })
