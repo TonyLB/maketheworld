@@ -91,6 +91,29 @@ describe('planSkeleton', () => {
         ])
     })
 
+    it('plans "put cup on table in box" with the phrase on either side: the cup on the table into the box, or the cup onto the table in the box', () => {
+        const attempts = attemptsOf([
+            { type: 'text', text: 'put' },
+            { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+            { type: 'text', text: 'on' },
+            { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+            { type: 'text', text: 'in' },
+            { type: 'objectSpan', span: 'box', stableRefKey: 'boxRef' },
+        ])
+        const spanOf = (referent: object) => ('span' in referent ? referent.span : '?')
+        const readings = attempts.map((attempt) => attempt.actions().map(({ desiredResult }) => (
+            desiredResult?.kind === 'assertion'
+                ? `check ${spanOf(desiredResult.subject)} ${desiredResult.relation === 'In' ? 'in' : 'on'} ${spanOf(desiredResult.object)}`
+                : desiredResult?.kind === 'change' && desiredResult.primitive === 'transferMembership'
+                    ? `move ${spanOf(desiredResult.object)} to ${spanOf(desiredResult.to)}`
+                    : 'other'
+        )))
+        expect(readings.sort()).toEqual([
+            ['check cup on table', 'move cup to box'],
+            ['check table in box', 'move cup to table'],
+        ])
+    })
+
     it('plans "spread the rug over the table" as one spread: an extend, then a containment move of the new binding', () => {
         const attempts = attemptsOf(relationalSkeleton('spread', 'rug', 'over', 'table'))
         expect(attempts).toHaveLength(1)

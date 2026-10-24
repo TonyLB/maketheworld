@@ -1,6 +1,6 @@
 # Phrase coverage: articles, label spans, `look at`, `put` on the fast path, `drop` into
 
-**Status: Drafted 2026-10-24, not started. Slice 0 is next.** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). It is rung 13 of the iteration ladder in [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md), and builds on skeleton patterns (rung 12, shipped and retired 2026-10-24). It takes over these bullets under "Shelved: stacked qualifiers and `put`" in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md):
+**Status: Slice 0 shipped 2026-10-24; Slice 1 is next.** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). It is rung 13 of the iteration ladder in [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md), and builds on skeleton patterns (rung 12, shipped and retired 2026-10-24). It takes over these bullets under "Shelved: qualifiers and phrase shapes" in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md):
 - "Articles on the LLM route";
 - "A longer tail around a label that holds a preposition";
 - "`look at` with a qualifier";
@@ -38,18 +38,18 @@ Articles are separate, and are a correctness question first: nobody has checked 
   - It keeps the uncut fill when its head is a room label. Otherwise it keeps the fill with the most cuts, longest phrases first.
   - It returns one flat skeleton as `ObjectMembershipIntent`, which `parseCommand.ts` stamps and hands to Plan. `runObjectManipulationParseHarness.ts` also reads that type.
 - **The look template** (`plan/matchLookTemplate.ts`): `[look|l|examine|x, objectSpan]`. Bare `look`/`l` is intercepted earlier by `isBareLookCommand`. `look <object>` always takes the LLM route.
-- **The containment template** (`plan/matchContainmentTemplate.ts`): `PLACING_VERB_FORMS = { put, place }`. Its subject and target are object phrases, so a qualified destination (`put the cup on the table in the box`) already yields both readings; no test pins it.
+- **The containment template** (`plan/matchContainmentTemplate.ts`): `PLACING_VERB_FORMS = { put, place }`. Its subject and target are object phrases, so a qualified destination (`put the cup on the table in the box`) already yields both readings, pinned in `plan/planSkeleton.test.ts`.
 - **Drop** is a membership verb (`MEMBERSHIP_VERBS` in `plan/matchMembershipTemplate.ts`). Its tail reads as a qualifier, which the dry run refuses for a held cup.
 
 ## Recommended order
 
 Pending work uses `[ ]` and completed work `[X]`; mark nested lines `[X]` as each is done. Each slice leaves every other command's observable behavior as it was.
 
-- [ ] **Slice 0. Shelf cleanup.**
-  - [ ] The shelf's "A qualifier on a destination's phrase" is already built (see What exists). Pin it with a `planSkeleton.test.ts` case listing both readings of `put the cup on the table in the box`, and remove the bullet.
-  - [ ] "Naming a position by phrase" (under "Shelved: asking the player") says a three-span `put` finds no template. Correct it: the example fails because `over` is not a qualifier preposition.
-  - [ ] Rename the shelf heading to what it now holds (proposed: "Shelved: qualifiers and phrase shapes"). Fix the mentions in the ladder (rows 6 and 12, and the BD-24 row).
-  - [ ] Mark the bullets this plan takes over as owned by it, with a link.
+- [X] **Slice 0. Shelf cleanup.**
+  - [X] The shelf's "A qualifier on a destination's phrase" is already built (see What exists). Pinned, as observed, by a `planSkeleton.test.ts` case listing both readings of `put cup on table in box`; the bullet is removed.
+  - [X] "Naming a position by phrase" (under "Shelved: asking the player") said a three-span `put` finds no template. Corrected: the example is a two-span `put` whose destination holds no qualifier preposition (`of` and `over` are not in the closed set), so Identify gets it as one name.
+  - [X] The shelf heading is now "Shelved: qualifiers and phrase shapes". The mentions in the ladder (rows 6 and 12, and the BD-24 row), this plan, and the memory notes are renamed.
+  - [X] The five bullets this plan takes over are marked as owned by it, each with its slice and a link.
 - [ ] **Slice 1. Articles on every span.**
   - [ ] Probe first: a `parseCommand` test where the model returns `get | the cup`. Record whether Identify resolves it exactly, by the embedding rank, or not at all.
   - [ ] If it does not resolve exactly: peel articles in one place that serves both routes (see PA-1), and retire the fast path's own peel if that place covers it.
@@ -109,7 +109,7 @@ Per slice, from `lambda/ephemera/`: `npx tsc --noEmit` and `npm run test -- --wa
 
 | Slice | State | Files touched |
 | --- | --- | --- |
-| 0 | Not started | --- |
+| 0 | Done 2026-10-24 | `plan/planSkeleton.test.ts`; `actions/AGENT.implementation.md`; `AGENT.objectManipulationIterations.planning.md`; this plan |
 | 1 | Not started | --- |
 | 2 | Not started | --- |
 | 3 | Not started | --- |
