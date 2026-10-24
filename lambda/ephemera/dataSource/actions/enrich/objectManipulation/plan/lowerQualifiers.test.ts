@@ -1,8 +1,12 @@
 import { CommandAttempt } from '../../../commandAttempt'
 import type { ObjectSpanToken, ParseSkeleton, QualifierPreposition } from '../parse/parseToken'
 import { lowerQualifiers } from './lowerQualifiers'
-import { matchContainmentTemplate } from './matchContainmentTemplate'
-import { matchMembershipTemplate } from './matchMembershipTemplate'
+import { matchTemplate } from './attemptTemplateFixture'
+import { containmentTemplate } from './matchContainmentTemplate'
+import { membershipTemplate } from './matchMembershipTemplate'
+
+const matchContainmentTemplate = matchTemplate(containmentTemplate)
+const matchMembershipTemplate = matchTemplate(membershipTemplate)
 
 const span = (text: string, qualifier?: ObjectSpanToken['qualifier']): ObjectSpanToken => ({
     type: 'objectSpan',

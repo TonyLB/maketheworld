@@ -1,7 +1,9 @@
 import type { ParseSkeleton, ParseTokenDraft } from '../enrich/objectManipulation/parse/parseToken'
 import { stampStableRefKeys } from '../enrich/objectManipulation/parse/stampStableRefKeys'
 import type { ParseCommandResult } from '../baseClasses'
+import type { CommandAttempt } from '../commandAttempt'
 import type {
+    AttemptTemplate,
     DeterministicTemplate,
     DeterministicTemplateDeferReason,
     DeterministicTemplateMatch,
@@ -9,11 +11,16 @@ import type {
     PatternElement,
 } from './deterministicTemplate'
 
-/** What a single pattern element captured out of a successful match. */
+/**
+ * What a single pattern element captured out of a successful match. `text` is as typed; a
+ * `templateText` capture also names the option it matched, as written in the pattern. A `rest`
+ * capture's text is empty when nothing followed.
+ */
 export type PatternCapture =
-    | { elementIndex: number; kind: 'templateText'; text: string }
+    | { elementIndex: number; kind: 'templateText'; text: string; option: string }
     | { elementIndex: number; kind: 'objectSpan'; role: IntentFieldRole; text: string; stableRefKey?: string }
     | { elementIndex: number; kind: 'capturedText'; role: IntentFieldRole; text: string }
+    | { elementIndex: number; kind: 'rest'; text: string }
 
 /**
  * One way a pattern fits: the skeleton it builds (stamped, from a string match; the
@@ -35,7 +42,7 @@ function sameWords(left: string[], right: string[]): boolean {
  * `wordIndex` on, using up both. A `templateText` option must equal the next whole
  * words; a wildcard takes one or more words.
  */
-function fillWords(pattern: PatternElement[], words: string[], elementIndex: number, wordIndex: number): PatternCapture[][] {
+function fillWords(pattern: readonly PatternElement[], words: string[], elementIndex: number, wordIndex: number): PatternCapture[][] {
     if (elementIndex === pattern.length) {
         return wordIndex === words.length ? [[]] : []
     }
@@ -50,8 +57,11 @@ function fillWords(pattern: PatternElement[], words: string[], elementIndex: num
             if (optionWords.length === 0 || !sameWords(optionWords, words.slice(wordIndex, nextWordIndex))) {
                 return []
             }
-            return extend({ elementIndex, kind: 'templateText', text: words.slice(wordIndex, nextWordIndex).join(' ') }, nextWordIndex)
+            return extend({ elementIndex, kind: 'templateText', text: words.slice(wordIndex, nextWordIndex).join(' '), option }, nextWordIndex)
         })
+    }
+    if (element.type === 'rest') {
+        return extend({ elementIndex, kind: 'rest', text: words.slice(wordIndex).join(' ') }, words.length)
     }
     return words.slice(wordIndex).flatMap((_word, offset) => {
         const nextWordIndex = wordIndex + offset + 1
@@ -72,7 +82,7 @@ function fillWords(pattern: PatternElement[], words: string[], elementIndex: num
  * No order is promised. Fills that build the same skeleton are merged (duplicate
  * options, for instance).
  */
-export function matchPatternAgainstString(pattern: PatternElement[], command: string): PatternFill[] {
+export function matchPatternAgainstString(pattern: readonly PatternElement[], command: string): PatternFill[] {
     const fillsByKey = new Map<string, PatternFill>()
     for (const captures of fillWords(pattern, splitWords(command), 0, 0)) {
         const key = JSON.stringify(captures.map(({ kind, text }) => [kind, text]))
@@ -87,26 +97,33 @@ export function matchPatternAgainstString(pattern: PatternElement[], command: st
  * Positional walk of the pattern against an already-tokenized skeleton, one token per
  * element, so at most one fill. The model's segmentation binds: a `templateText`
  * option must equal the whole text token, ignoring case and spacing (never a word
- * inside a longer token), and a wildcard takes exactly one token. Length mismatch is
- * an immediate no match.
+ * inside a longer token), and a wildcard takes exactly one token. A trailing `rest` takes
+ * every token left, zero or more, its text the tokens' words joined. Otherwise a length
+ * mismatch is an immediate no match.
  */
-export function matchPatternAgainstTokens(pattern: PatternElement[], skeleton: ParseSkeleton): PatternFill[] {
-    if (pattern.length !== skeleton.length) {
+export function matchPatternAgainstTokens(pattern: readonly PatternElement[], skeleton: ParseSkeleton): PatternFill[] {
+    const hasRest = pattern[pattern.length - 1]?.type === 'rest'
+    const fixedLength = hasRest ? pattern.length - 1 : pattern.length
+    if (hasRest ? skeleton.length < fixedLength : skeleton.length !== fixedLength) {
         return []
     }
     const captures: PatternCapture[] = []
-    for (let elementIndex = 0; elementIndex < pattern.length; elementIndex += 1) {
+    for (let elementIndex = 0; elementIndex < fixedLength; elementIndex += 1) {
         const element = pattern[elementIndex]
         const token = skeleton[elementIndex]
+        if (element.type === 'rest') {
+            throw new Error('matchPatternAgainstTokens: a rest element must be the last')
+        }
         if (element.type === 'templateText') {
             if (token.type !== 'text') {
                 return []
             }
             const tokenWords = splitWords(token.text)
-            if (!element.options.some((option) => sameWords(splitWords(option), tokenWords))) {
+            const option = element.options.find((candidate) => sameWords(splitWords(candidate), tokenWords))
+            if (option === undefined) {
                 return []
             }
-            captures.push({ elementIndex, kind: 'templateText', text: token.text })
+            captures.push({ elementIndex, kind: 'templateText', text: token.text, option })
             continue
         }
         if (element.type === 'objectSpan') {
@@ -127,7 +144,19 @@ export function matchPatternAgainstTokens(pattern: PatternElement[], skeleton: P
         }
         captures.push({ elementIndex, kind: 'capturedText', role: element.role, text: token.text })
     }
+    if (hasRest) {
+        const text = skeleton.slice(fixedLength).map((token) => (token.type === 'objectSpan' ? token.span : token.text)).join(' ')
+        captures.push({ elementIndex: fixedLength, kind: 'rest', text })
+    }
     return [{ skeleton, captures }]
+}
+
+/**
+ * An object template's attempts for a skeleton: one per fill, each built from that fill's
+ * captures. Empty when the pattern does not fit.
+ */
+export function matchAttemptTemplate(template: AttemptTemplate, skeleton: ParseSkeleton, command: string): CommandAttempt[] {
+    return matchPatternAgainstTokens(template.pattern, skeleton).map(({ captures }) => template.build(captures, command))
 }
 
 /**
@@ -151,7 +180,8 @@ export function assembleIntent(templateIntent: Partial<ParseCommandResult>, capt
 
 /**
  * Walks matched elements and emits one ParseToken per element -- `objectSpan`
- * becomes an ObjectSpanToken, `templateText`/`capturedText` become a TextToken
+ * becomes an ObjectSpanToken, `templateText`/`capturedText` become a TextToken, and a
+ * non-empty `rest` becomes one TextToken (an empty one emits nothing),
  * holding the actually-matched text (not a canonicalized option), consistent with
  * this codebase's existing principle that tokens identify the actual occurrence,
  * not a canonical form (stampStableRefKeys.ts). Called on every fill of
@@ -160,13 +190,16 @@ export function assembleIntent(templateIntent: Partial<ParseCommandResult>, capt
  * objectSpan element lands. Captures are guaranteed parallel to pattern by both
  * engines, so index lookup (not a search) is safe.
  */
-export function synthesizeSkeletonFromPattern(pattern: PatternElement[], captures: PatternCapture[]): ParseSkeleton {
-    const draft: ParseTokenDraft[] = pattern.map((element, elementIndex) => {
+export function synthesizeSkeletonFromPattern(pattern: readonly PatternElement[], captures: PatternCapture[]): ParseSkeleton {
+    const draft: ParseTokenDraft[] = pattern.flatMap((element, elementIndex): ParseTokenDraft[] => {
         const capture = captures[elementIndex]
         if (element.type === 'objectSpan') {
-            return { type: 'objectSpan', span: capture.text }
+            return [{ type: 'objectSpan', span: capture.text }]
         }
-        return { type: 'text', text: capture.text }
+        if (element.type === 'rest' && capture.text.length === 0) {
+            return []
+        }
+        return [{ type: 'text', text: capture.text }]
     })
     return stampStableRefKeys(draft)
 }
@@ -193,7 +226,7 @@ function matchFromFills(fills: PatternFill[], templateIntent: Partial<ParseComma
  * factory at all.
  */
 export function makePatternTemplate(
-    pattern: PatternElement[],
+    pattern: readonly PatternElement[],
     templateIntent: Partial<ParseCommandResult>
 ): DeterministicTemplate {
     return {
@@ -215,7 +248,7 @@ export function makePatternTemplate(
  * fill exists; never produces `matched` or reads/assembles intent.
  */
 export function makeDeferPatternTemplate(
-    pattern: PatternElement[],
+    pattern: readonly PatternElement[],
     reason: DeterministicTemplateDeferReason
 ): DeterministicTemplate {
     return {

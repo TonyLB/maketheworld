@@ -37,7 +37,7 @@ export type ObjectSpanToken = ObjectSpanTokenDraft & {
 
 /**
  * A closed-set restricting preposition, canonical (the LLM's `out` reads as `out of`). Which
- * relation each records is `QUALIFIER_PREPOSITIONS` in `plan/groupSkeleton.ts`.
+ * relation each records is `QUALIFIER_PREPOSITIONS` in `plan/qualifierPrepositions.ts`.
  */
 export type QualifierPreposition = 'on' | 'on top of' | 'off' | 'in' | 'inside' | 'out of' | 'from'
 

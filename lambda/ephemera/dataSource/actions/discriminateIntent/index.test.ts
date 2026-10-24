@@ -25,7 +25,6 @@ describe('discriminateIntent', () => {
         expect(result).toEqual({
             type: 'ObjectMembershipIntent',
             skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'broom' }],
-            verbClass: 'acquire',
             confidence: 1,
         })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()

@@ -1,41 +1,24 @@
-import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
+import type { AttemptTemplate } from '../../../deterministicTemplate/deterministicTemplate'
 import { objectSpanRef } from './planStep'
 import { CommandAttempt } from '../../../commandAttempt'
 import { mintActionId, NarrateAttemptAction } from '../../../commandAttempt/action'
-
-const LOOK_VERBS = new Set(['look', 'l', 'examine', 'x'])
-
-export type LookTemplateMatchResult =
-    | { type: 'matched'; attempt: CommandAttempt }
-    | { type: 'noMatch' }
-
-function isTextToken(token: ParseToken): token is TextToken {
-    return token.type === 'text'
-}
+import { spanAt } from './templateCaptures'
 
 /**
- * Matches an object-directed look command's ParseSkeleton against the one closed
- * template shape this slice recognizes: TEXT(verb) OBJECTSPAN --- exactly 2 tokens.
- * No preposition/relation phrase (unlike the containment template) --- a describe
- * referent is singular with no relation to another referent. Only ever meaningful
- * once classify has already routed a command through Parse; this function does no
- * family/route detection itself.
+ * An object-directed look: a look verb and one span. No preposition/relation phrase (unlike the
+ * containment template) --- a describe referent is singular with no relation to another referent.
+ * Only ever meaningful once classify has already routed a command through Parse; the template does
+ * no family/route detection itself.
  */
-export function matchLookTemplate(skeleton: ParseSkeleton, command: string): LookTemplateMatchResult {
-    if (skeleton.length !== 2) {
-        return { type: 'noMatch' }
-    }
-    const [verbToken, objectToken] = skeleton
-    if (!isTextToken(verbToken) || objectToken.type !== 'objectSpan') {
-        return { type: 'noMatch' }
-    }
-
-    const normalizedVerb = verbToken.text.trim().toLowerCase()
-    if (!LOOK_VERBS.has(normalizedVerb)) {
-        return { type: 'noMatch' }
-    }
-
-    // Narration has no desired result, so the referent rides on the narration action itself.
-    const referent = objectSpanRef(objectToken.span, objectToken.stableRefKey)
-    return { type: 'matched', attempt: CommandAttempt.create(command, [new NarrateAttemptAction(mintActionId(), [], undefined, [referent])]) }
+export const lookTemplate: AttemptTemplate<'look'> = {
+    name: 'look',
+    pattern: [
+        { type: 'templateText', options: ['look', 'l', 'examine', 'x'] },
+        { type: 'objectSpan', role: 'subject' },
+    ],
+    build(captures, command) {
+        // Narration has no desired result, so the referent rides on the narration action itself.
+        const { span, stableRefKey } = spanAt(captures, 1)
+        return CommandAttempt.create(command, [new NarrateAttemptAction(mintActionId(), [], undefined, [objectSpanRef(span, stableRefKey)])])
+    },
 }

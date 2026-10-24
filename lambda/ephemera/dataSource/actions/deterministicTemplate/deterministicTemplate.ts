@@ -1,5 +1,7 @@
 import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
 import type { ParseCommandResult } from '../baseClasses'
+import type { CommandAttempt } from '../commandAttempt'
+import type { PatternCapture } from './patternTemplate'
 
 /**
  * Fields a matched pattern element can feed into a template's assembled intent.
@@ -20,12 +22,17 @@ export type IntentFieldRole = 'subject' | 'target' | 'relationLabel'
  * feeds both a skeleton token and an intent field. `capturedText` is a free-text
  * slot -- feeds a skeleton text token and an intent field like `objectSpan`, but
  * carries no referent/Identify semantics (for open-ended values, e.g. a custom
- * relation label with no closed vocabulary to match against).
+ * relation label with no closed vocabulary to match against). A `templateText` capture
+ * records which option matched (`option`), so a template whose words carry values (a verb's
+ * narration form, a preposition's relation) looks the value up in its own typed lexicon.
+ * `rest` is valid only as the last element: it takes whatever follows, zero or more words or
+ * tokens of any type, and no template reads it (a tail a template leaves unread).
  */
 export type PatternElement =
-    | { type: 'templateText'; options: string[] }
+    | { type: 'templateText'; options: readonly string[] }
     | { type: 'objectSpan'; role: IntentFieldRole }
     | { type: 'capturedText'; role: IntentFieldRole }
+    | { type: 'rest' }
 
 /**
  * No producer in this slice -- the first is Step 2's relational containment bucket
@@ -50,4 +57,16 @@ export type DeterministicTemplateMatch =
 export interface DeterministicTemplate {
     matchString(command: string): DeterministicTemplateMatch
     matchTokens(skeleton: ParseSkeleton): DeterministicTemplateMatch
+}
+
+/**
+ * The object templates' sibling of DeterministicTemplate: a pattern plus the function that builds
+ * the template's attempt from one fill's captures. The template file holds its shape, its words
+ * and its narration unit together. Matched by `matchAttemptTemplate` (patternTemplate.ts), one
+ * attempt per fill; Plan pools every template's attempts rather than taking the first match.
+ */
+export type AttemptTemplate<Name extends string = string> = {
+    name: Name
+    pattern: readonly PatternElement[]
+    build(captures: PatternCapture[], command: string): CommandAttempt
 }

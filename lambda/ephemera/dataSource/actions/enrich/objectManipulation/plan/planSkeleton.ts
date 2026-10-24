@@ -1,11 +1,12 @@
 import type { ParseSkeleton } from '../parse/parseToken'
 import type { CommandAttempt } from '../../../commandAttempt'
 import { groupSkeleton } from './groupSkeleton'
+import { matchAttemptTemplate } from '../../../deterministicTemplate/patternTemplate'
 import { lowerQualifiers } from './lowerQualifiers'
-import { matchContainmentTemplate } from './matchContainmentTemplate'
-import { matchLookTemplate } from './matchLookTemplate'
-import { matchMembershipTemplate } from './matchMembershipTemplate'
-import { matchSpreadTemplate } from './matchSpreadTemplate'
+import { containmentTemplate } from './matchContainmentTemplate'
+import { lookTemplate } from './matchLookTemplate'
+import { membershipTemplate } from './matchMembershipTemplate'
+import { spreadTemplate } from './matchSpreadTemplate'
 
 export type PlanSkeletonResult =
     /** Every template's ungrounded attempts, in template order (containment, spread, look, membership). Empty: no object route. */
@@ -26,7 +27,10 @@ export function planSkeleton(skeleton: ParseSkeleton, command: string): PlanSkel
     return { type: 'attempts', attempts }
 }
 
-export type PlanTemplateName = 'containment' | 'spread' | 'look' | 'membership'
+/** The object templates, in order: the first attempt is the primary one. */
+const PLAN_TEMPLATES = [containmentTemplate, spreadTemplate, lookTemplate, membershipTemplate] as const
+
+export type PlanTemplateName = typeof PLAN_TEMPLATES[number]['name']
 
 /** One template's answer for a skeleton: its attempt, or none when it did not match. */
 export type PlanTemplateMatch = { template: PlanTemplateName; attempt?: CommandAttempt }
@@ -38,15 +42,10 @@ export type PlanTemplateMatch = { template: PlanTemplateName; attempt?: CommandA
  * actions (`lowerQualifiers`); every reading's answers are pooled.
  */
 export function matchPlanTemplates(skeleton: ParseSkeleton, command: string): PlanTemplateMatch[] {
-    return groupSkeleton(skeleton).flatMap((reading) => {
-        const results = [
-            { template: 'containment', result: matchContainmentTemplate(reading, command) },
-            { template: 'spread', result: matchSpreadTemplate(reading, command) },
-            { template: 'look', result: matchLookTemplate(reading, command) },
-            { template: 'membership', result: matchMembershipTemplate(reading, command) },
-        ] as const
-        return results.map(({ template, result }): PlanTemplateMatch => (
-            result.type === 'matched' ? { template, attempt: lowerQualifiers(result.attempt, reading) } : { template }
-        ))
-    })
+    return groupSkeleton(skeleton).flatMap((reading) => PLAN_TEMPLATES.flatMap((template): PlanTemplateMatch[] => {
+        const attempts = matchAttemptTemplate(template, reading, command)
+        return attempts.length === 0
+            ? [{ template: template.name }]
+            : attempts.map((attempt) => ({ template: template.name, attempt: lowerQualifiers(attempt, reading) }))
+    }))
 }

@@ -142,6 +142,20 @@ describe('matchPatternAgainstString', () => {
         expect(matchPatternAgainstString(pattern, 'red cup box')).toHaveLength(2)
     })
 
+    it('a trailing rest takes the words left, and synthesizes one text token only when there are some', () => {
+        const pattern: PatternElement[] = [
+            { type: 'templateText', options: ['drop'] },
+            { type: 'objectSpan', role: 'subject' },
+            { type: 'rest' },
+        ]
+        const tails = matchPatternAgainstString(pattern, 'drop cup in box').map((fill) => fill.captures[2]!.text)
+        expect(tails.sort()).toEqual(['', 'box', 'in box'])
+        const [whole] = matchPatternAgainstString(pattern, 'drop cup in box').filter((fill) => fill.captures[2]!.text === '')
+        expect(whole.skeleton.map((token) => token.type)).toEqual(['text', 'objectSpan'])
+        const [split] = matchPatternAgainstString(pattern, 'drop cup in box').filter((fill) => fill.captures[2]!.text === 'in box')
+        expect(split.skeleton.map((token) => token.type)).toEqual(['text', 'objectSpan', 'text'])
+    })
+
     it('stamps each fill\'s skeleton', () => {
         const pattern: PatternElement[] = [
             { type: 'templateText', options: ['take'] },
@@ -237,6 +251,43 @@ describe('matchPatternAgainstTokens', () => {
         expect(matchPatternAgainstTokens(pattern, skeleton('hurriedly into'))).toEqual([])
         expect(matchPatternAgainstTokens(pattern, skeleton(' On  top OF '))).toHaveLength(1)
     })
+
+    it('names the option a fixed word matched, as the pattern writes it, beside the text as typed', () => {
+        const pattern: PatternElement[] = [{ type: 'templateText', options: ['look', 'on top of'] }]
+        const [fill] = matchPatternAgainstTokens(pattern, [{ type: 'text', text: ' On  top OF ' }])
+        expect(fill.captures[0]).toEqual({ elementIndex: 0, kind: 'templateText', text: ' On  top OF ', option: 'on top of' })
+    })
+
+    describe('a trailing rest', () => {
+        const pattern: PatternElement[] = [
+            { type: 'templateText', options: ['drop'] },
+            { type: 'objectSpan', role: 'subject' },
+            { type: 'rest' },
+        ]
+
+        it('takes nothing when nothing follows', () => {
+            const [fill, ...others] = matchPatternAgainstTokens(pattern, [
+                { type: 'text', text: 'drop' },
+                { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+            ])
+            expect(others).toEqual([])
+            expect(fill.captures[2]).toEqual({ elementIndex: 2, kind: 'rest', text: '' })
+        })
+
+        it('takes every token left, of any type', () => {
+            const [fill] = matchPatternAgainstTokens(pattern, [
+                { type: 'text', text: 'drop' },
+                { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+                { type: 'text', text: 'in' },
+                { type: 'objectSpan', span: 'box', stableRefKey: 'boxRef' },
+            ])
+            expect(captureTexts(fill)).toEqual(['drop', 'cup', 'in box'])
+        })
+
+        it('still needs the elements before it', () => {
+            expect(matchPatternAgainstTokens(pattern, [{ type: 'text', text: 'drop' }])).toEqual([])
+        })
+    })
 })
 
 describe('assembleIntent', () => {
@@ -247,7 +298,7 @@ describe('assembleIntent', () => {
 
     it('merges role-tagged objectSpan/capturedText captures into the constant', () => {
         const captures: PatternCapture[] = [
-            { elementIndex: 0, kind: 'templateText', text: 'put' },
+            { elementIndex: 0, kind: 'templateText', text: 'put', option: 'put' },
             { elementIndex: 1, kind: 'objectSpan', role: 'subject', text: 'bag' },
         ]
         const intent = assembleIntent({ type: 'ObjectRelateIntent', confidence: 1 }, captures)
@@ -255,7 +306,7 @@ describe('assembleIntent', () => {
     })
 
     it('templateText captures contribute nothing to the assembled intent', () => {
-        const captures: PatternCapture[] = [{ elementIndex: 0, kind: 'templateText', text: 'look' }]
+        const captures: PatternCapture[] = [{ elementIndex: 0, kind: 'templateText', text: 'look', option: 'look' }]
         const intent = assembleIntent({ type: 'LookRoom', confidence: 1 }, captures)
         expect(intent).toEqual({ type: 'LookRoom', confidence: 1 })
     })
@@ -264,7 +315,7 @@ describe('assembleIntent', () => {
 describe('synthesizeSkeletonFromPattern', () => {
     it('emits a single TextToken holding the matched word for a pure templateText pattern', () => {
         const pattern: PatternElement[] = [{ type: 'templateText', options: ['look', 'l'] }]
-        const captures: PatternCapture[] = [{ elementIndex: 0, kind: 'templateText', text: 'l' }]
+        const captures: PatternCapture[] = [{ elementIndex: 0, kind: 'templateText', text: 'l', option: 'l' }]
         expect(synthesizeSkeletonFromPattern(pattern, captures)).toEqual([{ type: 'text', text: 'l' }])
     })
 
@@ -274,7 +325,7 @@ describe('synthesizeSkeletonFromPattern', () => {
             { type: 'objectSpan', role: 'subject' },
         ]
         const captures: PatternCapture[] = [
-            { elementIndex: 0, kind: 'templateText', text: 'take' },
+            { elementIndex: 0, kind: 'templateText', text: 'take', option: 'take' },
             { elementIndex: 1, kind: 'objectSpan', role: 'subject', text: 'red ball' },
         ]
         const skeleton = synthesizeSkeletonFromPattern(pattern, captures)
@@ -297,14 +348,13 @@ describe('makePatternTemplate', () => {
                 { type: 'templateText', options: ['take'] },
                 { type: 'objectSpan', role: 'subject' },
             ],
-            { type: 'ObjectMembershipIntent', verbClass: 'acquire', skeleton: [], confidence: 1 }
+            { type: 'ObjectMembershipIntent', skeleton: [], confidence: 1 }
         )
 
         const stringResult = template.matchString('take red ball')
         if (stringResult.type !== 'matched') throw new Error('expected matched via matchString')
         expect(stringResult.intent).toEqual({
             type: 'ObjectMembershipIntent',
-            verbClass: 'acquire',
             skeleton: [],
             confidence: 1,
             subject: 'red ball',
@@ -317,7 +367,6 @@ describe('makePatternTemplate', () => {
         if (tokenResult.type !== 'matched') throw new Error('expected matched via matchTokens')
         expect(tokenResult.intent).toEqual({
             type: 'ObjectMembershipIntent',
-            verbClass: 'acquire',
             skeleton: [],
             confidence: 1,
             subject: 'red ball',

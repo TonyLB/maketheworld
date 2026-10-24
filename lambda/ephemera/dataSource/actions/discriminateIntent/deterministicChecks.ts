@@ -58,9 +58,8 @@ function maybeDeterministicManipulationIntent(
 
     const acquireMatch = /^(take|get)\s+(.+)$/i.exec(trimmed)
     const releaseMatch = /^drop\s+(.+)$/i.exec(trimmed)
-    const verbClass = acquireMatch ? 'acquire' as const : releaseMatch ? 'release' as const : undefined
     const rawTail = acquireMatch?.[2] ?? releaseMatch?.[1]
-    if (!verbClass || !rawTail) {
+    if (!rawTail) {
         return null
     }
 
@@ -102,7 +101,6 @@ function maybeDeterministicManipulationIntent(
                 { type: 'objectSpan', span },
             ]),
         ],
-        verbClass,
         confidence: 1,
     }
 }

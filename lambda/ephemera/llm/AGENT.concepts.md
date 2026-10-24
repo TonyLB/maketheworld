@@ -71,7 +71,7 @@ Validated handoff **to** an LLM and closed-world input **for** deterministic cod
 
 ## Field ownership (semantic job assignment)
 
-Every semantic field has **one owning stage** --- the stage that performs the **semantic job** for that field's meaning. This is a **seam** rule: who may conclude `verbClass`, relational `operationKind`, referential grounding, etc.
+Every semantic field has **one owning stage** --- the stage that performs the **semantic job** for that field's meaning. This is a **seam** rule: who may conclude membership direction, relational `operationKind`, referential grounding, etc.
 
 Downstream stages **must not invent** upstream semantics (no phrase-bucket fill-in). They **may**:
 
@@ -89,7 +89,7 @@ A deterministic short-circuit **at the owning stage** is allowed when closed-wor
 - **Trusted-output:** fast path emits the **same commit artifact** and passes the **same terminal guards** as the semantic-reasoning path would (e.g. one `objectId` or resolve Error).
 - **Fault-tolerant:** fast path emits the **same provisional artifact shape** the owner uses in that mode (e.g. ranked shortlist + confidence, or high-confidence single pick with validation still allowed). Exact shapes are feature-owned; document them per hop.
 
-- **OK (membership):** `get bag` in [`discriminateIntent/deterministicChecks.ts`](../dataSource/actions/discriminateIntent/deterministicChecks.ts) --- classify still owns `verbClass` / `objectSpans`; Bedrock is skipped because `get`/`take`/`drop` + noun is a closed template (with label gate for `get` vs AcmeOrder).
+- **OK (membership):** `get bag` in [`discriminateIntent/deterministicChecks.ts`](../dataSource/actions/discriminateIntent/deterministicChecks.ts) --- it emits the same flat skeleton Parse would, and Plan's membership template still reads the direction from the verb; Bedrock is skipped because `get`/`take`/`drop` + noun is a closed template (with label gate for `get` vs AcmeOrder).
 - **OK (relational):** relational `operationKind` belongs to the **Plan** stage. No deterministic template concludes it today; BD-19's plan-only / joint LLM fallback (iteration 2, not yet built) is the one realization, and it is the same owner, not a new one. The compiler never concludes it.
 - **Violation:** the compiler inventing `operationKind` from phrase-buckets to fill a gap Plan left --- no owner, wrong stage. (The distinction from the relational OK case: closed enumerated set + positive-match-required + abstain-on-miss, at the owning stage --- not "unrecognized verb defaults to establish" in a downstream compiler.)
 
@@ -99,7 +99,7 @@ A deterministic short-circuit **at the owning stage** is allowed when closed-wor
 
 **Seam rule:** semantic fast paths in deterministic code may prove **positive** results on match:
 
-> `get bag` matches the closed template, therefore `ObjectMembershipIntent` + `verbClass: acquire` + `objectSpans: ['bag']`.
+> `get bag` matches the closed template, therefore `ObjectMembershipIntent` with the flat skeleton `get | bag`.
 
 They **must not** prove **negative** results from non-match:
 

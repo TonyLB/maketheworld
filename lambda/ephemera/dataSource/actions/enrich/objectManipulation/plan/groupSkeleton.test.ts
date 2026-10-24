@@ -1,5 +1,5 @@
 import type { ParseSkeleton } from '../parse/parseToken'
-import { groupSkeleton, matchQualifierPreposition, QUALIFIER_PHRASES } from './groupSkeleton'
+import { groupSkeleton } from './groupSkeleton'
 
 const flat = (verb: string, head: string, preposition: string, host: string): ParseSkeleton => [
     { type: 'text', text: verb },
@@ -7,30 +7,6 @@ const flat = (verb: string, head: string, preposition: string, host: string): Pa
     { type: 'text', text: preposition },
     { type: 'objectSpan', span: host, stableRefKey: 'hostRef' },
 ]
-
-describe('matchQualifierPreposition', () => {
-    it.each([
-        ['on', 'on'],
-        ['on top of', 'on top of'],
-        ['off', 'off'],
-        ['in', 'in'],
-        ['inside', 'inside'],
-        ['out of', 'out of'],
-        ['out', 'out of'],
-        ['from', 'from'],
-        ['  On   Top  OF ', 'on top of'],
-    ])('reads "%s" as %s', (text, expected) => {
-        expect(matchQualifierPreposition(text)).toBe(expected)
-    })
-
-    it.each(['onto', 'into', 'under', 'of', 'with', 'hurriedly from'])('reads "%s" as no qualifier', (text) => {
-        expect(matchQualifierPreposition(text)).toBeUndefined()
-    })
-
-    it('lists multi-word phrases first, for a split inside free text', () => {
-        expect(QUALIFIER_PHRASES.slice(0, 2)).toEqual(['on top of', 'out of'])
-    })
-})
 
 describe('groupSkeleton', () => {
     it.each([

@@ -30,7 +30,7 @@ Affordance refresh on membership placement change reuses the existing **`Object 
 
 | Stage | Artifact |
 | --- | --- |
-| Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: acquire`** (no **`operationKind`** at classify) |
+| Classify | **`ObjectMembershipIntent`** + raw object span(s); Plan's membership template reads take/get as a take (no **`operationKind`** at classify) |
 | Enrich | **`compileAttemptsFromSkeleton`** (ISS8203 slice 3): merged identity -> shared producer -> transfer preconditions -> selection (no complexity LLM); atomic path yields **`operationKind: takeHold`** |
 | Egress | **`Object Take Hold`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) -> [`planObjectMoveTransfer`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) |
@@ -65,7 +65,7 @@ Implementation: [`matchMembershipTemplate.ts`](../dataSource/actions/enrich/obje
 
 | Stage | Artifact |
 | --- | --- |
-| Classify | **`ObjectMembershipIntent`** + raw object span(s) + **`verbClass: release`**; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
+| Classify | **`ObjectMembershipIntent`** + raw object span(s); Plan's membership template reads drop as a drop; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
 | Enrich | **`compileAttemptsFromSkeleton`** (ISS8203 slice 3): merged identity -> shared producer -> transfer preconditions -> selection (no complexity LLM); in-room-only + release language -> **`notCarryingObject`**; atomic path yields **`operationKind: drop`** |
 | Egress | **`Object Drop`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) --- the same entry point as `takeHold`, host pair reversed |
@@ -102,7 +102,7 @@ Copy is **deterministic template** (no copy-generating LLM hop): the narration u
 
 | Stage | Artifact |
 | --- | --- |
-| Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
+| Classify | **`ObjectRelateIntent`** + raw object span(s) |
 | Enrich | Parse skeleton -> Plan's LLM fallback (**`operationKind: establishRelation`**, not yet built) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
 | Egress | **`Object Establish Relation`** stream (`characterId`, `subjectId`, `targetId`, `roomId`, `relationKind`, optional `relationLabel`) |
 | Apply | [`applyObjectRelationalChange`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectEstablishRelation`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) -> **`applyHostRelationalPatch`** (`op: 'add'`) |
@@ -137,7 +137,7 @@ Implementation: [`expandBoundaryChallenges.ts`](../dataSource/actions/commandAtt
 
 | Stage | Artifact |
 | --- | --- |
-| Classify | **`ObjectRelateIntent`** + raw object span(s) (no **`verbClass`**) |
+| Classify | **`ObjectRelateIntent`** + raw object span(s) |
 | Enrich | Parse skeleton -> Plan's LLM fallback (**`operationKind: dissolveRelation`**, not yet built) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
 | Egress | **`Object Dissolve Relation`** stream (same payload shape as establish) |
 | Apply | [`executeEstablishEdgeChain`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) (shared with establish) -> `commitStepSequence` (`op: 'remove'`) |

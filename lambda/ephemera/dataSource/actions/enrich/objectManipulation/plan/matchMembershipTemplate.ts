@@ -1,5 +1,4 @@
-import type { ParseSkeleton, ParseToken, TextToken } from '../parse/parseToken'
-import type { ManipulationVerbClass } from '../../../baseClasses'
+import type { AttemptTemplate } from '../../../deterministicTemplate/deterministicTemplate'
 import { CommandAttempt } from '../../../commandAttempt'
 import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/action'
 import type { NarrationUnit } from '../../../commandAttempt/narrationUnit'
@@ -9,10 +8,14 @@ import {
     objectSpanRef,
     type TransferMembershipChange,
 } from './planStep'
+import { optionAt, spanAt } from './templateCaptures'
 
-export type MembershipTemplateMatchResult =
-    | { type: 'matched'; attempt: CommandAttempt; verbClass: ManipulationVerbClass }
-    | { type: 'noMatch' }
+/** The membership verbs, each with the operation it plans and the narration it reads: `take` and `get` both read "picks up". */
+const MEMBERSHIP_VERBS: Readonly<Record<string, { operationKind: 'takeHold' | 'drop'; narration: string }>> = {
+    take: { operationKind: 'takeHold', narration: ' picks up ' },
+    get: { operationKind: 'takeHold', narration: ' picks up ' },
+    drop: { operationKind: 'drop', narration: ' drops ' },
+}
 
 /**
  * Plan's half of a membership attempt: depends only on the operation and the object phrase. A take
@@ -31,52 +34,36 @@ export const planMembershipDesiredResult = (
     to: operationKind === 'takeHold' ? actingCharacterRef : currentHostRef(actingCharacterRef),
 })
 
-function isTextToken(token: ParseToken): token is TextToken {
-    return token.type === 'text'
-}
-
 /**
- * Matches a membership command by its leading verb: `take`/`get` acquire, `drop` releases.
- * Runs after the containment and look templates. A trailing tail is not read here: a qualifier
- * (`take X off Y`) arrives grouped onto the span (`groupSkeleton`) and is lowered to an assertion
- * after this template (`lowerQualifiers`); a tail left flat (a drop's) is refused by the producer's
- * BD-20 gate as an unread span. The span is the first object span, or empty when the command has none.
+ * A membership command: `take`/`get` acquire, `drop` releases, the object is the span after the
+ * verb, and whatever follows is not read here (`rest`). Runs after the containment and look
+ * templates. A qualifier (`take X off Y`) arrives grouped onto the span (`groupSkeleton`) and is
+ * lowered to an assertion after this template (`lowerQualifiers`); a tail left flat (a drop's) is
+ * refused by the producer's BD-20 gate as an unread span.
  *
- * The template created the action, so it authors its narration unit: one line per verb class
- * (`take` and `get` both read "picks up"), to everyone who can see the actor or the object, before
- * the move.
+ * The template created the action, so it authors its narration unit: one line per verb class,
+ * to everyone who can see the actor or the object, before the move.
  */
-export function matchMembershipTemplate(skeleton: ParseSkeleton, command: string): MembershipTemplateMatchResult {
-    const [firstToken] = skeleton
-    if (!firstToken || !isTextToken(firstToken)) {
-        return { type: 'noMatch' }
-    }
-    const leadingVerb = firstToken.text.trim().toLowerCase()
-    const verbClass: ManipulationVerbClass | undefined =
-        leadingVerb === 'take' || leadingVerb === 'get' ? 'acquire'
-            : leadingVerb === 'drop' ? 'release'
-                : undefined
-    if (!verbClass) {
-        return { type: 'noMatch' }
-    }
-    const spanToken = skeleton.find((token) => token.type === 'objectSpan')
-    const span = spanToken?.type === 'objectSpan' ? spanToken.span : ''
-    // The key Parse stamped on the span (its occurrence), so Identify and Grounding find it by key.
-    const refKey = spanToken?.type === 'objectSpan' ? spanToken.stableRefKey : 'primaryObject'
-    const operationKind = verbClass === 'acquire' ? 'takeHold' : 'drop'
-    const actionId = mintActionId()
-    const narrationUnit: NarrationUnit = {
-        covers: [actionId],
-        variants: [{
-            audience: { refs: ['actor', refKey], phase: 'before' },
-            parts: [{ slot: 'actor' }, { text: verbClass === 'acquire' ? ' picks up ' : ' drops ' }, { ref: refKey }],
-        }],
-    }
-    return {
-        type: 'matched',
-        verbClass,
-        attempt: CommandAttempt.create(command, [
-            new PositionAttemptAction(actionId, [], planMembershipDesiredResult(operationKind, span, refKey)),
-        ], [narrationUnit]),
-    }
+export const membershipTemplate: AttemptTemplate<'membership'> = {
+    name: 'membership',
+    pattern: [
+        { type: 'templateText', options: Object.keys(MEMBERSHIP_VERBS) },
+        { type: 'objectSpan', role: 'subject' },
+        { type: 'rest' },
+    ],
+    build(captures, command) {
+        const { operationKind, narration } = MEMBERSHIP_VERBS[optionAt(captures, 0)]
+        const { span, stableRefKey } = spanAt(captures, 1)
+        const actionId = mintActionId()
+        const narrationUnit: NarrationUnit = {
+            covers: [actionId],
+            variants: [{
+                audience: { refs: ['actor', stableRefKey], phase: 'before' },
+                parts: [{ slot: 'actor' }, { text: narration }, { ref: stableRefKey }],
+            }],
+        }
+        return CommandAttempt.create(command, [
+            new PositionAttemptAction(actionId, [], planMembershipDesiredResult(operationKind, span, stableRefKey)),
+        ], [narrationUnit])
+    },
 }

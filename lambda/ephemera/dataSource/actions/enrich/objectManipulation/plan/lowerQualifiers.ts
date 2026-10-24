@@ -2,7 +2,7 @@ import { CommandAttempt } from '../../../commandAttempt'
 import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/action'
 import { objectSpansIn } from '../../../commandAttempt/referent'
 import type { ObjectSpanToken, ParseSkeleton } from '../parse/parseToken'
-import { QUALIFIER_PREPOSITIONS } from './groupSkeleton'
+import { QUALIFIER_PREPOSITIONS } from './qualifierPrepositions'
 import { objectSpanRef, type ContainedByAssertion } from './planStep'
 
 /** A span's qualifier as its assertion actions: `containedBy(span, host)`, then the host's own qualifier, if any. */

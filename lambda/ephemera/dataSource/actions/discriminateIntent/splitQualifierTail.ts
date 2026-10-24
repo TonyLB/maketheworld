@@ -1,4 +1,4 @@
-import { QUALIFIER_PHRASES } from '../enrich/objectManipulation/plan/groupSkeleton'
+import { QUALIFIER_PHRASES } from '../enrich/objectManipulation/plan/qualifierPrepositions'
 import { peelLeadingArticleWhenTail } from './peelLeadingArticleWhenTail'
 
 /** One closed-set preposition and the piece after it, up to the next split point. */

@@ -199,13 +199,11 @@ describe('deterministicIntentChecks', () => {
             expect(deterministicIntentChecks({ command: 'take broom' })).toEqual({
                 type: 'ObjectMembershipIntent',
                 skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'broom' }],
-                verbClass: 'acquire',
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: '  DROP   the rope  ' })).toEqual({
                 type: 'ObjectMembershipIntent',
                 skeleton: [{ type: 'text', text: 'DROP' }, { type: 'objectSpan', span: 'rope' }],
-                verbClass: 'release',
                 confidence: 1,
             })
             expect(deterministicIntentChecks({
@@ -214,7 +212,6 @@ describe('deterministicIntentChecks', () => {
             })).toEqual({
                 type: 'ObjectMembershipIntent',
                 skeleton: [{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'broom' }],
-                verbClass: 'acquire',
                 confidence: 1,
             })
         })
@@ -238,7 +235,6 @@ describe('deterministicIntentChecks', () => {
             expect(deterministicIntentChecks({ command: 'take an apple' })).toEqual({
                 type: 'ObjectMembershipIntent',
                 skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'apple' }],
-                verbClass: 'acquire',
                 confidence: 1,
             })
             expect(deterministicIntentChecks({
@@ -247,13 +243,11 @@ describe('deterministicIntentChecks', () => {
             })).toEqual({
                 type: 'ObjectMembershipIntent',
                 skeleton: [{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'broom' }],
-                verbClass: 'acquire',
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: 'drop some rope' })).toEqual({
                 type: 'ObjectMembershipIntent',
                 skeleton: [{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'rope' }],
-                verbClass: 'release',
                 confidence: 1,
             })
         })
@@ -262,13 +256,11 @@ describe('deterministicIntentChecks', () => {
             expect(deterministicIntentChecks({ command: 'take a' })).toEqual({
                 type: 'ObjectMembershipIntent',
                 skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'a' }],
-                verbClass: 'acquire',
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: 'drop the' })).toEqual({
                 type: 'ObjectMembershipIntent',
                 skeleton: [{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'the' }],
-                verbClass: 'release',
                 confidence: 1,
             })
         })
