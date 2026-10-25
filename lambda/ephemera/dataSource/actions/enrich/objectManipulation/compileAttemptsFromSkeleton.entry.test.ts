@@ -87,8 +87,7 @@ describe('compileAttemptsFromSkeleton', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put the broom under the table',
-                skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
-                attempts: [peerRelationFixture('put the broom under the table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })],
+                fills: [{ skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), attempts: [peerRelationFixture('put the broom under the table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })] }],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: relationalCatalog,
@@ -122,8 +121,7 @@ describe('compileAttemptsFromSkeleton', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'wrap the string around the top',
-                skeleton: relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'),
-                attempts: [peerRelationFixture('wrap the string around the top', relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })],
+                fills: [{ skeleton: relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'), attempts: [peerRelationFixture('wrap the string around the top', relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })] }],
                 characterId,
                 hostRoomId: roomId,
                 heldInventoryCatalog: [
@@ -162,8 +160,7 @@ describe('compileAttemptsFromSkeleton', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'lean rope against anvil',
-                skeleton: relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'),
-                attempts: [peerRelationFixture('lean rope against anvil', relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'against' })],
+                fills: [{ skeleton: relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'), attempts: [peerRelationFixture('lean rope against anvil', relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'against' })] }],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: anvilCatalog,
@@ -193,8 +190,7 @@ describe('compileAttemptsFromSkeleton', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'tie cord around crate',
-                skeleton: relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'),
-                attempts: [peerRelationFixture('tie cord around crate', relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })],
+                fills: [{ skeleton: relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'), attempts: [peerRelationFixture('tie cord around crate', relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })] }],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -233,8 +229,7 @@ describe('compileAttemptsFromSkeleton', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'take rope off crate',
-                skeleton: relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'),
-                attempts: [peerRelationFixture('take rope off crate', relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'), { primitive: 'dissolveRelation', relationKind: 'Custom', relationLabel: 'off' })],
+                fills: [{ skeleton: relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'), attempts: [peerRelationFixture('take rope off crate', relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'), { primitive: 'dissolveRelation', relationKind: 'Custom', relationLabel: 'off' })] }],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -280,8 +275,7 @@ describe('compileAttemptsFromSkeleton', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'lean the ladder leaning against the wall',
-                skeleton: relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'),
-                attempts: [peerRelationFixture('lean the ladder leaning against the wall', relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'against' })],
+                fills: [{ skeleton: relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'), attempts: [peerRelationFixture('lean the ladder leaning against the wall', relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'against' })] }],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -329,8 +323,7 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'look broom',
-                skeleton: lookSkeleton,
-                attempts: [planned(takeSkeleton), planned(lookSkeleton)],
+                fills: [{ skeleton: lookSkeleton, attempts: [planned(takeSkeleton), planned(lookSkeleton)] }],
                 characterId,
                 roomObjectCatalog: catalog,
             },
@@ -347,8 +340,7 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'look broom',
-                skeleton: lookSkeleton,
-                attempts: [peerRelationFixture('look broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' }), planned(lookSkeleton)],
+                fills: [{ skeleton: lookSkeleton, attempts: [peerRelationFixture('look broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' }), planned(lookSkeleton)] }],
                 characterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: relationalCatalog,
@@ -369,8 +361,7 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'take broom',
-                skeleton: takeSkeleton,
-                attempts: [planned(takeSkeleton), peerRelationFixture('take broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })],
+                fills: [{ skeleton: takeSkeleton, attempts: [planned(takeSkeleton), peerRelationFixture('take broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })] }],
                 characterId,
                 roomObjectCatalog: relationalCatalog,
             },

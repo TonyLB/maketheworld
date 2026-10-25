@@ -2,7 +2,7 @@ import type { CommandAttemptData } from '../commandAttempt'
 import type { VerdictData } from '../commandAttempt/verdict'
 import { isCommandAttemptData, isVerdictData } from '../commandAttempt/adjudicate'
 import { isViewAnswer, type ViewAnswer } from '../objectViews'
-import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
+import type { SkeletonFill } from '../enrich/objectManipulation/compileAttemptsFromSkeleton'
 
 /**
  * Plan's output, frozen: everything up to and including Plan reads only the command text, so
@@ -11,8 +11,8 @@ import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToke
  */
 export type PersistentCommandRoot = {
     command: string
-    skeleton: ParseSkeleton
-    attempts: CommandAttemptData[]
+    /** Every segmentation Plan read and its attempts (PA-2 (b)): one on the LLM route, every fill on the fast path. */
+    fills: SkeletonFill<CommandAttemptData>[]
     confidence: number
 }
 
@@ -93,11 +93,16 @@ const isRecordOf = (check: (value: unknown) => boolean) => (value: unknown): boo
     isRecord(value) && Object.values(value).every(check)
 )
 
+const isSkeletonFillData = (value: unknown): value is SkeletonFill<CommandAttemptData> => (
+    isRecord(value)
+    && Array.isArray(value.skeleton) && value.skeleton.every(isParseToken)
+    && Array.isArray(value.attempts) && value.attempts.every(isCommandAttemptData)
+)
+
 export const isPersistentCommandRoot =(value: unknown): value is PersistentCommandRoot => (
     isRecord(value)
     && typeof value.command === 'string'
-    && Array.isArray(value.skeleton) && value.skeleton.every(isParseToken)
-    && Array.isArray(value.attempts) && value.attempts.every(isCommandAttemptData)
+    && Array.isArray(value.fills) && value.fills.every(isSkeletonFillData)
     && typeof value.confidence === 'number'
 )
 

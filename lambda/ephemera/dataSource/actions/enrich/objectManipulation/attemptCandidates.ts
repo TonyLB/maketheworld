@@ -215,8 +215,7 @@ export const attemptReferentNames = (attempt: CommandAttempt): Record<string, st
  * name keeps its text.
  */
 export const disambiguationLabels = (
-    skeleton: ParseSkeleton,
-    options: readonly { answers: Record<string, string>; names: Record<string, string>; views?: Record<string, ViewAnswer> }[]
+    options: readonly { answers: Record<string, string>; names: Record<string, string>; views?: Record<string, ViewAnswer>; skeleton: ParseSkeleton }[]
 ): string[] => {
     const keys = [...new Set(options.flatMap(({ answers }) => Object.keys(answers)))]
     // Two options differ on a key by the object, or by the part of it that is meant.
@@ -225,7 +224,8 @@ export const disambiguationLabels = (
         const [key] = ambiguous
         return options.map(({ names }) => names[key] ?? key)
     }
-    return options.map(({ names }) => skeleton
+    // The whole command, from the fill the option reads: options from different fills name different spans.
+    return options.map(({ names, skeleton }) => skeleton
         .map((token) => (token.type === 'objectSpan' ? names[token.stableRefKey] ?? token.span : token.text))
         .join(' ')
         .replace(/\s+/g, ' ')

@@ -92,7 +92,7 @@ describe('parseCommand type guards', () => {
 
         it('accepts label, referentAnswers and a root, and rejects malformed ones', () => {
             const base = { type: 'Consult', confidence: 0.6 } as const
-            const root = { command: 'take cup', skeleton: [{ type: 'text', text: 'take' }], attempts: [], confidence: 0.6 }
+            const root = { command: 'take cup', fills: [{ skeleton: [{ type: 'text', text: 'take' }], attempts: [] }], confidence: 0.6 }
             const alternative = { proposedCommand: 'take the cup', label: 'cup', referentAnswers: { cupRef: broomId } }
             expect(isParseCommandConsultResult({ ...base, alternatives: [alternative], root } as any)).toBe(true)
             expect(isParseCommandConsultResult({ ...base, alternatives: [{ ...alternative, label: 3 }] } as any)).toBe(false)
@@ -1134,7 +1134,7 @@ describe('parseCommand LLM path', () => {
             expect(result).toEqual({
                 type: 'Consult',
                 confidence: 1,
-                root: expect.objectContaining({ confidence: 1, skeleton: expect.any(Array) }),
+                root: expect.objectContaining({ confidence: 1, fills: expect.any(Array) }),
                 alternatives: [
                     expect.objectContaining({ proposedCommand: 'take the broom', objectId: broomId }),
                     expect.objectContaining({ proposedCommand: 'take the mop', objectId: mopId }),
@@ -1175,7 +1175,7 @@ describe('parseCommand LLM path', () => {
             expect(result).toEqual({
                 type: 'Consult',
                 confidence: 1,
-                root: expect.objectContaining({ confidence: 1, skeleton: expect.any(Array) }),
+                root: expect.objectContaining({ confidence: 1, fills: expect.any(Array) }),
                 alternatives: [
                     expect.objectContaining({ proposedCommand: 'take the broom', objectId: broomId }),
                     expect.objectContaining({ proposedCommand: 'take the broom', objectId: mopId }),
@@ -1546,6 +1546,53 @@ describe('parseCommand LLM path', () => {
             expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
         })
 
+        describe('Abstain climbs the ladder (a fast-path Abstain falls through to the LLM route)', () => {
+            const broomId = 'OBJECT#Broom'
+            const run = async (command: string, parseTokens: unknown[], catalogExtras: Record<string, unknown> = {}) => {
+                const stubs = {
+                    classify: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
+                    parse: jest.fn().mockResolvedValue({ success: true, body: JSON.stringify({ tokens: parseTokens }) }),
+                    acme: jest.fn(),
+                }
+                const result = await parseCommand(
+                    {
+                        command,
+                        characterId: 'CHARACTER#123',
+                        hostRoomId: 'ROOM#Bridge',
+                        roomObjectLabels: ['broom'],
+                        roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
+                        ...catalogExtras,
+                    } as any,
+                    {
+                        ...depsCoyoteUnderCap,
+                        invokeBedrockParseCommandImpl: stubs.classify,
+                        invokeBedrockObjectManipulationParseImpl: stubs.parse,
+                        invokeBedrockAcmeOrderEnrichImpl: stubs.acme,
+                        embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' }),
+                        objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
+                    }
+                )
+                return { result, stubs }
+            }
+
+            it('take unicorn: the fast path abstains, so classify and Parse run, and with no Acme match the top rung\'s Abstain is the answer', async () => {
+                const { result, stubs } = await run('take unicorn', [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'unicorn' }])
+
+                expect(result).toMatchObject({ type: 'Abstain', confidence: 0.9 })
+                expect(stubs.classify).toHaveBeenCalledTimes(1)
+                expect(stubs.parse).toHaveBeenCalledTimes(1)
+                expect(stubs.acme).not.toHaveBeenCalled()
+            })
+
+            it('a fast-path Error is an answer: drop broom, not held, never reaches Bedrock', async () => {
+                const { result, stubs } = await run('drop broom', [])
+
+                expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.notCarryingObject })
+                expect(stubs.classify).not.toHaveBeenCalled()
+                expect(stubs.parse).not.toHaveBeenCalled()
+            })
+        })
+
         it('does not call Parse for deterministic membership commands (Step 2a)', async () => {
             const broomId = 'OBJECT#Broom'
             const invokeBedrockParseCommandImpl = jest.fn()
@@ -1882,10 +1929,11 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('take broom when the broom touches an exit (abstains: no adjudicator judges exit contact yet)', async () => {
+        it('take broom when the broom touches an exit (abstains on both rungs: no adjudicator judges exit contact yet, so the fast path\'s Abstain climbs)', async () => {
             expect(await run(
                 { command: 'take broom', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
+                    parseTokens: [text('take'), span('broom')],
                     graphs: {
                         [ROOM]: testLudicGraphFromEnvelope(ROOM, {
                             nodes: [{ tag: 'Object', universalKey: BROOM }, { tag: 'Object', universalKey: TABLE }],

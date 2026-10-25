@@ -3,7 +3,7 @@ import type { CommandAttempt } from '../../../commandAttempt'
 import { matchAttemptTemplate } from '../../../deterministicTemplate/patternTemplate'
 import { lowerQualifiers } from './lowerQualifiers'
 import { containmentTemplate } from './matchContainmentTemplate'
-import { lookTemplate } from './matchLookTemplate'
+import { lookAtTemplate, lookTemplate } from './matchLookTemplate'
 import { membershipTemplate } from './matchMembershipTemplate'
 import { spreadTemplate } from './matchSpreadTemplate'
 
@@ -27,7 +27,7 @@ export function planSkeleton(skeleton: ParseSkeleton, command: string): PlanSkel
 }
 
 /** The object templates, in order: the first attempt is the primary one. */
-const PLAN_TEMPLATES = [containmentTemplate, spreadTemplate, lookTemplate, membershipTemplate] as const
+const PLAN_TEMPLATES = [containmentTemplate, spreadTemplate, lookTemplate, lookAtTemplate, membershipTemplate] as const
 
 export type PlanTemplateName = typeof PLAN_TEMPLATES[number]['name']
 

@@ -1,6 +1,7 @@
 import type { ParseSkeleton } from '../parse/parseToken'
 import { matchTemplate, type TemplateMatchResult } from './attemptTemplateFixture'
-import { lookTemplate } from './matchLookTemplate'
+import { lookAtTemplate, lookTemplate } from './matchLookTemplate'
+import { planSkeleton } from './planSkeleton'
 
 const matchLookTemplate = matchTemplate(lookTemplate)
 
@@ -60,7 +61,7 @@ describe('matchLookTemplate', () => {
         expect(summarize(matchLookTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
     })
 
-    it('returns noMatch for a 4-token (relational-shaped) skeleton', () => {
+    it('reads a qualifier on the looked-at object: the look checks the cup is on the table before it describes', () => {
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'look' },
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
@@ -68,12 +69,57 @@ describe('matchLookTemplate', () => {
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
 
-        expect(summarize(matchLookTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
+        const [attempt] = planSkeleton(skeleton, 'look broom on table').attempts
+        expect(attempt?.actions().map((action) => action.toJSON().kind)).toEqual(['position', 'narrate'])
+        expect(attempt?.actions()[0]?.desiredResult).toMatchObject({
+            kind: 'assertion',
+            predicate: 'containedBy',
+            subject: { stableRefKey: 'broomRef' },
+            object: { stableRefKey: 'tableRef' },
+        })
     })
 
     it('returns noMatch for a bare 1-token skeleton', () => {
         const skeleton: ParseSkeleton = [{ type: 'text', text: 'look' }]
 
         expect(summarize(matchLookTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
+    })
+})
+
+describe('lookAtTemplate', () => {
+    const matchLookAtTemplate = matchTemplate(lookAtTemplate)
+
+    it.each(['look', 'l'])('matches "%s at" plus an object span, the model\'s `at` its own token', (verb) => {
+        const skeleton: ParseSkeleton = [
+            { type: 'text', text: verb },
+            { type: 'text', text: 'at' },
+            { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+        ]
+
+        expect(summarize(matchLookAtTemplate(skeleton, 'test command'))).toEqual({
+            type: 'matched',
+            referent: { referentType: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+        })
+    })
+
+    it('reads "look at the cup on the table" as a look at the cup, qualified by the table', () => {
+        const skeleton: ParseSkeleton = [
+            { type: 'text', text: 'look' },
+            { type: 'text', text: 'at' },
+            { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+            { type: 'text', text: 'on' },
+            { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
+        ]
+
+        const { attempts } = planSkeleton(skeleton, 'look at cup on table')
+        expect(attempts).toHaveLength(1)
+        expect(attempts[0]!.actions().map((action) => action.toJSON().kind)).toEqual(['position', 'narrate'])
+        expect(attempts[0]!.actions()[1]!.referents()[0]).toMatchObject({ stableRefKey: 'cupRef' })
+    })
+
+    it('returns noMatch for "look at" with no object', () => {
+        const skeleton: ParseSkeleton = [{ type: 'text', text: 'look' }, { type: 'text', text: 'at' }]
+
+        expect(summarize(matchLookAtTemplate(skeleton, 'test command'))).toEqual({ type: 'noMatch' })
     })
 })

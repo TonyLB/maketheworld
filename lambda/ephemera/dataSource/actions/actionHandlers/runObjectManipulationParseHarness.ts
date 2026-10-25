@@ -56,7 +56,7 @@ export function formatSkeleton(skeleton: ParseSkeleton): string {
  * Runs each selected command down the route production takes to a skeleton, then Plan, and
  * publishes **one** OOC message with the results for manual review: the route, the skeleton, each
  * template's match, and each attempt Plan emits. A command the take/get/drop fast path claims
- * (`deterministicIntentChecks`, with the actor's room labels) shows the fast path's skeleton with
+ * (`deterministicIntentChecks`, with the actor's room labels) shows each of the fast path's skeletons (every fill) with
  * no Bedrock call; any other runs the live Parse stage. Beyond the labels no world is read;
  * candidates and the dry run are out of its reach.
  */
@@ -73,10 +73,11 @@ export async function runObjectManipulationParseHarness(deps: RunObjectManipulat
     for (const [index, { label, command }] of cases.entries()) {
         tree.push(`--- ${index + 1}/${cases.length} ${label}: ${command} ---`, COYOTE_RENDER_LINE_BREAK)
         const fastPath = deterministicIntentChecks({ command, roomObjectLabels })
-        let skeleton: ParseSkeleton
+        let skeletons: ParseSkeleton[]
         if (fastPath?.type === 'ObjectMembershipIntent') {
-            skeleton = stampStableRefKeys(fastPath.skeleton)
-            tree.push('Route: fast path', COYOTE_RENDER_LINE_BREAK, `Skeleton: ${formatSkeleton(skeleton)}`, COYOTE_RENDER_LINE_BREAK)
+            // Every fill goes to Plan (PA-2 (b)), so each is shown with what Plan reads from it.
+            skeletons = fastPath.skeletons.map((draft) => stampStableRefKeys(draft))
+            tree.push('Route: fast path', COYOTE_RENDER_LINE_BREAK)
         }
         else {
             tree.push('Route: LLM (Parse)', COYOTE_RENDER_LINE_BREAK)
@@ -87,18 +88,23 @@ export async function runObjectManipulationParseHarness(deps: RunObjectManipulat
                 tree.push(`Parse error: ${parsed.errorMessage}`, COYOTE_RENDER_LINE_BREAK)
                 continue
             }
-            skeleton = parsed.tokens
-            tree.push(`Parse: ${formatSkeleton(skeleton)}`, COYOTE_RENDER_LINE_BREAK)
+            skeletons = [parsed.tokens]
+            tree.push(`Parse: ${formatSkeleton(parsed.tokens)}`, COYOTE_RENDER_LINE_BREAK)
         }
-        const matches = matchPlanTemplates(skeleton, command)
-        tree.push(
-            `Templates: ${matches.map(({ template, attempt }) => `${template} ${attempt ? 'matched' : 'noMatch'}`).join(', ')}`,
-            COYOTE_RENDER_LINE_BREAK
-        )
-        for (const { template, attempt } of matches) {
-            if (attempt) {
-                const { referents, actions } = attempt.toJSON()
-                tree.push(`Attempt (${template}): ${JSON.stringify({ referents, actions })}`, COYOTE_RENDER_LINE_BREAK)
+        for (const skeleton of skeletons) {
+            if (fastPath?.type === 'ObjectMembershipIntent') {
+                tree.push(`Skeleton: ${formatSkeleton(skeleton)}`, COYOTE_RENDER_LINE_BREAK)
+            }
+            const matches = matchPlanTemplates(skeleton, command)
+            tree.push(
+                `Templates: ${matches.map(({ template, attempt }) => `${template} ${attempt ? 'matched' : 'noMatch'}`).join(', ')}`,
+                COYOTE_RENDER_LINE_BREAK
+            )
+            for (const { template, attempt } of matches) {
+                if (attempt) {
+                    const { referents, actions } = attempt.toJSON()
+                    tree.push(`Attempt (${template}): ${JSON.stringify({ referents, actions })}`, COYOTE_RENDER_LINE_BREAK)
+                }
             }
         }
     }

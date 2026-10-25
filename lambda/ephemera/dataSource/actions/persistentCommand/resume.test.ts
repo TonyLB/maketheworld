@@ -24,7 +24,7 @@ const planned = planSkeleton(skeleton, 'take cup').attempts
 const primaryId = primaryActionIdOf(planned[0]!)!
 
 const rowOf = (overrides: Partial<PersistentCommandPayload> = {}): PersistentCommandPayload => ({
-    root: { command: 'take cup', skeleton, attempts: planned.map((attempt) => attempt.toJSON()), confidence: 0.9 },
+    root: { command: 'take cup', fills: [{ skeleton, attempts: planned.map((attempt) => attempt.toJSON()) }], confidence: 0.9 },
     referentAnswers: {},
     challengeAnswers: {},
     ...overrides,
@@ -113,7 +113,7 @@ describe('resumePersistentCommand', () => {
         const sibling = CommandAttempt.create('take cup', planned[0]!.actions().map((action) => action.withChallenges([])), [])
         const siblingData = { ...sibling.toJSON(), actions: sibling.toJSON().actions.map((action) => ({ ...action, id: 'sibling-primary' })) }
         const row = rowOf()
-        const both = { ...row, root: { ...row.root, attempts: [...row.root.attempts, siblingData] } }
+        const both = { ...row, root: { ...row.root, fills: [{ skeleton, attempts: [...row.root.fills[0]!.attempts, siblingData] }] } }
 
         const selected = await resumePersistentCommand({ ...both, selectedAttempt: primaryId }, world([cupId]), { positionsReadDeps: readsFor([cupId]) })
         const stale = await resumePersistentCommand({ ...both, selectedAttempt: 'gone' }, world([cupId]), { positionsReadDeps: readsFor([cupId]) })

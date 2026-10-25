@@ -44,8 +44,8 @@ Outcome mapping from legacy identity / embedding types to pool + selector verdic
 | Outcome | When | Owner |
 | --- | --- | --- |
 | **Consult** | Thin margin among legal tuples; catalog-backed `alternatives` | FT-5 selector only |
-| **Abstain** | Grey-band below `T_JOINT_*` floor; unfit head; no catalog-backed menu | Deterministic propose-N / selector decline |
-| **Error** | Illegal dry-run, existence guard, cardinality, complexity defer interim, relational legality | Validator / pre-gates --- never Consult |
+| **Abstain** | Not understood: grey-band below `T_JOINT_*` floor; unfit head; nothing grounds (no catalog, no assignment); no reading survives Identify (unread span); a pending challenge. Hands the command to the next rung ([contract](../../AGENT.contract.md#outcomes-climb-the-ladder)) | Deterministic propose-N / selector decline / producer |
+| **Error** | Understood but forbidden: illegal dry-run (with its reason), the actor's state (no room, no character), a stale answer | Validator / pre-gates --- never Consult |
 
 Invariant: dry-run `defer` and closed-world fast-path **must not author Consult**. LLM joint proposer + hop retirement deferred to Phase C.
 
@@ -79,7 +79,7 @@ When the fast path does not apply, the model chooses **topology**:
 **Handoff:** intent **`type`**, **`rawObjectSpans`**, **`confidence`**; catalogs and **`hostRoomId`** from parse ingress. Tie-breakers (e.g. **`ObjectRelateIntent`** beats **`ObjectMembershipIntent`** when the line establishes an in-host relation) live in [`discriminateIntent/buildIntentClassificationPrompt.ts`](../../discriminateIntent/buildIntentClassificationPrompt.ts).
 
 **3. Enrich route (deterministic)**  
-[`parseCommand`](../../parseCommand.ts) hands every Plan attempt to [`compileAttemptsFromSkeleton`](compileAttemptsFromSkeleton.ts) in one call (ISS8203 slice 4: no `enrichRoute` tag and no primary-step dispatch). The producer classifies each attempt by its own content. Membership path runs a **cardinality gate**: a membership attempt that leaves one of the skeleton's object spans unread (a reading whose unread tail holds a span) is dropped, and the command refuses as `multiObject` only when nothing survives; a nested qualifier is read through its `containedBy` assertion. Relational path has no cardinality gate at entry; Plan derives structure from Parse's skeleton (deterministically for containment; peer relations await the LLM fallback).
+[`parseCommand`](../../parseCommand.ts) hands every Plan attempt to [`compileAttemptsFromSkeleton`](compileAttemptsFromSkeleton.ts) in one call (ISS8203 slice 4: no `enrichRoute` tag and no primary-step dispatch), grouped by fill (`fills`: each segmentation's skeleton and its attempts; the fast path sends every fill, PA-2 (b), the LLM route one). One Identify serves every fill; exact-fill precedence (a temporary bridge, see `actions/AGENT.contract.md` "Qualifier") keeps only the fully exact fills when there is one. The producer classifies each attempt by its own content. Membership path runs a **cardinality gate**: a membership attempt that leaves one of its own fill's object spans unread (a reading whose unread tail holds a span) is dropped, and the command refuses as `multiObject` only when nothing survives; a nested qualifier is read through its `containedBy` assertion. Relational path has no cardinality gate at entry; Plan derives structure from Parse's skeleton (deterministically for containment; peer relations await the LLM fallback).
 
 ---
 
@@ -103,7 +103,7 @@ A pending challenge defers and a refused one is illegal, so every doubt about a 
 
 **7. Selection and the deferred tier (shared).** [`selectPlanTuple`](selectPlanCandidate.ts) partitions legal from illegal, then applies floor and margin to the legal survivors. A defer goes once to the deferred adjudication tier ([`adjudicateDeferred`](../../commandAttempt/adjudicate.ts)), which judges nothing today, so the candidate abstains. The complexity LLM is retired: a take or drop with a pending graph or exit challenge abstains until the deferred tier has a real judge.
 
-**Handoff:** a take or drop returns `ObjectManipulation` (`operationKind`, `objectIds`, `attempt`), and containment returns `ObjectContainment`. Terminal **`Consult`** (catalog-backed ambiguity), **`Abstain`** (grey band, a pending challenge, or a containment failure), or **`Error`** (take or drop failures, multi-object arity, no room).
+**Handoff:** a take or drop returns `ObjectManipulation` (`operationKind`, `objectIds`, `attempt`), and containment returns `ObjectContainment`. **`Consult`** (catalog-backed ambiguity) or **`Error`** (the dry run's refusal with its reason, no room) answers; **`Abstain`** (grey band, nothing grounds, multi-object arity, a pending challenge) climbs to the next rung. The outcome is by reason, never by attempt kind.
 
 **Known gap (documented debt):** a take or drop with a pending graph or exit challenge abstains instead of reaching a judge. That is the accepted interim until the deferred tier's LLM adjudicator lands.
 
@@ -118,7 +118,7 @@ A pending challenge defers and a refused one is illegal, so every doubt about a 
 **9. Parse (semantic reasoning, upstream of this folder)**  
 **Purpose:** [`parseCommand.ts`](../../parseCommand.ts)'s `ObjectRelateIntent` branch calls [`runParseStage`](parse/runParseStage.ts) unconditionally, turning player language into an ordered **`ParseSkeleton`** --- a sequence of `{ type: 'objectSpan', span, stableRefKey } | { type: 'text', text }` tokens ([`parse/parseToken.ts`](parse/parseToken.ts)). `stableRefKey` (assigned deterministically by [`stampStableRefKeys.ts`](parse/stampStableRefKeys.ts), never by the LLM) lets two identical-text spans ("put bench on bench") stay distinguishable by occurrence, not just array position. No role tagging (subject/target/verb) happens here --- that's Plan's job, step 10. No fallback to the retired frame-extract flow on Parse failure; the branch abstains or errors outright.
 
-**Handoff:** `ParseSkeleton` -> `compileAttemptsFromSkeleton`'s `input.skeleton`.
+**Handoff:** `ParseSkeleton` -> `compileAttemptsFromSkeleton`'s `input.fills` (one fill on this route).
 
 **Parse, as observed** (Nova Micro, two `/test parse` runs over the qualified-take fixtures, 2026-10-23). These are what the downstream closed sets have to absorb, not prompt rules:
 

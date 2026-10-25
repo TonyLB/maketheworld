@@ -469,14 +469,14 @@ describe('makePatternTemplate', () => {
                 { type: 'templateText', options: ['take'] },
                 { type: 'objectSpan', role: 'subject' },
             ],
-            { type: 'ObjectMembershipIntent', skeleton: [], confidence: 1 }
+            { type: 'ObjectMembershipIntent', skeletons: [], confidence: 1 }
         )
 
         const stringResult = template.matchString('take red ball')
         if (stringResult.type !== 'matched') throw new Error('expected matched via matchString')
         expect(stringResult.intent).toEqual({
             type: 'ObjectMembershipIntent',
-            skeleton: [],
+            skeletons: [],
             confidence: 1,
             subject: 'red ball',
         })
@@ -488,7 +488,7 @@ describe('makePatternTemplate', () => {
         if (tokenResult.type !== 'matched') throw new Error('expected matched via matchTokens')
         expect(tokenResult.intent).toEqual({
             type: 'ObjectMembershipIntent',
-            skeleton: [],
+            skeletons: [],
             confidence: 1,
             subject: 'red ball',
         })

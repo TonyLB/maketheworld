@@ -17,11 +17,14 @@ export async function discriminateIntent(
     input: ParseCommandInput,
     deps: ParseCommandDeps = {}
 ): Promise<DiscriminateIntentResult> {
-    const deterministicResult = deterministicIntentChecks(input)
-    if (deterministicResult) {
-        return deterministicResult
-    }
+    return deterministicIntentChecks(input) ?? classifyIntent(input, deps)
+}
 
+/** The Bedrock classify alone: where a command the fast path claimed and then abstained on climbs to. */
+export async function classifyIntent(
+    input: ParseCommandInput,
+    deps: ParseCommandDeps = {}
+): Promise<DiscriminateIntentResult> {
     const invoke = deps.invokeBedrockParseCommandImpl ?? invokeBedrockParseCommand
     const prompt = buildIntentClassificationPrompt(input.command)
     const invokeResult = await invoke(prompt)

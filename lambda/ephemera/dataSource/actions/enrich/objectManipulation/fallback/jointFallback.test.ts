@@ -17,9 +17,9 @@ describe('jointFallback (stub)', () => {
         expect(proposeJointFallbackTuples()).toEqual([])
     })
 
-    it('select surfaces the empty-candidates error via selectPlanTuple', () => {
+    it('select abstains on empty candidates via selectPlanTuple', () => {
         expect(selectJointFallbackTuple()).toEqual({
-            verdict: 'error',
+            verdict: 'abstain',
             reason: objectManipulationErrorMessages.noCatalog,
         })
     })

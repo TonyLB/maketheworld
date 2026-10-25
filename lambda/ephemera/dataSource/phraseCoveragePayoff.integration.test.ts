@@ -7,6 +7,12 @@
  *   asking, whether the model keeps "the" on the span (the LLM route) or the fast path passes the
  *   span through as typed.
  *
+ * - Abstain hands the command on (`actions/AGENT.contract.md` "Outcomes climb the ladder"): a take of
+ *   something absent is not understood on the fast path, so it climbs to the LLM route (classify and
+ *   Parse called) and ends at the top rung's Abstain ("I couldn't understand that command."). A
+ *   refusal the world gives ("The table has no cup.") is an answer on the fast path, with no Bedrock call.
+ *   These stop at the parse result: `actions/index.test.ts` pins the line each outcome reads.
+ *
  * Harness copied from `qualifiedTakePayoff.integration.test.ts` (see its header): the real
  * `parseCommand` (Bedrock mocked at its two seams, and asserted unused on the fast path), the bus
  * crossing as plain data, then the real `commitAttempt` against a mocked `ephemeraDB` leaf,
@@ -36,6 +42,8 @@ import { CommandAttempt, type CommandAttemptData } from './actions/commandAttemp
 import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { EphemeraLudicGraph } from './positions/ludicGraph'
 import { parentRemainderKey } from './positions/ludicGraph/testFixtures'
+import { lookedAtObjectIdOf } from './actions/commandAttempt/lookedAtObjectId'
+import { embeddingAtCosineSimilarity, makeEmbeddingFromAxis } from './actions/enrich/objectManipulation/embeddingMatch/testing/mockVectors'
 
 const assetDBMock = jest.mocked(assetDB)
 const ephemeraDBMock = jest.mocked(ephemeraDB)
@@ -44,6 +52,17 @@ const ROOM_ID = 'ROOM#Parlour' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Tester' as EphemeraCharacterId
 const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
 const TEACUP_ID = 'OBJECT#Teacup' as EphemeraObjectId
+const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
+const FLOOR_CUP_ID = 'OBJECT#FloorCup' as EphemeraObjectId
+const MAN_IN_THE_MOON_ID = 'OBJECT#ManInTheMoon' as EphemeraObjectId
+const MOON_ID = 'OBJECT#Moon' as EphemeraObjectId
+
+/**
+ * Live Titan cosines for unrelated short phrases sit around 0.15-0.25 (calibration snapshot
+ * embedding-identity-v1-2026-07-07): every span embeds along one axis, every object at 0.25 to it.
+ */
+const SPAN_EMBEDDING = makeEmbeddingFromAxis(0)
+const UNRELATED_OBJECT_EMBEDDING = embeddingAtCosineSimilarity(SPAN_EMBEDDING, 0.25)
 
 /** The entries a binding lists, each naming the member's own binding. */
 const covering = (...members: ([EphemeraCharacterId | EphemeraObjectId, string?])[]) => ({
@@ -138,12 +157,8 @@ describe('phrase coverage payoff (integration)', () => {
         jest.restoreAllMocks()
     })
 
-    /**
-     * A command end to end: parse, the bus crossing, then the real commit. With no `tokens` the
-     * fast path must claim the command (Bedrock is asserted unused); with `tokens` the model
-     * returns that skeleton. Returns the commit's bus.
-     */
-    const run = async (command: string, tokens?: string): Promise<jest.Mock> => {
+    /** The real `parseCommand` over the seeded world, the model returning `tokens`; with the two Bedrock seams, to assert on. */
+    const parse = async (command: string, tokens?: string, { embeddings = false }: { embeddings?: boolean } = {}) => {
         const labels = Object.entries(world.names) as Array<[EphemeraObjectId, string]>
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' })
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({ success: true, body: tokens ?? '{"tokens":[]}' })
@@ -153,17 +168,32 @@ describe('phrase coverage payoff (integration)', () => {
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
                 roomObjectLabels: labels.map(([, label]) => label),
-                roomObjectCatalog: labels.map(([objectId, normalizedShortName]) => ({ objectId, normalizedShortName })),
+                roomObjectCatalog: labels.map(([objectId, normalizedShortName]) => ({
+                    objectId,
+                    normalizedShortName,
+                    ...(embeddings ? { embedding: UNRELATED_OBJECT_EMBEDDING } : {}),
+                })),
             },
             {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockObjectManipulationParseImpl,
+                ...(embeddings ? { embedSpan: jest.fn().mockResolvedValue({ success: true, embedding: SPAN_EMBEDDING }) } : {}),
                 objectManipulationPositionsReadDeps: {
                     getMembershipContainers: jest.fn().mockImplementation(async (id: string) => world.containers[id] ?? []),
                     getLudicGraph: jest.fn().mockImplementation(async (hostId: string) => world.graphs[hostId] ?? EphemeraLudicGraph.empty(hostId as EphemeraMembershipHostId)),
                 },
             }
         )
+        return { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
+    }
+
+    /**
+     * A command end to end: parse, the bus crossing, then the real commit. With no `tokens` the
+     * fast path must claim the command (Bedrock is asserted unused); with `tokens` the model
+     * returns that skeleton. Returns the commit's bus.
+     */
+    const run = async (command: string, tokens?: string): Promise<jest.Mock> => {
+        const { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl } = await parse(command, tokens)
 
         if (tokens === undefined) {
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
@@ -235,5 +265,99 @@ describe('phrase coverage payoff (integration)', () => {
         expect(await holds(CHARACTER_ID, CUP_ID)).toBe(true)
         expect(await holds(ROOM_ID, TEACUP_ID)).toBe(true)
         expect(delivered(publish)).toEqual([expect.stringMatching(/ picks up cup$/)])
+    })
+
+    /** A cup on the floor beside a table. */
+    const seedCupBesideTable = () => seed({
+        graphs: {
+            [ROOM_ID]: roomGraph([[CUP_ID, 'PRESENCE#cup-in-room'], [TABLE_ID, 'PRESENCE#table-in-room']]),
+            [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
+            [CUP_ID]: objectGraph(CUP_ID, 'PRESENCE#cup-in-room', ROOM_ID),
+            [TABLE_ID]: objectGraph(TABLE_ID, 'PRESENCE#table-in-room', ROOM_ID),
+        },
+        containers: { [CHARACTER_ID]: [ROOM_ID], [CUP_ID]: [ROOM_ID], [TABLE_ID]: [ROOM_ID] },
+        names: { [CUP_ID]: 'cup', [TABLE_ID]: 'table' },
+    })
+
+    it('"take unicorn", with no unicorn, is not understood on the fast path: it climbs to the LLM route and ends at the top rung\'s Abstain', async () => {
+        seedCupAndTeacup()
+
+        const { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl } = await parse(
+            'take unicorn',
+            '{"tokens":[{"type":"text","text":"take"},{"type":"objectSpan","span":"unicorn"}]}'
+        )
+
+        expect(parseResult).toEqual(expect.objectContaining({ type: 'Abstain' }))
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
+        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalledTimes(1)
+    })
+
+    it('"take cup from table", with the cup on the floor, is a refusal the world gives: answered on the fast path, with no Bedrock call', async () => {
+        seedCupBesideTable()
+
+        const { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl } = await parse('take cup from table')
+
+        expect(parseResult).toEqual({ type: 'Error', errorMessage: 'The table has no cup.' })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
+        expect(await holds(ROOM_ID, CUP_ID)).toBe(true)
+    })
+
+    /** The man in the moon on the table, and a moon in the room: a decoy for the readings that cut at "in". */
+    const seedManInTheMoonOnTable = () => seed({
+        graphs: {
+            [ROOM_ID]: roomGraph([[TABLE_ID, 'PRESENCE#table-in-room'], [MOON_ID, 'PRESENCE#moon-in-room']]),
+            [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
+            [TABLE_ID]: objectGraph(TABLE_ID, 'PRESENCE#table-in-room', ROOM_ID, undefined, [[MAN_IN_THE_MOON_ID, 'PRESENCE#man-on-table']]),
+            [MAN_IN_THE_MOON_ID]: objectGraph(MAN_IN_THE_MOON_ID, 'PRESENCE#man-on-table', TABLE_ID, 'PRESENCE#table-in-room'),
+            [MOON_ID]: objectGraph(MOON_ID, 'PRESENCE#moon-in-room', ROOM_ID),
+        },
+        containers: { [CHARACTER_ID]: [ROOM_ID], [TABLE_ID]: [ROOM_ID], [MAN_IN_THE_MOON_ID]: [TABLE_ID], [MOON_ID]: [ROOM_ID] },
+        names: { [TABLE_ID]: 'table', [MAN_IN_THE_MOON_ID]: 'man in the moon', [MOON_ID]: 'moon' },
+    })
+
+    it('"take man in the moon from table" takes the man in the moon on the fast path: every fill goes to Plan, and the one whose spans all match exactly is read', async () => {
+        seedManInTheMoonOnTable()
+
+        const publish = await run('take man in the moon from table')
+
+        expect(await holds(CHARACTER_ID, MAN_IN_THE_MOON_ID)).toBe(true)
+        expect(await holds(ROOM_ID, MOON_ID)).toBe(true)
+        expect(delivered(publish)).toEqual([expect.stringMatching(/ picks up man in the moon$/)])
+    })
+
+    it('"look at the cup on the table" on the LLM route looks at the table\'s cup, not the floor\'s, without asking', async () => {
+        seed({
+            graphs: {
+                [ROOM_ID]: roomGraph([[TABLE_ID, 'PRESENCE#table-in-room'], [FLOOR_CUP_ID, 'PRESENCE#floor-cup']]),
+                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
+                [TABLE_ID]: objectGraph(TABLE_ID, 'PRESENCE#table-in-room', ROOM_ID, undefined, [[CUP_ID, 'PRESENCE#cup-on-table']]),
+                [CUP_ID]: objectGraph(CUP_ID, 'PRESENCE#cup-on-table', TABLE_ID, 'PRESENCE#table-in-room'),
+                [FLOOR_CUP_ID]: objectGraph(FLOOR_CUP_ID, 'PRESENCE#floor-cup', ROOM_ID),
+            },
+            containers: { [CHARACTER_ID]: [ROOM_ID], [TABLE_ID]: [ROOM_ID], [CUP_ID]: [TABLE_ID], [FLOOR_CUP_ID]: [ROOM_ID] },
+            names: { [TABLE_ID]: 'table', [CUP_ID]: 'cup', [FLOOR_CUP_ID]: 'cup' },
+        })
+
+        const { parseResult, invokeBedrockObjectManipulationParseImpl } = await parse(
+            'look at the cup on the table',
+            '{"tokens":[{"type":"text","text":"look"},{"type":"text","text":"at"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"table"}]}'
+        )
+
+        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalledTimes(1)
+        expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
+        // The dispatch describes the object `lookedAtObjectIdOf` names; the rendered describe is the perception stack's.
+        expect(parseResult.type === 'CommandAttempt' ? lookedAtObjectIdOf(parseResult.attempt) : undefined).toBe(CUP_ID)
+    })
+
+    // LIMITATION, accepted for phraseCoverage Slice 2 (user, 2026-10-25); ladder rung 14 (match tuning)
+    // flips this to an Abstain. With no fill whose spans all match exactly ("man in moon" lacks "the"),
+    // every reading scores near the floor at live embedding levels, so the player is asked how to cut it.
+    it('LIMITATION (rung 14 flips it): "take man in moon from table", no fill matching exactly, asks the player among readings', async () => {
+        seedManInTheMoonOnTable()
+
+        const { parseResult } = await parse('take man in moon from table', undefined, { embeddings: true })
+
+        expect(parseResult.type).toBe('Consult')
     })
 })
