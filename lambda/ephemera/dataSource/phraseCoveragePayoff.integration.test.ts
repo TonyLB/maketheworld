@@ -13,6 +13,10 @@
  *   refusal the world gives ("The table has no cup.") is an answer on the fast path, with no Bedrock call.
  *   These stop at the parse result: `actions/index.test.ts` pins the line each outcome reads.
  *
+ * - A drop's tail as a destination: `drop` is a containment verb too, moving only what the actor
+ *   holds, so `drop the cup in the box` reads the box as where the cup goes as well as which cup is
+ *   meant. With the cup held, the dry run refuses the second reading, and the first commits.
+ *
  * Harness copied from `qualifiedTakePayoff.integration.test.ts` (see its header): the real
  * `parseCommand` (Bedrock mocked at its two seams, and asserted unused on the fast path), the bus
  * crossing as plain data, then the real `commitAttempt` against a mocked `ephemeraDB` leaf,
@@ -34,10 +38,12 @@ import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
+import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
+import { getHeldInventoryCatalogForCharacter } from './actions/heldInventoryCatalogForCharacter'
 import { CommandAttempt, type CommandAttemptData } from './actions/commandAttempt'
 import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { EphemeraLudicGraph } from './positions/ludicGraph'
@@ -56,6 +62,7 @@ const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const FLOOR_CUP_ID = 'OBJECT#FloorCup' as EphemeraObjectId
 const MAN_IN_THE_MOON_ID = 'OBJECT#ManInTheMoon' as EphemeraObjectId
 const MOON_ID = 'OBJECT#Moon' as EphemeraObjectId
+const BOX_ID = 'OBJECT#Box' as EphemeraObjectId
 
 /**
  * Live Titan cosines for unrelated short phrases sit around 0.15-0.25 (calibration snapshot
@@ -157,9 +164,28 @@ describe('phrase coverage payoff (integration)', () => {
         jest.restoreAllMocks()
     })
 
+    /** Each object's shortName from the seeded names, as the merged component aggregate answers it. */
+    const getComponentAggregate = async ([perspective]: { universalKey: string, mergeParticipationOrder: readonly `ASSET#${string}`[] }[]) => {
+        const shortName = world.names[perspective.universalKey]
+        return shortName
+            ? [mergedComponentResult({
+                universalKey: perspective.universalKey as EphemeraObjectId,
+                merged: new StandardObject({ tag: 'Object', shortName }),
+                mergeParticipationOrderApplied: perspective.mergeParticipationOrder,
+            })]
+            : []
+    }
+
     /** The real `parseCommand` over the seeded world, the model returning `tokens`; with the two Bedrock seams, to assert on. */
     const parse = async (command: string, tokens?: string, { embeddings = false }: { embeddings?: boolean } = {}) => {
         const labels = Object.entries(world.names) as Array<[EphemeraObjectId, string]>
+        const isHeld = (objectId: EphemeraObjectId) => (world.containers[objectId] ?? []).includes(CHARACTER_ID)
+        // The held catalog as production builds it: what the character holds, read from its own graph.
+        const heldInventoryCatalog = (await getHeldInventoryCatalogForCharacter(CHARACTER_ID, {
+            getLudicGraph: async (hostId) => world.graphs[hostId] ?? EphemeraLudicGraph.empty(hostId),
+            getCharacterAssets: async () => [],
+            getComponentAggregate: getComponentAggregate as any,
+        })).entries
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' })
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({ success: true, body: tokens ?? '{"tokens":[]}' })
         const parseResult = await parseCommand(
@@ -168,11 +194,12 @@ describe('phrase coverage payoff (integration)', () => {
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
                 roomObjectLabels: labels.map(([, label]) => label),
-                roomObjectCatalog: labels.map(([objectId, normalizedShortName]) => ({
+                roomObjectCatalog: labels.filter(([objectId]) => !isHeld(objectId)).map(([objectId, normalizedShortName]) => ({
                     objectId,
                     normalizedShortName,
                     ...(embeddings ? { embedding: UNRELATED_OBJECT_EMBEDDING } : {}),
                 })),
+                heldInventoryCatalog,
             },
             {
                 invokeBedrockParseCommandImpl,
@@ -348,6 +375,38 @@ describe('phrase coverage payoff (integration)', () => {
         expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
         // The dispatch describes the object `lookedAtObjectIdOf` names; the rendered describe is the perception stack's.
         expect(parseResult.type === 'CommandAttempt' ? lookedAtObjectIdOf(parseResult.attempt) : undefined).toBe(CUP_ID)
+    })
+
+    /** The cup in the actor's hand, and a box in the room. */
+    const seedHeldCupBesideBox = () => seed({
+        graphs: {
+            [ROOM_ID]: roomGraph([[BOX_ID, 'PRESENCE#box-in-room']]),
+            [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base', covering([CUP_ID, 'PRESENCE#cup-held']))).addObject(CUP_ID),
+            [CUP_ID]: objectGraph(CUP_ID, 'PRESENCE#cup-held', CHARACTER_ID, 'PRESENCE#Base'),
+            [BOX_ID]: objectGraph(BOX_ID, 'PRESENCE#box-in-room', ROOM_ID, undefined, [], 'In'),
+        },
+        containers: { [CHARACTER_ID]: [ROOM_ID], [CUP_ID]: [CHARACTER_ID], [BOX_ID]: [ROOM_ID] },
+        names: { [CUP_ID]: 'cup', [BOX_ID]: 'box' },
+    })
+
+    it('"drop the cup in the box", the cup held, drops it in the box on the fast path: the qualifier reading finds the held cup in no box, so the destination reading is the one left', async () => {
+        seedHeldCupBesideBox()
+
+        const publish = await run('drop the cup in the box')
+
+        expect(await holds(BOX_ID, CUP_ID)).toBe(true)
+        expect(await holds(CHARACTER_ID, CUP_ID)).toBe(false)
+        expect(delivered(publish)).toEqual([expect.stringMatching(/ drops cup in box$/)])
+    })
+
+    it('"drop cup", the cup held, still drops it where the actor stands', async () => {
+        seedHeldCupBesideBox()
+
+        const publish = await run('drop cup')
+
+        expect(await holds(ROOM_ID, CUP_ID)).toBe(true)
+        expect(await holds(BOX_ID, CUP_ID)).toBe(false)
+        expect(delivered(publish)).toEqual([expect.stringMatching(/ drops cup$/)])
     })
 
     // LIMITATION, accepted for phraseCoverage Slice 2 (user, 2026-10-25); ladder rung 14 (match tuning)

@@ -47,10 +47,31 @@ describe('planSkeleton', () => {
         expect(attempts[1].narrationUnits().flatMap(({ covers }) => covers)).toEqual([attempts[1].actions()[1]!.id])
     })
 
-    it('plans "drop the cup in the box" as a plain drop and a qualified one: the verb does not decide the reading', () => {
+    it('plans "drop the cup in the box" as a containment move, a plain drop and a qualified one: the verb does not decide the reading', () => {
         const attempts = attemptsOf(relationalSkeleton('drop', 'cup', 'in', 'box'))
-        expect(attempts.map(actionKinds)).toEqual([['change'], ['assertion', 'change']])
-        expect(attempts[1].actions()[0].desiredResult).toMatchObject({ kind: 'assertion', subject: { span: 'cup' }, object: { span: 'box' } })
+        expect(attempts.map(actionKinds)).toEqual([['change'], ['change'], ['assertion', 'change']])
+        expect(attempts[0].actions()[0].desiredResult).toMatchObject({ primitive: 'transferMembership', containment: 'In' })
+        expect(attempts[1].actions()[0].desiredResult).not.toHaveProperty('containment')
+        expect(attempts[2].actions()[0].desiredResult).toMatchObject({ kind: 'assertion', subject: { span: 'cup' }, object: { span: 'box' } })
+    })
+
+    it('plans "drop the cup in the box"\'s containment move from the actor, not wherever the cup is, narrated "drops"', () => {
+        const [move] = attemptsOf(relationalSkeleton('drop', 'cup', 'in', 'box'))
+        expect(move.actions()[0].desiredResult).toEqual({
+            kind: 'change',
+            primitive: 'transferMembership',
+            object: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+            from: { referentType: 'actingCharacter' },
+            to: { referentType: 'objectSpan', span: 'box', stableRefKey: 'boxRef' },
+            containment: 'In',
+        })
+        expect(move.narrationUnits()[0].variants[0].parts).toEqual([
+            { slot: 'actor' },
+            { text: ' drops ' },
+            { ref: 'cupRef' },
+            { text: ' in ' },
+            { ref: 'boxRef' },
+        ])
     })
 
     it('plans "take cup on saucer on table" as one take per reading, and the reading of every span checks both qualifiers, right-nested', () => {

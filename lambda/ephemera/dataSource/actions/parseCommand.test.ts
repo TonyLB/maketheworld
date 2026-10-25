@@ -1741,8 +1741,42 @@ describe('parseCommand LLM path', () => {
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
+        it('reads a drop\'s tail as a destination, without Bedrock: the qualified reading finds the held cup not in the box, so the move into the box is the one left', async () => {
+            const invokeBedrockParseCommandImpl = jest.fn()
+            const invokeBedrockObjectManipulationParseImpl = jest.fn()
+
+            const result = await parseCommand(
+                {
+                    command: 'drop the cup in the box',
+                    characterId: 'CHARACTER#123',
+                    hostRoomId: 'ROOM#Bridge',
+                    roomObjectLabels: ['cup', 'box'],
+                    roomObjectCatalog: [{ objectId: 'OBJECT#Box', normalizedShortName: 'box' }],
+                    heldInventoryCatalog: [{ objectId: 'OBJECT#Cup', normalizedShortName: 'cup' }],
+                },
+                {
+                    invokeBedrockParseCommandImpl,
+                    invokeBedrockObjectManipulationParseImpl,
+                    objectManipulationPositionsReadDeps: {
+                        getMembershipContainers: jest.fn().mockImplementation(async (id: string) => [id === 'OBJECT#Cup' ? 'CHARACTER#123' : 'ROOM#Bridge']),
+                        getLudicGraph: hostAwareGetLudicGraph(),
+                    },
+                }
+            )
+
+            expect(result).toMatchObject({ type: 'CommandAttempt' })
+            expect(primaryStepOf(result)).toMatchObject({
+                primitive: 'transferMembership',
+                object: { groundedId: 'OBJECT#Cup' },
+                from: { referentType: 'actingCharacter' },
+                to: { groundedId: 'OBJECT#Box' },
+                containment: 'In',
+            })
+            expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+            expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
+        })
+
         it.each([
-            ['a drop\'s tail, whose qualified reading finds the held cup not in the box', 'drop the cup in the box', 'The box has no cup.'],
             ['a chained tail, whose reading of every span finds no cup on the saucer', 'take cup on saucer on table', 'The saucer has no cup.'],
         ])('splits %s, as the LLM route does, without Bedrock', async (_label, command, errorMessage) => {
             const invokeBedrockParseCommandImpl = jest.fn()
