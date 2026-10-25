@@ -1,7 +1,7 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import { normalizeExitName } from '../../roomExitTargetsForCharacter'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
+import { spanMatchForms } from './spanMatchForms'
 
 export const objectManipulationErrorMessages = {
     noCatalog: 'ObjectManipulation resolution failed: no in-room object catalog',
@@ -45,6 +45,19 @@ export type ObjectSpanResolutionResult =
     | { type: 'NoMatch' }
     | { type: 'AmbiguousMatch' }
 
+/**
+ * The catalog entries a span names exactly: the first of its match forms (as given, then with its
+ * leading article peeled) that any entry's short name equals.
+ */
+export function exactCatalogMatches<Entry extends RoomInPlayObjectCatalogEntry>(
+    rawObjectSpan: string,
+    catalog: readonly Entry[]
+): Entry[] {
+    return spanMatchForms(rawObjectSpan).reduce<Entry[]>((matches, form) => (
+        matches.length > 0 ? matches : catalog.filter(({ normalizedShortName }) => normalizedShortName === form)
+    ), [])
+}
+
 export function resolveObjectSpanToObjectId(
     rawObjectSpan: string,
     catalog: readonly RoomInPlayObjectCatalogEntry[] | undefined
@@ -52,17 +65,7 @@ export function resolveObjectSpanToObjectId(
     if (!catalog || catalog.length === 0) {
         return { type: 'NoCatalog' }
     }
-    const normalizedCandidate = normalizeExitName(rawObjectSpan)
-    if (!normalizedCandidate) {
-        return { type: 'NoMatch' }
-    }
-    const matchingObjectIds = [
-        ...new Set(
-            catalog
-                .filter(({ normalizedShortName }) => normalizedShortName === normalizedCandidate)
-                .map(({ objectId }) => objectId)
-        ),
-    ]
+    const matchingObjectIds = [...new Set(exactCatalogMatches(rawObjectSpan, catalog).map(({ objectId }) => objectId))]
     if (matchingObjectIds.length === 0) {
         return { type: 'NoMatch' }
     }

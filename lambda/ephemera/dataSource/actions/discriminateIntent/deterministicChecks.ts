@@ -3,7 +3,6 @@ import type {
     ParseCommandObjectMembershipIntentResult,
     ParseCommandResult,
 } from '../baseClasses'
-import { normalizeExitName } from '../roomExitTargetsForCharacter'
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../coyoteGame/generators/testHarness/coyoteEngineTestFixtures'
 import { ACME_ORDER_AFFINITIES_HARNESS_FIXTURES } from '../acmeOrderAffinitiesHarnessPhrases'
 import { OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES } from '../objectManipulationParseHarnessFixtures'
@@ -14,12 +13,12 @@ import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestS
 import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
-import { peelLeadingArticleWhenTail } from './peelLeadingArticleWhenTail'
 import type { ParseTokenDraft } from '../enrich/objectManipulation/parse/parseToken'
 import type { PatternElement } from '../deterministicTemplate/deterministicTemplate'
 import { matchPatternAgainstString, type ObjectPhraseLink } from '../deterministicTemplate/patternTemplate'
 import { MEMBERSHIP_VERB_ELEMENT } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
 import { QUALIFIER_OBJECT_PHRASE_ELEMENT } from '../enrich/objectManipulation/plan/qualifierPrepositions'
+import { spanMatchForms } from '../enrich/objectManipulation/spanMatchForms'
 
 /** After trim, case-insensitive look or l as the whole line. */
 function isBareLookCommand(trimmed: string): boolean {
@@ -44,7 +43,7 @@ function isBarePredictCommand(trimmed: string): boolean {
 /** The fast path's one pattern: a membership verb, then an object phrase cut at the closed-set prepositions. */
 const FAST_PATH_PATTERN: readonly PatternElement[] = [MEMBERSHIP_VERB_ELEMENT, QUALIFIER_OBJECT_PHRASE_ELEMENT]
 
-type FastPathFill = { verb: string; option: string; rawHead: string; head: string; links: ObjectPhraseLink[] }
+type FastPathFill = { verb: string; option: string; head: string; links: ObjectPhraseLink[] }
 
 /** How many words a fill's prepositions hold: among fills with as many cuts, the longest phrases win. */
 const prepositionWordCount = ({ links }: FastPathFill): number => (
@@ -59,7 +58,8 @@ const prepositionWordCount = ({ links }: FastPathFill): number => (
  * "man in the moon"); otherwise the fill with the most cuts is kept, longest phrases first, which is
  * the flat skeleton Nova Micro returns. The policy never reads the verb to cut: which span a phrase
  * attaches to is decided by Plan, whose templates' object phrases read every way to attach it (each
- * fill a reading). Each span has its leading article peeled.
+ * fill a reading). Spans pass through as typed: Identify peels a leading article, and a label
+ * matches a span as given or peeled.
  */
 function maybeDeterministicManipulationIntent(
     input: ParseCommandInput
@@ -69,9 +69,8 @@ function maybeDeterministicManipulationIntent(
             ? [{
                 verb: verb.text,
                 option: verb.option,
-                rawHead: phrase.text,
-                head: peelLeadingArticleWhenTail(phrase.text),
-                links: phrase.links.map((link) => ({ ...link, span: peelLeadingArticleWhenTail(link.span) })),
+                head: phrase.text,
+                links: phrase.links,
             }]
             : []
     ))
@@ -80,15 +79,12 @@ function maybeDeterministicManipulationIntent(
         return null
     }
 
-    if (uncut.option === 'take' && /^hold\b/i.test(uncut.rawHead)) {
+    if (uncut.option === 'take' && /^hold\b/i.test(uncut.head)) {
         return null
     }
 
     const labels = input.roomObjectLabels ?? []
-    const isLabel = (span: string): boolean => {
-        const normalizedSpan = normalizeExitName(span)
-        return normalizedSpan.length > 0 && labels.includes(normalizedSpan)
-    }
+    const isLabel = (span: string): boolean => spanMatchForms(span).some((form) => labels.includes(form))
     const kept = isLabel(uncut.head)
         ? uncut
         : fills.reduce((best, fill) => (

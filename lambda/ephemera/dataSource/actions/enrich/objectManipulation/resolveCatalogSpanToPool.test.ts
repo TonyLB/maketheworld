@@ -40,6 +40,49 @@ describe('resolveCatalogSpanToPool', () => {
         expect(embedSpan).not.toHaveBeenCalled()
     })
 
+    it('matches a span with a leading article exactly, keeping the span as given', async () => {
+        const embedSpan = jest.fn()
+        const result = await resolveCatalogSpanToPool('the broom', roomCatalog, { embedSpan })
+
+        expect(result).toMatchObject({
+            type: 'pool',
+            pool: { span: 'the broom', candidates: [{ id: broomId, sourceTags: ['exact'] }] },
+        })
+        expect(embedSpan).not.toHaveBeenCalled()
+    })
+
+    it('matches a name that starts with an article whole before peeling', async () => {
+        const theThingId = 'OBJECT#TheThing' as EphemeraObjectId
+        const thingId = 'OBJECT#Thing' as EphemeraObjectId
+        const catalog: ObjectManipulationCatalogEntry[] = [
+            { objectId: thingId, normalizedShortName: 'thing', catalogScope: 'room' },
+            { objectId: theThingId, normalizedShortName: 'the thing', catalogScope: 'room' },
+        ]
+
+        const result = await resolveCatalogSpanToPool('The Thing', catalog)
+
+        expect(result).toMatchObject({
+            type: 'pool',
+            pool: { candidates: [{ id: theThingId, sourceTags: ['exact'] }] },
+        })
+        if (result.type === 'pool') {
+            expect(result.pool.candidates).toHaveLength(1)
+        }
+    })
+
+    it('ranks a non-exact span with its article peeled, in both channels, keeping the span as given', async () => {
+        const embedSpan = jest.fn().mockResolvedValue({ success: false })
+
+        const result = await resolveCatalogSpanToPool('the brooms', roomCatalog, { embedSpan })
+
+        expect(embedSpan).toHaveBeenCalledWith('brooms')
+        expect(result).toMatchObject({ type: 'pool', pool: { span: 'the brooms' } })
+        if (result.type === 'pool') {
+            expect(result.pool.candidates[0]?.id).toBe(broomId)
+            expect(result.pool.candidates[0]?.sourceTags).not.toContain('exact')
+        }
+    })
+
     it('builds ambiguous exact pool with multiple candidates', async () => {
         const ambiguousCatalog: ObjectManipulationCatalogEntry[] = [
             { objectId: broomId, normalizedShortName: 'broom', catalogScope: 'room' },

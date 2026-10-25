@@ -1274,7 +1274,7 @@ Object {
         "objectId": "OBJECT#Broom",
         "proposedCommand": "take the broom",
         "referentAnswers": Object {
-          "broomRef": "OBJECT#Broom",
+          "theBroomRef": "OBJECT#Broom",
         },
       },
       Object {
@@ -1282,7 +1282,7 @@ Object {
         "objectId": "OBJECT#Mop",
         "proposedCommand": "take the broom",
         "referentAnswers": Object {
-          "broomRef": "OBJECT#Mop",
+          "theBroomRef": "OBJECT#Mop",
         },
       },
     ],
@@ -1297,16 +1297,16 @@ Object {
                 "from": Object {
                   "referentTarget": Object {
                     "referentType": "objectSpan",
-                    "span": "broom",
-                    "stableRefKey": "broomRef",
+                    "span": "the broom",
+                    "stableRefKey": "theBroomRef",
                   },
                   "referentType": "currentHost",
                 },
                 "kind": "change",
                 "object": Object {
                   "referentType": "objectSpan",
-                  "span": "broom",
-                  "stableRefKey": "broomRef",
+                  "span": "the broom",
+                  "stableRefKey": "theBroomRef",
                 },
                 "primitive": "transferMembership",
                 "to": Object {
@@ -1328,7 +1328,7 @@ Object {
                     "phase": "before",
                     "refs": Array [
                       "actor",
-                      "broomRef",
+                      "theBroomRef",
                     ],
                   },
                   "parts": Array [
@@ -1339,7 +1339,7 @@ Object {
                       "text": " picks up ",
                     },
                     Object {
-                      "ref": "broomRef",
+                      "ref": "theBroomRef",
                     },
                   ],
                 },
@@ -1358,8 +1358,8 @@ Object {
           "type": "text",
         },
         Object {
-          "span": "broom",
-          "stableRefKey": "broomRef",
+          "span": "the broom",
+          "stableRefKey": "theBroomRef",
           "type": "objectSpan",
         },
       ],

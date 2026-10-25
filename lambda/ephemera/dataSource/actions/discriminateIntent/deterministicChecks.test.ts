@@ -203,7 +203,7 @@ describe('deterministicIntentChecks', () => {
             })
             expect(deterministicIntentChecks({ command: '  DROP   the rope  ' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'DROP' }, { type: 'objectSpan', span: 'rope' }],
+                skeleton: [{ type: 'text', text: 'DROP' }, { type: 'objectSpan', span: 'the rope' }],
                 confidence: 1,
             })
             expect(deterministicIntentChecks({
@@ -231,10 +231,10 @@ describe('deterministicIntentChecks', () => {
             expect(deterministicIntentChecks({ command: 'get' })).toBeNull()
         })
 
-        it('peels leading articles on deterministic manipulation spans', () => {
+        it('keeps articles on the span, and a get still claims through a peeled label', () => {
             expect(deterministicIntentChecks({ command: 'take an apple' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'apple' }],
+                skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'an apple' }],
                 confidence: 1,
             })
             expect(deterministicIntentChecks({
@@ -242,12 +242,23 @@ describe('deterministicIntentChecks', () => {
                 roomObjectLabels: ['broom'],
             })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'broom' }],
+                skeleton: [{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'a broom' }],
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: 'drop some rope' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'rope' }],
+                skeleton: [{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'some rope' }],
+                confidence: 1,
+            })
+        })
+
+        it('claims a get whose label starts with an article, matched whole', () => {
+            expect(deterministicIntentChecks({
+                command: 'get the thing',
+                roomObjectLabels: ['the thing'],
+            })).toEqual({
+                type: 'ObjectMembershipIntent',
+                skeleton: [{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'the thing' }],
                 confidence: 1,
             })
         })
@@ -273,13 +284,13 @@ describe('deterministicIntentChecks', () => {
             const text = (value: string) => ({ type: 'text', text: value })
             const span = (value: string) => ({ type: 'objectSpan', span: value })
 
-            it('splits a take at a closed-set preposition, peeling articles from each piece', () => {
-                expect(skeletonOf('take the cup on the table')).toEqual([text('take'), span('cup'), text('on'), span('table')])
+            it('splits a take at a closed-set preposition, keeping each piece as typed', () => {
+                expect(skeletonOf('take the cup on the table')).toEqual([text('take'), span('the cup'), text('on'), span('the table')])
             })
 
             it('keeps a tail whole when the whole tail is a room label, for get and take', () => {
-                expect(skeletonOf('get the man in the moon', ['man in the moon'])).toEqual([text('get'), span('man in the moon')])
-                expect(skeletonOf('take the man in the moon', ['man in the moon'])).toEqual([text('take'), span('man in the moon')])
+                expect(skeletonOf('get the man in the moon', ['man in the moon'])).toEqual([text('get'), span('the man in the moon')])
+                expect(skeletonOf('take the man in the moon', ['man in the moon'])).toEqual([text('take'), span('the man in the moon')])
             })
 
             it('splits misspelled pieces and leaves them to Identify', () => {
@@ -303,7 +314,7 @@ describe('deterministicIntentChecks', () => {
             })
 
             it('splits a drop\'s tail like any other: the split never reads the verb', () => {
-                expect(skeletonOf('drop the cup in the box')).toEqual([text('drop'), span('cup'), text('in'), span('box')])
+                expect(skeletonOf('drop the cup in the box')).toEqual([text('drop'), span('the cup'), text('in'), span('the box')])
             })
 
             it('folds a tail with no head, as before', () => {
@@ -335,11 +346,11 @@ describe('deterministicIntentChecks', () => {
             })
 
             // Nova Micro's recorded skeletons for these commands (two `/test parse` runs, 2026-10-23), for the rows whose spans carry no article.
+            // Articles are left out: the fast path keeps them as typed, Nova Micro keeps or drops them, and Identify peels both.
             it.each<[string, string[], ReturnType<typeof text | typeof span>[]]>([
                 ['get bag from table', ['bag'], [text('get'), span('bag'), text('from'), span('table')]],
                 ['take cup off saucer', [], [text('take'), span('cup'), text('off'), span('saucer')]],
                 ['take coin out of box', [], [text('take'), span('coin'), text('out of'), span('box')]],
-                ['get the cup off the table', ['cup'], [text('get'), span('cup'), text('off'), span('table')]],
             ])('builds the skeleton Nova Micro returns for "%s"', (command, labels, novaMicro) => {
                 expect(skeletonOf(command, labels)).toEqual(novaMicro)
             })

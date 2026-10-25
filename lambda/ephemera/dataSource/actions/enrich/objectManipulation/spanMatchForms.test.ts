@@ -1,4 +1,16 @@
-import { peelLeadingArticleWhenTail } from './peelLeadingArticleWhenTail'
+import { peelLeadingArticleWhenTail, spanMatchForms } from './spanMatchForms'
+
+describe('spanMatchForms', () => {
+    it.each([
+        ['the cup', ['the cup', 'cup']],
+        ['  The   Thing ', ['the thing', 'thing']],
+        ['cup', ['cup']],
+        ['the', ['the']],
+        ['   ', []],
+    ])('lists the span as given, then peeled when that differs (%j)', (input, expected) => {
+        expect(spanMatchForms(input)).toEqual(expected)
+    })
+})
 
 describe('peelLeadingArticleWhenTail', () => {
     it.each([
