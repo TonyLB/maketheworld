@@ -313,8 +313,8 @@ export type ParseCommandObjectManipulationIntentResult = {
     /**
      * The flat, unstamped skeletons the zero-Bedrock fast path (`deterministicChecks.ts`) builds: every
      * fill of its patterns (membership, and the containment template's own), each a segmentation
-     * Plan reads on its own (PA-2 (b)). Only the fast path produces this intent; `parseCommand.ts`
-     * stamps each skeleton and enters Plan.
+     * Plan reads on its own (`actions/AGENT.contract.md` "Qualifier": every fill is a reading). Only
+     * the fast path produces this intent; `parseCommand.ts` stamps each skeleton and enters Plan.
      */
     skeletons: ParseTokenDraft[][]
     confidence: ParseCommandConfidence

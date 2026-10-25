@@ -276,7 +276,7 @@ describe('deterministicIntentChecks', () => {
             })
         })
 
-        describe('a qualified tail yields every fill, each a flat skeleton (PA-2 (b))', () => {
+        describe('a qualified tail yields every fill, each a flat skeleton', () => {
             const fillsOf = (command: string, roomObjectLabels?: string[]) => {
                 const result = deterministicIntentChecks({ command, ...(roomObjectLabels ? { roomObjectLabels } : {}) })
                 return result?.type === 'ObjectManipulationIntent' ? result.skeletons : result

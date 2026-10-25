@@ -64,10 +64,10 @@ function claimsMembership(input: ParseCommandInput, fills: readonly PatternFill[
 /**
  * The zero-Bedrock fast path: template patterns matched against the command text, each with its
  * routing gate, every set of cuts at the closed-set prepositions a fill. The membership pattern
- * claims as `claimsMembership` says; the containment template's own pattern (`put`/`place`) claims
- * every fit, since a fast-path Abstain climbs to the LLM route. Every fill goes to Plan as its own
- * skeleton (PA-2 (b)): a segmentation is a reading, like an attachment, and Identify's exact match,
- * the dry run and selection choose among them. Fills that build the same flat skeleton (two
+ * claims as `claimsMembership` says; the containment template's own pattern (`put`/`place`/`drop`)
+ * claims every fit, since a fast-path Abstain climbs to the LLM route. Every fill goes to Plan as its
+ * own skeleton (`actions/AGENT.contract.md` "Qualifier"): a segmentation is a reading, like an
+ * attachment, and Identify's exact match, the dry run and selection choose among them. Fills that build the same flat skeleton (two
  * attachments with the same cuts) are one skeleton; Plan recovers both readings. Spans pass
  * through as typed.
  */

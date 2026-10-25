@@ -1,5 +1,5 @@
 /**
- * Payoff test for phrase coverage (`taskPlanning/lambda/ephemera/dataSource/actions/AGENT.phraseCoverage.planning.md`):
+ * Payoff test for phrase coverage (rung 13 of the iteration ladder, rules in `actions/AGENT.contract.md`):
  * phrasings a player types that used to miss, or cost a Bedrock call, are read correctly.
  *
  * - Articles: Identify matches a span as given, then with its leading article peeled
@@ -409,8 +409,8 @@ describe('phrase coverage payoff (integration)', () => {
         expect(delivered(publish)).toEqual([expect.stringMatching(/ drops cup$/)])
     })
 
-    // LIMITATION, accepted for phraseCoverage Slice 2 (user, 2026-10-25); ladder rung 14 (match tuning)
-    // flips this to an Abstain. With no fill whose spans all match exactly ("man in moon" lacks "the"),
+    // LIMITATION, accepted (user, 2026-10-25; `actions/AGENT.contract.md` "Qualifier", exact-fill
+    // precedence); ladder rung 14 (match tuning) flips this to an Abstain. With no fill whose spans all match exactly ("man in moon" lacks "the"),
     // every reading scores near the floor at live embedding levels, so the player is asked how to cut it.
     it('LIMITATION (rung 14 flips it): "take man in moon from table", no fill matching exactly, asks the player among readings', async () => {
         seedManInTheMoonOnTable()

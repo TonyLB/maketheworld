@@ -38,8 +38,9 @@ import {
 } from './attemptCandidates'
 
 /**
- * One segmentation of the command and the attempts Plan read from it (PA-2 (b)): the fast path hands
- * every fill of its pattern to Plan, each its own skeleton; the LLM route has one. Stamped per fill,
+ * One segmentation of the command and the attempts Plan read from it (`actions/AGENT.contract.md`
+ * "Qualifier"): the fast path hands every fill of its patterns to Plan, each its own skeleton; the
+ * LLM route has one. Stamped per fill,
  * so one stableRefKey always names one span text, whichever fill it is in.
  */
 export type SkeletonFill<Attempt = CommandAttempt> = {
@@ -276,7 +277,8 @@ export async function compileAttemptsFromSkeleton(
             : { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    // TEMPORARY BRIDGE (exact-fill precedence, phraseCoverage Slice 2; ladder rung 14 reconsiders it):
+    // TEMPORARY BRIDGE (exact-fill precedence, `actions/AGENT.contract.md` "Qualifier"; ladder rung 14
+    // reconsiders it):
     // when some fill has every span matched exactly, the fills that don't are dropped. The lexical rank
     // forgives words around a name, so a longer span ("cup from table") would otherwise compete with the
     // exact segmentation, even win when that one is illegal. With no fully exact fill, every fill competes.
