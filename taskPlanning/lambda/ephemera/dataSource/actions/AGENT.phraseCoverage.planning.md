@@ -1,6 +1,6 @@
 # Phrase coverage: articles, label spans, `look at`, `put` on the fast path, `drop` into
 
-**Status: Slice 0 shipped 2026-10-24; Slice 1 is next.** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). It is rung 13 of the iteration ladder in [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md), and builds on skeleton patterns (rung 12, shipped and retired 2026-10-24). It takes over these bullets under "Shelved: qualifiers and phrase shapes" in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md):
+**Status: Slices 0 and 1 shipped 2026-10-24; Slice 2 is next.** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). It is rung 13 of the iteration ladder in [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md), and builds on skeleton patterns (rung 12, shipped and retired 2026-10-24). It takes over these bullets under "Shelved: qualifiers and phrase shapes" in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md):
 - "Articles on the LLM route";
 - "A longer tail around a label that holds a preposition";
 - "`look at` with a qualifier";
@@ -28,11 +28,11 @@ Rung 12 made each template a pattern that returns every way it fits. Each item h
 - The fast path's pattern holds only the membership verbs, so `put` always pays for two Bedrock calls.
 - The containment template's verbs are `put`/`place`, so a drop's tail can only be read as a qualifier.
 
-Articles are separate, and are a correctness question first: nobody has checked whether the LLM route's "the cup" resolves.
+Articles were separate, and a correctness question first: nobody had checked whether the LLM route's "the cup" resolved (Slice 1's probe: it did, but only through the lexical rank).
 
 ## What exists (read from code, 2026-10-24)
 
-- **Articles.** Only the fast path peels a leading article (`peelLeadingArticleWhenTail`, `discriminateIntent/peelLeadingArticleWhenTail.ts`, called from `deterministicChecks.ts`). Identify's exact match (`resolveCatalogSpanToPool.ts`) compares `normalizeExitName(span)`, which trims, lowercases and collapses spaces, and nothing more, against `normalizedShortName`. So a model span "the cup" misses the exact match and falls to the embedding rank. The parse-harness notes in [`enrich/objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md) record Nova Micro keeping "the" after `get`.
+- **Articles** (before Slice 1). Only the fast path peeled a leading article (`peelLeadingArticleWhenTail`, then in `discriminateIntent/`, called from `deterministicChecks.ts`). Identify's exact match (`resolveCatalogSpanToPool.ts`) compared `normalizeExitName(span)`, which trims, lowercases and collapses spaces, and nothing more, against `normalizedShortName`. So a model span "the cup" missed the exact match and fell to the ranked pool. The parse-harness notes in [`enrich/objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md) record Nova Micro keeping "the" after `get`.
 - **The claim policy** (`maybeDeterministicManipulationIntent`, `deterministicChecks.ts`):
   - It matches `[MEMBERSHIP_VERB_ELEMENT, QUALIFIER_OBJECT_PHRASE_ELEMENT]` against the text.
   - It keeps the uncut fill when its head is a room label. Otherwise it keeps the fill with the most cuts, longest phrases first.
@@ -50,10 +50,10 @@ Pending work uses `[ ]` and completed work `[X]`; mark nested lines `[X]` as eac
   - [X] "Naming a position by phrase" (under "Shelved: asking the player") said a three-span `put` finds no template. Corrected: the example is a two-span `put` whose destination holds no qualifier preposition (`of` and `over` are not in the closed set), so Identify gets it as one name.
   - [X] The shelf heading is now "Shelved: qualifiers and phrase shapes". The mentions in the ladder (rows 6 and 12, and the BD-24 row), this plan, and the memory notes are renamed.
   - [X] The five bullets this plan takes over are marked as owned by it, each with its slice and a link.
-- [ ] **Slice 1. Articles on every span.**
-  - [ ] Probe first: a `parseCommand` test where the model returns `get | the cup`. Record whether Identify resolves it exactly, by the embedding rank, or not at all.
-  - [ ] If it does not resolve exactly: peel articles in one place that serves both routes (see PA-1), and retire the fast path's own peel if that place covers it.
-  - [ ] Payoff: `get the cup` on the LLM route ends at "… picks up cup", with no Select.
+- [X] **Slice 1. Articles on every span.**
+  - [X] Probe first: a `parseCommand` test where the model returns `get | the cup`. Result (2026-10-24): it missed the exact match and resolved only through the lexical rank ("the " absorbed as a mismatch), ending at "… picks up cup" with no Select, even beside a "teacup". Peeled anyway (user: it is cheap and right).
+  - [X] PA-1 decided (a), recorded in `actions/AGENT.contract.md` "Grounding". Identify matches a span as given, then peeled (`spanMatchForms`, `enrich/objectManipulation/spanMatchForms.ts`), and the fallback pool ranks the peeled span in both channels, keeping the span as written. The fast path's peel is retired: it passes spans through as typed, and its claim policy's label check reads both forms, so `get the thing` with the label "the thing" is now claimed. Cost: an article span's `stableRefKey` reads `theCupRef` (one characterization snapshot updated); no line a player sees changed.
+  - [X] Payoff: `get the cup` on the LLM route (and on the fast path) ends at "… picks up cup", with no Select, beside a teacup: `dataSource/phraseCoveragePayoff.integration.test.ts`, which later slices extend. Unit tests in `resolveCatalogSpanToPool.test.ts` pin the exact match and the peeled embed call.
 - [ ] **Slice 2. Label spans and `look at`.**
   - [ ] The claim policy prefers a fill whose spans are all room labels, wherever the label sits in the tail (see PA-2), and otherwise keeps the most cuts. The whole-tail guard becomes a case of this rule.
   - [ ] The look template also reads `look at` and `l at`: a second pattern sharing the builder, `[look verbs, at, objectSpan]`, since the model emits `at` as its own token.
@@ -82,7 +82,6 @@ Plan-only: decisions made in order to implement the next slice(s). Do not copy i
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| PA-1 | **Where articles are peeled.** (a) In Identify's exact match: try the span as given, then with its leading article peeled, so a label that starts with an article ("The Thing") still matches whole. (b) When the skeleton is stamped, on both routes. Recommendation: (a). It keeps one home, never loses a label, and lets the fast path's peel retire. Decided only if Slice 1's probe shows a gap. | 1 | Open |
 | PA-2 | **How the fast path keeps a label span.** (a) The claim policy prefers a fill whose spans are all room labels, then the most cuts; one skeleton still goes to Plan. (b) The fast path hands every fill to Plan as its own skeleton, and Identify and the dry run choose. Recommendation: (a). Labels are the room's ground truth, it changes only the fast path, and the LLM route also emits one skeleton. (b) would be the first multi-skeleton Plan input. | 2 | Open |
 
 ## Getting Started
@@ -110,7 +109,7 @@ Per slice, from `lambda/ephemera/`: `npx tsc --noEmit` and `npm run test -- --wa
 | Slice | State | Files touched |
 | --- | --- | --- |
 | 0 | Done 2026-10-24 | `plan/planSkeleton.test.ts`; `actions/AGENT.implementation.md`; `AGENT.objectManipulationIterations.planning.md`; this plan |
-| 1 | Not started | --- |
+| 1 | Done 2026-10-24 | `enrich/objectManipulation/{spanMatchForms.ts (moved from discriminateIntent/peelLeadingArticleWhenTail.ts), resolveObjectSpan.ts, resolveCatalogSpanToPool.ts}` (+ tests); `discriminateIntent/deterministicChecks.ts` (+ test); `actionHandlers/runObjectManipulationParseHarness.test.ts`; `parseCommand.test.ts` snapshot; new `phraseCoveragePayoff.integration.test.ts`; `actions/AGENT.{contract,implementation}.md`; `enrich/objectManipulation/AGENT.md`; `AGENT.manipulationFrameAndRelational.planning.md` (link) |
 | 2 | Not started | --- |
 | 3 | Not started | --- |
 | 4 | Not started | --- |

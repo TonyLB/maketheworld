@@ -1,13 +1,13 @@
-import { normalizeExitName } from '../../roomExitTargetsForCharacter'
-
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { buildSpanCandidatePool } from './embeddingMatch/buildSpanCandidatePool'
 import { createSpanEmbedCache, getOrEmbedSpan } from './embeddingMatch/spanEmbedCache'
 import type { ResolveObjectSpanByEmbeddingDeps } from './embeddingMatch/resolveObjectSpanByEmbedding'
 import {
+    exactCatalogMatches,
     objectManipulationErrorMessageForResolution,
     resolveObjectSpanToObjectId,
 } from './resolveObjectSpan'
+import { peelLeadingArticleWhenTail } from './spanMatchForms'
 import {
     catalogScopeToLocus,
     type ObjectSpanCandidate,
@@ -59,23 +59,11 @@ const buildExactSpanCandidatePool = (
     }
 }
 
-const matchingCatalogEntries = (
-    rawObjectSpan: string,
-    catalog: readonly ObjectManipulationCatalogEntry[]
-): ObjectManipulationCatalogEntry[] => {
-    const normalizedCandidate = normalizeExitName(rawObjectSpan)
-    if (!normalizedCandidate) {
-        return []
-    }
-    return catalog.filter(
-        ({ normalizedShortName }) => normalizedShortName === normalizedCandidate
-    )
-}
-
 /**
  * FT-2.1: resolve one object span to a SpanCandidatePool (evidence artifact).
- * Exact unique match short-circuits without embed; ambiguous exact duplicates and
- * non-exact spans rank via buildSpanCandidatePool.
+ * Exact unique match (as given, then with a leading article peeled) short-circuits without
+ * embed; ambiguous exact duplicates form an exact pool; non-exact spans rank via
+ * buildSpanCandidatePool.
  */
 export async function resolveCatalogSpanToPool(
     span: string,
@@ -105,18 +93,20 @@ export async function resolveCatalogSpanToPool(
     }
 
     if (resolution.type === 'AmbiguousMatch') {
-        const matches = matchingCatalogEntries(span, catalog)
+        const matches = exactCatalogMatches(span, catalog)
         return {
             type: 'pool',
             pool: buildExactSpanCandidatePool(span, matches),
         }
     }
 
+    // Both channels rank the span with its leading article peeled; the pool keeps the span as given.
+    const matchSpan = peelLeadingArticleWhenTail(span)
     const cache = deps.spanEmbedCache ?? createSpanEmbedCache()
-    const embedResult = await getOrEmbedSpan(span, cache, deps)
-    const pool = buildSpanCandidatePool(span, catalog, {
+    const embedResult = await getOrEmbedSpan(matchSpan, cache, deps)
+    const pool = buildSpanCandidatePool(matchSpan, catalog, {
         ...(embedResult.success ? { spanEmbedding: embedResult.embedding } : {}),
     })
 
-    return { type: 'pool', pool }
+    return { type: 'pool', pool: { ...pool, span } }
 }

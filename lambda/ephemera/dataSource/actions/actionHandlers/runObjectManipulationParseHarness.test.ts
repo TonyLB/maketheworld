@@ -124,7 +124,7 @@ describe('runObjectManipulationParseHarness', () => {
         expect(getRoomObjectLabelsImpl).toHaveBeenCalledWith('CHARACTER#t')
         const text = publishedText()
         expect(text).toContain('Route: fast path')
-        expect(text).toContain('Skeleton: text "take" | span "cup" | text "on" | span "table"')
+        expect(text).toContain('Skeleton: text "take" | span "the cup" | text "on" | span "the table"')
         expect(text).toContain('Templates: containment noMatch, spread noMatch, look noMatch, membership matched')
         expect(text).toContain('"predicate":"containedBy"')
     })
