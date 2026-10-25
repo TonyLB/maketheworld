@@ -87,10 +87,16 @@ const kindOf = (attempt: CommandAttempt): AttemptKind => {
     return transfer.containment === undefined ? 'membership' : 'containment'
 }
 
-/** A refusal is an Error for a take or drop, and an Abstain for every other kind (as each route always has). */
-const refusal = (kind: AttemptKind, reason: string, intentConfidence: number): CompileAttemptsFromSkeletonResult => (kind === 'membership'
-    ? { type: 'Error', errorMessage: reason }
-    : { type: 'Abstain', confidence: intentConfidence, reason })
+/**
+ * Not understood: nothing grounds, or no reading of the command survives. An Abstain hands the command to
+ * the next rung (FT-3.2); an Error (understood, but forbidden) is an answer on any rung.
+ */
+const notUnderstood = (reason: string, intentConfidence: number): ParseCommandAbstainResult => ({ type: 'Abstain', confidence: intentConfidence, reason })
+
+/** An Error refusal is an answer, so it wins over an Abstain refusal that would hand the command on. */
+const firstRefusal = (refusals: readonly CompileAttemptsFromSkeletonResult[]): CompileAttemptsFromSkeletonResult => (
+    refusals.find((refused) => refused.type === 'Error') ?? refusals[0]!
+)
 
 /**
  * An attempt's entry checks, before Identify: the ones that need no spans. Each attempt is judged
@@ -100,7 +106,7 @@ const preIdentityRefusal = (entry: AttemptEntry, input: CompileAttemptsFromSkele
     const { attempt, kind } = entry
     if (kind === 'look') {
         if (attempt.actions()[0]?.referents()[0] === undefined) {
-            return refusal(kind, objectManipulationErrorMessages.lookNoTemplateMatch, intentConfidence)
+            return notUnderstood(objectManipulationErrorMessages.lookNoTemplateMatch, intentConfidence)
         }
         if (input.characterId === undefined) {
             return { type: 'Error', errorMessage: objectManipulationErrorMessages.noActingCharacter }
@@ -165,12 +171,13 @@ const noAssignmentReasonFor = (kind: AttemptKind): string => {
  *
  * Each attempt is classified by its own content and gated by its own entry checks. A refused attempt
  * drops out of the pool with its own refusal; the survivors pool together. A refusal is returned only
- * when nothing survives: the first one, in Plan's order. Once the pool has a survivor, the result is
- * the pool's, and its refusal wording and style come from the first surviving attempt.
+ * when nothing survives: the first Error, else the first Abstain, in Plan's order. Once the pool has a
+ * survivor, the result is the pool's.
  *
- * A take or drop has no complexity fallback: a defer (a pending peer-move or exit challenge) is an
- * Abstain until the deferred adjudication tier judges it. A relation whose Expansion finds no chain
- * is illegal, and it abstains on defer (no LLM fallback on that route).
+ * The outcome is by reason, not by attempt kind. Not understood (nothing grounds, no reading survives
+ * Identify, selection below the floor) is an Abstain, which hands the command to the next rung. A
+ * refusal the world gives (the dry run's illegal, such as "The table has no cup.") is an Error with
+ * its reason. A defer (a pending challenge) is an Abstain until the deferred adjudication tier judges it.
  */
 export async function compileAttemptsFromSkeleton(
     input: CompileAttemptsFromSkeletonInput,
@@ -203,7 +210,7 @@ export async function compileAttemptsFromSkeleton(
         }
     }
     if (survivors.length === 0) {
-        return refusals[0]!
+        return firstRefusal(refusals)
     }
 
     // A relation needs the room graph, read once for the pool's environment; a relation without one is refused.
@@ -219,7 +226,7 @@ export async function compileAttemptsFromSkeleton(
         return true
     })
     if (survivors.length === 0) {
-        return refusals[0]!
+        return firstRefusal(refusals)
     }
 
     const catalog = mergeObjectManipulationCatalogs(
@@ -235,7 +242,10 @@ export async function compileAttemptsFromSkeleton(
         deps
     )
     if (identityResult.type === 'error') {
-        return { type: 'Error', errorMessage: identityResult.errorMessage }
+        // Nothing in the room or in hand: nothing grounds.
+        return identityResult.errorMessage === objectManipulationErrorMessages.noCatalog
+            ? notUnderstood(identityResult.errorMessage, intentConfidence)
+            : { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
     // BD-20 arity policy: a take or drop reads every span it is given (its object, and each
@@ -249,13 +259,13 @@ export async function compileAttemptsFromSkeleton(
     }
     survivors = survivors.filter((entry) => {
         if (entry.kind === 'membership' && leavesSpanUnread(entry.attempt)) {
-            refusals.push({ type: 'Error', errorMessage: complexErrorMessage('multiObject') })
+            refusals.push(notUnderstood(complexErrorMessage('multiObject'), intentConfidence))
             return false
         }
         return true
     })
     if (survivors.length === 0) {
-        return refusals[0]!
+        return firstRefusal(refusals)
     }
 
     // Post-Identify: each survivor's own refusal, then the survivors again.
@@ -268,12 +278,11 @@ export async function compileAttemptsFromSkeleton(
         return true
     })
     if (survivors.length === 0) {
-        return refusals[0]!
+        return firstRefusal(refusals)
     }
 
-    // The pool's wording and style come from its first surviving attempt.
+    // The pool's no-assignment reason comes from its first surviving attempt.
     const lead = survivors[0]!
-    const failure = (reason: string): CompileAttemptsFromSkeletonResult => refusal(lead.kind, reason, intentConfidence)
     const proposed = proposeAttemptCandidates({
         command: input.command,
         attempts: survivors.map((entry) => entry.attempt),
@@ -286,7 +295,7 @@ export async function compileAttemptsFromSkeleton(
         actorCharacter: input.characterId,
     })
     if (!proposed.ok) {
-        return proposed.stale ? { type: 'Error', errorMessage: proposed.reason } : failure(proposed.reason)
+        return proposed.stale ? { type: 'Error', errorMessage: proposed.reason } : notUnderstood(proposed.reason, intentConfidence)
     }
 
     // A pool of looks has no steps, so the shared dry run never reads its environment and none is built.
@@ -354,11 +363,11 @@ export async function compileAttemptsFromSkeleton(
     }
 
     if (selection.verdict === 'abstain') {
-        return { type: 'Abstain', confidence: intentConfidence, reason: selection.reason }
+        return notUnderstood(selection.reason, intentConfidence)
     }
 
     if (selection.verdict === 'error') {
-        return failure(selection.reason)
+        return { type: 'Error', errorMessage: selection.reason }
     }
 
     if (selection.verdict === 'defer') {

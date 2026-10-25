@@ -121,7 +121,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noHostRoom })
     })
 
-    it('errors with noCatalog when neither catalog is supplied', async () => {
+    it('abstains with noCatalog when neither catalog is supplied (nothing grounds)', async () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
@@ -133,7 +133,31 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
             { positionsReadDeps: containmentPositionsReads() }
         )
 
-        expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noCatalog })
+        expect(result).toEqual({ type: 'Abstain', confidence: 0.9, reason: objectManipulationErrorMessages.noCatalog })
+    })
+
+    it('abstains on a take of something absent: nothing grounds, so the command is not understood here and climbs', async () => {
+        const skeleton: ParseSkeleton = [
+            { type: 'text', text: 'take' },
+            { type: 'objectSpan', span: 'unicorn', stableRefKey: 'unicornRef' },
+        ]
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command: 'take unicorn',
+                skeleton,
+                attempts: [planAttempt(skeleton, 'take unicorn')],
+                characterId: 'CHARACTER#Alpha' as EphemeraCharacterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [{ objectId: cupId, normalizedShortName: 'cup' }],
+            },
+            0.9,
+            {
+                embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' }),
+                positionsReadDeps: containmentPositionsReads(),
+            }
+        )
+
+        expect(result).toMatchObject({ type: 'Abstain', confidence: 0.9 })
     })
 
     it('returns Consult, naming both candidates, when the subject span resolves to more than one object', async () => {
@@ -440,10 +464,10 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
         expect(transferStepOf(result)).toMatchObject({ object: { groundedId: redCupId }, to: { groundedId: tableId } })
     })
 
-    it('refuses a preposition outside the qualifier set as multi-object (BD-20): the take leaves a span unread', async () => {
+    it('abstains on a preposition outside the qualifier set (BD-20): the take leaves a span unread, so no reading is understood', async () => {
         const result = await compile('get', 'cup', 'under', 'table', twoCups, twoCupsHosts)
 
-        expect(result).toEqual({ type: 'Error', errorMessage: complexErrorMessage('multiObject') })
+        expect(result).toEqual({ type: 'Abstain', confidence: 0.9, reason: complexErrorMessage('multiObject') })
     })
 
     it('refuses a drop of a cup it does not hold through the qualified reading: the plain drop leaves the table unread', async () => {

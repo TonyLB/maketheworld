@@ -7,6 +7,12 @@
  *   asking, whether the model keeps "the" on the span (the LLM route) or the fast path passes the
  *   span through as typed.
  *
+ * - Abstain hands the command on (`actions/AGENT.contract.md` "Outcomes climb the ladder"): a take of
+ *   something absent is not understood on the fast path, so it climbs to the LLM route (classify and
+ *   Parse called) and ends at the top rung's Abstain ("I couldn't understand that command."). A
+ *   refusal the world gives ("The table has no cup.") is an answer on the fast path, with no Bedrock call.
+ *   These stop at the parse result: `actions/index.test.ts` pins the line each outcome reads.
+ *
  * Harness copied from `qualifiedTakePayoff.integration.test.ts` (see its header): the real
  * `parseCommand` (Bedrock mocked at its two seams, and asserted unused on the fast path), the bus
  * crossing as plain data, then the real `commitAttempt` against a mocked `ephemeraDB` leaf,
@@ -44,6 +50,7 @@ const ROOM_ID = 'ROOM#Parlour' as EphemeraRoomId
 const CHARACTER_ID = 'CHARACTER#Tester' as EphemeraCharacterId
 const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
 const TEACUP_ID = 'OBJECT#Teacup' as EphemeraObjectId
+const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 
 /** The entries a binding lists, each naming the member's own binding. */
 const covering = (...members: ([EphemeraCharacterId | EphemeraObjectId, string?])[]) => ({
@@ -138,12 +145,8 @@ describe('phrase coverage payoff (integration)', () => {
         jest.restoreAllMocks()
     })
 
-    /**
-     * A command end to end: parse, the bus crossing, then the real commit. With no `tokens` the
-     * fast path must claim the command (Bedrock is asserted unused); with `tokens` the model
-     * returns that skeleton. Returns the commit's bus.
-     */
-    const run = async (command: string, tokens?: string): Promise<jest.Mock> => {
+    /** The real `parseCommand` over the seeded world, the model returning `tokens`; with the two Bedrock seams, to assert on. */
+    const parse = async (command: string, tokens?: string) => {
         const labels = Object.entries(world.names) as Array<[EphemeraObjectId, string]>
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' })
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({ success: true, body: tokens ?? '{"tokens":[]}' })
@@ -164,6 +167,16 @@ describe('phrase coverage payoff (integration)', () => {
                 },
             }
         )
+        return { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
+    }
+
+    /**
+     * A command end to end: parse, the bus crossing, then the real commit. With no `tokens` the
+     * fast path must claim the command (Bedrock is asserted unused); with `tokens` the model
+     * returns that skeleton. Returns the commit's bus.
+     */
+    const run = async (command: string, tokens?: string): Promise<jest.Mock> => {
+        const { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl } = await parse(command, tokens)
 
         if (tokens === undefined) {
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
@@ -235,5 +248,41 @@ describe('phrase coverage payoff (integration)', () => {
         expect(await holds(CHARACTER_ID, CUP_ID)).toBe(true)
         expect(await holds(ROOM_ID, TEACUP_ID)).toBe(true)
         expect(delivered(publish)).toEqual([expect.stringMatching(/ picks up cup$/)])
+    })
+
+    /** A cup on the floor beside a table. */
+    const seedCupBesideTable = () => seed({
+        graphs: {
+            [ROOM_ID]: roomGraph([[CUP_ID, 'PRESENCE#cup-in-room'], [TABLE_ID, 'PRESENCE#table-in-room']]),
+            [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
+            [CUP_ID]: objectGraph(CUP_ID, 'PRESENCE#cup-in-room', ROOM_ID),
+            [TABLE_ID]: objectGraph(TABLE_ID, 'PRESENCE#table-in-room', ROOM_ID),
+        },
+        containers: { [CHARACTER_ID]: [ROOM_ID], [CUP_ID]: [ROOM_ID], [TABLE_ID]: [ROOM_ID] },
+        names: { [CUP_ID]: 'cup', [TABLE_ID]: 'table' },
+    })
+
+    it('"take unicorn", with no unicorn, is not understood on the fast path: it climbs to the LLM route and ends at the top rung\'s Abstain', async () => {
+        seedCupAndTeacup()
+
+        const { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl } = await parse(
+            'take unicorn',
+            '{"tokens":[{"type":"text","text":"take"},{"type":"objectSpan","span":"unicorn"}]}'
+        )
+
+        expect(parseResult).toEqual(expect.objectContaining({ type: 'Abstain' }))
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
+        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalledTimes(1)
+    })
+
+    it('"take cup from table", with the cup on the floor, is a refusal the world gives: answered on the fast path, with no Bedrock call', async () => {
+        seedCupBesideTable()
+
+        const { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl } = await parse('take cup from table')
+
+        expect(parseResult).toEqual({ type: 'Error', errorMessage: 'The table has no cup.' })
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
+        expect(await holds(ROOM_ID, CUP_ID)).toBe(true)
     })
 })

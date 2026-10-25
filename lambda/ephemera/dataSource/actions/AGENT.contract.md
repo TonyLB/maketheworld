@@ -14,6 +14,13 @@ This file records **contracts** only. Mental models: [`AGENT.concepts.md`](./AGE
 
 - **Plan's output is a set of ungrounded attempts, and every fallback emits that same type.** Plan never reads world state: its attempts carry no ids. Every fallback (identity-only, plan-only and joint) takes or proposes attempts, not families, so one producer handles them all.
 
+## Outcomes climb the ladder
+
+- **Abstain hands the command on; every other outcome answers.** The producers are a ladder ordered by cost ([`parseCommand.ts`](parseCommand.ts)): the take/get/drop fast path, then the LLM route (classify, the non-object templates, Parse, Plan and the producer), then Acme. A rung's **Abstain** (not understood, FT-3.2) sends the command to the next rung. An **Error** (understood, but forbidden), a **Consult** or an attempt is the answer on whichever rung produced it, and never climbs. Only the top rung's Abstain reaches the player ("I couldn't understand that command."). The Plan LLM fallback takes a slot on this ladder when it is built ([proposal](../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectManipulationIterations.planning.md#proposal-deterministic-first-then-an-orchestration-loop-2026-10-25)).
+- **The producer maps an outcome by its reason, never by attempt kind** ([`compileAttemptsFromSkeleton.ts`](enrich/objectManipulation/compileAttemptsFromSkeleton.ts)). Not understood is an Abstain: nothing grounds (no catalog, no assignment), no reading survives Identify or the entry checks, or selection is below the floor. A refusal the world gives (the dry run's `illegal`, such as "The table has no cup.") is an Error with its reason, as is the actor's own state (no room, no character) and a stale answer. A pending challenge (`defer`) is an Abstain until the deferred tier judges it. When every attempt is refused, an Error refusal wins over an Abstain one.
+- **Selection abstains when it has nothing to say.** `selectPlanTuple` returns `error` only with an illegal candidate's reason; no candidates, or nothing legal and no reason, is `abstain`.
+- **Plan reading nothing is an Abstain too.** Zero attempts on the fast path climbs; on the LLM route it goes to Acme, then `Unimplemented`.
+
 ## Qualifier
 
 A qualifier is a phrase that names where an object is: "get the cup on the table", "get bag from table".

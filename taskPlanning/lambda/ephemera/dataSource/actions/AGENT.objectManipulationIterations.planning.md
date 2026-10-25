@@ -71,6 +71,7 @@ Object manipulation parse (take / drop / relate) is being built as a sequence of
    - The prompt and the operation menu are designed against these, not invented examples.
    - Also fix [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md)'s relational playbook, which still says `In` routes to `nestingRelational`; `In` has been player-reachable via object rehost since 2026-09-22.
 1. **Plan-only fallback on the no-template branch, becoming joint when Identify is unconfident.**
+   - **Proposed re-envisioning (2026-10-25), not decided:** an orchestration loop above the deterministic rungs replaces this step and the BD-19 family. See [Proposal: deterministic first, then an orchestration loop](#proposal-deterministic-first-then-an-orchestration-loop-2026-10-25).
    - Premise verified against code 2026-09-23: Parse has segmented the spans even on this branch, and Identify does not depend on Plan ([`actions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.concepts.md)), so `runIdentityStageOverSkeleton` can run at `parseCommand.ts`'s no-family branch with inputs already in scope. Parse runs before Plan, and its prompt has no family vocabulary. A span with no exact match still yields an embedding-ranked pool, not an error. Three limits carry into the step:
      - Parse never sees the catalog, so a span can be mis-segmented for an object the player named oddly. That is corpus material, not a blocker.
      - The catalog holds Objects only (iteration 10 owns Characters and Features). A span naming either one gets a pool of wrong Objects, and an empty catalog (`NoCatalog`) fails the whole stage. The fallback has to treat both as "unresolved referent", not as an error.
@@ -107,6 +108,34 @@ Object manipulation parse (take / drop / relate) is being built as a sequence of
 | 9 | `smell the flower` | flower in room | Not traced | read-only perception | 0, 2 | **Expected: decline.** The command leaves the attempt path. It is the slice 0 fixture for where the attempt stops |
 | 10 | `get bottle` | two bottles in room, one inside a locked box | **Consult** (traced): both candidates get catalog scope `room`, because `catalogScopeToLocus` has no nested locus. Both dry-run legal, the margin is thin, and the player gets a terminal `Consult` naming both. No lock state exists anywhere | position | 1 (verdict); 3 (pruning) | A *ladder* pair with row 11. **Pruning a referent pool by state legality already ships** (FT-2.2: "drop bag", with a bag in the room and a held satchel, drops the illegal tuple before ranking; see [`enrich/objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md)). So layer 3 extends a mechanism that already exists. With lock *state*, this row needs no LLM; if the impossibility needs world knowledge instead, it needs layer 1's verdict ([CA-6](AGENT.commandAttemptPhase.planning.md#open-decisions-implementation--plan-only)) |
 | 11 | `get bottle` | two bottles in room, both reachable | **Consult** (traced), as in row 10 | position | 4 | Where pruning stops and asking starts. `Consult` is already a structured question, but it is terminal: the player has to retype. Backtracking makes it a resumable exchange |
+
+### Proposal: deterministic first, then an orchestration loop (2026-10-25)
+
+**Status: proposal, not decided.** Raised while planning phraseCoverage (rung 13), after PA-2 was decided (b): the fast path hands every fill downstream instead of picking one.
+
+**The intent, and where the code drifted from it.** The producers are meant to be a ladder ordered by cost: deterministic rungs first, in the hope that most commands finish with no LLM call at all, and a command the deterministic vertical can't resolve gets a second attempt rather than a terminal Error (BD-19). The code drifted in three ways:
+- **Every rung's answer is terminal.** A fast-path claim never reaches the LLM route, and once Plan returns any attempt, Acme never sees the command. Only "zero attempts" hands on.
+- **LLM and deterministic stages are interleaved.** A command the fast path doesn't claim pays for classify and Parse (two Bedrock calls) before the non-object templates, the navigation paraphrase and Plan's templates have run.
+- **Classify and Parse re-read the raw string.** They never see the catalog or the fills the fast path already found. The fast path's work is thrown away, and "both routes emit the same flat skeleton" is the patch that keeps two segmenters in agreement.
+
+**The proposal: the inversion applies only above the line.** Every deterministic rung runs before any LLM call. When they all abstain, an LLM in a loop orchestrates from there, with the deterministic stages as its tools, instead of the code routing to a fixed fallback chosen by which stage failed.
+
+**Order of work.** Each step is useful without the next:
+1. **Abstain is the hand-off between rungs.** The parse result's Abstain already means "not understood" and Error "policy/legality" (FT-3.2, `baseClasses.ts`); the code keeps that split, and only the top rung's Abstain reaches the player. **Built 2026-10-25** ([phraseCoverage Slice 1.5](AGENT.phraseCoverage.planning.md)); rule in `actions/AGENT.contract.md` "Outcomes climb the ladder".
+2. **Templates match against the text**, so every deterministic rung runs before the first LLM call. phraseCoverage Slices 2-3 start this (every fill to Plan; `put` on the fast path). The other fold-ins are under "Whether the fast path learns `put`" in `actions/AGENT.implementation.md`. The non-object templates and the navigation paraphrase already match the text and can move ahead of classify.
+3. **The orchestration loop** takes over above the line. Its first turn starts from what the deterministic rungs handed up: the fills, the readings, Identify's pools, and why each abstained. A first proposal that the tools accept finishes in one turn, so the cost ladder carries on inside the loop as turns.
+
+**The loop's shape, as far as it is drawn.**
+- **Tools** are the existing stages: try the templates on a proposed skeleton (attempts, or why they abstained); Identify a span (its pool and confidences); dry-run an attempt (legal, illegal with a reason, or defer); perhaps read an object's gloss and position.
+- **It subsumes the BD-19 family.** Segmentation repair (Parse's job), identity-only, plan-only and joint become diagnoses the loop makes, not branches in the code. The built identity-only fallback becomes material for the Identify tool. The paused steps 4-6 of [`AGENT.manipulationFrameAndRelational.planning.md`](AGENT.manipulationFrameAndRelational.planning.md) would be replaced rather than resumed.
+- **Classify, Parse and Acme** move above the line, as tools or answers inside the loop, or are dropped where the loop doesn't need them. "Not a command" could become one of the loop's answers.
+
+**Open questions:**
+- **The terminal contract.** Recommended: the loop returns candidates the tools validated, into the ordinary pool, and `selectPlanTuple` still selects; or it declines (the top-rung Abstain); or it asks the player. How its candidates are scored against deterministic ones is BD-19 (3), the confidence combiner.
+- **Latency.** Each turn is a model round-trip on an interactive command, so the loop needs a turn budget. Prompt caching makes it cheaper, not faster.
+- **Model choice.** Several turns of tool use probably need a larger model than Nova Micro. The step 0 corpus is where that cost per miss would be measured.
+- **Rungs 4-5 (backtrack).** A tool result that says why a stage abstained is a structured critique back to that stage. Whether the loop is iteration 4's backtrack structure or sits beside it is unsettled.
+- **Observability.** `/test parse` would have to show the loop's trace, not only a skeleton.
 
 ### Adjudication layers (2026-09-24)
 

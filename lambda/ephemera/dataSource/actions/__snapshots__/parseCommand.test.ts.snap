@@ -834,19 +834,19 @@ Object {
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take broom when the broom touches an exit (abstains: no adjudicator judges exit contact yet) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take broom when the broom touches an exit (abstains on both rungs: no adjudicator judges exit contact yet, so the fast path's Abstain climbs) 1`] = `
 Object {
   "result": Object {
-    "confidence": 1,
+    "confidence": 0.9,
     "reason": "Exit contact: the moved object touches an exit, which has no graph rule for moving it.",
     "type": "Abstain",
   },
   "stubCalls": Object {
     "acme": 0,
-    "classify": 0,
+    "classify": 1,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
+    "parse": 1,
   },
 }
 `;

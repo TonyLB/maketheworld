@@ -114,7 +114,7 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
         })
     })
 
-    it('errors when there is no catalog to resolve the span against', async () => {
+    it('abstains when there is no catalog to resolve the span against (nothing grounds)', async () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'look sword',
@@ -125,7 +125,7 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
             0.9
         )
 
-        expect(result.type).toBe('Error')
+        expect(result.type).toBe('Abstain')
     })
 
     it('returns Consult, naming both candidates, when the span resolves to more than one object', async () => {

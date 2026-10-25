@@ -167,6 +167,59 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
         })
     })
 
+    it('answers an Error refusal over an Abstain one when nothing survives: the Error is an answer, and climbing must not hide it', async () => {
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command: 'put broom under table',
+                skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
+                attempts: [
+                    CommandAttempt.create('put broom under table', []),
+                    peerRelationFixture('put broom under table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' }),
+                ],
+                hostRoomId: roomId,
+            },
+            0.9
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: objectManipulationErrorMessages.noHostRoom,
+        })
+    })
+
+    it('errors with the world\'s reason when the relation is already present: a refusal the world gives is an answer, not an Abstain', async () => {
+        const getLudicGraph = jest.fn().mockResolvedValue(
+            testLudicGraph(roomId, {
+                nodes: [
+                    { tag: 'Object' as const, universalKey: broomId },
+                    { tag: 'Object' as const, universalKey: tableId },
+                ],
+                edges: [{ tag: 'Relational', from: broomId, to: tableId, kind: 'Custom', relationLabel: 'under' }] as any,
+            })
+        )
+
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command: 'put broom under table',
+                skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'),
+                attempts: [peerRelationFixture('put broom under table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })],
+                characterId,
+                hostRoomId: roomId,
+                roomObjectCatalog: [
+                    { objectId: broomId, normalizedShortName: 'broom' },
+                    { objectId: tableId, normalizedShortName: 'table' },
+                ],
+            },
+            0.9,
+            { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph } }
+        )
+
+        expect(result).toEqual({
+            type: 'Error',
+            errorMessage: `${broomId} under ${tableId} is already present`,
+        })
+    })
+
     it('abstains when the only grounded candidate is a self-relation', async () => {
         const getLudicGraph = jest.fn().mockResolvedValue(
             testLudicGraph(roomId, {

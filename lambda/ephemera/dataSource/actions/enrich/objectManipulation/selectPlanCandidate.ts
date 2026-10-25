@@ -54,6 +54,8 @@ export type SelectPlanTupleInput<T> = {
 
 /**
  * FT-5 cross-tuple selector core: legality partition, then floor + margin on legal survivors.
+ * `error` is only a refusal the dry run gave a reason for; nothing to choose from, or nothing legal
+ * and no reason, is `abstain` (not understood, FT-3.2), which a route hands to its next rung.
  */
 export function selectPlanTuple<T>(
     input: SelectPlanTupleInput<T>
@@ -62,7 +64,7 @@ export function selectPlanTuple<T>(
 
     if (candidates.length === 0) {
         return {
-            verdict: 'error',
+            verdict: 'abstain',
             reason: objectManipulationErrorMessages.noCatalog,
         }
     }
@@ -97,11 +99,10 @@ export function selectPlanTuple<T>(
         .filter(({ dryRun: outcome }) => outcome.verdict === 'illegal')
         .sort((a, b) => getConfidence(b.candidate) - getConfidence(a.candidate))[0]
 
-    return {
-        verdict: 'error',
-        reason: illegalHead?.dryRun.reason
-            ?? objectManipulationErrorMessages.noMatch,
-    }
+    const reason = illegalHead?.dryRun.reason
+    return reason !== undefined
+        ? { verdict: 'error', reason }
+        : { verdict: 'abstain', reason: objectManipulationErrorMessages.noMatch }
 }
 
 function selectAmongLegal<T>(

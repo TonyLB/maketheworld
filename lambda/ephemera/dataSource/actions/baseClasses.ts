@@ -103,7 +103,8 @@ export type ParseCommandConsultResult = {
 
 /**
  * Unparseable / no catalog-backed match (FT-3.2). Distinct from **Error** (policy/legality)
- * and **Consult** (structured alternatives). v1 OOC stub; perception may own copy later.
+ * and **Consult** (structured alternatives). A rung's Abstain hands the command to the next rung
+ * (`parseCommand.ts`); only the top rung's reaches the player. v1 OOC stub; perception may own copy later.
  */
 export type ParseCommandAbstainResult = {
     type: 'Abstain'
