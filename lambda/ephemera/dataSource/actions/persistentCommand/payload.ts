@@ -11,7 +11,7 @@ import type { SkeletonFill } from '../enrich/objectManipulation/compileAttemptsF
  */
 export type PersistentCommandRoot = {
     command: string
-    /** Every segmentation Plan read and its attempts (PA-2 (b)): one on the LLM route, every fill on the fast path. */
+    /** Every segmentation Plan read and its attempts: one on the LLM route, every fill on the fast path. */
     fills: SkeletonFill<CommandAttemptData>[]
     confidence: number
 }

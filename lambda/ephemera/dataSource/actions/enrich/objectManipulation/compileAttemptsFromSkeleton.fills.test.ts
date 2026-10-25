@@ -56,7 +56,7 @@ const movedId = (result: { type: string; attempt?: unknown }): unknown => {
     return actions[actions.length - 1]?.desiredResult?.object?.groundedId
 }
 
-describe('compileAttemptsFromSkeleton (several fills, PA-2 (b))', () => {
+describe('compileAttemptsFromSkeleton (several fills)', () => {
     const takeManInTheMoonFromTable = [
         [text('take'), span('man in the moon from table')],
         [text('take'), span('man'), text('in'), span('the moon from table')],

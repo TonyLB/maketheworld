@@ -75,7 +75,7 @@ export async function runObjectManipulationParseHarness(deps: RunObjectManipulat
         const fastPath = deterministicIntentChecks({ command, roomObjectLabels })
         let skeletons: ParseSkeleton[]
         if (fastPath?.type === 'ObjectManipulationIntent') {
-            // Every fill goes to Plan (PA-2 (b)), so each is shown with what Plan reads from it.
+            // Every fill goes to Plan, so each is shown with what Plan reads from it.
             skeletons = fastPath.skeletons.map((draft) => stampStableRefKeys(draft))
             tree.push('Route: fast path', COYOTE_RENDER_LINE_BREAK)
         }

@@ -26,7 +26,7 @@ export const OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES: readonly ObjectManipula
     { id: 'c7-get-cup-under-table', corpusCase: 'C7 prepositions', command: 'get the cup under the table' },
     { id: 'c7-put-cup-under-table', corpusCase: 'C7 prepositions', command: 'put the cup under the table' },
     { id: 'w5-take-cup-saucer-table', corpusCase: 'W5 tails that stay refused', command: 'take cup on saucer on table' },
-    { id: 'w5-drop-cup-in-box', corpusCase: 'W5 tails that stay refused', command: 'drop the cup in the box' },
+    { id: 'c8-drop-cup-in-box', corpusCase: 'C8 a drop\'s destination', command: 'drop the cup in the box' },
     { id: 'w5-take-off-hat', corpusCase: 'W5 tails that stay refused', command: 'take off the hat' },
     { id: 'w4-take-bagg-from-talbe', corpusCase: 'W4 source tails', command: 'take bagg from talbe' },
     { id: 'w6-get-onion-on-table', corpusCase: 'W6 names that hold a preposition', command: 'get onion on table' },

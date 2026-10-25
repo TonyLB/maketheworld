@@ -276,7 +276,7 @@ describe('deterministicIntentChecks', () => {
             })
         })
 
-        describe('a qualified tail yields every fill, each a flat skeleton (PA-2 (b))', () => {
+        describe('a qualified tail yields every fill, each a flat skeleton', () => {
             const fillsOf = (command: string, roomObjectLabels?: string[]) => {
                 const result = deterministicIntentChecks({ command, ...(roomObjectLabels ? { roomObjectLabels } : {}) })
                 return result?.type === 'ObjectManipulationIntent' ? result.skeletons : result
@@ -373,7 +373,7 @@ describe('deterministicIntentChecks', () => {
             })
         })
 
-        describe('the containment template\'s pattern: put and place', () => {
+        describe('the containment template\'s pattern: put, place and drop', () => {
             const fillsOf = (command: string) => {
                 const result = deterministicIntentChecks({ command })
                 return result?.type === 'ObjectManipulationIntent' ? result.skeletons : result
@@ -393,6 +393,15 @@ describe('deterministicIntentChecks', () => {
                     [text('put'), span('cup'), text('on'), span('saucer on table')],
                     [text('put'), span('cup on saucer'), text('on'), span('table')],
                     [text('put'), span('cup'), text('on'), span('saucer'), text('on'), span('table')],
+                ]))
+            })
+
+            it('returns a drop\'s cut skeleton once, though both patterns build it, beside the membership pattern\'s uncut one', () => {
+                const fills = fillsOf('drop the cup in the box')
+                expect(fills).toHaveLength(2)
+                expect(fills).toEqual(expect.arrayContaining([
+                    [text('drop'), span('the cup in the box')],
+                    [text('drop'), span('the cup'), text('in'), span('the box')],
                 ]))
             })
 
