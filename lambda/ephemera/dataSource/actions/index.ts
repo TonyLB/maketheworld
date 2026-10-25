@@ -12,6 +12,7 @@ import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 import EphemeraDataSource from '../abstract'
 import type { AcmeOrderPublishedOrder, ActionsPublishedPayload } from './publishedEvents'
 import type { CommandAttemptData } from './commandAttempt'
+import { lookedAtObjectIdOf } from './commandAttempt/lookedAtObjectId'
 import type { ActionsSubscribedContent } from './subscribedEvents'
 import {
     isActionsActionAssessedEnvelope,
@@ -361,18 +362,6 @@ const respondImperativelyForIntent = async (context: ResponseContext): Promise<v
  * relational and containment exits. No-op when `attempt` is undefined (a degenerate
  * fixture, never the live path --- every producer builds an attempt unconditionally).
  */
-/**
- * The object a look attempt names, or undefined if the attempt is not a look (any action that is
- * not narration makes it a world change). A look names one object, its first referent.
- */
-const lookedAtObjectIdOf = (attempt: CommandAttemptData): EphemeraObjectId | undefined => {
-    if (attempt.actions.length === 0 || attempt.actions.some((action) => action.kind !== 'narrate')) {
-        return undefined
-    }
-    const id = attempt.referents[0]?.id
-    return isEphemeraObjectId(id) ? id : undefined
-}
-
 const publishLudicNetworkChangeRequested = async (
     streamEvent: StreamEventFn,
     characterId: EphemeraCharacterId,
@@ -577,8 +566,9 @@ const publishStreamEventsForIntent = async (
             reportCommandOutcome(context, 'Error', ['You are not in a room, so you cannot do that.'])
         }
         else {
-            // An attempt made only of narration is a look: it runs in-process, the same way a UI
-            // look does. Everything else is a world change and goes to the ludic network.
+            // An attempt whose primary action narrates is a look (its assertions, if qualified, were
+            // judged by the dry run): it runs in-process, the same way a UI look does. Everything else
+            // is a world change and goes to the ludic network.
             const lookedAtObjectId = lookedAtObjectIdOf(parseResult.attempt)
             if (lookedAtObjectId !== undefined) {
                 await commitAndPresentStepSequence(

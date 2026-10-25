@@ -35,7 +35,7 @@ describe('persistentCommand resume payoff: a stored answer lands on its question
             jest.doMock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({ ephemeraDB: fakeDB }))
             const { put } = require('./rowStore')
             const payload: PersistentCommandPayload = takeCupPayload()
-            primaryId = primaryActionIdOf(CommandAttempt.fromJSON(payload.root.attempts[0]))
+            primaryId = primaryActionIdOf(CommandAttempt.fromJSON(payload.root.fills[0]!.attempts[0]!))
             putPromise = put(characterId, 'abc', {
                 ...payload,
                 selectedAttempt: primaryId,

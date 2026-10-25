@@ -31,8 +31,7 @@ export const resumePersistentCommand = (
     return compileAttemptsFromSkeleton(
         {
             command: root.command,
-            skeleton: root.skeleton,
-            attempts: root.attempts.map((data) => CommandAttempt.fromJSON(data)),
+            fills: root.fills.map(({ skeleton, attempts }) => ({ skeleton, attempts: attempts.map((data) => CommandAttempt.fromJSON(data)) })),
             ...world,
             answers: { selectedAttempt, referentAnswers, viewAnswers, challengeAnswers },
         },

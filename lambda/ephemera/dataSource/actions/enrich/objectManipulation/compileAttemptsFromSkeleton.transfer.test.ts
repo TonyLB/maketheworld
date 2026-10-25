@@ -53,8 +53,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
-                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
+                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
@@ -73,8 +72,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup in tray',
-                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'in', 'tray', 'trayRef'),
-                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'in', 'tray', 'trayRef'), 'put cup in tray')],
+                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'in', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'in', 'tray', 'trayRef'), 'put cup in tray')] }],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
@@ -93,8 +91,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
-                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
+                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: trayId, normalizedShortName: 'tray' }],
                 heldInventoryCatalog: [{ objectId: cupId, normalizedShortName: 'cup' }],
@@ -111,8 +108,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
-                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
+                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
             },
             0.9,
             { positionsReadDeps: containmentPositionsReads() }
@@ -125,8 +121,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
-                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
+                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
                 hostRoomId: roomId,
             },
             0.9,
@@ -144,8 +139,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'take unicorn',
-                skeleton,
-                attempts: [planAttempt(skeleton, 'take unicorn')],
+                fills: [{ skeleton, attempts: [planAttempt(skeleton, 'take unicorn')] }],
                 characterId: 'CHARACTER#Alpha' as EphemeraCharacterId,
                 hostRoomId: roomId,
                 roomObjectCatalog: [{ objectId: cupId, normalizedShortName: 'cup' }],
@@ -165,8 +159,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
-                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
+                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
@@ -187,9 +180,8 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
             confidence: 0.9,
             root: {
                 command: 'put cup on tray',
-                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
                 // Plan mints fresh action ids per call, so the frozen attempts are matched by shape.
-                attempts: [expect.objectContaining({ actions: expect.any(Array) })],
+                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [expect.objectContaining({ actions: expect.any(Array) })] }],
                 confidence: 0.9,
             },
         })
@@ -202,8 +194,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on cup',
-                skeleton,
-                attempts: [planAttempt(skeleton, 'put cup on cup')],
+                fills: [{ skeleton, attempts: [planAttempt(skeleton, 'put cup on cup')] }],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: redId, normalizedShortName: 'Red cup' },
@@ -227,8 +218,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
-                skeleton,
-                attempts: [planAttempt(skeleton, 'put cup on tray')],
+                fills: [{ skeleton, attempts: [planAttempt(skeleton, 'put cup on tray')] }],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: redId, normalizedShortName: 'Red cup' },
@@ -253,8 +243,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
-                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
+                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup', placement: [{ host: cupId, bindings: [{ presence: base, under: [{ host: roomId, presence: base }], rooms: [roomId] }] }] },
@@ -279,8 +268,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on cup',
-                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'cup', 'cupRef2'),
-                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'cup', 'cupRef2'), 'put cup on cup')],
+                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'cup', 'cupRef2'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'cup', 'cupRef2'), 'put cup on cup')] }],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
@@ -301,8 +289,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on tray',
-                skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'),
-                attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')],
+                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
@@ -360,8 +347,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
         return compileAttemptsFromSkeleton(
             {
                 command,
-                skeleton,
-                attempts: planSkeleton(skeleton, command).attempts,
+                fills: [{ skeleton, attempts: planSkeleton(skeleton, command).attempts }],
                 characterId: actor,
                 hostRoomId: roomId,
                 roomObjectCatalog: catalog,
@@ -439,8 +425,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
         const result = await compileAttemptsFromSkeleton(
             {
                 command,
-                skeleton,
-                attempts: planSkeleton(skeleton, command).attempts,
+                fills: [{ skeleton, attempts: planSkeleton(skeleton, command).attempts }],
                 characterId: actor,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -498,8 +483,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
         const result = await compileAttemptsFromSkeleton(
             {
                 command,
-                skeleton,
-                attempts: planSkeleton(skeleton, command).attempts,
+                fills: [{ skeleton, attempts: planSkeleton(skeleton, command).attempts }],
                 characterId: actor,
                 hostRoomId: roomId,
                 roomObjectCatalog: [

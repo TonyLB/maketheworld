@@ -1288,79 +1288,83 @@ Object {
     ],
     "confidence": 1,
     "root": Object {
-      "attempts": Array [
+      "command": "take the broom",
+      "confidence": 1,
+      "fills": Array [
         Object {
-          "actions": Array [
+          "attempts": Array [
             Object {
-              "challenges": Array [],
-              "desiredResult": Object {
-                "from": Object {
-                  "referentTarget": Object {
-                    "referentType": "objectSpan",
-                    "span": "the broom",
-                    "stableRefKey": "theBroomRef",
-                  },
-                  "referentType": "currentHost",
-                },
-                "kind": "change",
-                "object": Object {
-                  "referentType": "objectSpan",
-                  "span": "the broom",
-                  "stableRefKey": "theBroomRef",
-                },
-                "primitive": "transferMembership",
-                "to": Object {
-                  "referentType": "actingCharacter",
-                },
-              },
-              "id": "<minted id 1>",
-              "kind": "position",
-            },
-          ],
-          "narrationUnits": Array [
-            Object {
-              "covers": Array [
-                "<minted id 1>",
-              ],
-              "variants": Array [
+              "actions": Array [
                 Object {
-                  "audience": Object {
-                    "phase": "before",
-                    "refs": Array [
-                      "actor",
-                      "theBroomRef",
-                    ],
+                  "challenges": Array [],
+                  "desiredResult": Object {
+                    "from": Object {
+                      "referentTarget": Object {
+                        "referentType": "objectSpan",
+                        "span": "the broom",
+                        "stableRefKey": "theBroomRef",
+                      },
+                      "referentType": "currentHost",
+                    },
+                    "kind": "change",
+                    "object": Object {
+                      "referentType": "objectSpan",
+                      "span": "the broom",
+                      "stableRefKey": "theBroomRef",
+                    },
+                    "primitive": "transferMembership",
+                    "to": Object {
+                      "referentType": "actingCharacter",
+                    },
                   },
-                  "parts": Array [
+                  "id": "<minted id 1>",
+                  "kind": "position",
+                },
+              ],
+              "narrationUnits": Array [
+                Object {
+                  "covers": Array [
+                    "<minted id 1>",
+                  ],
+                  "variants": Array [
                     Object {
-                      "slot": "actor",
-                    },
-                    Object {
-                      "text": " picks up ",
-                    },
-                    Object {
-                      "ref": "theBroomRef",
+                      "audience": Object {
+                        "phase": "before",
+                        "refs": Array [
+                          "actor",
+                          "theBroomRef",
+                        ],
+                      },
+                      "parts": Array [
+                        Object {
+                          "slot": "actor",
+                        },
+                        Object {
+                          "text": " picks up ",
+                        },
+                        Object {
+                          "ref": "theBroomRef",
+                        },
+                      ],
                     },
                   ],
                 },
               ],
+              "referents": Array [],
+              "words": "take the broom",
             },
           ],
-          "referents": Array [],
-          "words": "take the broom",
-        },
-      ],
-      "command": "take the broom",
-      "confidence": 1,
-      "skeleton": Array [
-        Object {
-          "text": "take",
-          "type": "text",
-        },
-        Object {
-          "span": "the broom",
-          "stableRefKey": "theBroomRef",
-          "type": "objectSpan",
+          "skeleton": Array [
+            Object {
+              "text": "take",
+              "type": "text",
+            },
+            Object {
+              "span": "the broom",
+              "stableRefKey": "theBroomRef",
+              "type": "objectSpan",
+            },
+          ],
         },
       ],
     },
@@ -1433,7 +1437,7 @@ Object {
   "stubCalls": Object {
     "acme": 0,
     "classify": 0,
-    "embedSpan": 0,
+    "embedSpan": 1,
     "enrich": 0,
     "parse": 0,
   },

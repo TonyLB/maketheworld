@@ -198,12 +198,12 @@ describe('deterministicIntentChecks', () => {
         it('returns ObjectMembershipIntent for minimal take/drop/get verbs', () => {
             expect(deterministicIntentChecks({ command: 'take broom' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'broom' }],
+                skeletons: [[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'broom' }]],
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: '  DROP   the rope  ' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'DROP' }, { type: 'objectSpan', span: 'the rope' }],
+                skeletons: [[{ type: 'text', text: 'DROP' }, { type: 'objectSpan', span: 'the rope' }]],
                 confidence: 1,
             })
             expect(deterministicIntentChecks({
@@ -211,7 +211,7 @@ describe('deterministicIntentChecks', () => {
                 roomObjectLabels: ['broom'],
             })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'broom' }],
+                skeletons: [[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'broom' }]],
                 confidence: 1,
             })
         })
@@ -234,7 +234,7 @@ describe('deterministicIntentChecks', () => {
         it('keeps articles on the span, and a get still claims through a peeled label', () => {
             expect(deterministicIntentChecks({ command: 'take an apple' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'an apple' }],
+                skeletons: [[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'an apple' }]],
                 confidence: 1,
             })
             expect(deterministicIntentChecks({
@@ -242,12 +242,12 @@ describe('deterministicIntentChecks', () => {
                 roomObjectLabels: ['broom'],
             })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'a broom' }],
+                skeletons: [[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'a broom' }]],
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: 'drop some rope' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'some rope' }],
+                skeletons: [[{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'some rope' }]],
                 confidence: 1,
             })
         })
@@ -258,7 +258,7 @@ describe('deterministicIntentChecks', () => {
                 roomObjectLabels: ['the thing'],
             })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'the thing' }],
+                skeletons: [[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'the thing' }]],
                 confidence: 1,
             })
         })
@@ -266,83 +266,100 @@ describe('deterministicIntentChecks', () => {
         it('preserves article-only spans instead of rejecting them', () => {
             expect(deterministicIntentChecks({ command: 'take a' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'a' }],
+                skeletons: [[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'a' }]],
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: 'drop the' })).toEqual({
                 type: 'ObjectMembershipIntent',
-                skeleton: [{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'the' }],
+                skeletons: [[{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'the' }]],
                 confidence: 1,
             })
         })
 
-        describe('a qualified tail splits into the flat skeleton', () => {
-            const skeletonOf = (command: string, roomObjectLabels?: string[]) => {
+        describe('a qualified tail yields every fill, each a flat skeleton (PA-2 (b))', () => {
+            const fillsOf = (command: string, roomObjectLabels?: string[]) => {
                 const result = deterministicIntentChecks({ command, ...(roomObjectLabels ? { roomObjectLabels } : {}) })
-                return result?.type === 'ObjectMembershipIntent' ? result.skeleton : result
+                return result?.type === 'ObjectMembershipIntent' ? result.skeletons : result
             }
             const text = (value: string) => ({ type: 'text', text: value })
             const span = (value: string) => ({ type: 'objectSpan', span: value })
 
-            it('splits a take at a closed-set preposition, keeping each piece as typed', () => {
-                expect(skeletonOf('take the cup on the table')).toEqual([text('take'), span('the cup'), text('on'), span('the table')])
+            it('includes the cut at a closed-set preposition, keeping each piece as typed', () => {
+                expect(fillsOf('take the cup on the table')).toContainEqual([text('take'), span('the cup'), text('on'), span('the table')])
             })
 
-            it('keeps a tail whole when the whole tail is a room label, for get and take', () => {
-                expect(skeletonOf('get the man in the moon', ['man in the moon'])).toEqual([text('get'), span('the man in the moon')])
-                expect(skeletonOf('take the man in the moon', ['man in the moon'])).toEqual([text('take'), span('the man in the moon')])
+            it('includes the whole tail as a fill, so a room label holding a preposition can match whole, for get and take', () => {
+                expect(fillsOf('get the man in the moon', ['man in the moon'])).toContainEqual([text('get'), span('the man in the moon')])
+                expect(fillsOf('take the man in the moon', ['man in the moon'])).toContainEqual([text('take'), span('the man in the moon')])
             })
 
-            it('splits misspelled pieces and leaves them to Identify', () => {
-                expect(skeletonOf('take bagg from talbe')).toEqual([text('take'), span('bagg'), text('from'), span('talbe')])
+            it('includes misspelled pieces cut, and leaves them to Identify', () => {
+                expect(fillsOf('take bagg from talbe')).toContainEqual([text('take'), span('bagg'), text('from'), span('talbe')])
             })
 
             it('claims a get when its head piece is a room label, not its qualifier', () => {
-                expect(skeletonOf('get cup on table', ['cup'])).toEqual([text('get'), span('cup'), text('on'), span('table')])
-                expect(skeletonOf('get cup on table', ['table'])).toBeNull()
+                expect(fillsOf('get cup on table', ['cup'])).toContainEqual([text('get'), span('cup'), text('on'), span('table')])
+                expect(fillsOf('get cup on table', ['table'])).toBeNull()
             })
 
             it('does not claim get up or get out of here', () => {
-                expect(skeletonOf('get up', ['cup'])).toBeNull()
-                expect(skeletonOf('get out of here', ['cup'])).toBeNull()
+                expect(fillsOf('get up', ['cup'])).toBeNull()
+                expect(fillsOf('get out of here', ['cup'])).toBeNull()
             })
 
-            it('splits a two-qualifier tail into three spans', () => {
-                expect(skeletonOf('take cup on saucer on table')).toEqual([
+            it('includes a two-qualifier tail cut into three spans', () => {
+                expect(fillsOf('take cup on saucer on table')).toContainEqual([
                     text('take'), span('cup'), text('on'), span('saucer'), text('on'), span('table'),
                 ])
             })
 
-            it('splits a drop\'s tail like any other: the split never reads the verb', () => {
-                expect(skeletonOf('drop the cup in the box')).toEqual([text('drop'), span('the cup'), text('in'), span('the box')])
+            it('returns every way to cut the tail: no fill is chosen here, Identify and the dry run choose', () => {
+                const fills = fillsOf('take cup on saucer on table')
+                expect(fills).toHaveLength(4)
+                expect(fills).toEqual(expect.arrayContaining([
+                    [text('take'), span('cup on saucer on table')],
+                    [text('take'), span('cup'), text('on'), span('saucer on table')],
+                    [text('take'), span('cup on saucer'), text('on'), span('table')],
+                    [text('take'), span('cup'), text('on'), span('saucer'), text('on'), span('table')],
+                ]))
+            })
+
+            it('claims a get when any fill\'s head is a room label: the head cut at "from"', () => {
+                expect(fillsOf('get man in the moon from table', ['man in the moon', 'table'])).toContainEqual(
+                    [text('get'), span('man in the moon'), text('from'), span('table')]
+                )
+            })
+
+            it('cuts a drop\'s tail like any other: the cut never reads the verb', () => {
+                expect(fillsOf('drop the cup in the box')).toContainEqual([text('drop'), span('the cup'), text('in'), span('the box')])
             })
 
             it('folds a tail with no head, as before', () => {
-                expect(skeletonOf('take off the hat')).toEqual([text('take'), span('off the hat')])
+                expect(fillsOf('take off the hat')).toEqual([[text('take'), span('off the hat')]])
             })
 
             it('leaves a trailing preposition in its span', () => {
-                expect(skeletonOf('take cup on')).toEqual([text('take'), span('cup on')])
+                expect(fillsOf('take cup on')).toEqual([[text('take'), span('cup on')]])
             })
 
-            it('cuts at the longest phrase: "on top of" over "on"', () => {
-                expect(skeletonOf('take cup on top of table')).toEqual([text('take'), span('cup'), text('on top of'), span('table')])
+            it('cuts at the longest phrase: "on top of" as one preposition', () => {
+                expect(fillsOf('take cup on top of table')).toContainEqual([text('take'), span('cup'), text('on top of'), span('table')])
             })
 
             it('cuts at a bare "out", as Plan\'s readings read the LLM route\'s bare "out"', () => {
-                expect(skeletonOf('take coin out box')).toEqual([text('take'), span('coin'), text('out'), span('box')])
+                expect(fillsOf('take coin out box')).toContainEqual([text('take'), span('coin'), text('out'), span('box')])
             })
 
             it('cuts only at whole words: "on" inside "onion" is no cut', () => {
-                expect(skeletonOf('take onion on table')).toEqual([text('take'), span('onion'), text('on'), span('table')])
+                expect(fillsOf('take onion on table')).toContainEqual([text('take'), span('onion'), text('on'), span('table')])
             })
 
             it.each(['cup under table', 'box of matches', 'cup onto table', 'coin into box'])('does not cut "take %s": the word is outside the closed set', (tail) => {
-                expect(skeletonOf(`take ${tail}`)).toEqual([text('take'), span(tail)])
+                expect(fillsOf(`take ${tail}`)).toEqual([[text('take'), span(tail)]])
             })
 
             it('keeps the verb and preposition as typed, spacing collapsed', () => {
-                expect(skeletonOf('Take Cup  On   Top  OF  Table')).toEqual([text('Take'), span('Cup'), text('On Top OF'), span('Table')])
+                expect(fillsOf('Take Cup  On   Top  OF  Table')).toContainEqual([text('Take'), span('Cup'), text('On Top OF'), span('Table')])
             })
 
             // Nova Micro's recorded skeletons for these commands (two `/test parse` runs, 2026-10-23), for the rows whose spans carry no article.
@@ -352,7 +369,7 @@ describe('deterministicIntentChecks', () => {
                 ['take cup off saucer', [], [text('take'), span('cup'), text('off'), span('saucer')]],
                 ['take coin out of box', [], [text('take'), span('coin'), text('out of'), span('box')]],
             ])('builds the skeleton Nova Micro returns for "%s"', (command, labels, novaMicro) => {
-                expect(skeletonOf(command, labels)).toEqual(novaMicro)
+                expect(fillsOf(command, labels)).toContainEqual(novaMicro)
             })
         })
     })

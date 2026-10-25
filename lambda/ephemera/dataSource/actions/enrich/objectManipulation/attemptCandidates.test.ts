@@ -553,17 +553,17 @@ describe('disambiguationLabels over views', () => {
     ]
 
     it('treats two readings of one object as ambiguous, labelled by the part meant', () => {
-        expect(disambiguationLabels(skeleton, [
-            { answers: { clothRef: 'OBJECT#Cloth' }, views: { clothRef: ['PRESENCE#a' as EphemeraPresenceNodeId] }, names: { clothRef: 'the cloth on the table' } },
-            { answers: { clothRef: 'OBJECT#Cloth' }, views: { clothRef: 'whole' }, names: { clothRef: 'both parts of the cloth' } },
+        expect(disambiguationLabels([
+            { answers: { clothRef: 'OBJECT#Cloth' }, views: { clothRef: ['PRESENCE#a' as EphemeraPresenceNodeId] }, names: { clothRef: 'the cloth on the table' }, skeleton },
+            { answers: { clothRef: 'OBJECT#Cloth' }, views: { clothRef: 'whole' }, names: { clothRef: 'both parts of the cloth' }, skeleton },
         ])).toEqual(['the cloth on the table', 'both parts of the cloth'])
     })
 
     it('words the whole command where more than one referent is ambiguous', () => {
         const two: ParseSkeleton = [...skeleton, { type: 'text', text: 'from' }, { type: 'objectSpan', span: 'box', stableRefKey: 'boxRef' }]
-        expect(disambiguationLabels(two, [
-            { answers: { clothRef: 'OBJECT#Cloth', boxRef: 'OBJECT#Red' }, views: { clothRef: 'whole' }, names: { clothRef: 'both parts of the cloth', boxRef: 'red box' } },
-            { answers: { clothRef: 'OBJECT#Cloth', boxRef: 'OBJECT#Blue' }, views: { clothRef: ['PRESENCE#a' as EphemeraPresenceNodeId] }, names: { clothRef: 'the cloth on the table', boxRef: 'blue box' } },
+        expect(disambiguationLabels([
+            { answers: { clothRef: 'OBJECT#Cloth', boxRef: 'OBJECT#Red' }, views: { clothRef: 'whole' }, names: { clothRef: 'both parts of the cloth', boxRef: 'red box' }, skeleton: two },
+            { answers: { clothRef: 'OBJECT#Cloth', boxRef: 'OBJECT#Blue' }, views: { clothRef: ['PRESENCE#a' as EphemeraPresenceNodeId] }, names: { clothRef: 'the cloth on the table', boxRef: 'blue box' }, skeleton: two },
         ])).toEqual(['get both parts of the cloth from red box', 'get the cloth on the table from blue box'])
     })
 })

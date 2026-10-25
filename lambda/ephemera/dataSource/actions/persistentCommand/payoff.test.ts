@@ -80,7 +80,7 @@ describe('persistentCommand payoff: state survives into another module instance'
             jest.doMock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({ ephemeraDB: fakeDB }))
             const { get } = require('./rowStore')
             getPromise = get('CHARACTER#TESS', 'abc').then((payload: PersistentCommandPayload | undefined) => {
-                rehydratedWords = (payload?.root.attempts ?? []).map((data) => CommandAttempt.fromJSON(data).words)
+                rehydratedWords = (payload?.root.fills.flatMap(({ attempts }) => attempts) ?? []).map((data) => CommandAttempt.fromJSON(data).words)
                 return payload
             })
         })
@@ -90,7 +90,7 @@ describe('persistentCommand payoff: state survives into another module instance'
         expect(read?.transcript).toEqual(written!.transcript)
         expect(read?.transcript).toBeDefined()
         expect(read).toEqual(JSON.parse(JSON.stringify(written)))
-        expect(rehydratedWords).toEqual(written!.root.attempts.map((attempt) => attempt.words))
+        expect(rehydratedWords).toEqual(written!.root.fills.flatMap(({ attempts }) => attempts).map((attempt) => attempt.words))
         expect(rehydratedWords.length).toBeGreaterThan(0)
     })
 })

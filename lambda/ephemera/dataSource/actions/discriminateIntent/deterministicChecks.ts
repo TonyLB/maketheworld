@@ -45,21 +45,13 @@ const FAST_PATH_PATTERN: readonly PatternElement[] = [MEMBERSHIP_VERB_ELEMENT, Q
 
 type FastPathFill = { verb: string; option: string; head: string; links: ObjectPhraseLink[] }
 
-/** How many words a fill's prepositions hold: among fills with as many cuts, the longest phrases win. */
-const prepositionWordCount = ({ links }: FastPathFill): number => (
-    links.reduce((count, { text }) => count + text.split(' ').length, 0)
-)
-
 /**
  * The zero-Bedrock take/get/drop fast path: the membership verbs and an object phrase matched
- * against the command text (every set of cuts at the closed-set prepositions), and a claim policy
- * that keeps one fill. It claims `take` and `drop` always (not `take hold`), and `get` when the kept
- * fill's head is a room label. A tail that is a room label as a whole stays one span (a name like
- * "man in the moon"); otherwise the fill with the most cuts is kept, longest phrases first, which is
- * the flat skeleton Nova Micro returns. The policy never reads the verb to cut: which span a phrase
- * attaches to is decided by Plan, whose templates' object phrases read every way to attach it (each
- * fill a reading). Spans pass through as typed: Identify peels a leading article, and a label
- * matches a span as given or peeled.
+ * against the command text, every set of cuts at the closed-set prepositions a fill. Every fill goes
+ * to Plan as its own skeleton (PA-2 (b)): a segmentation is a reading, like an attachment, and
+ * Identify's exact match, the dry run and selection choose among them. What remains here is the
+ * routing gate: it claims `take` and `drop` always (not `take hold`), and `get` when some fill's head
+ * is a room label, as given or with its article peeled. Spans pass through as typed.
  */
 function maybeDeterministicManipulationIntent(
     input: ParseCommandInput
@@ -85,29 +77,20 @@ function maybeDeterministicManipulationIntent(
 
     const labels = input.roomObjectLabels ?? []
     const isLabel = (span: string): boolean => spanMatchForms(span).some((form) => labels.includes(form))
-    const kept = isLabel(uncut.head)
-        ? uncut
-        : fills.reduce((best, fill) => (
-            fill.links.length > best.links.length
-            || (fill.links.length === best.links.length && prepositionWordCount(fill) > prepositionWordCount(best))
-                ? fill
-                : best
-        ))
-
-    if (kept.option === 'get' && !isLabel(kept.head)) {
+    if (uncut.option === 'get' && !fills.some(({ head }) => isLabel(head))) {
         return null
     }
 
     return {
         type: 'ObjectMembershipIntent',
-        skeleton: [
-            { type: 'text', text: kept.verb },
-            { type: 'objectSpan', span: kept.head },
-            ...kept.links.flatMap(({ text, span }): ParseTokenDraft[] => [
+        skeletons: fills.map(({ verb, head, links }): ParseTokenDraft[] => [
+            { type: 'text', text: verb },
+            { type: 'objectSpan', span: head },
+            ...links.flatMap(({ text, span }): ParseTokenDraft[] => [
                 { type: 'text', text },
                 { type: 'objectSpan', span },
             ]),
-        ],
+        ]),
         confidence: 1,
     }
 }

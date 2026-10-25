@@ -311,12 +311,12 @@ export type ParseCommandMultipleCommandsResult = {
 export type ParseCommandObjectMembershipIntentResult = {
     type: 'ObjectMembershipIntent'
     /**
-     * The flat, unstamped skeleton the zero-Bedrock fast path (`deterministicChecks.ts`) builds: the
-     * fill of its pattern (verb, then the tail cut at closed-set prepositions) that its claim policy
-     * keeps, the skeleton Nova Micro returns for the same command. Only the fast path produces this intent; `parseCommand.ts` stamps
-     * the skeleton and enters Plan.
+     * The flat, unstamped skeletons the zero-Bedrock fast path (`deterministicChecks.ts`) builds: every
+     * fill of its pattern (verb, then the tail cut at closed-set prepositions), each a segmentation
+     * Plan reads on its own (PA-2 (b)). Only the fast path produces this intent; `parseCommand.ts`
+     * stamps each skeleton and enters Plan.
      */
-    skeleton: ParseTokenDraft[]
+    skeletons: ParseTokenDraft[][]
     confidence: ParseCommandConfidence
 }
 

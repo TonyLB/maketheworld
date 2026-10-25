@@ -92,7 +92,7 @@ describe('parseCommand type guards', () => {
 
         it('accepts label, referentAnswers and a root, and rejects malformed ones', () => {
             const base = { type: 'Consult', confidence: 0.6 } as const
-            const root = { command: 'take cup', skeleton: [{ type: 'text', text: 'take' }], attempts: [], confidence: 0.6 }
+            const root = { command: 'take cup', fills: [{ skeleton: [{ type: 'text', text: 'take' }], attempts: [] }], confidence: 0.6 }
             const alternative = { proposedCommand: 'take the cup', label: 'cup', referentAnswers: { cupRef: broomId } }
             expect(isParseCommandConsultResult({ ...base, alternatives: [alternative], root } as any)).toBe(true)
             expect(isParseCommandConsultResult({ ...base, alternatives: [{ ...alternative, label: 3 }] } as any)).toBe(false)
@@ -1134,7 +1134,7 @@ describe('parseCommand LLM path', () => {
             expect(result).toEqual({
                 type: 'Consult',
                 confidence: 1,
-                root: expect.objectContaining({ confidence: 1, skeleton: expect.any(Array) }),
+                root: expect.objectContaining({ confidence: 1, fills: expect.any(Array) }),
                 alternatives: [
                     expect.objectContaining({ proposedCommand: 'take the broom', objectId: broomId }),
                     expect.objectContaining({ proposedCommand: 'take the mop', objectId: mopId }),
@@ -1175,7 +1175,7 @@ describe('parseCommand LLM path', () => {
             expect(result).toEqual({
                 type: 'Consult',
                 confidence: 1,
-                root: expect.objectContaining({ confidence: 1, skeleton: expect.any(Array) }),
+                root: expect.objectContaining({ confidence: 1, fills: expect.any(Array) }),
                 alternatives: [
                     expect.objectContaining({ proposedCommand: 'take the broom', objectId: broomId }),
                     expect.objectContaining({ proposedCommand: 'take the broom', objectId: mopId }),

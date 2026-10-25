@@ -69,10 +69,10 @@ describe('runObjectManipulationParseHarness', () => {
         expect(text).toContain('--- 1/2 [1] C1: get the cup on the table ---')
         expect(text).toContain('Route: LLM (Parse)')
         expect(text).toContain('Parse: text "get" | span "cup on the table"')
-        expect(text).toContain('Templates: containment noMatch, spread noMatch, look noMatch, membership matched')
+        expect(text).toContain('Templates: containment noMatch, spread noMatch, look noMatch, look noMatch, membership matched')
         expect(text).toContain('Attempt (membership):')
         expect(text).toContain('Parse: text "put" | span "bag" | text "in" | span "box"')
-        expect(text).toContain('Templates: containment matched, spread noMatch, look noMatch, membership noMatch')
+        expect(text).toContain('Templates: containment matched, spread noMatch, look noMatch, look noMatch, membership noMatch')
         expect(text).toContain('Attempt (containment):')
     })
 
@@ -109,7 +109,7 @@ describe('runObjectManipulationParseHarness', () => {
         expect(text).not.toContain('Templates:')
     })
 
-    it('shows the fast path\'s split skeleton for a command it claims, with no Parse call', async () => {
+    it('shows every fill of the fast path for a command it claims, uncut and split, with no Parse call', async () => {
         await runObjectManipulationParseHarness({
             characterId: 'CHARACTER#t',
             messageBus,
@@ -124,8 +124,9 @@ describe('runObjectManipulationParseHarness', () => {
         expect(getRoomObjectLabelsImpl).toHaveBeenCalledWith('CHARACTER#t')
         const text = publishedText()
         expect(text).toContain('Route: fast path')
+        expect(text).toContain('Skeleton: text "take" | span "the cup on the table"')
         expect(text).toContain('Skeleton: text "take" | span "the cup" | text "on" | span "the table"')
-        expect(text).toContain('Templates: containment noMatch, spread noMatch, look noMatch, membership matched')
+        expect(text).toContain('Templates: containment noMatch, spread noMatch, look noMatch, look noMatch, membership matched')
         expect(text).toContain('"predicate":"containedBy"')
     })
 })

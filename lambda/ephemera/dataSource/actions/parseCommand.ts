@@ -33,17 +33,18 @@ async function parseCommandCore(
 
     if (intentResult.type === 'ObjectMembershipIntent') {
         // Only reachable via deterministicIntentChecks's take/get/drop fast path (iteration 7,
-        // Sub-iteration 1). The fast path builds the flat skeleton from its pattern (a qualified tail
-        // arrives cut, as Parse would return it); it is stamped and enters Plan like a parsed skeleton.
-        const skeleton = stampStableRefKeys(intentResult.skeleton)
-        const plan = planSkeleton(skeleton, input.command)
+        // Sub-iteration 1). The fast path builds a flat skeleton for every fill of its pattern (each
+        // a segmentation, as Parse would return one); each is stamped and Planned like a parsed skeleton.
+        const fills = intentResult.skeletons
+            .map((draft) => stampStableRefKeys(draft))
+            .map((skeleton) => ({ skeleton, attempts: planSkeleton(skeleton, input.command).attempts }))
+            .filter(({ attempts }) => attempts.length > 0)
         // Zero attempts is not understood on this rung, like an Abstain: both climb to the LLM route.
-        if (plan.attempts.length > 0) {
+        if (fills.length > 0) {
             const result = await compileAttemptsFromSkeleton(
                 {
                     command: input.command,
-                    skeleton,
-                    attempts: plan.attempts,
+                    fills,
                     characterId: input.characterId,
                     hostRoomId: input.hostRoomId,
                     roomObjectCatalog: input.roomObjectCatalog,
@@ -104,8 +105,7 @@ async function routeClassifiedIntent(
             ? await compileAttemptsFromSkeleton(
                 {
                     command: input.command,
-                    skeleton: parseResult.tokens,
-                    attempts: plan.attempts,
+                    fills: [{ skeleton: parseResult.tokens, attempts: plan.attempts }],
                     characterId: input.characterId,
                     hostRoomId: input.hostRoomId,
                     roomObjectCatalog: input.roomObjectCatalog,
