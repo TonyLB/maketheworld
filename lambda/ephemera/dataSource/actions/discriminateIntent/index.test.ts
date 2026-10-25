@@ -15,7 +15,7 @@ describe('discriminateIntent', () => {
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
-    it('returns deterministic ObjectMembershipIntent for take without invoking Bedrock', async () => {
+    it('returns deterministic ObjectManipulationIntent for take without invoking Bedrock', async () => {
         const invokeBedrockParseCommandImpl = jest.fn()
         const result = await discriminateIntent(
             { command: 'take broom', roomObjectLabels: ['broom'] },
@@ -23,7 +23,7 @@ describe('discriminateIntent', () => {
         )
 
         expect(result).toEqual({
-            type: 'ObjectMembershipIntent',
+            type: 'ObjectManipulationIntent',
             skeletons: [[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'broom' }]],
             confidence: 1,
         })

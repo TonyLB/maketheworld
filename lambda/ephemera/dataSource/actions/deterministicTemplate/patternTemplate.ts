@@ -299,7 +299,8 @@ export function synthesizeSkeletonFromPattern(pattern: readonly PatternElement[]
     return stampStableRefKeys(draftFromPattern(pattern, captures))
 }
 
-function draftFromPattern(pattern: readonly PatternElement[], captures: PatternCapture[]): ParseTokenDraft[] {
+/** The flat, unstamped skeleton one fill builds: each object phrase flattened to its spans and prepositions. */
+export function draftFromPattern(pattern: readonly PatternElement[], captures: PatternCapture[]): ParseTokenDraft[] {
     return pattern.flatMap((element, elementIndex): ParseTokenDraft[] => {
         const capture = captures[elementIndex]
         if (element.type === 'objectSpan') {

@@ -31,9 +31,9 @@ async function parseCommandCore(
 ): Promise<ParseCommandWithEnrichReasoningResult> {
     const intentResult = await discriminateIntent(input, deps)
 
-    if (intentResult.type === 'ObjectMembershipIntent') {
-        // Only reachable via deterministicIntentChecks's take/get/drop fast path (iteration 7,
-        // Sub-iteration 1). The fast path builds a flat skeleton for every fill of its pattern (each
+    if (intentResult.type === 'ObjectManipulationIntent') {
+        // Only reachable via deterministicIntentChecks's take/get/drop/put/place fast path (iteration 7,
+        // Sub-iteration 1). The fast path builds a flat skeleton for every fill of its patterns (each
         // a segmentation, as Parse would return one); each is stamped and Planned like a parsed skeleton.
         const fills = intentResult.skeletons
             .map((draft) => stampStableRefKeys(draft))

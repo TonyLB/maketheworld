@@ -195,14 +195,14 @@ describe('deterministicIntentChecks', () => {
     })
 
     describe('manipulation fast paths', () => {
-        it('returns ObjectMembershipIntent for minimal take/drop/get verbs', () => {
+        it('returns ObjectManipulationIntent for minimal take/drop/get verbs', () => {
             expect(deterministicIntentChecks({ command: 'take broom' })).toEqual({
-                type: 'ObjectMembershipIntent',
+                type: 'ObjectManipulationIntent',
                 skeletons: [[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'broom' }]],
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: '  DROP   the rope  ' })).toEqual({
-                type: 'ObjectMembershipIntent',
+                type: 'ObjectManipulationIntent',
                 skeletons: [[{ type: 'text', text: 'DROP' }, { type: 'objectSpan', span: 'the rope' }]],
                 confidence: 1,
             })
@@ -210,7 +210,7 @@ describe('deterministicIntentChecks', () => {
                 command: 'get broom',
                 roomObjectLabels: ['broom'],
             })).toEqual({
-                type: 'ObjectMembershipIntent',
+                type: 'ObjectManipulationIntent',
                 skeletons: [[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'broom' }]],
                 confidence: 1,
             })
@@ -233,7 +233,7 @@ describe('deterministicIntentChecks', () => {
 
         it('keeps articles on the span, and a get still claims through a peeled label', () => {
             expect(deterministicIntentChecks({ command: 'take an apple' })).toEqual({
-                type: 'ObjectMembershipIntent',
+                type: 'ObjectManipulationIntent',
                 skeletons: [[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'an apple' }]],
                 confidence: 1,
             })
@@ -241,12 +241,12 @@ describe('deterministicIntentChecks', () => {
                 command: 'get a broom',
                 roomObjectLabels: ['broom'],
             })).toEqual({
-                type: 'ObjectMembershipIntent',
+                type: 'ObjectManipulationIntent',
                 skeletons: [[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'a broom' }]],
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: 'drop some rope' })).toEqual({
-                type: 'ObjectMembershipIntent',
+                type: 'ObjectManipulationIntent',
                 skeletons: [[{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'some rope' }]],
                 confidence: 1,
             })
@@ -257,7 +257,7 @@ describe('deterministicIntentChecks', () => {
                 command: 'get the thing',
                 roomObjectLabels: ['the thing'],
             })).toEqual({
-                type: 'ObjectMembershipIntent',
+                type: 'ObjectManipulationIntent',
                 skeletons: [[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'the thing' }]],
                 confidence: 1,
             })
@@ -265,12 +265,12 @@ describe('deterministicIntentChecks', () => {
 
         it('preserves article-only spans instead of rejecting them', () => {
             expect(deterministicIntentChecks({ command: 'take a' })).toEqual({
-                type: 'ObjectMembershipIntent',
+                type: 'ObjectManipulationIntent',
                 skeletons: [[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'a' }]],
                 confidence: 1,
             })
             expect(deterministicIntentChecks({ command: 'drop the' })).toEqual({
-                type: 'ObjectMembershipIntent',
+                type: 'ObjectManipulationIntent',
                 skeletons: [[{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'the' }]],
                 confidence: 1,
             })
@@ -279,7 +279,7 @@ describe('deterministicIntentChecks', () => {
         describe('a qualified tail yields every fill, each a flat skeleton (PA-2 (b))', () => {
             const fillsOf = (command: string, roomObjectLabels?: string[]) => {
                 const result = deterministicIntentChecks({ command, ...(roomObjectLabels ? { roomObjectLabels } : {}) })
-                return result?.type === 'ObjectMembershipIntent' ? result.skeletons : result
+                return result?.type === 'ObjectManipulationIntent' ? result.skeletons : result
             }
             const text = (value: string) => ({ type: 'text', text: value })
             const span = (value: string) => ({ type: 'objectSpan', span: value })
@@ -370,6 +370,36 @@ describe('deterministicIntentChecks', () => {
                 ['take coin out of box', [], [text('take'), span('coin'), text('out of'), span('box')]],
             ])('builds the skeleton Nova Micro returns for "%s"', (command, labels, novaMicro) => {
                 expect(fillsOf(command, labels)).toContainEqual(novaMicro)
+            })
+        })
+
+        describe('the containment template\'s pattern: put and place', () => {
+            const fillsOf = (command: string) => {
+                const result = deterministicIntentChecks({ command })
+                return result?.type === 'ObjectManipulationIntent' ? result.skeletons : result
+            }
+            const text = (value: string) => ({ type: 'text', text: value })
+            const span = (value: string) => ({ type: 'objectSpan', span: value })
+
+            it('claims a put with no label gate, keeping each piece as typed', () => {
+                expect(fillsOf('put the cup on the tray')).toEqual([[text('put'), span('the cup'), text('on'), span('the tray')]])
+                expect(fillsOf('place coin in box')).toEqual([[text('place'), span('coin'), text('in'), span('box')]])
+            })
+
+            it('returns every segmentation once: two attachments with the same cuts build one skeleton, and Plan reads both', () => {
+                const fills = fillsOf('put cup on saucer on table')
+                expect(fills).toHaveLength(3)
+                expect(fills).toEqual(expect.arrayContaining([
+                    [text('put'), span('cup'), text('on'), span('saucer on table')],
+                    [text('put'), span('cup on saucer'), text('on'), span('table')],
+                    [text('put'), span('cup'), text('on'), span('saucer'), text('on'), span('table')],
+                ]))
+            })
+
+            it('does not claim a put the pattern does not fit', () => {
+                expect(fillsOf('put down the broom')).toBeNull()
+                expect(fillsOf('put on hat')).toBeNull()
+                expect(fillsOf('put the broom under the table')).toBeNull()
             })
         })
     })

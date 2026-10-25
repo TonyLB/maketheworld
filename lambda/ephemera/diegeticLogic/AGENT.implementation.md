@@ -10,7 +10,7 @@ Cross-lane index for **atomic position-manipulation** operators (membership tran
 
 ```text
 Parse Requested
-  -> ObjectMembershipIntent (classify; movementObjectLabels)
+  -> ObjectManipulationIntent (classify; movementObjectLabels)
   -> enrich objectManipulation (cardinality gate -> identity -> membership -> complexity pre-gates)
   -> streamEvent intent (Object Take Hold)
   -> positions apply (room-remove + character-add)
@@ -23,7 +23,7 @@ Parse Requested
 
 ```text
 Parse Requested
-  -> ObjectMembershipIntent (classify; movementObjectLabels = room + held)
+  -> ObjectManipulationIntent (classify; movementObjectLabels = room + held)
   -> enrich objectManipulation (held-catalog identity -> membership -> complexity pre-gates)
   -> streamEvent intent (Object Drop)
   -> positions apply (character-remove + room-add)
@@ -32,7 +32,7 @@ Parse Requested
   -> affordance refresh (existing Object Moved path)
 ```
 
-Later atomics reuse the **same classify intent families** (`ObjectMembershipIntent` or **`ObjectRelateIntent`**) and enrich paths; they differ by **`operationKind`**, catalog source, stream intent type, apply coordinator, and transcript template.
+Later atomics reuse the **same classify intent families** (`ObjectManipulationIntent` or **`ObjectRelateIntent`**) and enrich paths; they differ by **`operationKind`**, catalog source, stream intent type, apply coordinator, and transcript template.
 
 ## Four-lane pipeline (`establishRelation`)
 

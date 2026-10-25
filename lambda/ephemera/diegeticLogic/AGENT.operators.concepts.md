@@ -30,7 +30,7 @@ Affordance refresh on membership placement change reuses the existing **`Object 
 
 | Stage | Artifact |
 | --- | --- |
-| Classify | **`ObjectMembershipIntent`** + raw object span(s); Plan's membership template reads take/get as a take (no **`operationKind`** at classify) |
+| Classify | **`ObjectManipulationIntent`** + raw object span(s); Plan's membership template reads take/get as a take (no **`operationKind`** at classify) |
 | Enrich | **`compileAttemptsFromSkeleton`** (ISS8203 slice 3): merged identity -> shared producer -> transfer preconditions -> selection (no complexity LLM); atomic path yields **`operationKind: takeHold`** |
 | Egress | **`Object Take Hold`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) -> [`planObjectMoveTransfer`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) |
@@ -65,7 +65,7 @@ Implementation: [`matchMembershipTemplate.ts`](../dataSource/actions/enrich/obje
 
 | Stage | Artifact |
 | --- | --- |
-| Classify | **`ObjectMembershipIntent`** + raw object span(s); Plan's membership template reads drop as a drop; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
+| Classify | **`ObjectManipulationIntent`** + raw object span(s); Plan's membership template reads drop as a drop; **`movementObjectLabels`** = room + held (parallel **`heldInventoryCatalog`** fetch on **`Parse Requested`**) |
 | Enrich | **`compileAttemptsFromSkeleton`** (ISS8203 slice 3): merged identity -> shared producer -> transfer preconditions -> selection (no complexity LLM); in-room-only + release language -> **`notCarryingObject`**; atomic path yields **`operationKind: drop`** |
 | Egress | **`Object Drop`** stream (`characterId`, `objectId`, `roomId`) |
 | Apply | [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts) --- the same entry point as `takeHold`, host pair reversed |
