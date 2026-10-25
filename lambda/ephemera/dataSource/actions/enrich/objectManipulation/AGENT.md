@@ -1,6 +1,6 @@
 # Object manipulation parse pipeline
 
-This folder owns post-classify enrichment for **`ObjectMembershipIntent`** and **`ObjectRelateIntent`**: grounding player language to trusted ids, deciding atomic membership vs relational complexity, and compiling terminal parse payloads.
+This folder owns post-classify enrichment for **`ObjectManipulationIntent`** (the fast path) and classify-routed **`Command`**s: grounding player language to trusted ids, deciding atomic membership vs relational complexity, and compiling terminal parse payloads.
 
 Parent docs:
 
@@ -68,12 +68,12 @@ Before classify or enrich, **`handleParseRequested`** ([`index.ts`](../../index.
 **Open question, not decided:** whether level selection belongs at pool construction (filter to a bucket), at ranking ([`buildSpanCandidatePool`](embeddingMatch/buildSpanCandidatePool.ts)), or later. Note that the third is constrained --- attention must not reach [`decideEmbeddingMatch`](embeddingMatch/decideEmbeddingMatch.ts).
 
 **1. Classify fast path (deterministic @ classify)**  
-When the command matches a **closed syntactic template** (`take` / `drop` / `get` + noun, with label gate for `get` vs Acme), code synthesizes **`ObjectMembershipIntent`** with its flat skeleton and **skips** Bedrock classify. The owning stage is still classify; the outcome shape matches the LLM path.
+When the command matches a **closed syntactic template** (`take` / `drop` / `get` + noun, with label gate for `get` vs Acme; `put` / `place` + noun + containment phrase + noun, the containment template's own pattern), code synthesizes **`ObjectManipulationIntent`** with every fill's flat skeleton and **skips** Bedrock classify. The owning stage is still classify; the outcome shape matches the LLM path.
 
 **2. Classify LLM (semantic reasoning)**  
 When the fast path does not apply, the model chooses **topology**:
 
-- **`ObjectMembershipIntent`** --- membership **host transfer** (which **`ludicGraph`** node hosts the object). Carries the fast path's flat skeleton; the direction (take or drop) is read from its verb by Plan's membership template. Does **not** emit **`operationKind`**.
+- **`ObjectManipulationIntent`** --- the fast path's result, not a classify output: a membership **host transfer** (which **`ludicGraph`** node hosts the object) or a containment transfer. Carries the fast path's flat skeletons; the direction (take or drop) or the containment is read from the verb by Plan's templates. Does **not** emit **`operationKind`**.
 - **`ObjectRelateIntent`** --- **in-host relational edge** between objects on the actor's current room graph. Emits **`objectSpans`** only. Does **not** emit relational **`operationKind`** or role-tagged frames.
 
 **Handoff:** intent **`type`**, **`rawObjectSpans`**, **`confidence`**; catalogs and **`hostRoomId`** from parse ingress. Tie-breakers (e.g. **`ObjectRelateIntent`** beats **`ObjectMembershipIntent`** when the line establishes an in-host relation) live in [`discriminateIntent/buildIntentClassificationPrompt.ts`](../../discriminateIntent/buildIntentClassificationPrompt.ts).
@@ -151,8 +151,8 @@ There is no construction-time Validation on this route: a candidate whose Expans
 
 | Field | Owning stage | Lane |
 | --- | --- | --- |
-| Intent **`type`** (`ObjectMembershipIntent` \| `ObjectRelateIntent`) | Classify | Semantic |
-| **`objectSpans`** / **`rawObjectSpans`** | Classify no longer extracts these for object-manipulation intents (retired 2026-07-20; `rawObjectSpans` retired 2026-10-23). The fast path builds the flat draft skeleton itself (`ObjectMembershipIntent.skeleton`); everything else is tokenized by Parse ([`parse/runParseStage.ts`](parse/runParseStage.ts)); `parseCommand` stamps either | Deterministic (fast path) / Semantic (Parse) |
+| Intent **`type`** (`ObjectManipulationIntent` from the fast path \| `Command` from classify) | Fast path / Classify | Deterministic / Semantic |
+| **`objectSpans`** / **`rawObjectSpans`** | Classify no longer extracts these for object-manipulation intents (retired 2026-07-20; `rawObjectSpans` retired 2026-10-23). The fast path builds the flat draft skeleton itself (`ObjectManipulationIntent.skeletons`); everything else is tokenized by Parse ([`parse/runParseStage.ts`](parse/runParseStage.ts)); `parseCommand` stamps either | Deterministic (fast path) / Semantic (Parse) |
 | Membership **`operationKind`** (`takeHold` \| `drop`) | Verb-intended propose-N, then the shared selector's legality partition (ISS8203 slice 3); a deferred take or drop abstains (no complexity LLM) | Deterministic |
 | Relational **`operationKind`** (`establishRelation` \| `dissolveRelation`) | Plan's LLM fallback (**BD-12**'s verb classification; no deterministic producer, not yet built) | LLM |
 | **`relationKind`** / **`relationLabel`** | Plan's LLM fallback (peer `Custom` + label) | LLM |

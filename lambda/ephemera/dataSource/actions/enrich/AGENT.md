@@ -7,7 +7,7 @@
 Current implementation:
 
 - [`acmeOrder/`](./acmeOrder/) - enriches `AcmeOrderIntent` into terminal **`AcmeOrder`** lines (or **`ParseCommandErrorResult`** when the Coyote-wide object placement count exceeds the cap **before** any Acme enrich Bedrock call), including catalog validation details, affinity proposals, and **`stableKey`** proposals.
-- [`objectManipulation/`](./objectManipulation/) - enriches **`ObjectMembershipIntent`** into terminal **`ObjectManipulation`** (v1 atomic **`takeHold`** / **`drop`**) or **`ObjectRelateIntent`** through the native Parse-skeleton pipeline (Parse -> Plan match -> Identify -> Grounding -> Validation, iteration 3) into terminal **`EstablishRelation`** or **`ParseCommandErrorResult`** (nesting defer, BD-10 legality defer stub, resolve failure, or Parse parse/invoke failure). **Hop-purpose narrative:** [`objectManipulation/AGENT.md`](./objectManipulation/AGENT.md).
+- [`objectManipulation/`](./objectManipulation/) - enriches **`ObjectManipulationIntent`** into terminal **`ObjectManipulation`** (v1 atomic **`takeHold`** / **`drop`**) or **`ObjectRelateIntent`** through the native Parse-skeleton pipeline (Parse -> Plan match -> Identify -> Grounding -> Validation, iteration 3) into terminal **`EstablishRelation`** or **`ParseCommandErrorResult`** (nesting defer, BD-10 legality defer stub, resolve failure, or Parse parse/invoke failure). **Hop-purpose narrative:** [`objectManipulation/AGENT.md`](./objectManipulation/AGENT.md).
 
 ## Boundary
 

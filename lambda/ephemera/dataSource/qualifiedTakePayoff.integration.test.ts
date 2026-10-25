@@ -10,8 +10,9 @@
  *   `ropeLashedTakePayoff` and `objectSpreadPayoff`.
  * - A chained take (`take cup on saucer on table`) reads its chain right-nested, and its checks
  *   pick the cup on the table's saucer over the floor's, without asking.
- * - The LLM route's flat skeleton reaches the same readings: `put cup on saucer on table` from the
- *   model's tokens yields both bracketings, and the world chooses the one that can happen.
+ * - A flat skeleton reaches the same readings: `put cup on saucer on table` on the fast path (the
+ *   containment template's own pattern, no Bedrock call) yields both bracketings from its exact
+ *   segmentation, and the world chooses the one that can happen.
  *
  * Real, in this order, following `crossingTakePayoff.integration.test.ts`'s harness (see its
  * header): `parseCommand` (Bedrock mocked at its two seams, and asserted unused on the fast path),
@@ -291,7 +292,7 @@ describe('qualified take payoff (integration)', () => {
         expect(delivered(publish)).toEqual([expect.stringMatching(/ picks up coin$/)])
     })
 
-    it('"put cup on saucer on table" from the model\'s flat skeleton: the cup is on no saucer, so the reading that puts it on the saucer on the table commits', async () => {
+    it('"put cup on saucer on table" on the fast path, with no Bedrock call: the cup is on no saucer, so the reading that puts it on the saucer on the table commits', async () => {
         const CUP_ID = FLOOR_CUP_ID
         seed({
             graphs: {
@@ -305,11 +306,9 @@ describe('qualified take payoff (integration)', () => {
             names: { [TABLE_ID]: 'table', [TABLE_SAUCER_ID]: 'saucer', [CUP_ID]: 'cup' },
         })
 
-        // Nova Micro's skeleton for the command: flat, as both routes emit it.
-        const publish = await run(
-            'put cup on saucer on table',
-            '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"saucer"},{"type":"text","text":"on"},{"type":"objectSpan","span":"table"}]}'
-        )
+        // The fast path runs the containment template's own pattern: every segmentation goes to Plan, the
+        // one whose spans all match exactly is read, and Plan finds both readings of its flat skeleton.
+        const publish = await run('put cup on saucer on table')
 
         expect(await holds(TABLE_SAUCER_ID, CUP_ID)).toBe(true)
         expect(await holds(ROOM_ID, CUP_ID)).toBe(false)

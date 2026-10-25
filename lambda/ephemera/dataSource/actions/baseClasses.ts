@@ -308,11 +308,11 @@ export type ParseCommandMultipleCommandsResult = {
  * `operationKind` is forbidden at classify and owned by enrich/compiler (membership pre-gates + agreement gate).
  * Terminal outcomes are {@link ParseCommandCommandAttemptResult} or {@link ParseCommandErrorResult}.
  */
-export type ParseCommandObjectMembershipIntentResult = {
-    type: 'ObjectMembershipIntent'
+export type ParseCommandObjectManipulationIntentResult = {
+    type: 'ObjectManipulationIntent'
     /**
      * The flat, unstamped skeletons the zero-Bedrock fast path (`deterministicChecks.ts`) builds: every
-     * fill of its pattern (verb, then the tail cut at closed-set prepositions), each a segmentation
+     * fill of its patterns (membership, and the containment template's own), each a segmentation
      * Plan reads on its own (PA-2 (b)). Only the fast path produces this intent; `parseCommand.ts`
      * stamps each skeleton and enters Plan.
      */
@@ -378,7 +378,7 @@ export type ParseCommandResult =
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandObjectManipulationParseTestResult
     | ParseCommandCommandAttemptResult
-    | ParseCommandObjectMembershipIntentResult
+    | ParseCommandObjectManipulationIntentResult
     | ParseCommandObjectRelateIntentResult
     | ParseCommandCommandIntentResult
     | ParseCommandWorldQuestionIntentResult

@@ -32,21 +32,12 @@ const skeletons: Record<string, ParseStageResult> = {
             { type: 'objectSpan', span: 'cup on the table', stableRefKey: 'ref-1' },
         ],
     },
-    'put the bag in the box': {
-        type: 'success',
-        tokens: [
-            { type: 'text', text: 'put' },
-            { type: 'objectSpan', span: 'bag', stableRefKey: 'ref-1' },
-            { type: 'text', text: 'in' },
-            { type: 'objectSpan', span: 'box', stableRefKey: 'ref-2' },
-        ],
-    },
 }
 
 describe('runObjectManipulationParseHarness', () => {
     const runParseStageImpl = jest.fn(async ({ command }: { command: string }) =>
         skeletons[command] ?? { type: 'error' as const, errorMessage: 'no parse' })
-    // No room labels: a `get` is never claimed by the fast path, so the fixtures above reach Parse.
+    // No room labels: a `get` is never claimed by the fast path, so it reaches Parse; a `put` is claimed with no label gate.
     const getRoomObjectLabelsImpl = jest.fn(async () => [] as string[])
 
     beforeEach(() => {
@@ -64,14 +55,15 @@ describe('runObjectManipulationParseHarness', () => {
             now: () => 0,
         })
 
-        expect(runParseStageImpl).toHaveBeenCalledTimes(2)
+        expect(runParseStageImpl).toHaveBeenCalledTimes(1)
         const text = publishedText()
         expect(text).toContain('--- 1/2 [1] C1: get the cup on the table ---')
         expect(text).toContain('Route: LLM (Parse)')
         expect(text).toContain('Parse: text "get" | span "cup on the table"')
         expect(text).toContain('Templates: containment noMatch, spread noMatch, look noMatch, look noMatch, membership matched')
         expect(text).toContain('Attempt (membership):')
-        expect(text).toContain('Parse: text "put" | span "bag" | text "in" | span "box"')
+        expect(text).toContain('Route: fast path')
+        expect(text).toContain('Skeleton: text "put" | span "the bag" | text "in" | span "the box"')
         expect(text).toContain('Templates: containment matched, spread noMatch, look noMatch, look noMatch, membership noMatch')
         expect(text).toContain('Attempt (containment):')
     })
@@ -87,7 +79,7 @@ describe('runObjectManipulationParseHarness', () => {
             now: () => 0,
         })
 
-        expect(runParseStageImpl).toHaveBeenCalledTimes(1)
+        expect(runParseStageImpl).not.toHaveBeenCalled()
         expect(publishedText()).toContain('--- 1/1 [2] C4: put the bag in the box ---')
     })
 

@@ -1,6 +1,6 @@
 import type {
     ParseCommandInput,
-    ParseCommandObjectMembershipIntentResult,
+    ParseCommandObjectManipulationIntentResult,
     ParseCommandResult,
 } from '../baseClasses'
 import { COYOTE_ENGINE_TEST_FIXTURES } from '../../coyoteGame/generators/testHarness/coyoteEngineTestFixtures'
@@ -13,9 +13,9 @@ import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestS
 import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
-import type { ParseTokenDraft } from '../enrich/objectManipulation/parse/parseToken'
 import type { PatternElement } from '../deterministicTemplate/deterministicTemplate'
-import { matchPatternAgainstString, type ObjectPhraseLink } from '../deterministicTemplate/patternTemplate'
+import { draftFromPattern, matchPatternAgainstString, type PatternFill } from '../deterministicTemplate/patternTemplate'
+import { containmentTemplate } from '../enrich/objectManipulation/plan/matchContainmentTemplate'
 import { MEMBERSHIP_VERB_ELEMENT } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
 import { QUALIFIER_OBJECT_PHRASE_ELEMENT } from '../enrich/objectManipulation/plan/qualifierPrepositions'
 import { spanMatchForms } from '../enrich/objectManipulation/spanMatchForms'
@@ -40,57 +40,51 @@ function isBarePredictCommand(trimmed: string): boolean {
     return /^predict$/i.test(trimmed)
 }
 
-/** The fast path's one pattern: a membership verb, then an object phrase cut at the closed-set prepositions. */
-const FAST_PATH_PATTERN: readonly PatternElement[] = [MEMBERSHIP_VERB_ELEMENT, QUALIFIER_OBJECT_PHRASE_ELEMENT]
-
-type FastPathFill = { verb: string; option: string; head: string; links: ObjectPhraseLink[] }
+/** The membership pattern: a membership verb, then an object phrase cut at the closed-set prepositions. */
+const MEMBERSHIP_FAST_PATH_PATTERN: readonly PatternElement[] = [MEMBERSHIP_VERB_ELEMENT, QUALIFIER_OBJECT_PHRASE_ELEMENT]
 
 /**
- * The zero-Bedrock take/get/drop fast path: the membership verbs and an object phrase matched
- * against the command text, every set of cuts at the closed-set prepositions a fill. Every fill goes
- * to Plan as its own skeleton (PA-2 (b)): a segmentation is a reading, like an attachment, and
- * Identify's exact match, the dry run and selection choose among them. What remains here is the
- * routing gate: it claims `take` and `drop` always (not `take hold`), and `get` when some fill's head
- * is a room label, as given or with its article peeled. Spans pass through as typed.
+ * The membership pattern's routing gate: it claims `take` and `drop` always (not `take hold`), and
+ * `get` when some fill's head is a room label, as given or with its article peeled.
+ */
+function claimsMembership(input: ParseCommandInput, fills: readonly PatternFill[]): boolean {
+    const uncut = fills.find(({ captures: [, phrase] }) => phrase?.kind === 'objectPhrase' && phrase.links.length === 0)
+    const [verb, phrase] = uncut?.captures ?? []
+    if (verb?.kind !== 'templateText' || phrase?.kind !== 'objectPhrase') {
+        return false
+    }
+    if (verb.option === 'take' && /^hold\b/i.test(phrase.text)) {
+        return false
+    }
+    const labels = input.roomObjectLabels ?? []
+    const isLabel = (span: string): boolean => spanMatchForms(span).some((form) => labels.includes(form))
+    return verb.option !== 'get' || fills.some(({ captures: [, head] }) => head !== undefined && isLabel(head.text))
+}
+
+/**
+ * The zero-Bedrock fast path: template patterns matched against the command text, each with its
+ * routing gate, every set of cuts at the closed-set prepositions a fill. The membership pattern
+ * claims as `claimsMembership` says; the containment template's own pattern (`put`/`place`) claims
+ * every fit, since a fast-path Abstain climbs to the LLM route. Every fill goes to Plan as its own
+ * skeleton (PA-2 (b)): a segmentation is a reading, like an attachment, and Identify's exact match,
+ * the dry run and selection choose among them. Fills that build the same flat skeleton (two
+ * attachments with the same cuts) are one skeleton; Plan recovers both readings. Spans pass
+ * through as typed.
  */
 function maybeDeterministicManipulationIntent(
     input: ParseCommandInput
-): ParseCommandObjectMembershipIntentResult | null {
-    const fills = matchPatternAgainstString(FAST_PATH_PATTERN, input.command).flatMap(({ captures: [verb, phrase] }): FastPathFill[] => (
-        verb?.kind === 'templateText' && phrase?.kind === 'objectPhrase'
-            ? [{
-                verb: verb.text,
-                option: verb.option,
-                head: phrase.text,
-                links: phrase.links,
-            }]
-            : []
-    ))
-    const uncut = fills.find(({ links }) => links.length === 0)
-    if (!uncut) {
+): ParseCommandObjectManipulationIntentResult | null {
+    const membershipFills = matchPatternAgainstString(MEMBERSHIP_FAST_PATH_PATTERN, input.command)
+    const claimed = [
+        ...(claimsMembership(input, membershipFills) ? membershipFills.map(({ captures }) => draftFromPattern(MEMBERSHIP_FAST_PATH_PATTERN, captures)) : []),
+        ...matchPatternAgainstString(containmentTemplate.pattern, input.command).map(({ captures }) => draftFromPattern(containmentTemplate.pattern, captures)),
+    ]
+    if (claimed.length === 0) {
         return null
     }
-
-    if (uncut.option === 'take' && /^hold\b/i.test(uncut.head)) {
-        return null
-    }
-
-    const labels = input.roomObjectLabels ?? []
-    const isLabel = (span: string): boolean => spanMatchForms(span).some((form) => labels.includes(form))
-    if (uncut.option === 'get' && !fills.some(({ head }) => isLabel(head))) {
-        return null
-    }
-
     return {
-        type: 'ObjectMembershipIntent',
-        skeletons: fills.map(({ verb, head, links }): ParseTokenDraft[] => [
-            { type: 'text', text: verb },
-            { type: 'objectSpan', span: head },
-            ...links.flatMap(({ text, span }): ParseTokenDraft[] => [
-                { type: 'text', text },
-                { type: 'objectSpan', span },
-            ]),
-        ]),
+        type: 'ObjectManipulationIntent',
+        skeletons: [...new Map(claimed.map((draft) => [JSON.stringify(draft), draft])).values()],
         confidence: 1,
     }
 }

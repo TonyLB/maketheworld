@@ -99,7 +99,7 @@ A deterministic short-circuit **at the owning stage** is allowed when closed-wor
 
 **Seam rule:** semantic fast paths in deterministic code may prove **positive** results on match:
 
-> `get bag` matches the closed template, therefore `ObjectMembershipIntent` with the flat skeleton `get | bag`.
+> `get bag` matches the closed template, therefore `ObjectManipulationIntent` with the flat skeleton `get | bag`.
 
 They **must not** prove **negative** results from non-match:
 
