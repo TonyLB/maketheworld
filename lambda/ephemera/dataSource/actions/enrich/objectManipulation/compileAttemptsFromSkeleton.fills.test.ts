@@ -4,8 +4,9 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 import { compileAttemptsFromSkeleton, type SkeletonFill } from './compileAttemptsFromSkeleton'
 import type { ParseTokenDraft } from './parse/parseToken'
-import { stampStableRefKeys } from './parse/stampStableRefKeys'
-import { planSkeleton } from './plan/planSkeleton'
+import { tokenize } from '../../deterministicTemplate/granuleTokens'
+import { sameSegmentation } from './plan/attemptTemplateFixture'
+import { PLAN_GRANULES, planTokens } from './plan/planSkeleton'
 import type { ResumeAnswers } from './resumeAnswers'
 
 const actor = 'CHARACTER#Tess' as EphemeraCharacterId
@@ -19,11 +20,16 @@ const tableId = 'OBJECT#Table' as EphemeraObjectId
 const text = (value: string): ParseTokenDraft => ({ type: 'text', text: value })
 const span = (value: string): ParseTokenDraft => ({ type: 'objectSpan', span: value })
 
-/** The fast path's fills for a command, each stamped and Planned as parseCommand does. */
-const fillsOf = (command: string, drafts: ParseTokenDraft[][]): SkeletonFill[] => drafts
-    .map((draft) => stampStableRefKeys(draft))
-    .map((skeleton) => ({ skeleton, attempts: planSkeleton(skeleton, command).attempts }))
-    .filter(({ attempts }) => attempts.length > 0)
+/**
+ * Plan's fills for a command, as parseCommand hands them to the producer, checked to be exactly
+ * the segmentations listed (in any order).
+ */
+const fillsOf = (command: string, drafts: ParseTokenDraft[][]): SkeletonFill[] => {
+    const fills = planTokens(tokenize(PLAN_GRANULES, command), command)
+    expect(fills).toHaveLength(drafts.length)
+    expect(drafts.every((draft) => fills.some(({ skeleton }) => sameSegmentation(skeleton, draft)))).toBe(true)
+    return fills
+}
 
 const compile = (
     command: string,

@@ -18,8 +18,8 @@ const MEMBERSHIP_VERBS: Readonly<Record<string, { operationKind: 'takeHold' | 'd
     drop: { operationKind: 'drop', narration: ' drops ' },
 }
 
-/** The membership verbs as a pattern element; the fast path claims the same list. */
-export const MEMBERSHIP_VERB_ELEMENT: PatternElement = { type: 'templateText', options: Object.keys(MEMBERSHIP_VERBS) }
+/** The membership verbs as a pattern element. */
+const MEMBERSHIP_VERB_ELEMENT: PatternElement = { type: 'templateText', options: Object.keys(MEMBERSHIP_VERBS) }
 
 /**
  * Plan's half of a membership attempt: depends only on the operation and the object phrase. A take
@@ -39,23 +39,19 @@ export const planMembershipDesiredResult = (
 })
 
 /**
- * A membership command: `take`/`get` acquire, `drop` releases, the object is the object phrase
- * after the verb, and whatever follows is not read here (`rest`). Runs after the containment and
- * look templates. Each run of qualifiers the phrase reads (`take X off Y`, `take X on Y on Z`) is
- * its own fill, nested onto the span in that fill's reading and lowered to assertions after this
- * template (`lowerQualifiers`); a fill whose `rest` holds a span is dropped by the producer's BD-20
- * gate as leaving it unread.
+ * A membership command: `take`/`get` acquire, `drop` releases, and the object is the object phrase
+ * after the verb, which reads the rest of the command. Runs after the containment and look
+ * templates. Each run of qualifiers the phrase reads (`take X off Y`, `take X on Y on Z`) is its own
+ * fill, nested onto the span in that fill's reading and lowered to assertions after this template
+ * (`lowerQualifiers`); words outside the qualifier set stay in a span (`get cup under table`).
+ * The fast path claims by this pattern too (`discriminateIntent/deterministicChecks.ts`).
  *
  * The template created the action, so it authors its narration unit: one line per verb class,
  * to everyone who can see the actor or the object, before the move.
  */
 export const membershipTemplate: AttemptTemplate<'membership'> = {
     name: 'membership',
-    pattern: [
-        MEMBERSHIP_VERB_ELEMENT,
-        QUALIFIER_OBJECT_PHRASE_ELEMENT,
-        { type: 'rest' },
-    ],
+    pattern: [MEMBERSHIP_VERB_ELEMENT, QUALIFIER_OBJECT_PHRASE_ELEMENT],
     build(captures, command) {
         const { operationKind, narration } = MEMBERSHIP_VERBS[optionAt(captures, 0)]
         const { span, stableRefKey } = spanAt(captures, 1)

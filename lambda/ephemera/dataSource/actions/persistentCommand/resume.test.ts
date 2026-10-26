@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../../positions/ludicGraph/testFixtures'
 import { stampStableRefKeys } from '../enrich/objectManipulation/parse/stampStableRefKeys'
-import { planSkeleton } from '../enrich/objectManipulation/plan/planSkeleton'
+import { planFillOf } from '../enrich/objectManipulation/plan/attemptTemplateFixture'
 import { resumeErrorMessages, primaryActionIdOf } from '../enrich/objectManipulation/resumeAnswers'
 import { CommandAttempt } from '../commandAttempt'
 import type { PersistentCommandPayload } from './payload'
@@ -20,7 +20,7 @@ const skeleton = stampStableRefKeys([
     { type: 'objectSpan', span: 'cup' },
 ])
 const cupKey = (skeleton[1] as { stableRefKey: string }).stableRefKey
-const planned = planSkeleton(skeleton, 'take cup').attempts
+const planned = planFillOf(skeleton, 'take cup').attempts
 const primaryId = primaryActionIdOf(planned[0]!)!
 
 const rowOf = (overrides: Partial<PersistentCommandPayload> = {}): PersistentCommandPayload => ({

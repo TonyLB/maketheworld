@@ -13,11 +13,12 @@ import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestS
 import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
-import type { PatternElement } from '../deterministicTemplate/deterministicTemplate'
-import { draftFromPattern, matchPatternAgainstString, type PatternFill } from '../deterministicTemplate/patternTemplate'
+import { tokenize } from '../deterministicTemplate/granuleTokens'
+import { matchPattern, matchPatternFills, type PatternFill } from '../deterministicTemplate/patternTemplate'
 import { containmentTemplate } from '../enrich/objectManipulation/plan/matchContainmentTemplate'
-import { MEMBERSHIP_VERB_ELEMENT } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
-import { QUALIFIER_OBJECT_PHRASE_ELEMENT } from '../enrich/objectManipulation/plan/qualifierPrepositions'
+import { membershipTemplate } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
+import { PLAN_GRANULES } from '../enrich/objectManipulation/plan/planSkeleton'
+import { exceedsQualifierCap } from '../enrich/objectManipulation/plan/qualifierPrepositions'
 import { spanMatchForms } from '../enrich/objectManipulation/spanMatchForms'
 
 /** After trim, case-insensitive look or l as the whole line. */
@@ -40,9 +41,6 @@ function isBarePredictCommand(trimmed: string): boolean {
     return /^predict$/i.test(trimmed)
 }
 
-/** The membership pattern: a membership verb, then an object phrase cut at the closed-set prepositions. */
-const MEMBERSHIP_FAST_PATH_PATTERN: readonly PatternElement[] = [MEMBERSHIP_VERB_ELEMENT, QUALIFIER_OBJECT_PHRASE_ELEMENT]
-
 /**
  * The membership pattern's routing gate: it claims `take` and `drop` always (not `take hold`), and
  * `get` when some fill's head is a room label, as given or with its article peeled.
@@ -62,31 +60,23 @@ function claimsMembership(input: ParseCommandInput, fills: readonly PatternFill[
 }
 
 /**
- * The zero-Bedrock fast path: template patterns matched against the command text, each with its
- * routing gate, every set of cuts at the closed-set prepositions a fill. The membership pattern
- * claims as `claimsMembership` says; the containment template's own pattern (`put`/`place`/`drop`)
- * claims every fit, since a fast-path Abstain climbs to the LLM route. Every fill goes to Plan as its
- * own skeleton (`actions/AGENT.contract.md` "Qualifier"): a segmentation is a reading, like an
- * attachment, and Identify's exact match, the dry run and selection choose among them. Fills that build the same flat skeleton (two
- * attachments with the same cuts) are one skeleton; Plan recovers both readings. Spans pass
- * through as typed.
+ * The zero-Bedrock fast path: the command cut into tokens as Plan cuts it (`PLAN_GRANULES`), and
+ * template patterns matched over them, each with its routing gate. The membership template's
+ * pattern claims as `claimsMembership` says; the containment template's pattern claims every fit,
+ * since a fast-path Abstain climbs to the LLM route. A claim hands the tokens up, and Plan reads
+ * every template over them (`actions/AGENT.contract.md` "Qualifier"). A command over the guard cap
+ * (`exceedsQualifierCap`) is never claimed.
  */
 function maybeDeterministicManipulationIntent(
     input: ParseCommandInput
 ): ParseCommandObjectManipulationIntentResult | null {
-    const membershipFills = matchPatternAgainstString(MEMBERSHIP_FAST_PATH_PATTERN, input.command)
-    const claimed = [
-        ...(claimsMembership(input, membershipFills) ? membershipFills.map(({ captures }) => draftFromPattern(MEMBERSHIP_FAST_PATH_PATTERN, captures)) : []),
-        ...matchPatternAgainstString(containmentTemplate.pattern, input.command).map(({ captures }) => draftFromPattern(containmentTemplate.pattern, captures)),
-    ]
-    if (claimed.length === 0) {
+    const tokens = tokenize(PLAN_GRANULES, input.command)
+    if (exceedsQualifierCap(tokens)) {
         return null
     }
-    return {
-        type: 'ObjectManipulationIntent',
-        skeletons: [...new Map(claimed.map((draft) => [JSON.stringify(draft), draft])).values()],
-        confidence: 1,
-    }
+    const claimed = claimsMembership(input, matchPatternFills(membershipTemplate.pattern, tokens))
+        || matchPattern(containmentTemplate.pattern, tokens).length > 0
+    return claimed ? { type: 'ObjectManipulationIntent', tokens, confidence: 1 } : null
 }
 
 function maybeDeterministicNavigationResult(input: ParseCommandInput): ParseCommandResult | null {

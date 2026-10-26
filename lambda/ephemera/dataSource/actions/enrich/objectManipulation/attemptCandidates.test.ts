@@ -3,7 +3,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import { attemptDryRun, attemptReferentAnswers, attemptSpanKeys, buildAttemptEnvironment, disambiguationLabels, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
-import { planSkeleton } from './plan/planSkeleton'
+import { planFillOf } from './plan/attemptTemplateFixture'
 import type { ParseSkeleton } from './parse/parseToken'
 import type { SpanCandidatePool } from './spanResolution'
 import { CommandAttempt } from '../../commandAttempt'
@@ -27,11 +27,7 @@ const pool = (span: string, id: EphemeraObjectId): SpanCandidatePool => ({
 })
 
 const attemptFor = (skeleton: ParseSkeleton, command: string): CommandAttempt => {
-    const plan = planSkeleton(skeleton, command)
-    if (plan.type !== 'attempts') {
-        throw new Error(`Plan declined "${command}"`)
-    }
-    return plan.attempts[0]!
+    return planFillOf(skeleton, command).attempts[0]!
 }
 
 const relationSkeleton: ParseSkeleton = [
@@ -307,7 +303,7 @@ describe('proposeAttemptCandidates', () => {
     it('never binds two distinct span keys of one step to the same object', () => {
         const sameObject = attemptFor([
             { type: 'text', text: 'put' },
-            { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+            { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef1' },
             { type: 'text', text: 'on' },
             { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef2' },
         ], 'put cup on cup')
@@ -315,7 +311,7 @@ describe('proposeAttemptCandidates', () => {
         const result = proposeAttemptCandidates({
             command: 'put cup on cup',
             attempts: [sameObject],
-            spanPools: new Map([['cupRef', pool('cup', cupId)], ['cupRef2', pool('cup', cupId)]]),
+            spanPools: new Map([['cupRef1', pool('cup', cupId)], ['cupRef2', pool('cup', cupId)]]),
             catalog,
             noAssignmentReason: 'no pairing',
         })
@@ -605,11 +601,11 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
     }
 
     const qualifiedTake = (span: string, overrides: Partial<ContainedByAssertion> = {}): CommandAttempt => {
-        const take = attemptFor([{ type: 'text', text: 'get' }, { type: 'objectSpan', span, stableRefKey: 'subjectRef' }], `get ${span}`).actions()[0]!
+        const take = attemptFor([{ type: 'text', text: 'get' }, { type: 'objectSpan', span, stableRefKey: `${span}Ref` }], `get ${span}`).actions()[0]!
         const check = new PositionAttemptAction('qualifier', [], {
             kind: 'assertion',
             predicate: 'containedBy',
-            subject: { referentType: 'objectSpan', span, stableRefKey: 'subjectRef' },
+            subject: { referentType: 'objectSpan', span, stableRefKey: `${span}Ref` },
             object: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
             negate: false,
             relation: 'On',
@@ -627,7 +623,7 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
         const proposed = proposeAttemptCandidates({
             command: `get the ${span} on the table`,
             attempts: [qualifiedTake(span, overrides)],
-            spanPools: new Map([['subjectRef', subjectPool], ['tableRef', pool('table', tableId)]]),
+            spanPools: new Map([[`${span}Ref`, subjectPool], ['tableRef', pool('table', tableId)]]),
             catalog: catalogHere,
             noAssignmentReason: 'none',
             actorRoom: roomId,
@@ -642,7 +638,7 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
             outcome: attemptDryRun(candidate, env, { roomId, actorCharacterId: actor }),
         }))
     }
-    const subjectIdOf = (candidate: Awaited<ReturnType<typeof dryRuns>>[number]['candidate']) => attemptReferentAnswers(candidate.attempt).subjectRef
+    const subjectIdOf = (candidate: Awaited<ReturnType<typeof dryRuns>>[number]['candidate']) => attemptReferentAnswers(candidate.attempt).cupRef
 
     it('keeps the cup on the table and refuses the cup on the floor, naming host and subject', async () => {
         const results = await dryRuns('cup', cups)
@@ -662,7 +658,7 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
     it('judges every binding of the view: the cloth\'s part on the table passes, its hanging part and the whole fail', async () => {
         const results = await dryRuns('cloth', [cloth])
 
-        expect(results.map(({ candidate, outcome }) => [candidate.viewAnswers?.subjectRef, outcome.verdict, outcome.reason])).toEqual([
+        expect(results.map(({ candidate, outcome }) => [candidate.viewAnswers?.clothRef, outcome.verdict, outcome.reason])).toEqual([
             [[hanging], 'illegal', 'The table has no cloth.'],
             [[lying], 'legal', undefined],
             ['whole', 'illegal', 'The table has no cloth.'],

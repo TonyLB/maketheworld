@@ -11,7 +11,6 @@ import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCha
 import type { CommandAttempt } from '../../commandAttempt'
 import { NarrateAttemptAction } from '../../commandAttempt/action'
 
-import { complexErrorMessage } from './complexityClasses'
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import { adjudicateDeferred } from '../../commandAttempt/adjudicate'
 import type { IdentityStageDeps } from './identityStage'
@@ -39,9 +38,9 @@ import {
 
 /**
  * One segmentation of the command and the attempts Plan read from it (`actions/AGENT.contract.md`
- * "Qualifier"): the fast path hands every fill of its patterns to Plan, each its own skeleton; the
- * LLM route has one. Stamped per fill,
- * so one stableRefKey always names one span text, whichever fill it is in.
+ * "Qualifier"): Plan groups every template's readings by the token ranges they cut, on either
+ * route (`plan/planSkeleton.ts` `planTokens`). A key names a span occurrence, so one stableRefKey
+ * names the same span in every fill that holds it.
  */
 export type SkeletonFill<Attempt = CommandAttempt> = {
     skeleton: ParseSkeleton
@@ -286,25 +285,6 @@ export async function compileAttemptsFromSkeleton(
     const isExactFill = (skeleton: ParseSkeleton): boolean => skeleton.every((token) => token.type !== 'objectSpan' || isExact(token.stableRefKey))
     if (survivors.some(({ skeleton }) => isExactFill(skeleton))) {
         survivors = survivors.filter(({ skeleton }) => isExactFill(skeleton))
-    }
-
-    // BD-20 arity policy: a take or drop reads every span its fill gives it (its object, and each
-    // qualifier's host through the assertion lowered from it). A reading that leaves a span of its
-    // fill unread (a tail outside the qualifier set, or a reading that stops short of a qualifier) is
-    // dropped, and a reading of the same command that reads every span survives.
-    const leavesSpanUnread = ({ attempt, skeleton }: AttemptEntry): boolean => {
-        const read = new Set(attemptSpanKeys([attempt]))
-        return skeleton.some((token) => token.type === 'objectSpan' && !read.has(token.stableRefKey))
-    }
-    survivors = survivors.filter((entry) => {
-        if (entry.kind === 'membership' && leavesSpanUnread(entry)) {
-            refusals.push(notUnderstood(complexErrorMessage('multiObject'), intentConfidence))
-            return false
-        }
-        return true
-    })
-    if (survivors.length === 0) {
-        return firstRefusal(refusals)
     }
 
     // Post-Identify: each survivor's own refusal, then the survivors again.

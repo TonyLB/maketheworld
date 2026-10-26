@@ -911,11 +911,13 @@ describe('parseCommand LLM path', () => {
             })
 
             const result = await parseCommand(
-                { command: 'examine the room' },
+                { command: 'examine the room', characterId: 'CHARACTER#Tess' as EphemeraCharacterId, roomObjectCatalog: [] },
                 { invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
             )
 
-            expect(result).toEqual({ type: 'Unimplemented', confidence: 0.9 })
+            // Plan reads Parse's words, not its segmentation: `examine` is a look verb, so this is an
+            // object look at "the room", which grounds nothing here; never a LookRoom.
+            expect(result).toMatchObject({ type: 'Abstain', confidence: 0.9 })
             expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         })
 

@@ -1,7 +1,7 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ParseSkeleton } from '../parse/parseToken'
-import { planSkeleton } from '../plan/planSkeleton'
+import { planFillOf } from '../plan/attemptTemplateFixture'
 import type { IdentityPlanIdentity } from '../identityPlanCandidate'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import {
@@ -42,7 +42,7 @@ describe('planOnlyFallback (stub)', () => {
             { type: 'text', text: 'take' },
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
         ]
-        const planResult = planSkeleton(skeleton, 'take broom')
+        const planResult = planFillOf(skeleton, 'take broom')
         const [plan] = planResult.attempts
         const candidate = planOnlyFallbackCandidate(identity, plan, 0.4)
         expect(candidate.confidence).toBeCloseTo(0.6)

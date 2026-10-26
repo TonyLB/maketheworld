@@ -25,19 +25,17 @@ export type IntentFieldRole = 'subject' | 'target' | 'relationLabel'
  * relation label with no closed vocabulary to match against). A `templateText` capture
  * records which option matched (`option`), so a template whose words carry values (a verb's
  * narration form, a preposition's relation) looks the value up in its own typed lexicon.
- * `rest` is valid only as the last element: it takes whatever follows, zero or more words or
- * tokens of any type, and no template reads it (a tail a template leaves unread).
- * `objectPhrase` is a span, optionally followed by a preposition (a key of `prepositions`, matched
- * as whole words or a whole text token) and another object phrase. Against the command text it
- * returns every set of cuts as its own fill, and emits flat tokens (span, preposition, span ...).
- * Against a skeleton it returns every reading: each fill's skeleton nests the phrase's spans as
- * qualifiers (`ObjectSpanToken.qualifier`), each preposition canonical by its `prepositions` value.
+ * `objectPhrase` is a span, optionally followed by a preposition (a key of `prepositions`) and
+ * another object phrase, right-nested. Each of its readings is its own fill: the reading nests the
+ * phrase's spans as qualifiers (`ObjectSpanToken.qualifier`), each preposition canonical by its
+ * `prepositions` value, and the segmentation keeps them flat (span, preposition, span ...). Every
+ * element is matched over the command's granule tokens (`patternTemplate.ts` `matchPattern`), and
+ * no pattern leaves a tail unread.
  */
 export type PatternElement =
     | { type: 'templateText'; options: readonly string[] }
     | { type: 'objectSpan'; role: IntentFieldRole }
     | { type: 'capturedText'; role: IntentFieldRole }
-    | { type: 'rest' }
     | { type: 'objectPhrase'; role: IntentFieldRole; prepositions: Readonly<Record<string, QualifierPreposition>> }
 
 /**
@@ -68,8 +66,9 @@ export interface DeterministicTemplate {
 /**
  * The object templates' sibling of DeterministicTemplate: a pattern plus the function that builds
  * the template's attempt from one fill's captures. The template file holds its shape, its words
- * and its narration unit together. Matched by `matchAttemptTemplate` (patternTemplate.ts), one
- * attempt per fill; Plan pools every template's attempts rather than taking the first match.
+ * and its narration unit together. Plan matches every template over the command's tokens
+ * (`plan/planSkeleton.ts` `planTokens`), one attempt per fill, and pools them all rather than
+ * taking the first match.
  */
 export type AttemptTemplate<Name extends string = string> = {
     name: Name

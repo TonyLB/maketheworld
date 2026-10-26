@@ -15,8 +15,9 @@ export type SkeletonIdentityStageResult =
  * Step 2b, step 4: keys Identify's candidate pools by stableRefKey instead of
  * runIdentityStage's positional array, so relational role-assignment (step 3's
  * matcher) can look a referent's pool up directly rather than by array index.
- * No collision handling needed: stampStableRefKeys.ts guarantees stableRefKey
- * is unique within one skeleton.
+ * A pool depends only on the span's text, so each distinct text is identified once, in order of
+ * first appearance, and every key holding that text (two occurrences, `benchRef1` and `benchRef2`)
+ * shares its pool.
  */
 export async function runIdentityStageOverSkeleton(
     command: string,
@@ -25,22 +26,17 @@ export async function runIdentityStageOverSkeleton(
     deps: IdentityStageDeps = {}
 ): Promise<SkeletonIdentityStageResult> {
     const objectSpanTokens = skeleton.filter(isObjectSpanToken)
+    const texts = [...new Set(objectSpanTokens.map((token) => token.span))]
 
-    const identityResult = await runIdentityStage(
-        command,
-        objectSpanTokens.map((token) => token.span),
-        catalog,
-        deps
-    )
+    const identityResult = await runIdentityStage(command, texts, catalog, deps)
     if (identityResult.type === 'error') {
         return identityResult
     }
 
+    const poolOf = new Map(texts.map((text, index) => [text, identityResult.spanPools[index]]))
     return {
         type: 'success',
-        spanPools: new Map(
-            objectSpanTokens.map((token, index) => [token.stableRefKey, identityResult.spanPools[index]])
-        ),
+        spanPools: new Map(objectSpanTokens.map((token) => [token.stableRefKey, poolOf.get(token.span)!])),
     }
 }
 

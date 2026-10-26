@@ -4,9 +4,9 @@ import { testLudicGraph } from '../positions/ludicGraph/testFixtures'
 import { EphemeraLudicGraph } from '../positions/ludicGraph'
 import type { CommandAttemptData } from './commandAttempt'
 import { deterministicIntentChecks } from './discriminateIntent/deterministicChecks'
-import type { ParseSkeleton, ParseTokenDraft } from './enrich/objectManipulation/parse/parseToken'
-import { stampStableRefKeys } from './enrich/objectManipulation/parse/stampStableRefKeys'
-import { planSkeleton } from './enrich/objectManipulation/plan/planSkeleton'
+import type { SkeletonFill } from './enrich/objectManipulation/compileAttemptsFromSkeleton'
+import type { ParseTokenDraft } from './enrich/objectManipulation/parse/parseToken'
+import { planSkeleton, planTokens } from './enrich/objectManipulation/plan/planSkeleton'
 import { parseCommand } from './parseCommand'
 
 /**
@@ -14,9 +14,10 @@ import { parseCommand } from './parseCommand'
  * `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.skeletonMatcher.planning.md`): each row pins,
  * as they are today, a command's readings on both routes and its `parseCommand` result.
  *
- * - `readings`: the attempts Plan makes for each skeleton, before the producer's filters (the BD-20
- *   gate, exact-fill precedence). `fastPath` is every fill of the fast path's patterns;
- *   `llmRoute` is the row's `parseTokens`, standing in for Parse.
+ * - `readings`: the attempts Plan makes for each segmentation, before the producer's filters
+ *   (exact-fill precedence). `fastPath` is Plan over the tokens the fast path claims; `llmRoute`
+ *   is Plan over the row's `parseTokens`, standing in for Parse (Slice 2 re-pointed both to the
+ *   one engine; the digest is unchanged).
  * - `outcome`: the result, with the attempt digested the same way, and how often each LLM stub
  *   was reached (so the route taken shows).
  *
@@ -123,10 +124,10 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
     const skeletonOf = (skeleton: readonly ParseTokenDraft[]): string => (
         skeleton.map((token) => token.type === 'text' ? token.text : `[${token.span}]`).join(' ')
     )
-    const readingsOf = (skeleton: ParseSkeleton, command: string): string[] => [
+    const readingsOf = (fills: readonly SkeletonFill[]): string[] => fills.flatMap(({ skeleton, attempts }) => [
         skeletonOf(skeleton),
-        ...planSkeleton(skeleton, command).attempts.map((attempt) => `  ${attemptOf(attempt.toJSON())}`),
-    ]
+        ...attempts.map((attempt) => `  ${attemptOf(attempt.toJSON())}`),
+    ])
 
     const inputOf = (row: Row): ParseInput => ({
         command: row.command,
@@ -138,16 +139,16 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         ...row.input,
     } as ParseInput)
 
-    /** The probe: today's fast-path fills and the row's Parse skeleton, each read by Plan. */
+    /** The probe: Plan over the fast path's tokens, and over the row's Parse skeleton. */
     const readings = (row: Row) => {
         const fast = deterministicIntentChecks(inputOf(row))
         return {
             fastPath: fast === null
                 ? 'no deterministic answer'
                 : fast.type === 'ObjectManipulationIntent'
-                    ? fast.skeletons.flatMap((draft) => readingsOf(stampStableRefKeys(draft), row.command))
+                    ? readingsOf(planTokens(fast.tokens, row.command))
                     : fast.type,
-            ...(row.parseTokens ? { llmRoute: readingsOf(stampStableRefKeys(row.parseTokens), row.command) } : {}),
+            ...(row.parseTokens ? { llmRoute: readingsOf(planSkeleton(row.parseTokens, row.command).fills) } : {}),
         }
     }
 
@@ -221,6 +222,12 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         { command: 'put coin hurriedly into box', parseTokens: [text('put'), span('coin'), text('hurriedly into'), span('box')] },
         { command: 'spread cloth over table', parseTokens: [text('spread'), span('cloth'), text('over'), span('table')] },
         { command: 'look at the cup on the table', parseTokens: [text('look at'), span('the cup'), text('on'), span('the table')] },
+        // Punctuation (Slice 2: a span slot merges across a mark)
+        { command: 'take cup.', parseTokens: [text('take'), span('cup')] },
+        { command: 'take cup, then look', parseTokens: [text('take'), span('cup'), text(', then look')] },
+        { command: 'order anvil, rocket', parseTokens: [text('order'), span('anvil'), text(','), span('rocket')] },
+        // The guard cap (Slice 2): more than six closed-set prepositions get no deterministic reading, so the command climbs
+        { command: 'take a on b on c on d on e on f on g on h', parseTokens: [text('take'), span('a'), text('on'), span('b'), text('on'), span('c'), text('on'), span('d'), text('on'), span('e'), text('on'), span('f'), text('on'), span('g'), text('on'), span('h')] },
         // The fixed-word intent rows, Navigation and AcmeOrder (SM-9, SM-12)
         { command: 'look' },
         { command: 'help' },

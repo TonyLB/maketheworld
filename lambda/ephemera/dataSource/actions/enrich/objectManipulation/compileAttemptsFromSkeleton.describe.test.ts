@@ -4,7 +4,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import { compileAttemptsFromSkeleton } from './compileAttemptsFromSkeleton'
 import type { ParseSkeleton } from './parse/parseToken'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import { planSkeleton } from './plan/planSkeleton'
+import { planFillOf } from './plan/attemptTemplateFixture'
 import { CommandAttempt } from '../../commandAttempt'
 import { lookedAtObjectIdOf } from '../../commandAttempt/lookedAtObjectId'
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
@@ -22,11 +22,7 @@ const lookSkeleton = (verb: string, span: string, stableRefKey: string): ParseSk
 
 /** Plan's primary attempt for a skeleton: the input the producers take (ISS8203 slice 1). */
 const planned = (skeleton: ParseSkeleton) => {
-    const plan = planSkeleton(skeleton, 'test command')
-    if (plan.type !== 'attempts' || plan.attempts.length === 0) {
-        throw new Error('planSkeleton produced no attempt for this skeleton')
-    }
-    return plan.attempts[0]
+    return planFillOf(skeleton, 'test command').attempts[0]
 }
 
 describe('compileAttemptsFromSkeleton (a look)', () => {
@@ -191,7 +187,7 @@ describe('compileAttemptsFromSkeleton (a qualified look)', () => {
     const compile = (catalog: { objectId: EphemeraObjectId; normalizedShortName: string }[], hostsOf: Record<string, EphemeraMembershipHostId[]>) => compileAttemptsFromSkeleton(
         {
             command: 'look at the cup on the table',
-            fills: [{ skeleton, attempts: planSkeleton(skeleton, 'look at the cup on the table').attempts }],
+            fills: [planFillOf(skeleton, 'look at the cup on the table')],
             characterId,
             hostRoomId: roomId,
             roomObjectCatalog: catalog,

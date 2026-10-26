@@ -11,7 +11,7 @@ import {
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isViewAnswer, type ViewAnswer } from './objectViews'
-import type { ParseTokenDraft } from './enrich/objectManipulation/parse/parseToken'
+import type { GranuleToken } from './deterministicTemplate/granuleTokens'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraMetaObject, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
@@ -311,12 +311,12 @@ export type ParseCommandMultipleCommandsResult = {
 export type ParseCommandObjectManipulationIntentResult = {
     type: 'ObjectManipulationIntent'
     /**
-     * The flat, unstamped skeletons the zero-Bedrock fast path (`deterministicChecks.ts`) builds: every
-     * fill of its patterns (membership, and the containment template's own), each a segmentation
-     * Plan reads on its own (`actions/AGENT.contract.md` "Qualifier": every fill is a reading). Only
-     * the fast path produces this intent; `parseCommand.ts` stamps each skeleton and enters Plan.
+     * The command cut into granule tokens (`deterministicTemplate/granuleTokens.ts`), as the
+     * zero-Bedrock fast path (`deterministicChecks.ts`) claimed it. Only the fast path produces this
+     * intent; `parseCommand.ts` hands the tokens to Plan (`planTokens`), which reads every template
+     * over them (`actions/AGENT.contract.md` "Qualifier").
      */
-    skeletons: ParseTokenDraft[][]
+    tokens: GranuleToken[]
     confidence: ParseCommandConfidence
 }
 

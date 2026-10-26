@@ -1,5 +1,20 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { ParseCommandInput } from '../baseClasses'
+import { planTokens } from '../enrich/objectManipulation/plan/planSkeleton'
 import { deterministicIntentChecks } from './deterministicChecks'
+
+/**
+ * What a fast-path claim hands Plan, as flat skeletons: every segmentation Plan reads from the
+ * claimed tokens, keys left out. Anything else the checks answer is returned as it is.
+ */
+const claimedSegmentations = (input: ParseCommandInput) => {
+    const result = deterministicIntentChecks(input)
+    return result?.type === 'ObjectManipulationIntent'
+        ? planTokens(result.tokens, input.command).map(({ skeleton }) => skeleton.map((token) => (
+            token.type === 'objectSpan' ? { type: 'objectSpan', span: token.span } : token
+        )))
+        : result
+}
 
 describe('deterministicIntentChecks', () => {
     const northRoom = 'ROOM#north' as EphemeraRoomId
@@ -196,24 +211,12 @@ describe('deterministicIntentChecks', () => {
 
     describe('manipulation fast paths', () => {
         it('returns ObjectManipulationIntent for minimal take/drop/get verbs', () => {
-            expect(deterministicIntentChecks({ command: 'take broom' })).toEqual({
-                type: 'ObjectManipulationIntent',
-                skeletons: [[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'broom' }]],
-                confidence: 1,
-            })
-            expect(deterministicIntentChecks({ command: '  DROP   the rope  ' })).toEqual({
-                type: 'ObjectManipulationIntent',
-                skeletons: [[{ type: 'text', text: 'DROP' }, { type: 'objectSpan', span: 'the rope' }]],
-                confidence: 1,
-            })
-            expect(deterministicIntentChecks({
+            expect(claimedSegmentations({ command: 'take broom' })).toEqual([[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'broom' }]])
+            expect(claimedSegmentations({ command: '  DROP   the rope  ' })).toEqual([[{ type: 'text', text: 'DROP' }, { type: 'objectSpan', span: 'the rope' }]])
+            expect(claimedSegmentations({
                 command: 'get broom',
                 roomObjectLabels: ['broom'],
-            })).toEqual({
-                type: 'ObjectManipulationIntent',
-                skeletons: [[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'broom' }]],
-                confidence: 1,
-            })
+            })).toEqual([[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'broom' }]])
         })
 
         it('returns null for get when noun is not in object labels (Acme fall-through)', () => {
@@ -232,54 +235,34 @@ describe('deterministicIntentChecks', () => {
         })
 
         it('keeps articles on the span, and a get still claims through a peeled label', () => {
-            expect(deterministicIntentChecks({ command: 'take an apple' })).toEqual({
-                type: 'ObjectManipulationIntent',
-                skeletons: [[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'an apple' }]],
-                confidence: 1,
-            })
-            expect(deterministicIntentChecks({
+            expect(claimedSegmentations({ command: 'take an apple' })).toEqual([[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'an apple' }]])
+            expect(claimedSegmentations({
                 command: 'get a broom',
                 roomObjectLabels: ['broom'],
-            })).toEqual({
-                type: 'ObjectManipulationIntent',
-                skeletons: [[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'a broom' }]],
-                confidence: 1,
-            })
-            expect(deterministicIntentChecks({ command: 'drop some rope' })).toEqual({
-                type: 'ObjectManipulationIntent',
-                skeletons: [[{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'some rope' }]],
-                confidence: 1,
-            })
+            })).toEqual([[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'a broom' }]])
+            expect(claimedSegmentations({ command: 'drop some rope' })).toEqual([[{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'some rope' }]])
         })
 
         it('claims a get whose label starts with an article, matched whole', () => {
-            expect(deterministicIntentChecks({
+            expect(claimedSegmentations({
                 command: 'get the thing',
                 roomObjectLabels: ['the thing'],
-            })).toEqual({
-                type: 'ObjectManipulationIntent',
-                skeletons: [[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'the thing' }]],
-                confidence: 1,
-            })
+            })).toEqual([[{ type: 'text', text: 'get' }, { type: 'objectSpan', span: 'the thing' }]])
+        })
+
+        it('claims no command over the guard cap (more than six closed-set prepositions), so it climbs', () => {
+            expect(claimedSegmentations({ command: 'take a on b on c on d on e on f on g' })).not.toBeNull()
+            expect(deterministicIntentChecks({ command: 'take a on b on c on d on e on f on g on h' })).toBeNull()
         })
 
         it('preserves article-only spans instead of rejecting them', () => {
-            expect(deterministicIntentChecks({ command: 'take a' })).toEqual({
-                type: 'ObjectManipulationIntent',
-                skeletons: [[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'a' }]],
-                confidence: 1,
-            })
-            expect(deterministicIntentChecks({ command: 'drop the' })).toEqual({
-                type: 'ObjectManipulationIntent',
-                skeletons: [[{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'the' }]],
-                confidence: 1,
-            })
+            expect(claimedSegmentations({ command: 'take a' })).toEqual([[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'a' }]])
+            expect(claimedSegmentations({ command: 'drop the' })).toEqual([[{ type: 'text', text: 'drop' }, { type: 'objectSpan', span: 'the' }]])
         })
 
-        describe('a qualified tail yields every fill, each a flat skeleton', () => {
+        describe('a qualified tail: Plan reads every segmentation of the claimed tokens', () => {
             const fillsOf = (command: string, roomObjectLabels?: string[]) => {
-                const result = deterministicIntentChecks({ command, ...(roomObjectLabels ? { roomObjectLabels } : {}) })
-                return result?.type === 'ObjectManipulationIntent' ? result.skeletons : result
+                return claimedSegmentations({ command, ...(roomObjectLabels ? { roomObjectLabels } : {}) })
             }
             const text = (value: string) => ({ type: 'text', text: value })
             const span = (value: string) => ({ type: 'objectSpan', span: value })
@@ -375,8 +358,7 @@ describe('deterministicIntentChecks', () => {
 
         describe('the containment template\'s pattern: put, place and drop', () => {
             const fillsOf = (command: string) => {
-                const result = deterministicIntentChecks({ command })
-                return result?.type === 'ObjectManipulationIntent' ? result.skeletons : result
+                return claimedSegmentations({ command })
             }
             const text = (value: string) => ({ type: 'text', text: value })
             const span = (value: string) => ({ type: 'objectSpan', span: value })

@@ -45,7 +45,7 @@ describe('runObjectManipulationParseHarness', () => {
         mockMessageBus.publish.mockReturnValue(undefined)
     })
 
-    it('runs every fixture and publishes one OOC message with skeleton, templates and attempts', async () => {
+    it('runs every fixture and publishes one OOC message with tokens, segmentations and attempts', async () => {
         await runObjectManipulationParseHarness({
             characterId: 'CHARACTER#t',
             messageBus,
@@ -60,11 +60,14 @@ describe('runObjectManipulationParseHarness', () => {
         expect(text).toContain('--- 1/2 [1] C1: get the cup on the table ---')
         expect(text).toContain('Route: LLM (Parse)')
         expect(text).toContain('Parse: text "get" | span "cup on the table"')
-        expect(text).toContain('Templates: containment noMatch, spread noMatch, look noMatch, look noMatch, membership matched')
+        // Parse's words are re-tokenized: its span is cut at "on", and every segmentation is read.
+        expect(text).toContain('Tokens: get | cup | on | the table')
+        expect(text).toContain('Skeleton: text "get" | span "cup on the table"')
+        expect(text).toContain('Skeleton: text "get" | span "cup" | text "on" | span "the table"')
         expect(text).toContain('Attempt (membership):')
         expect(text).toContain('Route: fast path')
+        expect(text).toContain('Tokens: put | the bag | in | the box')
         expect(text).toContain('Skeleton: text "put" | span "the bag" | text "in" | span "the box"')
-        expect(text).toContain('Templates: containment matched, spread noMatch, look noMatch, look noMatch, membership noMatch')
         expect(text).toContain('Attempt (containment):')
     })
 
@@ -98,10 +101,10 @@ describe('runObjectManipulationParseHarness', () => {
         const text = publishedText()
         expect(text).toContain('[free text]: frobnicate')
         expect(text).toContain('Parse error: no parse')
-        expect(text).not.toContain('Templates:')
+        expect(text).not.toContain('Tokens:')
     })
 
-    it('shows every fill of the fast path for a command it claims, uncut and split, with no Parse call', async () => {
+    it('shows every segmentation Plan reads from a command the fast path claims, uncut and split, with no Parse call', async () => {
         await runObjectManipulationParseHarness({
             characterId: 'CHARACTER#t',
             messageBus,
@@ -118,7 +121,7 @@ describe('runObjectManipulationParseHarness', () => {
         expect(text).toContain('Route: fast path')
         expect(text).toContain('Skeleton: text "take" | span "the cup on the table"')
         expect(text).toContain('Skeleton: text "take" | span "the cup" | text "on" | span "the table"')
-        expect(text).toContain('Templates: containment noMatch, spread noMatch, look noMatch, look noMatch, membership matched')
+        expect(text).toContain('Attempt (membership):')
         expect(text).toContain('"predicate":"containedBy"')
     })
 })

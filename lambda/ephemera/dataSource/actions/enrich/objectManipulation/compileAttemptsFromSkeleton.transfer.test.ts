@@ -5,6 +5,7 @@ import { compileAttemptsFromSkeleton } from './compileAttemptsFromSkeleton'
 import { complexErrorMessage } from './complexityClasses'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ParseSkeleton } from './parse/parseToken'
+import { planFillOf } from './plan/attemptTemplateFixture'
 import { planSkeleton } from './plan/planSkeleton'
 
 /** The attempt's last action's desired result: the transfer, which Plan's templates put last. */
@@ -22,11 +23,7 @@ const containmentPositionsReads = () => ({
 
 /** Plan's attempt for a containment skeleton, as parseCommand hands it to the producer. */
 const planAttempt = (skeleton: ParseSkeleton, command: string) => {
-    const plan = planSkeleton(skeleton, command)
-    if (plan.type !== 'attempts') {
-        throw new Error(`planAttempt: Plan declined "${command}"`)
-    }
-    return plan.attempts[0]!
+    return planFillOf(skeleton, command).attempts[0]!
 }
 
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
@@ -268,7 +265,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put cup on cup',
-                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'cup', 'cupRef2'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'cup', 'cupRef2'), 'put cup on cup')] }],
+                fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef1', 'on', 'cup', 'cupRef2'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef1', 'on', 'cup', 'cupRef2'), 'put cup on cup')] }],
                 hostRoomId: roomId,
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
@@ -347,7 +344,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
         return compileAttemptsFromSkeleton(
             {
                 command,
-                fills: [{ skeleton, attempts: planSkeleton(skeleton, command).attempts }],
+                fills: planSkeleton(skeleton, command).fills,
                 characterId: actor,
                 hostRoomId: roomId,
                 roomObjectCatalog: catalog,
@@ -425,7 +422,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
         const result = await compileAttemptsFromSkeleton(
             {
                 command,
-                fills: [{ skeleton, attempts: planSkeleton(skeleton, command).attempts }],
+                fills: [planFillOf(skeleton, command)],
                 characterId: actor,
                 hostRoomId: roomId,
                 roomObjectCatalog: [
@@ -449,10 +446,14 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
         expect(transferStepOf(result)).toMatchObject({ object: { groundedId: redCupId }, to: { groundedId: tableId } })
     })
 
-    it('abstains on a preposition outside the qualifier set (BD-20): the take leaves a span unread, so no reading is understood', async () => {
+    it('reads a preposition outside the qualifier set as part of the span: no reading leaves a span unread', async () => {
+        const command = 'get the cup under the table'
+        const { fills } = planSkeleton(containmentSkeleton('get', 'cup', 'cupRef', 'under', 'table', 'tableRef'), command)
+        expect(fills.map(({ skeleton }) => skeleton.map((token) => (token.type === 'objectSpan' ? `[${token.span}]` : token.text)).join(' '))).toEqual(['get [cup under table]'])
+
         const result = await compile('get', 'cup', 'under', 'table', twoCups, twoCupsHosts)
 
-        expect(result).toEqual({ type: 'Abstain', confidence: 0.9, reason: complexErrorMessage('multiObject') })
+        expect(result).not.toMatchObject({ reason: complexErrorMessage('multiObject') })
     })
 
     it('refuses a drop of a cup it does not hold through the qualified reading: the plain drop leaves the table unread', async () => {
@@ -483,7 +484,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
         const result = await compileAttemptsFromSkeleton(
             {
                 command,
-                fills: [{ skeleton, attempts: planSkeleton(skeleton, command).attempts }],
+                fills: [planFillOf(skeleton, command)],
                 characterId: actor,
                 hostRoomId: roomId,
                 roomObjectCatalog: [

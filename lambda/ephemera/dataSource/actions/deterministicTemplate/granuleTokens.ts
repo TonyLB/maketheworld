@@ -1,6 +1,7 @@
 /**
- * The finest tokenization of a command (skeletonMatcher SM-1): the command is cut at every fixed word
- * a template reads, and grouping is left to the matcher, which re-joins runs of tokens as it needs.
+ * The finest tokenization of a command (`actions/AGENT.contract.md` "Qualifier"): the command is cut
+ * at every fixed word a template reads, and grouping is left to the matcher (`patternTemplate.ts`),
+ * which re-joins runs of tokens as it needs.
  *
  * The fixed-word options are first cut into granules: two adjacent words of an option stay joined
  * only if they are adjacent in every option where either appears. So each fixed word belongs to
@@ -40,7 +41,8 @@ export type GranuleToken =
 const START = Symbol('start')
 const END = Symbol('end')
 
-function optionWords(option: string): string[] {
+/** A fixed-word option's words, lower-cased; throws on an option `granulesOf` rejects. */
+export function optionWords(option: string): string[] {
     const lexemes = lexemesOf(option)
     const mark = lexemes.find(({ kind }) => kind === 'punctuation')
     if (mark) {

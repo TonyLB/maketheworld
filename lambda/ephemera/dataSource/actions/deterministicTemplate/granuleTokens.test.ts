@@ -1,5 +1,6 @@
-import type { AttemptTemplate, PatternElement } from './deterministicTemplate'
+import type { AttemptTemplate } from './deterministicTemplate'
 import { type GranuleToken, type Granules, granulesOf, tokenize } from './granuleTokens'
+import { fixedWordsOf } from './patternTemplate'
 import { containmentTemplate } from '../enrich/objectManipulation/plan/matchContainmentTemplate'
 import { lookAtTemplate, lookTemplate } from '../enrich/objectManipulation/plan/matchLookTemplate'
 import { membershipTemplate } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
@@ -10,13 +11,8 @@ const render = (tokens: GranuleToken[]): string => tokens.map((token) => (token.
 
 const granuleText = ({ granules }: Granules): string[] => granules.map((granule) => granule.join(' ')).sort()
 
-/** Every fixed word a pattern reads: its fixed-word options and each object phrase's prepositions. */
-const optionsOf = (pattern: readonly PatternElement[]): string[] => pattern.flatMap((element) => (
-    element.type === 'templateText' ? [...element.options] : element.type === 'objectPhrase' ? Object.keys(element.prepositions) : []
-))
-
 const liveTemplates: readonly AttemptTemplate[] = [containmentTemplate, spreadTemplate, lookTemplate, lookAtTemplate, membershipTemplate]
-const liveOptions = [...new Set(liveTemplates.flatMap(({ pattern }) => optionsOf(pattern)))]
+const liveOptions = [...new Set(liveTemplates.flatMap(({ pattern }) => fixedWordsOf(pattern)))]
 
 describe('granulesOf', () => {
     it('keeps two words joined only where they are adjacent in every option holding either', () => {

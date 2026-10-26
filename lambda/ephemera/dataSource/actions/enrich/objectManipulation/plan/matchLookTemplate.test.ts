@@ -1,7 +1,7 @@
 import type { ParseSkeleton } from '../parse/parseToken'
 import { matchTemplate, type TemplateMatchResult } from './attemptTemplateFixture'
 import { lookAtTemplate, lookTemplate } from './matchLookTemplate'
-import { planSkeleton } from './planSkeleton'
+import { planFillOf } from './attemptTemplateFixture'
 
 const matchLookTemplate = matchTemplate(lookTemplate)
 
@@ -69,7 +69,7 @@ describe('matchLookTemplate', () => {
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
 
-        const [attempt] = planSkeleton(skeleton, 'look broom on table').attempts
+        const [attempt] = planFillOf(skeleton, 'look broom on table').attempts
         expect(attempt?.actions().map((action) => action.toJSON().kind)).toEqual(['position', 'narrate'])
         expect(attempt?.actions()[0]?.desiredResult).toMatchObject({
             kind: 'assertion',
@@ -111,7 +111,7 @@ describe('lookAtTemplate', () => {
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ]
 
-        const { attempts } = planSkeleton(skeleton, 'look at cup on table')
+        const { attempts } = planFillOf(skeleton, 'look at cup on table')
         expect(attempts).toHaveLength(1)
         expect(attempts[0]!.actions().map((action) => action.toJSON().kind)).toEqual(['position', 'narrate'])
         expect(attempts[0]!.actions()[1]!.referents()[0]).toMatchObject({ stableRefKey: 'cupRef' })

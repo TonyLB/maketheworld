@@ -5,8 +5,7 @@ export { navigationIntentErrorMessages } from './discriminateIntent/exitResoluti
 export { objectManipulationErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
 import { compileAttemptsFromSkeleton } from './enrich/objectManipulation/compileAttemptsFromSkeleton'
 import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
-import { stampStableRefKeys } from './enrich/objectManipulation/parse/stampStableRefKeys'
-import { planSkeleton } from './enrich/objectManipulation/plan/planSkeleton'
+import { planSkeleton, planTokens } from './enrich/objectManipulation/plan/planSkeleton'
 import { matchNonObjectManipulationTemplate } from './deterministicTemplate'
 import { matchNavigationParaphrase } from './plan/matchNavigationParaphrase'
 import { matchAcmeOrderFamily } from './plan/matchAcmeOrderFamily'
@@ -33,12 +32,9 @@ async function parseCommandCore(
 
     if (intentResult.type === 'ObjectManipulationIntent') {
         // Only reachable via deterministicIntentChecks's take/get/drop/put/place fast path (iteration 7,
-        // Sub-iteration 1). The fast path builds a flat skeleton for every fill of its patterns (each
-        // a segmentation, as Parse would return one); each is stamped and Planned like a parsed skeleton.
-        const fills = intentResult.skeletons
-            .map((draft) => stampStableRefKeys(draft))
-            .map((skeleton) => ({ skeleton, attempts: planSkeleton(skeleton, input.command).attempts }))
-            .filter(({ attempts }) => attempts.length > 0)
+        // Sub-iteration 1). Plan reads every template over the command's tokens; each segmentation
+        // its readings make is a fill.
+        const fills = planTokens(intentResult.tokens, input.command)
         // Zero attempts is not understood on this rung, like an Abstain: both climb to the LLM route.
         if (fills.length > 0) {
             const result = await compileAttemptsFromSkeleton(
@@ -101,11 +97,11 @@ async function routeClassifiedIntent(
 
         // Plan's attempts all go to one producer. An Abstain from it climbs to Acme, as zero attempts
         // (the non-object families' case) does; with no Acme match, it is the top rung's Abstain.
-        const compiled = plan.attempts.length > 0
+        const compiled = plan.fills.length > 0
             ? await compileAttemptsFromSkeleton(
                 {
                     command: input.command,
-                    fills: [{ skeleton: parseResult.tokens, attempts: plan.attempts }],
+                    fills: plan.fills,
                     characterId: input.characterId,
                     hostRoomId: input.hostRoomId,
                     roomObjectCatalog: input.roomObjectCatalog,
@@ -150,7 +146,7 @@ async function routeClassifiedIntent(
 }
 
 /**
- * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **`/test parse`** returns **`ObjectManipulationParseTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**; minimal-verb **`take` / `drop` / `get <object>`** is the take/get/drop fast path (the flat skeleton its pattern matched from the text, compiled like a parsed one): all without Bedrock classify. A fast-path **`Abstain`** (not understood) climbs to the classify below, and an **`Abstain`** from the LLM route's compile climbs to Acme; only the top rung's Abstain is returned.
+ * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **`/test parse`** returns **`ObjectManipulationParseTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**; minimal-verb **`take` / `drop` / `get <object>`** is the take/get/drop fast path (the command's tokens, read by Plan and compiled like a parsed command): all without Bedrock classify. A fast-path **`Abstain`** (not understood) climbs to the classify below, and an **`Abstain`** from the LLM route's compile climbs to Acme; only the top rung's Abstain is returned.
  * Otherwise runs the narrowed (iteration 7) intent discrimination: **`Command`** first tries
  * deterministic Plan-stage dispatch (Sub-iteration 2) -- a closed paraphrase lexicon for
  * **`LookRoom`**, **`Help`**, **`Home`**, and **`AwaitRoadRunner`**, then a movement-verb paraphrase

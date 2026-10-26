@@ -3,7 +3,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import type { InvokeBedrockObjectManipulationEnrichResult } from '../../../../../generateExample/invokeBedrockObjectManipulationEnrich'
 import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
 import type { ParseSkeleton } from '../parse/parseToken'
-import { planSkeleton } from '../plan/planSkeleton'
+import { planFillOf } from '../plan/attemptTemplateFixture'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import { testLudicGraph } from '../../../../positions/ludicGraph/testFixtures'
 import {
@@ -29,7 +29,7 @@ const takeAttempt = (() => {
         { type: 'text', text: 'take' },
         { type: 'objectSpan', span: 'the bag', stableRefKey: 'bagRef' },
     ]
-    const result = planSkeleton(skeleton, 'take the bag')
+    const result = planFillOf(skeleton, 'take the bag')
     return result.attempts[0]
 })()
 

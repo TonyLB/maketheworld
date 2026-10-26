@@ -7,10 +7,11 @@ import type {
     ObjectManipulationParseHarnessInvocation,
 } from '../baseClasses'
 import { deterministicIntentChecks } from '../discriminateIntent/deterministicChecks'
+import { tokenize, type GranuleToken } from '../deterministicTemplate/granuleTokens'
+import { skeletonText } from '../deterministicTemplate/patternTemplate'
 import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
 import { runParseStage } from '../enrich/objectManipulation/parse/runParseStage'
-import { stampStableRefKeys } from '../enrich/objectManipulation/parse/stampStableRefKeys'
-import { matchPlanTemplates } from '../enrich/objectManipulation/plan/planSkeleton'
+import { PLAN_GRANULES, readPlanTemplates, type PlanTemplateRead } from '../enrich/objectManipulation/plan/planSkeleton'
 import { OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES } from '../objectManipulationParseHarnessFixtures'
 import { getRoomObjectLabelsForCharacter } from '../roomObjectLabelsForCharacter'
 
@@ -52,12 +53,18 @@ export function formatSkeleton(skeleton: ParseSkeleton): string {
         .join(' | ')
 }
 
+/** `put | the bag | in | the box`: the tokens on one line, each as typed. */
+export function formatTokens(tokens: readonly GranuleToken[]): string {
+    return tokens.map((token) => (token.kind === 'punctuation' ? token.text : token.words.join(' '))).join(' | ')
+}
+
 /**
- * Runs each selected command down the route production takes to a skeleton, then Plan, and
- * publishes **one** OOC message with the results for manual review: the route, the skeleton, each
- * template's match, and each attempt Plan emits. A command the take/get/drop/put/place fast path claims
- * (`deterministicIntentChecks`, with the actor's room labels) shows each of the fast path's skeletons (every fill) with
- * no Bedrock call; any other runs the live Parse stage. Beyond the labels no world is read;
+ * Runs each selected command down the route production takes to its tokens, then Plan, and
+ * publishes **one** OOC message with the results for manual review: the route, the tokens, and each
+ * segmentation Plan's readings make with every attempt read from it. A command the
+ * take/get/drop/put/place fast path claims (`deterministicIntentChecks`, with the actor's room
+ * labels) is read from its own tokens with no Bedrock call; any other runs the live Parse stage,
+ * whose skeleton is shown and whose words are re-tokenized. Beyond the labels no world is read;
  * candidates and the dry run are out of its reach.
  */
 export async function runObjectManipulationParseHarness(deps: RunObjectManipulationParseHarnessDeps): Promise<void> {
@@ -73,10 +80,9 @@ export async function runObjectManipulationParseHarness(deps: RunObjectManipulat
     for (const [index, { label, command }] of cases.entries()) {
         tree.push(`--- ${index + 1}/${cases.length} ${label}: ${command} ---`, COYOTE_RENDER_LINE_BREAK)
         const fastPath = deterministicIntentChecks({ command, roomObjectLabels })
-        let skeletons: ParseSkeleton[]
+        let tokens: GranuleToken[]
         if (fastPath?.type === 'ObjectManipulationIntent') {
-            // Every fill goes to Plan, so each is shown with what Plan reads from it.
-            skeletons = fastPath.skeletons.map((draft) => stampStableRefKeys(draft))
+            tokens = fastPath.tokens
             tree.push('Route: fast path', COYOTE_RENDER_LINE_BREAK)
         }
         else {
@@ -88,23 +94,22 @@ export async function runObjectManipulationParseHarness(deps: RunObjectManipulat
                 tree.push(`Parse error: ${parsed.errorMessage}`, COYOTE_RENDER_LINE_BREAK)
                 continue
             }
-            skeletons = [parsed.tokens]
             tree.push(`Parse: ${formatSkeleton(parsed.tokens)}`, COYOTE_RENDER_LINE_BREAK)
+            // Plan reads Parse's words, cut into tokens as the command's would be.
+            tokens = tokenize(PLAN_GRANULES, skeletonText(parsed.tokens))
         }
-        for (const skeleton of skeletons) {
-            if (fastPath?.type === 'ObjectManipulationIntent') {
-                tree.push(`Skeleton: ${formatSkeleton(skeleton)}`, COYOTE_RENDER_LINE_BREAK)
-            }
-            const matches = matchPlanTemplates(skeleton, command)
-            tree.push(
-                `Templates: ${matches.map(({ template, attempt }) => `${template} ${attempt ? 'matched' : 'noMatch'}`).join(', ')}`,
-                COYOTE_RENDER_LINE_BREAK
-            )
-            for (const { template, attempt } of matches) {
-                if (attempt) {
-                    const { referents, actions } = attempt.toJSON()
-                    tree.push(`Attempt (${template}): ${JSON.stringify({ referents, actions })}`, COYOTE_RENDER_LINE_BREAK)
-                }
+        tree.push(`Tokens: ${formatTokens(tokens)}`, COYOTE_RENDER_LINE_BREAK)
+        const reads = readPlanTemplates(tokens, command)
+        tree.push(`Readings: ${reads.length}`, COYOTE_RENDER_LINE_BREAK)
+        // Each segmentation once, with every template's attempt read from it.
+        const bySegmentation = reads.reduce<Map<string, PlanTemplateRead[]>>((groups, read) => (
+            groups.set(read.segmentationKey, [...(groups.get(read.segmentationKey) ?? []), read])
+        ), new Map())
+        for (const group of bySegmentation.values()) {
+            tree.push(`Skeleton: ${formatSkeleton(group[0].segmentation)}`, COYOTE_RENDER_LINE_BREAK)
+            for (const { template, attempt } of group) {
+                const { referents, actions } = attempt.toJSON()
+                tree.push(`Attempt (${template}): ${JSON.stringify({ referents, actions })}`, COYOTE_RENDER_LINE_BREAK)
             }
         }
     }

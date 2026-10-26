@@ -24,7 +24,7 @@ describe('discriminateIntent', () => {
 
         expect(result).toEqual({
             type: 'ObjectManipulationIntent',
-            skeletons: [[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'broom' }]],
+            tokens: [{ kind: 'granule', words: ['take'], granule: ['take'] }, { kind: 'span', words: ['broom'] }],
             confidence: 1,
         })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()

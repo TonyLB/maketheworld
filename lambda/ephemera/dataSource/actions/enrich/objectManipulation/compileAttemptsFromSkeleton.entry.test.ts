@@ -8,7 +8,7 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import {
     buildCandidatesFromIdentityCase,
 } from './embeddingMatch/testing/mockVectors'
-import { planSkeleton } from './plan/planSkeleton'
+import { planFillOf } from './plan/attemptTemplateFixture'
 import { peerRelationFixture } from './peerRelationFixture'
 
 const relationalSkeleton = (
@@ -68,11 +68,7 @@ const hostAwareGetLudicGraph = (overrides: Record<string, unknown> = {}) =>
 
 /** Plan's primary attempt for a skeleton: the input the producers take (ISS8203 slice 1). */
 const planned = (skeleton: ParseSkeleton) => {
-    const plan = planSkeleton(skeleton, 'test command')
-    if (plan.type !== 'attempts' || plan.attempts.length === 0) {
-        throw new Error('planSkeleton produced no attempt for this skeleton')
-    }
-    return plan.attempts[0]
+    return planFillOf(skeleton, 'test command').attempts[0]
 }
 
 /** The attempt's relation step: Plan's relational template puts it in the one position action. */
