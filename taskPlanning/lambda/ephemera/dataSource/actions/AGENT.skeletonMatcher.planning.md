@@ -1,6 +1,6 @@
 # Skeleton matcher: split finest, merge as needed
 
-**Status: opened 2026-10-25; design discussion first, no slice started.** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md), with an unusually long Open decisions section: every slice after Slice 0 is gated on at least one row. It is rung 15 of the iteration ladder in [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md). It rebuilds what rungs 12 (skeleton patterns) and 13 (phrase coverage) built. It goes before rung 14 (match tuning) without superseding it: structure first, then Identify tuning (SM-10).
+**Status: opened 2026-10-25; Slice 0 (characterization corpus) done 2026-10-26; SM-11 and SM-12 open.** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md), with an unusually long Open decisions section: every slice after Slice 0 is gated on at least one row. It is rung 15 of the iteration ladder in [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md). It rebuilds what rungs 12 (skeleton patterns) and 13 (phrase coverage) built. It goes before rung 14 (match tuning) without superseding it: structure first, then Identify tuning (SM-10).
 
 ## Goal
 
@@ -85,9 +85,13 @@ Plan-only: decisions made in order to implement the next slice(s). Do not copy i
 
 Pending work uses `[ ]` and completed work `[X]`; mark nested lines `[X]` as each is done. The slices are provisional until their rows are decided, and may be re-cut then.
 
-- [ ] **Slice 0. Characterization corpus.** No decision needed.
-  - [ ] A table-driven test over a command corpus, both routes, pinning each command's readings (Plan's attempts per skeleton) and final parse result as they are today: the payoff command, the `qualifiedTakePayoff` and `phraseCoveragePayoff` commands, `take hold`, `get` with and without a label, `drop the cup in the box`, `get cup under table`, `put coin hurriedly into box`, `spread cloth over table`, `look at the cup on the table`.
-  - [ ] Each later slice lists every corpus row it changes, by design or not.
+- [X] **Slice 0. Characterization corpus.** No decision needed.
+  - [X] A table-driven test over a command corpus, both routes, pinning each command's readings (Plan's attempts per skeleton) and final parse result as they are today: the payoff command, the `qualifiedTakePayoff` and `phraseCoveragePayoff` commands, `take hold`, `get` with and without a label, `drop the cup in the box`, `get cup under table`, `put coin hurriedly into box`, `spread cloth over table`, `look at the cup on the table`. Also the rows Slices 3, 5 and 6 change by design (SM-9, SM-12): `look`, `help`, `home`, `wait`, `predict`, `go north`, `north`, `enter box`, `order rocket skates`. In [`skeletonMatcher.characterization.test.ts`](../../../../../lambda/ephemera/dataSource/actions/skeletonMatcher.characterization.test.ts), one snapshot per row:
+    - `readings`: the fast path's fills, and the row's `parseTokens` standing in for Parse, each read by Plan before the producer's filters (BD-20, exact-fill precedence);
+    - `outcome`: the `parseCommand` result, and how often each LLM stub was reached (the route taken).
+    - The digest (one line per skeleton, one per attempt, actions rendered from `desiredResult`) is the stable contract: a slice that changes how readings are made (Slice 2's tokens, Slice 5's retired Parse) re-points the probe and keeps the digest.
+    - The world is one flat room (every object directly in it); nested worlds stay the payoff tests'. Pinned as found, for later slices to weigh: `take unicorn` grounds to the coin (lexical "corn"/"coin"); `look at the cup on the table` is `Unimplemented` when Parse keeps `look at` as one text run; `put coin hurriedly into box` reads `coin hurriedly` as the span on the fast path and nothing on the LLM route.
+  - [X] Each later slice lists every corpus row it changes, by design or not: every snapshot its `-u` run rewrites goes in its Progress row, with why.
 - [ ] **Slice 1. The granule tokenizer** (SM-1, SM-2). Standalone, with no caller yet.
   - [ ] Granules from a set of fixed-word options (the pairwise-adjacency rule), and a tokenizer from granules and a command to tokens (granule tokens and span-material runs).
   - [ ] Tested against invented option sets as well as the real lexicon: `on top of` with `of both` (and `get the book on top of both`); adding `on` alone; `a b c` with `b c d`; a granule word appearing alone in a command (`spinning top`); case and spacing; a word inside a longer word (`on` in `onto`); the empty set.
@@ -135,7 +139,7 @@ Per slice, from `lambda/ephemera/`: `npx tsc --noEmit` and `npm run test -- --wa
 
 | Slice | State | Files touched |
 | --- | --- | --- |
-| 0 | Not started | --- |
+| 0 | Done 2026-10-26: 26 corpus rows pinned; no production code changed | `lambda/ephemera/dataSource/actions/skeletonMatcher.characterization.test.ts`, its `__snapshots__/` file |
 | 1 | Not started | --- |
 | 2 | Not started | --- |
 | 3 | Not started | --- |
