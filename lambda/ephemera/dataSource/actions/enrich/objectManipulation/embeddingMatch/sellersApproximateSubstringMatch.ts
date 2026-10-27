@@ -15,11 +15,20 @@ export type SellersMatchSpan = {
     end: number
 }
 
+/**
+ * One step of the alignment, left to right: `match` and `substitute` pair a character of P with
+ * one of T, `insert` is a character of T only, `delete` a character of P only, and `transpose`
+ * pairs two characters of each, swapped.
+ */
+export type AlignmentOp = 'match' | 'substitute' | 'insert' | 'delete' | 'transpose'
+
 export type SellersApproximateSubstringMatch = {
     distance: number
     matchSpan: SellersMatchSpan
     leftFlank: string
     rightFlank: string
+    /** The alignment of P against T's match span; its edits sum to `distance`. */
+    ops: AlignmentOp[]
 }
 
 type OsaBackOp = 'match' | 'insert_t' | 'delete_p' | 'transpose'
@@ -36,19 +45,35 @@ const substitutionCost = (patternChar: string, textChar: string): number => (
     patternChar === textChar ? 0 : 1
 )
 
-const tracebackMatchStart = (
+const alignmentOp = (step: OsaBackpointer, P: string, T: string): AlignmentOp => {
+    switch (step.op) {
+        case 'match':
+            return P[step.pi] === T[step.pj] ? 'match' : 'substitute'
+        case 'insert_t':
+            return 'insert'
+        case 'delete_p':
+            return 'delete'
+        case 'transpose':
+            return 'transpose'
+    }
+}
+
+const traceback = (
     back: Array<Array<OsaBackpointer | undefined>>,
-    patternLength: number,
+    P: string,
+    T: string,
     endIndex: number
-): number => {
-    let i = patternLength
+): { start: number; ops: AlignmentOp[] } => {
+    let i = P.length
     let j = endIndex
+    const ops: AlignmentOp[] = []
     while (i > 0 && back[i][j] !== undefined) {
         const step = back[i][j]!
+        ops.push(alignmentOp(step, P, T))
         i = step.pi
         j = step.pj
     }
-    return j
+    return { start: j, ops: ops.reverse() }
 }
 
 /**
@@ -70,6 +95,7 @@ export function sellersApproximateSubstringMatch(
             matchSpan: { start: 0, end: 0 },
             leftFlank: T,
             rightFlank: '',
+            ops: [],
         }
     }
 
@@ -79,6 +105,7 @@ export function sellersApproximateSubstringMatch(
             matchSpan: { start: 0, end: 0 },
             leftFlank: '',
             rightFlank: '',
+            ops: Array<AlignmentOp>(m).fill('delete'),
         }
     }
 
@@ -150,7 +177,7 @@ export function sellersApproximateSubstringMatch(
         if (dp[m][j] !== bestDistance) {
             continue
         }
-        const start = tracebackMatchStart(back, m, j)
+        const { start } = traceback(back, P, T, j)
         const spanLength = j - start
         if (
             spanLength > bestSpanLength
@@ -161,12 +188,13 @@ export function sellersApproximateSubstringMatch(
         }
     }
 
-    const start = tracebackMatchStart(back, m, bestEnd)
+    const { start, ops } = traceback(back, P, T, bestEnd)
 
     return {
         distance: bestDistance,
         matchSpan: { start, end: bestEnd },
         leftFlank: T.slice(0, start),
         rightFlank: T.slice(bestEnd),
+        ops,
     }
 }

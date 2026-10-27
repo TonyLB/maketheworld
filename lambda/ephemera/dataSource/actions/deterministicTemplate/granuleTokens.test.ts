@@ -1,5 +1,5 @@
 import type { AttemptTemplate } from './deterministicTemplate'
-import { type GranuleToken, type Granules, granulesOf, tokenize } from './granuleTokens'
+import { type GranuleToken, type Granules, granulesOf, lexemesOf, tokenize } from './granuleTokens'
 import { fixedWordsOf } from './patternTemplate'
 import { containmentTemplate } from '../enrich/objectManipulation/plan/matchContainmentTemplate'
 import { lookAtTemplate, lookTemplate } from '../enrich/objectManipulation/plan/matchLookTemplate'
@@ -13,6 +13,17 @@ const granuleText = ({ granules }: Granules): string[] => granules.map((granule)
 
 const liveTemplates: readonly AttemptTemplate[] = [containmentTemplate, spreadTemplate, lookTemplate, lookAtTemplate, membershipTemplate]
 const liveOptions = [...new Set(liveTemplates.flatMap(({ pattern }) => fixedWordsOf(pattern)))]
+
+describe('lexemesOf', () => {
+    it('reads words and marks with where each starts, whitespace no lexeme', () => {
+        expect(lexemesOf("take  jack-in-the-box, don't")).toEqual([
+            { kind: 'word', text: 'take', start: 0 },
+            { kind: 'word', text: 'jack-in-the-box', start: 6 },
+            { kind: 'punctuation', text: ',', start: 21 },
+            { kind: 'word', text: "don't", start: 23 },
+        ])
+    })
+})
 
 describe('granulesOf', () => {
     it('keeps two words joined only where they are adjacent in every option holding either', () => {

@@ -17,10 +17,12 @@
 const LEXEME = /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*|[^\s\p{L}\p{N}]/gu
 const WORD_START = /^[\p{L}\p{N}]/u
 
-type Lexeme = { kind: 'word'; text: string } | { kind: 'punctuation'; text: string }
+/** One word or punctuation mark of a text, with the index in the text where it starts. */
+export type Lexeme = { kind: 'word' | 'punctuation'; text: string; start: number }
 
-function lexemesOf(text: string): Lexeme[] {
-    return (text.match(LEXEME) ?? []).map((lexeme): Lexeme => ({ kind: WORD_START.test(lexeme) ? 'word' : 'punctuation', text: lexeme }))
+/** The words and punctuation marks of a text, left to right; whitespace separates and is no lexeme. */
+export function lexemesOf(text: string): Lexeme[] {
+    return [...text.matchAll(LEXEME)].map(({ 0: lexeme, index }): Lexeme => ({ kind: WORD_START.test(lexeme) ? 'word' : 'punctuation', text: lexeme, start: index! }))
 }
 
 /** The granules of a set of options, each its lower-cased words, and each keyed by its first word. */
@@ -103,7 +105,7 @@ export function tokenize({ byFirstWord }: Granules, command: string): GranuleTok
         }
         const lexeme = lexemes[index]
         if (lexeme.kind === 'punctuation') {
-            return [lexeme, ...tokensFrom(index + 1)]
+            return [{ kind: 'punctuation', text: lexeme.text }, ...tokensFrom(index + 1)]
         }
         const granule = byFirstWord.get(lexeme.text.toLowerCase())
         const candidate = granule ? lexemes.slice(index, index + granule.length) : []
