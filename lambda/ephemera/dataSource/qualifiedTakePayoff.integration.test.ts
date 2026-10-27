@@ -152,14 +152,12 @@ describe('qualified take payoff (integration)', () => {
     })
 
     /**
-     * A command end to end: parse, the bus crossing, then the real commit. With no `tokens` the
-     * fast path must claim the command (Bedrock is asserted unused); with `tokens` the model
-     * returns that skeleton. Returns the commit's bus.
+     * A command end to end: parse, the bus crossing, then the real commit. The fast path must
+     * claim the command (Bedrock is asserted unused). Returns the commit's bus.
      */
-    const run = async (command: string, tokens?: string): Promise<jest.Mock> => {
+    const run = async (command: string): Promise<jest.Mock> => {
         const labels = Object.entries(world.names) as Array<[EphemeraObjectId, string]>
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({ success: true, body: tokens ?? '{"tokens":[]}' })
         const parseResult = await parseCommand(
             {
                 command,
@@ -169,7 +167,6 @@ describe('qualified take payoff (integration)', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
                 objectManipulationPositionsReadDeps: {
                     getMembershipContainers: jest.fn().mockImplementation(async (id: string) => world.containers[id] ?? []),
                     getLudicGraph: jest.fn().mockImplementation(async (hostId: string) => world.graphs[hostId] ?? EphemeraLudicGraph.empty(hostId as EphemeraMembershipHostId)),
@@ -177,12 +174,7 @@ describe('qualified take payoff (integration)', () => {
             }
         )
 
-        if (tokens === undefined) {
-            expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
-        } else {
-            expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalledTimes(1)
-        }
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         // A CommandAttempt, not a Select: the command is understood without asking.
         expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
         if (parseResult.type !== 'CommandAttempt') {
@@ -251,14 +243,10 @@ describe('qualified take payoff (integration)', () => {
 
     // No span names the table exactly, so exact-fill precedence prunes nothing and every merged
     // reading competes: a span's own extra words must cost it (skeletonMatcher 4d).
-    // A manner word keeps the LLM route's case off the fast path.
-    it.each([
-        ['take cup on saucer on table', undefined],
-        ['carefully get cup on saucer on table', '{"tokens":[{"type":"text","text":"get"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"saucer"},{"type":"text","text":"on"},{"type":"objectSpan","span":"table"}]}'],
-    ])('"%s" with a "kitchen table" takes the cup on the table\'s saucer without asking', async (command, tokens) => {
+    it('"take cup on saucer on table" with a "kitchen table" takes the cup on the table\'s saucer without asking', async () => {
         seedTwoStacks('kitchen table')
 
-        const publish = await run(command, tokens)
+        const publish = await run('take cup on saucer on table')
 
         expect(await holds(CHARACTER_ID, TABLE_CUP_ID)).toBe(true)
         expect(await holds(TABLE_SAUCER_ID, TABLE_CUP_ID)).toBe(false)

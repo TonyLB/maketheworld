@@ -25,7 +25,6 @@ import { isCoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffin
 import type { CoyoteEngineTestHarnessInvocation } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedrockAcmeOrderEnrich'
 import { invokeBedrockObjectManipulationEnrich } from '../../generateExample/invokeBedrockObjectManipulationEnrich'
-import { invokeBedrockObjectManipulationParse } from '../../generateExample/invokeBedrockObjectManipulationParse'
 import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
 import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
 import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
@@ -727,9 +726,6 @@ export type ParseCommandDeps = {
     invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich;
     /** Bedrock enrich for object manipulation complexity stage; tests may inject a mock. */
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich;
-    /** Bedrock complexity stage for object manipulation; tests may inject a mock. */
-    /** Bedrock Parse stage (tokenized command skeleton, BD-21); tests may inject a mock. */
-    invokeBedrockObjectManipulationParseImpl?: typeof invokeBedrockObjectManipulationParse;
     /** Injectable Positions reads for object manipulation membership pre-gates. */
     objectManipulationPositionsReadDeps?: ObjectManipulationPositionsReadDeps;
     /** Injectable span embed for object manipulation identity pool builder (tests). */

@@ -1,9 +1,9 @@
-import type { ParseSkeleton, ParseToken, ParseTokenDraft } from '../parse/parseToken'
+import type { ParseSkeleton } from '../parse/parseToken'
 import type { AttemptKind, CommandAttempt } from '../../../commandAttempt'
 import type { AttemptTemplate } from '../../../deterministicTemplate/deterministicTemplate'
 import type { SkeletonFill } from '../compileAttemptsFromSkeleton'
-import { tokenize, type GranuleToken } from '../../../deterministicTemplate/granuleTokens'
-import { matchPattern, readFills, skeletonText } from '../../../deterministicTemplate/patternTemplate'
+import type { GranuleToken } from '../../../deterministicTemplate/granuleTokens'
+import { matchPattern, readFills } from '../../../deterministicTemplate/patternTemplate'
 import { INTENT_TEMPLATES } from '../../../deterministicTemplate/intentTemplates'
 import { lowerQualifiers } from './lowerQualifiers'
 import { templateSetOf, type TemplateSet } from './templateSet'
@@ -74,17 +74,4 @@ export function planTokens(tokens: readonly GranuleToken[], command: string, tem
         fills.set(segmentationKey, { skeleton: segmentation, attempts: [...(fills.get(segmentationKey)?.attempts ?? []), attempt] })
     ), new Map())
     return [...bySegmentation.values()]
-}
-
-export type PlanSkeletonResult =
-    /** Every reading's attempts, by segmentation. Empty: no object route. */
-    { type: 'attempts'; fills: SkeletonFill[] }
-
-/**
- * The LLM route's entry into Plan: the words Parse's skeleton spells, spans and text alike,
- * cut into tokens as the command's own would be (`COMMAND_GRANULES`), so Parse contributes its
- * words and never its segmentation.
- */
-export function planSkeleton(skeleton: readonly (ParseTokenDraft | ParseToken)[], command: string, templates: TemplateSet = LIVE_TEMPLATE_SET): PlanSkeletonResult {
-    return { type: 'attempts', fills: planTokens(tokenize(templates.granules, skeletonText(skeleton)), command, templates) }
 }

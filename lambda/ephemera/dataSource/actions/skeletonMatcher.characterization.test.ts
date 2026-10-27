@@ -6,18 +6,18 @@ import type { CommandAttemptData } from './commandAttempt'
 import { deterministicIntentChecks } from './discriminateIntent/deterministicChecks'
 import type { SkeletonFill } from './enrich/objectManipulation/compileAttemptsFromSkeleton'
 import type { ParseTokenDraft } from './enrich/objectManipulation/parse/parseToken'
-import { planSkeleton, planTokens } from './enrich/objectManipulation/plan/planSkeleton'
+import { planTokens } from './enrich/objectManipulation/plan/planSkeleton'
 import { parseCommand } from './parseCommand'
 
 /**
  * Characterization corpus (skeletonMatcher Slice 0,
  * `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.skeletonMatcher.planning.md`): each row pins,
- * as they are today, a command's readings on both routes and its `parseCommand` result.
+ * as they are today, a command's readings and its `parseCommand` result.
  *
  * - `readings`: the attempts Plan makes for each segmentation, before the producer's filters
- *   (exact-fill precedence). `fastPath` is Plan over the tokens the fast path claims; `llmRoute`
- *   is Plan over the row's `parseTokens`, standing in for Parse (Slice 2 re-pointed both to the
- *   one engine; the digest is unchanged).
+ *   (exact-fill precedence). `fastPath` is Plan over the tokens the fast path claims, the one
+ *   route into Plan since Slice 5 retired Parse (and with it the `llmRoute` probe, Plan over a
+ *   row's stand-in Parse skeleton).
  * - `outcome`: the result, with the attempt digested the same way, and how often each LLM stub
  *   was reached (so the route taken shows).
  *
@@ -47,14 +47,11 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         command: string
         /** Distinguishes two rows on one command. */
         variant?: string
-        parseTokens?: ParseTokenDraft[]
         input?: Partial<ParseInput>
         graphs?: Record<string, EphemeraLudicGraph>
         containers?: Record<string, string[]>
     }
 
-    const text = (value: string): ParseTokenDraft => ({ type: 'text', text: value })
-    const span = (value: string): ParseTokenDraft => ({ type: 'objectSpan', span: value })
     const catalogOf = (ids: Array<[EphemeraObjectId, string]>) => ids.map(([objectId, normalizedShortName]) => ({ objectId, normalizedShortName }))
 
     const ROOM_OBJECTS: Array<[EphemeraObjectId, string]> = [
@@ -138,7 +135,7 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         ...row.input,
     } as ParseInput)
 
-    /** The probe: Plan over the fast path's tokens, and over the row's Parse skeleton. */
+    /** The probe: Plan over the fast path's tokens. */
     const readings = (row: Row) => {
         const fast = deterministicIntentChecks(inputOf(row))
         return {
@@ -147,7 +144,6 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
                 : fast.type === 'ObjectManipulationIntent'
                     ? readingsOf(planTokens(fast.tokens, row.command))
                     : fast.type,
-            ...(row.parseTokens ? { llmRoute: readingsOf(planSkeleton(row.parseTokens, row.command).fills) } : {}),
         }
     }
 
@@ -171,14 +167,12 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         const graphs: Record<string, EphemeraLudicGraph> = { [ROOM]: roomGraph, ...row.graphs }
         const stubs = {
             classify: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
-            parse: jest.fn().mockResolvedValue({ success: true, body: JSON.stringify({ tokens: row.parseTokens ?? [] }) }),
             enrich: jest.fn(),
             acme: jest.fn().mockResolvedValue({ success: false, errorMessage: 'acme stubbed as unavailable' }),
             embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' }),
         }
         const result = await parseCommand(inputOf(row), {
             invokeBedrockParseCommandImpl: stubs.classify,
-            invokeBedrockObjectManipulationParseImpl: stubs.parse,
             invokeBedrockObjectManipulationEnrichImpl: stubs.enrich,
             invokeBedrockAcmeOrderEnrichImpl: stubs.acme,
             embedSpan: stubs.embedSpan,
@@ -200,34 +194,36 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
 
     const rows: Row[] = [
         // The plan's payoff
-        { command: 'put pig in a blanket on the plate on the table', parseTokens: [text('put'), span('pig'), text('in'), span('a blanket'), text('on'), span('the plate'), text('on'), span('the table')] },
+        { command: 'put pig in a blanket on the plate on the table' },
         // qualifiedTakePayoff
-        { command: 'take cup on saucer on table', parseTokens: [text('take'), span('cup'), text('on'), span('saucer'), text('on'), span('table')] },
-        { command: 'take cup from table', parseTokens: [text('take'), span('cup'), text('from'), span('table')] },
-        { command: 'take coin out box', parseTokens: [text('take'), span('coin'), text('out'), span('box')] },
-        { command: 'put cup on saucer on table', parseTokens: [text('put'), span('cup'), text('on'), span('saucer'), text('on'), span('table')] },
+        { command: 'take cup on saucer on table' },
+        { command: 'take cup from table' },
+        { command: 'take coin out box' },
+        { command: 'put cup on saucer on table' },
         // phraseCoveragePayoff
-        { command: 'get the cup', parseTokens: [text('get'), span('the cup')] },
-        { command: 'take unicorn', parseTokens: [text('take'), span('unicorn')] },
-        { command: 'take man in the moon from table', parseTokens: [text('take'), span('man'), text('in'), span('the moon'), text('from'), span('table')] },
-        { command: 'drop the cup in the box', parseTokens: [text('drop'), span('the cup'), text('in'), span('the box')], ...holdingCup },
-        { command: 'drop cup', parseTokens: [text('drop'), span('cup')], ...holdingCup },
+        { command: 'get the cup' },
+        { command: 'take unicorn' },
+        { command: 'take man in the moon from table' },
+        { command: 'drop the cup in the box', ...holdingCup },
+        { command: 'drop cup', ...holdingCup },
         // The fast path's retired gates: `take hold`, and `get` needing a room label
-        { command: 'take hold of the cup', parseTokens: [text('take hold of'), span('the cup')] },
-        { command: 'get cup', parseTokens: [text('get'), span('cup')] },
+        { command: 'take hold of the cup' },
+        { command: 'get cup' },
         // What the `get` gate guarded (`up` ranking near "cup") is Identify's evidence to weigh
-        { command: 'get up', parseTokens: [text('get'), span('up')] },
+        { command: 'get up' },
         // Shapes the templates read partly, or not at all
-        { command: 'get cup under table', parseTokens: [text('get'), span('cup'), text('under'), span('table')] },
-        { command: 'put coin hurriedly into box', parseTokens: [text('put'), span('coin'), text('hurriedly into'), span('box')] },
-        { command: 'spread cloth over table', parseTokens: [text('spread'), span('cloth'), text('over'), span('table')] },
-        { command: 'look at the cup on the table', parseTokens: [text('look at'), span('the cup'), text('on'), span('the table')] },
+        { command: 'get cup under table' },
+        { command: 'put coin hurriedly into box' },
+        { command: 'spread cloth over table' },
+        { command: 'look at the cup on the table' },
+        // A manner word no template reads, which Parse dropped until Slice 5 (SM-11)
+        { command: 'carefully get the cup' },
         // Punctuation (Slice 2: a span slot merges across a mark)
-        { command: 'take cup.', parseTokens: [text('take'), span('cup')] },
-        { command: 'take cup, then look', parseTokens: [text('take'), span('cup'), text(', then look')] },
-        { command: 'order anvil, rocket', parseTokens: [text('order'), span('anvil'), text(','), span('rocket')] },
+        { command: 'take cup.' },
+        { command: 'take cup, then look' },
+        { command: 'order anvil, rocket' },
         // The guard cap (Slice 2): more than six closed-set prepositions get no deterministic reading, so the command climbs
-        { command: 'take a on b on c on d on e on f on g on h', parseTokens: [text('take'), span('a'), text('on'), span('b'), text('on'), span('c'), text('on'), span('d'), text('on'), span('e'), text('on'), span('f'), text('on'), span('g'), text('on'), span('h')] },
+        { command: 'take a on b on c on d on e on f on g on h' },
         // The fixed-word intent rows, Navigation and AcmeOrder (SM-9, SM-12)
         { command: 'look' },
         { command: 'help' },
@@ -237,13 +233,13 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         { command: 'go home', variant: 'a home exit', input: { roomExits: [{ normalizedName: 'north', targetId: NORTH_ROOM }, { normalizedName: 'home', targetId: 'ROOM#Home' as EphemeraRoomId }] } },
         { command: 'wait' },
         { command: 'predict' },
-        { command: 'go north', parseTokens: [text('go'), span('north')] },
-        { command: 'north', parseTokens: [span('north')] },
-        { command: 'go north', variant: 'two north exits', parseTokens: [text('go'), span('north')], input: { roomExits: [{ normalizedName: 'north', targetId: NORTH_ROOM }, { normalizedName: 'north', targetId: 'ROOM#Attic' as EphemeraRoomId }] } },
-        { command: 'walk north', parseTokens: [text('walk'), span('north')] },
-        { command: 'walk xyzzy', parseTokens: [text('walk'), span('xyzzy')] },
-        { command: 'enter box', parseTokens: [text('enter'), span('box')] },
-        { command: 'order rocket skates', parseTokens: [text('order'), span('rocket skates')] },
+        { command: 'go north' },
+        { command: 'north' },
+        { command: 'go north', variant: 'two north exits', input: { roomExits: [{ normalizedName: 'north', targetId: NORTH_ROOM }, { normalizedName: 'north', targetId: 'ROOM#Attic' as EphemeraRoomId }] } },
+        { command: 'walk north' },
+        { command: 'walk xyzzy' },
+        { command: 'enter box' },
+        { command: 'order rocket skates' },
     ]
 
     it.each(rows.map((row) => [row.variant ? `${row.command} (${row.variant})` : row.command, row] as const))('%s', async (_name, row) => {

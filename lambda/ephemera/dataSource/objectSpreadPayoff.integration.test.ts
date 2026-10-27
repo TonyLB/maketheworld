@@ -187,9 +187,8 @@ const useWorld = (objects: WorldObjects) => {
     /**
      * A real parse, its positions reads answered by `containersOf` and the live graphs. `catalog` stands in for the
      * production one (`catalogFromCache`); the default carries no `presence` or `placement`, so nothing is ever asked by position.
-     * `labels` stands in for the room's object labels (default: every object's name), which decide what the fast path claims.
      */
-    const parseAny = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[], heldCatalog: readonly RoomInPlayObjectCatalogEntry[] = [], labels?: readonly string[]) => {
+    const parseAny = async (command: string, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[], heldCatalog: readonly RoomInPlayObjectCatalogEntry[] = []) => {
         return parseCommand(
             {
                 command,
@@ -200,7 +199,6 @@ const useWorld = (objects: WorldObjects) => {
             },
             {
                 invokeBedrockParseCommandImpl: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
-                invokeBedrockObjectManipulationParseImpl: jest.fn().mockResolvedValue({ success: true, body: tokens ?? '{"tokens":[]}' }),
                 objectManipulationPositionsReadDeps: {
                     getMembershipContainers: jest.fn().mockImplementation(async (id: string) => containersOf(id)),
                     getLudicGraph: (hostId: string) => internalCache.Positions.getLudicGraph(hostId as any),
@@ -208,8 +206,8 @@ const useWorld = (objects: WorldObjects) => {
             }
         )
     }
-    const parse = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[]) => {
-        const parseResult = await parseAny(command, tokens, containersOf, catalog)
+    const parse = async (command: string, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[]) => {
+        const parseResult = await parseAny(command, containersOf, catalog)
         if (!isParseCommandCommandAttemptResult(parseResult)) {
             throw new Error(`"${command}" did not parse to an attempt: ${JSON.stringify(parseResult)}`)
         }
@@ -261,9 +259,9 @@ const useWorld = (objects: WorldObjects) => {
     })).objects
 
     /** A command as production parses it (the catalog built from the committed graphs), whatever it answers: an attempt, or a question. */
-    const ask = async (command: string, tokens: string | undefined, containersOf: (id: string) => string[]) => {
+    const ask = async (command: string, containersOf: (id: string) => string[]) => {
         const catalog = await catalogFromCache()
-        return { catalog, consult: await parseAny(command, tokens, containersOf, catalog) }
+        return { catalog, consult: await parseAny(command, containersOf, catalog) }
     }
     /** What answering the option at `index` stores, applied to the row the question left (as `answerPending` merges it). */
     const answered = (consult: Awaited<ReturnType<typeof parseAny>>, index: number, command: string) => {
@@ -302,13 +300,12 @@ const narratedLines = (writeMessageBus: { publish: jest.Mock }): string[] => wri
 describe('object spread payoff (integration)', () => {
     const { parse, commit, roomObjects, ask, resumeAt, optionLabels } = useWorld([[RUG_ID, 'rug'], [TABLE_ID, 'table']])
 
-    const spreadTokens = '{"tokens":[{"type":"text","text":"spread"},{"type":"objectSpan","span":"rug"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}'
     const beforeSpread = (id: string) => (id === RUG_ID || id === TABLE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
     const afterSpread = (id: string) => (id === RUG_ID ? [ROOM_ID, TABLE_ID] : beforeSpread(id))
 
     it('a real "spread the rug over the table" leaves the rug in both hosts, and shows it from both', async () => {
         // Step A: real parse.
-        const parseResult = await parse('spread the rug over the table', spreadTokens, beforeSpread)
+        const parseResult = await parse('spread the rug over the table', beforeSpread)
         const [extend, transfer] = CommandAttempt.fromJSON(parseResult.attempt).actions().map((action) => action.desiredResult)
         expect(extend).toMatchObject({ primitive: 'extend', object: { groundedId: RUG_ID } })
         expect(transfer).toMatchObject({
@@ -375,8 +372,8 @@ describe('object spread payoff (integration)', () => {
 
     /** The rug spread over the table, then `take rug` asked (both parts reach the room) and answered at `index`. */
     const takeRugAnswering = async (index: number) => {
-        await commit((await parse('spread the rug over the table', spreadTokens, beforeSpread)).attempt, beforeSpread)
-        const { catalog, consult } = await ask('take rug', undefined, afterSpread)
+        await commit((await parse('spread the rug over the table', beforeSpread)).attempt, beforeSpread)
+        const { catalog, consult } = await ask('take rug', afterSpread)
         const labels = optionLabels(consult, 'take rug')
         const resumed = await resumeAt(consult, index, 'take rug', catalog, afterSpread)
         await commit(resumed.attempt, afterSpread)
@@ -433,16 +430,14 @@ describe('object spread payoff (integration)', () => {
 describe('cloth draped over a table (integration)', () => {
     const { parse, commit, ask, resumeAt, optionLabels } = useWorld([[CLOTH_ID, 'cloth'], [TABLE_ID, 'table'], [PLATE_ID, 'plate']])
 
-    const drapeTokens = '{"tokens":[{"type":"text","text":"drape"},{"type":"objectSpan","span":"cloth"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}'
-    const putTokens = '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"plate"},{"type":"text","text":"on"},{"type":"objectSpan","span":"cloth"}]}'
     const beforeDrape = (id: string) => (id === CLOTH_ID || id === TABLE_ID || id === PLATE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
     const afterDrape = (id: string) => (id === CLOTH_ID ? [ROOM_ID, TABLE_ID] : beforeDrape(id))
 
     /** The cloth draped, then `put the plate on the cloth` asked (the cloth has two parts) and answered at `index`. */
     const putPlateAnswering = async (index: number) => {
-        await commit((await parse('drape the cloth over the table', drapeTokens, beforeDrape)).attempt, beforeDrape)
+        await commit((await parse('drape the cloth over the table', beforeDrape)).attempt, beforeDrape)
 
-        const { catalog, consult } = await ask('put the plate on the cloth', putTokens, afterDrape)
+        const { catalog, consult } = await ask('put the plate on the cloth', afterDrape)
         const labels = optionLabels(consult, 'put the plate on the cloth')
         const resumed = await resumeAt(consult, index, 'put the plate on the cloth', catalog, afterDrape)
         await commit(resumed.attempt, afterDrape)
@@ -515,7 +510,7 @@ describe('rope carried into the next room (integration)', () => {
         await commit(carryEndAttempt(), containersOf)
 
         const afterCarry = (id: string) => (id === ROPE_ID ? [ROOM_ID, NEXT_ROOM_ID] : containersOf(id))
-        const { catalog, consult } = await ask('take rope', undefined, afterCarry)
+        const { catalog, consult } = await ask('take rope', afterCarry)
         expect(consult).toMatchObject({ type: 'CommandAttempt' })
         await commit((consult as any).attempt, afterCarry)
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(2)
@@ -531,12 +526,12 @@ describe('rope carried into the next room (integration)', () => {
     it('then "drop rope" drops the end in hand where the actor stands, and the far end stays connected (PR-5)', async () => {
         await commit(carryEndAttempt(), containersOf)
         const afterCarry = (id: string) => (id === ROPE_ID ? [ROOM_ID, NEXT_ROOM_ID] : containersOf(id))
-        const taken = await ask('take rope', undefined, afterCarry)
+        const taken = await ask('take rope', afterCarry)
         await commit((taken.consult as any).attempt, afterCarry)
 
         // The end in hand is the held catalog's; the room's catalog no longer reaches the rope at all.
         const afterTake = (id: string) => (id === ROPE_ID ? [CHARACTER_ID, NEXT_ROOM_ID] : containersOf(id))
-        const dropped = await parseAny('drop rope', undefined, afterTake, await catalogFromCache(), await heldCatalogFromCache())
+        const dropped = await parseAny('drop rope', afterTake, await catalogFromCache(), await heldCatalogFromCache())
         expect(dropped).toMatchObject({ type: 'CommandAttempt' })
         await commit((dropped as any).attempt, afterTake)
         expect(ephemeraDBMock.transactWrite).toHaveBeenCalledTimes(3)
@@ -581,14 +576,14 @@ describe('rope held at one end, the other on the floor of the same room (integra
     })
 
     it('"take rope" takes the end on the floor without asking: taking the end in hand is not something the take can do', async () => {
-        const { consult } = await ask('take rope', undefined, holding)
+        const { consult } = await ask('take rope', holding)
 
         expect(consult).toMatchObject({ type: 'CommandAttempt' })
         expect(movedView(consult)).toEqual([[PresenceKey('Base')]])
     })
 
     it('"drop rope" drops the end in hand without asking: dropping the end on the floor is not something the drop can do', async () => {
-        const dropped = await parseAny('drop rope', undefined, holding, await catalogFromCache(), await heldCatalogFromCache())
+        const dropped = await parseAny('drop rope', holding, await catalogFromCache(), await heldCatalogFromCache())
 
         expect(dropped).toMatchObject({ type: 'CommandAttempt' })
         expect(movedView(dropped)).toEqual([[PresenceKey('held-end')]])
@@ -598,7 +593,6 @@ describe('rope held at one end, the other on the floor of the same room (integra
 describe('asking which part of a draped cloth (integration)', () => {
     const { parse, parseAny, commit, catalogFromCache } = useWorld([[CLOTH_ID, 'cloth'], [TABLE_ID, 'table']])
 
-    const drapeTokens = '{"tokens":[{"type":"text","text":"drape"},{"type":"objectSpan","span":"cloth"},{"type":"text","text":"over"},{"type":"objectSpan","span":"table"}]}'
     const beforeDrape = (id: string) => (id === CLOTH_ID || id === TABLE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
     const afterDrape = (id: string) => (id === CLOTH_ID ? [ROOM_ID, TABLE_ID] : beforeDrape(id))
     const positionsReadDeps = {
@@ -607,9 +601,9 @@ describe('asking which part of a draped cloth (integration)', () => {
     }
 
     const askTake = async () => {
-        await commit((await parse('drape the cloth over the table', drapeTokens, beforeDrape)).attempt, beforeDrape)
+        await commit((await parse('drape the cloth over the table', beforeDrape)).attempt, beforeDrape)
         const catalog = await catalogFromCache()
-        const consult = await parseAny('take cloth', undefined, afterDrape, catalog)
+        const consult = await parseAny('take cloth', afterDrape, catalog)
         return { catalog, consult }
     }
     /** What answering the option at `index` stores, applied to the row the question left (as `answerPending` merges it). */
@@ -653,10 +647,10 @@ describe('asking which part of a draped cloth (integration)', () => {
     })
 
     it('"get the cloth on the table" takes the part on the table without asking, and the hanging part stays', async () => {
-        await commit((await parse('drape the cloth over the table', drapeTokens, beforeDrape)).attempt, beforeDrape)
+        await commit((await parse('drape the cloth over the table', beforeDrape)).attempt, beforeDrape)
 
-        // No tokens: the fast path claims it, and the dry run's check rules out the hanging part and the whole.
-        const result = await parseAny('get the cloth on the table', undefined, afterDrape, await catalogFromCache())
+        // The fast path claims it, and the dry run's check rules out the hanging part and the whole.
+        const result = await parseAny('get the cloth on the table', afterDrape, await catalogFromCache())
         expect(result).toMatchObject({ type: 'CommandAttempt' })
 
         const writeMessageBus = await commit((result as any).attempt, afterDrape)
@@ -675,7 +669,7 @@ describe('asking which part of a draped cloth (integration)', () => {
             ? { ...entry, placement: [{ host: CLOTH_ID, bindings: [first!, { ...second!, rooms: [NEXT_ROOM_ID] }] }] }
             : entry))
 
-        const result = await parseAny('take cloth', undefined, afterDrape, oneEnd as RoomInPlayObjectCatalogEntry[])
+        const result = await parseAny('take cloth', afterDrape, oneEnd as RoomInPlayObjectCatalogEntry[])
 
         expect(result).toMatchObject({ type: 'CommandAttempt' })
     })
@@ -684,27 +678,21 @@ describe('asking which part of a draped cloth (integration)', () => {
 describe('two cups, one on the table: a qualified take (integration)', () => {
     const { parse, parseAny, commit, roomObjects, catalogFromCache } = useWorld([[CUP_ON_TABLE_ID, 'cup'], [CUP_ON_FLOOR_ID, 'cup'], [TABLE_ID, 'table']])
 
-    const putTokens = '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"table"}]}'
     const beforePut = (id: string) => ([CUP_ON_TABLE_ID, CUP_ON_FLOOR_ID, TABLE_ID, CHARACTER_ID].includes(id as any) ? [ROOM_ID] : [])
     const afterPut = (id: string) => (id === CUP_ON_TABLE_ID ? [TABLE_ID] : beforePut(id))
 
     /** Setup: one cup put on the table for real (the put's catalog holds only that cup, so the setup does not ask). */
     beforeEach(async () => {
         const onlyThatCup = [{ objectId: CUP_ON_TABLE_ID, normalizedShortName: 'cup' }, { objectId: TABLE_ID, normalizedShortName: 'table' }]
-        await commit((await parse('put the cup on the table', putTokens, beforePut, onlyThatCup)).attempt, beforePut)
+        await commit((await parse('put the cup on the table', beforePut, onlyThatCup)).attempt, beforePut)
         expect(await roomObjects()).toEqual([
             { objectId: CUP_ON_FLOOR_ID, shortName: 'cup', contents: [] },
             { objectId: TABLE_ID, shortName: 'table', contents: [{ objectId: CUP_ON_TABLE_ID, shortName: 'cup' }] },
         ])
     })
 
-    it.each([
-        // No tokens: the fast path claims it (the head "cup" is a room label).
-        ['the fast path', undefined, undefined],
-        // Labels withheld, standing in for a head that is no label: Parse's flat skeleton, as Nova Micro returns it.
-        ['the LLM route', '{"tokens":[{"type":"text","text":"get"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"table"}]}', []],
-    ])('"get the cup on the table", by %s, picks up the cup on the table without asking', async (_route, tokens, labels) => {
-        const result = await parseAny('get the cup on the table', tokens, afterPut, await catalogFromCache(), [], labels)
+    it('"get the cup on the table" picks up the cup on the table without asking', async () => {
+        const result = await parseAny('get the cup on the table', afterPut, await catalogFromCache())
         expect(result).toMatchObject({ type: 'CommandAttempt' })
 
         const writeMessageBus = await commit((result as any).attempt, afterPut)
@@ -728,7 +716,7 @@ describe('one bag, on the floor: a qualifier that matches nothing (integration)'
     it('"get bag from table" refuses with a line that says why, and changes nothing', async () => {
         const before = await roomObjects()
 
-        const result = await parseAny('get bag from table', undefined, onTheFloor, await catalogFromCache())
+        const result = await parseAny('get bag from table', onTheFloor, await catalogFromCache())
 
         expect(result).toEqual({ type: 'Error', errorMessage: 'The table has no bag.' })
         expect(ephemeraDBMock.transactWrite).not.toHaveBeenCalled()

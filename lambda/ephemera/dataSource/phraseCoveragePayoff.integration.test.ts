@@ -183,8 +183,8 @@ describe('phrase coverage payoff (integration)', () => {
             : []
     }
 
-    /** The real `parseCommand` over the seeded world, the model returning `tokens`; with the two Bedrock seams, to assert on. */
-    const parse = async (command: string, tokens?: string, { embeddings = false, templates }: { embeddings?: boolean; templates?: TemplateSet } = {}) => {
+    /** The real `parseCommand` over the seeded world; with the classify seam, to assert on. */
+    const parse = async (command: string, { embeddings = false, templates }: { embeddings?: boolean; templates?: TemplateSet } = {}) => {
         const labels = Object.entries(world.names) as Array<[EphemeraObjectId, string]>
         const isHeld = (objectId: EphemeraObjectId) => (world.containers[objectId] ?? []).includes(CHARACTER_ID)
         // The held catalog as production builds it: what the character holds, read from its own graph.
@@ -194,7 +194,6 @@ describe('phrase coverage payoff (integration)', () => {
             getComponentAggregate: getComponentAggregate as any,
         })).entries
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({ success: true, body: tokens ?? '{"tokens":[]}' })
         const parseResult = await parseCommand(
             {
                 command,
@@ -209,7 +208,6 @@ describe('phrase coverage payoff (integration)', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
                 ...(templates !== undefined ? { templates } : {}),
                 ...(embeddings ? { embedSpan: jest.fn().mockResolvedValue({ success: true, embedding: SPAN_EMBEDDING }) } : {}),
                 objectManipulationPositionsReadDeps: {
@@ -218,23 +216,17 @@ describe('phrase coverage payoff (integration)', () => {
                 },
             }
         )
-        return { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
+        return { parseResult, invokeBedrockParseCommandImpl }
     }
 
     /**
-     * A command end to end: parse, the bus crossing, then the real commit. With no `tokens` the
-     * fast path must claim the command (Bedrock is asserted unused); with `tokens` the model
-     * returns that skeleton. Returns the commit's bus.
+     * A command end to end: parse, the bus crossing, then the real commit. The fast path must
+     * claim the command (Bedrock is asserted unused). Returns the commit's bus.
      */
-    const run = async (command: string, tokens?: string): Promise<jest.Mock> => {
-        const { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl } = await parse(command, tokens)
+    const run = async (command: string): Promise<jest.Mock> => {
+        const { parseResult, invokeBedrockParseCommandImpl } = await parse(command)
 
-        if (tokens === undefined) {
-            expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
-        } else {
-            expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalledTimes(1)
-        }
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         // A CommandAttempt, not a Select: the command is understood without asking.
         expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
         if (parseResult.type !== 'CommandAttempt') {
@@ -277,20 +269,6 @@ describe('phrase coverage payoff (integration)', () => {
         names: { [CUP_ID]: 'cup', [TEACUP_ID]: 'teacup' },
     })
 
-    it('"get the cup" on the LLM route, the model keeping "the" on the span, takes the cup by its name without asking', async () => {
-        seedCupAndTeacup()
-
-        // A manner word keeps the fast path out; the model keeps the article, as Nova Micro does after `get`.
-        const publish = await run(
-            'carefully get the cup',
-            '{"tokens":[{"type":"text","text":"get"},{"type":"objectSpan","span":"the cup"}]}'
-        )
-
-        expect(await holds(CHARACTER_ID, CUP_ID)).toBe(true)
-        expect(await holds(ROOM_ID, TEACUP_ID)).toBe(true)
-        expect(delivered(publish)).toEqual([expect.stringMatching(/ picks up cup$/)])
-    })
-
     it('"get the cup" on the fast path, the span passed through as typed, takes the cup without asking', async () => {
         seedCupAndTeacup()
 
@@ -313,27 +291,22 @@ describe('phrase coverage payoff (integration)', () => {
         names: { [CUP_ID]: 'cup', [TABLE_ID]: 'table' },
     })
 
-    it('"take unicorn", with no unicorn, is not understood on the fast path: it climbs to the LLM route and ends at the top rung\'s Abstain', async () => {
+    it('"take unicorn", with no unicorn, is not understood on the fast path: it climbs to classify and ends at the top rung\'s Abstain', async () => {
         seedCupAndTeacup()
 
-        const { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl } = await parse(
-            'take unicorn',
-            '{"tokens":[{"type":"text","text":"take"},{"type":"objectSpan","span":"unicorn"}]}'
-        )
+        const { parseResult, invokeBedrockParseCommandImpl } = await parse('take unicorn')
 
         expect(parseResult).toEqual(expect.objectContaining({ type: 'Abstain' }))
         expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
-        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalledTimes(1)
     })
 
     it('"take cup from table", with the cup on the floor, is a refusal the world gives: answered on the fast path, with no Bedrock call', async () => {
         seedCupBesideTable()
 
-        const { parseResult, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl } = await parse('take cup from table')
+        const { parseResult, invokeBedrockParseCommandImpl } = await parse('take cup from table')
 
         expect(parseResult).toEqual({ type: 'Error', errorMessage: 'The table has no cup.' })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
         expect(await holds(ROOM_ID, CUP_ID)).toBe(true)
     })
 
@@ -373,13 +346,9 @@ describe('phrase coverage payoff (integration)', () => {
             names: { [TABLE_ID]: 'table', [CUP_ID]: 'cup', [FLOOR_CUP_ID]: 'cup' },
         })
 
-        const { parseResult, invokeBedrockObjectManipulationParseImpl } = await parse(
-            'look at the cup on the table',
-            '{"tokens":[{"type":"text","text":"look"},{"type":"text","text":"at"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"table"}]}'
-        )
+        const { parseResult } = await parse('look at the cup on the table')
 
-        // The look is one of Plan's templates, so the fast path reads it before classify and Parse.
-        expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
+        // The look is one of Plan's templates, so the fast path reads it before classify.
         expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
         // The dispatch describes the object `lookedAtObjectIdOf` names; the rendered describe is the perception stack's.
         expect(parseResult.type === 'CommandAttempt' ? lookedAtObjectIdOf(parseResult.attempt) : undefined).toBe(CUP_ID)
@@ -423,7 +392,7 @@ describe('phrase coverage payoff (integration)', () => {
     it('"take man in moon from table", no fill matching exactly, takes the man in the moon', async () => {
         seedManInTheMoonOnTable()
 
-        const { parseResult } = await parse('take man in moon from table', undefined, { embeddings: true })
+        const { parseResult } = await parse('take man in moon from table', { embeddings: true })
 
         expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
         expect(JSON.stringify(parseResult)).toContain('"groundedId":"OBJECT#ManInTheMoon","shortName":"man in the moon"')
@@ -500,7 +469,7 @@ describe('phrase coverage payoff (integration)', () => {
         it('"take pgi in a blanket", with a template reading `in`, asks: the merged reading, which would take the blanket and drop "pgi in a", no longer wins outright', async () => {
             seedPigAndBlanketOnFloor()
 
-            const { parseResult } = await parse('take pgi in a blanket', undefined, { embeddings: true, templates: takeReadingIn })
+            const { parseResult } = await parse('take pgi in a blanket', { embeddings: true, templates: takeReadingIn })
 
             expect(parseResult).toEqual(expect.objectContaining({ type: 'Consult' }))
             expect(JSON.stringify(parseResult)).toContain('"objectId":"OBJECT#Pig"')
@@ -509,7 +478,7 @@ describe('phrase coverage payoff (integration)', () => {
         it('the same command, with no template reading `in`, takes the blanket without asking: there is no cut to charge', async () => {
             seedPigAndBlanketOnFloor()
 
-            const { parseResult } = await parse('take pgi in a blanket', undefined, { embeddings: true, templates: takeNotReadingIn })
+            const { parseResult } = await parse('take pgi in a blanket', { embeddings: true, templates: takeNotReadingIn })
 
             expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
             expect(JSON.stringify(parseResult)).toContain('"id":"OBJECT#Blanket"')
@@ -534,14 +503,12 @@ describe('phrase coverage payoff (integration)', () => {
                 names: { [PIG_ID]: 'pig' },
             })
 
-            const { parseResult, invokeBedrockObjectManipulationParseImpl } = await parse(
+            const { parseResult } = await parse(
                 'take pgi in a blanket',
-                '{"tokens":[{"type":"text","text":"take"},{"type":"objectSpan","span":"pgi in a blanket"}]}',
                 { embeddings: true, templates }
             )
 
             expect(parseResult).toEqual(expect.objectContaining({ type: 'Abstain' }))
-            expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalledTimes(1)
         })
     })
 })

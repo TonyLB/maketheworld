@@ -1,11 +1,10 @@
-import type { ParseCommandDeps, ParseCommandInput, ParseCommandResult } from './baseClasses'
+import type { ParseCommandAbstainResult, ParseCommandDeps, ParseCommandInput, ParseCommandResult } from './baseClasses'
 import { isParseCommandLookRoomResult } from './baseClasses'
 import { classifyIntent, discriminateIntent } from './discriminateIntent'
 export { navigationIntentErrorMessages } from './discriminateIntent/exitResolution'
 export { objectManipulationErrorMessages } from './enrich/objectManipulation/resolveObjectSpan'
 import { compileAttemptsFromSkeleton } from './enrich/objectManipulation/compileAttemptsFromSkeleton'
-import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
-import { planSkeleton, planTokens } from './enrich/objectManipulation/plan/planSkeleton'
+import { planTokens } from './enrich/objectManipulation/plan/planSkeleton'
 import { matchAcmeOrderFamily } from './plan/matchAcmeOrderFamily'
 import { isBareExitFill } from './enrich/objectManipulation/plan/matchNavigationTemplate'
 
@@ -32,64 +31,14 @@ async function parseCommandCore(
     if (intentResult.type === 'ObjectManipulationIntent') {
         // Only reachable via deterministicIntentChecks's fast path, which claims every command one of
         // Plan's templates fits. Plan reads every template over the command's tokens; each
-        // segmentation its readings make is a fill.
+        // segmentation its readings make is a fill. This is the one route into Plan.
         const fills = planTokens(intentResult.tokens, input.command, deps.templates)
-        // Zero attempts is not understood on this rung, like an Abstain: both climb to the LLM route.
-        if (fills.length > 0) {
-            const result = await compileAttemptsFromSkeleton(
-                {
-                    command: input.command,
-                    fills,
-                    characterId: input.characterId,
-                    hostRoomId: input.hostRoomId,
-                    roomObjectCatalog: input.roomObjectCatalog,
-                    heldInventoryCatalog: input.heldInventoryCatalog,
-                    roomExits: input.roomExits,
-                },
-                intentResult.confidence,
-                {
-                    embedSpan: deps.embedSpan,
-                    positionsReadDeps: deps.objectManipulationPositionsReadDeps,
-                }
-            )
-            if (result.type !== 'Abstain') {
-                return answer(result)
-            }
-        }
-        return routeClassifiedIntent(await classifyIntent(input, deps), input, deps)
-    }
-
-    return routeClassifiedIntent(intentResult, input, deps)
-}
-
-async function routeClassifiedIntent(
-    intentResult: ParseCommandResult,
-    input: ParseCommandInput,
-    deps: ParseCommandDeps
-): Promise<ParseCommandWithEnrichReasoningResult> {
-    if (intentResult.type === 'Command') {
-        // Classify decides only realness and shape. The intent rows and Plan's templates already ran
-        // before classify (`deterministicIntentChecks`), over this same text; AcmeOrder runs after
-        // Plan's attempts are ruled out.
-        const parseResult = await runParseStage(
-            { command: input.command },
-            { invokeBedrockObjectManipulationParseImpl: deps.invokeBedrockObjectManipulationParseImpl }
-        )
-        if (parseResult.type !== 'success') {
-            return answer({ type: 'Error', errorMessage: parseResult.errorMessage })
-        }
-
-        const plan = planSkeleton(parseResult.tokens, input.command, deps.templates)
-
-        // Plan's attempts all go to one producer. An Abstain from it climbs to Acme, as zero attempts
-        // (the non-object families' case) does; with no Acme match, it is the top rung's Abstain,
-        // unless no template but the bare exit reading (which fits every command) read it: then the
-        // command is one no template implements.
-        const compiled = plan.fills.length > 0
+        // Zero attempts is not understood on this rung, like an Abstain: both climb to classify.
+        const compiled = fills.length > 0
             ? await compileAttemptsFromSkeleton(
                 {
                     command: input.command,
-                    fills: plan.fills,
+                    fills,
                     characterId: input.characterId,
                     hostRoomId: input.hostRoomId,
                     roomObjectCatalog: input.roomObjectCatalog,
@@ -106,9 +55,27 @@ async function routeClassifiedIntent(
         if (compiled !== undefined && compiled.type !== 'Abstain') {
             return answer(compiled)
         }
+        // Unless no template but the bare exit reading (which fits every command) read it, the
+        // fast path's Abstain is the one a `Command` with no Acme match ends at; otherwise the
+        // command is one no template implements.
+        const readByATemplate = fills.some((fill) => !isBareExitFill(fill))
+        return routeClassifiedIntent(await classifyIntent(input, deps), input, deps, readByATemplate ? compiled : undefined)
+    }
 
+    return routeClassifiedIntent(intentResult, input, deps)
+}
+
+async function routeClassifiedIntent(
+    intentResult: ParseCommandResult,
+    input: ParseCommandInput,
+    deps: ParseCommandDeps,
+    planAbstain?: ParseCommandAbstainResult
+): Promise<ParseCommandWithEnrichReasoningResult> {
+    if (intentResult.type === 'Command') {
+        // Classify decides only realness and shape. The intent rows and Plan's templates already ran
+        // before classify (`deterministicIntentChecks`), over this same text; AcmeOrder, whose verbs
+        // no template reads, runs once Plan's attempts are ruled out.
         const acmeOrderMatch = await matchAcmeOrderFamily(
-            parseResult.tokens,
             input,
             intentResult.confidence,
             {
@@ -120,8 +87,7 @@ async function routeClassifiedIntent(
             return answer(acmeOrderMatch)
         }
 
-        const readByATemplate = plan.fills.some((fill) => !isBareExitFill(fill))
-        return answer(compiled !== undefined && readByATemplate ? compiled : { type: 'Unimplemented', confidence: intentResult.confidence })
+        return answer(planAbstain ? { ...planAbstain, confidence: intentResult.confidence } : { type: 'Unimplemented', confidence: intentResult.confidence })
     }
 
     if (intentResult.type === 'WorldQuestion') {
@@ -136,10 +102,10 @@ async function routeClassifiedIntent(
 }
 
 /**
- * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **`/test parse`** returns **`ObjectManipulationParseTest`**; the intent rows (`deterministicTemplate/intentTemplates.ts`: **`look` / `l`**, **`help`** and **`home`** and their paraphrases, **`predict`**, **`wait`** and its paraphrases) return their results; every other command one of Plan's templates fits (the object templates, a movement verb and an exit, a bare exit name: since that last fits any command, all of them) is the fast path (the command's tokens, read by Plan and compiled like a parsed command): all without Bedrock classify. A navigation answers as a **`CommandAttempt`** of kind `navigation`. A fast-path **`Abstain`** (not understood) climbs to the classify below, and an **`Abstain`** from the LLM route's compile climbs to Acme; only the top rung's Abstain is returned.
- * Otherwise runs the narrowed (iteration 7) intent discrimination: **`Command`** runs Parse and dispatches to
- * Plan's templates, or (on no family match) an **`AcmeOrder`**
- * paraphrase matcher (Bedrock via `enrichAcmeOrder`), or finally **`Unimplemented`**;
+ * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **`/test parse`** returns **`ObjectManipulationParseTest`**; the intent rows (`deterministicTemplate/intentTemplates.ts`: **`look` / `l`**, **`help`** and **`home`** and their paraphrases, **`predict`**, **`wait`** and its paraphrases) return their results; every other command one of Plan's templates fits (the object templates, a movement verb and an exit, a bare exit name: since that last fits any command, all of them) is the fast path (the command's tokens, read by Plan and compiled), the one route into Plan: all without Bedrock classify. A navigation answers as a **`CommandAttempt`** of kind `navigation`. A fast-path **`Abstain`** (not understood) climbs to the classify below; only the top rung's Abstain is returned.
+ * Otherwise runs the narrowed (iteration 7) intent discrimination: **`Command`** tries the **`AcmeOrder`**
+ * matcher (Bedrock via `enrichAcmeOrder`), then ends at the fast path's **`Abstain`** if a template
+ * read the command, or **`Unimplemented`** if none did;
  * **`WorldQuestion`** routes to **`PredictHypothesis`** handling. **`PromptInjectionAttempt`**,
  * **`Unknown`**, **`MultipleCommands`**, and other terminal outcomes pass through without enrich.
  * Enrich chain-of-reason Markdown is not attached to any result from this path; use

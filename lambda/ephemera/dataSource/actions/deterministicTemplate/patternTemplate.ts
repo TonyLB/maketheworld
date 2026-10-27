@@ -2,7 +2,6 @@ import type {
     ObjectSpanToken,
     ParseSkeleton,
     ParseToken,
-    ParseTokenDraft,
     SpanStructure,
 } from '../enrich/objectManipulation/parse/parseToken'
 import { stableRefKeysByRange } from '../enrich/objectManipulation/parse/stampStableRefKeys'
@@ -47,11 +46,6 @@ export function fixedWordsOf(pattern: readonly PatternElement[]): string[] {
 /** A run's words and marks re-joined with single spaces. */
 export function tokenText(tokens: readonly GranuleToken[], { start, end }: TokenRange): string {
     return tokens.slice(start, end).flatMap((token) => (token.kind === 'punctuation' ? [token.text] : token.words)).join(' ')
-}
-
-/** The words a skeleton spells, spans and text alike, in order. */
-export function skeletonText(skeleton: readonly (ParseTokenDraft | ParseToken)[]): string {
-    return skeleton.map((token) => (token.type === 'objectSpan' ? token.span : token.text)).join(' ')
 }
 
 /**

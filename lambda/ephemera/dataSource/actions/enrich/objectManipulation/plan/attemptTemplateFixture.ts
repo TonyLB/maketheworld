@@ -1,14 +1,20 @@
 import type { CommandAttempt } from '../../../commandAttempt'
 import type { AttemptTemplate } from '../../../deterministicTemplate/deterministicTemplate'
 import { tokenize } from '../../../deterministicTemplate/granuleTokens'
-import { matchPatternFills, skeletonText } from '../../../deterministicTemplate/patternTemplate'
+import { matchPatternFills } from '../../../deterministicTemplate/patternTemplate'
 import type { SkeletonFill } from '../compileAttemptsFromSkeleton'
 import type { ParseSkeleton, ParseToken, ParseTokenDraft } from '../parse/parseToken'
-import { COMMAND_GRANULES, planSkeleton } from './planSkeleton'
+import { COMMAND_GRANULES, LIVE_TEMPLATE_SET, planTokens } from './planSkeleton'
+import type { TemplateSet } from './templateSet'
 
 export type TemplateMatchResult = { type: 'matched'; attempt: CommandAttempt } | { type: 'noMatch' }
 
 const wordsOf = (text: string): string => text.trim().split(/\s+/).join(' ').toLowerCase()
+
+/** Tests only: the words a skeleton spells, spans and text alike, in order. */
+const skeletonText = (skeleton: readonly (ParseTokenDraft | ParseToken)[]): string => (
+    skeleton.map((token) => (token.type === 'objectSpan' ? token.span : token.text)).join(' ')
+)
 
 /** Tests only: whether two flat skeletons cut the same words the same way (keys aside). */
 export const sameSegmentation = (left: readonly (ParseTokenDraft | ParseToken)[], right: readonly (ParseTokenDraft | ParseToken)[]): boolean => (
@@ -28,6 +34,14 @@ export const matchTemplate = (template: AttemptTemplate) => (skeleton: ParseSkel
         .find(({ segmentation }) => sameSegmentation(segmentation, skeleton))
     return fill === undefined ? { type: 'noMatch' } : { type: 'matched', attempt: template.build(fill.captures, command) }
 }
+
+/**
+ * Tests only: Plan over the words a skeleton spells, spans and text alike, cut into tokens as the
+ * command's own would be, so a skeleton contributes its words and never its segmentation.
+ */
+export const planSkeleton = (skeleton: readonly (ParseTokenDraft | ParseToken)[], command: string, templates: TemplateSet = LIVE_TEMPLATE_SET): { fills: SkeletonFill[] } => (
+    { fills: planTokens(tokenize(templates.granules, skeletonText(skeleton)), command, templates) }
+)
 
 /**
  * Tests only: Plan's fill for one segmentation of a command, as the producer receives it: the

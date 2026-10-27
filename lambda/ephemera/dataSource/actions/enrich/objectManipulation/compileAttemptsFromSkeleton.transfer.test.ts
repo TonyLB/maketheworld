@@ -6,7 +6,7 @@ import { complexErrorMessage } from './complexityClasses'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ParseSkeleton } from './parse/parseToken'
 import { planFillOf } from './plan/attemptTemplateFixture'
-import { planSkeleton } from './plan/planSkeleton'
+import { planSkeleton } from './plan/attemptTemplateFixture'
 
 /** The attempt's last action's desired result: the transfer, which Plan's templates put last. */
 const transferStepOf = (result: { type: string; attempt?: unknown }): any => {

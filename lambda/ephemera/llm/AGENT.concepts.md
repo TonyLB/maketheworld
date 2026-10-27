@@ -63,7 +63,7 @@ Deterministic code may close only over **closed-world inputs**:
 | **Closed-world input** (this doc) | Seam | Deterministic stage may **close** without Bedrock |
 | **Output trust / commit posture** (this doc) | Trust | Whether a hop's emission is **provisional** or **commit-worthy** for downstream |
 | **Trusted ingress / trusted ids** ([`positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md), actions) | System boundary | Server-validated `EphemeraId` or assessed outcome post-parse; positions may apply without re-grounding |
-| **Validated handoff** (e.g. Coyote `narrowHandoff`, `interpretParse`) | Seam (+ structure) | Parser-narrowed JSON safe to **pass forward** to the next hop. Validated *structure* and allowed fields --- not permission for a downstream stage to invent semantics the owning hop omitted, and **not** the same as commit-worthy output |
+| **Validated handoff** (e.g. Coyote `narrowHandoff`, `interpretIntentClassificationBody`) | Seam (+ structure) | Parser-narrowed JSON safe to **pass forward** to the next hop. Validated *structure* and allowed fields --- not permission for a downstream stage to invent semantics the owning hop omitted, and **not** the same as commit-worthy output |
 
 Validated handoff **to** an LLM and closed-world input **for** deterministic code answer different questions; both are normal in the same pipeline.
 

@@ -1,5 +1,28 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`skeletonMatcher characterization corpus (Slice 0) carefully get the cup 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "type": "Unimplemented",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 1,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "[carefully get the cup]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
 exports[`skeletonMatcher characterization corpus (Slice 0) drop cup 1`] = `
 Object {
   "outcome": Object {
@@ -16,17 +39,10 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "drop [cup]",
-      "  position: change transferMembership(from=actingCharacter, object=[cup], to=currentHost(actingCharacter))",
-      "[drop cup]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "drop [cup]",
       "  position: change transferMembership(from=actingCharacter, object=[cup], to=currentHost(actingCharacter))",
       "[drop cup]",
@@ -53,20 +69,10 @@ Object {
       "classify": 0,
       "embedSpan": 1,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "drop [the cup] in [the box]",
-      "  position: change transferMembership(containment=In, from=actingCharacter, object=[the cup], to=[the box])",
-      "  position: assertion containedBy(negate=false, object=[the box], relation=In, subject=[the cup]); position: change transferMembership(from=actingCharacter, object=[the cup], to=currentHost(actingCharacter))",
-      "drop [the cup in the box]",
-      "  position: change transferMembership(from=actingCharacter, object=[the cup in the box], to=currentHost(actingCharacter))",
-      "[drop the cup in the box]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "drop [the cup] in [the box]",
       "  position: change transferMembership(containment=In, from=actingCharacter, object=[the cup], to=[the box])",
       "  position: assertion containedBy(negate=false, object=[the box], relation=In, subject=[the cup]); position: change transferMembership(from=actingCharacter, object=[the cup], to=currentHost(actingCharacter))",
@@ -92,17 +98,10 @@ Object {
       "classify": 1,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 1,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "enter [box]",
-      "  navigate",
-      "[enter box]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "enter [box]",
       "  navigate",
       "[enter box]",
@@ -128,17 +127,10 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "get [cup]",
-      "  position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
-      "[get cup]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "get [cup]",
       "  position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
       "[get cup]",
@@ -159,19 +151,12 @@ Object {
     "stubCalls": Object {
       "acme": 0,
       "classify": 1,
-      "embedSpan": 2,
+      "embedSpan": 1,
       "enrich": 0,
-      "parse": 1,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "get [cup under table]",
-      "  position: change transferMembership(from=currentHost([cup under table]), object=[cup under table], to=actingCharacter)",
-      "[get cup under table]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "get [cup under table]",
       "  position: change transferMembership(from=currentHost([cup under table]), object=[cup under table], to=actingCharacter)",
       "[get cup under table]",
@@ -197,17 +182,10 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "get [the cup]",
-      "  position: change transferMembership(from=currentHost([the cup]), object=[the cup], to=actingCharacter)",
-      "[get the cup]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "get [the cup]",
       "  position: change transferMembership(from=currentHost([the cup]), object=[the cup], to=actingCharacter)",
       "[get the cup]",
@@ -233,17 +211,10 @@ Object {
       "classify": 0,
       "embedSpan": 1,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "get [up]",
-      "  position: change transferMembership(from=currentHost([up]), object=[up], to=actingCharacter)",
-      "[get up]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "get [up]",
       "  position: change transferMembership(from=currentHost([up]), object=[up], to=actingCharacter)",
       "[get up]",
@@ -265,7 +236,6 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
@@ -286,7 +256,6 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
@@ -307,17 +276,10 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "go [north]",
-      "  navigate",
-      "[go north]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "go [north]",
       "  navigate",
       "[go north]",
@@ -343,17 +305,10 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "go [north]",
-      "  navigate",
-      "[go north]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "go [north]",
       "  navigate",
       "[go north]",
@@ -375,7 +330,6 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
@@ -396,7 +350,6 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
@@ -417,7 +370,6 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
@@ -438,7 +390,6 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
@@ -459,23 +410,10 @@ Object {
       "classify": 0,
       "embedSpan": 3,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "look [at the cup] on [the table]",
-      "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[at the cup]); narrate",
-      "look [at the cup on the table]",
-      "  narrate",
-      "look at [the cup] on [the table]",
-      "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the cup]); narrate",
-      "look at [the cup on the table]",
-      "  narrate",
-      "[look at the cup on the table]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "look [at the cup] on [the table]",
       "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[at the cup]); narrate",
       "look [at the cup on the table]",
@@ -507,15 +445,10 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "[north]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "[north]",
       "  navigate",
     ],
@@ -545,15 +478,10 @@ Object {
       "classify": 1,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 1,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "[order anvil , rocket]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "[order anvil , rocket]",
       "  navigate",
     ],
@@ -583,15 +511,10 @@ Object {
       "classify": 1,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 1,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "[order rocket skates]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "[order rocket skates]",
       "  navigate",
     ],
@@ -611,7 +534,6 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
@@ -631,19 +553,12 @@ Object {
     "stubCalls": Object {
       "acme": 0,
       "classify": 1,
-      "embedSpan": 2,
+      "embedSpan": 1,
       "enrich": 0,
-      "parse": 1,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "put [coin hurriedly] into [box]",
-      "  position: change transferMembership(containment=In, from=currentHost([coin hurriedly]), object=[coin hurriedly], to=[box])",
-      "[put coin hurriedly into box]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "put [coin hurriedly] into [box]",
       "  position: change transferMembership(containment=In, from=currentHost([coin hurriedly]), object=[coin hurriedly], to=[box])",
       "[put coin hurriedly into box]",
@@ -665,22 +580,10 @@ Object {
       "classify": 0,
       "embedSpan": 2,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "put [cup] on [saucer] on [table]",
-      "  position: assertion containedBy(negate=false, object=[table], relation=On, subject=[saucer]); position: change transferMembership(containment=On, from=currentHost([cup]), object=[cup], to=[saucer])",
-      "  position: assertion containedBy(negate=false, object=[saucer], relation=On, subject=[cup]); position: change transferMembership(containment=On, from=currentHost([cup]), object=[cup], to=[table])",
-      "put [cup] on [saucer on table]",
-      "  position: change transferMembership(containment=On, from=currentHost([cup]), object=[cup], to=[saucer on table])",
-      "put [cup on saucer] on [table]",
-      "  position: change transferMembership(containment=On, from=currentHost([cup on saucer]), object=[cup on saucer], to=[table])",
-      "[put cup on saucer on table]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "put [cup] on [saucer] on [table]",
       "  position: assertion containedBy(negate=false, object=[table], relation=On, subject=[saucer]); position: change transferMembership(containment=On, from=currentHost([cup]), object=[cup], to=[saucer])",
       "  position: assertion containedBy(negate=false, object=[saucer], relation=On, subject=[cup]); position: change transferMembership(containment=On, from=currentHost([cup]), object=[cup], to=[table])",
@@ -707,34 +610,10 @@ Object {
       "classify": 0,
       "embedSpan": 6,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "put [pig] in [a blanket] on [the plate] on [the table]",
-      "  position: assertion containedBy(negate=false, object=[the plate], relation=On, subject=[a blanket]); position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the plate]); position: change transferMembership(containment=In, from=currentHost([pig]), object=[pig], to=[a blanket])",
-      "  position: assertion containedBy(negate=false, object=[a blanket], relation=In, subject=[pig]); position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the plate]); position: change transferMembership(containment=On, from=currentHost([pig]), object=[pig], to=[the plate])",
-      "  position: assertion containedBy(negate=false, object=[a blanket], relation=In, subject=[pig]); position: assertion containedBy(negate=false, object=[the plate], relation=On, subject=[a blanket]); position: change transferMembership(containment=On, from=currentHost([pig]), object=[pig], to=[the table])",
-      "put [pig] in [a blanket] on [the plate on the table]",
-      "  position: assertion containedBy(negate=false, object=[the plate on the table], relation=On, subject=[a blanket]); position: change transferMembership(containment=In, from=currentHost([pig]), object=[pig], to=[a blanket])",
-      "  position: assertion containedBy(negate=false, object=[a blanket], relation=In, subject=[pig]); position: change transferMembership(containment=On, from=currentHost([pig]), object=[pig], to=[the plate on the table])",
-      "put [pig] in [a blanket on the plate] on [the table]",
-      "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[a blanket on the plate]); position: change transferMembership(containment=In, from=currentHost([pig]), object=[pig], to=[a blanket on the plate])",
-      "  position: assertion containedBy(negate=false, object=[a blanket on the plate], relation=In, subject=[pig]); position: change transferMembership(containment=On, from=currentHost([pig]), object=[pig], to=[the table])",
-      "put [pig] in [a blanket on the plate on the table]",
-      "  position: change transferMembership(containment=In, from=currentHost([pig]), object=[pig], to=[a blanket on the plate on the table])",
-      "put [pig in a blanket] on [the plate] on [the table]",
-      "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the plate]); position: change transferMembership(containment=On, from=currentHost([pig in a blanket]), object=[pig in a blanket], to=[the plate])",
-      "  position: assertion containedBy(negate=false, object=[the plate], relation=On, subject=[pig in a blanket]); position: change transferMembership(containment=On, from=currentHost([pig in a blanket]), object=[pig in a blanket], to=[the table])",
-      "put [pig in a blanket] on [the plate on the table]",
-      "  position: change transferMembership(containment=On, from=currentHost([pig in a blanket]), object=[pig in a blanket], to=[the plate on the table])",
-      "put [pig in a blanket on the plate] on [the table]",
-      "  position: change transferMembership(containment=On, from=currentHost([pig in a blanket on the plate]), object=[pig in a blanket on the plate], to=[the table])",
-      "[put pig in a blanket on the plate on the table]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "put [pig] in [a blanket] on [the plate] on [the table]",
       "  position: assertion containedBy(negate=false, object=[the plate], relation=On, subject=[a blanket]); position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the plate]); position: change transferMembership(containment=In, from=currentHost([pig]), object=[pig], to=[a blanket])",
       "  position: assertion containedBy(negate=false, object=[a blanket], relation=In, subject=[pig]); position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the plate]); position: change transferMembership(containment=On, from=currentHost([pig]), object=[pig], to=[the plate])",
@@ -778,19 +657,12 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
       "spread [cloth] over [table]",
       "  position: change extend(object=[cloth], presenceUuid=<minted id 2>); position: change transferMembership(containment=On, from=currentHost([cloth]), object=[cloth]{"view":["PRESENCE#<minted id 2>"]}, to=[table])",
-      "[spread cloth over table]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
-      "spread [cloth] over [table]",
-      "  position: change extend(object=[cloth], presenceUuid=<minted id 3>); position: change transferMembership(containment=On, from=currentHost([cloth]), object=[cloth]{"view":["PRESENCE#<minted id 3>"]}, to=[table])",
       "[spread cloth over table]",
       "  navigate",
     ],
@@ -810,12 +682,10 @@ Object {
       "classify": 1,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 1,
     },
   },
   "readings": Object {
     "fastPath": "no deterministic answer",
-    "llmRoute": Array [],
   },
 }
 `;
@@ -832,19 +702,10 @@ Object {
       "classify": 0,
       "embedSpan": 1,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "take [coin] out [box]",
-      "  position: assertion containedBy(negate=false, object=[box], relation=In, subject=[coin]); position: change transferMembership(from=currentHost([coin]), object=[coin], to=actingCharacter)",
-      "take [coin out box]",
-      "  position: change transferMembership(from=currentHost([coin out box]), object=[coin out box], to=actingCharacter)",
-      "[take coin out box]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "take [coin] out [box]",
       "  position: assertion containedBy(negate=false, object=[box], relation=In, subject=[coin]); position: change transferMembership(from=currentHost([coin]), object=[coin], to=actingCharacter)",
       "take [coin out box]",
@@ -868,19 +729,10 @@ Object {
       "classify": 0,
       "embedSpan": 1,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "take [cup] from [table]",
-      "  position: assertion containedBy(negate=false, object=[table], subject=[cup]); position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
-      "take [cup from table]",
-      "  position: change transferMembership(from=currentHost([cup from table]), object=[cup from table], to=actingCharacter)",
-      "[take cup from table]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "take [cup] from [table]",
       "  position: assertion containedBy(negate=false, object=[table], subject=[cup]); position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
       "take [cup from table]",
@@ -904,23 +756,10 @@ Object {
       "classify": 0,
       "embedSpan": 3,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "take [cup] on [saucer] on [table]",
-      "  position: assertion containedBy(negate=false, object=[saucer], relation=On, subject=[cup]); position: assertion containedBy(negate=false, object=[table], relation=On, subject=[saucer]); position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
-      "take [cup] on [saucer on table]",
-      "  position: assertion containedBy(negate=false, object=[saucer on table], relation=On, subject=[cup]); position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
-      "take [cup on saucer] on [table]",
-      "  position: assertion containedBy(negate=false, object=[table], relation=On, subject=[cup on saucer]); position: change transferMembership(from=currentHost([cup on saucer]), object=[cup on saucer], to=actingCharacter)",
-      "take [cup on saucer on table]",
-      "  position: change transferMembership(from=currentHost([cup on saucer on table]), object=[cup on saucer on table], to=actingCharacter)",
-      "[take cup on saucer on table]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "take [cup] on [saucer] on [table]",
       "  position: assertion containedBy(negate=false, object=[saucer], relation=On, subject=[cup]); position: assertion containedBy(negate=false, object=[table], relation=On, subject=[saucer]); position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
       "take [cup] on [saucer on table]",
@@ -947,19 +786,12 @@ Object {
     "stubCalls": Object {
       "acme": 0,
       "classify": 1,
-      "embedSpan": 2,
+      "embedSpan": 1,
       "enrich": 0,
-      "parse": 1,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "take [cup , then look]",
-      "  position: change transferMembership(from=currentHost([cup , then look]), object=[cup , then look], to=actingCharacter)",
-      "[take cup , then look]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "take [cup , then look]",
       "  position: change transferMembership(from=currentHost([cup , then look]), object=[cup , then look], to=actingCharacter)",
       "[take cup , then look]",
@@ -985,7 +817,6 @@ Object {
       "classify": 0,
       "embedSpan": 1,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
@@ -993,12 +824,6 @@ Object {
       "take [cup .]",
       "  position: change transferMembership(from=currentHost([cup .]), object=[cup .], to=actingCharacter)",
       "[take cup .]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
-      "take [cup]",
-      "  position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
-      "[take cup]",
       "  navigate",
     ],
   },
@@ -1016,19 +841,12 @@ Object {
     "stubCalls": Object {
       "acme": 0,
       "classify": 1,
-      "embedSpan": 2,
+      "embedSpan": 1,
       "enrich": 0,
-      "parse": 1,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "take [hold of the cup]",
-      "  position: change transferMembership(from=currentHost([hold of the cup]), object=[hold of the cup], to=actingCharacter)",
-      "[take hold of the cup]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "take [hold of the cup]",
       "  position: change transferMembership(from=currentHost([hold of the cup]), object=[hold of the cup], to=actingCharacter)",
       "[take hold of the cup]",
@@ -1050,23 +868,10 @@ Object {
       "classify": 0,
       "embedSpan": 4,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "take [man] in [the moon] from [table]",
-      "  position: assertion containedBy(negate=false, object=[the moon], relation=In, subject=[man]); position: assertion containedBy(negate=false, object=[table], subject=[the moon]); position: change transferMembership(from=currentHost([man]), object=[man], to=actingCharacter)",
-      "take [man] in [the moon from table]",
-      "  position: assertion containedBy(negate=false, object=[the moon from table], relation=In, subject=[man]); position: change transferMembership(from=currentHost([man]), object=[man], to=actingCharacter)",
-      "take [man in the moon] from [table]",
-      "  position: assertion containedBy(negate=false, object=[table], subject=[man in the moon]); position: change transferMembership(from=currentHost([man in the moon]), object=[man in the moon], to=actingCharacter)",
-      "take [man in the moon from table]",
-      "  position: change transferMembership(from=currentHost([man in the moon from table]), object=[man in the moon from table], to=actingCharacter)",
-      "[take man in the moon from table]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "take [man] in [the moon] from [table]",
       "  position: assertion containedBy(negate=false, object=[the moon], relation=In, subject=[man]); position: assertion containedBy(negate=false, object=[table], subject=[the moon]); position: change transferMembership(from=currentHost([man]), object=[man], to=actingCharacter)",
       "take [man] in [the moon from table]",
@@ -1098,17 +903,10 @@ Object {
       "classify": 0,
       "embedSpan": 1,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "take [unicorn]",
-      "  position: change transferMembership(from=currentHost([unicorn]), object=[unicorn], to=actingCharacter)",
-      "[take unicorn]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "take [unicorn]",
       "  position: change transferMembership(from=currentHost([unicorn]), object=[unicorn], to=actingCharacter)",
       "[take unicorn]",
@@ -1130,7 +928,6 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
@@ -1155,17 +952,10 @@ Object {
       "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "walk [north]",
-      "  navigate",
-      "[walk north]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "walk [north]",
       "  navigate",
       "[walk north]",
@@ -1188,17 +978,10 @@ Object {
       "classify": 1,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 1,
     },
   },
   "readings": Object {
     "fastPath": Array [
-      "walk [xyzzy]",
-      "  navigate",
-      "[walk xyzzy]",
-      "  navigate",
-    ],
-    "llmRoute": Array [
       "walk [xyzzy]",
       "  navigate",
       "[walk xyzzy]",

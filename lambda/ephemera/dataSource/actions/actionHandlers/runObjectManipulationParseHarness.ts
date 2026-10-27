@@ -8,11 +8,9 @@ import type {
 } from '../baseClasses'
 import { deterministicIntentChecks } from '../discriminateIntent/deterministicChecks'
 import { isBareExitFill } from '../enrich/objectManipulation/plan/matchNavigationTemplate'
-import { tokenize, type GranuleToken } from '../deterministicTemplate/granuleTokens'
-import { skeletonText } from '../deterministicTemplate/patternTemplate'
+import type { GranuleToken } from '../deterministicTemplate/granuleTokens'
 import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
-import { runParseStage } from '../enrich/objectManipulation/parse/runParseStage'
-import { COMMAND_GRANULES, planTokens, readPlanTemplates, type PlanTemplateRead } from '../enrich/objectManipulation/plan/planSkeleton'
+import { planTokens, readPlanTemplates, type PlanTemplateRead } from '../enrich/objectManipulation/plan/planSkeleton'
 import { OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES } from '../objectManipulationParseHarnessFixtures'
 
 export type RunObjectManipulationParseHarnessDeps = {
@@ -20,8 +18,6 @@ export type RunObjectManipulationParseHarnessDeps = {
     messageBus: Pick<MessageBus, 'publish'>
     harnessInvocation?: ObjectManipulationParseHarnessInvocation
     fixtures?: readonly ObjectManipulationParseHarnessFixture[]
-    runParseStageImpl?: typeof runParseStage
-    now?: () => number
 }
 
 type HarnessCase = { label: string; command: string }
@@ -57,17 +53,14 @@ export function formatTokens(tokens: readonly GranuleToken[]): string {
 }
 
 /**
- * Runs each selected command down the route production takes to its tokens, then Plan, and
- * publishes **one** OOC message with the results for manual review: the route, the tokens, and each
- * segmentation Plan's readings make with every attempt read from it. A command one of Plan's
- * templates reads on the fast path (`deterministicIntentChecks`) is read from its own tokens with no
- * Bedrock call; one only the bare exit reading reads (it fits every command, and abstains unless the
- * command names an exit, which no world here says) runs the live Parse stage, whose skeleton is shown
- * and whose words are re-tokenized. No world is read; candidates and the dry run are out of its reach.
+ * Runs each selected command's tokens through Plan, and publishes **one** OOC message with the results
+ * for manual review: the route, the tokens, and each segmentation Plan's readings make with every
+ * attempt read from it. Every command reads its own tokens with no Bedrock call. The route says
+ * whether a template read the command (the fast path) or only the bare exit reading did (it fits
+ * every command, and abstains unless the command names an exit, which no world here says), so the
+ * command climbs to classify. No world is read; candidates and the dry run are out of its reach.
  */
 export async function runObjectManipulationParseHarness(deps: RunObjectManipulationParseHarnessDeps): Promise<void> {
-    const runParse = deps.runParseStageImpl ?? runParseStage
-    const now = deps.now ?? (() => Date.now())
     const cases = selectCases(deps.fixtures ?? OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES, deps.harnessInvocation)
 
     const tree: RenderTree = ['Object manipulation Parse harness (route + Plan, no world)', COYOTE_RENDER_LINE_BREAK]
@@ -77,24 +70,13 @@ export async function runObjectManipulationParseHarness(deps: RunObjectManipulat
     for (const [index, { label, command }] of cases.entries()) {
         tree.push(`--- ${index + 1}/${cases.length} ${label}: ${command} ---`, COYOTE_RENDER_LINE_BREAK)
         const fastPath = deterministicIntentChecks({ command })
-        let tokens: GranuleToken[]
-        if (fastPath?.type === 'ObjectManipulationIntent' && planTokens(fastPath.tokens, command).some((fill) => !isBareExitFill(fill))) {
-            tokens = fastPath.tokens
-            tree.push('Route: fast path', COYOTE_RENDER_LINE_BREAK)
+        if (fastPath?.type !== 'ObjectManipulationIntent') {
+            tree.push(`Route: fast path (${fastPath?.type ?? 'no tokens'})`, COYOTE_RENDER_LINE_BREAK)
+            continue
         }
-        else {
-            tree.push('Route: LLM (Parse)', COYOTE_RENDER_LINE_BREAK)
-            const startMs = now()
-            const parsed = await runParse({ command })
-            tree.push(`elapsedMs: ${now() - startMs}`, COYOTE_RENDER_LINE_BREAK)
-            if (parsed.type === 'error') {
-                tree.push(`Parse error: ${parsed.errorMessage}`, COYOTE_RENDER_LINE_BREAK)
-                continue
-            }
-            tree.push(`Parse: ${formatSkeleton(parsed.tokens)}`, COYOTE_RENDER_LINE_BREAK)
-            // Plan reads Parse's words, cut into tokens as the command's would be.
-            tokens = tokenize(COMMAND_GRANULES, skeletonText(parsed.tokens))
-        }
+        const { tokens } = fastPath
+        const readByATemplate = planTokens(tokens, command).some((fill) => !isBareExitFill(fill))
+        tree.push(readByATemplate ? 'Route: fast path' : 'Route: bare exit reading only (climbs to classify)', COYOTE_RENDER_LINE_BREAK)
         tree.push(`Tokens: ${formatTokens(tokens)}`, COYOTE_RENDER_LINE_BREAK)
         const reads = readPlanTemplates(tokens, command)
         tree.push(`Readings: ${reads.length}`, COYOTE_RENDER_LINE_BREAK)
