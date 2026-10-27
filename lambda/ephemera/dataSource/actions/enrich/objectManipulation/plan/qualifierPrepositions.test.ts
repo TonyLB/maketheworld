@@ -1,6 +1,6 @@
 import { granulesOf, tokenize } from '../../../deterministicTemplate/granuleTokens'
 import { fixedWordsOf, matchPatternFills } from '../../../deterministicTemplate/patternTemplate'
-import { PLAN_GRANULES } from './planSkeleton'
+import { COMMAND_GRANULES } from './planSkeleton'
 import { exceedsQualifierCap, QUALIFIER_PREPOSITION_ELEMENT } from './qualifierPrepositions'
 
 /** The canonical preposition a whole text names, read through the pattern element. */
@@ -31,7 +31,7 @@ describe('QUALIFIER_PREPOSITION_ELEMENT', () => {
 })
 
 describe('exceedsQualifierCap', () => {
-    const exceeds = (command: string) => exceedsQualifierCap(tokenize(PLAN_GRANULES, command))
+    const exceeds = (command: string) => exceedsQualifierCap(tokenize(COMMAND_GRANULES, command))
 
     it('counts each place a closed-set preposition stands, once however many options match there', () => {
         expect(exceeds('take a on b on c on d on e on f on g')).toBe(false)

@@ -1,5 +1,6 @@
 import type { AttemptTemplate } from './deterministicTemplate'
 import { type GranuleToken, type Granules, granulesOf, lexemesOf, tokenize } from './granuleTokens'
+import { INTENT_TEMPLATES } from './intentTemplates'
 import { fixedWordsOf } from './patternTemplate'
 import { containmentTemplate } from '../enrich/objectManipulation/plan/matchContainmentTemplate'
 import { lookAtTemplate, lookTemplate } from '../enrich/objectManipulation/plan/matchLookTemplate'
@@ -12,7 +13,7 @@ const render = (tokens: GranuleToken[]): string => tokens.map((token) => (token.
 const granuleText = ({ granules }: Granules): string[] => granules.map((granule) => granule.join(' ')).sort()
 
 const liveTemplates: readonly AttemptTemplate[] = [containmentTemplate, spreadTemplate, lookTemplate, lookAtTemplate, membershipTemplate]
-const liveOptions = [...new Set(liveTemplates.flatMap(({ pattern }) => fixedWordsOf(pattern)))]
+const liveOptions = [...new Set([...liveTemplates, ...INTENT_TEMPLATES].flatMap(({ pattern }) => fixedWordsOf(pattern)))]
 
 describe('lexemesOf', () => {
     it('reads words and marks with where each starts, whitespace no lexeme', () => {
@@ -53,10 +54,10 @@ describe('granulesOf', () => {
         expect(() => granulesOf(['  '])).toThrow('at least one word')
     })
 
-    it('cuts the live templates\' fixed words into single words', () => {
+    it('cuts the live templates\' fixed words into single words, but for words only ever met together', () => {
         const granules = granulesOf(liveOptions)
-        expect(granules.granules.every((granule) => granule.length === 1)).toBe(true)
-        expect(granuleText(granules)).toEqual(expect.arrayContaining(['on', 'top', 'of', 'out']))
+        expect(granuleText(granules).filter((granule) => granule.includes(' '))).toEqual(['i need', 'road runner'])
+        expect(granuleText(granules)).toEqual(expect.arrayContaining(['on', 'top', 'of', 'out', 'the', 'for']))
     })
 })
 
@@ -77,7 +78,7 @@ describe('tokenize', () => {
         { name: 'apostrophes and hyphens inside words', options: ['in'], command: "don't put the jack-in-the-box in it", expected: "don't put the jack-in-the-box | in | it" },
         { name: 'a trailing full stop', options: ['take'], command: 'take cup.', expected: 'take | cup | .' },
         { name: 'span material stays one token', options: liveOptions, command: 'take super laser death ray gun', expected: 'take | super laser death ray gun' },
-        { name: 'the payoff command', options: liveOptions, command: 'put pig in a blanket on the plate on the table', expected: 'put | pig | in | a blanket | on | the plate | on | the table' },
+        { name: 'the payoff command', options: liveOptions, command: 'put pig in a blanket on the plate on the table', expected: 'put | pig | in | a blanket | on | the | plate | on | the | table' },
     ]
 
     it.each(cases.map((testCase) => [testCase.name, testCase] as const))('%s', (_name, { options, command, expected }) => {

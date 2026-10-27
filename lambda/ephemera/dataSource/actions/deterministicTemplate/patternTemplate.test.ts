@@ -1,13 +1,8 @@
 import type { ObjectSpanToken, ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
-import { defineAttemptTemplate, fixedWord, words, type AttemptTemplate, type PatternCapture, type PatternElement } from './deterministicTemplate'
+import { defineAttemptTemplate, fixedWord, words, type AttemptTemplate, type PatternElement } from './deterministicTemplate'
 import { granulesOf, tokenize } from './granuleTokens'
 import type { PatternFill } from './patternTemplate'
-import {
-    assembleIntent,
-    fixedWordsOf,
-    makePatternTemplate,
-    matchPatternFills,
-} from './patternTemplate'
+import { fixedWordsOf, matchPatternFills } from './patternTemplate'
 import { CommandAttempt } from '../commandAttempt'
 import { containmentTemplate } from '../enrich/objectManipulation/plan/matchContainmentTemplate'
 import { lookAtTemplate, lookTemplate } from '../enrich/objectManipulation/plan/matchLookTemplate'
@@ -318,28 +313,6 @@ describe('matchPatternFills', () => {
     })
 })
 
-describe('assembleIntent', () => {
-    it('returns the constant templateIntent unchanged when there are no captures', () => {
-        const intent = assembleIntent({ type: 'LookRoom', confidence: 1 }, {})
-        expect(intent).toEqual({ type: 'LookRoom', confidence: 1 })
-    })
-
-    it('merges each named objectSpan/capturedText capture into the constant, under its name', () => {
-        const captures: Record<string, PatternCapture> = {
-            verb: { kind: 'templateText', text: 'put', option: 'put', value: 'put' },
-            subject: { kind: 'objectSpan', text: 'bag', stableRefKey: 'bagRef' },
-        }
-        const intent = assembleIntent({ type: 'ObjectRelateIntent', confidence: 1 }, captures)
-        expect(intent).toEqual({ type: 'ObjectRelateIntent', confidence: 1, subject: 'bag' })
-    })
-
-    it('templateText captures contribute nothing to the assembled intent', () => {
-        const captures: Record<string, PatternCapture> = { verb: { kind: 'templateText', text: 'look', option: 'look', value: 'look' } }
-        const intent = assembleIntent({ type: 'LookRoom', confidence: 1 }, captures)
-        expect(intent).toEqual({ type: 'LookRoom', confidence: 1 })
-    })
-})
-
 // Checked by ts-jest's type check: each `@ts-expect-error` fails the suite if its line compiles.
 describe('defineAttemptTemplate', () => {
     const pattern = [fixedWord('verb', { take: 'takes' }), { type: 'objectSpan', name: 'subject' } as const] as const
@@ -369,42 +342,5 @@ describe('defineAttemptTemplate', () => {
             pattern: [{ type: 'objectSpan', name: 'subject' } as const, words('on'), { type: 'objectSpan', name: 'subject' } as const],
             build: (_captures, command) => CommandAttempt.create('membership', command, []),
         })
-    })
-})
-
-describe('makePatternTemplate', () => {
-    it('produces the same intent shape via matchString and matchTokens for a synthetic pattern', () => {
-        const template = makePatternTemplate(
-            [
-                words('take'),
-                { type: 'objectSpan', name: 'subject' },
-            ],
-            { type: 'ObjectRelateIntent', confidence: 1 }
-        )
-
-        const stringResult = template.matchString('take red ball')
-        if (stringResult.type !== 'matched') throw new Error('expected matched via matchString')
-        expect(stringResult.intent).toEqual({ type: 'ObjectRelateIntent', confidence: 1, subject: 'red ball' })
-
-        const tokenResult = template.matchTokens([
-            { type: 'text', text: 'take' },
-            { type: 'objectSpan', span: 'red ball', stableRefKey: 'redBallRef' },
-        ])
-        if (tokenResult.type !== 'matched') throw new Error('expected matched via matchTokens')
-        expect(tokenResult.intent).toEqual({ type: 'ObjectRelateIntent', confidence: 1, subject: 'red ball' })
-    })
-
-    it('an intent row with several fills is noMatch: one intent cannot carry them', () => {
-        const template = makePatternTemplate(
-            [
-                words('take'),
-                { type: 'objectSpan', name: 'subject' },
-                words('on'),
-                { type: 'objectSpan', name: 'target' },
-            ],
-            { type: 'ObjectRelateIntent', confidence: 1 }
-        )
-        expect(template.matchString('take cup on table').type).toBe('matched')
-        expect(template.matchString('take cup on saucer on table')).toEqual({ type: 'noMatch' })
     })
 })

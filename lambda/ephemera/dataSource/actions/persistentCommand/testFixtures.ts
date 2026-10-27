@@ -1,7 +1,7 @@
 import { produce } from 'immer'
 
 import { tokenize } from '../deterministicTemplate/granuleTokens'
-import { PLAN_GRANULES, planTokens } from '../enrich/objectManipulation/plan/planSkeleton'
+import { COMMAND_GRANULES, planTokens } from '../enrich/objectManipulation/plan/planSkeleton'
 import type { PersistentCommandPayload } from './payload'
 
 /** `take cup` waiting on a choice between two cups: no answers yet, two options. */
@@ -25,7 +25,7 @@ export const twoCupPendingPayload = (): PersistentCommandPayload => {
 /** A realistic payload: the frozen root is what Plan really returns for `take cup`. */
 export const takeCupPayload = (): PersistentCommandPayload => {
     const command = 'take cup'
-    const [{ skeleton, attempts }] = planTokens(tokenize(PLAN_GRANULES, command), command)
+    const [{ skeleton, attempts }] = planTokens(tokenize(COMMAND_GRANULES, command), command)
     return {
         root: { command, fills: [{ skeleton, attempts: attempts.map((attempt) => attempt.toJSON()) }], confidence: 0.9 },
         transcript: { messageId: 'MESSAGE#take-cup', createdTime: 1700000000000, command },

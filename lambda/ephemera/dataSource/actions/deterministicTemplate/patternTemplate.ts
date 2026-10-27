@@ -5,15 +5,8 @@ import type {
     ParseTokenDraft,
 } from '../enrich/objectManipulation/parse/parseToken'
 import { stableRefKeysByRange } from '../enrich/objectManipulation/parse/stampStableRefKeys'
-import type { ParseCommandResult } from '../baseClasses'
-import type {
-    DeterministicTemplate,
-    DeterministicTemplateDeferReason,
-    DeterministicTemplateMatch,
-    PatternCapture,
-    PatternElement,
-} from './deterministicTemplate'
-import { granulesOf, optionWords, tokenize, type GranuleToken } from './granuleTokens'
+import type { PatternCapture, PatternElement } from './deterministicTemplate'
+import { optionWords, type GranuleToken } from './granuleTokens'
 
 /** A run of tokens, from `start` up to (not including) `end`. */
 export type TokenRange = { start: number; end: number }
@@ -216,81 +209,4 @@ export function readFills(tokens: readonly GranuleToken[], matches: readonly { p
 /** Every fill of one pattern over a command's tokens, read out (see `matchPattern`, `readFills`). */
 export function matchPatternFills(pattern: readonly PatternElement[], tokens: readonly GranuleToken[]): PatternFill[] {
     return readFills(tokens, matchPattern(pattern, tokens).map((fill) => ({ pattern, fill })))
-}
-
-/**
- * The one generic combinator: merges a template's constant `templateIntent` with its named span
- * captures, each under its element's name. Fixed-word captures never contribute (every template
- * using one already fixes the relevant intent field as a constant regardless of which synonym
- * matched). Cast at the boundary -- callers are responsible for each template's
- * `templateIntent`/name vocabulary being consistent with the target `ParseCommandResult` member,
- * matching this codebase's existing comfort with structural trust over runtime union validation
- * (see deterministicChecks.ts).
- */
-export function assembleIntent(templateIntent: Partial<ParseCommandResult>, captures: Readonly<Record<string, PatternCapture>>): ParseCommandResult {
-    const named = Object.entries(captures).flatMap(([name, capture]) => (
-        capture.kind === 'objectSpan' || capture.kind === 'capturedText' ? [[name, capture.text] as const] : []
-    ))
-    return { ...templateIntent, ...Object.fromEntries(named) } as ParseCommandResult
-}
-
-/**
- * An intent row reads one fill: no fill is `noMatch`, and several fills are `noMatch`
- * too, since one `ParseCommandResult` cannot carry them (the command falls to the LLM
- * route rather than guessing). No bare-word row has a wildcard, so none has several.
- */
-function matchFromFills(fills: PatternFill[], templateIntent: Partial<ParseCommandResult>): DeterministicTemplateMatch {
-    if (fills.length !== 1) {
-        return { type: 'noMatch' }
-    }
-    const [{ segmentation, captures }] = fills
-    return { type: 'matched', skeleton: segmentation, intent: assembleIntent(templateIntent, captures) }
-}
-
-/**
- * The pattern-driven DeterministicTemplate factory: a plain object literal (not a
- * class instance) closing over `pattern`/`templateIntent`. Both methods match the
- * one engine over tokens cut at the pattern's own fixed words: `matchString` the
- * command's, `matchTokens` the words a skeleton spells.
- */
-export function makePatternTemplate(
-    pattern: readonly PatternElement[],
-    templateIntent: Partial<ParseCommandResult>
-): DeterministicTemplate {
-    const granules = granulesOf(fixedWordsOf(pattern))
-    const match = (text: string) => matchFromFills(matchPatternFills(pattern, tokenize(granules, text)), templateIntent)
-    return {
-        matchString(command) {
-            return match(command)
-        },
-        matchTokens(skeleton) {
-            return match(skeletonText(skeleton))
-        },
-    }
-}
-
-/**
- * Sibling factory to makePatternTemplate: the same engine, but a
- * structural match means "recognized shape, known-unsupported" rather than
- * "matched" -- e.g. containment language ("in"/"into") for a relational
- * command, which the current relation model (On/In/PartOf/Custom, a
- * ludicGraph edge) has no representation for at all. Always defers when any
- * fill exists; never produces `matched` or reads/assembles intent.
- */
-export function makeDeferPatternTemplate(
-    pattern: readonly PatternElement[],
-    reason: DeterministicTemplateDeferReason
-): DeterministicTemplate {
-    const granules = granulesOf(fixedWordsOf(pattern))
-    const defers = (text: string): DeterministicTemplateMatch => (
-        matchPattern(pattern, tokenize(granules, text)).length > 0 ? { type: 'defer', reason } : { type: 'noMatch' }
-    )
-    return {
-        matchString(command) {
-            return defers(command)
-        },
-        matchTokens(skeleton) {
-            return defers(skeletonText(skeleton))
-        },
-    }
 }

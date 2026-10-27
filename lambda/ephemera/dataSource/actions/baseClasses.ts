@@ -142,11 +142,9 @@ export type ParseCommandAcmeOrderResult = {
 }
 
 /**
- * Coyote Game: wait-state for Road Runner encounter flows. Produced by
- * `deterministicTemplate/bareWordTemplates.ts`'s `awaitRoadRunnerTemplate`
- * (bare `wait`, plus a closed `wait for the roadrunner`/`road runner`/`the bird`
- * paraphrase lexicon), wired into `parseCommand.ts`'s `Command` branch via
- * `matchNonObjectManipulationTemplate` (iteration 7, Sub-iteration 2, 2026-07-20).
+ * Coyote Game: wait-state for Road Runner encounter flows. Produced by the `wait` intent row
+ * (`deterministicTemplate/intentTemplates.ts`: bare `wait`, plus a closed
+ * `wait for the roadrunner`/`road runner`/`the bird` paraphrase lexicon), on the fast path.
  */
 export type ParseCommandAwaitRoadrunnerResult = {
     type: 'AwaitRoadRunner'

@@ -6,7 +6,6 @@ export { objectManipulationErrorMessages } from './enrich/objectManipulation/res
 import { compileAttemptsFromSkeleton } from './enrich/objectManipulation/compileAttemptsFromSkeleton'
 import { runParseStage } from './enrich/objectManipulation/parse/runParseStage'
 import { planSkeleton, planTokens } from './enrich/objectManipulation/plan/planSkeleton'
-import { matchNonObjectManipulationTemplate } from './deterministicTemplate'
 import { matchNavigationParaphrase } from './plan/matchNavigationParaphrase'
 import { matchAcmeOrderFamily } from './plan/matchAcmeOrderFamily'
 
@@ -68,18 +67,9 @@ async function routeClassifiedIntent(
     deps: ParseCommandDeps
 ): Promise<ParseCommandWithEnrichReasoningResult> {
     if (intentResult.type === 'Command') {
-        // Iteration 7, Sub-iteration 2: classify decides only realness/shape --
-        // Plan-stage dispatch now covers every command family, not just object
-        // manipulation. Zero-referent paraphrases (LookRoom/Help/Home/AwaitRoadRunner)
-        // and Navigation paraphrases resolve deterministically before Parse ever runs
-        // (zero Bedrock cost); AcmeOrder resolves after Parse, once planSkeleton
-        // has ruled out membership/relational. See AGENT.classifyPlanGeneralization.planning.md,
-        // Sub-iteration 2.
-        const nonObjectManipulationMatch = matchNonObjectManipulationTemplate(input.command)
-        if (nonObjectManipulationMatch.type === 'matched') {
-            return answer(nonObjectManipulationMatch.intent)
-        }
-
+        // Classify decides only realness and shape. The intent rows already ran before classify
+        // (`deterministicIntentChecks`), over this same text; Navigation paraphrases resolve here before
+        // Parse runs (zero Bedrock cost), and AcmeOrder after Plan's attempts are ruled out.
         const navigationMatch = matchNavigationParaphrase(input)
         if (navigationMatch) {
             return answer(navigationMatch)
@@ -146,11 +136,9 @@ async function routeClassifiedIntent(
 }
 
 /**
- * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **`/test parse`** returns **`ObjectManipulationParseTest`**; **bare `look` / `l`** returns **`LookRoom`**; **bare `help`** returns **`Help`**; **bare `home`** returns **`Home`**; minimal-verb **`take` / `drop` / `get <object>`** is the take/get/drop fast path (the command's tokens, read by Plan and compiled like a parsed command): all without Bedrock classify. A fast-path **`Abstain`** (not understood) climbs to the classify below, and an **`Abstain`** from the LLM route's compile climbs to Acme; only the top rung's Abstain is returned.
+ * **`/test generation`** returns **`CoyoteEngineTest`**; **`/test affinities`** returns **`CoyoteAffinitiesTest`**; **`/test parse`** returns **`ObjectManipulationParseTest`**; the intent rows (`deterministicTemplate/intentTemplates.ts`: **`look` / `l`**, **`help`** and **`home`** and their paraphrases, **`predict`**, **`wait`** and its paraphrases) return their results; minimal-verb **`take` / `drop` / `get <object>`** is the take/get/drop fast path (the command's tokens, read by Plan and compiled like a parsed command): all without Bedrock classify. A fast-path **`Abstain`** (not understood) climbs to the classify below, and an **`Abstain`** from the LLM route's compile climbs to Acme; only the top rung's Abstain is returned.
  * Otherwise runs the narrowed (iteration 7) intent discrimination: **`Command`** first tries
- * deterministic Plan-stage dispatch (Sub-iteration 2) -- a closed paraphrase lexicon for
- * **`LookRoom`**, **`Help`**, **`Home`**, and **`AwaitRoadRunner`**, then a movement-verb paraphrase
- * matcher for **`Navigation`**, both zero-Bedrock -- before running Parse and dispatching to
+ * a movement-verb paraphrase matcher for **`Navigation`** (zero-Bedrock) before running Parse and dispatching to
  * object manipulation's membership/relational enrich, or (on no family match) an **`AcmeOrder`**
  * paraphrase matcher (Bedrock via `enrichAcmeOrder`), or finally **`Unimplemented`**;
  * **`WorldQuestion`** routes to **`PredictHypothesis`** handling. **`PromptInjectionAttempt`**,
@@ -175,7 +163,7 @@ export async function parseCommand(
 }
 
 /**
- * Same pipeline as **`parseCommand`** (including **bare `look` / `l`**, **bare `help`**, Coyote test shortcuts without Bedrock, and intent terminals like **`PromptInjectionAttempt`** without Acme enrich), plus Acme order enrich **`enrichReasoningMarkdown`** for manual review (affinities harness). Does not add that string to **`AcmeOrder`**.
+ * Same pipeline as **`parseCommand`** (including the intent rows, Coyote test shortcuts without Bedrock, and intent terminals like **`PromptInjectionAttempt`** without Acme enrich), plus Acme order enrich **`enrichReasoningMarkdown`** for manual review (affinities harness). Does not add that string to **`AcmeOrder`**.
  */
 export async function parseCommandWithEnrichReasoning(
     input: ParseCommandInput,

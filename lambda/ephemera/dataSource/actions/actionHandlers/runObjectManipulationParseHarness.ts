@@ -11,7 +11,7 @@ import { tokenize, type GranuleToken } from '../deterministicTemplate/granuleTok
 import { skeletonText } from '../deterministicTemplate/patternTemplate'
 import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
 import { runParseStage } from '../enrich/objectManipulation/parse/runParseStage'
-import { PLAN_GRANULES, readPlanTemplates, type PlanTemplateRead } from '../enrich/objectManipulation/plan/planSkeleton'
+import { COMMAND_GRANULES, readPlanTemplates, type PlanTemplateRead } from '../enrich/objectManipulation/plan/planSkeleton'
 import { OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES } from '../objectManipulationParseHarnessFixtures'
 
 export type RunObjectManipulationParseHarnessDeps = {
@@ -91,7 +91,7 @@ export async function runObjectManipulationParseHarness(deps: RunObjectManipulat
             }
             tree.push(`Parse: ${formatSkeleton(parsed.tokens)}`, COYOTE_RENDER_LINE_BREAK)
             // Plan reads Parse's words, cut into tokens as the command's would be.
-            tokens = tokenize(PLAN_GRANULES, skeletonText(parsed.tokens))
+            tokens = tokenize(COMMAND_GRANULES, skeletonText(parsed.tokens))
         }
         tree.push(`Tokens: ${formatTokens(tokens)}`, COYOTE_RENDER_LINE_BREAK)
         const reads = readPlanTemplates(tokens, command)

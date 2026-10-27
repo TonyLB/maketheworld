@@ -231,7 +231,10 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         // The fixed-word intent rows, Navigation and AcmeOrder (SM-9, SM-12)
         { command: 'look' },
         { command: 'help' },
+        { command: 'help me' },
         { command: 'home' },
+        { command: 'go home' },
+        { command: 'go home', variant: 'a home exit', input: { roomExits: [{ normalizedName: 'north', targetId: NORTH_ROOM }, { normalizedName: 'home', targetId: 'ROOM#Home' as EphemeraRoomId }] } },
         { command: 'wait' },
         { command: 'predict' },
         { command: 'go north', parseTokens: [text('go'), span('north')] },

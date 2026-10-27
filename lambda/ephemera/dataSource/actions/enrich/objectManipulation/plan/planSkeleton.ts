@@ -4,6 +4,7 @@ import type { AttemptTemplate } from '../../../deterministicTemplate/determinist
 import type { SkeletonFill } from '../compileAttemptsFromSkeleton'
 import { granulesOf, tokenize, type GranuleToken } from '../../../deterministicTemplate/granuleTokens'
 import { fixedWordsOf, matchPattern, readFills, skeletonText } from '../../../deterministicTemplate/patternTemplate'
+import { INTENT_TEMPLATES } from '../../../deterministicTemplate/intentTemplates'
 import { lowerQualifiers } from './lowerQualifiers'
 import { containmentTemplate } from './matchContainmentTemplate'
 import { lookAtTemplate, lookTemplate } from './matchLookTemplate'
@@ -14,8 +15,12 @@ import { spreadTemplate } from './matchSpreadTemplate'
 /** The object templates, in order: the first attempt is the primary one. */
 const PLAN_TEMPLATES: readonly AttemptTemplate[] = [containmentTemplate, spreadTemplate, lookTemplate, lookAtTemplate, membershipTemplate]
 
-/** The granules of every object template's fixed words: how both routes cut a command into tokens. */
-export const PLAN_GRANULES = granulesOf(PLAN_TEMPLATES.flatMap(({ pattern }) => fixedWordsOf(pattern)))
+/**
+ * The granules of every deterministic template's fixed words, the object templates' and the intent
+ * rows' (`deterministicTemplate/intentTemplates.ts`): the one divider set, how both routes cut a
+ * command into tokens.
+ */
+export const COMMAND_GRANULES = granulesOf([...PLAN_TEMPLATES, ...INTENT_TEMPLATES].flatMap(({ pattern }) => fixedWordsOf(pattern)))
 
 /** One fill of one template: its segmentation, and the attempt built from it with its reading's qualifiers lowered. */
 export type PlanTemplateRead = { template: AttemptKind; segmentation: ParseSkeleton; segmentationKey: string; attempt: CommandAttempt }
@@ -62,9 +67,9 @@ export type PlanSkeletonResult =
 
 /**
  * The LLM route's entry into Plan: the words Parse's skeleton spells, spans and text alike,
- * cut into tokens as the command's own would be (`PLAN_GRANULES`), so Parse contributes its
+ * cut into tokens as the command's own would be (`COMMAND_GRANULES`), so Parse contributes its
  * words and never its segmentation.
  */
 export function planSkeleton(skeleton: readonly (ParseTokenDraft | ParseToken)[], command: string): PlanSkeletonResult {
-    return { type: 'attempts', fills: planTokens(tokenize(PLAN_GRANULES, skeletonText(skeleton)), command) }
+    return { type: 'attempts', fills: planTokens(tokenize(COMMAND_GRANULES, skeletonText(skeleton)), command) }
 }

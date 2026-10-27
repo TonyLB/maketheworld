@@ -4,7 +4,7 @@ import { tokenize } from '../../../deterministicTemplate/granuleTokens'
 import { matchPatternFills, skeletonText } from '../../../deterministicTemplate/patternTemplate'
 import type { SkeletonFill } from '../compileAttemptsFromSkeleton'
 import type { ParseSkeleton, ParseToken, ParseTokenDraft } from '../parse/parseToken'
-import { PLAN_GRANULES, planSkeleton } from './planSkeleton'
+import { COMMAND_GRANULES, planSkeleton } from './planSkeleton'
 
 export type TemplateMatchResult = { type: 'matched'; attempt: CommandAttempt } | { type: 'noMatch' }
 
@@ -24,7 +24,7 @@ export const sameSegmentation = (left: readonly (ParseTokenDraft | ParseToken)[]
  * Parse-shaped skeleton read that one reading.
  */
 export const matchTemplate = (template: AttemptTemplate) => (skeleton: ParseSkeleton, command: string): TemplateMatchResult => {
-    const fill = matchPatternFills(template.pattern, tokenize(PLAN_GRANULES, skeletonText(skeleton)))
+    const fill = matchPatternFills(template.pattern, tokenize(COMMAND_GRANULES, skeletonText(skeleton)))
         .find(({ segmentation }) => sameSegmentation(segmentation, skeleton))
     return fill === undefined ? { type: 'noMatch' } : { type: 'matched', attempt: template.build(fill.captures, command) }
 }

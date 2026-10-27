@@ -3,7 +3,7 @@ import type { ParseSkeleton } from '../parse/parseToken'
 import type { CommandAttempt } from '../../../commandAttempt'
 import { tokenize } from '../../../deterministicTemplate/granuleTokens'
 import { planFillOf } from './attemptTemplateFixture'
-import { PLAN_GRANULES, planSkeleton, planTokens } from './planSkeleton'
+import { COMMAND_GRANULES, planSkeleton, planTokens } from './planSkeleton'
 
 const COMMAND = 'test command'
 
@@ -21,14 +21,14 @@ const attemptsOf = (skeleton: ParseSkeleton) => planFillOf(skeleton, COMMAND).at
 const allAttemptsOf = (skeleton: ParseSkeleton) => planSkeleton(skeleton, COMMAND).fills.flatMap(({ attempts }) => attempts)
 
 /** Plan's fills for a command, each as its segmentation on one line. */
-const segmentationsOf = (command: string) => planTokens(tokenize(PLAN_GRANULES, command), command)
+const segmentationsOf = (command: string) => planTokens(tokenize(COMMAND_GRANULES, command), command)
     .map(({ skeleton }) => skeleton.map((token) => (token.type === 'objectSpan' ? `[${token.span}]` : token.text)).join(' '))
 
 const actionKinds = (attempt: CommandAttempt) => attempt.actions().map((action) => action.desiredResult?.kind)
 
 describe('planSkeleton', () => {
     it('gives each attempt its template\'s kind, qualifiers lowered or not', () => {
-        const kindsOf = (command: string) => [...new Set(planTokens(tokenize(PLAN_GRANULES, command), command).flatMap(({ attempts }) => attempts.map(({ kind }) => kind)))].sort()
+        const kindsOf = (command: string) => [...new Set(planTokens(tokenize(COMMAND_GRANULES, command), command).flatMap(({ attempts }) => attempts.map(({ kind }) => kind)))].sort()
         expect(kindsOf('take cup on table')).toEqual(['membership'])
         expect(kindsOf('drop cup in box')).toEqual(['containment', 'membership'])
         expect(kindsOf('spread cloth over table')).toEqual(['spread'])
@@ -267,7 +267,7 @@ describe('planTokens', () => {
     })
 
     it('reads a template\'s own fixed word inside a span: the plain look reads "at cup"', () => {
-        const fills = planTokens(tokenize(PLAN_GRANULES, 'look at cup'), 'look at cup')
+        const fills = planTokens(tokenize(COMMAND_GRANULES, 'look at cup'), 'look at cup')
         expect(fills.map(({ skeleton }) => skeleton.map((token) => (token.type === 'objectSpan' ? `[${token.span}]` : token.text)).join(' '))).toEqual([
             'look [at cup]',
             'look at [cup]',
@@ -276,7 +276,7 @@ describe('planTokens', () => {
 
     it('gives one span occurrence the same key in every fill, and two occurrences of one text two keys', () => {
         const command = 'put bench on table on bench'
-        const keysOf = (span: string) => [...new Set(planTokens(tokenize(PLAN_GRANULES, command), command)
+        const keysOf = (span: string) => [...new Set(planTokens(tokenize(COMMAND_GRANULES, command), command)
             .flatMap(({ skeleton }) => skeleton.flatMap((token) => (token.type === 'objectSpan' && token.span === span ? [token.stableRefKey] : []))))]
         expect(keysOf('bench').sort()).toEqual(['benchRef1', 'benchRef2'])
         expect(keysOf('table')).toEqual(['tableRef'])
@@ -285,8 +285,8 @@ describe('planTokens', () => {
 
     it('reads a command with more than six closed-set prepositions not at all (the guard cap)', () => {
         const atCap = 'take a on b on c on d on e on f on g'
-        expect(planTokens(tokenize(PLAN_GRANULES, atCap), atCap)).not.toEqual([])
+        expect(planTokens(tokenize(COMMAND_GRANULES, atCap), atCap)).not.toEqual([])
         const overCap = `${atCap} on h`
-        expect(planTokens(tokenize(PLAN_GRANULES, overCap), overCap)).toEqual([])
+        expect(planTokens(tokenize(COMMAND_GRANULES, overCap), overCap)).toEqual([])
     })
 })

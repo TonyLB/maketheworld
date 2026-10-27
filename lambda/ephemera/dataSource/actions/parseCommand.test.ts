@@ -921,7 +921,7 @@ describe('parseCommand LLM path', () => {
             expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         })
 
-        it('resolves a Help paraphrase without running Parse', async () => {
+        it('resolves a Help paraphrase before classify', async () => {
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"type":"Command","confidence":0.9}',
@@ -930,9 +930,10 @@ describe('parseCommand LLM path', () => {
             const result = await parseCommand({ command: 'help me' }, { invokeBedrockParseCommandImpl })
 
             expect(result).toEqual({ type: 'Help', confidence: 1 })
+            expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
-        it('resolves a Home paraphrase without running Parse', async () => {
+        it('resolves a Home paraphrase before classify', async () => {
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"type":"Command","confidence":0.9}',
@@ -941,9 +942,10 @@ describe('parseCommand LLM path', () => {
             const result = await parseCommand({ command: 'head back home' }, { invokeBedrockParseCommandImpl })
 
             expect(result).toEqual({ type: 'Home', confidence: 1 })
+            expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
-        it('resolves an AwaitRoadRunner paraphrase without running Parse', async () => {
+        it('resolves an AwaitRoadRunner paraphrase before classify', async () => {
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"type":"Command","confidence":0.9}',
@@ -952,6 +954,7 @@ describe('parseCommand LLM path', () => {
             const result = await parseCommand({ command: 'wait for the bird' }, { invokeBedrockParseCommandImpl })
 
             expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 1 })
+            expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
         it('resolves a Navigation paraphrase (movement verb beyond bare "go") without running Parse', async () => {

@@ -1,5 +1,4 @@
-import type { ParseSkeleton, QualifierPreposition } from '../enrich/objectManipulation/parse/parseToken'
-import type { ParseCommandResult } from '../baseClasses'
+import type { QualifierPreposition } from '../enrich/objectManipulation/parse/parseToken'
 import type { AttemptKind, CommandAttempt } from '../commandAttempt'
 
 /**
@@ -88,32 +87,7 @@ type RepeatedName<Pattern extends readonly unknown[], Seen extends string = neve
     : never
 
 /**
- * No producer in this slice -- the first is Step 2's relational containment bucket
- * (put/place ... in/into ...). Declared now so DeterministicTemplateMatch's `defer`
- * arm has a stable shape.
- */
-export type DeterministicTemplateDeferReason = 'nesting'
-
-export type DeterministicTemplateMatch =
-    | { type: 'noMatch' }
-    | { type: 'matched'; skeleton: ParseSkeleton; intent: ParseCommandResult }
-    | { type: 'defer'; reason: DeterministicTemplateDeferReason }
-
-/**
- * A structural contract, not a class -- any value with this method shape conforms,
- * whether produced by the pattern-driven factory (patternTemplate.ts, the only
- * implementation this slice builds) or, someday, a context-dependent implementation
- * (e.g. Navigation's exit resolution) that needs fields ParseCommandInput carries
- * beyond raw command text or a skeleton. Deliberately isolated in its own module so
- * a future implementation can depend on this contract alone.
- */
-export interface DeterministicTemplate {
-    matchString(command: string): DeterministicTemplateMatch
-    matchTokens(skeleton: ParseSkeleton): DeterministicTemplateMatch
-}
-
-/**
- * The object templates' sibling of DeterministicTemplate: a pattern plus the function that builds
+ * An object template: a pattern plus the function that builds
  * the template's attempt from one fill's captures, by name. The template file holds its shape, its
  * words and its narration unit together. Plan matches every template over the command's tokens
  * (`plan/planSkeleton.ts` `planTokens`), one attempt per fill, and pools them all rather than

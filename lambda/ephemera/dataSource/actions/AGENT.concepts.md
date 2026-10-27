@@ -106,16 +106,11 @@ This sharpens where LLM cost is actually spent, compared to treating "fast path 
 
 ## `DeterministicTemplate`
 
-**Scope note:** unlike the rest of this file, this vocabulary is not object-manipulation-specific. One pattern language serves the bare-word rows (`look`, `help`, `home`, `predict`, none of which are object manipulation), the object templates (`AttemptTemplate`), and the fast path, which matches the membership and containment templates' patterns over the command's tokens.
+**Scope note:** unlike the rest of this file, this vocabulary is not object-manipulation-specific. One pattern language serves the intent rows (`look`, `help`, `home`, `predict`, `wait`, none of which are object manipulation), the object templates, and the fast path, which reads both over the command's tokens.
 
-A **`DeterministicTemplate`** is a structural interface --- `matchString(command: string)` / `matchTokens(skeleton: ParseSkeleton)`, both returning a **`DeterministicTemplateMatch`** --- for recognizing a command deterministically, at zero Bedrock cost, from either raw text or an already-tokenized skeleton. The **pattern-driven** family is a `PatternElement[]` (`templateText` a fixed word over its own typed lexicon, `objectSpan` referent slot, `capturedText` free-text slot, `objectPhrase` a span optionally qualified, through a closed-set preposition, by another object phrase) plus a constant `templateIntent`. An **`AttemptTemplate`** is the object templates' sibling: the same pattern plus a builder that turns one fill's captures into a `CommandAttempt`, so one pattern yields one attempt per way it fits; a builder reads its captures by element name, and the template's name is the attempt's kind. The interface leaves a seam for a **context-dependent** family --- Navigation's exit resolution --- whose emitted shape depends on live context rather than pattern data alone.
-
-**`DeterministicTemplateMatch`** is a three-arm result:
-- `{ type: 'noMatch' }` --- didn't recognize this at all.
-- `{ type: 'matched', skeleton: ParseSkeleton, intent: ParseCommandResult }` --- classification **and** a synthesized skeleton together, in one deterministic hit. Reuses `ParseCommandResult` rather than a new "intent info" type, since the union already discriminates cleanly across families by construction.
-- `{ type: 'defer', reason: DeterministicTemplateDeferReason }` --- recognized a known-but-structurally-unsupported shape --- distinct from "didn't understand this at all." No row produces it today.
-
-**Differentiation lives in the skeleton, not the intent.** A row's intent is a constant; which verb, which phrase and which spans were matched are carried by the **synthesized skeleton** (or, for an `AttemptTemplate`, by the fill's captures), recoverable downstream the same way a Parse-produced skeleton is.
+A **pattern** is a `PatternElement[]`: `templateText` a fixed word over its own typed lexicon, `objectSpan` a referent slot, `capturedText` a free-text slot, `objectPhrase` a span optionally qualified, through a closed-set preposition, by another object phrase. Every deterministic template's fixed words together are the one divider set that cuts a command into tokens. Two kinds of template read a pattern:
+- An **`IntentTemplate`** (intent row) is a pattern of fixed words only and the constant result it answers, at zero Bedrock cost. It answers as a result, not an attempt: its words are no other template's and it has no referent to pool with other readings.
+- An **`AttemptTemplate`** (object template) is a pattern plus a builder that turns one fill's captures into a `CommandAttempt`, so one pattern yields one attempt per way it fits; a builder reads its captures by element name, and the template's name is the attempt's kind.
 
 ---
 

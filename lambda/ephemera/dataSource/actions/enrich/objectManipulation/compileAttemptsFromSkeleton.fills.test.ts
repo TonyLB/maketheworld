@@ -6,7 +6,7 @@ import { compileAttemptsFromSkeleton, type SkeletonFill } from './compileAttempt
 import type { ParseTokenDraft } from './parse/parseToken'
 import { tokenize } from '../../deterministicTemplate/granuleTokens'
 import { sameSegmentation } from './plan/attemptTemplateFixture'
-import { PLAN_GRANULES, planTokens } from './plan/planSkeleton'
+import { COMMAND_GRANULES, planTokens } from './plan/planSkeleton'
 import type { ResumeAnswers } from './resumeAnswers'
 
 const actor = 'CHARACTER#Tess' as EphemeraCharacterId
@@ -25,7 +25,7 @@ const span = (value: string): ParseTokenDraft => ({ type: 'objectSpan', span: va
  * the segmentations listed (in any order).
  */
 const fillsOf = (command: string, drafts: ParseTokenDraft[][]): SkeletonFill[] => {
-    const fills = planTokens(tokenize(PLAN_GRANULES, command), command)
+    const fills = planTokens(tokenize(COMMAND_GRANULES, command), command)
     expect(fills).toHaveLength(drafts.length)
     expect(drafts.every((draft) => fills.some(({ skeleton }) => sameSegmentation(skeleton, draft)))).toBe(true)
     return fills

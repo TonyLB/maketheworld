@@ -218,6 +218,48 @@ Object {
 }
 `;
 
+exports[`skeletonMatcher characterization corpus (Slice 0) go home (a home exit) 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 1,
+      "type": "Home",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+      "parse": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "Home",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) go home 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 1,
+      "type": "Home",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+      "parse": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "Home",
+  },
+}
+`;
+
 exports[`skeletonMatcher characterization corpus (Slice 0) go north 1`] = `
 Object {
   "outcome": Object {
@@ -243,6 +285,27 @@ Object {
 `;
 
 exports[`skeletonMatcher characterization corpus (Slice 0) help 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 1,
+      "type": "Help",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+      "parse": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "Help",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) help me 1`] = `
 Object {
   "outcome": Object {
     "result": Object {
@@ -901,14 +964,14 @@ Object {
     },
     "stubCalls": Object {
       "acme": 0,
-      "classify": 1,
+      "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
       "parse": 0,
     },
   },
   "readings": Object {
-    "fastPath": "no deterministic answer",
+    "fastPath": "AwaitRoadRunner",
   },
 }
 `;

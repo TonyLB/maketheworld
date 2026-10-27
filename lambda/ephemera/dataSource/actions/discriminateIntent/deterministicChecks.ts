@@ -13,35 +13,16 @@ import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestS
 import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
-import { tokenize } from '../deterministicTemplate/granuleTokens'
+import { tokenize, type GranuleToken } from '../deterministicTemplate/granuleTokens'
+import { matchIntentTemplate } from '../deterministicTemplate/intentTemplates'
 import { matchPattern } from '../deterministicTemplate/patternTemplate'
 import { containmentTemplate } from '../enrich/objectManipulation/plan/matchContainmentTemplate'
 import { membershipTemplate } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
-import { PLAN_GRANULES } from '../enrich/objectManipulation/plan/planSkeleton'
+import { COMMAND_GRANULES } from '../enrich/objectManipulation/plan/planSkeleton'
 import { exceedsQualifierCap } from '../enrich/objectManipulation/plan/qualifierPrepositions'
 
-/** After trim, case-insensitive look or l as the whole line. */
-function isBareLookCommand(trimmed: string): boolean {
-    return /^(?:look|l)$/i.test(trimmed)
-}
-
-/** After trim, case-insensitive help as the whole line. */
-function isBareHelpCommand(trimmed: string): boolean {
-    return /^help$/i.test(trimmed)
-}
-
-/** After trim, case-insensitive home as the whole line. */
-function isBareHomeCommand(trimmed: string): boolean {
-    return /^home$/i.test(trimmed)
-}
-
-/** After trim, case-insensitive predict as the whole line (no p alias). */
-function isBarePredictCommand(trimmed: string): boolean {
-    return /^predict$/i.test(trimmed)
-}
-
 /**
- * The zero-Bedrock fast path: the command cut into tokens as Plan cuts it (`PLAN_GRANULES`), and
+ * The zero-Bedrock object fast path: the command's tokens (`COMMAND_GRANULES`, as Plan cuts it),
  * claimed when the membership or the containment template's pattern fits it, with no gate: what
  * the world must make true is Identify's and the dry run's to judge, and a fast-path Abstain
  * climbs to the LLM route. A claim hands the tokens up, and Plan reads every template over them
@@ -49,9 +30,8 @@ function isBarePredictCommand(trimmed: string): boolean {
  * is never claimed.
  */
 function maybeDeterministicManipulationIntent(
-    input: ParseCommandInput
+    tokens: GranuleToken[]
 ): ParseCommandObjectManipulationIntentResult | null {
-    const tokens = tokenize(PLAN_GRANULES, input.command)
     if (exceedsQualifierCap(tokens)) {
         return null
     }
@@ -119,21 +99,15 @@ export function deterministicIntentChecks(input: ParseCommandInput): ParseComman
         }
     }
 
-    const trimmedCommand = input.command.trim()
-    if (isBarePredictCommand(trimmedCommand)) {
-        return { type: 'PredictHypothesis', confidence: 1 }
-    }
-    if (isBareLookCommand(trimmedCommand)) {
-        return { type: 'LookRoom', confidence: 1 }
-    }
-    if (isBareHelpCommand(trimmedCommand)) {
-        return { type: 'Help', confidence: 1 }
-    }
-    if (isBareHomeCommand(trimmedCommand)) {
-        return { type: 'Home', confidence: 1 }
+    // The intent rows first: no object template reads a command of fixed words alone, so the order
+    // decides nothing between readings; it puts `go home` ahead of the Navigation regex, as bare `home` was.
+    const tokens = tokenize(COMMAND_GRANULES, input.command)
+    const intent = matchIntentTemplate(tokens)
+    if (intent) {
+        return intent
     }
 
-    const manipulationIntent = maybeDeterministicManipulationIntent(input)
+    const manipulationIntent = maybeDeterministicManipulationIntent(tokens)
     if (manipulationIntent) {
         return manipulationIntent
     }

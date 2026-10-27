@@ -177,16 +177,27 @@ describe('deterministicIntentChecks', () => {
         expect(deterministicIntentChecks({ command: 'prediction' })).toBeNull()
     })
 
-    it('returns Help only for bare help', () => {
+    it('returns Help for help and its paraphrases', () => {
         expect(deterministicIntentChecks({ command: 'help' })).toEqual({ type: 'Help', confidence: 1 })
         expect(deterministicIntentChecks({ command: '  HELP  ' })).toEqual({ type: 'Help', confidence: 1 })
-        expect(deterministicIntentChecks({ command: 'help me' })).toBeNull()
+        expect(deterministicIntentChecks({ command: 'help me' })).toEqual({ type: 'Help', confidence: 1 })
+        expect(deterministicIntentChecks({ command: 'helper' })).toBeNull()
     })
 
-    it('returns Home only for bare home', () => {
+    it('returns Home for home and its paraphrases, ahead of an exit named "home"', () => {
         expect(deterministicIntentChecks({ command: 'home' })).toEqual({ type: 'Home', confidence: 1 })
         expect(deterministicIntentChecks({ command: '  HOME  ' })).toEqual({ type: 'Home', confidence: 1 })
-        expect(deterministicIntentChecks({ command: 'go home' })).toBeNull()
+        expect(deterministicIntentChecks({ command: 'go home' })).toEqual({ type: 'Home', confidence: 1 })
+        expect(deterministicIntentChecks({
+            command: 'go home',
+            roomExits: [{ normalizedName: 'home', targetId: northRoom }],
+        })).toEqual({ type: 'Home', confidence: 1 })
+    })
+
+    it('returns AwaitRoadRunner for wait and its paraphrases', () => {
+        expect(deterministicIntentChecks({ command: 'wait' })).toEqual({ type: 'AwaitRoadRunner', confidence: 1 })
+        expect(deterministicIntentChecks({ command: 'wait for the bird' })).toEqual({ type: 'AwaitRoadRunner', confidence: 1 })
+        expect(deterministicIntentChecks({ command: 'wait for it' })).toBeNull()
     })
 
     it('returns deterministic Navigation for exact and go-prefixed exit names', () => {

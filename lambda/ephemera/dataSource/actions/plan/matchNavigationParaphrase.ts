@@ -14,11 +14,9 @@ const MOVEMENT_VERBS = ['head', 'walk', 'move', 'travel', 'enter']
 
 /**
  * Plan-stage Navigation paraphrase matcher (Sub-iteration 2, iteration 7,
- * 2026-07-20). Not a `DeterministicTemplate` -- that interface's
- * `matchString(command: string)` doesn't carry `ParseCommandInput.roomExits`,
- * which exit resolution genuinely needs; widening the shared interface for
- * this one case was scoped out (see AGENT.classifyPlanGeneralization.planning.md,
- * CPG-1). Runs pre-Parse, zero Bedrock cost.
+ * 2026-07-20). Not a pattern template: exit resolution reads
+ * `ParseCommandInput.roomExits`, which no pattern reads. Runs pre-Parse, zero
+ * Bedrock cost.
  *
  * An explicit movement verb makes "this was a navigation attempt" unambiguous,
  * so a resolution failure here surfaces as a specific Error (reconnecting
