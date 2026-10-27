@@ -65,7 +65,7 @@ export async function runIdentityStageOverSkeleton(
 /**
  * Identify for the shared producer (ISS8203 slice 2): the referents an attempt names, keyed by
  * stableRefKey, are the set Identify resolves. Spans come from the skeleton in its own order, so
- * `SpanEmbeddings.get` sees the same calls in the same order as the per-route producers did. A key that no
+ * `SpanEmbeddings.get` is called in that order (the embeds themselves run concurrently). A key that no
  * skeleton token carries is a construction bug, not a runtime outcome, so it throws.
  */
 export async function runIdentityStageOverReferenceKeys(

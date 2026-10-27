@@ -51,10 +51,11 @@ Some handlers are **process-supporting** state for the current lambda run: they 
 
 ### **DeferredCache Foundation**
 All cache handlers use the `DeferredCache<T>` class which provides:
+- **In-flight sharing**: A request for a key whose fetch is still in flight awaits that same fetch, so concurrent callers (e.g. parallel `Promise.all` branches) make one call, not one each
 - **Deferred Loading**: Request data immediately, load asynchronously
-- **Batching**: Multiple requests for the same data share single database calls
-- **Promise Management**: Handles concurrent requests efficiently
+- **Batching**: Multiple keys requested in the same tick share a single database call
 - **Invalidation**: Supports cache invalidation and refresh
+- **Factories must resolve**: A rejecting `promiseFactory` leaves its keys' deferreds unsettled, so every awaiter of those keys hangs. A factory over a fallible call (Bedrock, network) catches and resolves a failure value (see **`SpanEmbeddings`**)
 
 ### **Dual Storage Pattern**
 Most cache handlers implement a dual storage system:
@@ -69,6 +70,7 @@ Different handlers use specific cache key formats:
 - **Render cache rows**: `{EphemeraId}` (Room/Feature/Knowledge component ID; `DeferredCache` + `_Store` mirror, `getExactMatch` for exact lookup)
 - **Character Meta**: `{CharacterId}`
 - **Asset State**: `{AssetId}::{StateType}`
+- **Span embeddings** (`internalCache.SpanEmbeddings`): `spanEmbeddingKey(span)` = `normalizeShortNameForEmbedding(peelLeadingArticleWhenTail(span))` --- the trimmed span, which is also the Bedrock request text
 - **Thinking results** (`internalCache.ThinkingResults`): `{workItemId}`
 - **Thinking schedules** (`internalCache.ThinkingSchedules`): `{workItemId}`
 - **Thinking jobs** (`internalCache.ThinkingJobs`): `{generationId}` (snapshot: normalized **`Meta::Job`** + adjacency **`workItemIds`** + **`schedules[]`**; see [`dataSource/thinking/AGENT.md`](../dataSource/thinking/AGENT.md)).
@@ -242,6 +244,9 @@ if (!object) {
 - **`AffordanceRoomDeliverable`** ([`affordanceRoomDeliverable.ts`](affordanceRoomDeliverable.ts)): **`DeferredCache`** of perspective-scoped merged **`StandardForm`** for affordance-channel structural WML. **`get(EphemeraRoomId, perspectiveKey)`** composes: **`AffordanceCache.getAffordanceRow`** first (required; supplies **`assetStack`** + projected **`exits`**); object ids from **`Positions.getLudicGraph`** -> **`graph.objectIds`**; **`appendImprovisationToPerspective`** on the stack when objects present; **`ComponentAggregate.get`** for the room's **`shortName`**; **`getRoomObjectContents`** (wired to `ludicCacheRoomObjectContents`) for each object's **`shortName`** and one level of contents, each room-level object stub carrying a **`ludicGraph`** of bare references to its contents with the contents as sibling name stubs (the `look <object>` shape; rules in [`positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md)); an object with an unresolved name is dropped at both levels; hydrated roster via **`getRoomCharacterList`**. Uses **`standardizeMode: 'ephemeraWire'`**. **Does not** read **`Meta::Room.objects`**. **Does not** call **`ensureAffordanceTopology`** or **`ComponentTopology.get`** (callers must hydrate first). **`invalidate(EphemeraRoomId)`** drops every cache key for that room. Cache key: **`generateAffordanceRoomDeliverableCacheKey`** (**`roomId::perspectiveKey`**).
 - **`AffordanceCache`** ([`affordanceCache.ts`](affordanceCache.ts)): memo of colocated **`Affordance::${perspectiveKey}`** Dynamo rows via **`createAffordanceCacheCacheHandler`**. **`getAffordanceRow(roomId, perspectiveKey)`** returns hydrated rows only; **`getAffordanceRowIncludingStale`** for catalog management. Memo **`set`** / **`invalidate`** --- no Dynamo write-through. Steady-state hydrate: [`../dataSource/affordanceCache/ensureAffordanceTopology.ts`](../dataSource/affordanceCache/ensureAffordanceTopology.ts).
 - **`Examples`**: **`ExamplesData`** for **Feature**/**Knowledge** ephemera ids ([`examples.AGENT.md`](./examples.AGENT.md)); **Room** prose does not use this cache path.
+
+### **Embedding Handlers**
+- **`SpanEmbeddings`** ([`spanEmbeddings/index.ts`](spanEmbeddings/index.ts)): per-invocation **`DeferredCache<EmbedObjectSpanResult>`** of Bedrock Titan span embeds for Identify and the calibration shim. **`get(span)`** keys on the trimmed span (**`spanEmbeddingKey`**), so `cup`, `the cup` and `  The  Cup ` share one key, one request and one result; a span that trims to empty resolves `{ success: false }` without Bedrock. Concurrent requests for a key share the in-flight call. The factory catches embedder throws and resolves `{ success: false }` (see **DeferredCache Foundation**); failures stay cached for the invocation. The embedder, [`embedObjectSpan.ts`](spanEmbeddings/embedObjectSpan.ts), sits beside the handler. **Keep the handler's imports free of `internalCache`** (a module that reaches it re-enters a half-built singleton; this is why `normalizeExitName` is a leaf module). Not a catalog-side read: stored object vectors are **`ObjectEmbedding`**. Consumers: [`actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md) "Identify".
 
 ### **Character-Based Handlers**
 - **`CharacterMeta`**: Caches character metadata and state

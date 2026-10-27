@@ -166,6 +166,48 @@ describe('runIdentityStage', () => {
         expect(result.spanPools[0]?.candidates.length).toBe(1)
     })
 
+    describe('concurrency', () => {
+        const deferred = <T,>() => {
+            let resolve!: (value: T) => void
+            const promise = new Promise<T>((res) => { resolve = res })
+            return { promise, resolve }
+        }
+        const embeddedCatalog: ObjectManipulationCatalogEntry[] = [{
+            objectId: broomId,
+            normalizedShortName: 'broom',
+            catalogScope: 'room',
+            embedding: makeEmbeddingFromAxis(1),
+        }]
+
+        it('starts every span\'s embed before any settles', async () => {
+            const held = new Map([['mop', deferred<{ success: false }>()], ['rag', deferred<{ success: false }>()]])
+            mockGet.mockImplementation((span: string) => held.get(span)!.promise)
+
+            const pending = runIdentityStage('x', ['mop', 'rag'], embeddedCatalog)
+            await Promise.resolve()
+            await Promise.resolve()
+
+            expect(mockGet.mock.calls.map(([span]) => span)).toEqual(['mop', 'rag'])
+            held.forEach(({ resolve }) => resolve({ success: false }))
+            await expect(pending).resolves.toMatchObject({ type: 'success' })
+        })
+
+        it('returns pools in span order when embeds settle out of order', async () => {
+            const held = new Map([['mop', deferred<{ success: false }>()], ['rag', deferred<{ success: false }>()]])
+            mockGet.mockImplementation((span: string) => held.get(span)!.promise)
+
+            const pending = runIdentityStage('x', ['mop', 'rag'], embeddedCatalog)
+            held.get('rag')!.resolve({ success: false })
+            held.get('mop')!.resolve({ success: false })
+            const result = await pending
+
+            expect(result.type).toBe('success')
+            if (result.type === 'success') {
+                expect(result.spanPools.map(({ span }) => span)).toEqual(['mop', 'rag'])
+            }
+        })
+    })
+
     it('returns noCatalog error when catalog is empty and span does not match', async () => {
         const result = await runIdentityStage('pick up broom', ['broom'], [])
 

@@ -14,10 +14,13 @@ export async function runIdentityStage(
     structures: ReadonlyMap<string, SpanStructure> = new Map()
 ): Promise<IdentityStageResult> {
     void command
+    // Every span's embed starts before any is awaited (`SpanEmbeddings` shares one in-flight call per
+    // trimmed span). The error returned is the first in span order, not the first to settle.
+    const poolResults = await Promise.all(
+        rawObjectSpans.map((rawObjectSpan) => resolveCatalogSpanToPool(rawObjectSpan, catalog, structures.get(rawObjectSpan)))
+    )
     const spanPools: SpanCandidatePool[] = []
-
-    for (const rawObjectSpan of rawObjectSpans) {
-        const poolResult = await resolveCatalogSpanToPool(rawObjectSpan, catalog, structures.get(rawObjectSpan))
+    for (const poolResult of poolResults) {
         if (poolResult.type === 'error') {
             return poolResult
         }
