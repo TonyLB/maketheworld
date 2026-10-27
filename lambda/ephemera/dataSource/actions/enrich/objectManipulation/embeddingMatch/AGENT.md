@@ -60,20 +60,20 @@ Pure helpers for the fault-tolerant candidate pool (FT-1). Wired into **`buildSp
 | [`embedRelevance`](embedRelevance.ts) | FT-8 two-point log map: raw cosine -> `[0,1]` |
 | [`evidenceNumerics`](evidenceNumerics.ts) | Domain-agnostic `sigmoid`, `tanh`, `clampUnitInterval` |
 | [`relevanceCombine`](relevanceCombine.ts) | Flank + joint combiner patterns: `tanhCenteredFlankScore` (production), `multiplicativeFlankScoreV1` (simulator A/B), `weightedRmsJointRelevance` (FT-1.2) |
-| [`osaStep`](osaStep.ts) | The OSA kernel: the cheapest step (match, substitute, insert, delete, transpose) into one alignment cell, and `AlignmentOp` |
-| [`sellersApproximateSubstringMatch`](sellersApproximateSubstringMatch.ts) | Sellers' approximate substring search of the shorter normalized string in the longer (whichever side each is), on the OSA kernel, with its alignment ops |
-| [`lexicalDiff`](lexicalDiff.ts) | The alignment read back in words: the side of the longer string (the only surplus Sellers reports as words; the shorter string's surplus is edits inside the match), the match with its ops, and each flank's partial word, whole words and punctuation marks (words per `granuleTokens.ts` `lexemesOf`); `flankLengthMetricsOf` projects it to the adjoined/remote lengths. No production caller yet |
-| [`lexicalWeights`](lexicalWeights.ts) | The cost table over a `lexicalDiff`: an edits row (the edit gate) and one row per side pricing its partial and whole words (both the tanh flank combine, `catalogSideFlankWeight`); `priceLexicalDiff` prices a diff. Called by `lexicalRelevance` |
+| [`osaStep`](osaStep.ts) | The OSA kernel: the cheapest step (match, substitute, insert, delete, transpose) into one alignment cell, priced by a step-cost hook (unit costs by default), and `AlignmentOp` |
+| [`tokenAwareAlignment`](tokenAwareAlignment.ts) | Two-level overlap alignment of the span against the name: an outer Sellers analog over tokens (pair a group, skip a span or name token inside or outside the match, each priced by side), whose group pairs an inner OSA prices (merges and splits up to `LEX_ALIGN_MAX_MERGE` at a boundary cost; partial words only at the match's edges). A pair beyond `LEX_ALIGN_PAIR_MAX_RELATIVE_EDITS` is refused; no admitted pair means no alignment |
+| [`lexicalDiff`](lexicalDiff.ts) | The alignment read back in words, per side (span, name): the match, words skipped inside it, and each flank's partial word, whole words and punctuation marks (words per `granuleTokens.ts` `lexemesOf`); with the word pairs, edits, boundaries and ops. `flankLengthMetricsOf` projects a side's flanks to the adjoined/remote lengths |
+| [`lexicalWeights`](lexicalWeights.ts) | The cost table over a `lexicalDiff`, a product of rows: the edit gate; the name's flanks (the tanh flank combine, `catalogSideFlankWeight`, applied to every diff); the span's flanks (`exp(-LEX_SPAN_SURPLUS_RATE * chars / scale)`, 1 at zero); and each side's interior words (`LEX_INTERIOR_NAME_WORD_RATE`, `LEX_INTERIOR_SPAN_WORD_RATE`, both 0). `catalogSideFlankInputs` is what the calibration harnesses read |
 | [`lexicalMatchMetrics`](lexicalMatchMetrics.ts) | The shared lexical factors: `FlankLengthMetrics`, `editDistanceRelevance` (the edit gate), `flankLengthRelevance` (simulator A/B) |
-| [`lexicalRelevance`](lexicalRelevance.ts) | Entry point: `lexicalDiff`, priced by `priceLexicalDiff`; 0 when either string normalizes to empty |
-| [`testing/legacyLexicalRelevance`](testing/legacyLexicalRelevance.ts) | The pre-diff composition (Sellers metrics, ASCII flank split, `lexicalRelevanceFromMetrics`), kept as the parity oracle until the token-aware aligner replaces Sellers |
+| [`lexicalRelevance`](lexicalRelevance.ts) | Entry point: `lexicalDiff`, priced by `priceLexicalDiff`; 0 when either string normalizes to empty or no pair of their words aligns |
+| [`testing/sellersApproximateSubstringMatch`](testing/sellersApproximateSubstringMatch.ts) | Sellers' approximate substring search on the OSA kernel, no longer in production: the oracle `tokenAwareAlignment` is checked against on one-word spans |
 | [`testing/tokenOverlapRelevance`](testing/tokenOverlapRelevance.ts) | Simulator-only A/B baseline (not production) |
 | [`testing/simulateLexicalIdentityCorpus`](testing/simulateLexicalIdentityCorpus.ts) | Lexical-only identity corpus rank + tanh vs v1 A/B harness |
 
-**Lexical relevance pipeline (FT-1.1.5, 2026-07-09):** embed shorter normalized string in longer -> Sellers match -> `lexicalDiff` -> cost table (`lexicalWeights`):
+**Lexical relevance pipeline (FT-1.1.5, 2026-07-09; re-expressed 2026-10-27, `AGENT.skeletonMatcher.planning.md` 4b--4d):** token-aware alignment of the span against the name -> `lexicalDiff` -> cost table (`lexicalWeights`):
 
-1. **Edit distance** (hard gate, can hit `0`): `1 - min(1, editDistance / max(|span in T|, |P|))`
-2. **Flank geometry** via centered tanh evidence + outer sigmoid (not a product of per-factor asymptotics):
+1. **Edit distance** (hard gate, can hit `0`): `1 - min(1, edits / max(|span match|, |name match|))`, the edits inside the word pairs
+2. **Name-side flank geometry** (the catalog side's forgiveness) via centered tanh evidence + outer sigmoid (not a product of per-factor asymptotics), with `patternLength` the span's match and `candidateTextLength` the name:
 
 ```
 x_L/R   = adjoinedLength / spanScale
@@ -87,8 +87,14 @@ coverage = patternLength / candidateTextLength
 lift     = tanh(LEX_BIAS_COVERAGE_SCALE * coverage) / tanh(LEX_BIAS_COVERAGE_SCALE)
 biasEff  = LEX_FLANK_COMBINE_BIAS_MIN + (LEX_FLANK_COMBINE_BIAS - MIN) * lift
 flankScore = sigmoid(biasEff + e_L + e_R + e_Rm)
-lexRelevance = editDistanceRelevance * flankScore
+spanSurplus = exp(-LEX_SPAN_SURPLUS_RATE * spanFlankChars / spanScale)
+interior_side = exp(-LEX_INTERIOR_<SIDE>_WORD_RATE * skippedChars_side / spanScale)
+lexRelevance = editDistanceRelevance * flankScore * spanSurplus * interior_name * interior_span
 ```
+
+3. **Span-side surplus** (SM-4): uncapped, exactly 1 when the span has no extra words, so such a pair scores as the edits and the name's flanks say. **Interior words** have their own rows per side, both at rate 0 until rung 14 judges them.
+
+**Placeholders, not locked** (rung 14 calibrates): `LEX_ALIGN_SPAN_SKIP_COST=1`, `LEX_ALIGN_NAME_PARTIAL_COST=0.75`, `LEX_ALIGN_BOUNDARY_COST=0.75`, `LEX_ALIGN_MAX_MERGE=3`, `LEX_ALIGN_PAIR_MAX_RELATIVE_EDITS=1/3`, `LEX_SPAN_SURPLUS_RATE=0.5`, `LEX_INTERIOR_NAME_WORD_RATE=0`, `LEX_INTERIOR_SPAN_WORD_RATE=0`.
 
 Per-channel scales/weights in [`thresholds.ts`](thresholds.ts). Production adjoined and remote channels are **ratio-invariant** (FT-1.3.3/4) when [`catalogSideFlankWeight`](lexicalWeights.ts) passes `FlankCombineContext`; legacy absolute channels when context omitted (simulator A/B).
 

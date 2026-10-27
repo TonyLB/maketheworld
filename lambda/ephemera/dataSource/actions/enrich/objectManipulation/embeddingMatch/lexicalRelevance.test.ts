@@ -1,6 +1,4 @@
 import { lexicalRelevance } from './lexicalRelevance'
-import { legacyLexicalRelevance } from './testing/legacyLexicalRelevance'
-import { LEXICAL_PARITY_PAIRS } from './testing/lexicalParityPairs'
 
 describe('lexicalRelevance', () => {
     it('scores exact match near 1.0', () => {
@@ -9,8 +7,13 @@ describe('lexicalRelevance', () => {
 
     it('scores wrapper / token-boundary containment highly even on long catalog names', () => {
         expect(lexicalRelevance('broom', 'the broom')).toBeGreaterThan(0.85)
-        expect(lexicalRelevance('the broom', 'broom')).toBeGreaterThan(0.85)
         expect(lexicalRelevance('broom', 'the extraordinarily detailed antique wooden broom')).toBeGreaterThan(0.65)
+    })
+
+    // Identify peels a leading article before scoring (`resolveCatalogSpanToPool`); unpeeled, the
+    // article is the span's own surplus.
+    it('charges a span\'s own extra words more than a name\'s', () => {
+        expect(lexicalRelevance('the broom', 'broom')).toBeLessThan(lexicalRelevance('broom', 'the broom'))
     })
 
     it('tolerates typos on short names with moderate non-zero score', () => {
@@ -66,18 +69,32 @@ describe('lexicalRelevance', () => {
     })
 })
 
-describe('lexicalRelevance against the pre-4c scoring', () => {
-    it.each(LEXICAL_PARITY_PAIRS)('reproduces it: %s against %s', (span, shortName) => {
-        expect(lexicalRelevance(span, shortName)).toBe(legacyLexicalRelevance(span, shortName))
+describe('lexicalRelevance on a span\'s surplus (SM-4)', () => {
+    it('scores a span with extra words well below its name alone', () => {
+        expect(lexicalRelevance('cup on saucer on table', 'cup')).toBeLessThan(lexicalRelevance('cup', 'cup') / 2)
+        expect(lexicalRelevance('cup from table', 'cup')).toBeLessThan(lexicalRelevance('cup', 'cup') / 2)
     })
 
-    // A match edge inside a word held together by `-` or `'`, or holding a non-ASCII letter: the
-    // rest of that word is now a partial word, where the ASCII test read it as remote.
-    it.each([
-        ['encrusted', 'jewel-encrusted'],
-        ['don', "don't"],
-        ['caf', 'café'],
-    ])('departs from it by the word rule: %s against %s', (span, shortName) => {
-        expect(lexicalRelevance(span, shortName)).not.toBe(legacyLexicalRelevance(span, shortName))
+    it('scores a span with extra words below a span that is part of the name', () => {
+        expect(lexicalRelevance('cup on saucer on kitchen table', 'kitchen table')).toBeLessThan(lexicalRelevance('table', 'kitchen table'))
+    })
+
+    it('keeps the catalog side\'s forgiveness: `ax` against "rusty old ax" scores as before the span-side cost', () => {
+        // read from the pre-4d scoring (`legacyLexicalRelevance`, retired with Sellers in 4d)
+        expect(lexicalRelevance('ax', 'rusty old ax')).toBe(0.8598623420545417)
+    })
+
+    it('forgives a name\'s words the span leaves out from inside it', () => {
+        expect(lexicalRelevance('rusty ax', 'rusty old ax')).toBeGreaterThan(0.95)
+        expect(lexicalRelevance('pig blanket', 'pig in a blanket')).toBeGreaterThan(0.95)
+    })
+
+    it('scores an exact name the span holds above a name its words merely resemble', () => {
+        expect(lexicalRelevance('cup , then look', 'cup')).toBeGreaterThan(lexicalRelevance('cup , then look', 'man in the moon'))
+    })
+
+    it('scores 0 when no word of the span pairs with a word of the name', () => {
+        expect(lexicalRelevance('sweeping tool', 'broom')).toBe(0)
+        expect(lexicalRelevance('sword', 'anvil')).toBe(0)
     })
 })

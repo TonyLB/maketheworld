@@ -29,4 +29,10 @@ describe('osaStep', () => {
         expect(osaStep(costs({ '0,1': 0, '1,0': 0 }), 'a', 'b', 1, 1).op).toBe('delete')
         expect(osaStep(costs({ '0,0': 0, '1,1': 0 }), 'ab', 'ba', 2, 2).op).toBe('substitute')
     })
+
+    it('prices each step as the step cost says', () => {
+        const spacesCostHalf = (op: string) => (op === 'match' ? 0 : op === 'delete' ? 0.5 : 3)
+        expect(osaStep(costs({ '0,0': 0, '1,1': 0 }), 'a ', 'a', 2, 1, spacesCostHalf)).toEqual({ cost: 0.5, op: 'delete', from: { i: 1, j: 1 } })
+        expect(osaStep(costs({ '0,0': 0 }), 'a', 'b', 1, 1, spacesCostHalf).cost).toBe(3)
+    })
 })

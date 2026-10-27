@@ -1,4 +1,4 @@
-import type { AlignmentOp } from './osaStep'
+import type { AlignmentOp } from '../osaStep'
 import { sellersApproximateSubstringMatch } from './sellersApproximateSubstringMatch'
 
 describe('sellersApproximateSubstringMatch', () => {

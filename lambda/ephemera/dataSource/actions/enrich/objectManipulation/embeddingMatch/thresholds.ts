@@ -89,6 +89,28 @@ export const LEX_ADJOINED_POS_DAMP_SCALE = 3
 export const LEX_ADJOINED_FLANK_MIDPOINT_RATIO = 0.5
 
 // -----------------------------------------------------------------------------
+// Token-aware alignment and span-side surplus (AGENT.skeletonMatcher.planning.md 4d, 2026-10-27).
+// Placeholders, not locked: rung 14 (match tuning) calibrates them. Costs are in edits (an edit costs 1).
+
+/** A span character left out of a pair, or in a span token outside or skipped inside the match: the price of a delete, so the span is aligned whole unless its words are surplus. */
+export const LEX_ALIGN_SPAN_SKIP_COST = 1
+
+/** A character, outside the match, of the name's word its edge cuts into: below an insert, so "axle" keeps `le` as a partial word. A name's whole tokens outside or inside the match are free. */
+export const LEX_ALIGN_NAME_PARTIAL_COST = 0.75
+
+/** A boundary merged or split inside a pair (`coupon` against "cup on"). Cheaper than an edit, not free. */
+export const LEX_ALIGN_BOUNDARY_COST = 0.75
+
+/** The most tokens a pair joins against one token on the other side. */
+export const LEX_ALIGN_MAX_MERGE = 3
+
+/** The most edits a pair may hold, relative to its length: beyond it the tokens are no pair, each its side's surplus (`up` against "in", `look` against "moon"); within it, `teh` against "the". */
+export const LEX_ALIGN_PAIR_MAX_RELATIVE_EDITS = 1 / 3
+
+/** Span-side surplus factor exp(-rate * surplus characters / match scale): uncapped, 1 at zero surplus. */
+export const LEX_SPAN_SURPLUS_RATE = 0.5
+
+// -----------------------------------------------------------------------------
 // FT-1.2 pool merge (locked FT-1.3, 2026-07-09).
 
 /** RMS weight for lexical channel in weightedRmsJointRelevance. */
@@ -137,6 +159,9 @@ export type RelevanceNormalizationParams = {
     lexRemoteFlankMidpointRatio?: number
     lexRemoteFlankScale?: number
     lexRemoteFlankWeight?: number
+    lexSpanSurplusRate?: number
+    lexInteriorNameWordRate?: number
+    lexInteriorSpanWordRate?: number
     jointRelevanceWL?: number
     jointRelevanceWE?: number
     poolShortlistTopN?: number

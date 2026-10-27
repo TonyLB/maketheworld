@@ -9,11 +9,11 @@ import {
 describe('simulateLexicalIdentityCorpus', () => {
     const results = simulateLexicalIdentityCorpus()
 
-    it('ranks broom first for sweeping tool paraphrase when lexical should help', () => {
+    // No word of `sweeping tool` pairs with a catalog name (`tool` against "room" holds an edit per
+    // two letters), so the paraphrase is the embedding's to carry (skeletonMatcher 4d).
+    it('scores the token-free sweeping tool paraphrase 0 lexically', () => {
         const paraphrase = results.find((entry) => entry.caseId === 'identity-003-broom-paraphrase')
-        expect(paraphrase?.ranked[0]?.shortName).toBe('broom')
-        expect(paraphrase?.topLexicalScore).toBeGreaterThan(0)
-        expect(paraphrase?.topLexicalScore).toBeLessThan(0.4)
+        expect(paraphrase?.topLexicalScore).toBe(0)
     })
 
     it('keeps absent-object head lexical score well below exact match', () => {
@@ -40,7 +40,7 @@ describe('lexical combine A/B on identity corpus metrics', () => {
         if (wrapperDiff === undefined) {
             throw new Error('no diff of the wrapper case')
         }
-        const wrapperMetrics = flankLengthMetricsOf(wrapperDiff)
+        const wrapperMetrics = flankLengthMetricsOf(wrapperDiff.name)
         const spanScale = 5
         const tanhFlank = tanhCenteredFlankScore(wrapperMetrics, spanScale)
         const multiplicativeFlank = multiplicativeFlankScoreV1(wrapperMetrics, spanScale)

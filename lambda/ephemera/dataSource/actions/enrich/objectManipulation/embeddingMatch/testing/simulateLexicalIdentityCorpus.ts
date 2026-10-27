@@ -1,8 +1,8 @@
 import { EMBEDDING_CALIBRATION_IDENTITY_CASES } from '../../../../../../calibration/objectMatch/corpus'
 
-import { flankLengthMetricsOf, lexicalDiff } from '../lexicalDiff'
-import { matchSpanLength } from '../lexicalMatchMetrics'
+import { lexicalDiff } from '../lexicalDiff'
 import { lexicalRelevance } from '../lexicalRelevance'
+import { catalogSideFlankInputs } from '../lexicalWeights'
 import {
     multiplicativeFlankScoreV1,
     tanhCenteredFlankScore,
@@ -23,15 +23,14 @@ export type LexicalIdentityCorpusResult = {
     topLexicalScore: number
 }
 
-const flankMetricsForPair = (span: string, shortName: string) => {
+/** The flank scores of a pair, or 0 where no pair of its words is close enough to align. */
+const flankScoresForPair = (span: string, shortName: string): { tanh: number; multiplicative: number } => {
     const diff = lexicalDiff(span, shortName)
     if (diff === undefined) {
-        throw new Error(`no diff of "${span}" against "${shortName}"`)
+        return { tanh: 0, multiplicative: 0 }
     }
-    return {
-        metrics: flankLengthMetricsOf(diff),
-        spanScale: Math.max(matchSpanLength(diff.match), diff.pattern.length, 1),
-    }
+    const { metrics, spanScale } = catalogSideFlankInputs(diff)
+    return { tanh: tanhCenteredFlankScore(metrics, spanScale), multiplicative: multiplicativeFlankScoreV1(metrics, spanScale) }
 }
 
 const rankCatalogByLexicalRelevance = (
@@ -39,13 +38,12 @@ const rankCatalogByLexicalRelevance = (
     catalog: readonly string[]
 ): LexicalRankedCatalogEntry[] => {
     const ranked = catalog.map((shortName) => {
-        const lexicalScore = lexicalRelevance(span, shortName)
-        const { metrics, spanScale } = flankMetricsForPair(span, shortName)
+        const { tanh, multiplicative } = flankScoresForPair(span, shortName)
         return {
             shortName,
-            lexicalScore,
-            tanhFlankScore: tanhCenteredFlankScore(metrics, spanScale),
-            multiplicativeFlankScore: multiplicativeFlankScoreV1(metrics, spanScale),
+            lexicalScore: lexicalRelevance(span, shortName),
+            tanhFlankScore: tanh,
+            multiplicativeFlankScore: multiplicative,
         }
     })
 

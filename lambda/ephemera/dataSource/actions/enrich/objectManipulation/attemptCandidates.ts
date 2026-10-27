@@ -411,8 +411,13 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
         return { ok: false, reason: resumeErrorMessages.staleReferentAnswer(input.spanPools.get(staleKey!)?.span ?? staleKey!), stale: true }
     }
 
-    // One candidate per attempt per assignment it binds distinctly: each is built from its own attempt's actions only.
-    const candidates = viewed.flatMap(({ identities, confidence, chosen }) => {
+    // One candidate per attempt per grounding of its own keys, which it binds distinctly: each is built
+    // from its own attempt's actions only, and its confidence is the min over its own keys. The joint
+    // assignment spans every attempt's keys (one Enumerate for the pool), so a key another attempt
+    // reads neither lowers this one's confidence nor repeats it.
+    const ownKeysOf = new Map(input.attempts.map((attempt) => [attempt, attemptSpanKeys([attempt])]))
+    const seen = new Set<string>()
+    const candidates = viewed.flatMap(({ identities, chosen }) => {
         const names = new Map<string, SpanName>()
         const viewAnswers: Record<string, ViewAnswer> = {}
         const viewLabels: Record<string, string> = {}
@@ -435,16 +440,23 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
             }
         }
         const asked = Object.keys(viewAnswers).length > 0
-        return input.attempts.filter((attempt) => bindsDistinct(attempt, identities)).map((attempt): GroundedAttemptCandidate => {
+        return input.attempts.filter((attempt) => bindsDistinct(attempt, identities)).flatMap((attempt): GroundedAttemptCandidate[] => {
+            const ownKeys = ownKeysOf.get(attempt)!
+            const grounding = `${input.attempts.indexOf(attempt)}|${ownKeys.map((key) => `${identities.get(key)?.objectId}:${JSON.stringify(chosen.get(key)?.answer ?? null)}`).join('|')}`
+            if (seen.has(grounding)) {
+                return []
+            }
+            seen.add(grounding)
+            const confidence = ownKeys.reduce((least, key) => Math.min(least, identities.get(key)?.jointRelevance ?? Number.POSITIVE_INFINITY), Number.POSITIVE_INFINITY)
             const described = attempt.actions().map((action) => describeGroundedAction(action.grounded(names), planStepsOf(attempt.actions())))
             const primary = described[described.length - 1]!
-            return {
+            return [{
                 attempt: CommandAttempt.create(input.command, described.map((entry) => entry.action), attempt.narrationUnits()),
                 confidence,
                 alternative: primary.alternative,
                 placeNames,
                 ...(asked ? { viewAnswers, viewLabels } : {}),
-            }
+            }]
         })
     })
     return { ok: true, candidates }

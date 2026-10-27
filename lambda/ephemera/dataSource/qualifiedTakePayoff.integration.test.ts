@@ -154,9 +154,10 @@ describe('qualified take payoff (integration)', () => {
     /**
      * A command end to end: parse, the bus crossing, then the real commit. With no `tokens` the
      * fast path must claim the command (Bedrock is asserted unused); with `tokens` the model
-     * returns that skeleton. Returns the commit's bus.
+     * returns that skeleton. `roomObjectLabels` overrides the room's labels (every name by default).
+     * Returns the commit's bus.
      */
-    const run = async (command: string, tokens?: string): Promise<jest.Mock> => {
+    const run = async (command: string, tokens?: string, roomObjectLabels?: string[]): Promise<jest.Mock> => {
         const labels = Object.entries(world.names) as Array<[EphemeraObjectId, string]>
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' })
         const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({ success: true, body: tokens ?? '{"tokens":[]}' })
@@ -165,7 +166,7 @@ describe('qualified take payoff (integration)', () => {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                roomObjectLabels: labels.map(([, label]) => label),
+                roomObjectLabels: roomObjectLabels ?? labels.map(([, label]) => label),
                 roomObjectCatalog: labels.map(([objectId, normalizedShortName]) => ({ objectId, normalizedShortName })),
             },
             {
@@ -215,7 +216,7 @@ describe('qualified take payoff (integration)', () => {
     )
 
     /** A cup on a saucer on the table, and another cup on a saucer on the floor. */
-    const seedTwoStacks = () => seed({
+    const seedTwoStacks = (tableName = 'table') => seed({
         graphs: {
             [ROOM_ID]: roomGraph([[TABLE_ID, 'PRESENCE#table-in-room'], [FLOOR_SAUCER_ID, 'PRESENCE#floor-saucer-in-room']]),
             [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
@@ -233,7 +234,7 @@ describe('qualified take payoff (integration)', () => {
             [FLOOR_SAUCER_ID]: [ROOM_ID],
             [FLOOR_CUP_ID]: [FLOOR_SAUCER_ID],
         },
-        names: { [TABLE_ID]: 'table', [TABLE_SAUCER_ID]: 'saucer', [TABLE_CUP_ID]: 'cup', [FLOOR_SAUCER_ID]: 'saucer', [FLOOR_CUP_ID]: 'cup' },
+        names: { [TABLE_ID]: tableName, [TABLE_SAUCER_ID]: 'saucer', [TABLE_CUP_ID]: 'cup', [FLOOR_SAUCER_ID]: 'saucer', [FLOOR_CUP_ID]: 'cup' },
     })
 
     it('"take cup on saucer on table" takes the cup on the table\'s saucer, not the floor\'s, without asking', async () => {
@@ -247,6 +248,23 @@ describe('qualified take payoff (integration)', () => {
         expect(await holds(FLOOR_SAUCER_ID, FLOOR_CUP_ID)).toBe(true)
         expect(await holds(TABLE_ID, TABLE_SAUCER_ID)).toBe(true)
         expect(await holds(ROOM_ID, FLOOR_SAUCER_ID)).toBe(true)
+        expect(delivered(publish)).toEqual([expect.stringMatching(/ picks up cup$/)])
+    })
+
+    // No span names the table exactly, so exact-fill precedence prunes nothing and every merged
+    // reading competes: a span's own extra words must cost it (skeletonMatcher 4d).
+    // The LLM route's case names no room label, so the fast path's `get` gate declines it.
+    it.each([
+        ['take cup on saucer on table', undefined, undefined],
+        ['get cup on saucer on table', '{"tokens":[{"type":"text","text":"get"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"saucer"},{"type":"text","text":"on"},{"type":"objectSpan","span":"table"}]}', []],
+    ])('"%s" with a "kitchen table" takes the cup on the table\'s saucer without asking', async (command, tokens, roomObjectLabels) => {
+        seedTwoStacks('kitchen table')
+
+        const publish = await run(command, tokens, roomObjectLabels)
+
+        expect(await holds(CHARACTER_ID, TABLE_CUP_ID)).toBe(true)
+        expect(await holds(TABLE_SAUCER_ID, TABLE_CUP_ID)).toBe(false)
+        expect(await holds(FLOOR_SAUCER_ID, FLOOR_CUP_ID)).toBe(true)
         expect(delivered(publish)).toEqual([expect.stringMatching(/ picks up cup$/)])
     })
 

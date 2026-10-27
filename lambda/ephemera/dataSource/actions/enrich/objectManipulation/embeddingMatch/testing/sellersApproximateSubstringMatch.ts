@@ -1,15 +1,15 @@
 /**
- * Sellers' approximate substring search (step 1 of the lexical relevance pipeline): the region of
- * T that pattern P aligns to most cheaply, under OSA distance (`osaStep.ts`), with the region
- * recovered by traceback. Gaps in T before and after the region are free; P is aligned whole.
+ * Sellers' approximate substring search: the region of T that pattern P aligns to most cheaply,
+ * under OSA distance (`osaStep.ts`), with the region recovered by traceback. Gaps in T before and
+ * after the region are free; P is aligned whole. Character-level, no tokenization.
  *
- * P is the shorter normalized string and T the longer, whichever side each came from:
- * `lexicalDiff` swaps the span and the catalog shortName by length.
- * Character-level, no tokenization.
+ * No longer in production (`AGENT.skeletonMatcher.planning.md` 4d): kept as the test oracle for
+ * `tokenAwareAlignment`, which generalizes it, and agrees with it on a span of one word no longer
+ * than the name (P the span, T the name).
  */
 
-import { osaStep, type AlignmentOp, type OsaStep } from './osaStep'
-import type { TextRange } from './types'
+import { osaStep, type AlignmentOp, type OsaStep } from '../osaStep'
+import type { TextRange } from '../types'
 
 export type SellersApproximateSubstringMatch = {
     distance: number

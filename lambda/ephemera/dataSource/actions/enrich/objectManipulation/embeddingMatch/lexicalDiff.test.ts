@@ -1,6 +1,5 @@
-import { flankLengthMetricsOf, lexicalDiff, type LexicalDiff } from './lexicalDiff'
-import { computeLexicalMatchMetrics } from './testing/legacyLexicalRelevance'
-import { LEXICAL_PARITY_PAIRS } from './testing/lexicalParityPairs'
+import { flankLengthMetricsOf, lexicalDiff, type LexicalDiff, type LexicalSide } from './lexicalDiff'
+import type { TextRange } from './types'
 
 const diffOf = (span: string, shortName: string): LexicalDiff => {
     const diff = lexicalDiff(span, shortName)
@@ -10,79 +9,87 @@ const diffOf = (span: string, shortName: string): LexicalDiff => {
     return diff
 }
 
-/** Each range of a flank as the text it covers. */
-const flankText = (diff: LexicalDiff, side: 'left' | 'right') => {
-    const { partialWord, words, marks } = diff[side]
-    const textOf = ({ start, end }: { start: number; end: number }) => diff.text.slice(start, end)
-    return { partialWord: partialWord && textOf(partialWord), words: words.map(textOf), marks: marks.map(textOf) }
+/** One side's match, skipped words and flanks as the text they cover. */
+const sideText = (diff: LexicalDiff, side: LexicalSide) => {
+    const { text, match, skipped, left, right } = diff[side]
+    const textOf = ({ start, end }: TextRange) => text.slice(start, end)
+    const flank = ({ partialWord, words, marks }: typeof left) => ({ partialWord: partialWord && textOf(partialWord), words: words.map(textOf), marks: marks.map(textOf) })
+    return { match: textOf(match), skipped: skipped.map(textOf), left: flank(left), right: flank(right) }
 }
 
+const none = { partialWord: undefined, words: [], marks: [] }
+
 describe('lexicalDiff', () => {
-    it('labels a span longer than the name as holding the surplus, in whole words', () => {
+    it('reads a span\'s extra words as the span\'s surplus', () => {
         const diff = diffOf('cup on saucer on table', 'cup')
-        expect(diff.surplusSide).toBe('span')
-        expect(diff.text.slice(diff.match.start, diff.match.end)).toBe('cup')
-        expect(flankText(diff, 'left')).toEqual({ partialWord: undefined, words: [], marks: [] })
-        expect(flankText(diff, 'right')).toEqual({ partialWord: undefined, words: ['on', 'saucer', 'on', 'table'], marks: [] })
+        expect(sideText(diff, 'span')).toEqual({ match: 'cup', skipped: [], left: none, right: { ...none, words: ['on', 'saucer', 'on', 'table'] } })
+        expect(sideText(diff, 'name')).toEqual({ match: 'cup', skipped: [], left: none, right: none })
     })
 
-    it('labels a name longer than the span as holding the surplus', () => {
+    it('reads a name\'s extra words as the name\'s surplus', () => {
         const diff = diffOf('ax', 'rusty old ax')
-        expect(diff.surplusSide).toBe('name')
-        expect(flankText(diff, 'left')).toEqual({ partialWord: undefined, words: ['rusty', 'old'], marks: [] })
-        expect(flankText(diff, 'right')).toEqual({ partialWord: undefined, words: [], marks: [] })
+        expect(sideText(diff, 'name')).toEqual({ match: 'ax', skipped: [], left: { ...none, words: ['rusty', 'old'] }, right: none })
+        expect(sideText(diff, 'span')).toEqual({ match: 'ax', skipped: [], left: none, right: none })
     })
 
-    it('takes the span as the pattern on equal lengths', () => {
-        expect(diffOf('cup', 'cap').surplusSide).toBe('name')
+    it('reads both sides\' surplus at once: `cup on table` against "kitchen table"', () => {
+        const diff = diffOf('cup on table', 'kitchen table')
+        expect(sideText(diff, 'span')).toEqual({ match: 'table', skipped: [], left: { ...none, words: ['cup', 'on'] }, right: none })
+        expect(sideText(diff, 'name')).toEqual({ match: 'table', skipped: [], left: { ...none, words: ['kitchen'] }, right: none })
+    })
+
+    it('reads partial words on both sides: `abcdef` against "defghi"', () => {
+        const diff = diffOf('abcdef', 'defghi')
+        expect(sideText(diff, 'span').left).toEqual({ ...none, partialWord: 'abc' })
+        expect(sideText(diff, 'name').right).toEqual({ ...none, partialWord: 'ghi' })
     })
 
     it('reads the rest of a word the match cuts into as a partial word', () => {
-        expect(flankText(diffOf('ax', 'axle'), 'right')).toEqual({ partialWord: 'le', words: [], marks: [] })
-        const inside = diffOf('ax', 'taxi')
-        expect(flankText(inside, 'left')).toEqual({ partialWord: 't', words: [], marks: [] })
-        expect(flankText(inside, 'right')).toEqual({ partialWord: 'i', words: [], marks: [] })
+        expect(sideText(diffOf('ax', 'axle'), 'name').right).toEqual({ ...none, partialWord: 'le' })
+        const inside = sideText(diffOf('ax', 'taxi'), 'name')
+        expect([inside.left, inside.right]).toEqual([{ ...none, partialWord: 't' }, { ...none, partialWord: 'i' }])
+    })
+
+    it('reads a word skipped inside the match as that side\'s surplus', () => {
+        expect(sideText(diffOf('rusty ax', 'rusty old ax'), 'name')).toEqual({ match: 'rusty old ax', skipped: ['old'], left: none, right: none })
+        expect(sideText(diffOf('red big box', 'red box'), 'span')).toEqual({ match: 'red big box', skipped: ['big'], left: none, right: none })
     })
 
     it('reads a punctuation mark as a mark', () => {
-        const diff = diffOf('cup .', 'cup')
-        expect(diff.surplusSide).toBe('span')
-        expect(flankText(diff, 'right')).toEqual({ partialWord: undefined, words: [], marks: ['.'] })
+        expect(sideText(diffOf('cup .', 'cup'), 'span').right).toEqual({ ...none, marks: ['.'] })
     })
 
-    it('holds edits inside the match, not as surplus', () => {
+    it('holds edits inside the word pairs, not as surplus', () => {
         const diff = diffOf('swrod', 'sword')
-        expect(diff.match).toEqual({ start: 0, end: 5, distance: 1, ops: ['match', 'match', 'transpose', 'match'] })
-        expect(flankText(diff, 'left')).toEqual({ partialWord: undefined, words: [], marks: [] })
-        expect(flankText(diff, 'right')).toEqual({ partialWord: undefined, words: [], marks: [] })
+        expect(diff).toMatchObject({ edits: 1, boundaries: 0, ops: ['match', 'match', 'transpose', 'match'] })
+        expect(sideText(diff, 'span')).toEqual({ match: 'swrod', skipped: [], left: none, right: none })
     })
 
-    it('has no diff when either side normalizes to empty', () => {
+    it('has no diff when either side normalizes to empty, or no pair of their words aligns', () => {
         expect(lexicalDiff('  ', 'cup')).toBeUndefined()
         expect(lexicalDiff('cup', '')).toBeUndefined()
+        expect(lexicalDiff('sword', 'anvil')).toBeUndefined()
     })
 
-    // Where a lexeme and `deriveFlankLengthMetrics`' ASCII test cut a word differently: a word held
-    // together by `-` or `'`, or holding a non-ASCII letter, is one word, so its rest is a partial word.
+    // A word held together by `-` or `'`, or holding a non-ASCII letter, is one word, so the rest of
+    // it past a match edge is a partial word.
     it.each([
         ['encrusted', 'jewel-encrusted', 'left', 'jewel-'],
         ['don', "don't", 'right', "'t"],
         ['caf', 'café', 'right', 'é'],
-    ] as const)('reads %s against %s as cutting one word', (span, shortName, side, partialWord) => {
+    ] as const)('reads %s against %s as cutting one word', (span, shortName, flank, partialWord) => {
         const diff = diffOf(span, shortName)
-        expect(flankText(diff, side).partialWord).toBe(partialWord)
-        const today = computeLexicalMatchMetrics(diff.pattern, diff.text)
-        const adjoined = side === 'left' ? 'adjoinedLeftLength' : 'adjoinedRightLength'
-        expect(flankLengthMetricsOf(diff)[adjoined]).toBe(partialWord.length)
-        expect(today[adjoined]).toBe(0)
+        expect(sideText(diff, 'name')[flank].partialWord).toBe(partialWord)
+        expect(flankLengthMetricsOf(diff.name)[flank === 'left' ? 'adjoinedLeftLength' : 'adjoinedRightLength']).toBe(partialWord.length)
     })
 })
 
 describe('flankLengthMetricsOf', () => {
-    it.each(LEXICAL_PARITY_PAIRS)('agrees with the flank split lexical relevance scores: %s against %s', (span, shortName) => {
-        const diff = diffOf(span, shortName)
-        const { editDistance, matchSpan, ...flankLengths } = computeLexicalMatchMetrics(diff.pattern, diff.text)
-        expect(flankLengthMetricsOf(diff)).toEqual(flankLengths)
-        expect({ start: diff.match.start, end: diff.match.end, distance: diff.match.distance }).toEqual({ ...matchSpan, distance: editDistance })
+    it('reads partial words as adjoined and the rest of the flank as remote', () => {
+        expect(flankLengthMetricsOf(diffOf('ax', 'rusty old taxi').name)).toEqual({ adjoinedLeftLength: 1, adjoinedRightLength: 1, remoteLeftLength: 10, remoteRightLength: 0 })
+    })
+
+    it('reads no skipped word inside the match as flank', () => {
+        expect(flankLengthMetricsOf(diffOf('rusty ax', 'rusty old ax').name)).toEqual({ adjoinedLeftLength: 0, adjoinedRightLength: 0, remoteLeftLength: 0, remoteRightLength: 0 })
     })
 })

@@ -73,7 +73,7 @@ const assertEditDistanceRelevanceParams = (
 
 /**
  * Match-quality factor in [0, 1]. The only channel that can drive lexical relevance to zero.
- * Normalizes Sellers edit distance against max(|match span in T|, |P|):
+ * Normalizes the edits inside the match against the longer of the two sides' matches:
  * `1 - min(1, editDistance / max(matchSpanLength, patternLength))`
  */
 export function editDistanceRelevance(

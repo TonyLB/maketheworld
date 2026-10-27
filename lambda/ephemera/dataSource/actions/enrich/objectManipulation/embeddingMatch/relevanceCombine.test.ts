@@ -17,7 +17,7 @@ const flankMetricsOf = (span: string, shortName: string) => {
     if (diff === undefined) {
         throw new Error(`no diff of "${span}" against "${shortName}"`)
     }
-    return flankLengthMetricsOf(diff)
+    return flankLengthMetricsOf(diff.name)
 }
 
 describe('centeredTanhEvidence', () => {

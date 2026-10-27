@@ -1,13 +1,9 @@
 /**
- * The lexical difference between a span and a catalog shortName, in words: Sellers' alignment read
- * back as the matched region (with the edits inside it) and the surplus on either side of it, each
- * flank cut into the part of a word the match edge cuts into, whole words, and punctuation marks.
- *
- * The shorter normalized string is the pattern P, embedded in the longer T. Sellers' free gaps lie only in T, so the only surplus it reports as words lies on T's side,
- * and the diff labels it with that side (span or catalog name). P is aligned whole: its own extra
- * characters show only as edits inside the match (`delete`, and `substitute` where they are paired
- * with nearby letters of T), never as words. A word is what `granuleTokens.ts` calls one (`lexemesOf`), so the surplus counts words
- * as the span was cut.
+ * The lexical difference between a span and a catalog shortName, in words: their token-aware
+ * alignment (`tokenAwareAlignment.ts`) read back as the match on each side, the word pairs and the
+ * edits inside them, and each side's surplus: words skipped inside the match, and on either side
+ * of it the part of a word the match edge cuts into, whole words, and punctuation marks. A word is
+ * what `granuleTokens.ts` calls one (`lexemesOf`), so the surplus counts words as the span was cut.
  */
 
 import { normalizeShortNameForEmbedding } from '../../../../objects/embedding/impromptuEmbeddingNeedsRefresh'
@@ -15,13 +11,13 @@ import { lexemesOf } from '../../../deterministicTemplate/granuleTokens'
 
 import type { FlankLengthMetrics } from './lexicalMatchMetrics'
 import type { AlignmentOp } from './osaStep'
-import { sellersApproximateSubstringMatch } from './sellersApproximateSubstringMatch'
+import { alignSpanToName, type WordPair } from './tokenAwareAlignment'
 import type { TextRange } from './types'
 
 /** Which string a piece of text came from: the player's span or the catalog shortName. */
 export type LexicalSide = 'span' | 'name'
 
-/** The surplus on one side of the match, as ranges in T. */
+/** The surplus on one side of the match, as ranges in that side's text. */
 export type FlankDiff = {
     /** The part, outside the match, of the word the match edge cuts into. */
     partialWord?: TextRange
@@ -31,16 +27,24 @@ export type FlankDiff = {
     marks: TextRange[]
 }
 
-export type LexicalDiff = {
-    /** The shorter normalized string. */
-    pattern: string
-    /** The longer normalized string, which every range indexes. */
+/** One side of the diff: its normalized text, which every range indexes, the match in it, and its surplus. */
+export type SideDiff = {
     text: string
-    /** The side T came from, and so the side of every surplus word (P's surplus is edits). */
-    surplusSide: LexicalSide
-    match: TextRange & { distance: number; ops: AlignmentOp[] }
+    match: TextRange
+    /** Whole words inside the match paired with nothing (priced by their own rows, not as flank). */
+    skipped: TextRange[]
     left: FlankDiff
     right: FlankDiff
+}
+
+export type LexicalDiff = Record<LexicalSide, SideDiff> & {
+    /** Character edits inside the word pairs. */
+    edits: number
+    /** Words split or merged across a space inside the word pairs. */
+    boundaries: number
+    /** The alignment of the span's match against the name's. */
+    ops: AlignmentOp[]
+    pairs: WordPair[]
 }
 
 const rangeLength = ({ start, end }: TextRange): number => end - start
@@ -60,9 +64,16 @@ const flankDiffs = (text: string, { start, end }: TextRange): { left: FlankDiff;
     }, { left: { words: [], marks: [] }, right: { words: [], marks: [] } })
 )
 
+const sideDiff = (text: string, match: TextRange, skipped: TextRange[]): SideDiff => ({
+    text,
+    match,
+    skipped,
+    ...flankDiffs(text, match),
+})
+
 /**
  * The diff of a span against a catalog shortName, or `undefined` when either normalizes to empty
- * (where `lexicalRelevance` scores 0). On equal lengths the span is the pattern.
+ * or no pair of their words is close enough to be one (where `lexicalRelevance` scores 0).
  */
 export function lexicalDiff(span: string, shortName: string): LexicalDiff | undefined {
     const normalizedSpan = normalizeShortNameForEmbedding(span)
@@ -70,27 +81,26 @@ export function lexicalDiff(span: string, shortName: string): LexicalDiff | unde
     if (normalizedSpan.length === 0 || normalizedShortName.length === 0) {
         return undefined
     }
-    const [pattern, text, surplusSide]: [string, string, LexicalSide] = normalizedSpan.length <= normalizedShortName.length
-        ? [normalizedSpan, normalizedShortName, 'name']
-        : [normalizedShortName, normalizedSpan, 'span']
-    const { distance, matchSpan, ops } = sellersApproximateSubstringMatch(pattern, text)
+    const alignment = alignSpanToName(normalizedSpan, normalizedShortName)
+    if (alignment === undefined) {
+        return undefined
+    }
     return {
-        pattern,
-        text,
-        surplusSide,
-        match: { ...matchSpan, distance, ops },
-        ...flankDiffs(text, matchSpan),
+        span: sideDiff(normalizedSpan, alignment.span, alignment.skipped.span),
+        name: sideDiff(normalizedShortName, alignment.name, alignment.skipped.name),
+        edits: alignment.edits,
+        boundaries: alignment.boundaries,
+        ops: alignment.ops,
+        pairs: alignment.pairs,
     }
 }
 
 /**
- * The diff's flank lengths, as the tanh flank combine reads them: the partial word is the adjoined
- * flank, and the rest of the flank (words, marks and spaces) the remote. It agrees with the
- * pre-4c split (`testing/legacyLexicalRelevance.ts` `deriveFlankLengthMetrics`) except where a
- * match edge falls inside a word holding `'`, `-` or a non-ASCII letter, which that split's ASCII
- * test cuts and a lexeme does not.
+ * One side's flank lengths, as the tanh flank combine reads them: the partial words are the
+ * adjoined flank, and the rest of the flank (words, marks and spaces) the remote. Words skipped
+ * inside the match are not flank.
  */
-export function flankLengthMetricsOf({ text, match, left, right }: Pick<LexicalDiff, 'text' | 'left' | 'right'> & { match: TextRange }): FlankLengthMetrics {
+export function flankLengthMetricsOf({ text, match, left, right }: SideDiff): FlankLengthMetrics {
     const adjoinedLeftLength = left.partialWord ? rangeLength(left.partialWord) : 0
     const adjoinedRightLength = right.partialWord ? rangeLength(right.partialWord) : 0
     return {

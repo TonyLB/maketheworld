@@ -158,35 +158,9 @@ exports[`skeletonMatcher characterization corpus (Slice 0) get cup under table 1
 Object {
   "outcome": Object {
     "result": Object {
-      "alternatives": Array [
-        Object {
-          "label": "table",
-          "objectId": "OBJECT#Table",
-          "proposedCommand": "take the table",
-          "referentAnswers": Object {
-            "cupUnderTableRef": "OBJECT#Table",
-          },
-        },
-        Object {
-          "label": "cup",
-          "objectId": "OBJECT#Cup",
-          "proposedCommand": "take the cup",
-          "referentAnswers": Object {
-            "cupUnderTableRef": "OBJECT#Cup",
-          },
-        },
-      ],
       "confidence": 0.9,
-      "root": Object {
-        "command": "get cup under table",
-        "fills": Array [
-          Array [
-            "get [cup under table]",
-            "  position: change transferMembership(from=currentHost([cup under table]), object=[cup under table], to=actingCharacter)",
-          ],
-        ],
-      },
-      "type": "Consult",
+      "reason": "ObjectManipulation resolution failed: no such object in the room",
+      "type": "Abstain",
     },
     "stubCalls": Object {
       "acme": 0,
@@ -469,20 +443,16 @@ exports[`skeletonMatcher characterization corpus (Slice 0) put coin hurriedly in
 Object {
   "outcome": Object {
     "result": Object {
-      "attempt": "position: change transferMembership(containment=In, from=currentHost([coin hurriedly]=OBJECT#Coin), object=[coin hurriedly]=OBJECT#Coin, to=[box]=OBJECT#Box)",
-      "confidence": 1,
-      "referents": Array [
-        "coinHurriedlyRef=OBJECT#Coin",
-        "boxRef=OBJECT#Box",
-      ],
-      "type": "CommandAttempt",
+      "confidence": 0.9,
+      "reason": "ObjectManipulation resolution failed: no such object in the room",
+      "type": "Abstain",
     },
     "stubCalls": Object {
       "acme": 0,
-      "classify": 0,
-      "embedSpan": 1,
+      "classify": 1,
+      "embedSpan": 2,
       "enrich": 0,
-      "parse": 0,
+      "parse": 1,
     },
   },
   "readings": Object {
@@ -758,19 +728,16 @@ exports[`skeletonMatcher characterization corpus (Slice 0) take cup, then look 1
 Object {
   "outcome": Object {
     "result": Object {
-      "attempt": "position: change transferMembership(from=currentHost([cup , then look]=OBJECT#Cup), object=[cup , then look]=OBJECT#Cup, to=actingCharacter)",
-      "confidence": 1,
-      "referents": Array [
-        "cupThenLookRef=OBJECT#Cup",
-      ],
-      "type": "CommandAttempt",
+      "confidence": 0.9,
+      "reason": "ObjectManipulation resolution failed: no such object in the room",
+      "type": "Abstain",
     },
     "stubCalls": Object {
       "acme": 0,
-      "classify": 0,
-      "embedSpan": 1,
+      "classify": 1,
+      "embedSpan": 2,
       "enrich": 0,
-      "parse": 0,
+      "parse": 1,
     },
   },
   "readings": Object {
@@ -822,12 +789,9 @@ exports[`skeletonMatcher characterization corpus (Slice 0) take hold of the cup 
 Object {
   "outcome": Object {
     "result": Object {
-      "attempt": "position: change transferMembership(from=currentHost([hold of the cup]=OBJECT#Cup), object=[hold of the cup]=OBJECT#Cup, to=actingCharacter)",
       "confidence": 0.9,
-      "referents": Array [
-        "holdOfTheCupRef=OBJECT#Cup",
-      ],
-      "type": "CommandAttempt",
+      "reason": "ObjectManipulation resolution failed: no such object in the room",
+      "type": "Abstain",
     },
     "stubCalls": Object {
       "acme": 0,

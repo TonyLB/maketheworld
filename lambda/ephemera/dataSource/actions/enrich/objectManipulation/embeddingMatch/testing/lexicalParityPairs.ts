@@ -3,9 +3,9 @@ import { EMBEDDING_CALIBRATION_IDENTITY_CASES } from '../../../../../../calibrat
 import { SHORT_SPAN_LEXICAL_CASES } from './shortSpanCalibrationCases'
 
 /**
- * The span and shortName pairs on which each step of the lexical refactor reproduces today's
- * scoring (`AGENT.skeletonMatcher.planning.md` Slice 4): the lexical tests' pairs, then every span
- * against every catalog name of the calibration corpus and the short-span cases.
+ * The span and shortName pairs the lexical tests share (`AGENT.skeletonMatcher.planning.md`
+ * Slice 4): the lexical tests' pairs, then every span against every catalog name of the
+ * calibration corpus and the short-span cases. The aligner checks itself against Sellers on them.
  */
 export const LEXICAL_PARITY_PAIRS: readonly (readonly [string, string])[] = [
     ['broom', 'broom'],

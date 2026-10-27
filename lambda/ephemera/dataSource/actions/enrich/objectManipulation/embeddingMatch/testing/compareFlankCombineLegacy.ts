@@ -1,6 +1,6 @@
-import { flankLengthMetricsOf, lexicalDiff } from '../lexicalDiff'
-import { matchSpanLength } from '../lexicalMatchMetrics'
+import { lexicalDiff } from '../lexicalDiff'
 import { lexicalRelevance } from '../lexicalRelevance'
+import { catalogSideFlankInputs } from '../lexicalWeights'
 import {
     coverageLiftFromEmbed,
     effectiveFlankCombineBias,
@@ -16,20 +16,16 @@ export type FlankCombineLegacyRow = {
     mitigatedFlankScore: number
 }
 
-/** The flank score without the combine context (legacy) and with it (mitigated). */
+/** The flank score without the combine context (legacy) and with it (mitigated), or 0 where no pair of its words aligns. */
 const flankScoresForPair = (span: string, shortName: string): { legacy: number; mitigated: number } => {
     const diff = lexicalDiff(span, shortName)
     if (diff === undefined) {
-        throw new Error(`no diff of "${span}" against "${shortName}"`)
+        return { legacy: 0, mitigated: 0 }
     }
-    const metrics = flankLengthMetricsOf(diff)
-    const spanScale = Math.max(matchSpanLength(diff.match), diff.pattern.length, 1)
+    const { metrics, spanScale, context } = catalogSideFlankInputs(diff)
     return {
         legacy: tanhCenteredFlankScore(metrics, spanScale),
-        mitigated: tanhCenteredFlankScore(metrics, spanScale, {}, {
-            patternLength: diff.pattern.length,
-            candidateTextLength: diff.text.length,
-        }),
+        mitigated: tanhCenteredFlankScore(metrics, spanScale, {}, context),
     }
 }
 

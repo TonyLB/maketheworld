@@ -409,14 +409,15 @@ describe('phrase coverage payoff (integration)', () => {
         expect(delivered(publish)).toEqual([expect.stringMatching(/ drops cup$/)])
     })
 
-    // LIMITATION, accepted (user, 2026-10-25; `actions/AGENT.contract.md` "Qualifier", exact-fill
-    // precedence); ladder rung 14 (match tuning) flips this to an Abstain. With no fill whose spans all match exactly ("man in moon" lacks "the"),
-    // every reading scores near the floor at live embedding levels, so the player is asked how to cut it.
-    it('LIMITATION (rung 14 flips it): "take man in moon from table", no fill matching exactly, asks the player among readings', async () => {
+    // No fill's spans all match exactly ("man in moon" lacks "the"), so every reading competes. The
+    // merged span pairs word for word with "man in the moon", the name's "the" an interior word skipped
+    // free (skeletonMatcher 4d), so it outscores every cut reading, which once left the player asked.
+    it('"take man in moon from table", no fill matching exactly, takes the man in the moon', async () => {
         seedManInTheMoonOnTable()
 
         const { parseResult } = await parse('take man in moon from table', undefined, { embeddings: true })
 
-        expect(parseResult.type).toBe('Consult')
+        expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
+        expect(JSON.stringify(parseResult)).toContain('"groundedId":"OBJECT#ManInTheMoon","shortName":"man in the moon"')
     })
 })
