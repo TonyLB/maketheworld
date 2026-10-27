@@ -6,13 +6,14 @@
  * **`finalizeStableKeysDeterministic`** before **`streamEvent`** ---
  * see **`Where enforcement runs`** in [`AGENT.md`](./AGENT.md) (**Acme catalog lines and `stableKey`**).
  */
-import { isEphemeraCharacterId, isEphemeraObjectId, type EphemeraCharacterId, type EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, isEphemeraObjectId, type EphemeraCharacterId, type EphemeraObjectId, type EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { RenderTree } from '@tonylb/mtw-base/ts/renderTree'
 
 import EphemeraDataSource from '../abstract'
 import type { AcmeOrderPublishedOrder, ActionsPublishedPayload } from './publishedEvents'
 import type { CommandAttemptData } from './commandAttempt'
 import { lookedAtObjectIdOf } from './commandAttempt/lookedAtObjectId'
+import { navigationTargetOf } from './commandAttempt/navigationTarget'
 import type { ActionsSubscribedContent } from './subscribedEvents'
 import {
     isActionsActionAssessedEnvelope,
@@ -52,13 +53,14 @@ import {
     catalogObjectIdsUnion,
 } from './attachEmbeddingsToCatalogEntries'
 import { getHeldInventoryCatalogForCharacter } from './heldInventoryCatalogForCharacter'
-import { getRoomObjectCatalogForCharacter, roomObjectLabelsFromCatalog } from './roomObjectCatalogForCharacter'
+import { getRoomObjectCatalogForCharacter } from './roomObjectCatalogForCharacter'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
     type ParseCommandAcmeOrderLine,
     type ParseCommandConsultAlternative,
     type ParseCommandConsultResult,
     type ParseCommandResult,
+    type RoomExit,
     isParseCommandAbstainResult,
     isParseCommandAcmeOrderResult,
     isParseCommandAwaitRoadrunnerResult,
@@ -147,13 +149,7 @@ const linesToRenderTree = (lines: string[]): RenderTree => (
 
 const parseErrorMessageForPlayer = (errorMessage?: string): string => {
     switch (errorMessage) {
-        // Surfaced by plan/matchNavigationParaphrase.ts (iteration 7, Sub-iteration 2,
-        // 2026-07-20) when an explicit movement verb makes a failed exit resolution
-        // unambiguous. deterministicChecks.ts's maybeDeterministicNavigationResult
-        // (bare `go <exit>` / verbless candidate) stays lenient and never constructs
-        // these -- see exitResolution.ts's navigationIntentErrorMessages doc comment.
-        case navigationIntentErrorMessages.noExitContext:
-            return 'You are not in a room, so you cannot go anywhere.'
+        // A navigation the dry run refused (`discriminateIntent/exitResolution.ts`).
         case navigationIntentErrorMessages.noMatch:
             return 'There is no exit to that place from here.'
         case navigationIntentErrorMessages.ambiguousMatch:
@@ -383,6 +379,39 @@ const publishLudicNetworkChangeRequested = async (
     })
 }
 
+/**
+ * Through an exit: the UI's exit click (a `Navigation` result) and a command's navigation attempt
+ * both go here. The exit is rechecked against the exits read with the command, then the move is
+ * the `Character Navigate` stream's.
+ */
+const navigateThroughExit = async (
+    context: ResponseContext,
+    streamEvent: StreamEventFn,
+    { targetId, exitName }: { targetId: EphemeraRoomId; exitName?: string },
+): Promise<void> => {
+    const { characterId, roomExitContext } = context
+    const { fromRoomId, toRoomIds } = roomExitContext
+    if (!fromRoomId) {
+        reportCommandOutcome(context, 'Error', ['You are not in a room, so you cannot go anywhere.'])
+    }
+    else if (!toRoomIds.includes(targetId)) {
+        reportCommandOutcome(context, 'Error', ['There is no exit to that place from here.'])
+    }
+    else {
+        await streamEvent({
+            streamKey: characterId,
+            header: { type: 'Character Navigate' },
+            update: {
+                type: 'Character Navigate',
+                characterId,
+                fromRoomId,
+                toRoomId: targetId,
+                ...(exitName !== undefined ? { exitName } : {}),
+            },
+        })
+    }
+}
+
 const publishStreamEventsForIntent = async (
     context: ResponseContext,
     streamEvent: (event: {
@@ -393,26 +422,7 @@ const publishStreamEventsForIntent = async (
 ): Promise<void> => {
     const { characterId, roomExitContext, coyoteOccupiedStableKeys, parseResult } = context
     if (isParseCommandNavigationResult(parseResult)) {
-        const { fromRoomId, toRoomIds } = roomExitContext
-        if (!fromRoomId) {
-            reportCommandOutcome(context, 'Error', ['You are not in a room, so you cannot go anywhere.'])
-        }
-        else if (!toRoomIds.includes(parseResult.targetId)) {
-            reportCommandOutcome(context, 'Error', ['There is no exit to that place from here.'])
-        }
-        else {
-            await streamEvent({
-                streamKey: characterId,
-                header: { type: 'Character Navigate' },
-                update: {
-                    type: 'Character Navigate',
-                    characterId,
-                    fromRoomId,
-                    toRoomId: parseResult.targetId,
-                    ...(parseResult.exitName !== undefined ? { exitName: parseResult.exitName } : {}),
-                },
-            })
-        }
+        await navigateThroughExit(context, streamEvent, parseResult)
     }
     else if (isParseCommandHomeResult(parseResult)) {
         const resolution = await resolveHomeTargetForCharacter(characterId)
@@ -558,6 +568,10 @@ const publishStreamEventsForIntent = async (
             })
         }
     }
+    else if (isParseCommandCommandAttemptResult(parseResult) && navigationTargetOf(parseResult.attempt) !== undefined) {
+        // A navigation attempt moves the character, not the world: the exit's own stream, as the UI's click.
+        await navigateThroughExit(context, streamEvent, navigationTargetOf(parseResult.attempt)!)
+    }
     else if (isParseCommandCommandAttemptResult(parseResult)) {
         // One exit for every command attempt (ISS8203 slice 4). The not-in-a-room check is
         // the same for every route, looks included.
@@ -618,6 +632,9 @@ const publishReturnValueForRequest = (requestId: string | undefined, message: st
     }
 }
 
+/** The exits from the actor's room, as parsing reads them (`RoomExit`). */
+const roomExitsOf = ({ exits }: RoomExitTargetsForCharacter): RoomExit[] => exits.map(({ normalizedName, toRoomId }) => ({ normalizedName, targetId: toRoomId }))
+
 /** The world a command is parsed or resumed against, read fresh each time (a stored row holds none of it). */
 const loadCommandWorld = async (characterId: EphemeraCharacterId) => {
     // The embedding batch below keys off catalogObjectIds, so the ludicCache rebuild inside
@@ -643,14 +660,8 @@ const loadCommandWorld = async (characterId: EphemeraCharacterId) => {
         heldInventoryCatalogResult.entries,
         embeddingMap
     )
-    const roomObjectLabels = [
-        ...new Set([
-            ...roomObjectLabelsFromCatalog(roomObjectCatalog),
-            ...roomObjectLabelsFromCatalog(heldInventoryCatalog),
-        ]),
-    ]
     const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
-    return { roomExitContext, roomObjectCatalog, heldInventoryCatalog, roomObjectLabels, coyoteOccupiedStableKeys }
+    return { roomExitContext, roomObjectCatalog, heldInventoryCatalog, coyoteOccupiedStableKeys }
 }
 
 const handleParseRequested = async (
@@ -679,18 +690,13 @@ const handleParseRequested = async (
         roomExitContext,
         roomObjectCatalog,
         heldInventoryCatalog,
-        roomObjectLabels,
         coyoteOccupiedStableKeys,
     } = await loadCommandWorld(content.characterId)
     const parseResult = await parseCommand({
         command: content.command,
         characterId: content.characterId,
         hostRoomId: roomExitContext.fromRoomId ?? undefined,
-        roomExits: roomExitContext.exits.map(({ normalizedName, toRoomId }) => ({
-            normalizedName,
-            targetId: toRoomId,
-        })),
-        roomObjectLabels,
+        roomExits: roomExitsOf(roomExitContext),
         roomObjectCatalog,
         heldInventoryCatalog,
         occupiedStableKeys: [...coyoteOccupiedStableKeys],
@@ -743,6 +749,7 @@ const handleAnswerSubmitted = async (
         hostRoomId: roomExitContext.fromRoomId ?? undefined,
         roomObjectCatalog,
         heldInventoryCatalog,
+        roomExits: roomExitsOf(roomExitContext),
     })
     const transcript = transcriptContextForResume(payload, sessionId)
     if (transcript && isParseCommandCommandAttemptResult(parseResult)) {

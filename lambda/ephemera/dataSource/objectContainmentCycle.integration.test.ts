@@ -76,6 +76,7 @@ const transactWriteMock = jest.fn(async (items: any[]): Promise<void> => {
 
 const move = (subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => commitAttempt({
     attempt: CommandAttempt.fromJSON({
+        kind: 'containment',
         words: 'put the subject in the target',
         referents: [],
         actions: [{

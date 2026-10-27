@@ -5,6 +5,7 @@ import {
     resolveCatalogSpanToPool,
     type ResolveCatalogSpanToPoolDeps,
 } from './resolveCatalogSpanToPool'
+import type { SpanStructure } from './parse/parseToken'
 import type { SpanCandidatePool } from './spanResolution'
 
 export type IdentityStageResult =
@@ -18,7 +19,8 @@ export async function runIdentityStage(
     command: string,
     rawObjectSpans: readonly string[],
     catalog: readonly ObjectManipulationCatalogEntry[],
-    deps: IdentityStageDeps = {}
+    deps: IdentityStageDeps = {},
+    structures: ReadonlyMap<string, SpanStructure> = new Map()
 ): Promise<IdentityStageResult> {
     void command
     const spanEmbedCache = deps.spanEmbedCache ?? createSpanEmbedCache()
@@ -28,7 +30,7 @@ export async function runIdentityStage(
         const poolResult = await resolveCatalogSpanToPool(rawObjectSpan, catalog, {
             embedSpan: deps.embedSpan,
             spanEmbedCache,
-        })
+        }, structures.get(rawObjectSpan))
         if (poolResult.type === 'error') {
             return poolResult
         }

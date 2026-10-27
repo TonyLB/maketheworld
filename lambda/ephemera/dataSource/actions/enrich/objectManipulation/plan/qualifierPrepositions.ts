@@ -1,4 +1,6 @@
-import type { IntentFieldRole, PatternElement } from '../../../deterministicTemplate/deterministicTemplate'
+import { fixedWord, objectPhrase } from '../../../deterministicTemplate/deterministicTemplate'
+import type { GranuleToken } from '../../../deterministicTemplate/granuleTokens'
+import { optionMatchesAt } from '../../../deterministicTemplate/patternTemplate'
 import type { QualifierPreposition } from '../parse/parseToken'
 
 /**
@@ -25,19 +27,28 @@ export const QUALIFIER_OPTIONS: Readonly<Record<string, QualifierPreposition>> =
     out: 'out of',
 }
 
-/** The pattern element for a closed-set preposition; a capture's `option` keys `QUALIFIER_OPTIONS`. */
-export const QUALIFIER_PREPOSITION_ELEMENT: PatternElement = { type: 'templateText', options: Object.keys(QUALIFIER_OPTIONS) }
+/** The pattern element for a closed-set preposition; a capture's value is the canonical preposition. */
+export const QUALIFIER_PREPOSITION_ELEMENT = fixedWord('preposition', QUALIFIER_OPTIONS)
 
 /**
- * An object phrase linked at the closed-set prepositions, in a role. Against the command text it
- * cuts the fast path's flat skeleton; against a skeleton its readings nest each linked span as a
- * qualifier, with the preposition canonical.
+ * An object phrase linked at the closed-set prepositions, under a name: its readings nest each
+ * linked span as a qualifier, with the preposition canonical.
  */
-export const qualifierObjectPhraseElement = (role: IntentFieldRole): PatternElement => ({
-    type: 'objectPhrase',
-    role,
-    prepositions: QUALIFIER_OPTIONS,
-})
+export const qualifierObjectPhraseElement = <Name extends string>(name: Name) => objectPhrase(name, QUALIFIER_OPTIONS)
 
-/** The subject object phrase: the fast path's and the membership template's. */
-export const QUALIFIER_OBJECT_PHRASE_ELEMENT: PatternElement = qualifierObjectPhraseElement('subject')
+/** The subject object phrase: the membership and look templates'. */
+export const QUALIFIER_OBJECT_PHRASE_ELEMENT = qualifierObjectPhraseElement('subject')
+
+/** The most closed-set prepositions a command can hold and still be read deterministically. */
+export const QUALIFIER_CAP = 6
+
+/**
+ * The guard cap: a command holding more than `QUALIFIER_CAP` closed-set prepositions gets no
+ * deterministic reading, so it climbs the ladder. Readings multiply with the prepositions (a
+ * containment command with k of them has k * 2^(k-1)), so the cap is for pathological input only.
+ * Counts the token positions where some preposition matches (`on top of` and `on` at one place
+ * are one).
+ */
+export const exceedsQualifierCap = (tokens: readonly GranuleToken[]): boolean => (
+    tokens.filter((_token, index) => optionMatchesAt(tokens, index, Object.keys(QUALIFIER_OPTIONS)).length > 0).length > QUALIFIER_CAP
+)

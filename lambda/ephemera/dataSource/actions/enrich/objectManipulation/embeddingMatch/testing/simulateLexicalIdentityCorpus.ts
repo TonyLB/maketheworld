@@ -1,11 +1,8 @@
 import { EMBEDDING_CALIBRATION_IDENTITY_CASES } from '../../../../../../calibration/objectMatch/corpus'
-import { normalizeShortNameForEmbedding } from '../../../../../objects/embedding/impromptuEmbeddingNeedsRefresh'
 
-import {
-    computeLexicalMatchMetrics,
-    matchSpanLength,
-} from '../lexicalMatchMetrics'
+import { lexicalDiff } from '../lexicalDiff'
 import { lexicalRelevance } from '../lexicalRelevance'
+import { catalogSideFlankInputs } from '../lexicalWeights'
 import {
     multiplicativeFlankScoreV1,
     tanhCenteredFlankScore,
@@ -26,17 +23,14 @@ export type LexicalIdentityCorpusResult = {
     topLexicalScore: number
 }
 
-const lexicalMetricsForPair = (span: string, shortName: string) => {
-    const normalizedSpan = normalizeShortNameForEmbedding(span)
-    const normalizedShortName = normalizeShortNameForEmbedding(shortName)
-    const [pattern, candidateText] = normalizedSpan.length <= normalizedShortName.length
-        ? [normalizedSpan, normalizedShortName]
-        : [normalizedShortName, normalizedSpan]
-
-    return {
-        metrics: computeLexicalMatchMetrics(pattern, candidateText),
-        patternLength: pattern.length,
+/** The flank scores of a pair, or 0 where no pair of its words is close enough to align. */
+const flankScoresForPair = (span: string, shortName: string): { tanh: number; multiplicative: number } => {
+    const diff = lexicalDiff(span, shortName)
+    if (diff === undefined) {
+        return { tanh: 0, multiplicative: 0 }
     }
+    const { metrics, spanScale } = catalogSideFlankInputs(diff)
+    return { tanh: tanhCenteredFlankScore(metrics, spanScale), multiplicative: multiplicativeFlankScoreV1(metrics, spanScale) }
 }
 
 const rankCatalogByLexicalRelevance = (
@@ -44,14 +38,12 @@ const rankCatalogByLexicalRelevance = (
     catalog: readonly string[]
 ): LexicalRankedCatalogEntry[] => {
     const ranked = catalog.map((shortName) => {
-        const lexicalScore = lexicalRelevance(span, shortName)
-        const { metrics, patternLength } = lexicalMetricsForPair(span, shortName)
-        const spanScale = Math.max(matchSpanLength(metrics.matchSpan), patternLength, 1)
+        const { tanh, multiplicative } = flankScoresForPair(span, shortName)
         return {
             shortName,
-            lexicalScore,
-            tanhFlankScore: tanhCenteredFlankScore(metrics, spanScale),
-            multiplicativeFlankScore: multiplicativeFlankScoreV1(metrics, spanScale),
+            lexicalScore: lexicalRelevance(span, shortName),
+            tanhFlankScore: tanh,
+            multiplicativeFlankScore: multiplicative,
         }
     })
 

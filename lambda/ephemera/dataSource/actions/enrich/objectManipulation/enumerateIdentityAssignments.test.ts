@@ -11,8 +11,8 @@ const candidate = (id: string, jointRelevance: number): ObjectSpanCandidate => (
     locus: { kind: 'room' },
 })
 
-const idsOf = (identities: ReadonlyMap<string, { objectId: EphemeraObjectId }>) =>
-    Object.fromEntries([...identities].map(([key, identity]) => [key, identity.objectId]))
+const idsOf = (identities: ReadonlyMap<string, { id: string }>) =>
+    Object.fromEntries([...identities].map(([key, identity]) => [key, identity.id]))
 
 describe('enumerateIdentityAssignments', () => {
     it('keeps a single pool in order, each with its own confidence', () => {

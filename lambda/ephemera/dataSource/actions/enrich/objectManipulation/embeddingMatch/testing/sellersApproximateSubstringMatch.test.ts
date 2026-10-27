@@ -1,3 +1,4 @@
+import type { AlignmentOp } from '../osaStep'
 import { sellersApproximateSubstringMatch } from './sellersApproximateSubstringMatch'
 
 describe('sellersApproximateSubstringMatch', () => {
@@ -69,5 +70,45 @@ describe('sellersApproximateSubstringMatch', () => {
         expect(result.matchSpan).toEqual({ start: 0, end: 0 })
         expect(result.leftFlank).toBe('')
         expect(result.rightFlank).toBe('')
+    })
+
+    describe('alignment ops', () => {
+        const edits = (ops: AlignmentOp[]) => ops.filter((op) => op !== 'match').length
+        const textCharacters = (ops: AlignmentOp[]) => ops.reduce((sum, op) => sum + ({ match: 1, substitute: 1, insert: 1, delete: 0, transpose: 2 })[op], 0)
+        const patternCharacters = (ops: AlignmentOp[]) => ops.reduce((sum, op) => sum + ({ match: 1, substitute: 1, insert: 0, delete: 1, transpose: 2 })[op], 0)
+
+        it('aligns an exact embed as matches only', () => {
+            expect(sellersApproximateSubstringMatch('broom', 'the broom').ops).toEqual(['match', 'match', 'match', 'match', 'match'])
+        })
+
+        it('reads a swapped pair as one transpose', () => {
+            expect(sellersApproximateSubstringMatch('swrod', 'sword').ops).toEqual(['match', 'match', 'transpose', 'match'])
+        })
+
+        it('reads a wrong character as a substitution', () => {
+            expect(sellersApproximateSubstringMatch('broam', 'broom').ops).toEqual(['match', 'match', 'match', 'substitute', 'match'])
+        })
+
+        it('reads a character of the text only as an insert, and one of the pattern only as a delete', () => {
+            expect(sellersApproximateSubstringMatch('swrd', 'sword').ops).toEqual(['match', 'match', 'insert', 'match', 'match'])
+            expect(sellersApproximateSubstringMatch('swxord', 'sword').ops).toEqual(['match', 'match', 'delete', 'match', 'match', 'match'])
+        })
+
+        it.each([
+            ['broom', 'the broom'],
+            ['sword', 'incredibly ornate jewel-encrusted sword'],
+            ['swrod', 'sword'],
+            ['swrod', 'incredibly ornate jewel-encrusted sword'],
+            ['sord', 'rusty sword'],
+            ['ab', 'zzabzzab'],
+            ['broom', 'incredibly ornate anvil'],
+            ['', 'broom'],
+            ['broom', ''],
+        ])('accounts for the distance, the span and the pattern: %s in %s', (pattern, candidate) => {
+            const { ops, distance, matchSpan } = sellersApproximateSubstringMatch(pattern, candidate)
+            expect(edits(ops)).toBe(distance)
+            expect(textCharacters(ops)).toBe(matchSpan.end - matchSpan.start)
+            expect(patternCharacters(ops)).toBe(pattern.length)
+        })
     })
 })

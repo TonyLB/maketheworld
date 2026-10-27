@@ -4,8 +4,9 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 import { compileAttemptsFromSkeleton, type SkeletonFill } from './compileAttemptsFromSkeleton'
 import type { ParseTokenDraft } from './parse/parseToken'
-import { stampStableRefKeys } from './parse/stampStableRefKeys'
-import { planSkeleton } from './plan/planSkeleton'
+import { tokenize } from '../../deterministicTemplate/granuleTokens'
+import { sameSegmentation } from './plan/attemptTemplateFixture'
+import { COMMAND_GRANULES, planTokens } from './plan/planSkeleton'
 import type { ResumeAnswers } from './resumeAnswers'
 
 const actor = 'CHARACTER#Tess' as EphemeraCharacterId
@@ -19,11 +20,18 @@ const tableId = 'OBJECT#Table' as EphemeraObjectId
 const text = (value: string): ParseTokenDraft => ({ type: 'text', text: value })
 const span = (value: string): ParseTokenDraft => ({ type: 'objectSpan', span: value })
 
-/** The fast path's fills for a command, each stamped and Planned as parseCommand does. */
-const fillsOf = (command: string, drafts: ParseTokenDraft[][]): SkeletonFill[] => drafts
-    .map((draft) => stampStableRefKeys(draft))
-    .map((skeleton) => ({ skeleton, attempts: planSkeleton(skeleton, command).attempts }))
-    .filter(({ attempts }) => attempts.length > 0)
+/**
+ * Plan's fills for a command, as parseCommand hands them to the producer, checked to be exactly
+ * the segmentations listed (in any order) and the bare exit reading every command has (the whole
+ * command as one exit span, which no exit here names).
+ */
+const fillsOf = (command: string, drafts: ParseTokenDraft[][]): SkeletonFill[] => {
+    const fills = planTokens(tokenize(COMMAND_GRANULES, command), command)
+    expect(fills).toHaveLength(drafts.length + 1)
+    expect(drafts.every((draft) => fills.some(({ skeleton }) => sameSegmentation(skeleton, draft)))).toBe(true)
+    expect(fills.some(({ skeleton }) => skeleton.length === 1 && skeleton[0].type === 'objectSpan' && skeleton[0].catalog === 'exits')).toBe(true)
+    return fills
+}
 
 const compile = (
     command: string,
@@ -111,7 +119,7 @@ describe('compileAttemptsFromSkeleton (several fills)', () => {
             expect(result.type).toBe('Consult')
             if (result.type === 'Consult') {
                 expect(result.alternatives.map(({ label }) => label).sort()).toEqual(['take man in moon', 'take man in the moon'])
-                expect(result.root?.fills).toHaveLength(2)
+                expect(result.root?.fills).toHaveLength(3) // both cuts, and the bare exit reading: the root holds every fill
             }
         })
 

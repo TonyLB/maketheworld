@@ -11,7 +11,7 @@ import {
     isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isViewAnswer, type ViewAnswer } from './objectViews'
-import type { ParseTokenDraft } from './enrich/objectManipulation/parse/parseToken'
+import type { GranuleToken } from './deterministicTemplate/granuleTokens'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraMetaObject, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
@@ -25,7 +25,6 @@ import { isCoyoteTropeAffinity } from '@tonylb/mtw-interfaces/ts/coyotePlanAffin
 import type { CoyoteEngineTestHarnessInvocation } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedrockAcmeOrderEnrich'
 import { invokeBedrockObjectManipulationEnrich } from '../../generateExample/invokeBedrockObjectManipulationEnrich'
-import { invokeBedrockObjectManipulationParse } from '../../generateExample/invokeBedrockObjectManipulationParse'
 import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
 import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
 import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
@@ -35,6 +34,7 @@ import type { MutationKernelStep } from '../positions/manipulation/kernel/kernel
 import type { EmbedObjectSpanResult } from '../objects/embedding/embedObjectSpan'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { CommandAttemptData } from './commandAttempt'
+import type { TemplateSet } from './enrich/objectManipulation/plan/templateSet'
 
 const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProtocol> = new Set([
     'SayMessage',
@@ -142,11 +142,9 @@ export type ParseCommandAcmeOrderResult = {
 }
 
 /**
- * Coyote Game: wait-state for Road Runner encounter flows. Produced by
- * `deterministicTemplate/bareWordTemplates.ts`'s `awaitRoadRunnerTemplate`
- * (bare `wait`, plus a closed `wait for the roadrunner`/`road runner`/`the bird`
- * paraphrase lexicon), wired into `parseCommand.ts`'s `Command` branch via
- * `matchNonObjectManipulationTemplate` (iteration 7, Sub-iteration 2, 2026-07-20).
+ * Coyote Game: wait-state for Road Runner encounter flows. Produced by the `wait` intent row
+ * (`deterministicTemplate/intentTemplates.ts`: bare `wait`, plus a closed
+ * `wait for the roadrunner`/`road runner`/`the bird` paraphrase lexicon), on the fast path.
  */
 export type ParseCommandAwaitRoadrunnerResult = {
     type: 'AwaitRoadRunner'
@@ -311,12 +309,12 @@ export type ParseCommandMultipleCommandsResult = {
 export type ParseCommandObjectManipulationIntentResult = {
     type: 'ObjectManipulationIntent'
     /**
-     * The flat, unstamped skeletons the zero-Bedrock fast path (`deterministicChecks.ts`) builds: every
-     * fill of its patterns (membership, and the containment template's own), each a segmentation
-     * Plan reads on its own (`actions/AGENT.contract.md` "Qualifier": every fill is a reading). Only
-     * the fast path produces this intent; `parseCommand.ts` stamps each skeleton and enters Plan.
+     * The command cut into granule tokens (`deterministicTemplate/granuleTokens.ts`), as the
+     * zero-Bedrock fast path (`deterministicChecks.ts`) claimed it. Only the fast path produces this
+     * intent; `parseCommand.ts` hands the tokens to Plan (`planTokens`), which reads every template
+     * over them (`actions/AGENT.contract.md` "Qualifier").
      */
-    skeletons: ParseTokenDraft[][]
+    tokens: GranuleToken[]
     confidence: ParseCommandConfidence
 }
 
@@ -700,18 +698,19 @@ export function isParseCommandCommandAttemptResult(
     return isParseConfidence(result.confidence)
 }
 
+/** One exit from the actor's room: its normalized name and the room it leads to. */
+export type RoomExit = {
+    normalizedName: string
+    targetId: EphemeraRoomId
+}
+
 export type ParseCommandInput = {
     command: string
     /** Parse-request character; required for drop complexity pre-gates (actor host match). */
     characterId?: EphemeraCharacterId
     /** Actor's current room ludicGraph host (BD-6 relational compiler). */
     hostRoomId?: EphemeraRoomId
-    roomExits?: {
-        normalizedName: string
-        targetId: EphemeraRoomId
-    }[]
-    /** Normalized shortNames for objects in the character's current room (classify prompt only). */
-    roomObjectLabels?: string[]
+    roomExits?: readonly RoomExit[]
     /** In-room object catalog for enrich and deterministic resolve (D6). */
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     /** Character-held inventory catalog for object-manipulation identity stage (O5). */
@@ -727,13 +726,12 @@ export type ParseCommandDeps = {
     invokeBedrockAcmeOrderEnrichImpl?: typeof invokeBedrockAcmeOrderEnrich;
     /** Bedrock enrich for object manipulation complexity stage; tests may inject a mock. */
     invokeBedrockObjectManipulationEnrichImpl?: typeof invokeBedrockObjectManipulationEnrich;
-    /** Bedrock complexity stage for object manipulation; tests may inject a mock. */
-    /** Bedrock Parse stage (tokenized command skeleton, BD-21); tests may inject a mock. */
-    invokeBedrockObjectManipulationParseImpl?: typeof invokeBedrockObjectManipulationParse;
     /** Injectable Positions reads for object manipulation membership pre-gates. */
     objectManipulationPositionsReadDeps?: ObjectManipulationPositionsReadDeps;
     /** Injectable span embed for object manipulation identity pool builder (tests). */
     embedSpan?: (rawObjectSpan: string) => Promise<EmbedObjectSpanResult>;
+    /** The deterministic templates and the divider set they make; tests supply their own so what they pin does not move with the live set. Default: `LIVE_TEMPLATE_SET`. */
+    templates?: TemplateSet;
     /** Injectable Coyote room/meta accessors for `countCoyotePlacedObjectsAcrossRooms` (Acme enrich pre-check). */
     countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>;
     /** Deprecated compatibility flag; Acme enrich prompt is compact regardless of value. */

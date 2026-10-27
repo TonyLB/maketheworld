@@ -103,7 +103,7 @@ Copy is **deterministic template** (no copy-generating LLM hop): the narration u
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectRelateIntent`** + raw object span(s) |
-| Enrich | Parse skeleton -> Plan's LLM fallback (**`operationKind: establishRelation`**, not yet built) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
+| Enrich | tokenized command -> Plan's LLM fallback (**`operationKind: establishRelation`**, not yet built) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
 | Egress | **`Object Establish Relation`** stream (`characterId`, `subjectId`, `targetId`, `roomId`, `relationKind`, optional `relationLabel`) |
 | Apply | [`applyObjectRelationalChange`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts) via [`executeObjectEstablishRelation`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) -> **`applyHostRelationalPatch`** (`op: 'add'`) |
 | Fact | **`Object Relation Changed`**: `operation: 'establish'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |
@@ -138,7 +138,7 @@ Implementation: [`expandBoundaryChallenges.ts`](../dataSource/actions/commandAtt
 | Stage | Artifact |
 | --- | --- |
 | Classify | **`ObjectRelateIntent`** + raw object span(s) |
-| Enrich | Parse skeleton -> Plan's LLM fallback (**`operationKind: dissolveRelation`**, not yet built) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
+| Enrich | tokenized command -> Plan's LLM fallback (**`operationKind: dissolveRelation`**, not yet built) -> **`identifySkeletonSpans`** -> producer (no self-relations) -> Expansion (**`expandSameHost`**) -> **`compileAttemptsFromSkeleton`** |
 | Egress | **`Object Dissolve Relation`** stream (same payload shape as establish) |
 | Apply | [`executeEstablishEdgeChain`](../dataSource/positions/manipulation/relational/executeObjectEstablishRelation.ts) (shared with establish) -> `commitStepSequence` (`op: 'remove'`) |
 | Fact | **`Object Relation Changed`**: `operation: 'dissolve'`, `subjectId`, `targetId`, `hostRoomId`, `relationKind`, optional `relationLabel` |
@@ -171,7 +171,7 @@ These finalize to terminal parse **`Error`** --- no stream, no positions ingress
 | Doc | Role |
 | --- | --- |
 | [`AGENT.implementation.md`](AGENT.implementation.md) | Four-lane hub + follow-on operators table |
-| [`../dataSource/actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md) | Parse classify / enrich / egress playbook |
+| [`../dataSource/actions/AGENT.implementation.md`](../dataSource/actions/AGENT.implementation.md) | Parse Requested classify / enrich / egress playbook |
 | [`../dataSource/positions/AGENT.implementation.md`](../dataSource/positions/AGENT.implementation.md) | Cross-host apply + relational patch playbooks |
 | [`../dataSource/positions/AGENT.contract.md`](../dataSource/positions/AGENT.contract.md) | **`Object Moved`**, **`Object Take Hold`**, **`Object Drop`**, **`Object Establish Relation`**, **`Object Dissolve Relation`**, **`Object Relation Changed`** ingress (normative) |
 | [`../dataSource/perception/AGENT.md`](../dataSource/perception/AGENT.md) | Object-manipulation fan-in steady-state |

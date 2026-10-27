@@ -11,6 +11,7 @@ const narrate = (refKey: string) => ({
 describe('lookedAtObjectIdOf', () => {
     it('names the object a plain look narrates', () => {
         const attempt: CommandAttemptData = {
+            kind: 'look',
             words: 'look cup',
             referents: [{ refKey: 'cupRef', id: 'OBJECT#Cup', shortName: 'cup' }],
             actions: [narrate('cupRef')],
@@ -22,6 +23,7 @@ describe('lookedAtObjectIdOf', () => {
 
     it('names the narrated object of a qualified look, not the qualifier\'s host listed first', () => {
         const attempt: CommandAttemptData = {
+            kind: 'look',
             words: 'look at the cup on the table',
             referents: [
                 { refKey: 'tableRef', id: 'OBJECT#Table', shortName: 'table' },
@@ -48,8 +50,21 @@ describe('lookedAtObjectIdOf', () => {
         expect(lookedAtObjectIdOf(attempt)).toBe('OBJECT#Cup')
     })
 
-    it('is undefined for a world change: its primary action does not narrate', () => {
+    it('reads the kind, not the actions: an attempt of another kind is no look, even when it narrates', () => {
         const attempt: CommandAttemptData = {
+            kind: 'membership',
+            words: 'take cup',
+            referents: [{ refKey: 'cupRef', id: 'OBJECT#Cup', shortName: 'cup' }],
+            actions: [narrate('cupRef')],
+            narrationUnits: [],
+        }
+
+        expect(lookedAtObjectIdOf(attempt)).toBeUndefined()
+    })
+
+    it('is undefined for a world change', () => {
+        const attempt: CommandAttemptData = {
+            kind: 'membership',
             words: 'take cup',
             referents: [{ refKey: 'cupRef', id: 'OBJECT#Cup', shortName: 'cup' }],
             actions: [{ kind: 'position', id: 'take-1', challenges: [] }],

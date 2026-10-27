@@ -39,7 +39,7 @@ Later atomics reuse the **same classify intent families** (`ObjectManipulationIn
 ```text
 Parse Requested
   -> ObjectRelateIntent (classify; movementObjectLabels)
-  -> enrich objectManipulation (Parse skeleton -> Plan (LLM fallback; no deterministic peer template) -> compileAttemptsFromSkeleton)
+  -> enrich objectManipulation (tokenized command -> Plan (LLM fallback; no deterministic peer template) -> compileAttemptsFromSkeleton)
   -> streamEvent intent (Object Establish Relation)
   -> positions apply (host-local edge add via applyHostRelationalPatch)
   -> streamEvent fact (Object Relation Changed; operation establish)
@@ -68,13 +68,13 @@ Normative contracts: [`../dataSource/positions/AGENT.contract.md`](../dataSource
 | --- | --- | --- | --- |
 | **`takeHold`** | Shipped | room -> character | v1 reference vertical |
 | **`drop`** | Shipped | character -> room | Symmetric delta; held-catalog at classify/enrich |
-| Relational attach (`establishRelation` / `dissolveRelation`) | Shipped (Phase B) | in-host edge on room **`ludicGraph`** | Parse -> actions stream -> positions apply -> perception fan-in; operator fiction in [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md) |
+| Relational attach (`establishRelation` / `dissolveRelation`) | Shipped (Phase B) | in-host edge on room **`ludicGraph`** | Parse Requested -> actions stream -> positions apply -> perception fan-in; operator fiction in [`AGENT.operators.concepts.md`](AGENT.operators.concepts.md) |
 
 ---
 
 ## Reference files (end-to-end)
 
-Classify: [`buildIntentClassificationPrompt.ts`](../dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts), [`roomObjectLabelsForCharacter.ts`](../dataSource/actions/roomObjectLabelsForCharacter.ts).
+Classify: [`buildIntentClassificationPrompt.ts`](../dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts).
 
 Enrich: [`roomObjectCatalogForCharacter.ts`](../dataSource/actions/roomObjectCatalogForCharacter.ts), [`heldInventoryCatalogForCharacter.ts`](../dataSource/actions/heldInventoryCatalogForCharacter.ts), [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/).
 

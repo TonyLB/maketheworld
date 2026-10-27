@@ -4,7 +4,7 @@ import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 import { compileAttemptsFromSkeleton } from './compileAttemptsFromSkeleton'
 import type { ParseSkeleton } from './parse/parseToken'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
-import { planSkeleton } from './plan/planSkeleton'
+import { planFillOf } from './plan/attemptTemplateFixture'
 import { CommandAttempt } from '../../commandAttempt'
 import { peerRelationFixture } from './peerRelationFixture'
 
@@ -32,11 +32,7 @@ const relationalSkeleton = (
 
 /** Plan's primary attempt for a skeleton: the input the producers take (ISS8203 slice 1). */
 const planned = (skeleton: ParseSkeleton) => {
-    const plan = planSkeleton(skeleton, 'test command')
-    if (plan.type !== 'attempts' || plan.attempts.length === 0) {
-        throw new Error('planSkeleton produced no attempt for this skeleton')
-    }
-    return plan.attempts[0]
+    return planFillOf(skeleton, 'test command').attempts[0]
 }
 
 /** The attempt's relation step: Plan's relational template puts it in the one position action. */
@@ -168,7 +164,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             {
                 command: 'put broom under table',
                 fills: [{ skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), attempts: [
-                    CommandAttempt.create('put broom under table', []),
+                    CommandAttempt.create('look', 'put broom under table', []),
                     peerRelationFixture('put broom under table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' }),
                 ] }],
                 hostRoomId: roomId,

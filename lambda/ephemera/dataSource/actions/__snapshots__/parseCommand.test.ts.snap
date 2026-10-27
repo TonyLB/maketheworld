@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the coin in the jar 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands put the coin in the jar 1`] = `
 Object {
   "result": Object {
     "attempt": Object {
@@ -41,6 +41,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "containment",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -99,12 +100,11 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the coin in the table when the coin sits inside the jar (withinObject locus) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands put the coin in the table when the coin sits inside the jar (withinObject locus) 1`] = `
 Object {
   "result": Object {
     "attempt": Object {
@@ -145,6 +145,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "containment",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -203,12 +204,11 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the coin on the table 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands put the coin on the table 1`] = `
 Object {
   "result": Object {
     "attempt": Object {
@@ -249,6 +249,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "containment",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -307,12 +308,11 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands (Parse path) put the rope on the table when the rope is lashed to the post (boundary edge: slice 3 expands it) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) containment commands put the rope on the table when the rope is lashed to the post (boundary edge: slice 3 expands it) 1`] = `
 Object {
   "result": Object {
     "attempt": Object {
@@ -394,6 +394,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "containment",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -485,7 +486,6 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
@@ -522,6 +522,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "membership",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -568,7 +569,6 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
@@ -609,6 +609,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "membership",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -655,94 +656,6 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
-  },
-}
-`;
-
-exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) get the broom through Parse, when the span is not in the room labels 1`] = `
-Object {
-  "result": Object {
-    "attempt": Object {
-      "actions": Array [
-        Object {
-          "challenges": Array [],
-          "desiredResult": Object {
-            "from": Object {
-              "referentTarget": Object {
-                "groundedId": "OBJECT#Broom",
-                "referentType": "objectSpan",
-                "shortName": "broom",
-                "span": "broom",
-                "stableRefKey": "broomRef",
-              },
-              "referentType": "currentHost",
-            },
-            "kind": "change",
-            "object": Object {
-              "groundedId": "OBJECT#Broom",
-              "referentType": "objectSpan",
-              "shortName": "broom",
-              "span": "broom",
-              "stableRefKey": "broomRef",
-            },
-            "primitive": "transferMembership",
-            "to": Object {
-              "referentType": "actingCharacter",
-            },
-          },
-          "desiredResultDescription": "Take: broom",
-          "id": "<minted id 1>",
-          "kind": "position",
-        },
-      ],
-      "narrationUnits": Array [
-        Object {
-          "covers": Array [
-            "<minted id 1>",
-          ],
-          "variants": Array [
-            Object {
-              "audience": Object {
-                "phase": "before",
-                "refs": Array [
-                  "actor",
-                  "broomRef",
-                ],
-              },
-              "parts": Array [
-                Object {
-                  "slot": "actor",
-                },
-                Object {
-                  "text": " picks up ",
-                },
-                Object {
-                  "ref": "broomRef",
-                },
-              ],
-            },
-          ],
-        },
-      ],
-      "referents": Array [
-        Object {
-          "id": "OBJECT#Broom",
-          "refKey": "broomRef",
-          "shortName": "broom",
-        },
-      ],
-      "words": "get the broom",
-    },
-    "confidence": 0.9,
-    "type": "CommandAttempt",
-  },
-  "stubCalls": Object {
-    "acme": 0,
-    "classify": 1,
-    "embedSpan": 0,
-    "enrich": 0,
-    "parse": 1,
   },
 }
 `;
@@ -783,6 +696,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "membership",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -829,7 +743,6 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
@@ -846,7 +759,6 @@ Object {
     "classify": 1,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 1,
   },
 }
 `;
@@ -928,6 +840,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "membership",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -1007,7 +920,6 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
@@ -1089,6 +1001,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "membership",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -1168,7 +1081,6 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
@@ -1194,6 +1106,7 @@ Object {
           ],
         },
       ],
+      "kind": "look",
       "narrationUnits": Array [],
       "referents": Array [
         Object {
@@ -1204,15 +1117,14 @@ Object {
       ],
       "words": "look rocket skates",
     },
-    "confidence": 0.9,
+    "confidence": 1,
     "type": "CommandAttempt",
   },
   "stubCalls": Object {
     "acme": 0,
-    "classify": 1,
+    "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 1,
   },
 }
 `;
@@ -1228,7 +1140,6 @@ Object {
     "classify": 1,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 1,
   },
 }
 `;
@@ -1244,7 +1155,6 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
@@ -1260,7 +1170,6 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
@@ -1321,6 +1230,7 @@ Object {
                   "kind": "position",
                 },
               ],
+              "kind": "membership",
               "narrationUnits": Array [
                 Object {
                   "covers": Array [
@@ -1366,6 +1276,36 @@ Object {
             },
           ],
         },
+        Object {
+          "attempts": Array [
+            Object {
+              "actions": Array [
+                Object {
+                  "challenges": Array [],
+                  "destination": Object {
+                    "referentType": "objectSpan",
+                    "span": "take the broom",
+                    "stableRefKey": "takeTheBroomExitRef",
+                  },
+                  "id": "<minted id 2>",
+                  "kind": "navigate",
+                },
+              ],
+              "kind": "navigation",
+              "narrationUnits": Array [],
+              "referents": Array [],
+              "words": "take the broom",
+            },
+          ],
+          "skeleton": Array [
+            Object {
+              "catalog": "exits",
+              "span": "take the broom",
+              "stableRefKey": "takeTheBroomExitRef",
+              "type": "objectSpan",
+            },
+          ],
+        },
       ],
     },
     "type": "Consult",
@@ -1375,12 +1315,11 @@ Object {
     "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands (Parse path) put the broom against the table (no peer parse: Unimplemented) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands put the broom against the table (no peer parse: Unimplemented) 1`] = `
 Object {
   "result": Object {
     "confidence": 0.9,
@@ -1391,12 +1330,11 @@ Object {
     "classify": 1,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 1,
   },
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands (Parse path) put the broom partof the table (no peer parse: Unimplemented) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands put the broom partof the table (no peer parse: Unimplemented) 1`] = `
 Object {
   "result": Object {
     "confidence": 0.9,
@@ -1407,12 +1345,11 @@ Object {
     "classify": 1,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 1,
   },
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands (Parse path) put the broom under the table with two table candidates (no peer parse: Unimplemented) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands put the broom under the table with two table candidates (no peer parse: Unimplemented) 1`] = `
 Object {
   "result": Object {
     "confidence": 0.9,
@@ -1423,12 +1360,11 @@ Object {
     "classify": 1,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 1,
   },
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands (Parse path) take the rope off the post (fast path: the qualifier refuses, the rope is lashed to the post, not held by it) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands take the rope off the post (fast path: the qualifier refuses, the rope is lashed to the post, not held by it) 1`] = `
 Object {
   "result": Object {
     "errorMessage": "The post has no rope.",
@@ -1439,12 +1375,11 @@ Object {
     "classify": 0,
     "embedSpan": 1,
     "enrich": 0,
-    "parse": 0,
   },
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands (Parse path) tie the rope to the post (no peer parse: Unimplemented) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands tie the rope to the post (no peer parse: Unimplemented) 1`] = `
 Object {
   "result": Object {
     "confidence": 0.9,
@@ -1455,7 +1390,6 @@ Object {
     "classify": 1,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 1,
   },
 }
 `;

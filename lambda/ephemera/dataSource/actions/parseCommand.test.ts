@@ -2,10 +2,11 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, Eph
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../positions/ludicGraph/testFixtures'
 import { CommandAttempt, type CommandAttemptData } from './commandAttempt'
+import { navigationTargetOf } from './commandAttempt/navigationTarget'
 import { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
-import { getRoomObjectCatalogForCharacter, roomObjectLabelsFromCatalog } from './roomObjectCatalogForCharacter'
+import { getRoomObjectCatalogForCharacter } from './roomObjectCatalogForCharacter'
 
 import {
     embeddingAtCosineSimilarity,
@@ -30,6 +31,7 @@ import {
 import { isCoyoteAffinitiesTestSlashCommand } from './discriminateIntent/coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './discriminateIntent/coyoteEngineTestSlashCommand'
 import {
+    navigationIntentErrorMessages,
     objectManipulationErrorMessages,
     parseCommand,
 } from './parseCommand'
@@ -757,36 +759,55 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
-    it('returns deterministic Navigation for exact exit name without Bedrock', async () => {
+    /** Where a navigation attempt goes: its navigate action's exit, grounded to a room, and the exit's name. */
+    const navigationOf = (result: { type: string; attempt?: CommandAttemptData }) => (
+        result.type === 'CommandAttempt' && result.attempt ? navigationTargetOf(result.attempt) : undefined
+    )
+
+    it('answers a bare exit name with a navigation attempt, without Bedrock', async () => {
         const invokeBedrockParseCommandImpl = jest.fn()
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
 
         const result = await parseCommand(
             {
                 command: 'north',
+                hostRoomId: 'ROOM#here' as EphemeraRoomId,
                 roomExits: [{ normalizedName: 'north', targetId: northRoom }],
             },
             { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
         )
 
-        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
+        expect(result).toMatchObject({ type: 'CommandAttempt', confidence: 1, attempt: { kind: 'navigation' } })
+        expect(navigationOf(result)).toEqual({ targetId: northRoom, exitName: 'north' })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('returns deterministic Navigation for go <exit> with casing and whitespace variants', async () => {
+    it.each(['  GO   NORTH  ', 'head north', 'walk north', 'enter north'])('answers "%s" (a movement verb and an exit) with a navigation attempt, without Bedrock', async (command) => {
         const invokeBedrockParseCommandImpl = jest.fn()
 
         const result = await parseCommand(
             {
-                command: '  GO   NORTH  ',
+                command,
+                hostRoomId: 'ROOM#here' as EphemeraRoomId,
                 roomExits: [{ normalizedName: 'north', targetId: northRoom }],
             },
             { invokeBedrockParseCommandImpl }
         )
 
-        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
+        expect(navigationOf(result)).toEqual({ targetId: northRoom, exitName: 'north' })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
+    it('answers an exit name two exits share with the ambiguity, on every form: asking which is shelved', async () => {
+        const exits = [{ normalizedName: 'north', targetId: northRoom }, { normalizedName: 'north', targetId: 'ROOM#attic' as EphemeraRoomId }]
+        for (const command of ['north', 'go north', 'walk north']) {
+            const result = await parseCommand(
+                { command, hostRoomId: 'ROOM#here' as EphemeraRoomId, roomExits: exits },
+                { invokeBedrockParseCommandImpl: jest.fn() }
+            )
+            expect(result).toEqual({ type: 'Error', errorMessage: navigationIntentErrorMessages.ambiguousMatch })
+        }
     })
 
     it('falls through to Bedrock when deterministic navigation does not match an exit', async () => {
@@ -806,16 +827,17 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
     })
 
-    it('does not treat look at or long as bare look; still invokes Bedrock', async () => {
+    it('does not treat look at or long as bare look: "long" climbs to Bedrock, "look at door" is the look template\'s', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"Unknown","confidence":0.3}',
         })
 
-        await parseCommand({ command: 'look at door' }, { invokeBedrockParseCommandImpl })
-        await parseCommand({ command: 'long' }, { invokeBedrockParseCommandImpl })
-
-        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(2)
+        expect(await parseCommand({ command: 'long' }, { invokeBedrockParseCommandImpl })).toEqual({ type: 'Unknown', confidence: 0.3 })
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
+        // With no acting character, the look is refused, and that Error is the answer.
+        expect(await parseCommand({ command: 'look at door' }, { invokeBedrockParseCommandImpl })).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noActingCharacter })
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
     })
 
     it('returns interpreted body when Bedrock succeeds', async () => {
@@ -823,14 +845,10 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.7}',
         })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"use teleporter"}]}',
-        })
 
         const result = await parseCommand(
             { command: 'use teleporter' },
-            { invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
+            { invokeBedrockParseCommandImpl }
         )
 
         expect(result).toEqual({ type: 'Unimplemented', confidence: 0.7 })
@@ -879,10 +897,6 @@ describe('parseCommand LLM path', () => {
             body: '{"type":"Command","confidence":0.84}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"juggle flaming torches"}]}',
-        })
 
         const result = await parseCommand(
             { command: 'juggle flaming torches' },
@@ -890,7 +904,6 @@ describe('parseCommand LLM path', () => {
                 ...depsCoyoteUnderCap,
                 invokeBedrockParseCommandImpl,
                 invokeBedrockAcmeOrderEnrichImpl,
-                invokeBedrockObjectManipulationParseImpl,
             }
         )
 
@@ -900,26 +913,23 @@ describe('parseCommand LLM path', () => {
     })
 
     describe('Sub-iteration 2: non-object-manipulation Command family paraphrases', () => {
-        it('does not resolve a LookRoom paraphrase deterministically (deliberate scope call: open-ended look paraphrases are LLM-fallback territory, not a closed lexicon) -- falls through to Parse like any other unrecognized Command', async () => {
+        it('does not resolve a LookRoom paraphrase deterministically (deliberate scope call: open-ended look paraphrases are LLM-fallback territory, not a closed lexicon) -- falls through to classify like any other command no template reads', async () => {
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"type":"Command","confidence":0.9}',
             })
-            const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"tokens":[{"type":"text","text":"examine the room"}]}',
-            })
 
             const result = await parseCommand(
-                { command: 'examine the room' },
-                { invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
+                { command: 'examine the room', characterId: 'CHARACTER#Tess' as EphemeraCharacterId, roomObjectCatalog: [] },
+                { invokeBedrockParseCommandImpl }
             )
 
-            expect(result).toEqual({ type: 'Unimplemented', confidence: 0.9 })
-            expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
+            // `examine` is a look verb, so this is an object look at "the room", which grounds nothing
+            // here; never a LookRoom.
+            expect(result).toMatchObject({ type: 'Abstain', confidence: 0.9 })
         })
 
-        it('resolves a Help paraphrase without running Parse', async () => {
+        it('resolves a Help paraphrase before classify', async () => {
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"type":"Command","confidence":0.9}',
@@ -928,9 +938,10 @@ describe('parseCommand LLM path', () => {
             const result = await parseCommand({ command: 'help me' }, { invokeBedrockParseCommandImpl })
 
             expect(result).toEqual({ type: 'Help', confidence: 1 })
+            expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
-        it('resolves a Home paraphrase without running Parse', async () => {
+        it('resolves a Home paraphrase before classify', async () => {
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"type":"Command","confidence":0.9}',
@@ -939,9 +950,10 @@ describe('parseCommand LLM path', () => {
             const result = await parseCommand({ command: 'head back home' }, { invokeBedrockParseCommandImpl })
 
             expect(result).toEqual({ type: 'Home', confidence: 1 })
+            expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
-        it('resolves an AwaitRoadRunner paraphrase without running Parse', async () => {
+        it('resolves an AwaitRoadRunner paraphrase before classify', async () => {
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"type":"Command","confidence":0.9}',
@@ -950,32 +962,28 @@ describe('parseCommand LLM path', () => {
             const result = await parseCommand({ command: 'wait for the bird' }, { invokeBedrockParseCommandImpl })
 
             expect(result).toEqual({ type: 'AwaitRoadRunner', confidence: 1 })
+            expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
-        it('resolves a Navigation paraphrase (movement verb beyond bare "go") without running Parse', async () => {
+        it('climbs past a movement verb whose exit is not here: nothing grounds, so it is not understood', async () => {
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"type":"Command","confidence":0.9}',
             })
-            const invokeBedrockObjectManipulationParseImpl = jest.fn()
 
             const result = await parseCommand(
-                { command: 'head north', roomExits: [{ normalizedName: 'north', targetId: northRoom }] },
-                { invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
+                { command: 'walk xyzzy', hostRoomId: 'ROOM#here' as EphemeraRoomId, roomExits: [{ normalizedName: 'north', targetId: northRoom }] },
+                { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl }
             )
 
-            expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
-            expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
+            expect(result).toMatchObject({ type: 'Abstain' })
+            expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
         })
 
-        it('resolves an AcmeOrder paraphrase after Parse, once planSkeleton rules out membership/relational', async () => {
+        it('resolves an AcmeOrder paraphrase after classify, once Plan\'s templates rule out every attempt', async () => {
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"type":"Command","confidence":0.9}',
-            })
-            const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"tokens":[{"type":"text","text":"order"},{"type":"objectSpan","span":"a glue trap"}]}',
             })
             const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
                 success: true,
@@ -992,7 +1000,6 @@ describe('parseCommand LLM path', () => {
                 {
                     ...depsCoyoteUnderCap,
                     invokeBedrockParseCommandImpl,
-                    invokeBedrockObjectManipulationParseImpl,
                     invokeBedrockAcmeOrderEnrichImpl,
                 }
             )
@@ -1040,57 +1047,6 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('routes get the broom through classify + Parse + planSkeleton to membership enrich when the catalog gate blocks the deterministic get fast path', async () => {
-        // "get" only bypasses classify when the object's normalized span is already in
-        // roomObjectLabels (deterministicChecks.ts); leaving it out here forces classify + Parse,
-        // exercising CPG-3's planSkeleton dispatch from a literal leading "get" token
-        // (Parse preserves the player's own words, per buildParsePrompt.ts, so this is a realistic
-        // non-deterministic route into membership --- unlike a "pick up"/"grab" paraphrase, which
-        // Parse would never rewrite into a bare take/get/drop token).
-        const broomId = 'OBJECT#Broom'
-        const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"type":"Command","confidence":0.94}',
-        })
-        const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-        const embedSpan = jest.fn()
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"get"},{"type":"objectSpan","span":"broom"}]}',
-        })
-
-        const result = await parseCommand(
-            {
-                command: 'get the broom',
-                characterId: 'CHARACTER#123',
-                hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: [],
-                roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
-            },
-            {
-                ...depsCoyoteUnderCap,
-                invokeBedrockParseCommandImpl,
-                invokeBedrockAcmeOrderEnrichImpl,
-                invokeBedrockObjectManipulationEnrichImpl,
-                invokeBedrockObjectManipulationParseImpl,
-                embedSpan,
-                objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
-            }
-        )
-
-        expect(result).toEqual({
-            type: 'CommandAttempt',
-            confidence: 0.94,
-            attempt: expect.anything(),
-        })
-        expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: broomId }, to: { referentType: 'actingCharacter' } })
-        expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-        expect(embedSpan).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
-    })
-
     describe('FT-4.1 membership / relational e2e', () => {
         it('returns Consult for membership paraphrase with thin-margin broom/mop pool', async () => {
             const broomId = 'OBJECT#Broom' as EphemeraObjectId
@@ -1108,7 +1064,6 @@ describe('parseCommand LLM path', () => {
                     command: 'take the sweeping tool',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom', 'mop'],
                     roomObjectCatalog: [
                         {
                             objectId: broomId,
@@ -1157,7 +1112,6 @@ describe('parseCommand LLM path', () => {
                     command: 'take the broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [
                         { objectId: broomId, normalizedShortName: 'broom' },
                         { objectId: mopId, normalizedShortName: 'broom' },
@@ -1193,10 +1147,6 @@ describe('parseCommand LLM path', () => {
                 success: true,
                 body: '{"type":"Command","confidence":0.86}',
             })
-            const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"tokens":[{"type":"text","text":"remove"},{"type":"objectSpan","span":"rope"},{"type":"text","text":"off"},{"type":"objectSpan","span":"crate"}]}',
-            })
 
             const result = await parseCommand(
                 {
@@ -1207,7 +1157,6 @@ describe('parseCommand LLM path', () => {
                     command: 'remove the rope off the crate',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
-                    roomObjectLabels: ['rope'],
                     roomObjectCatalog: [
                         { objectId: ropeId, normalizedShortName: 'rope' },
                         { objectId: crateId, normalizedShortName: 'crate' },
@@ -1215,7 +1164,6 @@ describe('parseCommand LLM path', () => {
                 },
                 {
                     invokeBedrockParseCommandImpl,
-                    invokeBedrockObjectManipulationParseImpl,
                     objectManipulationPositionsReadDeps: {
                         getMembershipContainers: jest.fn().mockResolvedValue(['ROOM#Bridge' as EphemeraRoomId]),
                         getLudicGraph: jest.fn().mockResolvedValue(
@@ -1238,7 +1186,6 @@ describe('parseCommand LLM path', () => {
             )
 
             expect(result).toEqual({ type: 'Unimplemented', confidence: 0.86 })
-            expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
         })
     })
 
@@ -1248,23 +1195,17 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"put down"},{"type":"objectSpan","span":"broom"}]}',
-        })
 
         const result = await parseCommand(
             {
                 command: 'put down the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: [],
                 roomObjectCatalog: [],
                 heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
                 objectManipulationPositionsReadDeps: objectManipulationDropPositionsReadDepsForTests(),
             }
         )
@@ -1281,7 +1222,6 @@ describe('parseCommand LLM path', () => {
                 command: 'drop the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: ['broom'],
                 roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 heldInventoryCatalog: [],
             },
@@ -1304,23 +1244,17 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"get"},{"type":"objectSpan","span":"broom"}]}',
-        })
 
         const result = await parseCommand(
             {
                 command: 'get the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: [],
                 roomObjectCatalog: [],
                 heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
                 objectManipulationPositionsReadDeps: objectManipulationDropPositionsReadDepsForTests(),
             }
         )
@@ -1338,17 +1272,12 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"broom"},{"type":"text","text":"under"},{"type":"objectSpan","span":"table"}]}',
-        })
 
         const result = await parseCommand(
             {
                 command: 'put the broom under the table',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
-                roomObjectLabels: ['broom'],
                 roomObjectCatalog: [
                     { objectId: broomId, normalizedShortName: 'broom' },
                     { objectId: tableId, normalizedShortName: 'table' },
@@ -1356,7 +1285,6 @@ describe('parseCommand LLM path', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
                 objectManipulationPositionsReadDeps: relationalPositionsReadDepsForTests([broomId, tableId]),
             }
         )
@@ -1364,15 +1292,11 @@ describe('parseCommand LLM path', () => {
         expect(result).toEqual({ type: 'Unimplemented', confidence: 0.9 })
     })
 
-    it('returns LookComponent for object-directed look via the native skeleton pipeline (Phase 4)', async () => {
+    it('returns LookComponent for object-directed look via the native skeleton pipeline, on the fast path (Phase 4)', async () => {
         const rocketSkatesId = 'OBJECT#RocketSkates'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"Command","confidence":0.9}',
-        })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"look"},{"type":"objectSpan","span":"rocket skates"}]}',
         })
 
         const result = await parseCommand(
@@ -1386,17 +1310,17 @@ describe('parseCommand LLM path', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
             }
         )
 
+        // A look is one of Plan's templates, so the fast path reads it: no classify.
         expect(result).toEqual({
             type: 'CommandAttempt',
-            confidence: 0.9,
+            confidence: 1,
             attempt: expect.anything(),
         })
         expect(lookedAtId(result)).toBe(rocketSkatesId)
-        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
 
@@ -1408,16 +1332,11 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"coin"},{"type":"text","text":"in"},{"type":"objectSpan","span":"jar"}]}',
-        })
 
         const result = await parseCommand(
             {
                 command: 'put the coin in the jar',
                 hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
-                roomObjectLabels: ['coin', 'jar'],
                 roomObjectCatalog: [
                     { objectId: coinId, normalizedShortName: 'coin' },
                     { objectId: jarId, normalizedShortName: 'jar' },
@@ -1425,7 +1344,6 @@ describe('parseCommand LLM path', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
                 objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
             }
         )
@@ -1437,7 +1355,6 @@ describe('parseCommand LLM path', () => {
         })
         expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: coinId }, to: { groundedId: jarId }, containment: 'In' })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
     })
 
     it('returns ObjectContainment for "on" on the fast path: put is claimed with no Bedrock call', async () => {
@@ -1447,16 +1364,11 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"tray"}]}',
-        })
 
         const result = await parseCommand(
             {
                 command: 'put the cup on the tray',
                 hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
-                roomObjectLabels: ['cup', 'tray'],
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
                     { objectId: trayId, normalizedShortName: 'tray' },
@@ -1464,7 +1376,6 @@ describe('parseCommand LLM path', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
                 objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
             }
         )
@@ -1476,7 +1387,6 @@ describe('parseCommand LLM path', () => {
         })
         expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: cupId }, to: { groundedId: trayId }, containment: 'On' })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-        expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
     })
 
     it('returns noHostRoom Error for "on" relational route when the acting character has no room', async () => {
@@ -1484,15 +1394,10 @@ describe('parseCommand LLM path', () => {
             success: true,
             body: '{"type":"Command","confidence":0.9}',
         })
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"put"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"tray"}]}',
-        })
 
         const result = await parseCommand(
             {
                 command: 'put the cup on the tray',
-                roomObjectLabels: ['cup', 'tray'],
                 roomObjectCatalog: [
                     { objectId: 'OBJECT#Cup', normalizedShortName: 'cup' },
                     { objectId: 'OBJECT#Tray', normalizedShortName: 'tray' },
@@ -1500,7 +1405,6 @@ describe('parseCommand LLM path', () => {
             },
             {
                 invokeBedrockParseCommandImpl,
-                invokeBedrockObjectManipulationParseImpl,
             }
         )
 
@@ -1515,7 +1419,6 @@ describe('parseCommand LLM path', () => {
             const broomId = 'OBJECT#Broom'
             const invokeBedrockParseCommandImpl = jest.fn()
             const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-            const invokeBedrockObjectManipulationParseImpl = jest.fn()
             const embedSpan = jest.fn()
 
             const result = await parseCommand(
@@ -1523,14 +1426,12 @@ describe('parseCommand LLM path', () => {
                     command: 'take broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 },
                 {
                     ...depsCoyoteUnderCap,
                     invokeBedrockParseCommandImpl,
                     invokeBedrockObjectManipulationEnrichImpl,
-                    invokeBedrockObjectManipulationParseImpl,
                     embedSpan,
                     objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
                 }
@@ -1545,15 +1446,13 @@ describe('parseCommand LLM path', () => {
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
             expect(embedSpan).not.toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
         })
 
-        describe('Abstain climbs the ladder (a fast-path Abstain falls through to the LLM route)', () => {
+        describe('Abstain climbs the ladder (a fast-path Abstain falls through to classify)', () => {
             const broomId = 'OBJECT#Broom'
-            const run = async (command: string, parseTokens: unknown[], catalogExtras: Record<string, unknown> = {}) => {
+            const run = async (command: string, catalogExtras: Record<string, unknown> = {}) => {
                 const stubs = {
                     classify: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
-                    parse: jest.fn().mockResolvedValue({ success: true, body: JSON.stringify({ tokens: parseTokens }) }),
                     acme: jest.fn(),
                 }
                 const result = await parseCommand(
@@ -1561,14 +1460,12 @@ describe('parseCommand LLM path', () => {
                         command,
                         characterId: 'CHARACTER#123',
                         hostRoomId: 'ROOM#Bridge',
-                        roomObjectLabels: ['broom'],
                         roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                         ...catalogExtras,
                     } as any,
                     {
                         ...depsCoyoteUnderCap,
                         invokeBedrockParseCommandImpl: stubs.classify,
-                        invokeBedrockObjectManipulationParseImpl: stubs.parse,
                         invokeBedrockAcmeOrderEnrichImpl: stubs.acme,
                         embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' }),
                         objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
@@ -1577,41 +1474,36 @@ describe('parseCommand LLM path', () => {
                 return { result, stubs }
             }
 
-            it('take unicorn: the fast path abstains, so classify and Parse run, and with no Acme match the top rung\'s Abstain is the answer', async () => {
-                const { result, stubs } = await run('take unicorn', [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'unicorn' }])
+            it('take unicorn: the fast path abstains, so classify runs, and with no Acme match the top rung\'s Abstain is the answer', async () => {
+                const { result, stubs } = await run('take unicorn')
 
                 expect(result).toMatchObject({ type: 'Abstain', confidence: 0.9 })
                 expect(stubs.classify).toHaveBeenCalledTimes(1)
-                expect(stubs.parse).toHaveBeenCalledTimes(1)
                 expect(stubs.acme).not.toHaveBeenCalled()
             })
 
             it('a fast-path Error is an answer: drop broom, not held, never reaches Bedrock', async () => {
-                const { result, stubs } = await run('drop broom', [])
+                const { result, stubs } = await run('drop broom')
 
                 expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.notCarryingObject })
                 expect(stubs.classify).not.toHaveBeenCalled()
-                expect(stubs.parse).not.toHaveBeenCalled()
             })
         })
 
-        it('does not call Parse for deterministic membership commands (Step 2a)', async () => {
+        it('does not call classify for deterministic membership commands (Step 2a)', async () => {
             const broomId = 'OBJECT#Broom'
             const invokeBedrockParseCommandImpl = jest.fn()
-            const invokeBedrockObjectManipulationParseImpl = jest.fn()
 
             const result = await parseCommand(
                 {
                     command: 'get broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 },
                 {
                     ...depsCoyoteUnderCap,
                     invokeBedrockParseCommandImpl,
-                    invokeBedrockObjectManipulationParseImpl,
                     objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
                 }
             )
@@ -1623,41 +1515,6 @@ describe('parseCommand LLM path', () => {
             })
             expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: broomId }, to: { referentType: 'actingCharacter' } })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
-        })
-
-        it('hard-fails (no classify fallback) when Parse fails for an LLM-routed membership command (Step 3)', async () => {
-            const broomId = 'OBJECT#Broom'
-            const mopId = 'OBJECT#Mop'
-            const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
-                success: true,
-                body: '{"type":"Command","confidence":0.9}',
-            })
-            const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-                success: false,
-                errorMessage: 'simulated Parse failure',
-            })
-
-            const result = await parseCommand(
-                {
-                    command: 'pick up the broom',
-                    characterId: 'CHARACTER#123',
-                    hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom', 'mop'],
-                    roomObjectCatalog: [
-                        { objectId: broomId, normalizedShortName: 'broom' },
-                        { objectId: mopId, normalizedShortName: 'mop' },
-                    ],
-                },
-                {
-                    invokeBedrockParseCommandImpl,
-                    invokeBedrockObjectManipulationParseImpl,
-                    objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
-                }
-            )
-
-            expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
-            expect(result.type).toBe('Error')
         })
 
         it('returns drop from drop broom without Bedrock classify', async () => {
@@ -1669,7 +1526,6 @@ describe('parseCommand LLM path', () => {
                     command: 'drop broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [],
                     heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 },
@@ -1697,7 +1553,6 @@ describe('parseCommand LLM path', () => {
                     command: 'get broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 },
                 {
@@ -1724,7 +1579,6 @@ describe('parseCommand LLM path', () => {
                     command: 'drop broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                     heldInventoryCatalog: [],
                 },
@@ -1743,20 +1597,17 @@ describe('parseCommand LLM path', () => {
 
         it('reads a drop\'s tail as a destination, without Bedrock: the qualified reading finds the held cup not in the box, so the move into the box is the one left', async () => {
             const invokeBedrockParseCommandImpl = jest.fn()
-            const invokeBedrockObjectManipulationParseImpl = jest.fn()
 
             const result = await parseCommand(
                 {
                     command: 'drop the cup in the box',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['cup', 'box'],
                     roomObjectCatalog: [{ objectId: 'OBJECT#Box', normalizedShortName: 'box' }],
                     heldInventoryCatalog: [{ objectId: 'OBJECT#Cup', normalizedShortName: 'cup' }],
                 },
                 {
                     invokeBedrockParseCommandImpl,
-                    invokeBedrockObjectManipulationParseImpl,
                     objectManipulationPositionsReadDeps: {
                         getMembershipContainers: jest.fn().mockImplementation(async (id: string) => [id === 'OBJECT#Cup' ? 'CHARACTER#123' : 'ROOM#Bridge']),
                         getLudicGraph: hostAwareGetLudicGraph(),
@@ -1773,21 +1624,18 @@ describe('parseCommand LLM path', () => {
                 containment: 'In',
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
         })
 
         it.each([
             ['a chained tail, whose reading of every span finds no cup on the saucer', 'take cup on saucer on table', 'The saucer has no cup.'],
         ])('splits %s, as the LLM route does, without Bedrock', async (_label, command, errorMessage) => {
             const invokeBedrockParseCommandImpl = jest.fn()
-            const invokeBedrockObjectManipulationParseImpl = jest.fn()
 
             const result = await parseCommand(
                 {
                     command,
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['cup', 'saucer', 'table', 'box'],
                     roomObjectCatalog: [
                         { objectId: 'OBJECT#Saucer', normalizedShortName: 'saucer' },
                         { objectId: 'OBJECT#Table', normalizedShortName: 'table' },
@@ -1797,14 +1645,12 @@ describe('parseCommand LLM path', () => {
                 },
                 {
                     invokeBedrockParseCommandImpl,
-                    invokeBedrockObjectManipulationParseImpl,
                     objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
                 }
             )
 
             expect(result).toEqual({ type: 'Error', errorMessage })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-            expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
         })
     })
 
@@ -1814,14 +1660,10 @@ describe('parseCommand LLM path', () => {
             body: '{"type":"Command","confidence":0.8}',
         })
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
-        const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
-            success: true,
-            body: '{"tokens":[{"type":"text","text":"attack"},{"type":"objectSpan","span":"troll"}]}',
-        })
 
         const result = await parseCommand(
             { command: 'attack troll' },
-            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl, invokeBedrockObjectManipulationParseImpl }
+            { invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
         )
 
         expect(result).toEqual({ type: 'Unimplemented', confidence: 0.8 })
@@ -1851,13 +1693,10 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
     type ParseInput = Parameters<typeof parseCommand>[0]
     type CaseOptions = {
-        parseTokens?: Array<Record<string, string>>
         graphs?: Record<string, EphemeraLudicGraph>
         containers?: Record<string, string[]>
     }
 
-    const text = (value: string) => ({ type: 'text', text: value })
-    const span = (value: string) => ({ type: 'objectSpan', span: value })
     const roomWith = (nodes: EphemeraObjectId[], edges: Array<Record<string, unknown>> = []) => testLudicGraph(ROOM, {
         nodes: nodes.map((universalKey) => ({ tag: 'Object' as const, universalKey })),
         edges: edges as any,
@@ -1887,11 +1726,10 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
      */
     const run = async (
         input: Partial<ParseInput> & Pick<ParseInput, 'command'>,
-        { parseTokens, graphs = {}, containers = {} }: CaseOptions = {}
+        { graphs = {}, containers = {} }: CaseOptions = {}
     ) => {
         const stubs = {
             classify: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
-            parse: jest.fn().mockResolvedValue({ success: true, body: JSON.stringify({ tokens: parseTokens ?? [] }) }),
             enrich: jest.fn(),
             acme: jest.fn(),
             embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: "embedding stubbed as unavailable" }),
@@ -1900,13 +1738,11 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             {
                 characterId: CHARACTER,
                 hostRoomId: ROOM,
-                roomObjectLabels: [],
                 roomObjectCatalog: [],
                 ...input,
             } as ParseInput,
             {
                 invokeBedrockParseCommandImpl: stubs.classify,
-                invokeBedrockObjectManipulationParseImpl: stubs.parse,
                 invokeBedrockObjectManipulationEnrichImpl: stubs.enrich,
                 invokeBedrockAcmeOrderEnrichImpl: stubs.acme,
                 embedSpan: stubs.embedSpan,
@@ -1928,11 +1764,11 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
     describe('deterministic take / get / drop (fast path)', () => {
         it('take broom', async () => {
-            expect(await run({ command: 'take broom', roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }, { graphs: { [ROOM]: roomWith([BROOM]) } })).toMatchSnapshot()
+            expect(await run({ command: 'take broom', roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }, { graphs: { [ROOM]: roomWith([BROOM]) } })).toMatchSnapshot()
         })
 
         it('get broom', async () => {
-            expect(await run({ command: 'get broom', roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }, { graphs: { [ROOM]: roomWith([BROOM]) } })).toMatchSnapshot()
+            expect(await run({ command: 'get broom', roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }, { graphs: { [ROOM]: roomWith([BROOM]) } })).toMatchSnapshot()
         })
 
         it('drop broom', async () => {
@@ -1946,19 +1782,9 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             })).toMatchSnapshot()
         })
 
-        it('get the broom through Parse, when the span is not in the room labels', async () => {
-            expect(await run(
-                { command: 'get the broom', roomObjectCatalog: catalogOf([[BROOM, 'broom']]) },
-                {
-                    parseTokens: [text('get'), span('broom')],
-                    graphs: { [ROOM]: roomWith([BROOM]) },
-                }
-            )).toMatchSnapshot()
-        })
-
         it('take rope when the rope is lashed to the post (Custom edge: dissolve, then take)', async () => {
             expect(await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                { command: 'take rope', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
                     graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
                 }
@@ -1967,9 +1793,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take broom when the broom touches an exit (abstains on both rungs: no adjudicator judges exit contact yet, so the fast path\'s Abstain climbs)', async () => {
             expect(await run(
-                { command: 'take broom', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
+                { command: 'take broom', roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
-                    parseTokens: [text('take'), span('broom')],
                     graphs: {
                         [ROOM]: testLudicGraphFromEnvelope(ROOM, {
                             nodes: [{ tag: 'Object', universalKey: BROOM }, { tag: 'Object', universalKey: TABLE }],
@@ -1982,7 +1807,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take rope when the rope is under the post (a peer subject-move is met: the rope comes out)', async () => {
             expect(await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                { command: 'take rope', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
                     graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'under' }]) },
                 }
@@ -1990,12 +1815,11 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         })
     })
 
-    describe('relational commands (Parse path)', () => {
+    describe('relational commands', () => {
         it('put the broom against the table (no peer parse: Unimplemented)', async () => {
             expect(await run(
-                { command: 'put the broom against the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
+                { command: 'put the broom against the table', roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
-                    parseTokens: [text('put'), span('broom'), text('against'), span('table')],
                     graphs: { [ROOM]: roomWith([BROOM, TABLE]) },
                 }
             )).toMatchSnapshot()
@@ -2003,9 +1827,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('tie the rope to the post (no peer parse: Unimplemented)', async () => {
             expect(await run(
-                { command: 'tie the rope to the post', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                { command: 'tie the rope to the post', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
-                    parseTokens: [text('tie'), span('rope'), text('to'), span('post')],
                     graphs: { [ROOM]: roomWith([ROPE, POST]) },
                 }
             )).toMatchSnapshot()
@@ -2013,9 +1836,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take the rope off the post (fast path: the qualifier refuses, the rope is lashed to the post, not held by it)', async () => {
             expect(await run(
-                { command: 'take the rope off the post', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                { command: 'take the rope off the post', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
-                    parseTokens: [text('take'), span('rope'), text('off'), span('post')],
                     graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
                 }
             )).toMatchSnapshot()
@@ -2023,9 +1845,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the broom under the table with two table candidates (no peer parse: Unimplemented)', async () => {
             expect(await run(
-                { command: 'put the broom under the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table'], [TABLE2, 'table']]) },
+                { command: 'put the broom under the table', roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table'], [TABLE2, 'table']]) },
                 {
-                    parseTokens: [text('put'), span('broom'), text('under'), span('table')],
                     graphs: { [ROOM]: roomWith([BROOM, TABLE, TABLE2]) },
                 }
             )).toMatchSnapshot()
@@ -2033,21 +1854,19 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the broom partof the table (no peer parse: Unimplemented)', async () => {
             expect(await run(
-                { command: 'put the broom partof the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
+                { command: 'put the broom partof the table', roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
-                    parseTokens: [text('put'), span('broom'), text('partof'), span('table')],
                     graphs: { [ROOM]: roomWith([BROOM, TABLE]) },
                 }
             )).toMatchSnapshot()
         })
     })
 
-    describe('containment commands (Parse path)', () => {
+    describe('containment commands', () => {
         it('put the coin on the table', async () => {
             expect(await run(
-                { command: 'put the coin on the table', roomObjectLabels: ['coin', 'table'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
+                { command: 'put the coin on the table', roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
                 {
-                    parseTokens: [text('put'), span('coin'), text('on'), span('table')],
                     graphs: { [ROOM]: roomWith([COIN, TABLE]) },
                 }
             )).toMatchSnapshot()
@@ -2055,9 +1874,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the coin in the jar', async () => {
             expect(await run(
-                { command: 'put the coin in the jar', roomObjectLabels: ['coin', 'jar'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [JAR, 'jar']]) },
+                { command: 'put the coin in the jar', roomObjectCatalog: catalogOf([[COIN, 'coin'], [JAR, 'jar']]) },
                 {
-                    parseTokens: [text('put'), span('coin'), text('in'), span('jar')],
                     graphs: { [ROOM]: roomWith([COIN, JAR]) },
                 }
             )).toMatchSnapshot()
@@ -2065,9 +1883,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the coin in the table when the coin sits inside the jar (withinObject locus)', async () => {
             expect(await run(
-                { command: 'put the coin in the table', roomObjectLabels: ['coin', 'table'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
+                { command: 'put the coin in the table', roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
                 {
-                    parseTokens: [text('put'), span('coin'), text('in'), span('table')],
                     containers: { [COIN]: [JAR] },
                     graphs: {
                         [ROOM]: roomWith([JAR, TABLE]),
@@ -2079,9 +1896,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the rope on the table when the rope is lashed to the post (boundary edge: slice 3 expands it)', async () => {
             expect(await run(
-                { command: 'put the rope on the table', roomObjectLabels: ['rope', 'post', 'table'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post'], [TABLE, 'table']]) },
+                { command: 'put the rope on the table', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post'], [TABLE, 'table']]) },
                 {
-                    parseTokens: [text('put'), span('rope'), text('on'), span('table')],
                     graphs: { [ROOM]: roomWith([ROPE, POST, TABLE], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
                 }
             )).toMatchSnapshot()
@@ -2126,7 +1942,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take rope: moves the part the actor\'s own position picks, and that is the attempt\'s one action', async () => {
             const { result } = await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog() as any },
+                { command: 'take rope', roomObjectCatalog: catalog() as any },
                 spreadRope()
             )
 
@@ -2137,7 +1953,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take rope when its part on the table is lashed to a post: the dissolve is found in the table, the host the part leaves', async () => {
             const { result } = await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog() as any },
+                { command: 'take rope', roomObjectCatalog: catalog() as any },
                 {
                     ...spreadRope(tableWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }])),
                     containers: { [ROPE]: [ROOM, TABLE], [POST]: [TABLE] },
@@ -2149,8 +1965,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the rope on the broom: moves the part the actor\'s own position picks', async () => {
             const { result } = await run(
-                { command: 'put the rope on the broom', roomObjectLabels: ['rope', 'broom'], roomObjectCatalog: catalog() as any },
-                { ...spreadRope(), parseTokens: [text('put'), span('rope'), text('on'), span('broom')] }
+                { command: 'put the rope on the broom', roomObjectCatalog: catalog() as any },
+                spreadRope()
             )
 
             expect(attemptActions(result).map(({ desiredResult }) => desiredResult)).toEqual([
@@ -2160,8 +1976,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('look at rope: reads the whole thing and is not asked or changed by the part the actor\'s position picks', async () => {
             const { result } = await run(
-                { command: 'look rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog() as any },
-                { ...spreadRope(), parseTokens: [text('look'), span('rope')] }
+                { command: 'look rope', roomObjectCatalog: catalog() as any },
+                spreadRope()
             )
 
             expect(result).toMatchObject({ type: 'CommandAttempt' })
@@ -2170,7 +1986,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take rope when both parts reach the room: asks which part', async () => {
             const { result } = await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog(ropeEntry([ROOM], [ROOM])) as any },
+                { command: 'take rope', roomObjectCatalog: catalog(ropeEntry([ROOM], [ROOM])) as any },
                 spreadRope()
             )
 
@@ -2178,12 +1994,12 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         })
 
         it.each([
-            ['take rope', [text('take'), span('rope')]],
-            ['put the rope on the broom', [text('put'), span('rope'), text('on'), span('broom')]],
-        ])('%s with no position to say which part: refused for want of a membership host', async (command, parseTokens) => {
+            ['take rope'],
+            ['put the rope on the broom'],
+        ])('%s with no position to say which part: refused for want of a membership host', async (command) => {
             const { result } = await run(
-                { command, roomObjectLabels: ['rope', 'broom'], roomObjectCatalog: [{ objectId: ROPE, normalizedShortName: 'rope' }, { objectId: BROOM, normalizedShortName: 'broom' }] },
-                { ...spreadRope(), parseTokens }
+                { command, roomObjectCatalog: [{ objectId: ROPE, normalizedShortName: 'rope' }, { objectId: BROOM, normalizedShortName: 'broom' }] },
+                spreadRope()
             )
 
             expect(attemptActions(result)).toEqual([])
@@ -2194,9 +2010,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
     describe('payoff: a lashed object moves (ISS8203 slice 3)', () => {
         it('put the rope on the table when the rope is lashed to the post: the published attempt dissolves the lashing, met, before the containment transfer', async () => {
             const result = await run(
-                { command: 'put the rope on the table', roomObjectLabels: ['rope', 'post', 'table'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post'], [TABLE, 'table']]) },
+                { command: 'put the rope on the table', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post'], [TABLE, 'table']]) },
                 {
-                    parseTokens: [text('put'), span('rope'), text('on'), span('table')],
                     graphs: { [ROOM]: roomWith([ROPE, POST, TABLE], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
                 }
             )
@@ -2215,7 +2030,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         const STRING = 'OBJECT#String' as EphemeraObjectId
         const CUP = 'OBJECT#Cup' as EphemeraObjectId
         const takeOf = async (command: string, catalog: Array<[EphemeraObjectId, string]>, options: CaseOptions) => {
-            const { result } = await run({ command, roomObjectLabels: catalog.map(([, label]) => label), roomObjectCatalog: catalogOf(catalog) }, options)
+            const { result } = await run({ command, roomObjectCatalog: catalogOf(catalog) }, options)
             expect(result).toMatchObject({ type: 'CommandAttempt' })
             return CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt)
         }
@@ -2269,7 +2084,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
     describe('a hosted object moves (its own hosting edge is not a boundary edge)', () => {
         it('take the coin when the coin sits on the table: the coin\'s own On edge in the table\'s shard does not throw', async () => {
             const { result } = await run(
-                { command: 'take coin', roomObjectLabels: ['coin', 'table'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
+                { command: 'take coin', roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
                 {
                     containers: { [COIN]: [TABLE] },
                     graphs: {
@@ -2295,7 +2110,6 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             const { result } = await run(
                 {
                     command: 'take coin',
-                    roomObjectLabels: ['coin', 'post', 'table'],
                     roomObjectCatalog: [
                         { objectId: COIN, normalizedShortName: 'coin', presence: [onTable] },
                         { objectId: POST, normalizedShortName: 'post', presence: [onTable] },
@@ -2378,7 +2192,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             }])
 
             const { result } = await run(
-                { command: 'take table', roomObjectLabels: roomObjectLabelsFromCatalog(entries), roomObjectCatalog: entries },
+                { command: 'take table', roomObjectCatalog: entries },
                 { graphs }
             )
             expect(result).toMatchObject({ type: 'CommandAttempt' })
@@ -2392,35 +2206,32 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
     describe('look and no-room', () => {
         it('look rocket skates', async () => {
             expect(await run(
-                { command: 'look rocket skates', roomObjectCatalog: catalogOf([[SKATES, 'rocket skates']]) },
-                { parseTokens: [text('look'), span('rocket skates')] }
+                { command: 'look rocket skates', roomObjectCatalog: catalogOf([[SKATES, 'rocket skates']]) }
             )).toMatchSnapshot()
         })
 
         it('take broom with two broom candidates (Consult on the fast path)', async () => {
             expect(await run(
-                { command: 'take the broom', roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [MOP, 'broom']]) },
+                { command: 'take the broom', roomObjectCatalog: catalogOf([[BROOM, 'broom'], [MOP, 'broom']]) },
                 { graphs: { [ROOM]: roomWith([BROOM, MOP]) } }
             )).toMatchSnapshot()
         })
 
         it('take broom with no room', async () => {
             expect(await run(
-                { command: 'take broom', characterId: undefined, hostRoomId: undefined, roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }
+                { command: 'take broom', characterId: undefined, hostRoomId: undefined, roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }
             )).toMatchSnapshot()
         })
 
         it('put the broom under the table with no room (no peer parse: Unimplemented)', async () => {
             expect(await run(
-                { command: 'put the broom under the table', hostRoomId: undefined, roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
-                { parseTokens: [text('put'), span('broom'), text('under'), span('table')] }
+                { command: 'put the broom under the table', hostRoomId: undefined, roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) }
             )).toMatchSnapshot()
         })
 
         it('put the coin in the jar with no room', async () => {
             expect(await run(
-                { command: 'put the coin in the jar', hostRoomId: undefined, roomObjectLabels: ['coin', 'jar'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [JAR, 'jar']]) },
-                { parseTokens: [text('put'), span('coin'), text('in'), span('jar')] }
+                { command: 'put the coin in the jar', hostRoomId: undefined, roomObjectCatalog: catalogOf([[COIN, 'coin'], [JAR, 'jar']]) }
             )).toMatchSnapshot()
         })
     })

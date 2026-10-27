@@ -55,7 +55,6 @@ jest.mock('./roomExitTargetsForCharacter', () => ({
 }))
 jest.mock('./roomObjectCatalogForCharacter', () => ({
     getRoomObjectCatalogForCharacter: jest.fn(),
-    roomObjectLabelsFromCatalog: jest.requireActual('./roomObjectCatalogForCharacter').roomObjectLabelsFromCatalog,
 }))
 jest.mock('./heldInventoryCatalogForCharacter', () => ({
     getHeldInventoryCatalogForCharacter: jest.fn(),
@@ -160,37 +159,6 @@ describe('ephemeraActionsDataSource', () => {
                 RequestId: 'req-1',
                 message: 'parse_request_handled',
             },
-        })
-    })
-
-    it('maps NavigationIntent no-exit-context parse error to room guidance copy', async () => {
-        mockedParseCommand.mockResolvedValue({
-            type: 'Error',
-            errorMessage: navigationIntentErrorMessages.noExitContext,
-        })
-
-        await ephemeraActionsDataSource.receiveEvents!({
-            events: [{
-                header: {
-                    dataSourceKey: 'api.ephemera',
-                    streamKey: 'CHARACTER#123',
-                    timestamp: Date.now(),
-                    type: 'Parse Requested',
-                },
-                getContent: async () => ({
-                    characterId: 'CHARACTER#123',
-                    command: 'head north',
-                }),
-            }],
-            streamEvent: jest.fn(async () => {}),
-            streamEnvelope: jest.fn(async () => {}),
-        })
-
-        expect(mockMessageBus.publish).toHaveBeenCalledWith({
-            type: 'PublishMessage',
-            targets: ['CHARACTER#123'],
-            displayProtocol: 'WorldOOCMessage',
-            message: ['You are not in a room, so you cannot go anywhere.'],
         })
     })
 
@@ -503,7 +471,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('resumes the stored command and clears the Select when the attempt is accepted', async () => {
-            const attempt = { words: 'take cup', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'take cup', referents: [], actions: [], narrationUnits: [] }
             jest.mocked(answerPending).mockResolvedValue(answered())
             jest.mocked(resumePersistentCommand).mockResolvedValue({ type: 'CommandAttempt', confidence: 0.9, attempt } as any)
 
@@ -1449,7 +1417,6 @@ describe('ephemeraActionsDataSource', () => {
                     command: 'order widget',
                     characterId: 'CHARACTER#123',
                     roomExits: [],
-                    roomObjectLabels: [],
                     roomObjectCatalog: [],
                     heldInventoryCatalog: [],
                     occupiedStableKeys: ['alpha', 'beta'],
@@ -2035,7 +2002,7 @@ describe('ephemeraActionsDataSource', () => {
         const from = 'ROOM#from' as EphemeraRoomId
 
         it('emits Ludic Network Change Requested when takeHold is grounded', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 confidence: 0.9,
@@ -2083,7 +2050,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('emits Ludic Network Change Requested when drop is grounded', async () => {
-            const attempt = { words: 'drop the broom', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'drop the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 confidence: 0.9,
@@ -2131,7 +2098,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('emits correlated ReturnValue when requestId is present', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2172,7 +2139,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when character has no current room', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2212,7 +2179,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when drop is grounded but character has no room', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2435,7 +2402,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested when establishRelation is grounded', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'put the broom on the table', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'containment' as const, words: 'put the broom on the table', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2482,7 +2449,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested with Custom relationLabel', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'tie the rope around the crate', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'relation' as const, words: 'tie the rope around the crate', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2545,7 +2512,7 @@ describe('ephemeraActionsDataSource', () => {
                     hostId: tableId,
                 },
             ]
-            const attempt = { words: 'tie string to cup', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'relation' as const, words: 'tie string to cup', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2584,7 +2551,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested when dissolveRelation is grounded', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'take the rope off the crate', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'take the rope off the crate', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2623,7 +2590,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('publishes WorldOOCMessage when establishRelation has no host room', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: null, toRoomIds: [], exits: [] })
-            const attempt = { words: 'put the broom on the table', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'containment' as const, words: 'put the broom on the table', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2659,7 +2626,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested when an On containment move is grounded', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'put the cup on the tray', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'containment' as const, words: 'put the cup on the tray', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 confidence: 0.9,
@@ -2697,8 +2664,91 @@ describe('ephemeraActionsDataSource', () => {
         })
     })
 
+    describe('ParseCommandCommandAttemptResult (a navigation)', () => {
+        const dest = 'ROOM#dest' as EphemeraRoomId
+        const from = 'ROOM#from' as EphemeraRoomId
+        const navigationAttempt = {
+            kind: 'navigation' as const,
+            words: 'walk north',
+            referents: [{ refKey: 'northExitRef', id: dest, shortName: 'north' }],
+            actions: [{
+                kind: 'navigate' as const,
+                id: 'action-1',
+                destination: { referentType: 'objectSpan' as const, span: 'north', stableRefKey: 'northExitRef', groundedId: dest, shortName: 'north' },
+                challenges: [],
+            }],
+            narrationUnits: [],
+        }
+        const parseRequested = async (streamEvent: jest.Mock) => {
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'walk north',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+        }
+
+        it('streams Character Navigate to the room the exit leads to, not a ludic network change', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'CommandAttempt', attempt: navigationAttempt, confidence: 1 })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: [dest],
+                exits: [{ normalizedName: 'north', toRoomId: dest }],
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await parseRequested(streamEvent)
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Character Navigate' },
+                update: {
+                    type: 'Character Navigate',
+                    characterId: 'CHARACTER#123',
+                    fromRoomId: from,
+                    toRoomId: dest,
+                    exitName: 'north',
+                },
+            })
+            expect(streamEvent).not.toHaveBeenCalledWith(expect.objectContaining({
+                header: { type: 'Ludic Network Change Requested' },
+            }))
+        })
+
+        it('rechecks the exit against the exits read with the command, as the UI\'s exit click is', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'CommandAttempt', attempt: navigationAttempt, confidence: 1 })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: ['ROOM#other' as EphemeraRoomId],
+                exits: [{ normalizedName: 'south', toRoomId: 'ROOM#other' as EphemeraRoomId }],
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await parseRequested(streamEvent)
+
+            expect(streamEvent).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['There is no exit to that place from here.'],
+            })
+        })
+    })
+
     describe('ParseCommandCommandAttemptResult (a look)', () => {
         const lookAttempt = {
+            kind: 'look' as const,
             words: 'look rocket skates',
             referents: [{ refKey: 'skatesRef', id: 'OBJECT#Skates' as const, shortName: 'rocket skates' }],
             actions: [{ kind: 'narrate' as const, id: 'action-1', description: 'Look at the rocket skates', referents: [], challenges: [] }],

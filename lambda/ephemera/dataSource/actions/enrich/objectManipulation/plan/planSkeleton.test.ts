@@ -1,7 +1,13 @@
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { ParseSkeleton } from '../parse/parseToken'
 import type { CommandAttempt } from '../../../commandAttempt'
-import { planSkeleton } from './planSkeleton'
+import { tokenize } from '../../../deterministicTemplate/granuleTokens'
+import { planFillOf } from './attemptTemplateFixture'
+import { isBareExitFill } from './matchNavigationTemplate'
+import { COMMAND_GRANULES, LIVE_TEMPLATE_SET, planTokens } from './planSkeleton'
+import { planSkeleton } from './attemptTemplateFixture'
+import { membershipTemplate } from './matchMembershipTemplate'
+import { templateSetOf } from './templateSet'
 
 const COMMAND = 'test command'
 
@@ -12,13 +18,34 @@ const relationalSkeleton = (verb: string, subjectSpan: string, prep: string, tar
     { type: 'objectSpan', span: targetSpan, stableRefKey: `${targetSpan}Ref` },
 ]
 
-const attemptsOf = (skeleton: ParseSkeleton) => {
-    return planSkeleton(skeleton, COMMAND).attempts
-}
+/** The attempts Plan reads from the skeleton's segmentation of its words: one fill. */
+const attemptsOf = (skeleton: ParseSkeleton) => planFillOf(skeleton, COMMAND).attempts
+
+/** Every attempt Plan reads from the skeleton's words, whatever the segmentation. */
+const allAttemptsOf = (skeleton: ParseSkeleton) => planSkeleton(skeleton, COMMAND).fills.flatMap(({ attempts }) => attempts)
+
+/** The kinds of every reading but the bare exit one, which fits every command (`isBareExitFill`). */
+const templateKindsOf = (skeleton: ParseSkeleton) => planSkeleton(skeleton, COMMAND).fills
+    .filter((fill) => !isBareExitFill(fill))
+    .flatMap(({ attempts }) => attempts.map(({ kind }) => kind))
+
+/** Plan's fills for a command, each as its segmentation on one line. */
+const segmentationsOf = (command: string) => planTokens(tokenize(COMMAND_GRANULES, command), command)
+    .map(({ skeleton }) => skeleton.map((token) => (token.type === 'objectSpan' ? `[${token.span}]` : token.text)).join(' '))
 
 const actionKinds = (attempt: CommandAttempt) => attempt.actions().map((action) => action.desiredResult?.kind)
 
 describe('planSkeleton', () => {
+    it('gives each attempt its template\'s kind, qualifiers lowered or not', () => {
+        const kindsOf = (command: string) => [...new Set(planTokens(tokenize(COMMAND_GRANULES, command), command).flatMap(({ attempts }) => attempts.map(({ kind }) => kind)))].sort()
+        // Every command also reads as a bare exit name: a navigation.
+        expect(kindsOf('take cup on table')).toEqual(['membership', 'navigation'])
+        expect(kindsOf('drop cup in box')).toEqual(['containment', 'membership', 'navigation'])
+        expect(kindsOf('spread cloth over table')).toEqual(['navigation', 'spread'])
+        expect(kindsOf('look at cup on table')).toEqual(['look', 'navigation'])
+        expect(kindsOf('go north')).toEqual(['navigation'])
+    })
+
     it('plans "take the coin in the box" as membership takes, not a containment move: the qualified reading checks the coin, then takes it', () => {
         const attempts = attemptsOf([
             { type: 'text', text: 'take' },
@@ -26,9 +53,9 @@ describe('planSkeleton', () => {
             { type: 'text', text: 'in' },
             { type: 'objectSpan', span: 'box', stableRefKey: 'boxRef' },
         ])
-        // Two readings: the plain take leaves the box unread (the producer's gate drops it), and the qualified take.
-        expect(attempts.map(actionKinds)).toEqual([['change'], ['assertion', 'change']])
-        const [check, take] = attempts[1].actions().map((action) => action.desiredResult)
+        // This segmentation's one reading is the qualified take; the plain take reads `coin in box` as one span, another segmentation.
+        expect(attempts.map(actionKinds)).toEqual([['assertion', 'change']])
+        const [check, take] = attempts[0].actions().map((action) => action.desiredResult)
         expect(check).toEqual({
             kind: 'assertion',
             predicate: 'containedBy',
@@ -44,15 +71,15 @@ describe('planSkeleton', () => {
         })
         expect(take).not.toHaveProperty('containment')
         // The check is judged, not narrated: only the take is covered.
-        expect(attempts[1].narrationUnits().flatMap(({ covers }) => covers)).toEqual([attempts[1].actions()[1]!.id])
+        expect(attempts[0].narrationUnits().flatMap(({ covers }) => covers)).toEqual([attempts[0].actions()[1]!.id])
     })
 
-    it('plans "drop the cup in the box" as a containment move, a plain drop and a qualified one: the verb does not decide the reading', () => {
+    it('plans "drop the cup in the box" as a containment move and a qualified drop: the verb does not decide the reading', () => {
         const attempts = attemptsOf(relationalSkeleton('drop', 'cup', 'in', 'box'))
-        expect(attempts.map(actionKinds)).toEqual([['change'], ['change'], ['assertion', 'change']])
+        expect(attempts.map(actionKinds)).toEqual([['change'], ['assertion', 'change']])
         expect(attempts[0].actions()[0].desiredResult).toMatchObject({ primitive: 'transferMembership', containment: 'In' })
-        expect(attempts[1].actions()[0].desiredResult).not.toHaveProperty('containment')
-        expect(attempts[2].actions()[0].desiredResult).toMatchObject({ kind: 'assertion', subject: { span: 'cup' }, object: { span: 'box' } })
+        expect(attempts[1].actions()[0].desiredResult).toMatchObject({ kind: 'assertion', subject: { span: 'cup' }, object: { span: 'box' } })
+        expect(attempts[1].actions()[1].desiredResult).not.toHaveProperty('containment')
     })
 
     it('plans "drop the cup in the box"\'s containment move from the actor, not wherever the cup is, narrated "drops"', () => {
@@ -74,7 +101,7 @@ describe('planSkeleton', () => {
         ])
     })
 
-    it('plans "take cup on saucer on table" as one take per reading, and the reading of every span checks both qualifiers, right-nested', () => {
+    it('plans "take cup on saucer on table" with every span its own as the take checking both qualifiers, right-nested', () => {
         const attempts = attemptsOf([
             { type: 'text', text: 'take' },
             { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
@@ -83,8 +110,8 @@ describe('planSkeleton', () => {
             { type: 'text', text: 'on' },
             { type: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
         ])
-        expect(attempts.map(actionKinds)).toEqual([['change'], ['assertion', 'change'], ['assertion', 'assertion', 'change']])
-        const [cupOnSaucer, saucerOnTable] = attempts[2].actions().map((action) => action.desiredResult)
+        expect(attempts.map(actionKinds)).toEqual([['assertion', 'assertion', 'change']])
+        const [cupOnSaucer, saucerOnTable] = attempts[0].actions().map((action) => action.desiredResult)
         expect(cupOnSaucer).toMatchObject({ subject: { span: 'cup' }, object: { span: 'saucer' }, relation: 'On' })
         expect(saucerOnTable).toMatchObject({ subject: { span: 'saucer' }, object: { span: 'table' }, relation: 'On' })
     })
@@ -149,8 +176,9 @@ describe('planSkeleton', () => {
         })
     })
 
-    it('plans nothing for "tie the rope in the box": no template claims it, so the zero-attempt branch answers', () => {
-        expect(attemptsOf(relationalSkeleton('tie', 'rope', 'in', 'box'))).toEqual([])
+    it('plans only the bare exit reading for "tie the rope in the box": no other template claims it', () => {
+        expect(templateKindsOf(relationalSkeleton('tie', 'rope', 'in', 'box'))).toEqual([])
+        expect(allAttemptsOf(relationalSkeleton('tie', 'rope', 'in', 'box')).map(({ kind }) => kind)).toEqual(['navigation'])
     })
 
     it('plans a leading take as membership acquire, a leading drop as release', () => {
@@ -205,9 +233,9 @@ describe('planSkeleton', () => {
 
     it('plans take X off Y as membership acquire of X, checked to be on Y, and no relational attempt exists', () => {
         const attempts = attemptsOf(relationalSkeleton('take', 'rope', 'off', 'crate'))
-        expect(attempts.map(actionKinds)).toEqual([['change'], ['assertion', 'change']])
-        expect(attempts[1].actions()[0].desiredResult).toMatchObject({ kind: 'assertion', relation: 'On', object: { span: 'crate' } })
-        expect(attempts[1].actions()[1].desiredResult).toMatchObject({
+        expect(attempts.map(actionKinds)).toEqual([['assertion', 'change']])
+        expect(attempts[0].actions()[0].desiredResult).toMatchObject({ kind: 'assertion', relation: 'On', object: { span: 'crate' } })
+        expect(attempts[0].actions()[1].desiredResult).toMatchObject({
             primitive: 'transferMembership',
             object: { referentType: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
             from: { referentType: 'currentHost' },
@@ -219,8 +247,8 @@ describe('planSkeleton', () => {
         ['tie the rope to the pole', relationalSkeleton('tie', 'rope', 'to', 'pole')],
         ['lean the lamp against the wall', relationalSkeleton('lean', 'lamp', 'against', 'wall')],
         ['put the lamp under the table', relationalSkeleton('put', 'lamp', 'under', 'table')],
-    ])('plans nothing for peer relation "%s": the zero-attempt branch answers Unimplemented', (_command, skeleton) => {
-        expect(attemptsOf(skeleton)).toEqual([])
+    ])('plans only the bare exit reading for peer relation "%s": the LLM route answers Unimplemented', (_command, skeleton) => {
+        expect(templateKindsOf(skeleton)).toEqual([])
     })
 
     it('plans a look as one narration whose action names the referent', () => {
@@ -235,8 +263,62 @@ describe('planSkeleton', () => {
         ])
     })
 
-    it('returns no attempts for a skeleton no template claims', () => {
-        expect(attemptsOf([{ type: 'text', text: 'balance' }, { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' }])).toEqual([])
+    it('returns no attempts but the bare exit reading for a skeleton no other template claims', () => {
+        expect(templateKindsOf([{ type: 'text', text: 'balance' }, { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' }])).toEqual([])
+    })
+})
+
+describe('planTokens', () => {
+    it('reads every segmentation of the command: each closed-set preposition is a link or inside a span', () => {
+        expect(segmentationsOf('take cup on saucer on table').sort()).toEqual([
+            '[take cup on saucer on table]',
+            'take [cup on saucer on table]',
+            'take [cup on saucer] on [table]',
+            'take [cup] on [saucer on table]',
+            'take [cup] on [saucer] on [table]',
+        ])
     })
 
+    it('reads a template\'s own fixed word inside a span: the plain look reads "at cup"', () => {
+        const fills = planTokens(tokenize(COMMAND_GRANULES, 'look at cup'), 'look at cup')
+        expect(fills.map(({ skeleton }) => skeleton.map((token) => (token.type === 'objectSpan' ? `[${token.span}]` : token.text)).join(' '))).toEqual([
+            'look [at cup]',
+            'look at [cup]',
+            '[look at cup]',
+        ])
+    })
+
+    it('gives one span occurrence the same key in every fill, and two occurrences of one text two keys', () => {
+        const command = 'put bench on table on bench'
+        const keysOf = (span: string) => [...new Set(planTokens(tokenize(COMMAND_GRANULES, command), command)
+            .flatMap(({ skeleton }) => skeleton.flatMap((token) => (token.type === 'objectSpan' && token.span === span ? [token.stableRefKey] : []))))]
+        expect(keysOf('bench').sort()).toEqual(['benchRef1', 'benchRef2'])
+        expect(keysOf('table')).toEqual(['tableRef'])
+        expect(keysOf('table on bench')).toEqual(['tableOnBenchRef'])
+    })
+
+    it('reads a command with more than six closed-set prepositions not at all (the guard cap)', () => {
+        const atCap = 'take a on b on c on d on e on f on g'
+        expect(planTokens(tokenize(COMMAND_GRANULES, atCap), atCap)).not.toEqual([])
+        const overCap = `${atCap} on h`
+        expect(planTokens(tokenize(COMMAND_GRANULES, overCap), overCap)).toEqual([])
+    })
+})
+
+describe('a supplied template set', () => {
+    const command = 'take pig in a blanket'
+    const kindsOf = (templates = LIVE_TEMPLATE_SET) => planTokens(tokenize(templates.granules, command), command, templates)
+        .flatMap(({ attempts }) => attempts.map(({ kind }) => kind))
+
+    it('is the live set by default', () => {
+        expect(planTokens(tokenize(COMMAND_GRANULES, command), command)).toHaveLength(planTokens(tokenize(LIVE_TEMPLATE_SET.granules, command), command, LIVE_TEMPLATE_SET).length)
+    })
+
+    it('replaces it: only its templates read the command, cut at only its fixed words', () => {
+        const only = templateSetOf([membershipTemplate])
+        expect(kindsOf(only)).toEqual(['membership', 'membership'])
+        expect(kindsOf(only)).not.toContain('navigation')
+        expect(kindsOf(templateSetOf([]))).toEqual([])
+        expect(only.granules.granules.flat()).not.toContain('under')
+    })
 })

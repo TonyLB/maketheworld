@@ -1,8 +1,6 @@
+import { lexicalDiff } from '../lexicalDiff'
 import { lexicalRelevance } from '../lexicalRelevance'
-import {
-    computeLexicalMatchMetrics,
-    matchSpanLength,
-} from '../lexicalMatchMetrics'
+import { catalogSideFlankInputs } from '../lexicalWeights'
 import {
     coverageLiftFromEmbed,
     effectiveFlankCombineBias,
@@ -18,41 +16,32 @@ export type FlankCombineLegacyRow = {
     mitigatedFlankScore: number
 }
 
-const legacyFlankScoreForPair = (span: string, shortName: string): number => {
-    const normalizedSpan = span.trim().toLowerCase()
-    const normalizedShortName = shortName.trim().toLowerCase()
-    const [pattern, candidateText] = normalizedSpan.length <= normalizedShortName.length
-        ? [normalizedSpan, normalizedShortName]
-        : [normalizedShortName, normalizedSpan]
-    const metrics = computeLexicalMatchMetrics(pattern, candidateText)
-    const spanScale = Math.max(matchSpanLength(metrics.matchSpan), pattern.length, 1)
-    return tanhCenteredFlankScore(metrics, spanScale)
-}
-
-const mitigatedFlankScoreForPair = (span: string, shortName: string): number => {
-    const normalizedSpan = span.trim().toLowerCase()
-    const normalizedShortName = shortName.trim().toLowerCase()
-    const [pattern, candidateText] = normalizedSpan.length <= normalizedShortName.length
-        ? [normalizedSpan, normalizedShortName]
-        : [normalizedShortName, normalizedSpan]
-    const metrics = computeLexicalMatchMetrics(pattern, candidateText)
-    const spanScale = Math.max(matchSpanLength(metrics.matchSpan), pattern.length, 1)
-    return tanhCenteredFlankScore(metrics, spanScale, {}, {
-        patternLength: pattern.length,
-        candidateTextLength: candidateText.length,
-    })
+/** The flank score without the combine context (legacy) and with it (mitigated), or 0 where no pair of its words aligns. */
+const flankScoresForPair = (span: string, shortName: string): { legacy: number; mitigated: number } => {
+    const diff = lexicalDiff(span, shortName)
+    if (diff === undefined) {
+        return { legacy: 0, mitigated: 0 }
+    }
+    const { metrics, spanScale, context } = catalogSideFlankInputs(diff)
+    return {
+        legacy: tanhCenteredFlankScore(metrics, spanScale),
+        mitigated: tanhCenteredFlankScore(metrics, spanScale, {}, context),
+    }
 }
 
 export const compareFlankCombineLegacyRows = (
     fixtures: readonly { span: string; shortName: string }[]
 ): FlankCombineLegacyRow[] => (
-    fixtures.map(({ span, shortName }) => ({
-        span,
-        shortName,
-        mitigatedLex: lexicalRelevance(span, shortName),
-        legacyFlankScore: legacyFlankScoreForPair(span, shortName),
-        mitigatedFlankScore: mitigatedFlankScoreForPair(span, shortName),
-    }))
+    fixtures.map(({ span, shortName }) => {
+        const { legacy, mitigated } = flankScoresForPair(span, shortName)
+        return {
+            span,
+            shortName,
+            mitigatedLex: lexicalRelevance(span, shortName),
+            legacyFlankScore: legacy,
+            mitigatedFlankScore: mitigated,
+        }
+    })
 )
 
 export const KEY_SHORT_SPAN_FIXTURES = [

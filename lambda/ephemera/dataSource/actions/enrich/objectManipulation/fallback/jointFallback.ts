@@ -1,5 +1,5 @@
 import type { CommandAttempt } from '../../../commandAttempt'
-import type { IdentityPlanIdentity } from '../identityPlanCandidate'
+import { objectIdOf, type IdentityPlanIdentity } from '../identityPlanCandidate'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import {
     selectPlanTuple,
@@ -52,7 +52,7 @@ const jointFallbackDryRun = (): DryRunOutcome => ({
 const jointFallbackConsultAlternative = (
     candidate: JointFallbackCandidate
 ): ConsultAlternative => ({
-    objectId: candidate.identity.objectId,
+    objectId: objectIdOf(candidate.identity),
     label: candidate.identity.label,
     proposedCommand: candidate.identity.label,
 })

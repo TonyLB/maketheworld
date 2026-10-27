@@ -2,16 +2,16 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type {
+    RoomExit,
     ParseCommandAbstainResult,
     ParseCommandConsultResult,
     ParseCommandErrorResult,
     ParseCommandCommandAttemptResult,
 } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
-import type { CommandAttempt } from '../../commandAttempt'
+import type { AttemptKind, CommandAttempt } from '../../commandAttempt'
 import { NarrateAttemptAction } from '../../commandAttempt/action'
 
-import { complexErrorMessage } from './complexityClasses'
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import { adjudicateDeferred } from '../../commandAttempt/adjudicate'
 import type { IdentityStageDeps } from './identityStage'
@@ -20,6 +20,7 @@ import type { ObjectManipulationPositionsReadDeps } from './membershipObservatio
 import type { ParseSkeleton } from './parse/parseToken'
 import type { TransferMembershipChange } from './plan/planStep'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { navigationIntentErrorMessages } from '../../discriminateIntent/exitResolution'
 import { selectPlanTuple } from './selectPlanCandidate'
 import type { ConsultAlternative } from './spanResolution'
 import { applyChallengeAnswers, primaryActionIdOf, resumeErrorMessages, type ResumeAnswers } from './resumeAnswers'
@@ -39,9 +40,9 @@ import {
 
 /**
  * One segmentation of the command and the attempts Plan read from it (`actions/AGENT.contract.md`
- * "Qualifier"): the fast path hands every fill of its patterns to Plan, each its own skeleton; the
- * LLM route has one. Stamped per fill,
- * so one stableRefKey always names one span text, whichever fill it is in.
+ * "Qualifier"): Plan groups every template's readings by the token ranges they cut, on either
+ * route (`plan/planSkeleton.ts` `planTokens`). A key names a span occurrence, so one stableRefKey
+ * names the same span in every fill that holds it.
  */
 export type SkeletonFill<Attempt = CommandAttempt> = {
     skeleton: ParseSkeleton
@@ -56,6 +57,8 @@ export type CompileAttemptsFromSkeletonInput = {
     hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
+    /** The exits from the actor's room: what an exit span grounds against, and what the dry run judges a navigation by. */
+    roomExits?: readonly RoomExit[]
     /** A resumed command's stored answers (`persistentCommand/resume.ts`); absent on a first run. */
     answers?: ResumeAnswers
 }
@@ -70,12 +73,8 @@ export type CompileAttemptsFromSkeletonResult =
     | ParseCommandAbstainResult
     | ParseCommandErrorResult
 
-/** What an attempt is, by its own content: a look, a take or drop, a containment move, or a relation. */
-type AttemptKind = 'look' | 'membership' | 'containment' | 'relation'
-
 type AttemptEntry = {
     attempt: CommandAttempt
-    kind: AttemptKind
     /** The fill the attempt was read from: the spans it must read, and the words its Consult label is built from. */
     skeleton: ParseSkeleton
 }
@@ -87,22 +86,8 @@ const transferOf = (attempt: CommandAttempt): TransferMembershipChange | undefin
     return step?.kind === 'change' && step.primitive === 'transferMembership' ? step : undefined
 }
 
-/** The primary action: the last, which Plan's templates always put after any lowered assertion. */
-const primaryActionOf = (attempt: CommandAttempt) => attempt.actions()[attempt.actions().length - 1]
-
-const kindOf = (attempt: CommandAttempt): AttemptKind => {
-    // A look's primary action narrates; a qualified look carries assertions ahead of it. An attempt
-    // with no actions is a look too, as parseCommand has always routed it.
-    const primary = primaryActionOf(attempt)
-    if (primary === undefined || primary instanceof NarrateAttemptAction) {
-        return 'look'
-    }
-    const transfer = transferOf(attempt)
-    if (transfer === undefined) {
-        return 'relation'
-    }
-    return transfer.containment === undefined ? 'membership' : 'containment'
-}
+/** What a look looks at: its narration's referent (a qualified look carries assertions beside it). */
+const lookedAtOf = (attempt: CommandAttempt) => attempt.actions().find((action) => action instanceof NarrateAttemptAction)?.referents()[0]
 
 /**
  * Not understood: nothing grounds, or no reading of the command survives. An Abstain hands the command to
@@ -120,9 +105,10 @@ const firstRefusal = (refusals: readonly CompileAttemptsFromSkeletonResult[]): C
  * on its own kind, so one attempt's refusal never decides another's (ISS8203 slice 4.5).
  */
 const preIdentityRefusal = (entry: AttemptEntry, input: CompileAttemptsFromSkeletonInput, intentConfidence: number): CompileAttemptsFromSkeletonResult | undefined => {
-    const { attempt, kind } = entry
+    const { attempt } = entry
+    const { kind } = attempt
     if (kind === 'look') {
-        if (primaryActionOf(attempt)?.referents()[0] === undefined) {
+        if (lookedAtOf(attempt) === undefined) {
             return notUnderstood(objectManipulationErrorMessages.lookNoTemplateMatch, intentConfidence)
         }
         if (input.characterId === undefined) {
@@ -130,7 +116,12 @@ const preIdentityRefusal = (entry: AttemptEntry, input: CompileAttemptsFromSkele
         }
         return undefined
     }
-    if (kind === 'membership' || kind === 'containment') {
+    if (kind === 'navigation') {
+        // Out of a room there are no exits, so nothing grounds and the reading abstains (it must not
+        // answer: the bare exit reading fits every command, and would end every one here).
+        return undefined
+    }
+    if (kind === 'membership' || kind === 'containment' || kind === 'spread') {
         if (input.hostRoomId === undefined) {
             return kind === 'membership'
                 ? { type: 'Error', errorMessage: objectManipulationErrorMessages.noMembershipHost }
@@ -149,9 +140,10 @@ const preIdentityRefusal = (entry: AttemptEntry, input: CompileAttemptsFromSkele
  * and a look's referent carrying a stableRefKey.
  */
 const postIdentityRefusal = (entry: AttemptEntry, intentConfidence: number): CompileAttemptsFromSkeletonResult | undefined => {
-    const { attempt, kind } = entry
+    const { attempt } = entry
+    const { kind } = attempt
     if (kind === 'look') {
-        const lookedAt = primaryActionOf(attempt)?.referents()[0]
+        const lookedAt = lookedAtOf(attempt)
         if (lookedAt?.referentType !== 'objectSpan' || lookedAt.stableRefKey === undefined) {
             return { type: 'Abstain', confidence: intentConfidence, reason: `${lookedAt?.referentType} referent has no stableRefKey to resolve against` }
         }
@@ -177,7 +169,9 @@ const noAssignmentReasonFor = (kind: AttemptKind): string => {
         case 'look': return 'No object candidate in the pool resolved to a describable referent'
         case 'membership': return objectManipulationErrorMessages.noMatch
         case 'relation': return 'No combination of two distinct grounded objects produced a well-typed establishRelation/dissolveRelation step'
-        case 'containment': return 'No combination of two distinct grounded objects produced a well-typed containment move'
+        case 'containment':
+        case 'spread': return 'No combination of two distinct grounded objects produced a well-typed containment move'
+        case 'navigation': return navigationIntentErrorMessages.noMatch
     }
 }
 
@@ -195,11 +189,25 @@ const noAssignmentReasonFor = (kind: AttemptKind): string => {
  * Identify, selection below the floor) is an Abstain, which hands the command to the next rung. A
  * refusal the world gives (the dry run's illegal, such as "The table has no cup.") is an Error with
  * its reason. A defer (a pending challenge) is an Abstain until the deferred adjudication tier judges it.
+ * An Error is an answer, so an attempt's own Error refusal wins over a pool that only abstains (a
+ * take with no room is refused, though the bare exit reading beside it survives its entry checks).
  */
 export async function compileAttemptsFromSkeleton(
     input: CompileAttemptsFromSkeletonInput,
     intentConfidence: number,
     deps: CompileAttemptsFromSkeletonDeps = {}
+): Promise<CompileAttemptsFromSkeletonResult> {
+    const refusals: CompileAttemptsFromSkeletonResult[] = []
+    const result = await compileReadings(input, intentConfidence, deps, refusals)
+    return result.type === 'Abstain' ? refusals.find((refused) => refused.type === 'Error') ?? result : result
+}
+
+/** The producer's work; `refusals` collects each attempt's own refusal as it is refused. */
+async function compileReadings(
+    input: CompileAttemptsFromSkeletonInput,
+    intentConfidence: number,
+    deps: CompileAttemptsFromSkeletonDeps,
+    refusals: CompileAttemptsFromSkeletonResult[]
 ): Promise<CompileAttemptsFromSkeletonResult> {
     if (input.fills.every(({ attempts }) => attempts.length === 0)) {
         throw new Error('compileAttemptsFromSkeleton: no attempts (the caller routes the no-object case)')
@@ -219,12 +227,11 @@ export async function compileAttemptsFromSkeleton(
     if (chosen.length === 0) {
         return { type: 'Error', errorMessage: resumeErrorMessages.staleSelectedAttempt }
     }
-    const refusals: CompileAttemptsFromSkeletonResult[] = []
 
     // Pre-Identify: each attempt's own refusal, then the survivors.
     let survivors: AttemptEntry[] = []
     for (const { attempt, skeleton } of chosen) {
-        const entry: AttemptEntry = { attempt, kind: kindOf(attempt), skeleton }
+        const entry: AttemptEntry = { attempt, skeleton }
         const refused = preIdentityRefusal(entry, input, intentConfidence)
         if (refused) {
             refusals.push(refused)
@@ -244,7 +251,7 @@ export async function compileAttemptsFromSkeleton(
         ? await positionsReads.getLudicGraph(hostRoomId)
         : undefined
     survivors = survivors.filter((entry) => {
-        if (entry.kind === 'relation' && roomGraph === undefined) {
+        if (entry.attempt.kind === 'relation' && roomGraph === undefined) {
             refusals.push({ type: 'Error', errorMessage: objectManipulationErrorMessages.noHostRoom })
             return false
         }
@@ -267,7 +274,7 @@ export async function compileAttemptsFromSkeleton(
         input.command,
         spans,
         attemptSpanKeys(survivors.map((entry) => entry.attempt)),
-        catalog,
+        { objects: catalog, exits: input.roomExits ?? [] },
         deps
     )
     if (identityResult.type === 'error') {
@@ -286,25 +293,6 @@ export async function compileAttemptsFromSkeleton(
     const isExactFill = (skeleton: ParseSkeleton): boolean => skeleton.every((token) => token.type !== 'objectSpan' || isExact(token.stableRefKey))
     if (survivors.some(({ skeleton }) => isExactFill(skeleton))) {
         survivors = survivors.filter(({ skeleton }) => isExactFill(skeleton))
-    }
-
-    // BD-20 arity policy: a take or drop reads every span its fill gives it (its object, and each
-    // qualifier's host through the assertion lowered from it). A reading that leaves a span of its
-    // fill unread (a tail outside the qualifier set, or a reading that stops short of a qualifier) is
-    // dropped, and a reading of the same command that reads every span survives.
-    const leavesSpanUnread = ({ attempt, skeleton }: AttemptEntry): boolean => {
-        const read = new Set(attemptSpanKeys([attempt]))
-        return skeleton.some((token) => token.type === 'objectSpan' && !read.has(token.stableRefKey))
-    }
-    survivors = survivors.filter((entry) => {
-        if (entry.kind === 'membership' && leavesSpanUnread(entry)) {
-            refusals.push(notUnderstood(complexErrorMessage('multiObject'), intentConfidence))
-            return false
-        }
-        return true
-    })
-    if (survivors.length === 0) {
-        return firstRefusal(refusals)
     }
 
     // Post-Identify: each survivor's own refusal, then the survivors again.
@@ -329,7 +317,7 @@ export async function compileAttemptsFromSkeleton(
         attempts: survivors.map((entry) => entry.attempt),
         spanPools: identityResult.spanPools,
         catalog,
-        noAssignmentReason: noAssignmentReasonFor(lead.kind),
+        noAssignmentReason: noAssignmentReasonFor(lead.attempt.kind),
         referentAnswers: answers?.referentAnswers,
         viewAnswers: answers?.viewAnswers,
         actorRoom: hostRoomId,
@@ -348,6 +336,7 @@ export async function compileAttemptsFromSkeleton(
     const dryRun = (candidate: GroundedAttemptCandidate) => attemptDryRun(candidate, env, {
         roomId: hostRoomId,
         actorCharacterId: input.characterId,
+        exits: input.roomExits ?? [],
     })
     const namesOf = new Map<ConsultAlternative, { names: Record<string, string>; placeNames: Record<string, string>; skeleton: ParseSkeleton }>()
     const select = (pool: readonly GroundedAttemptCandidate[]) => selectPlanTuple({

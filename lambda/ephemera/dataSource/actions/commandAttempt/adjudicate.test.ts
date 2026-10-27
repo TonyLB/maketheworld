@@ -4,6 +4,7 @@ import { adjudicateAttempt, isCommandAttemptData } from './adjudicate'
 describe('adjudicateAttempt', () => {
     it('leaves a challenge-free attempt succeeded (nothing to adjudicate)', () => {
         const attempt = CommandAttempt.fromJSON({
+            kind: 'membership',
             words: 'take the broom',
             referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
             actions: [{ kind: 'position', id: 'action-1', desiredResultDescription: 'Take: broom', challenges: [] }],
@@ -16,6 +17,7 @@ describe('adjudicateAttempt', () => {
     })
 
     const ropeAttempt = (challenge: object) => CommandAttempt.fromJSON({
+        kind: 'membership',
         words: 'take the rope',
         referents: [{ refKey: 'primaryObject', id: 'OBJECT#Rope', shortName: 'rope' }],
         actions: [
@@ -60,6 +62,7 @@ describe('adjudicateAttempt', () => {
 describe('isCommandAttemptData', () => {
     it('accepts a well-shaped CommandAttemptData', () => {
         expect(isCommandAttemptData({
+            kind: 'membership',
             words: 'take the broom',
             referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
             actions: [{ kind: 'position', id: 'action-4', challenges: [] }],
@@ -67,16 +70,27 @@ describe('isCommandAttemptData', () => {
         })).toBe(true)
     })
 
+    it('accepts every action kind by its own fields (a frozen root holds looks and navigations too), and no other kind', () => {
+        const withAction = (action: object) => ({ kind: 'navigation', words: 'go north', referents: [], actions: [action], narrationUnits: [] })
+        expect(isCommandAttemptData(withAction({ kind: 'narrate', id: 'a', referents: [], challenges: [] }))).toBe(true)
+        expect(isCommandAttemptData(withAction({ kind: 'navigate', id: 'a', destination: { referentType: 'objectSpan', span: 'north' }, challenges: [] }))).toBe(true)
+        expect(isCommandAttemptData(withAction({ kind: 'navigate', id: 'a', challenges: [] }))).toBe(false)
+        expect(isCommandAttemptData(withAction({ kind: 'narrate', id: 'a', challenges: [] }))).toBe(false)
+        expect(isCommandAttemptData(withAction({ kind: 'teleport', id: 'a', challenges: [] }))).toBe(false)
+    })
+
     it('rejects a value missing required fields', () => {
         expect(isCommandAttemptData({ words: 'take the broom' })).toBe(false)
         expect(isCommandAttemptData(null)).toBe(false)
         expect(isCommandAttemptData(undefined)).toBe(false)
         expect(isCommandAttemptData({
+            kind: 'membership',
             words: 'take the broom',
             referents: [],
             actions: [{ kind: 'position', id: 'action-5', challenges: [{ kind: 'customEdge', id: 'x', description: 'd' }] }],
         })).toBe(false)
         expect(isCommandAttemptData({
+            kind: 'membership',
             words: 'take the broom',
             referents: [],
             actions: [{ kind: 'position', challenges: [] }],
@@ -85,6 +99,7 @@ describe('isCommandAttemptData', () => {
 
     it('accepts a narration unit carrying unfilled parts, and rejects one carrying a filled template instead', () => {
         const withVariant = (variant: object) => ({
+            kind: 'membership',
             words: 'take the rope',
             referents: [],
             actions: [{ kind: 'position', id: 'action-6', challenges: [] }],

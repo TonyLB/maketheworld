@@ -24,5 +24,5 @@ export const peerRelationFixture = (
         target: objectSpanRef(target.span, target.stableRefKey),
         ...relation,
     } as Change
-    return CommandAttempt.create(command, [new PositionAttemptAction(mintActionId(), [], change)])
+    return CommandAttempt.create('relation', command, [new PositionAttemptAction(mintActionId(), [], change)])
 }

@@ -1,11 +1,13 @@
-import { matchPatternAgainstTokens } from '../../../deterministicTemplate/patternTemplate'
-import { QUALIFIER_OPTIONS, QUALIFIER_PREPOSITION_ELEMENT } from './qualifierPrepositions'
+import { granulesOf, tokenize } from '../../../deterministicTemplate/granuleTokens'
+import { fixedWordsOf, matchPatternFills } from '../../../deterministicTemplate/patternTemplate'
+import { COMMAND_GRANULES } from './planSkeleton'
+import { exceedsQualifierCap, QUALIFIER_PREPOSITION_ELEMENT } from './qualifierPrepositions'
 
-/** The canonical preposition a whole text token names, read through the pattern element. */
+/** The canonical preposition a whole text names, read through the pattern element. */
 const canonicalOf = (text: string) => {
-    const [fill] = matchPatternAgainstTokens([QUALIFIER_PREPOSITION_ELEMENT], [{ type: 'text', text }])
-    const capture = fill?.captures[0]
-    return capture?.kind === 'templateText' ? QUALIFIER_OPTIONS[capture.option] : undefined
+    const [fill] = matchPatternFills([QUALIFIER_PREPOSITION_ELEMENT], tokenize(granulesOf(fixedWordsOf([QUALIFIER_PREPOSITION_ELEMENT])), text))
+    const capture = fill?.captures.preposition
+    return capture?.kind === 'templateText' ? capture.value : undefined
 }
 
 describe('QUALIFIER_PREPOSITION_ELEMENT', () => {
@@ -25,5 +27,19 @@ describe('QUALIFIER_PREPOSITION_ELEMENT', () => {
 
     it.each(['onto', 'into', 'under', 'of', 'with', 'hurriedly from'])('reads "%s" as no qualifier', (text) => {
         expect(canonicalOf(text)).toBeUndefined()
+    })
+})
+
+describe('exceedsQualifierCap', () => {
+    const exceeds = (command: string) => exceedsQualifierCap(tokenize(COMMAND_GRANULES, command))
+
+    it('counts each place a closed-set preposition stands, once however many options match there', () => {
+        expect(exceeds('take a on b on c on d on e on f on g')).toBe(false)
+        expect(exceeds('take a on b on c on d on e on f on g on h')).toBe(true)
+        expect(exceeds('take a on top of b on top of c on top of d on top of e on top of f on top of g')).toBe(false)
+    })
+
+    it('counts no motion word and no word outside the set', () => {
+        expect(exceeds('put a onto b into c under d onto e into f under g onto h')).toBe(false)
     })
 })

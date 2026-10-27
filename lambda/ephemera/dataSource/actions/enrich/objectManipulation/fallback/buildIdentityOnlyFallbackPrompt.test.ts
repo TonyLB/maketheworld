@@ -1,7 +1,7 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
-import { planSkeleton } from '../plan/planSkeleton'
+import { planFillOf } from '../plan/attemptTemplateFixture'
 import { buildIdentityOnlyFallbackPrompt } from './buildIdentityOnlyFallbackPrompt'
 
 describe('buildIdentityOnlyFallbackPrompt', () => {
@@ -10,7 +10,7 @@ describe('buildIdentityOnlyFallbackPrompt', () => {
     ]
 
     const takeAttempt = () => {
-        const result = planSkeleton(
+        const result = planFillOf(
             [{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'the bag', stableRefKey: 'bagRef' }],
             'take the bag'
         )

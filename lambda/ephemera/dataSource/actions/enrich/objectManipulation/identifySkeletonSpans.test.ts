@@ -25,7 +25,7 @@ describe('runIdentityStageOverSkeleton', () => {
         const result = await runIdentityStageOverSkeleton(
             'pick up the broom',
             skeleton,
-            roomCatalog,
+            { objects: roomCatalog, exits: [] },
             { embedSpan }
         )
 
@@ -67,7 +67,7 @@ describe('runIdentityStageOverSkeleton', () => {
         const result = await runIdentityStageOverSkeleton(
             'put broom on anvil',
             skeleton,
-            roomCatalog,
+            { objects: roomCatalog, exits: [] },
             { embedSpan }
         )
 
@@ -96,7 +96,7 @@ describe('runIdentityStageOverSkeleton', () => {
         const result = await runIdentityStageOverSkeleton(
             'put broom on anvil',
             skeleton,
-            ambiguousCatalog,
+            { objects: ambiguousCatalog, exits: [] },
             { embedSpan }
         )
 
@@ -125,7 +125,7 @@ describe('runIdentityStageOverSkeleton', () => {
         const result = await runIdentityStageOverSkeleton(
             'put broom on broom',
             skeleton,
-            roomCatalog,
+            { objects: roomCatalog, exits: [] },
             { embedSpan }
         )
 
@@ -142,7 +142,7 @@ describe('runIdentityStageOverSkeleton', () => {
         const embedSpan = jest.fn()
         const skeleton: ParseSkeleton = [{ type: 'text', text: 'look' }]
 
-        const result = await runIdentityStageOverSkeleton('look', skeleton, roomCatalog, { embedSpan })
+        const result = await runIdentityStageOverSkeleton('look', skeleton, { objects: roomCatalog, exits: [] }, { embedSpan })
 
         expect(result.type).toBe('success')
         if (result.type !== 'success') {
@@ -157,7 +157,7 @@ describe('runIdentityStageOverSkeleton', () => {
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
         ]
 
-        const result = await runIdentityStageOverSkeleton('pick up broom', skeleton, [])
+        const result = await runIdentityStageOverSkeleton('pick up broom', skeleton, { objects: [], exits: [] })
 
         expect(result).toEqual({
             type: 'error',
@@ -177,7 +177,7 @@ describe('runIdentityStageOverSkeleton', () => {
         const result = await runIdentityStageOverSkeleton(
             'pick up the sweeping tool',
             skeleton,
-            catalog,
+            { objects: catalog, exits: [] },
             { embedSpan }
         )
 
@@ -196,7 +196,7 @@ describe('runIdentityStageOverReferenceKeys', () => {
 
     it('resolves exactly the referenced keys, in skeleton order', async () => {
         const embedSpan = jest.fn()
-        const result = await runIdentityStageOverReferenceKeys('put broom on anvil', skeleton, ['anvilRef', 'broomRef'], roomCatalog, { embedSpan })
+        const result = await runIdentityStageOverReferenceKeys('put broom on anvil', skeleton, ['anvilRef', 'broomRef'], { objects: roomCatalog, exits: [] }, { embedSpan })
 
         expect(result.type).toBe('success')
         if (result.type !== 'success') {
@@ -207,7 +207,7 @@ describe('runIdentityStageOverReferenceKeys', () => {
 
     it('throws when a referenced key is not an objectSpan token in the skeleton', async () => {
         await expect(
-            runIdentityStageOverReferenceKeys('put broom on anvil', skeleton, ['missingRef'], roomCatalog, { embedSpan: jest.fn() })
+            runIdentityStageOverReferenceKeys('put broom on anvil', skeleton, ['missingRef'], { objects: roomCatalog, exits: [] }, { embedSpan: jest.fn() })
         ).rejects.toThrow('"missingRef" is not an objectSpan token')
     })
 })

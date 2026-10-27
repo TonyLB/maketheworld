@@ -1,38 +1,10 @@
 /**
- * Lexical match geometry and per-factor relevance building blocks.
- *
- * Pipeline toward pooled lexical relevance:
- * 1. Sellers approximate substring match locates the best alignment of pattern P in candidate T.
- * 2. deriveFlankLengthMetrics partitions flank material in T into adjoined vs remote lengths.
- * 3. editDistanceRelevance normalizes match quality (hard gate, can hit 0).
- * 4. lexicalRelevanceFromMetrics combines edit gate * tanhCenteredFlankScore (FT-1.1.5).
+ * The lexical factors shared by the cost table (`lexicalWeights.ts`) and the combine
+ * (`relevanceCombine.ts`): the flank lengths the combine reads, the edit gate, and the per-flank
+ * asymptotic factor of the simulator's multiplicative A/B.
  */
 
-import {
-    sellersApproximateSubstringMatch,
-    type SellersMatchSpan,
-} from './sellersApproximateSubstringMatch'
-import { clampUnitInterval } from './evidenceNumerics'
-import { tanhCenteredFlankScore } from './relevanceCombine'
-import type { RelevanceNormalizationParams } from './thresholds'
-
-const isAlpha = (char: string | undefined): boolean => (
-    char !== undefined && /[a-z0-9]/i.test(char)
-)
-
-const isAlphaAdjoinedAt = (leftChar: string | undefined, rightChar: string | undefined): boolean => (
-    isAlpha(leftChar) && isAlpha(rightChar)
-)
-
-const leadingAlphaRunLength = (segment: string): number => {
-    const stopIndex = segment.split('').findIndex((char) => !isAlpha(char))
-    return stopIndex === -1 ? segment.length : stopIndex
-}
-
-const trailingAlphaRunLength = (segment: string): number => {
-    const stopIndex = segment.split('').reverse().findIndex((char) => !isAlpha(char))
-    return stopIndex === -1 ? segment.length : stopIndex
-}
+import type { TextRange } from './types'
 
 export type FlankLengthMetrics = {
     adjoinedLeftLength: number
@@ -41,75 +13,9 @@ export type FlankLengthMetrics = {
     remoteRightLength: number
 }
 
-export type LexicalMatchMetrics = FlankLengthMetrics & {
-    editDistance: number
-    matchSpan: SellersMatchSpan
-}
-
-export const matchSpanLength = (matchSpan: SellersMatchSpan): number => (
+export const matchSpanLength = (matchSpan: TextRange): number => (
     matchSpan.end - matchSpan.start
 )
-
-/**
- * Character lengths of flank material alpha-adjoined to the match vs separated by a non-alpha boundary.
- * Indices are in candidate text T; matchSpan is [start, end) in T.
- */
-export function deriveFlankLengthMetrics(
-    candidateText: string,
-    matchSpan: SellersMatchSpan
-): FlankLengthMetrics {
-    const { start, end } = matchSpan
-    const adjoinedLeftLength = adjoinedLeftLengthAt(candidateText, start)
-    const adjoinedRightLength = adjoinedRightLengthAt(candidateText, end)
-    const remoteLeftLength = start - adjoinedLeftLength
-    const remoteRightLength = candidateText.length - end - adjoinedRightLength
-
-    return {
-        adjoinedLeftLength,
-        adjoinedRightLength,
-        remoteLeftLength,
-        remoteRightLength,
-    }
-}
-
-const adjoinedLeftLengthAt = (text: string, matchStart: number): number => {
-    if (matchStart === 0) {
-        return 0
-    }
-    if (!isAlphaAdjoinedAt(text[matchStart - 1], text[matchStart])) {
-        return 0
-    }
-
-    return trailingAlphaRunLength(text.slice(0, matchStart))
-}
-
-const adjoinedRightLengthAt = (text: string, matchEnd: number): number => {
-    if (matchEnd >= text.length) {
-        return 0
-    }
-    if (!isAlphaAdjoinedAt(text[matchEnd - 1], text[matchEnd])) {
-        return 0
-    }
-
-    return leadingAlphaRunLength(text.slice(matchEnd))
-}
-
-/**
- * Sellers approximate substring match plus flank length decomposition for relevance scoring.
- */
-export function computeLexicalMatchMetrics(
-    pattern: string,
-    candidateText: string
-): LexicalMatchMetrics {
-    const sellersMatch = sellersApproximateSubstringMatch(pattern, candidateText)
-    const flankLengths = deriveFlankLengthMetrics(candidateText, sellersMatch.matchSpan)
-
-    return {
-        editDistance: sellersMatch.distance,
-        matchSpan: sellersMatch.matchSpan,
-        ...flankLengths,
-    }
-}
 
 const assertFlankLengthRelevanceParams = (
     flankLength: number,
@@ -167,7 +73,7 @@ const assertEditDistanceRelevanceParams = (
 
 /**
  * Match-quality factor in [0, 1]. The only channel that can drive lexical relevance to zero.
- * Normalizes Sellers edit distance against max(|match span in T|, |P|):
+ * Normalizes the edits inside the match against the longer of the two sides' matches:
  * `1 - min(1, editDistance / max(matchSpanLength, patternLength))`
  */
 export function editDistanceRelevance(
@@ -184,27 +90,4 @@ export function editDistanceRelevance(
 
     const normalizedEdit = editDistance / normDenominator
     return 1 - Math.min(1, normalizedEdit)
-}
-
-/**
- * Lexical relevance from precomputed Sellers + flank metrics (FT-1.1.5).
- *
- * editDistanceRelevance (hard gate) * tanhCenteredFlankScore
- */
-export function lexicalRelevanceFromMetrics(
-    metrics: LexicalMatchMetrics,
-    patternLength: number,
-    candidateTextLength: number,
-    params: RelevanceNormalizationParams = {}
-): number {
-    const spanLen = matchSpanLength(metrics.matchSpan)
-    const spanScale = Math.max(spanLen, patternLength, 1)
-
-    const editFactor = editDistanceRelevance(metrics.editDistance, spanLen, patternLength)
-    const flankScore = tanhCenteredFlankScore(metrics, spanScale, params, {
-        patternLength,
-        candidateTextLength,
-    })
-
-    return clampUnitInterval(editFactor * flankScore)
 }

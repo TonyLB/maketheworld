@@ -9,7 +9,7 @@ Task-planning conventions: [`taskPlanning/AGENT.md`](../../../../AGENT.md). Ladd
 The five-layer architecture (`DeterministicTemplate` matching -> narrowed `classify` -> per-branch `parse` -> genuinely-split command-plan/question-plan `Plan` -> `Identify`, deliberately not yet generalized) is documented in:
 
 - [`actions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.concepts.md) --- "Three conceptual jobs" (Plan generalizes, Identify/Synthesize stay object-manipulation-scoped, CPG-5's rationale) and "`DeterministicTemplate` (shipped 2026-07-20)".
-- [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- classify's narrowed contract, `matchNavigationParaphrase.ts`, `matchAcmeOrderFamily.ts`, the `DeterministicTemplate` module map, and the full `Command`-branch pipeline sequence.
+- [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) --- classify's narrowed contract, Navigation (now Plan's templates, "Navigation and the AcmeOrder matcher"), `matchAcmeOrderFamily.ts`, the `DeterministicTemplate` module map, and the full `Command`-branch pipeline sequence.
 - [`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md) --- iteration 7's ladder row and the BD-22/BD-26 rows.
 
 If you need the design conversation itself (the rejected single-hop-merge proposal, the staged rollout reasoning, the `LookRoom`-paraphrase review correction) --- it's in this file's git history, not duplicated here.

@@ -138,7 +138,6 @@ describe('lashed rope take payoff (integration)', () => {
                 command: 'get rope',
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                roomObjectLabels: ['rope', 'post'],
                 roomObjectCatalog: [
                     { objectId: ROPE_ID, normalizedShortName: 'rope' },
                     { objectId: POST_ID, normalizedShortName: 'post' },

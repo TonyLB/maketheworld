@@ -53,7 +53,6 @@ jest.mock('./roomExitTargetsForCharacter', () => ({
 }))
 jest.mock('./roomObjectCatalogForCharacter', () => ({
     getRoomObjectCatalogForCharacter: jest.fn(),
-    roomObjectLabelsFromCatalog: jest.requireActual('./roomObjectCatalogForCharacter').roomObjectLabelsFromCatalog,
 }))
 jest.mock('./heldInventoryCatalogForCharacter', () => ({ getHeldInventoryCatalogForCharacter: jest.fn() }))
 jest.mock('./stableKey/collectCoyoteOccupiedStableKeys', () => ({ collectCoyoteOccupiedStableKeys: jest.fn() }))

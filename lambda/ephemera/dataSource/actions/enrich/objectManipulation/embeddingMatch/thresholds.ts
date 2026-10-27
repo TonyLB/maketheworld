@@ -32,20 +32,8 @@ export const C_MIN = 0.05
 /** Upper anchor for embedRelevance (exact normalized-shortName match). */
 export const C_MAX = 1
 
-/** Lexical proportional floor so ultra-short catalog names are not brittle. */
-export const L_MIN = 5
-
 /** Legacy harness constant for short-span admissibility baseline only (FT-1.3.1 retired production gate). */
 export const S_MIN = 3
-
-/** Flank edit cost when separated from match by non-alpha / token boundary. */
-export const LEX_FLANK_STRONG_COST = 0.25
-
-/** Flank edit cost when alpha-adjacent to match within same token. */
-export const LEX_FLANK_MODERATE_COST = 0.5
-
-/** In-window substitution / insertion unit cost (typo tolerance). */
-export const LEX_MATCH_SUBSTITUTION_COST = 1
 
 /** Max multiplicative discount for alpha-adjoined flank material (simulator A/B only). */
 export const LEX_ADJOINED_FLANK_MAX_DAMAGE = 0.5
@@ -101,6 +89,36 @@ export const LEX_ADJOINED_POS_DAMP_SCALE = 3
 export const LEX_ADJOINED_FLANK_MIDPOINT_RATIO = 0.5
 
 // -----------------------------------------------------------------------------
+// Token-aware alignment and span-side surplus (embeddingMatch/AGENT.md, 2026-10-27).
+// Placeholders, not locked: rung 14 (match tuning) calibrates them. Costs are in edits (an edit costs 1).
+
+/** A span character left out of a pair, or in a span token outside or skipped inside the match: the price of a delete, so the span is aligned whole unless its words are surplus. */
+export const LEX_ALIGN_SPAN_SKIP_COST = 1
+
+/** A character, outside the match, of the name's word its edge cuts into: below an insert, so "axle" keeps `le` as a partial word. A name's whole tokens outside or inside the match are free. */
+export const LEX_ALIGN_NAME_PARTIAL_COST = 0.75
+
+/** A boundary merged or split inside a pair (`coupon` against "cup on"). Cheaper than an edit, not free. */
+export const LEX_ALIGN_BOUNDARY_COST = 0.75
+
+/** The most tokens a pair joins against one token on the other side. */
+export const LEX_ALIGN_MAX_MERGE = 3
+
+/** The most edits a pair may hold, relative to its length: beyond it the tokens are no pair, each its side's surplus (`up` against "in", `look` against "moon"); within it, `teh` against "the". */
+export const LEX_ALIGN_PAIR_MAX_RELATIVE_EDITS = 1 / 3
+
+/** Span-side surplus factor exp(-rate * surplus characters / match scale): uncapped, 1 at zero surplus. */
+export const LEX_SPAN_SURPLUS_RATE = 0.5
+
+// Structural malus (embeddingMatch/AGENT.md). Placeholders; rung 14 calibrates them.
+
+/** A boundary of a merged span group at a cut another complete reading makes: at least the malus it would avoid, so a name is not smeared across a cut. */
+export const LEX_ALIGN_CUT_BOUNDARY_COST = 2
+
+/** Structural surplus factor exp(-rate * characters / match scale), on top of the span-side one: surplus outside the sub-run holding the match. */
+export const LEX_STRUCTURAL_SURPLUS_RATE = 1
+
+// -----------------------------------------------------------------------------
 // FT-1.2 pool merge (locked FT-1.3, 2026-07-09).
 
 /** RMS weight for lexical channel in weightedRmsJointRelevance. */
@@ -134,11 +152,7 @@ export const T_JOINT_ABS_UNARY = 0.48
 export type RelevanceNormalizationParams = {
     cMin?: number
     cMax?: number
-    lMin?: number
     sMin?: number
-    lexFlankStrongCost?: number
-    lexFlankModerateCost?: number
-    lexMatchSubstitutionCost?: number
     lexAdjoinedFlankMaxDamage?: number
     lexRemoteFlankMaxDamage?: number
     lexFlankRelevanceK?: number
@@ -153,6 +167,10 @@ export type RelevanceNormalizationParams = {
     lexRemoteFlankMidpointRatio?: number
     lexRemoteFlankScale?: number
     lexRemoteFlankWeight?: number
+    lexSpanSurplusRate?: number
+    lexStructuralSurplusRate?: number
+    lexInteriorNameWordRate?: number
+    lexInteriorSpanWordRate?: number
     jointRelevanceWL?: number
     jointRelevanceWE?: number
     poolShortlistTopN?: number

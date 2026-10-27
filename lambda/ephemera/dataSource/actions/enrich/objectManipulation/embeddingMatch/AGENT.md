@@ -1,6 +1,6 @@
 # Object identity embedding match (`embeddingMatch/`)
 
-**Status: shipped (FT-3.3 relational + FT-2.2 membership tuple selector + FT-2.1 pool path + FT-1.2/1.3 calibration).** **v2 steady-state = pool recommender** (not terminal pick-one). **Membership production (FT-2.2, 2026-07-10):** [`resolveCatalogSpanToPool`](../resolveCatalogSpanToPool.ts) -> [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) -> [`proposeMembershipCandidates`](../proposeMembershipCandidates.ts) + [`selectIdentityPlanTuple`](../selectPlanCandidate.ts) (`T_JOINT_*` legality-gated). **Relational production (native Parse-skeleton pipeline, iteration 3):** pools via [`identifySkeletonSpans`](../identifySkeletonSpans.ts) -> the producer and Expansion ([`compileRelationalFromSkeleton`](../compileRelationalFromSkeleton.ts), [`synthesize/expandSameHost`](../synthesize/expandSameHost.ts)); the FT-3.3 `proposeRelationalTuples`/`selectRelationalFromPools` selectors were retired 2026-07-20. Bridge [`selectSingleSpanFromPool`](../selectSingleSpanFromPool.ts) harness-only. **Calibration / historical only:** v1 cosine + conjunctive gates via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) / [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) / [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts). Identity LLM retired from production.
+**Status: shipped (FT-3.3 relational + FT-2.2 membership tuple selector + FT-2.1 pool path + FT-1.2/1.3 calibration).** **v2 steady-state = pool recommender** (not terminal pick-one). **Membership production (FT-2.2, 2026-07-10):** [`resolveCatalogSpanToPool`](../resolveCatalogSpanToPool.ts) -> [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) -> [`proposeMembershipCandidates`](../proposeMembershipCandidates.ts) + [`selectIdentityPlanTuple`](../selectPlanCandidate.ts) (`T_JOINT_*` legality-gated). **Relational production (native tokenized-skeleton pipeline, iteration 3):** pools via [`identifySkeletonSpans`](../identifySkeletonSpans.ts) -> the producer and Expansion ([`compileRelationalFromSkeleton`](../compileRelationalFromSkeleton.ts), [`synthesize/expandSameHost`](../synthesize/expandSameHost.ts)); the FT-3.3 `proposeRelationalTuples`/`selectRelationalFromPools` selectors were retired 2026-07-20. Bridge [`selectSingleSpanFromPool`](../selectSingleSpanFromPool.ts) harness-only. **Calibration / historical only:** v1 cosine + conjunctive gates via [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) / [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) / [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts). Identity LLM retired from production.
 
 **Output trust:** **v1** open-loop terminal `Resolved` (retired from production) vs **v2** closed-loop pool -> FT-5 selector (auto-resolve | Consult | Abstain). Canonical vocabulary: [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md) (**Output trust models**, **How the axes compose**). Seam (referential grounding job) is unchanged across trust modes.
 
@@ -60,16 +60,20 @@ Pure helpers for the fault-tolerant candidate pool (FT-1). Wired into **`buildSp
 | [`embedRelevance`](embedRelevance.ts) | FT-8 two-point log map: raw cosine -> `[0,1]` |
 | [`evidenceNumerics`](evidenceNumerics.ts) | Domain-agnostic `sigmoid`, `tanh`, `clampUnitInterval` |
 | [`relevanceCombine`](relevanceCombine.ts) | Flank + joint combiner patterns: `tanhCenteredFlankScore` (production), `multiplicativeFlankScoreV1` (simulator A/B), `weightedRmsJointRelevance` (FT-1.2) |
-| [`sellersApproximateSubstringMatch`](sellersApproximateSubstringMatch.ts) | OSA Sellers alignment of span in catalog `shortName` |
-| [`lexicalMatchMetrics`](lexicalMatchMetrics.ts) | Flank geometry + `editDistanceRelevance` + `lexicalRelevanceFromMetrics` |
-| [`lexicalRelevance`](lexicalRelevance.ts) | Entry point: shorter-in-longer Sellers match, then edit gate * tanh flank combine |
+| [`osaStep`](osaStep.ts) | The OSA kernel: the cheapest step (match, substitute, insert, delete, transpose) into one alignment cell, priced by a step-cost hook (unit costs by default), and `AlignmentOp` |
+| [`tokenAwareAlignment`](tokenAwareAlignment.ts) | Two-level overlap alignment of the span against the name: an outer Sellers analog over tokens (pair a group, skip a span or name token inside or outside the match, each priced by side), whose group pairs an inner OSA prices (merges and splits up to `LEX_ALIGN_MAX_MERGE` at a boundary cost, `LEX_ALIGN_CUT_BOUNDARY_COST` for a span boundary at a cut; partial words only at the match's edges). A pair beyond `LEX_ALIGN_PAIR_MAX_RELATIVE_EDITS` is refused; no admitted pair means no alignment |
+| [`lexicalDiff`](lexicalDiff.ts) | The alignment read back in words, per side (span, name): the match, words skipped inside it, and each flank's partial word, whole words and punctuation marks (words per `granuleTokens.ts` `lexemesOf`); with the word pairs, edits, boundaries and ops, and `subRuns` (the span's `SpanStructure` as character ranges in its normalized text, `subRunRangesOf`; a leading peeled article shifts them). `flankLengthMetricsOf` projects a side's flanks to the adjoined/remote lengths |
+| [`lexicalWeights`](lexicalWeights.ts) | The cost table over a `lexicalDiff`, a product of rows: the edit gate; the name's flanks (the tanh flank combine, `catalogSideFlankWeight`, applied to every diff); the span's flanks (`exp(-LEX_SPAN_SURPLUS_RATE * chars / scale)`, 1 at zero); the structural row (`exp(-LEX_STRUCTURAL_SURPLUS_RATE * chars / scale)` over the span's surplus outside the smallest `subRuns` entry holding the match; 1 with none, or when the match crosses a cut); and each side's interior words (`LEX_INTERIOR_NAME_WORD_RATE`, `LEX_INTERIOR_SPAN_WORD_RATE`, both 0). `catalogSideFlankInputs` is what the calibration harnesses read |
+| [`lexicalMatchMetrics`](lexicalMatchMetrics.ts) | The shared lexical factors: `FlankLengthMetrics`, `editDistanceRelevance` (the edit gate), `flankLengthRelevance` (simulator A/B) |
+| [`lexicalRelevance`](lexicalRelevance.ts) | Entry point: `lexicalDiff`, priced by `priceLexicalDiff`; 0 when either string normalizes to empty or no pair of their words aligns |
+| [`testing/sellersApproximateSubstringMatch`](testing/sellersApproximateSubstringMatch.ts) | Sellers' approximate substring search on the OSA kernel, no longer in production: the oracle `tokenAwareAlignment` is checked against on one-word spans |
 | [`testing/tokenOverlapRelevance`](testing/tokenOverlapRelevance.ts) | Simulator-only A/B baseline (not production) |
 | [`testing/simulateLexicalIdentityCorpus`](testing/simulateLexicalIdentityCorpus.ts) | Lexical-only identity corpus rank + tanh vs v1 A/B harness |
 
-**Lexical relevance pipeline (FT-1.1.5, 2026-07-09):** embed shorter normalized string in longer -> Sellers match -> combine:
+**Lexical relevance pipeline (FT-1.1.5, 2026-07-09; re-expressed 2026-10-27 as diff then weights):** token-aware alignment of the span against the name -> `lexicalDiff` -> cost table (`lexicalWeights`):
 
-1. **Edit distance** (hard gate, can hit `0`): `1 - min(1, editDistance / max(|span in T|, |P|))`
-2. **Flank geometry** via centered tanh evidence + outer sigmoid (not a product of per-factor asymptotics):
+1. **Edit distance** (hard gate, can hit `0`): `1 - min(1, edits / max(|span match|, |name match|))`, the edits inside the word pairs
+2. **Name-side flank geometry** (the catalog side's forgiveness) via centered tanh evidence + outer sigmoid (not a product of per-factor asymptotics), with `patternLength` the span's match and `candidateTextLength` the name:
 
 ```
 x_L/R   = adjoinedLength / spanScale
@@ -83,10 +87,17 @@ coverage = patternLength / candidateTextLength
 lift     = tanh(LEX_BIAS_COVERAGE_SCALE * coverage) / tanh(LEX_BIAS_COVERAGE_SCALE)
 biasEff  = LEX_FLANK_COMBINE_BIAS_MIN + (LEX_FLANK_COMBINE_BIAS - MIN) * lift
 flankScore = sigmoid(biasEff + e_L + e_R + e_Rm)
-lexRelevance = editDistanceRelevance * flankScore
+spanSurplus = exp(-LEX_SPAN_SURPLUS_RATE * spanFlankChars / spanScale)
+interior_side = exp(-LEX_INTERIOR_<SIDE>_WORD_RATE * skippedChars_side / spanScale)
+structural = exp(-LEX_STRUCTURAL_SURPLUS_RATE * structuralChars / spanScale)   [1 without a sub-run holding the match]
+lexRelevance = editDistanceRelevance * flankScore * spanSurplus * structural * interior_name * interior_span
 ```
 
-Per-channel scales/weights in [`thresholds.ts`](thresholds.ts). Production adjoined and remote channels are **ratio-invariant** (FT-1.3.3/4) when [`lexicalRelevanceFromMetrics`](lexicalMatchMetrics.ts) passes `FlankCombineContext`; legacy absolute channels when context omitted (simulator A/B).
+3. **Span-side surplus** (`AGENT.contract.md` "Surplus another reading could explain"): uncapped, exactly 1 when the span has no extra words, so such a pair scores as the edits and the name's flanks say. **Structural surplus** (4e): the part of that surplus outside the smallest sub-run (a run another complete reading reads as a span) holding the whole match takes a heavier rate on top; span side and lexical channel only. **Interior words** have their own rows per side, both at rate 0 until rung 14 judges them.
+
+**Placeholders, not locked** (rung 14 calibrates): `LEX_ALIGN_SPAN_SKIP_COST=1`, `LEX_ALIGN_NAME_PARTIAL_COST=0.75`, `LEX_ALIGN_BOUNDARY_COST=0.75`, `LEX_ALIGN_MAX_MERGE=3`, `LEX_ALIGN_PAIR_MAX_RELATIVE_EDITS=1/3`, `LEX_SPAN_SURPLUS_RATE=0.5`, `LEX_ALIGN_CUT_BOUNDARY_COST=2`, `LEX_STRUCTURAL_SURPLUS_RATE=1`, `LEX_INTERIOR_NAME_WORD_RATE=0`, `LEX_INTERIOR_SPAN_WORD_RATE=0`.
+
+Per-channel scales/weights in [`thresholds.ts`](thresholds.ts). Production adjoined and remote channels are **ratio-invariant** (FT-1.3.3/4) when [`catalogSideFlankWeight`](lexicalWeights.ts) passes `FlankCombineContext`; legacy absolute channels when context omitted (simulator A/B).
 
 Formulas and admissibility rules: this file (**FT-1.1 relevance normalization**, **FT-1.3 calibration**) + locked constants in [`thresholds.ts`](thresholds.ts).
 
@@ -99,7 +110,7 @@ Formulas and admissibility rules: this file (**FT-1.1 relevance normalization**,
 | Constant group | Scale | Consumer | Pool admission? |
 | --- | --- | --- | --- |
 | `T_ABS`, `T_ABS_UNARY`, `T_MARGIN` | raw cosine | v1 [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) (calibration shim only) | **No** --- open-loop calibration |
-| `C_MIN`, `L_MIN`, flank combine, `S_MIN` | per-signal `[0,1]` | `embedRelevance`, `lexicalRelevance` | **No** --- relevance normalization |
+| `C_MIN`, flank combine, `S_MIN` | per-signal `[0,1]` | `embedRelevance`, `lexicalRelevance` | **No** --- relevance normalization |
 | `JOINT_RELEVANCE_W_*`, gap-trim | joint `[0,1]` | [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) | **No** --- rank-all, no floor |
 | `T_JOINT_ABS`, `T_JOINT_MARGIN`, `T_JOINT_ABS_UNARY` | joint `[0,1]` | FT-5 selector (**wired** on membership + relational) | **No** --- auto-resolve gate |
 
@@ -109,7 +120,7 @@ Formulas and admissibility rules: this file (**FT-1.1 relevance normalization**,
 
 **Canonical snapshot:** [`embedding-identity-pool-v1-2026-07-09-bias-sweep.json`](../../../../../calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json) (mock Bedrock harness; FT-1.3.2-6 locked constants). Rolling default: [`embedding-identity-pool-v1-2026-07-09.json`](../../../../../calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json). Confirm on dev stack live run.
 
-**Locked constants** (see [`thresholds.ts`](thresholds.ts) provenance block): `C_MIN=0.05`, `L_MIN=5`, `S_MIN=3`, flank combine + edit costs, `JOINT_RELEVANCE_W_L/E=1.0`, `POOL_SHORTLIST_TOP_N=5`, `POOL_GAP_TRIM_RELATIVE_DROP=0.15`, plus FT-1.3.2-6 lexical combine (`LEX_FLANK_COMBINE_BIAS=1.5`, `LEX_ADJOINED_FLANK_WEIGHT=3.0`, `LEX_REMOTE_FLANK_WEIGHT=0.4`, coverage bias + ratio-invariant midpoints).
+**Locked constants** (see [`thresholds.ts`](thresholds.ts) provenance block): `C_MIN=0.05`, `S_MIN=3`, flank combine, `JOINT_RELEVANCE_W_L/E=1.0`, `POOL_SHORTLIST_TOP_N=5`, `POOL_GAP_TRIM_RELATIVE_DROP=0.15`, plus FT-1.3.2-6 lexical combine (`LEX_FLANK_COMBINE_BIAS=1.5`, `LEX_ADJOINED_FLANK_WEIGHT=3.0`, `LEX_REMOTE_FLANK_WEIGHT=0.4`, coverage bias + ratio-invariant midpoints).
 
 **FT-5 floors (wired on membership + relational selectors):** `T_JOINT_ABS=0.42`, `T_JOINT_MARGIN=0.08`, `T_JOINT_ABS_UNARY=0.48` --- fit from mocked identity corpus pool metrics; absent/unary heads stay below `T_JOINT_ABS`, paraphrase clears with margin when catalog is unary / high-margin.
 

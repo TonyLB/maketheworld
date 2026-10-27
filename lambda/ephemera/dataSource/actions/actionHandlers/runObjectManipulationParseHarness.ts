@@ -7,22 +7,17 @@ import type {
     ObjectManipulationParseHarnessInvocation,
 } from '../baseClasses'
 import { deterministicIntentChecks } from '../discriminateIntent/deterministicChecks'
+import { isBareExitFill } from '../enrich/objectManipulation/plan/matchNavigationTemplate'
+import type { GranuleToken } from '../deterministicTemplate/granuleTokens'
 import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
-import { runParseStage } from '../enrich/objectManipulation/parse/runParseStage'
-import { stampStableRefKeys } from '../enrich/objectManipulation/parse/stampStableRefKeys'
-import { matchPlanTemplates } from '../enrich/objectManipulation/plan/planSkeleton'
+import { planTokens, readPlanTemplates, type PlanTemplateRead } from '../enrich/objectManipulation/plan/planSkeleton'
 import { OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES } from '../objectManipulationParseHarnessFixtures'
-import { getRoomObjectLabelsForCharacter } from '../roomObjectLabelsForCharacter'
 
 export type RunObjectManipulationParseHarnessDeps = {
     characterId: EphemeraCharacterId
     messageBus: Pick<MessageBus, 'publish'>
     harnessInvocation?: ObjectManipulationParseHarnessInvocation
     fixtures?: readonly ObjectManipulationParseHarnessFixture[]
-    runParseStageImpl?: typeof runParseStage
-    /** The actor's room labels, which decide whether the fast path claims a `get`. Read once per run. */
-    getRoomObjectLabelsImpl?: (characterId: EphemeraCharacterId) => Promise<string[]>
-    now?: () => number
 }
 
 type HarnessCase = { label: string; command: string }
@@ -52,19 +47,21 @@ export function formatSkeleton(skeleton: ParseSkeleton): string {
         .join(' | ')
 }
 
+/** `put | the bag | in | the box`: the tokens on one line, each as typed. */
+export function formatTokens(tokens: readonly GranuleToken[]): string {
+    return tokens.map((token) => (token.kind === 'punctuation' ? token.text : token.words.join(' '))).join(' | ')
+}
+
 /**
- * Runs each selected command down the route production takes to a skeleton, then Plan, and
- * publishes **one** OOC message with the results for manual review: the route, the skeleton, each
- * template's match, and each attempt Plan emits. A command the take/get/drop/put/place fast path claims
- * (`deterministicIntentChecks`, with the actor's room labels) shows each of the fast path's skeletons (every fill) with
- * no Bedrock call; any other runs the live Parse stage. Beyond the labels no world is read;
- * candidates and the dry run are out of its reach.
+ * Runs each selected command's tokens through Plan, and publishes **one** OOC message with the results
+ * for manual review: the route, the tokens, and each segmentation Plan's readings make with every
+ * attempt read from it. Every command reads its own tokens with no Bedrock call. The route says
+ * whether a template read the command (the fast path) or only the bare exit reading did (it fits
+ * every command, and abstains unless the command names an exit, which no world here says), so the
+ * command climbs to classify. No world is read; candidates and the dry run are out of its reach.
  */
 export async function runObjectManipulationParseHarness(deps: RunObjectManipulationParseHarnessDeps): Promise<void> {
-    const runParse = deps.runParseStageImpl ?? runParseStage
-    const now = deps.now ?? (() => Date.now())
     const cases = selectCases(deps.fixtures ?? OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES, deps.harnessInvocation)
-    const roomObjectLabels = await (deps.getRoomObjectLabelsImpl ?? getRoomObjectLabelsForCharacter)(deps.characterId)
 
     const tree: RenderTree = ['Object manipulation Parse harness (route + Plan, no world)', COYOTE_RENDER_LINE_BREAK]
     if (cases.length === 0) {
@@ -72,39 +69,26 @@ export async function runObjectManipulationParseHarness(deps: RunObjectManipulat
     }
     for (const [index, { label, command }] of cases.entries()) {
         tree.push(`--- ${index + 1}/${cases.length} ${label}: ${command} ---`, COYOTE_RENDER_LINE_BREAK)
-        const fastPath = deterministicIntentChecks({ command, roomObjectLabels })
-        let skeletons: ParseSkeleton[]
-        if (fastPath?.type === 'ObjectManipulationIntent') {
-            // Every fill goes to Plan, so each is shown with what Plan reads from it.
-            skeletons = fastPath.skeletons.map((draft) => stampStableRefKeys(draft))
-            tree.push('Route: fast path', COYOTE_RENDER_LINE_BREAK)
+        const fastPath = deterministicIntentChecks({ command })
+        if (fastPath?.type !== 'ObjectManipulationIntent') {
+            tree.push(`Route: fast path (${fastPath?.type ?? 'no tokens'})`, COYOTE_RENDER_LINE_BREAK)
+            continue
         }
-        else {
-            tree.push('Route: LLM (Parse)', COYOTE_RENDER_LINE_BREAK)
-            const startMs = now()
-            const parsed = await runParse({ command })
-            tree.push(`elapsedMs: ${now() - startMs}`, COYOTE_RENDER_LINE_BREAK)
-            if (parsed.type === 'error') {
-                tree.push(`Parse error: ${parsed.errorMessage}`, COYOTE_RENDER_LINE_BREAK)
-                continue
-            }
-            skeletons = [parsed.tokens]
-            tree.push(`Parse: ${formatSkeleton(parsed.tokens)}`, COYOTE_RENDER_LINE_BREAK)
-        }
-        for (const skeleton of skeletons) {
-            if (fastPath?.type === 'ObjectManipulationIntent') {
-                tree.push(`Skeleton: ${formatSkeleton(skeleton)}`, COYOTE_RENDER_LINE_BREAK)
-            }
-            const matches = matchPlanTemplates(skeleton, command)
-            tree.push(
-                `Templates: ${matches.map(({ template, attempt }) => `${template} ${attempt ? 'matched' : 'noMatch'}`).join(', ')}`,
-                COYOTE_RENDER_LINE_BREAK
-            )
-            for (const { template, attempt } of matches) {
-                if (attempt) {
-                    const { referents, actions } = attempt.toJSON()
-                    tree.push(`Attempt (${template}): ${JSON.stringify({ referents, actions })}`, COYOTE_RENDER_LINE_BREAK)
-                }
+        const { tokens } = fastPath
+        const readByATemplate = planTokens(tokens, command).some((fill) => !isBareExitFill(fill))
+        tree.push(readByATemplate ? 'Route: fast path' : 'Route: bare exit reading only (climbs to classify)', COYOTE_RENDER_LINE_BREAK)
+        tree.push(`Tokens: ${formatTokens(tokens)}`, COYOTE_RENDER_LINE_BREAK)
+        const reads = readPlanTemplates(tokens, command)
+        tree.push(`Readings: ${reads.length}`, COYOTE_RENDER_LINE_BREAK)
+        // Each segmentation once, with every template's attempt read from it.
+        const bySegmentation = reads.reduce<Map<string, PlanTemplateRead[]>>((groups, read) => (
+            groups.set(read.segmentationKey, [...(groups.get(read.segmentationKey) ?? []), read])
+        ), new Map())
+        for (const group of bySegmentation.values()) {
+            tree.push(`Skeleton: ${formatSkeleton(group[0].segmentation)}`, COYOTE_RENDER_LINE_BREAK)
+            for (const { template, attempt } of group) {
+                const { referents, actions } = attempt.toJSON()
+                tree.push(`Attempt (${template}): ${JSON.stringify({ referents, actions })}`, COYOTE_RENDER_LINE_BREAK)
             }
         }
     }

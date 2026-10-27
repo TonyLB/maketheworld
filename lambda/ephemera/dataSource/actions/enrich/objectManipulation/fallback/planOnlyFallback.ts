@@ -1,6 +1,6 @@
 import type { CommandAttempt } from '../../../commandAttempt'
 import { combineConfidenceNaive } from '../confidenceCombine'
-import type { IdentityPlanIdentity } from '../identityPlanCandidate'
+import { objectIdOf, type IdentityPlanIdentity } from '../identityPlanCandidate'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import {
     selectPlanTuple,
@@ -71,7 +71,7 @@ const planOnlyFallbackDryRun = (): DryRunOutcome => ({
 const planOnlyFallbackConsultAlternative = (
     candidate: PlanOnlyFallbackCandidate
 ): ConsultAlternative => ({
-    objectId: candidate.identity.objectId,
+    objectId: objectIdOf(candidate.identity),
     label: candidate.identity.label,
     proposedCommand: candidate.identity.label,
 })

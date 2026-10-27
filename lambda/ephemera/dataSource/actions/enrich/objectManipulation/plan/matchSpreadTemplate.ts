@@ -1,4 +1,4 @@
-import type { AttemptTemplate } from '../../../deterministicTemplate/deterministicTemplate'
+import { defineAttemptTemplate } from '../../../deterministicTemplate/deterministicTemplate'
 import { CommandAttempt } from '../../../commandAttempt'
 import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/action'
 import type { NarrationUnit } from '../../../commandAttempt/narrationUnit'
@@ -7,7 +7,6 @@ import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 
 import { currentHostRef, objectSpanRef } from './planStep'
 import type { Referent } from './planStep'
-import { optionAt, spanAt } from './templateCaptures'
 
 /**
  * The spreading verbs, each with the third-person form its narration uses. A closed set, so a
@@ -33,16 +32,12 @@ const SPREAD_PHRASES: Readonly<Record<string, ContainmentKind>> = { ...CONTAINME
  * Narration follows the containment template's pattern: the player's verb and the matched phrase,
  * one line to everyone who can see the actor or either object, before the move.
  */
-export const spreadTemplate: AttemptTemplate<'spread'> = {
+export const spreadTemplate = defineAttemptTemplate({
     name: 'spread',
     pattern: placingPattern(SPREADING_VERB_FORMS, SPREAD_PHRASES),
-    build(captures, command) {
-        const verbForm = SPREADING_VERB_FORMS[optionAt(captures, 0)]
-        const phrase = optionAt(captures, 2)
-        const subjectSpan = spanAt(captures, 1)
-        const targetSpan = spanAt(captures, 3)
-        const subject = objectSpanRef(subjectSpan.span, subjectSpan.stableRefKey)
-        const target = objectSpanRef(targetSpan.span, targetSpan.stableRefKey)
+    build({ verb: { value: verbForm }, subject: subjectSpan, phrase: { option: phrase, value: containment }, target: targetSpan }, command) {
+        const subject = objectSpanRef(subjectSpan.text, subjectSpan.stableRefKey)
+        const target = objectSpanRef(targetSpan.text, targetSpan.stableRefKey)
         const extendActionId = mintActionId()
         const actionId = mintActionId()
         const presenceUuid = mintActionId()
@@ -59,7 +54,7 @@ export const spreadTemplate: AttemptTemplate<'spread'> = {
                 ],
             }],
         }
-        return CommandAttempt.create(command, [
+        return CommandAttempt.create('spread', command, [
             new PositionAttemptAction(extendActionId, [], {
                 kind: 'change',
                 primitive: 'extend',
@@ -72,8 +67,8 @@ export const spreadTemplate: AttemptTemplate<'spread'> = {
                 object: { ...subject, view: [PresenceKey(presenceUuid)] } as Referent,
                 from: currentHostRef(subject),
                 to: target,
-                containment: SPREAD_PHRASES[phrase],
+                containment,
             }),
         ], [narrationUnit])
     },
-}
+})

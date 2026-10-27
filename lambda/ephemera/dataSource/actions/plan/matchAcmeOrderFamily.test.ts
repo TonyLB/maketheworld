@@ -1,6 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ParseCommandInput } from '../baseClasses'
-import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
 import { matchAcmeOrderFamily } from './matchAcmeOrderFamily'
 
 const underCapCountDeps = {
@@ -8,15 +7,10 @@ const underCapCountDeps = {
     getObjectIdsInRoom: async () => [] as EphemeraObjectId[],
 }
 
-const orderRopeSkeleton: ParseSkeleton = [
-    { type: 'text', text: 'order' },
-    { type: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
-]
-
 const baseInput: ParseCommandInput = { command: 'order rope', occupiedStableKeys: ['existing-key'] }
 
 describe('matchAcmeOrderFamily', () => {
-    it('extracts rawOrders from the skeleton and calls enrichAcmeOrder', async () => {
+    it('matches the order verb on the first word and calls enrichAcmeOrder with the command', async () => {
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({
             success: true,
             body: `\`\`\`json
@@ -29,7 +23,7 @@ describe('matchAcmeOrderFamily', () => {
 \`\`\``,
         })
 
-        const result = await matchAcmeOrderFamily(orderRopeSkeleton, baseInput, 0.8, {
+        const result = await matchAcmeOrderFamily(baseInput, 0.8, {
             invokeBedrockAcmeOrderEnrichImpl,
             countCoyotePlacedObjectsAcrossRoomsDeps: underCapCountDeps,
         })
@@ -52,11 +46,7 @@ describe('matchAcmeOrderFamily', () => {
     it('recognizes buy/purchase as well as order', async () => {
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({ success: false })
         for (const verb of ['buy', 'purchase']) {
-            const skeleton: ParseSkeleton = [
-                { type: 'text', text: verb },
-                { type: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
-            ]
-            const result = await matchAcmeOrderFamily(skeleton, baseInput, 0.8, {
+            const result = await matchAcmeOrderFamily({ ...baseInput, command: `${verb} rope` }, 0.8, {
                 invokeBedrockAcmeOrderEnrichImpl,
                 countCoyotePlacedObjectsAcrossRoomsDeps: underCapCountDeps,
             })
@@ -64,35 +54,27 @@ describe('matchAcmeOrderFamily', () => {
         }
     })
 
-    it('returns null when the leading token is not an order verb', async () => {
-        const skeleton: ParseSkeleton = [
-            { type: 'text', text: 'take' },
-            { type: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
-        ]
-        expect(await matchAcmeOrderFamily(skeleton, baseInput, 0.8)).toBeNull()
+    it('returns null when the first word is not an order verb', async () => {
+        expect(await matchAcmeOrderFamily({ ...baseInput, command: 'take rope' }, 0.8)).toBeNull()
+        expect(await matchAcmeOrderFamily({ ...baseInput, command: 'reorder rope' }, 0.8)).toBeNull()
     })
 
-    it('returns null when there are no object spans to extract', async () => {
-        const skeleton: ParseSkeleton = [{ type: 'text', text: 'order' }]
-        expect(await matchAcmeOrderFamily(skeleton, baseInput, 0.8)).toBeNull()
+    it('returns null when nothing follows the verb', async () => {
+        expect(await matchAcmeOrderFamily({ ...baseInput, command: 'order' }, 0.8)).toBeNull()
+        expect(await matchAcmeOrderFamily({ ...baseInput, command: 'order!' }, 0.8)).toBeNull()
     })
 
-    it('returns null when the skeleton is empty', async () => {
-        expect(await matchAcmeOrderFamily([], baseInput, 0.8)).toBeNull()
+    it('returns null when the command is empty', async () => {
+        expect(await matchAcmeOrderFamily({ ...baseInput, command: '' }, 0.8)).toBeNull()
     })
 
-    it('extracts multiple rawOrders, ignoring interstitial text tokens', async () => {
+    it('hands the model the whole command, with no order list, so it splits the orders', async () => {
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn().mockResolvedValue({ success: false })
-        const skeleton: ParseSkeleton = [
-            { type: 'text', text: 'order' },
-            { type: 'objectSpan', span: 'rope', stableRefKey: 'ropeRef' },
-            { type: 'text', text: 'and' },
-            { type: 'objectSpan', span: 'a bucket', stableRefKey: 'bucketRef' },
-        ]
-        await matchAcmeOrderFamily(skeleton, baseInput, 0.8, {
+        await matchAcmeOrderFamily({ ...baseInput, command: 'Order rope and a bucket' }, 0.8, {
             invokeBedrockAcmeOrderEnrichImpl,
             countCoyotePlacedObjectsAcrossRoomsDeps: underCapCountDeps,
         })
-        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalled()
+        expect(invokeBedrockAcmeOrderEnrichImpl).toHaveBeenCalledTimes(1)
+        expect(invokeBedrockAcmeOrderEnrichImpl.mock.calls[0][0].dynamicSuffix).not.toContain('## Product spans to validate')
     })
 })

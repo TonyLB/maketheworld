@@ -3,7 +3,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import { attemptDryRun, attemptReferentAnswers, attemptSpanKeys, buildAttemptEnvironment, disambiguationLabels, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
-import { planSkeleton } from './plan/planSkeleton'
+import { planFillOf } from './plan/attemptTemplateFixture'
 import type { ParseSkeleton } from './parse/parseToken'
 import type { SpanCandidatePool } from './spanResolution'
 import { CommandAttempt } from '../../commandAttempt'
@@ -11,6 +11,9 @@ import type { NarrationUnit } from '../../commandAttempt'
 import { PositionAttemptAction } from '../../commandAttempt/action'
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 import { actingCharacterRef, currentHostRef } from './plan/planStep'
+import { COMMAND_GRANULES, planTokens } from './plan/planSkeleton'
+import { tokenize } from '../../deterministicTemplate/granuleTokens'
+import { navigationIntentErrorMessages } from '../../discriminateIntent/exitResolution'
 import type { ContainedByAssertion } from './plan/planStep'
 
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
@@ -27,11 +30,7 @@ const pool = (span: string, id: EphemeraObjectId): SpanCandidatePool => ({
 })
 
 const attemptFor = (skeleton: ParseSkeleton, command: string): CommandAttempt => {
-    const plan = planSkeleton(skeleton, command)
-    if (plan.type !== 'attempts') {
-        throw new Error(`Plan declined "${command}"`)
-    }
-    return plan.attempts[0]!
+    return planFillOf(skeleton, command).attempts[0]!
 }
 
 const relationSkeleton: ParseSkeleton = [
@@ -307,7 +306,7 @@ describe('proposeAttemptCandidates', () => {
     it('never binds two distinct span keys of one step to the same object', () => {
         const sameObject = attemptFor([
             { type: 'text', text: 'put' },
-            { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef' },
+            { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef1' },
             { type: 'text', text: 'on' },
             { type: 'objectSpan', span: 'cup', stableRefKey: 'cupRef2' },
         ], 'put cup on cup')
@@ -315,7 +314,7 @@ describe('proposeAttemptCandidates', () => {
         const result = proposeAttemptCandidates({
             command: 'put cup on cup',
             attempts: [sameObject],
-            spanPools: new Map([['cupRef', pool('cup', cupId)], ['cupRef2', pool('cup', cupId)]]),
+            spanPools: new Map([['cupRef1', pool('cup', cupId)], ['cupRef2', pool('cup', cupId)]]),
             catalog,
             noAssignmentReason: 'no pairing',
         })
@@ -445,7 +444,7 @@ describe('a spread (extend, then a move of the minted binding)', () => {
             getMembershipContainers: () => [],
         }
         const expand = (minted: boolean) => expandAndAdjudicateCandidates(
-            [{ attempt: CommandAttempt.create('move rope', minted ? [extend, transfer(true)] : [transfer(false)]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'move the rope' } }],
+            [{ attempt: CommandAttempt.create('spread', 'move rope', minted ? [extend, transfer(true)] : [transfer(false)]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'move the rope' } }],
             env as never
         )[0]!.attempt.actions()
 
@@ -496,7 +495,7 @@ describe('narration units through candidate building and Expansion', () => {
         const unit = authoredUnit(planned.actions()[0]!.id)
         const result = proposeAttemptCandidates({
             command: 'put cup on tray',
-            attempts: [CommandAttempt.create(planned.words, planned.actions(), [unit])],
+            attempts: [CommandAttempt.create(planned.kind, planned.words, planned.actions(), [unit])],
             spanPools: new Map([['cupRef', pool('cup', cupId)], ['trayRef', pool('tray', trayId)]]),
             catalog,
             noAssignmentReason: 'none',
@@ -530,7 +529,7 @@ describe('narration units through candidate building and Expansion', () => {
         const unit = authoredUnit('take')
 
         const [expanded] = expandAndAdjudicateCandidates(
-            [{ attempt: CommandAttempt.create('take rope', [take], [unit]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'take the rope' } }],
+            [{ attempt: CommandAttempt.create('membership', 'take rope', [take], [unit]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'take the rope' } }],
             {
                 getGraph: (hostId) => (hostId === roomId ? graph : undefined),
                 getCurrentHost: (id) => (id === ropeId ? roomId : undefined),
@@ -605,17 +604,17 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
     }
 
     const qualifiedTake = (span: string, overrides: Partial<ContainedByAssertion> = {}): CommandAttempt => {
-        const take = attemptFor([{ type: 'text', text: 'get' }, { type: 'objectSpan', span, stableRefKey: 'subjectRef' }], `get ${span}`).actions()[0]!
+        const take = attemptFor([{ type: 'text', text: 'get' }, { type: 'objectSpan', span, stableRefKey: `${span}Ref` }], `get ${span}`).actions()[0]!
         const check = new PositionAttemptAction('qualifier', [], {
             kind: 'assertion',
             predicate: 'containedBy',
-            subject: { referentType: 'objectSpan', span, stableRefKey: 'subjectRef' },
+            subject: { referentType: 'objectSpan', span, stableRefKey: `${span}Ref` },
             object: { referentType: 'objectSpan', span: 'table', stableRefKey: 'tableRef' },
             negate: false,
             relation: 'On',
             ...overrides,
         })
-        return CommandAttempt.create(`get the ${span} on the table`, [check, take])
+        return CommandAttempt.create('membership', `get the ${span} on the table`, [check, take])
     }
 
     const dryRuns = async (span: string, subjects: ObjectManipulationCatalogEntry[], overrides: Partial<ContainedByAssertion> = {}) => {
@@ -627,7 +626,7 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
         const proposed = proposeAttemptCandidates({
             command: `get the ${span} on the table`,
             attempts: [qualifiedTake(span, overrides)],
-            spanPools: new Map([['subjectRef', subjectPool], ['tableRef', pool('table', tableId)]]),
+            spanPools: new Map([[`${span}Ref`, subjectPool], ['tableRef', pool('table', tableId)]]),
             catalog: catalogHere,
             noAssignmentReason: 'none',
             actorRoom: roomId,
@@ -642,7 +641,7 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
             outcome: attemptDryRun(candidate, env, { roomId, actorCharacterId: actor }),
         }))
     }
-    const subjectIdOf = (candidate: Awaited<ReturnType<typeof dryRuns>>[number]['candidate']) => attemptReferentAnswers(candidate.attempt).subjectRef
+    const subjectIdOf = (candidate: Awaited<ReturnType<typeof dryRuns>>[number]['candidate']) => attemptReferentAnswers(candidate.attempt).cupRef
 
     it('keeps the cup on the table and refuses the cup on the floor, naming host and subject', async () => {
         const results = await dryRuns('cup', cups)
@@ -662,7 +661,7 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
     it('judges every binding of the view: the cloth\'s part on the table passes, its hanging part and the whole fail', async () => {
         const results = await dryRuns('cloth', [cloth])
 
-        expect(results.map(({ candidate, outcome }) => [candidate.viewAnswers?.subjectRef, outcome.verdict, outcome.reason])).toEqual([
+        expect(results.map(({ candidate, outcome }) => [candidate.viewAnswers?.clothRef, outcome.verdict, outcome.reason])).toEqual([
             [[hanging], 'illegal', 'The table has no cloth.'],
             [[lying], 'legal', undefined],
             ['whole', 'illegal', 'The table has no cloth.'],
@@ -685,5 +684,83 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
         expect(candidate.attempt.actions().map((action) => action.describe())).toEqual(['Check: cup on table', 'Take: cup'])
         expect(fromTable.attempt.actions()[0]!.describe()).toBe('Check: cup at table')
         expect(candidate.alternative).toEqual({ objectId: tableCupId, label: 'cup', proposedCommand: 'take the cup' })
+    })
+})
+
+describe('a navigation (an exit span, grounded to the room it leads to)', () => {
+    const northRoom = 'ROOM#North' as EphemeraRoomId
+    const atticRoom = 'ROOM#Attic' as EphemeraRoomId
+    const readingsOf = (command: string) => planTokens(tokenize(COMMAND_GRANULES, command), command).flatMap(({ attempts }) => attempts)
+    const exitPool = (span: string, ...ids: EphemeraRoomId[]): SpanCandidatePool => ({
+        span,
+        candidates: ids.map((id) => ({ id, label: span, jointRelevance: 1, sourceTags: ['exact'], locus: { kind: 'room' } })),
+    })
+    const propose = (command: string, spanPools: Map<string, SpanCandidatePool>, extra: Partial<Parameters<typeof proposeAttemptCandidates>[0]> = {}) => proposeAttemptCandidates({
+        command,
+        attempts: readingsOf(command),
+        spanPools,
+        catalog,
+        noAssignmentReason: 'no assignment',
+        ...extra,
+    })
+
+    it('grounds the exit to its room, named by the exit, and words it as going there', () => {
+        const result = propose('north', new Map([['northExitRef', exitPool('north', northRoom)]]))
+        if (!result.ok) {
+            throw new Error(result.reason)
+        }
+        expect(result.candidates).toHaveLength(1)
+        const [candidate] = result.candidates
+        expect(candidate.attempt.kind).toBe('navigation')
+        expect(candidate.attempt.referents()).toEqual([{ refKey: 'northExitRef', id: northRoom, shortName: 'north' }])
+        expect(candidate.attempt.actions()[0]!.describe()).toBe('Go north')
+        expect(candidate.alternative).toEqual({ label: 'north', proposedCommand: 'go north' })
+    })
+
+    it('drops only the reading whose exit grounds nothing: the take beside it stands', () => {
+        const result = propose('take cup', new Map([['cupRef', pool('cup', cupId)], ['takeCupExitRef', exitPool('take cup')]]))
+        if (!result.ok) {
+            throw new Error(result.reason)
+        }
+        expect(result.candidates.map(({ attempt }) => attempt.kind)).toEqual(['membership'])
+    })
+
+    it('abstains with the empty span\'s wording when every reading reads a span that grounds nothing', () => {
+        expect(propose('north', new Map([['northExitRef', exitPool('north')]]))).toEqual({ ok: false, reason: 'No candidates found for span "north"' })
+    })
+
+    it('refuses a resumed answer whose span grounds nothing now as stale, not as a dropped reading', () => {
+        const result = propose('take cup', new Map([['cupRef', pool('cup', cupId)], ['takeCupExitRef', exitPool('take cup')]]), {
+            referentAnswers: { takeCupExitRef: northRoom },
+        })
+        expect(result).toMatchObject({ ok: false, stale: true })
+    })
+
+    describe('the dry run judges that the exit is here, and leads to one room', () => {
+        const candidatesFor = (...ids: EphemeraRoomId[]) => {
+            const result = propose('north', new Map([['northExitRef', exitPool('north', ...ids)]]))
+            if (!result.ok) {
+                throw new Error(result.reason)
+            }
+            return result.candidates
+        }
+
+        it('is legal, with nothing to run, when the exit leads to the room it grounded to', () => {
+            const [candidate] = candidatesFor(northRoom)
+            expect(attemptDryRun(candidate!, undefined, { exits: [{ normalizedName: 'north', targetId: northRoom }] })).toEqual({ verdict: 'legal', decidable: true })
+        })
+
+        it('is illegal when no exit here leads there (the world changed since Identify, or no exits)', () => {
+            const [candidate] = candidatesFor(northRoom)
+            expect(attemptDryRun(candidate!, undefined, { exits: [] })).toEqual({ verdict: 'illegal', decidable: true, reason: navigationIntentErrorMessages.noMatch })
+        })
+
+        it('is illegal on every reading when the name leads to two rooms: the ambiguity is the answer', () => {
+            const exits = [{ normalizedName: 'north', targetId: northRoom }, { normalizedName: 'north', targetId: atticRoom }]
+            expect(candidatesFor(northRoom, atticRoom).map((candidate) => attemptDryRun(candidate, undefined, { exits }))).toEqual([
+                { verdict: 'illegal', decidable: true, reason: navigationIntentErrorMessages.ambiguousMatch },
+                { verdict: 'illegal', decidable: true, reason: navigationIntentErrorMessages.ambiguousMatch },
+            ])
+        })
     })
 })

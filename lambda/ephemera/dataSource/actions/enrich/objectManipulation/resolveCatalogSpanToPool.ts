@@ -7,6 +7,7 @@ import {
     objectManipulationErrorMessageForResolution,
     resolveObjectSpanToObjectId,
 } from './resolveObjectSpan'
+import type { SpanStructure } from './parse/parseToken'
 import { peelLeadingArticleWhenTail } from './spanMatchForms'
 import {
     catalogScopeToLocus,
@@ -68,7 +69,8 @@ const buildExactSpanCandidatePool = (
 export async function resolveCatalogSpanToPool(
     span: string,
     catalog: readonly ObjectManipulationCatalogEntry[],
-    deps: ResolveCatalogSpanToPoolDeps = {}
+    deps: ResolveCatalogSpanToPoolDeps = {},
+    structure?: SpanStructure
 ): Promise<ResolveCatalogSpanToPoolResult> {
     const resolution = resolveObjectSpanToObjectId(span, catalog)
     if (resolution.type === 'NoCatalog') {
@@ -106,6 +108,7 @@ export async function resolveCatalogSpanToPool(
     const embedResult = await getOrEmbedSpan(matchSpan, cache, deps)
     const pool = buildSpanCandidatePool(matchSpan, catalog, {
         ...(embedResult.success ? { spanEmbedding: embedResult.embedding } : {}),
+        ...(structure !== undefined ? { structure } : {}),
     })
 
     return { type: 'pool', pool: { ...pool, span } }

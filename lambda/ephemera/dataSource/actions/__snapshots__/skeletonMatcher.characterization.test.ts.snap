@@ -1,0 +1,992 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`skeletonMatcher characterization corpus (Slice 0) carefully get the cup 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "type": "Unimplemented",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 1,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "[carefully get the cup]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) drop cup 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "position: change transferMembership(from=actingCharacter, object=[cup]=OBJECT#HeldCup, to=currentHost(actingCharacter))",
+      "confidence": 1,
+      "referents": Array [
+        "cupRef=OBJECT#HeldCup",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "drop [cup]",
+      "  position: change transferMembership(from=actingCharacter, object=[cup], to=currentHost(actingCharacter))",
+      "[drop cup]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) drop the cup in the box 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "position: change transferMembership(containment=In, from=actingCharacter, object=[the cup]=OBJECT#HeldCup, to=[the box]=OBJECT#Box)",
+      "confidence": 1,
+      "referents": Array [
+        "theCupRef=OBJECT#HeldCup",
+        "theBoxRef=OBJECT#Box",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 1,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "drop [the cup] in [the box]",
+      "  position: change transferMembership(containment=In, from=actingCharacter, object=[the cup], to=[the box])",
+      "  position: assertion containedBy(negate=false, object=[the box], relation=In, subject=[the cup]); position: change transferMembership(from=actingCharacter, object=[the cup], to=currentHost(actingCharacter))",
+      "drop [the cup in the box]",
+      "  position: change transferMembership(from=actingCharacter, object=[the cup in the box], to=currentHost(actingCharacter))",
+      "[drop the cup in the box]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) enter box 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "reason": "No candidates found for span \\"box\\"",
+      "type": "Abstain",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 1,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "enter [box]",
+      "  navigate",
+      "[enter box]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) get cup 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "position: change transferMembership(from=currentHost([cup]=OBJECT#Cup), object=[cup]=OBJECT#Cup, to=actingCharacter)",
+      "confidence": 1,
+      "referents": Array [
+        "cupRef=OBJECT#Cup",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "get [cup]",
+      "  position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
+      "[get cup]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) get cup under table 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "reason": "ObjectManipulation resolution failed: no such object in the room",
+      "type": "Abstain",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 1,
+      "embedSpan": 1,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "get [cup under table]",
+      "  position: change transferMembership(from=currentHost([cup under table]), object=[cup under table], to=actingCharacter)",
+      "[get cup under table]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) get the cup 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "position: change transferMembership(from=currentHost([the cup]=OBJECT#Cup), object=[the cup]=OBJECT#Cup, to=actingCharacter)",
+      "confidence": 1,
+      "referents": Array [
+        "theCupRef=OBJECT#Cup",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "get [the cup]",
+      "  position: change transferMembership(from=currentHost([the cup]), object=[the cup], to=actingCharacter)",
+      "[get the cup]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) get up 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "position: change transferMembership(from=currentHost([up]=OBJECT#Cup), object=[up]=OBJECT#Cup, to=actingCharacter)",
+      "confidence": 1,
+      "referents": Array [
+        "upRef=OBJECT#Cup",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 1,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "get [up]",
+      "  position: change transferMembership(from=currentHost([up]), object=[up], to=actingCharacter)",
+      "[get up]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) go home (a home exit) 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 1,
+      "type": "Home",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "Home",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) go home 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 1,
+      "type": "Home",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "Home",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) go north (two north exits) 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "errorMessage": "NavigationIntent resolution failed: ambiguous exit",
+      "type": "Error",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "go [north]",
+      "  navigate",
+      "[go north]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) go north 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "navigate",
+      "confidence": 1,
+      "referents": Array [
+        "northExitRef=ROOM#North",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "go [north]",
+      "  navigate",
+      "[go north]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) help 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 1,
+      "type": "Help",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "Help",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) help me 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 1,
+      "type": "Help",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "Help",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) home 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 1,
+      "type": "Home",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "Home",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) look 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 1,
+      "type": "LookRoom",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "LookRoom",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) look at the cup on the table 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "errorMessage": "The table has no cup.",
+      "type": "Error",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 3,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "look [at the cup] on [the table]",
+      "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[at the cup]); narrate",
+      "look [at the cup on the table]",
+      "  narrate",
+      "look at [the cup] on [the table]",
+      "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the cup]); narrate",
+      "look at [the cup on the table]",
+      "  narrate",
+      "[look at the cup on the table]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) north 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "navigate",
+      "confidence": 1,
+      "referents": Array [
+        "northExitRef=ROOM#North",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "[north]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) order anvil, rocket 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "orders": Array [
+        Object {
+          "defaultSituationFailed": true,
+          "name": "order anvil, rocket",
+          "stableKey": "order-anvil-rocket",
+          "tropeAffinities": Array [],
+          "tropeAffinitiesFailed": true,
+          "valid": true,
+        },
+      ],
+      "type": "AcmeOrder",
+    },
+    "stubCalls": Object {
+      "acme": 1,
+      "classify": 1,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "[order anvil , rocket]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) order rocket skates 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "orders": Array [
+        Object {
+          "defaultSituationFailed": true,
+          "name": "order rocket skates",
+          "stableKey": "order-rocket-skates",
+          "tropeAffinities": Array [],
+          "tropeAffinitiesFailed": true,
+          "valid": true,
+        },
+      ],
+      "type": "AcmeOrder",
+    },
+    "stubCalls": Object {
+      "acme": 1,
+      "classify": 1,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "[order rocket skates]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) predict 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 1,
+      "type": "PredictHypothesis",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "PredictHypothesis",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) put coin hurriedly into box 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "reason": "ObjectManipulation resolution failed: no such object in the room",
+      "type": "Abstain",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 1,
+      "embedSpan": 1,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "put [coin hurriedly] into [box]",
+      "  position: change transferMembership(containment=In, from=currentHost([coin hurriedly]), object=[coin hurriedly], to=[box])",
+      "[put coin hurriedly into box]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) put cup on saucer on table 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "errorMessage": "The table has no saucer.",
+      "type": "Error",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 2,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "put [cup] on [saucer] on [table]",
+      "  position: assertion containedBy(negate=false, object=[table], relation=On, subject=[saucer]); position: change transferMembership(containment=On, from=currentHost([cup]), object=[cup], to=[saucer])",
+      "  position: assertion containedBy(negate=false, object=[saucer], relation=On, subject=[cup]); position: change transferMembership(containment=On, from=currentHost([cup]), object=[cup], to=[table])",
+      "put [cup] on [saucer on table]",
+      "  position: change transferMembership(containment=On, from=currentHost([cup]), object=[cup], to=[saucer on table])",
+      "put [cup on saucer] on [table]",
+      "  position: change transferMembership(containment=On, from=currentHost([cup on saucer]), object=[cup on saucer], to=[table])",
+      "[put cup on saucer on table]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) put pig in a blanket on the plate on the table 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "errorMessage": "The table has no plate.",
+      "type": "Error",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 6,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "put [pig] in [a blanket] on [the plate] on [the table]",
+      "  position: assertion containedBy(negate=false, object=[the plate], relation=On, subject=[a blanket]); position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the plate]); position: change transferMembership(containment=In, from=currentHost([pig]), object=[pig], to=[a blanket])",
+      "  position: assertion containedBy(negate=false, object=[a blanket], relation=In, subject=[pig]); position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the plate]); position: change transferMembership(containment=On, from=currentHost([pig]), object=[pig], to=[the plate])",
+      "  position: assertion containedBy(negate=false, object=[a blanket], relation=In, subject=[pig]); position: assertion containedBy(negate=false, object=[the plate], relation=On, subject=[a blanket]); position: change transferMembership(containment=On, from=currentHost([pig]), object=[pig], to=[the table])",
+      "put [pig] in [a blanket] on [the plate on the table]",
+      "  position: assertion containedBy(negate=false, object=[the plate on the table], relation=On, subject=[a blanket]); position: change transferMembership(containment=In, from=currentHost([pig]), object=[pig], to=[a blanket])",
+      "  position: assertion containedBy(negate=false, object=[a blanket], relation=In, subject=[pig]); position: change transferMembership(containment=On, from=currentHost([pig]), object=[pig], to=[the plate on the table])",
+      "put [pig] in [a blanket on the plate] on [the table]",
+      "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[a blanket on the plate]); position: change transferMembership(containment=In, from=currentHost([pig]), object=[pig], to=[a blanket on the plate])",
+      "  position: assertion containedBy(negate=false, object=[a blanket on the plate], relation=In, subject=[pig]); position: change transferMembership(containment=On, from=currentHost([pig]), object=[pig], to=[the table])",
+      "put [pig] in [a blanket on the plate on the table]",
+      "  position: change transferMembership(containment=In, from=currentHost([pig]), object=[pig], to=[a blanket on the plate on the table])",
+      "put [pig in a blanket] on [the plate] on [the table]",
+      "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the plate]); position: change transferMembership(containment=On, from=currentHost([pig in a blanket]), object=[pig in a blanket], to=[the plate])",
+      "  position: assertion containedBy(negate=false, object=[the plate], relation=On, subject=[pig in a blanket]); position: change transferMembership(containment=On, from=currentHost([pig in a blanket]), object=[pig in a blanket], to=[the table])",
+      "put [pig in a blanket] on [the plate on the table]",
+      "  position: change transferMembership(containment=On, from=currentHost([pig in a blanket]), object=[pig in a blanket], to=[the plate on the table])",
+      "put [pig in a blanket on the plate] on [the table]",
+      "  position: change transferMembership(containment=On, from=currentHost([pig in a blanket on the plate]), object=[pig in a blanket on the plate], to=[the table])",
+      "[put pig in a blanket on the plate on the table]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) spread cloth over table 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "position: change extend(object=[cloth]=OBJECT#Cloth, presenceUuid=<minted id 1>); position: change transferMembership(containment=On, from=currentHost([cloth]=OBJECT#Cloth), object=[cloth]=OBJECT#Cloth{"view":["PRESENCE#<minted id 1>"]}, to=[table]=OBJECT#Table)",
+      "confidence": 1,
+      "referents": Array [
+        "clothRef=OBJECT#Cloth",
+        "tableRef=OBJECT#Table",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "spread [cloth] over [table]",
+      "  position: change extend(object=[cloth], presenceUuid=<minted id 2>); position: change transferMembership(containment=On, from=currentHost([cloth]), object=[cloth]{"view":["PRESENCE#<minted id 2>"]}, to=[table])",
+      "[spread cloth over table]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) take a on b on c on d on e on f on g on h 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "type": "Unimplemented",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 1,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "no deterministic answer",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) take coin out box 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "errorMessage": "The box has no coin.",
+      "type": "Error",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 1,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "take [coin] out [box]",
+      "  position: assertion containedBy(negate=false, object=[box], relation=In, subject=[coin]); position: change transferMembership(from=currentHost([coin]), object=[coin], to=actingCharacter)",
+      "take [coin out box]",
+      "  position: change transferMembership(from=currentHost([coin out box]), object=[coin out box], to=actingCharacter)",
+      "[take coin out box]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) take cup from table 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "errorMessage": "The table has no cup.",
+      "type": "Error",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 1,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "take [cup] from [table]",
+      "  position: assertion containedBy(negate=false, object=[table], subject=[cup]); position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
+      "take [cup from table]",
+      "  position: change transferMembership(from=currentHost([cup from table]), object=[cup from table], to=actingCharacter)",
+      "[take cup from table]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) take cup on saucer on table 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "errorMessage": "The saucer has no cup.",
+      "type": "Error",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 3,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "take [cup] on [saucer] on [table]",
+      "  position: assertion containedBy(negate=false, object=[saucer], relation=On, subject=[cup]); position: assertion containedBy(negate=false, object=[table], relation=On, subject=[saucer]); position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
+      "take [cup] on [saucer on table]",
+      "  position: assertion containedBy(negate=false, object=[saucer on table], relation=On, subject=[cup]); position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
+      "take [cup on saucer] on [table]",
+      "  position: assertion containedBy(negate=false, object=[table], relation=On, subject=[cup on saucer]); position: change transferMembership(from=currentHost([cup on saucer]), object=[cup on saucer], to=actingCharacter)",
+      "take [cup on saucer on table]",
+      "  position: change transferMembership(from=currentHost([cup on saucer on table]), object=[cup on saucer on table], to=actingCharacter)",
+      "[take cup on saucer on table]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) take cup, then look 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "reason": "ObjectManipulation resolution failed: no such object in the room",
+      "type": "Abstain",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 1,
+      "embedSpan": 1,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "take [cup , then look]",
+      "  position: change transferMembership(from=currentHost([cup , then look]), object=[cup , then look], to=actingCharacter)",
+      "[take cup , then look]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) take cup. 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "position: change transferMembership(from=currentHost([cup .]=OBJECT#Cup), object=[cup .]=OBJECT#Cup, to=actingCharacter)",
+      "confidence": 1,
+      "referents": Array [
+        "cupRef=OBJECT#Cup",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 1,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "take [cup .]",
+      "  position: change transferMembership(from=currentHost([cup .]), object=[cup .], to=actingCharacter)",
+      "[take cup .]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) take hold of the cup 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "reason": "ObjectManipulation resolution failed: no such object in the room",
+      "type": "Abstain",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 1,
+      "embedSpan": 1,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "take [hold of the cup]",
+      "  position: change transferMembership(from=currentHost([hold of the cup]), object=[hold of the cup], to=actingCharacter)",
+      "[take hold of the cup]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) take man in the moon from table 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "errorMessage": "The table has no man in the moon.",
+      "type": "Error",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 4,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "take [man] in [the moon] from [table]",
+      "  position: assertion containedBy(negate=false, object=[the moon], relation=In, subject=[man]); position: assertion containedBy(negate=false, object=[table], subject=[the moon]); position: change transferMembership(from=currentHost([man]), object=[man], to=actingCharacter)",
+      "take [man] in [the moon from table]",
+      "  position: assertion containedBy(negate=false, object=[the moon from table], relation=In, subject=[man]); position: change transferMembership(from=currentHost([man]), object=[man], to=actingCharacter)",
+      "take [man in the moon] from [table]",
+      "  position: assertion containedBy(negate=false, object=[table], subject=[man in the moon]); position: change transferMembership(from=currentHost([man in the moon]), object=[man in the moon], to=actingCharacter)",
+      "take [man in the moon from table]",
+      "  position: change transferMembership(from=currentHost([man in the moon from table]), object=[man in the moon from table], to=actingCharacter)",
+      "[take man in the moon from table]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) take unicorn 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "position: change transferMembership(from=currentHost([unicorn]=OBJECT#Coin), object=[unicorn]=OBJECT#Coin, to=actingCharacter)",
+      "confidence": 1,
+      "referents": Array [
+        "unicornRef=OBJECT#Coin",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 1,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "take [unicorn]",
+      "  position: change transferMembership(from=currentHost([unicorn]), object=[unicorn], to=actingCharacter)",
+      "[take unicorn]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) wait 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 1,
+      "type": "AwaitRoadRunner",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": "AwaitRoadRunner",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) walk north 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "navigate",
+      "confidence": 1,
+      "referents": Array [
+        "northExitRef=ROOM#North",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "walk [north]",
+      "  navigate",
+      "[walk north]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) walk xyzzy 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "reason": "No candidates found for span \\"xyzzy\\"",
+      "type": "Abstain",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 1,
+      "embedSpan": 0,
+      "enrich": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "walk [xyzzy]",
+      "  navigate",
+      "[walk xyzzy]",
+      "  navigate",
+    ],
+  },
+}
+`;

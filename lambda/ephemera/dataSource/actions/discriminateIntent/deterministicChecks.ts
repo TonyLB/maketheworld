@@ -12,106 +12,33 @@ import { isObjectManipulationParseTestSlashCommand } from './objectManipulationP
 import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestSlash'
 import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
-import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
-import type { PatternElement } from '../deterministicTemplate/deterministicTemplate'
-import { draftFromPattern, matchPatternAgainstString, type PatternFill } from '../deterministicTemplate/patternTemplate'
-import { containmentTemplate } from '../enrich/objectManipulation/plan/matchContainmentTemplate'
-import { MEMBERSHIP_VERB_ELEMENT } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
-import { QUALIFIER_OBJECT_PHRASE_ELEMENT } from '../enrich/objectManipulation/plan/qualifierPrepositions'
-import { spanMatchForms } from '../enrich/objectManipulation/spanMatchForms'
-
-/** After trim, case-insensitive look or l as the whole line. */
-function isBareLookCommand(trimmed: string): boolean {
-    return /^(?:look|l)$/i.test(trimmed)
-}
-
-/** After trim, case-insensitive help as the whole line. */
-function isBareHelpCommand(trimmed: string): boolean {
-    return /^help$/i.test(trimmed)
-}
-
-/** After trim, case-insensitive home as the whole line. */
-function isBareHomeCommand(trimmed: string): boolean {
-    return /^home$/i.test(trimmed)
-}
-
-/** After trim, case-insensitive predict as the whole line (no p alias). */
-function isBarePredictCommand(trimmed: string): boolean {
-    return /^predict$/i.test(trimmed)
-}
-
-/** The membership pattern: a membership verb, then an object phrase cut at the closed-set prepositions. */
-const MEMBERSHIP_FAST_PATH_PATTERN: readonly PatternElement[] = [MEMBERSHIP_VERB_ELEMENT, QUALIFIER_OBJECT_PHRASE_ELEMENT]
+import { tokenize, type GranuleToken } from '../deterministicTemplate/granuleTokens'
+import { matchIntentTemplate } from '../deterministicTemplate/intentTemplates'
+import { matchPattern } from '../deterministicTemplate/patternTemplate'
+import { LIVE_TEMPLATE_SET } from '../enrich/objectManipulation/plan/planSkeleton'
+import type { TemplateSet } from '../enrich/objectManipulation/plan/templateSet'
+import { exceedsQualifierCap } from '../enrich/objectManipulation/plan/qualifierPrepositions'
 
 /**
- * The membership pattern's routing gate: it claims `take` and `drop` always (not `take hold`), and
- * `get` when some fill's head is a room label, as given or with its article peeled.
- */
-function claimsMembership(input: ParseCommandInput, fills: readonly PatternFill[]): boolean {
-    const uncut = fills.find(({ captures: [, phrase] }) => phrase?.kind === 'objectPhrase' && phrase.links.length === 0)
-    const [verb, phrase] = uncut?.captures ?? []
-    if (verb?.kind !== 'templateText' || phrase?.kind !== 'objectPhrase') {
-        return false
-    }
-    if (verb.option === 'take' && /^hold\b/i.test(phrase.text)) {
-        return false
-    }
-    const labels = input.roomObjectLabels ?? []
-    const isLabel = (span: string): boolean => spanMatchForms(span).some((form) => labels.includes(form))
-    return verb.option !== 'get' || fills.some(({ captures: [, head] }) => head !== undefined && isLabel(head.text))
-}
-
-/**
- * The zero-Bedrock fast path: template patterns matched against the command text, each with its
- * routing gate, every set of cuts at the closed-set prepositions a fill. The membership pattern
- * claims as `claimsMembership` says; the containment template's own pattern (`put`/`place`/`drop`)
- * claims every fit, since a fast-path Abstain climbs to the LLM route. Every fill goes to Plan as its
- * own skeleton (`actions/AGENT.contract.md` "Qualifier"): a segmentation is a reading, like an
- * attachment, and Identify's exact match, the dry run and selection choose among them. Fills that build the same flat skeleton (two
- * attachments with the same cuts) are one skeleton; Plan recovers both readings. Spans pass
- * through as typed.
+ * The zero-Bedrock fast path for Plan's templates: the command's tokens (the template set's granules, `COMMAND_GRANULES` live, as Plan
+ * cuts it), claimed when any of Plan's templates fits it, with no gate: what the world must make
+ * true is Identify's and the dry run's to judge, and a fast-path Abstain climbs to the LLM route.
+ * The bare exit template fits every command, so every command no intent row reads is claimed. A
+ * claim hands the tokens up, and Plan reads every template over them (`actions/AGENT.contract.md`
+ * "Qualifier"). A command over the guard cap (`exceedsQualifierCap`) is never claimed.
  */
 function maybeDeterministicManipulationIntent(
-    input: ParseCommandInput
+    tokens: GranuleToken[],
+    templates: TemplateSet
 ): ParseCommandObjectManipulationIntentResult | null {
-    const membershipFills = matchPatternAgainstString(MEMBERSHIP_FAST_PATH_PATTERN, input.command)
-    const claimed = [
-        ...(claimsMembership(input, membershipFills) ? membershipFills.map(({ captures }) => draftFromPattern(MEMBERSHIP_FAST_PATH_PATTERN, captures)) : []),
-        ...matchPatternAgainstString(containmentTemplate.pattern, input.command).map(({ captures }) => draftFromPattern(containmentTemplate.pattern, captures)),
-    ]
-    if (claimed.length === 0) {
+    if (exceedsQualifierCap(tokens)) {
         return null
     }
-    return {
-        type: 'ObjectManipulationIntent',
-        skeletons: [...new Map(claimed.map((draft) => [JSON.stringify(draft), draft])).values()],
-        confidence: 1,
-    }
+    const claimed = templates.plan.some(({ pattern }) => matchPattern(pattern, tokens).length > 0)
+    return claimed ? { type: 'ObjectManipulationIntent', tokens, confidence: 1 } : null
 }
 
-function maybeDeterministicNavigationResult(input: ParseCommandInput): ParseCommandResult | null {
-    const trimmed = input.command.trim()
-    if (!trimmed) {
-        return null
-    }
-    const goMatch = /^go\s+(.+)$/i.exec(trimmed)
-    const rawCandidate = goMatch ? goMatch[1] : trimmed
-    if (!normalizeCommandToken(rawCandidate)) {
-        return null
-    }
-    const resolved = resolveExitLabelToTargetId(input, rawCandidate)
-    if (resolved.type !== 'Resolved') {
-        return null
-    }
-    return {
-        type: 'Navigation',
-        targetId: resolved.targetId,
-        exitName: resolved.exitName,
-        confidence: 1,
-    }
-}
-
-export function deterministicIntentChecks(input: ParseCommandInput): ParseCommandResult | null {
+export function deterministicIntentChecks(input: ParseCommandInput, templates: TemplateSet = LIVE_TEMPLATE_SET): ParseCommandResult | null {
     if (isCoyoteEngineTestSlashCommand(input.command)) {
         const trimmed = input.command.trim()
         const parsed = parseCoyoteEngineTestSlashTail(trimmed, COYOTE_ENGINE_TEST_FIXTURES.length)
@@ -149,24 +76,13 @@ export function deterministicIntentChecks(input: ParseCommandInput): ParseComman
         }
     }
 
-    const trimmedCommand = input.command.trim()
-    if (isBarePredictCommand(trimmedCommand)) {
-        return { type: 'PredictHypothesis', confidence: 1 }
-    }
-    if (isBareLookCommand(trimmedCommand)) {
-        return { type: 'LookRoom', confidence: 1 }
-    }
-    if (isBareHelpCommand(trimmedCommand)) {
-        return { type: 'Help', confidence: 1 }
-    }
-    if (isBareHomeCommand(trimmedCommand)) {
-        return { type: 'Home', confidence: 1 }
+    // The intent rows first: they answer as results, not readings, so they run ahead of Plan's
+    // templates; that puts `go home` ahead of a "home" exit, as bare `home` was.
+    const tokens = tokenize(templates.granules, input.command)
+    const intent = matchIntentTemplate(tokens, templates.intents)
+    if (intent) {
+        return intent
     }
 
-    const manipulationIntent = maybeDeterministicManipulationIntent(input)
-    if (manipulationIntent) {
-        return manipulationIntent
-    }
-
-    return maybeDeterministicNavigationResult(input)
+    return maybeDeterministicManipulationIntent(tokens, templates)
 }

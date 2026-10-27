@@ -6,15 +6,15 @@ This file records **mental models and vocabulary** for how a player command beco
 
 ---
 
-## Parse (upstream stage)
+## Command skeleton (Plan's input)
 
-**Parse** turns raw player language into a **command skeleton** --- an ordered sequence of exactly two token kinds, `{ type: 'objectSpan', span: string, stableRefKey: string } | { type: 'text', text: string }`. It is the tokenizer that feeds the three jobs below; it does **not** resolve ids (Identify's job) or decide which attempt applies (Plan's job) --- it only segments referents out from surrounding text.
+The **command skeleton** is an ordered sequence of exactly two token kinds, `{ type: 'objectSpan', span: string, stableRefKey: string } | { type: 'text', text: string }`. Deterministic code makes it: the tokenizer cuts the command at every dividing word, and Plan's templates re-join runs into spans. It feeds the three jobs below; it does **not** resolve ids (Identify's job) or decide which attempt applies (Plan's job) --- it only segments referents out from surrounding text. No LLM segments a command.
 
-**`stableRefKey`** is a per-occurrence key stamped onto each `objectSpan` token by deterministic code, **never by the LLM**. It exists so two identical-text spans at different positions ("put bench on bench," two different benches) stay distinguishable by occurrence rather than collapsing on span text --- downstream Grounding keys resolved candidates on it, not on text (see [Synthesize's three sub-roles](#synthesizes-three-sub-roles-grounding-expansion-and-validation)). Keys are derived from the span (camelCased, `Ref`-suffixed: `"big bag"` -> `bigBagRef`; duplicates numbered, `benchRef1`/`benchRef2`), which aids debugging while the field *name* keeps the "occurrence, not object" signal.
+**`stableRefKey`** is a per-occurrence key stamped onto each `objectSpan` token by deterministic code. It exists so two identical-text spans at different positions ("put bench on bench," two different benches) stay distinguishable by occurrence rather than collapsing on span text --- downstream Grounding keys resolved candidates on it, not on text (see [Synthesize's three sub-roles](#synthesizes-three-sub-roles-grounding-expansion-and-validation)). Keys name a span's token range, so a span occurrence has the same key in every reading.
 
 ## Three conceptual jobs
 
-Every object-manipulation command, once **Parse** has produced the command skeleton (`objectSpan` data), decomposes into three independent jobs:
+Every object-manipulation command, once the command skeleton (`objectSpan` data) is made, decomposes into three independent jobs:
 
 | Job | Question it answers | Needs KR (graph/catalog) state? |
 | --- | --- | --- |
@@ -66,7 +66,7 @@ Explicitly out of scope for `Referent` itself: plurality (several objects named 
 
 **Change vs. Assertion (first-class step kinds, not nested).** Every plan step is either a **`Change`** (an effect, e.g. `transferMembership`) or an **`Assertion`** (a precondition-shaped check that gates continuation but produces no state transition) --- coequal variants in the same step union, mirroring the classical AI-planning precondition/effect split, not assertions nested under a change. An `Assertion` step can exist with no paired `Change` at all. Assertion evaluation is **Synthesize's** job, not Plan's --- Plan emits only the assertion's shape (predicate + referents) with zero KR access; Synthesize evaluates it against live graph state, since that's the stage holding both Identify's and Plan's output. An `Assertion` whose predicate has a meaningful inverse carries a `negate: boolean` flag rather than paired predicate names (e.g. no separate `notContainedBy`), because predicate evaluation is often itself disjunctive and a paired name would fork that logic into two copies to keep in sync. **Ternary-safe:** evaluation resolves `satisfied` / `violated` / `defer` (semantic residue needing an LLM judgment); `negate` flips `satisfied` <-> `violated` but leaves `defer` as `defer` --- you cannot confidently assert the negation of a fact you can't yet confidently resolve. The predicate is `containedBy(subject, object)`: disjunctive over membership/`On`, deterministic, plus `embedded into` as LLM-only semantic residue. **Placement is not a predicate.** Where a relation lands ("where does this relation go?") has no negation to express; it is Expansion's job (see `sameHost` below). Neither is a move's boundary dissolve: those are facilitating actions Expansion adds to the command attempt (see [`CommandAttempt`](#commandattempt)). `Assertion`/`Change` dispatch is per-primitive rather than per-kind, which keeps the union open-ended rather than requiring a new top-level case for every new job. Predicates grow as concrete cases demand, per `Referent`'s own discipline above.
 
-**Qualifier and reading.** A **qualifier** is a phrase naming where an object is ("the cup *on the table*"), which restricts which object, and which part of it, a referent means; it is lowered to a `containedBy` **Assertion** ahead of the action it qualifies. A phrase naming where something goes is an **argument** instead. A **reading** is one way of attaching a command's phrases to its spans: one way a template's pattern fits the flat skeleton, its object phrases' spans nested as qualifiers. Rules: [`AGENT.contract.md`](./AGENT.contract.md#qualifier).
+**Qualifier and reading.** A **qualifier** is a phrase naming where an object is ("the cup *on the table*"), which restricts which object, and which part of it, a referent means; it is lowered to a `containedBy` **Assertion** ahead of the action it qualifies. A phrase naming where something goes is an **argument** instead. A **reading** is one way of attaching a command's phrases to its spans: one way a template's pattern fits the command's tokens, its object phrases' spans nested as qualifiers. The **tokens** are the command cut at every fixed word a template reads: each fixed word belongs to one **granule** (adjacent fixed words that always appear together), and the matcher re-joins runs of tokens into spans as a reading needs. Rules: [`AGENT.contract.md`](./AGENT.contract.md#qualifier).
 
 ---
 
@@ -106,16 +106,11 @@ This sharpens where LLM cost is actually spent, compared to treating "fast path 
 
 ## `DeterministicTemplate`
 
-**Scope note:** unlike the rest of this file, this vocabulary is not object-manipulation-specific. One pattern language serves the bare-word rows (`look`, `help`, `home`, `predict`, none of which are object manipulation), the object templates (`AttemptTemplate`), and the fast path, whose pattern is the membership verbs and an object phrase matched against the command text.
+**Scope note:** unlike the rest of this file, this vocabulary is not object-manipulation-specific. One pattern language serves the intent rows (`look`, `help`, `home`, `predict`, `wait`, none of which are object manipulation), Plan's templates (the object templates, and navigation), and the fast path, which reads both over the command's tokens.
 
-A **`DeterministicTemplate`** is a structural interface --- `matchString(command: string)` / `matchTokens(skeleton: ParseSkeleton)`, both returning a **`DeterministicTemplateMatch`** --- for recognizing a command deterministically, at zero Bedrock cost, from either raw text or an already-tokenized skeleton. The **pattern-driven** family is a `PatternElement[]` (`templateText` closed-vocabulary gate, `objectSpan` referent slot, `capturedText` free-text slot, `rest` an unread tail, `objectPhrase` a span optionally qualified, through a closed-set preposition, by another object phrase) plus a constant `templateIntent`. An **`AttemptTemplate`** is the object templates' sibling: the same pattern plus a builder that turns one fill's captures into a `CommandAttempt`, so one pattern yields one attempt per way it fits. The interface leaves a seam for a **context-dependent** family --- Navigation's exit resolution, `get`'s room-object-label gating --- whose emitted shape depends on live context rather than pattern data alone.
-
-**`DeterministicTemplateMatch`** is a three-arm result:
-- `{ type: 'noMatch' }` --- didn't recognize this at all.
-- `{ type: 'matched', skeleton: ParseSkeleton, intent: ParseCommandResult }` --- classification **and** a synthesized skeleton together, in one deterministic hit. Reuses `ParseCommandResult` rather than a new "intent info" type, since the union already discriminates cleanly across families by construction.
-- `{ type: 'defer', reason: DeterministicTemplateDeferReason }` --- recognized a known-but-structurally-unsupported shape --- distinct from "didn't understand this at all." No row produces it today.
-
-**Differentiation lives in the skeleton, not the intent.** A row's intent is a constant; which verb, which phrase and which spans were matched are carried by the **synthesized skeleton** (or, for an `AttemptTemplate`, by the fill's captures), recoverable downstream the same way a Parse-produced skeleton is.
+A **pattern** is a `PatternElement[]`: `templateText` a fixed word over its own typed lexicon, `objectSpan` a referent slot, grounded against the **catalog** it declares (the objects in the room and in hand, or the room's exits: an **exit span**), `capturedText` a free-text slot, `objectPhrase` a span optionally qualified, through a closed-set preposition, by another object phrase. Every deterministic template's fixed words together are the one divider set that cuts a command into tokens. Two kinds of template read a pattern:
+- An **`IntentTemplate`** (intent row) is a pattern of fixed words only and the constant result it answers, at zero Bedrock cost. It answers as a result, not an attempt: its words are no other template's and it has no referent to pool with other readings.
+- An **`AttemptTemplate`** (Plan template: an object template, or a navigation one) is a pattern plus a builder that turns one fill's captures into a `CommandAttempt`, so one pattern yields one attempt per way it fits; a builder reads its captures by element name, and the template's name is the attempt's kind. A **navigation** is such an attempt: one navigate action whose referent is an exit span, pooled with every other reading. The **bare exit reading** (an exit span alone) fits every command.
 
 ---
 
@@ -160,7 +155,7 @@ Present tense, current model only: no dates, no slice or iteration provenance, n
 
 - Rules: [`AGENT.contract.md`](./AGENT.contract.md); commit-side rules (positions honors verdicts): [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md)
 - Code map, per-route wiring, selection stage, `DeterministicTemplate` module: [`AGENT.implementation.md`](./AGENT.implementation.md)
-- Parse / Identify / producers / relation-under-transfer table and where it is read: [`enrich/objectManipulation/AGENT.md`](enrich/objectManipulation/AGENT.md)
+- Plan / Identify / producers / relation-under-transfer table and where it is read: [`enrich/objectManipulation/AGENT.md`](enrich/objectManipulation/AGENT.md)
 - Synthesize executor (Grounding, worklist, placement): [`enrich/objectManipulation/synthesize/AGENT.implementation.md`](enrich/objectManipulation/synthesize/AGENT.implementation.md)
 - Kernel commit wiring: [`../positions/manipulation/AGENT.implementation.md`](../positions/manipulation/AGENT.implementation.md)
 - `gloss` authoring and storage: [`packages/mtw-wml/.../components/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.md) ("Literal-field factory: `ShortName` and `Gloss`")

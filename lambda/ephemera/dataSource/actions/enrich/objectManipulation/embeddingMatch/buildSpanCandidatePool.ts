@@ -1,5 +1,6 @@
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
+import type { SpanStructure } from '../parse/parseToken'
 import { normalizeShortNameForEmbedding } from '../../../../objects/embedding/impromptuEmbeddingNeedsRefresh'
 import {
     catalogScopeToLocus,
@@ -18,6 +19,8 @@ import type { EmbeddingMatchCandidate } from './types'
 export type BuildSpanCandidatePoolOptions = {
     spanEmbedding?: SemanticEmbedding
     params?: RelevanceNormalizationParams
+    /** What other complete readings cut inside the span; read by the lexical channel only. */
+    structure?: SpanStructure
 }
 
 const buildSourceTags = (
@@ -79,7 +82,7 @@ export function buildSpanCandidatePool(
             : undefined
 
         const lexRelevanceScore = lexicalChannelActive
-            ? lexicalRelevance(span, candidate.normalizedShortName, params)
+            ? lexicalRelevance(span, candidate.normalizedShortName, params, options.structure)
             : undefined
 
         const jointRelevance = weightedRmsJointRelevance(

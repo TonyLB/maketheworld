@@ -1,6 +1,6 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { CommandAttempt, CommandAttemptData, CommandAttemptReferent } from './index'
+import { ATTEMPT_KINDS, type AttemptKind, type CommandAttempt, type CommandAttemptData, type CommandAttemptReferent } from './index'
 import type { AttemptActionData } from './action'
 import type { NarrationUnit } from './narrationUnit'
 import type { ChallengeData } from './challenge'
@@ -88,21 +88,25 @@ const isChallengeData = (value: unknown): value is ChallengeData => {
     return false
 }
 
+/** Each action kind's own fields (`AttemptActionData`): a position's description, a narration's referents, a navigation's destination. */
 const isAttemptActionData = (value: unknown): value is AttemptActionData => {
     if (!value || typeof value !== 'object') {
         return false
     }
     const v = value as Record<string, unknown>
-    if (v.kind !== 'position') {
+    if (typeof v.id !== 'string' || !Array.isArray(v.challenges) || !v.challenges.every(isChallengeData)) {
         return false
     }
-    if (typeof v.id !== 'string') {
-        return false
+    switch (v.kind) {
+        case 'position':
+            return v.desiredResultDescription === undefined || typeof v.desiredResultDescription === 'string'
+        case 'narrate':
+            return (v.description === undefined || typeof v.description === 'string') && Array.isArray(v.referents)
+        case 'navigate':
+            return typeof v.destination === 'object' && v.destination !== null
+        default:
+            return false
     }
-    if (v.desiredResultDescription !== undefined && typeof v.desiredResultDescription !== 'string') {
-        return false
-    }
-    return Array.isArray(v.challenges) && v.challenges.every(isChallengeData)
 }
 
 const isCommandAttemptReferent = (value: unknown): value is CommandAttemptReferent => {
@@ -159,7 +163,7 @@ export const isCommandAttemptData = (value: unknown): value is CommandAttemptDat
         return false
     }
     const v = value as Record<string, unknown>
-    if (typeof v.words !== 'string') {
+    if (!ATTEMPT_KINDS.includes(v.kind as AttemptKind) || typeof v.words !== 'string') {
         return false
     }
     if (!Array.isArray(v.referents) || !v.referents.every(isCommandAttemptReferent)) {

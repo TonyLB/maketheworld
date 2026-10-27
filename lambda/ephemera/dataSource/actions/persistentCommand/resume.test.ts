@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../../positions/ludicGraph/testFixtures'
 import { stampStableRefKeys } from '../enrich/objectManipulation/parse/stampStableRefKeys'
-import { planSkeleton } from '../enrich/objectManipulation/plan/planSkeleton'
+import { planFillOf } from '../enrich/objectManipulation/plan/attemptTemplateFixture'
 import { resumeErrorMessages, primaryActionIdOf } from '../enrich/objectManipulation/resumeAnswers'
 import { CommandAttempt } from '../commandAttempt'
 import type { PersistentCommandPayload } from './payload'
@@ -20,7 +20,7 @@ const skeleton = stampStableRefKeys([
     { type: 'objectSpan', span: 'cup' },
 ])
 const cupKey = (skeleton[1] as { stableRefKey: string }).stableRefKey
-const planned = planSkeleton(skeleton, 'take cup').attempts
+const planned = planFillOf(skeleton, 'take cup').attempts
 const primaryId = primaryActionIdOf(planned[0]!)!
 
 const rowOf = (overrides: Partial<PersistentCommandPayload> = {}): PersistentCommandPayload => ({
@@ -110,7 +110,7 @@ describe('resumePersistentCommand', () => {
     })
 
     it('narrows the frozen attempts to the selected one', async () => {
-        const sibling = CommandAttempt.create('take cup', planned[0]!.actions().map((action) => action.withChallenges([])), [])
+        const sibling = CommandAttempt.create(planned[0]!.kind, 'take cup', planned[0]!.actions().map((action) => action.withChallenges([])), [])
         const siblingData = { ...sibling.toJSON(), actions: sibling.toJSON().actions.map((action) => ({ ...action, id: 'sibling-primary' })) }
         const row = rowOf()
         const both = { ...row, root: { ...row.root, fills: [{ skeleton, attempts: [...row.root.fills[0]!.attempts, siblingData] }] } }

@@ -1,4 +1,4 @@
-import type { AttemptTemplate, PatternElement } from '../../../deterministicTemplate/deterministicTemplate'
+import { defineAttemptTemplate, fixedWord } from '../../../deterministicTemplate/deterministicTemplate'
 import { CommandAttempt } from '../../../commandAttempt'
 import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/action'
 import type { NarrationUnit } from '../../../commandAttempt/narrationUnit'
@@ -9,17 +9,13 @@ import {
     type TransferMembershipChange,
 } from './planStep'
 import { QUALIFIER_OBJECT_PHRASE_ELEMENT } from './qualifierPrepositions'
-import { optionAt, spanAt } from './templateCaptures'
 
 /** The membership verbs, each with the operation it plans and the narration it reads: `take` and `get` both read "picks up". */
-const MEMBERSHIP_VERBS: Readonly<Record<string, { operationKind: 'takeHold' | 'drop'; narration: string }>> = {
+const MEMBERSHIP_VERB_ELEMENT = fixedWord('verb', {
     take: { operationKind: 'takeHold', narration: ' picks up ' },
     get: { operationKind: 'takeHold', narration: ' picks up ' },
     drop: { operationKind: 'drop', narration: ' drops ' },
-}
-
-/** The membership verbs as a pattern element; the fast path claims the same list. */
-export const MEMBERSHIP_VERB_ELEMENT: PatternElement = { type: 'templateText', options: Object.keys(MEMBERSHIP_VERBS) }
+} as const)
 
 /**
  * Plan's half of a membership attempt: depends only on the operation and the object phrase. A take
@@ -39,26 +35,22 @@ export const planMembershipDesiredResult = (
 })
 
 /**
- * A membership command: `take`/`get` acquire, `drop` releases, the object is the object phrase
- * after the verb, and whatever follows is not read here (`rest`). Runs after the containment and
- * look templates. Each run of qualifiers the phrase reads (`take X off Y`, `take X on Y on Z`) is
- * its own fill, nested onto the span in that fill's reading and lowered to assertions after this
- * template (`lowerQualifiers`); a fill whose `rest` holds a span is dropped by the producer's BD-20
- * gate as leaving it unread.
+ * A membership command: `take`/`get` acquire, `drop` releases, and the object is the object phrase
+ * after the verb, which reads the rest of the command. Runs after the containment and look
+ * templates. Each run of qualifiers the phrase reads (`take X off Y`, `take X on Y on Z`) is its own
+ * fill, nested onto the span in that fill's reading and lowered to assertions after this template
+ * (`lowerQualifiers`); words outside the qualifier set stay in a span (`get cup under table`).
+ * The fast path claims every command this pattern fits (`discriminateIntent/deterministicChecks.ts`).
  *
  * The template created the action, so it authors its narration unit: one line per verb class,
  * to everyone who can see the actor or the object, before the move.
  */
-export const membershipTemplate: AttemptTemplate<'membership'> = {
+export const membershipTemplate = defineAttemptTemplate({
     name: 'membership',
-    pattern: [
-        MEMBERSHIP_VERB_ELEMENT,
-        QUALIFIER_OBJECT_PHRASE_ELEMENT,
-        { type: 'rest' },
-    ],
-    build(captures, command) {
-        const { operationKind, narration } = MEMBERSHIP_VERBS[optionAt(captures, 0)]
-        const { span, stableRefKey } = spanAt(captures, 1)
+    pattern: [MEMBERSHIP_VERB_ELEMENT, QUALIFIER_OBJECT_PHRASE_ELEMENT],
+    build({ verb, subject }, command) {
+        const { operationKind, narration } = verb.value
+        const { text: span, stableRefKey } = subject
         const actionId = mintActionId()
         const narrationUnit: NarrationUnit = {
             covers: [actionId],
@@ -67,8 +59,8 @@ export const membershipTemplate: AttemptTemplate<'membership'> = {
                 parts: [{ slot: 'actor' }, { text: narration }, { ref: stableRefKey }],
             }],
         }
-        return CommandAttempt.create(command, [
+        return CommandAttempt.create('membership', command, [
             new PositionAttemptAction(actionId, [], planMembershipDesiredResult(operationKind, span, stableRefKey)),
         ], [narrationUnit])
     },
-}
+})
