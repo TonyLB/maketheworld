@@ -93,7 +93,7 @@ Object {
 }
 `;
 
-exports[`skeletonMatcher characterization corpus (Slice 0) get cup (with a room label) 1`] = `
+exports[`skeletonMatcher characterization corpus (Slice 0) get cup 1`] = `
 Object {
   "outcome": Object {
     "result": Object {
@@ -125,35 +125,6 @@ Object {
 }
 `;
 
-exports[`skeletonMatcher characterization corpus (Slice 0) get cup (without a room label) 1`] = `
-Object {
-  "outcome": Object {
-    "result": Object {
-      "attempt": "position: change transferMembership(from=currentHost([cup]=OBJECT#Cup), object=[cup]=OBJECT#Cup, to=actingCharacter)",
-      "confidence": 0.9,
-      "referents": Array [
-        "cupRef=OBJECT#Cup",
-      ],
-      "type": "CommandAttempt",
-    },
-    "stubCalls": Object {
-      "acme": 0,
-      "classify": 1,
-      "embedSpan": 0,
-      "enrich": 0,
-      "parse": 1,
-    },
-  },
-  "readings": Object {
-    "fastPath": "no deterministic answer",
-    "llmRoute": Array [
-      "get [cup]",
-      "  position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
-    ],
-  },
-}
-`;
-
 exports[`skeletonMatcher characterization corpus (Slice 0) get cup under table 1`] = `
 Object {
   "outcome": Object {
@@ -165,13 +136,16 @@ Object {
     "stubCalls": Object {
       "acme": 0,
       "classify": 1,
-      "embedSpan": 1,
+      "embedSpan": 2,
       "enrich": 0,
       "parse": 1,
     },
   },
   "readings": Object {
-    "fastPath": "no deterministic answer",
+    "fastPath": Array [
+      "get [cup under table]",
+      "  position: change transferMembership(from=currentHost([cup under table]), object=[cup under table], to=actingCharacter)",
+    ],
     "llmRoute": Array [
       "get [cup under table]",
       "  position: change transferMembership(from=currentHost([cup under table]), object=[cup under table], to=actingCharacter)",
@@ -207,6 +181,38 @@ Object {
     "llmRoute": Array [
       "get [the cup]",
       "  position: change transferMembership(from=currentHost([the cup]), object=[the cup], to=actingCharacter)",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) get up 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "position: change transferMembership(from=currentHost([up]=OBJECT#Cup), object=[up]=OBJECT#Cup, to=actingCharacter)",
+      "confidence": 1,
+      "referents": Array [
+        "upRef=OBJECT#Cup",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 1,
+      "enrich": 0,
+      "parse": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "get [up]",
+      "  position: change transferMembership(from=currentHost([up]), object=[up], to=actingCharacter)",
+    ],
+    "llmRoute": Array [
+      "get [up]",
+      "  position: change transferMembership(from=currentHost([up]), object=[up], to=actingCharacter)",
     ],
   },
 }
@@ -796,13 +802,16 @@ Object {
     "stubCalls": Object {
       "acme": 0,
       "classify": 1,
-      "embedSpan": 1,
+      "embedSpan": 2,
       "enrich": 0,
       "parse": 1,
     },
   },
   "readings": Object {
-    "fastPath": "no deterministic answer",
+    "fastPath": Array [
+      "take [hold of the cup]",
+      "  position: change transferMembership(from=currentHost([hold of the cup]), object=[hold of the cup], to=actingCharacter)",
+    ],
     "llmRoute": Array [
       "take [hold of the cup]",
       "  position: change transferMembership(from=currentHost([hold of the cup]), object=[hold of the cup], to=actingCharacter)",

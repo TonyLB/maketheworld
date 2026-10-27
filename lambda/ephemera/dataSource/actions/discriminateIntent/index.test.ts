@@ -18,7 +18,7 @@ describe('discriminateIntent', () => {
     it('returns deterministic ObjectManipulationIntent for take without invoking Bedrock', async () => {
         const invokeBedrockParseCommandImpl = jest.fn()
         const result = await discriminateIntent(
-            { command: 'take broom', roomObjectLabels: ['broom'] },
+            { command: 'take broom' },
             { invokeBedrockParseCommandImpl }
         )
 

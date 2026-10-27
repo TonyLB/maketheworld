@@ -441,7 +441,7 @@ describe('a spread (extend, then a move of the minted binding)', () => {
             getMembershipContainers: () => [],
         }
         const expand = (minted: boolean) => expandAndAdjudicateCandidates(
-            [{ attempt: CommandAttempt.create('move rope', minted ? [extend, transfer(true)] : [transfer(false)]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'move the rope' } }],
+            [{ attempt: CommandAttempt.create('spread', 'move rope', minted ? [extend, transfer(true)] : [transfer(false)]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'move the rope' } }],
             env as never
         )[0]!.attempt.actions()
 
@@ -492,7 +492,7 @@ describe('narration units through candidate building and Expansion', () => {
         const unit = authoredUnit(planned.actions()[0]!.id)
         const result = proposeAttemptCandidates({
             command: 'put cup on tray',
-            attempts: [CommandAttempt.create(planned.words, planned.actions(), [unit])],
+            attempts: [CommandAttempt.create(planned.kind, planned.words, planned.actions(), [unit])],
             spanPools: new Map([['cupRef', pool('cup', cupId)], ['trayRef', pool('tray', trayId)]]),
             catalog,
             noAssignmentReason: 'none',
@@ -526,7 +526,7 @@ describe('narration units through candidate building and Expansion', () => {
         const unit = authoredUnit('take')
 
         const [expanded] = expandAndAdjudicateCandidates(
-            [{ attempt: CommandAttempt.create('take rope', [take], [unit]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'take the rope' } }],
+            [{ attempt: CommandAttempt.create('membership', 'take rope', [take], [unit]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'take the rope' } }],
             {
                 getGraph: (hostId) => (hostId === roomId ? graph : undefined),
                 getCurrentHost: (id) => (id === ropeId ? roomId : undefined),
@@ -611,7 +611,7 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
             relation: 'On',
             ...overrides,
         })
-        return CommandAttempt.create(`get the ${span} on the table`, [check, take])
+        return CommandAttempt.create('membership', `get the ${span} on the table`, [check, take])
     }
 
     const dryRuns = async (span: string, subjects: ObjectManipulationCatalogEntry[], overrides: Partial<ContainedByAssertion> = {}) => {

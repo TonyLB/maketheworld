@@ -41,6 +41,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "containment",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -145,6 +146,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "containment",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -249,6 +251,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "containment",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -394,6 +397,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "containment",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -522,6 +526,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "membership",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -609,6 +614,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "membership",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -660,7 +666,7 @@ Object {
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) get the broom through Parse, when the span is not in the room labels 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) get the broom through Parse, when a manner word keeps it off the fast path 1`] = `
 Object {
   "result": Object {
     "attempt": Object {
@@ -696,6 +702,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "membership",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -732,7 +739,7 @@ Object {
           "shortName": "broom",
         },
       ],
-      "words": "get the broom",
+      "words": "carefully get the broom",
     },
     "confidence": 0.9,
     "type": "CommandAttempt",
@@ -783,6 +790,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "membership",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -928,6 +936,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "membership",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -1089,6 +1098,7 @@ Object {
           "kind": "position",
         },
       ],
+      "kind": "membership",
       "narrationUnits": Array [
         Object {
           "covers": Array [
@@ -1194,6 +1204,7 @@ Object {
           ],
         },
       ],
+      "kind": "look",
       "narrationUnits": Array [],
       "referents": Array [
         Object {
@@ -1321,6 +1332,7 @@ Object {
                   "kind": "position",
                 },
               ],
+              "kind": "membership",
               "narrationUnits": Array [
                 Object {
                   "covers": Array [

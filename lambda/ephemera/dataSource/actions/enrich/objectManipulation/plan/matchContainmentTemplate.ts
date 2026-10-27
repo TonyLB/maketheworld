@@ -1,10 +1,9 @@
-import type { AttemptTemplate, PatternElement } from '../../../deterministicTemplate/deterministicTemplate'
+import { defineAttemptTemplate, fixedWord } from '../../../deterministicTemplate/deterministicTemplate'
 import { CommandAttempt } from '../../../commandAttempt'
 import { mintActionId, PositionAttemptAction } from '../../../commandAttempt/action'
 import type { NarrationUnit } from '../../../commandAttempt/narrationUnit'
 import { actingCharacterRef, currentHostRef, objectSpanRef } from './planStep'
 import { qualifierObjectPhraseElement } from './qualifierPrepositions'
-import { optionAt, spanAt } from './templateCaptures'
 
 /**
  * The containment verbs (RD-1): placing into or onto, each with the third-person form its narration
@@ -31,17 +30,18 @@ export const CONTAINMENT_PHRASES: Readonly<Record<string, ContainmentKind>> = {
 }
 
 /**
- * A placing command: verb, object, phrase, target. Each fixed word must be a whole token of the
- * skeleton, so a model's `hurriedly into` is no containment phrase. The object and the target are
- * object phrases, so each reading of a stacked command (`put cup on saucer on table`) is a fill:
- * which phrase is the destination, and which qualify a span.
+ * A placing command: `verb`, `subject`, `phrase`, `target`, each fixed word over its own lexicon.
+ * Each fixed word must be a whole token of the skeleton, so a model's `hurriedly into` is no
+ * containment phrase. The object and the target are object phrases, so each reading of a stacked
+ * command (`put cup on saucer on table`) is a fill: which phrase is the destination, and which
+ * qualify a span.
  */
-export const placingPattern = (verbForms: Readonly<Record<string, unknown>>, phrases: Readonly<Record<string, ContainmentKind>>): readonly PatternElement[] => [
-    { type: 'templateText', options: Object.keys(verbForms) },
+export const placingPattern = <Verb>(verbs: Readonly<Record<string, Verb>>, phrases: Readonly<Record<string, ContainmentKind>>) => [
+    fixedWord('verb', verbs),
     qualifierObjectPhraseElement('subject'),
-    { type: 'templateText', options: Object.keys(phrases) },
+    fixedWord('phrase', phrases),
     qualifierObjectPhraseElement('target'),
-]
+] as const
 
 /**
  * A containment command (`put X in Y`, `place X on Y`, `drop X in Y`). The step is a whole-object
@@ -52,16 +52,13 @@ export const placingPattern = (verbForms: Readonly<Record<string, unknown>>, phr
  * The template created the action, so it authors its narration unit: the player's verb and
  * the matched phrase, one line to everyone who can see the actor or either object, before the move.
  */
-export const containmentTemplate: AttemptTemplate<'containment'> = {
+export const containmentTemplate = defineAttemptTemplate({
     name: 'containment',
     pattern: placingPattern(PLACING_VERB_FORMS, CONTAINMENT_PHRASES),
-    build(captures, command) {
-        const { form: verbForm, releases } = PLACING_VERB_FORMS[optionAt(captures, 0)]
-        const phrase = optionAt(captures, 2)
-        const subjectSpan = spanAt(captures, 1)
-        const targetSpan = spanAt(captures, 3)
-        const subject = objectSpanRef(subjectSpan.span, subjectSpan.stableRefKey)
-        const target = objectSpanRef(targetSpan.span, targetSpan.stableRefKey)
+    build({ verb, subject: subjectSpan, phrase: { option: phrase, value: containment }, target: targetSpan }, command) {
+        const { form: verbForm, releases } = verb.value
+        const subject = objectSpanRef(subjectSpan.text, subjectSpan.stableRefKey)
+        const target = objectSpanRef(targetSpan.text, targetSpan.stableRefKey)
         const actionId = mintActionId()
         const narrationUnit: NarrationUnit = {
             covers: [actionId],
@@ -76,15 +73,15 @@ export const containmentTemplate: AttemptTemplate<'containment'> = {
                 ],
             }],
         }
-        return CommandAttempt.create(command, [
+        return CommandAttempt.create('containment', command, [
             new PositionAttemptAction(actionId, [], {
                 kind: 'change',
                 primitive: 'transferMembership',
                 object: subject,
                 from: releases ? actingCharacterRef : currentHostRef(subject),
                 to: target,
-                containment: CONTAINMENT_PHRASES[phrase],
+                containment,
             }),
         ], [narrationUnit])
     },
-}
+})

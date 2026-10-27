@@ -134,7 +134,6 @@ describe('crossing take payoff (integration)', () => {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                roomObjectLabels: labels.map(([, label]) => label),
                 roomObjectCatalog: labels.map(([objectId, normalizedShortName]) => ({ objectId, normalizedShortName })),
             },
             {

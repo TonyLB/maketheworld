@@ -220,6 +220,7 @@ describe('positions receive paths (integration)', () => {
     describe('Ludic Network Change Requested', () => {
         it('routes the generalized hand-off through commitAttempt (replacing Object Take Hold/Drop/Establish Relation/Dissolve Relation)', async () => {
             const attemptData: CommandAttemptData = {
+                kind: 'membership',
                 words: 'pick up the broom',
                 referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
                 actions: [{ kind: 'position', id: 'action-1', desiredResultDescription: 'Take: broom', challenges: [] }],
@@ -249,6 +250,7 @@ describe('positions receive paths (integration)', () => {
 
         it('a published attempt round-trips through fromJSON and reaches commitAttempt with its actions, challenges and verdicts intact', async () => {
             const attemptData: CommandAttemptData = {
+                kind: 'membership',
                 words: 'take the entire coil of rope',
                 referents: [{ refKey: 'primaryObject', id: 'OBJECT#Rope', shortName: 'rope' }],
                 actions: [

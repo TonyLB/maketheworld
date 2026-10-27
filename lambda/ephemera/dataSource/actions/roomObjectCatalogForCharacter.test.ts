@@ -9,7 +9,6 @@ import { testLudicGraph } from '../../dataSource/positions/ludicGraph/testFixtur
 import { catalogDepsFromColdBuild } from './roomObjectCatalogTestDeps'
 import {
     getRoomObjectCatalogForCharacter as getCatalogFromStoredCache,
-    roomObjectLabelsFromCatalog,
 } from './roomObjectCatalogForCharacter'
 import { parentRemainderKey } from '../positions/ludicGraph/testFixtures'
 
@@ -80,7 +79,6 @@ describe('getRoomObjectCatalogForCharacter', () => {
             { objectId: broomId, normalizedShortName: 'broom', placement: [{ host: roomId, bindings: [] }], presence: [roomId] },
             { objectId: anvilId, normalizedShortName: 'heavy anvil', placement: [{ host: roomId, bindings: [] }], presence: [roomId] },
         ])
-        expect(roomObjectLabelsFromCatalog(result.entries)).toEqual(['broom', 'heavy anvil'])
     })
 
     it('resolves an authored merged ComponentAggregate shortName', async () => {

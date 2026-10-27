@@ -27,6 +27,14 @@ const segmentationsOf = (command: string) => planTokens(tokenize(PLAN_GRANULES, 
 const actionKinds = (attempt: CommandAttempt) => attempt.actions().map((action) => action.desiredResult?.kind)
 
 describe('planSkeleton', () => {
+    it('gives each attempt its template\'s kind, qualifiers lowered or not', () => {
+        const kindsOf = (command: string) => [...new Set(planTokens(tokenize(PLAN_GRANULES, command), command).flatMap(({ attempts }) => attempts.map(({ kind }) => kind)))].sort()
+        expect(kindsOf('take cup on table')).toEqual(['membership'])
+        expect(kindsOf('drop cup in box')).toEqual(['containment', 'membership'])
+        expect(kindsOf('spread cloth over table')).toEqual(['spread'])
+        expect(kindsOf('look at cup on table')).toEqual(['look'])
+    })
+
     it('plans "take the coin in the box" as membership takes, not a containment move: the qualified reading checks the coin, then takes it', () => {
         const attempts = attemptsOf([
             { type: 'text', text: 'take' },

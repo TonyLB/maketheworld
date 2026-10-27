@@ -42,7 +42,17 @@ export type RoomContextSection = {
     edges: string[]
 }
 
+/**
+ * What an attempt is, set by its author: an object template's name (`plan/match*Template.ts`), or
+ * `relation` for a peer relation (no template builds one yet). Read wherever the kind is what is
+ * being asked, never inferred from the actions.
+ */
+export type AttemptKind = 'look' | 'membership' | 'containment' | 'spread' | 'relation'
+
+export const ATTEMPT_KINDS: readonly AttemptKind[] = ['look', 'membership', 'containment', 'spread', 'relation']
+
 export type CommandAttemptData = {
+    kind: AttemptKind
     words: string
     referents: CommandAttemptReferent[]
     actions: AttemptActionData[]
@@ -86,34 +96,39 @@ const referentsFromActions = (actions: readonly AttemptAction[]): CommandAttempt
  * `fromJSON`/`toJSON`.
  */
 export class CommandAttempt {
+    readonly kind: AttemptKind
+
     readonly words: string
 
     private readonly _actions: AttemptAction[]
 
     private readonly _narrationUnits: NarrationUnit[]
 
-    private constructor(words: string, actions: AttemptAction[], narrationUnits: NarrationUnit[]) {
+    private constructor(kind: AttemptKind, words: string, actions: AttemptAction[], narrationUnits: NarrationUnit[]) {
+        this.kind = kind
         this.words = words
         this._actions = actions
         this._narrationUnits = narrationUnits
     }
 
     /**
-     * Domain constructor: an attempt built in-pipeline from its actions. `narrationUnits` are
+     * Domain constructor: an attempt of a kind, built in-pipeline from its actions. A stage that
+     * rebuilds an attempt passes its kind through. `narrationUnits` are
      * the lines the actions' author (Plan's templates, Expansion) declares; it defaults to none,
      * and an action no unit covers narrates nothing.
      */
-    static create(words: string, actions: readonly AttemptAction[], narrationUnits: readonly NarrationUnit[] = []): CommandAttempt {
-        return new CommandAttempt(words, [...actions], [...narrationUnits])
+    static create(kind: AttemptKind, words: string, actions: readonly AttemptAction[], narrationUnits: readonly NarrationUnit[] = []): CommandAttempt {
+        return new CommandAttempt(kind, words, [...actions], [...narrationUnits])
     }
 
     /** `data.referents` is ignored: it is derived from the actions, and is only published. */
     static fromJSON(data: CommandAttemptData): CommandAttempt {
-        return new CommandAttempt(data.words, data.actions.map(attemptActionFromJSON), [...data.narrationUnits])
+        return new CommandAttempt(data.kind, data.words, data.actions.map(attemptActionFromJSON), [...data.narrationUnits])
     }
 
     toJSON(): CommandAttemptData {
         return {
+            kind: this.kind,
             words: this.words,
             referents: this.referents(),
             actions: this._actions.map(attemptActionToJSON),
@@ -156,7 +171,7 @@ export class CommandAttempt {
         if (!found) {
             throw new Error(`CommandAttempt.recordVerdict: no challenge with id '${challengeId}'`)
         }
-        return new CommandAttempt(this.words, actions, this._narrationUnits)
+        return new CommandAttempt(this.kind, this.words, actions, this._narrationUnits)
     }
 
     /**

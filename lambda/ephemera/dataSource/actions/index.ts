@@ -52,7 +52,7 @@ import {
     catalogObjectIdsUnion,
 } from './attachEmbeddingsToCatalogEntries'
 import { getHeldInventoryCatalogForCharacter } from './heldInventoryCatalogForCharacter'
-import { getRoomObjectCatalogForCharacter, roomObjectLabelsFromCatalog } from './roomObjectCatalogForCharacter'
+import { getRoomObjectCatalogForCharacter } from './roomObjectCatalogForCharacter'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
     type ParseCommandAcmeOrderLine,
@@ -643,14 +643,8 @@ const loadCommandWorld = async (characterId: EphemeraCharacterId) => {
         heldInventoryCatalogResult.entries,
         embeddingMap
     )
-    const roomObjectLabels = [
-        ...new Set([
-            ...roomObjectLabelsFromCatalog(roomObjectCatalog),
-            ...roomObjectLabelsFromCatalog(heldInventoryCatalog),
-        ]),
-    ]
     const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
-    return { roomExitContext, roomObjectCatalog, heldInventoryCatalog, roomObjectLabels, coyoteOccupiedStableKeys }
+    return { roomExitContext, roomObjectCatalog, heldInventoryCatalog, coyoteOccupiedStableKeys }
 }
 
 const handleParseRequested = async (
@@ -679,7 +673,6 @@ const handleParseRequested = async (
         roomExitContext,
         roomObjectCatalog,
         heldInventoryCatalog,
-        roomObjectLabels,
         coyoteOccupiedStableKeys,
     } = await loadCommandWorld(content.characterId)
     const parseResult = await parseCommand({
@@ -690,7 +683,6 @@ const handleParseRequested = async (
             normalizedName,
             targetId: toRoomId,
         })),
-        roomObjectLabels,
         roomObjectCatalog,
         heldInventoryCatalog,
         occupiedStableKeys: [...coyoteOccupiedStableKeys],

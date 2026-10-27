@@ -81,7 +81,3 @@ export async function getRoomObjectCatalogForCharacter(
 
     return { roomId, entries }
 }
-
-export function roomObjectLabelsFromCatalog(entries: readonly RoomInPlayObjectCatalogEntry[]): string[] {
-    return [...new Set(entries.map(({ normalizedShortName }) => normalizedShortName))]
-}

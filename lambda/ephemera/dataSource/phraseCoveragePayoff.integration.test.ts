@@ -193,7 +193,6 @@ describe('phrase coverage payoff (integration)', () => {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                roomObjectLabels: labels.map(([, label]) => label),
                 roomObjectCatalog: labels.filter(([objectId]) => !isHeld(objectId)).map(([objectId, normalizedShortName]) => ({
                     objectId,
                     normalizedShortName,

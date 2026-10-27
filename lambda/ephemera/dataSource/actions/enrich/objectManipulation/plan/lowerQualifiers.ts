@@ -45,5 +45,5 @@ export function lowerQualifiers(attempt: CommandAttempt, reading: ParseSkeleton)
     if (assertions.length === 0) {
         return attempt
     }
-    return CommandAttempt.create(attempt.words, [...assertions, ...attempt.actions()], attempt.narrationUnits())
+    return CommandAttempt.create(attempt.kind, attempt.words, [...assertions, ...attempt.actions()], attempt.narrationUnits())
 }

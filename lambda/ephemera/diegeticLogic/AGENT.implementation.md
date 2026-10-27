@@ -74,7 +74,7 @@ Normative contracts: [`../dataSource/positions/AGENT.contract.md`](../dataSource
 
 ## Reference files (end-to-end)
 
-Classify: [`buildIntentClassificationPrompt.ts`](../dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts), [`roomObjectLabelsForCharacter.ts`](../dataSource/actions/roomObjectLabelsForCharacter.ts).
+Classify: [`buildIntentClassificationPrompt.ts`](../dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts).
 
 Enrich: [`roomObjectCatalogForCharacter.ts`](../dataSource/actions/roomObjectCatalogForCharacter.ts), [`heldInventoryCatalogForCharacter.ts`](../dataSource/actions/heldInventoryCatalogForCharacter.ts), [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/).
 

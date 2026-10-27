@@ -195,7 +195,6 @@ const useWorld = (objects: WorldObjects) => {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                roomObjectLabels: labels ? [...labels] : objects.map(([, name]) => name),
                 roomObjectCatalog: catalog ?? objects.map(([objectId, name]) => ({ objectId, normalizedShortName: name })),
                 heldInventoryCatalog: heldCatalog,
             },
@@ -483,7 +482,7 @@ describe('rope carried into the next room (integration)', () => {
      * command can name the far room: no template reaches it yet, so the attempt is built by hand and
      * crosses the bus as plain data like any other.
      */
-    const carryEndAttempt = (): CommandAttemptData => CommandAttempt.create('carry the rope end into the next room', [
+    const carryEndAttempt = (): CommandAttemptData => CommandAttempt.create('spread', 'carry the rope end into the next room', [
         new PositionAttemptAction('extend-rope', [], {
             kind: 'change',
             primitive: 'extend',
@@ -554,7 +553,7 @@ describe('rope held at one end, the other on the floor of the same room (integra
     const { commit, ask, parseAny, catalogFromCache, heldCatalogFromCache } = useWorld([[ROPE_ID, 'rope']])
 
     /** `[extend rope, move the new end into the actor's hands]`, built by hand as the carry into the next room is. */
-    const holdEndAttempt = (): CommandAttemptData => CommandAttempt.create('pick up one end of the rope', [
+    const holdEndAttempt = (): CommandAttemptData => CommandAttempt.create('spread', 'pick up one end of the rope', [
         new PositionAttemptAction('extend-rope', [], {
             kind: 'change',
             primitive: 'extend',

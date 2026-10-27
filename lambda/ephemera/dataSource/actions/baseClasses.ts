@@ -710,8 +710,6 @@ export type ParseCommandInput = {
         normalizedName: string
         targetId: EphemeraRoomId
     }[]
-    /** Normalized shortNames for objects in the character's current room (classify prompt only). */
-    roomObjectLabels?: string[]
     /** In-room object catalog for enrich and deterministic resolve (D6). */
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     /** Character-held inventory catalog for object-manipulation identity stage (O5). */

@@ -451,7 +451,7 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
             const described = attempt.actions().map((action) => describeGroundedAction(action.grounded(names), planStepsOf(attempt.actions())))
             const primary = described[described.length - 1]!
             return [{
-                attempt: CommandAttempt.create(input.command, described.map((entry) => entry.action), attempt.narrationUnits()),
+                attempt: CommandAttempt.create(attempt.kind, input.command, described.map((entry) => entry.action), attempt.narrationUnits()),
                 confidence,
                 alternative: primary.alternative,
                 placeNames,
@@ -774,6 +774,7 @@ export const expandAndAdjudicateCandidates = (
     return {
         ...candidate,
         attempt: adjudicateAttempt(CommandAttempt.create(
+            candidate.attempt.kind,
             candidate.attempt.words,
             [...actions.slice(0, -1), ...expanded.actions],
             [...candidate.attempt.narrationUnits(), ...expanded.narrationUnits]

@@ -134,7 +134,6 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         characterId: CHARACTER,
         hostRoomId: ROOM,
         roomExits: [{ normalizedName: 'north', targetId: NORTH_ROOM }],
-        roomObjectLabels: ROOM_OBJECTS.map(([, name]) => name),
         roomObjectCatalog: catalogOf(ROOM_OBJECTS),
         ...row.input,
     } as ParseInput)
@@ -213,10 +212,11 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         { command: 'take man in the moon from table', parseTokens: [text('take'), span('man'), text('in'), span('the moon'), text('from'), span('table')] },
         { command: 'drop the cup in the box', parseTokens: [text('drop'), span('the cup'), text('in'), span('the box')], ...holdingCup },
         { command: 'drop cup', parseTokens: [text('drop'), span('cup')], ...holdingCup },
-        // The fast path's gates
+        // The fast path's retired gates: `take hold`, and `get` needing a room label
         { command: 'take hold of the cup', parseTokens: [text('take hold of'), span('the cup')] },
-        { command: 'get cup', variant: 'with a room label', parseTokens: [text('get'), span('cup')] },
-        { command: 'get cup', variant: 'without a room label', parseTokens: [text('get'), span('cup')], input: { roomObjectLabels: [] } },
+        { command: 'get cup', parseTokens: [text('get'), span('cup')] },
+        // What the `get` gate guarded (`up` ranking near "cup") is Identify's evidence to weigh
+        { command: 'get up', parseTokens: [text('get'), span('up')] },
         // Shapes the templates read partly, or not at all
         { command: 'get cup under table', parseTokens: [text('get'), span('cup'), text('under'), span('table')] },
         { command: 'put coin hurriedly into box', parseTokens: [text('put'), span('coin'), text('hurriedly into'), span('box')] },

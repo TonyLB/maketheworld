@@ -1,13 +1,13 @@
 import { granulesOf, tokenize } from '../../../deterministicTemplate/granuleTokens'
 import { fixedWordsOf, matchPatternFills } from '../../../deterministicTemplate/patternTemplate'
 import { PLAN_GRANULES } from './planSkeleton'
-import { exceedsQualifierCap, QUALIFIER_OPTIONS, QUALIFIER_PREPOSITION_ELEMENT } from './qualifierPrepositions'
+import { exceedsQualifierCap, QUALIFIER_PREPOSITION_ELEMENT } from './qualifierPrepositions'
 
 /** The canonical preposition a whole text names, read through the pattern element. */
 const canonicalOf = (text: string) => {
     const [fill] = matchPatternFills([QUALIFIER_PREPOSITION_ELEMENT], tokenize(granulesOf(fixedWordsOf([QUALIFIER_PREPOSITION_ELEMENT])), text))
-    const capture = fill?.captures[0]
-    return capture?.kind === 'templateText' ? QUALIFIER_OPTIONS[capture.option] : undefined
+    const capture = fill?.captures.preposition
+    return capture?.kind === 'templateText' ? capture.value : undefined
 }
 
 describe('QUALIFIER_PREPOSITION_ELEMENT', () => {

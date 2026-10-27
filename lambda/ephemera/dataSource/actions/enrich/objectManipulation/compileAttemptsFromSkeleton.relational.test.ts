@@ -164,7 +164,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             {
                 command: 'put broom under table',
                 fills: [{ skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), attempts: [
-                    CommandAttempt.create('put broom under table', []),
+                    CommandAttempt.create('look', 'put broom under table', []),
                     peerRelationFixture('put broom under table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' }),
                 ] }],
                 hostRoomId: roomId,

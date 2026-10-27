@@ -13,7 +13,6 @@ import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToke
 import { runParseStage } from '../enrich/objectManipulation/parse/runParseStage'
 import { PLAN_GRANULES, readPlanTemplates, type PlanTemplateRead } from '../enrich/objectManipulation/plan/planSkeleton'
 import { OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES } from '../objectManipulationParseHarnessFixtures'
-import { getRoomObjectLabelsForCharacter } from '../roomObjectLabelsForCharacter'
 
 export type RunObjectManipulationParseHarnessDeps = {
     characterId: EphemeraCharacterId
@@ -21,8 +20,6 @@ export type RunObjectManipulationParseHarnessDeps = {
     harnessInvocation?: ObjectManipulationParseHarnessInvocation
     fixtures?: readonly ObjectManipulationParseHarnessFixture[]
     runParseStageImpl?: typeof runParseStage
-    /** The actor's room labels, which decide whether the fast path claims a `get`. Read once per run. */
-    getRoomObjectLabelsImpl?: (characterId: EphemeraCharacterId) => Promise<string[]>
     now?: () => number
 }
 
@@ -62,16 +59,14 @@ export function formatTokens(tokens: readonly GranuleToken[]): string {
  * Runs each selected command down the route production takes to its tokens, then Plan, and
  * publishes **one** OOC message with the results for manual review: the route, the tokens, and each
  * segmentation Plan's readings make with every attempt read from it. A command the
- * take/get/drop/put/place fast path claims (`deterministicIntentChecks`, with the actor's room
- * labels) is read from its own tokens with no Bedrock call; any other runs the live Parse stage,
- * whose skeleton is shown and whose words are re-tokenized. Beyond the labels no world is read;
- * candidates and the dry run are out of its reach.
+ * take/get/drop/put/place fast path claims (`deterministicIntentChecks`) is read from its own
+ * tokens with no Bedrock call; any other runs the live Parse stage, whose skeleton is shown and
+ * whose words are re-tokenized. No world is read; candidates and the dry run are out of its reach.
  */
 export async function runObjectManipulationParseHarness(deps: RunObjectManipulationParseHarnessDeps): Promise<void> {
     const runParse = deps.runParseStageImpl ?? runParseStage
     const now = deps.now ?? (() => Date.now())
     const cases = selectCases(deps.fixtures ?? OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES, deps.harnessInvocation)
-    const roomObjectLabels = await (deps.getRoomObjectLabelsImpl ?? getRoomObjectLabelsForCharacter)(deps.characterId)
 
     const tree: RenderTree = ['Object manipulation Parse harness (route + Plan, no world)', COYOTE_RENDER_LINE_BREAK]
     if (cases.length === 0) {
@@ -79,7 +74,7 @@ export async function runObjectManipulationParseHarness(deps: RunObjectManipulat
     }
     for (const [index, { label, command }] of cases.entries()) {
         tree.push(`--- ${index + 1}/${cases.length} ${label}: ${command} ---`, COYOTE_RENDER_LINE_BREAK)
-        const fastPath = deterministicIntentChecks({ command, roomObjectLabels })
+        const fastPath = deterministicIntentChecks({ command })
         let tokens: GranuleToken[]
         if (fastPath?.type === 'ObjectManipulationIntent') {
             tokens = fastPath.tokens

@@ -5,7 +5,7 @@ import { CommandAttempt, type CommandAttemptData } from './commandAttempt'
 import { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
-import { getRoomObjectCatalogForCharacter, roomObjectLabelsFromCatalog } from './roomObjectCatalogForCharacter'
+import { getRoomObjectCatalogForCharacter } from './roomObjectCatalogForCharacter'
 
 import {
     embeddingAtCosineSimilarity,
@@ -1042,9 +1042,9 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('routes get the broom through classify + Parse + planSkeleton to membership enrich when the catalog gate blocks the deterministic get fast path', async () => {
-        // "get" only bypasses classify when the object's normalized span is already in
-        // roomObjectLabels (deterministicChecks.ts); leaving it out here forces classify + Parse,
+    it('routes get the broom through classify + Parse + planSkeleton to membership enrich when a manner word keeps it off the fast path', async () => {
+        // A manner word ("carefully") is no template's, so the fast path does not claim the
+        // command; it goes through classify + Parse,
         // exercising CPG-3's planSkeleton dispatch from a literal leading "get" token
         // (Parse preserves the player's own words, per buildParsePrompt.ts, so this is a realistic
         // non-deterministic route into membership --- unlike a "pick up"/"grab" paraphrase, which
@@ -1064,10 +1064,9 @@ describe('parseCommand LLM path', () => {
 
         const result = await parseCommand(
             {
-                command: 'get the broom',
+                command: 'carefully get the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: [],
                 roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },
             {
@@ -1110,7 +1109,6 @@ describe('parseCommand LLM path', () => {
                     command: 'take the sweeping tool',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom', 'mop'],
                     roomObjectCatalog: [
                         {
                             objectId: broomId,
@@ -1159,7 +1157,6 @@ describe('parseCommand LLM path', () => {
                     command: 'take the broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [
                         { objectId: broomId, normalizedShortName: 'broom' },
                         { objectId: mopId, normalizedShortName: 'broom' },
@@ -1209,7 +1206,6 @@ describe('parseCommand LLM path', () => {
                     command: 'remove the rope off the crate',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
-                    roomObjectLabels: ['rope'],
                     roomObjectCatalog: [
                         { objectId: ropeId, normalizedShortName: 'rope' },
                         { objectId: crateId, normalizedShortName: 'crate' },
@@ -1260,7 +1256,6 @@ describe('parseCommand LLM path', () => {
                 command: 'put down the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: [],
                 roomObjectCatalog: [],
                 heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },
@@ -1283,7 +1278,6 @@ describe('parseCommand LLM path', () => {
                 command: 'drop the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: ['broom'],
                 roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 heldInventoryCatalog: [],
             },
@@ -1316,7 +1310,6 @@ describe('parseCommand LLM path', () => {
                 command: 'get the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
-                roomObjectLabels: [],
                 roomObjectCatalog: [],
                 heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
             },
@@ -1350,7 +1343,6 @@ describe('parseCommand LLM path', () => {
                 command: 'put the broom under the table',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
-                roomObjectLabels: ['broom'],
                 roomObjectCatalog: [
                     { objectId: broomId, normalizedShortName: 'broom' },
                     { objectId: tableId, normalizedShortName: 'table' },
@@ -1419,7 +1411,6 @@ describe('parseCommand LLM path', () => {
             {
                 command: 'put the coin in the jar',
                 hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
-                roomObjectLabels: ['coin', 'jar'],
                 roomObjectCatalog: [
                     { objectId: coinId, normalizedShortName: 'coin' },
                     { objectId: jarId, normalizedShortName: 'jar' },
@@ -1458,7 +1449,6 @@ describe('parseCommand LLM path', () => {
             {
                 command: 'put the cup on the tray',
                 hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
-                roomObjectLabels: ['cup', 'tray'],
                 roomObjectCatalog: [
                     { objectId: cupId, normalizedShortName: 'cup' },
                     { objectId: trayId, normalizedShortName: 'tray' },
@@ -1494,7 +1484,6 @@ describe('parseCommand LLM path', () => {
         const result = await parseCommand(
             {
                 command: 'put the cup on the tray',
-                roomObjectLabels: ['cup', 'tray'],
                 roomObjectCatalog: [
                     { objectId: 'OBJECT#Cup', normalizedShortName: 'cup' },
                     { objectId: 'OBJECT#Tray', normalizedShortName: 'tray' },
@@ -1525,7 +1514,6 @@ describe('parseCommand LLM path', () => {
                     command: 'take broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 },
                 {
@@ -1563,7 +1551,6 @@ describe('parseCommand LLM path', () => {
                         command,
                         characterId: 'CHARACTER#123',
                         hostRoomId: 'ROOM#Bridge',
-                        roomObjectLabels: ['broom'],
                         roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                         ...catalogExtras,
                     } as any,
@@ -1607,7 +1594,6 @@ describe('parseCommand LLM path', () => {
                     command: 'get broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 },
                 {
@@ -1645,7 +1631,6 @@ describe('parseCommand LLM path', () => {
                     command: 'pick up the broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom', 'mop'],
                     roomObjectCatalog: [
                         { objectId: broomId, normalizedShortName: 'broom' },
                         { objectId: mopId, normalizedShortName: 'mop' },
@@ -1671,7 +1656,6 @@ describe('parseCommand LLM path', () => {
                     command: 'drop broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [],
                     heldInventoryCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 },
@@ -1699,7 +1683,6 @@ describe('parseCommand LLM path', () => {
                     command: 'get broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                 },
                 {
@@ -1726,7 +1709,6 @@ describe('parseCommand LLM path', () => {
                     command: 'drop broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['broom'],
                     roomObjectCatalog: [{ objectId: broomId, normalizedShortName: 'broom' }],
                     heldInventoryCatalog: [],
                 },
@@ -1752,7 +1734,6 @@ describe('parseCommand LLM path', () => {
                     command: 'drop the cup in the box',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['cup', 'box'],
                     roomObjectCatalog: [{ objectId: 'OBJECT#Box', normalizedShortName: 'box' }],
                     heldInventoryCatalog: [{ objectId: 'OBJECT#Cup', normalizedShortName: 'cup' }],
                 },
@@ -1789,7 +1770,6 @@ describe('parseCommand LLM path', () => {
                     command,
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
-                    roomObjectLabels: ['cup', 'saucer', 'table', 'box'],
                     roomObjectCatalog: [
                         { objectId: 'OBJECT#Saucer', normalizedShortName: 'saucer' },
                         { objectId: 'OBJECT#Table', normalizedShortName: 'table' },
@@ -1902,7 +1882,6 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             {
                 characterId: CHARACTER,
                 hostRoomId: ROOM,
-                roomObjectLabels: [],
                 roomObjectCatalog: [],
                 ...input,
             } as ParseInput,
@@ -1930,11 +1909,11 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
     describe('deterministic take / get / drop (fast path)', () => {
         it('take broom', async () => {
-            expect(await run({ command: 'take broom', roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }, { graphs: { [ROOM]: roomWith([BROOM]) } })).toMatchSnapshot()
+            expect(await run({ command: 'take broom', roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }, { graphs: { [ROOM]: roomWith([BROOM]) } })).toMatchSnapshot()
         })
 
         it('get broom', async () => {
-            expect(await run({ command: 'get broom', roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }, { graphs: { [ROOM]: roomWith([BROOM]) } })).toMatchSnapshot()
+            expect(await run({ command: 'get broom', roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }, { graphs: { [ROOM]: roomWith([BROOM]) } })).toMatchSnapshot()
         })
 
         it('drop broom', async () => {
@@ -1948,9 +1927,9 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             })).toMatchSnapshot()
         })
 
-        it('get the broom through Parse, when the span is not in the room labels', async () => {
+        it('get the broom through Parse, when a manner word keeps it off the fast path', async () => {
             expect(await run(
-                { command: 'get the broom', roomObjectCatalog: catalogOf([[BROOM, 'broom']]) },
+                { command: 'carefully get the broom', roomObjectCatalog: catalogOf([[BROOM, 'broom']]) },
                 {
                     parseTokens: [text('get'), span('broom')],
                     graphs: { [ROOM]: roomWith([BROOM]) },
@@ -1960,7 +1939,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take rope when the rope is lashed to the post (Custom edge: dissolve, then take)', async () => {
             expect(await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                { command: 'take rope', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
                     graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
                 }
@@ -1969,7 +1948,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take broom when the broom touches an exit (abstains on both rungs: no adjudicator judges exit contact yet, so the fast path\'s Abstain climbs)', async () => {
             expect(await run(
-                { command: 'take broom', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
+                { command: 'take broom', roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
                     parseTokens: [text('take'), span('broom')],
                     graphs: {
@@ -1984,7 +1963,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take rope when the rope is under the post (a peer subject-move is met: the rope comes out)', async () => {
             expect(await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                { command: 'take rope', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
                     graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'under' }]) },
                 }
@@ -1995,7 +1974,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
     describe('relational commands (Parse path)', () => {
         it('put the broom against the table (no peer parse: Unimplemented)', async () => {
             expect(await run(
-                { command: 'put the broom against the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
+                { command: 'put the broom against the table', roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
                     parseTokens: [text('put'), span('broom'), text('against'), span('table')],
                     graphs: { [ROOM]: roomWith([BROOM, TABLE]) },
@@ -2005,7 +1984,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('tie the rope to the post (no peer parse: Unimplemented)', async () => {
             expect(await run(
-                { command: 'tie the rope to the post', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                { command: 'tie the rope to the post', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
                     parseTokens: [text('tie'), span('rope'), text('to'), span('post')],
                     graphs: { [ROOM]: roomWith([ROPE, POST]) },
@@ -2015,7 +1994,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take the rope off the post (fast path: the qualifier refuses, the rope is lashed to the post, not held by it)', async () => {
             expect(await run(
-                { command: 'take the rope off the post', roomObjectLabels: ['rope', 'post'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                { command: 'take the rope off the post', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
                     parseTokens: [text('take'), span('rope'), text('off'), span('post')],
                     graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
@@ -2025,7 +2004,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the broom under the table with two table candidates (no peer parse: Unimplemented)', async () => {
             expect(await run(
-                { command: 'put the broom under the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table'], [TABLE2, 'table']]) },
+                { command: 'put the broom under the table', roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table'], [TABLE2, 'table']]) },
                 {
                     parseTokens: [text('put'), span('broom'), text('under'), span('table')],
                     graphs: { [ROOM]: roomWith([BROOM, TABLE, TABLE2]) },
@@ -2035,7 +2014,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the broom partof the table (no peer parse: Unimplemented)', async () => {
             expect(await run(
-                { command: 'put the broom partof the table', roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
+                { command: 'put the broom partof the table', roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 {
                     parseTokens: [text('put'), span('broom'), text('partof'), span('table')],
                     graphs: { [ROOM]: roomWith([BROOM, TABLE]) },
@@ -2047,7 +2026,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
     describe('containment commands (Parse path)', () => {
         it('put the coin on the table', async () => {
             expect(await run(
-                { command: 'put the coin on the table', roomObjectLabels: ['coin', 'table'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
+                { command: 'put the coin on the table', roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
                 {
                     parseTokens: [text('put'), span('coin'), text('on'), span('table')],
                     graphs: { [ROOM]: roomWith([COIN, TABLE]) },
@@ -2057,7 +2036,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the coin in the jar', async () => {
             expect(await run(
-                { command: 'put the coin in the jar', roomObjectLabels: ['coin', 'jar'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [JAR, 'jar']]) },
+                { command: 'put the coin in the jar', roomObjectCatalog: catalogOf([[COIN, 'coin'], [JAR, 'jar']]) },
                 {
                     parseTokens: [text('put'), span('coin'), text('in'), span('jar')],
                     graphs: { [ROOM]: roomWith([COIN, JAR]) },
@@ -2067,7 +2046,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the coin in the table when the coin sits inside the jar (withinObject locus)', async () => {
             expect(await run(
-                { command: 'put the coin in the table', roomObjectLabels: ['coin', 'table'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
+                { command: 'put the coin in the table', roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
                 {
                     parseTokens: [text('put'), span('coin'), text('in'), span('table')],
                     containers: { [COIN]: [JAR] },
@@ -2081,7 +2060,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the rope on the table when the rope is lashed to the post (boundary edge: slice 3 expands it)', async () => {
             expect(await run(
-                { command: 'put the rope on the table', roomObjectLabels: ['rope', 'post', 'table'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post'], [TABLE, 'table']]) },
+                { command: 'put the rope on the table', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post'], [TABLE, 'table']]) },
                 {
                     parseTokens: [text('put'), span('rope'), text('on'), span('table')],
                     graphs: { [ROOM]: roomWith([ROPE, POST, TABLE], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
@@ -2128,7 +2107,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take rope: moves the part the actor\'s own position picks, and that is the attempt\'s one action', async () => {
             const { result } = await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog() as any },
+                { command: 'take rope', roomObjectCatalog: catalog() as any },
                 spreadRope()
             )
 
@@ -2139,7 +2118,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take rope when its part on the table is lashed to a post: the dissolve is found in the table, the host the part leaves', async () => {
             const { result } = await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog() as any },
+                { command: 'take rope', roomObjectCatalog: catalog() as any },
                 {
                     ...spreadRope(tableWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }])),
                     containers: { [ROPE]: [ROOM, TABLE], [POST]: [TABLE] },
@@ -2151,7 +2130,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('put the rope on the broom: moves the part the actor\'s own position picks', async () => {
             const { result } = await run(
-                { command: 'put the rope on the broom', roomObjectLabels: ['rope', 'broom'], roomObjectCatalog: catalog() as any },
+                { command: 'put the rope on the broom', roomObjectCatalog: catalog() as any },
                 { ...spreadRope(), parseTokens: [text('put'), span('rope'), text('on'), span('broom')] }
             )
 
@@ -2162,7 +2141,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('look at rope: reads the whole thing and is not asked or changed by the part the actor\'s position picks', async () => {
             const { result } = await run(
-                { command: 'look rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog() as any },
+                { command: 'look rope', roomObjectCatalog: catalog() as any },
                 { ...spreadRope(), parseTokens: [text('look'), span('rope')] }
             )
 
@@ -2172,7 +2151,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take rope when both parts reach the room: asks which part', async () => {
             const { result } = await run(
-                { command: 'take rope', roomObjectLabels: ['rope', 'table'], roomObjectCatalog: catalog(ropeEntry([ROOM], [ROOM])) as any },
+                { command: 'take rope', roomObjectCatalog: catalog(ropeEntry([ROOM], [ROOM])) as any },
                 spreadRope()
             )
 
@@ -2184,7 +2163,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             ['put the rope on the broom', [text('put'), span('rope'), text('on'), span('broom')]],
         ])('%s with no position to say which part: refused for want of a membership host', async (command, parseTokens) => {
             const { result } = await run(
-                { command, roomObjectLabels: ['rope', 'broom'], roomObjectCatalog: [{ objectId: ROPE, normalizedShortName: 'rope' }, { objectId: BROOM, normalizedShortName: 'broom' }] },
+                { command, roomObjectCatalog: [{ objectId: ROPE, normalizedShortName: 'rope' }, { objectId: BROOM, normalizedShortName: 'broom' }] },
                 { ...spreadRope(), parseTokens }
             )
 
@@ -2196,7 +2175,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
     describe('payoff: a lashed object moves (ISS8203 slice 3)', () => {
         it('put the rope on the table when the rope is lashed to the post: the published attempt dissolves the lashing, met, before the containment transfer', async () => {
             const result = await run(
-                { command: 'put the rope on the table', roomObjectLabels: ['rope', 'post', 'table'], roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post'], [TABLE, 'table']]) },
+                { command: 'put the rope on the table', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post'], [TABLE, 'table']]) },
                 {
                     parseTokens: [text('put'), span('rope'), text('on'), span('table')],
                     graphs: { [ROOM]: roomWith([ROPE, POST, TABLE], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'is lashed to' }]) },
@@ -2217,7 +2196,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         const STRING = 'OBJECT#String' as EphemeraObjectId
         const CUP = 'OBJECT#Cup' as EphemeraObjectId
         const takeOf = async (command: string, catalog: Array<[EphemeraObjectId, string]>, options: CaseOptions) => {
-            const { result } = await run({ command, roomObjectLabels: catalog.map(([, label]) => label), roomObjectCatalog: catalogOf(catalog) }, options)
+            const { result } = await run({ command, roomObjectCatalog: catalogOf(catalog) }, options)
             expect(result).toMatchObject({ type: 'CommandAttempt' })
             return CommandAttempt.fromJSON((result as { attempt: CommandAttemptData }).attempt)
         }
@@ -2271,7 +2250,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
     describe('a hosted object moves (its own hosting edge is not a boundary edge)', () => {
         it('take the coin when the coin sits on the table: the coin\'s own On edge in the table\'s shard does not throw', async () => {
             const { result } = await run(
-                { command: 'take coin', roomObjectLabels: ['coin', 'table'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
+                { command: 'take coin', roomObjectCatalog: catalogOf([[COIN, 'coin'], [TABLE, 'table']]) },
                 {
                     containers: { [COIN]: [TABLE] },
                     graphs: {
@@ -2297,7 +2276,6 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             const { result } = await run(
                 {
                     command: 'take coin',
-                    roomObjectLabels: ['coin', 'post', 'table'],
                     roomObjectCatalog: [
                         { objectId: COIN, normalizedShortName: 'coin', presence: [onTable] },
                         { objectId: POST, normalizedShortName: 'post', presence: [onTable] },
@@ -2380,7 +2358,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             }])
 
             const { result } = await run(
-                { command: 'take table', roomObjectLabels: roomObjectLabelsFromCatalog(entries), roomObjectCatalog: entries },
+                { command: 'take table', roomObjectCatalog: entries },
                 { graphs }
             )
             expect(result).toMatchObject({ type: 'CommandAttempt' })
@@ -2401,27 +2379,27 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
 
         it('take broom with two broom candidates (Consult on the fast path)', async () => {
             expect(await run(
-                { command: 'take the broom', roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [MOP, 'broom']]) },
+                { command: 'take the broom', roomObjectCatalog: catalogOf([[BROOM, 'broom'], [MOP, 'broom']]) },
                 { graphs: { [ROOM]: roomWith([BROOM, MOP]) } }
             )).toMatchSnapshot()
         })
 
         it('take broom with no room', async () => {
             expect(await run(
-                { command: 'take broom', characterId: undefined, hostRoomId: undefined, roomObjectLabels: ['broom'], roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }
+                { command: 'take broom', characterId: undefined, hostRoomId: undefined, roomObjectCatalog: catalogOf([[BROOM, 'broom']]) }
             )).toMatchSnapshot()
         })
 
         it('put the broom under the table with no room (no peer parse: Unimplemented)', async () => {
             expect(await run(
-                { command: 'put the broom under the table', hostRoomId: undefined, roomObjectLabels: ['broom', 'table'], roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
+                { command: 'put the broom under the table', hostRoomId: undefined, roomObjectCatalog: catalogOf([[BROOM, 'broom'], [TABLE, 'table']]) },
                 { parseTokens: [text('put'), span('broom'), text('under'), span('table')] }
             )).toMatchSnapshot()
         })
 
         it('put the coin in the jar with no room', async () => {
             expect(await run(
-                { command: 'put the coin in the jar', hostRoomId: undefined, roomObjectLabels: ['coin', 'jar'], roomObjectCatalog: catalogOf([[COIN, 'coin'], [JAR, 'jar']]) },
+                { command: 'put the coin in the jar', hostRoomId: undefined, roomObjectCatalog: catalogOf([[COIN, 'coin'], [JAR, 'jar']]) },
                 { parseTokens: [text('put'), span('coin'), text('in'), span('jar')] }
             )).toMatchSnapshot()
         })

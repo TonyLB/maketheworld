@@ -1,14 +1,14 @@
 import type { ObjectSpanToken, ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
-import type { PatternElement } from './deterministicTemplate'
+import { defineAttemptTemplate, fixedWord, words, type AttemptTemplate, type PatternCapture, type PatternElement } from './deterministicTemplate'
 import { granulesOf, tokenize } from './granuleTokens'
-import type { PatternCapture, PatternFill } from './patternTemplate'
+import type { PatternFill } from './patternTemplate'
 import {
     assembleIntent,
     fixedWordsOf,
     makePatternTemplate,
     matchPatternFills,
-    synthesizeSkeletonFromPattern,
 } from './patternTemplate'
+import { CommandAttempt } from '../commandAttempt'
 import { containmentTemplate } from '../enrich/objectManipulation/plan/matchContainmentTemplate'
 import { lookAtTemplate, lookTemplate } from '../enrich/objectManipulation/plan/matchLookTemplate'
 import { membershipTemplate } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
@@ -21,7 +21,8 @@ const fillsOf = (pattern: readonly PatternElement[], command: string, granuleOpt
     matchPatternFills(pattern, tokenize(granulesOf(granuleOptions), command))
 )
 
-const captureTexts = (fill: PatternFill) => fill.captures.map(({ text }) => text)
+/** A flat fill's pieces, fixed words and spans alike. */
+const captureTexts = (fill: PatternFill) => fill.segmentation.map((token) => (token.type === 'objectSpan' ? token.span : token.text))
 
 /** A segmentation as one line: spans bracketed, fixed words bare. */
 const segmentationLine = ({ segmentation }: PatternFill): string => (
@@ -38,13 +39,13 @@ const readingLine = ({ reading }: { reading: ParseSkeleton }): string => {
 
 describe('matchPatternFills', () => {
     it('matches a pure templateText pattern case-insensitively', () => {
-        const pattern: PatternElement[] = [{ type: 'templateText', options: ['look', 'l'] }]
+        const pattern: PatternElement[] = [words('look', 'l')]
         expect(fillsOf(pattern, 'Look')).toHaveLength(1)
         expect(fillsOf(pattern, 'l')).toHaveLength(1)
     })
 
     it('rejects near-miss text outside the closed vocabulary (anchoring proof)', () => {
-        const pattern: PatternElement[] = [{ type: 'templateText', options: ['look', 'l'] }]
+        const pattern: PatternElement[] = [words('look', 'l')]
         expect(fillsOf(pattern, 'looks')).toEqual([])
         expect(fillsOf(pattern, 'lookout')).toEqual([])
         expect(fillsOf(pattern, 'look around')).toEqual([])
@@ -52,36 +53,36 @@ describe('matchPatternFills', () => {
 
     it('captures an objectSpan slot, with its key', () => {
         const pattern: PatternElement[] = [
-            { type: 'templateText', options: ['take'] },
-            { type: 'objectSpan', role: 'subject' },
+            words('take'),
+            { type: 'objectSpan', name: 'subject' },
         ]
         const [fill, ...rest] = fillsOf(pattern, 'take red ball')
         expect(rest).toEqual([])
-        expect(fill.captures[1]).toEqual({ elementIndex: 1, kind: 'objectSpan', role: 'subject', text: 'red ball', stableRefKey: 'redBallRef' })
+        expect(fill.captures).toEqual({ subject: { kind: 'objectSpan', text: 'red ball', stableRefKey: 'redBallRef' } })
     })
 
     it('captures a capturedText slot', () => {
         const pattern: PatternElement[] = [
-            { type: 'templateText', options: ['relate'] },
-            { type: 'capturedText', role: 'relationLabel' },
+            words('relate'),
+            { type: 'capturedText', name: 'relationLabel' },
         ]
         const [fill, ...rest] = fillsOf(pattern, 'relate atop')
         expect(rest).toEqual([])
-        expect(fill.captures[1]).toMatchObject({ kind: 'capturedText', role: 'relationLabel', text: 'atop' })
+        expect(fill.captures).toEqual({ relationLabel: { kind: 'capturedText', text: 'atop' } })
     })
 
     it('bounds objectSpan captures between fixed text (does not overrun)', () => {
         const pattern: PatternElement[] = [
-            { type: 'templateText', options: ['put'] },
-            { type: 'objectSpan', role: 'subject' },
-            { type: 'templateText', options: ['on'] },
-            { type: 'objectSpan', role: 'target' },
+            words('put'),
+            { type: 'objectSpan', name: 'subject' },
+            words('on'),
+            { type: 'objectSpan', name: 'target' },
         ]
         expect(fillsOf(pattern, 'put red bag on small table').map(captureTexts)).toEqual([['put', 'red bag', 'on', 'small table']])
     })
 
     it('returns no fill for wrong vocabulary, trailing tokens, and empty input', () => {
-        const pattern: PatternElement[] = [{ type: 'templateText', options: ['help'] }]
+        const pattern: PatternElement[] = [words('help')]
         expect(fillsOf(pattern, 'assist')).toEqual([])
         expect(fillsOf(pattern, 'help me')).toEqual([])
         expect(fillsOf(pattern, '')).toEqual([])
@@ -89,10 +90,10 @@ describe('matchPatternFills', () => {
 
     it('returns every fill: a fixed word may sit inside a span in one fill and be the fixed word in another', () => {
         const pattern: PatternElement[] = [
-            { type: 'templateText', options: ['take'] },
-            { type: 'objectSpan', role: 'subject' },
-            { type: 'templateText', options: ['on'] },
-            { type: 'objectSpan', role: 'target' },
+            words('take'),
+            { type: 'objectSpan', name: 'subject' },
+            words('on'),
+            { type: 'objectSpan', name: 'target' },
         ]
         const fills = fillsOf(pattern, 'take cup on saucer on table')
         expect(fills.map(captureTexts)).toEqual(expect.arrayContaining([
@@ -104,10 +105,10 @@ describe('matchPatternFills', () => {
 
     it('a phrase option fills only where the text holds the phrase; its prefix option fills too', () => {
         const pattern: PatternElement[] = [
-            { type: 'templateText', options: ['put'] },
-            { type: 'objectSpan', role: 'subject' },
-            { type: 'templateText', options: ['on', 'on top of'] },
-            { type: 'objectSpan', role: 'target' },
+            words('put'),
+            { type: 'objectSpan', name: 'subject' },
+            words('on', 'on top of'),
+            { type: 'objectSpan', name: 'target' },
         ]
         const phraseFills = fillsOf(pattern, 'put cup on top of table')
         expect(phraseFills.map(captureTexts)).toEqual(expect.arrayContaining([
@@ -120,10 +121,10 @@ describe('matchPatternFills', () => {
 
     it('matches a fixed word only as a whole word: "on" inside "onion" or "onto" is no fill', () => {
         const pattern: PatternElement[] = [
-            { type: 'templateText', options: ['take'] },
-            { type: 'objectSpan', role: 'subject' },
-            { type: 'templateText', options: ['on'] },
-            { type: 'objectSpan', role: 'target' },
+            words('take'),
+            { type: 'objectSpan', name: 'subject' },
+            words('on'),
+            { type: 'objectSpan', name: 'target' },
         ]
         expect(fillsOf(pattern, 'take onion on table').map(captureTexts)).toEqual([['take', 'onion', 'on', 'table']])
         expect(fillsOf(pattern, 'take onion table')).toEqual([])
@@ -132,10 +133,10 @@ describe('matchPatternFills', () => {
 
     it('ignores case and collapses spacing, keeping the words as typed', () => {
         const pattern: PatternElement[] = [
-            { type: 'templateText', options: ['put'] },
-            { type: 'objectSpan', role: 'subject' },
-            { type: 'templateText', options: ['on top of'] },
-            { type: 'objectSpan', role: 'target' },
+            words('put'),
+            { type: 'objectSpan', name: 'subject' },
+            words('on top of'),
+            { type: 'objectSpan', name: 'target' },
         ]
         expect(fillsOf(pattern, '  Put  Red   Cup ON  top OF table ').map(captureTexts))
             .toEqual([['Put', 'Red Cup', 'ON top OF', 'table']])
@@ -143,18 +144,30 @@ describe('matchPatternFills', () => {
 
     it('builds no fill twice: options with the same words are one', () => {
         const pattern: PatternElement[] = [
-            { type: 'templateText', options: ['take', 'TAKE'] },
-            { type: 'objectSpan', role: 'subject' },
+            fixedWord('verb', { take: 'first', TAKE: 'second' }),
+            { type: 'objectSpan', name: 'subject' },
         ]
         const fills = fillsOf(pattern, 'take cup')
         expect(fills).toHaveLength(1)
-        expect(fills[0].captures[0]).toMatchObject({ option: 'take' })
+        expect(fills[0].captures.verb).toEqual({ kind: 'templateText', text: 'take', option: 'take', value: 'first' })
+    })
+
+    it('captures a named fixed word with its lexicon value, and an unnamed one not at all', () => {
+        const pattern: PatternElement[] = [
+            fixedWord('verb', { put: { form: 'puts' } }),
+            { type: 'objectSpan', name: 'subject' },
+            words('on'),
+            { type: 'objectSpan', name: 'target' },
+        ]
+        const [fill] = fillsOf(pattern, 'Put cup on table')
+        expect(Object.keys(fill.captures).sort()).toEqual(['subject', 'target', 'verb'])
+        expect(fill.captures.verb).toEqual({ kind: 'templateText', text: 'Put', option: 'put', value: { form: 'puts' } })
     })
 
     it('adjacent wildcards yield every split', () => {
         const pattern: PatternElement[] = [
-            { type: 'objectSpan', role: 'subject' },
-            { type: 'objectSpan', role: 'target' },
+            { type: 'objectSpan', name: 'subject' },
+            { type: 'objectSpan', name: 'target' },
         ]
         const granuleOptions = ['red', 'cup', 'box']
         expect(fillsOf(pattern, 'red cup box', granuleOptions).map(captureTexts)).toEqual(expect.arrayContaining([
@@ -191,8 +204,8 @@ describe('matchPatternFills', () => {
 
     describe('an object phrase', () => {
         const pattern: PatternElement[] = [
-            { type: 'templateText', options: ['take'] },
-            { type: 'objectPhrase', role: 'subject', prepositions: { ...ON_PREPOSITIONS, out: 'out of' } },
+            words('take'),
+            { type: 'objectPhrase', name: 'subject', prepositions: { ...ON_PREPOSITIONS, out: 'out of' } },
         ]
 
         it('returns every reading, each preposition a link or inside a span: 2^k for k prepositions, right-nested', () => {
@@ -215,10 +228,10 @@ describe('matchPatternFills', () => {
 
         it('chooses which phrase is the destination when a fixed word follows it', () => {
             const putPattern: PatternElement[] = [
-                { type: 'templateText', options: ['put'] },
-                { type: 'objectPhrase', role: 'subject', prepositions: ON_PREPOSITIONS },
-                { type: 'templateText', options: ['on'] },
-                { type: 'objectPhrase', role: 'target', prepositions: ON_PREPOSITIONS },
+                words('put'),
+                { type: 'objectPhrase', name: 'subject', prepositions: ON_PREPOSITIONS },
+                words('on'),
+                { type: 'objectPhrase', name: 'target', prepositions: ON_PREPOSITIONS },
             ]
             const readings = fillsOf(putPattern, 'put cup on saucer on table').map(readingLine).sort()
             expect(readings).toEqual(expect.arrayContaining([
@@ -229,10 +242,8 @@ describe('matchPatternFills', () => {
 
         it('captures the first span with its key, and each link', () => {
             const [cut] = fillsOf(pattern, 'take cup on saucer').filter(({ segmentation }) => segmentation.length === 4)
-            expect(cut.captures[1]).toEqual({
-                elementIndex: 1,
+            expect(cut.captures.subject).toEqual({
                 kind: 'objectPhrase',
-                role: 'subject',
                 text: 'cup',
                 stableRefKey: 'cupRef',
                 links: [{ text: 'on', option: 'on', span: 'saucer' }],
@@ -284,9 +295,9 @@ describe('matchPatternFills', () => {
     describe('adding a template changes no reading of a command it does not read completely', () => {
         const live = [containmentTemplate, spreadTemplate, lookTemplate, lookAtTemplate, membershipTemplate].map(({ pattern }) => pattern)
         const invented: PatternElement[] = [
-            { type: 'templateText', options: ['wrap'] },
-            { type: 'objectSpan', role: 'subject' },
-            { type: 'templateText', options: ['in a blanket', 'of both', 'top'] },
+            words('wrap'),
+            { type: 'objectSpan', name: 'subject' },
+            words('in a blanket', 'of both', 'top'),
         ]
         const readingsUnder = (options: readonly string[], command: string): string[] => live.flatMap((pattern) => (
             matchPatternFills(pattern, tokenize(granulesOf(options), command)).map((fill) => `${segmentationLine(fill)} / ${readingLine(fill)}`)
@@ -309,52 +320,55 @@ describe('matchPatternFills', () => {
 
 describe('assembleIntent', () => {
     it('returns the constant templateIntent unchanged when there are no captures', () => {
-        const intent = assembleIntent({ type: 'LookRoom', confidence: 1 }, [])
+        const intent = assembleIntent({ type: 'LookRoom', confidence: 1 }, {})
         expect(intent).toEqual({ type: 'LookRoom', confidence: 1 })
     })
 
-    it('merges role-tagged objectSpan/capturedText captures into the constant', () => {
-        const captures: PatternCapture[] = [
-            { elementIndex: 0, kind: 'templateText', text: 'put', option: 'put' },
-            { elementIndex: 1, kind: 'objectSpan', role: 'subject', text: 'bag' },
-        ]
+    it('merges each named objectSpan/capturedText capture into the constant, under its name', () => {
+        const captures: Record<string, PatternCapture> = {
+            verb: { kind: 'templateText', text: 'put', option: 'put', value: 'put' },
+            subject: { kind: 'objectSpan', text: 'bag', stableRefKey: 'bagRef' },
+        }
         const intent = assembleIntent({ type: 'ObjectRelateIntent', confidence: 1 }, captures)
         expect(intent).toEqual({ type: 'ObjectRelateIntent', confidence: 1, subject: 'bag' })
     })
 
     it('templateText captures contribute nothing to the assembled intent', () => {
-        const captures: PatternCapture[] = [{ elementIndex: 0, kind: 'templateText', text: 'look', option: 'look' }]
+        const captures: Record<string, PatternCapture> = { verb: { kind: 'templateText', text: 'look', option: 'look', value: 'look' } }
         const intent = assembleIntent({ type: 'LookRoom', confidence: 1 }, captures)
         expect(intent).toEqual({ type: 'LookRoom', confidence: 1 })
     })
 })
 
-describe('synthesizeSkeletonFromPattern', () => {
-    it('emits a single TextToken holding the matched word for a pure templateText pattern', () => {
-        const pattern: PatternElement[] = [{ type: 'templateText', options: ['look', 'l'] }]
-        const captures: PatternCapture[] = [{ elementIndex: 0, kind: 'templateText', text: 'l', option: 'l' }]
-        expect(synthesizeSkeletonFromPattern(pattern, captures)).toEqual([{ type: 'text', text: 'l' }])
+// Checked by ts-jest's type check: each `@ts-expect-error` fails the suite if its line compiles.
+describe('defineAttemptTemplate', () => {
+    const pattern = [fixedWord('verb', { take: 'takes' }), { type: 'objectSpan', name: 'subject' } as const] as const
+
+    it('hands the builder its captures by name, typed from the pattern', () => {
+        const template = defineAttemptTemplate({
+            name: 'membership',
+            pattern,
+            build: ({ verb, subject }, command) => CommandAttempt.create('membership', `${command} ${verb.value} ${subject.stableRefKey}`, []),
+        })
+        // Plan holds every template as the general type, and hands it a fill's captures by name.
+        const general: AttemptTemplate = template
+        const [fill] = fillsOf(general.pattern, 'take cup')
+        expect(general.build(fill.captures, 'x').words).toBe('x takes cupRef')
     })
 
-    it('emits an ObjectSpanToken with a stamped stableRefKey for an objectSpan element', () => {
-        const pattern: PatternElement[] = [
-            { type: 'templateText', options: ['take'] },
-            { type: 'objectSpan', role: 'subject' },
-        ]
-        const captures: PatternCapture[] = [
-            { elementIndex: 0, kind: 'templateText', text: 'take', option: 'take' },
-            { elementIndex: 1, kind: 'objectSpan', role: 'subject', text: 'red ball' },
-        ]
-        const skeleton = synthesizeSkeletonFromPattern(pattern, captures)
-        expect(skeleton[0]).toEqual({ type: 'text', text: 'take' })
-        expect(skeleton[1]).toMatchObject({ type: 'objectSpan', span: 'red ball' })
-        expect(typeof (skeleton[1] as { stableRefKey: string }).stableRefKey).toBe('string')
-    })
-
-    it('emits a TextToken for a capturedText element', () => {
-        const pattern: PatternElement[] = [{ type: 'capturedText', role: 'relationLabel' }]
-        const captures: PatternCapture[] = [{ elementIndex: 0, kind: 'capturedText', role: 'relationLabel', text: 'atop' }]
-        expect(synthesizeSkeletonFromPattern(pattern, captures)).toEqual([{ type: 'text', text: 'atop' }])
+    it('rejects a builder reading a name its pattern lacks, and a pattern using one name twice', () => {
+        defineAttemptTemplate({
+            name: 'membership',
+            pattern,
+            // @ts-expect-error: the pattern has no `target`
+            build: ({ target }, command) => CommandAttempt.create('membership', `${command} ${target.text}`, []),
+        })
+        // @ts-expect-error: `subject` names two elements
+        defineAttemptTemplate({
+            name: 'membership',
+            pattern: [{ type: 'objectSpan', name: 'subject' } as const, words('on'), { type: 'objectSpan', name: 'subject' } as const],
+            build: (_captures, command) => CommandAttempt.create('membership', command, []),
+        })
     })
 })
 
@@ -362,8 +376,8 @@ describe('makePatternTemplate', () => {
     it('produces the same intent shape via matchString and matchTokens for a synthetic pattern', () => {
         const template = makePatternTemplate(
             [
-                { type: 'templateText', options: ['take'] },
-                { type: 'objectSpan', role: 'subject' },
+                words('take'),
+                { type: 'objectSpan', name: 'subject' },
             ],
             { type: 'ObjectRelateIntent', confidence: 1 }
         )
@@ -383,10 +397,10 @@ describe('makePatternTemplate', () => {
     it('an intent row with several fills is noMatch: one intent cannot carry them', () => {
         const template = makePatternTemplate(
             [
-                { type: 'templateText', options: ['take'] },
-                { type: 'objectSpan', role: 'subject' },
-                { type: 'templateText', options: ['on'] },
-                { type: 'objectSpan', role: 'target' },
+                words('take'),
+                { type: 'objectSpan', name: 'subject' },
+                words('on'),
+                { type: 'objectSpan', name: 'target' },
             ],
             { type: 'ObjectRelateIntent', confidence: 1 }
         )

@@ -1,5 +1,6 @@
 import type { ParseSkeleton, ParseToken, ParseTokenDraft } from '../parse/parseToken'
-import type { CommandAttempt } from '../../../commandAttempt'
+import type { AttemptKind, CommandAttempt } from '../../../commandAttempt'
+import type { AttemptTemplate } from '../../../deterministicTemplate/deterministicTemplate'
 import type { SkeletonFill } from '../compileAttemptsFromSkeleton'
 import { granulesOf, tokenize, type GranuleToken } from '../../../deterministicTemplate/granuleTokens'
 import { fixedWordsOf, matchPattern, readFills, skeletonText } from '../../../deterministicTemplate/patternTemplate'
@@ -11,15 +12,13 @@ import { exceedsQualifierCap } from './qualifierPrepositions'
 import { spreadTemplate } from './matchSpreadTemplate'
 
 /** The object templates, in order: the first attempt is the primary one. */
-const PLAN_TEMPLATES = [containmentTemplate, spreadTemplate, lookTemplate, lookAtTemplate, membershipTemplate] as const
-
-export type PlanTemplateName = typeof PLAN_TEMPLATES[number]['name']
+const PLAN_TEMPLATES: readonly AttemptTemplate[] = [containmentTemplate, spreadTemplate, lookTemplate, lookAtTemplate, membershipTemplate]
 
 /** The granules of every object template's fixed words: how both routes cut a command into tokens. */
 export const PLAN_GRANULES = granulesOf(PLAN_TEMPLATES.flatMap(({ pattern }) => fixedWordsOf(pattern)))
 
 /** One fill of one template: its segmentation, and the attempt built from it with its reading's qualifiers lowered. */
-export type PlanTemplateRead = { template: PlanTemplateName; segmentation: ParseSkeleton; segmentationKey: string; attempt: CommandAttempt }
+export type PlanTemplateRead = { template: AttemptKind; segmentation: ParseSkeleton; segmentationKey: string; attempt: CommandAttempt }
 
 /**
  * Every template's every fill over the tokens, in template order, keys stamped across them all

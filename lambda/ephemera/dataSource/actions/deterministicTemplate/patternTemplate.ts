@@ -4,30 +4,16 @@ import type {
     ParseToken,
     ParseTokenDraft,
 } from '../enrich/objectManipulation/parse/parseToken'
-import { stableRefKeysByRange, stampStableRefKeys } from '../enrich/objectManipulation/parse/stampStableRefKeys'
+import { stableRefKeysByRange } from '../enrich/objectManipulation/parse/stampStableRefKeys'
 import type { ParseCommandResult } from '../baseClasses'
 import type {
     DeterministicTemplate,
     DeterministicTemplateDeferReason,
     DeterministicTemplateMatch,
-    IntentFieldRole,
+    PatternCapture,
     PatternElement,
 } from './deterministicTemplate'
 import { granulesOf, optionWords, tokenize, type GranuleToken } from './granuleTokens'
-
-/**
- * What a single pattern element captured out of a fill. `text` is the element's tokens re-joined;
- * a `templateText` capture also names the option it matched, as written in the pattern. A span's
- * capture carries its occurrence's key. An `objectPhrase` capture's `text` is its first span, and
- * each link holds a preposition (as typed, and the option it matched) and the span after it.
- */
-export type PatternCapture =
-    | { elementIndex: number; kind: 'templateText'; text: string; option: string }
-    | { elementIndex: number; kind: 'objectSpan'; role: IntentFieldRole; text: string; stableRefKey?: string }
-    | { elementIndex: number; kind: 'capturedText'; role: IntentFieldRole; text: string }
-    | { elementIndex: number; kind: 'objectPhrase'; role: IntentFieldRole; text: string; stableRefKey?: string; links: ObjectPhraseLink[] }
-
-export type ObjectPhraseLink = { text: string; option: string; span: string }
 
 /** A run of tokens, from `start` up to (not including) `end`. */
 export type TokenRange = { start: number; end: number }
@@ -44,13 +30,13 @@ type ElementMatch =
 export type TokenFill = readonly ElementMatch[]
 
 /**
- * A fill read out: what each element captured (parallel to the pattern), the reading (each object
+ * A fill read out: what each named element captured (keyed by its name), the reading (each object
  * phrase's spans nested onto its first span as qualifiers), and the segmentation (the same tokens
  * flat: each fixed word a text token, each span an object span token). Two fills with the same
  * `segmentationKey` cut the command at the same token ranges.
  */
 export type PatternFill = {
-    captures: PatternCapture[]
+    captures: Record<string, PatternCapture>
     reading: ParseSkeleton
     segmentation: ParseSkeleton
     segmentationKey: string
@@ -59,7 +45,7 @@ export type PatternFill = {
 /** Every fixed word a pattern reads: its fixed-word options, and each object phrase's prepositions. */
 export function fixedWordsOf(pattern: readonly PatternElement[]): string[] {
     return pattern.flatMap((element) => (
-        element.type === 'templateText' ? [...element.options] : element.type === 'objectPhrase' ? Object.keys(element.prepositions) : []
+        element.type === 'templateText' ? Object.keys(element.lexicon) : element.type === 'objectPhrase' ? Object.keys(element.prepositions) : []
     ))
 }
 
@@ -129,7 +115,7 @@ function fillsFrom(pattern: readonly PatternElement[], tokens: readonly GranuleT
         fillsFrom(pattern, tokens, elementIndex + 1, next).map((rest) => [match, ...rest])
     )
     if (element.type === 'templateText') {
-        return optionMatchesAt(tokens, index, element.options).flatMap(({ option, end }) => then({ kind: 'templateText', range: { start: index, end }, option }, end))
+        return optionMatchesAt(tokens, index, Object.keys(element.lexicon)).flatMap(({ option, end }) => then({ kind: 'templateText', range: { start: index, end }, option }, end))
     }
     if (element.type === 'objectPhrase') {
         return phrasesFrom(tokens, index, Object.keys(element.prepositions)).flatMap(({ phrase, end }) => then({ kind: 'objectPhrase', phrase }, end))
@@ -170,10 +156,14 @@ export function readFills(tokens: readonly GranuleToken[], matches: readonly { p
     return matches.map(({ pattern, fill }) => {
         const elements = fill.map((match, elementIndex) => {
             const element = pattern[elementIndex]
+            const named = (capture: PatternCapture): Record<string, PatternCapture> => (element.name === undefined ? {} : { [element.name]: capture })
             if (match.kind === 'templateText') {
+                if (element.type !== 'templateText') {
+                    throw new Error('readFills: a fixed-word match on another element')
+                }
                 const token: ParseToken = { type: 'text', text: tokenText(tokens, match.range) }
                 return {
-                    capture: { elementIndex, kind: 'templateText', text: token.text, option: match.option } as PatternCapture,
+                    captures: named({ kind: 'templateText', text: token.text, option: match.option, value: element.lexicon[match.option] }),
                     reading: [token],
                     segmentation: [token],
                     keys: [rangeKey(match.range, 't')],
@@ -190,14 +180,12 @@ export function readFills(tokens: readonly GranuleToken[], matches: readonly { p
                 const links = (phrase: PhraseRanges): NonNullable<PhraseRanges['link']>[] => (phrase.link ? [phrase.link, ...links(phrase.link.tail)] : [])
                 const head = spanToken(match.phrase.head)
                 return {
-                    capture: {
-                        elementIndex,
+                    captures: named({
                         kind: 'objectPhrase',
-                        role: element.role,
                         text: head.span,
                         stableRefKey: head.stableRefKey,
                         links: links(match.phrase).map(({ preposition, option, tail }) => ({ text: tokenText(tokens, preposition), option, span: tokenText(tokens, tail.head) })),
-                    } as PatternCapture,
+                    }),
                     reading: [nested(match.phrase)],
                     segmentation: [head, ...links(match.phrase).flatMap(({ preposition, tail }): ParseToken[] => [{ type: 'text', text: tokenText(tokens, preposition) }, spanToken(tail.head)])],
                     keys: [rangeKey(match.phrase.head, 's'), ...links(match.phrase).flatMap(({ preposition, tail }) => [rangeKey(preposition, 't'), rangeKey(tail.head, 's')])],
@@ -208,16 +196,16 @@ export function readFills(tokens: readonly GranuleToken[], matches: readonly { p
             }
             const token: ParseToken = match.kind === 'objectSpan' ? spanToken(match.range) : { type: 'text', text: tokenText(tokens, match.range) }
             return {
-                capture: (token.type === 'objectSpan'
-                    ? { elementIndex, kind: 'objectSpan', role: element.role, text: token.span, stableRefKey: token.stableRefKey }
-                    : { elementIndex, kind: 'capturedText', role: element.role, text: token.text }) as PatternCapture,
+                captures: named(token.type === 'objectSpan'
+                    ? { kind: 'objectSpan', text: token.span, stableRefKey: token.stableRefKey }
+                    : { kind: 'capturedText', text: token.text }),
                 reading: [token],
                 segmentation: [token],
                 keys: [rangeKey(match.range, token.type === 'objectSpan' ? 's' : 't')],
             }
         })
         return {
-            captures: elements.map(({ capture }) => capture),
+            captures: Object.assign({}, ...elements.map(({ captures }) => captures)),
             reading: elements.flatMap(({ reading }) => reading),
             segmentation: elements.flatMap(({ segmentation }) => segmentation),
             segmentationKey: elements.flatMap(({ keys }) => keys).join(' '),
@@ -231,55 +219,19 @@ export function matchPatternFills(pattern: readonly PatternElement[], tokens: re
 }
 
 /**
- * The one generic combinator: merges a template's constant `templateIntent` with
- * role-tagged captures. `templateText` captures never contribute (every template
- * using it already fixes the relevant intent field as a constant regardless of
- * which synonym matched). Cast at the boundary -- callers are responsible for each
- * template's `templateIntent`/role vocabulary being consistent with the target
- * `ParseCommandResult` member, matching this codebase's existing comfort with
- * structural trust over runtime union validation (see deterministicChecks.ts).
+ * The one generic combinator: merges a template's constant `templateIntent` with its named span
+ * captures, each under its element's name. Fixed-word captures never contribute (every template
+ * using one already fixes the relevant intent field as a constant regardless of which synonym
+ * matched). Cast at the boundary -- callers are responsible for each template's
+ * `templateIntent`/name vocabulary being consistent with the target `ParseCommandResult` member,
+ * matching this codebase's existing comfort with structural trust over runtime union validation
+ * (see deterministicChecks.ts).
  */
-export function assembleIntent(templateIntent: Partial<ParseCommandResult>, captures: PatternCapture[]): ParseCommandResult {
-    const roleTaggedCaptures: Record<string, string> = {}
-    for (const capture of captures) {
-        if (capture.kind === 'objectSpan' || capture.kind === 'capturedText') {
-            roleTaggedCaptures[capture.role] = capture.text
-        }
-    }
-    return { ...templateIntent, ...roleTaggedCaptures } as ParseCommandResult
-}
-
-/**
- * Walks matched elements and emits one ParseToken per element -- `objectSpan`
- * becomes an ObjectSpanToken, `templateText`/`capturedText` become a TextToken, and an
- * `objectPhrase` becomes its first span then a TextToken and a span per link,
- * holding the actually-matched text (not a canonicalized option), consistent with
- * this codebase's existing principle that tokens identify the actual occurrence,
- * not a canonical form (stampStableRefKeys.ts). Captures are parallel to the pattern,
- * so index lookup (not a search) is safe.
- */
-export function synthesizeSkeletonFromPattern(pattern: readonly PatternElement[], captures: PatternCapture[]): ParseSkeleton {
-    return stampStableRefKeys(draftFromPattern(pattern, captures))
-}
-
-/** The flat, unstamped skeleton one fill builds: each object phrase flattened to its spans and prepositions. */
-export function draftFromPattern(pattern: readonly PatternElement[], captures: PatternCapture[]): ParseTokenDraft[] {
-    return pattern.flatMap((element, elementIndex): ParseTokenDraft[] => {
-        const capture = captures[elementIndex]
-        if (element.type === 'objectSpan') {
-            return [{ type: 'objectSpan', span: capture.text }]
-        }
-        if (capture.kind === 'objectPhrase') {
-            return [
-                { type: 'objectSpan', span: capture.text },
-                ...capture.links.flatMap(({ text, span }): ParseTokenDraft[] => [
-                    { type: 'text', text },
-                    { type: 'objectSpan', span },
-                ]),
-            ]
-        }
-        return [{ type: 'text', text: capture.text }]
-    })
+export function assembleIntent(templateIntent: Partial<ParseCommandResult>, captures: Readonly<Record<string, PatternCapture>>): ParseCommandResult {
+    const named = Object.entries(captures).flatMap(([name, capture]) => (
+        capture.kind === 'objectSpan' || capture.kind === 'capturedText' ? [[name, capture.text] as const] : []
+    ))
+    return { ...templateIntent, ...Object.fromEntries(named) } as ParseCommandResult
 }
 
 /**

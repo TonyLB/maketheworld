@@ -110,7 +110,7 @@ describe('resumePersistentCommand', () => {
     })
 
     it('narrows the frozen attempts to the selected one', async () => {
-        const sibling = CommandAttempt.create('take cup', planned[0]!.actions().map((action) => action.withChallenges([])), [])
+        const sibling = CommandAttempt.create(planned[0]!.kind, 'take cup', planned[0]!.actions().map((action) => action.withChallenges([])), [])
         const siblingData = { ...sibling.toJSON(), actions: sibling.toJSON().actions.map((action) => ({ ...action, id: 'sibling-primary' })) }
         const row = rowOf()
         const both = { ...row, root: { ...row.root, fills: [{ skeleton, attempts: [...row.root.fills[0]!.attempts, siblingData] }] } }

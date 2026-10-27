@@ -211,7 +211,6 @@ describe('object containment In payoff (integration)', () => {
             {
                 command: 'put the ball in the box',
                 hostRoomId: ROOM_ID,
-                roomObjectLabels: ['ball', 'box'],
                 roomObjectCatalog: [
                     { objectId: BALL_ID, normalizedShortName: 'ball' },
                     { objectId: BOX_ID, normalizedShortName: 'box' },

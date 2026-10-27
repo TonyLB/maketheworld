@@ -79,7 +79,7 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
                     { type: 'text', text: 'balance' },
                     { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
                     { type: 'text', text: 'carefully' },
-                ], attempts: [CommandAttempt.create('balance broom carefully', [])] }],
+                ], attempts: [CommandAttempt.create('look', 'balance broom carefully', [])] }],
                 characterId,
             },
             0.9

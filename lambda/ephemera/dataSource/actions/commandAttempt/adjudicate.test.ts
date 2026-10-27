@@ -4,6 +4,7 @@ import { adjudicateAttempt, isCommandAttemptData } from './adjudicate'
 describe('adjudicateAttempt', () => {
     it('leaves a challenge-free attempt succeeded (nothing to adjudicate)', () => {
         const attempt = CommandAttempt.fromJSON({
+            kind: 'membership',
             words: 'take the broom',
             referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
             actions: [{ kind: 'position', id: 'action-1', desiredResultDescription: 'Take: broom', challenges: [] }],
@@ -16,6 +17,7 @@ describe('adjudicateAttempt', () => {
     })
 
     const ropeAttempt = (challenge: object) => CommandAttempt.fromJSON({
+        kind: 'membership',
         words: 'take the rope',
         referents: [{ refKey: 'primaryObject', id: 'OBJECT#Rope', shortName: 'rope' }],
         actions: [
@@ -60,6 +62,7 @@ describe('adjudicateAttempt', () => {
 describe('isCommandAttemptData', () => {
     it('accepts a well-shaped CommandAttemptData', () => {
         expect(isCommandAttemptData({
+            kind: 'membership',
             words: 'take the broom',
             referents: [{ refKey: 'primaryObject', id: 'OBJECT#Broom', shortName: 'broom' }],
             actions: [{ kind: 'position', id: 'action-4', challenges: [] }],
@@ -72,11 +75,13 @@ describe('isCommandAttemptData', () => {
         expect(isCommandAttemptData(null)).toBe(false)
         expect(isCommandAttemptData(undefined)).toBe(false)
         expect(isCommandAttemptData({
+            kind: 'membership',
             words: 'take the broom',
             referents: [],
             actions: [{ kind: 'position', id: 'action-5', challenges: [{ kind: 'customEdge', id: 'x', description: 'd' }] }],
         })).toBe(false)
         expect(isCommandAttemptData({
+            kind: 'membership',
             words: 'take the broom',
             referents: [],
             actions: [{ kind: 'position', challenges: [] }],
@@ -85,6 +90,7 @@ describe('isCommandAttemptData', () => {
 
     it('accepts a narration unit carrying unfilled parts, and rejects one carrying a filled template instead', () => {
         const withVariant = (variant: object) => ({
+            kind: 'membership',
             words: 'take the rope',
             referents: [],
             actions: [{ kind: 'position', id: 'action-6', challenges: [] }],

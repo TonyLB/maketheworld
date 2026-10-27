@@ -1,6 +1,6 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { CommandAttempt, CommandAttemptData, CommandAttemptReferent } from './index'
+import { ATTEMPT_KINDS, type AttemptKind, type CommandAttempt, type CommandAttemptData, type CommandAttemptReferent } from './index'
 import type { AttemptActionData } from './action'
 import type { NarrationUnit } from './narrationUnit'
 import type { ChallengeData } from './challenge'
@@ -159,7 +159,7 @@ export const isCommandAttemptData = (value: unknown): value is CommandAttemptDat
         return false
     }
     const v = value as Record<string, unknown>
-    if (typeof v.words !== 'string') {
+    if (!ATTEMPT_KINDS.includes(v.kind as AttemptKind) || typeof v.words !== 'string') {
         return false
     }
     if (!Array.isArray(v.referents) || !v.referents.every(isCommandAttemptReferent)) {

@@ -81,7 +81,7 @@ const membershipAttempt = (operation: 'takeHold' | 'drop' = 'takeHold'): Command
         new Map([['primaryObject', { id: BROOM, shortName: 'broom' }]])
     )
     return CommandAttempt.fromJSON(
-        CommandAttempt.create('pick up the broom', [
+        CommandAttempt.create('membership', 'pick up the broom', [
             new PositionAttemptAction('action-1', [], step, `${operation === 'takeHold' ? 'Take' : 'Drop'}: broom`),
         ]).toJSON()
     )
@@ -104,6 +104,7 @@ const mockLiveHosts = (broomHost: EphemeraRoomId | EphemeraCharacterId | Ephemer
  * `containment` flag, `from` derived from the subject's own span (`currentHost(span:subject)`),
  * ungrounded on `object`/`to` --- same shape the real producer builds. */
 const containmentAttempt = (containment: 'On' | 'In' = 'On'): CommandAttempt => CommandAttempt.fromJSON({
+    kind: 'containment',
     words: 'put the cup on the tray',
     referents: [
         { refKey: 'subject', id: BROOM, shortName: 'cup' },
@@ -126,6 +127,7 @@ const containmentAttempt = (containment: 'On' | 'In' = 'On'): CommandAttempt => 
 })
 
 const relationalAttempt = (primitive: 'establishRelation' | 'dissolveRelation' = 'establishRelation'): CommandAttempt => CommandAttempt.fromJSON({
+    kind: 'relation',
     words: 'put the broom under the table',
     referents: [],
     actions: [{
@@ -286,6 +288,7 @@ describe('commitAttempt', () => {
         planRelationalEdgeTransferMock.mockResolvedValue({ ok: true, steps: [relationalStep] as any })
 
         const mixedAttempt = CommandAttempt.fromJSON({
+            kind: 'containment',
             words: 'put the broom on the table',
             referents: [
                 { refKey: 'subject', id: BROOM, shortName: 'broom' },
@@ -335,6 +338,7 @@ describe('commitAttempt', () => {
 
         // The published attempt, as parseCommand's round trip hands it over: the met dissolve first.
         const published = CommandAttempt.fromJSON({
+            kind: 'containment',
             words: 'put the broom on the table',
             referents: [
                 { refKey: 'subject', id: BROOM, shortName: 'broom' },
@@ -380,6 +384,7 @@ describe('commitAttempt', () => {
 
     it('is a no-op for an action with no desiredResult', async () => {
         const attempt = CommandAttempt.fromJSON({
+            kind: 'look',
             words: 'look at the cup',
             referents: [],
             actions: [{ kind: 'position', id: 'action-8', desiredResultDescription: 'Describe: cup', challenges: [] }],
@@ -412,6 +417,7 @@ describe('commitAttempt', () => {
     describe('an extend, then a move of the new binding', () => {
         /** `[extend broom, move the new binding onto the table]`, as the spread template plans it, round-tripped through JSON. */
         const spreadAttempt = (): CommandAttempt => CommandAttempt.fromJSON({
+            kind: 'spread',
             words: 'spread the broom over the table',
             referents: [
                 { refKey: 'subject', id: BROOM, shortName: 'broom' },
@@ -614,7 +620,7 @@ describe('commitAttempt', () => {
             planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: takePlan as any, fromHostId: ROOM })
             const take = membershipAttempt('takeHold')
 
-            await commitAttempt({ attempt: CommandAttempt.create(take.words, take.actions(), [takeUnit]), characterId: CHARACTER, messageBus, streamEvent })
+            await commitAttempt({ attempt: CommandAttempt.create(take.kind, take.words, take.actions(), [takeUnit]), characterId: CHARACTER, messageBus, streamEvent })
 
             expect(deliverNarrationUnitsMock).toHaveBeenCalledTimes(1)
             const [sweepArgs] = deliverNarrationUnitsMock.mock.calls[0]!
@@ -661,7 +667,7 @@ describe('commitAttempt', () => {
                 covers: [actionId],
                 variants: [{ audience: { refs: [key], phase: 'before' as const }, parts: [{ slot: 'actor' as const }, { text: ' snatches ' }, { ref: key }] }],
             })
-            const attempt = CommandAttempt.fromJSON(CommandAttempt.create('take the mop, the bucket and the broom', [
+            const attempt = CommandAttempt.fromJSON(CommandAttempt.create('membership', 'take the mop, the bucket and the broom', [
                 takeOf('take-mop', MOP, 'mop'),
                 takeOf('take-bucket', 'OBJECT#Bucket' as EphemeraObjectId, 'bucket'),
                 takeOf('take-broom', BROOM, 'broom'),
@@ -690,7 +696,7 @@ describe('commitAttempt', () => {
             }
             planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: { steps: [] } as any, fromHostId: ROOM })
 
-            await commitAttempt({ attempt: CommandAttempt.create(take.words, take.actions(), [authored]), characterId: CHARACTER, messageBus, streamEvent })
+            await commitAttempt({ attempt: CommandAttempt.create(take.kind, take.words, take.actions(), [authored]), characterId: CHARACTER, messageBus, streamEvent })
 
             const [sweepArgs] = deliverNarrationUnitsMock.mock.calls[0]!
             expect(sweepArgs.labels).toEqual({ [BOB]: 'bob', primaryObject: 'broom', [NICHE]: 'something' })

@@ -5,7 +5,7 @@ import type { GroundedAttemptCandidate } from './attemptCandidates'
 import { applyChallengeAnswers, primaryActionIdOf } from './resumeAnswers'
 
 const candidateWithExitChallenge = (): GroundedAttemptCandidate => ({
-    attempt: CommandAttempt.create('take rope', [
+    attempt: CommandAttempt.create('membership', 'take rope', [
         new PositionAttemptAction('primary', [new ExitEdgeChallenge('exitEdge:primary', 'touches an exit')], undefined, 'Take: rope'),
     ]),
     confidence: 1,
@@ -16,7 +16,7 @@ const challengesOf = (candidate: GroundedAttemptCandidate) => candidate.attempt.
 
 describe('primaryActionIdOf', () => {
     it('is the last action\'s id', () => {
-        const attempt = CommandAttempt.create('x', [
+        const attempt = CommandAttempt.create('membership', 'x', [
             new PositionAttemptAction('first', [], undefined, ''),
             new PositionAttemptAction('last', [], undefined, ''),
         ])

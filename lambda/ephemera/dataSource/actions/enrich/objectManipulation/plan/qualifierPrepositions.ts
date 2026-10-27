@@ -1,4 +1,4 @@
-import type { IntentFieldRole, PatternElement } from '../../../deterministicTemplate/deterministicTemplate'
+import { fixedWord, objectPhrase } from '../../../deterministicTemplate/deterministicTemplate'
 import type { GranuleToken } from '../../../deterministicTemplate/granuleTokens'
 import { optionMatchesAt } from '../../../deterministicTemplate/patternTemplate'
 import type { QualifierPreposition } from '../parse/parseToken'
@@ -27,21 +27,17 @@ export const QUALIFIER_OPTIONS: Readonly<Record<string, QualifierPreposition>> =
     out: 'out of',
 }
 
-/** The pattern element for a closed-set preposition; a capture's `option` keys `QUALIFIER_OPTIONS`. */
-export const QUALIFIER_PREPOSITION_ELEMENT: PatternElement = { type: 'templateText', options: Object.keys(QUALIFIER_OPTIONS) }
+/** The pattern element for a closed-set preposition; a capture's value is the canonical preposition. */
+export const QUALIFIER_PREPOSITION_ELEMENT = fixedWord('preposition', QUALIFIER_OPTIONS)
 
 /**
- * An object phrase linked at the closed-set prepositions, in a role: its readings nest each linked
- * span as a qualifier, with the preposition canonical.
+ * An object phrase linked at the closed-set prepositions, under a name: its readings nest each
+ * linked span as a qualifier, with the preposition canonical.
  */
-export const qualifierObjectPhraseElement = (role: IntentFieldRole): PatternElement => ({
-    type: 'objectPhrase',
-    role,
-    prepositions: QUALIFIER_OPTIONS,
-})
+export const qualifierObjectPhraseElement = <Name extends string>(name: Name) => objectPhrase(name, QUALIFIER_OPTIONS)
 
 /** The subject object phrase: the membership and look templates'. */
-export const QUALIFIER_OBJECT_PHRASE_ELEMENT: PatternElement = qualifierObjectPhraseElement('subject')
+export const QUALIFIER_OBJECT_PHRASE_ELEMENT = qualifierObjectPhraseElement('subject')
 
 /** The most closed-set prepositions a command can hold and still be read deterministically. */
 export const QUALIFIER_CAP = 6

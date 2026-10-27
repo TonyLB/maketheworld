@@ -51,6 +51,7 @@ export const applyChallengeAnswers = (
         }
         const asked = owner.challenges().find((challenge) => challenge.id === challengeId)!
         return CommandAttempt.create(
+            judged.kind,
             judged.words,
             judged.actions().map((action) => (action.id === owner.id
                 ? action.withChallenges([

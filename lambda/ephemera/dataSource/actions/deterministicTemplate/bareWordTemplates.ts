@@ -1,3 +1,4 @@
+import { words } from './deterministicTemplate'
 import { makePatternTemplate } from './patternTemplate'
 
 /**
@@ -17,22 +18,22 @@ import { makePatternTemplate } from './patternTemplate'
  * built), not a deterministic template.
  */
 export const lookTemplate = makePatternTemplate(
-    [{ type: 'templateText', options: ['look', 'l'] }],
+    [words('look', 'l')],
     { type: 'LookRoom', confidence: 1 }
 )
 
 export const helpTemplate = makePatternTemplate(
-    [{ type: 'templateText', options: ['help', 'help me', 'i need help', 'show help'] }],
+    [words('help', 'help me', 'i need help', 'show help')],
     { type: 'Help', confidence: 1 }
 )
 
 export const homeTemplate = makePatternTemplate(
-    [{ type: 'templateText', options: ['home', 'go home', 'head home', 'return home', 'head back home'] }],
+    [words('home', 'go home', 'head home', 'return home', 'head back home')],
     { type: 'Home', confidence: 1 }
 )
 
 export const predictTemplate = makePatternTemplate(
-    [{ type: 'templateText', options: ['predict'] }],
+    [words('predict')],
     { type: 'PredictHypothesis', confidence: 1 }
 )
 
@@ -45,6 +46,6 @@ export const predictTemplate = makePatternTemplate(
  * `wait for the roadrunner` / `wait for road runner` / `wait for the bird`.
  */
 export const awaitRoadRunnerTemplate = makePatternTemplate(
-    [{ type: 'templateText', options: ['wait', 'wait for the roadrunner', 'wait for road runner', 'wait for the bird'] }],
+    [words('wait', 'wait for the roadrunner', 'wait for road runner', 'wait for the bird')],
     { type: 'AwaitRoadRunner', confidence: 1 }
 )

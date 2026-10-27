@@ -45,6 +45,7 @@ const narrateAction = (referents: Referent[], challenges: ChallengeData[], descr
 describe('CommandAttempt', () => {
     describe('row 2 --- get gigantic boulder', () => {
         const data: CommandAttemptData = {
+            kind: 'membership',
             words: 'get gigantic boulder',
             referents: [],
             actions: [narrateAction(
@@ -86,6 +87,7 @@ describe('CommandAttempt', () => {
 
     describe('row 3 --- place fork to the left of plate', () => {
         const data: CommandAttemptData = {
+            kind: 'relation',
             words: 'place fork to the left of plate',
             referents: [],
             actions: [narrateAction(
@@ -126,6 +128,7 @@ describe('CommandAttempt', () => {
 
         it("today's code detects no challenge and succeeds --- the bug CA-6 exists to fix", () => {
             const attempt = CommandAttempt.fromJSON({
+                kind: 'containment',
                 words: 'put motorcycle on shoebox',
                 referents: [],
                 actions: [narrateAction(referents, [], 'the motorcycle is on the shoebox')],
@@ -144,6 +147,7 @@ describe('CommandAttempt', () => {
                 description: 'the motorcycle might be too heavy for the shoebox to bear',
             }
             const pending = CommandAttempt.fromJSON({
+                kind: 'containment',
                 words: 'put motorcycle on shoebox',
                 referents: [],
                 actions: [narrateAction(referents, [weightChallenge], 'the motorcycle is on the shoebox')],
@@ -178,6 +182,7 @@ describe('CommandAttempt', () => {
         }
 
         const data: CommandAttemptData = {
+            kind: 'membership',
             words: 'get rope',
             referents: [],
             actions: [
@@ -233,6 +238,7 @@ describe('CommandAttempt', () => {
     describe('narration units', () => {
         it('round-trips through toJSON/fromJSON, distinct from the actions that carry no narration unit of their own', () => {
             const data: CommandAttemptData = {
+                kind: 'membership',
                 words: 'take the rope',
                 referents: [],
                 actions: [{ ...positionAction([], 'taken'), id: 'action-10' }],
@@ -256,6 +262,7 @@ describe('CommandAttempt', () => {
 
         it('carries narrationUnits through recordVerdict', () => {
             const data: CommandAttemptData = {
+                kind: 'membership',
                 words: 'take the rope',
                 referents: [],
                 actions: [{ ...positionAction([{ kind: 'worldKnowledge', id: 'knot', description: 'none' }], 'taken'), id: 'action-11' }],
@@ -275,6 +282,7 @@ describe('CommandAttempt', () => {
     describe('prototype rule', () => {
         it('round-trips through toJSON/fromJSON', () => {
             const original = CommandAttempt.fromJSON({
+                kind: 'membership',
                 words: 'get rope',
                 referents: [],
                 actions: [
@@ -295,6 +303,7 @@ describe('CommandAttempt', () => {
     describe('action ids', () => {
         it('keeps each action\'s id through recordVerdict, grounded() and the JSON round trip', () => {
             const attempt = CommandAttempt.fromJSON({
+                kind: 'membership',
                 words: 'get rope',
                 referents: [],
                 actions: [
@@ -322,6 +331,7 @@ describe('CommandAttempt', () => {
                 relationLabel: 'is lashed to',
             }
             const attempt = CommandAttempt.fromJSON({
+                kind: 'membership',
                 words: 'get rope',
                 referents: [],
                 actions: [{ kind: 'position', id: 'position-1', challenges: [{ kind: 'worldKnowledge', id: 'knot', description: 'none' }], desiredResult }],
@@ -338,6 +348,7 @@ describe('CommandAttempt', () => {
     describe('NarrateAttemptAction', () => {
         it('round-trips through toJSON/fromJSON, with its referents, no challenges and no desiredResult', () => {
             const data: CommandAttemptData = {
+                kind: 'look',
                 words: 'look at the cup',
                 referents: [{ refKey: 'cupRef', id: forkId, shortName: 'a cup' }],
                 actions: [narrateAction([span('cupRef', forkId, 'a cup')], [], 'Look at the cup')],
@@ -349,6 +360,7 @@ describe('CommandAttempt', () => {
 
         it('succeeds immediately, since it detects no challenge, with its description as the outcome', () => {
             const attempt = CommandAttempt.fromJSON({
+                kind: 'look',
                 words: 'look at the cup',
                 referents: [],
                 actions: [narrateAction([span('cupRef', forkId, 'a cup')], [], 'Look at the cup')],
@@ -361,6 +373,7 @@ describe('CommandAttempt', () => {
     describe('referents are derived from the actions', () => {
         it('lists each keyed, named span once, in order of first appearance, and nothing ungrounded', () => {
             const attempt = CommandAttempt.fromJSON({
+                kind: 'containment',
                 words: 'put cup on cup',
                 referents: [],
                 actions: [{
@@ -382,7 +395,7 @@ describe('CommandAttempt', () => {
         })
 
         it('does not list a span that Grounding has not yet named', () => {
-            const attempt = CommandAttempt.create('put cup on plate', [new PositionAttemptAction('action-5', [], {
+            const attempt = CommandAttempt.create('containment', 'put cup on plate', [new PositionAttemptAction('action-5', [], {
                 kind: 'change',
                 primitive: 'transferMembership',
                 object: { referentType: 'objectSpan', span: 'cup', stableRefKey: 'subject' },

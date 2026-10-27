@@ -8,7 +8,7 @@ import type {
     ParseCommandCommandAttemptResult,
 } from '../../baseClasses'
 import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
-import type { CommandAttempt } from '../../commandAttempt'
+import type { AttemptKind, CommandAttempt } from '../../commandAttempt'
 import { NarrateAttemptAction } from '../../commandAttempt/action'
 
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
@@ -69,12 +69,8 @@ export type CompileAttemptsFromSkeletonResult =
     | ParseCommandAbstainResult
     | ParseCommandErrorResult
 
-/** What an attempt is, by its own content: a look, a take or drop, a containment move, or a relation. */
-type AttemptKind = 'look' | 'membership' | 'containment' | 'relation'
-
 type AttemptEntry = {
     attempt: CommandAttempt
-    kind: AttemptKind
     /** The fill the attempt was read from: the spans it must read, and the words its Consult label is built from. */
     skeleton: ParseSkeleton
 }
@@ -86,22 +82,8 @@ const transferOf = (attempt: CommandAttempt): TransferMembershipChange | undefin
     return step?.kind === 'change' && step.primitive === 'transferMembership' ? step : undefined
 }
 
-/** The primary action: the last, which Plan's templates always put after any lowered assertion. */
-const primaryActionOf = (attempt: CommandAttempt) => attempt.actions()[attempt.actions().length - 1]
-
-const kindOf = (attempt: CommandAttempt): AttemptKind => {
-    // A look's primary action narrates; a qualified look carries assertions ahead of it. An attempt
-    // with no actions is a look too, as parseCommand has always routed it.
-    const primary = primaryActionOf(attempt)
-    if (primary === undefined || primary instanceof NarrateAttemptAction) {
-        return 'look'
-    }
-    const transfer = transferOf(attempt)
-    if (transfer === undefined) {
-        return 'relation'
-    }
-    return transfer.containment === undefined ? 'membership' : 'containment'
-}
+/** What a look looks at: its narration's referent (a qualified look carries assertions beside it). */
+const lookedAtOf = (attempt: CommandAttempt) => attempt.actions().find((action) => action instanceof NarrateAttemptAction)?.referents()[0]
 
 /**
  * Not understood: nothing grounds, or no reading of the command survives. An Abstain hands the command to
@@ -119,9 +101,10 @@ const firstRefusal = (refusals: readonly CompileAttemptsFromSkeletonResult[]): C
  * on its own kind, so one attempt's refusal never decides another's (ISS8203 slice 4.5).
  */
 const preIdentityRefusal = (entry: AttemptEntry, input: CompileAttemptsFromSkeletonInput, intentConfidence: number): CompileAttemptsFromSkeletonResult | undefined => {
-    const { attempt, kind } = entry
+    const { attempt } = entry
+    const { kind } = attempt
     if (kind === 'look') {
-        if (primaryActionOf(attempt)?.referents()[0] === undefined) {
+        if (lookedAtOf(attempt) === undefined) {
             return notUnderstood(objectManipulationErrorMessages.lookNoTemplateMatch, intentConfidence)
         }
         if (input.characterId === undefined) {
@@ -129,7 +112,7 @@ const preIdentityRefusal = (entry: AttemptEntry, input: CompileAttemptsFromSkele
         }
         return undefined
     }
-    if (kind === 'membership' || kind === 'containment') {
+    if (kind === 'membership' || kind === 'containment' || kind === 'spread') {
         if (input.hostRoomId === undefined) {
             return kind === 'membership'
                 ? { type: 'Error', errorMessage: objectManipulationErrorMessages.noMembershipHost }
@@ -148,9 +131,10 @@ const preIdentityRefusal = (entry: AttemptEntry, input: CompileAttemptsFromSkele
  * and a look's referent carrying a stableRefKey.
  */
 const postIdentityRefusal = (entry: AttemptEntry, intentConfidence: number): CompileAttemptsFromSkeletonResult | undefined => {
-    const { attempt, kind } = entry
+    const { attempt } = entry
+    const { kind } = attempt
     if (kind === 'look') {
-        const lookedAt = primaryActionOf(attempt)?.referents()[0]
+        const lookedAt = lookedAtOf(attempt)
         if (lookedAt?.referentType !== 'objectSpan' || lookedAt.stableRefKey === undefined) {
             return { type: 'Abstain', confidence: intentConfidence, reason: `${lookedAt?.referentType} referent has no stableRefKey to resolve against` }
         }
@@ -176,7 +160,8 @@ const noAssignmentReasonFor = (kind: AttemptKind): string => {
         case 'look': return 'No object candidate in the pool resolved to a describable referent'
         case 'membership': return objectManipulationErrorMessages.noMatch
         case 'relation': return 'No combination of two distinct grounded objects produced a well-typed establishRelation/dissolveRelation step'
-        case 'containment': return 'No combination of two distinct grounded objects produced a well-typed containment move'
+        case 'containment':
+        case 'spread': return 'No combination of two distinct grounded objects produced a well-typed containment move'
     }
 }
 
@@ -223,7 +208,7 @@ export async function compileAttemptsFromSkeleton(
     // Pre-Identify: each attempt's own refusal, then the survivors.
     let survivors: AttemptEntry[] = []
     for (const { attempt, skeleton } of chosen) {
-        const entry: AttemptEntry = { attempt, kind: kindOf(attempt), skeleton }
+        const entry: AttemptEntry = { attempt, skeleton }
         const refused = preIdentityRefusal(entry, input, intentConfidence)
         if (refused) {
             refusals.push(refused)
@@ -243,7 +228,7 @@ export async function compileAttemptsFromSkeleton(
         ? await positionsReads.getLudicGraph(hostRoomId)
         : undefined
     survivors = survivors.filter((entry) => {
-        if (entry.kind === 'relation' && roomGraph === undefined) {
+        if (entry.attempt.kind === 'relation' && roomGraph === undefined) {
             refusals.push({ type: 'Error', errorMessage: objectManipulationErrorMessages.noHostRoom })
             return false
         }
@@ -309,7 +294,7 @@ export async function compileAttemptsFromSkeleton(
         attempts: survivors.map((entry) => entry.attempt),
         spanPools: identityResult.spanPools,
         catalog,
-        noAssignmentReason: noAssignmentReasonFor(lead.kind),
+        noAssignmentReason: noAssignmentReasonFor(lead.attempt.kind),
         referentAnswers: answers?.referentAnswers,
         viewAnswers: answers?.viewAnswers,
         actorRoom: hostRoomId,

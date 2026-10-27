@@ -14,12 +14,11 @@ import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
 import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
 import { tokenize } from '../deterministicTemplate/granuleTokens'
-import { matchPattern, matchPatternFills, type PatternFill } from '../deterministicTemplate/patternTemplate'
+import { matchPattern } from '../deterministicTemplate/patternTemplate'
 import { containmentTemplate } from '../enrich/objectManipulation/plan/matchContainmentTemplate'
 import { membershipTemplate } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
 import { PLAN_GRANULES } from '../enrich/objectManipulation/plan/planSkeleton'
 import { exceedsQualifierCap } from '../enrich/objectManipulation/plan/qualifierPrepositions'
-import { spanMatchForms } from '../enrich/objectManipulation/spanMatchForms'
 
 /** After trim, case-insensitive look or l as the whole line. */
 function isBareLookCommand(trimmed: string): boolean {
@@ -42,30 +41,12 @@ function isBarePredictCommand(trimmed: string): boolean {
 }
 
 /**
- * The membership pattern's routing gate: it claims `take` and `drop` always (not `take hold`), and
- * `get` when some fill's head is a room label, as given or with its article peeled.
- */
-function claimsMembership(input: ParseCommandInput, fills: readonly PatternFill[]): boolean {
-    const uncut = fills.find(({ captures: [, phrase] }) => phrase?.kind === 'objectPhrase' && phrase.links.length === 0)
-    const [verb, phrase] = uncut?.captures ?? []
-    if (verb?.kind !== 'templateText' || phrase?.kind !== 'objectPhrase') {
-        return false
-    }
-    if (verb.option === 'take' && /^hold\b/i.test(phrase.text)) {
-        return false
-    }
-    const labels = input.roomObjectLabels ?? []
-    const isLabel = (span: string): boolean => spanMatchForms(span).some((form) => labels.includes(form))
-    return verb.option !== 'get' || fills.some(({ captures: [, head] }) => head !== undefined && isLabel(head.text))
-}
-
-/**
  * The zero-Bedrock fast path: the command cut into tokens as Plan cuts it (`PLAN_GRANULES`), and
- * template patterns matched over them, each with its routing gate. The membership template's
- * pattern claims as `claimsMembership` says; the containment template's pattern claims every fit,
- * since a fast-path Abstain climbs to the LLM route. A claim hands the tokens up, and Plan reads
- * every template over them (`actions/AGENT.contract.md` "Qualifier"). A command over the guard cap
- * (`exceedsQualifierCap`) is never claimed.
+ * claimed when the membership or the containment template's pattern fits it, with no gate: what
+ * the world must make true is Identify's and the dry run's to judge, and a fast-path Abstain
+ * climbs to the LLM route. A claim hands the tokens up, and Plan reads every template over them
+ * (`actions/AGENT.contract.md` "Qualifier"). A command over the guard cap (`exceedsQualifierCap`)
+ * is never claimed.
  */
 function maybeDeterministicManipulationIntent(
     input: ParseCommandInput
@@ -74,8 +55,7 @@ function maybeDeterministicManipulationIntent(
     if (exceedsQualifierCap(tokens)) {
         return null
     }
-    const claimed = claimsMembership(input, matchPatternFills(membershipTemplate.pattern, tokens))
-        || matchPattern(containmentTemplate.pattern, tokens).length > 0
+    const claimed = [membershipTemplate, containmentTemplate].some(({ pattern }) => matchPattern(pattern, tokens).length > 0)
     return claimed ? { type: 'ObjectManipulationIntent', tokens, confidence: 1 } : null
 }
 

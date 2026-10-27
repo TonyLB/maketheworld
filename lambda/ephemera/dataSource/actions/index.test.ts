@@ -55,7 +55,6 @@ jest.mock('./roomExitTargetsForCharacter', () => ({
 }))
 jest.mock('./roomObjectCatalogForCharacter', () => ({
     getRoomObjectCatalogForCharacter: jest.fn(),
-    roomObjectLabelsFromCatalog: jest.requireActual('./roomObjectCatalogForCharacter').roomObjectLabelsFromCatalog,
 }))
 jest.mock('./heldInventoryCatalogForCharacter', () => ({
     getHeldInventoryCatalogForCharacter: jest.fn(),
@@ -503,7 +502,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('resumes the stored command and clears the Select when the attempt is accepted', async () => {
-            const attempt = { words: 'take cup', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'take cup', referents: [], actions: [], narrationUnits: [] }
             jest.mocked(answerPending).mockResolvedValue(answered())
             jest.mocked(resumePersistentCommand).mockResolvedValue({ type: 'CommandAttempt', confidence: 0.9, attempt } as any)
 
@@ -1449,7 +1448,6 @@ describe('ephemeraActionsDataSource', () => {
                     command: 'order widget',
                     characterId: 'CHARACTER#123',
                     roomExits: [],
-                    roomObjectLabels: [],
                     roomObjectCatalog: [],
                     heldInventoryCatalog: [],
                     occupiedStableKeys: ['alpha', 'beta'],
@@ -2035,7 +2033,7 @@ describe('ephemeraActionsDataSource', () => {
         const from = 'ROOM#from' as EphemeraRoomId
 
         it('emits Ludic Network Change Requested when takeHold is grounded', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 confidence: 0.9,
@@ -2083,7 +2081,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('emits Ludic Network Change Requested when drop is grounded', async () => {
-            const attempt = { words: 'drop the broom', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'drop the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 confidence: 0.9,
@@ -2131,7 +2129,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('emits correlated ReturnValue when requestId is present', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2172,7 +2170,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when character has no current room', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2212,7 +2210,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('publishes WorldOOCMessage when drop is grounded but character has no room', async () => {
-            const attempt = { words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'pick up the broom', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2435,7 +2433,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested when establishRelation is grounded', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'put the broom on the table', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'containment' as const, words: 'put the broom on the table', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2482,7 +2480,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested with Custom relationLabel', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'tie the rope around the crate', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'relation' as const, words: 'tie the rope around the crate', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2545,7 +2543,7 @@ describe('ephemeraActionsDataSource', () => {
                     hostId: tableId,
                 },
             ]
-            const attempt = { words: 'tie string to cup', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'relation' as const, words: 'tie string to cup', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2584,7 +2582,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested when dissolveRelation is grounded', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'take the rope off the crate', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'membership' as const, words: 'take the rope off the crate', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2623,7 +2621,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('publishes WorldOOCMessage when establishRelation has no host room', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: null, toRoomIds: [], exits: [] })
-            const attempt = { words: 'put the broom on the table', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'containment' as const, words: 'put the broom on the table', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 attempt,
@@ -2659,7 +2657,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('emits Ludic Network Change Requested when an On containment move is grounded', async () => {
             mockedGetRoomExitTargetsForCharacter.mockResolvedValue({ fromRoomId: hostRoom, toRoomIds: [], exits: [] })
-            const attempt = { words: 'put the cup on the tray', referents: [], actions: [], narrationUnits: [] }
+            const attempt = { kind: 'containment' as const, words: 'put the cup on the tray', referents: [], actions: [], narrationUnits: [] }
             mockedParseCommand.mockResolvedValue({
                 type: 'CommandAttempt',
                 confidence: 0.9,
@@ -2699,6 +2697,7 @@ describe('ephemeraActionsDataSource', () => {
 
     describe('ParseCommandCommandAttemptResult (a look)', () => {
         const lookAttempt = {
+            kind: 'look' as const,
             words: 'look rocket skates',
             referents: [{ refKey: 'skatesRef', id: 'OBJECT#Skates' as const, shortName: 'rocket skates' }],
             actions: [{ kind: 'narrate' as const, id: 'action-1', description: 'Look at the rocket skates', referents: [], challenges: [] }],
