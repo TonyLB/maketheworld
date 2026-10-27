@@ -1,7 +1,7 @@
 import { normalizeShortNameForEmbedding } from '../../../../objects/embedding/impromptuEmbeddingNeedsRefresh'
 import { lexemesOf } from '../../../deterministicTemplate/granuleTokens'
 
-import { alignSpanToName } from './tokenAwareAlignment'
+import { ALIGNMENT_COSTS, alignSpanToName } from './tokenAwareAlignment'
 import { LEXICAL_PARITY_PAIRS } from './testing/lexicalParityPairs'
 import { sellersApproximateSubstringMatch } from './testing/sellersApproximateSubstringMatch'
 import type { TextRange } from './types'
@@ -15,6 +15,25 @@ const aligned = (span: string, name: string) => {
     }
     return alignment
 }
+
+describe('alignSpanToName: cuts', () => {
+    const dearCut = { ...ALIGNMENT_COSTS, cutBoundary: 100 }
+
+    it('merges span words at a plain boundary, and at a cut only where the cut is cheap enough', () => {
+        expect(alignSpanToName('cup on', 'cupon', dearCut)).toMatchObject({ boundaries: 1, pairs: [{ span: { start: 0, end: 6 } }] })
+        // dear at the cut, the merge loses to pairing `cup` alone, `on` left over
+        expect(alignSpanToName('cup on', 'cupon', dearCut, [3])).toMatchObject({ boundaries: 0, span: { start: 0, end: 3 } })
+        expect(alignSpanToName('cup on', 'cupon', ALIGNMENT_COSTS, [3])).toMatchObject({ boundaries: 1 })
+    })
+
+    it('prices only a boundary a cut falls on', () => {
+        expect(alignSpanToName('cup on', 'cupon', dearCut, [6])).toMatchObject({ boundaries: 1 })
+    })
+
+    it('does not price a name-side merge by cuts: `coupon` against "cup on"', () => {
+        expect(alignSpanToName('coupon', 'cup on', dearCut, [3])).toMatchObject({ boundaries: 1 })
+    })
+})
 
 describe('alignSpanToName', () => {
     it('merges words across a boundary: `coupon` against "cup on"', () => {

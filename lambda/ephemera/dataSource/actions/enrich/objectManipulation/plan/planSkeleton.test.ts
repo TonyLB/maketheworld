@@ -4,7 +4,9 @@ import type { CommandAttempt } from '../../../commandAttempt'
 import { tokenize } from '../../../deterministicTemplate/granuleTokens'
 import { planFillOf } from './attemptTemplateFixture'
 import { isBareExitFill } from './matchNavigationTemplate'
-import { COMMAND_GRANULES, planSkeleton, planTokens } from './planSkeleton'
+import { COMMAND_GRANULES, LIVE_TEMPLATE_SET, planSkeleton, planTokens } from './planSkeleton'
+import { membershipTemplate } from './matchMembershipTemplate'
+import { templateSetOf } from './templateSet'
 
 const COMMAND = 'test command'
 
@@ -299,5 +301,23 @@ describe('planTokens', () => {
         expect(planTokens(tokenize(COMMAND_GRANULES, atCap), atCap)).not.toEqual([])
         const overCap = `${atCap} on h`
         expect(planTokens(tokenize(COMMAND_GRANULES, overCap), overCap)).toEqual([])
+    })
+})
+
+describe('a supplied template set', () => {
+    const command = 'take pig in a blanket'
+    const kindsOf = (templates = LIVE_TEMPLATE_SET) => planTokens(tokenize(templates.granules, command), command, templates)
+        .flatMap(({ attempts }) => attempts.map(({ kind }) => kind))
+
+    it('is the live set by default', () => {
+        expect(planTokens(tokenize(COMMAND_GRANULES, command), command)).toHaveLength(planTokens(tokenize(LIVE_TEMPLATE_SET.granules, command), command, LIVE_TEMPLATE_SET).length)
+    })
+
+    it('replaces it: only its templates read the command, cut at only its fixed words', () => {
+        const only = templateSetOf([membershipTemplate])
+        expect(kindsOf(only)).toEqual(['membership', 'membership'])
+        expect(kindsOf(only)).not.toContain('navigation')
+        expect(kindsOf(templateSetOf([]))).toEqual([])
+        expect(only.granules.granules.flat()).not.toContain('under')
     })
 })

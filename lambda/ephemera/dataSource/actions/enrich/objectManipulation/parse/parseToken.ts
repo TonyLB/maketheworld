@@ -26,6 +26,17 @@ export type ObjectSpanTokenDraft = {
 export type ParseTokenDraft = ObjectSpanTokenDraft | TextToken
 
 /**
+ * What a span's tokens say about how else the command reads (`AGENT.skeletonMatcher.planning.md`
+ * SM-4): its own tokens, each as text, and the proper sub-runs of them that another complete
+ * reading of the command reads as a span of its own, as token ranges (start inclusive, end
+ * exclusive) relative to the span's first token. Identify derives character ranges itself.
+ */
+export type SpanStructure = {
+    tokens: string[]
+    alternatives: { start: number; end: number }[]
+}
+
+/**
  * The final, stamped shape -- stableRefKey identifies this occurrence (not the
  * real-world object it may resolve to) stably across the rest of the pipeline for
  * this command, so later stages (Grounding, backtrack critiques) can reference a
@@ -35,6 +46,8 @@ export type ObjectSpanToken = ObjectSpanTokenDraft & {
     stableRefKey: string
     /** What the span grounds against, as its template's slot declares (`SpanCatalog`); absent, the objects. */
     catalog?: SpanCatalog
+    /** Present only when another complete reading cuts inside the span (`readFills`). */
+    structure?: SpanStructure
     /** Where the thing is said to be ("the cup on the table"): set in a reading of Plan's templates, read by lowering (`plan/lowerQualifiers.ts`). */
     qualifier?: SpanQualifier
 }

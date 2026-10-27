@@ -35,6 +35,7 @@ import type { MutationKernelStep } from '../positions/manipulation/kernel/kernel
 import type { EmbedObjectSpanResult } from '../objects/embedding/embedObjectSpan'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { CommandAttemptData } from './commandAttempt'
+import type { TemplateSet } from './enrich/objectManipulation/plan/templateSet'
 
 const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProtocol> = new Set([
     'SayMessage',
@@ -733,6 +734,8 @@ export type ParseCommandDeps = {
     objectManipulationPositionsReadDeps?: ObjectManipulationPositionsReadDeps;
     /** Injectable span embed for object manipulation identity pool builder (tests). */
     embedSpan?: (rawObjectSpan: string) => Promise<EmbedObjectSpanResult>;
+    /** The deterministic templates and the divider set they make; tests supply their own so what they pin does not move with the live set. Default: `LIVE_TEMPLATE_SET`. */
+    templates?: TemplateSet;
     /** Injectable Coyote room/meta accessors for `countCoyotePlacedObjectsAcrossRooms` (Acme enrich pre-check). */
     countCoyotePlacedObjectsAcrossRoomsDeps?: Partial<CollectCoyoteOccupiedStableKeysDeps>;
     /** Deprecated compatibility flag; Acme enrich prompt is compact regardless of value. */

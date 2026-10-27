@@ -26,6 +26,6 @@ export const INTENT_TEMPLATES: readonly IntentTemplate[] = [
 ]
 
 /** The result of the first intent row that reads the whole command, if any. */
-export function matchIntentTemplate(tokens: readonly GranuleToken[]): ParseCommandResult | undefined {
-    return INTENT_TEMPLATES.find(({ pattern }) => matchPattern(pattern, tokens).length > 0)?.result
+export function matchIntentTemplate(tokens: readonly GranuleToken[], intents: readonly IntentTemplate[] = INTENT_TEMPLATES): ParseCommandResult | undefined {
+    return intents.find(({ pattern }) => matchPattern(pattern, tokens).length > 0)?.result
 }

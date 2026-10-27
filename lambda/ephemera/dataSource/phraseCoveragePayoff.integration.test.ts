@@ -24,6 +24,7 @@
  */
 jest.mock('@tonylb/mtw-utilities/ts/dynamoDB')
 const mockGetCurrentTimestamp = jest.fn()
+
 jest.mock('../internalUtils/dateUtil', () => ({
     __esModule: true,
     default: () => mockGetCurrentTimestamp(),
@@ -49,6 +50,8 @@ import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { EphemeraLudicGraph } from './positions/ludicGraph'
 import { parentRemainderKey } from './positions/ludicGraph/testFixtures'
 import { lookedAtObjectIdOf } from './actions/commandAttempt/lookedAtObjectId'
+import { membershipTemplate } from './actions/enrich/objectManipulation/plan/matchMembershipTemplate'
+import { templateSetOf, type TemplateSet } from './actions/enrich/objectManipulation/plan/templateSet'
 import { embeddingAtCosineSimilarity, makeEmbeddingFromAxis } from './actions/enrich/objectManipulation/embeddingMatch/testing/mockVectors'
 
 const assetDBMock = jest.mocked(assetDB)
@@ -63,6 +66,10 @@ const FLOOR_CUP_ID = 'OBJECT#FloorCup' as EphemeraObjectId
 const MAN_IN_THE_MOON_ID = 'OBJECT#ManInTheMoon' as EphemeraObjectId
 const MOON_ID = 'OBJECT#Moon' as EphemeraObjectId
 const BOX_ID = 'OBJECT#Box' as EphemeraObjectId
+const MEAL_ID = 'OBJECT#PigInABlanket' as EphemeraObjectId
+const PIG_ID = 'OBJECT#Pig' as EphemeraObjectId
+const BLANKET_ID = 'OBJECT#Blanket' as EphemeraObjectId
+const PLATE_ID = 'OBJECT#Plate' as EphemeraObjectId
 
 /**
  * Live Titan cosines for unrelated short phrases sit around 0.15-0.25 (calibration snapshot
@@ -177,7 +184,7 @@ describe('phrase coverage payoff (integration)', () => {
     }
 
     /** The real `parseCommand` over the seeded world, the model returning `tokens`; with the two Bedrock seams, to assert on. */
-    const parse = async (command: string, tokens?: string, { embeddings = false }: { embeddings?: boolean } = {}) => {
+    const parse = async (command: string, tokens?: string, { embeddings = false, templates }: { embeddings?: boolean; templates?: TemplateSet } = {}) => {
         const labels = Object.entries(world.names) as Array<[EphemeraObjectId, string]>
         const isHeld = (objectId: EphemeraObjectId) => (world.containers[objectId] ?? []).includes(CHARACTER_ID)
         // The held catalog as production builds it: what the character holds, read from its own graph.
@@ -203,6 +210,7 @@ describe('phrase coverage payoff (integration)', () => {
             {
                 invokeBedrockParseCommandImpl,
                 invokeBedrockObjectManipulationParseImpl,
+                ...(templates !== undefined ? { templates } : {}),
                 ...(embeddings ? { embedSpan: jest.fn().mockResolvedValue({ success: true, embedding: SPAN_EMBEDDING }) } : {}),
                 objectManipulationPositionsReadDeps: {
                     getMembershipContainers: jest.fn().mockImplementation(async (id: string) => world.containers[id] ?? []),
@@ -419,5 +427,121 @@ describe('phrase coverage payoff (integration)', () => {
 
         expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
         expect(JSON.stringify(parseResult)).toContain('"groundedId":"OBJECT#ManInTheMoon","shortName":"man in the moon"')
+    })
+
+    // The payoff of the skeleton matcher (`AGENT.skeletonMatcher.planning.md`): the command cuts at every
+    // `in` and `on`, each cut a reading, and each world commits the one it allows.
+    it('"put pig in a blanket on the plate on the table", with a pig-in-a-blanket on the floor and a plate on the table, puts the meal on the plate', async () => {
+        seed({
+            graphs: {
+                [ROOM_ID]: roomGraph([[TABLE_ID, 'PRESENCE#table-in-room'], [MEAL_ID, 'PRESENCE#meal-in-room']]),
+                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
+                [TABLE_ID]: objectGraph(TABLE_ID, 'PRESENCE#table-in-room', ROOM_ID, undefined, [[PLATE_ID, 'PRESENCE#plate-on-table']]),
+                [PLATE_ID]: objectGraph(PLATE_ID, 'PRESENCE#plate-on-table', TABLE_ID, 'PRESENCE#table-in-room'),
+                [MEAL_ID]: objectGraph(MEAL_ID, 'PRESENCE#meal-in-room', ROOM_ID),
+            },
+            containers: { [CHARACTER_ID]: [ROOM_ID], [TABLE_ID]: [ROOM_ID], [PLATE_ID]: [TABLE_ID], [MEAL_ID]: [ROOM_ID] },
+            names: { [TABLE_ID]: 'table', [PLATE_ID]: 'plate', [MEAL_ID]: 'pig in a blanket' },
+        })
+
+        const publish = await run('put pig in a blanket on the plate on the table')
+
+        expect(await holds(PLATE_ID, MEAL_ID)).toBe(true)
+        expect(await holds(ROOM_ID, MEAL_ID)).toBe(false)
+        expect(delivered(publish)).toEqual([expect.stringMatching(/ puts pig in a blanket on plate$/)])
+    })
+
+    it('"put pig in a blanket on the plate on the table", with a pig on the floor and a blanket on the plate on the table, puts the pig in the blanket: the qualifier chain is judged by the dry run', async () => {
+        seed({
+            graphs: {
+                [ROOM_ID]: roomGraph([[TABLE_ID, 'PRESENCE#table-in-room'], [PIG_ID, 'PRESENCE#pig-in-room']]),
+                [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
+                [TABLE_ID]: objectGraph(TABLE_ID, 'PRESENCE#table-in-room', ROOM_ID, undefined, [[PLATE_ID, 'PRESENCE#plate-on-table']]),
+                [PLATE_ID]: objectGraph(PLATE_ID, 'PRESENCE#plate-on-table', TABLE_ID, 'PRESENCE#table-in-room', [[BLANKET_ID, 'PRESENCE#blanket-on-plate']]),
+                [BLANKET_ID]: objectGraph(BLANKET_ID, 'PRESENCE#blanket-on-plate', PLATE_ID, 'PRESENCE#plate-on-table'),
+                [PIG_ID]: objectGraph(PIG_ID, 'PRESENCE#pig-in-room', ROOM_ID),
+            },
+            containers: { [CHARACTER_ID]: [ROOM_ID], [TABLE_ID]: [ROOM_ID], [PLATE_ID]: [TABLE_ID], [BLANKET_ID]: [PLATE_ID], [PIG_ID]: [ROOM_ID] },
+            names: { [TABLE_ID]: 'table', [PLATE_ID]: 'plate', [PIG_ID]: 'pig', [BLANKET_ID]: 'blanket' },
+        })
+        const publish = await run('put pig in a blanket on the plate on the table')
+
+        expect(await holds(BLANKET_ID, PIG_ID)).toBe(true)
+        expect(await holds(ROOM_ID, PIG_ID)).toBe(false)
+        expect(delivered(publish)).toEqual([expect.stringMatching(/ puts pig in blanket$/)])
+    })
+
+    // No fill is exact (`pgi` is a typo), so the lexical rank decides. The template set decides whether
+    // `in` is a divider: a set whose one template reads `in` cuts `pgi in a blanket` into `pgi | in | a
+    // blanket`, so the merged span's surplus `pgi in a` is surplus a cut explains and takes the structural
+    // malus; a set whose template does not read `in` has no such cut and nothing to charge. Both sets are
+    // invented here, so the pair holds whatever the live templates become.
+    const takeReadingIn = templateSetOf([membershipTemplate])
+    const takeNotReadingIn = templateSetOf([{
+        ...membershipTemplate,
+        pattern: membershipTemplate.pattern.map((element) => (
+            element.type === 'objectPhrase'
+                ? { ...element, prepositions: Object.fromEntries(Object.entries(element.prepositions).filter(([option]) => option !== 'in')) }
+                : element
+        )),
+    }])
+    const seedPigAndBlanketOnFloor = () => seed({
+        graphs: {
+            [ROOM_ID]: roomGraph([[PIG_ID, 'PRESENCE#pig-in-room'], [BLANKET_ID, 'PRESENCE#blanket-in-room']]),
+            [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
+            [PIG_ID]: objectGraph(PIG_ID, 'PRESENCE#pig-in-room', ROOM_ID),
+            [BLANKET_ID]: objectGraph(BLANKET_ID, 'PRESENCE#blanket-in-room', ROOM_ID),
+        },
+        containers: { [CHARACTER_ID]: [ROOM_ID], [PIG_ID]: [ROOM_ID], [BLANKET_ID]: [ROOM_ID] },
+        names: { [PIG_ID]: 'pig', [BLANKET_ID]: 'blanket' },
+    })
+
+    describe('the structural malus keeps a merged span from swallowing words a cut explains', () => {
+        it('"take pgi in a blanket", with a template reading `in`, asks: the merged reading, which would take the blanket and drop "pgi in a", no longer wins outright', async () => {
+            seedPigAndBlanketOnFloor()
+
+            const { parseResult } = await parse('take pgi in a blanket', undefined, { embeddings: true, templates: takeReadingIn })
+
+            expect(parseResult).toEqual(expect.objectContaining({ type: 'Consult' }))
+            expect(JSON.stringify(parseResult)).toContain('"objectId":"OBJECT#Pig"')
+        })
+
+        it('the same command, with no template reading `in`, takes the blanket without asking: there is no cut to charge', async () => {
+            seedPigAndBlanketOnFloor()
+
+            const { parseResult } = await parse('take pgi in a blanket', undefined, { embeddings: true, templates: takeNotReadingIn })
+
+            expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
+            expect(JSON.stringify(parseResult)).toContain('"id":"OBJECT#Blanket"')
+            expect(JSON.stringify(parseResult)).not.toContain('"id":"OBJECT#Pig"')
+        })
+
+        // Pinned as found, to document what the system does today; not a decision about what it should do
+        // (that is rung 14's tuning). The malus is a score, not a prune, and never asks whether the cut's other spans ground: the
+        // scorer cannot see the world. Here `a blanket` grounds to nothing, so the cut reading drops out
+        // and the merged reading is all that is left, charged as before (`pgi in a` against "pig" scores
+        // about 0.12 without the malus, 0.004 with it). Either way it is far under the floor, so the fast
+        // path abstains and the command climbs to the top rung's Abstain, with or without a template
+        // reading `in`: no outcome tells the two sets apart, so a pig alone is no test of the malus.
+        it.each([['reading', takeReadingIn], ['not reading', takeNotReadingIn]])('"take pgi in a blanket", a pig and no blanket, with a template set %s `in`, ends at the top rung\'s Abstain', async (_label, templates) => {
+            seed({
+                graphs: {
+                    [ROOM_ID]: roomGraph([[PIG_ID, 'PRESENCE#pig-in-room']]),
+                    [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
+                    [PIG_ID]: objectGraph(PIG_ID, 'PRESENCE#pig-in-room', ROOM_ID),
+                },
+                containers: { [CHARACTER_ID]: [ROOM_ID], [PIG_ID]: [ROOM_ID] },
+                names: { [PIG_ID]: 'pig' },
+            })
+
+            const { parseResult, invokeBedrockObjectManipulationParseImpl } = await parse(
+                'take pgi in a blanket',
+                '{"tokens":[{"type":"text","text":"take"},{"type":"objectSpan","span":"pgi in a blanket"}]}',
+                { embeddings: true, templates }
+            )
+
+            expect(parseResult).toEqual(expect.objectContaining({ type: 'Abstain' }))
+            expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalledTimes(1)
+        })
     })
 })

@@ -110,6 +110,14 @@ export const LEX_ALIGN_PAIR_MAX_RELATIVE_EDITS = 1 / 3
 /** Span-side surplus factor exp(-rate * surplus characters / match scale): uncapped, 1 at zero surplus. */
 export const LEX_SPAN_SURPLUS_RATE = 0.5
 
+// Structural malus (AGENT.skeletonMatcher.planning.md 4e). Placeholders; rung 14 calibrates them.
+
+/** A boundary of a merged span group at a cut another complete reading makes: at least the malus it would avoid, so a name is not smeared across a cut. */
+export const LEX_ALIGN_CUT_BOUNDARY_COST = 2
+
+/** Structural surplus factor exp(-rate * characters / match scale), on top of the span-side one: surplus outside the sub-run holding the match. */
+export const LEX_STRUCTURAL_SURPLUS_RATE = 1
+
 // -----------------------------------------------------------------------------
 // FT-1.2 pool merge (locked FT-1.3, 2026-07-09).
 
@@ -160,6 +168,7 @@ export type RelevanceNormalizationParams = {
     lexRemoteFlankScale?: number
     lexRemoteFlankWeight?: number
     lexSpanSurplusRate?: number
+    lexStructuralSurplusRate?: number
     lexInteriorNameWordRate?: number
     lexInteriorSpanWordRate?: number
     jointRelevanceWL?: number

@@ -13,6 +13,11 @@
  * - The span side's row is its own cost (`AGENT.skeletonMatcher.planning.md` SM-4): it grows with
  *   the span's surplus relative to the match, uncapped, and is exactly 1 at zero surplus, so a span
  *   with no extra words scores as the name row and the edits say.
+ * - The structural row (SM-4, 4e) is a heavier class of the span's surplus, on top of the span
+ *   side's: the surplus outside the smallest sub-run (a run another complete reading reads as a
+ *   span of its own) that holds the whole match, since a cut there would explain it. It is 1 when
+ *   nothing is structured, and when no sub-run holds the match (the match crosses a cut, word for
+ *   word, so it reads across the structure). It prices the span side only.
  * - The interior rows price each side's words skipped inside the match, each at its own rate
  *   (`LEX_INTERIOR_NAME_WORD_RATE`, `LEX_INTERIOR_SPAN_WORD_RATE`). Both are 0 for now: whether
  *   either side's interior words deserve a penalty, or whether a word skipped on both sides at one
@@ -25,7 +30,7 @@ import { clampUnitInterval } from './evidenceNumerics'
 import { flankLengthMetricsOf, type LexicalDiff, type LexicalSide, type SideDiff } from './lexicalDiff'
 import { editDistanceRelevance, type FlankLengthMetrics } from './lexicalMatchMetrics'
 import { tanhCenteredFlankScore, type FlankCombineContext } from './relevanceCombine'
-import { LEX_SPAN_SURPLUS_RATE, type RelevanceNormalizationParams } from './thresholds'
+import { LEX_SPAN_SURPLUS_RATE, LEX_STRUCTURAL_SURPLUS_RATE, type RelevanceNormalizationParams } from './thresholds'
 import type { TextRange } from './types'
 
 /** Prices one class of difference in a diff, as a factor in [0, 1]. */
@@ -34,6 +39,7 @@ export type LexicalWeight = (diff: LexicalDiff, params: RelevanceNormalizationPa
 export type LexicalWeights = {
     edits: LexicalWeight
     surplus: Record<LexicalSide, LexicalWeight>
+    structural: LexicalWeight
     interior: Record<LexicalSide, LexicalWeight>
 }
 
@@ -84,6 +90,26 @@ const spanSideSurplusWeight: LexicalWeight = (diff, params) => (
     Math.exp(-(params.lexSpanSurplusRate ?? LEX_SPAN_SURPLUS_RATE) * surplusCharacters(diff.span) / matchScale(diff))
 )
 
+const overlap = (left: TextRange, right: TextRange): number => Math.max(0, Math.min(left.end, right.end) - Math.max(left.start, right.start))
+
+/** The span's surplus characters lying outside the smallest sub-run that holds its match, or 0 where none does. */
+const structuralCharacters = (diff: LexicalDiff): number => {
+    const holders = diff.subRuns.filter(({ start, end }) => start <= diff.span.match.start && diff.span.match.end <= end)
+    if (holders.length === 0) {
+        return 0
+    }
+    const holder = holders.reduce((smallest, run) => (rangeLength(run) < rangeLength(smallest) ? run : smallest))
+    const { left, right } = diff.span
+    return [left, right]
+        .flatMap(({ partialWord, words, marks }) => [...(partialWord ? [partialWord] : []), ...words, ...marks])
+        .reduce((total, range) => total + rangeLength(range) - overlap(range, holder), 0)
+}
+
+/** The span's surplus that another reading could explain: exp(-rate * characters / match scale). */
+const structuralSurplusWeight: LexicalWeight = (diff, params) => (
+    Math.exp(-(params.lexStructuralSurplusRate ?? LEX_STRUCTURAL_SURPLUS_RATE) * structuralCharacters(diff) / matchScale(diff))
+)
+
 /** A side's whole words skipped inside the match: exp(-rate * their characters / match scale). */
 const interiorWordWeight = (side: LexicalSide, rateOf: (params: RelevanceNormalizationParams) => number): LexicalWeight => (diff, params) => (
     Math.exp(-rateOf(params) * charactersIn(diff[side].skipped) / matchScale(diff))
@@ -95,6 +121,7 @@ export const LEXICAL_WEIGHTS: LexicalWeights = {
         name: catalogSideFlankWeight,
         span: spanSideSurplusWeight,
     },
+    structural: structuralSurplusWeight,
     interior: {
         name: interiorWordWeight('name', (params) => params.lexInteriorNameWordRate ?? LEX_INTERIOR_NAME_WORD_RATE),
         span: interiorWordWeight('span', (params) => params.lexInteriorSpanWordRate ?? LEX_INTERIOR_SPAN_WORD_RATE),
@@ -109,7 +136,7 @@ export function priceLexicalDiff(
 ): number {
     return clampUnitInterval(
         weights.edits(diff, params)
-        * weights.surplus.name(diff, params) * weights.surplus.span(diff, params)
+        * weights.surplus.name(diff, params) * weights.surplus.span(diff, params) * weights.structural(diff, params)
         * weights.interior.name(diff, params) * weights.interior.span(diff, params)
     )
 }

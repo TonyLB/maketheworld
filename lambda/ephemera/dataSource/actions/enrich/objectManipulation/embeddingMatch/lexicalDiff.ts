@@ -8,10 +8,11 @@
 
 import { normalizeShortNameForEmbedding } from '../../../../objects/embedding/impromptuEmbeddingNeedsRefresh'
 import { lexemesOf } from '../../../deterministicTemplate/granuleTokens'
+import type { SpanStructure } from '../parse/parseToken'
 
 import type { FlankLengthMetrics } from './lexicalMatchMetrics'
 import type { AlignmentOp } from './osaStep'
-import { alignSpanToName, type WordPair } from './tokenAwareAlignment'
+import { ALIGNMENT_COSTS, alignSpanToName, type WordPair } from './tokenAwareAlignment'
 import type { TextRange } from './types'
 
 /** Which string a piece of text came from: the player's span or the catalog shortName. */
@@ -45,6 +46,11 @@ export type LexicalDiff = Record<LexicalSide, SideDiff> & {
     /** The alignment of the span's match against the name's. */
     ops: AlignmentOp[]
     pairs: WordPair[]
+    /**
+     * The runs of the span that another complete reading of the command reads as a span of its own,
+     * as ranges in the span's normalized text (`SpanStructure`); empty without structure.
+     */
+    subRuns: TextRange[]
 }
 
 const rangeLength = ({ start, end }: TextRange): number => end - start
@@ -72,16 +78,43 @@ const sideDiff = (text: string, match: TextRange, skipped: TextRange[]): SideDif
 })
 
 /**
+ * A span's structure as character ranges in its normalized text. The tokens are normalized one by
+ * one and re-joined with single spaces; the scored text may be that with a leading article peeled
+ * (`peelLeadingArticleWhenTail`), a fixed shift by the article's length. Anything else reads as no
+ * structure. Runs the shift empties are dropped, and ones it cuts are clamped.
+ */
+export function subRunRangesOf(structure: SpanStructure | undefined, normalizedSpan: string): TextRange[] {
+    if (structure === undefined) {
+        return []
+    }
+    // Where each token lands in the re-joined text; a token that normalizes to nothing takes no room.
+    const placed = structure.tokens.reduce<{ whole: string; starts: number[]; ends: number[] }>(({ whole, starts, ends }, token) => {
+        const normalized = normalizeShortNameForEmbedding(token)
+        const joined = normalized.length === 0 || whole.length === 0 ? whole : `${whole} `
+        return { whole: `${joined}${normalized}`, starts: [...starts, joined.length], ends: [...ends, joined.length + normalized.length] }
+    }, { whole: '', starts: [], ends: [] })
+    if (!placed.whole.endsWith(normalizedSpan)) {
+        return []
+    }
+    const shift = placed.whole.length - normalizedSpan.length
+    return structure.alternatives
+        .map(({ start, end }) => ({ start: Math.max(0, placed.starts[start] - shift), end: placed.ends[end - 1] - shift }))
+        .filter(({ start, end }) => end > start)
+}
+
+/**
  * The diff of a span against a catalog shortName, or `undefined` when either normalizes to empty
  * or no pair of their words is close enough to be one (where `lexicalRelevance` scores 0).
  */
-export function lexicalDiff(span: string, shortName: string): LexicalDiff | undefined {
+export function lexicalDiff(span: string, shortName: string, structure?: SpanStructure): LexicalDiff | undefined {
     const normalizedSpan = normalizeShortNameForEmbedding(span)
     const normalizedShortName = normalizeShortNameForEmbedding(shortName)
     if (normalizedSpan.length === 0 || normalizedShortName.length === 0) {
         return undefined
     }
-    const alignment = alignSpanToName(normalizedSpan, normalizedShortName)
+    const subRuns = subRunRangesOf(structure, normalizedSpan)
+    const cuts = subRuns.flatMap(({ start, end }) => [start, end]).filter((position) => position > 0 && position < normalizedSpan.length)
+    const alignment = alignSpanToName(normalizedSpan, normalizedShortName, ALIGNMENT_COSTS, cuts)
     if (alignment === undefined) {
         return undefined
     }
@@ -92,6 +125,7 @@ export function lexicalDiff(span: string, shortName: string): LexicalDiff | unde
         boundaries: alignment.boundaries,
         ops: alignment.ops,
         pairs: alignment.pairs,
+        subRuns,
     }
 }
 

@@ -15,11 +15,12 @@ import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipula
 import { tokenize, type GranuleToken } from '../deterministicTemplate/granuleTokens'
 import { matchIntentTemplate } from '../deterministicTemplate/intentTemplates'
 import { matchPattern } from '../deterministicTemplate/patternTemplate'
-import { COMMAND_GRANULES, PLAN_TEMPLATES } from '../enrich/objectManipulation/plan/planSkeleton'
+import { LIVE_TEMPLATE_SET } from '../enrich/objectManipulation/plan/planSkeleton'
+import type { TemplateSet } from '../enrich/objectManipulation/plan/templateSet'
 import { exceedsQualifierCap } from '../enrich/objectManipulation/plan/qualifierPrepositions'
 
 /**
- * The zero-Bedrock fast path for Plan's templates: the command's tokens (`COMMAND_GRANULES`, as Plan
+ * The zero-Bedrock fast path for Plan's templates: the command's tokens (the template set's granules, `COMMAND_GRANULES` live, as Plan
  * cuts it), claimed when any of Plan's templates fits it, with no gate: what the world must make
  * true is Identify's and the dry run's to judge, and a fast-path Abstain climbs to the LLM route.
  * The bare exit template fits every command, so every command no intent row reads is claimed. A
@@ -27,16 +28,17 @@ import { exceedsQualifierCap } from '../enrich/objectManipulation/plan/qualifier
  * "Qualifier"). A command over the guard cap (`exceedsQualifierCap`) is never claimed.
  */
 function maybeDeterministicManipulationIntent(
-    tokens: GranuleToken[]
+    tokens: GranuleToken[],
+    templates: TemplateSet
 ): ParseCommandObjectManipulationIntentResult | null {
     if (exceedsQualifierCap(tokens)) {
         return null
     }
-    const claimed = PLAN_TEMPLATES.some(({ pattern }) => matchPattern(pattern, tokens).length > 0)
+    const claimed = templates.plan.some(({ pattern }) => matchPattern(pattern, tokens).length > 0)
     return claimed ? { type: 'ObjectManipulationIntent', tokens, confidence: 1 } : null
 }
 
-export function deterministicIntentChecks(input: ParseCommandInput): ParseCommandResult | null {
+export function deterministicIntentChecks(input: ParseCommandInput, templates: TemplateSet = LIVE_TEMPLATE_SET): ParseCommandResult | null {
     if (isCoyoteEngineTestSlashCommand(input.command)) {
         const trimmed = input.command.trim()
         const parsed = parseCoyoteEngineTestSlashTail(trimmed, COYOTE_ENGINE_TEST_FIXTURES.length)
@@ -76,11 +78,11 @@ export function deterministicIntentChecks(input: ParseCommandInput): ParseComman
 
     // The intent rows first: they answer as results, not readings, so they run ahead of Plan's
     // templates; that puts `go home` ahead of a "home" exit, as bare `home` was.
-    const tokens = tokenize(COMMAND_GRANULES, input.command)
-    const intent = matchIntentTemplate(tokens)
+    const tokens = tokenize(templates.granules, input.command)
+    const intent = matchIntentTemplate(tokens, templates.intents)
     if (intent) {
         return intent
     }
 
-    return maybeDeterministicManipulationIntent(tokens)
+    return maybeDeterministicManipulationIntent(tokens, templates)
 }

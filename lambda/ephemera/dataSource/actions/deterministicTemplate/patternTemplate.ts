@@ -3,6 +3,7 @@ import type {
     ParseSkeleton,
     ParseToken,
     ParseTokenDraft,
+    SpanStructure,
 } from '../enrich/objectManipulation/parse/parseToken'
 import { stableRefKeysByRange } from '../enrich/objectManipulation/parse/stampStableRefKeys'
 import type { PatternCapture, PatternElement, SpanCatalog } from './deterministicTemplate'
@@ -154,12 +155,30 @@ function spanRangesOf(fill: TokenFill): SpanRange[] {
  */
 export function readFills(tokens: readonly GranuleToken[], matches: readonly { pattern: readonly PatternElement[]; fill: TokenFill }[]): PatternFill[] {
     const keyOf = stableRefKeysByRange(matches.flatMap(({ fill }) => spanRangesOf(fill)).map((range) => ({ ...range, span: tokenText(tokens, range) })))
-    const spanToken = (range: SpanRange): ObjectSpanToken => ({
-        type: 'objectSpan',
-        span: tokenText(tokens, range),
-        stableRefKey: keyOf(range),
-        ...(range.catalog !== undefined ? { catalog: range.catalog } : {}),
-    })
+    // Every span range of every complete reading: the cuts any of them makes.
+    const allRanges = [...new Map(matches.flatMap(({ fill }) => spanRangesOf(fill)).map(({ start, end }) => [`${start}-${end}`, { start, end }])).values()]
+    const structureOf = (range: TokenRange): SpanStructure | undefined => {
+        const alternatives = allRanges
+            .filter(({ start, end }) => start >= range.start && end <= range.end && (start !== range.start || end !== range.end))
+            .map(({ start, end }) => ({ start: start - range.start, end: end - range.start }))
+        return alternatives.length === 0
+            ? undefined
+            : {
+                tokens: tokens.slice(range.start, range.end).map((_token, offset) => tokenText(tokens, { start: range.start + offset, end: range.start + offset + 1 })),
+                alternatives,
+            }
+    }
+    const spanToken = (range: SpanRange): ObjectSpanToken => {
+        // An exit span grounds by exact name, so structure would never be read.
+        const structure = range.catalog === undefined ? structureOf(range) : undefined
+        return {
+            type: 'objectSpan',
+            span: tokenText(tokens, range),
+            stableRefKey: keyOf(range),
+            ...(range.catalog !== undefined ? { catalog: range.catalog } : {}),
+            ...(structure !== undefined ? { structure } : {}),
+        }
+    }
     const rangeKey = ({ start, end }: TokenRange, kind: string): string => `${kind}${start}-${end}`
     // An exit span is its own kind of cut, so it never shares a fill with an object span on the same range.
     const spanKind = ({ catalog }: SpanRange): string => (catalog === 'exits' ? 'x' : 's')

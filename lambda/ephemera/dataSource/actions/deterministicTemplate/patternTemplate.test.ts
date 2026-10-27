@@ -8,6 +8,7 @@ import { containmentTemplate } from '../enrich/objectManipulation/plan/matchCont
 import { lookAtTemplate, lookTemplate } from '../enrich/objectManipulation/plan/matchLookTemplate'
 import { membershipTemplate } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
 import { spreadTemplate } from '../enrich/objectManipulation/plan/matchSpreadTemplate'
+import { COMMAND_GRANULES, readPlanTemplates } from '../enrich/objectManipulation/plan/planSkeleton'
 
 const ON_PREPOSITIONS = { 'on top of': 'on top of', on: 'on', off: 'off' } as const
 
@@ -309,6 +310,48 @@ describe('matchPatternFills', () => {
             const liveOptions = live.flatMap(fixedWordsOf)
             expect(granulesOf([...liveOptions, ...fixedWordsOf(invented)]).granules).not.toEqual(granulesOf(liveOptions).granules)
             expect(readingsUnder([...liveOptions, ...fixedWordsOf(invented)], command)).toEqual(readingsUnder(liveOptions, command))
+        })
+    })
+
+    describe('a span carries the sub-runs another complete reading cuts', () => {
+        /** Each distinct span of the command's readings, with its alternatives spelled out as text. */
+        const structuresOf = (command: string): Record<string, string[]> => Object.fromEntries(
+            readPlanTemplates(tokenize(COMMAND_GRANULES, command), command)
+                .flatMap(({ segmentation }) => segmentation)
+                .filter((token): token is ObjectSpanToken => token.type === 'objectSpan' && token.catalog === undefined)
+                .map(({ span, structure }) => [
+                    span,
+                    (structure?.alternatives ?? []).map(({ start, end }) => structure!.tokens.slice(start, end).join(' ')).sort(),
+                ])
+        )
+
+        it('reads the payoff span as pig and a blanket', () => {
+            expect(structuresOf('put pig in a blanket on the plate on the table')['pig in a blanket']).toEqual(['a blanket', 'pig'])
+        })
+
+        it('gives a chain every cut inside it', () => {
+            expect(structuresOf('take cup on saucer on table')['cup on saucer on table']).toEqual(['cup', 'cup on saucer', 'saucer', 'saucer on table', 'table'])
+        })
+
+        it('gives a span no reading cuts inside none: onto is a divider, but no template reads get ... onto', () => {
+            expect(structuresOf('get pig onto jewel')['pig onto jewel']).toEqual([])
+        })
+
+        it('survives a JSON round trip, as a stored root does', () => {
+            const [read] = readPlanTemplates(tokenize(COMMAND_GRANULES, 'take pig in a blanket'), 'take pig in a blanket')
+            expect(JSON.parse(JSON.stringify(read.segmentation))).toEqual(read.segmentation)
+        })
+
+        it('is unchanged by a template that does not read the command completely', () => {
+            const invented: PatternElement[] = [words('wrap'), { type: 'objectSpan', name: 'subject' }, words('in a blanket', 'of both', 'top')]
+            const command = 'put pig in a blanket on the plate on the table'
+            const live = [containmentTemplate, spreadTemplate, lookTemplate, lookAtTemplate, membershipTemplate].map(({ pattern }) => pattern)
+            const spansUnder = (options: readonly string[]) => live.flatMap((pattern) => matchPatternFills(pattern, tokenize(granulesOf(options), command)))
+                .flatMap(({ segmentation }) => segmentation)
+                .filter((token): token is ObjectSpanToken => token.type === 'objectSpan')
+                .map(({ span, structure }) => ({ span, structure }))
+            const liveOptions = live.flatMap(fixedWordsOf)
+            expect(spansUnder([...liveOptions, ...fixedWordsOf(invented)])).toEqual(spansUnder(liveOptions))
         })
     })
 })

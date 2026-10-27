@@ -22,8 +22,9 @@
  * - A pair whose edits exceed `LEX_ALIGN_PAIR_MAX_RELATIVE_EDITS` of its length is no pair: its
  *   tokens are each their side's surplus (`up` against "in"). So a wholly wrong pair never costs
  *   what leaving its words out would, and coincidental letters cannot smear a name over a span.
- * - A cut a complete reading makes will cost more than a plain boundary
- *   (`AGENT.skeletonMatcher.planning.md` 4e).
+ * - A span boundary at a cut another complete reading makes (`cuts`, character positions in the
+ *   span) costs `cutBoundary` rather than `boundary`, so a name is not smeared across a cut
+ *   (`pig in a blanket` against "pig iron"); words paired one for one across a cut cost nothing.
  */
 
 import { lexemesOf } from '../../../deterministicTemplate/granuleTokens'
@@ -31,6 +32,7 @@ import { lexemesOf } from '../../../deterministicTemplate/granuleTokens'
 import { osaStep, type AlignmentOp, type OsaStep } from './osaStep'
 import {
     LEX_ALIGN_BOUNDARY_COST,
+    LEX_ALIGN_CUT_BOUNDARY_COST,
     LEX_ALIGN_MAX_MERGE,
     LEX_ALIGN_NAME_PARTIAL_COST,
     LEX_ALIGN_PAIR_MAX_RELATIVE_EDITS,
@@ -46,6 +48,8 @@ export type AlignmentCosts = {
     namePartial: number
     /** A boundary merged or split inside a group. */
     boundary: number
+    /** A boundary of merged span words at a cut another complete reading makes (`cuts`). */
+    cutBoundary: number
     /** The most tokens a group joins against one. */
     maxMerge: number
     /** The most edits a pair may hold, relative to its length. */
@@ -56,6 +60,7 @@ export const ALIGNMENT_COSTS: AlignmentCosts = {
     spanSkip: LEX_ALIGN_SPAN_SKIP_COST,
     namePartial: LEX_ALIGN_NAME_PARTIAL_COST,
     boundary: LEX_ALIGN_BOUNDARY_COST,
+    cutBoundary: LEX_ALIGN_CUT_BOUNDARY_COST,
     maxMerge: LEX_ALIGN_MAX_MERGE,
     pairMaxRelativeEdits: LEX_ALIGN_PAIR_MAX_RELATIVE_EDITS,
 }
@@ -216,10 +221,16 @@ type OuterStep = {
 
 /**
  * The cheapest token-aware alignment of a span against a name, both normalized and non-empty, or
- * `undefined` when no pair of their tokens is close enough to be one. Tie-break: the lowest cost,
+ * `undefined` when no pair of their tokens is close enough to be one. `cuts` are positions in the
+ * span where another complete reading cuts it. Tie-break: the lowest cost,
  * then the longest match in the name, then in the span.
  */
-export function alignSpanToName(span: string, name: string, costs: AlignmentCosts = ALIGNMENT_COSTS): TokenAwareAlignment | undefined {
+export function alignSpanToName(
+    span: string,
+    name: string,
+    costs: AlignmentCosts = ALIGNMENT_COSTS,
+    cuts: readonly number[] = []
+): TokenAwareAlignment | undefined {
     const spanTokens = tokensOf(span)
     const nameTokens = tokensOf(name)
     const p = spanTokens.length
@@ -237,7 +248,14 @@ export function alignSpanToName(span: string, name: string, costs: AlignmentCost
             comparisons.set(key, compared && compared.edits <= costs.pairMaxRelativeEdits * compared.length ? compared : undefined)
         }
         const admitted = comparisons.get(key)
-        return admitted && { ...admitted, boundaries: a - 1 + b - 1, cost: admitted.cost + costs.boundary * (a - 1 + b - 1) }
+        if (!admitted) {
+            return undefined
+        }
+        // The a - 1 boundaries between merged span tokens, each priced by whether a cut falls on it.
+        const spanBoundaryCost = spanTokens.slice(i - a, i - 1).reduce((total, token, offset) => (
+            total + (cuts.some((cut) => cut >= token.end && cut <= spanTokens[i - a + offset + 1].start) ? costs.cutBoundary : costs.boundary)
+        ), 0)
+        return { ...admitted, boundaries: a - 1 + b - 1, cost: admitted.cost + spanBoundaryCost + costs.boundary * (b - 1) }
     }
     const groupShapes = Array.from({ length: costs.maxMerge }, (_, index) => index + 1)
         .flatMap((k) => (k === 1 ? [[1, 1]] : [[k, 1], [1, k]]))

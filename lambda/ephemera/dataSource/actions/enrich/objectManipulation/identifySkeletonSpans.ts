@@ -2,7 +2,7 @@ import type { RoomExit } from '../../baseClasses'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { exitSpanPool } from './exitSpanPool'
 import { runIdentityStage, type IdentityStageDeps } from './identityStage'
-import type { ObjectSpanToken, ParseSkeleton } from './parse/parseToken'
+import type { ObjectSpanToken, ParseSkeleton, SpanStructure } from './parse/parseToken'
 import type { SpanCandidatePool } from './spanResolution'
 
 function isObjectSpanToken(token: ParseSkeleton[number]): token is ObjectSpanToken {
@@ -26,6 +26,7 @@ export type SkeletonIdentityStageResult =
  * Each span grounds against its own catalog (`ObjectSpanToken.catalog`). An object span's pool
  * depends only on its text, so each distinct text is identified once, in order of first appearance,
  * and every key holding that text (two occurrences, `benchRef1` and `benchRef2`) shares its pool;
+ * Identify scores a text with the union of its occurrences' structure (`SpanStructure`).
  * Identify runs, and can fail for want of a catalog, only when there is an object span to ground.
  * An exit span's pool is the exits' exact match (`exitSpanPool`).
  */
@@ -39,8 +40,14 @@ export async function runIdentityStageOverSkeleton(
     const objectSpanTokens = spanTokens.filter((token) => token.catalog === undefined)
     const texts = [...new Set(objectSpanTokens.map((token) => token.span))]
 
+    // A text's structure is the union of its occurrences' alternatives (the same text can sit in two ranges).
+    const structures = new Map<string, SpanStructure>(texts.flatMap((text) => {
+        const held = objectSpanTokens.filter((token) => token.span === text && token.structure !== undefined).map((token) => token.structure!)
+        const alternatives = [...new Map(held.flatMap((structure) => structure.alternatives).map((range) => [`${range.start}-${range.end}`, range])).values()]
+        return held.length === 0 ? [] : [[text, { tokens: held[0].tokens, alternatives }] as const]
+    }))
     const identityResult = texts.length > 0
-        ? await runIdentityStage(command, texts, catalogs.objects, deps)
+        ? await runIdentityStage(command, texts, catalogs.objects, deps, structures)
         : { type: 'success' as const, spanPools: [] }
     if (identityResult.type === 'error') {
         return identityResult

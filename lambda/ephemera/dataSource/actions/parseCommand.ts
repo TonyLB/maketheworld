@@ -33,7 +33,7 @@ async function parseCommandCore(
         // Only reachable via deterministicIntentChecks's fast path, which claims every command one of
         // Plan's templates fits. Plan reads every template over the command's tokens; each
         // segmentation its readings make is a fill.
-        const fills = planTokens(intentResult.tokens, input.command)
+        const fills = planTokens(intentResult.tokens, input.command, deps.templates)
         // Zero attempts is not understood on this rung, like an Abstain: both climb to the LLM route.
         if (fills.length > 0) {
             const result = await compileAttemptsFromSkeleton(
@@ -79,7 +79,7 @@ async function routeClassifiedIntent(
             return answer({ type: 'Error', errorMessage: parseResult.errorMessage })
         }
 
-        const plan = planSkeleton(parseResult.tokens, input.command)
+        const plan = planSkeleton(parseResult.tokens, input.command, deps.templates)
 
         // Plan's attempts all go to one producer. An Abstain from it climbs to Acme, as zero attempts
         // (the non-object families' case) does; with no Acme match, it is the top rung's Abstain,

@@ -1,3 +1,4 @@
+import type { SpanStructure } from '../parse/parseToken'
 import { lexicalRelevance } from './lexicalRelevance'
 
 describe('lexicalRelevance', () => {
@@ -96,5 +97,56 @@ describe('lexicalRelevance on a span\'s surplus (SM-4)', () => {
     it('scores 0 when no word of the span pairs with a word of the name', () => {
         expect(lexicalRelevance('sweeping tool', 'broom')).toBe(0)
         expect(lexicalRelevance('sword', 'anvil')).toBe(0)
+    })
+})
+
+describe('lexicalRelevance: the structural malus', () => {
+    // The structure a span carries when another complete reading cuts at its fixed words.
+    const pigInABlanket: SpanStructure = { tokens: ['pig', 'in', 'a blanket'], alternatives: [{ start: 0, end: 1 }, { start: 2, end: 3 }] }
+    const cupOnSaucerOnTable: SpanStructure = {
+        tokens: ['cup', 'on', 'saucer', 'on', 'table'],
+        alternatives: [{ start: 0, end: 1 }, { start: 0, end: 3 }, { start: 2, end: 3 }, { start: 2, end: 5 }, { start: 4, end: 5 }],
+    }
+
+    it('charges surplus a cut could explain more than surplus nothing explains', () => {
+        expect(lexicalRelevance('pig in a blanket', 'pig', {}, pigInABlanket)).toBeLessThan(lexicalRelevance('piggy pig piggy', 'pig'))
+    })
+
+    it('is exactly the unstructured score without structure, or where nothing is cut', () => {
+        expect(lexicalRelevance('pig in a blanket', 'pig', {}, { tokens: pigInABlanket.tokens, alternatives: [] })).toBe(lexicalRelevance('pig in a blanket', 'pig'))
+    })
+
+    it('charges a name\'s extra words nothing special', () => {
+        expect(lexicalRelevance('pig', 'pig in a blanket')).toBe(lexicalRelevance('pig', 'pig in a blanket', {}, { tokens: ['pig'], alternatives: [] }))
+    })
+
+    it('takes none for a span no reading cuts (onto is a divider but no template reads it)', () => {
+        const structure: SpanStructure = { tokens: ['pig', 'onto', 'jewel'], alternatives: [] }
+        expect(lexicalRelevance('pig onto jewel', 'pig', {}, structure)).toBe(lexicalRelevance('pig onto jewel', 'pig'))
+    })
+
+    it('takes none for words paired one for one across a cut', () => {
+        const structure: SpanStructure = { tokens: ['man', 'in', 'teh moon'], alternatives: [{ start: 0, end: 1 }, { start: 2, end: 3 }] }
+        expect(lexicalRelevance('man in teh moon', 'man in the moon', {}, structure)).toBe(lexicalRelevance('man in teh moon', 'man in the moon'))
+    })
+
+    it('takes it where the name matches inside one run: against "pig iron" and "pigs"', () => {
+        expect(lexicalRelevance('pig in a blanket', 'pig iron', {}, pigInABlanket)).toBeLessThan(lexicalRelevance('pig in a blanket', 'pig iron'))
+        expect(lexicalRelevance('pig in a blanket', 'pigs', {}, pigInABlanket)).toBeLessThan(lexicalRelevance('pig in a blanket', 'pigs'))
+    })
+
+    it('charges the whole tail a cut after the match explains', () => {
+        const plain = lexicalRelevance('cup on saucer on table', 'cup')
+        const structured = lexicalRelevance('cup on saucer on table', 'cup', {}, cupOnSaucerOnTable)
+        expect(structured).toBeLessThan(plain)
+        expect(lexicalRelevance('cup on saucer on kitchen table', 'kitchen table', {}, {
+            tokens: ['cup', 'on', 'saucer', 'on', 'kitchen table'],
+            alternatives: [{ start: 0, end: 1 }, { start: 0, end: 3 }, { start: 2, end: 3 }, { start: 2, end: 5 }, { start: 4, end: 5 }],
+        })).toBeLessThan(lexicalRelevance('cup on saucer on kitchen table', 'kitchen table'))
+    })
+
+    it('shifts the structure with a peeled article', () => {
+        const structure: SpanStructure = { tokens: ['the pig', 'in', 'a blanket'], alternatives: [{ start: 0, end: 1 }, { start: 2, end: 3 }] }
+        expect(lexicalRelevance('pig in a blanket', 'pig', {}, structure)).toBe(lexicalRelevance('pig in a blanket', 'pig', {}, pigInABlanket))
     })
 })
