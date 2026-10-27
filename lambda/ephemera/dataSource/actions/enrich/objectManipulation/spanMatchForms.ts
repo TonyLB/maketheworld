@@ -1,4 +1,4 @@
-import { normalizeExitName } from '../../roomExitTargetsForCharacter'
+import { normalizeExitName } from '../../normalizeExitName'
 
 const LEADING_ARTICLES = ['an', 'a', 'the', 'some'] as const
 

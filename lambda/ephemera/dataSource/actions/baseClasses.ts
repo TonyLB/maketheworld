@@ -31,7 +31,7 @@ import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharact
 import { isPersistentCommandRoot, type PersistentCommandRoot } from './persistentCommand/payload'
 import type { ObjectManipulationPositionsReadDeps } from './enrich/objectManipulation/membershipObservation'
 import type { MutationKernelStep } from '../positions/manipulation/kernel/kernelStep'
-import type { EmbedObjectSpanResult } from '../objects/embedding/embedObjectSpan'
+import type { EmbedObjectSpanResult } from '../../internalCache/spanEmbeddings/embedObjectSpan'
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { CommandAttemptData } from './commandAttempt'
 import type { TemplateSet } from './enrich/objectManipulation/plan/templateSet'

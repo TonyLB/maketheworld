@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto'
 
-import type { InvokeBedrockTitanEmbedResult } from '../../../llm/invokeBedrockTitanEmbed'
+import type { InvokeBedrockTitanEmbedResult } from '../../llm/invokeBedrockTitanEmbed'
 import { SEMANTIC_EMBEDDING_V1_DIMENSIONS } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
-import { BEDROCK_OBJECT_SHORTNAME_EMBED_TIMEOUT_MS } from './buildShortNameSemanticEmbedding'
+import { BEDROCK_OBJECT_SHORTNAME_EMBED_TIMEOUT_MS } from '../../dataSource/objects/embedding/buildShortNameSemanticEmbedding'
 import { embedObjectSpan } from './embedObjectSpan'
 
 const makeEmbedding = () =>

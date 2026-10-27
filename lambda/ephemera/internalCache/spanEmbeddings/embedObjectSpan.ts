@@ -3,8 +3,8 @@ import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticE
 import {
     embedNormalizedSemanticText,
     type EmbedNormalizedSemanticTextDeps,
-} from './embedNormalizedSemanticText'
-import { normalizeShortNameForEmbedding } from './impromptuEmbeddingNeedsRefresh'
+} from '../../dataSource/objects/embedding/embedNormalizedSemanticText'
+import { normalizeShortNameForEmbedding } from '../../dataSource/objects/embedding/impromptuEmbeddingNeedsRefresh'
 
 export type EmbedObjectSpanSuccess = {
     success: true;

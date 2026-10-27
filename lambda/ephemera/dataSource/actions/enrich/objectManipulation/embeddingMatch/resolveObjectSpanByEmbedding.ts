@@ -1,4 +1,4 @@
-import type { EmbedObjectSpanResult } from '../../../../objects/embedding/embedObjectSpan'
+import type { EmbedObjectSpanResult } from '../../../../../internalCache/spanEmbeddings/embedObjectSpan'
 import { createSpanEmbedCache, getOrEmbedSpan } from './spanEmbedCache'
 import { simulateEmbeddingIdentity } from './simulateEmbeddingIdentity'
 import type { EmbeddingMatchCandidate, EmbeddingMatchDecision } from './types'

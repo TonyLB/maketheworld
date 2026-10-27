@@ -72,6 +72,7 @@ import PerceptionThreadsData from './perceptionThreads';
 import CacheCoyoteGameData from './coyoteGame';
 import type { MessageBus } from '../messageBus/baseClasses';
 import GenerationContextData from './generationContext';
+import SpanEmbeddingsCache from './spanEmbeddings';
 
 /** Deferred requires break internalCache <-> messageBus init cycle (FetchPlayerEphemera subscribe). */
 const getMessageBus = (): MessageBus => require('../messageBus').default as MessageBus
@@ -122,6 +123,7 @@ export class InternalCache {
     ComponentEphemeraMeta: ComponentEphemeraMetaData = new ComponentEphemeraMetaData();
     ObjectEphemeraMeta: ObjectEphemeraMetaData = new ObjectEphemeraMetaData();
     AssetMetaData: AssetMetaData = new AssetMetaData();
+    SpanEmbeddings: SpanEmbeddingsCache = new SpanEmbeddingsCache();
 
     _invalidateAssetCallback: (EphemeraId: string) => void;
     
@@ -206,6 +208,7 @@ export class InternalCache {
         this.ImprovisationComponentData.clear()
         this.ObjectEmbedding.clear()
         this.AssetMetaData.clear()
+        this.SpanEmbeddings.clear()
 
         this.AffordanceRoomDeliverable.clear()
         this.GenerationContext.clear()
@@ -229,6 +232,7 @@ export class InternalCache {
             this.ThinkingSchedules.flush(),
             this.ThinkingJobs.flush(),
             this.AssetMetaData.flush(),
+            this.SpanEmbeddings.flush(),
             this.AffordanceRoomDeliverable.flush(),
             this.GenerationContext.flush(),
             this.RenderCache.flush(),

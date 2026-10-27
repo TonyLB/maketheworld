@@ -1,6 +1,6 @@
 # Span embeddings cache (`internalCache.SpanEmbeddings`)
 
-**Status:** Not started. Next: Slice 1 (the handler, wired into `InternalCache`).
+**Status:** Slice 1 shipped (handler, wired into `InternalCache`; nothing calls it yet). Next: Slice 2 (route Identify through it).
 
 Skim [`taskPlanning/AGENT.md`](../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and the Recommended order checkbox conventions.
 
@@ -53,7 +53,7 @@ Plan-only: decisions made in order to implement the slices below. Do not copy in
 
 | Slice | State |
 | --- | --- |
-| 1. `SpanEmbeddings` handler + `InternalCache` wiring | |
+| 1. `SpanEmbeddings` handler + `InternalCache` wiring | Shipped. Also split `normalizeExitName` into a leaf module (import cycle, see Slice 1 note). |
 | 2. Identify reads through the handler; `spanEmbedCache.ts` deleted | |
 | 3. Concurrent Identify + payoff test | |
 | 4. Durable docs; plan deleted | |
@@ -62,11 +62,12 @@ Plan-only: decisions made in order to implement the slices below. Do not copy in
 
 Mark pending items `[ ]` and completed items `[X]`; mark each nested line `[X]` as it is done.
 
-- [ ] **Slice 1 --- the handler.**
-    - [ ] Move `dataSource/objects/embedding/embedObjectSpan.ts` and `embedObjectSpan.test.ts` to `internalCache/spanEmbeddings/` (`git mv`); repoint the type imports in [`actions/baseClasses.ts`](../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) and `resolveObjectSpanByEmbedding.ts`, and the default import in `spanEmbedCache.ts` (deleted in Slice 2).
-    - [ ] Add `internalCache/spanEmbeddings/index.ts`: exported `spanEmbeddingKey`, class `SpanEmbeddingsCache` over a `DeferredCache` with `get(span): Promise<EmbedObjectSpanResult>`, `flush()` and `clear()` (SE-1--SE-3).
-    - [ ] Wire `SpanEmbeddings` onto `InternalCache`, into `clear()` and `flush()`.
-    - [ ] Unit tests (`spanEmbeddings/index.test.ts`): `cup` / `the cup` / `  The  Cup ` -> one embedder call, called with `cup`; two concurrent `get`s before either resolves -> one call, both resolve to its result; `{ success: false }` memoized; a throwing embedder resolves `{ success: false }` for every concurrent awaiter (no hang); empty / article-only span (`the`) behaves as `peelLeadingArticleWhenTail` + `embedObjectSpan` do today; `clear()` forgets.
+- [X] **Slice 1 --- the handler.**
+    - [X] Move `dataSource/objects/embedding/embedObjectSpan.ts` and `embedObjectSpan.test.ts` to `internalCache/spanEmbeddings/` (`git mv`); repoint the type imports in [`actions/baseClasses.ts`](../../../../lambda/ephemera/dataSource/actions/baseClasses.ts) and `resolveObjectSpanByEmbedding.ts`, and the default import in `spanEmbedCache.ts` (deleted in Slice 2).
+    - [X] Add `internalCache/spanEmbeddings/index.ts`: exported `spanEmbeddingKey`, class `SpanEmbeddingsCache` over a `DeferredCache` with `get(span): Promise<EmbedObjectSpanResult>`, `flush()` and `clear()` (SE-1--SE-3).
+    - [X] Wire `SpanEmbeddings` onto `InternalCache`, into `clear()` and `flush()`.
+    - [X] Unit tests (`spanEmbeddings/index.test.ts`): `cup` / `the cup` / `  The  Cup ` -> one embedder call, called with `cup`; two concurrent `get`s before either resolves -> one call, both resolve to its result; `{ success: false }` memoized; a throwing embedder resolves `{ success: false }` for every concurrent awaiter (no hang); empty / article-only span (`the`) behaves as `peelLeadingArticleWhenTail` + `embedObjectSpan` do today; `clear()` forgets.
+    - [X] Import cycle found and fixed at the source: `impromptuEmbeddingNeedsRefresh.ts` and `spanMatchForms.ts` imported `normalizeExitName` from `roomExitTargetsForCharacter.ts`, which imports `internalCache`, so any module loaded from the handler first re-entered `internalCache` half-built. `normalizeExitName` now lives in leaf `dataSource/actions/normalizeExitName.ts` (re-exported from `roomExitTargetsForCharacter`, so other importers are untouched). Keep the handler's imports free of `internalCache`.
 - [ ] **Slice 2 --- route Identify through it.**
     - [ ] `resolveCatalogSpanToPool`: drop the peel before the embed call (the handler peels); keep the peeled `matchSpan` for `buildSpanCandidatePool` (lexical channel unchanged).
     - [ ] `resolveCatalogSpanToPool` and `resolveObjectSpanByEmbedding` call `internalCache.SpanEmbeddings.get` directly.

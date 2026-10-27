@@ -1,5 +1,5 @@
-import type { EmbedObjectSpanResult } from '../../../../objects/embedding/embedObjectSpan'
-import { embedObjectSpan } from '../../../../objects/embedding/embedObjectSpan'
+import type { EmbedObjectSpanResult } from '../../../../../internalCache/spanEmbeddings/embedObjectSpan'
+import { embedObjectSpan } from '../../../../../internalCache/spanEmbeddings/embedObjectSpan'
 import { normalizeShortNameForEmbedding } from '../../../../objects/embedding/impromptuEmbeddingNeedsRefresh'
 
 import type { ResolveObjectSpanByEmbeddingDeps } from './resolveObjectSpanByEmbedding'
