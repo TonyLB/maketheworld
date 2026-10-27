@@ -9,6 +9,19 @@ import {
     makeEmbeddingFromAxis,
 } from './embeddingMatch/testing/mockVectors'
 
+import internalCache from '../../../../internalCache'
+
+jest.mock('../../../../internalCache', () => ({
+    __esModule: true,
+    default: { SpanEmbeddings: { get: jest.fn() } },
+}))
+
+const mockGet = internalCache.SpanEmbeddings.get as jest.Mock
+
+beforeEach(() => {
+    mockGet.mockReset()
+})
+
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const anvilId = 'OBJECT#Anvil' as EphemeraObjectId
 
@@ -19,13 +32,11 @@ const roomCatalog: ObjectManipulationCatalogEntry[] = [
 
 describe('runIdentityStage', () => {
     it('emits exact pool without embed', async () => {
-        const embedSpan = jest.fn()
 
         const result = await runIdentityStage(
             'pick up the broom',
             ['broom'],
-            roomCatalog,
-            { embedSpan }
+            roomCatalog
         )
 
         expect(result).toEqual({
@@ -50,7 +61,7 @@ describe('runIdentityStage', () => {
                 }],
             }],
         })
-        expect(embedSpan).not.toHaveBeenCalled()
+        expect(mockGet).not.toHaveBeenCalled()
         if (result.type === 'success') {
             expect(isSpanCandidatePool(result.spanPools[0])).toBe(true)
         }
@@ -78,7 +89,7 @@ describe('runIdentityStage', () => {
             embedding: candidate.embedding,
         }))
 
-        const embedSpan = jest.fn().mockResolvedValue({
+        mockGet.mockResolvedValue({
             success: true,
             embedding: spanEmbedding,
         })
@@ -86,8 +97,7 @@ describe('runIdentityStage', () => {
         const result = await runIdentityStage(
             'pick up the sweeping tool',
             ['sweeping tool'],
-            catalog,
-            { embedSpan }
+            catalog
         )
 
         expect(result.type).toBe('success')
@@ -96,7 +106,7 @@ describe('runIdentityStage', () => {
         }
         expect(result.spanPools).toHaveLength(1)
         expect(result.spanPools[0]?.candidates[0]?.id).toBe(broomId)
-        expect(embedSpan).toHaveBeenCalled()
+        expect(mockGet).toHaveBeenCalled()
     })
 
     it('emits pool on absent-object span (no identity LLM)', async () => {
@@ -116,7 +126,7 @@ describe('runIdentityStage', () => {
             embedding: candidate.embedding,
         }))
 
-        const embedSpan = jest.fn().mockResolvedValue({
+        mockGet.mockResolvedValue({
             success: true,
             embedding: spanEmbedding,
         })
@@ -124,8 +134,7 @@ describe('runIdentityStage', () => {
         const result = await runIdentityStage(
             'pick up the sword',
             ['sword'],
-            catalog,
-            { embedSpan }
+            catalog
         )
 
         expect(result.type).toBe('success')
@@ -142,13 +151,12 @@ describe('runIdentityStage', () => {
             catalogScope: 'room',
             embedding: makeEmbeddingFromAxis(1),
         }]
-        const embedSpan = jest.fn().mockResolvedValue({ success: false })
+        mockGet.mockResolvedValue({ success: false })
 
         const result = await runIdentityStage(
             'pick up the sweeping tool',
             ['sweeping tool'],
-            catalog,
-            { embedSpan }
+            catalog
         )
 
         expect(result.type).toBe('success')
@@ -165,42 +173,5 @@ describe('runIdentityStage', () => {
             type: 'error',
             errorMessage: objectManipulationErrorMessages.noCatalog,
         })
-    })
-
-    it('dedupes span embed across multiple spans in one call when both miss exact match (BD-20 follow-up: ported from resolveRelationalGrounding.test.ts, since this is runIdentityStage\'s own multi-span behavior, not relational-specific)', async () => {
-        const { spanEmbedding, candidates } = buildCandidatesFromIdentityCase(
-            {
-                id: 'test-paraphrase-dedupe',
-                bucket: 'positive-paraphrase',
-                span: 'sweeping tool',
-                catalog: ['broom'],
-            },
-            {
-                kind: 'resolve-index',
-                targetIndex: 0,
-                targetSimilarity: 0.95,
-                otherSimilarity: 0.5,
-            }
-        )
-        const catalog: ObjectManipulationCatalogEntry[] = candidates.map((candidate) => ({
-            objectId: broomId,
-            normalizedShortName: candidate.normalizedShortName,
-            catalogScope: 'room' as const,
-            embedding: candidate.embedding,
-        }))
-        const embedSpan = jest.fn().mockResolvedValue({
-            success: true,
-            embedding: spanEmbedding,
-        })
-
-        const result = await runIdentityStage(
-            'put sweeping tool on sweeping tool',
-            ['sweeping tool', 'Sweeping Tool'],
-            catalog,
-            { embedSpan }
-        )
-
-        expect(result.type).toBe('success')
-        expect(embedSpan).toHaveBeenCalledTimes(1)
     })
 })

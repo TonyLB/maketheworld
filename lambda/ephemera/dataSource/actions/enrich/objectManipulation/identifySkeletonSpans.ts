@@ -1,7 +1,7 @@
 import type { RoomExit } from '../../baseClasses'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { exitSpanPool } from './exitSpanPool'
-import { runIdentityStage, type IdentityStageDeps } from './identityStage'
+import { runIdentityStage } from './identityStage'
 import type { ObjectSpanToken, ParseSkeleton, SpanStructure } from './parse/parseToken'
 import type { SpanCandidatePool } from './spanResolution'
 
@@ -33,8 +33,7 @@ export type SkeletonIdentityStageResult =
 export async function runIdentityStageOverSkeleton(
     command: string,
     skeleton: ParseSkeleton,
-    catalogs: SpanCatalogs,
-    deps: IdentityStageDeps = {}
+    catalogs: SpanCatalogs
 ): Promise<SkeletonIdentityStageResult> {
     const spanTokens = skeleton.filter(isObjectSpanToken)
     const objectSpanTokens = spanTokens.filter((token) => token.catalog === undefined)
@@ -47,7 +46,7 @@ export async function runIdentityStageOverSkeleton(
         return held.length === 0 ? [] : [[text, { tokens: held[0].tokens, alternatives }] as const]
     }))
     const identityResult = texts.length > 0
-        ? await runIdentityStage(command, texts, catalogs.objects, deps, structures)
+        ? await runIdentityStage(command, texts, catalogs.objects, structures)
         : { type: 'success' as const, spanPools: [] }
     if (identityResult.type === 'error') {
         return identityResult
@@ -66,15 +65,14 @@ export async function runIdentityStageOverSkeleton(
 /**
  * Identify for the shared producer (ISS8203 slice 2): the referents an attempt names, keyed by
  * stableRefKey, are the set Identify resolves. Spans come from the skeleton in its own order, so
- * `embedSpan` sees the same calls in the same order as the per-route producers did. A key that no
+ * `SpanEmbeddings.get` sees the same calls in the same order as the per-route producers did. A key that no
  * skeleton token carries is a construction bug, not a runtime outcome, so it throws.
  */
 export async function runIdentityStageOverReferenceKeys(
     command: string,
     skeleton: ParseSkeleton,
     referenceKeys: readonly string[],
-    catalogs: SpanCatalogs,
-    deps: IdentityStageDeps = {}
+    catalogs: SpanCatalogs
 ): Promise<SkeletonIdentityStageResult> {
     const keys = new Set(referenceKeys)
     const skeletonKeys = new Set(skeleton.filter(isObjectSpanToken).map((token) => token.stableRefKey))
@@ -84,5 +82,5 @@ export async function runIdentityStageOverReferenceKeys(
         }
     }
     const referenced: ParseSkeleton = skeleton.filter((token) => !isObjectSpanToken(token) || keys.has(token.stableRefKey))
-    return runIdentityStageOverSkeleton(command, referenced, catalogs, deps)
+    return runIdentityStageOverSkeleton(command, referenced, catalogs)
 }

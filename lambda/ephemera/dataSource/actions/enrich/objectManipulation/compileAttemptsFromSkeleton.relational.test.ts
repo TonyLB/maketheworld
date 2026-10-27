@@ -8,6 +8,19 @@ import { planFillOf } from './plan/attemptTemplateFixture'
 import { CommandAttempt } from '../../commandAttempt'
 import { peerRelationFixture } from './peerRelationFixture'
 
+import internalCache from '../../../../internalCache'
+
+jest.mock('../../../../internalCache', () => ({
+    __esModule: true,
+    default: { SpanEmbeddings: { get: jest.fn() } },
+}))
+
+const mockGet = internalCache.SpanEmbeddings.get as jest.Mock
+
+beforeEach(() => {
+    mockGet.mockReset()
+})
+
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const tableId = 'OBJECT#Table' as EphemeraObjectId
 const benchAId = 'OBJECT#BenchA' as EphemeraObjectId
@@ -266,6 +279,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             })
         )
 
+        mockGet.mockResolvedValue({ success: true, embedding: [0.01, 0.02, 0.03] })
         const result = await compileAttemptsFromSkeleton(
             {
                 command: 'put sword under table',
@@ -277,7 +291,6 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
             0.9,
             {
                 positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph },
-                embedSpan: jest.fn().mockResolvedValue({ success: true, embedding: [0.01, 0.02, 0.03] }),
             }
         )
 

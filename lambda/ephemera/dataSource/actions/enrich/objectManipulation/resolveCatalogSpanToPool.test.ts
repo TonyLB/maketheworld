@@ -8,6 +8,19 @@ import {
     makeEmbeddingFromAxis,
 } from './embeddingMatch/testing/mockVectors'
 
+import internalCache from '../../../../internalCache'
+
+jest.mock('../../../../internalCache', () => ({
+    __esModule: true,
+    default: { SpanEmbeddings: { get: jest.fn() } },
+}))
+
+const mockGet = internalCache.SpanEmbeddings.get as jest.Mock
+
+beforeEach(() => {
+    mockGet.mockReset()
+})
+
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const anvilId = 'OBJECT#Anvil' as EphemeraObjectId
 const duplicateId = 'OBJECT#BroomDup' as EphemeraObjectId
@@ -19,8 +32,7 @@ const roomCatalog: ObjectManipulationCatalogEntry[] = [
 
 describe('resolveCatalogSpanToPool', () => {
     it('builds exact single-candidate pool without embed', async () => {
-        const embedSpan = jest.fn()
-        const result = await resolveCatalogSpanToPool('broom', roomCatalog, { embedSpan })
+        const result = await resolveCatalogSpanToPool('broom', roomCatalog)
 
         expect(result.type).toBe('pool')
         if (result.type !== 'pool') {
@@ -37,18 +49,17 @@ describe('resolveCatalogSpanToPool', () => {
                 locus: { kind: 'room' },
             }],
         })
-        expect(embedSpan).not.toHaveBeenCalled()
+        expect(mockGet).not.toHaveBeenCalled()
     })
 
     it('matches a span with a leading article exactly, keeping the span as given', async () => {
-        const embedSpan = jest.fn()
-        const result = await resolveCatalogSpanToPool('the broom', roomCatalog, { embedSpan })
+        const result = await resolveCatalogSpanToPool('the broom', roomCatalog)
 
         expect(result).toMatchObject({
             type: 'pool',
             pool: { span: 'the broom', candidates: [{ id: broomId, sourceTags: ['exact'] }] },
         })
-        expect(embedSpan).not.toHaveBeenCalled()
+        expect(mockGet).not.toHaveBeenCalled()
     })
 
     it('matches a name that starts with an article whole before peeling', async () => {
@@ -71,11 +82,11 @@ describe('resolveCatalogSpanToPool', () => {
     })
 
     it('ranks a non-exact span with its article peeled, in both channels, keeping the span as given', async () => {
-        const embedSpan = jest.fn().mockResolvedValue({ success: false })
+        mockGet.mockResolvedValue({ success: false })
 
-        const result = await resolveCatalogSpanToPool('the brooms', roomCatalog, { embedSpan })
+        const result = await resolveCatalogSpanToPool('the brooms', roomCatalog)
 
-        expect(embedSpan).toHaveBeenCalledWith('brooms')
+        expect(mockGet).toHaveBeenCalledWith('the brooms')
         expect(result).toMatchObject({ type: 'pool', pool: { span: 'the brooms' } })
         if (result.type === 'pool') {
             expect(result.pool.candidates[0]?.id).toBe(broomId)
@@ -133,18 +144,18 @@ describe('resolveCatalogSpanToPool', () => {
             embedding: candidate.embedding,
         }))
 
-        const embedSpan = jest.fn().mockResolvedValue({
+        mockGet.mockResolvedValue({
             success: true,
             embedding: spanEmbedding,
         })
 
-        const result = await resolveCatalogSpanToPool('sweeping tool', catalog, { embedSpan })
+        const result = await resolveCatalogSpanToPool('sweeping tool', catalog)
 
         expect(result.type).toBe('pool')
         if (result.type !== 'pool') {
             return
         }
-        expect(embedSpan).toHaveBeenCalled()
+        expect(mockGet).toHaveBeenCalled()
         expect(result.pool.candidates[0]?.id).toBe(broomId)
         expect(result.pool.candidates.length).toBe(2)
     })
@@ -156,9 +167,9 @@ describe('resolveCatalogSpanToPool', () => {
             catalogScope: 'room',
             embedding: makeEmbeddingFromAxis(1),
         }]
-        const embedSpan = jest.fn().mockResolvedValue({ success: false })
+        mockGet.mockResolvedValue({ success: false })
 
-        const result = await resolveCatalogSpanToPool('sweeping tool', catalog, { embedSpan })
+        const result = await resolveCatalogSpanToPool('sweeping tool', catalog)
 
         expect(result.type).toBe('pool')
         if (result.type !== 'pool') {

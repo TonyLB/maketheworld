@@ -14,7 +14,6 @@ import { NarrateAttemptAction } from '../../commandAttempt/action'
 
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import { adjudicateDeferred } from '../../commandAttempt/adjudicate'
-import type { IdentityStageDeps } from './identityStage'
 import { runIdentityStageOverReferenceKeys } from './identifySkeletonSpans'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import type { ParseSkeleton } from './parse/parseToken'
@@ -63,7 +62,7 @@ export type CompileAttemptsFromSkeletonInput = {
     answers?: ResumeAnswers
 }
 
-export type CompileAttemptsFromSkeletonDeps = IdentityStageDeps & {
+export type CompileAttemptsFromSkeletonDeps = {
     positionsReadDeps?: ObjectManipulationPositionsReadDeps
 }
 
@@ -274,8 +273,7 @@ async function compileReadings(
         input.command,
         spans,
         attemptSpanKeys(survivors.map((entry) => entry.attempt)),
-        { objects: catalog, exits: input.roomExits ?? [] },
-        deps
+        { objects: catalog, exits: input.roomExits ?? [] }
     )
     if (identityResult.type === 'error') {
         // Nothing in the room or in hand: nothing grounds.

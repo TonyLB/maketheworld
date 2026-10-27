@@ -9,6 +9,20 @@ import { planFillOf } from './plan/attemptTemplateFixture'
 import { planSkeleton } from './plan/attemptTemplateFixture'
 
 /** The attempt's last action's desired result: the transfer, which Plan's templates put last. */
+import internalCache from '../../../../internalCache'
+
+jest.mock('../../../../internalCache', () => ({
+    __esModule: true,
+    default: { SpanEmbeddings: { get: jest.fn() } },
+}))
+
+const mockGet = internalCache.SpanEmbeddings.get as jest.Mock
+
+beforeEach(() => {
+    mockGet.mockReset()
+    mockGet.mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' })
+})
+
 const transferStepOf = (result: { type: string; attempt?: unknown }): any => {
     const actions = (result.attempt as { actions: { desiredResult?: unknown }[] }).actions
     return actions[actions.length - 1]?.desiredResult
@@ -143,7 +157,6 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
             },
             0.9,
             {
-                embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' }),
                 positionsReadDeps: containmentPositionsReads(),
             }
         )

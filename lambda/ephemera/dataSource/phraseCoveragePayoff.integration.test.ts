@@ -185,6 +185,9 @@ describe('phrase coverage payoff (integration)', () => {
 
     /** The real `parseCommand` over the seeded world; with the classify seam, to assert on. */
     const parse = async (command: string, { embeddings = false, templates }: { embeddings?: boolean; templates?: TemplateSet } = {}) => {
+        jest.spyOn(internalCache.SpanEmbeddings, 'get').mockResolvedValue(embeddings
+            ? { success: true, embedding: SPAN_EMBEDDING }
+            : { success: false })
         const labels = Object.entries(world.names) as Array<[EphemeraObjectId, string]>
         const isHeld = (objectId: EphemeraObjectId) => (world.containers[objectId] ?? []).includes(CHARACTER_ID)
         // The held catalog as production builds it: what the character holds, read from its own graph.
@@ -209,7 +212,6 @@ describe('phrase coverage payoff (integration)', () => {
             {
                 invokeBedrockParseCommandImpl,
                 ...(templates !== undefined ? { templates } : {}),
-                ...(embeddings ? { embedSpan: jest.fn().mockResolvedValue({ success: true, embedding: SPAN_EMBEDDING }) } : {}),
                 objectManipulationPositionsReadDeps: {
                     getMembershipContainers: jest.fn().mockImplementation(async (id: string) => world.containers[id] ?? []),
                     getLudicGraph: jest.fn().mockImplementation(async (hostId: string) => world.graphs[hostId] ?? EphemeraLudicGraph.empty(hostId as EphemeraMembershipHostId)),

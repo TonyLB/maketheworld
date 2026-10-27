@@ -47,7 +47,6 @@ async function parseCommandCore(
                 },
                 intentResult.confidence,
                 {
-                    embedSpan: deps.embedSpan,
                     positionsReadDeps: deps.objectManipulationPositionsReadDeps,
                 }
             )

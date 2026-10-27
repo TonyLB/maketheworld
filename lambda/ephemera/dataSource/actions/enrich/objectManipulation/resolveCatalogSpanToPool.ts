@@ -1,7 +1,6 @@
+import internalCache from '../../../../internalCache'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { buildSpanCandidatePool } from './embeddingMatch/buildSpanCandidatePool'
-import { createSpanEmbedCache, getOrEmbedSpan } from './embeddingMatch/spanEmbedCache'
-import type { ResolveObjectSpanByEmbeddingDeps } from './embeddingMatch/resolveObjectSpanByEmbedding'
 import {
     exactCatalogMatches,
     objectManipulationErrorMessageForResolution,
@@ -18,10 +17,6 @@ import {
 export type ResolveCatalogSpanToPoolResult =
     | { type: 'pool'; pool: SpanCandidatePool }
     | { type: 'error'; errorMessage: string }
-
-export type ResolveCatalogSpanToPoolDeps = Pick<ResolveObjectSpanByEmbeddingDeps, 'embedSpan'> & {
-    spanEmbedCache?: ReturnType<typeof createSpanEmbedCache>
-}
 
 const buildExactCandidate = (entry: ObjectManipulationCatalogEntry): ObjectSpanCandidate => ({
     id: entry.objectId,
@@ -69,7 +64,6 @@ const buildExactSpanCandidatePool = (
 export async function resolveCatalogSpanToPool(
     span: string,
     catalog: readonly ObjectManipulationCatalogEntry[],
-    deps: ResolveCatalogSpanToPoolDeps = {},
     structure?: SpanStructure
 ): Promise<ResolveCatalogSpanToPoolResult> {
     const resolution = resolveObjectSpanToObjectId(span, catalog)
@@ -102,10 +96,10 @@ export async function resolveCatalogSpanToPool(
         }
     }
 
-    // Both channels rank the span with its leading article peeled; the pool keeps the span as given.
+    // Both channels rank the span with its leading article peeled (the embed handler peels its own
+    // key); the pool keeps the span as given.
     const matchSpan = peelLeadingArticleWhenTail(span)
-    const cache = deps.spanEmbedCache ?? createSpanEmbedCache()
-    const embedResult = await getOrEmbedSpan(matchSpan, cache, deps)
+    const embedResult = await internalCache.SpanEmbeddings.get(span)
     const pool = buildSpanCandidatePool(matchSpan, catalog, {
         ...(embedResult.success ? { spanEmbedding: embedResult.embedding } : {}),
         ...(structure !== undefined ? { structure } : {}),

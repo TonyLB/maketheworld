@@ -1,6 +1,6 @@
 # Span embeddings cache (`internalCache.SpanEmbeddings`)
 
-**Status:** Slice 1 shipped (handler, wired into `InternalCache`; nothing calls it yet). Next: Slice 2 (route Identify through it).
+**Status:** Slices 1--2 shipped (handler; Identify reads through it, sequentially). Next: Slice 3 (concurrent Identify).
 
 Skim [`taskPlanning/AGENT.md`](../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and the Recommended order checkbox conventions.
 
@@ -54,7 +54,7 @@ Plan-only: decisions made in order to implement the slices below. Do not copy in
 | Slice | State |
 | --- | --- |
 | 1. `SpanEmbeddings` handler + `InternalCache` wiring | Shipped. Also split `normalizeExitName` into a leaf module (import cycle, see Slice 1 note). |
-| 2. Identify reads through the handler; `spanEmbedCache.ts` deleted | |
+| 2. Identify reads through the handler; `spanEmbedCache.ts` deleted | Shipped. The emptied deps types and `deps` parameters were deleted outright (not left as `{}`); dedupe tests moved to the handler suite. |
 | 3. Concurrent Identify + payoff test | |
 | 4. Durable docs; plan deleted | |
 
@@ -68,15 +68,16 @@ Mark pending items `[ ]` and completed items `[X]`; mark each nested line `[X]` 
     - [X] Wire `SpanEmbeddings` onto `InternalCache`, into `clear()` and `flush()`.
     - [X] Unit tests (`spanEmbeddings/index.test.ts`): `cup` / `the cup` / `  The  Cup ` -> one embedder call, called with `cup`; two concurrent `get`s before either resolves -> one call, both resolve to its result; `{ success: false }` memoized; a throwing embedder resolves `{ success: false }` for every concurrent awaiter (no hang); empty / article-only span (`the`) behaves as `peelLeadingArticleWhenTail` + `embedObjectSpan` do today; `clear()` forgets.
     - [X] Import cycle found and fixed at the source: `impromptuEmbeddingNeedsRefresh.ts` and `spanMatchForms.ts` imported `normalizeExitName` from `roomExitTargetsForCharacter.ts`, which imports `internalCache`, so any module loaded from the handler first re-entered `internalCache` half-built. `normalizeExitName` now lives in leaf `dataSource/actions/normalizeExitName.ts` (re-exported from `roomExitTargetsForCharacter`, so other importers are untouched). Keep the handler's imports free of `internalCache`.
-- [ ] **Slice 2 --- route Identify through it.**
-    - [ ] `resolveCatalogSpanToPool`: drop the peel before the embed call (the handler peels); keep the peeled `matchSpan` for `buildSpanCandidatePool` (lexical channel unchanged).
-    - [ ] `resolveCatalogSpanToPool` and `resolveObjectSpanByEmbedding` call `internalCache.SpanEmbeddings.get` directly.
-    - [ ] Remove `embedSpan` / `spanEmbedCache` from the four deps types and the pass-throughs in `parseCommand`, `compileAttemptsFromSkeleton`, `identifySkeletonSpans` and `identityStage` (SE-4). Drop the `identifySkeletonSpans` doc comment's "`embedSpan` sees the same calls in the same order" or restate it against `SpanEmbeddings.get`.
-    - [ ] Delete `spanEmbedCache.ts`.
-    - [ ] Migrate the tests that inject `embedSpan` to a module mock of `internalCache` (SE-4): `parseCommand.test.ts`, `identityStage.test.ts`, `identifySkeletonSpans.test.ts`, `resolveCatalogSpanToPool.test.ts`, `resolveObjectSpanByEmbedding.test.ts`, `compileAttemptsFromSkeleton.{fills,transfer,relational}.test.ts`, `skeletonMatcher.characterization.test.ts`, `phraseCoveragePayoff.integration.test.ts`. Most inject one constant result per test, so the change is mechanical. Two kinds of assertion change meaning:
-        - [ ] Call arguments: `get` now receives the span **as given**, since the handler peels. `toHaveBeenCalledWith('brooms')` becomes the raw span.
-        - [ ] Dedupe (`identityStage.test.ts` "1 call", the `resolveObjectSpanByEmbedding` cache tests): dedupe is now the handler's job, so these move into `spanEmbeddings/index.test.ts`. They are not rewritten against a mocked `get`, which cannot dedupe.
-    - [ ] Tests that already mock `internalCache` and can reach Identify: `actions/index.test.ts` (automock: `get` returns `undefined`), `roomExitAmbiguousMatch.regression.test.ts` and `commitAttempt.test.ts` (factory mocks without `SpanEmbeddings`). Give each a `SpanEmbeddings.get` resolving `{ success: false }` if the suite shows it reaches a non-exact span.
+- [X] **Slice 2 --- route Identify through it.**
+    - [X] `resolveCatalogSpanToPool`: drop the peel before the embed call (the handler peels); keep the peeled `matchSpan` for `buildSpanCandidatePool` (lexical channel unchanged).
+    - [X] `resolveCatalogSpanToPool` and `resolveObjectSpanByEmbedding` call `internalCache.SpanEmbeddings.get` directly.
+    - [X] Remove `embedSpan` / `spanEmbedCache` from the four deps types and the pass-throughs (the types and `deps` parameters left empty were deleted: `ResolveCatalogSpanToPoolDeps`, `IdentityStageDeps`, `ResolveObjectSpanByEmbeddingDeps`; `structure` is now `resolveCatalogSpanToPool`'s third parameter) in `parseCommand`, `compileAttemptsFromSkeleton`, `identifySkeletonSpans` and `identityStage` (SE-4). Drop the `identifySkeletonSpans` doc comment's "`embedSpan` sees the same calls in the same order" or restate it against `SpanEmbeddings.get`.
+    - [X] Delete `spanEmbedCache.ts`.
+    - [X] Migrate the tests that inject `embedSpan` to a module mock of `internalCache` (SE-4): `parseCommand.test.ts`, `identityStage.test.ts`, `identifySkeletonSpans.test.ts`, `resolveCatalogSpanToPool.test.ts`, `resolveObjectSpanByEmbedding.test.ts`, `compileAttemptsFromSkeleton.{fills,transfer,relational}.test.ts`, `skeletonMatcher.characterization.test.ts`, `phraseCoveragePayoff.integration.test.ts`. Most inject one constant result per test, so the change is mechanical. Two kinds of assertion change meaning:
+        - [X] Call arguments: `get` now receives the span **as given**, since the handler peels. `toHaveBeenCalledWith('brooms')` becomes the raw span.
+        - [X] Dedupe (`identityStage.test.ts` "1 call", the `resolveObjectSpanByEmbedding` cache tests): dedupe is now the handler's job, so these move into `spanEmbeddings/index.test.ts`. They are not rewritten against a mocked `get`, which cannot dedupe.
+    - [X] Tests that already mock `internalCache` and can reach Identify: `actions/index.test.ts` (automock: `get` returns `undefined`), `roomExitAmbiguousMatch.regression.test.ts` and `commitAttempt.test.ts` (factory mocks without `SpanEmbeddings`). Give each a `SpanEmbeddings.get` resolving `{ success: false }` if the suite shows it reaches a non-exact span.
+    - [X] Characterization snapshots keep their `stubCalls.embedSpan` count, now the number of distinct `spanEmbeddingKey`s among `get` calls (the Bedrock calls the handler would make); `phraseCoveragePayoff.integration.test.ts` uses the real `internalCache`, so it `jest.spyOn`s `SpanEmbeddings.get` instead of module-mocking. `actions/index.test.ts` and `roomExitAmbiguousMatch.regression.test.ts` needed no change.
 - [ ] **Slice 3 --- concurrent Identify.**
     - [ ] `runIdentityStage`: map spans to `resolveCatalogSpanToPool(...)` promises, `Promise.all`, return the first error by input index (SE-6), else pools in input order.
     - [ ] **Payoff test** (terminates at the observable: Bedrock calls in flight). Through `compileAttemptsFromSkeleton`, or `parseCommand` if the fixture is cheap, with a multi-span command. The `internalCache` mock's `SpanEmbeddings` is a **real** `SpanEmbeddingsCache` (`jest.requireActual`), and its `./embedObjectSpan` module is mocked so each call's promise is held open. Assert that every distinct non-exact span's embed has **started** before any is released, that `cup` / `the cup` across fills make one call, and that releasing them gives the same result as the sequential baseline.
